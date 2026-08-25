@@ -1,0 +1,7 @@
+rules:
+- text-wrap-balance-*: [text-wrap-balance]
+- text-wrap-nowrap-*: [text-wrap]
+- seg-break-transformation-*: []
+- white-space-collapse-*: [white-space-collapse]
+- line-edge-white-space-collapse-*: [white-space-collapse]
+- "*": [white-space]

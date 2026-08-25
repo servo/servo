@@ -1,0 +1,25 @@
+<!doctype html>
+<meta http-equiv="content-security-policy" content="img-src 'self'">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<video></video>
+<img></img>
+<script>
+  // This test sets up a cross-origin image URL for the video poster
+  // and verifies that the poster image is not shown.
+  // It also uses a separate image load to control when to end the test,
+  // since Servo doesn't fire any event handler if a poster image has an
+  // error (https://github.com/whatwg/html/issues/8445).
+  async_test(t => {
+      const pathparts = location.pathname.split('/');
+      const testfile = pathparts[pathparts.length - 1];
+      const url = location.href.replace(location.hostname, "{{hosts[alt][]}}").replace(testfile, "poster.png");
+      let img = document.querySelector("img");
+      img.src = url;
+      img.onload = t.unreached_func();
+      img.onerror = t.step_timeout(() => t.done(), 500);
+      let video = document.querySelector("video");
+      video.onpostershown = t.unreached_func();
+      video.poster = url;
+  });
+</script>

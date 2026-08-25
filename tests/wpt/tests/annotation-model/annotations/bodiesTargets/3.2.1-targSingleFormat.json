@@ -1,0 +1,38 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "3.2.1-targSingleFormat.json",
+    "assertionType": "should",
+    "expectedResult": "valid",
+    "onUnexpectedResult" : "passAndContinue",
+    "errorMessage": "The description of a Target should include format key with a single value that is a media type.",
+    "title": "Implements **target _format_ key** with a **single value** that is a **media type** [model 3.2.1](https://www.w3.org/TR/annotation-model/#bodies-and-targets)",
+    "description": "True when Annotation includes one or more targets, one or more of which include single format key with a media type as value. (Section 3.2.1)",
+    "type": "object",
+    "properties":
+    {
+        "target":
+        {
+           "oneOf": [
+                      { "anyOf": [
+                        { "$ref": "bodyTarget.json#/definitions/singleFormatPropertyFound" },
+                        { "$ref": "bodyTarget.json#/definitions/itemSingleFormatPropertyFound" },
+                        { "$ref": "bodyTarget.json#/definitions/sourceSingleFormatPropertyFound" }
+                        ]
+                      },
+                       { "not":
+                         { "items":
+                            { "not":
+                               { "anyOf": [
+                                  { "$ref": "bodyTarget.json#/definitions/singleFormatPropertyFound" },
+                                  { "$ref": "bodyTarget.json#/definitions/itemSingleFormatPropertyFound" },
+                                  { "$ref": "bodyTarget.json#/definitions/sourceSingleFormatPropertyFound" }
+                                 ]
+                               }
+                             }
+                         }
+                       }
+                     ]
+         }
+     },
+     "required": [ "target" ]
+}

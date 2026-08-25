@@ -1,0 +1,46 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  table
+  {
+  border: black solid 5px;
+  border-collapse: separate;
+  border-spacing: 0px;
+  padding: 9px;
+  }
+
+  img {vertical-align: top;}
+
+  td.left-column {padding-right: 10px;}
+
+  td.right-column {padding-left: 10px;}
+
+  td.top-row {padding-bottom: 10px;}
+
+  td.bottom-row {padding-top: 10px;}
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is twice as much space between the blue squares as there is between the blue squares and the black container edge.</p>
+
+  <table>
+
+    <tr><td class="left-column top-row"><img src="support/swatch-blue.png" width="96" height="96" alt="Image download support must be enabled" /></td><td class="right-column top-row"><img src="support/swatch-blue.png" width="96" height="96" alt="Image download support must be enabled" /></td></tr>
+
+    <tr><td class="left-column bottom-row"><img src="support/swatch-blue.png" width="96" height="96" alt="Image download support must be enabled" /></td><td class="right-column bottom-row"><img src="support/swatch-blue.png" width="96" height="96" alt="Image download support must be enabled" /></td></tr>
+
+  </table>
+
+ </body>
+</html>

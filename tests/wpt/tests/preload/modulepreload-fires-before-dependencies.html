@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>link rel=modulepreload fires its event when the top-level module is fetched, before dependencies</title>
+<meta name="timeout" content="long">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/links.html#link-type-modulepreload">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="./resources/preload-module-helper.js"></script>
+<body>
+<script>
+// Per the "modulepreload" link type: "the appropriate load or error events will
+// occur after the specified module is fetched, and will not wait for any
+// dependencies." These tests give the top-level module a dependency that the
+// server holds open until the test releases it, and only release it after the
+// modulepreload event has fired, so the event is observed strictly before the
+// dependency completes. An implementation that waits for dependencies never
+// fires and fails by timing out. Covers the three top-level states: still
+// fetching, already fetched, and already fetched with a syntax error.
+
+// Case 1: the top-level module is still fetching (a concurrent import() of the
+// same URL is in flight) when the preload is added.
+promise_test(async t => {
+  const depUuid = token();
+  const topUuid = token();
+  const dep = moduleUrl({ block: 1, uuid: depUuid });
+  // The top-level blocks as well, so that it is unambiguously still fetching
+  // when the preload is added below.
+  const url = moduleUrl({ block: 1, import: dep, uuid: topUuid });
+
+  const importPromise = import(url).catch(() => {});
+
+  // import() has put the URL in the module map as fetching, so this preload can
+  // only be satisfied by that in-flight fetch.
+  const link = makeModulePreload(url);
+  const done = eventFor(link);
+  document.head.appendChild(link);
+
+  await release(topUuid);
+  const event = await done;
+
+  assert_false(hasResourceLoaded(dep),
+      "the dependency was still outstanding when the event fired");
+  await release(depUuid);
+  assert_equals(event, "load");
+  await importPromise;
+}, "still-fetching top-level fires load before its dependencies");
+
+// Case 2: the top-level module is already fetched when the preload is added,
+// while its dependency is still outstanding.
+promise_test(async t => {
+  const depUuid = token();
+  const topUuid = token();
+  const dep = moduleUrl({ block: 1, uuid: depUuid });
+  const url = moduleUrl({ import: dep, uuid: topUuid });
+
+  const importPromise = import(url).catch(() => {});
+  // Once the top-level's response has been received it is in the module map as
+  // fetched, and its dependency is what is still outstanding.
+  await resourceLoaded(url);
+
+  const link = makeModulePreload(url);
+  const done = eventFor(link);
+  document.head.appendChild(link);
+
+  const event = await done;
+
+  assert_false(hasResourceLoaded(dep),
+      "the dependency was still outstanding when the event fired");
+  await release(depUuid);
+  assert_equals(event, "load");
+  await importPromise;
+}, "already-fetched top-level fires load before its dependencies");
+
+// Case 3: the top-level module is already fetched but has a syntax error. A
+// parse error still produces a module script, so the preload fires load; there
+// are no dependencies to wait for.
+promise_test(async t => {
+  const url = moduleUrl({ syntaxerror: 1, uuid: token() });
+  await import(url).then(
+      () => assert_unreached("import of a syntax-error module should reject"),
+      () => {});
+
+  const link = makeModulePreload(url);
+  const done = eventFor(link);
+  document.head.appendChild(link);
+  assert_equals(await done, "load",
+      "already-fetched syntax-error top-level fires load");
+}, "already-fetched syntax-error top-level fires load");
+</script>
+</body>

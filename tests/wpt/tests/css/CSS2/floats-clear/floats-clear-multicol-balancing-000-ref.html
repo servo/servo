@@ -1,0 +1,36 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<title>CSS Float Test Reference: Test the clear position after the floating elements breaking across multi-columns</title>
+<link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="http://www.mozilla.org/">
+
+<style type="text/css">
+.multicol {
+  margin: 1em;
+  border: solid silver;
+  width: 300px;
+  column-width: 100px;
+  column-gap: 0;
+  height: 100px;
+}
+
+.container {
+  border: 15px aqua;
+  border-style: none solid;
+  height: 250px;
+}
+.clear {
+  border-bottom: 5px solid orange;
+  background: red;
+}
+</style>
+
+<p>The orange line should be in the third column
+(immediately after the end of the aqua lines).
+
+<div class="multicol">
+  <div class="container">
+  </div>
+  <div class="clear">
+  </div>
+</div>

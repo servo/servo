@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<meta charset="utf-8">
+<title>Animated stroke-dashoffset crossing zero with odd-length stroke-dasharray</title>
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/painting.html#StrokeDashing">
+<link rel="match" href="animated-dashoffset-odd-dasharray-ref.html">
+<meta name="assert" content="Animating stroke-dashoffset from negative to positive with an odd-length stroke-dasharray should not produce a visual jump at the zero crossing. Each row shows an animation paused at evenly spaced offsets from -10 to +10; the progression should be smooth.">
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="250">
+    <!-- Row 1: dasharray="60" (odd), offsets stepping from -10 to +10 -->
+    <path id="a1" d="M20,20 L580,20" stroke="black" stroke-width="6" fill="none" stroke-dasharray="60"/>
+    <path id="a2" d="M20,40 L580,40" stroke="black" stroke-width="6" fill="none" stroke-dasharray="60"/>
+    <path id="a3" d="M20,60 L580,60" stroke="black" stroke-width="6" fill="none" stroke-dasharray="60"/>
+    <path id="a4" d="M20,80 L580,80" stroke="black" stroke-width="6" fill="none" stroke-dasharray="60"/>
+    <path id="a5" d="M20,100 L580,100" stroke="black" stroke-width="6" fill="none" stroke-dasharray="60"/>
+
+    <!-- Row 2: dasharray="40 20 10" (odd), offsets stepping from -10 to +10 -->
+    <path id="b1" d="M20,140 L580,140" stroke="black" stroke-width="6" fill="none" stroke-dasharray="40 20 10"/>
+    <path id="b2" d="M20,160 L580,160" stroke="black" stroke-width="6" fill="none" stroke-dasharray="40 20 10"/>
+    <path id="b3" d="M20,180 L580,180" stroke="black" stroke-width="6" fill="none" stroke-dasharray="40 20 10"/>
+    <path id="b4" d="M20,200 L580,200" stroke="black" stroke-width="6" fill="none" stroke-dasharray="40 20 10"/>
+    <path id="b5" d="M20,220 L580,220" stroke="black" stroke-width="6" fill="none" stroke-dasharray="40 20 10"/>
+</svg>
+<script>
+window.onload = () => {
+    requestAnimationFrame(() => {
+        const offsets = [-10, -5, 0, 5, 10];
+        const groups = [
+            { ids: ['a1','a2','a3','a4','a5'], from: -60, to: 60 },
+            { ids: ['b1','b2','b3','b4','b5'], from: -60, to: 60 },
+        ];
+
+        for (const { ids, from, to } of groups) {
+            const range = to - from;
+            ids.forEach((id, i) => {
+                const el = document.getElementById(id);
+                const anim = el.animate(
+                    [{ strokeDashoffset: from + 'px' }, { strokeDashoffset: to + 'px' }],
+                    { duration: 1000, fill: 'forwards' }
+                );
+                anim.pause();
+                anim.currentTime = ((offsets[i] - from) / range) * 1000;
+            });
+        }
+
+        requestAnimationFrame(() => {
+            document.documentElement.removeAttribute('class');
+        });
+    });
+};
+</script>
+</body>
+</html>

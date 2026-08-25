@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>::backdrop for a fullscreen object element</title>
+<link rel=match href="backdrop-object-ref.html">
+<link rel=help href="https://github.com/w3c/csswg-drafts/issues/6939">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+object::backdrop {
+  background: blue;
+}
+object {
+  object-position: 0 0;
+}
+</style>
+<object width="200" type="image/svg+xml"></object>
+
+<script>
+const object = document.querySelector("object");
+
+document.addEventListener("fullscreenchange", async () => {
+  // Await fullscreen animation. It seems to always be done within 3 frames.
+  await new Promise(requestAnimationFrame);
+  await new Promise(requestAnimationFrame);
+  await new Promise(requestAnimationFrame);
+  document.documentElement.classList.remove('reftest-wait');
+});
+
+object.onload = () => test_driver.bless('fullscreen', () => object.requestFullscreen());
+object.data = "/images/100px-green-rect.svg";
+</script>

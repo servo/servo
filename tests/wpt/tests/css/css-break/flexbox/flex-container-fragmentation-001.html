@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>
+  Flex container fragmentation (with no items).
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<style>
+  .multicol {
+    background: red;
+    column-count: 4;
+    column-gap: 0px;
+    height: 100px;
+    width: 100px;
+  }
+  .flex {
+    background: green;
+    border: 3px solid green;
+    display: flex;
+    padding: 5px;
+    width: 9px;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="multicol">
+  <div class="flex" style="height: 134px;"></div>
+  <div class="flex" style="height: 234px;"></div>
+</div>

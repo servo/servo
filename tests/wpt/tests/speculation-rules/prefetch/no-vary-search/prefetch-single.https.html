@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<title>Prefetched response including No-Vary-Search headers is used during navigation</title>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../../resources/utils.js"></script>
+<script src="../resources/utils.sub.js"></script>
+<script src="/common/subset-tests.js"></script>
+<script src="test-utils.js"></script>
+<script src="test-inputs.js"></script>
+
+<meta name="variant" content="?1-1">
+<meta name="variant" content="?2-2">
+<meta name="variant" content="?3-3">
+<meta name="variant" content="?4-4">
+<meta name="variant" content="?5-5">
+<meta name="variant" content="?6-6">
+<meta name="variant" content="?7-7">
+<meta name="variant" content="?8-8">
+<meta name="variant" content="?9-9">
+<meta name="variant" content="?10-10">
+<meta name="variant" content="?11-11">
+<meta name="variant" content="?12-12">
+<meta name="variant" content="?13-13">
+<meta name="variant" content="?14-14">
+<meta name="variant" content="?15-15">
+<meta name="variant" content="?16-16">
+<meta name="variant" content="?17-17">
+<meta name="variant" content="?18-18">
+<meta name="variant" content="?19-19">
+<meta name="variant" content="?20-20">
+<meta name="variant" content="?21-21">
+<meta name="variant" content="?22-22">
+<meta name="variant" content="?23-23">
+<meta name="variant" content="?24-24">
+<meta name="variant" content="?25-25">
+<meta name="variant" content="?26-26">
+<meta name="variant" content="?27-27">
+<meta name="variant" content="?28-28">
+<meta name="variant" content="?29-29">
+<meta name="variant" content="?30-last">
+
+<script>
+  setup(() => assertSpeculationRulesIsSupported());
+
+  /*
+    remoteAgent: the RemoteContext instance used to communicate between the
+      test and the window where prefetch/navigation is happening
+    noVarySearchHeaderValue: the value of No-Vary-Search header to be populated
+      for the prefetched response
+    prefetchQuery: query params to be added to prefetchExecutor url and prefetched
+    navigateQuery: query params to be added to prefetchExecutor url and navigated to
+  */
+  async function prefetchAndNavigate(remoteAgent, noVarySearchHeaderValue, prefetchQuery, navigateQuery){
+    const nextUrl = remoteAgent.getExecutorURL();
+    const navigateToUrl = new URL(nextUrl);
+    // Add query params to the url to be prefetched.
+    const additionalPrefetchedUrlSearchParams = new URLSearchParams(prefetchQuery);
+    addNoVarySearchHeaderUsingPipe(additionalPrefetchedUrlSearchParams, noVarySearchHeaderValue);
+    additionalPrefetchedUrlSearchParams.forEach((value, key) => {
+      nextUrl.searchParams.append(key, value);
+    });
+
+    await remoteAgent.forceSinglePrefetch(nextUrl);
+
+    // Add new query params to navigateToUrl to match No-Vary-Search test case.
+    const additionalNavigateToUrlSearchParams = new URLSearchParams(navigateQuery);
+    addNoVarySearchHeaderUsingPipe(additionalNavigateToUrlSearchParams, noVarySearchHeaderValue);
+    additionalNavigateToUrlSearchParams.forEach((value, key) => {
+      navigateToUrl.searchParams.append(key, value);
+    });
+    await remoteAgent.navigate(navigateToUrl);
+  }
+
+  function prefetch_no_vary_search_test(description, noVarySearch, prefetchQuery, navigateQuery, shouldUse){
+    promise_test(async t => {
+      const agent = await spawnWindow(t, {});
+      await prefetchAndNavigate(agent,
+        noVarySearch,
+        prefetchQuery,
+        navigateQuery);
+
+      if(shouldUse){
+        assert_prefetched(await agent.getRequestHeaders(),
+          "Navigation didn't use the prefetched response!");
+      }
+      else{
+        assert_not_prefetched(await agent.getRequestHeaders(),
+          "Navigation used the prefetched response!");
+      }
+     }, description);
+  }
+
+  test_inputs.forEach(({description, noVarySearch, prefetchQuery, navigateQuery, shouldUse}) => {
+    subsetTest(prefetch_no_vary_search_test,
+      description, noVarySearch, prefetchQuery, navigateQuery,
+      shouldUse);
+  });
+
+</script>

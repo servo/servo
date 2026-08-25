@@ -1,0 +1,36 @@
+<!doctype html>
+<title>pagehide event properties</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+var t = async_test();
+
+onload = function() {setTimeout(function() {
+  var iframe = document.getElementsByTagName("iframe")[0]
+
+  iframe.onload = function() {
+                    setTimeout(function() {
+                                 iframe.contentWindow.location="001-2.html";
+                               }, 100);
+                    iframe.onload = t.step_func(function() {t.done()});
+                  };
+
+  function do_test(e) {
+    assert_equals(e.type, "pagehide");
+    assert_equals(e.target, iframe.contentDocument);
+    assert_equals(e.currentTarget, iframe.contentWindow);
+
+    // https://github.com/whatwg/html/issues/6794
+    assert_true(e.bubbles, "bubbles");
+    assert_true(e.cancelable, "cancelable");
+
+    assert_true(e.persisted, "persisted");
+  }
+
+  iframe.src = "002-1.html?" + Math.random();
+
+}, 100)};
+
+</script>
+<iframe></iframe>

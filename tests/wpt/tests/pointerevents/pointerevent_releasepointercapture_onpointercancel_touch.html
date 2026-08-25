@@ -1,0 +1,87 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Release capture on pointercancel</title>
+        <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/resources/testdriver.js"></script>
+        <script src="/resources/testdriver-actions.js"></script>
+        <script src="/resources/testdriver-vendor.js"></script>
+        <script src="pointerevent_support.js"></script>
+    </head>
+    <body class="scrollable">
+        <h1>Pointer Events Capture Test - release capture on pointercancel</h1>
+        <h4>
+            Test Description: This test checks if setCapture/releaseCapture functions works properly. Complete the following actions:
+            <ol>
+                <li> Touch black rectangle and do not release your touch
+                <li> Move your touch to scroll the page. "lostpointercapture" should be logged inside of the black rectangle immediately after "pointercancel"
+            </ol>
+        </h4>
+        Test passes if the proper behavior of the events is observed.
+        <div id="target0" style="background:black; color:white"></div>
+
+        <script type='text/javascript'>
+            var pointercancelGot = false;
+            var count=0;
+            var event_log = [];
+            var detected_pointertypes = {};
+            var test_pointerEvent = async_test("pointer capture is released on pointercancel");
+
+            var target0 = document.getElementById('target0');
+            var actions_promise;
+
+            add_completion_callback(end_of_test);
+            function end_of_test() {
+                showLoggedEvents();
+                showPointerTypes();
+            }
+
+            window.onload = function() {
+                on_event(target0, 'pointerdown', function(e) {
+                    detected_pointertypes[e.pointerType] = true;
+                    test_pointerEvent.step(function () {
+                        assert_equals(e.pointerType, "touch", "Test should be run using a touch as input");
+                    });
+                    isPointerCapture = true;
+                    sPointerCapture(e);
+                    pointercancelGot = false;
+                });
+
+                on_event(target0, 'gotpointercapture', function(e) {
+                    event_log.push('gotpointercapture@target0');
+                });
+
+                // If the setPointerCapture method has been invoked on the pointer specified by pointerId, and the releasePointerCapture method has not been invoked, a lostpointercapture event must be dispatched to the element on which the setPointerCapture method was invoked. Furthermore, subsequent events for the specified pointer must follow normal hit testing mechanisms for determining the event target.
+                // TA: 4.4
+                on_event(target0, 'lostpointercapture', function(e) {
+                    event_log.push('lostpointercapture@target0');
+                    test_pointerEvent.step(function () {
+                        assert_true(pointercancelGot, "pointercancel was received before lostpointercapture");
+                    });
+                    // Make sure the test finishes after all the input actions are completed.
+                    actions_promise.then( () => {
+                        test_pointerEvent.done();
+                    });
+                });
+
+                on_event(target0, 'pointercancel', function(e) {
+                    event_log.push('pointercancel@target0');
+                    pointercancelGot = true;
+                });
+
+                // Inject touch inputs.
+                actions_promise = touchScrollInTarget(target0, 'down');
+            }
+        </script>
+        <h1>Pointer Events Capture Test</h1>
+        <div id="complete-notice">
+            <p>Test complete: Scroll to Summary to view Pass/Fail Results.</p>
+            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+            <p>The following events were logged: <span id="event-log"></span>.</p>
+        </div>
+        <div id="log"></div>
+    </body>
+</html>

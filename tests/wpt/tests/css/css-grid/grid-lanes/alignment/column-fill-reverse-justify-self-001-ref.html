@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    html, body {
+      font: 16px/1 monospace;
+      background: white;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, 80px);
+      border: 1px solid blue;
+      gap: 4px;
+      width: min-content;
+      height: 180px;
+      align-content: end;
+    }
+
+    item {
+      display: block;
+      width: min-content;
+      height: 28px;
+      color: white;
+      background: #555;
+    }
+  </style>
+</head>
+<body>
+  <p>justify-self</p>
+  <div class="grid">
+    <item style="height: min-content; justify-self: last baseline; grid-row: 1; grid-column: 2; writing-mode: vertical-rl;">item with some extra</item>
+    <item style="justify-self: center; grid-row: 2; grid-column: 1;">center</item>
+    <item style="justify-self: last baseline; grid-row: 2; grid-column: 2; writing-mode: vertical-rl;">baseline</item>
+    <item style="justify-self: start; grid-row: 3; grid-column: 1;">start</item>
+    <item style="justify-self: end; grid-row: 3; grid-column: 2;">end</item>
+  </div>
+</body>
+</html>

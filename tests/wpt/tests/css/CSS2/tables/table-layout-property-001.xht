@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: A table doesn't size to fit its container when margins are zero and width is 'auto'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#width-layout" />
+        <meta name="assert" content="When table margins are zero and width is 'auto', the table doesn't automatically size to fill its containing block ." />
+        <style type="text/css">
+            div
+            {
+                background: blue;
+                width: 300px;
+            }
+            table
+            {
+                background: black;
+                margin: 0;
+                width: auto;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a black box below is adjacent to a blue box.</p>
+        <div>
+            <table>
+                <tr>
+                    <td>Filler Text Filler Text</td>
+                </tr>
+             </table>
+          </div>
+    </body>
+ </html>

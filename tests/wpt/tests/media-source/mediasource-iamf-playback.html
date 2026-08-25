@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<title>IAMF MSE audio playback advances currentTime</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+<script>
+promise_test(async t => {
+  const type = 'audio/mp4; codecs="iamf.000.000.opus"';
+  const supported = MediaSource.isTypeSupported(type);
+  assert_implements_optional(supported, type + ' unsupported');
+
+  const audio_element = document.createElement('audio');
+  document.body.appendChild(audio_element);
+  t.add_cleanup(() => audio_element.remove());
+  const mediaSource = new MediaSource();
+  const url = URL.createObjectURL(mediaSource);
+  t.add_cleanup(() => URL.revokeObjectURL(url));
+  audio_element.src = url;
+  await new Promise(resolve => mediaSource.addEventListener('sourceopen', resolve, { once: true }));
+
+  const sourceBuffer = mediaSource.addSourceBuffer(type);
+  const response = await fetch('/media/iamf_alternating_sine_waves_stereo.mp4');
+  assert_true(response.ok);
+  const buffer = await response.arrayBuffer();
+
+  sourceBuffer.appendBuffer(buffer);
+  await new Promise((resolve, reject) => {
+    sourceBuffer.addEventListener('updateend', resolve, { once: true });
+    sourceBuffer.addEventListener('error', reject, { once: true });
+  });
+  assert_true(mediaSource.readyState === 'open', type + ' unsupported by media pipeline');
+  mediaSource.endOfStream();
+
+  await new Promise((resolve, reject) => {
+    const onTimeUpdate = () => {
+      if (audio_element.currentTime > 0) {
+        cleanup();
+        resolve();
+      }
+    };
+    const onEnded = () => {
+      cleanup();
+      if (audio_element.currentTime > 0) {
+        resolve();
+      } else {
+        reject(new Error('Playback ended without advancing currentTime'));
+      }
+    };
+    const onError = () => {
+      cleanup();
+      reject(new Error('Audio decoding failed'));
+    };
+    const cleanup = () => {
+      audio_element.removeEventListener('timeupdate', onTimeUpdate);
+      audio_element.removeEventListener('ended', onEnded);
+      audio_element.removeEventListener('error', onError);
+    };
+    audio_element.addEventListener('timeupdate', onTimeUpdate);
+    audio_element.addEventListener('ended', onEnded);
+    audio_element.addEventListener('error', onError);
+    test_driver.bless('Play audio element', () => audio_element.play()).catch(e => {
+      cleanup();
+      reject(e);
+    });
+  });
+}, 'IAMF MSE audio playback advances currentTime');
+</script>
+</body>

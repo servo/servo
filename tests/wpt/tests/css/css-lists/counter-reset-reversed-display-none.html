@@ -1,0 +1,26 @@
+<!doctype html>
+<title>CSS Lists: reversed() with display: none and visibility: hidden</title>
+<link rel="help" href="https://drafts.csswg.org/css-lists/#counter-reset">
+<link rel="help" href="https://drafts.csswg.org/css-lists/#counters-without-boxes">
+<link rel="author" title="Minseong Kim" href="mailto:jja08111@gmail.com">
+<link rel="match" href="counter-reset-reversed-display-none-ref.html">
+<style>
+.counter-use {
+  counter-increment: foo -1;
+}
+.counter-use::before {
+  content: counter(foo);
+}
+.none {
+  display: none;
+}
+.hidden {
+  visibility: hidden;
+}
+</style>
+<div style="counter-reset: reversed(foo)">
+  <div class="counter-use"></div>
+  <div class="counter-use hidden"></div>
+  <div class="counter-use none"></div>
+  <div class="counter-use"></div>
+</div>

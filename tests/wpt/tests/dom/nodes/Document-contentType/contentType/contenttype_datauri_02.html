@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>Data URI document.contentType === 'text/html' when data URI MIME type is set</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+async_test(function() {
+  var iframe = document.createElement('iframe');
+  self.onmessage = this.step_func_done(e => {
+    assert_equals(e.data, "text/html");
+  });
+  iframe.src = "data:text/html;charset=utf-8,<!DOCTYPE html><script>parent.postMessage(document.contentType,'*')<\/script>";
+  document.body.appendChild(iframe);
+});
+</script>

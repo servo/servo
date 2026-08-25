@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta name="assert" content="There should be no hairline along the edges of clip-path bounding box">
+<link rel="match" href="subpixel-clip-path-transform-ref.html">
+<style>body { margin: 0 }</style>
+<svg style="background: green" width="200" height="200" viewBox="0 0 150 150">
+  <defs>
+    <clipPath id="clip">
+      <polygon points="130,5.4 132,5.4 132,132 5.4,132 5.4,130 130,130">
+    </clipPath>
+  </defs>
+  <rect style="will-change: transform; clip-path: url(#clip)" fill="red" x="0" y="0" width="200" height="200">
+</svg>
+<!-- cover the non-interesting part which is difficult to match a ref.
+     Overflow clip doesn't work to reproduce the issue. -->
+<div style="position: absolute; background: white; left: 100px; top: 0; width: 100px; height: 200px"></div>
+<div style="position: absolute; background: white; left: 0; top: 100px; width: 200px; height: 100px"></div>

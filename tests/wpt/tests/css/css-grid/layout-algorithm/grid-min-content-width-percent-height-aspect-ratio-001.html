@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#algo-track-sizing">
+<link rel="match" href="../../reference/ref-filled-green-100px-square-only.html">
+<p>Test passes if there is a filled green square.</p>
+<div style="width: 400px;">
+  <div style="display: grid; width: min-content; background: green; height: 100px; grid-template-rows: 50px;">
+    <div style="height: 100%;">
+      <canvas width="20" height="10" style="height: 100%;"></canvas>
+    </div>
+  </div>
+</div>

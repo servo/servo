@@ -1,0 +1,63 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use dom_struct::dom_struct;
+use html5ever::{LocalName, Prefix};
+use js::context::JSContext;
+use js::rust::HandleObject;
+
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::document::Document;
+use crate::dom::html::htmlelement::HTMLElement;
+use crate::dom::node::virtualmethods::VirtualMethods;
+use crate::dom::node::{BindContext, Node};
+use crate::dom::userscripts::load_script;
+
+#[dom_struct]
+pub(crate) struct HTMLHeadElement {
+    htmlelement: HTMLElement,
+}
+
+impl HTMLHeadElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLHeadElement {
+        HTMLHeadElement {
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
+        }
+    }
+
+    pub(crate) fn new(
+        cx: &mut js::context::JSContext,
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+        proto: Option<HandleObject>,
+    ) -> DomRoot<HTMLHeadElement> {
+        let n = Node::reflect_node_with_proto(
+            cx,
+            Box::new(HTMLHeadElement::new_inherited(local_name, prefix, document)),
+            document,
+            proto,
+        );
+
+        n.upcast::<Node>().set_weird_parser_insertion_mode();
+        n
+    }
+}
+
+impl VirtualMethods for HTMLHeadElement {
+    fn super_type(&self) -> Option<&dyn VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
+    }
+    fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
+        if let Some(s) = self.super_type() {
+            s.bind_to_tree(cx, context);
+        }
+        load_script(self);
+    }
+}

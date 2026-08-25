@@ -1,0 +1,59 @@
+WEBVTT FILE
+
+REGION
+id:region_without_settings
+
+REGION
+id:region_with_all_settings width:32%
+lines:5
+regionanchor:41%,20% viewportanchor:31%,84%
+scroll:up
+
+REGION
+id:region_floating_point_anchor
+regionanchor:41.125%,20.25% viewportanchor:32.75%,32.5%
+
+REGION
+id:not_unique_id width:42%
+
+REGION
+id:not_unique_id
+width:67%
+
+REGION
+invalid_settings values but region still created
+: Invalid Header
+
+REGION
+id:region_split_by_ascii_whitespace			width:10%
+lines:5regionanchor:40%,20%    viewportanchor:30%,80% 	scroll:up
+
+00:00:00.000 --> 00:00:02.500 region:someregionattributeid
+"no region"
+
+00:00:00.000 --> 00:00:02.500 line:5 region:ignored_attribute_value
+"no region"
+
+00:00:00.000 --> 00:00:02.500 size:10% region:ignored_attribute_value
+"no region"
+
+00:00:00.000 --> 00:00:02.500 vertical:lr region:ignored_attribute_value
+"no region"
+
+00:00:03.000 --> 00:00:04.000 region:region_without_settings
+{}
+
+00:00:04.000 --> 00:00:05.000 region:region_with_all_settings
+{"width":32,"lines":5,"regionAnchorX":41,"regionAnchorY":20,"viewportAnchorX":31,"viewportAnchorY":84,"scroll":"up"}
+
+00:00:05.000 --> 00:00:06.000 region:region_floating_point_anchor
+{"regionAnchorX":41.125,"regionAnchorY":20.25,"viewportAnchorX":32.75,"viewportAnchorY":32.5}
+
+00:00:06.000 --> 00:00:07.000 region:not_unique_id
+{"width":67}
+
+00:00:07.000 --> 00:00:08.000 region:
+"no region"
+
+00:00:08.000 --> 00:00:09.000 region:region_split_by_ascii_whitespace
+{"width":10,"lines":5,"regionAnchorX":40,"regionAnchorY":20,"viewportAnchorX":30,"viewportAnchorY":80,"scroll":"up"}

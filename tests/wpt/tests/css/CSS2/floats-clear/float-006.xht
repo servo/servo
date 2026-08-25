@@ -1,0 +1,65 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: floats - zero height empty float</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <!-- Inspired by http://test.csswg.org/suites/css2.1/20100727/html4/floats-107.htm -->
+
+  <link rel="help" title="Section 9.5 Floats" href="http://www.w3.org/TR/CSS21/visuren.html#floats" />
+  <link rel="match" href="float-006-ref.xht" />
+
+  <meta content="A zero-height (margin-box) empty float without border and without padding will not require the line box to be shortened; in such case, the zero-height (margin-box) empty float will slide in or will fit in at the top of the line box." name="assert" />
+
+  <style type="text/css"><![CDATA[
+   #rel-pos-containing-block {position: relative;}
+
+   #green-overlapping-abs-pos
+   {
+   background-color: green;
+   border-bottom: green solid 2em;
+   border-top: green solid 2em;
+   left: 0em;
+   padding: 3em;
+   position: absolute;
+   width: 8em;
+   z-index: auto;
+   }
+
+   #zero-height-first-float
+   {
+   float: left;
+   width: 18em;
+   /*
+   or any other width number which would
+   represent less than the document box width
+   */
+   }
+
+   #red-overlapped-second-float
+   {
+   background-color: red;
+   float: left;
+   padding: 5em;
+   width: 4em;
+   }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled green rectangle and <strong>no red</strong>.</p>
+
+  <div id="rel-pos-containing-block">
+    <div id="green-overlapping-abs-pos"></div>
+    <div id="zero-height-first-float"></div>
+    <div id="red-overlapped-second-float"></div>
+  </div>
+
+ </body>
+</html>

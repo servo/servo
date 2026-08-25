@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>System Colors work for Canvas Drop-Shadow Filters</title>
+  <link rel="match" href="canvas_shadows_system_colors-expected.html">
+</head>
+<body>
+<canvas id='c' width="100" height="200">
+<script>
+// See crbug.com/1226282 and crbug.com/1081945
+// A reference test is necessary because system colors do not have defined
+// numeric values. Here we're comparing 'GrayText' to css 'GrayText'.
+var ctx = document.getElementById('c').getContext('2d');
+ctx.filter = 'drop-shadow(0px 100px 0 GrayText)';
+ctx.fillRect(0,0,100,100);
+</script>
+</body>
+</html>

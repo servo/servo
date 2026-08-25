@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<title>CSS Test (Animations): Reparenting an element with a web animation on the compositor</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Google" href="http://www.google.com/">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1319304">
+<meta name="assert" content="This should not crash.">
+
+<script>
+window.onload = function(){
+  let div = document.querySelector("div");
+  let a1 = div.animate([{"transform": "translateX(10px)", "opacity": "0.4"}], { duration: 1000 });
+  a1.reverse();
+  let a2 = div.animate([{"transform": "translateY(10px)"}], { duration: 1000 });
+}
+</script>
+<div>X</div>

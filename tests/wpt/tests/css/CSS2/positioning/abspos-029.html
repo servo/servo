@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>CSS Test: CSS Absolute Positioning: static position after previous margin, within inline formatting context</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#comp-abspos">
+<link rel="help" href="https://github.com/servo/servo/issues/41625">
+<link rel="match" href="abspos-001-ref.xht">
+<!-- This is like abspos-001.xht, but placing everything inside an inline element -->
+
+<style>
+/* Set Up Conditions */
+* { margin: 0; padding: 0; border: 0;
+    position: static; float: none; display: block;
+    top: auto; left: auto; right: auto; bottom: auto; }
+head { display: none; }
+body { padding: 1em; }
+
+/* Test */
+.inline { display: inline }
+.margin { margin-bottom: 2em; }
+.abs { position: absolute; background: green; z-index: 1; height: 1em; width: 10em; }
+.flow { background: red; height: 1em; width: 10em; }
+</style>
+
+<span class="inline">
+  <div class="margin">Test passes if there is a green stripe and no red.</div>
+  <div class="abs"></div>
+  <div class="flow"></div>
+</span>

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml">
+  <title>SVG Text CSS Decoration Test: getComputedStyle().textDecorationLine</title>
+  <metadata>
+    <h:link rel="help" ref="https://drafts.csswg.org/css-text-decor-4/#text-decoration-line-property"/>
+    <h:meta name="assert" content="SVG text-decoration-line computed value is as specified."/>
+  </metadata>
+  <g id="target"></g>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <h:script src="/css/support/computed-testcommon.js"/>
+  <script><![CDATA[
+
+// none
+test_computed_value("text-decoration-line", "none");
+
+// underline || overline || line-through || blink
+test_computed_value("text-decoration-line", "underline");
+test_computed_value("text-decoration-line", "overline");
+test_computed_value("text-decoration-line", "line-through");
+test_computed_value("text-decoration-line", "blink");
+test_computed_value("text-decoration-line", "underline overline");
+test_computed_value("text-decoration-line", "underline line-through");
+test_computed_value("text-decoration-line", "underline blink");
+test_computed_value("text-decoration-line", "overline line-through");
+test_computed_value("text-decoration-line", "overline blink");
+test_computed_value("text-decoration-line", "line-through blink");
+test_computed_value("text-decoration-line", "underline overline line-through");
+test_computed_value("text-decoration-line", "underline overline blink");
+test_computed_value("text-decoration-line", "underline line-through blink");
+test_computed_value("text-decoration-line", "overline line-through blink");
+test_computed_value("text-decoration-line", "underline overline line-through blink");
+
+// spelling-error
+test_computed_value("text-decoration-line", "spelling-error");
+
+// grammar-error
+test_computed_value("text-decoration-line", "grammar-error");
+
+  ]]></script>
+</svg>

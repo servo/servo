@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Transform interpolation: decomposing a 180deg rotation whose largest axis component is X</title>
+<link rel="help" href="https://drafts.csswg.org/css-transforms-2/#interpolation-of-3d-matrices">
+<link rel="help" href="https://www.w3.org/TR/css-transforms-2/#recomposing-to-a-3d-matrix">
+<meta name="assert" content="Interpolating between rotations about different axes decomposes each matrix into a quaternion. Decomposing rotate3d(2, 1, 1, 180deg), a ~180deg rotation whose largest axis component is X, must recover the correct quaternion y component.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div id="box"></div>
+<script>
+test(() => {
+    const box = document.getElementById("box");
+    const animation = box.animate(
+        [{ transform: "rotate3d(2, 1, 1, 180deg)" }, { transform: "rotate3d(0, 0, 1, 30deg)" }],
+        { duration: 1, fill: "both" });
+    animation.pause();
+    animation.currentTime = 0;
+
+    const m12 = new DOMMatrix(getComputedStyle(box).transform).m12;
+    assert_approx_equals(m12, 2 / 3, 1e-4);
+}, "decompose4() recovers the correct quaternion y component near a 180deg rotation about the X axis");
+</script>
+</body>

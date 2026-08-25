@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Usermedia Element: Legacy Mode tests</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+<script>
+  // This test only runs in the virtual suite where UserMediaElementLegacy is enabled.
+
+  const PEPC_CLICK_DELAY = 600;
+
+  test(() => {
+    assert_not_equals(typeof HTMLUserMediaElement, "undefined");
+    assert_equals(typeof HTMLUserMediaElement.isTypeSupported, "function",
+        "isTypeSupported should be exposed in legacy mode");
+    assert_true(HTMLUserMediaElement.isTypeSupported("camera"));
+    assert_true(HTMLUserMediaElement.isTypeSupported("microphone"));
+    assert_false(HTMLUserMediaElement.isTypeSupported("invalid"));
+  }, "isTypeSupported existence and behavior");
+
+  promise_test(async (t) => {
+    const el = document.createElement("usermedia");
+    el.setAttribute("type", "camera");
+    document.body.appendChild(el);
+
+    // In legacy mode, these attributes should exist
+    assert_true('type' in el, "type attribute should exist");
+    assert_true('isValid' in el, "isValid attribute should exist");
+    assert_true('invalidReason' in el, "invalidReason attribute should exist");
+
+    // Wait for registration
+    await new Promise((r) => t.step_timeout(r, PEPC_CLICK_DELAY));
+    assert_true(el.isValid, "element should be valid, reason: " + el.invalidReason);
+    assert_equals(el.invalidReason, "", "invalidReason should be empty");
+
+    el.remove();
+  }, "Legacy attributes existence and validation");
+
+  promise_test(async (t) => {
+    const el = document.createElement("usermedia");
+    el.setAttribute("type", "invalid");
+    document.body.appendChild(el);
+
+    // Wait for registration/validation
+    await new Promise((r) => t.step_timeout(r, PEPC_CLICK_DELAY));
+    assert_false(el.isValid, "element should be invalid");
+    assert_equals(el.invalidReason, "type_invalid", "invalidReason should be type_invalid for invalid type");
+
+    el.remove();
+  }, "Invalid type causes fallback/invalid state in legacy mode");
+
+  promise_test(async (t) => {
+    const el = document.createElement("usermedia");
+    el.setAttribute("type", "camera");
+    document.body.appendChild(el);
+
+    // Setup event listeners for standard events
+    let streamFired = false;
+    let errorFired = false;
+    let cancelFired = false;
+
+    el.onstream = () => { streamFired = true; };
+    el.onerror = () => { errorFired = true; };
+    el.oncancel = () => { cancelFired = true; };
+
+    await test_driver.set_permission({name: 'camera'}, 'granted');
+
+    // Wait for initialization
+    await new Promise((r) => t.step_timeout(r, PEPC_CLICK_DELAY));
+
+    // Click the element
+    await test_driver.click(el);
+
+    // Wait a bit to ensure no events are fired
+    await new Promise((r) => t.step_timeout(r, 500));
+
+    assert_equals(el.stream, null, "stream attribute should remain null");
+    assert_equals(el.error, null, "error attribute should remain null");
+    assert_false(streamFired, "onstream should not fire");
+    assert_false(errorFired, "onerror should not fire");
+    assert_false(cancelFired, "oncancel should not fire");
+
+    el.remove();
+  }, "Standard events and stream attribute are not active in legacy mode");
+</script>
+</body>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.grow-consistent {
+  font: 40px/2 Ahem;
+  color: rgba(0, 0, 0, 0.5);
+  display: inline-block;
+  width: 160px;
+  text-fit: none;
+  white-space: pre;
+  border: 1px solid gray;
+  margin: 20px;
+  text-decoration: underline lime;
+  text-decoration-skip-ink: none;
+  text-decoration-thickness: 2px;
+}
+.grow-line {
+  font: 20px/2 Ahem;
+  color: rgba(0, 0, 0, 0.5);
+  display: inline-block;
+  width: 160px;
+  text-fit: none;
+  white-space: pre;
+  border: 1px solid gray;
+  margin: 20px;
+  text-decoration: underline lime;
+  text-decoration-skip-ink: none;
+  text-decoration-thickness: 2px;
+}
+
+.length {
+  text-underline-offset: 8px;
+}
+
+.percentage {
+  text-underline-offset: 50%;
+}
+</style>
+
+<div>
+<!-- text-underline-offset:auto -->
+<div class="grow-consistent">ÉpÉ
+pÉpÉ</div>
+<div class="grow-line"><span style="font-size:40px;">ÉpÉp</span>
+pÉpÉpÉpÉ</div>
+<div>
+
+<div>
+<!-- text-underline-offset:<length> -->
+<div class="grow-consistent length">ÉpÉ
+pÉpÉ</div>
+<div class="grow-line length"><span style="font-size:40px">ÉpÉp</span>
+pÉpÉpÉpÉ</div>
+<div>
+
+<div>
+<!-- text-underline-offset:<percentage> -->
+<div class="grow-consistent percentage">ÉpÉ
+pÉpÉ</div>
+<div class="grow-line percentage" style="text-decoration:none;"><span style="font-size:40px; text-decoration:underline lime; text-decoration-thickness:2px; text-underline-offset:50%;">ÉpÉp</span>
+<span style="text-decoration:underline lime; text-decoration-thickness:2px; text-underline-offset:50%;">pÉpÉpÉpÉ</span></div>
+<div>
+
+
+<script>
+document.fonts.ready.then(() => {
+  document.documentElement.classList.remove('reftest-wait');
+});
+</script>
+

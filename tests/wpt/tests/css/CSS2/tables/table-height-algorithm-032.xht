@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Inline-table baseline and caption</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#height-layout" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#leading" />
+        <meta name="assert" content="A table caption does not set the baseline for an inline-table." />
+        <style type="text/css">
+            table
+            {
+                display: inline-table;
+            }
+            caption
+            {
+                color: white;
+            }
+            td
+            {
+                border: 1px solid black;
+                height: 100px;
+                vertical-align: baseline;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the bottoms of the two sets of "Filler Text" below are aligned.</p>
+        <table>
+            <tr>
+                <td>
+                    <table>
+                        <caption>Filler Text</caption>
+                        <tr>
+                            <td>Filler Text</td>
+                        </tr>
+                    </table>
+                </td>
+                <td>Filler Text</td>
+            </tr>
+        </table>
+    </body>
+</html>

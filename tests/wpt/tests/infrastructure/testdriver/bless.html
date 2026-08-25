@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <title>TestDriver bless method</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script>
+promise_test(() => {
+  return test_driver.bless('empty', () => {});
+}, 'functions in the absence of a `body` element');
+  </script>
+</head>
+<body>
+<script>
+// At the time of this writing, the only standard requirement for user
+// activation concerns the interaction between iframe elements and their parent
+// browsing contexts [1]. Because testdriver.js currently cannot operate within
+// an iframe, the standard requirement cannot be used to verify the correctness
+// of the `bless` method. Instead, rely on the optional behavior of early exit
+// and rejecting in `video.play()` if the media is not "allowed to play". [2]
+// Browsers which don't implement this will pass this test spuriously.
+//
+// [1] https://html.spec.whatwg.org/multipage/origin.html#attr-iframe-sandbox-allow-top-navigation-by-user-activation
+// [2] https://html.spec.whatwg.org/multipage/media.html#allowed-to-play
+promise_test(t => {
+  const video = document.createElement('video');
+  document.body.appendChild(video);
+  t.add_cleanup(() => video.remove());
+  return test_driver.bless('start video playback', () => {
+    // `paused` changes before `play()` returns when "allowed to play", so the
+    // promise, if any, is ignored.
+    assert_true(video.paused);
+    const playPromise = video.play();
+    assert_false(video.paused);
+    if (playPromise) {
+      playPromise.catch(() => {});
+    }
+  });
+}, 'user activation');
+
+promise_test(() => {
+  return test_driver.bless('demonstrates return value without action')
+    .then((value) => {
+      assert_equals(value, null);
+    });
+}, 'no action function provided');
+
+promise_test(() => {
+  const expectedValue = {};
+
+  return test_driver.bless('demonstrate a synchronous return value', () => {
+      return expectedValue;
+    }).then((actualValue) => {
+      assert_equals(
+        actualValue,
+        expectedValue,
+        'the promise should be fulfilled with the returned value'
+      );
+    });
+
+}, 'synchronous return value');
+
+promise_test(() => {
+  const expectedError = new Error();
+
+  return test_driver.bless('demonstrates a synchronous error', () => {
+     throw expectedError;
+    })
+    .then(() => {
+      assert_unreached('the promise should be rejected');
+    }, (actualError) => {
+      assert_equals(
+        actualError,
+        expectedError,
+        'the promise should be rejected with the thrown value'
+      );
+    });
+}, 'synchronous error');
+
+promise_test(() => {
+  const expectedValue = {};
+
+  return test_driver.bless('demonstrate an asynchronous return value', () => {
+      return Promise.resolve(expectedValue);
+    }).then((actualValue) => {
+      assert_equals(
+        actualValue,
+        expectedValue,
+        'the promise should be fulfilled with the fulfillment value'
+      );
+    });
+
+}, 'asynchronous return value');
+
+promise_test(() => {
+  const expectedError = new Error();
+
+  return test_driver.bless('demonstrates an asynchronous error', () => {
+     return Promise.reject(expectedError);
+    })
+    .then(() => {
+      assert_unreached('the promise should be rejected');
+    }, (actualError) => {
+      assert_equals(
+        actualError,
+        expectedError,
+        'the promise should be rejected with the rejected value'
+      );
+    });
+}, 'asynchronous error');
+</script>
+</body>

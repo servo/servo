@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>Tests that a flex item's overflow content in the second column has the same inline-size as its previous fragment in the first column.</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+  <link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+  <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1811548">
+  <link rel="match" href="flex-item-content-overflow-001-ref.html">
+
+  <style>
+  .multicol {
+    column-count: 2;
+    column-gap: 0;
+    column-fill: auto;
+    inline-size: 280px;
+    block-size: 80px;
+    border: 10px solid purple;
+  }
+  .flexbox {
+    display: flex;
+    flex-direction: column;
+    inline-size: 110px;
+    block-size: 50px;
+    border: 10px solid black;
+  }
+  .item {
+    flex: 1;
+    min-height: 0;
+    border: 10px solid teal;
+  }
+  .grandchild {
+    border: 10px solid orange;
+    block-size: 120px;
+  }
+  </style>
+
+  <div class="multicol">
+    <div class="flexbox">
+      <div class="item">
+        <div class="grandchild"></div>
+      </div>
+    </div>
+  </div>
+</html>

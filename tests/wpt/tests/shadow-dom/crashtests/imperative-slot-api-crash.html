@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Removing slots from imperative shadow DOM should not crash</title>
+<link rel="help" href="https://crbug.com/869308">
+<div id="host">
+  <div id="child1"></div>
+</div>
+<script>
+  const host = document.querySelector("#host");
+  const child1 = document.querySelector("#child1");
+  const shadow_root = host.attachShadow({ mode: "open", slotAssignment: "manual" });
+  const slot1 = document.createElement("slot");
+  const slot2 = document.createElement("slot");
+  shadow_root.appendChild(slot1);
+  shadow_root.appendChild(slot2);
+
+  slot2.assign(child1);
+  slot1.assign(child1);
+
+  slot1.remove();
+  slot2.remove();
+</script>

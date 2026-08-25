@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>dragenter and dragleave events should set relatedTarget</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  #source           { width: 80px; height: 80px; background: cornflowerblue; }
+  #zoneA, #zoneB   { width: 120px; height: 120px; display: inline-block; }
+  #zoneA            { background: salmon; }
+  #zoneB            { background: lightgreen; }
+</style>
+
+<div id="source" draggable="true">Drag me</div>
+<div id="zoneA">Zone A</div>
+<div id="zoneB">Zone B</div>
+
+<script>
+function centerOf(elem) {
+    const r = elem.getBoundingClientRect();
+    return { x: Math.round(r.left + r.width / 2),
+             y: Math.round(r.top  + r.height / 2) };
+}
+
+// Allows drops and records relatedTarget values on dragenter/dragleave.
+function setupZone(zone, log) {
+    zone.addEventListener('dragenter', e => { e.preventDefault(); log.push({ event: 'dragenter', target: e.target, relatedTarget: e.relatedTarget }); });
+    zone.addEventListener('dragover',  e => { e.preventDefault(); });
+    zone.addEventListener('dragleave', e => { log.push({ event: 'dragleave', target: e.target, relatedTarget: e.relatedTarget }); });
+}
+
+promise_test(async t => {
+    const source = document.getElementById('source');
+    const zoneA  = document.getElementById('zoneA');
+    const zoneB  = document.getElementById('zoneB');
+
+    source.addEventListener('dragstart', e => {
+        e.dataTransfer.setData('text/plain', 'drag-test');
+    });
+
+    const log = [];
+    setupZone(zoneA, log);
+    setupZone(zoneB, log);
+
+    const src = centerOf(source);
+    const a   = centerOf(zoneA);
+    const b   = centerOf(zoneB);
+
+    await new test_driver.Actions()
+        .addPointer("mouse", "mouse")
+        .pointerMove(src.x, src.y)
+        .pointerDown()
+        .pause(200)           // exceed drag-start hysteresis threshold
+        .pointerMove(a.x, a.y)
+        .pause(50)
+        .pointerMove(b.x, b.y)
+        .pause(50)
+        .pointerUp()
+        .send();
+
+    // dragenter on zone A: first entry, no previous drag target → relatedTarget is null
+    const enterA = log.find(e => e.event === 'dragenter' && e.target === zoneA);
+    assert_not_equals(enterA, undefined, 'dragenter fired on zone A');
+    assert_equals(enterA.relatedTarget, null,
+        'dragenter on zone A: relatedTarget should be null (no prior drag target)');
+
+    // dragleave on zone A: leaving toward zone B → relatedTarget is zone B
+    const leaveA = log.find(e => e.event === 'dragleave' && e.target === zoneA);
+    assert_not_equals(leaveA, undefined, 'dragleave fired on zone A');
+    assert_equals(leaveA.relatedTarget, zoneB,
+        'dragleave on zone A: relatedTarget should be zone B');
+
+    // dragenter on zone B: arriving from zone A → relatedTarget is zone A
+    const enterB = log.find(e => e.event === 'dragenter' && e.target === zoneB);
+    assert_not_equals(enterB, undefined, 'dragenter fired on zone B');
+    assert_equals(enterB.relatedTarget, zoneA,
+        'dragenter on zone B: relatedTarget should be zone A');
+
+}, 'dragenter and dragleave events should set relatedTarget to the element being entered or exited');
+</script>

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Render corner shape</title>
+    <script src="./resources/render-corner-shape.js"></script>
+  </head>
+  <body>
+    <script>
+      const element = create_element_with_corner_shape(
+        new URLSearchParams(location.search),
+        "ref"
+      );
+      document.body.appendChild(element);
+    </script>
+  </body>
+</html>

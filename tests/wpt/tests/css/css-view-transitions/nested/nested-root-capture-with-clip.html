@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>Nested View Transitions root capture with border radius</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<link rel="match" href="nested-root-capture-with-clip-ref.html">
+<link rel=stylesheet href="resources/pause-view-transitions.css"></link>
+<meta name=fuzzy content="maxDifference=0-40; totalPixels=0-500">
+<script src="/common/reftest-wait.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+
+<style>
+:root { view-transition-name: none }
+#clipper {
+  view-transition-group: contain;
+  view-transition-name: clipper;
+  overflow: clip;
+  height: 200px;
+  width: 100px;
+  border-radius: 50%;
+  background: rebeccapurple;
+}
+
+.item {
+  view-transition-name: match-element;
+  view-transition-class: item;
+  background: pink;
+  margin-bottom: 10px;
+  height: 20px;
+}
+#i0 {
+  view-transition-name: none;
+  will-change: transform;
+}
+::view-transition-group(clipper) {
+  animation-play-state: paused;
+}
+::view-transition-new(clipper) {
+  animation: unset;
+  opacity: 0;
+}
+::view-transition-old(clipper) {
+  animation: unset;
+  opacity: 1;
+}
+::view-transition-group(*.item) {
+  display: none;
+}
+::view-transition {
+  background: lightgreen;
+}
+</style>
+
+<div id=clipper>
+  <div id=i0 class=item></div>
+  <div id=i1 class=item></div>
+  <div id=i2 class=item></div>
+  <div id=i3 class=item></div>
+</div>
+
+<script>
+function runTest() {
+  document.startViewTransition().ready.then(takeScreenshot);
+}
+
+onload = async () => {
+  await waitForCompositorReady();
+  runTest();
+}
+</script>
+</html>

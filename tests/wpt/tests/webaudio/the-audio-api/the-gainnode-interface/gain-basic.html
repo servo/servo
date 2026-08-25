@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<!--
+Verifies GainNode attributes and their type.
+-->
+<html>
+  <head>
+    <title>
+      gain-basic.html
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/webaudio/resources/audit-util.js"></script>
+    <script src="/webaudio/resources/audit.js"></script>
+  </head>
+  <body>
+    <script id="layout-test-code">
+      let audit = Audit.createTaskRunner();
+
+      audit.define('test', function(task, should) {
+        // Create audio context.
+        let context = new AudioContext();
+
+        // Create gain node.
+        let gainNode = context.createGain();
+
+        should(
+            gainNode.gain instanceof AudioParam,
+            'gainNode.gain instanceof AudioParam')
+            .beTrue();
+
+        task.done();
+      });
+
+      audit.run();
+    </script>
+  </body>
+</html>

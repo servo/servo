@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<title>canvas.onpaint should fire when the the drawn element scrolls</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+
+<style>
+  #scroller {
+    width: 100px;
+    height: 100px;
+    overflow-y: scroll;
+  }
+  #scrolled {
+    width: 50px;
+    height: 150px;
+    background: green;
+    border-top: 50px solid red;
+  }
+</style>
+
+<canvas id="canvas" width="200" height="200" layoutsubtree>
+  <div id="scroller">
+    <div id="scrolled"></div>
+  </div>
+</canvas>
+
+<script>
+  'use strict';
+
+  async function waitForOneFrame() {
+    await new Promise(requestAnimationFrame);
+    await new Promise(setTimeout);
+  }
+
+  promise_test(async t => {
+    const ctx = document.getElementById('canvas').getContext('2d');
+
+    let onPaintCount = 0;
+    let lastChanged = [];
+    canvas.onpaint = (event) => {
+      onPaintCount++;
+      lastChanged = event.changedElements;
+    };
+
+    // Request an initial paint.
+    canvas.requestPaint();
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 1, 'There should be an initial onpaint.');
+
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 1, 'Only one initial onpaint should fire.');
+
+    let scrollEndPromise =
+        waitForScrollEndFallbackToDelayWithoutScrollEvent(scroller);
+    await new test_driver.Actions()
+          .scroll(0, 0, 0, 100, { origin: scroller, duration: 100 })
+          .send();
+    await scrollEndPromise;
+    await waitForOneFrame();
+    assert_equals(scroller.scrollTop, 100,
+        '#scroller should be scrolled 100px.');
+
+    let onPaintCountAfterScroll = onPaintCount;
+    assert_greater_than(onPaintCountAfterScroll, 1,
+        'onpaint should fire for scrolls');
+    assert_array_equals(lastChanged, [scroller],
+        '#scroller should be changed after it scrolls.');
+
+    await waitForOneFrame();
+    assert_equals(onPaintCount, onPaintCountAfterScroll,
+        'onpaint should stop firing after scrolling stops.');
+  }, 'onpaint should fire when the drawn element scrolls.');
+</script>

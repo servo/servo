@@ -1,0 +1,21 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<a id="a" href="/navigation-api/navigate-event/navigate-anchor-same-url.html"></a>
+<script>
+promise_test(async t => {
+  await new Promise(resolve => window.addEventListener('load', resolve, {once: true}));
+
+  const { promise, resolve } = Promise.withResolvers();
+  navigation.onnavigate = t.step_func_done(e => {
+    assert_equals(e.navigationType, "replace");
+    assert_equals(new URL(e.destination.url).pathname,
+                  "/navigation-api/navigate-event/navigate-anchor-same-url.html");
+    resolve();
+    e.intercept({handler: () => {}});
+  });
+  a.click();
+
+  return promise;
+}, "<a> to identical url is a replace navigation");
+</script>

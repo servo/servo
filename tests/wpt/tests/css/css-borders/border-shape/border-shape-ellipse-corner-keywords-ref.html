@@ -1,0 +1,17 @@
+<!doctype html>
+<title>CSS Borders: border-shape ellipse() radial-extent *-corner keywords reference</title>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#border-shape">
+<style>
+  .box {
+    width: 300px;
+    height: 400px;
+    margin: 50px;
+    background: green;
+  }
+  /* closest corner is (0, 0): hypot(60, 80) = 100, applied to both axes. */
+  #closest-corner { border-shape: ellipse(100px 100px at 60px 80px); }
+  /* farthest corner is (300, 400): hypot(240, 320) = 400, applied to both axes. */
+  #farthest-corner { border-shape: ellipse(400px 400px at 60px 80px); }
+</style>
+<div id="closest-corner" class="box"></div>
+<div id="farthest-corner" class="box"></div>

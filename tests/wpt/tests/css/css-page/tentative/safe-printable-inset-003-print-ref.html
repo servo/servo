@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<style>
+  @page {
+    size: 400px 250px;
+    margin: 0;
+  }
+  html, body {
+    print-color-adjust: exact;
+    margin: 0;
+    height: 100%;
+  }
+</style>
+<div style="display:grid; grid-template-rows:54px 1fr 54px; height:100%;">
+  <div style="display:grid; grid-template-columns:54px 1fr 1fr 1fr 54px;">
+    <div></div>
+    <div style="margin-top:24px; background:blue;"></div>
+    <div style="margin-top:34px; background:blue;"></div>
+    <div style="margin-top:24px; background:blue;"></div>
+    <div style="margin-top:34px; width:20px; height:20px; background:hotpink;"></div>
+  </div>
+  <div style="display:grid; grid-template-columns:54px 1fr 54px;">
+    <div style="display:grid; grid-template-rows:1fr 1fr 1fr;">
+      <div style="width:10px; margin-left:24px; background:gray;"></div>
+      <div style="width:30px; margin-left:24px; background:gray;"></div>
+      <div style="width:40px; margin-left:14px; background:gray;"></div>
+    </div>
+    <div style="border:1px solid;"></div>
+  </div>
+  <div style="display:grid; grid-template-columns:54px 1fr 1fr 1fr 54px;">
+    <div style="margin-left:24px; margin-top:20px; width:10px; height:10px; background:hotpink;"></div>
+    <div style="background:yellow;"></div>
+    <div style="height:24px; background:yellow;"></div>
+    <div style="margin-top:10px; height:20px; background:yellow;"></div>
+    <div style="width:30px; height:30px; background:hotpink;"></div>
+  </div>
+</div>

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-page-3/#page-orientation-prop">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  @page {
+      page-orientation: rotate-right;
+  }
+  @page :left {
+      page-orientation: rotate-left;
+  }
+  @page :right {
+      page-orientation: rotate-right;
+  }
+  @page :first {
+      page-orientation: rotate-left;
+  }
+  @page named1 {
+      page-orientation: upright;
+  }
+  @page named2 {
+      page-orientation: hotpink;
+  }
+  @page named3 {
+      page-orientation: rotate-right;
+  }
+  @page named4 {
+      page-orientation: rotate-right;
+      page-orientation: rotate-left;
+  }
+  @page named5 {
+      page-orientation: hotpink;
+      page-orientation: rotate-right;
+  }
+  @page named6 {
+      page-orientation: rotate-right;
+      page-orientation: inherit;
+      page-orientation: initial;
+      page-orientation: none;
+      page-orientation: hotpink;
+  }
+  h5 {
+      page-orientation: rotate-right;
+      display: block;
+  }
+</style>
+<script>
+  let pageRuleExpectations = {
+      "" : "page-orientation: rotate-right;",
+      ":left" : "page-orientation: rotate-left;",
+      ":right" : "page-orientation: rotate-right;",
+      ":first" : "page-orientation: rotate-left;",
+      "named1" : "page-orientation: upright;",
+      "named2" : "",
+      "named3" : "page-orientation: rotate-right;",
+      "named4" : "page-orientation: rotate-left;",
+      "named5" : "page-orientation: rotate-right;",
+      "named6" : "page-orientation: rotate-right;",
+  };
+  let styleRuleExpectations = {
+      "h5" : "display: block;"
+  };
+  let styleSheets = document.styleSheets;
+  for (let i = 0; i < styleSheets.length; i++) {
+      let rules = styleSheets[i].cssRules;
+      for (let rule of rules) {
+          if (rule.type == CSSRule.PAGE_RULE) {
+              let expected = pageRuleExpectations[rule.selectorText];
+              test(function() {
+                  assert_equals(rule.style.cssText, expected, "unexpected @page contents");
+              }, "contents for selector ['" + rule.selectorText + "']");
+          } else if (rule.type == CSSRule.STYLE_RULE) {
+              let expected = styleRuleExpectations[rule.selectorText];
+              test(function() {
+                  assert_equals(rule.style.cssText, expected, "unexpected style rule contents");
+              }, "contents for selector ['" + rule.selectorText + "']");
+          }
+      }
+  }
+</script>

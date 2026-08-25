@@ -1,0 +1,35 @@
+<!doctype html>
+<title>ResizeObserver test: simple observation</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/resizeTestHelper.js"></script>
+<body>
+<div id="log"></div>
+
+<script>
+'use strict';
+
+function test() {
+  let t = createAndAppendElement("div");
+  t.style.width = "100px";
+
+  let helper = new ResizeTestHelper(
+    "simple observation",
+  [
+    {
+      setup: observer => {
+        observer.observe(t);
+        t.style.width = "5px";
+      },
+      notify: entries => {
+        assert_equals(entries.length, 1, "1 pending notification");
+        assert_equals(entries[0].target, t, "target is t");
+        assert_equals(entries[0].contentRect.width, 5, "target width");
+      }
+    }
+  ]);
+  return helper.start(() => t.remove());
+}
+
+(async () => await test())();
+</script>

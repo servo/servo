@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-color-5/#color-mix">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1703356">
+<link rel="author" href="mailto:beth@brennie.ca" title="Beth Rennie">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<link rel="match" href="./color-mix-non-srgb-001-ref.html">
+<style>
+div { color: black; }
+.test { background-color: black; width: 14em; height: 1em; margin-top: 0; margin-bottom: 0; }
+</style>
+<body>
+<script>
+const TEST_CASES = [
+    ["red", "green", "xyz", "rgb(188, 92, 0)"],
+    ["red", "green", "lab", "rgb(161, 108, 0)"],
+    ["red", "green", "lch", "rgb(145, 116, 0)"],
+    ["red", "green 90%", "xyz", "rgb(89, 122, 0)"],
+    ["red", "green 90%", "lab", "rgb(65, 126, 0)"],
+    ["red", "green 90%", "lch", "rgb(49, 128, 0)"],
+    ["red 90%", "green", "xyz", "rgb(243, 40, 0)"],
+    ["red 90%", "green", "lab", "rgb(237, 55, 0)"],
+    ["red 90%", "green", "lch", "rgb(235, 59, 0)"],
+];
+
+for (let [from, to, space, expected] of TEST_CASES) {
+    const value = `color-mix(in ${space}, ${from}, ${to})`;
+
+    const element = document.createElement("div")
+    element.classList.add('test')
+    element.style.backgroundColor = value;
+    document.body.appendChild(element)
+}
+</script>
+</body>

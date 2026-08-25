@@ -1,0 +1,25 @@
+[package]
+name = "crown"
+authors = ["The Servo Project Developers"]
+version = "0.0.1"
+edition = "2021"
+license = "MPL-2.0"
+publish = false
+
+# Do not use workspace dependencies in this package!
+# crown is not part of the Cargo workspace.
+[dev-dependencies]
+compiletest_rs = { version = "0.11", features = ["tmp"] }
+
+[features]
+default = ["unrooted_must_root_lint", "trace_in_no_trace_lint"]
+unrooted_must_root_lint = []
+trace_in_no_trace_lint = []
+
+[package.metadata.rust-analyzer]
+# This crate uses #![feature(rustc_private)]
+rustc_private = true
+
+# If you are working on crown, you might also need this in .vscode/settings.json.
+# "rust-analyzer.check.command": "check",
+# "rust-analyzer.rustc.source": "discover",

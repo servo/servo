@@ -1,0 +1,78 @@
+settings, size
+<link rel="help" href="https://w3c.github.io/webvtt/#collect-webvtt-cue-timings-and-settings">
+
+assert_equals(cues.length, 16);
+
+var valid_sizes = [
+    100,
+    2,
+    0,
+    0,
+    100,
+    50,
+    1.5,
+];
+valid_sizes.forEach(function(valid, index) {
+    assert_equals(cues[index].size, valid, 'Failed with cue ' + index);
+});
+
+for (var i = 0; i < 9; i++) {
+    var index = valid_sizes.length + i;
+
+    assert_equals(cues[index].size, 100, 'Failed with cue ' + index);
+}
+
+===
+WEBVTT
+
+NOTE valid
+
+00:00:00.000 --> 00:00:01.000
+text0
+
+00:00:00.000 --> 00:00:01.000 size:1xx size:2%
+text1
+
+00:00:00.000 --> 00:00:01.000 size:0%
+text2
+
+00:00:00.000 --> 00:00:01.000 size:00%
+text3
+
+00:00:00.000 --> 00:00:01.000 size:50% size:100%
+text4
+
+00:00:00.000 --> 00:00:01.000 size:50% size:101%
+text5
+
+00:00:00.000 --> 00:00:01.000 size:1.5%
+text6
+
+NOTE invalid
+
+00:00:00.000 --> 00:00:01.000 size:
+invalid7
+
+00:00:00.000 --> 00:00:01.000 size:x
+invalid8
+
+00:00:00.000 --> 00:00:01.000 size:%
+invalid9
+
+00:00:00.000 --> 00:00:01.000 size:%%
+invalid10
+
+00:00:00.000 --> 00:00:01.000 size:1%%
+invalid11
+
+00:00:00.000 --> 00:00:01.000 size:1%x
+invalid12
+
+00:00:00.000 --> 00:00:01.000 size:101%
+invalid13
+
+00:00:00.000 --> 00:00:01.000 size:-3%
+invalid14
+
+00:00:00.000 --> 00:00:01.000 size:200%
+invalid15

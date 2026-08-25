@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Reference: no red rectangle visible</title>
+<style>
+html, body {
+    margin: 0;
+}
+.outer {
+    position: absolute;
+}
+.inner {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 200px;
+    background: red;
+}
+img {
+    display: block;
+    height: 100%;
+}
+</style>
+<p>Test passes if there is no red rectangle visible.</p>
+<div class="outer">
+    <div class="inner"><img></div>
+</div>

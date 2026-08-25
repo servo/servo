@@ -1,0 +1,69 @@
+<html>
+<meta charset="utf-8">
+<style>
+canvas {
+  margin: 5px;
+}
+</style>
+<script>
+src = document.createElement("canvas");
+src.width = "100";
+src.height = "100";
+scx = src.getContext("2d");
+scx.font = "64px Segoe UI Emoji, sans-serif";
+scx.fillText("\u{1F63A}",5,65);
+
+function test(op) {
+  cv = document.createElement("canvas");
+  cv.width = "100";
+  cv.height = "100";
+  document.body.appendChild(cv);
+  cx = cv.getContext("2d");
+  cx.fillStyle = "#888888";
+  cx.fillRect(0,0,100,50);
+  cx.globalCompositeOperation = op;
+  cx.drawImage(src, 0, 0);
+}
+
+function br() {
+  document.body.appendChild(document.createElement("br"));
+}
+
+window.onload = ( ) => {
+  test("source-over");
+  test("source-in");
+  test("source-out");
+  test("source-atop");
+  br();
+  test("destination-over");
+  test("destination-in");
+  test("destination-out");
+  test("destination-atop");
+  br();
+  test("copy");
+  test("lighter");
+  test("xor");
+  test("multiply");
+  br();
+  test("screen");
+  test("overlay");
+  test("darken");
+  test("lighten");
+  br();
+  test("color-dodge");
+  test("color-burn");
+  test("hard-light");
+  test("soft-light");
+  br();
+  test("difference");
+  test("exclusion");
+  test("hue");
+  test("saturation");
+  br();
+  test("color");
+  test("luminosity");
+};
+</script>
+<body>
+</body>
+</html>

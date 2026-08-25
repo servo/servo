@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script src="resources/utils.js"></script>
+  </head>
+  <body></body>
+  <script>
+    async function attachIframe() {
+      const iframe = document.createElement("iframe");
+      iframe.src = "about:blank";
+      await new Promise((r) => {
+        iframe.addEventListener("load", r, { once: true });
+        document.body.append(iframe);
+      });
+      return iframe;
+    }
+
+    promise_test(async () => {
+      const iframe = await attachIframe();
+      const { userActivation } = iframe.contentWindow.navigator;
+
+      assert_false(
+        userActivation.isActive,
+        "No transient activation before click"
+      );
+      assert_false(
+        userActivation.hasBeenActive,
+        "No sticky activation before click"
+      );
+
+      // Confirm we have activation
+      await test_driver.bless("click", null, iframe.contentWindow);
+      assert_true(userActivation.isActive, "is active after click");
+      assert_true(userActivation.hasBeenActive, "has been active");
+
+      // Remove the context
+      iframe.remove();
+      assert_equals(iframe.contentWindow, null, "No more global");
+      assert_true(userActivation.isActive, "isActive");
+      assert_true(userActivation.hasBeenActive, "hasBeenActive");
+    }, "navigator.userActivation retains state even if global is removed");
+  </script>
+</html>

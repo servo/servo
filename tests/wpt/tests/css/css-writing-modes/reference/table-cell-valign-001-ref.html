@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Writing Modes reference: vertical-align in orthogonal table cell</title>
+
+<meta name="flags" content="ahem" />
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+
+<style>
+table {
+  font: 50px/1 Ahem;
+}
+
+td {
+  block-size: 2em;
+  padding: 0;
+  color: green;
+}
+
+.t {
+  vertical-align: top;
+}
+.m {
+  vertical-align: middle;
+}
+.b {
+  vertical-align: bottom;
+}
+</style>
+
+<table border=1>
+ <tr>
+  <td class=t>XX</td>
+ </tr>
+ <tr>
+  <td class=m>XX</td>
+ </tr>
+ <tr>
+  <td class=b>XX</td>
+ </tr>
+</table>

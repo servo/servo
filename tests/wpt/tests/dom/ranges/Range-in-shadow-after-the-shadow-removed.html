@@ -1,0 +1,47 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="variant" content="?mode=closed">
+<meta name="variant" content="?mode=open">
+<title>Range in shadow after removing the shadow</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+"use strict";
+
+addEventListener("load", () => {
+  const mode = (new URLSearchParams(document.location.search)).get("mode");
+  test(() => {
+    const host = document.createElement("div");
+    host.id = "host";
+    const root = host.attachShadow({mode});
+    root.innerHTML = '<div id="in-shadow">ABC</div>';
+    document.body.appendChild(host);
+    const range = document.createRange();
+    range.setStart(root.firstChild, 1);
+    host.remove();
+    assert_equals(range.startContainer, root.firstChild, "startContainer should not be changed");
+    assert_equals(range.startOffset, 1, "startOffset should not be changed");
+  }, "Range in shadow should stay in the shadow after the host is removed");
+
+  test(() => {
+    const wrapper = document.createElement("div");
+    wrapper.id = "wrapper";
+    const host = document.createElement("div");
+    host.id = "host";
+    const root = host.attachShadow({mode});
+    root.innerHTML = '<div id="in-shadow">ABC</div>';
+    wrapper.appendChild(host);
+    document.body.appendChild(wrapper);
+    const range = document.createRange();
+    range.setStart(root.firstChild, 1);
+    wrapper.remove();
+    assert_equals(range.startContainer, root.firstChild, "startContainer should not be changed");
+    assert_equals(range.startOffset, 1, "startOffset should not be changed");
+  }, "Range in shadow should stay in the shadow after the host parent is removed");
+}, {once: true});
+</script>
+</head>
+<body></body>
+</html>

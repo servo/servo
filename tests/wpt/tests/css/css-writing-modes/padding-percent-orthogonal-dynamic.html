@@ -1,0 +1,47 @@
+<!doctype html>
+<title>CSS Writing Modes Test: Re-layout of orthogonal layouts with percentage padding</title>
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes/#dimension-mapping">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #vertical {
+    width: 400px;
+    writing-mode: vertical-lr;
+  }
+
+  #padded {
+    width: 100%;
+    box-sizing: border-box;
+    padding-right: 100%;
+  }
+
+  #horizontal {
+    writing-mode: horizontal-tb;
+    width: 100%;
+  }
+
+  #container {
+    width: 100%;
+    background-color: green;
+  }
+
+  #child { height: 100px; }
+</style>
+<div id="vertical">
+  <div id="padded">
+    <div id="horizontal">
+      <div id="container">
+        <div id="child"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  test(() => assert_equals(container.offsetWidth, 300),
+       "400px minus 100px padding based on #child height");
+
+  vertical.style.width = "200px";
+
+  test(() => assert_equals(container.offsetWidth, 100),
+       "200px minus 100px padding based on #child height");
+</script>

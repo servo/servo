@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>input[type="tel"], ValidityState.tooLong and user editing</title>
+    <link rel="author" title="Chris Rebert" href="http://chrisrebert.com">
+    <link rel="help" href="https://html.spec.whatwg.org/multipage/#limiting-user-input-length:-the-maxlength-attribute">
+    <meta name="flags" content="interact">
+    <meta name="assert" content="Per the 'Constraint validation' definition in the referenced section, an input whose value was edited by the user but still exceeds the input's maxlength should suffer from being too long.">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <p>Delete one character from the following text input:</p>
+    <input type="tel" value="123-456-7890" maxlength="7" autocomplete="off" id="testinput">
+
+    <div id="log"></div>
+    <script>
+var input = document.getElementById('testinput');
+setup({explicit_timeout: true, explicit_done: true});
+on_event(input, "input", function () {
+  test(function() {
+    assert_class_string(input.validity, 'ValidityState', 'HTMLInputElement.validity must be a ValidityState instance');
+    assert_true(input.validity.tooLong, "tooLong must be true since the user just changed the input's value and the value exceeds the maxlength");
+  });
+  done();
+});
+    </script>
+  </body>
+</html>

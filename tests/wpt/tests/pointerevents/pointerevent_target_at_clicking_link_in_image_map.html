@@ -1,0 +1,76 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, user-scalable=no">
+<meta name="variant" content="?capture=">
+<meta name="variant" content="?capture=area">
+<title>Event targets of clicking a link in an image map</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+"use strict";
+
+addEventListener("load", () => {
+  promise_test(async () => {
+    let events = [];
+    for (const type of ["pointerdown", "pointerup", "click", "mousedown", "mouseup"]) {
+      document.body.addEventListener(type, event => {
+        events.push({ type: event.type, target: event.target });
+      });
+    }
+    function stringifyEvents(arrayOfEvents) {
+      function stringifyEvent(event) {
+        return `${event.type}@${event.target.localName}`
+      }
+      let str = "";
+      for (const event of arrayOfEvents) {
+        if (str) {
+          str += ", ";
+        }
+        str += stringifyEvent(event);
+      }
+      return str;
+    }
+    const area = document.querySelector("area");
+    const params = new URLSearchParams(document.location.search);
+    const captureSelector = params.get("capture");
+    const captureTarget = captureSelector ? document.querySelector(captureSelector) : null;
+    if (captureTarget) {
+      area.addEventListener("pointerdown", event => {
+        captureTarget.setPointerCapture(event.pointerId);
+      }, {once: true});
+    }
+    await new test_driver.Actions()
+      .pointerMove(0, 0, {origin: document.querySelector("img")})
+      .pointerDown()
+      .pointerUp()
+      .send();
+    // This test is designed for making non-related element capture the pointer.
+    // However, such case has not been tested yet, so, eventTarget is always the
+    // <area> for now.
+    const eventTarget = captureTarget ? captureTarget : area;
+    assert_equals(
+      stringifyEvents(events),
+      stringifyEvents([
+        {type: "pointerdown", target: area},
+        {type: "mousedown", target: eventTarget},
+        {type: "pointerup", target: eventTarget},
+        {type: "mouseup", target: eventTarget},
+        {type: "click", target: eventTarget},
+      ])
+    );
+  });
+}, {once: true});
+</script>
+</head>
+<body>
+  <map name="map">
+    <area shape="rect" coords="0, 0, 100, 100" href="#">
+  </map>
+  <img usemap="#map" src="../images/green-16x16.png" width="100" height="100">
+</body>
+</html>

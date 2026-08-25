@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://crbug.com/486423704">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="root">
+    <div id="startContainer">
+        <span id="startNode">Start of Range</span>
+        <iframe id="triggerIframe" src="about:blank" style="display:none;"></iframe>
+    </div>
+    <div id="middle">Middle elements</div>
+    <div id="endContainer">
+        <span id="endNode">End of Range</span>
+    </div>
+    <div id="outOfBounds" style="color: red;">
+        Should NOT be extracted
+    </div>
+</div>
+
+<script>
+test(function() {
+    triggerIframe.contentWindow.addEventListener('unload', () => {
+        endContainer.remove();
+    });
+
+    const range = document.createRange();
+    range.setStart(startNode, 0);
+    range.setEnd(endNode, 1);
+
+    assert_true(!!document.getElementById('outOfBounds'), "Out of bounds element should exist initially");
+
+    const extractedFragment = range.extractContents();
+
+    assert_equals(extractedFragment.querySelector('.outOfBounds'), null, "Should not extract nodes outside of original range");
+
+    assert_true(!!document.getElementById('outOfBounds'), "Out of bounds element should remain in the document");
+}, "Range.extractContents should not extract out-of-bounds nodes if end container is removed during iframe unload");
+</script>

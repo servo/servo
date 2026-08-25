@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>Scroll timeline snapshotting should not happen for elementsFromPoint()</title>
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#event-loop">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  @keyframes --anim {
+    from { background-color: green; }
+    to { background-color: red; }
+  }
+  #scroller {
+    width: 200px;
+    height: 200px;
+    overflow: auto;
+    animation-name: --anim;
+    animation-duration: 10s;
+    animation-timeline: scroll(self);
+  }
+  #filler {
+    height: 400px;
+  }
+</style>
+<div id="scroller">
+  <div id="filler"></div>
+</div>
+<script>
+  async_test(t => {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      scroller.scrollTop = 200;
+      assert_equals(getComputedStyle(scroller).backgroundColor, "rgb(0, 128, 0)",
+                    "getComputedStyle() should not cause scroll-timeline snapshotting");
+      document.elementsFromPoint(10, 10);
+      assert_equals(getComputedStyle(scroller).backgroundColor, "rgb(0, 128, 0)",
+                    "elementsFromPoint() should not cause scroll-timeline snapshotting");
+      t.done();
+    }));
+  });
+</script>

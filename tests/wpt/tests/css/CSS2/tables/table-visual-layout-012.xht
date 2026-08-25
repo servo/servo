@@ -1,0 +1,36 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Top row of a spanning cell is the row of its parent element</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#table-layout" />
+        <meta name="assert" content="The top row of a spanning cell's rectangle is in the row specified by the cell's parent." />
+        <style type="text/css">
+            td
+            {
+                background: orange;
+                height: 100px;
+                width: 100px;
+            }
+            #cell
+            {
+               background-color: blue;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the blue box below spans the height of the three orange squares.</p>
+        <table>
+            <tr>
+                <td></td>
+                <td id="cell" rowspan="3"></td>
+            </tr>
+            <tr>
+                <td></td>
+            </tr>
+            <tr>
+                <td></td>
+            </tr>
+        </table>
+    </body>
+</html>

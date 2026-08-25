@@ -1,0 +1,21 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Page with script that has integrity attribute</title>
+</head>
+<body>
+<!-- This script tag is in the initial HTML, so it will be seen by the preload scanner -->
+<script src="/content-security-policy/resources/ran.js"
+        integrity="sha384-tqyFpeo21WFM8HDeUtLqH20GUq/q3D1R6mqTzW3RtyTZ3dAYZJhC1wUcnkgOE2ak"
+        crossorigin="anonymous"></script>
+<script>
+  // Signal to parent that we've loaded
+  window.parent.postMessage({
+    ran: window.ran === true,
+    loaded: true
+  }, '*');
+</script>
+</body>
+</html>
+

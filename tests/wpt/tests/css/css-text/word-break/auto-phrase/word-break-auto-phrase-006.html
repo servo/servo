@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 4 Test: word-break: auto-phrase hyphenation</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#word-break-property">
+<link rel="match" href="reference/word-break-auto-phrase-006-ref.html">
+<meta name="assert" content="auto-phrase word breaking must suppress hyphenation">
+<style>
+div {
+  font-size: 2em;
+  border: solid black;
+  margin: 5px;
+  width: min-content;
+}
+#test1 {
+  word-break: auto-phrase;
+  hyphens: manual;
+}
+#test2 {
+  word-break: auto-phrase;
+  hyphens: auto;
+}
+#ref {
+  hyphens: none;
+}
+</style>
+
+<p>Test passes if all boxes below are identical.
+
+<div id=test1 lang=en>con&shy;sid&shy;era&shy;tion</div>
+<div id=test2 lang=en>consideration</div>
+<div id=ref lang=en>consideration</div>

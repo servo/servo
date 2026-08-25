@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta name="author" title="Ryosuke Niwa" href="mailto:rniwa@webkit.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="container"><div id="target"></div><b></b></div>
+<template><span>New </span><script>document.querySelector('b').remove();</script><span>content</span></template>
+
+<script>
+    test(() => {
+        target.replaceWith(document.querySelector('template').content.cloneNode(true));
+        container.querySelector('script').remove();
+        assert_equals(container.innerHTML, '<span>New </span><span>content</span>');
+    });
+</script>

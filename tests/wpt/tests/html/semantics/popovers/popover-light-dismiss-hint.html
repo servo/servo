@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Popover light dismiss behavior for hints</title>
+<meta name="timeout" content="long">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel=help href="https://open-ui.org/components/popover-hint.research.explainer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/popover-utils.js"></script>
+
+<div id=outside></div>
+<div popover id=auto1>auto 1
+  <div popover id=auto2>auto 2
+    <div popover=hint id=innerhint1>inner hint 1
+      <div popover=hint id=innerhint2>inner hint 2
+        <div popover id=improperlynestedauto1>Improperly nested auto 1</div>
+      </div>
+    </div>
+  </div>
+</div>
+<div popover=hint id=hint1>hint 1
+  <div popover=hint id=hint2>hint 2
+    <div popover id=improperlynestedauto2>Improperly nested auto 2</div>
+  </div>
+</div>
+<div popover=manual id=manual1>Manual</div>
+
+<style>
+  [popover] {right:auto;bottom:auto;}
+  #auto1        {left:100px; top:100px;}
+  #auto2        {left:100px; top:200px;}
+  #innerhint1   {left:100px; top:300px;}
+  #innerhint2   {left:100px; top:400px;}
+  #improperlynestedauto1 {left:100px; top:500px;}
+  #hint1        {left:200px; top:100px;}
+  #hint2        {left:200px; top:200px;}
+  #improperlynestedauto2 {left:200px; top:300px;}
+  #manual1      {left:300px; top:100px;}
+  #outside {width:25px;height:25px}
+</style>
+
+<script>
+  const setA = [
+    document.querySelector('#auto1'),
+    document.querySelector('#auto2'),
+    document.querySelector('#innerhint1'),
+    document.querySelector('#innerhint2'),
+    document.querySelector('#manual1'),
+  ];
+  const setB = [
+    document.querySelector('#hint1'),
+    document.querySelector('#hint2'),
+    document.querySelector('#manual1'),
+  ];
+
+  function assertState(popovers, expectedState,description) {
+    description = description || 'Error';
+    const n = popovers.length;
+    assert_equals(expectedState.length,n,'Invalid');
+    for(let i=0;i<n;++i) {
+      assert_equals(popovers[i].matches(':popover-open'),expectedState[i],`${description}, index ${i} (${popovers[i].id})`);
+    }
+  }
+
+  function openall(popovers, t) {
+    popovers.forEach((p) => p.hidePopover());
+    popovers.forEach((p) => p.showPopover());
+    assertState(popovers, Array(popovers.length).fill(true),'All popovers should be able to be open at once');
+    t.add_cleanup(() => popovers.forEach((p) => p.hidePopover()));
+  }
+
+  function nvals(n,val) {
+    return new Array(n).fill(val);
+  }
+
+  for(let i=0;i<(setA.length-1);++i) {
+    promise_test(async (t) => {
+      openall(setA, t);
+      await clickOn(setA[i]);
+      let expectedState = [...nvals(i+1,true),...nvals(setA.length-i-2,false),true];
+      assertState(setA, expectedState);
+    }, 'Mixed auto/hint light dismiss behavior, click on ' + setA[i].id);
+  }
+
+  for(let i=0;i<(setB.length-1);++i) {
+    promise_test(async (t) => {
+      openall(setB, t);
+      await clickOn(setB[i]);
+      let expectedState = [...nvals(i+1,true),...nvals(setB.length-i-2,false),true];
+      assertState(setB, expectedState);
+    }, 'Mixed auto/hint light dismiss behavior, click on ' + setB[i].id);
+  }
+
+  promise_test(async (t) => {
+    const popovers = [hint1, hint2, improperlynestedauto2, manual1];
+    openall(popovers, t);
+    await clickOn(improperlynestedauto2);
+    assertState(popovers, [true, true, true, true]);
+  }, 'Clicking an auto nested inside a hint keeps the whole chain open');
+
+  promise_test(async (t) => {
+    openall(setA, t);
+    await clickOn(outside);
+    assertState(setA, [false,false,false,false,true]);
+  },'Clicking outside closes all setA');
+
+  promise_test(async (t) => {
+    openall(setB, t);
+    await clickOn(outside);
+    assertState(setB, [false,false,true]);
+  },'Clicking outside closes all setB');
+
+  promise_test(async (t) => {
+    openall(setA, t);
+    improperlynestedauto1.showPopover();
+    assertState([...setA, improperlynestedauto1] , [true, true, true, true, true, true]);
+    openall(setB, t);
+    improperlynestedauto2.showPopover();
+    assertState([...setB, improperlynestedauto2] , [true, true, true, true]);
+  },'Auto can be nested inside hint (nothing should throw, auto demoted to hint)');
+</script>

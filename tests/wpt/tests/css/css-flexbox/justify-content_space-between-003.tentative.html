@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#valdef-align-content-space-between">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1953102">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/11937">
+<!-- Note: this test is named ".tentative" pending a resolution of the issue
+     linked above, #11937. -->
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<style>
+.container {
+  display: flex;
+  overflow: hidden;
+  width: 100px;
+  height: 50px;
+  justify-content: space-between;
+}
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div class="container" style="flex-direction: column-reverse">
+  <!-- 'justify-content' has to fall back to 'flex-start' alignment in order
+       for us to show the green bottom-most portion of this flex item: -->
+  <div style="height: 300px">
+    <div style="width: 200px; height: 200px; background: red"></div>
+    <div style="width: 100px; height: 50px; background: green"></div>
+  </div>
+</div>
+<div class="container" style="flex-direction:row-reverse">
+  <!-- 'justify-content' has to fall back to 'flex-start' alignment in order
+       for us to show the green right-most portion of this flex item: -->
+  <div style="width: 300px; display: flex">
+    <div style="width: 200px; height: 50px; background: red"></div>
+    <div style="width: 100px; height: 50px; background: green"></div>
+  </div>
+</div>

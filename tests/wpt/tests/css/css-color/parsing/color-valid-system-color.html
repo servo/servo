@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Color Level 4: Parsing and serialization of colors using valid system color values</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#css-system-colors">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#resolving-other-colors">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#serializing-sRGB-values">
+<meta name="assert" content="system color keyword support">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("color", "ActiveText", "activetext");
+test_valid_value("color", "ButtonBorder", "buttonborder");
+test_valid_value("color", "ButtonFace", "buttonface");
+test_valid_value("color", "ButtonText", "buttontext");
+test_valid_value("color", "Canvas", "canvas");
+test_valid_value("color", "CanvasText", "canvastext");
+test_valid_value("color", "Field", "field");
+test_valid_value("color", "FieldText", "fieldtext");
+test_valid_value("color", "GrayText", "graytext");
+test_valid_value("color", "Highlight", "highlight");
+test_valid_value("color", "HighlightText", "highlighttext");
+test_valid_value("color", "LinkText", "linktext");
+test_valid_value("color", "Mark", "mark");
+test_valid_value("color", "MarkText", "marktext");
+test_valid_value("color", "VisitedText", "visitedtext");
+test_valid_value("color", "SelectedItem", "selecteditem");
+test_valid_value("color", "SelectedItemText", "selecteditemtext");
+test_valid_value("color", "AccentColor", "accentcolor");
+test_valid_value("color", "AccentColorText", "accentcolortext");
+</script>
+</body>
+</html>

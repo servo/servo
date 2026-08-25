@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>CSS Transitions Test: discrete transition for auto inset</title>
+<link rel="help" href="https://drafts.csswg.org/css-transitions-2/#transition-behavior-property">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
+<style>
+  #container {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    background: green;
+  }
+  #abs {
+    position: absolute;
+    transition: top 1000s step-start allow-discrete;
+    inset: 0px;
+    background: red;
+  }
+  #abs.auto {
+    top: auto;
+  }
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div id="container">
+  <div id="abs"></div>
+</div>
+<script>
+  abs.offsetTop;
+  abs.className = "auto";
+</script>

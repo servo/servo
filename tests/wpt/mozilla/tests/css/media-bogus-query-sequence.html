@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: Media query with a bogus query doesn't turn the whole media query list invalid.</title>
+<style>
+@media not all and (bogus), all {
+  #test { display: inline }
+}
+</style>
+<p id="test"></p>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  assert_equals(getComputedStyle(document.getElementById('test')).display, "inline");
+}, "Media query with a bogus query doesn't turn the whole media query list invalid");
+</script>

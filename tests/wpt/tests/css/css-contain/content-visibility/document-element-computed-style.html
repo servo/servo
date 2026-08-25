@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html style="display:none">
+
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=1251931">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div style="content-visibility:hidden"></div>
+
+<script>
+test(() => {
+  document.documentElement.offsetTop;
+  document.documentElement.style.display = "block";
+  assert_equals(getComputedStyle(document.documentElement).color, 'rgb(0, 0, 0)');
+}, `Verifies that ComputedStyle gets updated when the documentElement's style is dirtied in the presence of content-visibility.`);
+</script>

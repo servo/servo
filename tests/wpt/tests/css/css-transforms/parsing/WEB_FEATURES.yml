@@ -1,0 +1,6 @@
+rules:
+- rotate-parsing-computed.html: [individual-transforms]
+- rotate-parsing-valid.html: [individual-transforms]
+- backface-visibility-*: [transforms3d]
+- perspective-*: [transforms3d]
+- "*": [transforms2d]

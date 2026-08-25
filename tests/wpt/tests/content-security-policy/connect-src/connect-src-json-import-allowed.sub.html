@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>connect-src-json-import-allowed</title>
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="connect-src 'self'; script-src http://{{host}}:{{ports[http][0]}}/resources/testharness.js http://{{host}}:{{ports[http][0]}}/resources/testharnessreport.js 'unsafe-inline';"
+    />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+
+  <body>
+    <script>
+      promise_test(t => new Promise((resolve, reject) => {
+        window.addEventListener("securitypolicyviolation", (err) => {
+          if (err.blockedURI.endsWith("/common/dummy.json")) {
+            reject("Should not raise securitypolicyviolation.");
+          }
+        });
+        import("/common/dummy.json", { with: { type: "json" } }).then(resolve, reject)
+      }), "import should be allowed");
+    </script>
+  </body>
+</html>

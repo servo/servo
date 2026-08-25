@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<title>CSS Overflow: `line-clamp` and text-wrap: balance, height based</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-balance-010-ref.html">
+<meta name="assert" content="Checks that balancing in nested IFC happens properly, and is taken into account when finding clamp points.">
+<style>
+.clamp {
+  line-clamp: auto;
+  font-family: monospace;
+  line-height: 1;
+  max-height: 6lh;
+}
+.balance {
+  display: flow-root;
+  width: 9.1ch; /* the extra .1 is just a bit of extra wiggle room, in case things aren't sized perfectly. */
+  text-wrap: balance;
+}
+span { font-size: 2em; }
+</style>
+<p>Test passes if you see no numbers beyond 0
+
+<div class="clamp">
+    0
+    <div class=balance>
+1 2 <span>3</span> <span>4</span> 5 6 7 8 <span>9</span>
+    </div>
+    10
+</div>
+

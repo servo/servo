@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#attr-notation">
+<link rel="match" href="attr-style-sharing-4-ref.html">
+<style>
+  div::after {
+    content: attr(data-foo raw-string);
+  }
+</style>
+<div data-foo="x">
+</div>
+<div data-foo="y">
+</div>

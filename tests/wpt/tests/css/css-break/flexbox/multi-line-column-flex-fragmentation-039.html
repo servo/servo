@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>
+  Multi-line column flex fragmentation: Tall margins with forced break.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<style>
+  #flex {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    height: 500px;
+    position: relative;
+  }
+  #flex > div {
+    background: green;
+    width: 10px;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width: 100px; height: 100px; columns: 5; column-gap: 0; column-fill: auto; background: red;">
+  <div id="flex">
+    <div style="height: 50px;"></div>
+    <div style="height: 50px; margin-top: 100px; break-before: column;"></div>
+    <div style="height: 200px; margin-top: 50px;"></div>
+    <div style="height: 50px; background: white;"></div>
+    <div style="height: 50px; margin-top: 100px; break-before: column;"></div>
+    <div style="height: 200px; margin-top: 50px;"></div>
+    <div style="position: absolute; height: 150px; top: 50px;"></div>
+    <div style="position: absolute; height: 200px; left: 10px;"></div>
+    <div style="position: absolute; height: 50px; width: 20px; top: 250px;"></div>
+  </div>
+</div>

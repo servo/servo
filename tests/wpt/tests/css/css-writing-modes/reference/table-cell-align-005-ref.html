@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Writing Modes reference: text-align in orthogonal table cell</title>
+
+<meta name="flags" content="ahem" />
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+
+<style>
+table {
+  font: 40px/1 Ahem;
+  border: 1px solid gray;
+}
+
+td {
+  height: 2em;
+  padding: 0;
+  color: green;
+  vertical-align: top;
+}
+
+td div {
+  position: relative;
+}
+
+.t {
+  top: 0;
+}
+.m {
+  top: 0.5em;
+}
+.b {
+  top: 1em;
+}
+</style>
+
+<table>
+ <tr>
+  <td><div class=t>X</div></td>
+  <td><div class=m>X</div></td>
+  <td><div class=b>X</div></td>
+  <td><div class=t>X</div></td>
+  <td><div class=b>X</div></td>
+ </tr>
+</table>
+<br>
+<table>
+ <tr>
+  <td><div class=t>X</div></td>
+  <td><div class=m>X</div></td>
+  <td><div class=b>X</div></td>
+  <td><div class=b>X</div></td>
+  <td><div class=t>X</div></td>
+ </tr>
+</table>
+<br>
+<table>
+ <tr>
+  <td><div class=t>X</div></td>
+  <td><div class=m>X</div></td>
+  <td><div class=b>X</div></td>
+  <td><div class=t>X</div></td>
+  <td><div class=b>X</div></td>
+ </tr>
+</table>
+<br>
+<table>
+ <tr>
+  <td><div class=t>X</div></td>
+  <td><div class=m>X</div></td>
+  <td><div class=b>X</div></td>
+  <td><div class=b>X</div></td>
+  <td><div class=t>X</div></td>
+ </tr>
+</table>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml"
+     width="800px" height="800px">
+  <title>SVG Geometry Properties: parsing the ry presentation attribute with valid values</title>
+  <metadata>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/geometry.html#RY"/>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/types.html#presentation-attribute-css-value"/>
+    <h:link rel="help" href="https://github.com/web-platform-tests/wpt/issues/61017"/>
+    <h:meta name="assert" content="the ry presentation attribute supports '&lt;length-percentage [0,inf]&gt; | &lt;number [0,inf]&gt; | auto'."/>
+  </metadata>
+  <rect id="target"/>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <h:script src="support/attribute-testcommon.js"/>
+  <script><![CDATA[
+
+test_valid_attribute_value("ry", "auto", 0, "auto");
+test_valid_attribute_value("ry", "0", 0);
+test_valid_attribute_value("ry", "5", 5);
+test_valid_attribute_value("ry", "5px", 5);
+test_valid_attribute_value("ry", "5%", 40, "5%");
+
+  ]]></script>
+</svg>

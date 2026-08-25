@@ -1,0 +1,15 @@
+<!doctype html>
+<title>CSS Borders: border-shape ellipse with box-shadow</title>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#border-shape">
+<link rel="match" href="border-shape-shadow-ellipse-ref.html">
+<meta name="assert" content="box-shadow on an ellipse border-shape should match the same shadow drawn around a border-radius ellipse.">
+<style>
+  #target {
+    margin: 100px;
+    width: 120px;
+    height: 180px;
+    border-shape: ellipse(60px 90px);
+    box-shadow: 0 0 10px 0 black;
+  }
+</style>
+<div id="target"></div>

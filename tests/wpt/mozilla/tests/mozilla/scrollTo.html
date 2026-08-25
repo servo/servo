@@ -1,0 +1,21 @@
+<!doctype html>
+<meta charset="utf-8">
+<title></title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div style="position: absolute; top: 0; left: 0; width: 10000px; height: 10000px; background: purple"></div>
+<script>
+test(function() {
+    scrollTo(0, 5000);
+    assert_equals(scrollX, 0);
+    assert_equals(pageXOffset, 0);
+    assert_equals(scrollY, 5000);
+    assert_equals(pageYOffset, 5000);
+
+    scrollTo(5000, 0);
+    assert_equals(scrollX, 5000);
+    assert_equals(pageXOffset, 5000);
+    assert_equals(scrollY, 0);
+    assert_equals(pageYOffset, 0);
+});
+</script>

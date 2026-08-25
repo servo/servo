@@ -1,0 +1,31 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Page bleed</title>
+  <link rel="author" title="Melinda Grant" href="mailto:melinda.grant@hp.com" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/page.html#outside-page-box" />
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#content-outside-box" />
+  <meta name="flags" content="paged should" />
+  <meta name="assert" content="Content should be allowed slightly beyond the page box to allow pages to 'bleed'. "/>
+  <style type="text/css">
+
+  @page {
+    margin: -1em;
+  }
+  html {
+    height: 100%;
+    background: #dff;
+  }
+  div {
+    padding: 3em;
+  }
+
+  </style>
+ </head>
+ <body>
+   <div>
+   This test produces one page on paged media.  When viewed in a print preview or printed on a printer supporting "full bleed"
+   (also known as "edge-to-edge" or "borderless" printing), the entire surface of the medium is a pale cyan.  There is no white showing around the edges.
+   </div>
+ </body>
+</html>

@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Fixed position elements should be clipped by parent CSS clips</title>
+        <style>
+        body {
+          margin: 0px;
+        }
+
+        #box {
+          left; 0px;
+          top: 0px;
+          background: green;
+          width: 100px;
+          height: 100px;
+          clip: rect(0, auto, auto, 0);
+        }
+        </style>
+    </head>
+    <body>
+        <div id="box">
+    </body>
+</html>

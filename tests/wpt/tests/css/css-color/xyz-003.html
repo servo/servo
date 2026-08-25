@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Color 4: xyz</title>
+<link rel="author" title="Sam Weinig" href="mailto:weinig@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#valdef-color-xyz">
+<link rel="match" href="xyz-003-ref.html">
+<meta name="fuzzy" content="maxDifference=0-1;totalPixels=0-18432">
+<meta name="assert" content="xyz with no alpha">
+<style>
+    body { background-color: grey; }
+    .test { background-color: red; width: 12em; height: 6em; margin-top: 0; }
+    .ref { background-color: color(srgb 1.08516 0.97699 0.958832); width: 12em; height: 6em; margin-bottom: 0; } /* color(xyz 1 1 1) converted to sRGB */
+    .test { background-color: color(xyz 1 1 1); }
+</style>
+<body>
+    <p>Test passes if you see a single square, and not two rectangles of different colors.</p>
+    <div class="ref"></div>
+    <div class="test"></div>
+</body>

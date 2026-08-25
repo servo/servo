@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+    .multi-column {
+        columns: 2;
+        column-width: 90px;
+        width: 330px;
+        height: 130px;
+        column-fill: balance;
+    }
+
+    body {
+        margin: 0px;
+    }
+
+    #flexbox {
+        border: 2px solid rgb(96 139 168);
+        display: flex;
+        column-gap: 10px;
+        row-gap: 20px;
+        width: 90px;
+        flex-wrap: wrap;
+        height: 130px;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .items {
+        background-color: rgb(96 139 168 / 0.2);
+        width: 30px;
+        height: 30px;
+    }
+
+    .column-rule {
+        background-color: blue;
+        position: absolute;
+        height: 65px;
+        width: 10px;
+    }
+
+    .row-rule {
+        background-color: gold;
+        position: absolute;
+        height: 20px;
+        width: 90px;
+    }
+</style>
+
+<div class="column-rule" style="top: 2px; left: 42px;"></div>
+<div class="column-rule" style="top: 0px; left: 215px; height: 65px;"></div>
+
+<div class="row-rule" style="left: 2px; top: 32px"></div>
+<div class="row-rule" style="left: 175px; top: 15px"></div>
+
+<div class="multi-column">
+    <div id="flexbox">
+        <div class="items"></div>
+        <div class="items"></div>
+        <div class="items"></div>
+        <div class="items"></div>
+        <div class="items"></div>
+        <div class="items"></div>
+    </div>
+</div>

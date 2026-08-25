@@ -1,0 +1,24 @@
+<!doctype html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>Containers don't affect the amount of resize events an iframe gets</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#propdef-container-type">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1935189">
+<link rel="match" href="container-iframe-resize-events-ref.html">
+<div style="container-type: inline-size;">
+  <iframe src="./support/count-resizes.html" style="display: none"></iframe>
+</div>
+<script>
+  addEventListener("load", () => {
+    let frame = document.querySelector("iframe");
+    frame.style.display = "";
+    frame.getBoundingClientRect();
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.documentElement.className = "";
+      });
+    });
+  });
+</script>

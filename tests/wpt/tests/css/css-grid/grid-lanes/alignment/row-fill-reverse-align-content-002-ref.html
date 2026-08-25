@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    html, body {
+      font: 16px/1 monospace;
+      background: white;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      width: 260px;
+      height: 170px;
+      border: 1px solid;
+    }
+
+    .row {
+      display: flex;
+      flex-direction: row-reverse;
+      height: 70px;
+      flex-shrink: 0;
+      gap: 4px;
+      align-items: start;
+    }
+
+    item {
+      display: block;
+      width: min-content;
+      height: min-content;
+      color: white;
+      background: #555;
+    }
+  </style>
+</head>
+<body>
+  <!-- Container alignment (baseline falls back to start) -->
+  <p>align-content: baseline</p>
+  <div class="container" style="justify-content: baseline;">
+    <div class="row">
+      <item>item 1</item>
+      <item>item 3</item>
+    </div>
+    <div class="row">
+      <item>item 2</item>
+    </div>
+  </div>
+
+  <!-- Self alignment -->
+  <p>align-self</p>
+  <div class="container">
+    <div class="row">
+      <item>start</item>
+      <item>baseline</item>
+    </div>
+    <div class="row">
+      <item style="align-self: end;">end</item>
+      <item style="align-self: center;">center</item>
+    </div>
+  </div>
+</body>
+</html>

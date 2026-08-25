@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: block-ellipsis and "nowrap" inlines</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#block-ellipsis">
+<link rel="match" href="reference/block-ellipsis-026-ref.html">
+<meta name="assert" content="The block-ellipsis displaces entire sequences of nowrap content if it needs to make room, regardless of internal wrap opportunities.">
+<style>
+.clamp {
+  line-clamp: 2;
+  width: 63.1ch;
+  border: 1px solid black;
+  font-family: monospace;
+}
+span {
+  white-space: nowrap;
+}
+</style>
+<p>Test passes if there are two lines below, and if there is an ellipsis (“…”) after the word “walked” at the end of the second line.
+
+<div class="clamp">This time, Mark, who had always been the center of attention in
+any social gathering, walked <span>into the room uncharacteristically</span>
+quietly, barely speaking as he settled into a chair.
+When asked, he said that he was fine, when he wasn't really fine.</div>

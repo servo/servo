@@ -1,0 +1,34 @@
+﻿<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: ellipsis adjacent to remaining content</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="http://www.w3.org/TR/css3-ui/#text-overflow">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="flags" content="ahem">
+<meta name="assert" content="The ellipsis is placed immediately adjacent to the end edge of the remaining inline content, with no intervening gap.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+.test {
+  white-space: pre;
+  font: 50px/1 Ahem;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  width: 2.5em; /* We will be fitting 2em worth of characters in a 2.5em space, to see where the extra .5em goes. It should be after, not between the characters.*/
+  color: green;
+}
+.red {
+  position: absolute;
+  z-index: -1;
+  width: 100px;
+  height: 100px;
+  background: red;
+  /* This red box wich will show through the gap between the letter and the ellipsis if there's one
+     but not extend past the two characters if the ellipsis is adjacent to the character as it should be.
+   */
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class=red></div>
+<div class=test>this line should render to a "t" followed by a "…", both of which are a 1em square in ahem, whithout any gap between them.
+this line also should render to a "t" followed by a "…", both of which are a 1em square in ahem, whithout any gap between them.</div>

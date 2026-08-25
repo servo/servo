@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="support/dropEffect-test-helper.js"></script>
+<script src="../resources/test-helper.js"></script>
+<head>
+  <title>Canvas drag and drop: allowed effects 'copy','move','link'</title>
+  <style type="text/css">
+    div {
+      display: inline-block;
+      vertical-align: top;
+      background-color: olive;
+      color: white;
+      padding: 20px;
+      width: 100px;
+      height: 100px;
+    }
+    div:nth-child(2) {
+      background-color: green;
+    }
+    div:nth-child(3) {
+      background-color: teal;
+    }
+  </style>
+</head>
+<body>
+  <p>
+    Drag these canvas elements. Each has a different effectAllowed and color
+    pattern.
+  </p>
+  <p>
+    <canvas id="copy-drag" width="100" height="100" draggable="true"
+      ondragstart="event.dataTransfer.effectAllowed = 'copy'">Copy
+      Canvas</canvas>
+    <canvas id="move-drag" width="100" height="100" draggable="true"
+      ondragstart="event.dataTransfer.effectAllowed = 'move'">Move
+      Canvas</canvas>
+    <canvas id="link-drag" width="100" height="100" draggable="true"
+      ondragstart="event.dataTransfer.effectAllowed = 'link'">Link
+      Canvas</canvas>
+  </p>
+  <p>
+    Drop targets for each effect:
+  </p>
+  <p>
+  <div id="copy-drop" ondragover="onDragOver(event, 'copy')">copy</div>
+  <div id="move-drop" ondragover="onDragOver(event, 'move')">move</div>
+  <div id="link-drop" ondragover="onDragOver(event, 'link')">link</div>
+  </p>
+</body>
+<script>
+  // Draw patterns on the three canvases with different colors
+  function drawCanvasPattern(canvasId, primaryColor, secondaryColor) {
+    var canvas = document.getElementById(canvasId),
+      c = canvas.getContext('2d');
+    for (var x = 0; x != 50; x++) {
+      c.fillStyle = (x % 2 == 0) ? primaryColor : secondaryColor;
+      c.beginPath();
+      c.moveTo(x, x);
+      c.lineTo(100 - x, x);
+      c.lineTo(100 - x, 100 - x);
+      c.lineTo(x, 100 - x);
+      c.closePath();
+      c.fill();
+    }
+  }
+
+  // Draw the three canvas patterns
+  drawCanvasPattern('copy-drag', 'olive', 'white');
+  drawCanvasPattern('move-drag', 'green', 'white');
+  drawCanvasPattern('link-drag', 'teal', 'white');
+
+  function onDragOver(event, effect) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = effect;
+  }
+
+  async function test() {
+    await new Promise(loaded => window.addEventListener("load", loaded));
+
+    for (const effect of ['copy', 'move', 'link']) {
+      const dragCanvas = document.getElementById(effect + '-drag');
+      const dropDiv = document.getElementById(effect + '-drop');
+
+      dragDropTest(
+        dragCanvas, dropDiv, dropEffectOnDropCallBack,
+        'dropEffect should match effectAllowed on drop for ' + effect);
+    }
+  }
+  test();
+</script>
+</html>

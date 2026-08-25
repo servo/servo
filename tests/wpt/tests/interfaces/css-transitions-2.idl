@@ -1,0 +1,22 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: CSS Transitions Module Level 2 (https://drafts.csswg.org/css-transitions-2/)
+
+[Exposed=Window]
+interface CSSStartingStyleRule : CSSGroupingRule {
+};
+
+[Exposed=Window]
+partial interface TransitionEvent {
+  readonly attribute CSSTransition? animation;
+};
+
+partial dictionary TransitionEventInit {
+  CSSTransition? animation = null;
+};
+
+[Exposed=Window]
+interface CSSTransition : Animation {
+  readonly attribute CSSOMString transitionProperty;
+};

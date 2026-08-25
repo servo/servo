@@ -1,0 +1,14 @@
+<!doctype html>
+<title>CSS Test: ::first-letter updates after inserting text node at start of paragraph</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#first-letter-pseudo">
+<link rel="match" href="first-letter-insert-text-node-dynamic-ref.html">
+<style>
+p::first-letter { text-decoration: underline; color: #CB000F; }
+</style>
+<p id="test">This is a test paragraph. You can insert extra text at its start; the ::first-letter styles should be updated to accommodate this new text.</p>
+<script>
+document.body.offsetTop;
+var para = document.getElementById('test');
+para.insertBefore(document.createTextNode('I am adding a new text. '), para.firstChild);
+</script>

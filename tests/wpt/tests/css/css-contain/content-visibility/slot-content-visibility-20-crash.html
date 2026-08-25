@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=1268837">
+
+<style>
+summary {
+  margin: 1px 1px 1px -1px;
+}
+* {
+  max-height: 0vh;
+}
+</style>
+
+<script>
+function jsfuzzer() {
+  document.documentElement.appendChild(document.querySelector('details'));
+  document.execCommand("selectAll");
+  document.querySelector('li').replaceChild(
+    document.querySelector('q'),
+    document.querySelector('div'));
+  document.caretRangeFromPoint(127,487);
+}
+</script>
+
+<body onload=jsfuzzer()>
+
+<li>
+  <div></div>
+  <details>
+    <summary></summary>
+    <q></q>
+  </details>
+</li>

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8"/>
+  <title>document.createCDATASection</title>
+  <link rel="help" href="https://dom.spec.whatwg.org/#dom-document-createcdatasection"/>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="Document-createComment-createTextNode.js"></script>
+</head>
+
+<body>
+  <script>
+  "use strict";
+  test_create("createCDATASection", CDATASection, 4, "#cdata-section");
+
+  test(() => {
+    assert_throws_dom("InvalidCharacterError", () => document.createCDATASection(" ]" + "]>  "));
+  }, "Creating a CDATA section containing the string \"]" + "]>\" must throw");
+  </script>
+</body>
+</html>

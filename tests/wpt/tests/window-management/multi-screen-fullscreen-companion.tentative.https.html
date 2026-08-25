@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<!-- user agents are not required to support open features other than `noopener`
+     and on some platforms position and size features don't make sense -->
+<meta name="flags" content="may">
+<title>Window Management test: Fullscreen Companion Window</title>
+<link rel="help" href="https://w3c.github.io/window-management/">
+Tests use of multi-screen details to enter fullscreen and open a 'companion'
+popup window in the same user activation.<br>
+The host device must have 2+ screens to yield meaningful results.<br><br>
+<button id="closeButton" onclick="closePopups">Close popups</button><br>
+<input id="autoClose" type="checkbox" checked=true>Auto-close popups</input>
+<ul id="list"></ul>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/helpers.js"></script>
+<script>
+'use strict';
+
+let popups = [];
+function closePopups() {
+  popups.forEach(p => p.close());
+  popups = [];
+}
+
+promise_test(async setUpTest => {
+  await setUpWindowManagement(setUpTest);
+  const screens = window.screenDetails.screens;
+  const originalScreen = window.screenDetails.currentScreen;
+  for (const [i, screenA] of screens.entries()) {
+    const screenB = screens[(i + 1) % screens.length];
+    let name = `Fullscreen on '${screenA.label}'; popup on '${screenB.label}'`;
+    promise_test(async test => {
+      await buttonClick(test, name);
+      await document.documentElement.requestFullscreen({ screen: screenA });
+      await assertWindowOnScreen(window, screenA);
+      // Expect the popup to open if multiple screens are available.
+      const assertPlacement = screens.length > 1;
+      const popup = await openPopupOnScreen(screenB, assertPlacement);
+      if (!!popup)
+        popups.push(popup);
+      // Exit fullscreen; `window` should move back to `originalScreen`.
+      await buttonClick(test, `Exit fullscreen`);
+      await document.exitFullscreen();
+      await assertWindowOnScreen(window, originalScreen);
+      assert_false(!!document.fullscreenElement);
+      if (autoClose.checked)
+        closePopups();
+    }, name);
+  }
+}, 'Enter fullscreen and open a popup from one transient activation.');
+</script>

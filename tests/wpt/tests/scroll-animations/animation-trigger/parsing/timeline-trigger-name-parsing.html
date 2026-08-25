@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-animations-2/#animation-trigger">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<div id="target"></div>
+<script>
+test_valid_value('timeline-trigger-name', 'initial');
+test_valid_value('timeline-trigger-name', 'inherit');
+test_valid_value('timeline-trigger-name', 'unset');
+test_valid_value('timeline-trigger-name', 'revert');
+
+test_valid_value('timeline-trigger-name', 'none');
+test_valid_value('timeline-trigger-name', '--abc');
+test_valid_value('timeline-trigger-name', '  --abc', '--abc');
+test_valid_value('timeline-trigger-name', '--aBc');
+test_valid_value('timeline-trigger-name', '--foo, --bar');
+test_valid_value('timeline-trigger-name', '--bar, --foo');
+test_valid_value('timeline-trigger-name', 'none, none');
+test_valid_value('timeline-trigger-name', '--a, none, --b');
+
+test_computed_value('timeline-trigger-name', 'none');
+test_computed_value('timeline-trigger-name', '--abc');
+test_computed_value('timeline-trigger-name', '  --abc', '--abc');
+test_computed_value('timeline-trigger-name', '--aBc');
+test_computed_value('timeline-trigger-name', '--foo, --bar');
+test_computed_value('timeline-trigger-name', '--bar, --foo');
+test_computed_value('timeline-trigger-name', 'none, none');
+test_computed_value('timeline-trigger-name', '--a, none, --b');
+
+test_invalid_value('timeline-trigger-name', 'auto');
+test_invalid_value('timeline-trigger-name', 'abc');
+test_invalid_value('timeline-trigger-name', 'default');
+test_invalid_value('timeline-trigger-name', '10px');
+test_invalid_value('timeline-trigger-name', 'foo bar');
+test_invalid_value('timeline-trigger-name', '"foo" "bar"');
+test_invalid_value('timeline-trigger-name', 'rgb(1, 2, 3)');
+test_invalid_value('timeline-trigger-name', '#fefefe');
+</script>

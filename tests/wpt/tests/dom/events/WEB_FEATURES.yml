@@ -1,0 +1,7 @@
+rules:
+- legacy-pre-activation-behavior.window.js: [change-event]
+- no-focus-events-at-clicking-editable-content-in-link.html: [focus-events]
+- Event-dispatch-click.html: [mouse-events]
+- Event-dispatch-click.tentative.html: [mouse-events]
+- mouse-event-retarget.html: [mouse-events]
+- "*": [events]

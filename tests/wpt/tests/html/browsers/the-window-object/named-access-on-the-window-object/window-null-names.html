@@ -1,0 +1,20 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Named access with null characters</title>
+<link rel="author" title="Ms2ger" href="ms2ger@gmail.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#window">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-window-nameditem">
+<link rel="help" href="https://webidl.spec.whatwg.org/#named-properties-object">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+test(function() {
+  var iframe = document.createElement("iframe")
+  iframe.name = "a\0b"
+  document.body.appendChild(iframe)
+  assert_equals(window["a\0b"], iframe.contentWindow)
+  assert_equals(window["ab"], undefined)
+  assert_equals(window["a"], undefined)
+});
+</script>

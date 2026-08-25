@@ -1,0 +1,52 @@
+<html><head>
+  <link rel="help" href="https://drafts.csswg.org/css-inline-3/#dominant-baseline-property">
+  <link rel="match" href="dominant-baseline-mixed-writing-modes-002-ref.html">
+  <link rel="stylesheet" href="/fonts/baseline-diagnostic/baseline-diagnostic-font.css">
+  <script src="support/variant-class.js"></script>
+  <meta name="assert" content="dominant-baseline persists across writing-mode changes"/>
+  <meta charset="utf-8">
+  <style>
+    .line {
+      font: 500px/1 BaselineDiagnosticAlphabeticZero;
+      dominant-baseline: text-top;
+      unicode-bidi: bidi-override;
+    }
+
+    /* Creating a golden spiral */
+    span { font-size: calc(1em / 1.61803398875); }
+    .r { writing-mode: horizontal-tb; direction: ltr; }
+    .d { writing-mode: vertical-lr; }
+    .l { writing-mode: horizontal-tb; direction: rtl; }
+    .u { writing-mode: sideways-rl; }
+  </style>
+</head>
+<body>
+  <div class="line">
+    <span
+        class="r">X<span
+        class="d">X<span
+        class="l">X<span
+        class="u">X<span
+        class="r">X<span
+        class="d">X<span
+        class="l">X<span
+        class="u">X<span
+        class="r">X<span
+        class="d">X<span
+        class="l">X<span
+        class="u">X</span
+        ></span
+        ></span
+        ></span
+        ></span
+        ></span
+        ></span
+        ></span
+        ></span
+        ></span
+        ></span
+        ></span>
+  </div>
+
+
+</body></html>

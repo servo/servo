@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#abspos-breaking">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<!-- Fragmented OOF element with block-size percentage resolution. -->
+<style>
+  #multicol {
+    column-count: 3;
+    column-fill: auto;
+    column-gap: 0px;
+    /* last child is a spanner that takes up 33.33% so available height for
+       .rel and .abs is 100px */
+    height: 150px;
+    width: 150px;
+    margin-left: -50px;
+  }
+  .rel {
+    position: relative;
+  }
+  .abs {
+    position: absolute;
+    /* offset one full 100px column (accounted for by negative margin on #multicol */
+    top: 100px;
+    width: 50px;
+    height: 66.667%;
+    background: green;
+  }
+  .spanner {
+    column-span: all;
+    height: 33.33%;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="multicol">
+  <div class="rel">
+    <div class="abs"></div>
+    <div style="width: 10px; height: 300px;"></div>
+  </div>
+  <div class="spanner"></div>
+</div>

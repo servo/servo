@@ -1,0 +1,98 @@
+<!doctype html>
+<html>
+  <head>
+    <title>grid rowheader readonly true</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+    <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/wai-aria/scripts/ATTAcomm.js"></script>
+    <script>
+    setup({explicit_timeout: true, explicit_done: true });
+
+    var theTest = new ATTAcomm(
+    {
+   "steps" : [
+      {
+         "element" : "test",
+         "test" : {
+            "ATK" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_ROW_HEADER"
+               ],
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "STATE_READ_ONLY"
+               ]
+            ],
+            "AXAPI" : [
+               [
+                  "property",
+                  "AXRole",
+                  "is",
+                  "AXCell"
+               ],
+               [
+                  "result",
+                  "AXUIElementIsAttributeSettable(AXValue)",
+                  "is",
+                  "false"
+               ]
+            ],
+            "MSAA" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_SYSTEM_ROWHEADER"
+               ],
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "STATE_SYSTEM_READONLY"
+               ]
+            ],
+            "UIA" : [
+               [
+                  "property",
+                  "ControlType",
+                  "is",
+                  "HeaderItem"
+               ],
+               [
+                  "property",
+                  "Value.IsReadOnly",
+                  "is",
+                  "true"
+               ]
+            ]
+         },
+         "title" : "step 1",
+         "type" : "test"
+      }
+   ],
+   "title" : "grid rowheader readonly true"
+}
+
+    ) ;
+    </script>
+  </head>
+  <body>
+  <p>This test examines the ARIA properties for grid rowheader readonly true.</p>
+    <div role="grid">
+    <div role="row">
+       <div id="test" role="rowheader" aria-readonly="true">test cell</div>
+    </div>
+  </div>
+
+  <div id="manualMode"></div>
+  <div id="log"></div>
+  <div id="ATTAmessages"></div>
+  </body>
+</html>

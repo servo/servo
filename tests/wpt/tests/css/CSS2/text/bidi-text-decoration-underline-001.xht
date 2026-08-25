@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Test: text-decoration: none and bidi reordering</title>
+    <link rel="author" title="Eira Monstad, Opera Software ASA" href="mailto:public-testsuites@opera.com"/>
+    <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#lining-striking-props"/>
+    <meta name="assert" content="Underline should span the entire line and not
+      be affected by bidi reordering or no text-decoration on children"/>
+    <style type="text/css"><![CDATA[
+      a {
+      text-decoration: underline;
+      }
+      span {
+      text-decoration: none;
+      }
+    ]]></style>
+  </head>
+
+  <body>
+    <p>
+      There should be an unbroken underline under the entire line:
+    </p>
+    <p><a href="#">abc <span>def &#1604;&#1610;&#1589;</span> &#1575;&#1601;&#1578;</a></p>
+
+  </body>
+</html>

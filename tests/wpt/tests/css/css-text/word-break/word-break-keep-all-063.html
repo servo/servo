@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+
+ <html lang="en">
+
+  <meta charset="UTF-8">
+
+  <title>CSS Text: 'word-break: keep-all' applied to an inline in latin</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-text-3/#word-break-property">
+  <link rel="match" href="reference/word-break-keep-all-063-ref.html">
+
+  <style>
+  div
+    {
+      border: orange solid;
+      font: 24px monospace;
+      margin-bottom: 4px;
+      width: 15ch;
+      /*
+      15 in 15ch is an entirely arbitrary number.
+      */
+      word-break: break-all;
+      /*
+      'word-break: break-all' applied on the
+      wrapping block is necessary to verify
+      that 'word-break: keep-all' is
+      implemented
+      */
+    }
+
+  div#ws-normal
+    {
+      white-space: normal;
+    }
+
+  div#ws-prewrap
+    {
+      white-space: pre-wrap;
+    }
+
+  div#ws-breakspaces
+    {
+      white-space: break-spaces;
+    }
+
+  div#ws-preline
+    {
+      white-space: pre-line;
+    }
+
+  span.test
+    {
+      word-break: keep-all;
+    }
+
+  div#reference
+    {
+      word-break: normal;
+    }
+  </style>
+
+  <p>Test passes if the glyphs in the 5 orange rectangles are laid out <strong>identically</strong>.
+
+  <div id="ws-normal">A simple <span class="test">sentence</span> in english.</div>
+
+  <div id="ws-prewrap">A simple <span class="test">sentence</span> in english.</div>
+
+  <div id="ws-breakspaces">A simple <span class="test">sentence</span> in english.</div>
+
+  <div id="ws-preline">A simple <span class="test">sentence</span> in english.</div>
+
+  <div id="reference">A simple<br>sentence in eng<br>lish.</div>
+                <!--              123456789012345        -->

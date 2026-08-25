@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+
+<link rel=help href="https://github.com/w3c/csswg-drafts/issues/13036">
+
+<meta name="assert" content="text-decoration-inset:auto animates as length when interpolating with a length">
+<meta name="assert" content="interpolation of auto to auto remains auto">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+
+<body>
+
+<div id=measureAuto></div>
+<style>
+#measureAuto {
+    text-decoration-inset: auto;
+    animation: 1s linear 0s paused auto-eval;
+}
+@keyframes auto-eval {
+    0% { text-decoration-inset: auto; }
+    100% { text-decoration-inset: 0px; }
+}
+</style>
+
+<script>
+// Determine what the `auto` value resolves to, by getting the value at the start
+// of an animation from `auto` to a length.
+const av = parseFloat(getComputedStyle(measureAuto).textDecorationInset);
+
+test(function(){
+  assert_false(isNaN(av));
+}, "`auto` computes to a length when interpolating with length values");
+
+// Test interpolating between `auto` and lengths.
+test_interpolation({
+  property: 'text-decoration-inset',
+  from: 'auto',
+  to: '10px -20px',
+}, [
+  {at: -1, expect: (av - (10 - av)) + "px " + (av - (-20 - av)) + "px"},
+  {at: 0, expect: av + "px" },
+  {at: 0.125, expect: (av + (10 - av) * 0.125) + "px " + (av + (-20 - av) * 0.125) + "px" },
+  {at: 0.875, expect: (av + (10 - av) * 0.875) + "px " + (av + (-20 - av) * 0.875) + "px" },
+  {at: 1, expect: '10px -20px'},
+  {at: 1.5, expect: (av + (10 - av) * 1.5) + "px " + (av + (-20 - av) * 1.5) + "px" },
+]);
+
+// Check that interpolation works as expected for actual lengths
+test_interpolation({
+  property: 'text-decoration-inset',
+  from: '0px',
+  to: '10px -20px',
+}, [
+  {at: -1, expect: '-10px 20px'},
+  {at: 0, expect: '0px'},
+  {at: 0.125, expect: '1.25px -2.5px'},
+  {at: 0.875, expect: '8.75px -17.5px'},
+  {at: 1, expect: '10px -20px'},
+  {at: 1.5, expect: '15px -30px'},
+]);
+
+// Check that `auto` to `auto` computes as `auto` at all stages.
+test_interpolation({
+  property: 'text-decoration-inset',
+  from: 'auto',
+  to: 'auto',
+}, [
+  {at: -1, expect: 'auto'},
+  {at: 0, expect: 'auto'},
+  {at: 0.125, expect: 'auto'},
+  {at: 0.875, expect: 'auto'},
+  {at: 1, expect: 'auto'},
+  {at: 1.5, expect: 'auto'},
+]);
+</script>

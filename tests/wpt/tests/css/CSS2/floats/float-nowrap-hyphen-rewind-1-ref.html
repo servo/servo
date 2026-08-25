@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<style>
+#container {
+  font-family: monospace;
+  font-size: 20px;
+  hyphens: auto;
+}
+
+#container > div {
+  border: 1px solid blue;
+}
+
+#container > div > div {
+  border: 1px solid gray;
+}
+
+span.wrapper {
+  white-space: pre;
+}
+
+.float {
+  float: right;
+  margin-right: -100px;
+}
+</style>
+<div id="container" lang="en-US">
+  <div style="width: 23ch">
+    <div>
+      pppp
+      comprehension<span class="wrapper"> ppp</span>
+      pppp
+      <span class="float">float</span>
+    </div>
+    <div>
+      pppp
+      comprehension<span class="wrapper">[ppp</span>
+      pppp
+      <span class="float">float</span>
+    </div>
+    <div>
+      pppp
+      pppp pppp XXX<span class="wrapper"> ppp</span>
+      pppp
+      <span class="float">float</span>
+    </div>
+    <div>
+      pppp
+      pppp pppp XXX<span class="wrapper">[ppp</span>
+      pppp
+      <span class="float">float</span>
+    </div>
+  </div>
+</div>

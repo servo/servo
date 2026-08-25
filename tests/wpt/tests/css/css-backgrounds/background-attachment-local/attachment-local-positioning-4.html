@@ -1,0 +1,35 @@
+<!doctype html>
+<title>CSS Test: background-attachment: local; positioning area with dir=rtl, top left</title>
+<link rel="match" href="attachment-local-positioning-4-ref.html" />
+<meta name="flags" content="dom" />
+<link rel="author" title="Simon Sapin" href="http://exyr.org/about/" />
+<link rel="help" href="http://www.w3.org/TR/css3-background/#the-background-attachment" />
+<style>
+#outer {
+  border: solid;
+  /* With scrolling, effective position is -10px -10px */
+  background: url(aqua-yellow-32x32.png) local no-repeat 0 0;
+  overflow: hidden;
+  width: 200px;
+  height: 300px;
+}
+div div {
+  width: 250px;
+  height: 370px;
+}
+p {
+  margin: 0;
+  padding-top: 100px;
+}
+</style>
+<div id=outer dir=rtl>
+  <div>
+    <p>Lorem ipsum dolor sit amet</p>
+  </div>
+</div>
+<script>
+var outer = document.getElementById('outer');
+// See https://bugzilla.mozilla.org/show_bug.cgi?id=383026 for negative values.
+outer.scrollLeft = -40;
+outer.scrollTop = 10;
+</script>

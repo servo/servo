@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id='element'></div>
+<script>
+
+var element = document.getElementById('element');
+
+test(function() {
+    var keyframes = [
+        {borderTopLeftRadius: '8% 16%'},
+        {borderTopLeftRadius: '12% 24%'}
+    ];
+
+    element.style.width = '100';
+    element.style.height = '200';
+    var player = element.animate(keyframes, 10);
+    player.pause();
+    player.currentTime = 5;
+    element.style.width = '300';
+    element.style.height = '600';
+    assert_equals(getComputedStyle(element).borderTopLeftRadius, '10% 20%');
+}, 'Border radius percentages are supported');
+
+test(function() {
+    var keyframes = [
+        {borderTopLeftRadius: '8em 16em'},
+        {borderTopLeftRadius: '12em 24em'}
+    ];
+
+    element.style.fontSize = '10px';
+    var player = element.animate(keyframes, 10);
+    player.pause();
+    player.currentTime = 5;
+    element.style.fontSize = '20px';
+    assert_equals(getComputedStyle(element).borderTopLeftRadius, '200px 400px');
+}, 'Border radius lengths respond to style changes');
+
+</script>

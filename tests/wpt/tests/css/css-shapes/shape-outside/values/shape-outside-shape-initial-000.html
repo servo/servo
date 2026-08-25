@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Shape Outside Box Initial Value</title>
+        <link rel="author" title="Adobe" href="http://html.adobe.com/">
+        <link rel="author" title="Bear Travis" href="mailto:betravis@adobe.com">
+        <link rel="reviewer" title="Alan Stearns" href="mailto:stearns@adobe.com"> <!-- 2014-03-04 -->
+        <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shape-outside-property">
+        <meta name="assert" content="Shape-outside takes its default value of none when assigned the 'initial' value">
+        <meta name="flags" content="ahem dom">
+        <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="support/parsing-utils.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script type="text/javascript">
+            test(function() {
+                ParsingUtils.testInlineStyle("initial", "initial");
+            }, "shape-outside can be assigned 'initial' value");
+            test(function() {
+                ParsingUtils.testComputedStyle("initial", "none");
+            }, "'initial' value computes to the default value");
+        </script>
+    </body>
+</html>

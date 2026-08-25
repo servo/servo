@@ -1,0 +1,49 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>DOM Traversal: NodeIterator: Removal of the Reference Node</title>
+  <script type="text/javascript"> <![CDATA[
+    var errors = 0;
+    var log = '';
+    function doTest() {
+      var iterator = document.createNodeIterator(document.getElementById('root'), NodeFilter.SHOW_ALL, null, false);
+      var root = document.getElementById('root');
+      var A = document.getElementById('A');
+      var AA = document.getElementById('AA');
+      var B = document.getElementById('B');
+      var C = document.getElementById('C');
+      check(iterator.nextNode(), root);
+      check(iterator.nextNode(), A);
+      check(iterator.nextNode(), AA);
+      check(iterator.nextNode(), B);
+      remove(B);
+      check(iterator.previousNode(), AA);
+      remove(AA);
+      check(iterator.nextNode(), C);
+      if (errors)
+        document.getElementById('result').firstChild.data = 'FAIL: ' + errors + ' errors:\n' + log;
+      else
+        document.getElementById('result').firstChild.data = 'PASS';
+    }
+    function check(a, b) {
+      if (!a) {
+        errors += 1;
+        log += 'Found null but expected ' + b + ' (' + b.id + ').\n';
+      } else if (a != b) {
+        errors += 1;
+        log += 'Found ' + a + ' (' + a.id + ') but expected ' + b + ' (' + b.id + ').\n';
+      }
+    }
+    function remove(a) {
+      if (!a) {
+        errors += 1;
+        log += 'Tried removing null node.\n';
+      } else
+      a.parentNode.removeChild(a);
+    }
+  ]]></script>
+ </head>
+ <body onload="doTest()">
+  <pre id="result">FAIL: Script did not complete.</pre>
+  <p><span id="root"><span id="A"><span id="AA"></span></span><span id="B"></span><span id="C"><span id="CC"></span></span></span></p>
+ </body>
+</html>

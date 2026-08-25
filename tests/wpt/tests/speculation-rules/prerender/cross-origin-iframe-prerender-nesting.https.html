@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<!--
+Tests for cross-origin nested iframes `document.prerendering` state with/without
+`Supports-Loading-Mode: prerender-cross-origin-frames` header on parent iframes.
+
+File structure:
+cross-origin-iframe-prerender-nesting.https.html (this page) - window.open() ->
+  resources/cross-origin-iframe-prerender-nesting.html (prerender itself/prerendered top frame)
+   | (Has Speculation Rule + SLM Header)
+   │
+   ├── <iframe>resources/cross-origin-iframe-nesting-src-prerender.html
+   │               | (Has SLM Header)
+   │               │
+   │               ├── <iframe> (Same-origin to parent)
+   │               │
+   │               └── <iframe> (Cross-origin to parent)
+   │
+   └── <iframe>resources/cross-origin-iframe-nesting-src-no-slm-prerender.html
+                   | (No SLM Header)
+                   │
+                   ├── <iframe> (Same-origin to parent)
+                   │
+                   └── <iframe> (Cross-origin to parent)
+                       (Expected to be deferred because parent has no SLM)
+-->
+<title>Load nested iframes in a prerendered page</title>
+<meta name="variant" content="?target_hint=_self">
+<meta name="variant" content="?target_hint=_blank">
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+setup(() => assertSpeculationRulesIsSupported('prerender'));
+
+promise_test(async t => {
+  const uid = token();
+  const bc = new PrerenderChannel('test-channel', uid);
+
+  const gotMessage = new Promise(resolve => {
+    bc.addEventListener('message', e => {
+      resolve(e.data);
+    }, {
+      once: true
+    });
+  });
+  const url = `resources/cross-origin-iframe-prerender-nesting.html?uid=${uid}&target_hint=${getTargetHint()}`;
+  window.open(url, '_blank', 'noopener');
+
+  const result = await gotMessage;
+  assert_equals(result, 'iframe prerender finished correctly.');
+
+  bc.close();
+
+  // Send a close signal to PrerenderEventCollector on the prerendered page.
+  new PrerenderChannel('close', uid).postMessage('');
+}, `cross-origin nested iframes should follow parent SLM header rules.`);
+</script>

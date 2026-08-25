@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang=en>
+<meta charset=utf-8>
+<title>CSS test: writing system and line breaking</title>
+<link rel=author title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel=help href="https://drafts.csswg.org/css-text-3/#languages">
+<link rel=help href="https://drafts.csswg.org/css-text-3/#script-tagging">
+<link rel=help href="https://drafts.csswg.org/css-text-3/#propdef-line-break">
+<link rel=match href="reference/writing-system-line-break-002-ref.html">
+<meta name=assert content="breaks before U+FF1F when line-break is loose are allowed
+if the writing system is Japanese (which includes Hrkt),
+but even when the language not Japanese.">
+<style>
+div {
+  width: 10em;
+  line-break: loose;
+}
+</style>
+
+<p>The test passes if the question mark in the phrase below is alone on the second line.
+
+<div lang=en-Hrkt>ハロー、ハウアーユー？</div>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>childElementCount without Child Element Nodes</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<h1>Test of childElementCount with No Child Element Nodes</h1>
+<div id="log"></div>
+<p id="parentEl" style="font-weight:bold;">Test.</p>
+<script><![CDATA[
+test(function() {
+  var parentEl = document.getElementById("parentEl")
+  assert_equals(parentEl.childElementCount, 0)
+})
+]]></script>
+</body>
+</html>

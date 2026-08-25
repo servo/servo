@@ -1,0 +1,32 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new NavigationCurrentEntryChangeEvent("currententrychange");
+  });
+}, "can't bypass required members by omitting the dictionary entirely");
+
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new NavigationCurrentEntryChangeEvent("currententrychange", {
+      navigationType: "push"
+    });
+  });
+}, "from is required");
+
+test(() => {
+  const event = new NavigationCurrentEntryChangeEvent("currententrychange", {
+    navigationType: "replace",
+    from: navigation.currentEntry
+  });
+  assert_equals(event.navigationType, "replace");
+  assert_equals(event.from, navigation.currentEntry);
+}, "all properties are reflected back");
+
+test(t => {
+  const event = new NavigationCurrentEntryChangeEvent("currententrychange", { from: navigation.currentEntry });
+  assert_equals(event.navigationType, null);
+}, "defaults are as expected");
+</script>

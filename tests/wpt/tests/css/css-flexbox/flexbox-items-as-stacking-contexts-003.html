@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!-- This testcase checks that flex items are painted as pseudo-stacking
+     contexts, instead of full stacking contexts. In other words, content
+     inside of one flex item should be able to iterleave between pieces of
+     content in another flex item, if we set appropriately interleaving
+     "z-index" values. -->
+<!-- This was resolved by the CSSWG in April 2013:
+     http://krijnhoetmer.nl/irc-logs/css/20130403#l-455 -->
+<html>
+<head>
+  <title>CSS Test: Testing that flex items paint as pseudo-stacking contexts (like inline-blocks), instead of full stacking contexts: 'z-index' should let descendants interleave</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#painting">
+  <link rel="match" href="flexbox-items-as-stacking-contexts-003-ref.html">
+  <style>
+    .flexContainer {
+      background: orange;
+      display: flex;
+      justify-content: space-between;
+      width: 70px;
+      height: 20px;
+      padding: 2px;
+      margin-bottom: 2px;
+    }
+    .item1 {
+      background: lightblue;
+      width: 30px;
+      min-width: 0; /* disable default min-width:auto behavior */
+      padding: 2px;
+    }
+    .item2 {
+      background: yellow;
+      width: 30px;
+      padding: 2px;
+    }
+    .grandchildA {
+      background: purple;
+      width: 80px;
+      height: 6px;
+      position: relative;
+      z-index: 10;
+    }
+    .grandchildB {
+      background: teal;
+      width: 80px;
+      height: 6px;
+      position: relative;
+      z-index: 20;
+    }
+    .grandchildC {
+      background: lime;
+      width: 20px;
+      height: 16px;
+      position: relative;
+      /* This z-index should interleave this content
+         between grandchildA and grandchildB: */
+      z-index: 15;
+    }
+  </style>
+</head>
+<body>
+  <!-- This flex container's first flex item has content that overflows
+       and overlap the second flex item.  The z-index values are set such
+       that this content should interleave; grandchildC should
+       paint on top of grandchildA, but underneath grandchildB. -->
+  <div class="flexContainer"
+    ><div class="item1"
+      ><div class="grandchildA"></div
+      ><div class="grandchildB"></div
+    ></div
+    ><div class="item2"
+      ><div class="grandchildC"></div
+    ></div
+  ></div>
+</body>
+</html>

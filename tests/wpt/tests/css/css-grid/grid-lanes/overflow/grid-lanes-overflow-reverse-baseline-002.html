@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes Test: row track-reverse auto-flow overflow composes with baseline alignment</title>
+  <link rel="author" title="Yanling Wang" href="mailto:yanlingwang@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3">
+  <link rel="help" href="https://drafts.csswg.org/css-overflow-3/#scrollable">
+  <link rel="match" href="grid-lanes-overflow-reverse-baseline-002-ref.html">
+  <link rel="stylesheet" href="/fonts/ahem.css">
+  <style>
+  .grid-lanes {
+    display: grid-lanes;
+    flow-tolerance: 0;
+    width: 100px;
+    height: 100px;
+    overflow: auto;
+    border: 1px solid black;
+    margin-bottom: 10px;
+    grid-template-rows: 40px 40px 40px;
+    grid-lanes-direction: row track-reverse;
+    font-family: Ahem;
+  }
+  .first { align-items: first baseline; }
+  .last  { align-items: last baseline; }
+  .grid-lanes > div { width: 30px; height: 30px; line-height: normal; }
+  </style>
+</head>
+<body>
+
+<div class="grid-lanes first">
+  <div style="font-size: 24px; background: coral;">A</div>
+  <div style="font-size: 20px; background: steelblue;">B</div>
+  <div style="font-size: 22px; background: slateblue;">C</div>
+  <div style="font-size: 12px; background: goldenrod;">D</div>
+  <div style="font-size: 16px; background: seagreen;">E</div>
+  <div style="font-size: 14px; background: tomato;">F</div>
+</div>
+
+<div class="grid-lanes last">
+  <div style="font-size: 24px; background: coral;">A</div>
+  <div style="font-size: 20px; background: steelblue;">B</div>
+  <div style="font-size: 22px; background: slateblue;">C</div>
+  <div style="font-size: 12px; background: goldenrod;">D</div>
+  <div style="font-size: 16px; background: seagreen;">E</div>
+  <div style="font-size: 14px; background: tomato;">F</div>
+</div>
+
+</body>
+</html>

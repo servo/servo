@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<meta charset="utf-8">
+<title>ImageDecoder: transferring a non-detachable ArrayBuffer must not crash</title>
+<link rel="help" href="https://www.w3.org/TR/webcodecs/#dom-imagedecoder-imagedecoder">
+<body>
+<script>
+// A buffer that cannot be detached (e.g. one backed by WebAssembly.Memory)
+// should fail cleanly when passed in the transfer list to ImageDecoder
+// constructor.
+
+function nonDetachableBuffer() {
+  const buf = new WebAssembly.Memory({initial: 1}).buffer;
+  new Uint8Array(buf).set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  return buf;
+}
+
+function construct(init, alsoClose) {
+  let decoder = null;
+  try {
+    decoder = new ImageDecoder(init);
+  } catch (e) {
+    // Expected on a fixed build.
+  }
+  if (decoder && alsoClose) {
+    try { decoder.close(); } catch (e) {}
+  }
+}
+
+{
+  const buf = nonDetachableBuffer();
+  construct({type: "image/png", data: buf, transfer: [buf]}, true);
+}
+
+{
+  const buf = nonDetachableBuffer();
+  construct({type: "image/png", data: new Uint8Array(buf), transfer: [buf]}, true);
+}
+
+{
+  const buf = nonDetachableBuffer();
+  construct({type: "image/png", data: buf, transfer: [buf]}, false);
+}
+
+let frames = 0;
+function tick() {
+  if (++frames < 10) {
+    requestAnimationFrame(tick);
+  } else {
+    document.documentElement.classList.remove("test-wait");
+  }
+}
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>

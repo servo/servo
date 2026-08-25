@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<title>Tests initial letter sunken initial</title>
+<link rel="author" title="Google LLC" href="https://www.google.com/">
+<link rel="help" href="https://drafts.csswg.org/css-inline/#sunk-initial">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" >
+<link rel="match" href="initial-letter-sunk-initial-ref.html">
+<script src="resources/initial-letter-variants.js"></script>
+<meta name="variant" content="?class=">
+<meta name="variant" content="?class=no-ascent">
+<meta name="variant" content="?class=no-descent">
+<meta name="variant" content="?class=rtl">
+<style>
+    .sample {
+        border: solid 1px green;
+        font-family: Ahem;
+        font-size: 20px;
+        line-height: 24px;
+        width: 230px;
+    }
+
+    .initial-letter::first-letter {
+        initial-letter: 3 2;
+        color: lime;
+        font-size: 100px;   /* should be ignored in rendering */
+        line-height: 50px;  /* should be ignored in rendering */
+    }
+
+    .rtl {
+        direction: rtl;
+    }
+</style>
+</head>
+<body>
+<div class="sample initial-letter">
+Abc<br>def<br>ghi<br>jkl<br>mno<br>
+</div>
+</body>
+</html>

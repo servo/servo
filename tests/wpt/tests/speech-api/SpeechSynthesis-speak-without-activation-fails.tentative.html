@@ -1,0 +1,16 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+// TODO(csharrison): Make this test not tentative once
+// https://github.com/w3c/speech-api/issues/35 is resolved.
+async_test(t => {
+  const utter = new SpeechSynthesisUtterance('1');
+  utter.onerror = t.step_func_done((e) => {
+    assert_equals(e.error, "not-allowed");
+  });
+  utter.onend = t.unreached_func('end event');
+  speechSynthesis.speak(utter);
+}, 'speechSynthesis.speak requires user activation');
+</script>

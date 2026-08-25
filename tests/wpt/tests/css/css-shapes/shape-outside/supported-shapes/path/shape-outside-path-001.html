@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>CSS Test: left float, path with fill-rule evenodd</title>
+<link rel="author" title="Jason Leo" href="mailto:cgqaq@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-shapes-1/#funcdef-basic-shape-path">
+<link rel="help" href="https://www.w3.org/TR/css-shapes-1/#shape-outside-property">
+<link rel="match" href="reference/shape-outside-path-000-ref.html">
+<meta name="assert" content="The test verifies that text wraps around a
+                             left float with a shape-outside defined as
+                             a path with evenodd fill-rule.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  body {
+    margin: 0;
+  }
+  #test-container {
+    font: 20px/1 Ahem;
+    width: 200px;
+    height: 200px;
+    color: green;
+  }
+  #test-shape {
+    float: left;
+    width: 200px;
+    height: 200px;
+    shape-outside: path(evenodd, 'M 0 0 L 100 0 L 100 200 L 0 200 Z');
+  }
+</style>
+<p>The test passes if the green text lines up on the right.</p>
+<div id="test-container">
+  <div id="test-shape"></div>
+  XXXXX XXXXX XXXXX XXXXX XXXXX XXXXX XXXXX XXXXX XXXXX XXXXX
+</div>

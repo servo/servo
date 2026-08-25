@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<title>Verify that currentTime and playState are correct when animation is paused</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-animationworklet/">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="common.js"></script>
+
+<div id="box"></div>
+
+<script>
+
+setup(setupAndRegisterTests, {explicit_done: true});
+
+function createAnimation() {
+  const box = document.getElementById('box');
+  const effect = new KeyframeEffect(box,
+    { transform: ['translateY(100px)', 'translateY(200px)'] },
+    { duration: 100, iterations: 1 }
+  );
+
+  return new WorkletAnimation('passthrough', effect);
+}
+
+async function setupAndRegisterTests() {
+  await registerPassthroughAnimator();
+
+  promise_test(async t => {
+    const animation = createAnimation();
+    animation.play();
+    // Immediately pausing animation should freeze the current time at 0.
+    animation.pause();
+    assert_equals(animation.currentTime, 0);
+    assert_equals(animation.playState, "paused");
+    // Wait some time to ensure a paused animation actually freezes.
+   await waitForNextFrame();
+    assert_equals(animation.currentTime, 0);
+    assert_equals(animation.playState, "paused");
+  }, 'pausing an animation freezes its current time');
+
+  promise_test(async t => {
+    const animation = createAnimation();
+    animation.pause();
+    animation.play();
+    // Allow one async animation frame to pass so that animation is running.
+    await waitForAsyncAnimationFrames(1);
+    assert_equals(animation.playState, "running");
+    // Allow time to advance so that we have a non-zero current time.
+    await waitForDocumentTimelineAdvance();
+    const timelineTime = document.timeline.currentTime;
+    assert_greater_than(animation.currentTime, 0);
+    assert_times_equal(animation.currentTime, (timelineTime - animation.startTime));
+  }, 'playing a paused animation should resume it');
+
+  done();
+}
+
+</script>
+

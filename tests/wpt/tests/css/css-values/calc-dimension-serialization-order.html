@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Values and Units: serialization order of dimensions in calc()</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#calc-serialize">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#sort-a-calculations-children">
+<meta name="assert" content="In a calc() Sum, a percentage sorts before any dimension, and dimensions are serialized sorted by their unit, ordered ASCII case-insensitively. This test exercises every relative-length unit (font-relative, container-query and viewport units) plus a percentage. Absolute lengths are intentionally omitted because they all canonicalize to 'px' and would not remain as distinct sorted terms.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="target"></div>
+<script>
+const target = document.getElementById("target");
+
+// Terms in their canonical (already-sorted) order, as required by
+// https://drafts.csswg.org/css-values-4/#sort-a-calculations-children :
+//   percentage first, then dimensions ordered ASCII case-insensitively by unit.
+// Only units that stay distinct through calc() simplification are listed; the
+// absolute lengths (cm, in, mm, pc, pt, px, q) all collapse to a single px term
+// and so cannot exercise inter-unit ordering -- px stands in for that group.
+const sortedTerms = [
+  "3%",
+  "1cap", "1ch",
+  "1cqb", "1cqh", "1cqi", "1cqmax", "1cqmin", "1cqw",
+  "1dvb", "1dvh", "1dvi", "1dvmax", "1dvmin", "1dvw",
+  "1em", "1ex", "1ic", "1lh",
+  "1lvb", "1lvh", "1lvi", "1lvmax", "1lvmin", "1lvw",
+  "1px",
+  "1rcap", "1rch", "1rem", "1rex", "1ric", "1rlh",
+  "1svb", "1svh", "1svi", "1svmax", "1svmin", "1svw",
+  "1vb", "1vh", "1vi", "1vmax", "1vmin", "1vw",
+];
+
+function setHeight(value) {
+  target.style.height = "";
+  target.style.height = value;
+  return target.style.height;
+}
+
+// Human-readable label for a term ("3%" -> "%", "1vmax" -> "vmax").
+function label(term) {
+  return term.replace(/^[0-9.]+/, "");
+}
+
+// Exhaustive global check: feed every term in reverse order and require it to
+// serialize back in full canonical order. This catches any unit whose sort key
+// is globally misplaced.
+test(() => {
+  const scrambled = [...sortedTerms].reverse();
+  const specified = `calc(${scrambled.join(" + ")})`;
+  const expected = `calc(${sortedTerms.join(" + ")})`;
+  assert_not_equals(setHeight(specified), "", "all units should parse, leaving a non-empty calc()");
+  assert_equals(setHeight(specified), expected);
+}, "all dimensions reverse-sorted serialize back in canonical order");
+
+// Adjacent-pair sweep: for every consecutive pair (a before b) verify that the
+// swapped input "calc(b + a)" serializes as "calc(a + b)". This pinpoints a
+// single out-of-place unit (the original 'vmax' regression was exactly this).
+for (let i = 1; i < sortedTerms.length; ++i) {
+  const a = sortedTerms[i - 1];
+  const b = sortedTerms[i];
+  test(() => {
+    assert_equals(setHeight(`calc(${b} + ${a})`), `calc(${a} + ${b})`);
+  }, `${label(b)} sorts after ${label(a)}`);
+}
+</script>

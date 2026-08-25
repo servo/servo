@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>Tests for ruby-overhang: spaces with preserved spaces and &nbsp; in vertical writing modes</title>
+<link rel="help" href="https://drafts.csswg.org/css-ruby-1/#ruby-overhang">
+<link rel="match" href="ruby-overhang-spaces-vertical-003-ref.html">
+<meta name=assert content="With 'ruby-overhang: spaces', excess ruby overhangs on top of preserved spaces and &nbsp; in vertical writing modes.">
+<style>
+@font-face {
+    font-family: mplus;
+    src: url("/fonts/mplus-1p-regular.woff");
+}
+ruby {
+    ruby-overhang: spaces;
+    ruby-align: center;
+}
+span {
+    /* Use mplus font to resolve the 1px difference in wpt.fyi environment. */
+    font-family: mplus;
+    font-size: 20px;
+    writing-mode: vertical-lr;
+    border-top: 5px solid;
+    border-bottom: 5px solid;
+    width: max-content;
+}
+.test { border-color: orange; }
+.measure { border-color: blue; }
+</style>
+<body lang="ja">
+<p>Test passes if orange and blue lines are aligned.
+</br>
+<span class=test>あ <ruby>あ<rt>ああああああ</ruby> あ</span><span class=test>あ <ruby>あ<rt>ああああああ</ruby> あ</span><span class=measure>あ　あ　あ</span>
+</body>

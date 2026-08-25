@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test (Transforms): transform-origin: top right</title>
+    <link rel="author" title="Keith Schwarz" href="mailto:keith@keithschwarz.com">
+    <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-origin-property">
+    <meta name="assert" content='This tests that &apos;transform-origin:
+    top right&apos; is the same as &apos;transform-origin: 100% 0%&apos;.'>
+    <link rel="match" href="transform-origin-name-ref-3.html">
+    <link rel="mismatch" href="transform-origin-name-notref.html">
+    <style>
+      div {
+        margin: 300px 0 0 300px;
+        width: 100px;
+        height: 200px;
+        background: #202040;
+        transform: rotate(45deg);
+        transform-origin: top right;
+      }
+    </style>
+  </head>
+  <body>
+    <div></div>
+  </body>
+</html>

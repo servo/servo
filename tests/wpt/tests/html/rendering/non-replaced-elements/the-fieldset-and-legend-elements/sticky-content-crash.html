@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<link rel="help" href="http://crbug.com/1146872">
+<body>
+<fieldset><span><span></span></span></fieldset>
+<div id="host"><span></span></div>
+<script>
+const host = document.querySelector('#host');
+const shadowRoot = host.attachShadow({mode: 'closed'});
+const fieldset = shadowRoot.appendChild(document.createElement('fieldset'));
+fieldset.setAttribute('style', 'overflow: scroll');
+fieldset.innerHTML = '<slot></slot>';
+</script>
+<style>
+*:not(fieldset, div) {
+  position: sticky;
+  bottom: 72pc;
+}
+fieldset {
+  overflow: visible scroll;
+}
+</style>
+</body>

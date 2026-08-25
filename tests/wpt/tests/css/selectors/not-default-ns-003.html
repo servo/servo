@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>Default namespace respected inside :is() for non-subject compounds</title>
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#negation">
+<link rel="match" href="/css/reference/blank.html">
+<!--
+  As with :is(), default namespace declarations do not affect the compound
+  selector representing the *subject* of any selector within a :not()
+  pseudo-class, unless that compound selector contains an explicit universal
+  selector or type selector.
+-->
+<style>
+@namespace "http://www.w3.org/1999/xhtml";
+
+*|*.a {
+  display:initial;
+}
+
+/* This should apply, since the '.container' compound is affected by the
+   default namespace (even though the '.a' compound is not). */
+*|g *|*:not(.container .a) {
+  display:none;
+}
+
+</style>
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100">
+  <g class=container>
+    <text class="a" y="1em">FAIL if this text is visible</text>
+  </g>
+</svg>

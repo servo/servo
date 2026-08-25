@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Borders and Box Decorations 4 Test: Parsing 'corner-block-start' with valid values</title>
+<link rel="author" title="Chromium" href="https://chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#corner-shorthand">
+<meta name="assert" content="This test checks that 'corner-block-start' supports valid pair-corner values.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script src="/css/support/shorthand-testcommon.js"></script>
+
+<script>
+test_valid_value("corner-block-start", "10px bevel");
+test_valid_value("corner-block-start", "round 10% / 2rem squircle", "10% round / 2rem squircle");
+test_valid_value("corner-block-start", "normal");
+test_valid_value("corner-block-start", "4px 2% round / bevel 1em", "4px 2% round / 1em bevel");
+
+test_shorthand_value("corner-block-start", "10px bevel", {
+  "border-start-start-radius": "10px",
+  "corner-start-start-shape": "bevel",
+  "border-start-end-radius": "10px",
+  "corner-start-end-shape": "bevel",
+});
+test_shorthand_value("corner-block-start", "4px 2% round / 1em bevel", {
+  "border-start-start-radius": "4px 2%",
+  "corner-start-start-shape": "round",
+  "border-start-end-radius": "1em",
+  "corner-start-end-shape": "bevel",
+});
+</script>

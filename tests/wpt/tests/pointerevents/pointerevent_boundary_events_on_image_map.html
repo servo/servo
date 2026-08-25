@@ -1,0 +1,376 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, user-scalable=no">
+<title>Event targets of boundary events over an image map</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+"use strict";
+
+addEventListener("load", () => {
+  const initialDiv = document.getElementById("init");
+  const container = document.getElementById("container");
+  const img1 = document.getElementById("img1");
+  const img2 = document.getElementById("img2");
+  const area1_1 = document.getElementById("area1-1");
+  const area1_2 = document.createElement("area");
+  area1_2.setAttribute("id", "area1-2");
+  area1_2.setAttribute("shape", "rect");
+  area1_2.setAttribute("coords", "0,0,100,100");
+  area1_2.setAttribute("href", "#");
+  const area2_1 = document.getElementById("area2-1");
+  const map1 = document.getElementById("map1");
+  const map2 = document.getElementById("map2");
+
+  function stringifyEvents(arrayOfEvents) {
+    function stringifyEvent(event) {
+      return `${event.type}@${event.target.localName}${
+        event.target.id ? `#${event.target.id}` : ""
+      }`
+    }
+    let str = "[";
+    for (const event of arrayOfEvents) {
+      if (str != "[") {
+        str += ", ";
+      }
+      str += stringifyEvent(event);
+    }
+    return str + "]";
+  }
+
+  let events = [];
+  function pushEvent(event) {
+    events.push(event);
+  }
+  for (const type of ["pointermove", "pointerover", "pointerenter", "pointerout", "pointerleave"]) {
+    container.addEventListener(type, pushEvent, {capture: true});
+  }
+
+  promise_test(async () => {
+    events = [];
+    await new test_driver.Actions()
+      .pointerMove(0, 0, {origin: initialDiv})
+      .pointerMove(0, 0, {origin: img1}) // actually moved over area1-1
+      .pointerMove(0, 0, {origin: initialDiv})
+      .send();
+    assert_equals(
+      stringifyEvents(events),
+      stringifyEvents([
+        {type: "pointerover",  target: area1_1},
+        {type: "pointerenter", target: container},
+        {type: "pointerenter", target: map1},
+        {type: "pointerenter", target: area1_1},
+        {type: "pointermove",  target: area1_1},
+        {type: "pointerout",   target: area1_1},
+        {type: "pointerleave", target: area1_1},
+        {type: "pointerleave", target: map1},
+        {type: "pointerleave", target: container},
+      ])
+    );
+  }, "pointer boundary events when simple over/out");
+
+  promise_test(async () => {
+    events = [];
+    await new test_driver.Actions()
+      .pointerMove(0, 0, {origin: initialDiv})
+      .pointerMove(0, 0, {origin: img1}) // actually moved over area1-1
+      .pointerMove(0, 0, {origin: img2}) // actually moved in area1-1
+      .pointerMove(0, 0, {origin: initialDiv})
+      .send();
+    assert_equals(
+      stringifyEvents(events),
+      stringifyEvents([
+        {type: "pointerover",  target: area1_1},
+        {type: "pointerenter", target: container},
+        {type: "pointerenter", target: map1},
+        {type: "pointerenter", target: area1_1},
+        {type: "pointermove",  target: area1_1},
+        // boundary events shouldn't be fired when moving from img1 to img2
+        {type: "pointermove",  target: area1_1},
+        {type: "pointerout",   target: area1_1},
+        {type: "pointerleave", target: area1_1},
+        {type: "pointerleave", target: map1},
+        {type: "pointerleave", target: container},
+      ])
+    );
+  }, "pointer boundary events when moved from an <area> to the same <area> shared by another <img>");
+
+  promise_test(async t => {
+    events = [];
+    function shrinkArea1_1() {
+      area1_1.setAttribute("coords", "0,0,10,10");
+      t.add_cleanup(() => {
+        area1_1.setAttribute("coords", "0,0,100,100");
+      });
+    }
+    area1_1.addEventListener("pointermove", shrinkArea1_1, {once: true});
+    t.add_cleanup(() => area1_1.removeEventListener("pointermove", shrinkArea1_1));
+    await new test_driver.Actions()
+      .pointerMove(0, 0, {origin: initialDiv})
+      .pointerMove(0, 0, {origin: img1}) // actually moved over area1-1
+      .addTick(100) // now, over the <img>
+      .addTick() // for Firefox bug 1994340
+      .pointerMove(0, 0, {origin: initialDiv})
+      .send();
+    assert_equals(
+      stringifyEvents(events),
+      stringifyEvents([
+        {type: "pointerover",  target: area1_1},
+        {type: "pointerenter", target: container},
+        {type: "pointerenter", target: map1},
+        {type: "pointerenter", target: area1_1},
+        {type: "pointermove",  target: area1_1},
+        // Now, the <area> is shrunken and the cursor is not over the <area>.
+        {type: "pointerout",   target: area1_1},
+        {type: "pointerleave", target: area1_1},
+        {type: "pointerleave", target: map1},
+        {type: "pointerover",  target: img1},
+        {type: "pointerenter", target: img1},
+        // Then, move out from the <img>.
+        {type: "pointerout",   target: img1},
+        {type: "pointerleave", target: img1},
+        {type: "pointerleave", target: container},
+      ])
+    );
+  }, "pointer boundary events when the <area> is resized");
+
+  promise_test(async t => {
+    events = [];
+    function shrinkArea1_1() {
+      area1_1.setAttribute("coords", "0,0,10,10");
+      img1.setAttribute("width", "200");
+      img1.getBoundingClientRect();
+      t.add_cleanup(() => {
+        img1.setAttribute("width", "100");
+        area1_1.setAttribute("coords", "0,0,100,100");
+        img1.getBoundingClientRect();
+      });
+    }
+    area1_1.addEventListener("pointermove", shrinkArea1_1, {once: true});
+    t.add_cleanup(() => area1_1.removeEventListener("pointermove", shrinkArea1_1));
+    await new test_driver.Actions()
+      .pointerMove(0, 0, {origin: initialDiv})
+      .pointerMove(0, 0, {origin: img1}) // actually moved over area1-1
+      .addTick() // now over the <img>
+      .pointerMove(0, 0, {origin: initialDiv})
+      .send();
+    assert_equals(
+      stringifyEvents(events),
+      stringifyEvents([
+        {type: "pointerover",  target: area1_1},
+        {type: "pointerenter", target: container},
+        {type: "pointerenter", target: map1},
+        {type: "pointerenter", target: area1_1},
+        {type: "pointermove",  target: area1_1},
+        // Now, the <area> is shrunken and the cursor is not over the <area>.
+        {type: "pointerout",   target: area1_1},
+        {type: "pointerleave", target: area1_1},
+        {type: "pointerleave", target: map1},
+        {type: "pointerover",  target: img1},
+        {type: "pointerenter", target: img1},
+        // Then, move out from the <img>.
+        {type: "pointerout",   target: img1},
+        {type: "pointerleave", target: img1},
+        {type: "pointerleave", target: container},
+      ])
+    );
+  }, "pointer boundary events when both <area> and <img> are resized");
+
+  promise_test(async t => {
+    events = [];
+    function switchMap() {
+      img1.setAttribute("usemap", "#map2");
+      t.add_cleanup(() => {
+        img1.setAttribute("usemap", "#map1");
+      });
+    }
+    area1_1.addEventListener("pointermove", switchMap, {once: true});
+    t.add_cleanup(() => area1_1.removeEventListener("pointermove", switchMap));
+    await new test_driver.Actions()
+      .pointerMove(0, 0, {origin: initialDiv})
+      .pointerMove(0, 0, {origin: img1}) // actually moved over area1-1
+      .addTick(100) // now over area2-1
+      .addTick() // for Firefox bug 1994340
+      .pointerMove(0, 0, {origin: initialDiv})
+      .send();
+    assert_equals(
+      stringifyEvents(events),
+      stringifyEvents([
+        {type: "pointerover",  target: area1_1},
+        {type: "pointerenter", target: container},
+        {type: "pointerenter", target: map1},
+        {type: "pointerenter", target: area1_1},
+        {type: "pointermove",  target: area1_1},
+        // Now, the #map2 is the image map definition and over its area2-1
+        {type: "pointerout",   target: area1_1},
+        {type: "pointerleave", target: area1_1},
+        {type: "pointerleave", target: map1},
+        {type: "pointerover",  target: area2_1},
+        {type: "pointerenter", target: map2},
+        {type: "pointerenter", target: area2_1},
+        // Then, move out from the <area>.
+        {type: "pointerout",   target: area2_1},
+        {type: "pointerleave", target: area2_1},
+        {type: "pointerleave", target: map2},
+        {type: "pointerleave", target: container},
+      ])
+    );
+  }, "pointer boundary events when usemap is modified");
+
+  promise_test(async t => {
+    events = [];
+    function switchMap() {
+      img1.setAttribute("usemap", "#map2");
+      img1.setAttribute("width", "200");
+      img1.getBoundingClientRect();
+      t.add_cleanup(() => {
+        img1.setAttribute("usemap", "#map1");
+        img1.setAttribute("width", "100");
+        img1.getBoundingClientRect();
+      });
+    }
+    area1_1.addEventListener("pointermove", switchMap, {once: true});
+    t.add_cleanup(() => area1_1.removeEventListener("pointermove", switchMap));
+    await new test_driver.Actions()
+      .pointerMove(0, 0, {origin: initialDiv})
+      .pointerMove(0, 0, {origin: img1}) // actually moved over area1-1
+      .addTick() // now over area2-1
+      .pointerMove(0, 0, {origin: initialDiv})
+      .send();
+    assert_equals(
+      stringifyEvents(events),
+      stringifyEvents([
+        {type: "pointerover",  target: area1_1},
+        {type: "pointerenter", target: container},
+        {type: "pointerenter", target: map1},
+        {type: "pointerenter", target: area1_1},
+        {type: "pointermove",  target: area1_1},
+        // Now, the #map2 is the image map definition and over its area2-1
+        {type: "pointerout",   target: area1_1},
+        {type: "pointerleave", target: area1_1},
+        {type: "pointerleave", target: map1},
+        {type: "pointerover",  target: area2_1},
+        {type: "pointerenter", target: map2},
+        {type: "pointerenter", target: area2_1},
+        // Then, move out from the <area>.
+        {type: "pointerout",   target: area2_1},
+        {type: "pointerleave", target: area2_1},
+        {type: "pointerleave", target: map2},
+        {type: "pointerleave", target: container},
+      ])
+    );
+  }, "pointer boundary events when usemap is modified and <img> is resized");
+
+  promise_test(async t => {
+    events = [];
+    function appendArea1_2() {
+      map1.insertBefore(area1_2, area1_1);
+      t.add_cleanup(() => {
+        area1_2.remove();
+      });
+    }
+    area1_1.addEventListener("pointermove", appendArea1_2, {once: true});
+    t.add_cleanup(() => area1_1.removeEventListener("pointermove", appendArea1_2));
+    await new test_driver.Actions()
+      .pointerMove(0, 0, {origin: initialDiv})
+      .pointerMove(0, 0, {origin: img1}) // actually moved over area1-1
+      .addTick(100) // now, over the area1-2
+      .addTick() // for Firefox bug 1994340
+      .pointerMove(0, 0, {origin: initialDiv})
+      .send();
+    assert_equals(
+      stringifyEvents(events),
+      stringifyEvents([
+        {type: "pointerover",  target: area1_1},
+        {type: "pointerenter", target: container},
+        {type: "pointerenter", target: map1},
+        {type: "pointerenter", target: area1_1},
+        {type: "pointermove",  target: area1_1},
+        // Now, new <area> is inserted and it's the top-most.
+        {type: "pointerout",   target: area1_1},
+        {type: "pointerleave", target: area1_1},
+        {type: "pointerover",  target: area1_2},
+        {type: "pointerenter", target: area1_2},
+        // Then, move out from the <img>.
+        {type: "pointerout",   target: area1_2},
+        {type: "pointerleave", target: area1_2},
+        {type: "pointerleave", target: map1},
+        {type: "pointerleave", target: container},
+      ])
+    );
+  }, "pointer boundary events when new <area> is available");
+
+  promise_test(async t => {
+    events = [];
+    function appendArea1_2() {
+      map1.insertBefore(area1_2, area1_1);
+      img1.setAttribute("width", "200");
+      img1.getBoundingClientRect();
+      t.add_cleanup(() => {
+        area1_2.remove();
+        img1.setAttribute("width", "100");
+        img1.getBoundingClientRect();
+      });
+    }
+    area1_1.addEventListener("pointermove", appendArea1_2, {once: true});
+    t.add_cleanup(() => area1_1.removeEventListener("pointermove", appendArea1_2));
+    await new test_driver.Actions()
+      .pointerMove(0, 0, {origin: initialDiv})
+      .pointerMove(0, 0, {origin: img1}) // actually moved over area1-1
+      .addTick() // now, over the area1-2
+      .pointerMove(0, 0, {origin: initialDiv})
+      .send();
+    assert_equals(
+      stringifyEvents(events),
+      stringifyEvents([
+        {type: "pointerover",  target: area1_1},
+        {type: "pointerenter", target: container},
+        {type: "pointerenter", target: map1},
+        {type: "pointerenter", target: area1_1},
+        {type: "pointermove",  target: area1_1},
+        // Now, new <area> is inserted and it's the top-most.
+        {type: "pointerout",   target: area1_1},
+        {type: "pointerleave", target: area1_1},
+        {type: "pointerover",  target: area1_2},
+        {type: "pointerenter", target: area1_2},
+        // Then, move out from the <img>.
+        {type: "pointerout",   target: area1_2},
+        {type: "pointerleave", target: area1_2},
+        {type: "pointerleave", target: map1},
+        {type: "pointerleave", target: container},
+      ])
+    );
+  }, "pointer boundary events when new <area> is available and the <img> is resized");
+}, {once: true});
+</script>
+<style>
+img {
+  margin: 0;
+  border: none;
+}
+div {
+  margin: 0;
+  width: 200px;
+  white-space: nowrap;
+}
+</style>
+</head>
+<body>
+  <div id="init">initial position</div>
+  <div id="container">
+    <map id="map1">
+      <area id="area1-1" shape="rect" coords="0,0,100,100" href="#">
+    </map>
+    <map id="map2">
+      <area id="area2-1" shape="rect" coords="0,0,100,100" href="#">
+    </map>
+    <img id="img1" usemap="#map1" src="../images/green-16x16.png" width="100" height="100">
+    <img id="img2" usemap="#map1" src="../images/green-16x16.png" width="100" height="100">
+  </div>
+</body>
+</html>

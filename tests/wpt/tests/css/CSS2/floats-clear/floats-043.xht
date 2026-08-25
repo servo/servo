@@ -1,0 +1,39 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Right float with earlier floated siblings</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats" />
+        <link rel="match" href="floats-043-ref.xht" />
+
+        <meta name="assert" content="A right floated box is to left of earlier floated boxes or below the earlier floated element's bottom edge." />
+        <style type="text/css">
+            div
+            {
+                border-top: solid 5px black;
+                width: 3in;
+            }
+            span
+            {
+                float: right;
+                height: 1in;
+                width: 1in;
+            }
+            #span1
+            {
+                background-color: orange;
+            }
+            #span2
+            {
+                background-color: blue;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the orange square is to the right of the blue square and the top edges of both squares touch the black line.</p>
+        <div>
+            <span id="span1"></span>
+            <span id="span2"></span>
+        </div>
+    </body>
+</html>

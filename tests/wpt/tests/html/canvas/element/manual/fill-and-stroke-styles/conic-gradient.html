@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Conic gradient</title>
+  <link rel="match" href="conic-gradient-expected.html"/>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <script type="text/javascript">
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+
+    const grad = ctx.createConicGradient(0, 100, 50);
+
+    grad.addColorStop(0, "red");
+    grad.addColorStop(0.2, "red");
+    grad.addColorStop(0.2, "orange");
+    grad.addColorStop(0.4, "orange");
+    grad.addColorStop(0.4, "yellow");
+    grad.addColorStop(0.6, "yellow");
+    grad.addColorStop(0.6, "green");
+    grad.addColorStop(0.8, "green");
+    grad.addColorStop(0.8, "blue");
+
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<title>CSS Grid: grid size with explicit grid-template-areas.</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com"/>
+<link rel="help" href="https://drafts.csswg.org/css-grid/#grid-definition"/>
+<link rel="issue" href="https://crrev.com/603160"/>
+<meta name="assert" content="Test ensures that the explicit grid size is set by the maximum of the grid-template-columns|rows properties and grid-template-areas."/>
+
+<link href="/css/support/grid.css" rel="stylesheet"/>
+<style>
+
+.grid {
+    grid-auto-columns: 10px;
+    grid-auto-rows: 10px;
+    position: relative;
+}
+
+.oneColumnOneRow {
+    grid-template-columns: 50px;
+    grid-template-rows: 50px;
+}
+
+.twoColumnsOneRow {
+    grid-template-columns: 50px 50px;
+    grid-template-rows: 50px;
+}
+
+.oneColumnTwoRows {
+    grid-template-columns: 50px;
+    grid-template-rows: 50px 50px;
+}
+
+.twoColumnsTwoRows {
+    grid-template-columns: 50px 50px;
+    grid-template-rows: 50px 50px;
+}
+
+.oneColumnOneRowAreas {
+    grid-template-areas: "a";
+}
+
+.twoColumnsOneRowAreas {
+    grid-template-areas: "a b";
+}
+
+.oneColumnTwoRowsAreas {
+    grid-template-areas: "a"
+                         "b";
+}
+
+.twoColumnsTwoRowsAreas {
+    grid-template-areas: "a b"
+                         "c d";
+}
+
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="checkLayout('.grid')">
+<div id="log"></div>
+
+<div class="grid">
+    <div class="autoRowAutoColumn"
+        data-offset-x="0" data-offset-y="0" data-expected-width="10" data-expected-height="10">
+    </div>
+</div>
+
+<div class="grid oneColumnOneRow">
+    <div class="autoRowAutoColumn"
+        data-offset-x="0" data-offset-y="0" data-expected-width="50" data-expected-height="50">
+    </div>
+</div>
+
+<div class="grid oneColumnOneRowAreas">
+    <div class="autoRowAutoColumn"
+        data-offset-x="0" data-offset-y="0" data-expected-width="10" data-expected-height="10">
+    </div>
+</div>
+
+<div class="grid oneColumnTwoRows">
+    <div class="autoRowAutoColumn"
+        data-offset-x="0" data-offset-y="0" data-expected-width="50" data-expected-height="50">
+    </div>
+    <div class="autoRowAutoColumn"
+        data-offset-x="0" data-offset-y="50" data-expected-width="50" data-expected-height="50">
+    </div>
+</div>
+
+<div class="grid oneColumnTwoRowsAreas">
+    <div class="autoRowAutoColumn"
+        data-offset-x="0" data-offset-y="0" data-expected-width="10" data-expected-height="10">
+    </div>
+    <div class="autoRowAutoColumn"
+        data-offset-x="0" data-offset-y="10" data-expected-width="10" data-expected-height="10">
+    </div>
+</div>
+
+<div class="grid twoColumnsOneRow">
+    <div class="autoRowAutoColumn"
+        data-offset-x="0" data-offset-y="0" data-expected-width="50" data-expected-height="50">
+    </div>
+    <div class="autoRowAutoColumn"
+        data-offset-x="50" data-offset-y="0" data-expected-width="50" data-expected-height="50">
+    </div>
+</div>
+
+<div class="grid twoColumnsOneRowAreas">
+    <div class="autoRowAutoColumn"
+        data-offset-x="0" data-offset-y="0" data-expected-width="10" data-expected-height="10">
+    </div>
+    <div class="autoRowAutoColumn"
+        data-offset-x="10" data-offset-y="0" data-expected-width="10" data-expected-height="10">
+    </div>
+</div>
+
+<div class="grid twoColumnsTwoRows">
+    <div class="autoRowAutoColumn"
+        data-offset-x="0" data-offset-y="0" data-expected-width="50" data-expected-height="50">
+    </div>
+    <div class="autoRowAutoColumn"
+        data-offset-x="50" data-offset-y="0" data-expected-width="50" data-expected-height="50">
+    </div>
+    <div class="autoRowAutoColumn"
+        data-offset-x="0" data-offset-y="50" data-expected-width="50" data-expected-height="50">
+    </div>
+    <div class="autoRowAutoColumn"
+        data-offset-x="50" data-offset-y="50" data-expected-width="50" data-expected-height="50">
+    </div>
+</div>
+
+<div class="grid twoColumnsTwoRowsAreas">
+    <div class="autoRowAutoColumn"
+        data-offset-x="0" data-offset-y="0" data-expected-width="10" data-expected-height="10">
+    </div>
+    <div class="autoRowAutoColumn"
+        data-offset-x="10" data-offset-y="0" data-expected-width="10" data-expected-height="10">
+    </div>
+    <div class="autoRowAutoColumn"
+        data-offset-x="0" data-offset-y="10" data-expected-width="10" data-expected-height="10">
+    </div>
+    <div class="autoRowAutoColumn"
+        data-offset-x="10" data-offset-y="10" data-expected-width="10" data-expected-height="10">
+    </div>
+</div>
+
+<div class="grid oneColumnOneRow twoColumnsTwoRowsAreas">
+    <div class="autoRowAutoColumn"
+        data-offset-x="0" data-offset-y="0" data-expected-width="50" data-expected-height="50">
+    </div>
+    <div class="autoRowAutoColumn"
+        data-offset-x="50" data-offset-y="0" data-expected-width="10" data-expected-height="50">
+    </div>
+    <div class="autoRowAutoColumn"
+        data-offset-x="0" data-offset-y="50" data-expected-width="50" data-expected-height="10">
+    </div>
+    <div class="autoRowAutoColumn"
+        data-offset-x="50" data-offset-y="50" data-expected-width="10" data-expected-height="10">
+    </div>
+</div>
+
+<div class="grid twoColumnsTwoRows oneColumnOneRowAreas">
+    <div class="autoRowAutoColumn"
+        data-offset-x="0" data-offset-y="0" data-expected-width="50" data-expected-height="50">
+    </div>
+    <div class="autoRowAutoColumn"
+        data-offset-x="50" data-offset-y="0" data-expected-width="50" data-expected-height="50">
+    </div>
+    <div class="autoRowAutoColumn"
+        data-offset-x="0" data-offset-y="50" data-expected-width="50" data-expected-height="50">
+    </div>
+    <div class="autoRowAutoColumn"
+        data-offset-x="50" data-offset-y="50" data-expected-width="50" data-expected-height="50">
+    </div>
+</div>
+
+</body>

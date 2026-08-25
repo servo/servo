@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test that font fallback from a pending web font to a data url works.</title>
+<link rel=help href="https://drafts.csswg.org/css-fonts-4/#font-matching-algorithm">
+<link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=897539">
+<link rel=author href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+#target, #not-covered {
+  font: 25px/1 remote-font, data-font, monospace;
+}
+</style>
+
+<script>
+// Create the style rule for remote-font with a random query parameter added,
+// to avoid potentially loading the font from cache (too quickly) if the test
+// is run repeatedly.
+let style = document.createElement("style");
+let randomParam = "random=" + Math.random();
+style.textContent = `
+  @font-face {
+    font-family: remote-font;
+    /* Set a long delay to make sure it doesn't finish loading */
+    src: url('/fonts/Revalia.woff?pipe=trickle(d1)&${randomParam}') format('woff');
+    font-display: swap;
+  }
+`
+document.documentElement.appendChild(style);
+
+// Ahem woff2 encoded as base64
+const src = "url(data:font/woff2;base64,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) format('woff2')";
+
+// Add the inline font via JS so that we can listen to its load status.
+// Covers digits 0-9 only.
+const dataFont = new FontFace('data-font', src, {unicodeRange: 'U+30-39'});
+document.fonts.add(dataFont);
+// Ensure loading of dataFont is initiated.
+dataFont.load();
+</script>
+
+<span id="target">0123456789</span>
+<span id="not-covered">ABCDEFGHIJ</span>
+<script>
+promise_test(async () => {
+  // The loading of data-font may still be asynchronous. Wait to allow it to load.
+  await dataFont.loaded;
+  assert_false(
+    document.fonts.check('25px/1 remote-font'),
+    'Remote font is still pending');
+  assert_equals(
+    target.offsetWidth, 250,
+    'Digits are in the unicode range of data-font and hence shaped with it');
+  assert_not_equals(
+    document.getElementById('not-covered').offsetWidth, 250,
+    'Letters are out of the unicode range of data-font and hence shaped with fallback');
+}, 'We should use the inline custom font to render the page when the primary remote font is loading');
+</script>

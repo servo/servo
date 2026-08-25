@@ -1,0 +1,3 @@
+rules:
+- dominant-baseline-*: [dominant-baseline]
+- text-multiline-*: [white-space]

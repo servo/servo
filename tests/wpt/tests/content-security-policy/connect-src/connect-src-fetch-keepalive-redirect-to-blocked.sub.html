@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="Content-Security-Policy" content="connect-src 'self'; script-src 'self' 'unsafe-inline';">
+    <title>connect-src-fetch-keepalive-redirect-to-blocked</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["Pass", "violated-directive=connect-src"]'></script>
+    <script src="../support/alertAssert.sub.js?alerts=[]"></script>
+</head>
+
+<body>
+    <script>
+        window.addEventListener('securitypolicyviolation', function(e) {
+            log("violated-directive=" + e.violatedDirective);
+        });
+
+        promise_test(async function(t) {
+            try {
+                await fetch("/common/redirect.py?location=http://www1.{{host}}:{{ports[http][0]}}/content-security-policy/support/fail.png", {
+                    keepalive: true
+                });
+                log("Fail");
+            } catch (e) {
+                // Fetch will reject with a TypeError when CSP blocks the redirect
+                log("Pass");
+            }
+        }, "fetch with keepalive should be blocked when redirected to disallowed origin");
+    </script>
+    <div id="log"></div>
+</body>
+
+</html>

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+    <script src='/resources/testdriver.js'></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+  </head>
+  <body>
+    <div id='fs'></div>
+    <script>
+var check_report_format = ([reports, observer]) => {
+  let report = reports[0];
+  assert_equals(report.type, "permissions-policy-violation");
+  assert_equals(report.body.featureId, "serial");
+  assert_equals(report.body.disposition, "report");
+};
+
+promise_test(async t => {
+  const report = new Promise(resolve => {
+    new ReportingObserver((reports, observer) => resolve([reports, observer]),
+                          {types: ['permissions-policy-violation']}).observe();
+  });
+
+  await test_driver.bless('Activate document for serial.requestPort');
+  try {
+    await navigator.serial.requestPort({filters: []});
+    assert_unreached('requestPort() call should fail when no port is selected.');
+  } catch (e) {
+    assert_equals(e.code, DOMException.NOT_FOUND_ERR);
+  }
+  check_report_format(await report);
+}, "requestPort in serial report only mode");
+
+promise_test(async t => {
+  const report = new Promise(resolve => {
+    new ReportingObserver((reports, observer) => resolve([reports, observer]),
+                          {types: ['permissions-policy-violation']}).observe();
+  });
+
+  await navigator.serial.getPorts();
+  check_report_format(await report);
+}, "getPorts in serial report only mode");
+    </script>
+  </body>
+</html>

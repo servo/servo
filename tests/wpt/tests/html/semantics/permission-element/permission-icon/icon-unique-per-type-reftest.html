@@ -1,0 +1,14 @@
+<!doctype html>
+<html class="reftest-wait">
+<title>The geolocation element icon should be different to the usermedia element icon</title>
+<link rel="help" href="https://github.com/WICG/PEPC/blob/main/explainer.md">
+<link rel="mismatch" href="standard-camera-usermedia-element-ref.html">
+<body>
+  <geolocation id="geolocation"></geolocation>
+  <script>
+    requestAnimationFrame(() => {
+      document.documentElement.classList.remove('reftest-wait');
+    });
+  </script>
+</body>
+</html>

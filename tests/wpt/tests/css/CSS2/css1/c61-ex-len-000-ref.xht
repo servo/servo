@@ -1,0 +1,65 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  div
+  {
+  margin: 22px auto auto 86px;
+
+  /*
+
+    16px : table's margin-top
+  +
+     2px : table's default vertical border-spacing
+  +
+     4px : table cell's padding-top
+  ========
+    22px
+
+
+    80px : table's margin-left
+  +
+     2px : table's default horizontal border-spacing
+  +
+     4px : table cell's padding-left
+  ========
+    86px
+
+  */
+  }
+
+  img {vertical-align: top;}
+
+  img + img {padding-left: 10px;}
+
+  /*
+
+    4px : first table-cell's padding-right
+  +
+    2px : table's default horizontal border-spacing
+  +
+    4px : second table cell's padding-left
+  =======
+   10px
+
+   */
+  ]]>
+  </style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if the 2 small rectangles have the <strong>same height</strong>.</p>
+
+  <div><img src="support/1x1-navy.png" width="40" height="32" alt="Image download support must be enabled" /><img src="support/1x1-navy.png" width="40" height="32" alt="Image download support must be enabled" /></div>
+
+ </body>
+</html>

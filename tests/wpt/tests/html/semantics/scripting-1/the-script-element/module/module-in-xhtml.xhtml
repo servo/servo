@@ -1,0 +1,20 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+"http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script type="module">
+window.evaluated_module_script = true;
+</script>
+<script>
+  var test = async_test("module script in XHTML documents should be evaluated.");
+  window.addEventListener("load", () => {
+    test.step(() => { assert_true(window.evaluated_module_script); });
+    test.done();
+  });
+</script>
+</body>
+</html>

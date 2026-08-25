@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+
+<!-- This test passes if it does not crash. -->
+
+<dl>
+  <dt contenteditable></dt>
+  <dialog open></dialog>
+</dl>
+
+<script>
+  const dialog = document.querySelector('dialog');
+  dialog.open = false;
+  document.querySelector('dl').addEventListener("focusin", () => {
+    dialog.showModal();
+  });
+  document.defaultView.requestIdleCallback(() => {
+    window.getSelection().addRange(document.createRange());
+    dialog.close();
+  });
+</script>

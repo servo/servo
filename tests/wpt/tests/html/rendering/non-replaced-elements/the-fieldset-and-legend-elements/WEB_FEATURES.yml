@@ -1,0 +1,3 @@
+rules:
+- fieldset-border-radius-*: [border-radius, fieldset]
+- "**": [fieldset]

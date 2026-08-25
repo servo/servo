@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#intrinsic-sizes">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+
+<meta name="assert"
+  content="The second item contributes 25px width due to max-width, not 75px, even though the available size for the second item is 75px." />
+
+<style>
+  .item {
+    flex: 0 0 100px;
+    min-height: 0px;
+  }
+
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.
+
+<div
+  style="display: flex; flex-flow: column wrap; width: max-content; height: 100px; background: green;">
+  <div class="item">
+    <div style="width: 75px;"></div>
+  </div>
+  <div class="item" style="max-width: 25px;">
+    <div style="width: 50px;"></div>
+  </div>
+</div>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<title>
+  CSS Gap Decorations: Gap decorations with collapsed row tracks at the beginning
+  of the grid are applied after collapse, mapping sequentially to visible gaps.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-gaps-1/">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/11814">
+<link rel="match" href="grid-gap-decorations-061-ref.html">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+  body {
+    margin: 0px;
+  }
+
+  .grid-container {
+    display: grid;
+    grid-template-columns: 100px;
+    grid-template-rows: repeat(auto-fit, 20px);
+    row-gap: 10px;
+    height: 260px;
+    width: 100px;
+
+    row-rule-color: red, blue, green, purple, pink, gold, cornflowerblue, orange;
+    row-rule-style: solid;
+    row-rule-width: 4px;
+  }
+
+  .item {
+    background: gray;
+    opacity: 0.5;
+  }
+</style>
+<div class="grid-container">
+  <div class="item" style="grid-row: 5"></div>
+  <div class="item" style="grid-row: 6"></div>
+  <div class="item" style="grid-row: 7"></div>
+  <div class="item" style="grid-row: 8"></div>
+  <div class="item" style="grid-row: 9"></div>
+</div>

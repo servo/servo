@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<link rel="author" title="Sergio Villar Senin" href="mailto:svillar@igalia.com"/>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#algo-main-item" title="Part E">
+<link rel="help" href="https://www.w3.org/TR/css-sizing-3/#intrinsic-sizes" title="For boxes with no preferred aspect ratio">
+<link rel="match" href="flexbox-iframe-intrinsic-size-001-ref.html">
+<meta name="assert" content="Checks that the default iframe size does not imply having an aspect ratio." />
+<style>
+div {
+    display: flex;
+    height: 400px;
+}
+
+iframe {
+    flex: 1 1 auto;
+    border: 0;
+}
+</style>
+<p>This test PASS if you see two equally sized blue and green boxes.</p>
+<div>
+    <iframe style='background: blue;'></iframe>
+    <iframe style='background: green;'></iframe>
+</div>
+
+

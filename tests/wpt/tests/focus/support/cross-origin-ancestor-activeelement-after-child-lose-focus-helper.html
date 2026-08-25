@@ -1,0 +1,11 @@
+<html>
+<body>
+  <input />
+  <script>
+    window.onload = function() {
+      document.querySelector("input").focus();
+      window.parent.parent.postMessage("ready", '*');
+    }
+  </script>
+</body>
+</html>

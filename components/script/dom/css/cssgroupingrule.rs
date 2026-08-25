@@ -1,0 +1,98 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use dom_struct::dom_struct;
+use js::context::JSContext;
+use servo_arc::Arc;
+use style::shared_lock::{Locked, SharedRwLock, SharedRwLockReadGuard};
+use style::stylesheets::CssRules;
+
+use super::cssconditionrule::CSSConditionRule;
+use super::csslayerblockrule::CSSLayerBlockRule;
+use super::cssrule::CSSRule;
+use super::cssrulelist::{CSSRuleList, RulesSource};
+use super::cssstylerule::CSSStyleRule;
+use super::cssstylesheet::CSSStyleSheet;
+use crate::dom::bindings::codegen::Bindings::CSSGroupingRuleBinding::CSSGroupingRuleMethods;
+use crate::dom::bindings::error::{ErrorResult, Fallible};
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::reflector::DomGlobal;
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::str::DOMString;
+
+#[dom_struct]
+pub(crate) struct CSSGroupingRule {
+    css_rule: CSSRule,
+    rule_list: MutNullableDom<CSSRuleList>,
+}
+
+impl CSSGroupingRule {
+    pub(crate) fn new_inherited(
+        parent_rule: Option<&CSSGroupingRule>,
+        parent_stylesheet: &CSSStyleSheet,
+    ) -> CSSGroupingRule {
+        CSSGroupingRule {
+            css_rule: CSSRule::new_inherited(parent_rule, parent_stylesheet),
+            rule_list: MutNullableDom::new(None),
+        }
+    }
+
+    fn rulelist(&self, cx: &mut JSContext) -> DomRoot<CSSRuleList> {
+        let parent_stylesheet = self.upcast::<CSSRule>().parent_stylesheet();
+        self.rule_list.or_init(|| {
+            let rules = if let Some(rule) = self.downcast::<CSSConditionRule>() {
+                rule.clone_rules()
+            } else if let Some(rule) = self.downcast::<CSSLayerBlockRule>() {
+                rule.clone_rules()
+            } else if let Some(rule) = self.downcast::<CSSStyleRule>() {
+                rule.ensure_rules()
+            } else {
+                unreachable!()
+            };
+            CSSRuleList::new(
+                cx,
+                self.global().as_window(),
+                Some(self),
+                parent_stylesheet,
+                RulesSource::Rules(rules),
+            )
+        })
+    }
+
+    pub(crate) fn parent_stylesheet(&self) -> &CSSStyleSheet {
+        self.css_rule.parent_stylesheet()
+    }
+
+    pub(crate) fn shared_lock(&self) -> &SharedRwLock {
+        self.css_rule.shared_lock()
+    }
+
+    pub(crate) fn update_rules(
+        &self,
+        rules: &Arc<Locked<CssRules>>,
+        guard: &SharedRwLockReadGuard,
+    ) {
+        if let Some(rulelist) = self.rule_list.get() {
+            rulelist.update_rules(RulesSource::Rules(rules.clone()), guard);
+        }
+    }
+}
+
+impl CSSGroupingRuleMethods<crate::DomTypeHolder> for CSSGroupingRule {
+    /// <https://drafts.csswg.org/cssom/#dom-cssgroupingrule-cssrules>
+    fn CssRules(&self, cx: &mut JSContext) -> DomRoot<CSSRuleList> {
+        // XXXManishearth check origin clean flag
+        self.rulelist(cx)
+    }
+
+    /// <https://drafts.csswg.org/cssom/#dom-cssgroupingrule-insertrule>
+    fn InsertRule(&self, cx: &mut JSContext, rule: DOMString, index: u32) -> Fallible<u32> {
+        self.rulelist(cx).insert_rule(cx, &rule, index)
+    }
+
+    /// <https://drafts.csswg.org/cssom/#dom-cssgroupingrule-deleterule>
+    fn DeleteRule(&self, cx: &mut JSContext, index: u32) -> ErrorResult {
+        self.rulelist(cx).remove_rule(cx, index)
+    }
+}

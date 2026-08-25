@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>Canvas.drawElementImage: Throw on lack of layout</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<link rel="author" href="mailto:schenney@chromium.org">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+#child {
+  width: 100px;
+  height: 100px;
+  background: #01ff02;
+}
+</style>
+
+<script>
+  promise_test(async t => {
+    let canvas = window.document.createElement("canvas");
+    canvas.setAttribute("layoutsubtree", "");
+    let child = window.document.createElement("div");
+    child.setAttribute("id", "child");
+    canvas.appendChild(child);
+    let ctx = canvas.getContext('2d');
+    ctx.fillStyle = 'rgb(3, 4, 5)';
+    ctx.fillRect(0, 0, 200, 200);
+    assert_throws_dom(
+      "InvalidStateError",
+      () => ctx.drawElementImage(child, 20, 30),
+      "Can't draw into a detached canvas.");
+  }, 'canvas drawElementImage throws for a detached canvas due to lack of layout');
+</script>

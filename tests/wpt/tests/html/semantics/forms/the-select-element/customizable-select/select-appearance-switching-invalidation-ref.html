@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<link rel=stylesheet href="resources/customizable-select-styles.css">
+
+<style>
+.blue {
+  color: blue;
+}
+</style>
+
+<button class=customizable-select-button popovertarget=popover id=button>
+  <span class=customizable-select-selectedoption>button</span>
+</button>
+<div id=popover popover=auto class=customizable-select-popover>
+  <div class="customizable-select-option selected">
+    <span class=blue>option</span> one
+  </div>
+  <div class=customizable-select-option>
+    <span class=blue>option</span> two
+  </div>
+</div>
+
+<script>
+document.getElementById('popover').showPopover({ source: button });
+</script>

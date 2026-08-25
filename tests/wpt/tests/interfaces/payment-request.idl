@@ -1,0 +1,172 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Payment Request API (https://w3c.github.io/payment-request/)
+
+[SecureContext, Exposed=Window]
+interface PaymentRequest : EventTarget {
+  constructor(
+    sequence<PaymentMethodData> methodData,
+    PaymentDetailsInit details,
+    optional PaymentOptions options = {}
+  );
+  [NewObject]
+  Promise<PaymentResponse> show(optional Promise<PaymentDetailsUpdate> detailsPromise);
+  [NewObject]
+  Promise<undefined> abort();
+  [NewObject]
+  Promise<boolean> canMakePayment();
+
+  readonly attribute DOMString id;
+  readonly attribute ContactAddress? shippingAddress;
+  readonly attribute DOMString? shippingOption;
+  readonly attribute PaymentShippingType? shippingType;
+
+  attribute EventHandler onshippingaddresschange;
+  attribute EventHandler onshippingoptionchange;
+  attribute EventHandler onpaymentmethodchange;
+};
+
+dictionary PaymentMethodData {
+  required DOMString supportedMethods;
+  object data;
+};
+
+dictionary PaymentCurrencyAmount {
+  required DOMString currency;
+  required DOMString value;
+};
+
+dictionary PaymentDetailsBase {
+  sequence<PaymentItem> displayItems;
+  sequence<PaymentShippingOption> shippingOptions;
+  sequence<PaymentDetailsModifier> modifiers;
+};
+
+dictionary PaymentDetailsInit : PaymentDetailsBase {
+  DOMString id;
+  required PaymentItem total;
+};
+
+dictionary PaymentDetailsUpdate : PaymentDetailsBase {
+  DOMString error;
+  PaymentItem total;
+  AddressErrors shippingAddressErrors;
+  PayerErrors payerErrors;
+  object paymentMethodErrors;
+};
+
+dictionary PaymentDetailsModifier {
+  required DOMString supportedMethods;
+  PaymentItem total;
+  sequence<PaymentItem> additionalDisplayItems;
+  object data;
+};
+
+enum PaymentShippingType {
+  "shipping",
+  "delivery",
+  "pickup"
+};
+
+dictionary PaymentOptions {
+  boolean requestPayerName = false;
+  boolean requestBillingAddress = false;
+  boolean requestPayerEmail = false;
+  boolean requestPayerPhone = false;
+  boolean requestShipping = false;
+  PaymentShippingType shippingType = "shipping";
+};
+
+dictionary PaymentItem {
+  required DOMString label;
+  required PaymentCurrencyAmount amount;
+  boolean pending = false;
+};
+
+dictionary PaymentCompleteDetails {
+  object? data = null;
+};
+
+enum PaymentComplete {
+  "fail",
+  "success",
+  "unknown"
+};
+
+dictionary PaymentShippingOption {
+  required DOMString id;
+  required DOMString label;
+  required PaymentCurrencyAmount amount;
+  boolean selected = false;
+};
+
+[SecureContext, Exposed=Window]
+interface PaymentResponse : EventTarget  {
+  [Default] object toJSON();
+
+  readonly attribute DOMString requestId;
+  readonly attribute DOMString methodName;
+  readonly attribute object details;
+  readonly attribute ContactAddress? shippingAddress;
+  readonly attribute DOMString? shippingOption;
+  readonly attribute DOMString? payerName;
+  readonly attribute DOMString? payerEmail;
+  readonly attribute DOMString? payerPhone;
+
+  [NewObject]
+  Promise<undefined> complete(
+    optional PaymentComplete result = "unknown",
+    optional PaymentCompleteDetails details = {}
+  );
+  [NewObject]
+  Promise<undefined> retry(optional PaymentValidationErrors errorFields = {});
+
+  attribute EventHandler onpayerdetailchange;
+};
+
+dictionary PaymentValidationErrors {
+  PayerErrors payer;
+  AddressErrors shippingAddress;
+  DOMString error;
+  object paymentMethod;
+};
+
+dictionary PayerErrors {
+  DOMString email;
+  DOMString name;
+  DOMString phone;
+};
+
+dictionary AddressErrors {
+  DOMString addressLine;
+  DOMString city;
+  DOMString country;
+  DOMString dependentLocality;
+  DOMString organization;
+  DOMString phone;
+  DOMString postalCode;
+  DOMString recipient;
+  DOMString region;
+  DOMString sortingCode;
+};
+
+[SecureContext, Exposed=Window]
+interface PaymentMethodChangeEvent : PaymentRequestUpdateEvent {
+  constructor(DOMString type, optional PaymentMethodChangeEventInit eventInitDict = {});
+  readonly attribute DOMString methodName;
+  readonly attribute object? methodDetails;
+};
+
+dictionary PaymentMethodChangeEventInit : PaymentRequestUpdateEventInit {
+  DOMString methodName = "";
+  object? methodDetails = null;
+};
+
+[SecureContext, Exposed=Window]
+interface PaymentRequestUpdateEvent : Event {
+  constructor(DOMString type, optional PaymentRequestUpdateEventInit eventInitDict = {});
+  undefined updateWith(Promise<PaymentDetailsUpdate> detailsPromise);
+};
+
+dictionary PaymentRequestUpdateEventInit : EventInit {};

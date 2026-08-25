@@ -1,0 +1,7 @@
+rules:
+- transform-with-sign-function.html: [abs-sign]
+- transform-and-individual-transform-properties-computed-style.html: [individual-transforms]
+- "*3d*": [transforms3d]
+- backface-visibility-*: [transforms3d]
+- perspective-*: [transforms3d]
+- "*": [transforms2d]

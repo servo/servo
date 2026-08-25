@@ -1,0 +1,23 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Generated Content: \A and white-space</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/content/004.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#content" />
+  <link rel="match" href="content-174-ref.xht" />
+
+  <style type="text/css">
+   .red { background: red; width: 5em; font: 1em/1 monospace; height: 1em; }
+   .small { width: 1em; }
+   span:before { background: green; color: white; white-space: nowrap; content: 'Test\Apasses      if       this       sentence        has         a         green     background.'; }
+  </style>
+ </head>
+ <body>
+  <div class="red">
+   <div class="small">
+    <span></span>
+   </div>
+  </div>
+ </body>
+</html>

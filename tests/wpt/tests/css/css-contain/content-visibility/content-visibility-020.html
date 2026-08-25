@@ -1,0 +1,45 @@
+<!doctype HTML>
+<html class="reftest-wait">
+<meta charset="utf8">
+<title>Content Visibility: hidden iframe</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<link rel="match" href="content-visibility-020-ref.html">
+<meta name="assert" content="content-visibility hidden iframe does not paint">
+
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+div {
+  background: blue;
+  color: white;
+}
+.hidden {
+  content-visibility: hidden;
+}
+</style>
+
+<div>Test passes if the word “FAIL” does not appear below and if there is no red.</div>
+<iframe id="frame" width=400 height=200 srcdoc='
+  <style>
+  div {
+    background: red;
+  }
+  </style>
+  <div>FAIL</div>
+'></iframe>
+<div>Test passes if the word “FAIL” does not appear above and if there is no red.</div>
+
+<script>
+async function runTest() {
+  document.getElementById("frame").classList.add("hidden");
+  requestAnimationFrame(takeScreenshot);
+}
+
+window.onload = () => {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(runTest);
+  });
+};
+</script>
+</html>

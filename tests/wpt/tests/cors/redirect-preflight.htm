@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CORS - redirect with preflight</title>
+<meta name=author title="Odin Hørthe Omdal" href="mailto:odiho@opera.com">
+<meta name=author title="Fernando Jiménez Moreno" href="mailto:ferjmoreno@gmail.com">
+
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=support.js?pipe=sub></script>
+
+<h1>Redirect with preflight</h1>
+
+<div id=log></div>
+<script>
+
+// Request count for cache busting and easy identifying of request in traffic
+// analyzer.
+var req_c = 0;
+
+var CROSSDOMAIN_URL = CROSSDOMAIN + 'resources/cors-makeheader.py?';
+
+/*
+ * Redirection after successfull (200) preflight.
+ */
+function redir_after_successfull_preflight(code) {
+  var desc = 'Should allow redirect ' + code + ' after succesful (200) preflight';
+  async_test(desc).step(function() {
+    var client = new XMLHttpRequest();
+    var redirect = encodeURIComponent(
+      CROSSDOMAIN + 'resources/cors-makeheader.py?headers=x-test&' + req_c++
+    );
+
+    client.open('GET', CROSSDOMAIN + 'resources/cors-makeheader.py?'
+        + 'preflight=200&headers=x-test&location='
+        + redirect + '&code=' + code + '&' + req_c++,
+        true /* async */);
+    client.setRequestHeader('x-test', 'test');
+    client.onreadystatechange = this.step_func(function() {
+      assert_equals(client.status, 200, 'Successfull redirect');
+      this.done();
+    });
+    client.send(null);
+  });
+}
+[301, 302, 303, 307, 308].forEach(redir_after_successfull_preflight);
+
+</script>

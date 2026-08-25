@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Cross-origin subframe for Location cyclic [[Prototype]] test</title>
+  <link rel="author" title="Jeff Walden" href="http://whereswalden.com/" />
+</head>
+<body>
+<script>
+document.domain = "{{host}}";
+</script>
+<!-- this should be accessible to the parent once it sets document.domain -->
+<p>Cross-origin iframe with joined <code>document.domain</code></p>
+</body>
+</html>

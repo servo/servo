@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>Test "tabbed" in display-override member + media feature</title>
+<link rel="help" href="https://w3c.github.io/manifest#display-member" />
+<link rel="help" href="https://www.w3.org/TR/mediaqueries-5/#display-modes" />
+<link rel="help" href="https://w3c.github.io/manifest/#dom-displaymodetype-browser" />
+<link rel="manifest" href="resources/display-override-member-media-feature-tabbed.webmanifest" />
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="resources/display-override-member-media-feature-manual.js"></script>
+<h1>Test "tabbed" in display-override member + media feature</h1>
+<style>
+  .fail {
+    background-color: red;
+  }
+
+  @media all and (display-mode: tabbed) {
+    body {
+      background-color: green;
+    }
+  }
+</style>
+<script>
+const tabbed = matchMedia("(display-mode: tabbed)");
+
+tabbed.onchange = () => {
+  if (tabbed.matches) {
+    document.body.classList.remove("fail");
+  }
+}
+
+if (!tabbed.matches) {
+  document.body.classList.add("fail");
+}
+</script>
+<p>
+  To pass, the background color must be green after installing.
+</p>

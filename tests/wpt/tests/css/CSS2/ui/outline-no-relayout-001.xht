@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>CSS Test: Outline-width is changed via script</title>
+    <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+    <link rel="help" href="http://www.w3.org/TR/CSS21/ui.html#dynamic-outlines" />
+    <meta name="flags" content="dom interact" />
+    <meta name="assert" content="Scripts can change outline width, without causing a reflow." />
+    <meta http-equiv="Content-Script-Type" content="text/javascript" />
+    <style type="text/css">
+        #div1
+        {
+            background: blue;
+            margin-left: 50px;
+            outline-style: solid;
+            outline-color: black;
+            outline-width: 10px;
+        }
+        #div2
+        {
+            background: orange;
+            margin-left: 50px;
+        }
+        #div1, #div2
+        {
+            height: 100px;
+            width: 100px;
+        }
+    </style>
+</head>
+<body>
+    <p>PREREQUSITE: Click the <button onclick="changeWidth();">Change Width</button> button.</p>
+    <p>Test passes if the black box became larger but no other content on the page reflowed.</p>
+    <div>Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text</div>
+    <div id="div1"></div>
+    <div>Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text</div>
+    <div id="div2"></div>
+    <script type="text/javascript">
+        function changeWidth()
+        {
+            document.getElementById('div1').style.outlineWidth = '30px';
+        }
+    </script>
+</body>
+</html>

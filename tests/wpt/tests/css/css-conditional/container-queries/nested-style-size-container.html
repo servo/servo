@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>Nested style/size @containers with different candidate order</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#container-queries">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #size-container {
+    container-type: inline-size;
+    width: 200px;
+  }
+  #style-container {
+    --foo: bar;
+  }
+  #target {
+    color: red;
+  }
+  @container style(--foo: bar) {
+    @container (inline-size = 200px) {
+      #target { color: green; }
+    }
+  }
+</style>
+<div id="size-container">
+  <div id="style-container">
+    <div id="target">Green?</div>
+  </div>
+</div>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(target).color, "rgb(0, 128, 0)");
+  }, "Check that nested @container queries match with different candidates in different order");
+
+</script>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<textarea id="t" style="white-space: nowrap">Hello</textarea>
+<script>
+promise_test(async () => {
+  t.focus();
+  if (navigator.userAgent.includes("Mac")) {
+    // Meta+ArrowLeft
+    await new test_driver.Actions()
+      .keyDown("\uE03D")
+      .keyDown("\uE058")
+      .keyUp("\uE058")
+      .keyUp("\uE03D")
+      .send();
+  } else {
+    // Home
+    await test_driver.send_keys(t, "\uE011");
+  }
+  // And then Delete
+  await test_driver.send_keys(t, "\uE017");
+  t.style.whiteSpace = "pre-line";
+  await new Promise(setTimeout);
+  assert_equals(t.selectionStart, 0, "selectionStart should remain 0");
+  assert_equals(t.selectionEnd, 0, "selectionEnd should remain 0");
+}, "Changing white-space should not change selection");
+</script>

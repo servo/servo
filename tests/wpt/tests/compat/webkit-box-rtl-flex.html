@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/1034461">
+<link rel="match" href="webkit-box-rtl-flex-ref.html">
+<style>
+#webkitbox {
+  width: 500px;
+  display: -webkit-box;
+  direction: rtl;
+}
+
+#redbox {
+  background: red;
+  -webkit-box-flex: 1;
+}
+
+#greenbox {
+  background: green;
+  -webkit-box-flex: 1;
+}
+
+</style>
+<p>There should be a green box followed by a red box, both on the same line.
+<div id="webkitbox">
+  <div id="redbox">A</div>
+  <div id="greenbox">B</div>
+</div>

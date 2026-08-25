@@ -1,0 +1,27 @@
+<!doctype html>
+<title>VTTRegion.scroll</title>
+<link rel="help" href="https://w3c.github.io/webvtt/#dom-vttregion-scroll">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+test(function() {
+    var region = new VTTRegion();
+    assert_true('scroll' in region, 'scroll is not supported');
+
+    region.scroll = '';
+    assert_equals(region.scroll, '');
+
+    region.scroll = 'up';
+    assert_equals(region.scroll, 'up');
+
+    region.scroll = 'down';
+    assert_equals(region.scroll, 'up');
+
+    region.scroll = '';
+    for (var invalid in ['left', 'right', 'center', 'top', 'bottom', 'down']) {
+        region.scroll = invalid;
+        assert_equals(region.scroll, '');
+    }
+}, document.title + ' script-created region');
+</script>

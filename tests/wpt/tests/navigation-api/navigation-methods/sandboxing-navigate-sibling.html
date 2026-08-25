@@ -1,0 +1,19 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="i" src="/common/blank.html" sandbox="allow-same-origin"></iframe>
+<iframe id="i2" src="resources/navigate-sibling.html" sandbox="allow-scripts allow-same-origin"></iframe>
+
+<script>
+async_test(t => {
+  window.onload = t.step_func(() => {
+    i2.contentWindow.navigateSibling();
+
+    i.onload = t.step_func_done(() => {
+      const destinationURL = (new URL("/common/blank.html?2", location.href)).href;
+      assert_equals(i.contentWindow.location.href, destinationURL);
+      assert_equals(i.contentWindow.navigation.currentEntry.url, destinationURL);
+    });
+  });
+}, "A sandboxed iframe can use its parent's navigation object to call navigate(), as long as allow-same-origin is present");
+</script>

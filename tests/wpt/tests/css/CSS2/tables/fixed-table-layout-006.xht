@@ -1,0 +1,41 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Remaining table width is divided evenly among non auto-sized columns (minus borders and cell spacing)</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#fixed-table-layout" />
+        <meta name="assert" content="Any remaining horizontal table space is divided evenly among columns which do not have specified widths (minus borders and cell spacing)." />
+        <style type="text/css">
+            table
+            {
+                background: blue;
+                border-collapse: separate;
+                border-spacing: 10px 0;
+                table-layout: fixed;
+                width: 130px;
+            }
+            td
+            {
+                background: blue;
+                border-left: 10px solid orange;
+                border-right: 10px solid orange;
+                height: 100px;
+                padding: 0;
+            }
+            #specified
+            {
+                width: 10px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if all of the blue lines below appear to have the same width.</p>
+            <table>
+                <tr>
+                    <td id="specified"></td>
+                    <td></td>
+                    <td></td>
+               </tr>
+            </table>
+    </body>
+</html>

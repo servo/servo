@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<title>Test predefined millimeter-based page sizes.</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-page-3/#at-page-rule">
+<link rel="help" href="https://www.w3.org/TR/css-page-3/#typedef-page-size-page-size">
+<link rel="match" href="page-size-011-print-ref.html">
+<style>
+  @page {
+    margin: 10mm;
+  }
+  @page a5 {
+    size: a5;
+  }
+  @page a5-landscape {
+    size: a5 landscape;
+  }
+  @page a4 {
+    size: a4;
+  }
+  @page a4-landscape {
+    size: a4 landscape;
+  }
+  @page a3 {
+    size: a3;
+  }
+  @page a3-landscape {
+    size: a3 landscape;
+  }
+  @page b5 {
+    size: b5;
+  }
+  @page b5-landscape {
+    size: b5 landscape;
+  }
+  @page b4 {
+    size: b4;
+  }
+  @page b4-landscape {
+    size: b4 landscape;
+  }
+  @page jis-b5 {
+    size: jis-b5;
+  }
+  @page jis-b5-landscape {
+    size: jis-b5 landscape;
+  }
+  @page jis-b4 {
+    size: jis-b4;
+  }
+  @page jis-b4-landscape {
+    size: jis-b4 landscape;
+  }
+  body { margin: 0; }
+  div { border: solid; }
+</style>
+<div style="page:a5;">
+  Page size: a5
+</div>
+<div style="page:a5-landscape;">
+  Page size: a5 landscape
+</div>
+<div style="page:a4;">
+  Page size: a4
+</div>
+<div style="page:a4-landscape;">
+  Page size: a4 landscape
+</div>
+<div style="page:a3;">
+  Page size: a3
+</div>
+<div style="page:a3-landscape;">
+  Page size: a3 landscape
+</div>
+<div style="page:b5;">
+  Page size: b5
+</div>
+<div style="page:b5-landscape;">
+  Page size: b5 landscape
+</div>
+<div style="page:b4;">
+  Page size: b4
+</div>
+<div style="page:b4-landscape;">
+  Page size: b4 landscape
+</div>
+<div style="page:jis-b5;">
+  Page size: jis-b5
+</div>
+<div style="page:jis-b5-landscape;">
+  Page size: jis-b5 landscape
+</div>
+<div style="page:jis-b4;">
+  Page size: jis-b4
+</div>
+<div style="page:jis-b4-landscape;">
+  Page size: jis-b4 landscape
+</div>

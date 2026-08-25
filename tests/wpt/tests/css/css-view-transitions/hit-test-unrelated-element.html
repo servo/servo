@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: hit test shared element at the real dom location</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<link rel="match" href="hit-test-unrelated-element-ref.html">
+
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+html { view-transition-name: none }
+#target {
+  width: 100px;
+  height: 100px;
+  contain: paint;
+  background: blue;
+  view-transition-name: shared;
+}
+#target.before {
+  position: relative;
+  left: 200px;
+}
+
+#unrelated {
+  width: 100px;
+  height: 100px;
+  background: red;
+  position: relative;
+  top: 200px;
+  left: 200px;
+}
+#unrelated:hover {
+  background: green;
+}
+
+html::view-transition {
+  pointer-events: none;
+}
+html::view-transition-group(*) {
+  pointer-events: auto;
+}
+
+html::view-transition-group(shared) {
+  animation-delay: 300s;
+}
+html::view-transition-old(shared) {
+  animation: unset;
+  opacity: 0;
+}
+html::view-transition-new(shared) {
+  animation: unset;
+  opacity: 1;
+}
+</style>
+
+<div id=target class=before></div>
+<div id=unrelated></div>
+
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+function mouseMoveToTarget(x, y) {
+  return new test_driver.Actions().pointerMove(x, y).send();
+}
+
+async function runTest() {
+  document.startViewTransition(() => {
+    target.classList.toggle("before");
+    requestAnimationFrame(async () => {
+      await mouseMoveToTarget(210, 310);
+      requestAnimationFrame(takeScreenshot);
+    });
+  });
+}
+
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>Canvas.drawElementImage: test that drawn elements draw box decorations and clip their children</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<link rel="match" href="clips-overflow-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+<style>
+#child {
+  width: 100px;
+  height: 100px;
+  background: lightgreen;
+  border: 5px solid black;
+  padding: 10px;
+
+}
+#grandchild {
+  width: 300px;
+  height: 300px;
+  background: blue;
+}
+</style>
+
+<canvas id=canvas width="200" height="200" layoutsubtree>
+  <div id=child>
+    <div id=grandchild></div>
+  </div>
+</canvas>
+<script>
+onload = async () => {
+  await waitForCanvasPaint(canvas);
+  canvas.getContext("2d").drawElementImage(child, 20, 30);
+  takeScreenshot();
+};
+</script>
+</html>

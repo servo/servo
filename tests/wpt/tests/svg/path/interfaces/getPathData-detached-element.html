@@ -1,0 +1,18 @@
+<!doctype html>
+<title>SVGPathElement.getPathData() works on a detached path element</title>
+<link rel="help" href="https://svgwg.org/specs/paths/#InterfaceSVGPathData">
+<link rel="author" title="Virali Purbey" href="mailto:viralipurbey@microsoft.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/getPathData-helpers.js"></script>
+
+<script>
+test(() => {
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("d", "M 0 0 L 10 10");
+  assert_path_data_equals(path.getPathData(), [
+    { type: "M", values: [0, 0] },
+    { type: "L", values: [10, 10] }
+  ]);
+}, "path.getPathData() works on a detached path element");
+</script>

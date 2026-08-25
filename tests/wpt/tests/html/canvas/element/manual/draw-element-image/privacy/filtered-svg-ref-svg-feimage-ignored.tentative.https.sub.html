@@ -1,0 +1,45 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>drawElementImage does not use cross-origin feimage content in SVG</title>
+  <link rel="help" href="https://github.com/WICG/html-in-canvas">
+  <link rel="author" href="mailto:schenney@chromium.org">
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src='/html/canvas/resources/canvas-tests.js'></script>
+  <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+</head>
+<body>
+  <canvas id=canvas width="100" height="200" layoutsubtree>
+    <svg id=child width="100" height="200">
+      <filter id="filter-same">
+        <feImage href="https://{{location[host]}}/images/green-100x100.png"/>
+      </filter>
+      <filter id="filter-cross">
+        <feImage href="https://{{hosts[alt][www]}}:{{ports[https][0]}}/images/red-100x100.png"/>
+      </filter>
+      <rect x="0" y="0" width="100" height="100" fill="green" filter="url(#filter-same)"></rect>
+      <rect x="0" y="100" width="100" height="100" fill="green" filter="url(#filter-cross)"></rect>
+    </svg>
+  </canvas>
+
+  <script>
+    window.onload = () => {
+      promise_test(async function(t) {
+        await waitForCanvasPaint(canvas);
+        const context = canvas.getContext("2d");
+        context.drawElementImage(document.getElementById("child"), 0, 0);
+
+        // Fetch all pixel data once to avoid multiple slow readbacks.
+        const imgData = context.getImageData(0, 0, canvas.width, canvas.height);
+
+        let pixel = _getPixelFromImageData(imgData, 50, 50);
+        assert_array_equals(pixel, [0, 255, 0, 255], "Same origin should draw");
+
+        pixel = _getPixelFromImageData(imgData, 50, 150);
+        assert_array_equals(pixel, [0, 128, 0, 255], "Cross origin should not draw");
+      });
+    }
+  </script>
+</body>
+</html>

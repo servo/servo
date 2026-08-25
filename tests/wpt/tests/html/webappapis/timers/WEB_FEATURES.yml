@@ -1,0 +1,10 @@
+rules:
+- evil-spec-example.any.js: [settimeout]
+- negative-settimeout.any.js: [settimeout]
+- settimeout-cross-realm-callback-report-exception.html: [settimeout]
+- type-long-settimeout.any.js: [settimeout]
+- clearinterval-from-callback.any.js: [setinterval]
+- missing-timeout-setinterval.any.js: [setinterval]
+- negative-setinterval.any.js: [setinterval]
+- setinterval-cross-realm-callback-report-exception.html: [setinterval]
+- type-long-setinterval.any.js: [setinterval]

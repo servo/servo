@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Test: scrollbar-color shouldn't cause scrollbars in inputs</title>
+<link rel="author" title="Luke Warlow" href="mailto:luke@warlow.dev">
+<link rel="help" href="https://drafts.csswg.org/css-scrollbars-1/#scrollbar-color">
+<link rel="match" href="input-scrollbar-color-ref.html">
+<style>
+    :root {
+        scrollbar-color: red yellow;
+    }
+</style>
+<input>

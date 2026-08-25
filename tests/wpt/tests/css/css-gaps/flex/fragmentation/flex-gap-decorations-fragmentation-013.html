@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<title>
+    CSS Gap Decorations: column flex gaps are painted when container is fragmented and first item in line is smaller
+    than others.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="match" href="flex-gap-decorations-fragmentation-013-ref.html">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+    .multi-column {
+        columns: 3;
+        height: 47px;
+        column-width: 110px;
+        width: 330px;
+    }
+
+    body {
+        margin: 0px;
+    }
+
+    #flexbox {
+        border: 2px solid rgb(96 139 168);
+        display: flex;
+        column-gap: 10px;
+        row-gap: 10px;
+        width: 110px;
+        flex-wrap: wrap;
+        height: 110px;
+        column-rule: 10px solid blue;
+        row-rule: 10px solid gold;
+        flex-direction: column;
+        row-rule-break: intersection;
+        row-rule-inset: 0;
+    }
+
+    .items {
+        background-color: rgb(96 139 168 / 0.2);
+        width: 50px;
+        height: 50px;
+    }
+
+    #one {
+        height: 25px;
+    }
+</style>
+
+<div class="multi-column">
+    <div id="flexbox">
+        <div class="items" id="one">One</div>
+        <div class="items">Two</div>
+        <div class="items">Three</div>
+        <div class="items">Four</div>
+    </div>
+</div>
+
+</html>

@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Percent heights inside anonymous blocks</title>
+  <link rel="author" title="Boris Zbarsky" href="mailto:bzbarsky@mit.edu"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#anonymous-block-level"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#containing-block-details"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#the-height-property"/>
+  <link rel="match" href="reference/ref-green-box-100x100.xht"/>
+  <meta name="assert" content="Anonymous block boxes are ignored when resolving
+        percentage values that would refer to it: the closest non-anonymous
+        ancestor box is used instead."/>
+  <style type="text/css"><![CDATA[
+    #parent { height: 200px; position: relative; }
+    #child { float: left; height: 50%; width: 100px; background: green; position: relative }
+    #background { position: absolute; top: 0; left: 0; width: 100px; height: 100px; background: red }
+  ]]></style>
+ </head>
+ <body>
+   <p>There must be a green square below and no red.</p>
+   <div id="parent">
+     <div id="background"></div>
+     <div id="child"></div>&nbsp;<div></div>
+   </div>
+ </body>
+</html>

@@ -1,0 +1,93 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="variant" content="?element=text">
+<meta name="variant" content="?element=password">
+<meta name="variant" content="?element=textarea">
+<title>Selection should've already been initialized in the text control when `focus` event is dispatched</title>
+<meta name="help" href="https://w3c.github.io/uievents/#event-type-focus">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script>
+"use strict";
+
+/**
+ * https://w3c.github.io/uievents/#event-type-focus
+ * > The focus MUST be taken from the element before the dispatch of this event type.
+ * So, the browsers should've already initialized the selection range in the
+ * text control (if and only if they do that) before `focus` event is fired.
+ * In other words, any `focus` event listeners should see the same selection
+ * ranges when a text control gets focus.
+ */
+
+const params = new URLSearchParams(location.search.substring(1));
+const tag = params.get("element") == "textarea" ? "textarea" : "input";
+const inputType = tag == "textarea" ? "" : params.get("element");
+
+addEventListener("load", () => {
+  promise_test(async () => {
+    // Activate for allowing to fire `focus` event on Chrome.
+    await test_driver.click(document.querySelector("div"));
+
+    const textControl = document.createElement(tag);
+    if (inputType != "") {
+      textControl.setAttribute("type", inputType);
+    }
+    textControl.value = "ABC";
+    // Add `focus` event listener on window before creating the text control.
+    // If the builtin editor uses a `focus` event listener of the window, this
+    // test will fail.
+    let rangeAtFocusOnWindow;
+    window.addEventListener("focus", event => {
+      rangeAtFocusOnWindow = {
+        start: textControl.selectionStart,
+        end: textControl.selectionEnd,
+      };
+    }, {capture: true});
+    // Then, this is the most important case. Web apps usually add event
+    // listener to the text control for the simplest implementation.
+    let rangeAtFocusOnTextControl;
+    textControl.addEventListener("focus", event => {
+      rangeAtFocusOnTextControl = {
+        start: textControl.selectionStart,
+        end: textControl.selectionEnd,
+      };
+    }, {capture: true});
+    document.body.appendChild(textControl);
+    // Ensure the editing host does not have focus nor selection ranges.
+    document.activeElement?.blur();
+    getSelection().removeAllRanges();
+    // Then, let's focus it. This should run the `focus` event listeners
+    // synchronously.
+    textControl.focus();
+    const rangeAfterPropagation = {
+      start: textControl.selectionStart,
+      end: textControl.selectionEnd,
+    };
+    function toString(range) {
+      return `{ selectionStart: ${range.start}, selectionEnd: ${range.end} }`;
+    }
+    test(() => {
+      assert_equals(
+        toString(rangeAtFocusOnWindow),
+        toString(rangeAfterPropagation),
+        "Selection when `focus` event listener of window runs should be the same as Selection after the propagation"
+      );
+    }, "at the window");
+    test(() => {
+      assert_equals(
+        toString(rangeAtFocusOnTextControl),
+        toString(rangeAfterPropagation),
+        "Selection when `focus` event listener of editing host runs should be the same as Selection after the propagation"
+      );
+    }, "at the editing host");
+  });
+}, {once: true});
+</script>
+</head>
+<body><div>Placeholder for click</div></body>
+</html>

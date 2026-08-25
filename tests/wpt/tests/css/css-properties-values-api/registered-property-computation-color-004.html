@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-properties-values-api/#calculation-of-computed-values" />
+<link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
+<style>
+  @property --a {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: green;
+  }
+
+  body {
+    --a: 1em;
+  }
+
+  div {
+    width: 100px;
+    height: 100px;
+    background-color: var(--a);
+  }
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div></div>

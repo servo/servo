@@ -1,0 +1,34 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Verifying that :host works as a selector at all</title>
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#featureless">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
+<!-- All these tests use a shadow host as the featureless element,
+  so we need to make sure that the impl actually supports the
+  necessary functionality. -->
+
+<p>Test passes if there is a filled green square.</p>
+<div class=host>
+    <template shadowrootmode="open">
+      <style>
+        div {
+          width: 100px;
+          height: 50px;
+        }
+        .red { background-color: red; }
+        .green { background-color: green; }
+        :host div.red {
+          /* Make sure :host matches the host element... */
+          background-color: green;
+        }
+        div > div.green {
+          /* And make sure *other* selectors *don't* match it. */
+          background-color: red;
+        }
+      </style>
+      <div class=red></div>
+      <div class=green></div>
+      <slot></slot>
+    </template>
+    <section></section>
+</div>

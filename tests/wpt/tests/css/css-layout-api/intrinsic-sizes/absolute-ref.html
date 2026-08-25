@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<style>
+.test {
+  background: green;
+  position: absolute;
+}
+
+.container-1 {
+  border: solid 2px;
+  position: relative;
+  height: 200px;
+  width: 300px;
+}
+
+.container-2 {
+  border: solid 2px;
+  position: relative;
+  height: 25px;
+  width: 25px;
+}
+
+.horizontal {
+  writing-mode: horizontal-tb;
+}
+
+.vertical {
+  writing-mode: vertical-rl;
+}
+
+</style>
+
+<div class="container-1">
+  <div class="horizontal test" style="height: 100px; width: 100px; bottom: 0px;"></div>
+  <div class="vertical test" style="height: 100px; width: 100px; right: 0px;"></div>
+</div>
+
+<div class="container-2">
+  <div class="horizontal test" style="height: 25px; width: 50px; bottom: 0px;"></div>
+</div>
+
+<div class="container-2">
+  <div class="vertical test" style="height: 50px; width: 25px; right: 0px;"></div>
+</div>

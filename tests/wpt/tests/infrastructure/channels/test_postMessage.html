@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>postMessage method</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/channel.sub.js"></script>
+
+<script>
+setup({single_test: true});
+(async () => {
+    let remote = await new RemoteGlobal();
+
+    let url = `child_message.html?uuid=${remote.uuid}`;
+    win = window.open(url, "_blank", "noopener");
+
+    let [recvChannel, sendChannel] = channel();
+    await remote.postMessage(sendChannel);
+    await recvChannel.connect();
+    let message = await recvChannel.nextMessage();
+    assert_equals(message, "PASS");
+    done();
+})();
+</script>

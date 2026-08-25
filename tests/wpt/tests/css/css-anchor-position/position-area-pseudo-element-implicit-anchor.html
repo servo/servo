@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>Implicit anchor element for pseudo-elements using anchor functions</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#implicit">
+<link rel="match" href="position-area-pseudo-element-implicit-anchor-ref.html">
+<style>
+body { margin: 0 }
+#target  {
+    margin-top: 100px;
+    margin-left: 50px;
+    width: 100px;
+    height: 100px;
+    background: blue;
+}
+#target::before, #target::after {
+    width: 100px;
+    height: 100px;
+    position: absolute;
+    position-anchor: auto;
+}
+#target::before {
+    position-area: center right;
+    background: green;
+    content:'';
+}
+#target::after {
+    position-area: bottom center;
+    background: green;
+    content:'';
+}
+</style>
+<div id=target></div>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<link rel="match" href="reference/shape-outside-formatting-context-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-shapes/">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/1970">
+<meta name="assert" content="The test verifies that a new formatting context does *not* get sized and positioned based off the float area (defined by shape outside).">
+<style>
+.test {
+  width: 200px;
+  overflow: hidden;
+}
+
+.float {
+  float: left;
+  width: 50%;
+  height: 100px;
+
+  background: orange;
+  shape-outside: polygon(0 0, 100% 100%, 0 100%);
+  clip-path: polygon(0 0, 100% 100%, 0 100%);
+}
+
+.flex {
+  display: flex;
+  height: 50px;
+  background: rebeccapurple;
+}
+</style>
+<div class="test">
+  <div class="float"></div>
+  <div class="flex"></div>
+</div>

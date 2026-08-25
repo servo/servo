@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            margin: 0;
+            height: 100%;
+        }
+        .app {
+            display: flex;
+            width: 100%;
+        }
+        .sidebar {
+            width: 31.1%;
+            margin: 0;
+            background: rgb(231, 249, 139);
+        }
+        section {
+            width: 68.9%;
+            background-color: rgb(119, 219, 172);
+            border: dashed red 3px;
+        }
+        p {
+            margin-top: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class=app>
+        <div class="sidebar"></div>
+        <section id=target>
+            <h2>Observer target</h2>
+            <p><strong>Intersection ratio:</strong> <span id=ratio></span></p>
+        </section>
+    </div>
+
+    <script>
+        const onIntersection = entries => {
+            const ratio = entries[0].intersectionRatio;
+            const eventData = { intersectionRatio: ratio };
+            document.getElementById("ratio").innerText = ratio.toFixed(5);
+            const event = new CustomEvent("iframeObserved", {detail: eventData});
+            parent.document.dispatchEvent(event);
+        };
+        const observer = new IntersectionObserver(onIntersection, {threshold: 1});
+        setTimeout(() => {observer.observe(document.getElementById("target"))}, 0);
+    </script>
+</body>
+</html>

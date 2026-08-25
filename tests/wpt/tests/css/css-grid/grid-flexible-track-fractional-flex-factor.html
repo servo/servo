@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Verify no rounding loss for flex track sizing</title>
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#algo-find-fr-size">
+<link rel="match" href="grid-flexible-track-fractional-flex-factor-ref.html">
+<link rel="author" title="Yulun Wu" href="mailto:yulun_wu@apple.com">
+<style>
+.grid {
+    display: grid;
+    grid-template-columns: 1.01fr 0.99fr 1fr;
+    grid-template-rows: 100px;
+    width: 600px;
+}
+</style>
+<div class="grid">
+    <div style="grid-row: 1 / 2; grid-column: 1 / 2; background: red"></div>
+    <div style="grid-row: 1 / 2; grid-column: 2 / 3; background: green"></div>
+    <div style="grid-row: 1 / 2; grid-column: 3 / 4; background: blue"></div>
+</div>

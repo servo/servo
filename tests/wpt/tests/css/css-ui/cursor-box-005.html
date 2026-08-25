@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>CSS Basic User Interface Test: cursor on transparent borders</title>
+<link rel="author" title="Florian Rivoal" href="mailto:florian@rivoal.net">
+<link rel="help" href="http://www.w3.org/TR/css3-ui/#cursor">
+<meta name="flags" content="interact">
+<meta charset="UTF-8">
+<meta name="assert" content="The cursor property is applied over the border box, even if the border is transparent.">
+<style>
+#container {
+  position: absolute;
+  background: blue;
+  cursor: url("support/cursors/fail.png"), help;
+}
+#test {
+  border: solid transparent 50px;
+  cursor: crosshair;
+}
+</style>
+<body>
+  <p>The test passes if, when moved over the blue box, the cursor looks like a crosshair (e.g. short line segments resembling a "+" sign).</p>
+  <div id=container><div id=test></div></div>
+</body>

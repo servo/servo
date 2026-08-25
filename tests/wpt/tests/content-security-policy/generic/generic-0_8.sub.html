@@ -1,0 +1,27 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>test wildcard host name matching (asterisk as a subdomain of the current domain)</title>
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' *.{{host}}:{{ports[http][0]}} 'unsafe-inline';">
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+    <script src='wildcardHostTest.js'></script>
+    <script>
+      var t = async_test("Test that script does not fire violation event");
+      window.addEventListener("securitypolicyviolation", t.unreached_func("Should not have fired a violation event"));
+      window.addEventListener("load", t.step_func(function() {
+        assert_true(window.wildcardHostTestRan);
+        t.done();
+      }));
+      var head = document.getElementsByTagName('head')[0];
+      var script = document.createElement('script');
+      script.type = 'text/javascript';
+      script.src = "http://www." + location.hostname + ":" + location.port + "/content-security-policy/generic/wildcardHostTestSuceeds.js";
+      head.appendChild(script);
+    </script>
+</head>
+<body>
+    <h1>test wildcard host name matching (asterisk as a subdomain of the current domain)</h1>
+    <div id='log'></div>
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<title>CSS Backdrop Filters Animation: Opacity</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty">
+<link rel="match" href="css-backdrop-filters-animation-opacity-ref.html">
+<style>
+    /* Note that per the spec, the backdrop image is read back, filters
+       are applied, any additional content is drawn, and then the resulting
+       image is composited back into the parent (over the top of the
+       existing backdrop image) using source-over compositing. In this case,
+       the only backdrop filter is opacity, so the backdrop image will be
+       filtered by opacity 50%, the green box (100% opacity) is drawn over
+       that at 100% opacity, and then the entire thing is composited into
+       the backdrop, which already contains the 100% opacity blue square.
+       So the blue square stays 100% blue. */
+    @keyframes animate {
+        0% {
+            backdrop-filter: opacity(0%);
+        }
+        100% {
+            backdrop-filter: none;
+        }
+    }
+    .square {
+        position: absolute;
+        width: 100px;
+        height: 100px;
+        top: 100px;
+        left: 100px;
+        background: black;
+    }
+    .filt {
+        position: absolute;
+        width: 200px;
+        height: 200px;
+        top: 50px;
+        left: 50px;
+        animation-name: animate;
+        animation-play-state: paused;
+        animation-delay: -2s;
+        animation-duration: 4s;
+        animation-timing-function: linear;
+    }
+    .greenbox {
+        position: absolute;
+        width: 50px;
+        height: 50px;
+        top: 75px;
+        left: 75px;
+        background: green;
+    }
+</style>
+<p>You should see a blue square with a green box inside.</p>
+<div class="square"></div>
+<div class="filt">
+    <div class="greenbox"></div>
+</div>

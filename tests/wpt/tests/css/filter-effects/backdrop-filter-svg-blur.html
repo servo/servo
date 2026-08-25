@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name=fuzzy content="maxDifference=0-20;totalPixels=0-10000">
+<title>backdrop-filter: Correctly apply backdrop-filter with an SVG filter</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty">
+<link rel="match"  href="reference/backdrop-filter-svg-blur-ref.html">
+
+<p>The green box should filter the blue box.</p>
+
+<svg width="200" height="200">
+  <rect width="50" height="50" fill="blue"></rect>
+  <rect x="20" y="20" width="50" height="50" fill="green" opacity="0.5" style="backdrop-filter: blur(10px);"></rect>
+</svg>

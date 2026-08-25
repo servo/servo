@@ -1,0 +1,15 @@
+<!doctype html>
+<title>undefined as ports</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+async_test(function() {
+  postMessage('', '*', undefined);
+  onmessage = this.step_func(function(e) {
+    assert_array_equals(e.ports, []);
+    this.done();
+  });
+});
+</script>
+

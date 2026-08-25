@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="helper.js" type="module"></script>
+
+<script type="module">
+  import { expireCookie, documentHasCookie, waitForCookie, addCookieAndSessionCleanup, setupShardedServerState, configureServer} from "./helper.js";
+
+  async function runTest(t, scopeOrigin, expectRefresh) {
+    await setupShardedServerState();
+    const expectedCookieAndValue = "auth_cookie=abcdef0123";
+    const expectedCookieAndAttributes = `${expectedCookieAndValue};Domain=${location.hostname};Path=/device-bound-session-credentials`;
+    addCookieAndSessionCleanup(t);
+
+    await configureServer({ scopeOrigin });
+
+    // Prompt starting a session, and wait until registration completes.
+    const loginResponse = await fetch('login.py');
+    assert_equals(loginResponse.status, 200);
+    await waitForCookie(expectedCookieAndValue, /*expectCookie=*/true);
+
+    // Confirm that a request has the cookie set.
+    const authResponse = await fetch('verify_authenticated.py');
+    assert_equals(authResponse.status, 200);
+
+    // Expire the cookie, which leads to a request with the cookie set (refresh occurs) only when the scope origin matches.
+    expireCookie(expectedCookieAndAttributes);
+    assert_false(documentHasCookie(expectedCookieAndValue));
+    const authResponseAfterExpiry = await fetch('verify_authenticated.py');
+    assert_equals(authResponseAfterExpiry.status, expectRefresh ? 200 : 403);
+    assert_equals(documentHasCookie(expectedCookieAndValue), expectRefresh);
+  }
+
+  promise_test(async t => {
+    // Use the same scope origin as the upcoming request.
+    await runTest(t, location.origin, /*expectRefresh=*/true);
+  }, "A request within the scope origin refreshes");
+
+  promise_test(async t => {
+    // Use a scope origin that does not match the upcoming request.
+    await runTest(t, `${location.protocol}//www1.${location.host}`, /*expectRefresh=*/false);
+  }, "A request outside the scope origin does not refresh");
+</script>

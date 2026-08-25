@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<title>CSS Containment Test: Remove inline-size from style.contain</title>
+<link rel="help" href="https://drafts.csswg.org/css-contain/#contain-property">
+<link rel="help" href="https://drafts.csswg.org/css-contain-3/#containment-inline-size">
+<meta name="assert" content="After removing inline-size from style.contain, the element should trigger layout">
+<link rel="match" href="reference/pass_if_pass_below_clipped.html">
+<style>
+
+</style>
+<p>Test passes if there is the word "PASS" below.</p>
+<div id="container" style="contain: inline-size; width:fit-content; overflow: hidden;"><span>PASS</span></div>
+
+<script>
+    window.requestAnimationFrame(() => {
+        document.getElementById("container").style.contain = "";
+    });
+</script>

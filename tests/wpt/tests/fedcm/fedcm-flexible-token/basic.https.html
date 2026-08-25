@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<title>FedCM Flexible Token Formats - Basic Types</title>
+<meta name="timeout" content="long">
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script type="module">
+import {fedcm_test,
+        fedcm_get_flexible_tokens_credential} from '../support/fedcm-helper.sub.js';
+
+fedcm_test(async t => {
+  const credential = await fedcm_get_flexible_tokens_credential(t, 'string');
+  assert_true(credential instanceof IdentityCredential);
+  assert_equals(typeof credential.token, 'string');
+  assert_equals(credential.token, 'simple_string_token');
+}, 'FedCM should accept string tokens');
+
+fedcm_test(async t => {
+  const credential = await fedcm_get_flexible_tokens_credential(t, 'positive-number');
+  assert_true(credential instanceof IdentityCredential);
+  assert_equals(typeof credential.token, 'number');
+  assert_equals(credential.token, 12345);
+}, 'FedCM should accept number tokens');
+
+fedcm_test(async t => {
+  const credential = await fedcm_get_flexible_tokens_credential(t, 'negative-number');
+  assert_true(credential instanceof IdentityCredential);
+  assert_equals(typeof credential.token, 'number');
+  assert_equals(credential.token, -42);
+}, 'FedCM should accept negative number tokens');
+
+fedcm_test(async t => {
+  const credential = await fedcm_get_flexible_tokens_credential(t, 'boolean-true');
+  assert_true(credential instanceof IdentityCredential);
+  assert_equals(typeof credential.token, 'boolean');
+  assert_equals(credential.token, true);
+}, 'FedCM should accept boolean tokens (true)');
+
+fedcm_test(async t => {
+  const credential = await fedcm_get_flexible_tokens_credential(t, 'boolean-false');
+  assert_equals(typeof credential.token, 'boolean');
+  assert_equals(credential.token, false);
+}, 'FedCM should accept boolean tokens (false)');
+
+fedcm_test(async t => {
+  const credential = await fedcm_get_flexible_tokens_credential(t, 'null');
+  assert_true(credential instanceof IdentityCredential);
+  assert_equals(credential.token, null);
+}, 'FedCM should accept null tokens');
+
+fedcm_test(async t => {
+  const credential = await fedcm_get_flexible_tokens_credential(t, 'zero');
+  assert_true(credential instanceof IdentityCredential);
+  assert_equals(typeof credential.token, 'number');
+  assert_equals(credential.token, 0);
+}, 'FedCM should accept zero as token value');
+
+fedcm_test(async t => {
+  const credential = await fedcm_get_flexible_tokens_credential(t, 'float');
+  assert_true(credential instanceof IdentityCredential);
+  assert_equals(typeof credential.token, 'number');
+  assert_approx_equals(credential.token, 3.14159, 0.00001);
+}, 'FedCM should accept floating point number tokens');
+
+</script>

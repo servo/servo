@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../resources/orientation-event-helpers.js"></script>
+<script>
+'use strict';
+
+function test_null_orientation_data(eventType) {
+  promise_test(async t => {
+    const helper = new SensorTestHelper(t, eventType);
+    await helper.grantSensorsPermissions();
+    await helper.initializeSensors(
+        {disabledSensors : [ 'absolute-orientation', 'relative-orientation' ]});
+
+    const inputData = generateOrientationData(1.1, 2.2, 3.3, false);
+    // Currently it is not possible to set individual values to null because
+    // the parsing algorithms used by
+    // https://w3c.github.io/sensors/#update-virtual-sensor-reading-command
+    // always expect numbers.
+    const expectedData = generateOrientationData(
+        null, null, null,
+        /*absolute=*/ eventType === 'deviceorientationabsolute');
+    const expectedEvent = eventType === 'deviceorientationabsolute'
+                              ? getExpectedAbsoluteOrientationEvent
+                              : getExpectedOrientationEvent;
+
+    // An example how setting the orientation sensors as disabled will always
+    // output null values.
+    await helper.setData(inputData);
+    await waitForEvent(expectedEvent(expectedData));
+  }, `${eventType}: Missing values are set to null or true/false accordingly`);
+}
+
+test_null_orientation_data('deviceorientation');
+test_null_orientation_data('deviceorientationabsolute');
+</script>

@@ -1,0 +1,81 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Delete editor in a shadow</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../include/editor-test-utils.js"></script>
+<script>
+"use strict";
+
+addEventListener("load", () => {
+  const shadowRoot = document.body.attachShadow({mode: "open"});
+  for (const tag of ["input", "textarea"]) {
+    promise_test(async t => {
+      const textControl = document.createElement(tag);
+      textControl.value = "text";
+      shadowRoot.appendChild(textControl);
+      textControl.focus();
+      textControl.selectionStart = textControl.value.length;
+      const utils = new EditorTestUtils(textControl);
+      await utils.sendBackspaceKey();
+      assert_equals(
+        textControl.value,
+        "tex",
+        `Backspace in ${t.name} should delete character before the caret`
+      );
+      textControl.value = "text";
+      textControl.selectionStart = textControl.selectionEnd = 0;
+      await utils.sendDeleteKey();
+      assert_equals(
+        textControl.value,
+        "ext",
+        `Delete in ${t.name} should delete character after the caret`
+      );
+      textControl.value = "text";
+      textControl.select();
+      await utils.sendBackspaceKey();
+      assert_equals(
+        textControl.value,
+        "",
+        `Backspace after selecting all text in ${t.name} should delete all text`
+      );
+    }, `<${tag}> in shadow of the <body>`);
+  }
+
+  promise_test(async t => {
+    const editingHost = document.createElement("div");
+    editingHost.setAttribute("contenteditable", "");
+    shadowRoot.appendChild(editingHost);
+    const utils = new EditorTestUtils(editingHost);
+    utils.setupEditingHost("text[]");
+    await utils.sendBackspaceKey();
+    assert_equals(
+      editingHost.textContent,
+      "tex",
+      `Backspace in ${t.name} should delete character before the caret`
+    );
+    utils.setupEditingHost("[]text");
+    await utils.sendDeleteKey();
+    assert_equals(
+      editingHost.textContent,
+      "ext",
+      `Delete in ${t.name} should delete character after the caret`
+    );
+    utils.setupEditingHost("[text]");
+    await utils.sendBackspaceKey();
+    assert_equals(
+      editingHost.textContent,
+      "",
+      `Backspace after selecting all text in ${t.name} should delete all text`
+    );
+  }, "<div contenteditable> in shadow of the <body>");
+}, {once: true});
+</script>
+</head>
+<body></body>
+</html>

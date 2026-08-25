@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="../resources/webxr_util.js"></script>
+  <script src="../resources/webxr_test_asserts.js"></script>
+  <script src="../resources/webxr_test_constants.js"></script>
+
+  <script>
+    let testName = "Can get XRLightEstimates during frame";
+    let fakeDeviceInitParams = IMMERSIVE_AR_DEVICE;
+
+    let fakeEstimateCoefficients = [
+      0.01, 0.02, 0.03,
+      0.04, 0.05, 0.06,
+      0.07, 0.08, 0.09,
+      0.10, 0.11, 0.12,
+      0.13, 0.14, 0.15,
+      0.16, 0.17, 0.18,
+      0.19, 0.20, 0.21,
+      0.22, 0.23, 0.24,
+      0.25, 0.26, 0.27
+    ];
+
+    let fakeDirectionInit = { x: 1.0, y: 0.0, z: 0.0, w: 0.0 };
+    let fakeIntensityInit = { x: 0.0, y: 0.0, z: 1.0, w: 1.0 };
+
+    let testFunction = (session, controller, t) => new Promise((resolve) => {
+      let lightProbe = null;
+      function onFrameWithNoLightEstimation(time, frame) {
+        let estimate = frame.getLightEstimate(lightProbe);
+        t.step(() => {
+          assert_equals(estimate, null);
+        });
+
+        controller.setLightEstimate({
+          sphericalHarmonicsCoefficients: fakeEstimateCoefficients
+        });
+
+        requestSkipAnimationFrame(session, onFrameWithCoefficients);
+      }
+
+      function onFrameWithCoefficients(time, frame) {
+        let estimate = frame.getLightEstimate(lightProbe);
+        t.step(() => {
+          assert_not_equals(estimate, null);
+          assert_equals(estimate.sphericalHarmonicsCoefficients.length, 27);
+          assert_point_approx_equals(estimate.primaryLightDirection, { x: 0.0, y: 1.0, z: 0.0, w: 0.0 });
+          assert_point_approx_equals(estimate.primaryLightIntensity, { x: 0.0, y: 0.0, z: 0.0, w: 1.0 });
+        });
+
+        controller.setLightEstimate({
+          sphericalHarmonicsCoefficients: fakeEstimateCoefficients,
+          primaryLightDirection: fakeDirectionInit,
+        });
+
+        requestSkipAnimationFrame(session, onFrameWithDirection);
+      }
+
+      function onFrameWithDirection(time, frame) {
+        let estimate = frame.getLightEstimate(lightProbe);
+        t.step(() => {
+          assert_not_equals(estimate, null);
+          assert_equals(estimate.sphericalHarmonicsCoefficients.length, 27);
+          assert_point_approx_equals(estimate.primaryLightDirection, fakeDirectionInit);
+          assert_point_approx_equals(estimate.primaryLightIntensity, { x: 0.0, y: 0.0, z: 0.0, w: 1.0 });
+        });
+
+        controller.setLightEstimate({
+          sphericalHarmonicsCoefficients: fakeEstimateCoefficients,
+          primaryLightDirection: fakeDirectionInit,
+          primaryLightIntensity: fakeIntensityInit
+        });
+
+        requestSkipAnimationFrame(session, onFrameWithDirectionAndIntensity);
+      }
+
+      function onFrameWithDirectionAndIntensity(time, frame) {
+        let estimate = frame.getLightEstimate(lightProbe);
+        t.step(() => {
+          assert_not_equals(estimate, null);
+          assert_equals(estimate.sphericalHarmonicsCoefficients.length, 27);
+          assert_point_approx_equals(estimate.primaryLightDirection, fakeDirectionInit);
+          assert_point_approx_equals(estimate.primaryLightIntensity, fakeIntensityInit);
+        });
+
+        resolve();
+      }
+
+      // Request a default lightProbe
+      session.requestLightProbe({reflectionFormat: session.preferredReflectionFormat }).then((probe) => {
+        lightProbe = probe;
+        session.requestAnimationFrame(onFrameWithNoLightEstimation);
+      });
+    });
+
+    xr_session_promise_test(
+      testName,
+      testFunction,
+      IMMERSIVE_AR_DEVICE,
+      'immersive-ar', {'requiredFeatures': ['light-estimation']});
+
+  </script>
+</body>

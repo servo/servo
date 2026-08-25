@@ -1,0 +1,11 @@
+{
+    "manifest_version": 3,
+    "name": "install test",
+    "description": "install test",
+    "version": "1.0",
+    "browser_specific_settings": {
+        "gecko": {
+            "id": "1FC7D53C-0B0A-49E7-A8C0-47E77496A919@web-platform-tests.org"
+        }
+    }
+}

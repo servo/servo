@@ -1,0 +1,100 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>idlharness: namespace attribute</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/WebIDLParser.js"></script>
+  <script src="/resources/idlharness.js"></script>
+</head>
+<body>
+<p>Verify the series of sub-tests that are executed for namespace attributes.</p>
+<script>
+"use strict";
+
+Object.defineProperty(self, "foo", {
+  value: {
+    truth: true,
+  },
+  writable: true,
+  enumerable: false,
+  configurable: true,
+});
+
+var idlArray = new IdlArray();
+idlArray.add_idls(`
+[Exposed=Window]
+namespace foo {
+  readonly attribute bool truth;
+  readonly attribute bool lies;
+};`);
+idlArray.test();
+</script>
+<script type="text/json" id="expected">
+{
+  "summarized_status": {
+    "status_string": "OK",
+    "message": null
+  },
+  "summarized_tests": [
+    {
+      "name": "foo namespace: extended attributes",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "foo namespace: property descriptor",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "foo namespace: [[Extensible]] is true",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "foo namespace: [[Prototype]] is Object.prototype",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "foo namespace: typeof is \"object\"",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "foo namespace: has no length property",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "foo namespace: has no name property",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "foo namespace: attribute truth",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "foo namespace: attribute lies",
+      "status_string": "FAIL",
+      "properties": {},
+      "message": "assert_own_property: foo does not have property \"lies\" expected property \"lies\" missing"
+    }
+  ],
+  "type": "complete"
+}
+</script>
+</body>
+</html>

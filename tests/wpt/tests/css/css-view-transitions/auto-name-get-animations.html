@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html >
+<title>View transitions: generated names should be prefixed with -ua- in script</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+
+:root {
+  view-transition-name: none;
+}
+
+div {
+  width: 100px;
+  height: 100px;
+}
+
+main {
+  display: flex;
+  flex-direction: column;
+}
+
+.item1 {
+  view-transition-name: auto;
+}
+
+.item2 {
+  view-transition-name: match-element;
+}
+
+main.switch .item1 {
+  order: 2;
+}
+
+.item1 {
+  background: green;
+}
+
+.item2 {
+  background: yellow;
+  position: relative;
+  left: 100px;
+}
+
+</style>
+
+<main>
+  <div class="item item1"></div>
+  <div class="item item2"></div>
+</main>
+
+<script>
+  promise_test(async t => {
+    await new Promise(resolve => requestAnimationFrame(() => resolve()));
+    await document.startViewTransition(() => {
+      document.querySelector("main").classList.add("switch");
+    }).ready;
+    const animations = document.documentElement.getAnimations({subtree: true});
+    const pseudos = Array.from(new Set(animations.map(a => a.effect.pseudoElement)));
+    const item1GeneratedName = pseudos[0].replace("::view-transition-group(", "").slice(0, -1);
+    const item2GeneratedName = pseudos[3].replace("::view-transition-group(", "").slice(0, -1);
+    assert_true(item1GeneratedName.startsWith("-ua-"), "Item 1 generated name starts with -ua-");
+    assert_true(item2GeneratedName.startsWith("-ua-"), "Item 2 generated name starts with -ua-");
+    assert_array_equals(pseudos,
+      [
+        `::view-transition-group(${item1GeneratedName})`,
+        `::view-transition-old(${item1GeneratedName})`,
+        `::view-transition-new(${item1GeneratedName})`,
+        `::view-transition-group(${item2GeneratedName})`,
+        `::view-transition-old(${item2GeneratedName})`,
+        `::view-transition-new(${item2GeneratedName})`
+      ], "Generated names should start with -ua- and pseudo-elements should be in tree order");
+  }, "Generated view-transition-names should be prefixed with -ua- in script");
+</script>
+
+</body>

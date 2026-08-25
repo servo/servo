@@ -1,0 +1,95 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CL" author="LH" status="accepted"
+    version="$Revision: 1.7 $" testname="$RCSfile: masking-path-01-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/masking.html#ClippingPaths">
+      <p>
+        Test to see if the basic clipping works using the clipPath element
+        and the clip-path property.
+      </p>
+      <p>
+        This test uses the following elements : &lt;clipPath&gt; and the following
+        properties : clip-path.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test at the top shows an orange rectangle (with black stroke) being clipped by another rectangle.
+        So only the middle portion of the orange rectangle should be visible. Also the black stroke should
+        only be visible along the top and bottom edge of the rectangle.
+      </p>
+      <p>
+        The example at the bottom has a group containing a text string and two rectangles. The group
+        has a clipping path defined using two  overlapping rectangles. Of concern is the overlapping area
+        shared by the two rectangles. There should not be holes in this overlapping area, the
+        clip region is the union of the two rectangles. For clarity,
+        guide rectangles in grey show the position of the clipping rectangles.
+      </p>
+      <p>
+        The rendered picture should match the reference image exactly, except for possible
+        variations in the labelling text (per CSS2 rules).
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: masking-path-01-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <g shape-rendering="geometricPrecision">
+      <!--text font-size="14"  x="10" y="20">Test for clipping using clipPath element</text-->
+      <defs>
+        <clipPath id="clip1">
+          <rect x="200" y="10" width="60" height="100"/>
+        </clipPath>
+        <clipPath id="clip2">
+          <rect x="90" y="150" width="175" height="100"/>
+          <rect x="225" y="160" width="95" height="75"/>
+        </clipPath>
+      </defs>
+      <rect x="20" y="20" width="440" height="60" fill="orange" stroke="black" stroke-width="5" clip-path="url(#clip1)"/>
+      <text font-size="30" x="20" y="130">Rectangle being clipped</text>
+      <g clip-path="url(#clip2)">
+        <rect x="115" y="190" width="225" height="40" fill="aqua" stroke="blue" stroke-width="5"/>
+        <rect x="115" y="240" width="225" height="40" fill="lime" stroke="green" stroke-width="5"/>
+        <text font-size="30" x="115" y="180">Line of text to be clipped</text>
+      </g>
+      <text font-size="30" x="20" y="280">Group being clipped</text>
+      <!--  show the two rects and the overlap area -->
+      <g fill="none" stroke="#999" stroke-width="2">
+        <rect x="90" y="150" width="175" height="100"/>
+        <rect x="225" y="160" width="95" height="75"/>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.7 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

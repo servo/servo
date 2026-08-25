@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta name=fuzzy content="0-60;0-350">
+<link rel="help" href="https://drafts.csswg.org/css-shapes-1/#basic-shape-interpolation">
+<link rel="match" href="clip-path-animation-fixed-position-ref.html">
+<!--
+  Test that clip paths on elements with position: fixed draw correctly,
+  including clipping children that are out of bounds.
+-->
+<style>
+  .container {
+    width: 100px;
+    height: 100px;
+    position: fixed;
+    top: 100px;
+    left: 100px;
+    background-color: green;
+    animation: clippath 20s steps(2, jump-end) -9.999s;
+  }
+
+  .big {
+    position: absolute;
+    top: 100px;
+    width: 500px;
+    height: 500px;
+    background-color: blue;
+  }
+
+  @keyframes clippath {
+    0% {
+      clip-path: circle(50% at 50% 50%);
+    }
+
+    100% {
+      clip-path: circle(350% at 20% 20%);
+    }
+  }
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="../../../../web-animations/resources/timing-utils.js"></script>
+
+<body>
+  <div class="container">
+    <div class="big"></div>
+  </div>
+
+  <script>
+    waitForAnimationTime(document.getAnimations()[0], 1).then(takeScreenshot);
+  </script>
+</body>
+
+</html>

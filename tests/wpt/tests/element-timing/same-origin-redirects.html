@@ -1,0 +1,37 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>This test validates element timing information for same-origin redirect chain.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/element-timing-helpers.js"></script>
+</head>
+<body>
+<script>
+async_test(t => {
+    assert_implements(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
+    // First redirect
+    let destUrl = '/common/redirect.py?location='
+    // Second redirect
+    destUrl += '/common/redirect.py?location='
+    // Image without TAO headers.
+    destUrl += '/element-timing/resources/square20.png';
+    let beforeRender;
+    new PerformanceObserver(t.step_func_done(entries => {
+        assert_equals(entries.getEntries().length, 1, 'There should be one entry');
+        const entry = entries.getEntries()[0];
+        checkElement(entry, location.origin + destUrl, 'et', 'id', beforeRender,
+                document.getElementById('id'));
+    })).observe({entryTypes: ['element']});
+    const image = document.createElement('img');
+    image.src = destUrl;
+    image.setAttribute('elementtiming', 'et');
+    image.setAttribute('id', 'id')
+    document.body.appendChild(image);
+    beforeRender = performance.now();
+}, 'Same-origin image redirect without TAO should have its renderTime set.');
+</script>
+</body>
+</html>
+

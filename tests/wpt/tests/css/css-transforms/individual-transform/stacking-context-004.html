@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>CSS Test: Individual transform properties create stacking context</title>
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="https://www.w3.org/TR/css-transforms-2/#individual-transforms">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="
+  Setting `translate` to a value different than `none` establishes a stacking context.
+">
+
+<style>
+.transform {
+  width: 100px;
+  height: 100px;
+  background: red;
+  translate: 0px;
+}
+.child {
+  width: 100px;
+  height: 100px;
+  background: green;
+  position: relative;
+  z-index: -1;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="transform">
+  <div class="child"></div>
+</div>

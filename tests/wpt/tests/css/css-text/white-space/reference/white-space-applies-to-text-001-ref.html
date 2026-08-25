@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Reference Test</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+
+  <style>
+  section
+    {
+      border: black solid 2px;
+      float: left;
+      font-family: monospace;
+      font-size: 14px;
+      line-height: 1; /* computes to 14px */
+      margin-bottom: 10px;
+      width: 16ch;
+    }
+
+  section.odds
+    {
+      clear: both;
+    }
+
+  section.even
+    {
+      margin-left: 10em;
+    }
+
+  div.first-subtest
+    {
+      white-space: normal;
+    }
+
+  div.second-subtest
+    {
+      white-space: nowrap;
+    }
+
+  div.third-subtest
+    {
+      white-space: pre;
+    }
+
+  div.fourth-subtest
+    {
+      white-space: pre-wrap;
+    }
+
+  div.fifth-subtest
+    {
+      white-space: break-spaces;
+    }
+
+  div.sixth-subtest
+    {
+      white-space: pre-line;
+    }
+
+  hr
+    {
+      clear: both;
+      margin: 4em auto 1.5em 0em;
+      width: 480px;
+    }
+  </style>
+
+  <p>Test passes if the characters inside of each black bordered rectangles on the lefthand side are laid out identically to their counterparts on the righthand side.
+
+  <section class="odds">
+    <div class="first-subtest">Lorem ipsum.      Dolor&NewLine;
+   sit.</div>
+  </section>
+
+  <section class="even">
+    <div class="first-subtest">Lorem ipsum.      Dolor&NewLine;
+   sit.</div>
+  </section>
+
+  <hr>
+
+  <section class="odds">
+    <div class="second-subtest">Lorem ipsum.      Dolor&NewLine;
+   sit.</div>
+  </section>
+
+  <section class="even">
+    <div class="second-subtest">Lorem ipsum.      Dolor&NewLine;
+   sit.</div>
+  </section>
+
+  <hr>
+
+  <section class="odds">
+    <div class="third-subtest">Lorem ipsum.      Dolor&NewLine;
+   sit.</div>
+  </section>
+
+  <section class="even">
+    <div class="third-subtest">Lorem ipsum.      Dolor&NewLine;
+   sit.</div>
+  </section>
+
+  <hr>
+
+  <section class="odds">
+    <div class="fourth-subtest">Lorem ipsum.      Dolor&NewLine;
+   sit.</div>
+  </section>
+
+  <section class="even">
+    <div class="fourth-subtest">Lorem ipsum.      Dolor&NewLine;
+   sit.</div>
+  </section>
+
+  <hr>
+
+  <section class="odds">
+    <div class="fifth-subtest">Lorem ipsum.      Dolor&NewLine;
+   sit.</div>
+  </section>
+
+  <section class="even">
+    <div class="fifth-subtest">Lorem ipsum.      Dolor&NewLine;
+   sit.</div>
+  </section>
+
+  <hr>
+
+  <section class="odds">
+    <div class="sixth-subtest">Lorem ipsum.      Dolor&NewLine;
+   sit.</div>
+  </section>
+
+  <section class="even">
+    <div class="sixth-subtest">Lorem ipsum.      Dolor&NewLine;
+   sit.</div>
+  </section>

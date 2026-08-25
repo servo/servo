@@ -1,0 +1,3 @@
+Cross-Origin-Opener-Policy-Report-Only: same-origin
+Cross-Origin-Embedder-Policy-Report-Only: require-corp
+Referrer-Policy: origin

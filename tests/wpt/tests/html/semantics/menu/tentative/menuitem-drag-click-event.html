@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Menuitem drag gesture dispatches click event</title>
+<link rel="help" href="https://open-ui.org/components/menu.explainer">
+<link rel="help" href="https://github.com/openui/open-ui/issues/1312">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<menubar>
+  <submenu>
+    <menuitem id="fileItem">File</menuitem>
+    <menulist>
+      <menuitem id="newItem">New</menuitem>
+      <menuitem id="openItem">Open</menuitem>
+    </menulist>
+  </submenu>
+  <submenu>
+    <menuitem id="editItem">Edit</menuitem>
+    <menulist>
+      <menuitem id="cutItem">Cut</menuitem>
+      <menuitem id="copyItem">Copy</menuitem>
+    </menulist>
+  </submenu>
+</menubar>
+
+<button id="buttonInvoker" commandfor="toplevelMenulist" command="show-popover">Show Menu</button>
+<menulist id="toplevelMenulist">
+  <menuitem id="biggerItem">Bigger</menuitem>
+  <menuitem id="smallerItem">Smaller</menuitem>
+</menulist>
+
+<script>
+
+function record_clicks() {
+  let click_records = [];
+  for (let el of document.querySelectorAll("menuitem")) {
+    el.addEventListener("click", ev => click_records.push(el.id));
+  }
+  return click_records;
+}
+
+promise_test(async () => {
+  let clicks = record_clicks();
+
+  // An action sequence implicitly releases the mouse at the end, so this all
+  // has to be one sequence.  Since everything should be instantaneous that
+  // isn't actually a problem.  (It is a problem in Chromium's web test
+  // harness, where we would need to wait for the toggle event, but this test
+  // doesn't need to pass there.)
+  await new test_driver.Actions()
+    .pointerMove(1, 1, {origin: fileItem})
+    .pointerDown()
+    .pointerUp()
+    .pointerMove(1, 1, {origin: newItem})
+    .pointerDown()
+    .pointerMove(1, 1, {origin: openItem})
+    .pointerUp()
+    .send();
+
+  assert_array_equals(clicks, ["fileItem", "openItem"], "Click should be sent to menuitem activated via drag from item above");
+}, "A drag from New to Open dispatches click to Open item.");
+
+promise_test(async () => {
+  let clicks = record_clicks();
+
+  // An action sequence implicitly releases the mouse at the end, so this all
+  // has to be one sequence.  Since everything should be instantaneous that
+  // isn't actually a problem.  (It is a problem in Chromium's web test
+  // harness, where we would need to wait for the toggle event, but this test
+  // doesn't need to pass there.)
+  await new test_driver.Actions()
+    .pointerMove(1, 1, {origin: fileItem})
+    .pointerDown()
+    .pointerMove(1, 1, {origin: editItem})
+    .pointerMove(1, 1, {origin: cutItem})
+    .pointerUp()
+    .send();
+
+  assert_array_equals(clicks, ["cutItem"], "Click event should be sent to menuitem activated via drag from menubar");
+}, "A drag from File to Cut dispatches click to Cut item.");
+
+promise_test(async () => {
+  // Open standalone menulist using button
+  await test_driver.click(buttonInvoker);
+  assert_true(toplevelMenulist.matches(":popover-open"), "standalone menulist is open");
+
+  let clicks = record_clicks();
+
+  // Drag from item1 to item2 inside standalone menulist
+  await new test_driver.Actions()
+    .pointerMove(1, 1, {origin: biggerItem})
+    .pointerDown()
+    .pointerMove(1, 1, {origin: smallerItem})
+    .pointerUp()
+    .send();
+
+  assert_array_equals(clicks, ["smallerItem"], "Click event should be sent to Smaller item activated via drag within menulist");
+}, "A drag gesture within a menulist from one item to another dispatches click event");
+</script>

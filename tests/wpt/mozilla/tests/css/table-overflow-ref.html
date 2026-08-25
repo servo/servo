@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Ensure that table overflow:auto and overflow:scroll do not crash</title>
+<style>
+    div {
+        height: 100px;
+        width: 100px;
+        background: green;
+    }
+</style>
+
+<body>
+
+<table><tr><td><div></div></td></tr></table>
+<table><tr><td><div></div></td></tr></table>
+
+</body>

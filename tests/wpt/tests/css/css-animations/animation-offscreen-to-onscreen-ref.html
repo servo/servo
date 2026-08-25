@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<title>Validates rendering of a transformed element when the element is initially off screen</title>
+<style type="text/css" media="screen">
+  body {
+    margin: 0;
+  }
+
+  #box {
+    position: absolute;
+    left: 0px;
+    top: 100px;
+    height: 100px;
+    width: 100px;
+    margin: 0;
+    background-color: green;
+    transform: translate(100px, 0px);
+  }
+</style>
+<body>
+  <div id="box"></div>
+</body>
+</html>

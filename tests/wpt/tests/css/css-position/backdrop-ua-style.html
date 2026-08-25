@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Positioned Layout Test: ::backdrop UA styles"</title>
+<link rel="author" title="Eyvind Lillesveen" href="mailto:eyvind.lillesveen@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-position-4/#backdrop">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<div id="elm"></div>
+<script>
+    test(() => {
+        const backdrop_style = getComputedStyle(elm, "::backdrop");
+        assert_equals(backdrop_style.position, "fixed");
+        assert_equals(backdrop_style.top, "0px");
+        assert_equals(backdrop_style.right, "0px");
+        assert_equals(backdrop_style.left, "0px");
+        assert_equals(backdrop_style.bottom, "0px");
+    }, "UA styles for ::backdrop");
+</script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>CSS Lists: 'counter-set:list-item' trumps LI @value</title>
+  <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.org">
+  <link rel="help" href="https://drafts.csswg.org/css-lists/#propdef-counter-set">
+  <link rel="match" href="li-value-counter-reset-001-ref.html">
+  <style>
+html,body {
+  color:black; background-color:white; font:16px/1 monospace; padding:0; margin:0;
+}
+body { margin-left: 10em; }
+li.set { counter-set: list-item 99; }
+  </style>
+</head>
+<body>
+
+<ol><li>a<li value=4 class=set>b</ol>
+<ol><li>a<li value=4 class=set style="counter-increment:list-item 50">b</ol>
+<ol><li>a<li value=4 style="counter-increment:list-item 50">b</ol>
+<ol><li>a<li class=set style="counter-increment:list-item 50">b</ol>
+<ol><li>a<li style="counter-increment:list-item 50">b</ol>
+<ol><li>a<li value=4 class=set style="counter-set:list-item 88">b</ol>
+
+</body>
+</html>

@@ -1,0 +1,31 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>input type=date and input type=datetime handle focus state correctly</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/input.html#time-state-(type=time)">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1450219">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<input type="time">
+<input type="text">
+<script>
+let t = async_test("Time input handles focus correctly when value changes");
+window.onload = t.step_func_done(function() {
+  let time = document.querySelector("input[type=time]");
+  let text = document.querySelector("input[type=text]");
+  time.focus();
+  assert_true(time.matches(":focus"));
+  assert_equals(document.activeElement, time);
+  time.value = "08:10:10";
+  assert_true(time.matches(":focus"));
+  assert_equals(document.activeElement, time);
+  time.value = "08:10";
+  assert_true(time.matches(":focus"));
+  assert_equals(document.activeElement, time);
+  text.focus();
+  assert_true(text.matches(":focus"));
+  assert_false(time.matches(":focus"));
+  assert_equals(document.activeElement, text);
+});
+</script>

@@ -1,0 +1,210 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+//! Descriptor actor that represents a web view. It can link a tab to the corresponding watcher
+//! actor to enable inspection.
+//!
+//! Liberally derived from the [Firefox JS implementation].
+//!
+//! [Firefox JS implementation]: https://searchfox.org/mozilla-central/source/devtools/server/actors/descriptors/tab.js
+
+use std::sync::Arc;
+
+use devtools_traits::DevtoolScriptControlMsg;
+use malloc_size_of_derive::MallocSizeOf;
+use serde::Serialize;
+use serde_json::{Map, Value};
+use servo_url::ServoUrl;
+
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry, new_actor_name};
+use crate::actors::browsing_context::{BrowsingContextActor, BrowsingContextActorMsg};
+use crate::actors::root::{DescriptorTraits, RootActor};
+use crate::actors::watcher::{WatcherActor, WatcherActorMsg};
+use crate::protocol::ClientRequest;
+use crate::{EmptyReplyMsg, StreamId};
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct TabDescriptorActorMsg {
+    actor: String,
+    /// This correspond to webview_id
+    #[serde(rename = "browserId")]
+    browser_id: u32,
+    #[serde(rename = "browsingContextID")]
+    browsing_context_id: u32,
+    is_zombie_tab: bool,
+    #[serde(rename = "outerWindowID")]
+    outer_window_id: u32,
+    pub selected: bool,
+    title: String,
+    traits: DescriptorTraits,
+    url: String,
+}
+
+#[derive(Serialize)]
+struct GetTargetReply {
+    from: String,
+    frame: BrowsingContextActorMsg,
+}
+
+#[derive(Serialize)]
+struct GetFaviconReply {
+    from: String,
+    favicon: String,
+}
+
+#[derive(Serialize)]
+struct GetWatcherReply {
+    from: String,
+    #[serde(flatten)]
+    watcher: WatcherActorMsg,
+}
+
+#[derive(MallocSizeOf)]
+pub(crate) struct TabDescriptorActor {
+    name: String,
+    pub browsing_context_name: String,
+}
+
+impl Actor for TabDescriptorActor {
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// The tab actor can handle the following messages:
+    ///
+    /// - `getTarget`: Returns the surrounding `BrowsingContextActor`.
+    ///
+    /// - `getFavicon`: Should return the tab favicon, but it is not yet supported.
+    ///
+    /// - `getWatcher`: Returns a `WatcherActor` linked to the tab's `BrowsingContext`. It is used
+    ///   to describe the debugging capabilities of this tab.
+    ///
+    /// - `reloadDescriptor`: Causes the page to reload.
+    fn handle_message(
+        &self,
+        request: ClientRequest,
+        registry: &ActorRegistry,
+        msg_type: &str,
+        msg: &Map<String, Value>,
+        _id: StreamId,
+    ) -> Result<(), ActorError> {
+        let browsing_context_actor =
+            registry.find::<BrowsingContextActor>(&self.browsing_context_name);
+        let pipeline = browsing_context_actor.pipeline_id();
+
+        match msg_type {
+            "getTarget" => request.reply_final(&GetTargetReply {
+                from: self.name().into(),
+                frame: browsing_context_actor.encode(registry),
+            })?,
+            "getFavicon" => {
+                // TODO: Return a favicon when available
+                request.reply_final(&GetFaviconReply {
+                    from: self.name().into(),
+                    favicon: String::new(),
+                })?
+            },
+            "getWatcher" => request.reply_final(&GetWatcherReply {
+                from: self.name().into(),
+                watcher: registry.encode::<WatcherActor, _>(&browsing_context_actor.watcher_name),
+            })?,
+            "goBack" => {
+                browsing_context_actor
+                    .script_chan()
+                    .send(DevtoolScriptControlMsg::GoBack(pipeline))
+                    .map_err(|_| ActorError::Internal)?;
+                request.reply_final(&EmptyReplyMsg {
+                    from: self.name().into(),
+                })?
+            },
+            "goForward" => {
+                browsing_context_actor
+                    .script_chan()
+                    .send(DevtoolScriptControlMsg::GoForward(pipeline))
+                    .map_err(|_| ActorError::Internal)?;
+                request.reply_final(&EmptyReplyMsg {
+                    from: self.name().into(),
+                })?
+            },
+            "navigateTo" => {
+                if msg.get("waitForLoad").unwrap_or(&Value::Bool(false)) != &Value::Bool(false) {
+                    log::warn!("waitForLoad option for devtools navigation is not supported.");
+                }
+                let url = msg
+                    .get("url")
+                    .and_then(|value| value.as_str())
+                    .map(ServoUrl::parse)
+                    .ok_or(ActorError::Internal)?
+                    .map_err(|_| ActorError::Internal)?;
+
+                browsing_context_actor
+                    .script_chan()
+                    .send(DevtoolScriptControlMsg::NavigateTo(pipeline, url))
+                    .map_err(|_| ActorError::Internal)?;
+
+                request.reply_final(&EmptyReplyMsg {
+                    from: self.name().into(),
+                })?
+            },
+            "reloadDescriptor" => {
+                // There is an extra bypassCache parameter that we don't currently use.
+                browsing_context_actor
+                    .script_chan()
+                    .send(DevtoolScriptControlMsg::Reload(pipeline))
+                    .map_err(|_| ActorError::Internal)?;
+
+                request.reply_final(&EmptyReplyMsg {
+                    from: self.name().into(),
+                })?
+            },
+            _ => return Err(ActorError::UnrecognizedPacketType),
+        };
+        Ok(())
+    }
+}
+
+impl TabDescriptorActor {
+    pub(crate) fn register(registry: &ActorRegistry, browsing_context_name: String) -> Arc<Self> {
+        let name = new_actor_name::<Self>();
+        let root_actor = registry.find::<RootActor>("root");
+        root_actor.tabs.borrow_mut().push(name.clone());
+        let actor = Self {
+            name,
+            browsing_context_name,
+        };
+        registry.register::<Self>(actor)
+    }
+
+    pub(crate) fn is_top_level_global(&self, registry: &ActorRegistry) -> bool {
+        registry
+            .find::<BrowsingContextActor>(&self.browsing_context_name)
+            .page_info
+            .borrow()
+            .is_top_level_global
+    }
+}
+
+impl ActorEncode<TabDescriptorActorMsg> for TabDescriptorActor {
+    fn encode(&self, registry: &ActorRegistry) -> TabDescriptorActorMsg {
+        let browsing_context_actor =
+            registry.find::<BrowsingContextActor>(&self.browsing_context_name);
+        let root_actor = registry.find::<RootActor>("root");
+        TabDescriptorActorMsg {
+            actor: self.name().into(),
+            browser_id: browsing_context_actor.browser_id.value(),
+            browsing_context_id: browsing_context_actor.browsing_context_id.value(),
+            is_zombie_tab: false,
+            outer_window_id: browsing_context_actor.outer_window_id().value(),
+            selected: root_actor.active_tab().as_deref() == Some(self.name()),
+            title: browsing_context_actor.title(),
+            traits: DescriptorTraits {
+                watcher: true,
+                supports_navigation: true,
+                supports_reload_descriptor: true,
+            },
+            url: browsing_context_actor.url(),
+        }
+    }
+}

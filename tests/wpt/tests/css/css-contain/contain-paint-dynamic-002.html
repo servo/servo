@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>Dynamic change to paint containment</title>
+<link rel="help" href="https://drafts.csswg.org/css-contain/#contain-property">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1765615">
+<meta name="assert" content="Verify paint containment is properly updated after dynamic change to the contain property.">
+<link rel="match" href="contain-paint-dynamic-002-ref.html">
+
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+
+<style>
+  #container {
+      width: 100px;
+      height: 100px;
+      background: green;
+  }
+  #overflowing {
+      width: 400px;
+      height: 100px;
+  }
+  .square {
+      display: inline-block;
+      width: 50px;
+      height: 50px;
+      margin: 5px;
+  }
+  .red {
+      background: red;
+  }
+</style>
+
+<body>
+  <p>PASS if you see a green square and no red.</p>
+  <div id="container">
+    <div id="overflowing"><div class="square"></div><div class="square"></div><div class="red square"></div></div>
+  </div>
+  <script>
+    window.addEventListener("TestRendered", async () => {
+        container.style.contain = "paint";
+        await waitForAtLeastOneFrame();
+        takeScreenshot();
+    });
+  </script>
+</body>
+</html>

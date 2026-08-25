@@ -1,0 +1,5 @@
+rules:
+- "*vertical*": [vertical-form-controls]
+- "*vlr*": [vertical-form-controls]
+- "*vrl*": [vertical-form-controls]
+- "*": [writing-mode]

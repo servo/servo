@@ -1,0 +1,62 @@
+{
+    "name": "Shortcut Localized Exact Match Test",
+    "icons": [
+        {
+            "src": "pass.png",
+            "sizes": "256x256",
+            "type": "image/png"
+        }
+    ],
+    "start_url": "../shortcuts_localized-member-exact-match-manual.html",
+    "display": "fullscreen",
+    "scope": "../",
+    "shortcuts": [
+        {
+            "name": "fail",
+            "url": "../shortcut_pass.html",
+            "icons": [
+                {
+                    "src": "fail.png",
+                    "sizes": "256x256",
+                    "type": "image/png"
+                }
+            ],
+            "name_localized": {
+                "en": "pass",
+                "en-US": "pass",
+                "fr": "pass",
+                "ja": "pass"
+            },
+            "icons_localized": {
+                "en": [
+                    {
+                        "src": "pass.png",
+                        "sizes": "256x256",
+                        "type": "image/png"
+                    }
+                ],
+                "en-US": [
+                    {
+                        "src": "pass.png",
+                        "sizes": "256x256",
+                        "type": "image/png"
+                    }
+                ],
+                "fr": [
+                    {
+                        "src": "pass.png",
+                        "sizes": "256x256",
+                        "type": "image/png"
+                    }
+                ],
+                "ja": [
+                    {
+                        "src": "pass.png",
+                        "sizes": "256x256",
+                        "type": "image/png"
+                    }
+                ]
+            }
+        }
+    ]
+}

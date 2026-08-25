@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>HTML 5 Foreign Content SVG in HTML </title>
+        <meta description="Test to verify SVG inside HTML FORM element parses correctly" />
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+
+        <script type="text/javascript">
+            function RunTest()
+            {
+                try
+                {
+                    var svgNS = "http://www.w3.org/2000/svg";
+                    if(document.getElementsByTagName("form")[0].childNodes[1].localName=="svg" && document.getElementsByTagName("rect")[0].namespaceURI==svgNS)
+                    {
+                        document.getElementsByTagName("rect")[0].setAttribute("fill","green");
+                    }
+                    else
+                    {
+                        document.getElementsByTagName("rect")[0].setAttribute("fill","red");
+                    }
+                }
+                catch(ex)
+                {
+                    document.getElementsByTagName("rect")[0].setAttribute("fill","red")
+                }
+            }
+        </script>
+    </head>
+
+    <body onLoad="RunTest()">
+        <div class="testdata">
+            <p id="instructions">Test passes if green rectangle is visible below 'FillerText1'.</p>
+        </div>
+        <div>
+            FillerText1
+            <form>
+                <svg width="100px" height="100px">
+                    <rect width="100px" height="100px" fill="none" />
+                </svg>
+            </form>
+
+        </div>
+    </body>
+</html>

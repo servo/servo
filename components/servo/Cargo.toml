@@ -1,0 +1,212 @@
+[package]
+name = "servo"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+description.workspace = true
+readme = "../../README.md"
+
+[lib]
+name = "servo"
+path = "lib.rs"
+crate-type = ["rlib"]
+
+[features]
+# Note: Servoshell does not use the default features of servo, so you also
+# need to add feature-groups that should be default to ports/servoshell/Cargo.toml
+default = ["bundled", "clipboard", "js_jit"]
+## Convenience feature groups, to select multiple related features for a sensible
+#  configuration with `--no-default-features` build
+#
+# A convenience feature to enable all default web features servo has.
+default_web_features = ["brotli-compression-stream", "clipboard", "webcrypto", "webgpu", "webxr"]
+# Bundle required resources in the binary.
+bundled = ["baked-in-resources", "bundled_freetype"]
+
+# Individual features below this line.
+background_hang_monitor = ["servo-background-hang-monitor/sampler"]
+
+# Allow brotli to be used for compression and decompression in TransportStream JavaScript API
+brotli-compression-stream = ["script/brotli-compression-stream"]
+
+# This is slightly magical, but this will also work on ohos, where `servo-default-resource` is not added,
+# which makes `baked-in-resources a no-op (as intended) on ohos (and perhaps other platforms in the future).
+baked-in-resources = ["dep:servo-default-resources"]
+bluetooth = [
+    "servo-bluetooth-traits",
+    "dep:servo-bluetooth",
+    "servo-constellation/bluetooth",
+    "servo-constellation-traits/bluetooth",
+    "script/bluetooth",
+    "script_traits/bluetooth",
+]
+bundled_freetype = ["fonts/bundled_freetype"]
+clipboard = ["dep:arboard", "dep:ohos-pasteboard"]
+crown = ["script/crown"]
+debugmozjs = ["script/debugmozjs"]
+dynamic_freetype = ["webrender/dynamic_freetype"]
+gamepad = [
+    "script/gamepad",
+    "servo-constellation/gamepad",
+    "embedder_traits/gamepad",
+]
+jitspew = ["script/jitspew"]
+js_backtrace = ["script/js_backtrace"]
+js_jit = ["script/js_jit"]
+media-gstreamer = ["servo-media-gstreamer", "gstreamer"]
+native-bluetooth = ["servo-bluetooth/native-bluetooth"]
+no-wgl = ["dep:mozangle", "mozangle/egl", "mozangle/build_dlls", "surfman/sm-angle-default", "paint_api/no-wgl"]
+profilemozjs = ["script/profilemozjs"]
+testbinding = ["script/testbinding"]
+tracing = [
+    "dep:tracing",
+    "paint/tracing",
+    "paint_api/tracing",
+    "servo-constellation/tracing",
+    "fonts/tracing",
+    "layout/tracing",
+    "profile_traits/tracing",
+    "script/tracing",
+    "net/tracing",
+]
+vello = ["servo-constellation/vello"]
+
+# Enable WebCrypto Web Platform Features
+webcrypto = ["servo-constellation-traits/webcrypto", "script/webcrypto"]
+webgl_backtrace = [
+    "script/webgl_backtrace",
+    "webgl/webgl_backtrace",
+    "servo-canvas-traits/webgl_backtrace",
+]
+webgl = [
+    "dep:webgl",
+    "paint/webgl",
+    "script/webgl",
+    "script_traits/webgl",
+    "servo-constellation/webgl",
+    "servo-constellation-traits/webgl",
+]
+webgpu = [
+    "dep:webgpu",
+    "script/webgpu",
+    "paint/webgpu",
+    "servo-constellation/webgpu",
+    "servo-constellation-traits/webgpu",
+]
+webxr = [
+    "webgl",
+    "gamepad",
+    "dep:webxr",
+    "dep:webxr-api",
+    "paint/webxr",
+    "webgl/webxr",
+    "script/webxr",
+]
+
+[dependencies]
+accesskit = { workspace = true }
+bitflags = { workspace = true }
+cookie = { workspace = true }
+crossbeam-channel = { workspace = true }
+devtools = { workspace = true }
+devtools_traits = { workspace = true }
+dpi = { workspace = true }
+embedder_traits = { workspace = true }
+env_logger = { workspace = true }
+euclid = { workspace = true }
+fonts = { workspace = true }
+gstreamer = { workspace = true, optional = true }
+http = { workspace = true }
+image = { workspace = true }
+ipc-channel = { workspace = true }
+keyboard-types = { workspace = true }
+layout = { workspace = true }
+layout_api = { workspace = true }
+log = { workspace = true }
+media = { workspace = true }
+mozangle = { workspace = true, optional = true }
+net = { workspace = true }
+net_traits = { workspace = true }
+paint = { workspace = true }
+paint_api = { workspace = true }
+parking_lot = { workspace = true }
+profile = { workspace = true }
+profile_traits = { workspace = true }
+rustc-hash = { workspace = true }
+script = { workspace = true }
+script_traits = { workspace = true }
+serde = { workspace = true }
+servo-background-hang-monitor = { workspace = true }
+servo-base = { workspace = true }
+servo-bluetooth = { workspace = true, optional = true }
+servo-bluetooth-traits = { workspace = true, optional = true }
+servo-canvas-traits = { workspace = true }
+servo-config = { workspace = true }
+servo-constellation = { workspace = true }
+servo-constellation-traits = { workspace = true }
+servo-geometry = { workspace = true }
+servo-media = { workspace = true }
+servo-media-dummy = { workspace = true }
+servo-media-gstreamer = { workspace = true, optional = true }
+servo-tracing = { workspace = true }
+servo-url = { workspace = true }
+servo-wakelock = { workspace = true }
+storage = { workspace = true }
+storage_traits = { workspace = true }
+stylo = { workspace = true }
+stylo_traits = { workspace = true }
+surfman = { workspace = true }
+tokio = { workspace = true, features = ["sync"] }
+tracing = { workspace = true, optional = true }
+url = { workspace = true }
+webgl = { workspace = true, default-features = false, optional = true }
+webgpu = { workspace = true, optional = true }
+webrender = { workspace = true }
+webrender_api = { workspace = true }
+webxr-api = { workspace = true, optional = true }
+
+# On most platforms we bake in the resources for simplicity. On ohos we load resources via the filesystem.
+# In the future we might want to use this approach also for the other platforms.
+# If the feature is turned off, a resource reader must be injected into the build via `inventory::submit!()`.
+[target.'cfg(not(target_env = "ohos"))'.dependencies]
+servo-default-resources = { workspace = true, optional = true }
+
+[target.'cfg(any(target_os = "android", target_env = "ohos"))'.dependencies]
+webxr = { workspace = true, optional = true }
+
+[target.'cfg(not(any(target_os = "android", target_env = "ohos")))'.dependencies]
+arboard = { workspace = true, optional = true }
+webxr = { workspace = true, optional = true, features = ["glwindow", "headless"] }
+
+[target.'cfg(all(not(target_os = "windows"), not(target_os = "ios"), not(target_os = "android"), not(target_env = "ohos"), not(target_arch = "arm"), not(target_arch = "aarch64"), not(target_arch="riscv32"), not(target_arch="riscv64")))'.dependencies]
+gaol = { workspace = true }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+webxr = { workspace = true, optional = true, features = ["glwindow", "headless", "openxr-api"] }
+
+[target.'cfg(target_env = "ohos")'.dependencies]
+servo-media-ohos = { workspace = true }
+ohos-pasteboard = { workspace = true, optional = true }
+
+[dev-dependencies]
+accesskit_consumer = { workspace = true }
+content-security-policy = { workspace = true }
+http = { workspace = true }
+http-body-util = { workspace = true }
+hyper = { workspace = true }
+itertools = { workspace = true }
+net = { workspace = true, features = ["test-util"] }
+rustls = { workspace = true, default-features = false }
+# This must always be a path dependency, we don't want to add a dependency on a
+# crates.io version of ourselves - we want to enable a feature of ourselves.
+servo = { path = ".", features = ["testbinding", "tracing"] }
+tracing = { workspace = true }
+winit = { workspace = true }
+
+[[test]]
+name = "multiprocess"
+harness = false

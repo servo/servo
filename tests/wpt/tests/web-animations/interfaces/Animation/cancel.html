@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Animation.cancel</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations/#dom-animation-cancel">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+promise_test(t => {
+  const div = createDiv(t);
+  const animation = div.animate(
+    { transform: ['translate(100px)', 'translate(100px)'] },
+    100 * MS_PER_SEC
+  );
+  return animation.ready.then(() => {
+    assert_not_equals(getComputedStyle(div).transform, 'none',
+                      'transform style is animated before cancelling');
+    animation.cancel();
+    assert_equals(getComputedStyle(div).transform, 'none',
+                  'transform style is no longer animated after cancelling');
+  });
+}, 'Animated style is cleared after calling Animation.cancel()');
+
+test(t => {
+  const div = createDiv(t);
+  const animation = div.animate({ marginLeft: ['100px', '200px'] },
+                                100 * MS_PER_SEC);
+  animation.effect.updateTiming({ easing: 'linear' });
+  animation.cancel();
+  assert_equals(getComputedStyle(div).marginLeft, '0px',
+                'margin-left style is not animated after cancelling');
+
+  animation.currentTime = 50 * MS_PER_SEC;
+  assert_equals(getComputedStyle(div).marginLeft, '150px',
+                'margin-left style is updated when cancelled animation is'
+                + ' seeked');
+}, 'After cancelling an animation, it can still be seeked');
+
+promise_test(t => {
+  const div = createDiv(t);
+  const animation = div.animate({ marginLeft:['100px', '200px'] },
+                                100 * MS_PER_SEC);
+  return animation.ready.then(() => {
+    animation.cancel();
+    assert_equals(getComputedStyle(div).marginLeft, '0px',
+                  'margin-left style is not animated after cancelling');
+    animation.play();
+    assert_equals(getComputedStyle(div).marginLeft, '100px',
+                  'margin-left style is animated after re-starting animation');
+    return animation.ready;
+  }).then(() => {
+    assert_equals(animation.playState, 'running',
+                  'Animation succeeds in running after being re-started');
+  });
+}, 'After cancelling an animation, it can still be re-used');
+
+promise_test(async t => {
+  for (const type of ["resolve", "reject"]) {
+    const anim = new Animation();
+
+    let isThenGet = false;
+    let isThenCalled = false;
+    let resolveFinished;
+    let rejectFinished;
+    const thenCalledPromise = new Promise(resolveThenCalledPromise => {
+      // Make `anim` thenable.
+      Object.defineProperty(anim, "then", {
+        get() {
+          isThenGet = true;
+          return function(resolve, reject) {
+            isThenCalled = true;
+            resolveThenCalledPromise(true);
+            resolveFinished = resolve;
+            rejectFinished = reject;
+          };
+        },
+      });
+    });
+
+    // Lazily create finished promise.
+    const finishedPromise = anim.finished;
+
+    assert_false(isThenGet, "then property shouldn't be accessed yet");
+
+    // Resolve finished promise with `anim`, that gets `then`, and
+    // calls in the thenable job.
+    anim.finish();
+
+    assert_true(isThenGet, "then property should be accessed");
+    assert_false(isThenCalled, "then property shouldn't be called yet");
+
+    // Reject finished promise.
+    // This should be ignored.
+    anim.cancel();
+
+    // Wait for the thenable job.
+    await thenCalledPromise;
+
+    assert_true(isThenCalled, "then property should be called");
+
+    const dummyPromise = new Promise(resolve => {
+      step_timeout(() => {
+        resolve("dummy");
+      }, 100);
+    });
+    const dummy = await Promise.race([finishedPromise, dummyPromise]);
+    assert_equals(dummy, "dummy", "finishedPromise shouldn't be settled yet");
+
+    if (type === "resolve") {
+      resolveFinished("hello");
+      const finished = await finishedPromise;
+      assert_equals(finished, "hello",
+                    "finishedPromise should be resolved with given value");
+    } else {
+      rejectFinished("hello");
+      try {
+        await finishedPromise;
+        assert_unreached("finishedPromise should be rejected")
+      } catch (e) {
+        assert_equals(e, "hello",
+                      "finishedPromise should be rejected with given value");
+      }
+    }
+  }
+}, "Animation.finished promise should not be rejected by cancel method once "
+ + "it is resolved with inside finish method");
+
+</script>
+</body>

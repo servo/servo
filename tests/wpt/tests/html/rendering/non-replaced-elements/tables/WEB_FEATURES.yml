@@ -1,0 +1,9 @@
+rules:
+- table-attribute.html: [table-discouraged]
+- table-align-float.xhtml: [table-discouraged]
+- table-width*: [table-discouraged]
+- table-bordercolor-*: [table-discouraged, table-discouraged]
+- table-border*: [table-discouraged]
+- table-valign-baseline*: [table-discouraged]
+- table-cell-width*: [table-discouraged]
+- colgroup_valign*: [table-discouraged]

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="helper.js" type="module"></script>
+
+<script type="module">
+  import { expireCookie, waitForCookie, addCookieAndSessionCleanup, setupShardedServerState, configureServer} from "./helper.js";
+
+  promise_test(async t => {
+    await setupShardedServerState();
+    const expectedCookieAndValue = "auth_cookie=abcdef0123";
+    const expectedCookieAndAttributes = `${expectedCookieAndValue};Domain=${location.hostname};Path=/device-bound-session-credentials`;
+    addCookieAndSessionCleanup(t);
+
+    // Configure server to set scope specification.
+    await configureServer({ scopeSpecificationItems: [{
+      "type": "include",
+      "domain": location.hostname,
+      "path": "/device-bound-session-credentials/excludeInScopeSpecification/excluded_verify_authenticated.py"
+    }, {
+      "type": "exclude",
+      "domain": location.hostname,
+      "path": "/device-bound-session-credentials/excludeInScopeSpecification"
+    }, {
+      "type": "include",
+      "domain": location.hostname,
+      "path": "/device-bound-session-credentials/includeInScopeSpecification/included_verify_authenticated.py"
+    }, {
+      "type": "exclude",
+      "domain": location.hostname,
+      "path": "/device-bound-session-credentials/verify_authenticated.py"
+    }, {
+      "type": "include",
+      "domain": location.hostname,
+      "path": "/device-bound-session-credentials/verify_authenticated_alternate.py"
+    }, {
+      "type": "include",
+      "domain": `www1.${location.hostname}`,
+      "path": "/device-bound-session-credentials/verify_authenticated.py"
+    }, {
+      "type": "exclude",
+      "domain": `www2.${location.hostname}`,
+      "path": "/device-bound-session-credentials/verify_authenticated.py"
+    }] });
+
+    // Prompt starting a session, and wait until registration completes.
+    const loginResponse = await fetch('login.py');
+    assert_equals(loginResponse.status, 200);
+    await waitForCookie(expectedCookieAndValue, /*expectCookie=*/true);
+
+    async function expireCookieAndTriggerRequest(endpoint, expectRefresh) {
+      expireCookie(expectedCookieAndAttributes);
+      const authResponse = await fetch(endpoint, { credentials: "include" });
+      assert_equals(authResponse.status, expectRefresh ? 200 : 403);
+    }
+
+    await expireCookieAndTriggerRequest("verify_authenticated.py", /*expectRefresh=*/false);
+    await expireCookieAndTriggerRequest("verify_authenticated_alternate.py", /*expectRefresh=*/true);
+    // This one is marked as included, but excludeInScopeSpecification/ is marked as excluded, and order matters.
+    await expireCookieAndTriggerRequest("excludeInScopeSpecification/excluded_verify_authenticated.py", /*expectRefresh=*/false);
+    await expireCookieAndTriggerRequest("includeInScopeSpecification/included_verify_authenticated.py", /*expectRefresh=*/true);
+    await expireCookieAndTriggerRequest(`${location.protocol}//www1.${location.host}/device-bound-session-credentials/verify_authenticated.py`, /*expectRefresh=*/true);
+    await expireCookieAndTriggerRequest(`${location.protocol}//www2.${location.host}/device-bound-session-credentials/verify_authenticated.py`, /*expectRefresh=*/false);
+  }, "Scope specification configuration is respected");
+</script>

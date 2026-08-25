@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#comp-func">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#integers">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#calc-range">
+<link rel="author" title="Xiaocheng Hu" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/numeric-testcommon.js"></script>
+<div id="target"></div>
+<script>
+function test_integer_equals(value, expected) {
+  test_math_used(value, expected,
+    {base: '123',
+     prop: 'z-index'}
+  );
+}
+
+// Identity tests
+test_integer_equals('min(1)', '1');
+test_integer_equals('max(1)', '1');
+
+// Rounding
+test_integer_equals('min(0.4)', '0');
+test_integer_equals('min(0.6)', '1');
+test_integer_equals('max(0.4)', '0');
+test_integer_equals('max(0.6)', '1');
+
+// Rounding and nesting
+test_integer_equals('min(1.1, max(0.4, 0.6))', '1');
+test_integer_equals('max(0.3, min(1.1, 0.4))', '0');
+
+// No rounding at intermediate steps
+test_integer_equals('calc(min(0.3, 0.6) * 2)', '1');
+test_integer_equals('calc(max(0.3, 0.6) / 2)', '0');
+</script>

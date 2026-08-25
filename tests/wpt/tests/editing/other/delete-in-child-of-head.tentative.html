@@ -1,0 +1,418 @@
+<!doctype html>
+<html>
+<head>
+<meta chareset="utf-8">
+<meta name="timeout" content="long">
+<meta name="variant" content="?designMode=off&method=backspace">
+<meta name="variant" content="?designMode=off&method=forwarddelete">
+<meta name="variant" content="?designMode=on&method=backspace">
+<meta name="variant" content="?designMode=on&method=forwarddelete">
+<title>Join paragraphs in the head element</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../include/editor-test-utils.js"></script>
+</head>
+<body>
+<iframe srcdoc=""></iframe>
+<script>
+"use strict";
+
+const searchParams = new URLSearchParams(document.location.search);
+const testingBackspace = searchParams.get("method") == "backspace";
+const commandName = testingBackspace ? "delete" : "forwarddelete";
+const testingDesignMode = searchParams.get("designMode") == "on";
+
+const iframe = document.querySelector("iframe");
+const minimumSrcDoc =
+  "<html>" +
+    '<head style="display:block">' +
+      "<title>iframe</title>" +
+      "<script src='/resources/testdriver.js'></" + "script>" +
+      "<script src='/resources/testdriver-vendor.js'></" + "script>" +
+      "<script src='/resources/testdriver-actions.js'></" + "script>" +
+    "</head>" +
+    "<body><br></body>" +
+  "</html>";
+
+async function initializeAndWaitForLoad(iframeElement, srcDocValue) {
+  const waitForLoad =
+    new Promise(
+      resolve => iframeElement.addEventListener("load", resolve, {once: true})
+    );
+  iframeElement.srcdoc = srcDocValue;
+  await waitForLoad;
+  if (testingDesignMode) {
+    iframeElement.contentDocument.designMode = "on";
+  } else {
+    iframeElement.contentDocument.documentElement.setAttribute("contenteditable", "");
+  }
+  iframeElement.contentWindow.focus();
+  iframeElement.contentDocument.execCommand("defaultParagraphSeparator", false, "div");
+}
+
+function removeResourceScriptElements(node) {
+  node.querySelectorAll("script").forEach(
+    element => {
+      if (element.getAttribute("src")?.startsWith("/resources")) {
+        element.remove()
+      }
+    }
+  );
+}
+
+// DO NOT USE multi-line comment in this file, then, you can comment out
+// unnecessary tests when you need to attach the browser with a debugger.
+
+// For backward compatibility, normal block elements in <head> should be
+// joined by deletion.
+promise_test(async () => {
+  await initializeAndWaitForLoad(iframe, minimumSrcDoc);
+  const childDoc = iframe.contentDocument;
+  const utils = new EditorTestUtils(childDoc.documentElement);
+  const div1 = childDoc.createElement("div");
+  div1.innerHTML = "abc";
+  const div2 = childDoc.createElement("div");
+  div2.innerHTML = "def";
+  childDoc.head.appendChild(div1);
+  childDoc.head.appendChild(div2);
+  // Now: <head><title>...</title><div>abc</div><div>def</div></head>...
+  childDoc.getSelection().collapse(
+    testingBackspace ? div2.firstChild : div1.firstChild,
+    testingBackspace ? 0 : div1.firstChild.length
+  );
+  await (testingBackspace ? utils.sendBackspaceKey() : utils.sendDeleteKey());
+  removeResourceScriptElements(childDoc);
+  childDoc.head.removeAttribute("style");
+
+  assert_in_array(
+    childDoc.documentElement.innerHTML,
+    [
+      '<head><title>iframe</title><div>abcdef</div></head><body><br></body>',
+      '<head><title>iframe</title><div>abcdef<br></div></head><body><br></body>',
+    ],
+    "The <div> elements should be merged"
+  );
+  assert_equals(
+    div1.isConnected ^ div2.isConnected,
+    1,
+    "One <div> element should be removed, and the other should stay"
+  );
+}, `${commandName} in <div> elements in <head> should join them`);
+
+// The following void elements shouldn't be deleted for avoiding various
+// affection to the document.
+for (const tag of ["meta", "title", "style", "script", "link", "base", "template"]) {
+  promise_test(async () => {
+    await initializeAndWaitForLoad(iframe, minimumSrcDoc);
+    const childDoc = iframe.contentDocument;
+    const utils = new EditorTestUtils(childDoc.documentElement);
+    const div1 = childDoc.createElement("div");
+    div1.innerHTML = "abc";
+    const div2 = childDoc.createElement("div");
+    div2.innerHTML = "def";
+    const element = childDoc.createElement(tag);
+    childDoc.head.appendChild(div1);
+    childDoc.head.appendChild(element);
+    childDoc.head.appendChild(div2);
+    // Now: <head><title>...</title><div>abc</div><tag/><div>def</div></head>...
+    childDoc.getSelection().collapse(
+      testingBackspace ? div2.firstChild : div1.firstChild,
+      testingBackspace ? 0 : div1.firstChild.length
+    );
+    await (testingBackspace ? utils.sendBackspaceKey() : utils.sendDeleteKey());
+    removeResourceScriptElements(childDoc);
+    childDoc.head.removeAttribute("style");
+
+    if (["title", "style", "script", "template"].includes(tag)) {
+      assert_in_array(
+        childDoc.documentElement.innerHTML,
+        [
+          `<head><title>iframe</title><div>abcdef</div><${tag}></${tag}></head><body><br></body>`,
+          `<head><title>iframe</title><div>abcdef<br></div><${tag}></${tag}></head><body><br></body>`,
+          `<head><title>iframe</title><${tag}></${tag}><div>abcdef</div></head><body><br></body>`,
+          `<head><title>iframe</title><${tag}></${tag}><div>abcdef<br></div></head><body><br></body>`,
+        ],
+        `The <div> elements should be merged without deleting <${tag}>`
+      );
+    } else {
+      assert_in_array(
+        childDoc.documentElement.innerHTML,
+        [
+          `<head><title>iframe</title><div>abcdef</div><${tag}></head><body><br></body>`,
+          `<head><title>iframe</title><div>abcdef<br></div><${tag}></head><body><br></body>`,
+          `<head><title>iframe</title><${tag}><div>abcdef</div></head><body><br></body>`,
+          `<head><title>iframe</title><${tag}><div>abcdef<br></div></head><body><br></body>`,
+        ],
+        `The <div> elements should be merged without deleting <${tag}>`
+      );
+    }
+  }, `${commandName} around invisible <${tag}> should not delete it at joining paragraphs`);
+}
+
+// Visible <script>, <style>, <title> elements shouldn't be joined
+promise_test(async () => {
+  await initializeAndWaitForLoad(iframe, minimumSrcDoc);
+  const childDoc = iframe.contentDocument;
+  const utils = new EditorTestUtils(childDoc.documentElement);
+  const script1 = childDoc.createElement("script");
+  script1.innerHTML = "// abc";
+  script1.setAttribute("style", "display:block");
+  const script2 = childDoc.createElement("script");
+  script2.innerHTML = "// def";
+  script2.setAttribute("style", "display:block");
+  childDoc.head.appendChild(script1);
+  childDoc.head.appendChild(script2);
+  // Now: <head><title>...</title><script>// abc</ script><script>// def</ script></head>...
+  childDoc.getSelection().collapse(
+    testingBackspace ? script2.firstChild : script1.firstChild,
+    testingBackspace ? 0 : script1.firstChild.length
+  );
+  await (testingBackspace ? utils.sendBackspaceKey() : utils.sendDeleteKey());
+  removeResourceScriptElements(childDoc);
+  childDoc.head.removeAttribute("style");
+  script1.removeAttribute("style");
+  script2.removeAttribute("style");
+
+  assert_equals(
+    childDoc.documentElement.innerHTML,
+    "<head><title>iframe</title><script>// abc</" + "script><script>// def</" + "script></head><body><br></body>",
+    "Visible <script> elements shouldn't be merged"
+  );
+}, `${commandName} in visible <script> elements in <head> should not join them`);
+
+promise_test(async () => {
+  await initializeAndWaitForLoad(iframe, minimumSrcDoc);
+  const childDoc = iframe.contentDocument;
+  const utils = new EditorTestUtils(childDoc.documentElement);
+  const style1 = childDoc.createElement("style");
+  style1.innerHTML = "abc";
+  style1.setAttribute("style", "display:block");
+  const style2 = childDoc.createElement("style");
+  style2.innerHTML = "def";
+  style2.setAttribute("style", "display:block");
+  childDoc.head.appendChild(style1);
+  childDoc.head.appendChild(style2);
+  // Now: <head><title>...</title><style>abc</style><style>def</style></head>...
+  childDoc.getSelection().collapse(
+    testingBackspace ? style2.firstChild : style1.firstChild,
+    testingBackspace ? 0 : style1.firstChild.length
+  );
+  await (testingBackspace ? utils.sendBackspaceKey() : utils.sendDeleteKey());
+  removeResourceScriptElements(childDoc);
+  childDoc.head.removeAttribute("style");
+  style1.removeAttribute("style");
+  style2.removeAttribute("style");
+
+  assert_equals(
+    childDoc.documentElement.innerHTML,
+    "<head><title>iframe</title><style>abc</style><style>def</style></head><body><br></body>",
+    "Visible <style> elements shouldn't be merged"
+  );
+}, `${commandName} in visible <style> elements in <head> should not join them`);
+
+promise_test(async () => {
+  await initializeAndWaitForLoad(iframe, minimumSrcDoc);
+  const childDoc = iframe.contentDocument;
+  const utils = new EditorTestUtils(childDoc.documentElement);
+  const title1 = childDoc.createElement("title");
+  title1.innerHTML = "abc";
+  title1.setAttribute("style", "display:block");
+  const title2 = childDoc.createElement("title");
+  title2.innerHTML = "def";
+  title2.setAttribute("style", "display:block");
+  childDoc.head.appendChild(title1);
+  childDoc.head.appendChild(title2);
+  // Now: <head><title>...</title><title>abc</title><title>def</title></head>...
+  childDoc.getSelection().collapse(
+    testingBackspace ? title2.firstChild : title1.firstChild,
+    testingBackspace ? 0 : title1.firstChild.length
+  );
+  await (testingBackspace ? utils.sendBackspaceKey() : utils.sendDeleteKey());
+  removeResourceScriptElements(childDoc);
+  childDoc.head.removeAttribute("style");
+  title1.removeAttribute("style");
+  title2.removeAttribute("style");
+
+  assert_equals(
+    childDoc.documentElement.innerHTML,
+    "<head><title>iframe</title><title>abc</title><title>def</title></head><body><br></body>",
+    "Visible <title> elements shouldn't be merged"
+  );
+}, `${commandName} in visible <title> elements in <head> should not join them`);
+
+// Visible <script>, <style>, <title> shouldn't be joined with following <div>
+promise_test(async () => {
+  await initializeAndWaitForLoad(iframe, minimumSrcDoc);
+  const childDoc = iframe.contentDocument;
+  const utils = new EditorTestUtils(childDoc.documentElement);
+  const script = childDoc.createElement("script");
+  script.innerHTML = "// abc";
+  script.setAttribute("style", "display:block");
+  const div = childDoc.createElement("div");
+  div.innerHTML = "// def";
+  childDoc.head.appendChild(script);
+  childDoc.head.appendChild(div);
+  // Now: <head><title>...</title><script>// abc</ script><div>// def</div></head>...
+  childDoc.getSelection().collapse(
+    testingBackspace ? div.firstChild : script.firstChild,
+    testingBackspace ? 0 : script.firstChild.length
+  );
+  await (testingBackspace ? utils.sendBackspaceKey() : utils.sendDeleteKey());
+  removeResourceScriptElements(childDoc);
+  childDoc.head.removeAttribute("style");
+  script.removeAttribute("style");
+
+  assert_equals(
+    childDoc.documentElement.innerHTML,
+    "<head><title>iframe</title><script>// abc</" + "script><div>// def</div></head><body><br></body>",
+    "Visible <script> and <div> shouldn't be merged"
+  );
+}, `${commandName} at boundary of <script> and <div> in <head> should not join them`);
+
+promise_test(async () => {
+  await initializeAndWaitForLoad(iframe, minimumSrcDoc);
+  const childDoc = iframe.contentDocument;
+  const utils = new EditorTestUtils(childDoc.documentElement);
+  const style = childDoc.createElement("style");
+  style.innerHTML = "abc";
+  style.setAttribute("style", "display:block");
+  const div = childDoc.createElement("div");
+  div.innerHTML = "def";
+  childDoc.head.appendChild(style);
+  childDoc.head.appendChild(div);
+  // Now: <head><title>...</title><style>abc</style><div>def</div></head>...
+  childDoc.getSelection().collapse(
+    testingBackspace ? div.firstChild : style.firstChild,
+    testingBackspace ? 0 : style.firstChild.length
+  );
+  await (testingBackspace ? utils.sendBackspaceKey() : utils.sendDeleteKey());
+  removeResourceScriptElements(childDoc);
+  childDoc.head.removeAttribute("style");
+  style.removeAttribute("style");
+
+  assert_equals(
+    childDoc.documentElement.innerHTML,
+    "<head><title>iframe</title><style>abc</style><div>def</div></head><body><br></body>",
+    "Visible <style> and <div> shouldn't be merged"
+  );
+}, `${commandName} at boundary of <style> and <div> in <head> should not join them`);
+
+promise_test(async () => {
+  await initializeAndWaitForLoad(iframe, minimumSrcDoc);
+  const childDoc = iframe.contentDocument;
+  const utils = new EditorTestUtils(childDoc.documentElement);
+  const title = childDoc.createElement("title");
+  title.innerHTML = "abc";
+  title.setAttribute("title", "display:block");
+  const div = childDoc.createElement("div");
+  div.innerHTML = "def";
+  childDoc.head.appendChild(title);
+  childDoc.head.appendChild(div);
+  // Now: <head><title>...</title><title>abc</title><div>def</div></head>...
+  childDoc.getSelection().collapse(
+    testingBackspace ? div.firstChild : title.firstChild,
+    testingBackspace ? 0 : title.firstChild.length
+  );
+  await (testingBackspace ? utils.sendBackspaceKey() : utils.sendDeleteKey());
+  removeResourceScriptElements(childDoc);
+  childDoc.head.removeAttribute("style");
+  title.removeAttribute("style");
+
+  assert_equals(
+    childDoc.documentElement.innerHTML,
+    "<head><title>iframe</title><title>abc</title><div>def</div></head><body><br></body>",
+    "Visible <title> and <div> shouldn't be merged"
+  );
+}, `${commandName} at boundary of <title> and <div> in <head> should not join them`);
+
+// Visible <script>, <style>, <title> shouldn't be joined with preceding <div>
+promise_test(async () => {
+  await initializeAndWaitForLoad(iframe, minimumSrcDoc);
+  const childDoc = iframe.contentDocument;
+  const utils = new EditorTestUtils(childDoc.documentElement);
+  const div = childDoc.createElement("div");
+  div.innerHTML = "// abc";
+  const script = childDoc.createElement("script");
+  script.innerHTML = "// def";
+  script.setAttribute("style", "display:block");
+  childDoc.head.appendChild(div);
+  childDoc.head.appendChild(script);
+  // Now: <head><title>...</title><div>// abc</div><script>// def</ script></head>...
+  childDoc.getSelection().collapse(
+    testingBackspace ? script.firstChild : div.firstChild,
+    testingBackspace ? 0 : div.firstChild.length
+  );
+  await (testingBackspace ? utils.sendBackspaceKey() : utils.sendDeleteKey());
+  removeResourceScriptElements(childDoc);
+  childDoc.head.removeAttribute("style");
+  script.removeAttribute("style");
+
+  assert_equals(
+    childDoc.documentElement.innerHTML,
+    "<head><title>iframe</title><div>// abc</div><script>// def</" + "script></head><body><br></body>",
+    "<div> and visible <script> shouldn't be merged"
+  );
+}, `${commandName} at boundary of <div> and <script> in <head> should not join them`);
+
+promise_test(async () => {
+  await initializeAndWaitForLoad(iframe, minimumSrcDoc);
+  const childDoc = iframe.contentDocument;
+  const utils = new EditorTestUtils(childDoc.documentElement);
+  const div = childDoc.createElement("div");
+  div.innerHTML = "abc";
+  const style = childDoc.createElement("style");
+  style.innerHTML = "def";
+  style.setAttribute("style", "display:block");
+  childDoc.head.appendChild(div);
+  childDoc.head.appendChild(style);
+  // Now: <head><title>...</title><div>abc</div><style>def</style></head>...
+  childDoc.getSelection().collapse(
+    testingBackspace ? style.firstChild : div.firstChild,
+    testingBackspace ? 0 : div.firstChild.length
+  );
+  await (testingBackspace ? utils.sendBackspaceKey() : utils.sendDeleteKey());
+  removeResourceScriptElements(childDoc);
+  childDoc.head.removeAttribute("style");
+  style.removeAttribute("style");
+
+  assert_equals(
+    childDoc.documentElement.innerHTML,
+    "<head><title>iframe</title><div>abc</div><style>def</style></head><body><br></body>",
+    "<div> and visible <style> shouldn't be merged"
+  );
+}, `${commandName} at boundary of <div> and <style> in <head> should not join them`);
+
+promise_test(async () => {
+  await initializeAndWaitForLoad(iframe, minimumSrcDoc);
+  const childDoc = iframe.contentDocument;
+  const utils = new EditorTestUtils(childDoc.documentElement);
+  const div = childDoc.createElement("div");
+  div.innerHTML = "abc";
+  const title = childDoc.createElement("title");
+  title.innerHTML = "def";
+  title.setAttribute("style", "display:block");
+  childDoc.head.appendChild(div);
+  childDoc.head.appendChild(title);
+  // Now: <head><title>...</title><div>abc</div><title>def</title></head>...
+  childDoc.getSelection().collapse(
+    testingBackspace ? title.firstChild : div.firstChild,
+    testingBackspace ? 0 : div.firstChild.length
+  );
+  await (testingBackspace ? utils.sendBackspaceKey() : utils.sendDeleteKey());
+  removeResourceScriptElements(childDoc);
+  childDoc.head.removeAttribute("style");
+  title.removeAttribute("style");
+
+  assert_equals(
+    childDoc.documentElement.innerHTML,
+    "<head><title>iframe</title><div>abc</div><title>def</title></head><body><br></body>",
+    "<div> and visible <title> shouldn't be merged"
+  );
+}, `${commandName} at boundary of <div> and <title> in <head> should not join them`);
+
+</script>
+</body>
+</html>

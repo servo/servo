@@ -1,0 +1,47 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  body
+  {
+  font: 40px/1 serif;
+  margin: 80px 0px 8px 8px;
+  }
+
+  p#expected-results {font-family: serif;}
+
+  img
+  {
+  left: 0px;
+  position: absolute;
+  top: 42px;
+  }
+
+  div
+  {
+  border-left: lime solid 1px;
+  height: 100%;
+  left: 400px;
+  position: absolute;
+  top: 0px;
+  z-index: -1;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p id="expected-results">A thin green vertical line should appear at exactly 400px<img src="support/ruler-h-200px-400px.png" width="700" height="18" alt="Image download support must be enabled" /></p>
+
+  <div></div>
+
+ </body>
+</html>

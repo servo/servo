@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>View transitions: shared element with overflow (ref)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<style>
+.target {
+  width: 100px;
+  height: 100px;
+  contain: paint;
+  background: blue;
+  overflow-clip-margin: 50px;
+  view-transition-name: target;
+}
+.child {
+  width: 200px;
+  height: 200px;
+  position: relative;
+  top: 50px;
+  left: 50px;
+  background: green;
+}
+body { background: lightpink; }
+</style>
+
+<div class=target>
+  <div class=child>
+  </div>
+</div>

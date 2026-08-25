@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<title>CSS test: shaping with Mongolian Vowel Separator</title>
+
+<!-- Tests for Mongolian shaping involving MVS with context-dependent width -->
+
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2038422">
+
+<span id="target"></span>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+let testFont = new FontFace("MongolianTest", "url(resources/NotoSansMongolian-18xx.woff2)");
+document.fonts.add(testFont);
+
+testFont.load().then(() => {
+  const kFontSize = 100;
+  const kUnitsPerEm = 1000;
+  const target = document.getElementById("target");
+  target.style.font = kFontSize + "px MongolianTest";
+
+  function check(text, expectedWidth) {
+    target.textContent = text;
+    assert_approx_equals(target.getBoundingClientRect().width,
+                         expectedWidth * kFontSize / kUnitsPerEm,
+                         text.length,  // allow 1px per character for hinting etc
+                         "Width of shaped text");
+  }
+
+  const tests = [
+    ["ᠢ", 993, "ᠢ -> AI.isol(993)"],
+    ["ᠠ", 929, "ᠠ -> AA.isol(929)"],
+    ["ᠠᠨ", 786 + 427, "ᠠᠨ -> AA.init(786)|A.fina(427)"],
+    ["ᠠᠨ᠎ᠢ", 786 + 427 + 260 + 548, "ᠠᠨ᠎ᠢ -> AA.init(786)|A.fina(427)|mvs.wide(260)|I.isol(548)"],
+    ["ᠠᠨ᠎ᠠ", 786 + 427 + 55 + 415, "ᠠᠨ᠎ᠠ -> AA.init(786)|N.fina.mvs(427)|mvs.narrow(55)|Aa.isol(415)"],
+  ];
+
+  for (const t of tests) {
+    test(() => check(t[0], t[1]), t[2]);
+  }
+});
+</script>

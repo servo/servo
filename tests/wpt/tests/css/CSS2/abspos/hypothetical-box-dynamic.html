@@ -1,0 +1,37 @@
+<!doctype html>
+<html class="reftest-wait">
+<title>Layout is correctly updated when the hypothetical display of an element changes, even though the final computed display doesn't</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-height" title="10.6.4 Absolutely positioned, non-replaced elements">
+<link rel="match" href="hypothetical-box-dynamic-ref.html">
+<style>
+  div {
+    font: 16px / 1 monospace;
+    text-align: center;
+    margin: 5px;
+    position: relative;
+    min-height: 30px;
+  }
+  span {
+    position: absolute;
+  }
+  .block {
+    display: block;
+  }
+</style>
+<p>Should see two words at the same horizontal position below:</p>
+<div>
+  <span class="block">Foo</span>
+</div>
+<div>
+  <span>Foo</span>
+</div>
+<script>
+onload = function() {
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    document.querySelector(".block").className = "";
+    document.documentElement.className = "";
+  }));
+}
+</script>

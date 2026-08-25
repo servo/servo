@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<title>WebGL context that is created but not used should not cause a crash</title>
+<link rel="author" title="Frédéric Wang" href="mailto:fwang@igalia.com">
+<link rel="author" title="Mukilan Thiyagarajan" href="mailto:mukilan@igalia.com" />
+<link rel="issue" href="https://github.com/servo/servo/issues/41082" />
+
+<p>Test passes if it doesn't crash.</p>
+
+<canvas id="canvas"></canvas>
+<script>
+  canvas.getContext("webgl");
+</script>

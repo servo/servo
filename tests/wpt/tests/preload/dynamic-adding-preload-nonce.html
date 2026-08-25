@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<script nonce="abc" src="/resources/testharness.js"></script>
+<script nonce="abc" src="/resources/testharnessreport.js"></script>
+<script nonce="abc" src="/common/utils.js"></script>
+<script nonce="abc" src="/preload/resources/preload_helper.js"></script>
+<body>
+<script nonce="abc">
+
+promise_test(async (t) => {
+  verifyPreloadAndRTSupport();
+  const id = token();
+  const link = document.createElement("link");
+  link.as = "script";
+  link.rel = "preload";
+  link.href = stashPutUrl(id);
+  link.nonce = "abc";
+
+  const load = new Promise((resolve) => {
+    link.onload = resolve;
+  });
+  link.onerror = t.unreached_func("link.onerror");
+
+  document.body.appendChild(link);
+  await load;
+
+  const arrived = await hasArrivedAtServer(id);
+  assert_true(arrived, "The preload should've arrived at the server.");
+}, "link preload with nonce attribute");
+
+promise_test(async (t) => {
+  verifyPreloadAndRTSupport();
+  const id = token();
+  const link = document.createElement("link");
+  link.as = "script";
+  link.rel = "preload";
+  link.href = stashPutUrl(id);
+
+  const error = new Promise((resolve) => {
+    link.onerror = resolve;
+  });
+  link.onload = t.unreached_func("link.onload");
+
+  document.body.appendChild(link);
+  await error;
+
+  const arrived = await hasArrivedAtServer(id);
+  assert_false(arrived, "The preload should've arrived at the server.");
+}, "link preload without nonce attribute");
+
+</script>
+</body>

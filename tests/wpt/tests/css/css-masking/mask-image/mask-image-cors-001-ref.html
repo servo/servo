@@ -1,0 +1,11 @@
+<!doctype html>
+<style>
+#ref {
+  height: 50px;
+  width: 50px;
+  background: blue;
+}
+</style>
+<!-- The testcase's masked area should render as two 50px-wide squares, one to the lower-right of the other. -->
+<div id="ref"></div>
+<div id="ref" style="position:relative; left: 50px"></div>

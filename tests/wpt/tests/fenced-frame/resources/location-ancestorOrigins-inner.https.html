@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="utils.js"></script>
+<title>Fenced frame content to report the value of location.ancestorOrigins</title>
+
+<body>
+<script>
+async function init() { // Needed in order to use top-level await.
+  // This file is meant to run in a <fencedframe>. It reports back to the
+  // outermost page the value of `location.ancestorOrigins` correct for:
+  //   1.) Top-level fenced frames
+  //   2.) Nested iframes inside a fenced frame
+  //   3.) Nested fenced frames
+  const url = new URL(location.href);
+
+  const [location_ao_key, location_ao_ack_key, nested] = parseKeylist();
+
+  const is_nested_fenced_frame = nested == "nested";
+
+  // Report `location.ancestorOrigins`.
+  writeValueToServer(location_ao_key, Array.from(location.ancestorOrigins).join());
+
+  // If this page is a nested fenced frame, all we need to do is report the
+  // top-level value.
+  if (is_nested_fenced_frame)
+    return;
+
+  // Wait for ACK, so we know that the outer page has read the last value from
+  // the `location_ao_key` stash and we can write to it again.
+  await nextValueFromServer(location_ao_ack_key);
+
+  const nested_url = generateURL("location-ancestorOrigins-inner.https.html",
+      [location_ao_key, location_ao_ack_key, "nested"]);
+
+  // Send `location.ancestorOrigins` from an iframe.
+  const iframe = document.createElement('iframe');
+  iframe.src = nested_url;
+  const load_promise = new Promise((resolve, reject) => {
+    iframe.onload = resolve;
+    iframe.onerror = reject;
+  });
+  document.body.append(iframe);
+
+  // Wait for ACK, so we know that the outer page has read the ancestorOrigins
+  // from the iframe.
+  await nextValueFromServer(location_ao_ack_key);
+
+  attachFencedFrame(nested_url);
+}
+
+init();
+</script>
+</body>

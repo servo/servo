@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<title>:is/:where combined with :visited/:link</title>
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#matches">
+<link rel="match" href="is-where-visited-ref.html">
+<style>
+  :visited, :link {
+    color: black;
+  }
+
+  #parent1 :is(:visited) {
+    color: green;
+  }
+  #parent1 :is(:link):nth-child(even) {
+    color: magenta;
+  }
+
+  :is(#parent2 .a + :visited, #parent2 .e:link) {
+    color: tomato;
+  }
+
+  main :is(a:visited > :where(.a + span + span, .f)) {
+    color: skyblue;
+  }
+
+  main :is(a:link > :where(.a + span + span, .f)) {
+    color: blue;
+  }
+
+  main :is(a:is(:link, :visited) > :where(.b, .e)) {
+    color: maroon;
+  }
+</style>
+<main>
+  <div id=parent1>
+    <a class=a href="">a</a>
+    <a class=b href="">b</a>
+    <a class=c href="">c</a>
+    <a class=d href="unvisited">d</a>
+    <a class=e href="unvisited">e</a>
+    <a class=f href="unvisited">f</a>
+  </div>
+  <div id=parent2>
+    <a class=a href="">a</a>
+    <a class=b href="">b</a>
+    <a class=c href="">c</a>
+    <a class=d href="unvisited">d</a>
+    <a class=e href="unvisited">e</a>
+    <a class=f href="unvisited">f</a>
+  </div>
+  <a id=parent3 href="">
+    <span class=a>a</span>
+    <span class=b>b</span>
+    <span class=c>c</span>
+    <span class=d>d</span>
+    <span class=e>e</span>
+    <span class=f>f</span>
+  </a>
+  <br>
+  <a id=parent4 href="unvisited">
+    <span class=a>a</span>
+    <span class=b>b</span>
+    <span class=c>c</span>
+    <span class=d>d</span>
+    <span class=e>e</span>
+    <span class=f>f</span>
+  </a>
+</main>

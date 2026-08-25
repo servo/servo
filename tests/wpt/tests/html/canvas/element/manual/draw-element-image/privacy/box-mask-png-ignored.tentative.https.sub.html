@@ -1,0 +1,69 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>drawElementImage does not use cross-origin mask images</title>
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src='/html/canvas/resources/canvas-tests.js'></script>
+  <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+  <style>
+  #child {
+    width: 100px;
+    height: 200px;
+    background: green;
+  }
+  #sameOrigin {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    width: 100px;
+    height: 100px;
+    background-color: blue;
+    mask-image: url("https://{{location[host]}}/images/blue-100x50-transparent-100x50.png");
+  }
+  #crossOrigin {
+    position: absolute;
+    left: 0px;
+    top: 100px;
+    width: 100px;
+    height: 100px;
+    background-color: red;
+    mask-image: url("https://{{hosts[alt][www]}}:{{ports[https][0]}}/images/blue-100x50-transparent-100x50.png");
+  }
+  </style>
+</head>
+<body>
+  <canvas id=canvas width="100" height="200" layoutsubtree>
+    <div id=child>
+      <div id=sameOrigin></div>
+      <div id=crossOrigin></div>
+    </div>
+  </canvas>
+
+  <script>
+    window.onload = () => {
+      promise_test(async function(t) {
+        await waitForCanvasPaint(canvas);
+        const context = canvas.getContext("2d");
+        context.drawElementImage(child, 0, 0);
+
+        // Fetch all pixel data once to avoid multiple slow readbacks.
+        const imgData = context.getImageData(0, 0, canvas.width, canvas.height);
+
+        let pixel = _getPixelFromImageData(imgData, 50, 25);
+        assert_array_equals(pixel, [0, 128, 0, 255], "Same origin should draw");
+
+        pixel = _getPixelFromImageData(imgData, 50, 75);
+        assert_array_equals(pixel, [0, 0, 255, 255], "Same origin should draw");
+
+        // Missing mask image renders as black, blocking the red background
+        pixel = _getPixelFromImageData(imgData, 50, 125);
+        assert_array_equals(pixel, [0, 128, 0, 255], "Cross origin should not draw");
+
+        pixel = _getPixelFromImageData(imgData, 50, 175);
+        assert_array_equals(pixel, [0, 128, 0, 255], "Cross origin should not draw");
+      });
+    }
+  </script>
+</body>
+</html>

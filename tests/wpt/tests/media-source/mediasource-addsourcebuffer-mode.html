@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Checks MediaSource.addSourceBuffer() sets SourceBuffer.mode appropriately</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="mediasource-util.js"></script>
+<script>
+    mediasource_test(function(test, mediaElement, mediaSource)
+    {
+        // Note all mime types in mediasource-util.js
+        // set the "generate timestamps flag" to false
+        var mime = MediaSourceUtil.VIDEO_ONLY_TYPE;
+        var sourceBuffer = mediaSource.addSourceBuffer(mime);
+        assert_equals(sourceBuffer.mode, "segments");
+        test.done();
+    }, "addSourceBuffer() sets SourceBuffer.mode to 'segments' when the generate timestamps flag is false");
+
+    mediasource_test(function(test, mediaElement, mediaSource)
+    {
+        var mime = 'audio/aac';
+        if (!MediaSource.isTypeSupported(mime)) {
+            mime = 'audio/mpeg';
+            if (!MediaSource.isTypeSupported(mime)) {
+                assert_unreached("Browser does not support the audio/aac and audio/mpeg MIME types used in this test");
+            }
+        }
+        sourceBuffer = mediaSource.addSourceBuffer(mime);
+        assert_equals(sourceBuffer.mode, "sequence");
+        test.done();
+    }, "addSourceBuffer() sets SourceBuffer.mode to 'sequence' when the generate timestamps flag is true");
+</script>

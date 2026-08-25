@@ -1,0 +1,107 @@
+<!doctype html>
+<html>
+  <head>
+    <title>aria-live=polite</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+    <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/wai-aria/scripts/ATTAcomm.js"></script>
+    <script>
+    setup({explicit_timeout: true, explicit_done: true });
+
+    var theTest = new ATTAcomm(
+    {
+   "steps" : [
+      {
+         "element" : "test",
+         "test" : {
+            "ATK" : [
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "live:polite"
+               ],
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "container-live:polite"
+               ]
+            ],
+            "AXAPI" : [
+               [
+                  "property",
+                  "AXARIALive",
+                  "is",
+                  "polite"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "live:polite"
+               ],
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "container-live:polite"
+               ]
+            ],
+            "UIA" : [
+               [
+                  "property",
+                  "LiveSetting",
+                  "is",
+                  "polite"
+               ]
+            ]
+         },
+         "title" : "step 1",
+         "type" : "test"
+      },
+      {
+         "element" : "child",
+         "test" : {
+            "ATK" : [
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "container-live:polite"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "container-live:polite"
+               ]
+            ]
+         },
+         "title" : "step 2",
+         "type" : "test"
+      }
+   ],
+   "title" : "aria-live=polite"
+}
+
+    ) ;
+    </script>
+  </head>
+  <body>
+  <p>This test examines the ARIA properties for aria-live=polite.</p>
+    <div role='group' id='test' aria-live='polite'>
+    <div role='group' id='child'>content</div>
+  </div>
+
+  <div id="manualMode"></div>
+  <div id="log"></div>
+  <div id="ATTAmessages"></div>
+  </body>
+</html>

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">  <!-- this is a long-running test at least on some platforms ! -->
+<body>
+  <script src=/font-access/resources/font-test-utils.js></script>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/resources/testdriver.js></script>
+  <script src=/resources/testdriver-vendor.js></script>
+  <script src=/permissions-policy/resources/permissions-policy.js></script>
+  <script>
+    'use strict';
+    const same_origin_src = '/permissions-policy/resources/permissions-policy-local-fonts.html';
+    const cross_origin_src = 'https://{{domains[www]}}:{{ports[https][0]}}' +
+      same_origin_src;
+    const header = 'permissions policy header: "local-fonts=()"';
+
+    font_access_test(async t => {
+      await promise_rejects_dom(t, 'SecurityError', self.queryLocalFonts(),
+          'queryLocalFonts() throws security error when disallowed by ' +
+          'permission policy');
+    }, header + ' disallows the top-level document.');
+
+    async_test(t => {
+      test_feature_availability('local-fonts', t, same_origin_src,
+          expect_feature_unavailable_default);
+    }, header + ' disallows same-origin iframes.');
+
+    async_test(t => {
+      test_feature_availability('local-fonts', t, cross_origin_src,
+          expect_feature_unavailable_default);
+    }, header + ' disallows cross-origin iframes.');
+  </script>
+</body>

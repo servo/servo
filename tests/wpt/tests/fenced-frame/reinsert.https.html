@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>Test Content Security Policy</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+
+<script>
+promise_test(async () => {
+  const frame = attachFencedFrame("resources/dummy.html");
+  document.body.removeChild(frame);
+  document.body.append(frame);
+
+}, "Fenced frames should not crash and burn when re-inserting a fenced frame");
+
+promise_test(async () => {
+  const frame = document.createElement("iframe");
+  frame.sandbox = "allow-scripts allow-same-origin";
+  document.body.appendChild(frame);
+  const fenced_frame = frame.contentDocument.createElement("fencedframe");
+  fenced_frame.src = "resources/dummy.html";
+  frame.contentDocument.body.appendChild(fenced_frame);
+  frame.contentDocument.body.removeChild(fenced_frame);
+  frame.contentDocument.body.append(fenced_frame);
+}, "Fenced frames should not crash and burn when re-inserting a fenced frame" +
+   "in a sandboxed iframe which doesn't support child fenced frames.");
+
+</script>
+
+</body>
+</html>

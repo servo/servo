@@ -1,0 +1,157 @@
+<!doctype html>
+<html>
+  <head>
+    <title>AudioParam.automationRate tests</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+
+  <body>
+    <script>
+      // For each node that has an AudioParam, verify that the default
+      // |automationRate| has the expected value and that we can change it or
+      // throw an error if it can't be changed.
+
+      // Any valid sample rate is fine; we don't actually render anything in the
+      // tests.
+      const sampleRate = 8000;
+
+      // Array of tests.  Each test is a dictonary consisting of the name of the
+      // node and an array specifying the AudioParam's of the node.  This array
+      // in turn gives the name of the AudioParam, the default value for the
+      // |automationRate|, and whether it is fixed (isFixed).
+      const tests = [
+        {
+          nodeName: 'AudioBufferSourceNode',
+          audioParams: [
+            {name: 'detune', defaultRate: 'k-rate', isFixed: true},
+            {name: 'playbackRate', defaultRate: 'k-rate', isFixed: true}
+          ]
+        },
+        {
+          nodeName: 'BiquadFilterNode',
+          audioParams: [
+            {name: 'frequency', defaultRate: 'a-rate', isFixed: false},
+            {name: 'detune', defaultRate: 'a-rate', isFixed: false},
+            {name: 'Q', defaultRate: 'a-rate', isFixed: false},
+            {name: 'gain', defaultRate: 'a-rate', isFixed: false},
+          ]
+        },
+        {
+          nodeName: 'ConstantSourceNode',
+          audioParams: [{name: 'offset', defaultRate: 'a-rate', isFixed: false}]
+        },
+        {
+          nodeName: 'DelayNode',
+          audioParams:
+              [{name: 'delayTime', defaultRate: 'a-rate', isFixed: false}]
+        },
+        {
+          nodeName: 'DynamicsCompressorNode',
+          audioParams: [
+            {name: 'threshold', defaultRate: 'k-rate', isFixed: true},
+            {name: 'knee', defaultRate: 'k-rate', isFixed: true},
+            {name: 'ratio', defaultRate: 'k-rate', isFixed: true},
+            {name: 'attack', defaultRate: 'k-rate', isFixed: true},
+            {name: 'release', defaultRate: 'k-rate', isFixed: true}
+          ]
+        },
+        {
+          nodeName: 'GainNode',
+          audioParams: [{name: 'gain', defaultRate: 'a-rate', isFixed: false}]
+        },
+        {
+          nodeName: 'OscillatorNode',
+          audioParams: [
+            {name: 'frequency', defaultRate: 'a-rate', isFixed: false},
+            {name: 'detune', defaultRate: 'a-rate', isFixed: false}
+          ]
+        },
+        {
+          nodeName: 'PannerNode',
+          audioParams: [
+            {name: 'positionX', defaultRate: 'a-rate', isFixed: false},
+            {name: 'positionY', defaultRate: 'a-rate', isFixed: false},
+            {name: 'positionZ', defaultRate: 'a-rate', isFixed: false},
+            {name: 'orientationX', defaultRate: 'a-rate', isFixed: false},
+            {name: 'orientationY', defaultRate: 'a-rate', isFixed: false},
+            {name: 'orientationZ', defaultRate: 'a-rate', isFixed: false},
+          ]
+        },
+        {
+          nodeName: 'StereoPannerNode',
+          audioParams: [{name: 'pan', defaultRate: 'a-rate', isFixed: false}]
+        },
+      ];
+
+       function testAudioParam(context, node, param) {
+        const audioParam = node[param.name];
+        const defaultRate = param.defaultRate;
+
+        // Verify that the default value is correct.
+        assert_equals(
+          audioParam.automationRate,
+          defaultRate,
+          `Default ${context}.${param.name}.automationRate should be
+              "${defaultRate}"`
+        );
+
+        // Try setting the rate to a different rate.  If the |automationRate|
+        // is fixed, expect an error.  Otherwise, expect no error and expect
+        // the value is changed to the new value.
+        const newRate = defaultRate === 'a-rate' ? 'k-rate' : 'a-rate';
+
+        if (param.isFixed) {
+          assert_throws_dom(
+            'InvalidStateError',
+            () => {
+              audioParam.automationRate = newRate;
+            },
+            `Setting ${context}.${param.name}.automationRate to
+                "${newRate}" should throw InvalidStateError`
+          );
+        } else {
+          audioParam.automationRate = newRate;
+          assert_equals(
+            audioParam.automationRate,
+            newRate,
+            `${context}.${param.name}.automationRate should change
+                to "${newRate}"`
+          );
+        }
+      }
+
+      // Tests for each AudioNode type
+      for (const { nodeName, audioParams } of tests) {
+        test(() => {
+          const context = new OfflineAudioContext({ length: sampleRate,
+              sampleRate });
+          const node = new window[nodeName](context);
+          audioParams.forEach(param => testAudioParam(nodeName, node,
+              param));
+        }, `${nodeName}`);
+      }
+
+      // Special case: AudioListener tests
+      test(() => {
+        const context = new OfflineAudioContext({ length: sampleRate,
+            sampleRate });
+        const listenerParams = [
+          { name: 'positionX', defaultRate: 'a-rate', isFixed: false },
+          { name: 'positionY', defaultRate: 'a-rate', isFixed: false },
+          { name: 'positionZ', defaultRate: 'a-rate', isFixed: false },
+          { name: 'forwardX', defaultRate: 'a-rate', isFixed: false },
+          { name: 'forwardY', defaultRate: 'a-rate', isFixed: false },
+          { name: 'forwardZ', defaultRate: 'a-rate', isFixed: false },
+          { name: 'upX', defaultRate: 'a-rate', isFixed: false },
+          { name: 'upY', defaultRate: 'a-rate', isFixed: false },
+          { name: 'upZ', defaultRate: 'a-rate', isFixed: false }
+        ];
+
+        listenerParams.forEach(param => {
+          testAudioParam('AudioListener', context.listener, param);
+        });
+      }, 'AudioListener');
+    </script>
+  </body>
+</html>

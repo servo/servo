@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning Test: container-type:anchored contains style</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-2/#anchored-container-queries">
+<link rel="match" href="anchored-fallback-style-containment-ref.html">
+<style>
+  #generate::before { content: counter(c); }
+</style>
+<p>You should see the number 3 below:</p>
+<div style="counter-reset: c 1"></div>
+<div style="container-type: anchored; counter-increment: c">
+  <div style="counter-increment: c"></div>
+</div>
+<div id="generate" style="counter-increment: c"></div>

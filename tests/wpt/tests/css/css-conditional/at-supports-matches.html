@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Conditional Rules Test: CSSSupportsRule.matches</title>
+<link rel="author" title="Eyvind Lillesveen" href="mailto:eyvind.lillesveen@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-conditional-3/#the-csssupportsrule-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<style id=sheet1>
+    @supports (color: green) { div {} }
+    @supports (invalid: value) { div {} }
+</style>
+<script>
+
+    test(() => {
+        assert_true(sheet1.sheet.cssRules[0].matches);
+    }, "Matching @supports rule");
+
+    test(() => {
+        assert_false(sheet1.sheet.cssRules[1].matches);
+    }, "Non matching @supports rule");
+
+</script>
+</body>
+</html>

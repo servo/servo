@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset=windows-1252>
+<title>iframe src URL is parsed using document encoding</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+async_test(t => {
+  let frame = document.createElement('iframe');
+  frame.src = "resources/frame-encoding.html?\u00DF";
+  document.body.appendChild(frame);
+  frame.onload = t.step_func(() => {
+    assert_equals(frame.contentWindow.location.search, "?%DF");
+    assert_equals(frame.contentWindow.test.textContent, "?%DF");
+    assert_equals(frame.src, new URL("resources/frame-encoding.html?%DF", location.href).href);
+    t.done();
+  });
+});
+</script>

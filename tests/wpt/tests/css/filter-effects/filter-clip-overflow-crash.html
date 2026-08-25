@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<link rel="help" href="https://github.com/servo/servo/issues/36870">
+<style>
+  #outer {
+    overflow-x: clip;
+  }
+  #inner {
+    display: inline-block;
+    rotate: 672 1 4096 180deg;
+    overflow-x: clip;
+    filter: contrast(0%);
+  }
+</style>
+<div id="outer">
+  <div id="inner">
+    AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+  </div>
+</div>

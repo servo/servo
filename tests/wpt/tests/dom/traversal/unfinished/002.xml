@@ -1,0 +1,54 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>DOM Traversal: NodeIterator: Basics Backwards</title>
+  <script type="text/javascript"> <![CDATA[
+    function doTest() {
+      var iterator = document.createNodeIterator(document, NodeFilter.SHOW_ALL, null, false);
+      var expected = new Array(9, // document
+                               1, // html
+                               3, 1, // head
+                               3, 1, 3, // title
+                               3, 1, 3, 4, // script and CDATA block
+                               3, 3, 1, // body
+                               3, 1, 3, // pre
+                               3, // </body>
+                               3, 8, // <!-- -->
+                               3, 7, // <? ?>,
+                               3, 4, 3); // CDATA
+      var found = new Array();
+
+      // walk document
+      var node;
+      while (node = iterator.nextNode());
+      while (node = iterator.previousNode())
+        found.unshift(node.nodeType);
+
+      // check results
+      var errors = 0;
+      var s = '';
+      var length = (found.length > expected.length) ? found.length : expected.length;
+      s += 'EXPECTED  FOUND\n';
+      for (var i = 0; i < length; i += 1) {
+        s += '  ' + (expected[i] ? expected[i] : '-') +
+      '         ' + (found[i] ? found[i] : '-');
+        if (found[i] != expected[i]) {
+          s += '      MISMATCH';
+          errors += 1;
+        }
+        s += '\n';
+      }
+      var p = document.getElementsByTagNameNS('http://www.w3.org/1999/xhtml', 'pre')[0];
+      if (errors)
+        p.firstChild.data = 'FAIL: ' + errors + ' errors found:\n\n' + s;
+      else
+        p.firstChild.data = 'PASS';
+    }
+  ]]></script>
+ </head>
+ <body onload="doTest()">
+  <pre id="result">FAIL: Script failed to run.</pre>
+ </body>
+ <!-- some more nodes to test this: -->
+ <?test node?>
+ <![CDATA[]]>
+</html>

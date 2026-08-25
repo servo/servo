@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+select, ::picker(select) {
+  appearance: base;
+}
+</style>
+
+<select>
+  <option>one</option>
+  <option>two</option>
+</select>
+
+<script>
+(async () => {
+  await test_driver.bless();
+  document.querySelector('select').showPicker();
+  document.documentElement.classList.remove('reftest-wait');
+})();
+</script>

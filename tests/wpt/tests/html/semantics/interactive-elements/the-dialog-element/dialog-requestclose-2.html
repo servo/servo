@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel=help href="https://html.spec.whatwg.org/multipage/interactive-elements.html#dom-dialog-request-close">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<link rel="author" href="mailto:lwarlow@igalia.com" />
+
+<script>
+  test(() => {
+      const dialog = document.createElement("dialog");
+      dialog.setAttribute("open", "");
+      dialog.requestClose();
+      assert_true(dialog.open);
+  }, "requestClose() should not close the dialog when disconnected");
+</script>

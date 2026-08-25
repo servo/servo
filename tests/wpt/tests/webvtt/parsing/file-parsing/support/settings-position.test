@@ -1,0 +1,102 @@
+settings, position
+<link rel="help" href="https://w3c.github.io/webvtt/#collect-webvtt-cue-timings-and-settings">
+
+assert_equals(cues.length, 22);
+
+var valid_positions = [
+    [1, 'auto'],
+    [100, 'auto'],
+    [1, 'auto'],
+    [1.5, 'auto'],
+    [1, 'line-left'],
+    [1, 'center'],
+    [1, 'line-right'],
+    [1, 'auto'],
+];
+valid_positions.forEach(function(pair, index) {
+    var position = pair[0];
+    var positionAlign = pair[1];
+
+    assert_equals(cues[index].position, position, 'Failed with cue ' + index);
+    assert_equals(cues[index].positionAlign, positionAlign, 'Failed with cue ' + index);
+});
+
+for (var i = 0; i < 14; i++) {
+    var index = valid_positions.length + i;
+
+    assert_equals(cues[index].position, 'auto', 'Failed with cue ' + index);
+    assert_equals(cues[index].positionAlign, 'auto', 'Failed with cue ' + index);
+}
+
+===
+WEBVTT
+
+NOTE valid
+
+00:00:00.000 --> 00:00:01.000 position:1%
+text0
+
+00:00:00.000 --> 00:00:01.000 position:100%
+text1
+
+00:00:00.000 --> 00:00:01.000 position:1% position:x
+text2
+
+00:00:00.000 --> 00:00:01.000 position:1.5%
+text3
+
+00:00:00.000 --> 00:00:01.000 position:1%,line-left
+text4
+
+00:00:00.000 --> 00:00:01.000 position:1%,center
+text5
+
+00:00:00.000 --> 00:00:01.000 position:1%,line-right
+text6
+
+00:00:00.000 --> 00:00:01.000 position:1% ,center
+text7
+
+NOTE invalid
+
+00:00:00.000 --> 00:00:01.000 position:1%,middle
+invalid8
+
+00:00:00.000 --> 00:00:01.000 position:1%, center
+invalid9
+
+00:00:00.000 --> 00:00:01.000 position:-1%
+invalid10
+
+00:00:00.000 --> 00:00:01.000 position:1
+invalid11
+
+00:00:00.000 --> 00:00:01.000 position:1x
+invalid12
+
+00:00:00.000 --> 00:00:01.000 position:1%x
+invalid13
+
+00:00:00.000 --> 00:00:01.000 position:
+invalid14
+
+00:00:00.000 --> 00:00:01.000 position: 1%
+invalid15
+
+00:00:00.000 --> 00:00:01.000 position:101%
+invalid16
+
+00:00:00.000 --> 00:00:01.000 position:65536%
+invalid17
+
+00:00:00.000 --> 00:00:01.000 position:4294967296%
+invalid18
+
+00:00:00.000 --> 00:00:01.000 position:101%,line-left
+invalid19
+
+00:00:00.000 --> 00:00:01.000 position:101%,center
+invalid20
+
+00:00:00.000 --> 00:00:01.000 position:101%,line-right
+invalid21

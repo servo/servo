@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Images Module Level 4: parsing image(&lt;color&gt;)</title>
+<link rel="author" title="Jason Leo" href="mailto:cgqaq@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#image-notation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<div id="target"></div>
+<script>
+test_valid_value("background-image", "image(red)");
+test_valid_value("background-image", "image(transparent)");
+test_valid_value("background-image", "image(rgb(0 128 255))",
+  "image(rgb(0, 128, 255))");
+test_valid_value("background-image", "image(currentcolor)");
+
+// <color> argument may be any color value.
+test_valid_value("background-image", "image(light-dark(black, white))");
+test_valid_value("background-image", "image(color-mix(in srgb, red, blue))");
+test_valid_value("background-image", "image(rgb(from red r g b))");
+
+// image(<color>) layered with other backgrounds.
+test_valid_value("background-image",
+  "image(rgba(0, 0, 255, 0.5)), linear-gradient(red, blue)");
+
+// image(<color>) can be used wherever an <image> is expected, including as
+// an argument to other image-producing functions like cross-fade().
+test_valid_value("background-image", "cross-fade(image(green), red)");
+
+// Works in properties that accept <image>.
+test_valid_value("border-image-source", "image(red)");
+test_valid_value("mask-image", "image(red)");
+test_valid_value("shape-outside", "image(red)");
+test_valid_value("list-style-image", "image(red)");
+</script>

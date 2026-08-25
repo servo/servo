@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<title>Align-items only applies to OOF elements of block elements when statically positioned if it would apply if not OOF.</title>
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#valdef-align-self-auto">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#valdef-justify-self-auto">
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#abspos-alignment">
+<link rel="help" href="https://issues.chromium.org/issues/409806799">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/12121">
+<link rel="match" href="align-items-static-position-001-ref.tentative.html">
+<style>
+.block {
+  display: block;
+  width: 75%;
+  height: 75%;
+  border: 5px dotted blue;
+  align-items: center;
+  justify-items: center;
+}
+
+.container {
+  border: 1px solid;
+  position: relative;
+  width: 100px;
+  height: 100px;
+  display: inline-block;
+  margin-left: 50px;
+  margin-bottom: 50px;
+}
+
+.abs {
+  width: 50px;
+  height: 50px;
+  position: absolute;
+  background: purple;
+}
+</style>
+<div class="container"><div class="block">
+  <div class="abs"></div>
+</div></div>

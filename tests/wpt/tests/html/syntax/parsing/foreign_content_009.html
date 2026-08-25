@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>HTML 5 Foreign Content SVG in HTML </title>
+        <meta description="Test to verify SVG Self Closing tags parses properly" />
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+
+        <script type="text/javascript">
+            function RunTest()
+            {
+                try
+                {
+                    var parentNode = document.getElementById("rect1");
+                    if(parentNode.childNodes[1].localName=="circle")
+                    {
+                        document.getElementById("testresult").innerHTML = "PASS";
+                    }
+                    else
+                    {
+                        document.getElementById("testresult").innerHTML = "FAIL"
+                    }
+                }
+                catch(ex)
+                {
+                    document.getElementById("testresult").innerHTML = "FAIL";
+                }
+            }
+        </script>
+    </head>
+
+    <body onload="RunTest()">
+        <div class="testdata">
+            <p id="instructions"> Test passes if the word "PASS" appears below  </p>
+            <p> Test Result : </p>
+            <p id="testresult"> RUNNING </div>
+        </div>
+
+        <svg width="100px" height="100px">
+            <rect id="rect1" >
+                <circle> </circle>
+            </rect>
+        </svg>
+
+    </body>
+
+</html>

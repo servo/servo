@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/webxr_util.js"></script>
+<script src="../resources/webxr_test_constants.js"></script>
+
+<script>
+let testName = "XRPlane.lastChangedTime does not update if plane does not change";
+
+xr_session_promise_test(
+  testName,
+  (session, controller, t) => {
+    controller.setWorld(DEFAULT_WORLD_WITH_FLOOR);
+
+    let firstFrameTime = null;
+
+    return new Promise((resolve) => {
+      session.requestAnimationFrame((time, frame) => {
+        t.step(() => {
+          let planes = frame.detectedPlanes;
+          assert_equals(planes.size, 1);
+          // XRPlaneSet is set-like, we use forEach to get the first/only plane.
+          planes.forEach(p => { firstFrameTime = p.lastChangedTime; });
+        });
+
+        // Request next frame without updating the world.
+        session.requestAnimationFrame((time, frame) => {
+          t.step(() => {
+            let secondFramePlanes = frame.detectedPlanes;
+            assert_equals(secondFramePlanes.size, 1);
+            let secondFrameTime = null;
+          // XRPlaneSet is set-like, we use forEach to get the first/only plane.
+            secondFramePlanes.forEach(p => { secondFrameTime = p.lastChangedTime; });
+            assert_equals(secondFrameTime, firstFrameTime, "lastChangedTime should not change");
+          });
+
+          // Now update world and verify it changes.
+          controller.setWorld(DEFAULT_WORLD_WITH_FLOOR);
+          session.requestAnimationFrame((time, frame) => {
+            t.step(() => {
+              let thirdFramePlanes = frame.detectedPlanes;
+              assert_equals(thirdFramePlanes.size, 1);
+              let thirdFrameTime = null;
+          // XRPlaneSet is set-like, we use forEach to get the first/only plane.
+              thirdFramePlanes.forEach(p => { thirdFrameTime = p.lastChangedTime; });
+              assert_greater_than(thirdFrameTime, firstFrameTime, "lastChangedTime should update after setWorld");
+            });
+
+            resolve();
+          });
+        });
+      });
+    });
+  },
+  IMMERSIVE_AR_DEVICE,
+  "immersive-ar",
+  { requiredFeatures: ["plane-detection"] }
+);
+
+</script>

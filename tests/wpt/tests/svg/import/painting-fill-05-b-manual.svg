@@ -1,0 +1,75 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="DJ" author="CN" status="accepted"
+    version="$Revision: 1.5 $" testname="$RCSfile: painting-fill-05-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/painting.html#FillProperties">
+        <p>
+          Test using "fill-opacity" values for "rect" element.
+          This test verifies that opacity is clamped to the
+          specified range.
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The six rect elements on the left have varying 'fill-opacity' values
+        within the valid range of 0 to 1.  The six elements on the right have
+        'fill-opacity' values outside the 0 to 1 range, and must be clamped.
+        The top three rect elements on the right must have their 'fill-opacity'
+        clamped to 0, while the bottom three rect elements on the right must
+        be clamped to 1.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: painting-fill-05-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+
+    <!-- Use multiple values for opacity -->
+    <rect x="20" y="20" width="60" height="60" fill-opacity="0.0" fill="#0000FF" stroke="black"/>
+    <rect x="50" y="50" width="60" height="60" fill-opacity="0.2" fill="#0000FF" stroke="black"/>
+    <rect x="80" y="80" width="60" height="60" fill-opacity="0.4" fill="#0000FF" stroke="black"/>
+    <rect x="110" y="110" width="60" height="60" fill-opacity="0.6" fill="#0000FF" stroke="black"/>
+    <rect x="140" y="140" width="60" height="60" fill-opacity="0.8" fill="#0000FF" stroke="black"/>
+    <rect x="170" y="170" width="60" height="60" fill-opacity="1.0" fill="#0000FF" stroke="black"/>
+    <!-- Values outside the range 0.0 - 1.0 should be clamped to this range -->
+    <rect x="200" y="20" width="60" height="60" fill-opacity="-100.0" fill="#0000FF" stroke="black"/>
+    <rect x="230" y="50" width="60" height="60" fill-opacity="-10.0" fill="#0000FF" stroke="black"/>
+    <rect x="260" y="80" width="60" height="60" fill-opacity="-0.1" fill="#0000FF" stroke="black"/>
+    <rect x="290" y="110" width="60" height="60" fill-opacity="1.1" fill="#0000FF" stroke="black"/>
+    <rect x="320" y="140" width="60" height="60" fill-opacity="10.0" fill="#0000FF" stroke="black"/>
+    <rect x="350" y="170" width="60" height="60" fill-opacity="100.0" fill="#0000FF" stroke="black"/>
+
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.5 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Masking: clip-path: clip path view-box</title>
+    <link rel="author" title="CJ Ku" href="mailto:cku@mozilla.com">
+    <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+    <link rel="help" href="https://www.w3.org/TR/css-masking-1/#the-clip-path">
+    <link rel="match" href="clip-path-geometryBox-1-ref.html">
+    <meta name="assert" content="Test checks whether clip-path view-box works correctly or not.">
+    <meta name="fuzzy" content="maxDifference=0-62; totalPixels=0-420">
+  </head>
+  <body>
+    <svg width="200" height="200" style="position: absolute; left: 10px; top: 10px;">
+      <rect x="20" y="20" width="135" height="135" fill="blue"
+            clip-path="circle(25% at calc(50% - 10px) calc(50% - 10px)) view-box"/>
+    </svg>
+  </body>
+</html>

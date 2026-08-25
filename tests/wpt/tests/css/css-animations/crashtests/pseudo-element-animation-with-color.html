@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Pseudo element with animation using color should not crash</title>
+<link rel="help" href="https://crbug.com/40568366">
+<style>
+@keyframes A { 0% { color: red; } }
+a:before, b:before { animation-name: A; }
+</style>
+<a href="#"><b></b></a>

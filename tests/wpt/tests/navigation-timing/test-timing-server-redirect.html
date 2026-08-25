@@ -1,0 +1,49 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>window.performance.timing.redirect attributes on a same-origin server redirected navigation</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/navigation-timing/#sec-navigation-timing-interface"/>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/common/performance-timeline-utils.js"></script>
+        <script src="resources/webperftestharness.js"></script>
+
+        <script>
+            function onload_test()
+            {
+                test_namespace('navigation');
+                if (performanceNamespace === undefined)
+                {
+                    // avoid script errors
+                    done();
+                    return;
+                }
+
+                performanceNamespace = document.getElementById("frameContext").contentWindow.performance;
+                test_equals(performanceNamespace.navigation.type,
+                        performanceNamespace.navigation.TYPE_NAVIGATE,
+                        'timing.navigation.type is TYPE_NAVIGATE');
+                test_equals(performanceNamespace.navigation.redirectCount, 1, 'navigation.redirectCount == 1 on an server redirected navigation');
+
+                test_timing_greater_than('navigationStart', 0);
+
+                test_timing_order('redirectStart', 'navigationStart');
+                test_timing_order('redirectEnd', 'redirectStart');
+                test_timing_order('fetchStart', 'redirectEnd');
+                test_timing_order('requestStart', 'fetchStart');
+            }
+        </script>
+
+    </head>
+    <body>
+        <h1>Description</h1>
+        <p>This test validates the values of the window.performance.redirectCount and the
+           window.performance.timing.redirectStart/End times for a same-origin server side redirect navigation.</p>
+
+        <div id="log"></div>
+        <br />
+        <iframe id="frameContext" onload="onload_test();" src="/common/redirect.py?location=/navigation-timing/resources/blank_page_green.html" style="width: 250px; height: 250px;"></iframe>
+    </body>
+</html>

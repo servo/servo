@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>css-flexbox: Tests that we correctly align an image with auto margins and max-height</title>
+<link rel="author" title="Google LLC" href="https://www.google.com/">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#auto-margins" title="8.1. Aligning with 'auto' margins">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<!-- we position this div on top of the flexbox to cover up the red where
+     we expect it to be; letting the red in the wrong places shine through -->
+<div style="position: absolute; height: 100px; width: 100px; z-index: 1;">
+  <div style="height: 25px; background: green;"></div>
+  <div style="height: 50px; background: transparent;"></div>
+  <div style="height: 25px; background: green;"></div>
+</div>
+<div style="width: 100px; height: 100px; background: red; display: flex;">
+  <img src="support/300x150-green.png" style="margin: auto; max-width: 100%; max-height: 100px;">
+</div>

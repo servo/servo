@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="help" href="https://drafts.csswg.org/css-env-1/#env-function">
+    <link rel="help" href="https://drafts.csswg.org/css-values-5/#component-function-commas">
+    <title>What an env() function substitutes for its fallback</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style>
+      /* env() = env( <custom-ident> <integer [0,∞]>*, <declaration-value>? )
+         A fallback is obtained by parsing with that argument grammar, and a
+         free-form production such as <declaration-value> starts after any
+         optional whitespace. The whitespace following the comma is therefore
+         not part of the fallback that gets substituted. */
+      #whitespace {
+        --no-space: env(unknown-env-name,10px);
+        --one-space: env(unknown-env-name, 10px);
+        --lots-of-space: env(unknown-env-name,
+
+                             10px);
+        --comment: env(unknown-env-name, /* comment */ 10px);
+        --nested: env(unknown-env-name, env(other-unknown-env-name, 10px));
+        --indirect: var(--one-space);
+        --indexed: env(viewport-segment-width 99 99, 10px);
+      }
+      #empty {
+        /* A bare comma passes an empty fallback, which is distinct from
+           passing no fallback at all (which is invalid at computed-value
+           time). The brackets keep the two apart, as both an empty value and
+           an invalid one serialize as the empty string. */
+        --bare-comma: [env(unknown-env-name,)];
+        --no-comma: [env(unknown-env-name)];
+      }
+      #trailing {
+        /* Whatever an implementation does with the whitespace and comments
+           *trailing* a fallback, env() and var() are the same kind of
+           substitution and have to do it alike. This deliberately compares the
+           two against each other rather than against a literal, so it stays
+           silent on which normalization is correct. */
+        --var-space: var(--undefined, 10px   );
+        --env-space: env(unknown-env-name, 10px   );
+        --var-comment: var(--undefined, 10px /* comment */);
+        --env-comment: env(unknown-env-name, 10px /* comment */);
+        --var-followed-by: var(--undefined, 10px   ) 5px;
+        --env-followed-by: env(unknown-env-name, 10px   ) 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="whitespace"></div>
+    <div id="empty"></div>
+    <div id="trailing"></div>
+    <script>
+      const whitespace_style = getComputedStyle(whitespace);
+      for (const name of ['--no-space', '--one-space', '--lots-of-space',
+                          '--comment', '--nested', '--indirect',
+                          '--indexed']) {
+        test(() => {
+          assert_equals(whitespace_style.getPropertyValue(name), '10px');
+        }, `${name} substitutes the fallback without the preceding whitespace`);
+      }
+
+      test(() => {
+        const style = getComputedStyle(document.getElementById('empty'));
+        assert_equals(style.getPropertyValue('--bare-comma'), '[]');
+        assert_equals(style.getPropertyValue('--no-comma'), '');
+      }, 'A bare comma substitutes an empty fallback');
+
+      const trailing_style = getComputedStyle(trailing);
+      for (const [name, description] of [
+             ['space', 'a fallback with trailing whitespace'],
+             ['comment', 'a fallback with a trailing comment'],
+             ['followed-by', 'a fallback followed by more content']]) {
+        test(() => {
+          assert_equals(trailing_style.getPropertyValue(`--env-${name}`),
+                        trailing_style.getPropertyValue(`--var-${name}`));
+        }, `env() and var() treat ${description} alike`);
+      }
+    </script>
+  </body>
+</html>

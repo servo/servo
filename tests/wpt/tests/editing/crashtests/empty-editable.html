@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/1171845">
+<span id="target"></span>
+<div contenteditable="true">
+  <span></span>
+</div>
+<script>
+document.body.offsetTop;
+document.getElementById('target').style.paddingRight = '1em';
+document.getElementById('target').style.fontVariantNumeric = 'ordinal';
+</script>

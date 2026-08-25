@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:navoda.munasinha@codimite.com">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#the-border-color">
+<link rel="help" href="https://crbug.com/40745409">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!-- border-color is not an inherited property. A border-color set on the
+     <table> must not cascade onto the borders of interior cells created by
+     the `border`/`rules` attributes; those should resolve to currentColor.
+     The legacy `bordercolor` attribute, however, still propagates. -->
+
+<table id="css-border" border="1"
+       style="border-collapse: collapse; border-color: red;">
+  <tbody><tr><td id="css-cell" style="color: blue;">cell</td></tr></tbody>
+</table>
+
+<table id="css-rules" rules="all" style="border-color: red;">
+  <tbody><tr><td id="rules-cell" style="color: blue;">cell</td></tr></tbody>
+</table>
+
+<table id="attr-table" border="1" bordercolor="red"
+       style="border-collapse: collapse;">
+  <tbody><tr><td id="attr-cell" style="color: blue;">cell</td></tr></tbody>
+</table>
+
+<script>
+const BLUE = 'rgb(0, 0, 255)';
+const RED = 'rgb(255, 0, 0)';
+
+function cellBorderColor(id) {
+  return window.getComputedStyle(document.getElementById(id)).borderTopColor;
+}
+
+test(() => {
+  assert_equals(cellBorderColor('css-cell'), BLUE);
+}, 'A <table border> cell border does not inherit the table\'s CSS ' +
+   'border-color; it resolves to the cell\'s currentColor');
+
+test(() => {
+  assert_equals(cellBorderColor('rules-cell'), BLUE);
+}, 'A <table rules=all> cell border does not inherit the table\'s CSS ' +
+   'border-color; it resolves to the cell\'s currentColor');
+
+test(() => {
+  assert_equals(cellBorderColor('attr-cell'), RED);
+}, 'The legacy bordercolor attribute still propagates to interior cell ' +
+   'borders');
+</script>

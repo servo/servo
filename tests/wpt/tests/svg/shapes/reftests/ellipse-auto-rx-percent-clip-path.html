@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<title>SVG ellipse with auto rx/ry and percentage on the other axis inside &lt;clipPath&gt; resolves per SVG 2</title>
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/shapes.html#EllipseElement">
+<link rel="match" href="ellipse-auto-rx-percent-clip-path-ref.html">
+<meta name="assert" content="An ellipse with auto on one of rx/ry and a percentage on the other must resolve the auto axis to the percentage's pixel value computed against the percentage's own axis (Width for rx, Height for ry), per SVG 2 §10.4. The result must clip identically to the explicit pixel value.">
+<svg width="400" height="100">
+  <defs>
+    <!-- 40% of height (100) = 40, then auto rx = 40. -->
+    <clipPath id="auto-rx-pct"><ellipse cx="100" cy="50" rx="auto" ry="40%"/></clipPath>
+    <!-- 10% of width (400) = 40, then auto ry = 40. -->
+    <clipPath id="auto-ry-pct"><ellipse cx="300" cy="50" rx="10%"  ry="auto"/></clipPath>
+  </defs>
+  <rect x="0"   y="0" width="200" height="100" fill="green" clip-path="url(#auto-rx-pct)"/>
+  <rect x="200" y="0" width="200" height="100" fill="green" clip-path="url(#auto-ry-pct)"/>
+</svg>
+</html>

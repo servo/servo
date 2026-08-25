@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes Test: align-self start and end on dense-packed item in column direction</title>
+  <link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3/#alignment">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3/#grid-lanes-dense-packing">
+  <link rel="match" href="column-dense-packing-align-self-001-ref.html">
+  <style>
+    html, body {
+      color: black; background-color: white; font: 16px/1 monospace; padding: 0; margin: 0;
+    }
+
+    .grid-lanes {
+      display: grid-lanes;
+      grid-template-columns: repeat(2, 60px);
+      grid-lanes-pack: dense;
+      padding: 2px;
+      margin: 5px;
+    }
+
+    item {
+      display: block;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+<div class="grid-lanes">
+  <item style="height: 80px; background: salmon;">1</item>
+  <item style="height: 30px; background: salmon; grid-column: span 2;">2</item>
+  <item style="height: 40px; background: green; align-self: start;">3</item>
+</div>
+
+<div class="grid-lanes">
+  <item style="height: 80px; background: salmon;">1</item>
+  <item style="height: 30px; background: salmon; grid-column: span 2;">2</item>
+  <item style="height: 40px; background: green; align-self: end;">3</item>
+</div>
+
+</body>
+</html>

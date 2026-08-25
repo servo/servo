@@ -1,0 +1,25 @@
+<!doctype html>
+<title>div with content style's width and height attributes are not used to infer aspect-ratio</title>
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=201641#c22">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  video {
+    width: 100%;
+    max-width: 100px;
+    height: auto;
+  }
+</style>
+<body>
+<script>
+// Create and append a div with content style and immediately check the height.
+let t = test(function() {
+  var div = document.createElement("div");
+  div.setAttribute("style", "content: url('/images/blue.png')");
+  div.setAttribute("width", "250");
+  div.setAttribute("height", "100");
+  document.body.appendChild(div);
+  assert_equals(getComputedStyle(div).height, "0px");
+}, "div with content style's width and height attributes are not used to infer aspect-ratio");
+
+</script>

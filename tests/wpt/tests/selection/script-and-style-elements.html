@@ -1,0 +1,37 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Selection: STYLE and SCRIPT elements should be included in Selection.toString() if they are display!=none</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+window.onload = function() {
+  test(function() {
+    var selection = window.getSelection();
+    var p1 = document.getElementById("p1");
+
+    var range = document.createRange();
+    test_block_script();
+    range.selectNode(p1);
+    selection.addRange(range);
+    assert_equals(selection.toString().replace(/\r\n/g, "\n"), '\nstyle { display:block; color: green; } script { color: blue; }\nfunction test_block_script() { let pre = document.createElement("pre"); pre.append(document.createTextNode("PASS")); document.getElementById("p1").append(pre); }\n\nPASS');
+  });
+};
+</script>
+<div id=log></div>
+<div id="p1">
+<style style="display:none">#not_included{}</style>
+<style>
+  style { display:block; color: green; }
+  script { color: blue; }
+</style>
+<script>function not_included(){}</script>
+<script style="display:block">
+function test_block_script() {
+  let pre = document.createElement("pre");
+  pre.append(document.createTextNode("PASS"));
+  document.getElementById("p1").append(pre);
+}
+</script>
+</div>
+</body>
+</html>

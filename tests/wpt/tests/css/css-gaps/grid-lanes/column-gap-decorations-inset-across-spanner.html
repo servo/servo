@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: zero cap and 6px junction insets distinguish grid-axis rule endpoints around spanners in grid-lanes</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#inset">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/">
+<link rel="match" href="column-gap-decorations-inset-across-spanner-ref.html">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-columns: repeat(2, 80px);
+    gap: 20px;
+    background: #cdd5e0;
+    width: max-content;
+    column-rule: 4px solid blue;
+    row-rule: 4px solid gold;
+    column-rule-inset-cap-start: 0;
+    column-rule-inset-cap-end: 0;
+    column-rule-inset-junction-start: 6px;
+    column-rule-inset-junction-end: 6px;
+  }
+  .lanes > div { background: #5b8def; }
+  .lanes > div.span { grid-column: 1 / -1; height: 40px; background: #8a6df0; }
+  .a { grid-column: 1; height: 60px; }
+  .b { grid-column: 2; height: 60px; }
+  .c { grid-column: 1; height: 60px; }
+  .d { grid-column: 2; height: 60px; }
+</style>
+<div class="lanes">
+  <div class="span"></div>
+  <div class="a"></div>
+  <div class="b"></div>
+  <div class="span"></div>
+  <div class="c"></div>
+  <div class="d"></div>
+</div>

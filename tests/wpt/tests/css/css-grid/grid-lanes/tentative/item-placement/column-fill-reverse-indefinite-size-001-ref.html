@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    .container {
+      display: grid;
+      grid-template-columns: repeat(3, 50px);
+      column-gap: 10px;
+      width: min-content;
+      border: solid blue;
+    }
+    .column {
+      display: flex;
+      flex-direction: column-reverse;
+      row-gap: 10px;
+    }
+  </style>
+</head>
+<body>
+  <p>Test that grid-lanes items with fill-reverse placement are correctly positioned
+     within an indefinite-size container.</p>
+  <div class="container">
+    <div class="column">
+      <div style="background: lavender; height: 20px;">1</div>
+      <div style="background: lightpink; height: 25px; width: 110px; margin-bottom: 10px;">4</div>
+      <div style="background: lightgreen; height: 20px;">7</div>
+      <div style="background: coral; height: 30px; margin-top: -10px;">9</div>
+    </div>
+    <div class="column">
+      <div style="background: lightskyblue; height: 30px;">2</div>
+      <div style="background: lightpink; height: 40px; margin-bottom: 35px;">8</div>
+      <div style="background: tomato; height: 15px;">11</div>
+      <div style="background: orchid; height: 15px; margin-bottom: -125px; z-index: 1;">12</div>
+    </div>
+    <div class="column">
+      <div style="background: lightgreen; height: 20px;">3</div>
+      <div style="background: lavender; height: 20px; margin-top: 10px;">5</div>
+      <div style="background: lightskyblue; height: 35px;">6</div>
+      <div style="background: gold; height: 30px; margin-bottom: -10px;">10</div>
+    </div>
+  </div>
+</body>
+</html>

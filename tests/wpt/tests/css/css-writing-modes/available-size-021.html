@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Nested Orthogonal Flows vertical-rl Block Container Auto-Sizing w/ Contained Ancestor</title>
+<link rel="match" href="reference/available-size-020-ref.html">
+<link rel="help" href="https://www.w3.org/TR/css-writing-modes-3/#orthogonal-auto">
+<link rel="help" href="https://www.w3.org/TR/css-contain-1/">
+<meta name="assert" content="Test passes if vertical-rl block container orthogonal to parent which is itself orthogonal to the ICB is sized to fit into the smaller of its containing block’s fixed-size constraints or the ICB even if there's an intervening contained element.">
+<style>
+/* Set up orthogonal flows */
+html    { writing-mode: vertical-lr; word-break: break-all; font: 15px/1 sans-serif; }
+article { writing-mode: horizontal-tb; margin-left: 0.5em; }
+aside   { writing-mode: vertical-rl; width: 2em; overflow: hidden; color: blue;
+          margin: 2em 0 4em; padding: 2em 0; border: solid 4px silver; }
+/* Limits on direct containing block trump ICB */
+.fixed-parent     > div { min-height:  30vh; height:  50vh; max-height:  60vh; }
+.min-fixed-parent > div { min-height:  50vh; height:  30vh; max-height:  60vh; }
+.max-fixed-parent > div { min-height:  30vh; height:  60vh; max-height:  50vh; }
+.max-parent       > div { min-height:  30vh;                max-height:  50vh; }
+.min-max-parent   > div { min-height:  50vh;                max-height:  30vh; }
+/* But not if they're larger than ICB */
+.large-parent     > div {                    height: 120vh;                    }
+.min-large-parent > div { min-height: 120vh;                max-height:  30vh; }
+/* Ancestor should have no effect, only containing block */
+.auto                   { min-height:  40vh; height:  30vh; max-height:  20vh; }
+
+/* References */
+.fixed aside { height: calc(50vh - 10em - 8px); }
+.full  aside { height: calc(100vh - 10em - 8px); }
+html { overflow: hidden; /* avoid scrollbar variance */ }
+
+div {
+  /* Test intervening reflow root */
+  contain: layout size;
+  /* We're not testing widths; let's just match a nice reference. */
+  width: calc(2em + 8px);
+}
+</style>
+
+<p style="transform-origin: top right; transform: rotate(-90deg); height: max-content">
+Test passes if the first five boxes are identical, the next three boxes are identical,
+and the last one is taller.
+
+<article class="fixed">
+  <div>
+    <aside>abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde</aside>
+  </div>
+</article>
+
+<article class="fixed-parent">
+  <div>
+    <aside>abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde</aside>
+  </div>
+</article>
+
+<article class="min-fixed-parent">
+  <div>
+    <aside>abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde</aside>
+  </div>
+</article>
+
+<article class="max-parent">
+  <div>
+    <aside>abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde</aside>
+  </div>
+</article>
+
+<article class="min-max-parent">
+  <div>
+    <aside>abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde</aside>
+  </div>
+</article>
+
+<article class="min-large-parent">
+  <div>
+    <aside>abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde</aside>
+  </div>
+</article>
+
+<article class="auto">
+  <div>
+    <aside>abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde</aside>
+  </div>
+</article>
+
+<article class="full">
+  <div>
+    <aside>abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde</aside>
+  </div>
+</article>
+
+<article class="large-parent">
+  <div>
+    <aside>abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde</aside>
+  </div>
+</article>

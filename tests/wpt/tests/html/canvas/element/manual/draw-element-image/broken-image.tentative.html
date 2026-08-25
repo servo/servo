@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Canvas.drawElementImage: drawElementImage with missing images doesn't crash</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<link rel="author" href="mailto:schenney@chromium.org">
+<link rel="match" href="broken-image-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+<style>
+#child {
+  width: 100px;
+  height: 100px;
+  background: green;
+}
+#canvas {
+  background: grey;
+}
+img {
+    width: 100px;
+    height: 100px;
+}
+</style>
+<canvas id=canvas width="200px" height="200px" style="background-color: grey" layoutsubtree=true>
+  <div id=child>
+     <img id=image src="non-existent-image.gif"/>
+  </div>
+</canvas>
+<script>
+onload = async () => {
+  await waitForCanvasPaint(canvas);
+  canvas.getContext("2d").drawElementImage(child, 20, 30);
+  takeScreenshot();
+};
+</script>
+</html>

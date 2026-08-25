@@ -1,0 +1,37 @@
+<!doctype html>
+<html>
+<head>
+<script src="../resources/runner.js"></script>
+</head>
+<body><iframe></iframe>
+</body>
+<script>
+function setup() {
+    var frame = document.getElementsByTagName("iframe")[0];
+    var testDoc = frame.contentDocument;
+    testDoc.body.innerHTML = "<head></head><body><div id='sandbox'></div></body>";
+    return testDoc;
+}
+
+PerfTestRunner.measureTime({
+    description: "Measures performance of inserting CSS into the shadow DOM.",
+    run: function() {
+        var testDoc = setup();
+        var start = PerfTestRunner.now();
+        var sandbox = testDoc.getElementById('sandbox');
+        for (var i = 0; i < 100; i++) {
+            var elementA = testDoc.createElement("div");
+            var shadowRootForA = elementA.attachShadow({mode:'open'});
+            shadowRootForA.innerHTML = "<style>@host{:scope{display:block}}ul.canaryisdev li:nth-of-type(4)::after{content:'canary/dev'}ul.canaryisdev li:nth-of-type(5)::after{content:'beta'}ul.canaryisdev li:nth-of-type(6)::after{content:'stable'}ul.canaryisdev li:nth-of-type(7)::after{content:''}ul.betaisdev li:nth-of-type(4)::after{content:'canary'}ul.betaisdev li:nth-of-type(5)::after{content:'dev/beta'}ul.betaisdev li:nth-of-type(6)::after{content:'stable'}ul.betaisdev li:nth-of-type(7)::after{content:''}ul li{cursor:pointer;padding:3px 0}ul li::before{-webkit-transition:all 500ms ease;-moz-transition:all 500ms ease;-o-transition:all 500ms ease;transition:all 500ms ease;content:'';margin-right:5px;border-left:3px solid transparent}ul li::after{font-size:75%;margin-left:10px}ul li:first-of-type,ul li:nth-of-type(2),ul li:nth-of-type(3){font-size:75%;font-style:italic}ul li:nth-of-type(3){border-bottom:1px solid #d4d4d4;padding-bottom:10px;margin-bottom:5px}ul li:nth-of-type(4)::after{content:'canary'}ul li:nth-of-type(5)::after{content:'dev'}ul li:nth-of-type(6)::after{content:'beta'}ul li:nth-of-type(7)::after{content:'stable'}ul li[selected]{font-weight:600;color:#366597}ul li[selected]::before{border-color:#366597}</style><div>A</div>";
+            sandbox.appendChild(elementA);
+
+            var elementB = testDoc.createElement("div");
+            var shadowRootForB = elementB.attachShadow({mode:'open'});
+            shadowRootForB.innerHTML = "<style>@host{:scope{display:block;padding:1px}}.milestone-marker{text-align:right;text-transform:uppercase;margin-top:10px;font-weight:600;font-size:14px;color:#366597}@media only screen and (max-width: 700px){[data-first-of-milestone]:after{font-size:12px;font-weight:normal;top:-22px;opacity:1;text-transform:uppercase}}</style><div>B</div>";
+            sandbox.appendChild(elementB);
+        }
+        return PerfTestRunner.now() - start;
+    }
+});
+</script>
+</html>

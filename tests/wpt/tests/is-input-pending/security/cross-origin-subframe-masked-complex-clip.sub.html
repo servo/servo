@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+<head>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/input-onmessage.js"></script>
+<script src="../resources/pending-input-utils.js"></script>
+<style>
+.obscurer {
+  position: fixed;
+  top: 0px;
+  left: 0px;
+  width: 320px;
+  height: 180px;
+  background-color: rgba(0, 0, 255, 0.25);
+  clip-path: ellipse(160px 90px);
+}
+</style>
+</head>
+<body>
+  <iframe src="http://{{hosts[][www1]}}:{{ports[http][0]}}/is-input-pending/resources/blank.html"></iframe>
+  <div class="obscurer"></div>
+  <p>Ensure that a parent frame cannot detect events on a cross-origin subframe masked by a div with a complex clip.</p>
+  <script>
+    window.addEventListener('load', () => {
+      PendingInputUtils.testCannotAccessPendingInputAt(window, 10, 10, 'parent cannot detect cross-origin events outside of clip');
+      PendingInputUtils.testCannotAccessPendingInputAt(frames[0], 50, 50, 'subframe cannot detect events inside of clip');
+    });
+  </script>
+</body>
+</html>

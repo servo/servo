@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Test case for text-decoration with subelements</title>
+    <meta name="assert" content="for underlines and overlines the UA must use a single thickness and position on each line for the decorations deriving from a single decorating box">
+    <link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+    <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+    <link rel="help" href="https://drafts.csswg.org/css-text-decor-3/#text-underline-position-property">
+    <link rel="match" href="reference/text-decoration-subelements-002-ref.html">
+    <meta name="fuzzy" content="maxDifference=0-80;totalPixels=0-42">
+    <style>
+      div.wrapper {
+        font-size: 2em;
+        position: relative;
+      }
+      div.test {
+        text-decoration: underline;
+        position: absolute;
+        white-space: nowrap;
+      }
+    </style>
+  </head>
+  <body>
+    <p>Test passes if there is a single uniform underline for all the text in each line,
+      <i>not</i> a separate underline for the superscripts:
+    </p>
+    <div class=wrapper>
+      <div style="position: absolute; top: 1em;">
+        <div class=test>Einstein said that <i>e = mc<sup>2</sup></i>.</div>
+      </div>
+      <div style="position: absolute; top: 3em;">
+        <div class=test>Is <i>a<sup>n</sup> + b<sup>n</sup> = c<sup>n</sup></i> ever true for <i>n</i> &gt; 2.</div>
+      </div>
+    </div>
+  </body>
+</html>

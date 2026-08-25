@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#valdef-align-items-stretch">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="The table's cross-axis (inline-size) is stretched.">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="display: flex; flex-direction: column; width: 100px; height: 100px; background: red;">
+  <table style="border-spacing: 0; flex-grow: 1;">
+    <caption style="height: 10px; background: green;"></caption>
+    <caption style="height: 20px; background: green; caption-side: bottom;"></caption>
+    <td style="background: green;"></td>
+  </table>
+</div>

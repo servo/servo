@@ -1,0 +1,34 @@
+<!doctype html>
+<title>ResizeObserver test: multiple observation on same element trigger only one</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/resizeTestHelper.js"></script>
+<body>
+<div id="log"></div>
+
+<script>
+'use strict';
+
+function test() {
+  let t = createAndAppendElement("div");
+  t.style.width = "100px";
+
+  let helper = new ResizeTestHelper(
+    "multiple observation on same element trigger only one",
+  [
+    {
+      setup: observer => {
+        observer.observe(t);
+        observer.observe(t);
+        t.style.width = "10px";
+      },
+      notify: entries => {
+        assert_equals(entries.length, 1, "1 pending notification");
+      }
+    }
+  ]);
+  return helper.start(() => t.remove());
+}
+
+(async () => await test())();
+</script>

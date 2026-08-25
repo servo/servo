@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      AudioScheduledSourceNode fires onended when not connected to the destination
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <script id="layout-test-code">
+      // A scheduled source node that is started and stopped must fire its
+      // "ended" event once it reaches its stop time, even if it was never
+      // connected to the destination.
+      // https://webaudio.github.io/web-audio-api/#dom-audioscheduledsourcenode-onended
+
+      const sampleRate = 44100;
+      // Number of frames the source will run; fairly arbitrary.
+      const numberOfFrames = 32;
+      // Number of frames to render; should be larger than numberOfFrames.
+      const renderFrames = 16 * numberOfFrames;
+
+      promise_test(async () => {
+        const context = new OfflineAudioContext(1, renderFrames, sampleRate);
+        const source = new ConstantSourceNode(context);
+        // Intentionally do not connect the source to context.destination.
+        const ended = new Promise(resolve => source.onended = resolve);
+
+        source.start();
+        source.stop(numberOfFrames / context.sampleRate);
+        context.startRendering();
+
+        await ended;
+      }, 'ConstantSourceNode fires onended when not connected to the destination');
+    </script>
+  </body>
+</html>

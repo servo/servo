@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<link rel="help" href="https://www.w3.org/TR/css-position-3/" />
+<meta name="assert" content="This test checks that a dynamic change in constraints calculates the static position correctly for flex children."/>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="display: flex; position: relative; width: 100px; height: 100px; background: red; align-items: flex-end;">
+  <div id="target" style="position: absolute; width: 100px; height: 100px; background: green; bottom: 100px;"></div>
+</div>
+<script>
+  document.body.offsetTop;
+  document.getElementById('target').style.bottom = 'initial';
+</script>

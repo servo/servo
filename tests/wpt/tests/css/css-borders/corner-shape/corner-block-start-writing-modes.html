@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Borders and Box Decorations 4 Test: 'corner-block-start' in writing mode variants</title>
+<link rel="author" title="Chromium" href="https://chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#corner-shorthand">
+<meta name="assert" content="This test checks that 'corner-block-start' applies in horizontal and vertical writing modes.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="target"></div>
+
+<script>
+function runVariant(name, writingMode, direction) {
+  test(() => {
+    const target = document.getElementById('target');
+    target.style.cssText = '';
+    target.style.writingMode = writingMode;
+    target.style.direction = direction;
+    target.style.cornerBlockStart = '10px round / 20px bevel';
+
+    assert_equals(target.style.cornerBlockStart, '10px round / 20px bevel');
+
+    const computed = getComputedStyle(target).getPropertyValue('corner-block-start').trim();
+    assert_not_equals(computed, '', 'computed shorthand should not be empty');
+  }, name);
+}
+
+runVariant('corner-block-start in horizontal-tb ltr', 'horizontal-tb', 'ltr');
+runVariant('corner-block-start in horizontal-tb rtl', 'horizontal-tb', 'rtl');
+runVariant('corner-block-start in vertical-rl ltr', 'vertical-rl', 'ltr');
+</script>

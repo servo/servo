@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  table
+  {
+  border: black solid medium;
+  border-spacing: 0;
+  font-size: 50px;
+  }
+
+  td
+  {
+  background: aqua;
+  padding: 1em 0em;
+  width: 2em;
+  }
+
+  div {border-top: yellow solid 1em;}
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a stack of 3 horizontal bands which are <strong>from top to bottom: aqua, yellow, aqua</strong> with no red.</p>
+
+  <table>
+   <tr>
+    <td><div></div></td>
+   </tr>
+  </table>
+
+ </body>
+</html>

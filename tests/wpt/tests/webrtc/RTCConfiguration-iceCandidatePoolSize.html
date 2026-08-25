@@ -1,0 +1,117 @@
+<!doctype html>
+<meta charset="utf-8">
+<!--
+4.2.1 RTCConfiguration Dictionary
+
+  The RTCConfiguration defines a set of parameters to configure how the peer to peer communication established via RTCPeerConnection is established or re-established.
+
+  ...
+
+  iceCandidatePoolSize of type octet, defaulting to 0
+    Size of the prefetched ICE pool as defined in [JSEP] (section 3.5.4. and section 4.1.1.).
+-->
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+/*
+
+dictionary RTCConfiguration {
+    ...
+    [EnforceRange]
+    octet                    iceCandidatePoolSize = 0;
+};
+
+... of type octet
+*/
+test(() => {
+  const pc = new RTCPeerConnection();
+  assert_idl_attribute(pc, "getConfiguration");
+  assert_equals(pc.getConfiguration().iceCandidatePoolSize, 0);
+}, "Initialize a new RTCPeerConnection with no iceCandidatePoolSize");
+
+test(() => {
+  const pc = new RTCPeerConnection({
+    iceCandidatePoolSize: 0
+  });
+  assert_idl_attribute(pc, "getConfiguration");
+  assert_equals(pc.getConfiguration().iceCandidatePoolSize, 0);
+}, "Initialize a new RTCPeerConnection with iceCandidatePoolSize: 0");
+
+test(() => {
+  const pc = new RTCPeerConnection({
+    iceCandidatePoolSize: 255
+  });
+  assert_idl_attribute(pc, "getConfiguration");
+  assert_equals(pc.getConfiguration().iceCandidatePoolSize, 255);
+}, "Initialize a new RTCPeerConnection with iceCandidatePoolSize: 255");
+
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new RTCPeerConnection({
+      iceCandidatePoolSize: -1
+    });
+  });
+}, "Initialize a new RTCPeerConnection with iceCandidatePoolSize: -1 (Out Of Range)");
+
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new RTCPeerConnection({
+      iceCandidatePoolSize: 256
+    });
+  });
+}, "Initialize a new RTCPeerConnection with iceCandidatePoolSize: 256 (Out Of Range)");
+
+
+/*
+Reconfiguration
+*/
+
+test(() => {
+  const pc = new RTCPeerConnection();
+  assert_idl_attribute(pc, "getConfiguration");
+  assert_idl_attribute(pc, "setConfiguration");
+  pc.setConfiguration({
+    iceCandidatePoolSize: 0
+  });
+  assert_equals(pc.getConfiguration().iceCandidatePoolSize, 0);
+}, "Reconfigure RTCPeerConnection instance iceCandidatePoolSize to 0");
+
+test(() => {
+  const pc = new RTCPeerConnection();
+  assert_idl_attribute(pc, "getConfiguration");
+  assert_idl_attribute(pc, "setConfiguration");
+  pc.setConfiguration({
+    iceCandidatePoolSize: 255
+  });
+  assert_equals(pc.getConfiguration().iceCandidatePoolSize, 255);
+}, "Reconfigure RTCPeerConnection instance iceCandidatePoolSize to 255");
+
+/*
+The following tests include an explicit assertion for the existence of a
+setConfiguration function to prevent the assert_throws_js from catching the
+TypeError object that will be thrown when attempting to call the
+non-existent setConfiguration method (in cases where it has not yet
+been implemented). Without this check, these tests will pass incorrectly.
+*/
+
+test(() => {
+  const pc = new RTCPeerConnection();
+  assert_equals(typeof pc.setConfiguration, "function", "RTCPeerConnection.prototype.setConfiguration is not implemented");
+  assert_throws_js(TypeError, () => {
+    pc.setConfiguration({
+      iceCandidatePoolSize: -1
+    });
+  });
+}, "Reconfigure RTCPeerConnection instance iceCandidatePoolSize to -1 (Out Of Range)");
+
+test(() => {
+  const pc = new RTCPeerConnection();
+  assert_equals(typeof pc.setConfiguration, "function", "RTCPeerConnection.prototype.setConfiguration is not implemented");
+  assert_throws_js(TypeError, () => {
+    pc.setConfiguration({
+      iceCandidatePoolSize: 256
+    });
+  });
+}, "Reconfigure RTCPeerConnection instance iceCandidatePoolSize to 256 (Out Of Range)");
+</script>

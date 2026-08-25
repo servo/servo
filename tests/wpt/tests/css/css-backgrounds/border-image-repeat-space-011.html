@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Backgrounds Test: border-image-repeat: space</title>
+
+  <!--
+
+  Created: March 31st 2023
+
+  Last modified: April 9th 2023
+
+  -->
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-backgrounds-3/#border-image-repeat">
+  <link rel="help" href="https://www.w3.org/TR/css-backgrounds-3/#border-image-process">
+  <link rel="match" href="reference/border-image-repeat-space-011-ref.html">
+
+  <meta content="" name="flags">
+  <meta content="This test checks that the process of repeating the tile when 'border-image-repeat' is 'space'. The testing div is wide enough and tall enough to have 2 complete border-image on each of the 4 sides. 96px will become the extra space which must be distributed around the 2 tiles." name="assert">
+
+  <!--
+
+  'space'
+    The image is tiled (repeated) to fill the area. If it does
+    not fill the area with a whole number of tiles, the extra
+    space is distributed around the tiles.
+
+  https://www.w3.org/TR/css-backgrounds-3/#valdef-border-image-repeat-space
+
+  -->
+
+  <style>
+  div
+    {
+      border: red solid 100px;
+      border-image-repeat: space; /* this is the same as 'space space' since
+      "
+      If the second keyword is absent, it is assumed to be the same as the first.
+      https://www.w3.org/TR/css-backgrounds-3/#border-image-repeat
+      "
+      */
+      border-image-slice: 50;
+      border-image-source: url("support/border-image-repeat-space-011.png");
+      height: 296px;
+      width: 296px;
+
+    /*
+
+      296
+    -
+      200
+    ======
+       96
+
+     and since there is 3 spaces created, we divide
+     the remaining by 3 giving us exactly 32px between and around
+     each pair of (gray, purple, orange and blue) squares
+
+    */
+   }
+  </style>
+
+  <div></div>

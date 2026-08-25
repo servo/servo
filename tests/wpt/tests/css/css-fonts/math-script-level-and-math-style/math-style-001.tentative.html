@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>math-style</title>
+    <meta charset="utf-8">
+    <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/3746">
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#the-math-style-property">
+    <meta name="assert" content="Check the resolved value of math-style">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script>
+      function mathStyle(id) {
+          return window.getComputedStyle(document.getElementById(id)).
+              getPropertyValue("math-style");
+      }
+      setup({ explicit_done: true });
+      window.addEventListener("load", function() {
+          test(function() {
+              assert_equals(mathStyle("initial"), "normal");
+          }, "Initial value of math-style");
+          test(function() {
+              assert_equals(mathStyle("specifiedInline"), "compact");
+              assert_equals(mathStyle("specifiedDisplay"), "normal");
+          }, "Specified values of math-style");
+          test(function() {
+              assert_equals(mathStyle("inheritedInline"), "compact");
+              assert_equals(mathStyle("inheritedDisplay"), "normal");
+          }, "Inherited values of math-style");
+          done();
+      });
+    </script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <div id="initial"></div>
+    <div id="specifiedInline" style="math-style: compact">
+      <div id="inheritedInline"></div>
+    </div>
+    <div id="specifiedDisplay" style="math-style: normal">
+      <div id="inheritedDisplay"></div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1399456">
+<link rel="match" href="fixedpos-008-print-ref.html">
+<style>
+  body { margin: 0; }
+</style>
+<div style="margin-top:4em;">
+  There should be six pages.
+</div>
+<div style="position:fixed; top:0;">
+  This should be repeated on every page.
+</div>
+<div style="position:absolute; top:50vh;">
+  <div style="height:250vh;"></div>
+  <div style="position:absolute; top:0;">
+    <div style="position:absolute; top:500vh; height:10px;">
+      <div style="position:fixed; bottom:0;">
+        This should also be repeated on every page.
+      </div>
+    </div>
+  </div>
+</div>

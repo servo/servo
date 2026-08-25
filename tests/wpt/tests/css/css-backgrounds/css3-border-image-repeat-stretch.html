@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+
+    <meta charset="UTF-8">
+    <title>CSS Border Test: border image repeat property with value stretch</title>
+    <link rel="author" title="yanshasha" href="mailto:yanshasha133@gmail.com">
+    <link rel="reviewer" title="Dayang Shen" href="mailto:shendayang@baidu.com"> <!-- 2013-08-26 -->
+    <!--
+    corrected and improved to be more precise
+    by Gérard Talbot 2020-05-27
+    -->
+    <link rel="help" href="http://www.w3.org/TR/css3-background/#the-border-image-repeat">
+    <link rel="match" href="reference/css3-border-image-repeat-stretch-ref.html">
+    <style>
+            div {
+                border: red solid 27px;
+                border-image-repeat: stretch;
+                border-image-source: url("support/blue-and-red-diamonds-81x81.png");
+                border-image-slice: 27;
+                height: 100px;
+                width: 100px;
+            }
+    </style>
+
+    <p>Test passes if a blue diamond is stretched between red diamonds.
+
+    <div></div>

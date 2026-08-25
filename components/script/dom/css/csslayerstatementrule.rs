@@ -1,0 +1,94 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use std::cell::RefCell;
+
+use dom_struct::dom_struct;
+use js::context::JSContext;
+use js::rust::MutableHandleValue;
+use script_bindings::reflector::reflect_dom_object_with_cx;
+use servo_arc::Arc;
+use style::shared_lock::ToCssWithGuard;
+use style::stylesheets::{CssRuleType, LayerStatementRule};
+use style_traits::ToCss;
+
+use super::cssrule::{CSSRule, SpecificCSSRule};
+use super::cssstylesheet::CSSStyleSheet;
+use crate::dom::bindings::codegen::Bindings::CSSLayerStatementRuleBinding::CSSLayerStatementRuleMethods;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::utils::to_frozen_array;
+use crate::dom::types::CSSGroupingRule;
+use crate::dom::window::Window;
+
+#[dom_struct]
+pub(crate) struct CSSLayerStatementRule {
+    css_rule: CSSRule,
+    #[ignore_malloc_size_of = "Stylo"]
+    #[no_trace]
+    layer_statement_rule: RefCell<Arc<LayerStatementRule>>,
+}
+
+impl CSSLayerStatementRule {
+    pub(crate) fn new_inherited(
+        parent_rule: Option<&CSSGroupingRule>,
+        parent_stylesheet: &CSSStyleSheet,
+        layerstatementrule: Arc<LayerStatementRule>,
+    ) -> CSSLayerStatementRule {
+        CSSLayerStatementRule {
+            css_rule: CSSRule::new_inherited(parent_rule, parent_stylesheet),
+            layer_statement_rule: RefCell::new(layerstatementrule),
+        }
+    }
+
+    pub(crate) fn new(
+        cx: &mut JSContext,
+        window: &Window,
+        parent_rule: Option<&CSSGroupingRule>,
+        parent_stylesheet: &CSSStyleSheet,
+        layerstatementrule: Arc<LayerStatementRule>,
+    ) -> DomRoot<CSSLayerStatementRule> {
+        reflect_dom_object_with_cx(
+            Box::new(CSSLayerStatementRule::new_inherited(
+                parent_rule,
+                parent_stylesheet,
+                layerstatementrule,
+            )),
+            window,
+            cx,
+        )
+    }
+
+    pub(crate) fn update_rule(&self, layerstatementrule: Arc<LayerStatementRule>) {
+        *self.layer_statement_rule.borrow_mut() = layerstatementrule;
+    }
+}
+
+impl SpecificCSSRule for CSSLayerStatementRule {
+    fn ty(&self) -> CssRuleType {
+        CssRuleType::LayerStatement
+    }
+
+    fn get_css(&self) -> DOMString {
+        let guard = self.css_rule.shared_lock().read();
+        self.layer_statement_rule
+            .borrow()
+            .to_css_string(&guard)
+            .into()
+    }
+}
+
+impl CSSLayerStatementRuleMethods<crate::DomTypeHolder> for CSSLayerStatementRule {
+    /// <https://drafts.csswg.org/css-cascade-5/#dom-csslayerstatementrule-namelist>
+    fn NameList(&self, cx: &mut JSContext, retval: MutableHandleValue) {
+        let names: Vec<DOMString> = self
+            .layer_statement_rule
+            .borrow()
+            .names
+            .iter()
+            .map(|name| name.to_css_string().into())
+            .collect();
+        to_frozen_array(cx, names.as_slice(), retval)
+    }
+}

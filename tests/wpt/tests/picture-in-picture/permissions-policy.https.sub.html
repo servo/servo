@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<title>picture-in-picture: permissions policy via iframe allow attribute</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<body>
+<script>
+'use strict';
+
+const HELPER = '/picture-in-picture/resources/permissions-policy-helper.html';
+const NESTED  = '/picture-in-picture/resources/permissions-policy-nested-helper.html';
+
+const CROSS_HELPER = 'https://{{hosts[][]}}:{{ports[https][0]}}/picture-in-picture/resources/permissions-policy-helper.html';
+const CROSS_NESTED = 'https://{{hosts[][]}}:{{ports[https][0]}}/picture-in-picture/resources/permissions-policy-nested-helper.html';
+
+// Loads |src| in an iframe, optionally sets |allow| on it, waits for a
+// 'pip-policy-result' message from that frame, and resolves with the boolean.
+function pipAllowedInFrame(t, src, allow) {
+  return new Promise(resolve => {
+    const frame = document.createElement('iframe');
+    if (allow !== undefined) {
+      frame.allow = allow;
+    }
+
+    frame.src = src;
+
+    window.addEventListener('message', t.step_func(event => {
+      if (event.source === frame.contentWindow &&
+          event.data.type === 'pip-policy-result') {
+        document.body.removeChild(frame);
+        resolve(event.data.allowed);
+      }
+    }), { once: true });
+
+    document.body.appendChild(frame);
+  });
+}
+
+// Test 1: no allow attribute at all.
+// picture-in-picture has a default allowlist of '*', so it must be available
+// in any same-origin iframe that carries no allow attribute.
+promise_test(async t => {
+  const allowed = await pipAllowedInFrame(t, HELPER);
+  assert_true(allowed,
+    'picture-in-picture should be allowed when iframe has no allow attribute');
+}, 'picture-in-picture allowed in iframe with no allow attribute (default allowlist *)');
+
+// Test 2: Set iframe's allow to "picture-in-picture 'none'" which should block
+// picture in picture requests.
+promise_test(async t => {
+  const allowed = await pipAllowedInFrame(t, HELPER, "picture-in-picture 'none'");
+  assert_false(allowed,
+    "picture-in-picture should be blocked when allow=\"picture-in-picture 'none'\" is set");
+}, "picture-in-picture blocked in iframe with allow=\"picture-in-picture 'none'\"");
+
+// Test 3: Grand child frame, shall have it's PIP requests blocked if the child had its
+// allow set to "picture-in-picture 'none'"
+promise_test(async t => {
+  const allowed = await pipAllowedInFrame(t, NESTED, "picture-in-picture 'none'");
+  assert_false(allowed,
+    'picture-in-picture denial should propagate into nested iframes with no allow attribute');
+}, "picture-in-picture denial propagates to nested iframes with no allow attribute");
+
+// Test 4: Cross origin variant of test 2
+promise_test(async t => {
+  const allowed = await pipAllowedInFrame(t, CROSS_HELPER, "picture-in-picture 'none'");
+  assert_false(allowed,
+    "picture-in-picture should be blocked when allow=\"picture-in-picture 'none'\" is set");
+}, "cross-origin iframe with allow=\"picture-in-picture 'none'\"");
+
+// Test 5: Cross origin variant of test 3
+promise_test(async t => {
+  const allowed = await pipAllowedInFrame(t, CROSS_NESTED, "picture-in-picture 'none'");
+  assert_false(allowed,
+    'picture-in-picture denial should propagate into nested iframes with no allow attribute');
+}, "cross origin picture-in-picture denial propagates to nested iframes with no allow attribute");
+
+</script>
+</body>

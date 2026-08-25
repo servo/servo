@@ -1,0 +1,32 @@
+ <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: Margin collapsing with floats before self collapsing children with margins not collapsing with parent</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/block/margin-collapse/063.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#collapsing-margins"/>
+  <style type="text/css">
+   /* This test requires half-decent z-index support */
+   html { margin: 0; padding: 0; }
+   body { margin: 0 10px; padding: 0; }
+   .a { position: absolute; top: 13px; left: 10px; width: 20em; height: 4em; background: red; color: yellow; z-index: -1; }
+   .b { float: left; width: 20em; height: 4em; background: green; color: white; }
+   .c1 { margin: 2px; padding-top: 1px; } /* prevent collapsing with parent */
+   .c2 { margin: -4px 20px; }
+   .c3 { margin: 0 0 14px; }
+   .c4 { margin: 50px; }
+  </style>
+ </head>
+ <body>
+  <div class="c1">
+   <div class="c2">
+    <div class="c3"></div>
+   </div>
+  </div>
+  <div class="a">FAIL</div>
+  <div class="b">This block should be green.</div>
+  <div class="c4"></div>
+
+
+</body>
+</html>

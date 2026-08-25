@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="Content-Security-Policy"
+    content="script-src 'self'
+    'SHA256-VCOfB9NQbtW8/s+T7yizqn0dz0Ipt5krwH9BPUaXJTA='
+    'SHA384-efOmACJwOYjUewZJTpktK4Kxl9spgncVwxok9DaIBIMN2zBzwxDni19L5uHkIX3E'
+    'SHA512-t9CmeiAGRym+Wsi8F+5TV1QEjcbFppf7ONB9HUTOs5pMLUy3BQCmASwXD/VKl0B5QytTTJawA2IhVvoebs7Gyg=='
+    'sHa256-BPe1cNQpEQoucXTYM91Ku9xnHT/BZXMOeOFeMZTPWis='
+    'shA384-qNmIi2ya4g29IbFyUBBPFJ5BdkW43bygT/MrFSoe7o/ALn+a3iJDkssigmMHQ4J0'
+    'Sha512-GuQbQFeVHDBySntDnOpbrNCe4xwjLhnnaVRAGz5JAnYK9pj0vOEAkmKgzNJApgufV3r37DE7Derx5DGUmqkukg=='
+    'nonce-EDNnf03nceIOfn39fn3e9h3sdfa'
+    ">
+    <title>Test whether hash-algorithm parts are matched case-insensitively</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/content-security-policy/support/alertAssert.sub.js?alerts=%5B%22PASS%20(1%2F6)%22%2C%22PASS%20(2%2F6)%22%2C%22PASS%20(3%2F6)%22%2C%22PASS%20(4%2F6)%22%2C%22PASS%20(5%2F6)%22%2C%22PASS%20(6%2F6)%22%5D"></script>
+    <script nonce="EDNnf03nceIOfn39fn3e9h3sdfa">
+        window.addEventListener('securitypolicyviolation', function(e) {
+            alert_assert("Fail");
+        });
+    </script>
+
+    <script>
+        alert_assert('PASS (1/6)');
+
+    </script>
+    <script>
+        alert_assert('PASS (2/6)');
+
+    </script>
+    <script>
+        alert_assert('PASS (3/6)');
+
+    </script>
+    <script>
+        alert_assert('PASS (4/6)');
+
+    </script>
+    <script>
+        alert_assert('PASS (5/6)');
+
+    </script>
+    <script>
+        alert_assert('PASS (6/6)');
+
+    </script>
+</head>
+
+<body>
+    <p>
+        This tests whether hash-algorithm parts are matched
+        case-insensitively. It passes if no CSP violation is generated, and
+        the alert_assert() calls are executed.
+    </p>
+    <div id="log"></div>
+</body>
+
+</html>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Scoped VT on display:inline element</title>
+</head>
+<style>
+  #scope {
+    view-transition-name: scope;
+  }
+</style>
+<body>
+  <p><span id="scope">Hello</span> world</p>
+</body>
+<script>
+  async function testDisplayProperty(type) {
+    scope.style = `display: ${type}`;
+    const vt = scope.startViewTransition();
+    await vt.finished;
+  }
+
+  async function runTests() {
+    const tests = [
+      // Inline display types:
+      'inline',
+      'inline-flex',
+      'inline flow',
+      'math',
+      'ruby',
+      // No box, and children are inline:
+      'ruby-text',
+      'content'
+    ];
+    tests.forEach(async display => {
+      await testDisplayProperty(display);
+    });
+    document.documentElement.classList.remove('test-wait');
+  }
+
+  window.onload = runTests;
+</script>
+</html>

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml" width="360" height="120">
+  <title>Negative rect corner radii: a negative rx/ry computes to auto and mirrors the other radius; both negative gives square corners</title>
+  <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/geometry.html#RX"/>
+  <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/shapes.html#RectElement"/>
+  <h:link rel="match" href="rect-007-ref.svg"/>
+  <h:meta name="assert" content="A negative rx (or ry) on a rect is invalid and computes to auto, so the used radius mirrors the other (valid) radius; when both rx and ry are negative both are auto and the used radii are 0 (square corners)."/>
+  <!-- rx negative, ry valid: rx mirrors ry=40 -->
+  <rect x="10" y="10" width="100" height="100" rx="-30" ry="40" fill="green"/>
+  <!-- rx valid, ry negative: ry mirrors rx=40 -->
+  <rect x="130" y="10" width="100" height="100" rx="40" ry="-30" fill="green"/>
+  <!-- both negative: both auto -> 0 -> square corners -->
+  <rect x="250" y="10" width="100" height="100" rx="-30" ry="-40" fill="green"/>
+</svg>

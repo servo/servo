@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Transitions Test: border-width transitions when border-style changes from none</title>
+<meta name="assert" content="border-width should transition smoothly when
+border-style simultaneously changes from none to solid">
+<link rel="help" href="https://www.w3.org/TR/css-backgrounds-3/#the-border-width">
+<link rel="help" href="https://www.w3.org/TR/css-transitions/#starting">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-transitions/support/helper.js"></script>
+
+</head>
+<body>
+<div id="log"></div>
+<script>
+// Tests that border-width transitions when border-style simultaneously changes
+// from none to solid. The computed value of border-width is independent of
+// border-style, so the transition should detect the value change and start.
+
+promise_test(async t => {
+  const div = addDiv(t, {
+    style: 'border-style: none; border-width: 30px; ' +
+           'transition: border-width 3s linear',
+  });
+  div.computedStyleMap().get('border-top-width');
+
+  div.style.borderStyle = 'solid';
+  div.style.borderWidth = '0px';
+
+  const animations = div.getAnimations();
+  assert_equals(animations.length, 4,
+    'Should have 4 transitions (one per side)');
+
+  await Promise.all(animations.map(a => a.ready));
+
+  for (const a of animations) {
+    a.currentTime = 0;
+  }
+  assert_equals(
+    div.computedStyleMap().get('border-top-width').toString(),
+    '30px',
+    'border-width at 0s'
+  );
+
+  for (const a of animations) {
+    a.currentTime = 1000;
+  }
+  assert_equals(
+    div.computedStyleMap().get('border-top-width').toString(),
+    '20px',
+    'border-width at 1s'
+  );
+
+  for (const a of animations) {
+    a.currentTime = 2000;
+  }
+  assert_equals(
+    div.computedStyleMap().get('border-top-width').toString(),
+    '10px',
+    'border-width at 2s'
+  );
+
+  for (const a of animations) {
+    a.currentTime = 3000;
+  }
+  assert_equals(
+    div.computedStyleMap().get('border-top-width').toString(),
+    '0px',
+    'border-width at 3s'
+  );
+}, 'border-width transitions from 30px none to 0px solid');
+</script>
+
+</body>
+</html>

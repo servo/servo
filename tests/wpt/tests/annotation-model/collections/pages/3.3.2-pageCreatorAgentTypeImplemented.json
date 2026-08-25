@@ -1,0 +1,35 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "3.3.2-pageCreatorAgentTypeImplemented.json",
+  "assertionType": "may",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "passAndContinue",
+  "errorMessage": "Type (Person, Organization, Software) for Annotation Page Creator (Agent) (i.e., in description of Collection included using partOf key) not found. Agents should have one or more type values.",
+  "title": "Implements Annotation Page-level creator (Agent) (i.e., in description of Collection included using partOf key) **_type_ key** with one or more values from **model-recommended list (Person, Organization, Software)** - [model 3.2.2](https://www.w3.org/TR/annotation-model/#agents)",
+  "description": "True when type for Annotation Page Creator (Agent) (i.e., in description of Collection included using partOf key) is implemented (Section 3.3.2)",
+  "type": "object",
+  "properties":
+  {
+    "partOf":
+           { "$ref": "#/definitions/creatorAgentTypeFound" }
+  },
+  "required": [ "partOf" ],
+  "definitions": {
+   "creatorAgentTypeFound":
+    {  "properties":
+      {  "creator":
+        { "oneOf":
+          [
+          { "$ref": "otherProperties.json#/definitions/agentTypeFound" },
+          { "type": "array",
+            "minItems": 1,
+            "not":
+            { "items": { "not": { "$ref": "otherProperties.json#/definitions/agentTypeFound" } } }
+          }
+          ]
+        }
+      },
+      "required": ["creator"]
+   }
+  }
+}

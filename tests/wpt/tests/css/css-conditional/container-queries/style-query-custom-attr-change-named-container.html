@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>CSS Container Queries Test: style() query with attr() for unregistered custom property in named container </title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#style-container">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  #target {
+    color: red;
+  }
+
+  @container my-container style(--my-props: attr(myAttr)) {
+    #target {
+      color: green;
+    }
+  }
+
+  #container {
+    container-name: my-container;
+    --my-props: "correct"
+  }
+</style>
+<div id="container" myAttr="wrong">
+  <div>
+    <div id="target">Should be green</div>
+  </div>
+</div>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(target).color, "rgb(255, 0, 0)");
+  }, "Initially, container does not match. Target is red.");
+
+  test(() => {
+    container.setAttribute("myAttr", "correct");
+    assert_equals(getComputedStyle(target).color, "rgb(0, 128, 0)");
+  }, "Changing myAttribute to 'correct' in named container makes target color green");
+</script>

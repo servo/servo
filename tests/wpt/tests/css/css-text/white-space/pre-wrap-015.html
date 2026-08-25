@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Test: white-space: pre-wrap</title>
+<link rel="author" title="Javier Fernandez Garcia-Boente" href="mailto:jfernandez@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#valdef-white-space-pre-wrap">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#valdef-word-break-break-all">
+<meta name="flags" content="ahem">
+<link rel="match" href="reference/pre-wrap-001-ref.html">
+<meta name="assert" content="The text is broken at the end of the space between the two words, never before, so it hangs and cause an overflow">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+div {
+  font: 20px/1 Ahem;
+}
+.ref {
+  position: absolute;
+  color: red;
+  z-index: -1;
+}
+.test {
+  color: green;
+  width: 20px;
+
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+</style>
+<body>
+  <p>Test passes if there is a <strong>filled green square</strong> and <strong>no red</strong>.</p>
+  <div class="ref">X<span style="color: green">X</span><br>X<span style="color: green">X</span></div>
+  <div class="test">X X</div>
+</body>

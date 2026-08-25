@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Forced colors mode - :visited outline and column color.</title>
+<link rel="help" href="https://www.w3.org/TR/css-color-adjust-1/#forced-colors-properties">
+<link rel=match href="forced-colors-mode-37-ref.html">
+<style>
+  :root {
+    --hc-color: red;
+  }
+  a {
+    outline-style: solid;
+    column-count: 3;
+    column-gap: 40px;
+    column-rule-style: solid;
+  }
+  a:visited {
+    outline-color: var(--hc-color);
+    column-rule-color: var(--hc-color);
+  }
+</style>
+<a href="">
+  The outline-color and column-rule-color should be overridden when forced colors
+  mode is enabled.
+</a>

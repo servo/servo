@@ -1,0 +1,19 @@
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!DOCTYPE html>
+<title>CSS Test: A custom property declaration in an @supports rule whose value is a var() reference with a dimension token as the name argument is supported.</title>
+<link rel="author" title="Cameron McCormack" href="mailto:cam@mcc.id.au">
+<link rel="help" href="http://www.w3.org/TR/css-variables-1/#using-variables">
+<link rel="match" href="support/color-green-ref.html">
+<style>
+body { color: red; }
+/* var()'s name argument is a <declaration-value>, so var(1px) is valid at parse time; the name
+   fails to parse as a <custom-property-name> only at computed-value time, so the declaration is
+   supported. https://drafts.csswg.org/css-variables-2/#funcdef-var */
+@supports (--a: a) and (--a: var(1px)) {
+  p { color: green; }
+}
+</style>
+<p>This text must be green.</p>

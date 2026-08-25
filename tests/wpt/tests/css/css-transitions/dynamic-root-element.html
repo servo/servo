@@ -1,0 +1,34 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-transitions/#starting">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1816672">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe></iframe>
+<script>
+  let t = async_test("Transitions don't incorrectly start on dynamic document element insertion");
+  window.onload = t.step_func_done(function() {
+    let frame = document.querySelector("iframe");
+    let doc = frame.contentDocument;
+    doc.open();
+    doc.write("<!doctype html>");
+    let root = doc.createElement("html");
+    root.innerHTML = `
+      <style>
+        div {
+          width: 100px;
+          height: 100px;
+          background-color: blue;
+          transition: margin-left 10s ease;
+          margin-left: 100px;
+        }
+      </style>
+      <div></div>
+    `;
+    doc.appendChild(root);
+    doc.close();
+    assert_equals(frame.contentWindow.getComputedStyle(doc.querySelector("div")).marginLeft, "100px", "Transition shouldn't have started");
+  });
+</script>

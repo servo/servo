@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>Test navigator.virtualKeyboard.overlaysContent</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/common/utils.js"></script>
+
+<body>
+
+<script>
+promise_test(async () => {
+  const frame = attachFencedFrameContext();
+
+  const response = await frame.execute(() => {
+    navigator.virtualKeyboard.overlaysContent = true;
+    return navigator.virtualKeyboard.overlaysContent;
+  });
+  assert_equals(response, false, "overlaysContent had no effect");
+}, "virtualKeyboard.overlaysContent");
+</script>
+
+</body>

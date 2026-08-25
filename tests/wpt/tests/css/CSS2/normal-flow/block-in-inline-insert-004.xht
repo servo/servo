@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head>
+    <title>CSS Test: blocks inside inlines &#8211; insert-into-split-inline-4</title>
+    <link rel="author" title="Boris Zbarsky" href="mailto:bzbarsky@mit.edu" />
+    <link rel="author" title="Mozilla Corporation" href="http://mozilla.com/" />
+    <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#anonymous-block-level" />
+    <link rel="match" href="block-in-inline-insert-004-nosplit-ref.xht"/>
+    <meta name="flags" content="dom" />
+  <script type="text/javascript">
+   function doit() {
+     var newNode = document.createElement("span");
+     newNode.appendChild(document.createTextNode("Nine"));
+     document.getElementById("target")
+             .insertBefore(newNode, document.getElementById("insertion"));
+   }
+  </script>
+  <style type="text/css">
+   body &gt; span { border: 3px solid blue }
+  </style>
+ </head>
+ <body onload="doit()">
+  <span id="target"><span>One</span><span>Two</span><span>Three</span><div>Four</div><div>Five</div><span>Six</span><div>Seven</div><div>Eight</div><span id="insertion">Ten</span></span>
+
+
+</body></html>

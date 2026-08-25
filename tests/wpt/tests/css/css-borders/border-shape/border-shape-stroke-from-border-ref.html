@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<title>Reference for border-shape stroke derived from logical border sides</title>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#border-shape">
+<style>
+body {
+  margin: 0;
+}
+.container {
+  display: flex;
+  gap: 32px;
+  padding: 20px;
+}
+.target {
+  width: 120px;
+  height: 120px;
+  overflow: visible;
+  box-sizing: padding-box;
+}
+.case1 {
+  border-width: 18px 10px 4px 6px;
+  border-color: transparent;
+  border-style: solid;
+}
+.case2 {
+  writing-mode: vertical-rl;
+  border-width: 18px 10px 4px 6px;
+  border-color: transparent;
+  border-style: solid;
+}
+.case3 {
+  writing-mode: vertical-rl;
+  border-width: 18px 10px 4px 0px;
+  border-color: transparent;
+  border-style: solid;
+}
+.case4 {
+  writing-mode: vertical-lr;
+  border-width: 18px 10px 4px 0px;
+  border-color: transparent;
+  border-style: solid;
+}
+</style>
+<div class="container">
+  <svg class="target case1" viewBox="0 0 120 120">
+    <circle cx="59" cy="51" r="45" fill="none" stroke="rgb(220, 0, 0)" stroke-width="18"/>
+  </svg>
+  <svg class="target case2" viewBox="0 0 120 120">
+    <circle cx="59" cy="51" r="45" fill="none" stroke="rgb(0, 0, 220)" stroke-width="6"/>
+  </svg>
+  <svg class="target case3" viewBox="0 0 120 120">
+    <circle cx="65" cy="51" r="45" fill="none" stroke="rgb(220, 0, 0)" stroke-width="18"/>
+  </svg>
+  <svg class="target case4" viewBox="0 0 120 120">
+    <circle cx="65" cy="51" r="45" fill="none" stroke="rgb(0, 140, 0)" stroke-width="10"/>
+  </svg>
+</div>
+<div class="container">
+  <svg class="target double-shape case1" viewBox="0 0 120 120">
+    <circle cx="54" cy="42" r="72.5" fill="rgb(220, 0, 0)" stroke="rgb(220, 0, 0)" stroke-width="55"/>
+    <circle cx="64" cy="60" r="45" fill="white"/>
+  </svg>
+  <svg class="target double-shape case2" viewBox="0 0 120 120">
+    <circle cx="54" cy="42" r="72.5" fill="rgb(0, 0, 220)" stroke="rgb(0, 0, 220)" stroke-width="55"/>
+    <circle cx="64" cy="60" r="45" fill="white"/>
+  </svg>
+  <svg class="target double-shape case3" viewBox="0 0 120 120">
+    <circle cx="60" cy="42" r="72.5" fill="rgb(220, 0, 0)" stroke="rgb(220, 0, 0)" stroke-width="55"/>
+    <circle cx="70" cy="60" r="45" fill="white"/>
+  </svg>
+  <svg class="target double-shape case4" viewBox="0 0 120 120">
+    <circle cx="60" cy="42" r="72.5" fill="rgb(0, 140, 0)" stroke="rgb(0, 140, 0)" stroke-width="55"/>
+    <circle cx="70" cy="60" r="45" fill="white"/>
+  </svg>
+</div>

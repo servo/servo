@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+<head>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/input-onmessage.js"></script>
+<script src="../resources/pending-input-utils.js"></script>
+<style>
+.occluding {
+  margin-left: -100px;
+}
+</style>
+</head>
+<body>
+  <iframe src="http://{{hosts[][www1]}}:{{ports[http][0]}}/is-input-pending/resources/blank.html"></iframe>
+  <iframe class="occluding" src="http://{{hosts[][www2]}}:{{ports[http][0]}}/is-input-pending/resources/blank.html"></iframe>
+  <p>Ensure that two overlapping subframes cannot detect events from each other.</p>
+  <script>
+    window.addEventListener('load', () => {
+      PendingInputUtils.testCannotAccessPendingInputAt(window, 280, 10, 'parent cannot detect input on occluding iframe');
+      PendingInputUtils.testCannotAccessPendingInputAt(frames[0], 280, 10, 'occluded iframe cannot detect input on occluding iframe');
+    });
+  </script>
+</body>
+</html>

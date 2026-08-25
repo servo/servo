@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>WebMCP registerTool signal</title>
+<link rel="author" href="mailto:dom@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+const tool = {
+  name: 'empty',
+  description: 'empty',
+  execute: () => {},
+};
+
+promise_test((t) => {
+  const controller = new AbortController();
+  const p = document.modelContext.registerTool(tool, { signal: controller.signal });
+  controller.abort();
+  return promise_rejects_dom(t, 'AbortError', p);
+}, 'register tool promise rejects with AbortError when signal gets aborted');
+
+promise_test((t) => {
+  const controller = new AbortController();
+  const p = document.modelContext.registerTool(tool, { signal: controller.signal });
+  const error = new Error('abort error');
+  controller.abort(error);
+  return promise_rejects_exactly(t, error, p);
+}, 'register tool promise rejects with error when signal gets aborted');
+
+promise_test((t) => {
+  const signal = AbortSignal.abort('aborted');
+  const p = document.modelContext.registerTool(tool, { signal });
+  return promise_rejects_exactly(t, 'aborted', p);
+}, 'register tool promise rejects when signal is already aborted');
+
+promise_test(async (t) => {
+  let tools = await document.modelContext.getTools();
+  assert_equals(tools.length, 0);
+
+  const controller = new AbortController();
+  await document.modelContext.registerTool(tool, { signal: controller.signal });
+
+  tools = await document.modelContext.getTools();
+  assert_equals(tools.length, 1);
+
+  controller.abort();
+  tools = await document.modelContext.getTools();
+  assert_equals(tools.length, 0);
+}, 'aborting signal unregister tool');
+</script>
+</body>
+</html>

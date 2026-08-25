@@ -1,0 +1,170 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>Test cookie value parsing</title>
+    <meta name=help href="https://tools.ietf.org/html/rfc6265#section-5.2">
+    <meta name="timeout" content="long">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script src="/cookies/resources/cookie-test.js"></script>
+  </head>
+  <body>
+    <div id=log></div>
+    <script>
+      // TODO: there is more to test here, these tests capture the old
+      // ported http-state tests. Feel free to delete this comment when more
+      // are added, or these are split up into logical groups.
+      const valueTests = [
+        {
+          cookie: "test=1, baz=qux",
+          expected: "test=1, baz=qux",
+          name: "Set value containing a comma",
+        },
+        {
+          cookie: 'test="2, baz=qux"',
+          expected: 'test="2, baz=qux"',
+          name: "Set quoted value containing a comma",
+        },
+        {
+          cookie: 'test="3zz;pp" ; ;',
+          expected: 'test="3zz',
+          name: "Ignore values after semicolon",
+        },
+        {
+          cookie: 'test="4zz ;',
+          expected: 'test="4zz',
+          name: "Ignore whitespace at the end of value",
+        },
+        {
+          cookie: 'test="5zzz "   "ppp"  ;',
+          expected: 'test="5zzz "   "ppp"',
+          name: "Set value including quotes and whitespace up until semicolon",
+        },
+        {
+          cookie: 'test=6A"B ;',
+          expected: 'test=6A"B',
+          name: "Set value with a single quote excluding whitespace"
+        },
+        {
+          cookie: "test7",
+          expected: "test7",
+          name: "Set nameless cookie to its value",
+        },
+        {
+          cookie: '"test8\"HHH"',
+          expected: '"test8\"HHH"',
+          name: "Set nameless cookie to its value with an escaped quote",
+        },
+        {
+          cookie: 'test="9',
+          expected: 'test="9',
+          name: "Set value with unbalanced leading quote",
+        },
+        {
+          cookie: "=test10",
+          expected: "test10",
+          name: "Set nameless cookie followed by '=' to its value",
+        },
+        {
+          // 4 + 2 + 4090 = 4096
+          cookie: `test=11${"a".repeat(4090)}`,
+          expected: `test=11${"a".repeat(4090)}`,
+          name: "Set cookie with large name + value ( = 4kb)",
+        },
+        {
+          // 4 + 2 + 4091 = 4097
+          cookie: `test=12${"a".repeat(4091)}`,
+          expected: "",
+          name: "Ignore cookie with large name + value ( > 4kb)",
+        },
+        {
+          cookie: `test=13\nZYX`,
+          expected: "test=13",
+          name: "Set cookie but ignore value after LF",
+        },
+        {
+          cookie: 'test="14 "   ;',
+          expected: 'test="14 "',
+          name: "Set cookie ignoring whitespace after value endquote",
+        },
+        {
+          cookie: "test=15    ;",
+          expected: "test=15",
+          name: "Ignore whitespace and ; after value",
+        },
+        {
+          cookie: "test=  16",
+          expected: "test=16",
+          name: "Ignore whitespace preceding value",
+        },
+        {
+          cookie: 'test="17"',
+          expected: 'test="17"',
+          name: "Set cookie with quotes in value",
+        },
+        {
+          cookie: 'test="  18 "',
+          expected: 'test="  18 "',
+          name: "Set cookie keeping whitespace inside quoted value",
+        },
+        {
+          cookie: 'test="19;wow"',
+          expected: 'test="19',
+          name: "Set cookie value ignoring characters after semicolon",
+        },
+        {
+          cookie: 'test="20=20"',
+          expected: 'test="20=20"',
+          name: "Set cookie with another = inside quoted value",
+        },
+        {
+          cookie: "test	=	21	 	;	ttt",
+          expected: "test=21",
+          name: "Set cookie ignoring whitespace surrounding value and characters after first semicolon",
+        },
+        {
+          cookie: ["testA=22", "test22=", "testB=22"],
+          expected: "testA=22; test22=; testB=22",
+          name: "Set valueless cookie, given `Set-Cookie: test22=`",
+        },
+        {
+          cookie: "test=%32%33",
+          expected: "test=%32%33",
+          name: "URL-encoded cookie value is not decoded",
+        },
+        {
+          cookie: "test24==",
+          expected: "test24==",
+          name: "Set cookie with value set to =",
+        },
+        {
+          cookie: 'test=25=25',
+          expected: 'test=25=25',
+          name: "Set cookie with one = inside an unquoted value",
+        },
+        {
+          cookie: 'test=26=26=26',
+          expected: 'test=26=26=26',
+          name: "Set cookie with two = inside an unquoted value",
+        },
+        {
+          cookie: 'test=27 test',
+          expected: 'test=27 test',
+          name: "Set cookie with a space character in the value",
+        },
+        {
+          cookie: ' test test28 ;',
+          expected: 'test test28',
+          name: "Set a nameless cookie with a space character in the value",
+        },
+      ];
+
+      for (const test of valueTests) {
+        httpCookieTest(test.cookie, test.expected, test.name, test.defaultPath);
+      }
+    </script>
+  </body>
+</html>

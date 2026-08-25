@@ -1,0 +1,32 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Test data URL and scripts errors</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+  setup({allow_uncaught_exception:true});
+  async_test(function(t) {
+    var counter = 1
+    window.onerror = t.step_func((message, url, lineno, colno, e) => {
+      // Test that error is not muted as data URLs have a response type of "default"
+      // and errors should only be muted if the response type is "opaque" or "opaqueredirect"
+      assert_not_equals(message, "Script error.")
+      assert_not_equals(url, null);
+      assert_not_equals(url, "");
+      assert_equals(typeof lineno, "number");
+      assert_not_equals(lineno, 0);
+      assert_equals(typeof colno, "number");
+      assert_not_equals(colno, 0);
+      assert_equals(typeof e, "number")
+      assert_equals(e, counter)
+      if (counter == 3) {
+        t.done()
+      }
+      counter++
+    });
+  });
+</script>
+<script src="data:,throw 1"></script>
+<script src="data:,throw 2" crossorigin></script>
+<script src="data:,throw 3" crossorigin=use-credentials></script>

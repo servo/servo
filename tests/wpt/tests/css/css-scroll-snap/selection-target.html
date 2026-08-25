@@ -1,0 +1,49 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>scroll-padding is respected when typing into an out-of-view textfield</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1701928">
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap/#scroll-padding">
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<style>
+  body {
+    margin: 0;
+  }
+  :root {
+    scroll-padding-top: 100px;
+  }
+</style>
+<div style="height: 300vh;"></div>
+<input type="text">
+<div style="height: 300vh;"></div>
+<script>
+function tick() {
+  return new Promise(resolve => {
+    requestAnimationFrame(() => requestAnimationFrame(resolve));
+  });
+}
+
+promise_test(async function() {
+  let input = document.querySelector("input");
+  input.focus();
+  await tick();
+  // Scroll out of view.
+  scrollTo(0, document.scrollingElement.scrollHeight);
+  await tick();
+  assert_not_equals(window.scrollY, 0);
+  assert_true(input.getBoundingClientRect().bottom < 0, "Should be offscreen");
+  // NOTE(emilio): Using test_driver.Actions() instead of test_driver.send_keys
+  // because the later scrolls the target into view which would defeat the
+  // point of the test...
+  await new test_driver.Actions().keyDown('a').send();
+  await tick();
+  // We assert the bottom rather than the top because Gecko scrolls the
+  // selection bounds into view, not the whole input.
+  assert_true(input.getBoundingClientRect().bottom > 100, "Scroll-padding should be respected");
+}, "Test scrolling into view when typing");
+</script>

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>CSS Test (Selectors): :focus-visible matches even if preventDefault() is called</title>
+  <link rel="author" title="Alice Boxhall" href="aboxhall@chromium.org" />
+  <link rel="help" href="https://drafts.csswg.org/selectors-4/#the-focus-visible-pseudo" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <style>
+    @supports not selector(:focus-visible) {
+      #next:focus {
+        outline: red solid 5px;
+        background-color: red;
+      }
+    }
+
+    button {
+      border: 0;
+    }
+
+    :focus-visible {
+      outline: green solid 5px;
+    }
+
+    :focus:not(:focus-visible) {
+      background-color: red;
+      outline: 0;
+    }
+  </style>
+</head>
+<body>
+  This test checks that <code>:focus-visible</code> matches after a keyboard event,
+  even if the event handler calls preventDefault() on the event.
+  <ul id="instructions">
+    <li>Click "Click here and press right arrow.".</li>
+    <li>Press the right arrow key.</li>
+    <li>If the element has a red background, then the test result is FAILURE.
+        If it has a green outline, then the test result is SUCCESS.</li>
+  </ul>
+  <br />
+  <div id="target" tabindex="0">Click here and press right arrow.</div>
+  <script>
+    target.addEventListener("keydown", (e) => {
+      e.preventDefault();
+    });
+    target.addEventListener("keyup", (e) => {
+      e.preventDefault();
+    });
+    target.addEventListener("keypress", (e) => {
+      e.preventDefault();
+    });
+    async_test(function(t) {
+      target.addEventListener("focus", () => {
+        const arrow_right = "\ue014";
+        test_driver.send_keys(target, arrow_right);
+      });
+
+      target.addEventListener("keyup", t.step_func_done((e) => {
+        assert_equals(getComputedStyle(target).outlineColor, "rgb(0, 128, 0)", `outlineColor for ${target.tagName}#${target.id} should be green`);
+        assert_not_equals(getComputedStyle(target).backgroundColor, "rgb(255, 0, 0)", `backgroundColor for ${target.tagName}#${target.id} should NOT be red`);
+      }));
+
+      test_driver.click(target);
+    }, ":focus-visible matches even if preventDefault() is called");
+  </script>
+</body>
+</html>

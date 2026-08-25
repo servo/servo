@@ -1,0 +1,17 @@
+<text>
+<its:rules xmlns:its="http://www.w3.org/2005/11/its" version="2.0">
+<its:param name="termInfoRefPointer">2</its:param>
+<its:termRule selector="//p[@id=$termInfoRefPointer]/term" term="yes" termInfoRefPointer="@target"/>
+</its:rules>
+<p id="1">
+This is a glossary of terms.
+</p>
+<p id="2">
+We may define
+<term target="#TDPV">discoursal point of view</term>
+as
+<gloss xml:id="TDPV">
+the relationship, expressed through discourse structure, between the implied author or some other addresser, and the fiction.
+</gloss>
+</p>
+</text>

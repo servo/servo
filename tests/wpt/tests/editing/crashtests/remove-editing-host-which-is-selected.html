@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script>
+window.onload = () => {
+  let s = window.getSelection()
+  let r = document.createRange()
+  r.selectNode(document.getElementById('b'))
+  s.addRange(r)
+  r = document.createRange()
+  r.selectNode(document.getElementById('a'))
+  s.addRange(r)
+  document.documentElement.innerHTML = ''
+}
+</script>
+<body id='a' contenteditable='true'>
+<canvas tabindex='0'>
+<audio id='b'>

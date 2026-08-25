@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<title>Various test cases producing infinite active duration</title>
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#animation-iteration-count" />
+<script>
+  let effect = new KeyframeEffect(null,
+    { opacity: [0, 1] },
+    { duration: 1, delay: -17592186044416, iterations: Infinity });
+  effect.getComputedTiming();
+
+  // Infinity delay + Infinity active duration
+  effect = new KeyframeEffect(null,
+    { opacity: [0, 1] },
+    { duration: 1, delay: Number.MAX_VALUE, iterations: Infinity });
+  effect.getComputedTiming();
+
+  // Infinity end delay + Infinity active duration
+  effect = new KeyframeEffect(null,
+    { opacity: [0, 1] },
+    { duration: 1, endDelay: Number.MAX_VALUE, iterations: Infinity });
+  effect.getComputedTiming();
+
+  // Infinity delay + Infinity active duration + Infinity end delay
+  effect = new KeyframeEffect(null,
+    { opacity: [0, 1] },
+    { duration: 1,
+      delay: Number.MAX_VALUE, endDelay: Number.MAX_VALUE,
+      iterations: Infinity });
+  effect.getComputedTiming();
+
+  // -Infinity delay + Infinity active duration
+  effect = new KeyframeEffect(null,
+    { opacity: [0, 1] },
+    { duration: 1, delay: -Number.MAX_VALUE, iterations: Infinity });
+  effect.getComputedTiming();
+
+  // -Infinity end delay + Infinity active duration
+  effect = new KeyframeEffect(null,
+    { opacity: [0, 1] },
+    { duration: 1, endDelay: -Number.MAX_VALUE, iterations: Infinity });
+  effect.getComputedTiming();
+
+  // -Infinity delay + Infinity active duration + -Infinity end delay
+  effect = new KeyframeEffect(null,
+    { opacity: [0, 1] },
+    { duration: 1,
+      delay: -Number.MAX_VALUE, endDelay: -Number.MAX_VALUE,
+      iterations: Infinity });
+  effect.getComputedTiming();
+
+  // -Infinity delay + finite active duration
+  effect = new KeyframeEffect(null,
+    { opacity: [0, 1] },
+    { duration: 1, delay: -Number.MAX_VALUE, iterations: 1 });
+  effect.getComputedTiming();
+
+  // -Infinity end delay + finite active duration
+  effect = new KeyframeEffect(null,
+    { opacity: [0, 1] },
+    { duration: 1, endDelay: -Number.MAX_VALUE, iterations: 1 });
+  effect.getComputedTiming();
+
+  // very large iterations
+  effect = new KeyframeEffect(null,
+    { opacity: [0, 1] },
+    { duration: 1, delay: 281474976710655, iterations: 18014398509481984 });
+  effect.getComputedTiming();
+
+</script>

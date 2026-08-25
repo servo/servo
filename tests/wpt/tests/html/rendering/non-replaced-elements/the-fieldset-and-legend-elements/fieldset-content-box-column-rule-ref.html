@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Fieldset anonymous content box inherits column-rule (reference)</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#anonymous-fieldset-content-box">
+<style>
+.container {
+  column-count: 3;
+  column-gap: 20px;
+  column-rule: 5px solid green;
+  width: 300px;
+  margin: 0;
+}
+.item {
+  height: 200px;
+  background: blue;
+}
+</style>
+<p>There should be a 3-column layout with green rules between columns below.</p>
+<div class="container">
+  <div class="item"></div>
+</div>

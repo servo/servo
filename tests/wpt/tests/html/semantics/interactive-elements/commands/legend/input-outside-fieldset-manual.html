@@ -1,0 +1,17 @@
+<!doctype html>
+<title>Input outside fieldset</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../common/accesskey.js></script>
+<p>Press the access key combination for "a". <kbd></kbd></p>
+<fieldset>
+ <legend accesskey=a>legend</legend>
+</fieldset>
+<input onfocus="fail('input outside fieldset was focused')">
+<script>
+ onkeyup = e => {
+   if (e.keyCode === 65) {
+     pass();
+   }
+ }
+</script>

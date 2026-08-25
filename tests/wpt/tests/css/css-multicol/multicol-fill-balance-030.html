@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>Nested balanced multicol with forced break inside overflowed container</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://issues.chromium.org/issues/396176635">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="columns:2; gap:0; column-fill:auto; width:80px; border-right:20px solid green; height:100px; background:red;">
+  <div style="columns:2; gap:0;">
+    <div style="height:40px; background:green;"></div>
+    <div style="height:10px; background:red;">
+      <div style="margin-left:auto; width:50%; height:180px; background:green;">
+        <div style="height:10px; width:100%; margin-left:-100%; background:green;"></div>
+      </div>
+      <div style="break-before:column; height:10px; background:red;"></div>
+    </div>
+    <div style="width:50%; height:250px;">
+      <div style="height:170px; background:green;"></div>
+      <div style="width:200%; height:80px; background:green;"></div>
+    </div>
+    <div style="height:100px; background:green;"></div>
+  </div>
+</div>

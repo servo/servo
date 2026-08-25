@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+
+#changer { height: 1500px; }
+#anchor {
+  width: 150px;
+  height: 4000px;
+  background-color: pink;
+}
+
+</style>
+<div id="changer"></div>
+<div id="anchor"></div>
+<script>
+
+// Test that scroll anchoring interacts correctly with scroll bounds clamping:
+// There should be no visible jump even if the content shrinks such that the
+// new max scroll position is less than the previous scroll position.
+
+test(() => {
+  document.scrollingElement.scrollTop = 1600;
+  document.querySelector("#changer").style.height = "0";
+  assert_equals(document.scrollingElement.scrollTop, 100);
+}, "Anchoring combined with scroll bounds clamping in the document.");
+
+</script>

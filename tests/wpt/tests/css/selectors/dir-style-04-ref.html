@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>dir() selector reference</title>
+    <link rel="author" title="Astley Chen" href="mailto:aschen@mozilla.com">
+    <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+    <style>
+      div { text-align: left; }
+      .ltr { direction: ltr; color: blue; }
+      .rtl { direction: rtl; color: lime; }
+    </style>
+  </head>
+  <body>
+    <div class="ltr">This element is ltr. <span>This span should
+      inherit dir from the parent. <span>This span should inherit dir
+      from the grandparent.</span></span>
+    </div>
+    <div class="rtl">This element is rtl. <span>This span should
+      inherit dir from the parent. <span>This span should inherit dir
+      from the grandparent.</span></span>
+    </div>
+  </body>
+</html>

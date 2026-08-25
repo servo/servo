@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-2/#algo-balance">
+<link rel="match" href="balance-min-line-count-006-ref.html">
+<meta name="assert" content="Tests a large value of flex-line-count, which should be then clamped to the number of items.">
+<style>
+#flex {
+  display: flex;
+  flex-wrap: balance;
+  flex-line-count: 10000;
+  width: 20px;
+  gap: 20px;
+  padding: 20px;
+  border: solid 3px;
+}
+div > div {
+  background: green;
+  width: 20px;
+  height: 20px;
+}
+</style>
+<p>There should be 3 flex-lines.</p>
+<div id="flex">
+  <div></div>
+  <div></div>
+  <div></div>
+</div>

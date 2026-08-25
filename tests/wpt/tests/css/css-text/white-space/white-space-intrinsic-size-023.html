@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Text Test: intrinsic sizing and 'white-space: normal' with Chinese characters</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#line-breaking">
+<link rel="match" href="reference/white-space-intrinsic-size-022-ref.html">
+<meta name="assert" content="
+  The max-content size puts all ideographs on the same line.
+  The min-content size puts every ideograph on a different line.
+">
+
+<div style="width: max-content; border: solid">
+  中文<span>中文</span>
+</div>
+<div style="width: min-content; border: solid">
+  中文<span>中文</span>
+</div>

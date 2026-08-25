@@ -1,0 +1,53 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>Video track src attribute must match src list - positive test</title>
+    <meta http-equiv="Content-Security-Policy" content="script-src * 'unsafe-inline'; media-src 'self' {{domains[www]}}:{{ports[http][0]}};">
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+</head>
+<body>
+    <h1>Video track src attribute must match src list - positive test</h1>
+    <div id='log'></div>
+
+  <script>
+    var source_test = async_test("In-policy track element");
+
+    var trackURL = location.protocol + "//{{domains[www]}}:{{ports[http][0]}}/media/foo.vtt";
+
+    var t_spv = async_test("Should not fire policy violation events");
+    var test_count = 1;
+    window.addEventListener("securitypolicyviolation", t_spv.unreached_func("Should not have fired any event"));
+
+    function media_loaded(t) {
+      t.done();
+      if (--test_count <= 0) {
+        t_spv.done();
+      }
+    }
+
+    function media_error_handler(t) {
+      t.step( function () {
+          assert_unreached("Error handler called for allowed track source.");
+      });
+      t.done();
+    }
+  </script>
+
+    <video id="videoObject" width="320" height="240" controls
+           onloadeddata="media_loaded(source_test)" crossorigin>
+        <source id="audioSourceObject"
+                type="video/webm"
+                src="/media/A4.webm">
+        <track id="trackObject"
+               kind="subtitles"
+               srclang="en"
+               label="English"
+               onerror="media_error_handler(source_test)">
+    </video>
+    <script>
+        document.getElementById("trackObject").src = trackURL;
+    </script>
+
+</body>
+</html>

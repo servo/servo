@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Declarative Fragment: template.content reflects progressive streaming content</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+  const t = async_test("template.content reflects the buffered content progressively while streaming");
+
+  window.onmessage = (event) => {
+    if (event.data && event.data.type === 'test-result') {
+      t.step(() => {
+        assert_true(event.data.passed, event.data.message);
+      });
+      t.done();
+    }
+  };
+</script>
+<iframe src="buffer-streaming-reflection.py" style="width:0; height:0; border:0;"></iframe>
+</body>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>Image with srcset in dynamically created iframe should have non-zero natural dimensions</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+async_test(t => {
+    const iframe = document.createElement('iframe');
+
+    iframe.onload = t.step_func(() => {
+        const doc = iframe.contentDocument;
+
+        doc.body.innerHTML = '<img srcset="/images/green-256x256.png 256w">';
+
+        const image = doc.querySelector('img');
+
+        image.onload = t.step_func_done(() => {
+            assert_greater_than(image.naturalWidth, 0, 'naturalWidth should be greater than 0');
+            assert_greater_than(image.naturalHeight, 0, 'naturalHeight should be greater than 0');
+        });
+
+        image.onerror = t.unreached_func('Image should load successfully');
+    });
+
+    document.body.appendChild(iframe);
+}, 'Image with srcset inserted into a dynamic iframe should have non-zero natural dimensions');
+</script>
+</body>

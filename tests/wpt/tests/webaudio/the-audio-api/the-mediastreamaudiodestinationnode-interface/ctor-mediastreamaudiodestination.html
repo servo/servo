@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>MediaStreamAudioDestinationNode Constructor</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <script>
+      let context;
+
+      test(t => {
+        assert_not_equals(
+            typeof AudioContext, "undefined",
+            "AudioContext should be defined");
+        // Need AudioContext, not OfflineAudioContext, for these tests.
+        context = new AudioContext();
+      }, 'AudioContext can be created without throwing');
+
+      test(t => {
+        assert_throws_js(
+            TypeError,
+            () => {
+              new MediaStreamAudioDestinationNode();
+            },
+            'no arguments throws TypeError');
+
+          assert_throws_js(TypeError, () => {
+            new MediaStreamAudioDestinationNode(1);
+          }, 'invalid context argument throws');
+
+          assert_throws_js(TypeError, () => {
+            new MediaStreamAudioDestinationNode(context, 42);
+          }, 'invalid options argument throws');
+
+      }, 'MediaStreamAudioDestinationNode: invalid constructor cases');
+
+      test(t => {
+        const node = new MediaStreamAudioDestinationNode(context);
+
+        assert_true(node instanceof MediaStreamAudioDestinationNode);
+        assert_equals(node.numberOfInputs, 1);
+        assert_equals(node.numberOfOutputs, 0);
+        assert_equals(node.channelCount, 2);
+        assert_equals(node.channelCountMode, 'explicit');
+        assert_equals(node.channelInterpretation, 'speakers');
+      }, 'MediaStreamAudioDestinationNode: default constructor behavior');
+
+      test(t => {
+        const node = new MediaStreamAudioDestinationNode(context, {
+          // An arbitrary but valid, non-default count for this node.
+          channelCount: 7
+        });
+
+        assert_equals(
+            node.channelCount, 7, 'channelCount should be set to 7');
+        assert_equals(node.channelCountMode, 'explicit');
+        assert_equals(node.channelInterpretation, 'speakers');
+      }, 'MediaStreamAudioDestinationNode applies channelCount from options');
+    </script>
+  </body>
+</html>

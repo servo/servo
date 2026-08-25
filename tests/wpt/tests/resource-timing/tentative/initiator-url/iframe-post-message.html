@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/common/get-host-info.sub.js"></script>
+  <script src="../../resources/test-initiator.js"></script>
+
+  <script src="../../resources/loading-resource-lib.js"></script>
+</head>
+<body>
+  <h1>Description</h1>
+  <p> This test verifies that, for a resource fetched via message handler,
+      the initiator_url points to script that sends the message.
+  </p>
+</body>
+<script>
+
+  const channel = new MessageChannel();
+  const frame = document.createElement("iframe");
+  frame.addEventListener("load", () => {
+    frame.contentWindow.postMessage("port", "*", [channel.port2]);
+  });
+  frame.src = "../../resources/iframe-post-message.html";
+  document.body.appendChild(frame);
+
+  var img = document.createElement("img");
+  document.body.appendChild(img);
+
+  const label = "initiator_url_iframe_postmessage";
+  const resource = "/images/blue.png?"+label;
+  const hostInfo = get_host_info();
+  const expectedInitiatorUrl = hostInfo["ORIGIN"] +
+    "/resource-timing/tentative/initiator-url/iframe-post-message.html";
+
+  channel.port1.onmessage = e => {
+     load_image(label, img);
+  }
+
+ initiator_url_test(resource, expectedInitiatorUrl, resource +
+   " initiatorUrl from iframe postMessage()", resource + " timeout");
+
+</script>

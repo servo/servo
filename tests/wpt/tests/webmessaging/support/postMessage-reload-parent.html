@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+Parent Window (A)
+<script>
+'use strict';
+
+// On reload, we try postMessage to child frame. Its queued global task
+// should not run, given that the document is no longer fully active.
+window.addEventListener('unload', () => {
+  if (window[0]) {
+    window[0].postMessage('foo', '*');
+  }
+});
+
+window.addEventListener("message", () => {
+  parent.window.postMessage("done")
+})
+
+</script>
+<iframe src="./postMessage-reload-child.html"></iframe>
+</body>
+</html>

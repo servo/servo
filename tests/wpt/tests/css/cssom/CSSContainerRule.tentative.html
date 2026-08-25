@@ -1,0 +1,35 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSSContainerRule</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#the-csscontainerrule-interface">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<style id="sheet"></style>
+<script>
+  const kTests = [
+    {
+      rule: "@container name (min-width: 100px) {}",
+      name: "name",
+      query: "(min-width: 100px)",
+    },
+    {
+      rule: "@container (min-width: 100px) {}",
+      name: "",
+      query: "(min-width: 100px)",
+    },
+  ];
+
+  const sheet = document.getElementById("sheet").sheet;
+  for (let { rule, name, query } of kTests) {
+    test(function() {
+      sheet.insertRule(rule, 0);
+      let r = sheet.cssRules[0];
+      assert_true(r instanceof CSSContainerRule);
+      assert_equals(r.containerName, name, "containerName");
+      assert_equals(r.containerQuery, query, "containerQuery");
+      assert_equals(r.conditionText, name ? `${name} ${query}` : query, "conditionText");
+    }, rule)
+  }
+</script>

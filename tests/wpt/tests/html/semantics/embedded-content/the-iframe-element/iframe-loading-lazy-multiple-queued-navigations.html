@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<head>
+  <title>Multiple queued lazy load navigations do not crash the page</title>
+  <link rel="author" title="Dom Farolino" href="mailto:dom@chromium.org">
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/urls-and-fetching.html#lazy-loading-attributes">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+
+<script>
+  const t = async_test('Multiple queued lazy load navigations do not crash ' +
+                       'the page');
+
+  let has_below_viewport_loaded = false;
+
+  window.addEventListener("load", t.step_func(() => {
+    assert_false(has_below_viewport_loaded,
+                "The below_viewport element should not have loaded before " +
+                "window.load().");
+
+    // Queue another lazy load navigation on the iframe. This should not result
+    // in multiple internal intersection observers being created for the iframe
+    // element, but instead should result in only one intersection observer
+    // associated with the iframe element, and the resulting navigation should
+    // be for the latest `src` attribute mutation.
+    const target = document.querySelector('#below_viewport');
+    target.src = 'resources/subframe.html?new-src';
+    target.scrollIntoView();
+  }));
+
+  const below_viewport_iframe_onload = t.step_func_done(() => {
+    const target = document.querySelector('#below_viewport');
+    // We check both of these to ensure that the `src` attribute and actual
+    // navigated resource do not get out-of-sync when navigating to lazy loaded
+    // resources.
+    assert_true(
+      target.src.includes('new-src'),
+      "The iframe's src should be updated to reflect the latest `src` " +
+      "mutation");
+    assert_true(
+      target.contentDocument.location.href.includes('new-src'),
+      'The iframe should be navigated to the resource provided by the latest ' +
+      '`src` mutation');
+  });
+</script>
+
+<body>
+  <div style="height:3000vh;"></div>
+  <iframe id="below_viewport" src="resources/subframe.html?old-src"
+          loading="lazy" width="200px" height="100px"
+          onload="below_viewport_iframe_onload();"></iframe>
+</body>

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<meta charset="utf-8"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/cookies/resources/cookie-helper.sub.js"></script>
+<script>
+  // This test creates a form whose submission GETs the page postToParent.py
+  // (on the specified origin) in a popup window. The popup sends a postMessage
+  // event back to its opener (i.e., here) with the cookies it received, which
+  // we verify against expectedStatus. Then, the test sends a message to the
+  // popup, telling it to reload itself via window.location.reload(). Again,
+  // the popup posts a message back here with the cookies it received. These
+  // cookies are verified against expectedStatusReload.
+  function create_test(origin, target, expectedStatus, expectedStatusReload, title) {
+    promise_test(t => {
+      var value = "" + Math.random();
+      return resetSameSiteCookies(origin, value)
+        .then(_ => {
+          return new Promise((resolve, reject) => {
+            var f = document.createElement('form');
+            f.action = target + "/cookies/resources/postToParent.py";
+            f.target = "_blank";
+            f.method = "GET";
+            f.rel = "opener";
+
+            // If |target| contains a `redir` parameter, extract it, and add it
+            // to the form so it doesn't get dropped in the submission.
+            var url = new URL(f.action);
+            if (url.pathname = "/cookies/rfc6265/resources/redirectWithCORSHeaders.py") {
+              var i = document.createElement("input");
+              i.name = "location";
+              i.value = url.searchParams.get("location");
+              i.type = "hidden";
+              f.appendChild(i);
+            }
+            var reloaded = false;
+            var msgHandler = e => {
+              try {
+                verifySameSiteCookieState(reloaded ? expectedStatusReload : expectedStatus, value, e.data, DomSameSiteStatus.SAME_SITE);
+              } catch (e) {
+                reject(e);
+              }
+
+              if (reloaded) {
+                window.removeEventListener("message", msgHandler);
+                e.source.close();
+                resolve("Popup received the cookie.");
+              } else {
+                reloaded = true;
+                e.source.postMessage("reload", "*");
+              }
+            };
+            window.addEventListener("message", msgHandler);
+            document.body.appendChild(f);
+
+            f.submit();
+          });
+        });
+    }, title);
+  }
+
+  // The reload status is always strictly same-site because this is a site-initiated reload, as opposed to a reload triggered by a user interface element.
+  create_test(SECURE_ORIGIN, SECURE_ORIGIN, SameSiteStatus.STRICT, SameSiteStatus.STRICT, "Reloaded same-host top-level form GETs are strictly same-site");
+  create_test(SECURE_SUBDOMAIN_ORIGIN, SECURE_SUBDOMAIN_ORIGIN, SameSiteStatus.STRICT, SameSiteStatus.STRICT, "Reloaded subdomain top-level form GETs are strictly same-site");
+  create_test(SECURE_CROSS_SITE_ORIGIN, SECURE_CROSS_SITE_ORIGIN, SameSiteStatus.LAX, SameSiteStatus.STRICT, "Reloaded cross-site top-level form GETs are strictly same-site");
+</script>

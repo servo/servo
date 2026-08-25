@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<style>
+  #target {
+    background-color: hotpink;
+    width: 100px;
+    height: 100px;
+    margin: 50px;
+  }
+</style>
+<script>
+window.onload = function(){
+  const effect = new KeyframeEffect(
+      target,
+      [ { "content": "normal" } ],
+      {
+        duration: 1000,
+        iterations: 10,
+        iterationComposite:"accumulate"
+      });
+  const anim = target.animate([]);
+  anim.effect = effect;
+};
+</script>
+<body>
+  <div id="target"></div>
+</body>
+</html>

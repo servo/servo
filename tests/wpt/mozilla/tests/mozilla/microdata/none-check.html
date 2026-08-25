@@ -1,0 +1,48 @@
+<!doctype html>
+<meta charset="utf-8">
+<html>
+
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <title>None check test</title>
+</head>
+
+<body id="body">
+
+  <h1 id="h1">Header H1</h1>
+  <h2 id="h2">Header H2</h2>
+
+  <p id="p">Paragraph</p>
+
+  <form id="form">
+    <input id="input">Input Field in form</input>
+  </form>
+
+  <ul id="ul">
+    <li id="li">Unordered List Item</li>
+  </ul>
+
+  <meta id="meta">Meta Tag</meta>
+
+  <table id="table">Table</table>
+
+  <div id="div">Hi</div>
+
+  <a id="anchor"></a>
+
+</body>
+
+<script>
+  test(function() {
+    // Test all elements
+    var ids = ["body", "h1", "h2", "p", "input", "form", "li", "ul", "meta", "table", "div", "anchor"];
+    for (let id of ids) {
+      var elem = document.getElementById(id);
+      assert_equals(elem.propertyNames(), null, "The method should return null ");
+      assert_equals(elem.itemtypes(), null, "The method should return null ");
+    }
+  });
+</script>
+
+</html>

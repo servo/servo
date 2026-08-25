@@ -1,0 +1,34 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Writing Modes Test: inline replaced element and 'vertical-lr'</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#block-flow" title="3.1 Block Flow Direction: the writing-mode property" />
+  <link rel="match" href="inline-replaced-vrl-002-ref.xht" />
+
+  <meta content="image" name="flags" />
+  <meta content="This test checks that the content of an inline replaced element does not rotate due to the writing mode." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  div
+    {
+      height: 7em;
+      writing-mode: vertical-lr;
+    }
+
+  /* cat.png has an intrinsic height of 99px and an intrinsic width of 98px */
+  ]]></style>
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a cat and if the <strong>cat is not rotated</strong>.</p>
+
+  <div><img src="support/cat.png" alt="Image download support must be enabled" /></div>
+
+ </body>
+</html>

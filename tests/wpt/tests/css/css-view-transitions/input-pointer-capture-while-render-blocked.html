@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: Pointer capture target while rendering is suppressed</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/7797">
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/#document-rendering-suppression-for-view-transitions">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+:root {
+  /* Ensure clicks during the transition fall through the pseudo tree root to
+   * real DOM */
+  view-transition-name: none;
+}
+
+::view-transition {
+  /* Ensure clicks during the transition fall through the pseudo tree root to
+   * real DOM */
+  pointer-events: none;
+  width: 0;
+  height: 0;
+}
+
+::view-transition-group(*) {
+  animation-duration: 30s;
+}
+
+#capturetarget {
+  width: 100px;
+  height: 100px;
+  background: green;
+}
+
+#transition {
+  width: 100px;
+  height: 100px;
+  background: blue;
+  contain: paint;
+  view-transition-name: transitionElement;
+}
+</style>
+
+<div id="capturetarget"></div>
+<div id="transition"></div>
+
+<script>
+const captureTarget = document.getElementById("capturetarget");
+
+function waitForEvent(target, name, condition = () => true) {
+  return new Promise(resolve => {
+    function func(e) {
+      if (condition(e)) {
+        target.removeEventListener(name, func);
+        resolve(e);
+      }
+    }
+    target.addEventListener(name, func);
+  });
+}
+
+promise_test(async t => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
+  assert_true(!!captureTarget, "Sanity check: captureTarget element exists");
+
+  // Need to use a single action to avoid wptrunner implicitly releasing
+  const action = new test_driver.Actions()
+    .setContext(window)
+    .addPointer("mousePointer1", "mouse")
+    .pointerMove(10, 10, { origin: "viewport", sourceName: "mousePointer1" })
+    .pointerDown({ sourceName: "mousePointer1" })
+    // Pause to let the pointerdown handler run: sets capture and starts VT.
+    .pause(100)
+    // While render-blocked, move outside capture target
+    .pointerMove(150, 150, { origin: "viewport", sourceName: "mousePointer1" })
+    // Pause to let cbDone.resolve() run and transition.ready to settle.
+    .pause(100)
+    // After render-blocking, do another move outside capture target
+    .pointerMove(200, 200, { origin: "viewport", sourceName: "mousePointer1" })
+    .pointerUp({ sourceName: "mousePointer1" })
+    .send();
+
+  const eDown = await waitForEvent(document, "pointerdown");
+  assert_equals(eDown.target, captureTarget, "Action should target captureTarget");
+  captureTarget.setPointerCapture(eDown.pointerId);
+
+  const cbDone = Promise.withResolvers();
+  const transition = document.startViewTransition(() => cbDone.promise);
+
+  // Checking for exactly e.clientX==150 might time out
+  const eMove1 = await waitForEvent(document, "pointermove", e => e.clientX > 120);
+  assert_equals(eMove1.target, captureTarget, "Capture is still active during render block");
+
+  cbDone.resolve();
+  await transition.ready;
+
+  const eMove2 = await waitForEvent(document, "pointermove", e => e.clientX > 170);
+  assert_equals(eMove2.target, captureTarget, "Capture is still active after render block");
+
+  await action;
+}, "Input with active pointer capture targets captured element while render-blocked");
+</script>
+</html>

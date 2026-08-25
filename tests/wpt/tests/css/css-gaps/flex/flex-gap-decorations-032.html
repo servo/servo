@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<title>
+    CSS Gap Decorations: flex column and row gaps are painted with orthogonal items.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="match" href="flex-gap-decorations-032-ref.html">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+
+    #flexbox>* {
+        background-color: rgb(96 139 168 / 0.2);
+    }
+
+    #flexbox {
+        display: flex;
+        column-gap: 10px;
+        column-rule: 10px solid red;
+        row-gap: 30px;
+        row-rule: 30px solid blue;
+        height: 130px;
+        width: 230px;
+        flex-wrap: wrap;
+        align-content: center;
+    }
+
+    .items {
+        width: 70px;
+        height: 50px;
+        writing-mode: vertical-rl;
+    }
+</style>
+
+<div id="flexbox">
+    <div class="items">One</div>
+    <div class="items">Two</div>
+    <div class="items">Three</div>
+    <div class="items">Four</div>
+    <div class="items">Five</div>
+    <div class="items">Six</div>
+</div>

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CSS Fonts: font-variant-emoji test</title>
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com"/>
+<link rel="help" href="https://drafts.csswg.org/css-fonts/#font-variant-emoji-prop"/>
+<link rel="match" href="font-variant-emoji-2-ref.html"/>
+<meta name="assert" content="font-variant-emoji sets a default presentation; VS15 (U+FE0E) or VS16 (U+FE0F) override the rendering specified in font-variant-emoji."/>
+<style>
+div { font: 40px/2 serif; }
+</style>
+<body>
+<p>text</p>
+<div style="font-variant-emoji: text">&#x263A; &#x263A;&#xfe0e; &#x263A;&#xfe0f;</div>
+<p>emoji</p>
+<div style="font-variant-emoji: emoji">&#x263A; &#x263A;&#xfe0e; &#x263A;&#xfe0f;</div>
+<p>unicode</p>
+<div style="font-variant-emoji: unicode">&#x263A; &#x263A;&#xfe0e; &#x263A;&#xfe0f;</div>

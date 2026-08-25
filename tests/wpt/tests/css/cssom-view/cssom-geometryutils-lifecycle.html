@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<title>CSSOM View - GeometryUtils lifecycle updates</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#the-geometryutils-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="frame" style="border: 0; margin-left: 10px"
+        srcdoc="<div id='target' style='width:20px;height:20px'></div>"></iframe>
+<div id="locked" style="content-visibility:hidden">
+  <div id="locked-target" style="width:20px;height:20px"></div>
+</div>
+<script>
+promise_test(async () => {
+  await new Promise(resolve => frame.addEventListener("load", resolve,
+                                                       {once: true}));
+  const target = frame.contentDocument.getElementById("target");
+  const initial = target.getBoxQuads({relativeTo: document})[0];
+
+  frame.style.marginLeft = "70px";
+  const moved = target.getBoxQuads({relativeTo: document})[0];
+  assert_approx_equals(moved.p1.x - initial.p1.x, 60, 0.01,
+                       "dirty parent document is updated");
+}, "getBoxQuads() updates a dirty embedding document");
+
+test(() => {
+  const target = document.getElementById("locked-target");
+  target.style.width = "50px";
+  const quad = target.getBoxQuads()[0];
+  assert_approx_equals(quad.p2.x - quad.p1.x, 50, 0.01,
+                       "dirty display-locked subtree is updated");
+}, "getBoxQuads() updates a dirty display-locked subtree");
+
+promise_test(async t => {
+  const stage = document.createElement("div");
+  stage.style.cssText = "position:absolute;left:10px;top:10px";
+  const mover = document.createElement("div");
+  mover.style.transform = "translate(0px, 0px)";
+  const target = document.createElement("div");
+  target.style.cssText = "width:20px;height:20px";
+  mover.appendChild(target);
+  stage.appendChild(mover);
+  document.body.appendChild(stage);
+  t.add_cleanup(() => stage.remove());
+
+  await new Promise(resolve => requestAnimationFrame(
+      () => requestAnimationFrame(resolve)));
+  mover.style.transform = "translate(40px, 25px)";
+
+  const bounds = target.getBoxQuads({relativeTo: stage})[0].getBounds();
+  const rect = target.getBoundingClientRect();
+  const stageRect = stage.getBoundingClientRect();
+  assert_approx_equals(bounds.x, rect.x - stageRect.x, 0.01,
+                       "x coordinate");
+  assert_approx_equals(bounds.y, rect.y - stageRect.y, 0.01,
+                       "y coordinate");
+}, "getBoxQuads() immediately after a transform style update");
+
+test(t => {
+  const sourceLock = document.createElement("div");
+  sourceLock.style.contentVisibility = "hidden";
+  const source = document.createElement("div");
+  source.style.cssText = "width:20px;height:20px";
+  sourceLock.appendChild(source);
+
+  const targetLock = document.createElement("div");
+  targetLock.style.contentVisibility = "hidden";
+  const target = document.createElement("div");
+  target.style.cssText = "width:20px;height:20px";
+  targetLock.appendChild(target);
+
+  document.body.append(sourceLock, targetLock);
+  t.add_cleanup(() => {
+    sourceLock.remove();
+    targetLock.remove();
+  });
+
+  assert_equals(source.getBoxQuads({relativeTo: target}).length, 1);
+}, "getBoxQuads() updates unrelated display-locked endpoints");
+</script>

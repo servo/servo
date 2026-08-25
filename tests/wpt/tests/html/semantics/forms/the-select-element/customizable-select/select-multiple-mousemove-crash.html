@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html class=test-wait>
+<style>select { appearance: base-select; }</style>
+<select></select>
+<script>
+requestAnimationFrame(() => {
+  const select = document.querySelector('select');
+  select.setAttribute('multiple', '');
+  // Renderer rebuild is scheduled but has not happened yet; the renderer is
+  // still the generic base-appearance one rather than RenderListBox.
+  select.dispatchEvent(new MouseEvent('mousemove', {bubbles: true}));
+  document.documentElement.classList.remove('test-wait');
+});
+</script>

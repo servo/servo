@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+  <title>CSS Gap Decorations: repaint when multicol content height changes</title>
+  <link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+  <link rel="match" href="multicol-gap-decorations-repaint-on-content-resize-ref.html">
+  <link rel="author" title="Kevin Babbitt" href="mailto:kbabbitt@microsoft.com">
+  <meta name="assert" content="Gap decorations repaint correctly when multicol content height changes, causing column rule positions to update">
+  <style>
+    .multicol-container {
+      columns: 2;
+      column-fill: auto;
+      column-gap: 20px;
+      width: 160px;
+      height: 50px;
+      background: red;
+      column-rule: 20px solid green;
+    }
+
+    .content {
+      background: green;
+      /* Start at 30px (fits in one column), will change to 100px (overflows
+         into second column). The column rule should repaint at the correct
+         position between the two columns. */
+      height: 30px;
+    }
+  </style>
+</head>
+<body>
+  <p>Test passes if there is a filled green rectangle and <strong>no red</strong>.</p>
+  <div class="multicol-container">
+    <div id="content" class="content"></div>
+  </div>
+  <script>
+    // Use double requestAnimationFrame to ensure style is computed and painted.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        // Change the content height so it overflows into a second column.
+        // The column rule should repaint between the two columns.
+        document.getElementById('content').style.height = '100px';
+        document.documentElement.classList.remove("reftest-wait");
+      });
+    });
+  </script>
+</body>
+</html>

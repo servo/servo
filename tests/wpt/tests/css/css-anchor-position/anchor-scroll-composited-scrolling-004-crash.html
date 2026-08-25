@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<title>Tests that scrolling doesn't crash renderer when scroller's content no longer overflows, and target precedes scroller in DOM</title>
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/">
+
+<style>
+#scroller {
+  margin-top: 200px;
+  height: 200px;
+  overflow-y: scroll;
+}
+
+#anchor {
+  anchor-name: --a;
+}
+
+#spacer {
+  height: 400px;
+}
+
+#target {
+  position: fixed;
+  top: anchor(bottom);
+  left: anchor(left);
+  position-anchor: --a;
+}
+</style>
+
+<div id="target">target</div>
+<div id="scroller">
+  <div id="spacer"></div>
+  <div id="anchor">anchor</div>
+</div>
+
+<script type="module">
+const raf = () => new Promise(resolve => requestAnimationFrame(resolve));
+
+await raf();
+await raf();
+
+spacer.style.height = '0';
+
+document.documentElement.classList.remove('test-wait');
+</script>
+</html>

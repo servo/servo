@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "3.3.5-annotationMotivationImplemented.json",
+  "assertionType": "may",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "passAndContinue",
+  "errorMessage": "motivation key with value from model motivation list not found. Annotation may have zero or more motivations with values drawn from model ontology.",
+  "title": "Implements **_motivation_ key** which has one or more values, each of which is from the **model's list of Motivations** - [model 3.3.5](https://www.w3.org/TR/annotation-model/#motivation-and-purpose)",
+  "description": "True when the Annotation implements motivation key with value(s) drawn from model motivation ontology (Section 3.3.5)",
+  "allOf":
+    [
+    { "$ref": "annotations.json#/definitions/motivationPropertyFound"}
+    ]
+}

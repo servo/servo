@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: set current time</title>
+<link rel="help" href="https://www.w3.org/TR/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<script src="/common/reftest-wait.js"></script>
+<style>
+@keyframes move {
+  from {
+    transform: translate(500px);
+  }
+}
+#target {
+  width: 100px;
+  height: 100px;
+  background: blue;
+  view-transition-name: target;
+  position: relative;
+  left: 100px;
+
+  animation-name: move;
+  animation-duration: 1s;
+  animation-timing-function: linear;
+  animation-play-state: paused;
+}
+</style>
+
+<div id=target></div>
+
+<script>
+function runReference() {
+  document.getAnimations().forEach((animation) => {
+    animation.currentTime = 500;
+  });
+  takeScreenshot();
+}
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runReference));
+</script>
+

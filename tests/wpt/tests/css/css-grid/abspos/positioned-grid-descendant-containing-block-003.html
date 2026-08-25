@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#abspos">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
+<p>Test passes if there is a filled green square.</p>
+<div style="position: relative; display: grid; width: 200px; height: 200px; grid-template-columns: 200px; grid-template-rows: 200px;">
+  <div style="grid-column: 1/2; grid-row: 1/2;">
+    <div style="position: absolute; width: 50%; height: 50%; background: green;"></div>
+  </div>
+</div>

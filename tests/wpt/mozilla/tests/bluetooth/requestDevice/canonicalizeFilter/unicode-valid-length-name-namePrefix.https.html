@@ -1,0 +1,18 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/_mozilla/bluetooth/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+promise_test(() => {
+    // \u2764's UTF-8 representation is 3 bytes long.
+    // 9 chars * 3 bytes/char = 27 bytes
+    let valid_unicode_name = '\u2764'.repeat(9);
+    window.testRunner.setBluetoothMockDataSet(adapter_type.unicode_device);
+    return window.navigator.bluetooth.requestDevice({
+        filters: [{namePrefix: valid_unicode_name}]
+    })
+    .then(device => assert_equals(device.name, valid_unicode_name));
+}, 'A name containing unicode characters whose utf8 length is less than 30 ' +
+   'must not throw an error.');
+</script>

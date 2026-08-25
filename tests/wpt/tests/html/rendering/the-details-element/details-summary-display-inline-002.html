@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: details and summary with all pairwise combinations of 'display: {inline, inline-block, block}'</title>
+<link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="match" href="details-summary-display-inline-002-ref.html">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#the-details-and-summary-elements">
+<meta name="assert" content="The details and summary elements should each be stylable as inline-level boxes">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+  :root { font: 20px/1 Ahem; }
+
+  div.group {
+    /* Logical groupings, floated left to stack horizontally, just to make the
+       best use of our screen real-estate: */
+    border: 1px solid black;
+    float: left;
+  }
+
+  div.container {
+    border: 3px solid gray;
+    margin: 5px;
+    width: max-content;
+
+    /* This should be wide enough to fit 5 Ahem glyphs, but not 6.
+       This lets us make sure that linewrapping works properly when
+       details/summary have inline-flavored display values. */
+    max-width: 5.5em;
+  }
+
+  details {
+    /* Dodgerblue for Details */
+    color: dodgerblue;
+  }
+  summary {
+    /* Hide the disclosure-widget, for easier comparison w/ reference case. */
+    list-style-type: none;
+    /* Salmon for Summary */
+    color: salmon;
+  }
+
+  .inline { display: inline; }
+  .inline-block { display: inline-block; }
+  .block { display: block; }
+</style>
+<!-- details is inline, summary is {inline, inline-block, block}: -->
+<div class="group">
+  <div class="container">
+    X
+    <details class="inline" open>
+      <summary class="inline">XX XX XX</summary>
+      XX XXXX
+    </details>
+  </div>
+  <div class="container">
+    X
+    <details class="inline" open>
+      <summary class="inline-block">XX XX XX</summary>
+      XX XXXX
+    </details>
+  </div>
+  <div class="container">
+    X
+    <details class="inline" open>
+      <summary class="block">XX XX XX</summary>
+      XX XXXX
+    </details>
+  </div>
+</div>
+
+<!-- details is inline-block, summary is {inline, inline-block, block}: -->
+<div class="group">
+  <div class="container">
+    X
+    <details class="inline-block" open>
+      <summary class="inline">XX XX XX</summary>
+      XX XXXX
+    </details>
+  </div>
+  <div class="container">
+    X
+    <details class="inline-block" open>
+      <summary class="inline-block">XX XX XX</summary>
+      XX XXXX
+    </details>
+  </div>
+  <div class="container">
+    X
+    <details class="inline-block" open>
+      <summary class="block">XX XX XX</summary>
+      XX XXXX
+    </details>
+  </div>
+</div>
+
+<!-- details is block, summary is {inline, inline-block, block}: -->
+<div class="group">
+  <div class="container">
+    X
+    <details class="block" open>
+      <summary class="inline">XX XX XX</summary>
+      XX XXXX
+    </details>
+  </div>
+  <div class="container">
+    X
+    <details class="block" open>
+      <summary class="inline-block">XX XX XX</summary>
+      XX XXXX
+    </details>
+  </div>
+  <div class="container">
+    X
+    <details class="block" open>
+      <summary class="block">XX XX XX</summary>
+      XX XXXX
+    </details>
+  </div>
+</div>

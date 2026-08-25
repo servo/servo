@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml"
+	 xmlns:xlink="http://www.w3.org/1999/xlink" width="100px" height="100px">
+<g id="testmeta">
+	<title>CSS Masking: mask with transformed text content</title>
+	<html:link rel="author" title="Dirk Schulze" href="mailto:dschulze@adobe.com"/>
+	<html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#svg-masks"/>
+	<html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#MaskElement"/>
+	<html:link rel="match" href="reference/mask-text-001-ref.svg"/>
+	<html:link rel="stylesheet" href="/fonts/ahem.css"/>
+	<metadata class="flags">svg</metadata>
+	<desc class="assert">The masked target elements get scaled with negative
+	factors. Check if that influences masking. You should see 4 green
+	rectangles with smaller blue rectangles in it in various rotations.</desc>
+</g>
+<mask id="mask">
+	<text fill="#fff" font-family="Ahem" font-size="12px" transform="rotate(90 50 50)" x="50%" y="50%">foobar</text>
+</mask>
+<rect width="100%" height="100%" x="0" y="0" mask="url(#mask)"/>
+</svg>

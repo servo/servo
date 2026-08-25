@@ -1,0 +1,25 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Invalidation after CSS.registerProperty (reference)</title>
+    <style>
+      .failure {
+          background: pink;
+      }
+      #visibility {
+          visibility: hidden;
+      }
+      #display {
+          display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <p>This test PASS if you see no red in the list below.</p>
+    <ul>
+      <li>visibility <span id="visibility" class="failure">FAIL</span></li>
+      <li>display <span id="display" class="failure">FAIL</span></li>
+    </ul>
+  </body>
+</html>

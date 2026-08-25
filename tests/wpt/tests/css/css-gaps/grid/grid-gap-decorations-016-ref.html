@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#lists-repeat">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+  body {
+    margin: 0px;
+  }
+
+  .grid-container {
+    display: grid;
+    grid-gap: 10px;
+    grid-template-columns: repeat(5, 100px);
+    height: 540px;
+    width: 540px;
+  }
+
+  .row-gap {
+    height: 0px;
+    width: 540px;
+    position: absolute;
+  }
+
+  .row-gap1 {
+    border-bottom: 5px dashed red;
+    top: 102.5px;
+  }
+
+  .row-gap2 {
+    border-bottom: 5px groove red;
+    top: 212.5px;
+  }
+
+  .row-gap3 {
+    border-bottom: 5px ridge red;
+    top: 322.5px;
+  }
+
+  .row-gap4 {
+    border-bottom: 5px dashed red;
+    top: 432.5px;
+  }
+
+  .col-gap {
+    width: 0px;
+    height: 540px;
+    position: absolute;
+    top: 0px;
+  }
+
+  .col-gap1 {
+    border-left: 5px solid blue;
+    left: 102.5px;
+  }
+
+  .col-gap2 {
+    border-left: 5px dotted blue;
+    left: 212.5px;
+  }
+
+  .col-gap3 {
+    border-left: 5px double blue;
+    left: 322.5px;
+  }
+
+  .col-gap4 {
+    border-left: 5px solid blue;
+    left: 432.5px;
+  }
+
+  .item {
+    background: gray;
+    opacity: 0.5;
+  }
+</style>
+<div class="grid-container">
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+</div>
+
+<div class="col-gap col-gap1"> </div>
+<div class="col-gap col-gap2"> </div>
+<div class="col-gap col-gap3"> </div>
+<div class="col-gap col-gap4"> </div>
+
+<div class="row-gap row-gap1"> </div>
+<div class="row-gap row-gap2"> </div>
+<div class="row-gap row-gap3"> </div>
+<div class="row-gap row-gap4"> </div>

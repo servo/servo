@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<meta charset="utf-8">
+<title>Element animated with fontSize and fontWeight should not crash</title>
+<link rel="help" href="https://crbug.com/40355872">
+<div id="target">This test passes if it does not crash.</div>
+<script>
+  target.animate([
+    {fontSize: 'large', fontWeight: 'normal'},
+    {fontSize: 'small', fontWeight: 'bold'},
+  ], 1);
+  requestAnimationFrame(() => {
+    document.documentElement.classList.remove('test-wait');
+  });
+</script>
+</html>

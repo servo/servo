@@ -1,0 +1,31 @@
+<!doctype html>
+<html class="test-wait">
+<head>
+<meta charset="utf-8">
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      document.execCommand("delete");
+      document.documentElement.removeAttribute("class");
+    }, 0);
+    document.execCommand("insertImage", false, "x");
+  });
+  document.execCommand("justifyCenter");
+})
+function onError() {
+  document.querySelector("s").before("BEFORE");
+  document.designMode = "on";
+  const img = document.querySelector("img");
+  img.innerHTML = "IMG";
+  getSelection().setBaseAndExtent(document.querySelector("kbd"), 0, img, 1);
+}
+</script>
+</head>
+<body><object onerror="onError()">
+<s>
+<img>
+SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS
+<kbd>
+</kbd></s></object></body>
+</html>

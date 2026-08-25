@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml" width="200" height="200">
+  <title>A symbol with a zero viewBox disables rendering of its referenced content</title>
+  <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/coords.html#ViewBoxAttribute"/>
+  <h:link rel="match" href="viewBox-zero-disables-rendering-ref.svg"/>
+  <h:meta name="assert" content="A symbol whose viewBox has a zero width disables rendering; the instance created by use paints nothing."/>
+  <symbol id="s" viewBox="0 0 0 100"><rect width="100" height="100" fill="green"/></symbol>
+  <use href="#s" x="0" y="0" width="200" height="200"/>
+</svg>

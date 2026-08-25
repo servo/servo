@@ -1,0 +1,24 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Manifest Incubations (https://wicg.github.io/manifest-incubations/)
+
+[Exposed=Window]
+interface BeforeInstallPromptEvent : Event {
+  constructor(DOMString type, optional EventInit eventInitDict = {});
+  Promise<PromptResponseObject> prompt();
+};
+
+dictionary PromptResponseObject {
+  AppBannerPromptOutcome userChoice;
+};
+
+enum AppBannerPromptOutcome {
+  "accepted",
+  "dismissed"
+};
+
+partial interface Window {
+  attribute EventHandler onappinstalled;
+  attribute EventHandler onbeforeinstallprompt;
+};

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/intersection-observer-test-utils.js"></script>
+
+<style>
+body {
+  margin: 0;
+}
+#root {
+  width: 200px;
+  height: 200px;
+  overflow: hidden;
+  border-left: 50px solid yellow;
+  writing-mode: vertical-rl;
+}
+#target {
+  width: 100px;
+  height: 100px;
+  background-color: green;
+}
+</style>
+
+<div id="root">
+  <div id="target" style="width: 100px; height: 100px; transform: translateX(101px)"></div>
+</div>
+
+<script>
+var entries = [];
+
+runTestCycle(function() {
+  var root = document.getElementById('root');
+  var target = document.getElementById('target');
+  var observer = new IntersectionObserver(function(changes) {
+    entries = entries.concat(changes);
+  }, { root: root });
+  observer.observe(target);
+  entries = entries.concat(observer.takeRecords());
+  assert_equals(entries.length, 0, "No initial notifications.");
+  runTestCycle(step0, "First rAF.");
+}, "IntersectionObserver vertical-rl root.");
+
+function step0() {
+  runTestCycle(step1, "Set transform=translateX(50px) on target.");
+  checkLastEntry(entries, 0, [251, 351, 0, 100, 0, 0, 0, 0, 50, 250, 0, 200, false]);
+  target.style.transform = "translateX(50px)";
+}
+
+function step1() {
+  checkLastEntry(entries, 1, [200, 300, 0, 100, 200, 250, 0, 100, 50, 250, 0, 200, true]);
+}
+</script>

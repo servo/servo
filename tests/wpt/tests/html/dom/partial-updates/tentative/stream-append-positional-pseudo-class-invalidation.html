@@ -1,0 +1,81 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>
+  HTML partial updates - positional pseudo class invalidation with streaming
+</title>
+<link rel="help" href="https://github.com/WICG/declarative-partial-updates" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .container {
+    width: 200px;
+    height: 100px;
+    background: green;
+  }
+  span {
+    background: rgb(0, 0, 255);
+  }
+
+  span:empty {
+    background: rgb(255, 192, 203);
+  }
+
+  span:first-child {
+    background: rgb(0, 255, 255);
+  }
+
+  span:nth-child(2) {
+    background: rgb(255, 255, 0);
+  }
+
+  span:last-of-type {
+    background: rgb(0, 128, 0);
+  }
+</style>
+<div class="container">
+  <span>Item</span
+  ><?marker name="content"?>
+</div>
+
+<script>
+  const container = document.querySelector(".container");
+  let updateCount = 0;
+  async function update() {
+    updateCount++;
+    const content =
+      updateCount % 2 === 0 ? "<span></span>" : "<span>Item</span>";
+    const writer = container
+      .streamAppendHTMLUnsafe({ runScripts: true })
+      .getWriter();
+    await writer.write(`
+      <template for=content>${content}<?marker name=content?></template>`);
+    await writer.close();
+  }
+  promise_test(async () => {
+    for (let i = 0; i < 20; ++i) {
+      await update();
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      const spans = container.querySelectorAll("span");
+      for (let j = 0; j < spans.length; ++j) {
+        const span = spans[j];
+        let expectedColor = "rgb(0, 0, 255)"; // blue default
+
+        if (j === spans.length - 1) {
+          expectedColor = "rgb(0, 128, 0)"; // green
+        } else if (j === 0) {
+          expectedColor = "rgb(0, 255, 255)";
+        } else if (j === 1) {
+          expectedColor = "rgb(255, 255, 0)"; // yellow
+        } else if (j > 0 && j % 2 === 0) {
+          expectedColor = "rgb(255, 192, 203)"; // pink
+        }
+
+        assert_equals(
+          getComputedStyle(span).backgroundColor,
+          expectedColor,
+          `Span at index ${j} has wrong style`,
+        );
+      }
+    }
+  }, "");
+</script>

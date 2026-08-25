@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: vertical-rl upright orientation Table Column/Colgroup Ordering</title>
+<link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact">
+<link rel="match" href="table-progression-002-ref.html">
+<meta name="assert" content="This test checks that vertical-rl tables, whether LTR or RTL, order columns top-to-bottom when text-orientation is upright.">
+<link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#block-flow" title="3.1 Block Flow Direction: the 'writing-mode' property">
+<link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#direction" title="2.1 Specifying Directionality: the 'direction' property">
+<link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#text-orientation" title="5.1 Orienting Text: the 'text-orientation' property">
+
+<style>
+  .test {
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+  }
+  [dir=rtl] {
+    direction: rtl;
+  }
+
+  table {
+    border-spacing: 0;
+    border: solid gray;
+    margin: 1em;
+    float: left;
+  }
+  td {
+    width: 1em;
+    height: 1em;
+  }
+
+  .navy { background: navy}
+  .blue { background: blue }
+  .aqua { background: aqua }
+  .teal { background: teal }
+</style>
+
+<p>Test passes if the following patterned boxes all look identical.
+
+<table class="test">
+  <col span=2 class="navy">
+  <col class="blue">
+  <col span=2 class="aqua">
+  <tr><td><td><td><td><td>
+</table>
+<table class="test">
+  <colgroup span=2 class="navy"></colgroup>
+  <colgroup>
+    <col class="blue">
+    <col span=2 class="aqua">
+  </colgroup>
+  <tr><td><td><td><td><td>
+</table>
+
+<table dir=rtl class="test">
+  <col span=2 class="navy">
+  <col class="blue">
+  <col span=2 class="aqua">
+  <tr><td><td><td><td><td>
+</table>
+<table dir=rtl class="test">
+  <colgroup span=2 class="navy"></colgroup>
+  <colgroup>
+    <col class="blue">
+    <col span=2 class="aqua">
+  </colgroup>
+  <tr><td><td><td><td><td>
+</table>
+
+<table class="reference">
+  <tr><td class="navy">
+  <tr><td class="navy">
+  <tr><td class="blue">
+  <tr><td class="aqua">
+  <tr><td class="aqua">
+</table>

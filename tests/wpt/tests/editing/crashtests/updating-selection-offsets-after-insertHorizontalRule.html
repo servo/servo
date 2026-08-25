@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<link rel="help" href="https://github.com/servo/servo/issues/47333">
+<script>
+function main() {
+  window.getSelection().selectAllChildren(div);
+  document.execCommand("removeFormat");
+  document.execCommand("insertHorizontalRule");
+}
+</script>
+<body onload="main()" contenteditable="">
+<div id="div"><b>

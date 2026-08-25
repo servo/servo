@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>
+  resume() on a suspended AudioContext in a hidden iframe rejects and interrupts
+  (media-playback-while-not-visible permission policy)
+</title>
+<link rel="help" href="https://wicg.github.io/iframe-media-pausing/">
+<meta name="variant" content="?origin=same-origin&frame=direct&visibility=display">
+<meta name="variant" content="?origin=same-origin&frame=direct&visibility=visibility">
+<meta name="variant" content="?origin=same-origin&frame=direct&visibility=zero-size">
+<meta name="variant" content="?origin=same-origin&frame=nested&visibility=display">
+<meta name="variant" content="?origin=same-origin&frame=nested&visibility=visibility">
+<meta name="variant" content="?origin=same-origin&frame=nested&visibility=zero-size">
+<meta name="variant" content="?origin=cross-origin&frame=direct&visibility=display">
+<meta name="variant" content="?origin=cross-origin&frame=direct&visibility=visibility">
+<meta name="variant" content="?origin=cross-origin&frame=direct&visibility=zero-size">
+<meta name="variant" content="?origin=cross-origin&frame=nested&visibility=display">
+<meta name="variant" content="?origin=cross-origin&frame=nested&visibility=visibility">
+<meta name="variant" content="?origin=cross-origin&frame=nested&visibility=zero-size">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/media-playback-while-not-visible-utils.js"></script>
+<body>
+<script>
+const SAME_ORIGIN_BASE = new URL('resources/', location.href).href;
+const CROSS_ORIGIN_BASE =
+    'http://{{hosts[alt][]}}:{{ports[http][0]}}/webaudio/the-audio-api/' +
+    'media-playback-while-not-visible-permission-policy/resources/';
+
+const params = new URLSearchParams(location.search);
+const origin = params.get('origin');
+const visibility = params.get('visibility');
+const frame = params.get('frame');
+const base = origin === 'cross-origin' ? CROSS_ORIGIN_BASE : SAME_ORIGIN_BASE;
+
+// Scenario: calling resume() on a suspended AudioContext in a hidden iframe
+// should reject with InvalidStateError and put the AudioContext in the
+// 'interrupted' state. Showing the iframe should then resume it.
+promise_test(
+    async t => {
+      const iframe = await createIframe(t, frame, base);
+      assert_equals(
+          await setUpIframeAudioContextInitialState(t, iframe, 'suspended'),
+          'suspended');
+
+      // Hiding a suspended context should not change its state.
+      let statechange_promise =
+          expectIframeAudioContextStateChangeEvent(t, /*timeout=*/ 500);
+      hideFrame(iframe, visibility);
+      assert_equals(await statechange_promise, 'no state change');
+
+      // resume() on a suspended hidden iframe should reject with
+      // InvalidStateError and put the AudioContext in the 'interrupted' state.
+      statechange_promise = expectIframeAudioContextStateChangeEvent(t);
+      const resume_promise = sendCommandToAudioContext(iframe, 'resume');
+
+      // For cross-origin frames, visibility propagation may take time, so poll
+      // until the AudioContext is interrupted.
+      await t.step_wait(
+          async () => await queryAudioContextState(iframe) === 'interrupted',
+          'waiting for AudioContext to be interrupted after resume');
+      assert_equals(await resume_promise, 'InvalidStateError');
+      assert_equals(await statechange_promise, 'interrupted');
+
+      // Showing the iframe should resume the AudioContext.
+      statechange_promise = expectIframeAudioContextStateChangeEvent(t);
+      showFrame(iframe, visibility);
+      await t.step_wait(
+          async () => await queryAudioContextState(iframe) === 'running',
+          'waiting for AudioContext to resume after show');
+      assert_equals(await statechange_promise, 'running');
+    },
+    `${origin} ${frame}: resume() a suspended AudioContext while its iframe ` +
+        `is hidden (visibility=${visibility})`);
+</script>
+</body>

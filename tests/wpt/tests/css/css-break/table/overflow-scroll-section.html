@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1365306">
+<link rel="help" href="https://www.w3.org/TR/css-overflow-3/#overflow-properties">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="columns:2; column-fill:auto; gap:0; width:100px; height:100px; background:red;">
+  <div style="height:30px; background:green;"></div>
+  <div style="display:table; width:100%;">
+    <!-- The overflow property doesn't apply to table sections. -->
+    <div style="display:table-row-group; overflow:scroll; height:170px; background:green;">
+      <br>
+    </div>
+  </div>
+</div>

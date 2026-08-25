@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>margin-trim: flex-row-shrink</title>
+<link rel="author" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-box-4/#margin-trim-flex">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="content should fill all available space when flex item is larger than the container and the margins are trimmed">
+<style>
+flexbox {
+    display: flex;
+    width: 100px;
+    margin-trim: inline;
+}
+item {
+    display: block;
+    background-color: green;
+    margin-inline: 25px;
+    flex: 0 1 auto;
+    width: 150px;
+    height: 100px;
+}
+</style>
+</head>
+<body>
+<p>Test passes if there is a filled green square.</p>
+<flexbox>
+<item></item>
+</flexbox>
+</body>
+</html>

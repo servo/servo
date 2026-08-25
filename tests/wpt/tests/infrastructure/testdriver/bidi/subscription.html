@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Can subscribe and receive WebDriver BiDi events</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js?feature=bidi"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+    const MAIN_WINDOW_MESSAGE = "1. MAIN WINDOW MESSAGE";
+    const POPUP_MESSAGE = "2. POPUP MESSAGE";
+
+    /** Assert the event is `console.log` with the given message. */
+    function assertLogEvent(event, expected_message) {
+        assert_equals(event.type, "console");
+        assert_equals(event.method, "log");
+        assert_equals(event.args.length, 1);
+        const event_message = event.args[0];
+        assert_equals(event_message.type, "string");
+        assert_equals(event_message.value, expected_message);
+    }
+
+    /** Wait for a given number of log messages. */
+    function waitForLogMessages(count) {
+        return new Promise(resolve => {
+            const events = []
+            test_driver.bidi.log.entry_added.on(event => {
+                events.push(event);
+                if (events.length === count) {
+                    // The order of the events from different browsing contexts
+                    // are not guaranteed, so sort them by the message for
+                    // test consistency.
+                    events.sort((a, b) => a?.args[0]?.value?.localeCompare(
+                        b?.args[0]?.value));
+                    resolve(events);
+                }
+            });
+        });
+    }
+
+    promise_test(async (t) => {
+        // Open a new window.
+        const popup = window.open();
+        t.add_cleanup(() => popup.close());
+
+        const unsubscribe_handle = await test_driver.bidi.log.entry_added.subscribe();
+        t.add_cleanup(async () => await unsubscribe_handle());
+
+        // Add a listener for the log.entryAdded event.
+        const messages_promise = waitForLogMessages(1)
+
+        // The order of the calls matter, as if the subscription does not
+        // isolate events properly, the first invoked event is likely (but not
+        // guaranteed to) be emitted and received first.
+
+        popup.console.log(POPUP_MESSAGE);
+        console.log(MAIN_WINDOW_MESSAGE);
+
+        const events = await messages_promise;
+        assert_equals(events.length, 1);
+        assertLogEvent(events[0], MAIN_WINDOW_MESSAGE)
+    }, "Assert testdriver can subscribe without arguments");
+
+    promise_test(async (t) => {
+        // Open a new window.
+        const popup = window.open();
+        t.add_cleanup(() => popup.close());
+
+        const unsubscribe_handle = await test_driver.bidi.log.entry_added.subscribe(
+            {contexts: [window]});
+        t.add_cleanup(async () => await unsubscribe_handle());
+
+        // Add a listener for the log.entryAdded event.
+        const messages_promise = waitForLogMessages(1)
+
+        // The order of the calls matter, as if the subscription does not
+        // isolate events properly, the first invoked event is likely (but not
+        // guaranteed to) be emitted and received first.
+
+        popup.console.log(POPUP_MESSAGE);
+        console.log(MAIN_WINDOW_MESSAGE);
+
+        const events = await messages_promise;
+        assert_equals(events.length, 1);
+        assertLogEvent(events[0], MAIN_WINDOW_MESSAGE)
+    }, "Assert testdriver can subscribe for current window");
+
+    promise_test(async (t) => {
+        // Open a new window.
+        const popup = window.open();
+        t.add_cleanup(() => popup.close());
+
+        const unsubscribe_handle = await test_driver.bidi.log.entry_added.subscribe(
+            {contexts: [popup]});
+        t.add_cleanup(async () => await unsubscribe_handle());
+
+        // Add a listener for the log.entryAdded event.
+        const messages_promise = waitForLogMessages(1)
+
+        // The order of the calls matter, as if the subscription does not
+        // isolate events properly, the first invoked event is likely (but not
+        // guaranteed to) be emitted and received first.
+
+        console.log(MAIN_WINDOW_MESSAGE);
+        popup.console.log(POPUP_MESSAGE);
+
+        const events = await messages_promise;
+        assert_equals(events.length, 1);
+        // Expect the popup log message.
+        assertLogEvent(events[0], POPUP_MESSAGE)
+    }, "Assert testdriver can subscribe for another window");
+
+    promise_test(async (t) => {
+        // Open a new window.
+        const popup = window.open();
+        t.add_cleanup(() => popup.close());
+
+        const unsubscribe_handle = await test_driver.bidi.log.entry_added.subscribe(
+            {contexts: null});
+        t.add_cleanup(async () => await unsubscribe_handle());
+
+        // Add a listener for the log.entryAdded event.
+        const messages_promise = waitForLogMessages(2)
+
+        // The order of the calls does not matter, as the events will be
+        // sorted by the `waitForLogMessages` helper.
+
+        console.log(MAIN_WINDOW_MESSAGE);
+        popup.console.log(POPUP_MESSAGE);
+
+        // The order of the events is guaranteed by the `waitForLogMessages`
+        // helper.
+        const events = await messages_promise;
+        assert_equals(events.length, 2);
+        assertLogEvent(events[0], MAIN_WINDOW_MESSAGE)
+        assertLogEvent(events[1], POPUP_MESSAGE)
+    }, "Assert testdriver can subscribe globally");
+</script>

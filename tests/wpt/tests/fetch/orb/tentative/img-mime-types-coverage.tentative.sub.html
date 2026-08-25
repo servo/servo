@@ -1,0 +1,126 @@
+<!-- Test verifies that cross-origin, nosniff images are 1) blocked when their
+  MIME type is covered by ORB and 2) allowed otherwise.
+
+  This test is very similar to fetch/orb/img-mime-types-coverage.tentative.sub.html,
+  except that it focuses on MIME types relevant to ORB.
+-->
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+  var passes = [
+    // ORB safelisted MIME-types - i.e. ones covered by:
+    // - https://github.com/annevk/orb
+
+    "text/css",
+    "image/svg+xml",
+
+    // JavaScript MIME types
+    "application/ecmascript",
+    "application/javascript",
+    "application/x-ecmascript",
+    "application/x-javascript",
+    "text/ecmascript",
+    "text/javascript",
+    "text/javascript1.0",
+    "text/javascript1.1",
+    "text/javascript1.2",
+    "text/javascript1.3",
+    "text/javascript1.4",
+    "text/javascript1.5",
+    "text/jscript",
+    "text/livescript",
+    "text/x-ecmascript",
+    "text/x-javascript",
+  ]
+
+  var fails = [
+    // ORB blocklisted MIME-types - i.e. ones covered by:
+    // - https://github.com/annevk/orb
+
+    "text/html",
+
+    // JSON MIME type
+    "application/json",
+    "text/json",
+    "application/ld+json",
+
+    // XML MIME type
+    "text/xml",
+    "application/xml",
+    "application/xhtml+xml",
+
+    "application/dash+xml",
+    "application/gzip",
+    "application/msexcel",
+    "application/mspowerpoint",
+    "application/msword",
+    "application/msword-template",
+    "application/pdf",
+    "application/vnd.apple.mpegurl",
+    "application/vnd.ces-quickpoint",
+    "application/vnd.ces-quicksheet",
+    "application/vnd.ces-quickword",
+    "application/vnd.ms-excel",
+    "application/vnd.ms-excel.sheet.macroenabled.12",
+    "application/vnd.ms-powerpoint",
+    "application/vnd.ms-powerpoint.presentation.macroenabled.12",
+    "application/vnd.ms-word",
+    "application/vnd.ms-word.document.12",
+    "application/vnd.ms-word.document.macroenabled.12",
+    "application/vnd.msword",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "application/vnd.openxmlformats-officedocument.presentationml.template",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.template",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.template",
+    "application/vnd.presentation-openxml",
+    "application/vnd.presentation-openxmlm",
+    "application/vnd.spreadsheet-openxml",
+    "application/vnd.wordprocessing-openxml",
+    "application/x-gzip",
+    "application/x-protobuf",
+    "application/x-protobuffer",
+    "application/zip",
+    "audio/mpegurl",
+    "multipart/byteranges",
+    "multipart/signed",
+    "text/event-stream",
+    "text/csv",
+    "text/vtt",
+]
+
+  const get_url = (mime) => {
+    // www1 is cross-origin, so the HTTP response is ORB-eligible -->
+    url = "http://{{domains[www1]}}:{{ports[http][0]}}"
+    url = url + "/fetch/nosniff/resources/image.py"
+    if (mime != null) {
+      url += "?type=" + encodeURIComponent(mime)
+    }
+    return url
+  }
+
+  passes.forEach(function (mime) {
+    async_test(function (t) {
+      var img = document.createElement("img")
+      img.onerror = t.unreached_func("Unexpected error event")
+      img.onload = t.step_func_done(function () {
+        assert_equals(img.width, 96)
+      })
+      img.src = get_url(mime)
+      document.body.appendChild(img)
+    }, "ORB should allow the response if Content-Type is: '" + mime + "'.  ")
+  })
+
+  fails.forEach(function (mime) {
+    async_test(function (t) {
+      var img = document.createElement("img")
+      img.onerror = t.step_func_done()
+      img.onload = t.unreached_func("Unexpected load event")
+      img.src = get_url(mime)
+      document.body.appendChild(img)
+    }, "ORB should block the response if Content-Type is: '" + mime + "'.  ")
+  })
+</script>
+

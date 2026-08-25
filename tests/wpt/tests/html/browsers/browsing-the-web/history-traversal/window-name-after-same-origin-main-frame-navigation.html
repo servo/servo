@@ -1,0 +1,12 @@
+<!DOCTYPE HTML>
+<title>window.name after a same-origin main frame navigation</title>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<body>
+  <script>
+    var win;
+    async_test(function(t) {
+      win = window.open("support/window-name-after-same-origin-main-frame-navigation-1.sub.html")
+      addEventListener("message", t.step_func_done(e => assert_true(e.data)));
+    }).add_cleanup(() => {if (win) {win.close()}});
+  </script>

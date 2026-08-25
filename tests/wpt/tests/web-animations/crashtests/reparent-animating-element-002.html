@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<title>CSS Test (Animations): Reparenting an element with a web animation on the compositor</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Google" href="http://www.google.com/">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1305487">
+<meta name="assert" content="This should not crash.">
+<!--
+
+The Chromium implementation of <marquee> essentially uses web animations
+underneath.  However, I was unable to make a testcase for this crash
+that uses web animations directly.  Despite that, it still seems worth
+adding this testcase here in WPT.
+
+-->
+
+<style>
+#animate {
+  width: 100px;
+  height: 100px;
+}
+#newparent {
+  display: none;
+}
+</style>
+<marquee id="animate">X</marquee>
+<div id="newparent"></div>
+<script>
+
+let a = document.getElementById("animate");
+
+requestAnimationFrame(function() {
+  // use setTimeout because the crash doesn't happen if we do this inside
+  // a requestAnimationFrame callback
+  setTimeout(function() {
+    a.remove();
+    document.getElementById("newparent").appendChild(a);
+    requestAnimationFrame(function() {
+      document.documentElement.classList.remove("test-wait");
+    });
+  }, 0);
+});
+
+</script>

@@ -1,0 +1,29 @@
+<!doctype html>
+<title>Historical Web Audio API features</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+[
+  "webkitAudioContext",
+  "webkitAudioPannerNode",
+  "webkitOfflineAudioContext",
+].forEach(name => {
+  test(function() {
+    assert_false(name in window);
+  }, name + " interface should not exist");
+});
+
+[
+  "dopplerFactor",
+  "speedOfSound",
+  "setVelocity"
+].forEach(name => {
+  test(function() {
+    assert_false(name in AudioListener.prototype);
+  }, name + " member should not exist on the AudioListener.");
+});
+
+test(function() {
+  assert_false("setVelocity" in PannerNode.prototype);
+}, "setVelocity should not exist on PannerNodes.");
+</script>

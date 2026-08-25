@@ -1,0 +1,16 @@
+rules:
+- scrollbar-gutter-*: [scrollbar-gutter]
+- overflow-overlay.html: [overflow-overlay, overflow-shorthand]
+- overflow-clip-margin-*: [overflow-clip-margin]
+- overflow-no-interpolation.html: [overflow-clip-margin] # depends on transition-behavior
+- paint-containment-svg.html: [overflow-clip-margin]
+- clip-*: [overflow-clip]
+- overflow-clip-*: [overflow-clip]
+- dynamic-visible-to-clip-001.html: [overflow-clip]
+- rounded-overflow-clip-visible.html: [overflow-clip]
+- overflow-auto-scrollbar-gutter-intrinsic-*: []
+- overflow-scroll-*: []
+- overflow-ellipsis-dynamic-001.html: [text-overflow]
+- overflow-*: [overflow-shorthand]
+- column-*: [column-pseudo]
+- text-overflow-*: [text-overflow]

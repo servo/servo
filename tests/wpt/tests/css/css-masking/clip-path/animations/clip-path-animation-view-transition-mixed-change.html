@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.csswg.org/css-shapes-1/#basic-shape-interpolation">
+<link rel="match" href="clip-path-animation-view-transition-mixed-change-ref.html">
+<meta name="fuzzy" content="maxDifference=0-3; totalPixels=0-300">
+<style>
+  :root {
+    --size: 200px;
+  }
+
+  #vt-scope {
+    width: var(--size);
+    height: var(--size);
+    display: flex;
+    flex-direction: column;
+  }
+
+  #vt-scope.big {
+    --size: 300px !important;
+  }
+
+  #vt-scope::view-transition-group(target) {
+    animation: reveal 10s steps(1, jump-start);
+  }
+
+  #target {
+    view-transition-name: target;
+    width: 100px;
+    height: 100px;
+    position: absolute;
+    background: green;
+    align-self: flex-start;
+  }
+
+  @keyframes reveal {
+    from {
+      clip-path: inset(10px);
+      transform: translateX(0px);
+    }
+    to {
+      clip-path: inset(30px);
+      transform: translateX(calc(var(--size, 0px) / 2));
+    }
+  }
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="/web-animations/resources/timing-utils.js"></script>
+
+<body>
+  <div id="vt-scope">
+    <div id="target"></div>
+  </div>
+
+  <script>
+    failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+    async function runTest() {
+      await waitForCompositorReady();
+
+      let transition = document.querySelector("#vt-scope").startViewTransition(() => {
+        document.querySelector('#vt-scope').style.alignSelf = 'flex-end';
+      });
+
+      await transition.ready;
+      await waitForAllAnimations(document.getAnimations());
+
+      document.querySelector('#vt-scope').classList.toggle('big');
+
+      takeScreenshot();
+    }
+
+    onload = runTest;
+  </script>
+</body>
+</html>

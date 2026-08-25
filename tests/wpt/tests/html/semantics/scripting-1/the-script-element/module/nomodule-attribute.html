@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>The 'nomodule' attribute</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+    window.log = [];
+
+    const test_load = async_test(
+        "Test that 'nomodule' has the desired effect on classic scripts, but " +
+        "no effect on module scripts.");
+    window.addEventListener("load", test_load.step_func_done(ev => {
+      assert_array_equals(log, [undefined]);
+    }));
+
+</script>
+<script type="module" src="this.js" nomodule></script>
+<script src="this.js" nomodule></script>

@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/5713">
+<meta name="assert" content="If stretch alignment is applied to both axis the aspect-ratio of a replaced element is ignored.">
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div style="display: grid; grid-template: 100px / 100px; width: 100px; height: 100px; background: red;">
+  <img src="support/25x50-green.png" width=25 height=50 style="background: green; align-self: stretch; justify-self: stretch; width: auto; height: auto;"></img>
+</div>

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-break-3/#box-splitting">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="columns:5; gap:0; column-fill:auto; width:100px; height:100px; background:red;">
+  <div style="display:table; border:solid green; border-width:10px 0; width:100%;">
+    <div style="display:table-caption;">
+      <div style="height:150px; background:green;"></div>
+    </div>
+    <div>
+      <div style="height:180px; background:green;"></div>
+    </div>
+    <div style="display:table-caption; caption-side:bottom;">
+      <div style="height:150px; background:green;"></div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>Move the fullscreen element to an inactive document</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../trusted-click.js"></script>
+<div></div>
+<script>
+  promise_test(async (t) => {
+    t.add_cleanup(() => {
+      if (document.fullscreenElement) {
+        return document.exitFullscreen();
+      }
+    });
+    const div = document.querySelector("div");
+
+    // Go fullscreen...
+    await Promise.all([trusted_request(div), fullScreenChange()]);
+
+    const inactiveDocument = document.implementation.createDocument(null, "");
+
+    div.onfullscreenchange = t.unreached_func(
+      "fullscreenchange fired on element"
+    );
+    inactiveDocument.onfullscreenchange = t.unreached_func(
+      "fullscreenchange fired on other document"
+    );
+
+    // Transplant element to inactive document...
+    inactiveDocument.appendChild(div);
+
+    // Fullscreen exits...
+    await fullScreenChange();
+    // Make sure no other events fire...
+    await new Promise((resolve) => {
+      requestAnimationFrame(resolve);
+    });
+  });
+</script>

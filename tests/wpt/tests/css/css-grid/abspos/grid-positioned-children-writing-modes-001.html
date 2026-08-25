@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Grid positioned children writing modes</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#abspos" title="9. Absolute Positioning">
+<link rel="match" href="grid-positioned-children-writing-modes-001-ref.html">
+<meta name="assert" content="This test checks the behavior of the positioned grid children in combination with the writing modes and text direction properties.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<link rel="stylesheet" href="/css/support/grid.css">
+<style>
+
+.grid {
+  margin: 5px;
+  width: 100px;
+  height: 75px;
+  grid: 20px / 30px;
+  padding: 5px 10px 15px 20px;
+  border-style: solid;
+  border-width: 5px 10px 15px 20px;
+  float: left;
+  /* Ensures that the grid container is the containing block of the grid children. */
+  position: relative;
+}
+
+.absolute {
+  position: absolute;
+}
+
+.onlyFirstRowOnlyFirstColumn {
+  background-color: green;
+  grid-column: 1 / 2;
+  grid-row: 1 / 2;
+}
+
+.offsets {
+  left: 0;
+  top: 0;
+}
+
+.red {
+  background-color: red;
+}
+
+</style>
+
+<p>For the test to pass you should see no red and only green boxes. The black box will be positioned depending on the writing mode and text direction values.</p>
+
+<div class="grid">
+  <div class="red"></div>
+  <div class="sizedToGridArea absolute onlyFirstRowOnlyFirstColumn">XX</div>
+</div>
+
+<div class="grid verticalRL">
+  <div class="red"></div>
+  <div class="sizedToGridArea absolute onlyFirstRowOnlyFirstColumn">XX</div>
+</div>
+
+<div class="grid verticalLR">
+  <div class="red"></div>
+  <div class="sizedToGridArea absolute onlyFirstRowOnlyFirstColumn">XX</div>
+</div>
+
+<div class="grid directionRTL">
+  <div class="red"></div>
+  <div class="sizedToGridArea absolute onlyFirstRowOnlyFirstColumn">XX</div>
+</div>
+
+<div class="grid verticalRL directionRTL">
+  <div class="red"></div>
+  <div class="sizedToGridArea absolute onlyFirstRowOnlyFirstColumn">XX</div>
+</div>
+
+<div class="grid verticalLR directionRTL">
+  <div class="red"></div>
+  <div class="sizedToGridArea absolute onlyFirstRowOnlyFirstColumn">XX</div>
+</div>
+
+<div class="grid">
+  <div class="red"></div>
+  <div class="sizedToGridArea absolute offsets onlyFirstRowOnlyFirstColumn">XX</div>
+</div>
+
+<div class="grid verticalRL">
+  <div class="red"></div>
+  <div class="sizedToGridArea absolute offsets onlyFirstRowOnlyFirstColumn">XX</div>
+</div>
+
+<div class="grid verticalLR">
+  <div class="red"></div>
+  <div class="sizedToGridArea absolute offsets onlyFirstRowOnlyFirstColumn">XX</div>
+</div>
+
+<div class="grid directionRTL">
+  <div class="red"></div>
+  <div class="sizedToGridArea absolute offsets onlyFirstRowOnlyFirstColumn">XX</div>
+</div>
+
+<div class="grid verticalRL directionRTL">
+  <div class="red"></div>
+  <div class="sizedToGridArea absolute offsets onlyFirstRowOnlyFirstColumn">XX</div>
+</div>
+
+<div class="grid verticalLR directionRTL">
+  <div class="red"></div>
+  <div class="sizedToGridArea absolute offsets onlyFirstRowOnlyFirstColumn">XX</div>
+</div>

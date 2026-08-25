@@ -1,0 +1,39 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Compound selectors only match if all simples do</title>
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#featureless">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
+<p>Test passes if there is a filled green square.</p>
+<div class=host>
+    <template shadowrootmode="open">
+      <style>
+        div {
+          width: 100px;
+          height: 25px;
+        }
+        .red { background-color: red; }
+        .green { background-color: green; }
+
+        /* Make sure a compound selector can match it */
+        :host:host .t1 {
+          background-color: green;
+        }
+        /* Make sure various compounds *can't* match it */
+        div:host > .t2 {
+          background-color: red;
+        }
+        :host.host > .t3 {
+          background-color: red;
+        }
+        *:host > .t4 {
+          background-color: red;
+        }
+      </style>
+      <div class="red t1"></div>
+      <div class="green t2"></div>
+      <div class="green t3"></div>
+      <div class="green t4"></div>
+      <slot></slot>
+    </template>
+    <section></section>
+</div>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-range-getboundingclientrect">
+<link rel="author" title="Peng Zhou" href="mailto:zhoupeng.1996@bytedance.com">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+div[contenteditable] {
+  white-space: pre;
+  font: 10px/1 Ahem;
+  width: 10ch;
+}
+</style>
+<body>
+<div contenteditable></div>
+<script>
+function getBoundingClientRect(node, offset) {
+  const range = document.createRange();
+  range.setStart(node, offset);
+  range.setEnd(node, offset);
+  const rect = range.getBoundingClientRect();
+  return rect;
+}
+
+test(function() {
+  const editable = document.querySelector('div[contenteditable]');
+  editable.innerHTML = '123456\n789012';
+  const rect0 = getBoundingClientRect(editable.firstChild, 0);
+  const rect6 = getBoundingClientRect(editable.firstChild, 6);
+  const rect7 = getBoundingClientRect(editable.firstChild, 7);
+  assert_equals(rect0.x, rect7.x);
+  assert_greater_than(rect6.x, rect7.x);
+  assert_equals(rect0.y, rect6.y);
+  assert_less_than(rect6.y, rect7.y);
+}, 'Range.getBoundingClientRect() should return the first position of the next line when the collapsed range is a newline character');
+</script>
+</body>

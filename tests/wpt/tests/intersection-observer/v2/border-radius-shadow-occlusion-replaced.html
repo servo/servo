@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  body {
+    margin: 0;
+  }
+  #target {
+    position: absolute;
+    left: 100px;
+    top: 100px;
+    width: 100px;
+    height: 100px;
+    background: red;
+  }
+  #occluder {
+    position: absolute;
+    left: -20px;
+    top: 100px;
+    width: 100px;
+    height: 100px;
+    border-radius: 1px;
+    box-shadow: 120px 0px 0px black;
+    background: blue;
+  }
+</style>
+<div id="target"></div>
+<canvas id="occluder"></canvas>
+
+<script>
+  setup({ single_test: true });
+  const target = document.getElementById("target");
+  new IntersectionObserver(entries => {
+    // The target should be occluded by the box-shadow of the occluder.
+    assert_false(entries[0].isVisible);
+    done();
+  }, {trackVisibility: true, delay: 100}).observe(target);
+</script>

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>CSS Cascade Layers: important 'revert-layer' from the style attribute to other style sheets</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-5/#revert-layer">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<link rel="match" href="reference/ref-filled-green-100px-square.xht">
+
+<style>
+#target {
+  width: 100px;
+  height: 100px;
+  background-color: green !important;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="target" style="background-color: red !important; background-color: revert-layer !important"></div>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>Spacebar and enter keys in text input should not cause a click event</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+
+<input id="target">
+
+<script>
+promise_test(async test => {
+    target.focus();
+
+    let eventWatcher = new EventWatcher(test, target, ["keydown", "keyup", "click"]);
+    let eventPromise = eventWatcher.wait_for(["keydown", "keyup", "keydown", "keyup"]);
+    await test_driver.send_keys(document.body, " ");
+    await test_driver.send_keys(document.body, " ");
+    await eventPromise;
+
+    let enterKey = "\uE007";
+    let eventPromise2 = eventWatcher.wait_for(["keydown", "keyup", "keydown", "keyup"]);
+    await test_driver.send_keys(document.body, enterKey);
+    await test_driver.send_keys(document.body, enterKey);
+    await eventPromise2;
+});
+</script>

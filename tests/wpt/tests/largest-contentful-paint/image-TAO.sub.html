@@ -1,0 +1,59 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Largest Contentful Paint: observe cross origin images with various Timing-Allow-Origin headers</title>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/largest-contentful-paint-helpers.js"></script>
+<div id='my_div'></div>
+<script>
+  setup({"hide_test_state": true});
+  async_test(t => {
+    assert_implements(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
+    const remote_img = 'http://{{domains[www]}}:{{ports[http][1]}}/element-timing/resources/TAOImage.py?'
+        + 'origin=' + window.location.origin +'&tao=';
+    const valid_tao = ['wildcard', 'origin', 'multi', 'multi_wildcard', 'match_origin', 'match_wildcard'];
+    const invalid_tao = ['null', 'space', 'uppercase'];
+    const div = document.getElementById('my_div');
+    let img_length = 20;
+    function addImage(tao) {
+      const img = document.createElement('img');
+      img.src = remote_img + tao;
+      img.id = tao;
+      // Set increasing size so that largest-contentful-paint captures all of them.
+      img_length++;
+      img.height = img_length;
+      img.width = img_length;
+      div.appendChild(img);
+    }
+    let img_count = 0;
+    const total_images = valid_tao.length + invalid_tao.length;
+    let beforeLoad;
+    new PerformanceObserver(
+      t.step_func(entryList => {
+        assert_equals(entryList.getEntries().length, 1);
+        const entry = entryList.getEntries()[0];
+        const tao = entry.id;
+        const url = remote_img + tao;
+        const size = img_length * img_length;
+        let options = valid_tao.includes(tao) ? [] : ['renderTimeIs0'];
+        checkImage(entry, url, tao, size, beforeLoad, options);
+        img_count++;
+        beforeLoad = performance.now();
+        // Process valid TAO images first.
+        if (img_count < valid_tao.length)
+          addImage(valid_tao[img_count]);
+        // Then add invalid TAO images.
+        else if (img_count < total_images)
+          addImage(invalid_tao[img_count - valid_tao.length]);
+        // Once we've seen all the images, end the test.
+        else
+          t.done();
+      })
+    ).observe({type: 'largest-contentful-paint'});
+    // Add first image, the rest will be added on each observer callback.
+    addImage(valid_tao[0]);
+    beforeLoad = performance.now();
+  }, 'Cross-origin elements with valid TAO have correct renderTime, with invalid TAO have renderTime set to 0.');
+</script>
+</body>

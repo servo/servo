@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>
+  CSS Values: trigonometric function with a runtime-dependent angle argument in
+  a gradient position
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#tree-counting">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#trig-funcs">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #target {
+    background: radial-gradient(at
+      calc(50% + 100px*cos(calc(1turn*calc((sibling-index() + 2)/sibling-count()))))
+      50%, #000, #fff);
+  }
+</style>
+
+<div><div></div><div></div><div></div><div id="target"></div></div>
+
+<script>
+test(() => {
+  assert_equals(
+      getComputedStyle(document.getElementById("target")).backgroundImage,
+      "radial-gradient(at calc(50% - 100px) 50%, rgb(0, 0, 0), rgb(255, 255, 255))");
+}, "cos() with a runtime-dependent angle argument resolves in a gradient position");
+</script>

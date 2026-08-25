@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<title>Ensures content delivered with Content-Type: text/plain header is not prefetched</title>
+<!-- Regression test for https://crbug.com/1160665 -->
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/preload/resources/preload_helper.js"></script>
+<body>
+    <script>
+        setup({single_test: true});
+        window.addEventListener("load", function() {
+            verifyPreloadAndRTSupport();
+            // This test works by loading a text/plain iframe containing a <script> tag.
+            // It then injects some post-load JavaScript to serialize the Performance API
+            // data and pass it back to this document.
+            var prefetchingIframe = document.getElementById('prefetching-frame');
+            window.addEventListener("message", function(msg) {
+                // Parse the Performance API data passed from the plain text iframe.
+                const entries = JSON.parse(msg.data);
+                const resource_types = [];
+                for (const entry of entries) {
+                    resource_types.push(entry.entryType);
+                }
+                // If preloading is working correctly, should only see the text document
+                // represented in the performance information. A 'resource' type indicates
+                // that we've prefetched something.
+                let resource_found = false;
+                for (const t of resource_types) {
+                    if (t == "resource") {
+                        resource_found = true;
+                        break;
+                    }
+                }
+                assert_false(resource_found, "no resources should be present");
+                done();
+            });
+            prefetchingIframe.addEventListener('load', function() {
+                // Pass performance API info back to this document, process in above event handler.
+                const passMsg = 'parent.postMessage(JSON.stringify(performance.getEntries()));';
+                prefetchingIframe.contentWindow.eval(passMsg);
+            });
+            // Start the iframe load.
+            prefetchingIframe.src = "avoid-prefetching-on-text-plain-inner.html";
+        });
+    </script>
+
+    <iframe id="prefetching-frame"></iframe>
+</body>

@@ -1,0 +1,38 @@
+<!doctype html>
+<title>@starting-style: parsing</title>
+<link rel="help" href="https://drafts.csswg.org/css-transitions-2/#at-ruledef-starting-style">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<main id=main></main>
+<script>
+  function test_valid(actual, expected) {
+    if (expected === undefined)
+      expected = actual;
+    test(t => {
+      t.add_cleanup(() => main.replaceChildren());
+      let style = document.createElement('style');
+      style.textContent = `${actual}{}`;
+      main.append(style);
+      assert_equals(style.sheet.rules.length, 1);
+      let rule = style.sheet.rules[0];
+      assert_equals(rule.cssText, `${expected} {\n}`);
+    }, `${actual} is valid`);
+  }
+
+  function test_invalid(actual) {
+    test(t => {
+      t.add_cleanup(() => main.replaceChildren());
+      let style = document.createElement('style');
+      style.textContent = `${actual}{}`;
+      main.append(style);
+      assert_equals(style.sheet.rules.length, 0);
+    }, `${actual} is not valid`);
+  }
+
+  test_valid('@starting-style');
+
+  test_invalid('@starting-style div');
+  test_invalid('@starting-style ()');
+  test_invalid('@starting-style ( {}');
+  test_invalid('@starting-style }');
+</script>

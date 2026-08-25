@@ -1,0 +1,31 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>Namespaced attribute selectors</title>
+  <style type="text/css"><![CDATA[
+ @namespace url(http://css.example.net/);
+ tests, tests * { display: block; color: green; }
+ testA[|attribute] { color: red; }
+ testB[|attribute="fail"] { color: red; }
+ testC[|attribute~="fail"] { color: red; }
+ testD[|attribute^="fail"] { color: red; }
+ testE[|attribute*="fail"] { color: red; }
+ testF[|attribute$="fail"] { color: red; }
+ testG[|attribute|="fail"] { color: red; }
+]]></style>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+  <link rel="match" href="reference/seven-green-divs.xht"/>
+  <meta name="flags" content=" namespace" />
+ </head>
+ <body>
+  <tests xmlns="http://css.example.net/" xmlns:test="http://css.example.net/">
+   <testA test:attribute="fail">This should be green.</testA>
+   <testB test:attribute="fail">This should be green.</testB>
+   <testC test:attribute="fail">This should be green.</testC>
+   <testD test:attribute="fail">This should be green.</testD>
+   <testE test:attribute="fail">This should be green.</testE>
+   <testF test:attribute="fail">This should be green.</testF>
+   <testG test:attribute="fail">This should be green.</testG>
+  </tests>
+</body>
+</html>

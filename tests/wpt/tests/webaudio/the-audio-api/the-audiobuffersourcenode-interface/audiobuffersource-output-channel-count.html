@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      AudioBufferSourceNode output channel count follows actively-processing state
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/webaudio/resources/audit-util.js"></script>
+  </head>
+  <body>
+    <script>
+      // Two spec rules together determine an AudioBufferSourceNode's output
+      // channel count.
+      //
+      // https://webaudio.github.io/web-audio-api/#AudioNode-actively-processing
+      //   "An AudioScheduledSourceNode is actively processing if and only if it
+      //    is playing for at least part of the current rendering quantum."
+      //   "AudioNodes that are not actively processing output a single channel
+      //    of silence."
+      //
+      // https://webaudio.github.io/web-audio-api/#AudioBufferSourceNode
+      //   "The number of channels of the output equals the number of channels
+      //    of the AudioBuffer assigned to the buffer attribute, or is one
+      //    channel of silence if buffer is null."
+      //
+      // So the output is one channel whenever the node is not playing, or is
+      // playing with a null buffer, and equals the buffer's channel count only
+      // while actually playing.
+      //
+      // MEASUREMENT
+      //
+      // Output channel count is not observable from JS, so it is measured
+      // indirectly. A mono ConstantSourceNode and the AudioBufferSourceNode
+      // under test both feed a GainNode with channelCountMode "max" and
+      // channelInterpretation "discrete". The gain node's channel count is the
+      // larger of its inputs' counts, and discrete up-mixing sums only the
+      // channels that exist rather than duplicating mono into both.
+      //
+      //   source contributes 1 channel -> gain is mono -> the destination
+      //       up-mixes that mono sum with "speakers", so channel 1 carries the
+      //       constant's value of 1.
+      //   source contributes 2 channels -> gain is stereo -> the mono constant
+      //       is summed discretely into channel 0 only, so channel 1 reads 0.
+      //
+      // The test buffer is stereo with a non-zero channel 0 and a silent
+      // channel 1. Channel 1 must stay silent so it does not pollute the
+      // reading; channel 0 must not, so that the node is never mistaken for a
+      // silent input by a channel-count optimization.
+
+      const sampleRate = 8000;
+      const renderQuantum = RENDER_QUANTUM_FRAMES;
+      const renderQuanta = 10;
+      const renderLength = renderQuanta * renderQuantum;
+
+      // Playback spans exactly three render quanta, so the collapse back to one
+      // channel is expected at quantum 3.
+      const bufferQuanta = 3;
+      const bufferFrames = bufferQuanta * renderQuantum;
+
+      function testBuffer(context) {
+        const buffer = new AudioBuffer({
+          numberOfChannels: 2,
+          length: bufferFrames,
+          sampleRate: context.sampleRate
+        });
+        buffer.getChannelData(0).fill(1);
+        // Channel 1 is deliberately left silent.
+        return buffer;
+      }
+
+      function renderWithSource(configureSource) {
+        const context = new OfflineAudioContext(2, renderLength, sampleRate);
+
+        const source = new AudioBufferSourceNode(context);
+        const constant = new ConstantSourceNode(context, {offset: 1});
+
+        const gain = new GainNode(context);
+        gain.channelCountMode = 'max';
+        gain.channelInterpretation = 'discrete';
+
+        source.connect(gain);
+        constant.connect(gain);
+        gain.connect(context.destination);
+
+        constant.start();
+        configureSource(context, source);
+
+        return context.startRendering();
+      }
+
+      // The number of channels the source contributed during each render
+      // quantum. Sampled mid-quantum, since the count can only change on a
+      // quantum boundary.
+      function channelCountPerQuantum(renderedBuffer) {
+        const channel1 = renderedBuffer.getChannelData(1);
+        const counts = [];
+        for (let q = 0; q < renderQuanta; ++q)
+          counts.push(channel1[q * renderQuantum + renderQuantum / 2] === 0 ? 2 : 1);
+        return counts;
+      }
+
+      // Asserts the source stayed at one channel for the whole render.
+      function assertAlwaysOneChannel(counts, description) {
+        assert_array_equals(counts, new Array(renderQuanta).fill(1), description);
+      }
+
+      // Asserts the source reported two channels for an initial run of quanta
+      // and one channel thereafter, and returns the quantum at which it
+      // collapsed. The expected boundary is given a one-quantum tolerance
+      // because the spec only requires the change to land at the beginning of a
+      // render quantum after the triggering condition.
+      function assertCollapsesAfter(counts, expectedQuantum, description) {
+        const collapseAt = counts.indexOf(1);
+        assert_not_equals(collapseAt, -1,
+            `${description}: should collapse to one channel before the render ends`);
+        assert_array_equals(
+            counts,
+            new Array(renderQuanta).fill(0).map((_, q) => q < collapseAt ? 2 : 1),
+            `${description}: should be two channels while playing, then one`);
+        assert_greater_than_equal(collapseAt, expectedQuantum,
+            `${description}: should not collapse before playback ends`);
+        assert_less_than_equal(collapseAt, expectedQuantum + 1,
+            `${description}: should collapse promptly once playback ends`);
+      }
+
+      // A node that was never given a buffer is never playing, so it is never
+      // actively processing.
+      promise_test(async () => {
+        const counts = channelCountPerQuantum(await renderWithSource(() => {}));
+        assertAlwaysOneChannel(counts, 'source with no buffer');
+      }, 'A source whose buffer was never set outputs one channel');
+
+      // Not started, so not playing, so not actively processing - the buffer's
+      // channel count must not reach the output.
+      promise_test(async () => {
+        const counts = channelCountPerQuantum(await renderWithSource(
+            (context, source) => {
+              source.buffer = testBuffer(context);
+            }));
+        assertAlwaysOneChannel(counts, 'unstarted source with a stereo buffer');
+      }, 'A source with a stereo buffer that was never started outputs one channel');
+
+      // Playing: the output takes the buffer's channel count, then drops back to
+      // one channel once the end of the buffer is reached.
+      promise_test(async () => {
+        const counts = channelCountPerQuantum(await renderWithSource(
+            (context, source) => {
+              source.buffer = testBuffer(context);
+              source.start();
+            }));
+        assertCollapsesAfter(counts, bufferQuanta, 'started source');
+      }, 'A playing source outputs the buffer channel count, then one channel at the end of the buffer');
+
+      // Same, but ended early by stop() rather than by reaching the end of the
+      // buffer. Stop lands on a quantum boundary.
+      promise_test(async () => {
+        const stopQuantum = 2;
+        const counts = channelCountPerQuantum(await renderWithSource(
+            (context, source) => {
+              source.buffer = testBuffer(context);
+              source.start();
+              source.stop(stopQuantum * renderQuantum / sampleRate);
+            }));
+        assertCollapsesAfter(counts, stopQuantum, 'stopped source');
+      }, 'A source that is stopped outputs one channel after the stop time');
+
+      // Same, but ended early by the start() duration argument.
+      promise_test(async () => {
+        const durationQuanta = 2;
+        const counts = channelCountPerQuantum(await renderWithSource(
+            (context, source) => {
+              source.buffer = testBuffer(context);
+              source.start(0, 0, durationQuanta * renderQuantum / sampleRate);
+            }));
+        assertCollapsesAfter(counts, durationQuanta, 'source with a duration');
+      }, 'A source outputs one channel after its duration has elapsed');
+
+      // Null buffer, not started: one channel for both reasons.
+      promise_test(async () => {
+        const counts = channelCountPerQuantum(await renderWithSource(
+            (context, source) => {
+              source.buffer = testBuffer(context);
+              source.buffer = null;
+            }));
+        assertAlwaysOneChannel(counts, 'unstarted source with a cleared buffer');
+      }, 'A source whose buffer is set to null outputs one channel');
+
+      // Null buffer while playing: actively processing, but the buffer is null,
+      // so the output is still a single channel of silence.
+      promise_test(async () => {
+        const counts = channelCountPerQuantum(await renderWithSource(
+            (context, source) => {
+              source.buffer = testBuffer(context);
+              source.buffer = null;
+              source.start();
+            }));
+        assertAlwaysOneChannel(counts, 'playing source with a cleared buffer');
+      }, 'A playing source whose buffer is null outputs one channel');
+    </script>
+  </body>
+</html>

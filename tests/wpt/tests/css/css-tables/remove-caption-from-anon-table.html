@@ -1,0 +1,26 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Removing the last caption from an anonymous table</title>
+<link rel="help" href="https://drafts.csswg.org/css-tables/">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1907789">
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<link rel="match" href="remove-caption-from-anon-table-ref.html">
+<table style="display: block">
+  <caption>Some caption</caption>
+  <tbody>
+    <tr>
+      <th>Header</th>
+    </tr>
+    <tr>
+      <td>Some long long long content</td>
+    </tr>
+  </tbody>
+</table>
+<script>
+onload = function() {
+  let caption = document.querySelector("caption");
+  caption.getBoundingClientRect();
+  caption.remove();
+}
+</script>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Flexbox: total min/max violation of zero when flexing items</title>
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#resolve-flexible-lengths">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#flexibility">
+<link rel="help" href="https://github.com/servo/servo/issues/41289">
+<meta name="assert" content="
+  Both targets get their target main size initialized to 300px.
+  Distributing the negative remaining free space sets them to 150px.
+  The 1st item has a min-width of 250px, that's a violation of 100px.
+  The 2nd item has a max-width of 50px, that's a violation of -100px.
+  Therefore, the total violation is 0px, thus freezing all items.
+  But the min/max constraints still need to apply.
+  So the final main sizes are 250px and 50px, respectively.
+">
+
+<style>
+#flex {
+  display: flex;
+  width: 300px;
+  height: 300px;
+  border: solid;
+}
+.item {
+  flex: 0 1 300px;
+  min-width: 0px;
+}
+</style>
+
+<div id="flex">
+  <div class="item" style="min-width: 250px; background: cyan"
+       data-expected-width="250"></div>
+  <div class="item" style="max-width: 50px; background: orange"
+       data-expected-width="50"></div>
+</div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script>
+checkLayout(".item")
+</script>

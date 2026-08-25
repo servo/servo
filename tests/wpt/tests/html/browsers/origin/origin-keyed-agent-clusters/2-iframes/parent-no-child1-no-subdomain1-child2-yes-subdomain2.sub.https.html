@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Parent is site-keyed, subdomain child 1 is site-keyed, different-subdomain child 2 is origin-keyed</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="log"></div>
+
+<script type="module">
+import {
+  insertIframe,
+  testSameAgentCluster,
+  testDifferentAgentClusters,
+  testGetter
+} from "../resources/helpers.mjs";
+
+promise_setup(async () => {
+  // Order of loading should not matter, but we make it sequential to ensure the
+  // tests are deterministic.
+  await insertIframe("{{hosts[][www]}}");
+  await insertIframe("{{hosts[][www1]}}", "?1");
+});
+
+// Since everybody is different-origin, everyone's requests/non-requests get
+// respected.
+//
+// So, the parent and child 1 end up in the site-keyed agent cluster, and child
+// 2 ends up in its own origin-keyed agent cluster.
+testSameAgentCluster([self, 0], "Parent to child1");
+testDifferentAgentClusters([self, 1], "Parent to child2");
+testDifferentAgentClusters([0, 1], "child1 to child2");
+testDifferentAgentClusters([1, 0], "child2 to child1");
+
+testGetter(self, false, "parent");
+testGetter(0, false, "child1");
+testGetter(1, true, "child2");
+</script>

@@ -1,0 +1,29 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Selection: Add a range to the selection</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+window.onload = function() {
+  test(function() {
+    var selection = window.getSelection();
+    var p = document.querySelector("p");
+
+    var range = document.createRange();
+    range.selectNode(p);
+    selection.addRange(range);
+
+    // In Safari the anchorNode is the Text node, elsewhere it's the Element.
+    assert_equals(selection.anchorNode, document.body);
+    assert_equals(selection.anchorOffset, 1);
+    assert_equals(selection.focusNode, document.body);
+    assert_equals(selection.focusOffset, 2);
+    assert_equals(selection.isCollapsed, range.collapsed);
+    assert_equals(selection.rangeCount, 1);
+  });
+};
+</script>
+<body>
+  <p>Add a range to the selection</p>
+</body>
+</html>

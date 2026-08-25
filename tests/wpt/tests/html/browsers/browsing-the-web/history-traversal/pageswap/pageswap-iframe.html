@@ -1,0 +1,45 @@
+<!DOCTYPE HTML>
+<title>Tests pageswap dispatch on iframe Documents</title>
+<link rel="author" title="Khushal Sagar"  href="mailto:khushalsagar@chromium.org">
+<link rel="help" href="https://html.spec.whatwg.org/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+setup({explicit_done: true});
+
+function runTest(frame) {
+  let frameWindow = frame.contentWindow;
+
+  let pageswapfired = false;
+  let expectedUrl = frameWindow.location.href + '?new';
+  frameWindow.onpageswap = (e) => {
+      assert_equals(e.activation.entry.url, expectedUrl, 'activation url incorrect in pageswap');
+      assert_equals(e.activation.navigationType, "push", 'navigation type incorrect in pageswap');
+      assert_equals(e.activation.from, frameWindow.navigation.currentEntry, 'from entry incorrect in pageswap');
+      assert_false(e.activation.entry.sameDocument, 'new entry must be cross-document');
+      pageswapfired = true;
+  }
+
+  frameWindow.onpagehide = (e) => {
+      assert_true(pageswapfired, 'pageswap not fired');
+      done();
+  }
+
+  frame.src = expectedUrl;
+}
+
+promise_test(async t => {
+  onload = () => {
+    let frame = document.createElement('iframe');
+    frame.src = "/resources/blank.html";
+    frame.onload = () => {
+      frame.contentWindow.requestAnimationFrame(() => {
+        runTest(frame);
+      });
+    }
+    document.body.appendChild(frame);
+  };
+});
+</script>

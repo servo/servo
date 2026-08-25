@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/test-only-api.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/page-visibility/resources/window_state_context.js"></script>
+<script src="resources/battery-status-helpers.js"></script>
+</head>
+<body>
+<script>
+battery_status_test(async (t, mockBatteryMonitor) => {
+  mockBatteryMonitor.setBatteryStatus(false, 10, 20, 0.5);
+  const battery = await navigator.getBattery();
+
+  mockBatteryMonitor.verifyBatteryStatus(battery);
+
+  const fail = () => { throw new Error('unexpected levelchange event'); };
+  battery.addEventListener('levelchange', fail);
+
+  const {minimize, restore} = window_state_context(t);
+  await minimize();
+  mockBatteryMonitor.setBatteryStatus(false, 10, 20, 0.55);
+  battery.removeEventListener('levelchange', fail);
+
+  const change =
+      new Promise(resolve => battery.addEventListener('levelchange', resolve));
+  await restore();
+  mockBatteryMonitor.setBatteryStatus(false, 10, 20, 0.6);
+  await change;
+
+  mockBatteryMonitor.verifyBatteryStatus(battery);
+}, 'battery status events only fire on visible pages');
+</script>
+</body>
+</html>

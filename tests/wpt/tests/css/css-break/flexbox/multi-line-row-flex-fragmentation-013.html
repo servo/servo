@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>
+  Tests that flex-items get pushed down due to a previous flex-item
+  expanding as a result of its floated child.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width: 100px; height: 100px; columns: 2; column-gap: 0; column-fill: auto; background: red;">
+  <div style="display: flex; flex-wrap: wrap;">
+    <div style="background: green;">
+      <div style="float: left; width: 50px;">
+        <div style="contain: size; width: 50px; height: 80px;"></div>
+        <div style="contain: size; width: 50px; height: 30px;"></div>
+      </div>
+    </div>
+    <div style="background: green; height: 50px; width: 50px;"></div>
+    <div style="background: green; height: 20px; width: 50px;"></div>
+  </div>
+</div>

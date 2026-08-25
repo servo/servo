@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="match" href="max-content-with-float-scrollable-descendant-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#scrollbar-sizing">
+<style>
+.container {
+  width: max-content;
+  background-color: green;
+}
+.float {
+  float: left;
+}
+.parent {
+  height: 79px;
+  overflow: auto;
+}
+.content {
+  width: 10px;
+  height: 80px;
+}
+</style>
+</head>
+<body>
+<div class=container>
+  <div class=float>
+    <div class=parent>
+      <div class=content></div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,78 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale:1">
+<title>Pointer capture state should be updated before `pointerrawupdate`</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+"use strict";
+
+/**
+ * "fire a pointer event" defines:
+ * > If the event is not a gotpointercapture, lostpointercapture, click,
+ * > auxclick or contextmenu event, run the process pending pointer capture
+ * > steps for this PointerEvent.
+ *
+ * This test checks whether `pointerrawupdate` event dispatcher processes
+ * the pending pointer capture state.
+ */
+
+addEventListener("DOMContentLoaded", () => {
+  promise_test(async () => {
+    let events = [];
+    function logEvent(event) {
+      events.push(`${event.type}@${event.target.id ? event.target.id : event.target.nodeName}`);
+    }
+    const initialDiv = document.getElementById("init");
+    await new test_driver.Actions()
+      .pointerMove(0, 0, {origin: initialDiv})
+      .send();
+    const target = document.getElementById("target");
+    const dest = document.getElementById("dest");
+    for (const type of ["pointerdown", "pointerup", "pointermove",
+                        "pointerrawupdate",
+                        "gotpointercapture", "lostpointercapture"]) {
+      target.addEventListener(type, logEvent);
+      dest.addEventListener(type, logEvent);
+    }
+    dest.addEventListener("pointerover", logEvent);
+    target.addEventListener("pointerdown", event => {
+      event.target.setPointerCapture(event.pointerId);
+    });
+    await new test_driver.Actions()
+      .pointerMove(0, 0, {origin: target})
+      .pointerDown()
+      .pointerMove(0, 0, {origin: dest})
+      .pointerUp()
+      .send();
+    assert_equals(
+      events.join(", "),
+      [
+        "pointerrawupdate@target", "pointermove@target", "pointerdown@target",
+        // "gotpointercapture" should be fired before "pointerrawupdate"
+        "gotpointercapture@target", "pointerrawupdate@target", "pointermove@target",
+        "pointerup@target", "lostpointercapture@target",
+        // Finally, "pointerover" should be fired on the destination
+        "pointerover@dest",
+      ].join(", ")
+    );
+  });
+}, {once: true});
+</script>
+<style>
+div {
+  min-height: 64px;
+}
+</style>
+</head>
+<body>
+  <div id="init"></div>
+  <div id="target"></div>
+  <div id="dest"></div>
+</body>
+</html>

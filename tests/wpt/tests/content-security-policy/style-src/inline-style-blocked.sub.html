@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="Content-Security-Policy" content="style-src 'none'; script-src 'self' 'unsafe-inline'">
+    <title>inline-style-blocked</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script>
+      async_test(t => {
+        window.addEventListener('securitypolicyviolation', t.step_func(e => {
+          if (e.blockedURI !== 'inline') return;
+          assert_equals(e.violatedDirective, 'style-src-elem');
+          t.done();
+        }));
+      }, "Triggers securitypolicyviolation.");
+    </script>
+    <style>
+        .target {
+            background-color: blue;
+        }
+    </style>
+</head>
+
+<body>
+  <script>
+    test(t => {
+      assert_equals(document.styleSheets.length, 0);
+    }, "Inline style element is blocked by CSP.");
+  </script>
+</body>
+
+</html>

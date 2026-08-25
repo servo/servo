@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Named access on the window object</title>
+<link rel="author" title="Matthew Phillips" href="mailto:matthew@matthewphillips.info">
+<link rel="help" href="https://html.spec.whatwg.org/#named-access-on-the-window-object">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+"use strict";
+
+test(() => {
+  const img = document.createElement("img");
+  img.setAttribute("name", "namedimage");
+  document.body.appendChild(img);
+
+  assert_equals(img, window.namedimage);
+}, "A named property must return an element as-is if its name attribute matches");
+
+test(() => {
+  const img = document.createElement("img");
+  img.setAttribute("name", "foo");
+
+  assert_false("foo" in window);
+}, "A named property must not be set if the element is not reachable from the Document");
+
+test(() => {
+  const img = document.createElement("img");
+  img.setAttribute("name", "enumerable-foo");
+  document.body.appendChild(img);
+
+  let found = false;
+  for (const key in window) {
+    if (key === "enumerable-foo") {
+      found = true;
+    }
+  }
+
+  assert_false(found);
+}, "A named property must not be enumerable");
+
+test(() => {
+  const img = document.createElement("img");
+  img.setAttribute("id", "foo-id");
+  document.body.appendChild(img);
+
+  assert_equals(img, window["foo-id"]);
+}, "A named property must return any element for which the id attribute matches");
+
+test(() => {
+  document.body.appendChild(document.createTextNode("foo"));
+
+  const img = document.createElement("img");
+  img.setAttribute("id", "with-non-element");
+  document.body.appendChild(img);
+
+  assert_equals(window["with-non-element"], img);
+}, "A non element node in the document should not cause errors");
+
+test(() => {
+  const img = document.createElement("img");
+  document.body.appendChild(img);
+  img.setAttribute("name", "dupe");
+  img.setAttribute("id", "dupe");
+  assert_equals(window.dupe, img);
+
+  const img2 = document.createElement("img");
+  document.body.appendChild(img2);
+  img2.setAttribute("name", "dupe");
+  img2.setAttribute("id", "dupe");
+
+  assert_equals(window.dupe.length, 2);
+  assert_equals(window.dupe[0], img);
+  assert_equals(window.dupe[1], img2);
+}, "An element with identical name and id attributes should occur in the HTMLCollection once, not twice");
+</script>

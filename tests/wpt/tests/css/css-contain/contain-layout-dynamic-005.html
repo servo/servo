@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>Dynamic change to layout containment</title>
+<link rel="help" href="https://drafts.csswg.org/css-contain/#contain-property">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1874826">
+<meta name="assert" content="Verify floats are properly displayed after dynamic change to layout containment.">
+<link rel="match" href="contain-layout-dynamic-005-ref.html">
+
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+
+<style>
+  div {
+      font: 25px/1 Ahem;
+  }
+  #wrapper {
+      width: 15em;
+      background: lightgray;
+  }
+  .containment {
+      contain: layout;
+  }
+  .float {
+      box-sizing: border-box;
+      border: 1px solid black;
+  }
+  .left {
+      float: left;
+      width: 1em;
+      height: 2em;
+  }
+  .right {
+      float: right;
+      width: 1em;
+      height: 3em;
+  }
+</style>
+
+<body>
+  <p>PASS if the boxes with dark colors are floating next to the boxes with
+    light colors.</p>
+  <div id="wrapper">
+    <div>
+      <div id="container" class="containment">
+        <div><div class="float left" style="background: lightblue"></div></div>
+        <div class="float right" style="background: lightyellow"></div>
+        <div>XX XXX XXXX X</div>
+      </div>
+      <div class="float left" style="background: blue"></div>
+      <div>
+        <div>
+          <div><div class="float right" style="background: yellow"></div></div>
+          <div>XXX XXXXXX XXXX XX XX</div>
+        </div>
+        <div>XXXX XXXXX XX</div>
+      </div>
+      <div>XXX XXX XX XXXX</div>
+    </div>
+  </div>
+  <script>
+    window.addEventListener("load", async () => {
+        container.classList.remove('containment');
+        await waitForAtLeastOneFrame();
+        takeScreenshot();
+    });
+  </script>
+</body>
+</html>

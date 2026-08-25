@@ -1,0 +1,46 @@
+<!DOCTYPE HTML>
+<html><head>
+  <meta charset="utf-8">
+  <style>
+html,body {
+  color:black; background-color:white; font:24px/1 monospace; padding:0; margin:0;
+}
+
+.grid-lanes {
+  display: inline-grid-lanes;
+  grid-template-rows: [a] 50px 50px 50px 50px [b] 50px 50px [a b];
+  padding: 20px 10px;
+}
+
+.subgrid {
+  display: grid;
+  grid-template-rows: subgrid [x] [b] [] [] [b];
+  grid-auto-columns: 10px;
+  grid-row: 2 / span 4;
+}
+
+x { background: grey; }
+
+  </style>
+</head>
+<body>
+
+<div class="grid-lanes">
+  <div class="subgrid">
+    <x style="grid-column:1; grid-row: 2 / 4"></x>
+    <x style="grid-column:2; grid-row: 2 / 5"></x>
+    <x style="grid-column:3; grid-row: 2 / 4"></x>
+    <x style="grid-column:4; grid-row: 2 / 4"></x>
+    <x style="grid-column:5; grid-row: 2 / 5"></x>
+    <x style="grid-column:6; grid-row: 2 / 4"></x>
+    <x style="grid-column:7; grid-row: 1 / 4"></x>
+    <x style="grid-column:8; grid-row: 2 / 4"></x>
+    <x style="grid-column:9; grid-row: 2 / 3"></x>
+    <x style="grid-column:10; grid-row: 2 / 3"></x>
+    <x style="grid-column:11; grid-row: 2 / 5"></x>
+    <x style="grid-column:12; grid-row: 2 / 4"></x>
+  </div>
+</div>
+
+</body>
+</html>

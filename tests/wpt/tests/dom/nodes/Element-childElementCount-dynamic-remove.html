@@ -1,0 +1,17 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Dynamic Removal of Elements</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<h1>Test of Dynamic Removal of Elements</h1>
+<div id="log"></div>
+<p id="parentEl">The result of this test is
+<span id="first_element_child" style="font-weight:bold;">unknown.</span><span id="last_element_child"> </span></p>
+<script>
+test(function() {
+  var parentEl = document.getElementById("parentEl");
+  var lec = parentEl.lastElementChild;
+  parentEl.removeChild(lec);
+  assert_equals(parentEl.childElementCount, 1)
+})
+</script>

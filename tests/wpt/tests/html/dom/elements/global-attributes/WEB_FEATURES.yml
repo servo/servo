@@ -1,0 +1,13 @@
+rules:
+- lang-attribute*: [lang-attr]
+- lang-xmllang-01.html: [lang-attr]
+- lang-xyzzy.html: [lang-attr]
+- the-lang-attribute-*: [lang-attr]
+- style-01.html: [style-attr]
+- the-translate-attribute-*: [translate]
+- translate-enumerated-ascii-case-insensitive.html: [translate]
+- translate-inherit-no-parent-element.html: [translate]
+- title-manual.html: [title-attr]
+- dataset-*: [dataset]
+- custom-attrs.html: [dataset]
+- data_unicode_attr.html: [dataset]

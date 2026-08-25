@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>CSS Flexbox Test: Allow complex calc expressions in flex shorthand</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#flex-property">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/shorthand-testcommon.js"></script>
+<div>
+  <div id="target"></div>
+</div>
+<script>
+  test_shorthand_value('flex', 'sign(1em - 1px) sibling-index()', {
+    'flex-grow': 'sign(1em - 1px)',
+    'flex-shrink': 'sibling-index()',
+    'flex-basis': '0%'
+  });
+</script>

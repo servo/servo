@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/1314671">
+<link rel="author" title="Xianzhu Wang" href="mailto:wangxianzhu@chromium.org">
+<link rel="match" href="reference/green.html">
+<p>Pass if there is NO red below:</p>
+<div style="width: 100px; height: 100px; position: absolute; background: green">
+  <div style="transform: rotate(60deg); opacity: 0.5; overflow: hidden; width: 100px; height: 400px">
+    <div style="will-change: transform; transform: rotate(-60deg); width: 100px; height: 400px; background: white"></div>
+  </div>
+</div>

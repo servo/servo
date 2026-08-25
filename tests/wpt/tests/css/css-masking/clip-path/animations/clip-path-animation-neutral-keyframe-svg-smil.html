@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <link rel="help" href="https://drafts.csswg.org/css-shapes-1/#basic-shape-interpolation">
+  <link rel="match" href="clip-path-animation-neutral-keyframe-svg-smil-ref.html">
+  <style>
+    .clipped {
+      background-color: green;
+      stroke: black;
+      stroke-width: 3;
+      fill: red;
+      animation: clippath 10s 0.1s steps(2, jump-end);
+    }
+
+    .svg {
+      width: 100px;
+      height: 100px;
+    }
+
+    @keyframes clippath {
+      100% {
+        clip-path: circle(50% at 50% 50%);
+      }
+    }
+  </style>
+  <script src="/common/reftest-wait.js"></script>
+  <body>
+    <svg class="svg">
+      <circle class="clipped" cx="50" cy="50" r="40">
+        <animate attributeName="fill"
+                from="blue" to="green"
+                begin="0s" dur="10s" calcMode="discrete"/>
+      </circle>
+    </svg>
+    <script>
+      const clipped = document.querySelector('.clipped');
+
+      clipped.addEventListener("animationstart", () => {
+        clipped.style.clipPath = "circle(10% at 50% 50%)";
+        takeScreenshot();
+      });
+    </script>
+  </body>
+</html>

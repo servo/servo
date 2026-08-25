@@ -1,0 +1,45 @@
+<!doctype html>
+<title>SVGPathElement.setPathData() interaction with CSS d property</title>
+<link rel="help" href="https://svgwg.org/specs/paths/#__svg__SVGPathData__setPathData">
+<link rel="help" href="https://www.w3.org/TR/SVG2/paths.html#TheDProperty">
+<link rel="author" title="Virali Purbey" href="mailto:viralipurbey@microsoft.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  #css-path { d: path("M 0 0 L 100 100"); }
+</style>
+<svg width="200" height="200">
+  <path id="css-path" />
+  <path id="attr-path" />
+</svg>
+<script>
+// CSS `d` property wins over the d-attribute per CSS cascade rules.
+
+test(() => {
+  const path = document.getElementById("css-path");
+  path.setPathData([
+    { type: "M", values: [0, 0] },
+    { type: "L", values: [10, 10] }
+  ]);
+  // setPathData() writes the segments back to the d-attribute.
+  assert_equals(path.getAttribute("d"), "M 0 0 L 10 10",
+      "setPathData updates the d-attribute");
+  // ...but the used value is the CSS d property.
+  const used = getComputedStyle(path).d;
+  assert_equals(used, 'path("M 0 0 L 100 100")',
+      "CSS d property wins over the attribute");
+}, "setPathData() updates the attribute; CSS d property overrides used value");
+
+test(() => {
+  const path = document.getElementById("attr-path");
+  path.setPathData([
+    { type: "M", values: [0, 0] },
+    { type: "L", values: [20, 20] }
+  ]);
+  // No CSS d property set, so the attribute drives the used value.
+  const used = getComputedStyle(path).d;
+  assert_equals(used, 'path("M 0 0 L 20 20")',
+      "Attribute drives used value when no CSS d is set");
+}, "setPathData() drives used value when no CSS d property is set");
+</script>

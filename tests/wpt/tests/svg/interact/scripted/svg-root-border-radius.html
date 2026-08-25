@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>SVG root with border-radius hit test</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+html, body {
+  padding: 0;
+  margin: 0;
+}
+svg {
+  border-radius: 50%;
+  background-color: blue;
+}
+</style>
+<svg width="200" height="200"></svg>
+<script>
+  test(t => {
+    const svgRoot = document.querySelector('svg');
+    const body = document.body;
+    assert_equals(document.elementFromPoint(10, 10), body, 'outside top-left');
+    assert_equals(document.elementFromPoint(190, 10), body, 'outside top-right');
+    assert_equals(document.elementFromPoint(10, 190), body, 'outside bottom-left');
+    assert_equals(document.elementFromPoint(190, 190), body, 'outside bottom-right');
+    assert_equals(document.elementFromPoint(100, 100), svgRoot, 'inside');
+  });
+</script>

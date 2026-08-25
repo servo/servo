@@ -1,0 +1,16 @@
+<!doctype html>
+<title>print-color-adjust Parsing</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<link rel=help href="https://www.w3.org/TR/css-color-adjust-1/#perf">
+<link rel=author title="Tab Atkins-Bittner" href="https://www.xanthir.com/contact/">
+
+<script src="/css/support/parsing-testcommon.js"></script>
+
+<script>
+test_valid_value('print-color-adjust', 'exact', 'exact');
+test_valid_value('print-color-adjust', 'economy', 'economy');
+test_valid_value('color-adjust', 'exact', 'exact');
+test_valid_value('color-adjust', 'economy', 'economy');
+</script>

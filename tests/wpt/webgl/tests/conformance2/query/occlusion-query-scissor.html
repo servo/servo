@@ -1,0 +1,119 @@
+<!--
+Copyright (c) 2022 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Occlusion Query w/Scissor Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<canvas id="canvas" style="width: 50px; height: 50px;"> </canvas>
+<div id="console"></div>
+<script>
+"use strict";
+description("This test verifies the functionality of occlusion query objects with the scissor test.");
+debug('Regression test for <a href="http://anglebug.com/7157">http://anglebug.com/7157</a>');
+
+debug("");
+
+const wtu = WebGLTestUtils;
+
+const wait = () => new Promise(resolve => setTimeout(resolve));
+
+async function runOcclusionQueryTest(gl) {
+    const kSize = 4;
+    const colors = [
+      [0, 0, 0, 255],
+      [255, 0, 0, 255],
+      [0, 255, 0, 255],
+      [255, 255, 0, 255],
+    ];
+    const framebuffers = colors.map((color, index) => {
+      const tex = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, kSize, kSize, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+
+      const fb = gl.createFramebuffer();
+      gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+
+      gl.clearColor(index & 1, (index >> 1) & 1, (index >> 2) & 1, 1);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+
+      wtu.checkCanvasRect(gl, 0, 0, kSize, kSize, color);
+
+      return fb;
+    });
+
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "setup should succeed");
+
+    gl.viewport(0, 0, kSize, kSize);
+
+    const program = wtu.setupSimpleColorProgram(gl, 0);
+    gl.uniform4f(gl.getUniformLocation(program, "u_color"), 0, 1, 0, 1);
+    wtu.setupUnitQuad(gl, 0);
+
+    const query = gl.createQuery();;
+
+    for (let i = 0; i < 256; ++i)
+    {
+        gl.beginQuery(gl.ANY_SAMPLES_PASSED, query);
+        let drawn = false;
+
+        framebuffers.forEach((fb, index) => {
+            gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+            const scissor = (i >> 4 >> index) & 1;
+            if (i & (1 << index))
+            {
+                if (scissor)
+                {
+                    gl.enable(gl.SCISSOR_TEST);
+                    gl.scissor(0, 0, 0, 0);
+                }
+                wtu.drawUnitQuad(gl);
+                drawn ||= !scissor;
+                if (scissor)
+                {
+                    gl.disable(gl.SCISSOR_TEST);
+                    gl.scissor(0, 0, kSize, kSize);
+                }
+            }
+        });
+
+        gl.endQuery(gl.ANY_SAMPLES_PASSED);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should draw");
+
+        do {
+          await wait();
+        } while (!gl.getQueryParameter(query, gl.QUERY_RESULT_AVAILABLE));
+
+        const result = gl.getQueryParameter(query, gl.QUERY_RESULT);
+
+        const expected = drawn ? 1 : 0;
+        assertMsg(result === expected, `pass ${i}, result: ${result} === expected: ${expected}`);
+    }
+    finishTest();
+}
+
+const canvas = document.getElementById("canvas");
+const gl = wtu.create3DContext(canvas, null, 2);
+
+if (!gl) {
+    testFailed("WebGL context does not exist");
+} else {
+    testPassed("WebGL context exists");
+    runOcclusionQueryTest(gl);
+}
+</script>
+</body>
+</html>

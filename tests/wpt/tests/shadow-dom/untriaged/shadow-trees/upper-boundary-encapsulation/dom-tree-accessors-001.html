@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Shadow DOM Test: Upper-boundary encapsulation: document's DOM tree accessors</title>
+<link rel="author" title="Aleksei Yu. Semenov" href="mailto:a.semenov@unipro.ru">
+<link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<link rel="author" title="Mikhail Fursov" href="mailto:mfursov@unipro.ru">
+<link rel="author" title="Yuta Kitamura" href="mailto:yutak@google.com">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-20130514/#upper-boundary-encapsulation">
+<meta name="assert" content="Upper-boundary encapsulation: The shadow nodes and named shadow elements are not accessible using shadow host's document DOM tree accessors.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../../../html/resources/common.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+// A document's "DOM tree accessors" include:
+//   (document.)head, title, body, images, embeds, plugins, links, forms,
+//   scripts, getElementsByName(), cssElementMap, and currentScript
+//
+// Of these, it is unclear how document.cssElementMap can be tested.
+// Except for it, there is a test corresponding to each accessor.
+//
+// Additionally, there are obsolete accessors
+// <http://www.whatwg.org/specs/web-apps/current-work/multipage/obsolete.html#other-elements,-attributes-and-apis>:
+//   (document.)anchors, applets, and all.
+//
+// and some accessors defined in the DOM specification (formerly known as
+// "DOM Core") <http://dom.spec.whatwg.org/#interface-document>:
+//   (document.)documentElement, getElementsByTagName(),
+//   getElementsByTagNameNS(), getElementsByClassName(), and getElementById().
+//
+// As it seems reasonable to have tests for these accessors, this file also
+// includes tests for them, except for document.documentElement which is
+// unclear whether we can test; the distribution process of Shadow DOM does not
+// alter the host element, so the document element (e.g. <html>) cannot be
+// replaced with an element in a shadow tree.
+
+// ----------------------------------------------------------------------------
+// Constants and utility functions
+
+// Place the same HTML content into both the host document and the shadow root.
+// To differentiate these two, a class name is assigned to every element by
+// populateTestContentToHostDocument() and populateTestContentToShadowRoot().
+var HTML_CONTENT = [
+    '<head>',
+    '<title></title>',
+    '<link rel="help" href="#">',
+    '</head>',
+    '<body>',
+    '<p></p>',
+    '<a name="test-name"></a>',
+    '<a href="#"></a>',
+    '<area href="#">',
+    '<img src="#" alt="">',
+    '<embed></embed>',
+    '<form></form>',
+    '<script><' + '/script>',
+    '</body>'
+].join('\n');
+
+function addClassNameToAllElements(document, root, className) {
+    var nodeIterator = document.createNodeIterator(
+        root, NodeFilter.SHOW_ELEMENT, null);
+    var node;
+    while (node = nodeIterator.nextNode())
+        node.className = className;
+}
+
+function populateTestContentToHostDocument(document) {
+    document.documentElement.innerHTML = HTML_CONTENT;
+    addClassNameToAllElements(document, document.documentElement, 'host');
+}
+
+function populateTestContentToShadowRoot(shadowRoot) {
+    shadowRoot.innerHTML = HTML_CONTENT;
+    addClassNameToAllElements(shadowRoot.ownerDocument, shadowRoot, 'shadow');
+}
+
+function createDocumentForTesting() {
+    var doc = document.implementation.createHTMLDocument('');
+    populateTestContentToHostDocument(doc);
+    var shadowRoot = doc.body.attachShadow({mode: 'open'});
+    populateTestContentToShadowRoot(shadowRoot);
+    return doc;
+}
+
+// Make sure the given HTMLCollection contains at least one elements and
+// all elements have the class named "host". This function works well with
+// HTMLCollection, HTMLAllCollection, and NodeList consisting of elements.
+function assert_collection(collection) {
+    assert_true(collection.length > 0);
+    Array.prototype.forEach.call(collection, function (element) {
+        assert_equals(element.className, 'host');
+    });
+}
+
+// ----------------------------------------------------------------------------
+// Tests for DOM tree accessors defined in HTML specification
+
+test(function () {
+    var doc = createDocumentForTesting();
+    assert_equals(doc.head.className, 'host');
+    assert_equals(doc.body.className, 'host');
+},
+    '<head> and <body> in a shadow tree should not be accessible from ' +
+    'owner document\'s "head" and "body" properties, respectively.'
+);
+
+test(function () {
+    var doc = document.implementation.createHTMLDocument('');
+    populateTestContentToHostDocument(doc);
+
+    // Note: this test is originally written to replace document.documentElement
+    // with shadow contents, but among Shadow DOM V1 allowed elements body is the
+    // most approximate to it, though some test may make lesser sense.
+    var shadowRoot = doc.body.attachShadow({mode: 'open'});
+    populateTestContentToShadowRoot(shadowRoot);
+
+    // Replace the content of <title> to distinguish elements in a host
+    // document and a shadow tree.
+    doc.getElementsByTagName('title')[0].textContent = 'Title of host document';
+    shadowRoot.querySelector('title').textContent =
+        'Title of shadow tree';
+
+    assert_equals(doc.title, 'Title of host document');
+},
+    'The content of title element in a shadow tree should not be accessible ' +
+    'from owner document\'s "title" attribute.'
+);
+
+function testHTMLCollection(accessor) {
+    var doc = createDocumentForTesting();
+    assert_collection(doc[accessor]);
+}
+
+generate_tests(
+    testHTMLCollection,
+    ['images', 'embeds', 'plugins', 'links', 'forms', 'scripts'].map(
+        function (accessor) {
+            return [
+                'Elements in a shadow tree should not be accessible from ' +
+                'owner document\'s "' + accessor + '" attribute.',
+                accessor
+            ];
+        }));
+
+test(function () {
+    var doc = createDocumentForTesting();
+    assert_collection(doc.getElementsByName('test-name'));
+},
+    'Elements in a shadow tree should not be accessible from owner ' +
+    'document\'s getElementsByName() method.'
+);
+
+// ----------------------------------------------------------------------------
+// Tests for obsolete accessors
+
+generate_tests(
+    testHTMLCollection,
+    ['anchors', 'all'].map(
+        function (accessor) {
+            return [
+                'Elements in a shadow tree should not be accessible from ' +
+                'owner document\'s "' + accessor + '" attribute.',
+                accessor
+            ];
+        }));
+
+// ----------------------------------------------------------------------------
+// Tests for accessors defined in DOM specification
+
+test(function () {
+    var doc = createDocumentForTesting();
+    assert_collection(doc.getElementsByTagName('p'));
+},
+    'Elements in a shadow tree should not be accessible from owner ' +
+    'document\'s getElementsByTagName() method.'
+);
+
+test(function () {
+    // Create a XML document.
+    var namespace = 'http://www.w3.org/1999/xhtml';
+    var doc = document.implementation.createDocument(namespace, 'html');
+    doc.documentElement.appendChild(doc.createElementNS(namespace, 'head'));
+    var body = doc.createElementNS(namespace, 'body');
+    var pHost = doc.createElementNS(namespace, 'p');
+    pHost.className = "host";
+    body.appendChild(pHost);
+    doc.documentElement.appendChild(body);
+
+    var shadowRoot = body.attachShadow({mode: 'open'});
+    var pShadow = doc.createElementNS(namespace, 'p');
+    pShadow.className = "shadow";
+    shadowRoot.appendChild(pShadow);
+
+    assert_collection(doc.getElementsByTagNameNS(namespace, 'p'));
+},
+    'Elements in a shadow tree should not be accessible from owner ' +
+    'document\'s getElementsByTagNameNS() method.'
+);
+
+test(function () {
+    var doc = document.implementation.createHTMLDocument('');
+    populateTestContentToHostDocument(doc);
+    var shadowRoot = doc.body.attachShadow({mode: 'open'});
+    populateTestContentToShadowRoot(shadowRoot);
+
+    shadowRoot.querySelectorAll('p')[0].id = 'test-id';
+    assert_equals(doc.getElementById('test-id'), null);
+},
+    'Elements in a shadow tree should not be accessible from owner ' +
+    'document\'s getElementById() method.'
+);
+</script>
+</body>
+</html>

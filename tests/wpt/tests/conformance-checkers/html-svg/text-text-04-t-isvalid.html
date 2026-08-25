@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+ <title>text-text-04-t-manual.svg</title>
+ <meta charset='utf-8'>
+</head>
+<body>
+ <h1>Source SVG: text-text-04-t-manual.svg</h1>
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  
+  <title id="test-title">$RCSfile: text-text-04-t.svg,v $</title>
+  <style>
+  @font-face {
+    font-family: embeded;
+    src: url(woffs/embeded-text-text-04.woff) format("woff");
+    }
+  </style>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+    <font id="embeded" horiz-adv-x="224">
+      <font-face font-family="embeded" units-per-em="1000" ascent="1000" descent="-250" alphabetic="0"/>
+      <missing-glyph horiz-adv-x="800" d="M50 0V800H750V0H50ZM700 50V750H100V50H700Z"/>
+      <glyph unicode="1" glyph-name="gl_1" horiz-adv-x="750" d="M 0 0 L 250 0 L 250 250 L 0 250 Z"/>
+      <glyph unicode="2" glyph-name="gl_2" horiz-adv-x="750" d="M 0 0 L 500 0 L 500 500 L 0 500 Z"/>
+      <glyph unicode="3" glyph-name="gl_3" horiz-adv-x="750" d="M 0 0 L 750 0 L 750 750 L 0 750 Z"/>
+      <glyph unicode="4" glyph-name="gl_4" horiz-adv-x="750" d="M 0 0 L 1000 0 L 1000 1000 L 0 1000 Z"/>
+    </font>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <g font-size="16">
+      <g id="reference" transform="translate(130, 40)">
+        <text text-anchor="end" x="-30">Reference</text>
+        <g>
+          <use xlink:href="#marker" x="0" fill="#8888FF"/>
+          <use xlink:href="#marker" x="15" fill="#8888FF"/>
+          <use xlink:href="#marker" x="30" fill="#8888FF"/>
+          <use xlink:href="#marker" x="45" fill="#8888FF"/>
+          <text id="ref" font-family="embeded" font-size="20">1234</text>
+        </g>
+      </g>
+      <defs>
+        <rect id="marker" x="-4" y="-4" width="8" height="8"/>
+      </defs>
+      <g id="xAll" transform="translate(130, 80)">
+        <text text-anchor="end" x="-30">x all</text>
+        <use xlink:href="#marker" x="0" fill="orange"/>
+        <use xlink:href="#marker" x="20" fill="#8888FF"/>
+        <use xlink:href="#marker" x="40" fill="#8888FF"/>
+        <use xlink:href="#marker" x="60" fill="#8888FF"/>
+        <use xlink:href="#marker" x="80" fill="#8888FF"/>
+        <text font-family="embeded" font-size="20" x="20 40 60 80">1234</text>
+      </g>
+
+      <g id="xMore" transform="translate(130, 120)">
+        <text text-anchor="end" x="-30">x more</text>
+        <use xlink:href="#marker" x="0" fill="orange"/>
+        <use xlink:href="#marker" x="20" fill="#8888FF"/>
+        <use xlink:href="#marker" x="40" fill="#8888FF"/>
+        <use xlink:href="#marker" x="60" fill="#8888FF"/>
+        <use xlink:href="#marker" x="80" fill="#8888FF"/>
+        <use xlink:href="#marker" x="100" fill="orange"/>
+        <text font-family="embeded" font-size="20" x="20 40 60 80 100">1234</text>
+      </g>
+
+      <g id="xFewer" transform="translate(130, 160)">
+        <text text-anchor="end" x="-30">x fewer</text>
+        <use xlink:href="#marker" x="0" fill="orange"/>
+        <use xlink:href="#marker" x="20" fill="#8888FF"/>
+        <use xlink:href="#marker" x="40" fill="#8888FF"/>
+        <use xlink:href="#marker" x="60" fill="#8888FF"/>
+        <use xlink:href="#marker" x="75" fill="#8888FF"/>
+        <text font-family="embeded" font-size="20" x="20 40 60">1234</text>
+      </g>
+
+      <g id="yAll" transform="translate(130, 200)">
+        <text text-anchor="end" x="-30">y all</text>
+        <use xlink:href="#marker" x="0" y="-10" fill="#8888FF"/>
+        <use xlink:href="#marker" x="15" y="-5" fill="#8888FF"/>
+        <use xlink:href="#marker" x="30" y="5" fill="#8888FF"/>
+        <use xlink:href="#marker" x="45" y="10" fill="#8888FF"/>
+        <text font-family="embeded" font-size="20" y="-10 -5 5 10">1234</text>
+      </g>
+
+      <g id="yMore" transform="translate(130, 250)">
+        <text text-anchor="end" x="-30">y more</text>
+        <use xlink:href="#marker" x="0" y="-10" fill="#8888FF"/>
+        <use xlink:href="#marker" x="15" y="-5" fill="#8888FF"/>
+        <use xlink:href="#marker" x="30" y="5" fill="#8888FF"/>
+        <use xlink:href="#marker" x="45" y="10" fill="#8888FF"/>
+        <text font-family="embeded" font-size="20" y="-10 -5 5 10 20">1234</text>
+      </g>
+
+      <g id="yFewer" transform="translate(130, 300)">
+        <text text-anchor="end" x="-30">y fewer</text>
+        <use xlink:href="#marker" x="0" y="-10" fill="#8888FF"/>
+        <use xlink:href="#marker" x="15" y="-5" fill="#8888FF"/>
+        <use xlink:href="#marker" x="30" y="5" fill="#8888FF"/>
+        <use xlink:href="#marker" x="45" y="5" fill="#8888FF"/>
+        <text font-family="embeded" font-size="20" y="-10 -5 5">1234</text>
+      </g>
+
+      <g transform="translate(220, 0)">
+        <g id="xyAll" transform="translate(130, 80)">
+          <text text-anchor="end" x="-30">x/y all</text>
+          <use xlink:href="#marker" x="0" fill="orange"/>
+          <use xlink:href="#marker" x="20" y="-10" fill="#8888FF"/>
+          <use xlink:href="#marker" x="40" y="-5" fill="#8888FF"/>
+          <use xlink:href="#marker" x="60" y="5" fill="#8888FF"/>
+          <use xlink:href="#marker" x="80" y="10" fill="#8888FF"/>
+          <text font-family="embeded" font-size="20" x="20 40 60 80" y="-10 -5 5 10">1234</text>
+        </g>
+
+        <g id="xyMore" transform="translate(130, 120)">
+          <text text-anchor="end" x="-30">x/y more</text>
+          <use xlink:href="#marker" x="0" fill="orange"/>
+          <use xlink:href="#marker" x="20" y="-10" fill="#8888FF"/>
+          <use xlink:href="#marker" x="40" y="-5" fill="#8888FF"/>
+          <use xlink:href="#marker" x="60" y="5" fill="#8888FF"/>
+          <use xlink:href="#marker" x="80" y="10" fill="#8888FF"/>
+          <use xlink:href="#marker" x="100" y="20" fill="orange"/>
+          <text font-family="embeded" font-size="20" x="20 40 60 80 100" y="-10 -5 5 10 20">1234</text>
+        </g>
+
+        <g id="xyFewer" transform="translate(130, 160)">
+          <text text-anchor="end" x="-30">x/y fewer</text>
+          <use xlink:href="#marker" x="0" fill="orange"/>
+          <use xlink:href="#marker" x="20" y="-10" fill="#8888FF"/>
+          <use xlink:href="#marker" x="40" y="-5" fill="#8888FF"/>
+          <use xlink:href="#marker" x="60" y="5" fill="#8888FF"/>
+          <use xlink:href="#marker" x="75" y="5" fill="#8888FF"/>
+          <text font-family="embeded" font-size="20" x="20 40 60" y="-10 -5 5">1234</text>
+        </g>
+
+        <g id="xAllyFewer" transform="translate(130, 200)">
+          <text text-anchor="end" x="-30">x all y fewer</text>
+          <use xlink:href="#marker" x="0" fill="orange"/>
+          <use xlink:href="#marker" x="20" y="-10" fill="#8888FF"/>
+          <use xlink:href="#marker" x="40" y="-5" fill="#8888FF"/>
+          <use xlink:href="#marker" x="60" y="5" fill="#8888FF"/>
+          <use xlink:href="#marker" x="80" y="5" fill="#8888FF"/>
+          <text font-family="embeded" font-size="20" x="20 40 60 80" y="-10 -5 5">1234</text>
+        </g>
+
+        <g id="xFewerYall" transform="translate(130, 240)">
+          <text text-anchor="end" x="-30">x fewer y all</text>
+          <use xlink:href="#marker" x="0" fill="orange"/>
+          <use xlink:href="#marker" x="20" y="-10" fill="#8888FF"/>
+          <use xlink:href="#marker" x="40" y="-5" fill="#8888FF"/>
+          <use xlink:href="#marker" x="60" y="5" fill="#8888FF"/>
+          <use xlink:href="#marker" x="77.52" y="10" fill="#8888FF"/>
+          <text font-family="embeded" font-size="20" x="20 40 60" y="-10 -5 5 10">1234</text>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.12 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>
+</body>
+</html>

@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>MutationObservers: observer inside another observer's callback</title>
+
+<div id="target"></div>
+<script>
+  var observer = new MutationObserver(_ => {
+    var otherObserver = new MutationObserver(_ => {});
+    otherObserver.observe(target, {characterData: true});
+  });
+  observer.observe(target, {subtree: true, attributeOldValue: true});
+  target.setAttribute("foo", "bar");
+</script>

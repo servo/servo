@@ -1,0 +1,32 @@
+<!doctype html>
+<meta charset="utf-8">
+<html class="reftest-wait">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1964575">
+<link rel="author" title="David Shin" href="mailto:dshin@mozilla.com">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#the-last-of-type-pseudo">
+<style>
+#dut {
+  width: 100px;
+  height: 100px;
+  background: red;
+}
+.foo:not(:last-of-type ~ .bar) > #dut.baz {
+  background-color: green;
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div>
+  <span></span>
+  <div class="foo bar">
+    <div id=dut></div>
+  </div>
+  <span></span>
+</div>
+<script>
+window.onload = () => {
+  dut.classList.add("baz");
+  document.documentElement.classList.remove('reftest-wait');
+};
+</script>
+</html>

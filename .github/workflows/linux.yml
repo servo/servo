@@ -1,0 +1,312 @@
+name: Linux
+on:
+  workflow_call:
+    outputs:
+      artifact_ids:
+        value: ${{ jobs.common.outputs.artifact_ids }}
+        description: Comma-separated list of artifact IDs for the release artifacts
+    inputs:
+      profile:
+        required: false
+        default: "checked-release"
+        type: string
+      build-args:
+        default: ""
+        required: false
+        type: string
+      wpt-args:
+        default: ""
+        required: false
+        type: string
+      wpt-sync-from-upstream:
+        required: false
+        default: false
+        type: boolean
+      wpt:
+        required: false
+        type: boolean
+      number-of-wpt-chunks:
+        default: 20
+        required: false
+        type: number
+      unit-tests:
+        required: false
+        default: false
+        type: boolean
+      devtools-tests:
+        required: false
+        default: false
+        type: boolean
+      build-libservo:
+        required: false
+        default: false
+        type: boolean
+      force-github-hosted-runner:
+        required: false
+        type: boolean
+        default: false
+      bencher:
+        required: false
+        default: false
+        type: boolean
+      coverage:
+        required: false
+        default: false
+        type: boolean
+      capi:
+        required: false
+        default: false
+        type: boolean
+
+  workflow_dispatch:
+    inputs:
+      profile:
+        required: false
+        default: "checked-release"
+        type: choice
+        options: ["checked-release", "release", "debug", "production"]
+      wpt-args:
+        default: ""
+        required: false
+        type: string
+      wpt-sync-from-upstream:
+        default: false
+        required: false
+        type: boolean
+      wpt:
+        required: false
+        type: boolean
+      number-of-wpt-chunks:
+        default: 20
+        required: false
+        type: number
+      unit-tests:
+        required: false
+        default: false
+        type: boolean
+      devtools-tests:
+        required: false
+        default: false
+        type: boolean
+      build-libservo:
+        required: false
+        default: false
+        type: boolean
+      force-github-hosted-runner:
+        required: false
+        type: boolean
+        default: false
+      bencher:
+        required: false
+        default: false
+        type: boolean
+      capi:
+        required: false
+        default: false
+        type: boolean
+
+env:
+  RUST_BACKTRACE: 1
+  SHELL: /bin/bash
+
+jobs:
+  common:
+    name: Call common Linux workflow for x86_64
+    uses: ./.github/workflows/linux-common.yml
+    secrets: inherit
+    with:
+      arch: x86_64
+      # Before updating the GH action runner image for the nightly job, ensure
+      # that the system has a glibc version that is compatible with the one
+      # used by the wpt.fyi runners.
+      uploaded-artifact-name: ${{ inputs.profile }}-binary-linux
+      github-runner-label: ubuntu-22.04
+      self-hosted-image-name: servo-ubuntu2204
+      force-github-hosted-runner: ${{ inputs.force-github-hosted-runner }}
+      profile: ${{ inputs.profile }}
+      build-args: ${{ inputs.build-args }}
+      wpt: ${{ inputs.wpt }}
+      number-of-wpt-chunks: ${{ inputs.number-of-wpt-chunks }}
+      unit-tests: ${{ inputs.unit-tests }}
+      devtools-tests: ${{ inputs.devtools-tests }}
+      build-libservo: ${{ inputs.build-libservo }}
+      wpt-args: ${{ inputs.wpt-args }}
+      bencher: ${{ inputs.bencher }}
+      coverage: ${{ inputs.coverage }}
+      capi: ${{ inputs.capi }}
+
+  wpt-2020:
+    if: ${{ inputs.wpt }}
+    name: Linux WPT
+    needs: ["common"]
+    uses: ./.github/workflows/linux-wpt.yml
+    with:
+      wpt-args: ${{ inputs.wpt-args }}
+      profile: ${{ inputs.profile }}
+      wpt-sync-from-upstream: ${{ inputs.wpt-sync-from-upstream }}
+      number-of-wpt-chunks: ${{ inputs.number-of-wpt-chunks }}
+      binary-path: servo/servoshell
+    secrets: inherit
+
+  bencher:
+    needs: ["common"]
+    if: >-
+      ${{
+          inputs.bencher &&
+          inputs.profile != 'debug' &&
+          github.event_name != 'workflow_dispatch' &&
+          github.event_name != 'merge_group'
+      }}
+    uses: ./.github/workflows/bencher.yml
+    with:
+      target: "linux"
+      profile: ${{ inputs.profile }}
+      compressed-file-path: ${{ inputs.profile }}-binary-linux/servo-tech-demo.tar.gz
+      binary-path: servo/servoshell
+      file-size: true
+      # We only evaluate speedometer and dromaeo score in release
+      speedometer: ${{ inputs.profile == 'release' }}
+      dromaeo: ${{ inputs.profile == 'release' }}
+    secrets: inherit
+
+  # Runs the underlying job (“workload”) on a self-hosted runner if available.
+  runner-select-coverage:
+    if: inputs.coverage
+    runs-on: ubuntu-24.04
+    outputs:
+      unique-id: ${{ steps.select.outputs.unique-id }}
+      selected-runner-label: ${{ steps.select.outputs.selected-runner-label }}
+      is-self-hosted: ${{ steps.select.outputs.is-self-hosted }}
+    steps:
+      - name: Runner select
+        id: select
+        uses: servo/ci-runners/actions/runner-select@a05e7e830e3f4d4c71bdc5a38f003f052b72668c
+        with:
+          GITHUB_TOKEN: ${{ github.token }}
+          # Before updating the GH action runner image for the nightly job, ensure
+          # that the system has a glibc version that is compatible with the one
+          # used by the wpt.fyi runners.
+          github-hosted-runner-label: ubuntu-22.04
+          self-hosted-image-name: servo-ubuntu2204
+          # You can disable self-hosted runners globally by creating a repository variable named
+          # NO_SELF_HOSTED_RUNNERS with any non-empty value.
+          # <https://github.com/servo/servo/settings/variables/actions>
+          NO_SELF_HOSTED_RUNNERS: ${{ vars.NO_SELF_HOSTED_RUNNERS }}
+          # Any other boolean conditions that disable self-hosted runners go here.
+          force-github-hosted-runner: ${{ inputs.force-github-hosted-runner }}
+
+  unit-test-coverage:
+    if: inputs.coverage
+    needs: runner-select-coverage
+    name: Unit Test Coverage [${{ needs.runner-select-coverage.outputs.unique-id }}]
+    runs-on: ${{ needs.runner-select-coverage.outputs.selected-runner-label }}
+    continue-on-error: true
+    steps:
+      - uses: servo/ci-runners/actions/checkout@a05e7e830e3f4d4c71bdc5a38f003f052b72668c
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+        if: ${{ runner.environment != 'self-hosted' }}
+        with:
+          tool-cache: false
+          large-packages: false
+          swap-storage: false
+      - name: Set LIBCLANG_PATH env # needed for bindgen in mozangle
+        shell: bash
+        if: ${{ runner.environment != 'self-hosted' }}
+        run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
+      - name: Setup Python
+        if: ${{ runner.environment != 'self-hosted' }}
+        uses: ./.github/actions/setup-python
+      - name: Change Mirror Priorities
+        if: ${{ runner.environment != 'self-hosted' }}
+        uses: ./.github/actions/apt-mirrors
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov@0.8.7,cargo-nextest@0.9.140
+      - name: Bootstrap dependencies
+        if: ${{ runner.environment != 'self-hosted' }}
+        timeout-minutes: 30
+        shell: bash
+        run: |
+          sudo apt update
+          ./mach bootstrap --yes --skip-lints
+      - name: Run unit-tests with coverage
+        shell: bash
+        env:
+          NEXTEST_RETRIES: 2 # https://github.com/servo/servo/issues/30683
+          LANG: en-US
+        run: |
+          ./mach test-unit --code-coverage \
+              --profile=coverage \
+              --llvm-cov-option=--codecov \
+              --llvm-cov-option=--output-path=codecov.json
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v6
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: codecov.json,support/crown/codecov.json
+          fail_ci_if_error: true
+          flags: unittests
+
+  media-examples:
+    name: Media Examples
+    if: ${{ inputs.unit-tests }}
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: servo/ci-runners/actions/checkout@a05e7e830e3f4d4c71bdc5a38f003f052b72668c
+      - name: Change Mirror Priorities
+        uses: ./.github/actions/apt-mirrors
+      - name: Install Dependencies
+        run: |
+          sudo bash -c 'apt-add-repository -y https://mirrors.kernel.org/ubuntu'
+          sudo apt update
+          sudo apt install -y \
+            gstreamer1.0-libav \
+            gstreamer1.0-plugins-bad \
+            gstreamer1.0-plugins-base \
+            gstreamer1.0-plugins-good \
+            gstreamer1.0-plugins-ugly \
+            gstreamer1.0-tools \
+            jackd2 \
+            libasound2-plugins \
+            libfaad2 \
+            libffi7 \
+            libfftw3-single3 \
+            libges-1.0-dev \
+            libgstreamer-plugins-bad1.0-dev\
+            libgstreamer-plugins-base1.0-dev \
+            libgstreamer1.0-dev \
+            libgstrtspserver-1.0-dev \
+            libjack-jackd2-0 \
+            libmms0 \
+            libmpg123-0 \
+            libopus0 \
+            liborc-0.4-0 \
+            liborc-0.4-dev \
+            libpulsedsp \
+            libsamplerate0 \
+            libspeexdsp1 \
+            libtdb1 \
+            libtheora0 \
+            libtwolame0 \
+            libwayland-egl1-mesa \
+            libwebrtc-audio-processing1 \
+            pulseaudio \
+            pulseaudio-utils \
+            webp
+      - name: Determine MSRV
+        id: msrv
+        uses: ./.github/actions/parse_msrv
+      - name: Install MSRV
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ steps.msrv.outputs.rust_version }}
+      - name: Virtual Audio Devices
+        run: |
+          jackd -d dummy &
+          pulseaudio --start
+          gst-inspect-1.0 | grep Total
+      - name: Run Examples
+        run: |
+          ls components/media/examples/examples/*.rs | xargs -I{} basename  {} .rs  | grep -v params_connect | RUST_BACKTRACE=1 GST_DEBUG=3 xargs -I{} cargo run -p servo-media-examples --example {}

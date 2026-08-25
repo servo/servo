@@ -1,0 +1,24 @@
+<!doctype html>
+<title>CSS Container Queries Test: SVG &lt;foreignObject&gt; element not a size query container</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#size-container">
+<link rel="match" href="svg-foreignobject-no-size-container-ref.html">
+<style>
+  foreignObject {
+    display: block;
+    width: 100px;
+    height: 100px;
+    container-type: size;
+  }
+  @supports not (container-type: size) {
+    div { color: red; }
+  }
+  @container (width = 100px) {
+    div { color: red; }
+  }
+</style>
+<p>You should see the word PASS below and no red.</p>
+<svg>
+  <foreignObject>
+    <div id="div">PASS</div>
+  </foreignObject>
+</svg>

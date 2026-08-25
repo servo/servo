@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<style>
+.float {
+  float: left;
+  width: 20px;
+}
+</style>
+<script src="../resources/runner.js"></script>
+<body style="overflow-y: scroll;">
+  <div id="parent" style="display: flow-root;"></div>
+</body>
+<script>
+const parent = document.getElementById('parent');
+const containers = [];
+for (let i = 0; i < 100; i++) {
+  const container = document.createElement('div');
+  container.style.height = '100px';
+  const random = Math.random();
+  container.innerHTML = `
+    <div class="float" style="height: ${90 * random}px"></div>
+    <div class="float" style="height: ${80 * random}px"></div>
+    <div class="float" style="height: ${70 * random}px"></div>
+    <div class="float" style="height: ${60 * random}px"></div>
+    <div class="float" style="height: ${50 * random}px"></div>
+    <div class="float" style="height: ${40 * random}px"></div>
+    <div class="float" style="height: ${30 * random}px"></div>
+    <div class="float" style="height: ${20 * random}px"></div>
+    <div class="float" style="height: ${10 * random}px"></div>
+  `;
+  parent.appendChild(container);
+  containers.push(container);
+}
+
+PerfTestRunner.measureRunsPerSecond({
+  description: 'Measures formance of showing/hiding containers with many floats',
+  run: () => {
+    for (let container of containers) {
+      container.style.display = 'none';
+      PerfTestRunner.forceLayout();
+      container.style.display = '';
+      PerfTestRunner.forceLayout();
+    }
+  },
+  done: () => {
+    parent.style.display = 'none';
+  }
+});
+
+</script>

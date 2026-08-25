@@ -1,0 +1,94 @@
+<!doctype html>
+<meta name="variant" content="?dropeffect=none&effectallowed=none">
+<meta name="variant" content="?dropeffect=none&effectallowed=uninitialized">
+<meta name="variant" content="?dropeffect=none&effectallowed=undefined">
+<meta name="variant" content="?dropeffect=none&effectallowed=all">
+<meta name="variant" content="?dropeffect=none&effectallowed=copy">
+<meta name="variant" content="?dropeffect=none&effectallowed=move">
+<meta name="variant" content="?dropeffect=none&effectallowed=link">
+<meta name="variant" content="?dropeffect=none&effectallowed=copyMove">
+<meta name="variant" content="?dropeffect=none&effectallowed=copyLink">
+<meta name="variant" content="?dropeffect=none&effectallowed=linkMove">
+<meta name="variant" content="?dropeffect=none&effectallowed=dummy">
+<meta name="variant" content="?dropeffect=copy&effectallowed=none">
+<meta name="variant" content="?dropeffect=copy&effectallowed=uninitialized">
+<meta name="variant" content="?dropeffect=copy&effectallowed=undefined">
+<meta name="variant" content="?dropeffect=copy&effectallowed=all">
+<meta name="variant" content="?dropeffect=copy&effectallowed=copy">
+<meta name="variant" content="?dropeffect=copy&effectallowed=move">
+<meta name="variant" content="?dropeffect=copy&effectallowed=link">
+<meta name="variant" content="?dropeffect=copy&effectallowed=copyMove">
+<meta name="variant" content="?dropeffect=copy&effectallowed=copyLink">
+<meta name="variant" content="?dropeffect=copy&effectallowed=linkMove">
+<meta name="variant" content="?dropeffect=copy&effectallowed=dummy">
+<meta name="variant" content="?dropeffect=move&effectallowed=uninitialized">
+<meta name="variant" content="?dropeffect=move&effectallowed=undefined">
+<meta name="variant" content="?dropeffect=move&effectallowed=none">
+<meta name="variant" content="?dropeffect=move&effectallowed=all">
+<meta name="variant" content="?dropeffect=move&effectallowed=copy">
+<meta name="variant" content="?dropeffect=move&effectallowed=move">
+<meta name="variant" content="?dropeffect=move&effectallowed=link">
+<meta name="variant" content="?dropeffect=move&effectallowed=copyMove">
+<meta name="variant" content="?dropeffect=move&effectallowed=copyLink">
+<meta name="variant" content="?dropeffect=move&effectallowed=linkMove">
+<meta name="variant" content="?dropeffect=move&effectallowed=dummy">
+<meta name="variant" content="?dropeffect=link&effectallowed=uninitialized">
+<meta name="variant" content="?dropeffect=link&effectallowed=undefined">
+<meta name="variant" content="?dropeffect=link&effectallowed=none">
+<meta name="variant" content="?dropeffect=link&effectallowed=all">
+<meta name="variant" content="?dropeffect=link&effectallowed=copy">
+<meta name="variant" content="?dropeffect=link&effectallowed=move">
+<meta name="variant" content="?dropeffect=link&effectallowed=link">
+<meta name="variant" content="?dropeffect=link&effectallowed=copyMove">
+<meta name="variant" content="?dropeffect=link&effectallowed=copyLink">
+<meta name="variant" content="?dropeffect=link&effectallowed=linkMove">
+<meta name="variant" content="?dropeffect=link&effectallowed=dummy">
+<meta name="variant" content="?dropeffect=dummy&effectallowed=uninitialized">
+<meta name="variant" content="?dropeffect=dummy&effectallowed=undefined">
+<meta name="variant" content="?dropeffect=dummy&effectallowed=none">
+<meta name="variant" content="?dropeffect=dummy&effectallowed=all">
+<meta name="variant" content="?dropeffect=dummy&effectallowed=copy">
+<meta name="variant" content="?dropeffect=dummy&effectallowed=move">
+<meta name="variant" content="?dropeffect=dummy&effectallowed=link">
+<meta name="variant" content="?dropeffect=dummy&effectallowed=copyMove">
+<meta name="variant" content="?dropeffect=dummy&effectallowed=copyLink">
+<meta name="variant" content="?dropeffect=dummy&effectallowed=linkMove">
+<meta name="variant" content="?dropeffect=dummy&effectallowed=dummy">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/dnd.html#dropEffect-initialisation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="support/dropEffect-test-helper.js"></script>
+<script src="../resources/test-helper.js"></script>
+<head>
+  <title>Test all effectAlloweds against all dropEffects on drop event</title>
+  <style>
+    div {
+      display: inline-block;
+      vertical-align: top;
+      background-color: olive;
+      color: white;
+      margin-left: 20px;
+      margin-top: 20px;
+      width: 75px;
+      height: 75px;
+      font-size: small;
+    }
+  </style>
+</head>
+<body>
+  <p>These are the draggable elements with different effectAllowed
+    settings:
+  <p id="drag-container"> </p>
+  </p>
+  <p> Drop targets with different dropEffects:
+  <p id="drop-container"> </p>
+  </p>
+</body>
+<script>
+  const urlSearch = new URLSearchParams(window.location.search);
+  runDropEffectTestOnDrop(urlSearch.get('effectallowed'), urlSearch.get('dropeffect'));
+</script>
+</html>

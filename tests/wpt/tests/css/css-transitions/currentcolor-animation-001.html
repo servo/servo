@@ -1,0 +1,53 @@
+<!doctype html>
+<html>
+<head>
+<meta charset=utf-8>
+<title>CSS Transitions of currentcolor</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Mozilla Corporation" href="https://mozilla.com/">
+<link rel="help" href="https://drafts.csswg.org/css-transitions/#starting">
+<link rel="help" href="https://drafts.csswg.org/css-color/#resolving-color-values">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<div id="test"></div>
+<script>
+
+test(() => {
+  const div = document.getElementById('test');
+  const cs = getComputedStyle(div, '');
+
+  // Setup before-change style
+  div.style.color = 'red';
+  div.style.backgroundColor = 'currentcolor';
+  cs.backgroundColor; // Flush style
+
+  // Change color -- this should NOT trigger a transition because as per [1]
+  // the computed value of 'currentcolor' for properties other than 'color'
+  // is 'currentcolor' and transitions operate on computed values (not used
+  // values).
+  //
+  // [1] https://drafts.csswg.org/css-color/#resolving-color-values
+  div.style.transition = 'background-color linear 50s -10s';
+  div.style.color = 'blue';
+  const valueAfterUpdatingColor = cs.backgroundColor;
+
+  // Generate some reference values for comparing
+  div.style.transition = '';
+  div.style.backgroundColor = 'rgb(204, 0, 51)';
+  const quarterReference = cs.backgroundColor;
+
+  div.style.backgroundColor = 'blue';
+  const finalReference = cs.backgroundColor;
+
+  assert_true(
+    valueAfterUpdatingColor != quarterReference &&
+    valueAfterUpdatingColor == finalReference
+  );
+}, 'Transition does not occur when the value is currentcolor and color changes');
+
+</script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+<!doctype html>
+<title>WebSockets: defineProperty getter for constants</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../../../constants.sub.js></script>
+<meta name="variant" content="?default">
+<meta name="variant" content="?wss">
+<div id=log></div>
+<script>
+var constants = ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'];
+for (var i = 0; i < constants.length; ++i) {
+  test(function() {
+    assert_throws_js(TypeError, function() {
+      Object.defineProperty(WebSocket.prototype, constants[i], {
+        get: function() { return 'foo'; }
+      });
+    });
+  }, "defineProperty getter " + constants[i]);
+};
+</script>

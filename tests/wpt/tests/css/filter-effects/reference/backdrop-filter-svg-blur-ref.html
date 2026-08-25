@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>backdrop-filter: Correctly apply backdrop-filter with an SVG filter</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty">
+<script src="../support/simulate-backdrop-blur.js"></script>
+<style>
+  .container {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    contain: paint;
+  }
+  .container .box {
+    width: 50px;
+    height: 50px;
+    position: absolute;
+  }
+  div.blue { background: blue;}
+  .green { background: green;}
+  .green {
+    left: 20px;
+    top: 20px;
+    opacity: 0.5;
+  }
+</style>
+
+<p>The green box should filter the blue box.</p>
+
+<div class="container">
+  <div class="blue box"></div>
+  <div class="green box"></div>
+</div>
+
+<script>
+simulateBackdropBlur(document.querySelector('.green'), [document.querySelector('.blue')], 10);
+</script>

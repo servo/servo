@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Cross-document navigation after a cross-document navigation</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!--
+  According to the spec, the navigate algorithm synchronously cancels ongoing
+  non-mature navigations.
+-->
+
+<body>
+<script type="module">
+import { createIframe, waitForLoad, waitForPotentialNetworkLoads } from "./resources/helpers.mjs";
+
+promise_test(async t => {
+  const iframe = await createIframe(t);
+
+  iframe.contentWindow.location.search = "?1";
+  iframe.contentWindow.location.search = "?2";
+  assert_equals(iframe.contentWindow.location.search, "");
+
+  await waitForLoad(iframe);
+  assert_equals(iframe.contentWindow.location.search, "?2");
+
+  iframe.onload = t.unreached_func("second load event");
+  await waitForPotentialNetworkLoads(t);
+  assert_equals(iframe.contentWindow.location.search, "?2");
+}, "cross-document navigation then cross-document navigation");
+</script>

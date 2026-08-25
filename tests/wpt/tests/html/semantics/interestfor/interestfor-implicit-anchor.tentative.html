@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<title>Interest invokers form an implicit anchor reference</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://open-ui.org/components/interest-invokers.explainer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/invoker-utils.js"></script>
+
+<button id=button interestfor=popover>Button</button>
+<div popover id=popover>popover</div>
+
+<style>
+#button {
+  position:relative;
+  top:100px;
+  left:100px;
+  interest-delay: 0s;
+}
+#popover {
+  border:1px solid black;
+  inset: auto;
+  margin:0;
+  padding:0;
+  position-area: top left;
+}
+body { margin: 0; }
+</style>
+
+<script>
+promise_test(async (t) => {
+  let interestFired = false;
+  popover.addEventListener('interest',() => interestFired = true);
+
+  await hoverOver(button);
+  assert_true(popover.matches(':popover-open'));
+
+  // The popover should be anchored to the button.
+  assert_equals(popover.offsetLeft + popover.offsetWidth, button.offsetLeft);
+  assert_equals(popover.offsetTop + popover.offsetHeight, button.offsetTop);
+}, 'Interest invokers form an implicit anchor reference');
+</script>

@@ -1,0 +1,24 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>border-color: currentColor + border-radius</title>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#border-color">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1999938">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.com">
+<link rel="match" href="border-radius-currentcolor-ref.html">
+<style>
+:root {
+  --color: #fff;
+  background: var(--color);
+  color: var(--color);
+}
+div {
+  display: block;
+  width: 51px;
+  height: 51px;
+  border-radius: 50%;
+  background-color: #323232;
+  border: 10px solid currentcolor;
+}
+</style>
+<div></div>

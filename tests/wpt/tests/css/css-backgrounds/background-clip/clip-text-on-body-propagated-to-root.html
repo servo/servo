@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>background-clip:text on the root</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-4/#valdef-background-clip-text">
+<link rel="match" href="../reference/green-root-background.html">
+<style>
+html {
+  font-size: 80px;
+  color: transparent;
+  background-color: green;
+}
+body {
+  background-clip: text;
+}
+</style>
+
+This text should not be visible; the page should be entirely green.

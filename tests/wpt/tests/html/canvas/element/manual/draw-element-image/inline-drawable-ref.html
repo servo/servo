@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  #canvas {
+    width: 300px;
+    height: 200px;
+    background: #ccc;
+    position: relative;
+  }
+  #child {
+    width: 200px;
+    height: 200px;
+    background: lightgreen;
+  }
+  span {
+    font: 25px/1 Ahem;
+  }
+  #inlinea {
+    color: blue;
+  }
+  #inlineb-placeholder {
+    color: transparent;
+  }
+  #inlinec {
+    color: purple;
+  }
+  #inlineb-actual {
+    display: block;
+    position: absolute;
+    top: 25px;
+    left: 225px;
+    color: green;
+  }
+</style>
+<div id="canvas">
+  <div id="child">
+    <span id="inlinea">X</span>
+    <span id="inlineb-placeholder">X</span>
+    <span id="inlinec">X</span>
+  </div>
+  <span id="inlineb-actual">X</span>
+</div>

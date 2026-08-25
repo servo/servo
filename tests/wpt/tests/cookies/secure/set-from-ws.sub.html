@@ -1,0 +1,45 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset=utf-8>
+  <title>Set 'secure' cookie from `Set-Cookie` HTTP header on a non-secure WebSocket</title>
+  <meta name=help href="https://tools.ietf.org/html/draft-west-leave-secure-cookies-alone">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/cookies/resources/testharness-helpers.js"></script>
+</head>
+<body>
+<div id=log></div>
+<script>
+  function clearKnownCookie() {
+    document.cookie = "ws_test_secure_from_nonsecure=0; Secure; expires=Thu, 01 Jan 1970 00:00:01 GMT; path=/";
+  }
+
+  async_test(function (t) {
+    t.add_cleanup(clearKnownCookie);
+    assert_equals(document.cookie.match(/ws_test_secure_from_nonsecure=/), null);
+
+    clearKnownCookie();
+    var ws = new WebSocket("ws://{{host}}:{{ports[ws][0]}}/set-cookie-secure?secure_from_nonsecure");
+    ws.onclose = t.step_func_done(function () {
+      assert_unreached("'close' should not fire before 'open'.");
+    });
+    ws.onopen = t.step_func(function (e) {
+      ws.onclose = null;
+      ws.close();
+      assert_false(/ws_test_secure_from_nonsecure=test/.test(document.cookie));
+
+      var ws2 = new WebSocket("wss://{{host}}:{{ports[wss][0]}}/echo-cookie");
+      ws2.onclose = t.step_func_done(function () {
+        assert_unreached("'close' should not fire before 'open'.");
+      });
+      ws2.onmessage = t.step_func_done(function (e) {
+        ws2.onclose = null;
+        ws2.close();
+        assert_false(/ws_test_secure_from_nonsecure=test/.test(e.data));
+      });
+    });
+  }, "'secure' cookie not sent in WSS request when set from WS");
+</script>
+</body>
+</html>

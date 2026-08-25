@@ -1,0 +1,52 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>Test#add_cleanup with Promise-returning functions (rejection handling following "load" event)</title>
+</head>
+<body>
+<h1>Promise Tests</h1>
+<p>This test demonstrates the use of <tt>promise_test</tt>. Assumes ECMAScript 6
+Promise support. Some failures are expected.</p>
+<div id="log"></div>
+<script src="../../../testharness.js"></script>
+<script src="../../../testharnessreport.js"></script>
+<script>
+promise_test(function(t) {
+  t.add_cleanup(function() {
+    return Promise.reject(new Error("foo"));
+  });
+
+  return new Promise((resolve) => {
+    document.addEventListener("DOMContentLoaded", function() {
+      setTimeout(resolve, 0)
+    });
+  });
+}, "Test with failing cleanup that completes after DOMContentLoaded event");
+
+promise_test(function(t) {
+  return Promise.resolve();
+}, "Test that should not be run due to invalid harness state ('NOT RUN')");
+</script>
+<script type="text/json" id="expected">
+{
+  "summarized_status": {
+    "status_string": "ERROR",
+    "message": "Test named 'Test with failing cleanup that completes after DOMContentLoaded event' specified 1 'cleanup' function, and 1 failed."
+  },
+  "summarized_tests": [
+    {
+      "status_string": "NOTRUN",
+      "name": "Test that should not be run due to invalid harness state ('NOT RUN')",
+      "message": null,
+      "properties": {}
+    },
+    {
+      "status_string": "PASS",
+      "name": "Test with failing cleanup that completes after DOMContentLoaded event",
+      "message": null,
+      "properties": {}
+    }
+  ],
+  "type": "complete"
+}
+</script>

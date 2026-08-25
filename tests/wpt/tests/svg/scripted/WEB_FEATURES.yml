@@ -1,0 +1,2 @@
+rules:
+- attr-script-fetchpriority.optional.html: [fetch-priority]

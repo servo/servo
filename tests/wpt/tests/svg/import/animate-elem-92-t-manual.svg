@@ -1,0 +1,113 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="ED" author="CM" status="accepted"
+    version="$Revision: 1.7 $" testname="$RCSfile: animate-elem-92-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/animate.html#Animation">
+      <p>
+        This tests checks the behavior of discrete to-animations.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>Run the test. No interaction required.</p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>The test passes if after five seconds, in each of the three rows,
+      the red rectangle is in the column at the times indicated.
+      Thus, from the document load until 2s afterwards, the red
+      square in all three rows must be in the left column.  At 2s,
+      all three red squares must move to the right column.  At 4s,
+      the red square in the first row must move to the left column
+      and the other two red squares must remain in the right column.</p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: animate-elem-92-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <text text-anchor="middle" x="240" y="30" font-size="20">discrete to-animation</text>
+    <g transform="translate(100, 70)">
+      <g transform="translate(80,25)" text-anchor="end" font-size="14">
+        <text>without freezing</text>
+        <text y="55">with freezing</text>
+        <text y="110">with keyTimes</text>
+      </g>
+
+      <g id="timeMarkersText" transform="translate(150, 5)" text-anchor="middle" font-size="14">
+        <text>0s-2s</text>
+        <text y="-16">&gt; 4s</text>
+        <text x="80">2s-4s</text>
+
+        <g transform="translate(0, 55)">
+          <text>0s-2s</text>
+          <text x="80">&gt; 2s</text>
+        </g>
+
+        <g transform="translate(0, 110)">
+          <text>0s-2s</text>
+          <text x="80">&gt; 2s</text>
+        </g>
+      </g>
+
+      <g transform="translate(150,20)" stroke="black">
+        <defs>
+          <rect id="shadow" x="-6" y="-6" width="12" height="12" fill="#ccc" stroke="black" stroke-width="1"/>
+        </defs>
+
+        <g>
+          <use xlink:href="#shadow" x="0"/>
+          <use xlink:href="#shadow" x="80"/>
+
+          <rect x="-6" y="-6" width="12" height="12" fill="rgb(204,0,102)">
+            <animate attributeName="x" calcMode="discrete" to="74" dur="4s"/>
+          </rect>
+        </g>
+
+        <g transform="translate(0, 55)">
+          <use xlink:href="#shadow" x="0"/>
+          <use xlink:href="#shadow" x="80"/>
+
+          <rect x="-6" y="-6" width="12" height="12" fill="rgb(204,0,102)">
+            <animate attributeName="x" calcMode="discrete" to="74" dur="4s" fill="freeze"/>
+          </rect>
+        </g>
+
+        <g transform="translate(0, 110)">
+          <use xlink:href="#shadow" x="0"/>
+          <use xlink:href="#shadow" x="80"/>
+
+          <rect x="-6" y="-6" width="12" height="12" fill="rgb(204,0,102)">
+            <animate attributeName="x" calcMode="discrete" to="74" dur="8s" keyTimes="0; 0.25" fill="freeze"/>
+          </rect>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.7 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+  -->
+</svg>

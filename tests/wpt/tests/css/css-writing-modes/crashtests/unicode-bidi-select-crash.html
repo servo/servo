@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/1329417">
+<style>
+  select {
+    unicode-bidi: bidi-override;
+  }
+</style>
+<body>
+  <select>
+    <option>Test1</option>
+    <option id="opt" hidden="hidden">Test2</option>
+  </select>
+</body>
+<script>
+  document.body.offsetTop;
+  opt.defaultSelected = true;
+  window.getSelection().selectAllChildren(document.body);
+  document.vlinkColor = "red";
+</script>

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel=help href="https://bugzilla.mozilla.org/show_bug.cgi?id=1917742">
+<!-- Really a crashtest but since we can't really have print crashtests, we assert that we print something -->
+<link rel="mismatch" href="/css/reference/blank.html">
+<style>
+    #b {
+        will-change: transition, -webkit-animation, opacity, z-index;
+    }
+
+    #c {
+        offset: path('M -1 1 l -1 98') 51% auto 0deg;
+    }
+</style>
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        a.style.setProperty("mix-blend-mode", "hue")
+        b.appendChild(a)
+    })
+</script>
+<font>A</font>
+<input>
+<textarea id="a" name=" VM\">A</textarea>
+<ol>A</ol>
+<a>A</a>
+<input>
+<math>
+    <mn id="b">A</mn>
+    <ms>A</ms>
+    <ms>A</ms>
+    <msqrt id="c" href="x">
+        <mn>A</mn>

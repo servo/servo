@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>HTML entities for various XHTML Doctype variants</title>
+<link rel=help href="http://w3c.github.io/html/xhtml.html#parsing-xhtml-documents">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+  test(function () {
+    var doc = new DOMParser().parseFromString('<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"><html><div id="test"/></html>', 'application/xhtml+xml');
+    var div = doc.getElementById('test');
+    assert_equals(div, null); // If null, then this was a an error document (didn't parse the input successfully)
+  }, "Doctype parsing of System Id must fail on ommitted value");
+
+  test(function () {
+    var doc = new DOMParser().parseFromString('<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" ""><html><div id="test"/></html>', 'application/xhtml+xml');
+    var div = doc.getElementById('test');
+    assert_not_equals(div, null); // If found, then the DOMParser didn't generate an error document
+  }, "Doctype parsing of System Id can handle empty string");
+
+  test(function () {
+    var doc = new DOMParser().parseFromString('<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "x"><html><div id="test"/></html>', 'application/xhtml+xml');
+    var div = doc.getElementById('test');
+    assert_not_equals(div, null);
+  }, "Doctype parsing of System Id can handle a quoted value");
+
+</script>

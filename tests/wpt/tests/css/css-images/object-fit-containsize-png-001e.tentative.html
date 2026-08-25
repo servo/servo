@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Test: 'object-fit: contain' and 'contain: size' on an embed element, embedding a PNG image</title>
+    <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/10116">
+    <link rel="match" href="object-fit-containsize-png-001-ref.tentative.html">
+    <style type="text/css">
+      embed {
+        border: 1px dashed gray;
+        padding: 1px;
+        image-rendering: pixelated;
+        float: left;
+        contain: size;
+        object-position: top left;
+      }
+      br {
+        clear: both;
+      }
+      .big {
+        width: 32px;
+        height: 48px;
+      }
+      .small {
+        width: 8px;
+        height: 8px;
+      }
+
+      .cover { object-fit: cover }
+      .contain { object-fit: contain }
+      .fill { object-fit: fill }
+      .none { object-fit: none }
+      .scaledown { object-fit: scale-down }
+
+    </style>
+  </head>
+  <body>
+    <!-- big: -->
+    <embed src="support/colors-16x8.png" class="big cover"></embed>
+    <embed src="support/colors-16x8.png" class="big contain"></embed>
+    <embed src="support/colors-16x8.png" class="big fill"></embed>
+    <embed src="support/colors-16x8.png" class="big none"></embed>
+    <embed src="support/colors-16x8.png" class="big scaledown"></embed>
+    <br>
+    <!-- small: -->
+    <embed src="support/colors-16x8.png" class="small cover"></embed>
+    <embed src="support/colors-16x8.png" class="small contain"></embed>
+    <embed src="support/colors-16x8.png" class="small fill"></embed>
+    <embed src="support/colors-16x8.png" class="small none"></embed>
+    <embed src="support/colors-16x8.png" class="small scaledown"></embed>
+    <br>
+  </body>
+</html>

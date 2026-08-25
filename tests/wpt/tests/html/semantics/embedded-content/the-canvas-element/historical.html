@@ -1,0 +1,77 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Historical canvas features</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+var canvas, context, path2d;
+setup(function() {
+  canvas = document.createElement("canvas");
+  context = canvas.getContext('2d');
+  path2d = new Path2D();
+});
+function t(member, obj) {
+  var name = obj === canvas ? "Canvas" : String(obj).match(/\[object (\S+)\]/)[1];
+  test(function() {
+    assert_false(member in obj);
+  }, name + " support for " + member);
+}
+// added in https://github.com/whatwg/html/commit/0ecbf0e010df16d9c6d11eef6b2c58419158c4da
+// renamed in https://github.com/whatwg/html/commit/2542a12cb25ee93534cbed1f31b5e1bc05fcdd0e
+t("supportsContext", canvas);
+
+// removed in https://github.com/whatwg/html/commit/2cfb8e3f03d3166842d2ad0f661459d26e2a40eb
+t("probablySupportsContext", canvas);
+
+// removed in https://github.com/whatwg/html/commit/ef72f55da4acdf266174225c6ca8bf2a650d0219
+t("width", context);
+t("height", context);
+
+// removed in https://github.com/whatwg/html/commit/740634d0f30a3b76e9da166ac2fa8835fcc073ab
+t("setContext", canvas);
+t("transferControlToProxy", canvas);
+t("CanvasProxy", window);
+t("commit", canvas);
+test(function() {
+  assert_throws_js(TypeError, function() {
+    new CanvasRenderingContext2D();
+  }, 'no arguments');
+  assert_throws_js(TypeError, function() {
+    new CanvasRenderingContext2D(1, 1);
+  }, 'with arguments');
+}, "CanvasRenderingContext2D constructors");
+
+// removed in https://github.com/whatwg/html/commit/e1d04f49a38e2254a783c28987457a95a47d9511
+t("addPathByStrokingPath", path2d);
+t("addText", path2d);
+t("addPathByStrokingText", path2d);
+
+// renamed in https://github.com/whatwg/html/commit/fcb0756dd94d96df9b8355741d82fcd5ca0a6154
+test(function() {
+  var canvas = document.createElement('canvas');
+  var context = canvas.getContext('bitmaprenderer');
+  if (context) {
+    assert_false('transferImageBitmap' in context);
+  }
+}, 'ImageBitmapRenderingContext support for transferImageBitmap');
+
+// renamed in https://github.com/whatwg/html/commit/3aec2a7e04a3402201afd29c224b57fa54497517
+t('Path', window);
+
+// removed in https://github.com/whatwg/html/commit/d5759b0435091e4858c9bff90319cbe5b040eda2
+t('toDataURLHD', canvas);
+t('toBlobHD', canvas);
+t('createImageDataHD', context);
+t('getImageDataHD', context);
+t('putImageDataHD', context);
+test(function() {
+  if ('ImageData' in window) {
+    assert_false('resolution' in new ImageData(1, 1));
+  }
+}, 'ImageData support for resolution');
+
+// dropped/renamed in https://github.com/whatwg/html/commit/ff07c6d630fb986f6c4f64b2fb87387b4f89647d
+t('drawSystemFocusRing', context);
+t('drawCustomFocusRing', context);
+</script>

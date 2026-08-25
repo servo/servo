@@ -1,0 +1,80 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>A node's realm is fixed at creation and preserved across adoption</title>
+<link rel=help href="https://dom.spec.whatwg.org/#concept-create-node">
+<link rel=help href="https://dom.spec.whatwg.org/#concept-node-adopt">
+<link rel=help href="https://github.com/whatwg/dom/issues/977">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<body>
+<iframe></iframe>
+<script>
+// A node is created in its node document's realm (https://github.com/whatwg/dom/issues/977).
+// That realm is assigned when the node is created and must not change if the
+// node is later adopted into a document belonging to a different realm.
+//
+// These subtests create a node in an inner (iframe) realm's document without
+// ever exposing it to script (so no JS wrapper exists yet), then adopt it into
+// the top-level document, and only then inspect it. The spec says the node's
+// realm is the inner realm (its node document's realm at creation time). An
+// engine that instead assigns the realm lazily, when the wrapper is first
+// created, would wrongly report the top-level realm here.
+
+const inner = document.querySelector("iframe").contentWindow;
+
+function assertInnerRealm(node, iface) {
+  assert_true(node instanceof inner[iface],
+              `is an inner-realm ${iface}`);
+}
+
+// Built-in element created by parsing into an inner-realm node, then adopted.
+test(() => {
+  const container = inner.document.createElement("div");
+  container.innerHTML = "<p></p>"; // <p> created in inner document, not wrapped
+  const p = container.firstChild;
+  document.body.appendChild(container); // adopts container and <p> to top-level
+  assert_equals(p.ownerDocument, document, "p was adopted into the top-level document");
+  assertInnerRealm(p, "HTMLParagraphElement");
+}, "Built-in element keeps its creation realm after adoption");
+
+// Text node created by parsing into an inner-realm node, then adopted.
+test(() => {
+  const container = inner.document.createElement("div");
+  container.innerHTML = "text"; // Text created in inner document, not wrapped
+  const text = container.firstChild;
+  document.body.appendChild(container);
+  assert_equals(text.ownerDocument, document, "text was adopted into the top-level document");
+  assertInnerRealm(text, "Text");
+}, "Text node keeps its creation realm after adoption");
+
+// Comment node created by parsing into an inner-realm node, then adopted.
+test(() => {
+  const container = inner.document.createElement("div");
+  container.innerHTML = "<!--comment-->"; // Comment created in inner document, not wrapped
+  const comment = container.firstChild;
+  document.body.appendChild(container);
+  assert_equals(comment.ownerDocument, document, "comment was adopted into the top-level document");
+  assertInnerRealm(comment, "Comment");
+}, "Comment node keeps its creation realm after adoption");
+
+// Element created directly by createElement in the inner document, then adopted.
+test(() => {
+  const container = inner.document.createElement("div");
+  const child = inner.document.createElement("span");
+  container.appendChild(child); // child never wrapped in the inner realm
+  document.body.appendChild(container);
+  assert_equals(child.ownerDocument, document, "child was adopted into the top-level document");
+  assertInnerRealm(child, "HTMLSpanElement");
+}, "createElement()d element keeps its creation realm after adoption");
+
+// A deeper tree: only the root is touched before adoption; a never-wrapped
+// descendant must still report the inner realm.
+test(() => {
+  const container = inner.document.createElement("div");
+  container.innerHTML = "<section><b>x</b></section>";
+  document.body.appendChild(container);
+  const b = container.querySelector("b");
+  assert_equals(b.ownerDocument, document, "descendant was adopted into the top-level document");
+  assertInnerRealm(b, "HTMLElement");
+}, "Never-wrapped descendant keeps its creation realm after adoption");
+</script>

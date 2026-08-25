@@ -1,0 +1,23 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: highlight cascade: inheritance with both universal and non-universal rules</title>
+<link rel="author" title="Delan Azabani" href="mailto:dazabani@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#highlight-cascade">
+<link rel="match" href="highlight-cascade-005-ref.html">
+<meta name="assert" content="This test verifies that, given both universal and non-universal ::selection rules, the subject of the non-universal rule has styles from both rules with the non-universal styles overriding the universal styles (due to the cascade), its descendants have styles from both rules with the universal styles overriding the non-universal styles (due to highlight inheritance), and its siblings have the universal styles only.">
+<script src="support/selections.js"></script>
+<link rel="stylesheet" href="../support/highlights.css">
+<style>
+    /* * (universal) */::selection {
+        background-color: green;
+        color: white;
+    }
+    main::selection,
+    aside ::selection {
+        color: yellow;
+    }
+</style>
+<nav class="highlight_reftest">white</nav>
+<main class="highlight_reftest">yellow <span>white <b>white</b></span></main>
+<aside class="highlight_reftest">white <i>yellow</i></aside>
+<script>selectNodeContents(document.body);</script>

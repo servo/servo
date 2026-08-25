@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>backdrop-filter: filter region is not affected by background-clip</title>
+<link rel="help" href="https://drafts.csswg.org/filter-effects-2/#backdrop-filter-operation">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#background-clip">
+<link rel="match" href="backdrop-filter-with-background-clip-content-box-ref.html">
+
+<p>Expected: A box with a cyan padding area and lime content area.</p>
+<div class="backdrop">
+  <div class="filterbox"></div>
+</div>
+
+<style>
+.backdrop {
+    background: red;
+    width: 100px;
+    height: 100px;
+}
+/* The backdrop-filter region should be the border box per spec,
+   regardless of background-clip. The entire 100x100 area should
+   show the inverted backdrop (red -> cyan), with the lime
+   background only painted in the content box. */
+.filterbox {
+    padding: 10px;
+    width: 80px;
+    height: 80px;
+    background: lime;
+    background-clip: content-box;
+    backdrop-filter: invert(1);
+}
+</style>

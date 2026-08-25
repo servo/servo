@@ -1,0 +1,18 @@
+<!-- quirks -->
+<title>Same-origin stylesheet with non-CSS MIME type quirk</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#link-type-stylesheet">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" href="resources/quirk-stylesheet.css.txt">
+<p class="test">This text should be green.</p>
+<script>
+setup({ single_test: true });
+onload = () => {
+  assert_equals(
+    getComputedStyle(document.querySelector('.test')).color,
+    'rgb(0, 128, 0)',
+    "Same-origin stylesheet with non-CSS MIME type should be applied in quirks mode"
+  );
+  done();
+};
+</script>

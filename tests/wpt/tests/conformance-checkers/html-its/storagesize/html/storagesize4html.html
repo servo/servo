@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang=en>
+  <head>
+    <script type="application/its+xml">  
+     <its:rules xmlns:its="http://www.w3.org/2005/11/its" xmlns:h="http://www.w3.org/1999/xhtml" version="2.0">
+      <its:param name="storagesizePapParam">123</its:param>
+      <its:param name="storagesizeDomParam">139</its:param>
+      <its:storageSizeRule selector="//h:p[@id=$storagesizePapParam]" storageSize="25" storageEncoding="ISO-8859-1"/>
+      <its:storageSizeRule selector="//h:p[@id=$storagesizeDomParam]" storageSize="25" storageEncoding="ISO-8859-1"/>
+     </its:rules>
+    </script>
+    <meta charset=utf-8>
+    <title>Storage Size</title>
+  </head>
+  <body>
+    <b>String to translate:</b>
+    <p contenteditable="true" id="123">Papua New-Guinea</p>
+    <p contenteditable="true" id="139">Dominican Replubic</p>
+  </body>
+</html>

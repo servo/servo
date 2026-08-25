@@ -1,0 +1,37 @@
+<!doctype html>
+<title>compressedTexSubImage2D without prior compressedTexImage2D generates INVALID_OPERATION</title>
+<link rel=author title="Babalola Taiwo Joseph" href=mailto:t.babalolajoseph@gmail.com>
+<link rel=help href=https://www.khronos.org/registry/webgl/specs/latest/#5.14.8>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+
+<div id=log></div>
+<script>
+test(function() {
+  var canvas = document.createElement("canvas");
+  var gl = canvas.getContext("webgl");
+  assert_true(!!gl, "WebGL context should be available");
+
+  var s3tc = gl.getExtension("WEBGL_compressed_texture_s3tc");
+  var etc1 = gl.getExtension("WEBGL_compressed_texture_etc1");
+
+  var format, dataSize;
+  if (s3tc) {
+    format = s3tc.COMPRESSED_RGB_S3TC_DXT1_EXT;
+    dataSize = 8;
+  } else if (etc1) {
+    format = etc1.COMPRESSED_RGB_ETC1_WEBGL;
+    dataSize = 8;
+  }
+
+  assert_true(!!format, "A supported compressed texture format must be available");
+
+  var texture = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+
+  gl.compressedTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 4, 4, format, new Uint8Array(dataSize));
+
+  assert_equals(gl.getError(), gl.INVALID_OPERATION,
+    "compressedTexSubImage2D without a prior compressedTexImage2D should generate INVALID_OPERATION");
+}, "compressedTexSubImage2D without base image generates INVALID_OPERATION");
+</script>

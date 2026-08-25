@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ARIA Notify API Test: iframe Denied Permissions Policy Manual</title>
+  <link rel="help" href="https://github.com/w3c/aria/pull/2577">
+  <link rel="author" title="Jacques Newman" href="mailto:janewman@microsoft.com">
+</head>
+<body>
+  <p>This test checks the behavior of the <code>ariaNotify</code> API when used within an iframe with aria-notify explicitly denied by permissions policy.</p>
+
+  <h2>Setup Instructions</h2>
+  <p><strong>Setup:</strong> Use a screen reader (NVDA, JAWS, VoiceOver, etc.) or other assistive technology that supports the ARIA Notify API.</p>
+  <p><strong>Instructions:</strong> Listen for the announced text from your screen reader. The test will run automatically when the page loads.</p>
+
+  <div>
+    <h3>Test: iframe with aria-notify Denied by Permissions Policy</h3>
+    <p><strong>Expected:</strong> Screen reader should NOT announce: "This should not be announced".</p>
+
+    <iframe id="testIframe" src="resources/aria-notify-iframe-manual-test.html?message=This%20should%20not%20be%20announced" allow="aria-notify 'none'"></iframe>
+  </div>
+
+</body>
+</html>

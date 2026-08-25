@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset="utf-8">
+<title></title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+    var testBinding = new TestBinding();
+    assert_equals(typeof testBinding.BooleanMozPreference, "function");
+    assert_equals(testBinding.BooleanMozPreference("dom_testbinding_preference_value_falsy"), false);
+    assert_equals(testBinding.BooleanMozPreference("dom_testbinding_preference_value_truthy"), true);
+    assert_equals(testBinding.BooleanMozPreference("dom_testbinding_preference_value_string_test"), false);
+    assert_equals(testBinding.BooleanMozPreference("dom_testbinding_preference_value_string_empty"), false);
+    assert_equals(typeof testBinding.StringMozPreference, "function");
+    assert_equals(testBinding.StringMozPreference("dom_testbinding_preference_value_string_test"), "test");
+    assert_equals(testBinding.StringMozPreference("dom_testbinding_preference_value_string_empty"), "");
+    assert_equals(testBinding.StringMozPreference("dom_testbinding_preference_value_falsy"), "");
+    assert_equals(testBinding.StringMozPreference("dom_testbinding_preference_value_truthy"), "");
+    assert_equals(testBinding.StringMozPreference("dom_testbinding_preference_value_space_string_test"), "test1 test2");
+    assert_equals(testBinding.StringMozPreference("dom_testbinding_preference_value_quote_string_test"), "\"test\"");
+}, "prefs");
+</script>

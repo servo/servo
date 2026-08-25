@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="author" title="Myles C. Maxfield" href="mailto:mmaxfield@apple.com"/>
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#standard-font-families"/>
+<link rel="match" href="standard-font-family-7-ref.html"/>
+<meta name="assert" content="Bold versions of standard fonts work in @font-face"/>
+<style>
+@font-face {
+    font-family: "AppleSystemUISerif";
+    src: local("ui-serif");
+}
+@font-face {
+    font-family: "AppleSystemUIMonospaced";
+    src: local("ui-monospaced");
+}
+@font-face {
+    font-family: "AppleSystemUIRounded";
+    src: local("ui-rounded");
+}
+@font-face {
+    font-family: "AppleSystemUISansSerif";
+    src: local("ui-sans-serif");
+}
+@font-face {
+    font-family: "DotAppleSystemUIFontSerif";
+    src: local(".AppleSystemUIFontSerif");
+}
+@font-face {
+    font-family: "DotSFNSMono";
+    src: local(".SF NS Mono");
+}
+@font-face {
+    font-family: "DotSFUIMono";
+    src: local(".SF UI Mono");
+}
+@font-face {
+    font-family: "DotAppleSystemUIFontRounded";
+    src: local(".AppleSystemUIFontRounded");
+}
+@font-face {
+    font-family: "DotAppleSystemUIFont";
+    src: local(".AppleSystemUIFont");
+}
+</style>
+</head>
+<body>
+This test makes sure that the bold versions of the design system UI fonts work in @font-face. The test passes if all the text below is bold.
+<div>
+<div style="display: inline-block; font: bold 72px 'AppleSystemUISerif'; font-synthesis: none;">HeJllo</div>
+<div style="display: inline-block; font: bold 72px 'AppleSystemUIMonospaced'; font-synthesis: none;">HeJllo</div>
+<div style="display: inline-block; font: bold 72px 'AppleSystemUIRounded'; font-synthesis: none;">HeJllo</div>
+<div style="display: inline-block; font: bold 72px 'AppleSystemUISansSerif'; font-synthesis: none;">HeJllo</div>
+<div style="display: inline-block; font: bold 72px 'DotAppleSystemUIFontSerif'; font-synthesis: none;">HeJllo</div>
+<div style="display: inline-block; font: bold 72px 'DotSFNSMono'; font-synthesis: none;">HeJllo</div>
+<div style="display: inline-block; font: bold 72px 'DotSFUIMono'; font-synthesis: none;">HeJllo</div>
+<div style="display: inline-block; font: bold 72px 'DotAppleSystemUIFontRounded'; font-synthesis: none;">HeJllo</div>
+<div style="display: inline-block; font: bold 72px 'DotAppleSystemUIFont'; font-synthesis: none;">HeJllo</div>
+</div>
+</body>
+</html>

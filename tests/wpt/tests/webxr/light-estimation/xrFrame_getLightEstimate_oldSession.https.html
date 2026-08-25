@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="../resources/webxr_util.js"></script>
+  <script src="../resources/webxr_test_constants.js"></script>
+
+  <script>
+    let testName = "getLightEstimate rejects if probe is from wrong session";
+    let testFunction = (session, controller, t, sessionObjects) => new Promise((resolve) => {
+        let staleLightProbe = null;
+        let newSession = null;
+
+      function onFrame(time, frame) {
+        t.step(() => {
+          // Attempting to get a lightEstimate with a probe created for a
+          // different session should throw an exception.
+          assert_throws_dom('InvalidStateError', () => frame.getLightEstimate(staleLightProbe));
+        });
+
+        // Cleanup the new session we made and then resolve.
+        resolve(newSession.end());
+      }
+
+      // Request a default lightProbe
+      let probeInit = {reflectionFormat: session.preferredReflectionFormat };
+      session.requestLightProbe(probeInit).then((probe) => {
+        staleLightProbe = probe;
+        return session.end();
+      }).then(() => {
+        // Need to request a new session.
+        navigator.xr.test.simulateUserActivation( () => {
+          navigator.xr.requestSession('immersive-ar', {'requiredFeatures': ['light-estimation']})
+          .then((session2) => {
+
+            let glLayer = new XRWebGLLayer(session2, sessionObjects.gl);
+            glLayer.context = sessionObjects.gl;
+            // Session must have a baseLayer or frame requests will be ignored.
+            session2.updateRenderState({
+                baseLayer: glLayer
+            });
+            newSession = session2;
+            newSession.requestAnimationFrame(onFrame);
+          });
+        });
+      });
+    });
+
+    xr_session_promise_test(
+      testName,
+      testFunction,
+      IMMERSIVE_AR_DEVICE,
+      'immersive-ar',
+      {'requiredFeatures': ['light-estimation']});
+
+  </script>
+</body>

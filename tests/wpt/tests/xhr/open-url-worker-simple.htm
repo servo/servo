@@ -1,0 +1,25 @@
+ <!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>XMLHttpRequest: relative URLs in worker scripts resolved by script URL</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-open()-method" data-tested-assertations="following::OL[1]/LI[3] following::OL[1]/LI[3]/ol[1]/li[1]" />
+</head>
+<body>
+    <div id="log"></div>
+    <script type="text/javascript">
+        var test = async_test()
+        var worker = new Worker("resources/workerxhr-simple.js")
+    	worker.onmessage = function (e) {
+            test.step(function(){
+                assert_equals(e.data, 'PASSED')
+                test.done()
+            })
+        }
+        worker.postMessage('start')
+    </script>
+</body>
+</html>
+

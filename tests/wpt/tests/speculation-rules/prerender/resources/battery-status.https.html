@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<script src="/common/utils.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script src="/speculation-rules/prerender/resources/deferred-promise-utils.js"></script>
+<script>
+
+// The main test page (restriction-battery-status.html) loads the initiator
+// page, then the initiator page will prerender itself with the `prerendering`
+// parameter.
+const params = new URLSearchParams(location.search);
+if (!params.has('prerendering')) {
+  const rule_extras = {'target_hint': getTargetHint()};
+  loadInitiatorPage(rule_extras);
+} else {
+  const prerenderEventCollector = new PrerenderEventCollector();
+  prerenderEventCollector.start(navigator.getBattery(), 'navigator.getBattery');
+}
+
+</script>

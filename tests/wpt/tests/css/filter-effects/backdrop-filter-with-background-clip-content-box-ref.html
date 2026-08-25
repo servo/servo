@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>backdrop-filter: filter region is not affected by background-clip (reference)</title>
+
+<p>Expected: A box with a cyan padding area and lime content area.</p>
+<div class="backdrop">
+  <div class="content"></div>
+</div>
+
+<style>
+.backdrop {
+    /* Red inverted = cyan, visible in the padding area */
+    background: cyan;
+    width: 80px;
+    height: 80px;
+    padding: 10px;
+}
+.content {
+    /* lime background in the content area */
+    background: lime;
+    width: 100%;
+    height: 100%;
+}
+</style>

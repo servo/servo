@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Selection.modify() extend character granularity in bidi text</title>
+<link rel="help" href="https://w3c.github.io/selection-api/#dom-selection-modify">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=selection-modify-bidi-data.js></script>
+
+<body>
+<script>
+createBidiFixtures();
+const selection = getSelection();
+const alter = "extend";
+
+for (const [divId, count, dir, start, end, name] of [...logicalTests, ...visualTests]) {
+  test(() => {
+    selection.collapse(document.getElementById(divId).firstChild, start);
+    for (let i = 0; i < count; i++)
+      selection.modify(alter, dir, "character");
+    assert_equals(selection.anchorOffset, start, "anchorOffset should not change");
+    assert_equals(selection.focusOffset, end, "focusOffset after extend");
+  }, name.replace("{alter}", alter));
+}
+</script>

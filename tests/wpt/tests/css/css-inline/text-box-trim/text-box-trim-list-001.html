@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<title>text-box-trim: trim-both on list-item with marker</title>
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-trim">
+<link rel="match" href="text-box-trim-list-001-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+div.container {
+  font-family: Ahem;
+  font-size: 50px;
+  line-height: 2;
+  margin-left: 2em;
+}
+ul {
+  list-style-type: "X";
+}
+ul, li {
+  text-box-trim: trim-both;
+  text-box-edge: text;
+  margin: 0;
+  padding: 0;
+}
+</style>
+<div class="container">
+<!-- Single list item case -->
+<ul>
+  <li><span>X</span></li>
+</ul>
+
+<!-- Nested list case (no intermediate text) -->
+<ul>
+  <li>
+    <ul>
+      <li>X</li>
+    </ul>
+  </li>
+</ul>
+
+<ul>
+  <li>X</li>
+  <li>X</li>
+  <li>X
+    <ul>
+      <li>X</li>
+    </ul>
+  </li>
+</ul>
+</div>

@@ -1,0 +1,25 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border-bottom set to border-style border-width</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-05-18 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#propdef-border-bottom" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-shorthand-properties" />
+        <link rel="match" href="border-bottom-001-ref.xht" />
+
+        <meta name="assert" content="The 'border-bottom' shorthand property sets the 'border-style' and 'border-width' for the bottom border." />
+        <style type="text/css">
+            div
+            {
+                border-bottom: solid 1in;
+                height: 1in;
+                width: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a filled black square.</p>
+        <div></div>
+    </body>
+</html>

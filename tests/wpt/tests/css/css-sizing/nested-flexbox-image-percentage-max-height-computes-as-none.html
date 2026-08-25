@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css2/#propdef-max-height">
+<link rel="match" href="nested-flexbox-image-percentage-max-height-computes-as-none-ref.html">
+<meta name="assert" content="Image percentage max-height cannot be resolved and used value should be none">
+<style>
+body {
+  height: 100px;
+}
+svg {
+  position: relative;
+  max-width: 100%;
+  max-height: 100%;
+  contain: size;
+  contain-intrinsic-size: 60px 60px;
+  aspect-ratio: 1/1;
+}
+.outer-flexbox {
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+.outer-flexbox-item {
+  position: relative;
+  min-width: 100%;
+}
+.inner-flexbox {
+  position: absolute;
+  display: flex;
+  inset: 0px;
+}
+</style>
+</head>
+<body>
+  <div class="outer-flexbox">
+    <div class="outer-flexbox-item">
+      <div class="inner-flexbox">
+        <div>
+          <svg viewBox="0 0 1 1" style="background: green"></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

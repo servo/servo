@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<link rel="author" href="mailto:chrishtr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-transforms-2/">
+<meta name="assert" content="Text is not blurry under w/filter and animation.">
+<link rel="match" href="scale-transform-filtered-text-ref.html">
+<meta name=fuzzy content="maxDifference=0-25;totalPixels=0-500">
+<style>
+  #container {
+    transform: scale(0.5);
+    background-color: lightblue;
+    font-size: 80px;
+  }
+  #content {
+    filter: blur(0px);
+  }
+  #animated {
+    will-change: transform;
+  }
+</style>
+<div id=container>
+  <div id=content>
+    <div id=animated>Text</div>
+  </div>
+</div>

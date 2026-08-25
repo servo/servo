@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>column-rule-color interpolation</title>
+<link rel="help" href="https://drafts.csswg.org/css-multicol-1/#crc">
+<meta name="assert" content="column-rule-color supports animation by computed value type">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+
+<style>
+.parent {
+  column-count: 2;
+  column-rule-color: rgb(70, 70, 170);
+}
+.target {
+  column-count: 2;
+  color: rgb(70, 170, 70);
+  column-rule-color: rgb(170, 70, 70);
+}
+</style>
+
+<body></body>
+
+<script>
+test_interpolation({
+  property: 'column-rule-color',
+  from: neutralKeyframe,
+  to: 'rgb(70, 170, 70)',
+}, [
+  {at: -0.5, expect: 'rgb(220, 20, 70)'},
+  {at: 0, expect: 'rgb(170, 70, 70)'},
+  {at: 0.3, expect: 'rgb(140, 100, 70)'},
+  {at: 0.6, expect: 'rgb(110, 130, 70)'},
+  {at: 1, expect: 'rgb(70, 170, 70)'},
+  {at: 1.5, expect: 'rgb(20, 220, 70)'},
+]);
+
+test_interpolation({
+  property: 'column-rule-color',
+  from: 'initial',
+  to: 'rgb(70, 70, 170)',
+}, [
+  {at: -0.5, expect: 'rgb(70, 220, 20)'},
+  {at: 0, expect: 'rgb(70, 170, 70)'},
+  {at: 0.3, expect: 'rgb(70, 140, 100)'},
+  {at: 0.6, expect: 'rgb(70, 110, 130)'},
+  {at: 1, expect: 'rgb(70, 70, 170)'},
+  {at: 1.5, expect: 'rgb(70, 20, 220)'},
+]);
+
+test_interpolation({
+  property: 'column-rule-color',
+  from: 'inherit',
+  to: 'rgb(70, 170, 70)',
+}, [
+  {at: -0.5, expect: 'rgb(70, 20, 220)'},
+  {at: 0, expect: 'rgb(70, 70, 170)'},
+  {at: 0.3, expect: 'rgb(70, 100, 140)'},
+  {at: 0.6, expect: 'rgb(70, 130, 110)'},
+  {at: 1, expect: 'rgb(70, 170, 70)'},
+  {at: 1.5, expect: 'rgb(70, 220, 20)'},
+]);
+
+test_interpolation({
+  property: 'column-rule-color',
+  from: 'currentcolor',
+  to: 'rgb(170, 70, 70)',
+}, [
+  {at: -0.5, expect: 'rgb(20, 220, 70)'},
+  {at: 0, expect: 'rgb(70, 170, 70)'},
+  {at: 0.3, expect: 'rgb(100, 140, 70)'},
+  {at: 0.6, expect: 'rgb(130, 110, 70)'},
+  {at: 1, expect: 'rgb(170, 70, 70)'},
+  {at: 1.5, expect: 'rgb(220, 20, 70)'},
+]);
+
+test_interpolation({
+  property: 'column-rule-color',
+  from: 'unset',
+  to: 'rgb(0, 255, 0)',
+}, [
+  {at: -5, expect: 'rgb(255, 0, 255)'},
+  {at: -0.4, expect: 'rgb(98, 136, 98)'},
+  {at: 0, expect: 'rgb(70, 170, 70)'},
+  {at: 0.2, expect: 'rgb(56, 187, 56)'},
+  {at: 0.6, expect: 'rgb(28, 221, 28)'},
+  {at: 1, expect: 'rgb(0, 255, 0)'},
+  {at: 1.5, expect: 'rgb(0, 255, 0)'},
+]);
+
+test_interpolation({
+  property: 'column-rule-color',
+  from: 'orange',
+  to: 'blue'
+}, [
+  {at: -5, expect: '#ffff00'},
+  {at: -0.4, expect: '#ffe700'},
+  {at: 0, expect: 'orange'},
+  {at: 0.2, expect: '#cc8433'},
+  {at: 0.6, expect: '#664299'},
+  {at: 1, expect: 'blue'},
+  {at: 1.5, expect: 'blue'}
+]);
+</script>

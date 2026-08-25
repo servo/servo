@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Use testdriver to check window is not minimized</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<!-- This only checks something meaningful when run after test1.html -->
+<script>
+promise_test(async () => {
+  assert_false(document.hidden);
+}), "Test window is not minimized";
+</script>

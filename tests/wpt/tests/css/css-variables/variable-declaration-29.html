@@ -1,0 +1,20 @@
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!DOCTYPE html>
+<title>CSS Test: An invalid custom property name "--" as a var() name argument triggers the fallback.</title>
+<link rel="author" title="Cameron McCormack" href="mailto:cam@mcc.id.au">
+<link rel="help" href="http://www.w3.org/TR/css-variables-1/#defining-variables">
+<link rel="match" href="support/color-green-ref.html">
+<style>
+/* "--" is not a valid <custom-property-name>, so "--: red" is dropped and the var() name argument
+   substitutes to "--", which fails to parse as a name. The reference is guaranteed-invalid, so the
+   fallback is used. https://drafts.csswg.org/css-variables-2/#funcdef-var */
+p {
+  color: red;
+  --: red;
+  color: var(--, green);
+}
+</style>
+<p>This text must be green.</p>

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Adopting parent node in DOMSubtreeModified event handler should not cause a crash</title>
+<link rel="help" href="https://crbug.com/41329392">
+<div>
+  <p id="parent">bar</p>
+  <span id="test-title">title</span>
+</div>
+<script>
+  var parent = document.querySelector('#parent');
+  var test_title = document.querySelector('#test-title');
+
+  function tCF_custom_1() {
+    var doc = document.implementation.createDocument('http://www.w3.org/1999/xhtml', 'html');
+    doc.adoptNode(parent);
+    parent.appendChild(test_title);
+  }
+  parent.addEventListener('DOMSubtreeModified', tCF_custom_1, false);
+
+  parent.appendChild(test_title);
+</script>

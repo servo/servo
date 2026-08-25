@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+ <head>
+  <title>{audio,video} events - canplaythrough</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/common/media.js"></script>
+ </head>
+ <body>
+  <p><a href="https://html.spec.whatwg.org/multipage/#mediaevents">spec reference</a></p>
+  <audio id="a" autoplay controls>
+  </audio>
+  <video id="v" autoplay controls>
+  </video>
+  <div id="log"></div>
+  <script>
+test(function() {
+  var t = async_test("setting src attribute on autoplay audio should trigger canplaythrough event");
+  var a = document.getElementById("a");
+  a.addEventListener("error", t.unreached_func());
+  a.addEventListener("canplaythrough", t.step_func(function() {
+    t.done();
+    a.pause();
+  }), false);
+  a.src = getAudioURI("/media/sound_5") + "?" + new Date() + Math.random();
+}, "audio events - canplaythrough");
+
+test(function() {
+  var t = async_test("setting src attribute on autoplay video should trigger canplaythrough event");
+  var v = document.getElementById("v");
+  v.addEventListener("error", t.unreached_func());
+  v.addEventListener("canplaythrough", t.step_func(function() {
+    t.done();
+    v.pause();
+  }), false);
+  v.src = getVideoURI("/media/movie_5") + "?" + new Date() + Math.random();
+}, "video events - canplaythrough");
+  </script>
+ </body>
+</html>

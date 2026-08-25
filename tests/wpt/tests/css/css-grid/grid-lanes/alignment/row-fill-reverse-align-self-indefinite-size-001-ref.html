@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    html, body {
+      font: 16px/1 monospace;
+      background: white;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      height: min-content;
+      border: 1px solid blue;
+    }
+
+    .row {
+      display: flex;
+      flex-direction: row-reverse;
+      height: 80px;
+      flex-shrink: 0;
+      gap: 4px;
+    }
+
+    item {
+      display: block;
+      width: min-content;
+      color: white;
+      background: #555;
+    }
+  </style>
+</head>
+<body>
+  <p>align-self: baseline / last baseline</p>
+  <div class="container">
+    <div class="row">
+      <item style="align-self: baseline;">item 1 with extra text</item>
+      <item style="align-self: baseline;">item 3 with more text</item>
+      <item style="align-self: baseline;">item 5</item>
+    </div>
+    <div class="row">
+      <item style="align-self: last baseline;">item 2</item>
+      <item style="align-self: last baseline;">item 4</item>
+      <item style="align-self: last baseline;">item 6 with even more text</item>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,25 @@
+<!doctype html>
+<title>position-anchor normal for ::after pseudo element</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#position-anchor"/>
+<link rel="author" title="Suraj Thanugundla" href="mailto:contact@surajt.com" />
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<style>
+    .anchor {
+        width: 100px;
+        height: 50px;
+        background: green;
+    }
+
+    .anchor::after {
+        width: 100px;
+        height: 50px;
+        background: green;
+        content: "";
+        position: absolute;
+        position-anchor: normal;
+        top: anchor(bottom);
+        position-area: center;
+    }
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div class="anchor"></div>

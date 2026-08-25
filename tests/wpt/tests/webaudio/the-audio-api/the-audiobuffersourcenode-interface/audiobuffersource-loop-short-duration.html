@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      audiobuffersource-loop-short-duration.html
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <script id="layout-test-code">
+      promise_test(async () => {
+        let sampleRate = 48000;
+        let context = new OfflineAudioContext(1, 128, sampleRate);
+
+        let buffer = context.createBuffer(1, 10, sampleRate);
+        let data = buffer.getChannelData(0);
+        for (let i = 0; i < 10; ++i) {
+          data[i] = 1.0;
+        }
+
+        let source = context.createBufferSource();
+        source.buffer = buffer;
+        source.loop = true;
+        // loopStart > duration
+        source.loopStart = 5 / sampleRate;
+        source.loopEnd = 8 / sampleRate;
+
+        source.connect(context.destination);
+        // Play only 2 frames (duration = 2/sampleRate)
+        source.start(0, 0, 2 / sampleRate);
+
+        let renderedBuffer = await context.startRendering();
+        let renderedData = renderedBuffer.getChannelData(0);
+        let expected = new Float32Array(128);
+        expected[0] = 1.0;
+        expected[1] = 1.0;
+        assert_array_equals(
+          renderedData,
+          expected,
+          'Rendered data should be exactly 2 frames of 1.0 followed by silence'
+        );
+      }, 'audiobuffersource-loop-short-duration');
+    </script>
+  </body>
+</html>

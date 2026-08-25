@@ -1,0 +1,30 @@
+﻿<!DOCTYPE html>
+<title>HTML5: test id with none pure alpha characters </title>
+<link rel="author" title="justin.shen" href=mailto:cosmichut@msn.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<div style="display:none">
+  <input id="123" value="123"></input>
+  <input id="1test" value="1test"></input>
+  <input id="_test" value="_test"></input>
+  <input id="." value="."></input>
+  <input id="中国" value="china"></input>
+</div>
+<script>
+test(function() {
+  assert_equals(document.getElementById("123").value, "123");
+}, "id with digits only");
+test(function() {
+  assert_equals(document.getElementById("1test").value, "1test");
+},"id start with digits");
+test(function() {
+  assert_equals(document.getElementById("_test").value, "_test");
+},"id start with underscore");
+test(function() {
+  assert_equals(document.getElementById(".").value, ".");
+},"id with punctuation only");
+test(function() {
+  assert_equals(document.getElementById("中国").value, "china");
+},"id with chinese character");
+</script>

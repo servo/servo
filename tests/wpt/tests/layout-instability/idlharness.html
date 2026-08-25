@@ -1,0 +1,50 @@
+<!doctype html>
+<title>Layout Instability IDL tests</title>
+<meta name="timeout" content="long">
+<link rel="help" href="https://wicg.github.io/layout-instability/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+<script src="resources/util.js"></script>
+<script>
+'use strict';
+
+idl_test(
+  ['layout-instability'],
+  ['performance-timeline', 'geometry', 'dom', 'hr-time'],
+  async (idl_array, t) => {
+    idl_array.add_objects({
+      LayoutShift: ['layoutShift'],
+      LayoutShiftAttribution: ['layoutShiftAttribution'],
+    });
+
+    // If LayoutShift isn't supported, avoid the timeout below and just let the
+    // objects declared above be null. The tests will still fail, but we will
+    // consistently generate the same set of subtests on all platforms.
+    if (!PerformanceObserver ||
+        !PerformanceObserver.supportedEntryTypes ||
+        !PerformanceObserver.supportedEntryTypes.includes('layout-shift')) {
+      return;
+    }
+
+    // Make sure that the image has initially been laid out, so that the movement
+    // later is counted as a layout shift.
+    await waitForAnimationFrames(2);
+
+    self.layoutShift = await new Promise((resolve, reject) => {
+      const observer = new PerformanceObserver(entryList => {
+        resolve(entryList.getEntries()[0]);
+      });
+      observer.observe({type: 'layout-shift', buffered: true});
+      t.step_timeout(() => reject('Timed out waiting for LayoutShift entry'), 3000);
+
+      // Move the image, to cause layout shift.
+      image.style.marginTop = '100px';
+    });
+    self.layoutShiftAttribution = layoutShift.sources[0];
+  }
+);
+</script>
+
+<img id="image" src="/images/green-100x50.png">

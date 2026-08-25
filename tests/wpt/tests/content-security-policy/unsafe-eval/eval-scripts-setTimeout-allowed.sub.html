@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self';">
+    <title>eval-scripts-setTimeout-allowed</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["PASS 1 of 2","PASS 2 of 2"]'></script>
+    <script src='../support/alertAssert.sub.js?alerts=[]'></script>
+</head>
+<script>
+  window.addEventListener('securitypolicyviolation', function(e) {
+    log("Fail");
+  });
+
+  var id = setTimeout("log('PASS 1 of 2')", 0);
+  if (id == 0)
+    log('FAIL');
+  var id = setTimeout(function() {
+    log('PASS 2 of 2');
+  }, 0);
+  if (id == 0)
+    log('FAIL');
+</script>
+
+</html>

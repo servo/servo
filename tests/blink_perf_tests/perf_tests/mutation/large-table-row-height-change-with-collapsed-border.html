@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<body>
+<script src="../resources/runner.js"></script>
+<style>td { border: 1px solid blue }</style>
+<script>
+function createTable(rows, columns) {
+    var table = document.createElement("TABLE");
+    // Collapsing border is not necessary to see the slowness
+    // but it makes the painting phase ~2x slower.
+    table.style.borderCollapse = "collapse";
+    for (var i = 0; i < rows; ++i) {
+        var tr = document.createElement("TR");
+        for (var j = 0; j < columns; ++j) {
+            var td = document.createElement("TD");
+            tr.appendChild(td);
+        }
+        table.appendChild(tr);
+    }
+    return table;
+}
+
+var table = createTable(400, 400);
+document.body.appendChild(table);
+
+var y = 0;
+PerfTestRunner.measureFrameTime({
+    run: function() {
+        table.childNodes[y].style.height = '20px';
+        y++;
+    },
+});
+</script>
+</body>

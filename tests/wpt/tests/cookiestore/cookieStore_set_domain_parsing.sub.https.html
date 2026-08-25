@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <script>
+    promise_test(async () => {
+      const childUrl = new URL("resources/domain_parsing-child.sub.https.html?test=IDNA", document.location);
+      childUrl.host = "{{hosts[][élève]}}";
+      const childWindow = window.open(childUrl.href);
+      await fetch_tests_from_window(childWindow);
+    }, "cookieStore.set with domain on IDNA host");
+
+    promise_test(async () => {
+      const childUrl = new URL("resources/domain_parsing-child.sub.https.html?test=uppercase", document.location);
+      const childWindow = window.open(childUrl.href);
+      await fetch_tests_from_window(childWindow);
+    }, "cookieStore.set with mixed casing domain");
+
+    promise_test(async (t) => {
+      const name = "public-suffix";
+      const value = "cookie-value";
+      // Web platform tests execute on domains that end in `test` as the eTLD.
+      // The eTLD should not be a valid domain for cookies.
+      const domain = "test";
+      await promise_rejects_js(t, TypeError,
+          cookieStore.set({ name, value, domain }),
+          "ETLD should not be a valid domain attribute");
+    }, "cookieStore.set with public suffix domain");
+    </script>
+  </body>
+</html>

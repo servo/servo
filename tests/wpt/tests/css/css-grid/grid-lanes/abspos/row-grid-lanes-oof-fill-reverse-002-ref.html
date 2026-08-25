@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    html, body {
+      font: 16px/1 monospace;
+      background: white;
+    }
+
+    .container {
+      height: 200px;
+      outline: 1px solid black;
+      position: relative;
+    }
+
+    /* Two row-reverse flex rows mirror the fill-reverse row grid-lanes layout:
+       items pile from the right within each row. */
+    .row {
+      display: flex;
+      flex-direction: row-reverse;
+      align-items: stretch;
+      gap: 10px;
+      height: 80px;
+    }
+
+    .row + .row {
+      margin-top: 10px;
+    }
+
+    .item {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      background: lightblue;
+      flex-shrink: 0;
+    }
+
+    .oof {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      background: red;
+    }
+  </style>
+</head>
+<body>
+  <!-- row fill-reverse, 2 rows (80px each), gap 10px, 4 items (40px wide).
+       OOF grid-row-start:2: block offset=90px (row2 start), inline-end at right=0. -->
+  <div class="container">
+    <div class="row">
+      <div class="item">1</div>
+      <div class="item">3</div>
+    </div>
+    <div class="row">
+      <div class="item">2</div>
+      <div class="item">4</div>
+    </div>
+    <div class="oof" style="top: 90px; right: 0px;"></div>
+  </div>
+</body>
+</html>

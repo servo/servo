@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+<head>
+  <title>CSS Reftest Reference</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <meta charset="utf-8">
+  <style>
+    div.flexbox {
+      border: 1px dashed black;
+      width: 60px;
+      height: 20px;
+      margin: 2px;
+      float: left;
+    }
+    div.item {
+      width: 28px;
+      border: 1px solid blue;
+      background: lightblue;
+    }
+    div.fullCrossSize {
+      height: 18px;
+    }
+    div.halfCrossSize {
+      height: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="flexbox">
+    <div class="item fullCrossSize"></div>
+  </div>
+  <div class="flexbox">
+    <div class="item fullCrossSize"></div>
+  </div>
+  <div class="flexbox">
+    <div class="item fullCrossSize"></div>
+  </div>
+  <div class="flexbox">
+    <div class="item fullCrossSize"></div>
+  </div>
+  <div class="flexbox">
+    <div class="item fullCrossSize"></div>
+  </div>
+  <div style="clear: both"></div>
+
+  <div class="flexbox">
+    <div class="item fullCrossSize" style="float: left"></div>
+    <div class="item fullCrossSize" style="float: left"></div>
+  </div>
+  <div class="flexbox">
+    <div class="item fullCrossSize" style="float: left"></div>
+    <div class="item fullCrossSize" style="float: left"></div>
+  </div>
+  <div class="flexbox">
+    <div class="item fullCrossSize" style="float: left"></div>
+    <div class="item fullCrossSize" style="float: left"></div>
+  </div>
+  <div class="flexbox">
+    <div class="item fullCrossSize" style="float: left"></div>
+    <div class="item fullCrossSize" style="float: left"></div>
+  </div>
+  <div class="flexbox">
+    <div class="item fullCrossSize" style="float: left"></div>
+    <div class="item fullCrossSize" style="float: left"></div>
+  </div>
+  <div style="clear: both"></div>
+
+  <div class="flexbox">
+    <div class="item halfCrossSize" style="float: left"></div>
+    <div class="item halfCrossSize" style="float: left"></div>
+    <div class="item halfCrossSize" style="float: left"></div>
+  </div>
+  <div class="flexbox">
+    <div class="item halfCrossSize" style="float: left"></div>
+    <div class="item halfCrossSize" style="float: left"></div>
+    <div class="item halfCrossSize" style="float: left"></div>
+  </div>
+  <div class="flexbox">
+    <div class="item halfCrossSize" style="float: left"></div>
+    <div class="item halfCrossSize" style="float: left"></div>
+    <div class="item halfCrossSize" style="float: left"></div>
+  </div>
+  <div class="flexbox">
+    <div class="item halfCrossSize" style="float: left"></div>
+    <div class="item halfCrossSize" style="float: left"></div>
+    <div class="item halfCrossSize" style="float: left"></div>
+  </div>
+  <div class="flexbox">
+    <div class="item halfCrossSize" style="float: left"></div>
+    <div class="item halfCrossSize" style="float: left"></div>
+    <div class="item halfCrossSize" style="float: left"></div>
+  </div>
+</body>
+</html>

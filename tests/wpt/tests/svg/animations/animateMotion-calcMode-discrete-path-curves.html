@@ -1,0 +1,76 @@
+<!doctype html>
+<title>Test animateMotion with calcMode="discrete" and complex paths</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+
+<svg xmlns="http://www.w3.org/2000/svg">
+  <!-- Test 1: Cubic curves -->
+  <rect id="rect1" width="10" height="10">
+    <animateMotion id="anim" calcMode="discrete" dur="3s" fill="freeze"
+      path="M0,0 C50,0 50,100 100,100 L200,100" />
+  </rect>
+  <!-- Test 2: Multiple subpaths with closed path -->
+  <rect id="rect2" width="10" height="10">
+    <animateMotion calcMode="discrete" dur="5s" fill="freeze"
+      path="M0,0 L100,0 Z M50,50 L150,50" />
+  </rect>
+</svg>
+
+<script>
+// Test 1: Cubic curves
+// Path: M0,0 C50,0 50,100 100,100 L200,100
+// Collected points:
+//   [0] moveTo: (0, 0)
+//   [1] cubicTo endpoint: (100, 100)
+//   [2] lineTo endpoint: (200, 100)
+// 3 points, dur=3s => each occupies 1s.
+//
+// Test 2: Multiple subpaths with close command
+// Path: M0,0 L100,0 Z M50,50 L150,50
+// Collected points:
+//   [0] moveTo: (0, 0)
+//   [1] lineTo endpoint: (100, 0)
+//   [2] close (back to subpath start): (0, 0)
+//   [3] moveTo (new subpath): (50, 50)
+//   [4] lineTo endpoint: (150, 50)
+// 5 points, dur=5s => each occupies 1s.
+
+const rootSVGElement = document.querySelector("svg");
+const rect1 = document.querySelector("#rect1");
+const rect2 = document.querySelector("#rect2");
+
+function assert_position(element, x, y, description) {
+    assert_equals(element.getCTM().e, x, description + " (x)");
+    assert_equals(element.getCTM().f, y, description + " (y)");
+}
+
+smil_async_test((t) => {
+    const expectedValues = [
+        ["anim", 0.5, () => {
+            assert_position(rect1, 0, 0, "curves: moveTo");
+            assert_position(rect2, 0, 0, "subpaths: moveTo");
+        }],
+        ["anim", 1.5, () => {
+            assert_position(rect1, 100, 100, "curves: cubicTo end");
+            assert_position(rect2, 100, 0, "subpaths: lineTo");
+        }],
+        ["anim", 2.5, () => {
+            assert_position(rect1, 200, 100, "curves: lineTo end");
+            assert_position(rect2, 0, 0, "subpaths: close (Z)");
+        }],
+        ["anim", 3.0, () => {
+            assert_position(rect1, 200, 100, "curves: freeze");
+            assert_position(rect2, 50, 50, "subpaths: new moveTo");
+        }],
+        ["anim", 4.0, () => {
+            assert_position(rect2, 150, 50, "subpaths: lineTo");
+        }],
+        ["anim", 5.0, () => {
+            assert_position(rect2, 150, 50, "subpaths: freeze");
+        }],
+    ];
+    runAnimationTest(t, expectedValues);
+});
+</script>
+</html>

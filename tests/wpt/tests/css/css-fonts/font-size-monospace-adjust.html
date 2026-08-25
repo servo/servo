@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/1086082">
+<link rel="match" href="font-size-monospace-adjust-ref.html">
+<style>
+  textarea {
+    font-size: 3em;
+    transition: margin-bottom 1e10s steps(2, start);
+    margin-bottom: 10px;
+  }
+
+  .margin {
+    margin-bottom: 20px;
+  }
+</style>
+<textarea id=textarea>Textarea</textarea>
+<script>
+  document.documentElement.offsetTop;
+  textarea.classList.toggle('margin');
+</script>

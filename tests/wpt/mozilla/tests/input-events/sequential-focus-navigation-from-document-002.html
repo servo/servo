@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<title>Sequential focus navigation starting from viewport operates in DOM order</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+
+<input class="text" tabindex=2 id="input1">
+<input class="text" tabindex=1 id="input2">
+<input class="text" tabindex=3 id="input3">
+
+<script>
+promise_test(async test => {
+    let tabKey = "\uE004";
+    let shiftKey = "\uE008";
+
+    window.focus();
+    assert_equals(document.activeElement, document.body);
+
+    await new test_driver.Actions()
+        .keyDown(tabKey)
+        .keyUp(tabKey)
+        .send();
+    // There's an ambiguity in the specification here. In this case it says to choose
+    // "Let candidate be the first suitable sequentially focusable area in starting point's
+    // active document, if any; or else null." It's perhaps possible to interpret this as
+    // the first in DOM order, but browsers seem to agree to following tabindex order instead.
+    assert_equals(document.activeElement, input2);
+
+    await new test_driver.Actions()
+        .keyDown(tabKey)
+        .keyUp(tabKey)
+        .send();
+    assert_equals(document.activeElement, input1);
+
+    await new test_driver.Actions()
+        .keyDown(tabKey)
+        .keyUp(tabKey)
+        .send();
+    assert_equals(document.activeElement, input3);
+
+    // Now traverse the sequential focus order backwards.
+    await new test_driver.Actions()
+        .keyDown(shiftKey)
+        .keyDown(tabKey)
+        .keyUp(tabKey)
+        .keyUp(shiftKey)
+        .send();
+    assert_equals(document.activeElement, input1);
+
+    await new test_driver.Actions()
+        .keyDown(shiftKey)
+        .keyDown(tabKey)
+        .keyUp(tabKey)
+        .keyUp(shiftKey)
+        .send();
+    assert_equals(document.activeElement, input2);
+});
+</script>

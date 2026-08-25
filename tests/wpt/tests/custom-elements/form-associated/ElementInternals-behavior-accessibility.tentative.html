@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>ElementInternals behavior accessibility integration</title>
+<link rel="author" href="mailto:ansollan@microsoft.com">
+<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/PlatformProvidedBehaviors/explainer.md">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<div id="container">
+  <custom-submit></custom-submit>
+  <non-form-submit></non-form-submit>
+</div>
+
+<script>
+class CustomSubmitButton extends HTMLElement {
+  static formAssociated = true;
+  constructor() {
+    super();
+    this.behavior_ = new HTMLSubmitButtonBehavior();
+    this.internals_ = this.attachInternals({ behaviors: [this.behavior_] });
+  }
+  get submitBehavior() { return this.behavior_; }
+}
+customElements.define('custom-submit', CustomSubmitButton);
+
+class NonFormAssociatedSubmit extends HTMLElement {
+  constructor() {
+    super();
+    this.attachInternals({ behaviors: [new HTMLSubmitButtonBehavior()] });
+  }
+}
+customElements.define('non-form-submit', NonFormAssociatedSubmit);
+
+const container = document.querySelector('#container');
+const customSubmit = container.querySelector('custom-submit');
+const nonFormSubmit = container.querySelector('non-form-submit');
+
+function reset() {
+  customSubmit.removeAttribute('disabled');
+  customSubmit.removeAttribute('role');
+  customSubmit.submitBehavior.disabled = false;
+  customSubmit.internals_.role = null;
+  customSubmit.blur();
+  container.replaceChildren(customSubmit, nonFormSubmit);
+}
+
+promise_test(async t => {
+  t.add_cleanup(reset);
+  const role = await test_driver.get_computed_role(customSubmit);
+  assert_equals(role, 'button',
+    'Custom element with HTMLSubmitButtonBehavior should have button role');
+}, 'Custom element with HTMLSubmitButtonBehavior has implicit button role');
+
+promise_test(async t => {
+  t.add_cleanup(reset);
+  customSubmit.internals_.role = 'link';
+  const role = await test_driver.get_computed_role(customSubmit);
+  assert_equals(role, 'link',
+    'ElementInternals.role should override behavior default role');
+}, 'ElementInternals.role overrides behavior default role');
+
+promise_test(async t => {
+  t.add_cleanup(reset);
+  customSubmit.setAttribute('role', 'menuitem');
+  const role = await test_driver.get_computed_role(customSubmit);
+  assert_equals(role, 'menuitem',
+    'role attribute should override behavior default role');
+}, 'role attribute overrides behavior default role');
+
+promise_test(async t => {
+  t.add_cleanup(reset);
+  customSubmit.internals_.role = 'link';
+  customSubmit.setAttribute('role', 'menuitem');
+  const role = await test_driver.get_computed_role(customSubmit);
+  assert_equals(role, 'menuitem',
+    'role attribute should take priority over ElementInternals.role');
+}, 'role attribute takes priority over ElementInternals.role');
+
+test(t => {
+  t.add_cleanup(reset);
+  customSubmit.focus();
+  assert_equals(document.activeElement, customSubmit,
+    'Custom element with behavior should be focusable without tabindex');
+}, 'Custom element with HTMLSubmitButtonBehavior is implicitly focusable');
+
+test(t => {
+  t.add_cleanup(reset);
+  customSubmit.submitBehavior.disabled = true;
+  customSubmit.focus();
+  assert_not_equals(document.activeElement, customSubmit,
+    'Disabled behavior should prevent focusability');
+}, 'behavior.disabled prevents focusability');
+
+test(t => {
+  t.add_cleanup(reset);
+  customSubmit.setAttribute('disabled', '');
+  customSubmit.focus();
+  assert_not_equals(document.activeElement, customSubmit,
+    'Element disabled attribute should prevent focusability');
+}, 'Element disabled attribute prevents focusability');
+
+test(t => {
+  t.add_cleanup(reset);
+  const form = document.createElement('form');
+  const fieldset = document.createElement('fieldset');
+  fieldset.disabled = true;
+  const element = document.createElement('custom-submit');
+  fieldset.appendChild(element);
+  form.appendChild(fieldset);
+  container.appendChild(form);
+  element.focus();
+  assert_not_equals(document.activeElement, element,
+    'Ancestor fieldset disabled should prevent focusability');
+}, 'Ancestor fieldset disabled prevents focusability');
+
+test(t => {
+  t.add_cleanup(reset);
+  customSubmit.focus();
+  assert_equals(document.activeElement, customSubmit, 'Should be focusable initially');
+
+  customSubmit.blur();
+  customSubmit.submitBehavior.disabled = true;
+  customSubmit.focus();
+  assert_not_equals(document.activeElement, customSubmit,
+    'Should not be focusable when disabled');
+
+  customSubmit.submitBehavior.disabled = false;
+  customSubmit.focus();
+  assert_equals(document.activeElement, customSubmit,
+    'Should regain focusability when re-enabled');
+}, 'Focusability updates dynamically when disabled state changes');
+
+promise_test(async t => {
+  t.add_cleanup(reset);
+  const role = await test_driver.get_computed_role(nonFormSubmit);
+  assert_equals(role, 'button',
+    'Non-form-associated element should still get button role');
+  nonFormSubmit.focus();
+  assert_equals(document.activeElement, nonFormSubmit,
+    'Non-form-associated element should still be focusable');
+}, 'Non-form-associated element with behavior gets role and focusability');
+
+</script>

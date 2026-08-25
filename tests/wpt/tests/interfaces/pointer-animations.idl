@@ -1,0 +1,23 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Pointer-driven Animations Module Level 1 (https://drafts.csswg.org/pointer-animations-1/)
+
+enum PointerAxis {
+  "block",
+  "inline",
+  "x",
+  "y"
+};
+
+dictionary PointerTimelineOptions {
+  Element? source;
+  PointerAxis axis = "block";
+};
+
+[Exposed=Window]
+interface PointerTimeline : AnimationTimeline {
+  constructor(optional PointerTimelineOptions options = {});
+  readonly attribute Element? source;
+  readonly attribute PointerAxis axis;
+};

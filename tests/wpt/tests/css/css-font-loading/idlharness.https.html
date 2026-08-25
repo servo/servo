@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>Font Loading API IDL tests</title>
+<meta name="timeout" content="long">
+<link rel="help" href="https://drafts.csswg.org/css-font-loading/#fontfacesetloadevent">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+<script>
+'use strict';
+
+idl_test(
+  ['css-font-loading'],
+  ['dom', 'html', 'cssom'],
+  idl_array => {
+    idl_array.add_objects({
+      Document: ['document'],
+      FontFace: ['fontFace'],
+      FontFaceSetLoadEvent: ['fontFaceSetLoadEvent'],
+      FontFaceSet: ['document.fonts'],
+    });
+    self.fontFace = new FontFace("family", "src");
+    // The `fontFace.loaded` promise will be rejected, so handle that to
+    // avoid an unhandled promise rejection manifesting as a harness error.
+    self.fontFace.loaded.catch(() => {});
+    self.fontFaceSetLoadEvent = new FontFaceSetLoadEvent("type");
+  }
+);
+</script>

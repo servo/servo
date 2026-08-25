@@ -1,0 +1,36 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: Margin Collapsing: negative margins with clear</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/block/margin-collapse/035.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#collapsing-margins"/>
+  <link rel="match" href="margin-collapse-135-ref.xht" />
+
+  <style type="text/css">
+   .container { background: red; height: auto; border: 1em lime solid; }
+   div { clear: both; }
+   .a { margin-top: 1em; margin-bottom: 1em; }
+   .b { margin-top: 1em; margin-bottom: 1em; }
+   .c { margin-top: 1em; margin-bottom: 1em; }
+   .d { margin-top: 1em; margin-bottom: 1em; }
+   .e { margin-top: 1em; margin-bottom: -1em; }
+   .f { margin-top: 1em; margin-bottom: 1em; }
+  </style>
+ </head>
+ <body>
+  <p>Test passes if there is <strong>no red</strong>.</p>
+  <div class="container">
+   <div class="a">
+    <div class="b"> </div>
+    <div class="c"> </div>
+   </div>
+   <div class="d">
+    <div class="e"> </div>
+    <div class="f"> </div>
+   </div>
+  </div>
+
+
+</body>
+</html>

@@ -1,0 +1,101 @@
+<!doctype html>
+<title>TextTrack.activeCues</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/common/media.js></script>
+<div id=log></div>
+<script>
+setup(function(){
+    window.video = document.createElement('video');
+    window.t1 = video.addTextTrack('subtitles');
+    window.track = document.createElement('track');
+    track['default'] = true;
+    video.appendChild(track);
+    window.t2 = track.track;
+    t2.mode = 'showing';
+    window.t1_cues = t1.activeCues;
+    window.t2_cues = t2.activeCues;
+    document.body.appendChild(video);
+    if (!t1)
+        throw new Error('t1 was undefined')
+});
+function smoke_test() {
+  assert_true('HTMLTrackElement' in window, 'track not supported');
+}
+
+test(function(){
+    smoke_test();
+    assert_equals(t1.activeCues, t1_cues, 't1.activeCues should return same object');
+    assert_equals(t2.activeCues, t2_cues, 't2.activeCues should return same object');
+    assert_not_equals(t1.activeCues, t2.activeCues, 't1.activeCues and t2.activeCues should be different objects');
+    assert_not_equals(t1.activeCues, null, 't1.activeCues should not be null');
+    assert_not_equals(t2.activeCues, null, 't2.activeCues should not be null');
+    assert_equals(t1.activeCues.length, 0, 't1.activeCues should have length 0');
+    assert_equals(t2.activeCues.length, 0, 't2.activeCues should have length 0');
+}, document.title+', empty list');
+test(function(){
+    smoke_test();
+    var c = new VTTCue(0, 1, "text");
+    t1.addCue(c);
+    assert_equals(t1.activeCues, t1_cues, "t1.activeCues should return same object");
+    assert_equals(t1.activeCues.length, 0, "t1.activeCues.length");
+    var c2 = new VTTCue(1, 2, "text2");
+    t1.addCue(c2);
+    assert_equals(t1.activeCues, t1_cues, "t1.activeCues should return the same object after adding a second cue");
+    assert_equals(t1.activeCues.length, 0, "t1.activeCues.length after adding a second cue");
+}, document.title+', after addCue()');
+test(function(){
+    smoke_test();
+    t1.mode = 'showing';
+    assert_equals(t1.activeCues, t1_cues, "t1.activeCues should return the same object after setting mode to showing");
+    t1.mode = 'hidden';
+    assert_equals(t1.activeCues, t1_cues, "t1.activeCues should return the same object after setting mode to hidden");
+    t1.mode = 'disabled';
+    assert_equals(t1.activeCues, null, "t1.activeCues should be null when mode is disabled");
+    assert_equals(t1_cues.length, 0, "t1_cues should still be intact after setting mode to disabled");
+}, document.title+', different modes');
+
+// ok now let's load in a video
+var test1 = async_test(document.title+', video loading');
+var test2 = async_test(document.title+', video playing');
+var test3 = async_test(document.title+', adding cue during playback');
+test1.step(smoke_test);
+test2.step(smoke_test);
+test3.step(smoke_test);
+test1.step(function(){
+    t1.mode = 'showing';
+    video.onloadeddata = test1.step_func(function(e) {
+        video.onplaying = test2.step_func(function(e) {
+            try {
+                assert_equals(t1.activeCues, t1_cues, "t1.activeCues should return the same object after playing a video");
+                assert_equals(t1.activeCues.length, 1, "t1.activeCues.length after the video has started playing");
+            } catch(ex) {
+                test2.step(function() { throw ex; });
+                test3.step(function() { assert_unreached(); });
+                return;
+            }
+            test3.step(function(){
+                var c3 = new VTTCue(0, 2, "text3");
+                t1.addCue(c3);
+                assert_equals(t1.activeCues.length, 2, "t1.activeCues.length should be changed immediately");
+                test3.done();
+            });
+            test2.done();
+        });
+        try {
+            assert_equals(t1.activeCues, t1_cues, "t1.activeCues should return the same object after loading a video");
+            assert_equals(t2.activeCues, t2_cues, "t2.activeCues should return the same object after loading a video");
+            assert_equals(t1.activeCues.length, 0, "t1.activeCues.length before the video has started playing");
+            assert_equals(t2.activeCues.length, 0, "t1.activeCues.length before the video has started playing");
+        } catch(ex) {
+            test1.step(function() { throw ex; });
+            test2.step(function() { assert_unreached(); });
+            test3.step(function() { assert_unreached(); });
+            return;
+        }
+        video.play();
+        test1.done();
+    });
+    video.src = getVideoURI("/media/movie_5");
+});
+</script>

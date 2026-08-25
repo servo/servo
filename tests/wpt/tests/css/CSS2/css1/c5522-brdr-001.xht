@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: border</title>
+  <meta name="flags" content="image" />
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#border"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="match" href="c5522-brdr-001-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+   p { color: blue; }
+   div { margin: 2em; color: red; }
+   img { border: 0px; }
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-properties" title="8.5 Border properties"/>
+ </head>
+ <body>
+  <p> There should be no border around the cat: </p>
+  <div> <a href="http://test.example.org/"><img src="support/cat.png" alt="FAIL (image support required)" /></a> </div>
+ </body>
+</html>

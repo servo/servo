@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>CSS Test: blending between an element and its child having overflow:hidden and border-radius</title>
+        <link rel="author" title="Mirela Budăeș" href="mailto:mbudaes@adobe.com">
+        <link rel="author" title="Ion Roșca" href="mailto:rosca@adobe.com">
+        <link rel="reviewer" title="Mihai Țică" href="mailto:mitica@adobe.com">
+        <link rel="help" href="https://drafts.fxtf.org/compositing-1/#mix-blend-mode">
+        <meta name="assert" content="Test checks that an element having mix-blend-mode, overflow:hidden and border-radius blends correctly with its parent element.">
+        <meta name="fuzzy" content="0-10;0-5">
+        <link rel="match" href="reference/mix-blend-mode-blended-element-overflow-hidden-and-border-radius-ref.html">
+        <style type="text/css">
+            .parent {
+                background: aqua;/*rgb(0,255,255);*/
+                width: 150px;
+                height: 150px;
+                position: relative;
+                z-index: 1;
+            }
+            .blended {
+                width: 150px;
+                height: 150px;
+                overflow: hidden;
+                border-radius: 2em 2em;
+                mix-blend-mode: multiply;
+            }
+            .childOfBlended {
+                background: yellow;/*rgb(255,255,0);*/
+                width: 150px;
+                height: 150px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>The test passes if you see a lime rectangle with aqua rounded corners.</p>
+        <div class="parent">
+            <div class="blended">
+                <div class="childOfBlended"></div>
+            </div>
+        </div>
+    </body>
+</html>

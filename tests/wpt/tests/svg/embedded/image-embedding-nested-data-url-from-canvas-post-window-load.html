@@ -1,0 +1,32 @@
+<!doctype html>
+<html class=reftest-wait>
+<title>Drawing SVG image with data: URL subresources (after window load event)</title>
+<link rel="match" href="reference/image-with-nested-rects.html">
+<style>
+img {
+  width: 200px;
+  height: 200px;
+  background-color: red;
+}
+</style>
+<img id="result" src="">
+<script>
+const canvas = document.createElement('canvas');
+canvas.width = 200;
+canvas.height = 200;
+const context = canvas.getContext('2d');
+
+context.fillStyle = "red";
+context.fillRect(0, 0, canvas.width, canvas.height);
+
+window.onload = () => {
+  const image = new Image();
+  image.src = "support/image-with-nested-data-url-images.svg?" + Math.random().toString();
+  image.onload = () => {
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    const resultImage = document.getElementById("result");
+    resultImage.src = canvas.toDataURL();
+    resultImage.onload = () => document.documentElement.className = "";
+  }
+};
+</script>

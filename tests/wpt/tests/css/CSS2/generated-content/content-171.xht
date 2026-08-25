@@ -1,0 +1,19 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Generated Content: Simple \A</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/content/001.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#content" />
+  <link rel="match" href="content-171-ref.xht" />
+
+  <style type="text/css">
+    div { font: 1em/1em monospace; background: red; color: yellow; height: 2em; width: 15em; }
+    div:before { content: 'Line 1\A Line 2'; white-space: pre; background: green; color: white; display: block; }
+  </style>
+ </head>
+ <body>
+  <p>Test passes if "Line 1" and "Line 2" are white inside a green stripe.</p>
+  <div></div>
+ </body>
+</html>

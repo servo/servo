@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS integration - styling SVG from external stylesheet</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/utils.js"></script>
+    <!-- Common global functions for referrer-policy tests. -->
+    <script src="/common/security-features/resources/common.sub.js"></script>
+    <!-- Helper functions for referrer-policy css tests. -->
+    <script src="/referrer-policy/css-integration/css-test-helper.js"></script>
+    <meta name="referrer" content="never">
+  </head>
+  <body>
+    <p>Check that resources from external stylesheets are loaded with
+    the referrer and referrer policy from the external stylesheet.</p>
+
+    <script>
+      function addLinkStyleSheet(test) {
+        let css_url = url_prefix + "stylesheet.py?id=" + test.id +
+                      "&type=svg" + "&property=" + test.property;
+        test.expected = css_url;
+
+        let stylesheet =
+          document.createElementNS("http://www.w3.org/1999/xhtml", "link");
+        stylesheet.setAttribute("type", "text/css");
+        stylesheet.setAttribute("rel", "stylesheet");
+        stylesheet.setAttribute("href", css_url);
+        let svg = createSvg();
+        document.body.appendChild(svg);
+        svg.appendChild(stylesheet);
+      }
+
+      runSvgTests(svg_test_properties,
+                  "Test styling SVG from external style",
+                  addLinkStyleSheet);
+    </script>
+
+    <div id="log"></div>
+  </body>
+</html>

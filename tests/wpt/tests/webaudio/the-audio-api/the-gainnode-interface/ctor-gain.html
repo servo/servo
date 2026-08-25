@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      Test Constructor: Gain
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/webaudio/resources/audionodeoptions.js"></script>
+  </head>
+  <body>
+    <script>
+      const context = new AudioContext();
+
+      test(() => {
+        testInvalidConstructor_W3CTH('GainNode', context);
+      }, 'GainNode: invalid constructor');
+
+      test(() => {
+        const prefix = 'node0';
+        const node = testDefaultConstructor_W3CTH('GainNode', context, {
+          prefix,
+          numberOfInputs: 1,
+          numberOfOutputs: 1,
+          channelCount: 2,
+          channelCountMode: 'max',
+          channelInterpretation: 'speakers'
+        });
+
+        testDefaultAttributes_W3CTH(
+            node,
+            prefix,
+            [{ name: 'gain', value: 1 }]);
+      }, 'GainNode: default constructor and default attributes');
+
+      test(() => {
+        testAudioNodeOptions_W3CTH(context, 'GainNode');
+      }, 'GainNode: AudioNodeOptions are applied');
+
+      test(() => {
+        const options = { gain: -2 };
+        const node = new GainNode(context, options);
+        assert_true(node instanceof GainNode, 'instanceof GainNode');
+        assert_equals(node.gain.value, options.gain, 'node.gain.value');
+        assert_equals(node.channelCount, 2, 'node.channelCount');
+        assert_equals(node.channelCountMode, 'max', 'node.channelCountMode');
+        assert_equals(
+            node.channelInterpretation,
+            'speakers',
+            'node.channelInterpretation');
+      }, 'GainNode: constructor with options');
+    </script>
+  </body>
+</html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Shared Worker</title>
+
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="support.sub.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/webtransport/resources/webtransport-test-helpers.sub.js"></script>
+<script>
+"use strict";
+
+// Set permissions, then attempts to fetch a URL in the loopback address space
+// from a shared worker.
+//
+// Permission setting is documented in the sourceResolveOptions() function in
+// support.sub.js.
+Promise.resolve().then(async () => {
+    const window_url = new URL(window.location.href);
+    let permission_name = getPermissionName(window_url);
+    let permission_value = getPermissionValue(window_url);
+    test_driver.set_test_context(opener);
+    await test_driver.set_permission({ name: permission_name }, permission_value);
+
+    let method = window_url.searchParams.get('method');
+
+    const worker = new SharedWorker('shared-worker.js');
+    worker.port.onmessage = (evt) => {
+      opener.postMessage(evt.data, "*");
+    };
+    worker.port.onerror = (evt) => {
+      opener.postMessage({ error: evt.message || "unknown error" }, "*");
+    };
+    worker.port.start();
+
+    let targetUrl;
+
+    switch (method) {
+      case 'fetch':
+        const target = {
+          server: Server.HTTPS_LOOPBACK,
+          behavior: { response: ResponseBehavior.allowCrossOrigin() },
+        };
+        targetUrl = resolveTargetUrl(target);
+
+        break;
+      case 'websocket':
+        targetUrl = resolveUrl("/echo", Server.WSS_LOOPBACK);
+        break;
+      case 'webtransport':
+        targetUrl = webtransport_url('custom-response.py?:status=204');
+        break;
+    }
+
+    worker.port.postMessage({url: targetUrl.toString(), method: method});
+});
+</script>

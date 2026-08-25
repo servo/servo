@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Flexbox Reference: last baseline of a multi-line flex container comes from its last line</title>
+<link rel="author" title="Ahmad Saleem" href="mailto:ahmad.saleem792@gmail.com">
+<style>
+body { margin: 0; }
+.outer {
+    display: flex;
+    align-items: last baseline;
+    font: 16px/30px monospace;
+}
+.flex {
+    display: flex;
+    flex-wrap: wrap;
+    width: 100px;
+}
+.flex > div {
+    width: 45px;
+    height: 30px;
+}
+</style>
+</head>
+<body>
+<p>Test passes if "Ref" shares a baseline with "C" (the bottom row), not "B".</p>
+<div class="outer">
+    <div class="flex">
+        <div>A</div>
+        <div>B</div>
+        <div>C</div>
+    </div>
+    <div>Ref</div>
+</div>
+</body>
+</html>

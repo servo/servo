@@ -1,0 +1,58 @@
+/* a codemod for ensuring RTCPeerConnection is cleaned up in tests.
+ * For each `new RTCPeerConnection` add a
+ * `test.add_cleanup(() => pc.close())`
+ * Only applies in promise_tests if there is no add_cleanup in the
+ * test function body.
+ */
+export default function transformer(file, api) {
+  const j = api.jscodeshift;
+  return j(file.source)
+    // find each RTCPeerConnection constructor
+    .find(j.NewExpression, {callee: {type: 'Identifier', name: 'RTCPeerConnection'}})
+
+    // check it is inside a promise_test
+    .filter(path => {
+      // iterate parentPath until you find a CallExpression
+      let nextPath = path.parentPath;
+      while (nextPath && nextPath.value.type !== 'CallExpression') {
+        nextPath = nextPath.parentPath;
+      }
+      return nextPath && nextPath.value.callee.name === 'promise_test';
+    })
+    // check there is no add_cleanup in the function body
+    .filter(path => {
+      let nextPath = path.parentPath;
+      while (nextPath && nextPath.value.type !== 'CallExpression') {
+        nextPath = nextPath.parentPath;
+      }
+      const body = nextPath.value.arguments[0].body;
+      return j(body).find(j.Identifier, {name: 'add_cleanup'}).length === 0;
+    })
+    .forEach(path => {
+      // iterate parentPath until you find a CallExpression
+      let nextPath = path.parentPath;
+      while (nextPath && nextPath.value.type !== 'CallExpression') {
+        nextPath = nextPath.parentPath;
+      }
+      const declaration = path.parentPath.parentPath.parentPath;
+      const pc = path.parentPath.value.id;
+
+      declaration.insertAfter(
+        j.expressionStatement(
+          j.callExpression(
+            j.memberExpression(
+              nextPath.node.arguments[0].params[0],
+              j.identifier('add_cleanup')
+            ),
+            [j.arrowFunctionExpression([],
+              j.callExpression(
+                j.memberExpression(pc, j.identifier('close'), false),
+                []
+              )
+            )]
+          )
+        )
+      );
+    })
+    .toSource();
+};

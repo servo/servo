@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="help" href="https://issues.chromium.org/issues/464173566">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+html, body { margin: 0; padding: 0; }
+  #scene {
+    width: 400px;
+    height: 400px;
+    position: absolute;
+    border: 1px solid black;
+    perspective: 600px;
+    cursor: crosshair;
+    top: 50px;
+    left: 50px;
+    transform: scale(1.0);
+  }
+
+  #box1 {
+    width: 400px;
+    height: 400px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: auto;
+    background: lightgreen;
+    transform: translateZ(-40px) rotate3d(0, 1, 0, 40deg);
+    transform-style: preserve-3d;
+  }
+
+  #box5 {
+    width: 400px;
+    height: 400px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: auto;
+    background: darkviolet;
+    opacity: 0.7;
+    transform: translateZ(0px) rotate3d(0, 1, 0, 100deg);
+  }
+
+  #box2 {
+    background: green;
+    width: 330px;
+    height: 330px;
+    position: absolute;
+    left: 30px;
+    top: 30px;
+  }
+
+  #box3 {
+    background: lightyellow;
+    width: 250px;
+    height: 250px;
+    position: absolute;
+    left: 30px;
+    top: 30px;
+  }
+
+  #box4 {
+    background: blue;
+    width: 180px;
+    height: 180px;
+    position: absolute;
+    left: 40px;
+    top: 40px;
+  }
+</style>
+</head>
+<body>
+  <div id="scene">
+    <div id="box1">
+      <div id="box2">
+        <div id="box3">
+          <div id="box4"></div>
+        </div>
+      </div>
+      <div id="box5"></div>
+    </div>
+  </div>
+<script>
+  async function hit_test(x, y, target_id) {
+    const promise = new Promise(resolve => {
+      document.addEventListener("click", function (event) {
+        assert_equals(event.target.id, target_id, `Click should be on ${target_id}`);
+        resolve();
+      }, { once: true });
+    });
+    let click = new test_driver.Actions()
+      .pointerMove(x, y)
+      .pointerDown()
+      .pointerUp();
+    await click.send();
+    await promise;
+  }
+
+  promise_test(async () => {
+    await hit_test(90, 30, "box1");
+    await hit_test(200, 430, "box1");
+    await hit_test(110, 80, "box2");
+    await hit_test(245, 390, "box2");
+    await hit_test(140, 110, "box3");
+    await hit_test(245, 340, "box3");
+    await hit_test(180, 160, "box4");
+    await hit_test(248, 250, "box4");
+    await hit_test(255, 170, "box5");
+    await hit_test(255, 337, "box5");
+  }, "Hit test preserve-3d descendant");
+</script>
+</body>
+</html>

@@ -1,0 +1,453 @@
+<!doctype html>
+<html>
+<head>
+  <meta name="timeout" content="long">
+  <title>MediaRecorder mimeType</title>
+  <link rel="help" href="https://w3c.github.io/mediacapture-record/MediaRecorder.html#dom-mediarecorder-mimeType">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="utils/sources.js"></script>
+</head>
+<body>
+<script>
+const VIDEO_NEWER_CODECS = [
+  ["video/webm", "av02"],
+  ["video/matroska", "av02"],
+  ["video/x-matroska", "av02"],
+];
+
+const AUDIO_NEWER_CODECS = [
+  ["audio/webm", undefined, "futureaudiocodec"],
+  ["audio/matroska", undefined, "futureaudiocodec"],
+  ["audio/x-matroska", undefined, "futureaudiocodec"],
+];
+
+const AUDIO_VIDEO_NEWER_CODECS = [
+  ["video/webm", "av02", "opus", {old: "opus"}],
+  ["video/webm", "av02", "pcm", {old: "pcm"}],
+  ["video/webm", "av02", "futureaudiocodec"],
+  ["video/webm", "av01", "futureaudiocodec", {old: "av01"}],
+  ["video/matroska", "av02", "opus", {old: "opus"}],
+  ["video/matroska", "av02", "pcm", {old: "pcm"}],
+  ["video/matroska", "av02", "futureaudiocodec"],
+  ["video/matroska", "av01", "futureaudiocodec", {old: "av01"}],
+  ["video/x-matroska", "av02", "opus", {old: "opus"}],
+  ["video/x-matroska", "av02", "pcm", {old: "pcm"}],
+  ["video/x-matroska", "av02", "futureaudiocodec"],
+  ["video/x-matroska", "av01", "futureaudiocodec", {old: "av01"}],
+];
+
+const NEWER_MIME_TYPES = [
+  ...AUDIO_NEWER_CODECS,
+  ...VIDEO_NEWER_CODECS,
+  ...AUDIO_VIDEO_NEWER_CODECS,
+];
+
+
+const AUDIO_ONLY_MIME_TYPES = [
+  'audio/mp4',
+  'audio/ogg',
+  'audio/webm',
+  'audio/matroska',
+  'audio/x-matroska',
+];
+
+const AUDIO_OLDER_CODECS_MIME_TYPES = [
+  'audio/ogg; codecs="vorbis"',
+  'audio/ogg; codecs="opus"',
+  'audio/webm; codecs="vorbis"',
+  'audio/webm; codecs="opus"',
+  'audio/mp4; codecs="mp4a.40.2"',
+  'audio/mp4; codecs="opus"',
+  'audio/matroska; codecs="opus"',
+  'audio/matroska; codecs="pcm"',
+  'audio/x-matroska; codecs="opus"',
+  'audio/x-matroska; codecs="pcm"',
+];
+
+const VIDEO_ONLY_MIME_TYPES = [
+  'video/mp4',
+  'video/webm',
+  'video/x-matroska',
+  'video/matroska'
+];
+
+const VIDEO_OLDER_CODECS_MIME_TYPES = [
+  'video/webm; codecs="vp8"',
+  'video/webm; codecs="vp8.madeup.profile"',
+  'video/webm; codecs="vp9"',
+  'video/webm; codecs="vp9.madeup.profile"',
+  'video/webm; codecs="av1"',
+  'video/webm; codecs="av1.madeup.profile"',
+  'video/webm; codecs="av01"',
+  'video/webm; codecs="av01.madeup.profile"',
+  'video/mp4; codecs="avc1.64003E"',
+  'video/mp4; codecs="avc3.64003E"',
+  'video/mp4; codecs="vp9"',
+  'video/mp4; codecs="vp9.madeup.profile"',
+  'video/mp4; codecs="hvc1.1.6.L186.B0"',
+  'video/mp4; codecs="hev1.1.6.L186.B0"',
+  'video/x-matroska; codecs="hvc1.1.6.L186.B0"',
+  'video/x-matroska; codecs="hev1.1.6.L186.B0"',
+  'video/matroska; codecs="vp8"',
+  'video/matroska; codecs="vp8.madeup.profile"',
+  'video/matroska; codecs="vp9"',
+  'video/matroska; codecs="vp9.madeup.profile"',
+  'video/matroska; codecs="av1"',
+  'video/matroska; codecs="av1.madeup.profile"',
+  'video/matroska; codecs="av01"',
+  'video/matroska; codecs="av01.madeup.profile"',
+  'video/matroska; codecs="hvc1.1.6.L186.B0"',
+  'video/matroska; codecs="hev1.1.6.L186.B0"',
+  'video/matroska; codecs="avc1.64003E"',
+  'video/x-matroska; codecs="vp8"',
+  'video/x-matroska; codecs="vp8.madeup.profile"',
+  'video/x-matroska; codecs="vp9"',
+  'video/x-matroska; codecs="vp9.madeup.profile"',
+  'video/x-matroska; codecs="av1"',
+  'video/x-matroska; codecs="av1.madeup.profile"',
+  'video/x-matroska; codecs="av01"',
+  'video/x-matroska; codecs="av01.madeup.profile"',
+  'video/x-matroska; codecs="avc1.64003E"',
+];
+
+const AUDIO_VIDEO_OLDER_CODECS_MIME_TYPES = [
+  'video/webm; codecs="vp8, vorbis"',
+  'video/webm; codecs="vp8, opus"',
+  'video/webm; codecs="vp9, vorbis"',
+  'video/webm; codecs="vp9, opus"',
+  'video/webm; codecs="av1, opus"',
+  'video/webm; codecs="av01, opus"',
+  'video/mp4; codecs="avc1.64003E, mp4a.40.2"',
+  'video/mp4; codecs="avc3.64003E, mp4a.40.2"',
+  'video/mp4; codecs="vp9, opus"',
+  'video/mp4; codecs="hvc1.1.6.L186.B0, mp4a.40.2"',
+  'video/mp4; codecs="hev1.1.6.L186.B0, mp4a.40.2"',
+  'video/mp4; codecs="hvc1.1.6.L186.B0, opus"',
+  'video/mp4; codecs="hev1.1.6.L186.B0, opus"',
+  'video/x-matroska; codecs="hvc1.1.6.L186.B0, opus"',
+  'video/x-matroska; codecs="hev1.1.6.L186.B0, opus"',
+  'video/matroska; codecs="vp9, opus"',
+  'video/matroska; codecs="av1, opus"',
+  'video/matroska; codecs="av01, opus"',
+  'video/matroska; codecs="hvc1.1.6.L186.B0, opus"',
+  'video/matroska; codecs="hev1.1.6.L186.B0, opus"',
+  'video/matroska; codecs="avc1.64003E, opus"',
+  'video/x-matroska; codecs="vp9, opus"',
+  'video/x-matroska; codecs="av1, opus"',
+  'video/x-matroska; codecs="av01, opus"',
+  'video/x-matroska; codecs="avc1.64003E, opus"',
+];
+
+const AUDIO_OLDER_MIME_TYPES = [
+  ...AUDIO_ONLY_MIME_TYPES,
+  ...AUDIO_OLDER_CODECS_MIME_TYPES,
+  ...AUDIO_VIDEO_OLDER_CODECS_MIME_TYPES,
+];
+
+const VIDEO_OLDER_MIME_TYPES = [
+  ...VIDEO_ONLY_MIME_TYPES,
+  ...VIDEO_OLDER_CODECS_MIME_TYPES,
+  ...AUDIO_VIDEO_OLDER_CODECS_MIME_TYPES,
+];
+
+const OLDER_MIME_TYPES = [
+  ...AUDIO_ONLY_MIME_TYPES,
+  ...AUDIO_OLDER_CODECS_MIME_TYPES,
+  ...VIDEO_ONLY_MIME_TYPES,
+  ...VIDEO_OLDER_CODECS_MIME_TYPES,
+  ...AUDIO_VIDEO_OLDER_CODECS_MIME_TYPES,
+];
+
+test(t => {
+  const recorder = new MediaRecorder(createAudioStream(t).stream);
+  assert_equals(recorder.mimeType, "",
+    "MediaRecorder has no default mimeType");
+}, "MediaRecorder sets no default mimeType in the constructor for audio");
+
+test(t => {
+  const recorder = new MediaRecorder(createVideoStream(t).stream);
+  assert_equals(recorder.mimeType, "",
+    "MediaRecorder has no default mimeType");
+}, "MediaRecorder sets no default mimeType in the constructor for video");
+
+test(t => {
+  const recorder = new MediaRecorder(createAudioVideoStream(t).stream);
+  assert_equals(recorder.mimeType, "",
+    "MediaRecorder has no default mimeType");
+}, "MediaRecorder sets no default mimeType in the constructor for audio/video");
+
+test(t => {
+  assert_throws_dom("NotSupportedError",
+    () => new MediaRecorder(new MediaStream(), {mimeType: "audio/banana"}));
+}, "MediaRecorder invalid audio mimeType throws");
+
+test(t => {
+  assert_false(MediaRecorder.isTypeSupported("audio/banana"));
+}, "MediaRecorder invalid audio mimeType is unsupported");
+
+test(t => {
+  assert_throws_dom("NotSupportedError",
+    () => new MediaRecorder(new MediaStream(), {mimeType: "video/pineapple"}));
+}, "MediaRecorder invalid video mimeType throws");
+
+test(t => {
+  assert_false(MediaRecorder.isTypeSupported("video/pineapple"));
+}, "MediaRecorder invalid video mimeType is unsupported");
+
+for (const mimeType of OLDER_MIME_TYPES) {
+  if (MediaRecorder.isTypeSupported(mimeType)) {
+    test(t => {
+      const recorder = new MediaRecorder(new MediaStream(), {mimeType});
+      assert_equals(recorder.mimeType, mimeType, "Supported mimeType is set");
+    }, `Supported mimeType ${mimeType} is set immediately after constructing`);
+  } else {
+    test(t => {
+      assert_throws_dom("NotSupportedError",
+        () => new MediaRecorder(new MediaStream(), {mimeType}));
+    }, `Unsupported older mimeType ${mimeType} throws`);
+  }
+}
+
+function dropProfile(mimeType) {
+  const [type, ...ps] = mimeType.split(";");
+  const m = ps.join(";").match(/codecs\s*=\s*(".*?"|'.*?'|[^;]+)/i);
+  const cs = (m ? m[1] : "").replace(/^['"]|['"]$/g, "").split(",").map(s => s.trim()).filter(Boolean);
+  if (cs[0]?.includes(".")) cs[0] = cs[0].split(".")[0];
+  return `${type.trim()}; codecs="${cs.join(", ")}"`;
+}
+
+for (const mimeType of OLDER_MIME_TYPES.filter(m => m.includes('.'))) {
+  test(t => {
+    assert_equals(MediaRecorder.isTypeSupported(mimeType),
+                  MediaRecorder.isTypeSupported(dropProfile(mimeType)),
+                  "Same result with or without profile");
+  }, `Profile ignored for mimeType ${mimeType}`);
+}
+
+for (const [container, v, a, sync] of NEWER_MIME_TYPES) {
+  const mimeType = `${container}; codecs="${(v && a)? [v, a] : (v || a)}"`;
+  const videoType = `${container}; codecs="${v}"`;
+  const audioType = `${container.replace(/^video\//, "audio/")}; codecs="${a}"`;
+  promise_test(async t => {
+    assert_false(MediaRecorder.isTypeSupported(mimeType), "deprecated");
+    const {supported} = await navigator.mediaCapabilities.encodingInfo({
+      type: "record",
+      ...(v && {
+        video: {
+          contentType: videoType,
+          width: 640,
+          height: 480,
+          framerate: 30,
+          bitrate: 300000,
+        },
+      }),
+      ...(a && {
+        audio: {
+          contentType: audioType,
+          channels: 1,
+          samplerate: 48000,
+          bitrate: 128000,
+        },
+      })
+    });
+    const {stream} = createFlowingAudioVideoStream(t);
+    t.add_cleanup(() => stream.getTracks().forEach(t => t.stop()));
+    try {
+      const recorder = new MediaRecorder(stream, {mimeType});
+      assert_equals(recorder.mimeType, mimeType, "Supported mimeType is set");
+      recorder.start();
+      t.add_cleanup(() => recorder.stop());
+      const event = await Promise.race([
+        new Promise(r => recorder.onstart = r),
+        new Promise(r => recorder.onerror = r),
+      ]);
+      if (event.type == "start") {
+        assert_true(supported, "supported");
+      } else {
+        assert_equals(event.type, "error");
+        assert_equals(event.error.name, "NotSupportedError");
+        assert_false(supported, "not supported");
+      }
+    } catch (e) {
+      if (e.name != "NotSupportedError") throw e;
+      assert_false(supported, "not supported");
+      assert_true(!!sync, "throwing over unsupported sync codec");
+      assert_equals(typeof sync.old, "string");
+      assert_true(sync.old == v || sync.old == a, "sanity check");
+      switch (sync.old) {
+        case v:
+          assert_false(MediaRecorder.isTypeSupported(videoType),
+                       `throwing over unsupported sync ${v} codec`);
+          break;
+        case a:
+          assert_false(MediaRecorder.isTypeSupported(audioType),
+                       `throwing over unsupported sync ${a} codec`);
+          break;
+      }
+    }
+  }, `Support or lack thereof for newer mimeType ${mimeType} is detected asynchronously${sync? ", unless " + sync.old + " is unsupported" : ""}.`);
+}
+
+promise_test(async t => {
+  const recorder = new MediaRecorder(createFlowingAudioStream(t).stream);
+  recorder.start();
+  await new Promise(r => recorder.onstart = r);
+  assert_not_equals(recorder.mimeType, "");
+}, "MediaRecorder sets a nonempty mimeType on 'onstart' for audio");
+
+for (const mimeType of AUDIO_OLDER_MIME_TYPES) {
+  if (MediaRecorder.isTypeSupported(mimeType)) {
+    test(t => {
+      const recorder = new MediaRecorder(createFlowingAudioStream(t).stream, {mimeType});
+      recorder.start();
+    }, `MediaRecorder start() does not throw with ${mimeType} for audio`);
+  } else {
+    test(t => {
+      assert_throws_dom("NotSupportedError",
+        () => new MediaRecorder(createFlowingAudioStream(t).stream, {mimeType}));
+    }, `Unsupported mimeType ${mimeType} throws for audio`);
+  }
+}
+
+for (const mimeType of VIDEO_OLDER_MIME_TYPES) {
+  if (MediaRecorder.isTypeSupported(mimeType)) {
+    test(t => {
+      const recorder = new MediaRecorder(createFlowingVideoStream(t).stream, {mimeType});
+      recorder.start();
+    }, `MediaRecorder start() does not throw with ${mimeType} for video`);
+  } else {
+    test(t => {
+      assert_throws_dom("NotSupportedError",
+        () => new MediaRecorder(createFlowingVideoStream(t).stream, {mimeType}));
+    }, `Unsupported mimeType ${mimeType} throws for video`);
+  }
+}
+
+for (const mimeType of VIDEO_ONLY_MIME_TYPES) {
+  if (MediaRecorder.isTypeSupported(mimeType)) {
+    test(t => {
+      const recorder = new MediaRecorder(createFlowingAudioStream(t).stream, {mimeType});
+      recorder.start();
+    }, `MediaRecorder start() does not throw with ${mimeType} for audio`);
+  }
+}
+
+promise_test(async t => {
+  const recorder = new MediaRecorder(createFlowingVideoStream(t).stream);
+  recorder.start();
+  await new Promise(r => recorder.onstart = r);
+  assert_not_equals(recorder.mimeType, "");
+}, "MediaRecorder sets a nonempty mimeType on 'onstart' for video");
+
+promise_test(async t => {
+  const recorder = new MediaRecorder(createFlowingAudioVideoStream(t).stream);
+  recorder.start();
+  await new Promise(r => recorder.onstart = r);
+  assert_not_equals(recorder.mimeType, "");
+}, "MediaRecorder sets a nonempty mimeType on 'onstart' for audio/video");
+
+promise_test(async t => {
+  const recorder = new MediaRecorder(createFlowingAudioStream(t).stream);
+  recorder.start();
+  assert_equals(recorder.mimeType, "");
+}, "MediaRecorder mimeType is not set before 'onstart' for audio");
+
+promise_test(async t => {
+  const recorder = new MediaRecorder(createFlowingVideoStream(t).stream);
+  recorder.start();
+  assert_equals(recorder.mimeType, "");
+}, "MediaRecorder mimeType is not set before 'onstart' for video");
+
+promise_test(async t => {
+  const recorder = new MediaRecorder(createFlowingAudioVideoStream(t).stream);
+  recorder.start();
+  assert_equals(recorder.mimeType, "");
+}, "MediaRecorder mimeType is not set before 'onstart' for audio/video");
+
+promise_test(async t => {
+  const recorder = new MediaRecorder(createFlowingAudioStream(t).stream);
+  const onstartPromise = new Promise(resolve => {
+    recorder.onstart = () => {
+      recorder.onstart = () => t.step_func(() => {
+        assert_unreached("MediaRecorder doesn't fire 'onstart' twice");
+      });
+      resolve();
+    }
+  });
+  recorder.start();
+  await onstartPromise;
+  await new Promise(r => t.step_timeout(r, 1000));
+}, "MediaRecorder doesn't fire 'onstart' multiple times for audio");
+
+promise_test(async t => {
+  const recorder = new MediaRecorder(createFlowingVideoStream(t).stream);
+  const onstartPromise = new Promise(resolve => {
+    recorder.onstart = () => {
+      recorder.onstart = () => t.step_func(() => {
+        assert_unreached("MediaRecorder doesn't fire 'onstart' twice");
+      });
+      resolve();
+    }
+  });
+  recorder.start();
+  await onstartPromise;
+  await new Promise(r => t.step_timeout(r, 1000));
+}, "MediaRecorder doesn't fire 'onstart' multiple times for video");
+
+promise_test(async t => {
+  const recorder = new MediaRecorder(createFlowingAudioVideoStream(t).stream);
+  const onstartPromise = new Promise(resolve => {
+    recorder.onstart = () => {
+      recorder.onstart = () => t.step_func(() => {
+        assert_unreached("MediaRecorder doesn't fire 'onstart' twice");
+      });
+      resolve();
+    }
+  });
+  recorder.start();
+  await onstartPromise;
+  await new Promise(r => t.step_timeout(r, 1000));
+}, "MediaRecorder doesn't fire 'onstart' multiple times for audio/video");
+
+promise_test(async t => {
+  const recorder = new MediaRecorder(createFlowingAudioStream(t).stream);
+  recorder.start();
+  await new Promise(r => recorder.onstart = r);
+  assert_regexp_match(recorder.mimeType, /^audio\//,
+    "mimeType has an expected media type");
+  assert_regexp_match(recorder.mimeType, /^[a-z]+\/[a-z]+/,
+    "mimeType has a container subtype");
+  assert_regexp_match(
+    recorder.mimeType, /^[a-z]+\/[a-z]+;[ ]*codecs=[^,]+$/,
+    "mimeType has one codec a");
+}, "MediaRecorder formats mimeType well after 'start' for audio");
+
+promise_test(async t => {
+  const recorder = new MediaRecorder(createFlowingVideoStream(t).stream);
+  recorder.start();
+  await new Promise(r => recorder.onstart = r);
+  assert_regexp_match(recorder.mimeType, /^video\//,
+    "mimeType has an expected media type");
+  assert_regexp_match(recorder.mimeType, /^[a-z]+\/(x\-[a-z]+|[a-z]+)/,
+    "mimeType has a container subtype");
+  assert_regexp_match(
+    recorder.mimeType, /^[a-z]+\/(x\-[a-z]+|[a-z]+);[ ]*codecs=[^,]+$/,
+    "mimeType has one codec a");
+}, "MediaRecorder formats mimeType well after 'start' for video");
+
+promise_test(async t => {
+  const recorder = new MediaRecorder(createFlowingAudioVideoStream(t).stream);
+  recorder.start();
+  await new Promise(r => recorder.onstart = r);
+  assert_regexp_match(recorder.mimeType, /^video\//,
+    "mimeType has an expected media type");
+  assert_regexp_match(recorder.mimeType, /^[a-z]+\/(x\-[a-z]+|[a-z]+)/,
+    "mimeType has a container subtype");
+  assert_regexp_match(
+    recorder.mimeType, /^[a-z]+\/(x\-[a-z]+|[a-z]+);[ ]*codecs=[^,]+,[^,]+$/,
+    "mimeType has two codecs");
+}, "MediaRecorder formats mimeType well after 'start' for audio/video");
+</script>
+</body>
+</html>

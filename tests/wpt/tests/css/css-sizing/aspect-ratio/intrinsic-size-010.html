@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<title>CSS aspect-ratio: min-content size keyword together with min-size</title>
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio-minimum">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/5032">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht" />
+<style>
+.target {
+  background: green;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<!-- The tests below are based on the discussion:
+     https://github.com/w3c/csswg-drafts/issues/5032#issuecomment-655637111 -->
+
+<!-- `min-width:auto` takes the content size into account.
+     `width: min-content` is resolved as 25px (= 25px * 1), and the content size
+     is 100px, so the final width should be max(25px, 100px) = 100px. -->
+<div class="target" style="height: 25px; width: min-content; min-width: auto; aspect-ratio: 1/1;">
+  <div style="width: 100px;"></div>
+</div>
+<!-- `min-width:min-content` doesn't take the content size into account.
+     `width:auto` is resolved as 100px (= 25px * 4), and it shouldn't be
+     floored by the content size (i.e. 150px), so the final width is 100px. -->
+<div class= "target" style="height: 25px; width: auto; min-width: min-content; aspect-ratio: 4/1;">
+  <div style="width: 150px;"></div>
+</div>
+
+<!-- `min-height:auto` takes the content size into account.
+     `height: min-content` is resolved as 10px (= 100px / 10), and the content
+     size is 25px, so the final height should be max(10px, 25px) = 25px. -->
+<div class="target" style="height: min-content; min-height: auto; width: 100px; aspect-ratio: 10/1;">
+  <div style="height: 25px;"></div>
+</div>
+<!-- `min-height:min-content` doesn't take content size into account.
+     `height:auto` is resolved as 25px (= 100px / 4), and it shouldn't be
+     floored by the content size (i.e. 50px), so the final height is 25px. -->
+<div class="target" style="height: auto; min-height: min-content; width: 100px; aspect-ratio: 4/1;">
+  <div style="height: 50px;"></div>
+</div>

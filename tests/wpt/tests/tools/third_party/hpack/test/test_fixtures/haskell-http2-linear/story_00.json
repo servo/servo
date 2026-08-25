@@ -1,0 +1,60 @@
+{
+    "cases": [
+        {
+            "seqno": 0,
+            "wire": "8286410b7961686f6f2e636f2e6a7084",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "yahoo.co.jp"
+                },
+                {
+                    ":path": "/"
+                }
+            ]
+        },
+        {
+            "seqno": 1,
+            "wire": "8286410f7777772e7961686f6f2e636f2e6a7084",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "www.yahoo.co.jp"
+                },
+                {
+                    ":path": "/"
+                }
+            ]
+        },
+        {
+            "seqno": 2,
+            "wire": "828641096b2e79696d672e6a7004262f696d616765732f746f702f7370322f636d6e2f6c6f676f2d6e732d3133303532382e706e67",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "k.yimg.jp"
+                },
+                {
+                    ":path": "/images/top/sp2/cmn/logo-ns-130528.png"
+                }
+            ]
+        }
+    ],
+    "draft": 9,
+    "description": "http2 in Haskell: Linear - static table=yes, header table=yes, huffman=no"
+}

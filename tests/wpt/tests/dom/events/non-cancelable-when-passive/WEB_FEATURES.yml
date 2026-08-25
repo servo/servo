@@ -1,0 +1,5 @@
+rules:
+- non-passive-mousewheel-event-listener-*: [wheel-events]
+- non-passive-wheel-event-listener-*: [wheel-events]
+- passive-mousewheel-event-listener-*: [wheel-events]
+- passive-wheel-event-listener-*: [wheel-events]

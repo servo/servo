@@ -1,0 +1,13 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Test that the insertion point is not defined in the error event of a
+  parser-inserted script that has an unparseable URL</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+  var t = async_test("");
+  var writeDone = t.step_func_done(function(text) {
+    assert_equals(text, "text");
+  });
+</script>
+<iframe src="support/script-onerror-insertion-point-2-helper.html"></iframe>

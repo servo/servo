@@ -1,0 +1,22 @@
+<html>
+<head>
+<script>
+
+function boom()
+{
+  var MATHML_NS = "http://www.w3.org/1998/Math/MathML";
+
+  var mtr = document.createElementNS(MATHML_NS, 'mtr');
+  var mtable = document.createElementNS(MATHML_NS, 'mtable');
+
+  document.body.appendChild(mtr);
+  mtr.appendChild(mtable);
+}
+
+</script>
+</head>
+
+<body onload="boom()">
+
+</body>
+</html>

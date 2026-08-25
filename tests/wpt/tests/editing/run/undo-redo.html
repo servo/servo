@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../include/editor-test-utils.js"></script>
+<iframe srcdoc=""></iframe>
+<script>
+"use strict";
+const iframe = document.querySelector("iframe");
+
+promise_test(async () => {
+  await new Promise(resolve => {
+    addEventListener("load", resolve, {once: true});
+  });
+}, "Waiting for load...");
+
+/**
+ * This test does NOT test whether the edit result is valid or invalid.
+ * This test just tests whether "undo" and "redo" restores previous state
+ * and additional "undo" and "redo" does not run unexpectedly.
+ *
+ * description: Set string to explain what's testing.
+ * editorInnerHTML: Set initial innerHTML value of editor.
+ * init: Set a function object if you need to test complicated cases, e.g.,
+ *       testing with empty text node.
+ * run: Set a function object which run something modifying the editor (or
+ *      does nothing).
+ * expectedUndoResult: Set an expected innerHTML result as string or array
+ *                     of the string.  If this is not specified, it's compared
+ *                     with editorInnerHTML value.
+ * cleanUp: Set a function object if you need to clean something up after the
+ *          test.
+ */
+
+const tests = [
+  {
+    description: "insertParagraph at start of a paragraph",
+    editorInnerHTML: "<p>[]abcdef</p>",
+    run: (win, doc, editingHost) => {
+      doc.execCommand("insertParagraph");
+    },
+  },
+  {
+    description: "insertParagraph at middle of a paragraph",
+    editorInnerHTML: "<p>abc[]def</p>",
+    run: (win, doc, editingHost) => {
+      doc.execCommand("insertParagraph");
+    },
+  },
+  {
+    description: "insertParagraph at end of a paragraph",
+    editorInnerHTML: "<p>abcdef[]</p>",
+    run: (win, doc, editingHost) => {
+      doc.execCommand("insertParagraph");
+    },
+  },
+  {
+    description: "insertParagraph at start of a listitem",
+    editorInnerHTML: "<ul><li>[]abcdef</li></ul>",
+    run: (win, doc, editingHost) => {
+      doc.execCommand("insertParagraph");
+    },
+  },
+  {
+    description: "insertParagraph at middle of a listitem",
+    editorInnerHTML: "<ul><li>abc[]def</li></ul>",
+    run: (win, doc, editingHost) => {
+      doc.execCommand("insertParagraph");
+    },
+  },
+  {
+    description: "insertParagraph at end of a listitem",
+    editorInnerHTML: "<ul><li>abcdef[]</li></ul>",
+    run: (win, doc, editingHost) => {
+      doc.execCommand("insertParagraph");
+    },
+  },
+  {
+    description: "insertLineBreak at start of a paragraph",
+    editorInnerHTML: "<p>[]abcdef</p>",
+    run: (win, doc, editingHost) => {
+      doc.execCommand("insertLineBreak");
+    },
+  },
+  {
+    description: "insertLineBreak at middle of a paragraph",
+    editorInnerHTML: "<p>abc[]def</p>",
+    run: (win, doc, editingHost) => {
+      doc.execCommand("insertLineBreak");
+    },
+  },
+  {
+    description: "insertLineBreak at end of a paragraph",
+    editorInnerHTML: "<p>abcdef[]</p>",
+    run: (win, doc, editingHost) => {
+      doc.execCommand("insertLineBreak");
+    },
+  },
+  {
+    description: "insertLineBreak at start of a listitem",
+    editorInnerHTML: "<ul><li>[]abcdef</li></ul>",
+    run: (win, doc, editingHost) => {
+      doc.execCommand("insertLineBreak");
+    },
+  },
+  {
+    description: "insertLineBreak at middle of a listitem",
+    editorInnerHTML: "<ul><li>abc[]def</li></ul>",
+    run: (win, doc, editingHost) => {
+      doc.execCommand("insertLineBreak");
+    },
+  },
+  {
+    description: "insertLineBreak at end of a listitem",
+    editorInnerHTML: "<ul><li>abcdef[]</li></ul>",
+    run: (win, doc, editingHost) => {
+      doc.execCommand("insertLineBreak");
+    },
+  },
+  {
+    description: "delete at start of second paragraph",
+    editorInnerHTML: "<p>abc</p><p>[]def</p>",
+    run: (win, doc, editingHost) => {
+      doc.execCommand("delete");
+    }
+  },
+  {
+    description: "forwarddelete at end of first paragraph",
+    editorInnerHTML: "<p>abc[]</p><p>def</p>",
+    run: (win, doc, editingHost) => {
+      doc.execCommand("forwarddelete");
+    }
+  },
+  {
+    description: "delete at start of second paragraph starting with an emoji",
+    editorInnerHTML: "<p>abc\uD83D\uDC49</p><p>[]\uD83D\uDC48def</p>",
+    run: (win, doc, editingHost) => {
+      doc.execCommand("delete");
+    }
+  },
+  {
+    description: "forwarddelete at end of first paragraph ending with an emoji",
+    editorInnerHTML: "<p>abc\uD83D\uDC49[]</p><p>\uD83D\uDC48def</p>",
+    run: (win, doc, editingHost) => {
+      doc.execCommand("forwarddelete");
+    }
+  },
+  {
+    description: "delete at start of second paragraph ending with a non editable item",
+    editorInnerHTML: "<p>A line</p><p>[]Second line with <b contenteditable='false'>non-editable item</b></p>",
+    run: (win, doc, editingHost) => {
+      doc.execCommand("delete");
+    }
+  }
+];
+
+for (const curTest of tests) {
+  promise_test(async t => {
+    await new Promise(resolve => {
+      iframe.addEventListener("load", resolve, {once: true});
+      iframe.srcdoc = "<html><body><div contenteditable></div></body></html>";
+    });
+    const contentDocument = iframe.contentDocument;
+    const contentWindow = iframe.contentWindow;
+    contentWindow.focus();
+    const editingHost = contentDocument.querySelector("div[contenteditable]");
+    const utils = new EditorTestUtils(editingHost, window);
+    utils.setupEditingHost(curTest.editorInnerHTML);
+    contentDocument.documentElement.scrollHeight;  // flush pending things
+    if (typeof curTest.init == "function") {
+      await curTest.init(contentWindow, contentDocument, editingHost);
+    }
+    const initialValue = editingHost.innerHTML;
+    await curTest.run(contentWindow, contentDocument, editingHost);
+    const newValue = editingHost.innerHTML;
+    test(t2 => {
+      const ret = contentDocument.execCommand("undo");
+      if (curTest.expectedUndoResult !== undefined) {
+        if (typeof curTest.expectedUndoResult == "string") {
+          assert_equals(
+            editingHost.innerHTML,
+            curTest.expectedUndoResult,
+            `${t2.name}: should restore the innerHTML value`
+          );
+        } else {
+          assert_in_array(
+            editingHost.innerHTML,
+            curTest.expectedUndoResult,
+            `${t2.name}: should restore one of the innerHTML values`
+          );
+        }
+      } else {
+        assert_equals(
+          editingHost.innerHTML,
+          initialValue,
+          `${t2.name}: should restore the initial innerHTML value`
+        );
+      }
+      assert_true(ret, `${t2.name}: execCommand("undo") should return true`);
+    }, `${t.name} - first undo`);
+    test(t3 => {
+      const ret = contentDocument.execCommand("redo");
+      assert_equals(
+        editingHost.innerHTML,
+        newValue,
+        `${t3.name}: should restore the modified innerHTML value`
+      );
+      assert_true(ret, `${t3.name}: execCommand("redo") should return true`);
+    }, `${curTest.description} - first redo`);
+    test(t4 => {
+      const ret = contentDocument.execCommand("redo");
+      assert_equals(
+        editingHost.innerHTML,
+        newValue,
+        `${t4.name}: should not modify the modified innerHTML value`
+      );
+      assert_false(ret, `${t4.name}: execCommand("redo") should return false`);
+    }, `${curTest.description} - second redo`);
+    if (typeof curTest.cleanUp == "function") {
+      await curTest.cleanUp(contentWindow, contentDocument, editingHost);
+    }
+    await new Promise(resolve => {
+      iframe.addEventListener("load", resolve, {once: true});
+      iframe.srcdoc = "";
+    });
+    contentDocument.documentElement.scrollHeight; // flush pending things
+    await new Promise(resolve =>
+      requestAnimationFrame(
+        () => requestAnimationFrame(resolve)
+      )
+    );
+  }, curTest.description);
+}
+</script>

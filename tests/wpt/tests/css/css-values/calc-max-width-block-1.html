@@ -1,0 +1,25 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>CSS Test: max-width: calc() on blocks</title>
+  <link rel="author" title="L. David Baron" href="https://dbaron.org/">
+  <link rel="help" href="http://www.w3.org/TR/css3-values/#calc-notation">
+  <link rel="match" href="calc-width-block-1-ref.html">
+<style type="text/css">
+
+body { width: 500px }
+p { background: green; color: white; margin: 1px 0; font-size: 10px; width: 1000px; }
+
+</style>
+</head>
+<body>
+
+<p style="max-width: calc(50% - 3px)">50% - 3px</p>
+<p style="max-width: calc(25% - 3px + 25%)">25% - 3px + 25%</p>
+<p style="max-width: calc(25% - 3px + 12.5% * 2)">25% - 3px + 12.5% * 2</p>
+<p style="max-width: calc(25% - 3px + 12.5%*2)">25% - 3px + 12.5%*2</p>
+<p style="max-width: calc(25% - 3px + 2*12.5%)">25% - 3px + 2*12.5%</p>
+<p style="max-width: calc(25% - 3px + 2 * 12.5%)">25% - 3px + 2 * 12.5%</p>
+<p style="max-width: calc(30% + 20%)">30% + 20%</p>
+</body>
+</html>

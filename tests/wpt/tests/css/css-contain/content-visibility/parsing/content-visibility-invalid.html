@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Content Visibility: content-visibility with invalid values</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<meta name="assert" content="content-visibility supports the full grammar 'visible | auto | hidden'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("content-visibility", "visible auto");
+test_invalid_value("content-visibility", "foo-bar");
+test_invalid_value("content-visibility", "foo bar baz");
+test_invalid_value("content-visibility", "hidden visible");
+test_invalid_value("content-visibility", "invisible invisible invisible");
+</script>
+</body>
+</html>

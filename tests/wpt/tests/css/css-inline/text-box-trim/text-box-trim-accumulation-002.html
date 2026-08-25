@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>Test trimming both sides of the inline content</title>
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-trim">
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-edge">
+<meta charset="utf-8">
+<meta name="assert"
+      content="text-box-trim values set by multiple ancestors accumulate instead
+               of overwrite each other."
+>
+<link rel="match" href="text-box-trim-accumulation-002-ref.html">
+<link rel="stylesheet" href="/fonts/baseline-diagnostic/baseline-diagnostic-font.css">
+<style>
+.spacer {
+  block-size: 100px;
+  background: lightgray;
+}
+
+.outer {
+  text-box-trim: trim-start;
+}
+
+.middle {
+  text-box-trim: trim-end;
+  text-box-edge: ex alphabetic;
+}
+
+.inner {
+  font: 100px/1 BaselineDiagnosticAlphabeticZero;
+}
+</style>
+<div class="spacer"></div>
+<div class="outer">
+  <div class="middle">
+    <div class="inner">█BxIF</div>
+  </div>
+</div>
+<div class="spacer"></div>

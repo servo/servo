@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Images Module Level 4: image(&lt;color&gt;) renders as a solid color</title>
+<link rel="author" title="Jason Leo" href="mailto:cgqaq@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#image-notation">
+<link rel="match" href="image-color-basic-ref.html">
+<style>
+  div {
+    width: 100px;
+    height: 100px;
+    display: inline-block;
+    margin: 4px;
+    background-color: red;
+  }
+  .opaque       { background-image: image(green); }
+  .rgb-syntax   { background-image: image(rgb(0 128 0)); }
+  .currentcolor { color: green; background-image: image(currentcolor); }
+  .transparent  { background: image(transparent) green; }
+</style>
+<p>Test passes if there are four green squares below.</p>
+<div class="opaque"></div>
+<div class="rgb-syntax"></div>
+<div class="currentcolor"></div>
+<div class="transparent"></div>

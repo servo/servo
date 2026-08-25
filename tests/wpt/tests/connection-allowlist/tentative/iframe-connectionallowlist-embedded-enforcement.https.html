@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Connection-Allowlist: embedded enforcement of the connectionallowlist
+       iframe attribute</title>
+<link rel="help" href="https://github.com/WICG/connection-allowlists/issues/1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+// The `connectionallowlist` iframe attribute (Connection-Allowlist embedded
+// enforcement) makes the browser require a Connection-Allowlist of the framed
+// document. The framed document must either opt in for the embedder's origin
+// (`Allow-Connection-Allowlist-From`) or deliver its own `Connection-Allowlist`
+// that subsumes the requirement; otherwise the navigation is blocked.
+//
+// A committed (allowed) child is same-origin to this frame and posts a message
+// on load. A blocked navigation commits a cross-origin error document that
+// never posts the message and whose location is inaccessible from here.
+
+const EXPECT_LOAD = false;
+const EXPECT_BLOCK = true;
+
+let nextId = 0;
+
+function childUrl(params, id) {
+  const url = new URL("resources/embedded-enforcement-child.py", location.href);
+  for (const [key, value] of Object.entries(params)) {
+    url.searchParams.append(key, value);
+  }
+  url.searchParams.append("id", id);
+  return url.toString();
+}
+
+// Creates an iframe carrying `connectionallowlist` and pointing at a child
+// served with the given response-header `params`, then asserts whether the
+// browser lets it commit.
+function assert_embedded_enforcement(t, connectionallowlist, params,
+                                     shouldBlock) {
+  const id = "frame" + (nextId++);
+  const iframe = document.createElement("iframe");
+  iframe.setAttribute("connectionallowlist", connectionallowlist);
+  iframe.src = childUrl(params, id);
+
+  if (shouldBlock) {
+    // A blocked child committed an error document and must not post a message.
+    window.addEventListener("message", t.step_func(e => {
+      if (e.source === iframe.contentWindow) {
+        assert_unreached("A blocked frame must not post a message.");
+      }
+    }));
+    // The blocked navigation commits a cross-origin error document, so reading
+    // its location throws a SecurityError.
+    iframe.onload = t.step_wait_func_done(() => {
+      if (!iframe.contentWindow) {
+        return false;
+      }
+      try {
+        iframe.contentWindow.location.href;
+        return false;
+      } catch (e) {
+        return true;
+      }
+    }, t.step_func(() => {
+      assert_throws_dom("SecurityError",
+          () => { iframe.contentWindow.location.href; });
+    }), "The blocked frame must commit a cross-origin error document.");
+  } else {
+    window.addEventListener("message", t.step_func(e => {
+      if (e.source !== iframe.contentWindow) {
+        return;
+      }
+      assert_true(e.data && e.data.connectionAllowlistChildLoaded === true &&
+                  e.data.id === id,
+                  "The framed document committed and posted its message.");
+      t.done();
+    }));
+  }
+  document.body.appendChild(iframe);
+}
+
+// A blanket opt-in (`Allow-Connection-Allowlist-From: *`) satisfies any
+// embedder requirement: the frame commits.
+async_test(t => {
+  assert_embedded_enforcement(t, "(response-origin)",
+      { allow_from: "*" }, EXPECT_LOAD);
+}, "Blanket opt-in commits the framed document.");
+
+// Opting in for an origin other than the embedder's does not satisfy the
+// requirement: the frame is blocked.
+async_test(t => {
+  assert_embedded_enforcement(t, "(response-origin)",
+      { allow_from: "https://nonmatching.test" }, EXPECT_BLOCK);
+}, "Opt-in for a non-matching origin is blocked.");
+
+// A delivered `Connection-Allowlist` that is at least as strict as (subsumes)
+// the requirement is accepted.
+async_test(t => {
+  assert_embedded_enforcement(t, "(response-origin)",
+      { allowlist: "(response-origin)" }, EXPECT_LOAD);
+}, "A subsuming delivered Connection-Allowlist commits.");
+
+// A delivered `Connection-Allowlist` that is looser than the requirement (it
+// additionally permits https://extra.test/) does not subsume it and is blocked.
+async_test(t => {
+  assert_embedded_enforcement(t, "(response-origin)",
+      { allowlist: '(response-origin "https://extra.test/")' }, EXPECT_BLOCK);
+}, "A non-subsuming delivered Connection-Allowlist is blocked.");
+
+// A frame that neither opts in nor delivers a satisfying Connection-Allowlist
+// is blocked.
+async_test(t => {
+  assert_embedded_enforcement(t, "(response-origin)", {}, EXPECT_BLOCK);
+}, "No opt-in and no delivered Connection-Allowlist is blocked.");
+
+// A local-scheme (srcdoc) frame carrying the attribute always commits: local
+// schemes inherit their embedder's policies and open no connections of their
+// own. (Enforcement on local-scheme frames is a deferred follow-up; see
+// https://crbug.com/447954811.)
+async_test(t => {
+  const iframe = document.createElement("iframe");
+  iframe.setAttribute("connectionallowlist", "(response-origin)");
+  iframe.srcdoc = "<!doctype html><body>local</body>";
+  iframe.onload = t.step_func_done(() => {
+    assert_equals(iframe.contentDocument.body.textContent, "local",
+        "The srcdoc frame committed and is same-origin.");
+  });
+  document.body.appendChild(iframe);
+}, "A local-scheme (srcdoc) frame with the attribute commits.");
+</script>
+</body>

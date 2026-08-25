@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>document.readyState values exist during a navigation</title>
+    <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+    <link rel="help" href="http://www.w3.org/TR/html5/dom.html#resource-metadata-management"/>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script>
+        setup({ explicit_done: true });
+        var has_loading = (document.readyState == "loading");
+        var has_interactive = (document.readyState == "interactive");
+        var has_complete = (document.readyState == "complete");
+
+        document.onreadystatechange = function()
+        {
+            if (document.readyState == "loading")
+            {
+                has_loading = true;
+            }
+            if (document.readyState == "interactive")
+            {
+                has_interactive = true;
+            }
+            if (document.readyState = "complete")
+            {
+                has_complete = true;
+            }
+        };
+
+        function onload_test()
+        {
+            test(function () { assert_true(has_loading); }, "Document readiness has loading state.");
+            test(function () { assert_true(has_interactive); }, "Document readiness has interactive state.");
+            test(function () { assert_true(has_complete); }, "Document readiness has complete state.");
+            done();
+        }
+    </script>
+
+</head>
+<body onload="onload_test();">
+    <h1>Description</h1>
+    <p>This test validates that the "loading", "interactive" and "complete"
+       document.readyState states are available during a navigation.</p>
+    <p>Refresh this page to guarantee all readyState phases.</p>
+    <div id="log"></div>
+</body>
+</html>

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Refttest Reference: Percentage size on child of a flex item with margin, border, padding and scrollbar</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<style>
+.flex {
+  display: inline-block;
+  border: solid 5px black;
+  width: 150px;
+  height: 100px;
+  margin: 10px;
+  vertical-align: top;
+}
+
+.item {
+  overflow: scroll;
+  border: solid magenta;
+  border-width: 12px 9px 6px 3px;
+  margin: 1px 2px 3px 4px;
+  padding: 5px 15px 10px 20px;
+  background: cyan;
+  width: calc(100% - 6px);
+  height: calc(100% - 4px);
+  box-sizing: border-box;
+}
+
+.subitem {
+  width: 100%;
+  height: 100%;
+  background: yellow;
+}
+
+.horizontalTB { writing-mode: horizontal-tb; }
+.verticalLR { writing-mode: vertical-lr; }
+.verticalRL {  writing-mode: vertical-rl; }
+</style>
+
+<p>The test passes if in the different examples you see scrollbars but there's no overflow, so you cannot actually scroll.</p>
+
+<div class="flex">
+  <div class="item horizontalTB">
+    <div class="subitem"></div>
+  </div>
+</div>
+
+<div class="flex">
+  <div class="item horizontalTB">
+    <div class="subitem verticalLR"></div>
+  </div>
+</div>
+
+<div class="flex">
+  <div class="item horizontalTB">
+    <div class="subitem verticalRL"></div>
+  </div>
+</div>
+
+<div class="flex">
+  <div class="item verticalLR">
+    <div class="subitem"></div>
+  </div>
+</div>
+
+<div class="flex">
+  <div class="item verticalLR">
+    <div class="subitem horizontalTB"></div>
+  </div>
+</div>
+
+<div class="flex">
+  <div class="item verticalLR">
+    <div class="subitem verticalRL"></div>
+  </div>
+</div>
+
+<div class="flex">
+  <div class="item verticalRL">
+    <div class="subitem"></div>
+  </div>
+</div>
+
+<div class="flex">
+  <div class="item verticalRL">
+    <div class="subitem horizontalTB"></div>
+  </div>
+</div>
+
+<div class="flex">
+  <div class="item verticalRL">
+    <div class="subitem verticalLR"></div>
+  </div>
+</div>

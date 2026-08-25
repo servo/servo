@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Entries API: FileSystemEntry.getParent() with script-created DataTransfer</title>
+<link rel=help href="https://wicg.github.io/entries-api/#dom-filesystementry-getparent">
+<link rel=author title="Euclid Ye" href="mailto:yezhizhenjiakang@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+async_test(t => {
+  const file = new File(['hello world'], 'test.txt', { type: 'text/plain' });
+  const dt = new DataTransfer();
+  dt.items.add(file);
+
+  const entry = dt.items[0].webkitGetAsEntry();
+
+  entry.getParent(
+    t.step_func_done(parent => {
+      assert_true(parent.isDirectory);
+      assert_false(parent.isFile);
+      assert_equals(parent.name, '');
+      assert_equals(parent.fullPath, '/');
+    }),
+    t.unreached_func('getParent() should not invoke the error callback')
+  );
+}, 'getParent() on a root-level file entry returns the root directory');
+
+async_test(t => {
+  const file = new File(['hello world'], 'test.txt', { type: 'text/plain' });
+  const dt = new DataTransfer();
+  dt.items.add(file);
+
+  const entry = dt.items[0].webkitGetAsEntry();
+  const root = entry.filesystem.root;
+
+  root.getParent(
+    t.step_func_done(parent => {
+      assert_true(parent.isDirectory, 'parent should be a directory');
+      assert_equals(parent.name, '', 'root name is empty string');
+      assert_equals(parent.fullPath, '/', 'parent of root is root itself');
+    }),
+    t.unreached_func('getParent() should not invoke the error callback')
+  );
+}, 'getParent() on the root directory returns the root itself');
+</script>

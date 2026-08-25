@@ -1,0 +1,3 @@
+rules:
+- RTCSctpTransport-*: [webrtc-sctp]
+- "*": [webrtc]

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/CSS22/box.html#propdef-padding-left">
+<link rel="help" href="https://www.w3.org/TR/css-sizing-3/#valdef-width-fit-content-length-percentage">
+<meta name="assert" content="The shrink-to-fit container (#stf) should be just wide enough to fit both floats beside each other. The percentage padding shouldn't be affected by intrinsic sizing; it's simply resolved from its containing block (#container), which doesn't participate in the intrinsic size calculation at all.">
+<div id="container" style="width:400px; height:200px;">
+  <div id="stf" style="width:fit-content; padding-left:20%;">
+    <div style="float:left; width:50px; height:100px; background:cyan;"></div>
+    <div style="float:left; width:50px; height:100px; background:hotpink;"></div>
+  </div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  var container = document.getElementById("container");
+  var stf = document.getElementById("stf");
+  test(()=> {
+      assert_equals(stf.offsetWidth, 180);
+  }, "Initial layout");
+
+  test(()=> {
+      container.style.width = "300px";
+      assert_equals(stf.offsetWidth, 160);
+  }, "Shrink width");
+
+  test(()=> {
+      container.style.width = "500px";
+      assert_equals(stf.offsetWidth, 200);
+  }, "Grow width");
+</script>

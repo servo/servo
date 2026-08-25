@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>&lt;select&gt; with display:inline</title>
+<link rel="author" title="Oriol Brufau" href="obrufau:obrufau@igalia.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#the-select-element-2">
+<link rel="help" href="https://github.com/servo/servo/issues/39927">
+<link rel="match" href="select-display-inline-ref.html">
+<meta name="assert" content="
+  A <select> is a widget, so it's atomic when it has display:inline.
+  In particular, this implies that it's transformable.
+">
+
+<select style="display: inline; transform: translateX(100px)">
+  <option>option</option>
+</select>

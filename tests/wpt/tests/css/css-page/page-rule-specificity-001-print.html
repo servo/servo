@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS Paged Media: @page without selector provides defaults</title>
+  <link rel="author" title="Jonathan Watt" href="mailto:jwatt@jwatt.org"/>
+  <link rel="help" href="https://drafts.csswg.org/css-page/#cascading-and-page-context"/>
+  <meta name="assert" content="@page with a selector should not apply to non-matched pages">
+  <link rel="match" href="page-rule-specificity-print-landscape-ref.html"/>
+  <meta name="reftest-pages" content="2">
+  <style>
+
+/* WPT Print Reftest default size is 5x3in - this should only change that for the first page */
+@page :first {
+  size: portrait;
+}
+div:first-of-type {
+  break-after: page;
+}
+body {
+  margin: 0;
+}
+
+  </style>
+  <body>
+    <div>Portrait</div>
+    <div>Landscape</div>
+  </body>
+</html>

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+  // Cargo-culted from code generated from "META: worker".
+  (async function() {
+    const scope = 'support/some/scope/for/this/test';
+    let reg = await navigator.serviceWorker.getRegistration(scope);
+    if (reg) await reg.unregister();
+    reg = await navigator.serviceWorker.register(
+      "support/trusted-types-reporting-for-ServiceWorkerContainer-register-worker.https.js", {scope});
+    fetch_tests_from_worker(reg.installing);
+  })();
+</script>

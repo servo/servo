@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset=iso-8859-8 id=meta>
+<title id=title>Selector: pseudo-classes (:dir(ltr), :dir(rtl)) in iso-8859-8 documents</title>
+<link rel="author" title="Denis Ah-Kang" href="mailto:denis@w3.org" id=link1>
+<link rel=help href="https://html.spec.whatwg.org/multipage/#pseudo-classes" id=link2>
+<script src="/resources/testharness.js" id=script1></script>
+<script src="/resources/testharnessreport.js" id=script2></script>
+<script src="utils.js" id=script3></script>
+<div id="log"></div>
+<div>This text is left to right<div id=div1 style="direction:rtl">this is right to left</div></div>
+<div>This text is left to right<span id=div2 style="direction:rtl">this is left to right</span></div>
+
+<script>
+  var ltr = new Array(),
+      all = document.querySelectorAll('*');
+  for(var i = all.length; i--; ltr.unshift(all[i]));
+  testSelectorElementsMatch(":dir(ltr)", ltr, "direction doesn't affect :dir()");
+</script>

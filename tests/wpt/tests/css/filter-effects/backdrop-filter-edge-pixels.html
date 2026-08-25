@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>backdrop-filter: Edge pixels shouldn't get filtered</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty">
+<link rel="match"  href="backdrop-filter-edge-pixels-ref.html">
+
+<div class="box"></div>
+<div style="position:absolute;top:100px;will-change:transform;">
+  <p>Expected above: A pure white box with a blue border.<br>
+  No dark/black should be observed within the white box.</p>
+</div>
+
+<style>
+.box {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  top: 0px;
+  left: 0px;
+  border: 1px solid blue;
+  backdrop-filter: blur(30px);
+}
+</style>

@@ -1,0 +1,55 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>GLSL ceil function test</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../../resources/glsl-feature-tests.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"> </script>
+<script src="../../../js/glsl-generator.js"> </script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+GLSLGenerator.runFeatureTest({
+  feature: "ceil",
+  testFunc: "$(func)($(arg0))",
+  emuFunc: ["float $(func)_base(float value) {",
+            "  float m = mod(value, 1.0);",
+            "  return m != 0.0 ? (value + 1.0 - m) : value;",
+            "}"].join("\n"),
+  gridRes: 8,
+  tests: [
+    ["$(output) = vec4(",
+     "    $(func)($(input).x * 8.0 - 4.0) / 8.0 + 0.5,",
+     "    $(func)($(input).y * 8.0 - 4.0) / 8.0 + 0.5,",
+     "    0,",
+     "    1);"].join("\n"),
+    ["$(output) = vec4(",
+     "    $(func)($(input).xy * 8.0 - vec2(4, 4)) / 8.0 + vec2(0.5, 0.5),",
+     "    0, 1);"].join("\n"),
+    ["$(output) = vec4(",
+     "    $(func)($(input).xyz * 8.0 - vec3(4, 4, 4)) / 8.0 + ",
+     "       vec3(0.5, 0.5, 0.5),",
+     "    1);"].join("\n"),
+    ["$(output) = ",
+     "    $(func)($(input) * 8.0 - vec4(4, 4, 4, 4)) / 8.0 + ",
+     "       vec4(0.5, 0.5, 0.5, 0.5);"].join("\n")
+  ]
+});
+var successfullyParsed = true;
+</script>
+</body>
+</html>
+

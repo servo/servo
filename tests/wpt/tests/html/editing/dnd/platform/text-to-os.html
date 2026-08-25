@@ -1,0 +1,19 @@
+<!doctype html>
+<html>
+  <head>
+    <title>drag and drop - dragging plain text onto the OS</title>
+  </head>
+  <body>
+
+    <p>This test is only relevant on platforms where it is possible to switch applications in mid-drag (eg. alt+tab, dragging over taskbar buttons, dragging between restored windows).</p>
+    <p>This testcase requires an external application that accepts dropping of text from other applications - eg. Wordpad (write.exe) on Windows. Ensure that the external application is open.</p>
+    <p draggable="true">Drag this paragraph to the other application and release it. Pass if &quot;PASS&quot; appears in the other application, and the drag placeholder disappears when the drag is released.</p>
+    <script type="text/javascript">
+document.getElementsByTagName('p')[2].ondragstart = function (e) {
+  e.dataTransfer.effectAllowed = 'copy';
+  e.dataTransfer.setData('Text', 'PASS');
+};
+    </script>
+
+  </body>
+</html>

@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<title>:visited in inheritance</title>
+<link rel="match" href="visited-nested-ref.html">
+<link rel="help" href="https://crbug.com/419001506">
+<style>
+  :visited {
+     & {
+        color: green;
+     }
+  }
+</style>
+<a href="">Test passes if this is green</a>

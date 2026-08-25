@@ -1,0 +1,10 @@
+<!DOCTYPE HTML>
+<title>CSS Test (Transforms): Very large values in matrix3d()</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Google" href="http://www.google.com/">
+<style>
+html, body, div {
+  transform: matrix3d(1, 1, 1, 1, 72770296304691886506301192829784762776379253934637144527855766046737093, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1);
+}
+</style>
+<div>This should not crash.</div>

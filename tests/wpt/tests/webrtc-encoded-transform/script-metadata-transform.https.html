@@ -1,0 +1,269 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset='utf-8'>
+        <meta name='timeout' content='long'>
+<script src='/resources/testharness.js'></script>
+        <script src='/resources/testharnessreport.js'></script>
+        <script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src='../mediacapture-streams/permission-helper.js'></script>
+    </head>
+    <body>
+        <video id='video1' autoplay></video>
+        <script src ='routines.js'></script>
+        <script>
+async function waitForMessage(worker, data)
+{
+    while (true) {
+        const received = await new Promise(resolve => worker.onmessage = (event) => resolve(event.data));
+        if (data === received)
+            return;
+    }
+}
+
+async function gatherMetadata(test, kind, neededExtensions = [])
+{
+    worker = new Worker('script-metadata-transform-worker.js');
+    const data = await new Promise(resolve => worker.onmessage = (event) => resolve(event.data));
+    assert_equals(data, 'registered');
+
+    // Both audio and vido are needed at one time or another
+    // so asking for both permissions.
+    await setMediaPermission();
+    const localStream = await navigator.mediaDevices.getUserMedia({[kind]: true});
+
+    const senderTransform = new RTCRtpScriptTransform(worker, {name:'sender'});
+    const receiverTransform = new RTCRtpScriptTransform(worker, {name:'receiver'});
+
+    await new Promise((resolve, reject) => {
+        createConnections(test, (firstConnection) => {
+            pc1 = firstConnection;
+            const sender = firstConnection.addTrack(localStream.getTracks()[0], localStream);
+            sender.transform = senderTransform;
+            if ('getHeaderExtensionsToNegotiate' in RTCRtpTransceiver.prototype) {
+                const transceiver = pc1.getTransceivers()[0];
+                const extensions = transceiver.getHeaderExtensionsToNegotiate();
+                extensions.forEach(ext => {
+                    if (neededExtensions.includes(ext.uri)) {
+                        ext.direction = 'sendrecv';
+                    }
+                });
+                transceiver.setHeaderExtensionsToNegotiate(extensions);
+            }
+        }, (secondConnection) => {
+            pc2 = secondConnection;
+            secondConnection.ontrack = (trackEvent) => {
+                const receiver = trackEvent.receiver;
+                receiver.transform = receiverTransform;
+                resolve(trackEvent.streams[0]);
+            };
+        });
+        test.step_timeout(() => reject('Test timed out'), 5000);
+    });
+
+    let senderBeforeWrite, senderAfterWrite, receiverBeforeWrite, receiverAfterWrite;
+    while (true) {
+        const {data} = await new Promise(r => worker.onmessage = r);
+        if (data.name == 'sender') {
+            senderBeforeWrite = data;
+        } else if (data.name == 'receiver') {
+            receiverBeforeWrite = data;
+        } else if (data.name == 'sender after write') {
+            senderAfterWrite = data;
+        } else if (data.name == 'receiver after write') {
+            receiverAfterWrite = data;
+        }
+        if (senderBeforeWrite &&
+            senderAfterWrite &&
+            receiverBeforeWrite &&
+            receiverAfterWrite) {
+            return {
+              senderBeforeWrite,
+              senderAfterWrite,
+              receiverBeforeWrite,
+              receiverAfterWrite
+            };
+        }
+    }
+}
+
+function checkSendReceive(data, propertyName, propertyType) {
+    assert_equals(typeof data.senderBeforeWrite.metadata[propertyName], propertyType);
+    assert_equals(data.senderBeforeWrite.metadata[propertyName],
+      data.senderAfterWrite.metadata[propertyName],
+      propertyName + ' matches (for sender before and after write)');
+    assert_equals(data.senderBeforeWrite.metadata[propertyName],
+      data.receiverBeforeWrite.metadata[propertyName],
+      propertyName + ' matches (for sender and receiver)');
+    assert_equals(data.senderBeforeWrite.metadata[propertyName],
+      data.receiverAfterWrite.metadata[propertyName],
+      propertyName + ' matches (for receiver before and after write)');
+}
+
+function checkReceiveOnly(data, propertyName, propertyType) {
+    assert_equals(data.senderBeforeWrite.metadata[propertyName], undefined);
+    assert_equals(data.senderBeforeWrite.metadata[propertyName],
+      data.senderAfterWrite.metadata[propertyName],
+      propertyName + ' matches (for sender before and after write)');
+    assert_equals(typeof data.receiverBeforeWrite.metadata[propertyName], propertyType);
+    assert_equals(data.receiverBeforeWrite.metadata[propertyName],
+      data.receiverAfterWrite.metadata[propertyName],
+      propertyName + ' matches (for receiver before and after write)');
+}
+
+function checkSendOnly(data, propertyName, propertyType) {
+    assert_equals(typeof data.senderBeforeWrite.metadata[propertyName], propertyType);
+    assert_equals(data.senderBeforeWrite.metadata[propertyName],
+      data.senderAfterWrite.metadata[propertyName],
+      propertyName + ' matches (for sender before and after write)');
+    assert_equals(data.receiverBeforeWrite.metadata[propertyName], undefined);
+    assert_equals(data.receiverBeforeWrite.metadata[propertyName],
+      data.receiverAfterWrite.metadata[propertyName],
+      propertyName + ' matches (for receiver before and after write)');
+}
+
+// https://w3c.github.io/webrtc-encoded-transform/#RTCEncodedFrameMetadata
+['audio', 'video'].forEach(kind => {
+    promise_test(async (test) => {
+        const data = await gatherMetadata(test, kind);
+        checkSendReceive(data, 'synchronizationSource', 'number');
+    }, kind + ' metadata: synchronizationSource');
+
+    promise_test(async (test) => {
+        const data = await gatherMetadata(test, kind);
+        checkSendReceive(data, 'payloadType', 'number');
+    }, kind + ' metadata: payloadType');
+
+    promise_test(async (test) => {
+        const data = await gatherMetadata(test, kind);
+
+        assert_array_equals(data.senderBeforeWrite.metadata.contributingSources,
+          data.senderAfterWrite.metadata.contributingSources,
+          'csrcs are arrays, and match (for sender before and after write)');
+        assert_array_equals(data.senderBeforeWrite.metadata.contributingSources,
+          data.receiverBeforeWrite.metadata.contributingSources,
+          'csrcs are arrays, and match');
+        assert_array_equals(data.senderBeforeWrite.metadata.contributingSources,
+          data.receiverAfterWrite.metadata.contributingSources,
+          'csrcs are arrays, and match (for receiver before and after write)');
+    }, kind + ' metadata: contributingSources');
+
+    promise_test(async (test) => {
+        const data = await gatherMetadata(test, kind);
+        checkSendReceive(data, 'rtpTimestamp', 'number');
+    }, kind + ' metadata: rtpTimestamp');
+
+    promise_test(async (test) => {
+        const data = await gatherMetadata(test, kind);
+        checkReceiveOnly(data, 'receiveTime', 'number');
+    }, kind + ' metadata: receiveTime');
+
+    // Requires abs-capture-time header extension.
+    promise_test(async (test) => {
+        // TODO: crbug.com/391114797 - should negotiate the extension
+        //   and checkSendReceive.
+        const data = await gatherMetadata(test, kind, [
+            // 'http://www.webrtc.org/experiments/rtp-hdrext/abs-capture-time',
+        ]);
+        checkSendOnly(data, 'captureTime', 'number');
+    }, kind + ' metadata: captureTime');
+
+    // Requires abs-capture-time header extension.
+    promise_test(async (test) => {
+        const data = await gatherMetadata(test, kind, [
+            'http://www.webrtc.org/experiments/rtp-hdrext/abs-capture-time',
+        ]);
+        checkReceiveOnly(data, 'senderCaptureTimeOffset', 'number');
+    }, kind + ' metadata: senderCaptureTimeOffset');
+
+    promise_test(async (test) => {
+        const data = await gatherMetadata(test, kind);
+        checkSendReceive(data, 'mimeType', 'string');
+    }, kind + ' metadata: mimeType');
+});
+
+// https://w3c.github.io/webrtc-encoded-transform/#RTCEncodedAudioFrameMetadata
+promise_test(async (test) => {
+    const data = await gatherMetadata(test, 'audio');
+    checkReceiveOnly(data, 'sequenceNumber', 'number');
+}, 'audio metadata: sequenceNumber');
+
+promise_test(async (test) => {
+    const data = await gatherMetadata(test, 'audio');
+    checkSendReceive(data, 'audioLevel', 'number');
+}, 'audio metadata: audioLevel');
+
+// https://w3c.github.io/webrtc-encoded-transform/#RTCEncodedVideoFrame-interface
+promise_test(async (test) => {
+    const data = await gatherMetadata(test, 'video', [
+        'https://aomediacodec.github.io/av1-rtp-spec/#dependency-descriptor-rtp-header-extension',
+    ]);
+    checkSendReceive(data, 'frameId', 'number');
+}, 'video metadata: frameId');
+
+promise_test(async (test) => {
+    const data = await gatherMetadata(test, 'video', [
+        'https://aomediacodec.github.io/av1-rtp-spec/#dependency-descriptor-rtp-header-extension',
+    ]);
+
+    assert_array_equals(data.senderBeforeWrite.metadata.dependencies,
+      data.senderAfterWrite.metadata.dependencies,
+      'dependencies are arrays, and match (for sender before and after write)');
+    assert_array_equals(data.senderBeforeWrite.metadata.dependencies,
+      data.receiverBeforeWrite.metadata.dependencies,
+      'dependencies are arrays, and match (for sender and receiver)');
+    assert_array_equals(data.senderBeforeWrite.metadata.dependencies,
+      data.receiverAfterWrite.metadata.dependencies,
+      'dependencies are arrays, and match (for receiver before and after write)');
+}, 'video metadata: dependencies');
+
+promise_test(async (test) => {
+    const data = await gatherMetadata(test, 'video');
+    checkSendReceive(data, 'width', 'number');
+    checkSendReceive(data, 'height', 'number');
+}, 'video metadata: width and height');
+
+promise_test(async (test) => {
+    const data = await gatherMetadata(test, 'video');
+    checkSendReceive(data, 'spatialIndex', 'number');
+    checkSendReceive(data, 'temporalIndex', 'number');
+}, 'video metadata: spatial and temporal index');
+
+// https://w3c.github.io/webrtc-encoded-transform/#RTCEncodedVideoFrame-members
+promise_test(async (test) => {
+    const data = await gatherMetadata(test, 'video');
+
+    assert_equals(typeof data.senderBeforeWrite.type, 'string');
+    assert_true(data.senderBeforeWrite.type == 'key' || data.senderBeforeWrite.type == 'delta');
+    assert_equals(data.senderBeforeWrite.type,
+      data.senderAfterWrite.type,
+      'type matches (for sender before and after write)');
+    assert_equals(data.senderBeforeWrite.type,
+      data.receiverBeforeWrite.type,
+      'type matches (for sender and receiver)');
+    assert_equals(data.senderBeforeWrite.type,
+      data.receiverAfterWrite.type,
+      'type matches (for receiver before and after write)');
+}, 'video frame: type');
+
+// Legacy timestamp, moved to metadata.rtpTimestamp.
+['audio', 'video'].forEach(kind => {
+    promise_test(async (test) => {
+        const data = await gatherMetadata(test, kind);
+
+        assert_equals(typeof data.senderBeforeWrite.timestamp, 'number');
+        assert_equals(data.senderBeforeWrite.timestamp,
+          data.senderAfterWrite.timestamp,
+          'timestamp matches (for sender before and after write)');
+        assert_equals(data.senderBeforeWrite.timestamp,
+          data.receiverBeforeWrite.timestamp,
+          'timestamp matches (for sender and receiver)');
+        assert_equals(data.senderBeforeWrite.timestamp,
+          data.receiverAfterWrite.timestamp,
+          'timestamp matches (for receiver before and after write)');
+    }, kind + ' frame: timestamp (renamed to metadata.rtpTimestamp');
+});
+        </script>
+    </body>
+</html>

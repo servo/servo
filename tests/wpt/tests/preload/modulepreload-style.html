@@ -1,0 +1,25 @@
+<!doctype html>
+<meta charset=utf-8>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+function attachAndWaitForLoad(element) {
+    return new Promise((resolve, reject) => {
+        element.onload = resolve;
+        element.onerror = reject;
+        document.body.appendChild(element);
+    });
+}
+
+promise_test(function(t) {
+    const link = document.createElement('link');
+    link.rel = 'modulepreload';
+    link.as = 'style';
+    link.href = 'resources/dummy.css';
+    return attachAndWaitForLoad(link).then(() => {
+      const absoluteURL = new URL(link.href, location.href).href;
+      assert_equals(performance.getEntriesByName(absoluteURL).length, 1, absoluteURL);
+    });
+}, 'link rel=modulepreload with as=style should preload CSS module');
+</script>

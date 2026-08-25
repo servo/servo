@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<head>
+  <title>CSS Test Reference</title>
+  <link rel="stylesheet" href="support/test-common.css">
+  <style type="text/css">
+    @counter-style a {
+      system: extends upper-roman;
+      range: 1 6;
+      pad: 4 '*';
+    }
+    @counter-style b {
+      system: fixed 2;
+      symbols: g h;
+    }
+    @counter-style c {
+      system: additive;
+      additive-symbols: 3 c, 2 b, 1 a;
+    }
+  </style>
+</head>
+<body>
+  <ol style="list-style-type: a;"><li><li><li><li><li><li><li><li><li><li></ol>
+  <ol style="list-style-type: b;"><li><li><li><li><li><li><li><li><li><li></ol>
+  <ol style="list-style-type: c;"><li><li><li><li><li><li><li><li><li><li></ol>
+</body>

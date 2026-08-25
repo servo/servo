@@ -1,0 +1,4 @@
+rules:
+- video-*: [video]
+- object-*: [object]
+- audio-controls-intrinsic-size.html: [audio]

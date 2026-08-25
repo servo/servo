@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+  <title>drawElementImage paints CSS backdrop filter in DOM content when siblings are present</title>
+  <link rel="help" href="https://github.com/WICG/html-in-canvas">
+  <link rel="author" href="mailto:schenney@chromium.org">
+  <link rel="match" href="css-backdrop-filter-with-sibling-ref.html">
+  <meta name="assert" value="A div with a aibling and a CSS backdrop-filter over a parent div paints with the filter in the correct area.">
+  <script src="/common/reftest-wait.js"></script>
+  <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+  <style>
+    canvas {
+      background: red;
+    }
+    div {
+      width: 100px;
+      height: 100px;
+      background: green;
+    }
+    div > div {
+      width: 60px;
+      height: 60px;
+      background: transparent;
+      backdrop-filter: grayscale();
+      border: 1px solid black;
+    }
+    p {
+      margin: 0px;
+    }
+  </style>
+</head>
+<body>
+  <canvas id=canvas width="100" height="100" layoutsubtree>
+    <div id="child">
+      <p>Unfiltered</p>
+      <div id="filtered"><p>Hello</p></div>
+    </div>
+  </canvas>
+
+  <script>
+    onload = async () => {
+      await waitForCanvasPaint(canvas);
+      var context = canvas.getContext("2d");
+      context.drawElementImage(child, 0, 0);
+      takeScreenshot();
+    };
+  </script>
+</body>
+</html>

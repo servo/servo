@@ -1,0 +1,18 @@
+<!doctype html>
+<title>SVG media fragment: full-size percent clip shows entire image</title>
+<link rel="help" href="https://www.w3.org/TR/media-frags/#naming-space">
+<link rel="help" href="https://svgwg.org/svg2-draft/linking.html#LinksIntoSVG">
+<link rel="match" href="reference/green-red-200x200.html">
+<style>
+  div {
+    width: 200px;
+    height: 200px;
+    background-repeat: no-repeat;
+    /* This intentionally verifies that a full-extent percent clip
+       (percent:0,0,100,100) renders identically to no fragment at all,
+       i.e. that applying a 100% clip does not break or alter the image.
+       Sub-region percent clipping is tested by spatial-percent.html. */
+    background-image: url("support/green-red-200x200.svg#xywh=percent:0,0,100,100");
+  }
+</style>
+<div></div>

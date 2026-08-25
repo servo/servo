@@ -1,0 +1,27 @@
+<title>CSS Flexbox: stretch height is not affected by the percentage height quirk</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#stretch-fit-sizing">
+<link rel="help" href="https://quirks.spec.whatwg.org/#the-percentage-height-calculation-quirk">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+body {
+    margin: 0;
+}
+</style>
+
+<!-- In quirks mode, percentage heights resolve freely against auto parents.
+     stretch should NOT get this treatment. -->
+<div>
+    <div id="t1-cb" style="height: stretch;">
+        <div id="t1" style="width: 20px; height: 20px; background: green; position: relative; top: 50%;"></div>
+    </div>
+</div>
+
+<script>
+test(function() {
+    var cb = document.getElementById('t1-cb');
+    var child = document.getElementById('t1');
+    var offset = child.getBoundingClientRect().top - cb.getBoundingClientRect().top;
+    assert_equals(offset, 0);
+}, 'Quirks: stretch height against auto parent does not resolve top: 50%');
+</script>

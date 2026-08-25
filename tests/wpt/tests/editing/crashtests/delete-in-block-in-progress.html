@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  document.querySelector("mo").appendChild(document.querySelector("dialog"));
+  getSelection().collapse(document.querySelector("template"), 0);
+  document.execCommand("delete");
+}, {once:true});
+</script>
+<body>
+<dialog>
+<template>
+</template>
+</dialog>
+<dl contenteditable>
+<li>
+<b><progress>
+<mo>a</mo>
+</progress></b>
+</li>
+</dl>
+</body>
+</html>

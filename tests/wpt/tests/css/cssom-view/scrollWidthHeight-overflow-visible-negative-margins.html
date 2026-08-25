@@ -1,0 +1,60 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-scrollwidth">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-scrollheight">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1936156">
+<title>scroll{Width,Height} shouldn't account for collapsed margins, in order not to report unnecessary overflow</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #target {
+    width: 20px;
+    flex-direction: column;
+  }
+  #target > div {
+    background-color: green;
+    margin: -5px -7px;
+  }
+
+  #target > div > div {
+    height: 20px;
+    width: 20px;
+  }
+</style>
+<div id="target">
+  <div><div></div></div>
+  <div><div></div></div>
+  <div><div></div></div>
+  <div><div></div></div>
+</div>
+<script>
+let target = document.getElementById("target");
+// "clip" is not really scrollable, but should match as well.
+for (let overflow of ["visible", "hidden", "auto", "scroll", "clip"]) {
+  // First one creates no overflow, last one does create overflow.
+  // TODO(emilio): Figure out why the overflow padding and some of the grid cases
+  // are not interoperable across platforms / engines. Maybe scrollbar-width dependent?
+  for (let padding of ["10px 20px" /* , "2px" */]) {
+    for (let border of ["0", "3px solid"]) {
+      for (let display of ["flex", "block", "flow-root", "inline-block", "inline-flex", /*  "grid", "inline-grid" */]) {
+        test(function() {
+          let [expectedOverflowY, expectedOverflowX] = padding == "10px 20px" ? [0, 0] : [3, 5];
+          target.style.overflow = overflow;
+          target.style.display = display;
+          target.style.border = border;
+          target.style.padding = padding;
+          let sh = target.scrollHeight;
+          let sw = target.scrollWidth;
+          let ch = target.clientHeight;
+          let cw = target.clientWidth;
+          assert_equals(sh, ch + expectedOverflowY, `scrollHeight expecting ${expectedOverflowY}px of overflow`);
+          assert_equals(sw, cw + expectedOverflowX, `scrollWidth expecting ${expectedOverflowX}px of overflow`);
+        }, `scroll{Width,Height} with negative margins with overflow: ${overflow}, padding: ${padding}, border: ${border}, display: ${display}`);
+      }
+    }
+  }
+}
+</script>

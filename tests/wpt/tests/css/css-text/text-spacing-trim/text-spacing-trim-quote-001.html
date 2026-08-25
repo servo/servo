@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-spacing-trim-property">
+<link rel="match" href="text-spacing-trim-quote-001-ref.html">
+<meta name="variant" content="?class=halt,htb&lang=ja">
+<meta name="variant" content="?class=halt,htb&lang=zh-hans">
+<meta name="variant" content="?class=halt,htb&lang=zh-hant">
+<meta name="variant" content="?class=halt,vrl&lang=zh-hans">
+<meta name="variant" content="?class=halt,vrl&lang=zh-hant">
+<meta name="variant" content="?class=chws,htb&lang=zh-hans">
+<meta name="variant" content="?class=chws,htb&lang=zh-hant">
+<meta name="variant" content="?class=chws,vrl&lang=zh-hans">
+<meta name="variant" content="?class=chws,vrl&lang=zh-hant">
+<script src="support/variant-class.js"></script>
+<style>
+@font-face {
+  font-family: halt-font;
+  src: url('/fonts/noto/cjk/NotoSansCJKjp-Regular-subset-halt.otf');
+}
+@font-face {
+  font-family: chws-font;
+  src: url('/fonts/noto/cjk/NotoSansCJKjp-Regular-subset-chws.otf');
+}
+#container {
+  font-family: halt-font;
+  font-size: 20px;
+}
+.chws #container {
+  font-family: chws-font;
+}
+.vrl {
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+}
+</style>
+<div id="container">
+  <div>国）‘（国</div>
+  <div>国）“（国</div>
+  <div>国）’（国</div>
+  <div>国）”（国</div>
+</div>

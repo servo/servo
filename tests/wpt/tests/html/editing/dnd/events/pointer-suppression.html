@@ -1,0 +1,52 @@
+<!doctype html>
+<link rel="help" href="https://w3c.github.io/pointerevents/#suppressing-a-pointer-event-stream">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../resources/test-helper.js"></script>
+<head>
+  <title>The UA correctly suppresses the pointer event stream after a drag starts</title>
+  <style type="text/css">
+    div {
+      width: 105px;
+      min-height: 105px;
+    }
+  </style>
+</head>
+<body>
+  <p><img src="../resources/circle.png" alt="PNG circle"/></p>
+  <div></div>
+  <script>
+    promise_test(async (t) => {
+        await new Promise(loaded => window.addEventListener("load", loaded));
+        const img = document.querySelector('img');
+        let pointerCancelCalled = false;
+        let pointerOutCalled = false;
+        let pointerLeftCalled = false;
+        img.addEventListener('pointercancel', _ => { pointerCancelCalled = true; });
+        img.addEventListener('pointerout', _ => { pointerOutCalled = true; });
+        img.addEventListener('pointerleave', _ => { pointerLeftCalled = true; });
+        const dragLeavePromise = new Promise(resolve => {
+          img.addEventListener('dragleave', t.step_func((event) => {
+            assert_true(pointerCancelCalled, 'pointercancel should have been called after dragstart:');
+            assert_true(pointerOutCalled, 'pointerout should have been called after dragstart:');
+            assert_true(pointerLeftCalled, 'pointerleave should have been called after dragstart:');
+            resolve();
+          }));
+        });
+        // First move the pointer enough that a drag is initiated but the pointer remains
+        // over the image. Then move the pointer to the div to trigger the dragleave.
+        await new test_driver.Actions()
+          .pointerMove(-20, -20, { origin: img })
+          .pointerDown()
+          .pointerMove(20, 20, { origin: img })
+          .pointerMove(0, 0, { origin: document.querySelector('div') })
+          .send();
+        await dragLeavePromise;
+      },
+      "verify that the pointer events stream is correctly suppressed when a drag starts");
+  </script>
+</body>
+</html>

@@ -1,0 +1,47 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1 plus MathML 2.0 plus SVG 1.1//EN" "http://www.w3.org/2002/04/xhtml-math-svg/xhtml-math-svg.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Absolutely positioned inline replaced element with percentage based intrinsic height set to 'auto' and 'top', 'bottom', 'margin-top' are not 'auto'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#abs-replaced-height" />
+		<link rel="match" href="absolute-replaced-height-013-ref.xht" />
+
+        <meta name="flags" content="nonHTML svg" />
+        <meta name="assert" content="An absolutely positioned replaced element with percentage intrinsic height resolves based on the containing block when the replaced element is absolutely positioned." />
+        <style type="text/css">
+            #div1
+            {
+                border-top: solid black;
+                position: relative;
+                height: 2in;
+            }
+            div div
+            {
+                background: orange;
+                height: 1in;
+                left: 200px;
+                position: absolute;
+                top: 1in;
+                width: 200px;
+            }
+            svg
+            {
+                bottom: 1in;
+                margin-bottom: auto;
+                margin-top: 0.5in;
+                position: absolute;
+                top: 0.5in;
+                width: auto;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the blue and orange rectangles are next to each other, have the same height and are not touching the black line.</p>
+        <div id="div1">
+            <svg:svg version="1.1" xmlns:svg="http://www.w3.org/2000/svg" height="50%" baseProfile="full">
+                <svg:rect x="0" y="0" width="200" height="100" fill="blue" />
+            </svg:svg>
+            <div></div>
+        </div>
+    </body>
+</html>

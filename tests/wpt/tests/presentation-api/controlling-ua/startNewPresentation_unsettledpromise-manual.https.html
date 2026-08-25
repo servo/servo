@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Calling "start" when there is already an unsettled Promise returns a Promise rejected with an OperationError exception.</title>
+<link rel="author" title="Tomoyuki Shimizu" href="https://github.com/tomoyukilabs/">
+<link rel="help" href="http://w3c.github.io/presentation-api/#dfn-controlling-user-agent">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="common.js"></script>
+
+<p>Click the button below to start the manual test. If prompted to select a device, please dismiss the dialog box. The test passes if a "PASS" result appears.</p>
+<button id="presentBtn">Start Presentation Test</button>
+
+<script>
+    // disable the timeout function for the tests
+    setup({explicit_timeout: true});
+
+    // ----------
+    // DOM Object
+    // ----------
+    var presentBtn = document.getElementById("presentBtn");
+
+    // -----------------------------------------------
+    // Terminate a presentation if started by accident
+    // -----------------------------------------------
+    function terminate(connection) {
+        connection.terminate();
+    }
+
+    // -------------------------------------------
+    // Start New Presentation Test (error) - begin
+    // -------------------------------------------
+    presentBtn.onclick = function () {
+        presentBtn.disabled = true;
+        promise_test(function (t) {
+            var request1 = new PresentationRequest(presentationUrls),
+                request2 = new PresentationRequest(presentationUrls);
+            request1.start().then(terminate, function(){});
+            return promise_rejects_dom(t, 'OperationError', request2.start().then(terminate));
+        });
+    };
+    // -----------------------------------------
+    // Start New Presentation Test (error) - end
+    // -----------------------------------------
+</script>

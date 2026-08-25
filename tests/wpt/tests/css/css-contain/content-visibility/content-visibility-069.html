@@ -1,0 +1,53 @@
+<!doctype HTML>
+<html>
+<meta charset="utf8">
+<title>Content Visibility: pending visibility changes</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<meta name="assert" content="disconnecting elements while visibility state adjustments are pending does not crash">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+body {
+  margin: 0;
+  padding: 0;
+}
+.spacer {
+  height: 3000px;
+}
+.auto {
+  content-visibility: auto;
+  width: 5px;
+  height: 5px;
+}
+</style>
+
+<body id="body">
+<div id=one class=auto>text</div>
+<div class=spacer></div>
+<div id=two class=auto>text</div>
+<div class=spacer></div>
+</body>
+
+<script>
+async_test((t) => {
+  function runTest() {
+    document.scrollingElement.scrollTop = 2990;
+
+    const range = document.createRange();
+    range.selectNodeContents(one);
+    window.getSelection().addRange(range);
+
+    requestAnimationFrame(() => {
+      one.remove();
+      two.remove();
+      t.done();
+    });
+  }
+  onload = requestAnimationFrame(() => requestAnimationFrame(runTest));
+});
+
+</script>
+</html>

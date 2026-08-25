@@ -1,0 +1,2 @@
+rules:
+- discrete-no-interpolation.html: [column-fill]

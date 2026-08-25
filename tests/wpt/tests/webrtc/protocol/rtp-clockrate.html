@@ -1,0 +1,40 @@
+<!doctype html>
+<meta charset=utf-8>
+<!-- This file contains a test that waits for two seconds. -->
+<meta name="timeout" content="long">
+<title>RTP clockrate</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+async function initiateSingleTrackCallAndReturnReceiver(t, kind) {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  const stream = await getNoiseStream({[kind]:true});
+  const [track] = stream.getTracks();
+  t.add_cleanup(() => track.stop());
+  pc1.addTrack(track, stream);
+
+  exchangeIceCandidates(pc1, pc2);
+  const trackEvent = await exchangeOfferAndListenToOntrack(t, pc1, pc2);
+  await exchangeAnswer(pc1, pc2);
+  await waitForConnectionStateChange(pc2, ['connected']);
+  return trackEvent.receiver;
+}
+
+promise_test(async t => {
+  // the getSynchronizationSources API exposes the rtp timestamp.
+  const receiver = await initiateSingleTrackCallAndReturnReceiver(t, 'video');
+  const first = await listenForSSRCs(t, receiver);
+  await new Promise(resolve => t.step_timeout(resolve, 2000));
+  const second = await listenForSSRCs(t, receiver);
+  // rtpTimestamp may wrap at 0xffffffff, take care of that.
+  const actualClockRate = ((second[0].rtpTimestamp - first[0].rtpTimestamp + 0xffffffff) % 0xffffffff) / (second[0].timestamp - first[0].timestamp) * 1000;
+  assert_approx_equals(actualClockRate, 90000, 9000, 'Video clockrate is approximately 90000');
+}, 'video rtp timestamps increase by approximately 90000 per second');
+</script>

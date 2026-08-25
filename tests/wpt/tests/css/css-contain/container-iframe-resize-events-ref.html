@@ -1,0 +1,19 @@
+<!doctype html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS test reference</title>
+<div>
+  <iframe src="./support/count-resizes.html" style="display: none"></iframe>
+</div>
+<script>
+  addEventListener("load", () => {
+    let frame = document.querySelector("iframe");
+    frame.style.display = "";
+    frame.getBoundingClientRect();
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.documentElement.className = "";
+      });
+    });
+  });
+</script>

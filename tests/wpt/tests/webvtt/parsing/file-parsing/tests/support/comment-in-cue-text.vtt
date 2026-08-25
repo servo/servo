@@ -1,0 +1,14 @@
+WEBVTT
+
+NOTE this is real comment that should be ignored
+
+00:00:00.000 --> 00:00:01.000
+NOTE text
+
+NOTE
+this is also a real comment that should be ignored
+this is also a real comment that should be ignored
+
+00:00:01.000 --> 00:00:02.000
+NOTE text
+NOTE text2

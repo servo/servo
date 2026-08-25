@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+This test passes if it does not crash.
+<script>
+  var doc1 = document.documentElement;
+  let iframe1 = document.createElement("iframe");
+  doc1.appendChild(iframe1);
+  separateDoc = document.implementation.createDocument("", null);
+  iframe1.addEventListener("DOMFocusOut", function () {  separateDoc.adoptNode(iframe1); });
+  iframe1.focus();
+  iframe1 = document.createElement("iframe");
+  doc1.appendChild(iframe1);
+  iframe1.focus();
+</script>

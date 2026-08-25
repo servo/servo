@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+
+<title>Tests that chain of pseudo-elements that anchor to each other using position-area works</title>
+
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#position-area">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#determining">
+<link rel="author" title="Kiet Ho" href="mailto:kiet.ho@apple.com">
+<link rel="match" href="reference/pseudo-element-chain-ref.html">
+
+<style>
+  .containing-block {
+    border: 1px solid black;
+
+    position: relative;
+    width: 500px;
+    height: 200px;
+  }
+
+  .box-after::after, .box-before::before {
+    position: absolute;
+    anchor-name: --box;
+    position-area: center right;
+    position-anchor: --box;
+
+    width: 50px;
+    height: 50px;
+    content: "";
+    border-right: 10px white solid;
+  }
+
+  /* Give both ::before and ::after background colors,
+     so we can switch boxes between ::before and ::after. */
+  #box1::before, #box1::after { background-color: #cce7cc; }
+  #box2::before, #box2::after { background-color: #99cf99; }
+  #box3::before, #box3::after { background-color: #66b866; }
+  #box4::before, #box4::after { background-color: #33a033; }
+  #box5::before, #box5::after { background-color: #008000; }
+</style>
+
+<p>You should see a row of five boxes in increasing gradient.</p>
+
+<div class="containing-block">
+  <div class="box-before" id="box1"></div>
+  <div class="box-before" id="box2"></div>
+  <div class="box-after" id="box3"></div>
+  <div class="box-before" id="box4"></div>
+  <div class="box-after" id="box5"></div>
+</div>

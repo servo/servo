@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+html { view-transition-name: unset }
+#target {
+  height: 100000px;
+  width: 1000px;
+  position: absolute;
+  background: lightblue;
+  contain: layout;
+  view-transition-name: target;
+}
+.left {
+  left: 8px;
+}
+.right {
+  right: 8px;
+}
+::view-transition-group(*) {
+  animation-duration: 0s;
+}
+</style>
+<script src="../resources/runner.js"></script>
+<script>
+function startTest() {
+  var transition;
+  PerfTestRunner.measureFrameTime({
+      description: "Measures performance starting/finishing a transition with a large element",
+      setup: () => {
+        transition = document.startViewTransition(() => {
+          target.classList.toggle("left");
+          target.classList.toggle("right");
+        });
+      },
+      run: async () => { await transition.finished },
+      done: () => {}
+  });
+}
+</script>
+</head>
+<body onload="startTest()">
+<div id=target class=left>This is a div!</div>
+<div id="log"></div>
+</body></html>

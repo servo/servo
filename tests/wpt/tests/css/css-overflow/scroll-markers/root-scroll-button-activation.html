@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: ::scroll-button on root element activation</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-buttons">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+<style>
+  body {
+    margin: 0;
+  }
+
+  :root::scroll-button(block-end) {
+    content: "down";
+    position: absolute;
+    top: 0;
+    width: 30px;
+    height: 30px;;
+  }
+
+  div {
+    width: 600px;
+    height: 300px;
+    margin-bottom: 20px;
+    background: green;
+  }
+</style>
+<div></div>
+<div></div>
+<div></div>
+<script>
+  promise_test(async t => {
+    let scrollEndPromise = waitForScrollEndFallbackToDelayWithoutScrollEvent(window);
+    await new test_driver.Actions()
+    .pointerMove(10, 10)
+    .pointerDown()
+    .pointerUp()
+    .send();
+    await scrollEndPromise;
+    await waitForAnimationFrames(2);
+    assert_not_equals(window.scrollY, 0);
+  });
+</script>

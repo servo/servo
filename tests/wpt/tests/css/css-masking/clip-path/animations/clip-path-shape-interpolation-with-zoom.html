@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+  <title>CSS Masking: Test clip-path shape interpolation with zoom</title>
+  <link rel="help" href="https://drafts.csswg.org/css-shapes-2/#shape-function">
+  <link rel="match" href="clip-path-path-interpolation-with-zoom-ref.html">
+  <meta name="assert" content="The clip-path property takes the basic shape
+	'shape()' for clipping. Test the interpolation of shape function.">
+  <style>
+    @keyframes anim {
+      from {
+        clip-path: shape(
+          from 20px 20px,
+          hline by 60px,
+          vline by 60px,
+          hline by -60px,
+          close,
+          move to 30px 30px,
+          hline by 40px,
+          vline by 40px,
+          hline by -40px,
+          close
+        );
+
+      }
+      to {
+          clip-path: shape(
+            from 50px 50px,
+            hline by 50px,
+            vline by 50px,
+            hline by -50px,
+            close,
+            move to 20px 20px,
+            hline by 50px,
+            vline by 50px,
+            hline by -50px,
+            close
+          );
+      }
+    }
+    #rect {
+      width: 100px;
+      zoom: 3;
+      height: 100px;
+      background-color: green;
+      animation: anim 10s -5s paused linear;
+    }
+  </style>
+  <div id="rect"></div>
+</html>

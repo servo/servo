@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      Basic AnalyserNode test
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/webaudio/resources/audit-util.js"></script>
+  </head>
+  <body>
+    <script>
+      test(() => {
+        const context = new AudioContext();
+        const analyser = new AnalyserNode(context);
+
+        assert_equals(
+            analyser.numberOfInputs, 1, 'Number of inputs for AnalyserNode');
+
+        assert_equals(
+            analyser.numberOfOutputs, 1, 'Number of outputs for AnalyserNode');
+
+        assert_equals(analyser.minDecibels, -100, 'Default minDecibels value');
+
+        assert_equals(analyser.maxDecibels, -30, 'Default maxDecibels value');
+
+        assert_equals(
+            analyser.smoothingTimeConstant,
+            0.8,
+            'Default smoothingTimeConstant value');
+
+        let expectedValue = -50 - (1 / 3);
+        analyser.minDecibels = expectedValue;
+
+        assert_equals(
+            analyser.minDecibels, expectedValue,
+            `node.minDecibels = ${expectedValue}`);
+
+        expectedValue = -40 - (1 / 3);
+        analyser.maxDecibels = expectedValue;
+
+        assert_equals(
+            analyser.maxDecibels, expectedValue,
+            `node.maxDecibels = ${expectedValue}`);
+      }, 'Basic AnalyserNode test');
+    </script>
+  </body>
+</html>

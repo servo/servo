@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>CSS Flexbox: Mixed containing blocks</title>
+
+<link rel="help" href="https://drafts.csswg.org/css-flexbox">
+<link rel="help" href="https://github.com/servo/servo/issues/36121">
+<meta name="assert" content="This test ensures that flex boxes that establish a containing block for fixed position descendants do not cause a crash when combined with flex items that establish a containing block for absolutely positioned descendants.">
+
+<html>
+    <div class="box" style="display: flex; flex-direction: column; transform: translateX(1px)">
+      <div style="position: relative;"><div>Three</div><div style="position: absolute">fixed</div></div>
+    </div>
+</div>
+

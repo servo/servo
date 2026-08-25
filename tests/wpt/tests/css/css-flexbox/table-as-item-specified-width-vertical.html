@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<title>Table with vertical writing mode inside a row flexbox container</title>
+<link rel="author" title="Felipe Erias Morandeira" href="mailto:felipeerias@igalia.com" />
+<link rel="help" href="https://www.w3.org/TR/css-flexbox-1/#layout-algorithm" title="9. Flex Layout Algorithm">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="The width of an empty table (vertical direction) inside a flexbox container (row direction) is computed correctly.">
+
+<p>Test passes if there is a filled green square.</p>
+
+<div style="display: flex; flex-direction: row; height: 100px;">
+    <div style="display: table; writing-mode: vertical-lr; width: 500px; background: green; flex: 0 0 100px;"></div>
+</div>

@@ -1,0 +1,58 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>RTCDtlsTransport</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+promise_test(async t => {
+  const offerer = new RTCPeerConnection();
+  const answerer = new RTCPeerConnection();
+  t.add_cleanup(() => offerer.close());
+  t.add_cleanup(() => answerer.close());
+  const stream = await getNoiseStream({ audio: true });
+  offerer.addTrack(stream.getTracks()[0]);
+  exchangeIceCandidates(offerer, answerer);
+
+  await offerer.setLocalDescription();
+  let badSdp = offerer.localDescription.sdp;
+  // Tweak the last digit in the fingerprint sent to the answerer. Answerer
+  // (which will be the DTLS client) will see the bad cert and fire a
+  // "fingerprint-failure" error. It *might* also send a bad_certificate alert,
+  // but that's not required by webrtc-pc.
+  const lastDigit = badSdp.match(/a=fingerprint:.*([0-9A-F])$/m)[1];
+  const newLastDigit = lastDigit == '0' ? '1' : '0';
+  badSdp = badSdp.replace(/(a=fingerprint:.*)[0-9A-F]$/m, "$1" + newLastDigit);
+  await answerer.setRemoteDescription({sdp: badSdp, type: "offer"});
+
+  await answerer.setLocalDescription();
+  const answererTransport = answerer.getSenders()[0].transport;
+  const answererErrorPromise = new Promise(r => {
+    answererTransport.onerror = r;
+  });
+
+  await offerer.setRemoteDescription(answerer.localDescription);
+  const offererTransport = offerer.getSenders()[0].transport;
+  const offererErrorPromise = new Promise(r => {
+    offererTransport.onerror = r;
+  });
+
+  const answererError = await answererErrorPromise;
+  assert_true(answererError instanceof RTCErrorEvent);
+  assert_true(answererError.error instanceof RTCError);
+  assert_equals(answererError.error.errorDetail, "fingerprint-failure");
+  assert_equals(answererError.error.sentAlert, null);
+  assert_equals(answererError.error.receivedAlert, null);
+  assert_equals(answererError.error.name, 'OperationError');
+
+  const offererError = await offererErrorPromise;
+  assert_true(offererError instanceof RTCErrorEvent);
+  assert_true(offererError.error instanceof RTCError);
+  assert_equals(offererError.error.errorDetail, "dtls-failure");
+  assert_equals(offererError.error.name, 'OperationError');
+}, 'fingerprint error is surfaced using RTCDtlsTransport.onerror');
+
+</script>
+

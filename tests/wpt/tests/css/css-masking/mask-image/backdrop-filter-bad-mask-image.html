@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Backdrop-filter with invalid mask-image URL</title>
+<link rel="help" href="https://drafts.fxtf.org/css-masking-1/#the-mask-image">
+<link rel="match" href="about:blank">
+
+<style>
+  .backdrop-filter {
+    backdrop-filter: invert(1);
+    background-color: rgba(255, 255, 255, 0.5);
+  }
+
+  .bad-mask {
+    /* This invalid mask-image should fully-mask this element. */
+    mask-image: url("invalid://nonexistent");
+  }
+
+  .double-mask {
+    /* Multiple invalid mask layers: all invalid, element should be fully masked. */
+    mask-image: url("invalid://nonexistent"), url("invalid://nonexistent");
+  }
+</style>
+
+<p class="backdrop-filter bad-mask">Backdrop-filter with invalid mask-image</p>
+<p class="backdrop-filter double-mask">Backdrop-filter with two invalid mask-image</p>

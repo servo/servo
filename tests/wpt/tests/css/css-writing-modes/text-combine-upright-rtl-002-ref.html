@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>CSS Writing Modes reference</title>
+
+<style>
+div {
+  writing-mode: vertical-rl;
+  font: 32px serif;
+  margin: 1em;
+  padding: .25em;
+  border: 1px solid gray;
+}
+span {
+  text-combine-upright: all;
+}
+#ref span {
+  unicode-bidi: bidi-override;
+  direction: ltr;
+}
+</style>
+
+Both boxes should render the same:
+
+<div id=ref>
+<p>foo<span>א</span>bar</p>
+<p>foo<span>בא</span>bar</p>
+<p>foo<span>גבא</span>bar</p>
+<p>foo<span>דגבא</span>bar</p>
+</div>
+
+<div id=ref>
+<p>foo<span>א</span>bar</p>
+<p>foo<span>בא</span>bar</p>
+<p>foo<span>גבא</span>bar</p>
+<p>foo<span>דגבא</span>bar</p>
+</div>

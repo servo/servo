@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<meta name="variant" content="?scheme=data">
+<meta name="variant" content="?scheme=javascript">
+<meta name="variant" content="?scheme=blob">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+
+<meta http-equiv="Content-Security-Policy"
+      content="img-src http://{{hosts[][www]}}:{{ports[http][0]}}">
+<body>
+  <script>
+    let message_from = w => {
+      return new Promise(resolve => {
+        window.addEventListener('message', msg => {
+          if (msg.source == w) {
+            resolve(msg.data);
+          }
+        });
+      });
+    };
+
+    // `iframe_a` and `iframe_b` are two helper iframes with different
+    // CSPs.
+    let iframe_a, iframe_b;
+    let iframe_a_uuid = token();
+    const iframe_a_ctx = new RemoteContext(iframe_a_uuid);
+
+    // Setup `iframe_a` and `iframe_b`.
+    promise_setup(async () => {
+      iframe_a = document.createElement('iframe');
+      iframe_a.src = "./support/iframe-do.sub.html?" +
+        `uuid=${iframe_a_uuid}` +
+        "&img-src=http://{{hosts[][www1]}}:{{ports[http][0]}}";
+      document.body.appendChild(iframe_a);
+      await message_from(iframe_a.contentWindow);
+
+      iframe_b = document.createElement('iframe');
+      iframe_b.id = 'iframe_b';
+      iframe_b.src = "./support/iframe-do.sub.html?" +
+        "img-src=http://{{hosts[][www2]}}:{{ports[http][0]}}";
+      document.body.appendChild(iframe_b);
+      await message_from(iframe_b.contentWindow);
+    });
+
+    let test_iframe_id_counter = 0;
+
+    // Helper function to create the target iframe of a navigation.
+    let create_test_iframe = async () => {
+      let test_iframe = document.createElement('iframe');
+      test_iframe.src = "./support/iframe-do.sub.html?" +
+        "img-src=http://{{hosts[][élève]}}:{{ports[http][0]}}";
+      test_iframe.id = "test_iframe_" + test_iframe_id_counter++;
+      test_iframe.name = test_iframe.id;
+      document.body.appendChild(test_iframe);
+      await message_from(test_iframe.contentWindow);
+      return test_iframe;
+    }
+
+    // The following code will try loading several images and check
+    // whether CSP has been inherited by the parent ("p"), `iframe_a`
+    // ("a") or `iframe_b` ("b"). It will post a message to the top
+    // with the result.
+    let payload = `
+      <body> <script>
+        new Promise(async (resolve, reject) => {
+          const img_path = "/content-security-policy/support/pass.png";
+
+          let img_loaded = (origin) => new Promise(resolve => {
+            let img = document.createElement("img");
+            img.onerror = () => resolve(false);
+            img.onload = () => resolve(true);
+            img.src = origin + img_path;
+            document.body.appendChild(img);
+          });
+
+          inherited_from_p = await img_loaded(
+            "http://{{hosts[][www]}}:{{ports[http][0]}}");
+          inherited_from_a = await img_loaded(
+            "http://{{hosts[][www1]}}:{{ports[http][0]}}");
+          inherited_from_b = await img_loaded(
+            "http://{{hosts[][www2]}}:{{ports[http][0]}}");
+          target_policies = await img_loaded(
+            "http://{{hosts[][élève]}}:{{ports[http][0]}}");
+
+          if (inherited_from_a + inherited_from_b +
+               inherited_from_p + target_policies !== 1) {
+            reject("Exactly one CSP should be inherited");
+          }
+          if (inherited_from_a) resolve("a");
+          if (inherited_from_b) resolve("b");
+          if (inherited_from_p) resolve("p");
+          if (target_policies) resolve("t");
+        }).then(from => top.postMessage(from, "*"),
+                error => top.postMessage(error, "*"));
+      </scr`+`ipt></body>
+    `;
+
+    let data_url = "data:text/html;base64," + btoa(payload);
+    let javascript_url = `javascript:'${payload}'`;
+    let blob_url = URL.createObjectURL(
+      new Blob([payload], { type: 'text/html' }));
+
+    let scheme = new URLSearchParams(window.location.search).get('scheme');
+    let test_cases = {
+      'blob': {url: blob_url, expected: 'p'},
+      'data': {url: data_url},
+      'javascript': {url: javascript_url, expected: 't'}
+    }
+    let {url, expected} = test_cases[scheme];
+
+    promise_test(async t => {
+      let test_iframe = await create_test_iframe();
+      let test_iframe_id = test_iframe.id;
+      iframe_a_ctx.execute_script((test_iframe_id, url) => {
+        parent.document.getElementById(test_iframe_id).src = url;
+      }, [test_iframe_id, url]);
+      assert_equals(await message_from(test_iframe.contentWindow),
+                    expected ?? "p");
+    }, scheme + ": Setting src inherits from parent " +
+                 "(apart from javascript:, which keeps target policies).");
+
+    promise_test(async t => {
+      let test_iframe = await create_test_iframe();
+      let test_iframe_id = test_iframe.id;
+      iframe_a_ctx.execute_script((test_iframe_id, url) => {
+        let test_frame = parent.document.getElementById(test_iframe_id);
+          test_frame.contentWindow.location = url;
+      }, [test_iframe_id, url]);
+      assert_equals(await message_from(test_iframe.contentWindow),
+                    expected ?? "a");
+    }, scheme +
+       ": Changing contentWindow.location inherits from who changed it " +
+       "(apart from javascript:, which keeps target policies, " +
+       "and blob:, which always inherits from creator).");
+
+    promise_test(async t => {
+      let test_iframe = await create_test_iframe();
+      window.navigate_test_iframe = () => {
+        test_iframe.contentWindow.location = url;
+      };
+      iframe_a_ctx.execute_script(() => {
+        parent.navigate_test_iframe();
+      });
+      assert_equals(await message_from(test_iframe.contentWindow),
+                    expected ?? "p");
+    }, scheme + ": Changing contentWindow.location indirectly inherits " +
+                 "from who changed it directly " +
+                 "(apart from javascript:, which keeps target policies).");
+
+    promise_test(async t => {
+      let test_iframe = await create_test_iframe();
+      let test_iframe_name = test_iframe.name;
+      iframe_a_ctx.execute_script((test_iframe_name, url) => {
+        window.open(url, test_iframe_name);
+      }, [test_iframe_name, url]);
+      assert_equals(await message_from(test_iframe.contentWindow),
+                    expected ?? "a");
+    }, scheme + ": window.open() inherits from caller " +
+                 "(apart from javascript:, which keeps target policies, " +
+                 "and blob:, which always inherits from creator).");
+
+    promise_test(async t => {
+      let test_iframe = await create_test_iframe();
+      let a = iframe_b.contentDocument.createElement('a');
+      a.id = 'a';
+      a.href = url;
+      a.target = test_iframe.name;
+      iframe_b.contentDocument.body.appendChild(a);
+
+      iframe_a_ctx.execute_script(() => {
+        let frame_b = parent.document.getElementById('iframe_b');
+        frame_b.contentDocument.getElementById('a').click();
+      });
+      let inherited_policies = await message_from(test_iframe.contentWindow);
+      iframe_b.contentDocument.body.removeChild(a);
+      assert_equals(inherited_policies, expected ?? "b");
+    }, scheme + ": Click on anchor inherits from owner of the anchor " +
+                 "(apart from javascript:, which keeps target policies, " +
+                 "and blob:, which always inherits from creator).");
+
+    // Cannot POST to blob: URLs.
+    if (scheme !== 'blob') {
+      promise_test(async t => {
+        let test_iframe = await create_test_iframe();
+        let form = iframe_b.contentDocument.createElement('form');
+        form.id = 'form';
+        form.action = url;
+        form.target = test_iframe.name;
+        form.method = "POST";
+        iframe_b.contentDocument.body.appendChild(form);
+
+        iframe_a_ctx.execute_script(() => {
+          let frame_b = parent.document.getElementById('iframe_b');
+          frame_b.contentDocument.getElementById('form').submit();
+        });
+        assert_equals(await message_from(test_iframe.contentWindow),
+                      expected ?? "b");
+        iframe_b.contentDocument.body.removeChild(form);
+      }, scheme +  ": Form submission through submit() inherits " +
+                   " from owner of form " +
+                   "(apart from javascript:, which keeps target policies).");
+
+      promise_test(async t => {
+        let test_iframe = await create_test_iframe();
+        let form = iframe_b.contentDocument.createElement('form');
+        form.id = 'form';
+        form.action = url;
+        form.target = test_iframe.name;
+        form.method = "POST";
+        iframe_b.contentDocument.body.appendChild(form);
+        let button = iframe_b.contentDocument.createElement('button');
+        button.type = "submit";
+        button.value = "submit";
+        button.id = "button";
+        form.appendChild(button);
+
+        iframe_a_ctx.execute_script(() => {
+          let frame_b = parent.document.getElementById('iframe_b');
+            frame_b.contentDocument.getElementById('button').click();
+        });
+
+        assert_equals(await message_from(test_iframe.contentWindow),
+                      expected ?? "b");
+        iframe_b.contentDocument.body.removeChild(form);
+      }, scheme + ": Form submission through button click inherits " +
+                   "from owner of form " +
+                   "(apart from javascript:, which keeps target policies).");
+    }
+  </script>
+</body>

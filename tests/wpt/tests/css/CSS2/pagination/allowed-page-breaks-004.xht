@@ -1,0 +1,60 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: allowed page break - dropping widows and orphans restrictions</title>
+<link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+<link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+<link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-break-props"/>
+<meta name="assert" content="If the standard restrictions do not provide enough break points to keep content from overflowing the page boxes after dropping the restrictions imposed by 'avoid' on the 'page-break-*' properties then the restrictions due to 'windows' and 'orphans' are dropped as well."/>
+<meta name="flags" content="paged" />
+<style type="text/css">
+	html, body { line-height: 1; margin: 0; padding: 0; }
+	pre {
+		margin: 0; padding: 0;
+		font: inherit;
+		font-size: 12pt;
+		white-space: pre;
+		page-break-before: avoid;
+		page-break-after: avoid;
+		page-break-inside: avoid;
+		widows: 30;
+		orphans: 30;
+		font-size:
+	}
+	span {
+		font-size: 1in;
+	}
+</style>
+</head>
+<body>
+<pre id="wrapper">This test assumes pages &lt; 26in tall.
+Lines A-Z must all appear in order,
+filling each page until Z on the last.
+<span>Line A
+Line B
+Line C
+Line D
+Line E
+Line F
+Line G
+Line H
+Line I
+Line J
+Line K
+Line L
+Line M
+Line N
+Line O
+Line P
+Line Q
+Line R
+Line S
+Line T
+Line U
+Line V
+Line W
+Line X
+Line Y
+Line Z</span></pre>
+</body>
+</html>

@@ -1,0 +1,33 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border-spacing and 'display: list-item' elements</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#propdef-border-spacing" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#separated-borders" />
+        <meta name="assert" content="Border-spacing does not apply to 'display: list-item' elements." />
+        <style type="text/css">
+            div
+            {
+                border-spacing: 20px;
+                display: list-item;
+                height: 100px;
+                margin-left: 2em;
+                width: 100px;
+            }
+            #div1
+            {
+                border: 10px solid blue;
+            }
+            #div2
+            {
+                border: 10px solid orange;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if both the blue and orange squares below have marker bullets on the left-hand side and there is no vertical gap between the squares.</p>
+        <div id="div1"></div>
+        <div id="div2"></div>
+    </body>
+</html>

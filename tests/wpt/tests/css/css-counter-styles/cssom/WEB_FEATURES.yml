@@ -1,0 +1,24 @@
+# All of the tests in this directory are for CSSCounterStyleRule, but tests for
+# other parts of CSS Counter Styles could potentially be added here, so list of
+# the (current) tests to avoid matching tests from unrelated features added
+# later.
+rules:
+- cssom-additive-symbols-setter-invalid.html: [counter-style]
+- cssom-additive-symbols-setter.html: [counter-style]
+- cssom-fallback-setter-invalid.html: [counter-style]
+- cssom-fallback-setter.html: [counter-style]
+- cssom-name-setter-invalid.html: [counter-style]
+- cssom-name-setter.html: [counter-style]
+- cssom-negative-setter-invalid.html: [counter-style]
+- cssom-negative-setter.html: [counter-style]
+- cssom-pad-setter-invalid.html: [counter-style]
+- cssom-pad-setter.html: [counter-style]
+- cssom-prefix-suffix-setter-invalid.html: [counter-style]
+- cssom-prefix-suffix-setter.html: [counter-style]
+- cssom-range-setter-invalid.html: [counter-style]
+- cssom-range-setter.html: [counter-style]
+- cssom-symbols-setter-invalid.html: [counter-style]
+- cssom-symbols-setter.html: [counter-style]
+- cssom-system-setter-1.html: [counter-style]
+- cssom-system-setter-2.html: [counter-style]
+- cssom-system-setter-invalid.html: [counter-style]

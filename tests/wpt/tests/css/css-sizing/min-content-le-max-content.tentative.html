@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>min-content ≤ max-content</title>
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-sizes">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/12076">
+<meta assert="The max-content size is floored to not be smaller than the min-content.">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+
+<style>
+main {
+  width: 100px;
+  height: 100px;
+  font-size: 0;
+  background: red;
+}
+div {
+  background: green
+}
+span {
+  display: inline-block;
+  vertical-align: top;
+  height: 50px;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<main>
+  <div style="width: min-content">
+    <span style="width: 100px"></span>
+    <span style="margin-right: -50px"></span>
+  </div>
+  <div style="width: max-content">
+    <span style="width: 100px"></span>
+    <span style="margin-right: -50px"></span>
+  </div>
+</main>

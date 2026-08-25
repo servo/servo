@@ -1,0 +1,21 @@
+<!doctype html>
+<html>
+<title>Reference: border-image-repeat:space with non-initial border-image-width</title>
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<style>
+  div {
+    border: 27px solid;
+    border-image: url("support/border.png") 27 space;
+    border-image-width: 1;
+  }
+</style>
+
+<div style="width: 505px; height: 50px"></div>
+<div style="width: 475px; height: 0px"></div>
+<div style="width: 475px; height: 1px"></div>
+<div style="width: 26px; height: 26px"></div>
+<div style="width: 53px; height: 53px"></div>
+<div style="width: 55px; height: 55px"></div>
+<div style="width: 505px; height: 50px; writing-mode: vertical-rl"></div>
+
+</html>

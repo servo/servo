@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>Test for registering a PublicKeyCredential with "payment" extension</title>
+<link rel="help" href="https://w3c.github.io/secure-payment-confirmation/#client-extension-processing-registration">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src=../webauthn/helpers.js></script>
+<body></body>
+<script>
+class CreatePaymentCredentialsTest extends CreateCredentialsTest {
+  constructor(authenticatorSelection) {
+    super('options.publicKey.extensions', {
+      payment: { isPayment: true },
+    });
+    this.testObject.options.publicKey.authenticatorSelection = {
+      userVerification: 'required',
+      residentKey: 'required',
+      authenticatorAttachment: 'platform',
+    };
+    authenticatorSelection ||= {};
+    // Override specific fields.
+    extendObject(this.testObject.options.publicKey.authenticatorSelection, authenticatorSelection);
+  }
+}
+
+standardSetup(function() {
+  // good creates
+  new CreatePaymentCredentialsTest().runTest('Payment credential is created successfully.');
+  new CreatePaymentCredentialsTest({residentKey: 'preferred'})
+      .runTest('Payment credential allows residentKey to be "preferred".');
+
+  // bad creates
+  new CreatePaymentCredentialsTest({userVerification: 'preferred'})
+      .runTest('Payment credential requires userVerification to be "required", not "preferred".', "NotSupportedError");
+  new CreatePaymentCredentialsTest({userVerification: 'discouraged'})
+      .runTest('Payment credential requires userVerification to be "required", not "discouraged".', "NotSupportedError");
+  new CreatePaymentCredentialsTest({residentKey: 'discouraged'})
+      .runTest('Payment credential does not allow residentKey to be "discouraged".', "NotSupportedError");
+  new CreatePaymentCredentialsTest({authenticatorAttachment: 'cross-platform'})
+      .runTest('Payment credential requires authenticatorAttachment to be "platform", not "cross-platform".', "NotSupportedError");
+
+  // abort creates
+  let abortController = new AbortController();
+  abortController.abort();
+  new CreatePaymentCredentialsTest()
+      .modify("options.signal", abortController.signal)
+      .runTest("Payment credential abort without reason", "AbortError");
+
+  abortController = new AbortController();
+  abortController.abort(new Error('error'));
+  new CreatePaymentCredentialsTest()
+      .modify("options.signal", abortController.signal)
+      .runTest("Payment credential abort reason with Error", Error);
+}, {
+  protocol: 'ctap2_1',
+  transport: 'internal',
+  hasResidentKey: true,
+  hasUserVerification: true,
+  isUserVerified: true,
+});
+</script>

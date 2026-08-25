@@ -1,0 +1,91 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: ::scroll-marker-group and ::after invalidation</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-group-pseudo">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  :root {
+    --after-background: red;
+    --scroll-marker-group-background: red;
+  }
+
+  div {
+    scroll-marker-group: after;
+  }
+
+  div>* {
+    background: green;
+    display: flex;
+    height: 20px;
+    width: 100px;
+  }
+
+  div.before::before {
+    background: green;
+    content: "";
+    display: flex;
+    height: 20px;
+    width: 100px;
+  }
+
+  div.after::after {
+    background: var(--after-background);
+    content: "";
+    display: flex;
+    height: 20px;
+    width: 100px;
+  }
+
+  div.scroll-marker-group::scroll-marker-group {
+    background: var(--scroll-marker-group-background);
+    display: flex;
+    height: 20px;
+    width: 100px;
+  }
+</style>
+<p>Test passes if there is a <strong>filled green rectangle</strong>.
+<div id="target">
+  <li></li>
+  <li></li>
+</div>
+<script>
+  function assertPseudoElementProperty(originatingElement, pseudoType, width, height, backgroundColor) {
+    const pseudoStyle = getComputedStyle(originatingElement, pseudoType);
+    const pseudoWidth = pseudoStyle.getPropertyValue('width');
+    const pseudoHeight = pseudoStyle.getPropertyValue('height');
+    const pseudoBackgroundColor = pseudoStyle.getPropertyValue('background-color');
+    assert_equals(width, pseudoWidth, pseudoType + " width should be " + width.toString() + " but was " + pseudoWidth.toString());
+    assert_equals(height, pseudoHeight, pseudoType + " height should be " + height.toString() + " but was " + pseudoHeight.toString());
+    assert_equals(backgroundColor, pseudoBackgroundColor, pseudoType + " background should be " + backgroundColor.toString() + " but was " + pseudoBackgroundColor.toString());
+  }
+  document.documentElement.offsetTop;
+  target.className = "after";
+  document.documentElement.offsetTop;
+  test(() => {
+    assertPseudoElementProperty(target, "::scroll-marker-group", "auto", "auto", "rgba(0, 0, 0, 0)");
+  }, "::scroll-marker-group empty");
+  target.className = "scroll-marker-group";
+  document.documentElement.offsetTop;
+  test(() => {
+    assertPseudoElementProperty(target, "::scroll-marker-group", "100px", "20px", "rgb(255, 0, 0)");
+  }, "::scroll-marker-group with red background");
+  target.className = "";
+  document.documentElement.offsetTop;
+  test(() => {
+    assertPseudoElementProperty(target, "::scroll-marker-group", "auto", "auto", "rgba(0, 0, 0, 0)");
+  }, "::scroll-marker-group empty again");
+  target.className = "after scroll-marker-group before";
+  document.documentElement.offsetTop;
+  test(() => {
+    assertPseudoElementProperty(target, "::scroll-marker-group", "100px", "20px", "rgb(255, 0, 0)");
+  }, "::scroll-marker-group with red background again");
+  document.documentElement.offsetTop;
+  document.documentElement.style.setProperty('--after-background', 'green');
+  document.documentElement.offsetTop;
+  document.documentElement.style.setProperty('--scroll-marker-group-background', 'green');
+  document.documentElement.offsetTop;
+  test(() => {
+    assertPseudoElementProperty(target, "::scroll-marker-group", "100px", "20px", "rgb(0, 128, 0)");
+  }, "::scroll-marker-group with green background");
+</script>

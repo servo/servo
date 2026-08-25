@@ -1,0 +1,58 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: The anonymous block box around a table - table bottom margin is collapsed with caption bottom margin</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#model" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The bottom margin of the table caption is not collapsed with bottom margin of the table when 'caption-side: bottom'." />
+        <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+        <style type="text/css">
+            #div1
+            {
+                border-bottom: 1em solid blue;
+                width: 10em;
+            }
+            table
+            {
+                 margin-bottom: 5em;
+                 border-spacing: 0;
+                 font: 1em Ahem;
+            }
+            caption
+            {
+                background: black;
+                caption-side: bottom;
+                color: black;
+                margin-bottom: 10em;
+                width: 10em;
+            }
+            td
+            {
+                background: black;
+                color: black;
+                width: 10em;
+            }
+            #div2
+            {
+                background: blue;
+                height: 10em;
+                position: relative;
+                top: -11em;
+                width: 10em;
+            }
+            </style>
+    </head>
+    <body>
+        <p>Test passes if there are only two boxes below and there is space between the black box and the blue box.</p>
+        <div id="div1">
+            <table>
+                <caption>Filler Text</caption>
+                <tr>
+                    <td>Filler Text</td>
+                </tr>
+            </table>
+        </div>
+        <div id="div2"></div>
+    </body>
+</html>

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/utils.js"></script>
+<title>Media attribute changes in the body to apply, but has no effect</title>
+
+<link id=link rel=expect href="#last" blocking="render" media="(max-width: 10px)">
+<script>
+async_test((t) => {
+  requestAnimationFrame(() => {
+    t.step(() => assert_false(!!document.getElementById("last")));
+    t.done();
+  });
+}, "changing media to matching in the body has no effect");
+</script>
+</head>
+<body>
+<script>
+link.media = "(min-width: 10px)";
+</script>
+
+  <div id="first">
+    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum augue
+    nibh, venenatis a ligula in, tempus pharetra urna. Fusce semper, velit
+    tincidunt lobortis sollicitudin, sapien velit fermentum odio, ultricies
+    tempor mi est eget ipsum egestas.
+  </div>
+  <script>
+          generateParserDelay();
+  </script>
+  <div id="second">
+    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum augue
+    nibh, venenatis a ligula in, tempus pharetra urna. Fusce semper, velit
+    tincidunt lobortis sollicitudin, sapien velit fermentum odio, ultricies
+    tempor mi est eget ipsum egestas.
+  </div>
+  <script>
+          generateParserDelay();
+  </script>
+  <div id="last">
+    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum augue
+    nibh, venenatis a ligula in, tempus pharetra urna. Fusce semper, velit
+    tincidunt lobortis sollicitudin, sapien velit fermentum odio, ultricies
+    tempor mi est eget ipsum egestas.
+  </div>
+</body>

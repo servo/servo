@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<title>Remove current fallback @position-try rules</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://issues.chromium.org/issues/411170230">
+<style id="removeme">
+  @position-try --pf1 {
+    left: auto;
+    right: anchor(left);
+    top: 200px;
+  }
+</style>
+<style id="removemetoo">
+  @position-try --pf2 {
+    left: auto;
+    right: anchor(left);
+    top: 300px;
+  }
+</style>
+<style>
+  #anchor {
+    anchor-name: --a;
+    margin-left: 100px;
+    height: 100px;
+    background: hotpink;
+  }
+  #box {
+    position: absolute;
+    position-anchor: --a;
+    top: 100px;
+    left: anchor(right);
+    position-try-fallbacks: --pf1,--pf2;
+    width: 50px;
+    height: 50px;
+    background: cyan;
+  }
+</style>
+<div id="anchor"></div>
+<div id="box"></div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/test-common.js"></script>
+<script>
+promise_test(async () => {
+  // The base style option doesn't fit. The two others do fit.
+  // Remove them one by one.
+  await waitUntilNextAnimationFrame();
+  await waitUntilNextAnimationFrame();
+  assert_equals(box.offsetTop, 200);
+  removeme.remove();
+  await waitUntilNextAnimationFrame();
+  await waitUntilNextAnimationFrame();
+  assert_equals(box.offsetTop, 300);
+  removemetoo.remove();
+  await waitUntilNextAnimationFrame();
+  await waitUntilNextAnimationFrame();
+  assert_equals(box.offsetTop, 100);
+}, "Remove fallback rules");
+</script>

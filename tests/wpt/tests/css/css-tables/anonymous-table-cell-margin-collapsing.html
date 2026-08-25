@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>Anonymous table cells with semi-complex margin collapsing inside</title>
+<link rel="author" title="Morten Stenshorne" href="mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visuren.html#block-formatting" title="9.4.1 Block formatting contexts">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="display:table; height:100px; background:red;">
+  <div style="display:table-row; background:green;">
+    <div style="width:100px; margin:50px 0;">
+      <div style="margin:50px 0;"></div>
+    </div>
+    <div style="margin:50px 0;"></div>
+  </div>
+  <div style="display:table-row; background:green;">
+    <div style="margin:50px 0;"></div>
+  </div>
+  <!-- The above rows should use all available height, and the last
+       row should get nothing (or there'll be red). -->
+  <div style="display:table-row;"></div>
+</div>

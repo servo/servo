@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>Very large timestamp is parsed correctly</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<video>
+    <track src="resources/large-timestamp.vtt" default>
+    <script>
+    async_test(function(t) {
+        var testTrack = document.querySelector("track");
+        testTrack.onload = t.step_func_done(function() {
+            assert_equals(testTrack.track.cues.length, 1);
+            var cue = testTrack.track.cues[0];
+            assert_equals(parseInt(cue.id), 1);
+            assert_equals(cue.startTime / 3600, 1234567);
+            assert_equals(cue.endTime / 3600, 1234567890);
+        });
+    });
+    </script>
+</video>

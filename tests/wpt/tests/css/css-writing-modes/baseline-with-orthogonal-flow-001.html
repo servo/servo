@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>
+    CSS Test: orthogonal-flow child should be skipped over when determining parent's last-baseline
+  </title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+  <link rel="help" href="https://drafts.csswg.org/css-align/#baseline-export">
+  <link rel="match" href="reference/baseline-with-orthogonal-flow-001-ref.html">
+  <!-- The inline-blocks in this example are using last-baseline alignment, and
+       css-align-3 sec 9.1 says they should take their last-baseline position:
+         "from the ...(last) in-flow block-level child in the block container
+         that contributes a set of ... (last) baselines".
+
+       The orthogonal-flow doesn't contribute a first/last baseline set (not
+       for its parent's writing-mode at least), so it should not affect the
+       baseline determination.
+  -->
+  <style>
+    .ib {
+      display: inline-block;
+    }
+    .vert {
+      writing-mode: vertical-rl;
+      color: transparent;
+    }
+    .overflow {
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+  Test passes if the visible characters below are baseline-aligned.
+  <br><br>
+
+  aaa
+
+  <div class="ib">
+    bbb
+    <!-- This shouldn't influence the baseline of our inline block: -->
+    <div class="vert">vvv</div>
+  </div>
+
+  <div class="ib">
+    ccc
+    <!-- This shouldn't influence the baseline of our inline block: -->
+    <div class="vert overflow">ooo</div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,19 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Page Lifecycle (https://wicg.github.io/page-lifecycle/)
+
+partial interface Document {
+    attribute EventHandler onfreeze;
+    attribute EventHandler onresume;
+    readonly attribute boolean wasDiscarded;
+};
+
+partial interface Client {
+    readonly attribute ClientLifecycleState lifecycleState;
+};
+
+enum ClientLifecycleState {
+    "active",
+    "frozen"
+};

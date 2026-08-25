@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<link rel="stylesheet" href="/html/canvas/resources/draw-element-image-styles.css" />
+<script src="/html/canvas/resources/color-grid-component.js"></script>
+<style>
+ body {
+   display: grid;
+   grid: 256px / 1fr 1fr 1fr;
+   align-items: start;
+   --blur-radius: 20px;
+   --spread: 10px;
+ }
+ color-grid {
+   width:100px;
+   height:100px;
+ }
+ .box-shadow {
+   box-shadow: 0px 0px var(--blur-radius) var(--spread) hotpink;
+ }
+ .outline {
+   outline: 5px solid salmon;
+ }
+ .same-size-as-canvas {
+   width: 256px;
+   height: 256px;
+ }
+</style>
+
+<div class="draw-element-wrapper box-shadow" outset="50" offset="20">
+  <color-grid></color-grid>
+</div>
+
+<div class="draw-element-wrapper box-shadow" outset="50" offset="-50">
+  <color-grid></color-grid>
+</div>
+
+<div class="draw-element-wrapper outline" outset="10" offset="30">
+  <color-grid></color-grid>
+</div>
+
+<div class="draw-element-wrapper outline" outset="10" offset="-10">
+  <color-grid></color-grid>
+</div>
+
+<div class="draw-element-wrapper" outset="-10" offset="20">
+  <color-grid></color-grid>
+</div>
+
+<div class="same-size-as-canvas"></div>
+
+<script type="module">
+// css(Width|Height) are the theoretical client rect dimensions of the canvas.
+let cssWidth, cssHeight;
+// scale(X|Y) are the theoretical css-to-canvas-grid scale factors.
+let scaleX, scaleY;
+
+const sameSizeAsCanvas = document.querySelector(".same-size-as-canvas");
+await new Promise(resolve => {
+  new ResizeObserver(entries => {
+    const style = getComputedStyle(sameSizeAsCanvas);
+    cssWidth = Number.parseFloat(style.width);
+    cssHeight = Number.parseFloat(style.height);
+    scaleX = entries[0].devicePixelContentBoxSize[0].inlineSize / cssWidth;
+    scaleY = entries[0].devicePixelContentBoxSize[0].blockSize / cssHeight;
+    resolve();
+  }).observe(sameSizeAsCanvas);
+});
+
+Array.from(document.querySelectorAll(".draw-element-wrapper")).forEach(wrapper => {
+  // `offset` is in theoretical canvas grid coordinates
+  const offset = Number.parseFloat(wrapper.getAttribute("offset") || "0");
+  // `outset` is in CSS pixels
+  const outset = Number.parseFloat(wrapper.getAttribute("outset") || "0");
+
+  // Imitate dest_(x|y) arguments to drawElementImage
+  const offsetX = outset + (offset / scaleX);
+  const offsetY = outset + (offset / scaleY);
+  wrapper.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
+  // Imitate clipping behavior of canvas
+  wrapper.style.clipPath =
+    `rect(${-offsetY}px ${cssWidth-offsetX}px ${cssHeight-offsetY}px ${-offsetX}px)`;
+
+  const colorGrid = wrapper.firstElementChild;
+  const colorGridStyle = getComputedStyle(colorGrid);
+  const colorGridWidth = Number.parseFloat(colorGridStyle.width);
+  const colorGridHeight = Number.parseFloat(colorGridStyle.height);
+  const outsetRight = colorGridWidth + outset;
+  const outsetBottom = colorGridHeight + outset;
+  // Imitate src_(x|y|width|height) arguments to drawElementImage
+  colorGrid.style.clipPath = `rect(${-outset}px ${outsetRight}px ${outsetBottom}px ${-outset}px)`;
+});
+</script>

@@ -1,0 +1,8 @@
+#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-TARGETDURATION:7
+#EXT-X-MEDIA-SEQUENCE:0
+#EXT-X-PLAYLIST-TYPE:VOD
+#EXTINF:6.042400,
+http://{{domains[]}}:{{ports[http][0]}}/fetch/orb/resources/test.ts
+#EXT-X-ENDLIST

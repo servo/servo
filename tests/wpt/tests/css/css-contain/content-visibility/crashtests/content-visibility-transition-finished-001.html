@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<meta charset="utf-8">
+<link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1822907">
+<style>
+  #inner {
+    /* Extremely short so that we can just do a double-rAF and
+     * expect that this transition will have completed: */
+    transition: opacity 0.01s;
+  }
+</style>
+<script>
+  function setup() {
+    // Flush style, in case the document hasn't been styled yet:
+    let origOpacity = getComputedStyle(inner).opacity;
+
+    // Trigger the (extremely short) transition, and proceed to next step
+    // when it finishes.
+    inner.addEventListener("transitionend", handleTransitionEnd);
+    inner.style.opacity = "0.8";
+  }
+  function handleTransitionEnd(e) {
+    // Hide & unhide the subtree that contained the transition:
+    foo.style.contentVisibility = "hidden";
+    document.documentElement.offsetHeight; // flush layout
+    foo.style.contentVisibility = "";
+
+    // Double-rAF to see if we crash when animations are resampled.
+    requestAnimationFrame(() => { requestAnimationFrame(finish) });
+  }
+  function finish() {
+    // If we get here, we've succeeded; hooray!
+    document.documentElement.removeAttribute("class");
+  }
+</script>
+<body onload="setup()">
+  <div id="foo">
+    Hello
+    <div id="inner">Inner</div>
+  </div>
+</body>
+</html>

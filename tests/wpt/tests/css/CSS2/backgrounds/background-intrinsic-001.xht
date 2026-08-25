@@ -1,0 +1,66 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Background Intrinsic Sizes: No intrinsic size</title>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background-properties" />
+  <link rel="help" href="http://www.w3.org/TR/css3-background/#the-background-size"/>
+  <link rel="match" href="background-intrinsic-ref.xht"/>
+  <meta name="flags" content="svg" />
+  <meta name="assert" content="A background image with no intrinsic size covers
+    the entire padding box." />
+  <style type="text/css">
+    /* Setup. Use 5:6 ratio because it's weird and unlikely to be hard-coded anywhere. */
+    div {
+      position: relative;
+    }
+    .cover, .limit {
+      width: 120px;
+      height: 120px;
+      margin: 0.5em;
+      background: green; /* Used to match reference; remove for debugging. */
+    }
+    .control {
+      position: absolute;
+      top: 10px; bottom: 10px;
+      left: 10px; right: 30px;
+    }
+    .cover .control {
+      background: red;
+    }
+    .limit .control {
+      background: green;
+    }
+    .test {
+      /* 80x100 bgpos area */
+      height: 80px;
+      width: 60px;
+      padding: 10px;
+      /* 100 x 120 bgpaint area */
+      border: 10px solid transparent;
+    }
+
+    /* Test */
+    .cover .test {
+      background: no-repeat url(support/green-intrinsic-none.svg);
+    }
+    .limit .test {
+      background: no-repeat url(support/red-intrinsic-none.svg);
+    }
+  </style>
+ </head>
+ <body>
+  <p>There must be two green boxes below and no red.</p>
+
+  <div class="cover">
+    <div class="control"></div>
+    <div class="test"></div>
+  </div>
+
+  <div class="limit">
+    <div class="test"></div>
+    <div class="control"></div>
+  </div>
+
+ </body>
+</html>

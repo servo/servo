@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+
+  <meta name="referrer" content="no-referrer" id="referrermeta">
+</head>
+<body>
+  <script>
+    async function fetchAndGetReferrer() {
+      let response = await fetch('/common/security-features/subresource/xhr.py');
+      let data = await response.json();
+      return data.headers.referer;
+    }
+
+    promise_test(async t => {
+      assert_equals(await fetchAndGetReferrer(), undefined,
+                    'referrer should not be set');
+
+      document.getElementById('referrermeta').remove();
+      assert_equals(await fetchAndGetReferrer(), undefined,
+                    'referrer should not be set');
+    }, 'removing <meta name="referrer"> should not change referrer policy');
+  </script>
+</body>

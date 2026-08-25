@@ -1,0 +1,14 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Element Capture (https://screen-share.github.io/element-capture/)
+
+[Exposed=(Window,Worker), Serializable]
+interface RestrictionTarget {
+  [Exposed=Window, SecureContext] static Promise<RestrictionTarget> fromElement(Element element);
+};
+
+[Exposed = Window]
+partial interface BrowserCaptureMediaStreamTrack {
+  Promise<undefined> restrictTo(RestrictionTarget? RestrictionTarget);
+};

@@ -1,0 +1,7 @@
+"""Endpoint to receive Protected Audiences real time reports."""
+from importlib import import_module
+
+reports = import_module('fledge.tentative.resources.real-time-report')
+
+def main(request, response):
+  return reports.handle_request(request)

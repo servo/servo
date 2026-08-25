@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<head>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+@keyframes hide {
+  from { content-visibility: hidden }
+}
+</style>
+</head>
+<body>
+<div id="fullscreenTarget" style="animation:hide alternate-reverse forwards">
+  <div id="focusTarget" tabindex="-1"></div>
+</div>
+<script>
+async function crash() {
+  let fullscreenPromise = null;
+  await test_driver.bless('open fullscreen', () => {
+    fullscreenPromise = fullscreenTarget.requestFullscreen();
+  });
+  await fullscreenPromise;
+  focusTarget.focus();
+  document.documentElement.classList.remove('test-wait');
+}
+window.onload = crash;
+</script>
+</body>
+</html>

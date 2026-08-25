@@ -1,0 +1,41 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>HTMLUserMediaElement: Untrusted Click Handling</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<usermedia id="el"></usermedia>
+<script>
+promise_test(async (t) => {
+  const element = document.getElementById("el");
+  element.setConstraints({ video: {} });
+
+  let stream_fired = false;
+  let cancel_fired = false;
+
+  element.onstream = () => {
+    stream_fired = true;
+  };
+
+  element.oncancel = () => {
+    cancel_fired = true;
+  };
+
+  const error_promise = new Promise((resolve) => {
+    element.onerror = resolve;
+  });
+
+  element.click();
+
+  await error_promise;
+  assert_not_equals(element.error, null, "error attribute should not be null");
+  assert_equals(element.error.name, "InvalidStateError", "error should be InvalidStateError");
+
+  // Wait a bit to ensure others don't fire
+  await new Promise(resolve => t.step_timeout(resolve, 100));
+
+  assert_false(stream_fired, "stream should not have fired");
+  assert_false(cancel_fired, "cancel should not have fired");
+}, "Untrusted click on usermedia element should fail with InvalidStateError");
+</script>
+</body>

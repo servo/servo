@@ -1,0 +1,25 @@
+<!doctype HTML>
+<html>
+<meta charset="utf8">
+<title>Content Visibility: Elements with content-visibility: auto and intrinsic width should render correctly</title>
+<link rel="author" title="Martin Robinson" href="mailto:mrobinson@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<link rel="match" href="container-ref.html">
+<meta name="assert" content="Elements with content-visibility: auto and intrinsic width should render correctly">
+
+<style>
+#container {
+  content-visibility: auto;
+  width: max-content;
+  background: lightblue;
+}
+
+#child {
+  width: 150px;
+  height: 150px;
+}
+</style>
+
+<div id="container">
+    <div id="child"></div>
+</div>

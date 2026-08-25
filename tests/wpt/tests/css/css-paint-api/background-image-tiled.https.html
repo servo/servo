@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.css-houdini.org/css-paint-api/">
+<link rel="match" href="background-image-tiled-ref.html">
+<style>
+    div {
+        display: inline-block;
+        width: 100px;
+        height: 100px;
+    }
+
+    #one {
+        background:
+            paint(ellipse) top left/50% 50% repeat-x,
+            paint(ellipse) bottom left/100% 50% no-repeat;
+    }
+
+    #two {
+        background:
+            paint(ellipse) top left/50% 20% repeat-y,
+            paint(ellipse) center right/50% 50% no-repeat;
+    }
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+<body>
+<div id="one"></div>
+<div id="two"></div>
+
+<script id="code" type="text/worklet">
+registerPaint('ellipse', class {
+    paint(ctx, geom) {
+        ctx.fillStyle = 'green';
+        ctx.beginPath();
+        ctx.rect(0, 0, geom.width, geom.height);
+        ctx.fill();
+    }
+});
+</script>
+
+<script>
+    importWorkletAndTerminateTestAfterAsyncPaint(CSS.paintWorklet, document.getElementById('code').textContent);
+</script>
+</body>
+</html>

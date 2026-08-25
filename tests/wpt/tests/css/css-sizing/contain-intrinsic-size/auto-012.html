@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Last remembered size</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#last-remembered">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override">
+<link rel="help" href="https://drafts.csswg.org/css-contain-2/#content-visibility">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/7807">
+<meta name="assert" content="Tests that content-visibility:auto, contain:size and contain-intrinsic-size:auto do not result in instable size." />
+
+<style>
+#target {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 100px auto 101px;
+  width: max-content;
+  height: max-content;
+  border: 1px solid;
+}
+#target::before {
+  content: "";
+  display: block;
+  width: 50px;
+  height: 51px;
+}
+</style>
+
+<div id="log"></div>
+
+<div id="spacer"></div>
+<div id="target"></div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const target = document.getElementById("target");
+const spacer = document.getElementById("spacer");
+
+function checkSize(expectedWidth, expectedHeight, msg) {
+  test(function() {
+    assert_equals(target.clientWidth, expectedWidth, "clientWidth");
+    assert_equals(target.clientHeight, expectedHeight, "clientHeight");
+  }, msg);
+}
+
+function nextRendering() {
+  return new Promise(resolve => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+  });
+}
+
+setup({explicit_done: true});
+
+(async function() {
+  // Size normally.
+  await nextRendering();
+  checkSize(50, 51, "Sizing normally");
+  await nextRendering();
+
+  // The last remembered size is 50x51, but the element is not skipping
+  // its contents, so the fallback size will be used instead.
+  target.style.contain = "size";
+  checkSize(100, 101, "Sizing with c-i-s fallback");
+  await nextRendering();
+
+  // The last remembered size is now 100x101, but still not using it.
+  spacer.style.height = "10000vh";
+  checkSize(100, 101, "Still sizing with c-i-s fallback");
+  await nextRendering();
+
+  // The element went off-screen, using last remembered size now.
+  // It's important that this is the same as in previous step!
+  checkSize(100, 101, "Sizing with last remembered size");
+  await nextRendering();
+
+  // Change the c-i-s fallback to prove last remembered size is used.
+  target.style.containIntrinsicSize = "auto 150px auto 151px";
+  checkSize(100, 101, "Still sizing with last remembered size");
+
+  // Move the element on-screen. Switch to using c-i-s fallback, and
+  // update the last remembered size.
+  spacer.style.height = "0px";
+  await nextRendering();
+  checkSize(150, 151, "Sizing with new c-i-s fallback");
+  await nextRendering();
+
+  // Move off-screen again. Same size as in previous step!
+  spacer.style.height = "10000vh";
+  await nextRendering();
+  target.style.containIntrinsicSize = "auto 200px auto 201px";
+  checkSize(150, 151, "Sizing with new last remembered size");
+
+  done();
+})();
+</script>

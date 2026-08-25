@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Speech: Integer Attribute</title>
+<link rel="author" title="John Foliot" href="mailto:john@foliot.ca">
+<link rel="author" title="Katherine Mancuso" href="mailto:kmancuso@gmail.com">
+<link rel="author" title="Ryan Eilders" href="mailto:ryaneilders@gmail.com">
+<link rel="reviewer" title="Arron Eicholz" href="mailto:arronei@microsoft.com">
+    <link rel="help" href="http://www.w3.org/TR/css3-speech/#voice-props-voice-family">
+<meta name="flags" content="speech">
+    <meta name="assert" content="User has 2 female voices installed on the system">
+    <style type="text/css">
+   p.voice1 {voice-family: female 1;}
+   p.voice2 {voice-family: female 2;}
+</style>
+
+<body>
+<p style=voice1>This should be read in one female voice.</p>
+
+<p style=voice2>This should be read in a different female voice.</p>
+</body>
+</html>

@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Advanced Config</title>
+    <link rel="stylesheet" href="resource:///config.css">
+</head>
+<body>
+    <input class="search" type="text" placeholder="Search for a preference…" aria-label="Search preferences" oninput="populate(this.value)">
+    <table></table>
+    <script>
+        // Helper to create a TD with class and optional text
+        function td(cls, text) {
+            const cell = document.createElement("td");
+            if (cls !== undefined) {
+                cell.className = cls;
+            }
+            if (text !== undefined) {
+                cell.textContent = text;
+            }
+            return cell;
+        }
+
+        class PrefBoolRow extends HTMLTableRowElement {
+            connectedCallback() {
+                // Attributes are provided via data-*
+                const pref = this.dataset.pref;
+                const defaultValue = this.dataset.default === "true";
+                let value = this.dataset.value === "true";
+
+                const nameCell = td("pref-name", pref);
+                const valueCell = td("value", String(value));
+                valueCell.id = `value-${pref}`;
+                if (value !== defaultValue) valueCell.classList.add("default");
+
+                const switcher = td("switcher");
+                const btn = document.createElement("button");
+                btn.className = "switch-button";
+                btn.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="icon">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+                    </svg>`;
+                btn.onclick = () => {
+                    value = !value;
+                    valueCell.classList.toggle("default", value !== defaultValue)
+                    navigator.servo.setBoolPreference(pref, value);
+                    valueCell.textContent = String(value);
+                };
+                switcher.appendChild(btn);
+
+                this.appendChild(nameCell);
+                this.appendChild(valueCell);
+                this.appendChild(switcher);
+            }
+        }
+
+        // Unified row for int and string preferences
+        class PrefValueRow extends HTMLTableRowElement {
+            connectedCallback() {
+                const pref = this.dataset.pref;
+                const ty = this.dataset.type; // "i64" or "String"
+
+                const nameCell = td("pref-name", pref);
+
+                const valueCell = document.createElement("td");
+                valueCell.className = "value";
+                const valueSpan = document.createElement("span");
+                valueSpan.className = "value-entry";
+                valueSpan.id = `value-${pref}`;
+                const input = document.createElement("input");
+                input.className = "value-editor hidden";
+                input.id = `input-${pref}`;
+
+                // Per-type state and behavior
+                let defaultValue;
+                let value;
+                let saveFn;
+
+                if (ty === "i64") {
+                    defaultValue = parseInt(this.dataset.default);
+                    value = parseInt(this.dataset.value);
+                    valueSpan.textContent = value;
+                    input.type = "number";
+                    input.step = "1";
+                    saveFn = () => {
+                        const parsed = parseInt(input.value);
+                        if (Number.isNaN(parsed)) {
+                            input.setCustomValidity("Please enter a valid integer.");
+                            input.reportValidity();
+                            return false;
+                        }
+                        navigator.servo.setIntPreference(pref, parsed);
+                        value = parsed;
+                        valueSpan.textContent = value;
+                        valueCell.classList.toggle("default", value !== defaultValue)
+                        return true;
+                    };
+                } else {
+                    // string, no validation needed
+                    defaultValue = this.dataset.default ?? "";
+                    value = this.dataset.value ?? "";
+                    valueSpan.textContent = value;
+                    input.type = "text";
+                    saveFn = () => {
+                        const newValue = input.value;
+                        navigator.servo.setStringPreference(pref, newValue);
+                        value = newValue;
+                        valueSpan.textContent = value;
+                        valueCell.classList.toggle("default", value !== defaultValue)
+                        return true;
+                    };
+                }
+
+                valueSpan.classList.toggle("default", value !== defaultValue)
+
+                valueCell.appendChild(valueSpan);
+                valueCell.appendChild(input);
+
+                const switcher = td("switcher");
+                const editBtn = document.createElement("button");
+                editBtn.className = "switch-button";
+                editBtn.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="icon">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
+                    </svg>`;
+                const saveBtn = document.createElement("button");
+                saveBtn.className = "switch-button hidden";
+                saveBtn.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="icon">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                    </svg>`;
+
+                const cancelEdit = () => {
+                    // Revert input view and value without saving
+                    input.classList.add("hidden");
+                    valueSpan.classList.remove("hidden");
+                    input.value = String(value);
+                    editBtn.classList.remove("hidden");
+                    saveBtn.classList.add("hidden");
+                    input.setCustomValidity("");
+                };
+
+                editBtn.onclick = () => {
+                    valueSpan.classList.add("hidden");
+                    input.classList.remove("hidden");
+                    input.value = String(value);
+                    editBtn.classList.add("hidden");
+                    saveBtn.classList.remove("hidden");
+                    input.focus();
+                    input.setSelectionRange(0, input.value.length);
+                };
+
+                saveBtn.onclick = () => {
+                    const ok = saveFn();
+                    if (!ok) return; // keep editing on validation failure
+                    valueSpan.classList.remove("hidden");
+                    input.classList.add("hidden");
+                    editBtn.classList.remove("hidden");
+                    saveBtn.classList.add("hidden");
+                };
+
+                // Enter to save, Escape to cancel
+                input.addEventListener("keydown", (e) => {
+                    if (e.key === "Enter") {
+                        e.preventDefault();
+                        saveBtn.click();
+                    } else if (e.key === "Escape") {
+                        e.preventDefault();
+                        cancelEdit();
+                    }
+                });
+
+                switcher.appendChild(editBtn);
+                switcher.appendChild(saveBtn);
+
+                this.appendChild(nameCell);
+                this.appendChild(valueCell);
+                this.appendChild(switcher);
+            }
+        }
+
+        class PrefUnknownRow extends HTMLTableRowElement {
+            connectedCallback() {
+                const pref = this.dataset.pref;
+                const value = this.dataset.value ?? "";
+
+                this.appendChild(td("pref-name", pref));
+                this.appendChild(td("value", value));
+            }
+        }
+
+        customElements.define("pref-bool-row", PrefBoolRow, { extends: "tr" });
+        customElements.define("pref-value-row", PrefValueRow, { extends: "tr" });
+        customElements.define("pref-unknown-row", PrefUnknownRow, { extends: "tr" });
+
+        let all = navigator.servo.preferenceList();
+        all.sort();
+        const ALL = all;
+
+        function populate(filter) {
+            const table = document.querySelector("table");
+            table.innerHTML = "";
+            let prefs = [];
+            if (filter === "" || filter === null || filter === undefined) {
+                prefs = ALL;
+            } else {
+                // TODO: improve filtering
+                prefs = ALL.filter(pref => {
+                    let stripped_pref = pref.replaceAll("_", "");
+                    let stripped_filter = filter.replaceAll("_", "").replaceAll(" ", "").toLowerCase();
+                    if (stripped_pref.includes(stripped_filter)) {
+                        prefs.push(pref);
+                    }
+                });
+            }
+            for (let pref of prefs) {
+                let ty = navigator.servo.preferenceType(pref);
+                let value = navigator.servo.getPreference(pref);
+                let defaultValue = navigator.servo.defaultPreferenceValue(pref);
+
+                if (ty === "bool") {
+                    const row = document.createElement("tr", { is: "pref-bool-row" });
+                    row.setAttribute("data-pref", pref);
+                    row.setAttribute("data-value", String(value));
+                    row.setAttribute("data-default", String(defaultValue));
+                    table.appendChild(row);
+                } else if (ty === "i64") {
+                    const row = document.createElement("tr", { is: "pref-value-row" });
+                    row.setAttribute("data-pref", pref);
+                    row.setAttribute("data-type", "i64");
+                    row.setAttribute("data-value", String(value));
+                    row.setAttribute("data-default", String(defaultValue));
+                    table.appendChild(row);
+                } else if (ty === "String") {
+                    const row = document.createElement("tr", { is: "pref-value-row" });
+                    row.setAttribute("data-pref", pref);
+                    row.setAttribute("data-type", "String");
+                    row.setAttribute("data-value", String(value));
+                    row.setAttribute("data-default", String(defaultValue));
+                    table.appendChild(row);
+                } else {
+                    const row = document.createElement("tr", { is: "pref-unknown-row" });
+                    row.setAttribute("data-pref", pref);
+                    row.setAttribute("data-value", String(value));
+                    table.appendChild(row);
+                }
+            }
+        }
+        populate();
+    </script>
+</body>
+</html>

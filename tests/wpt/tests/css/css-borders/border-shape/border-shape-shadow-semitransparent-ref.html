@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<style>
+    body {
+        margin: 0;
+        background: white;
+    }
+    svg {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 230px;
+        height: 240px;
+        overflow: visible;
+    }
+    .shadow {
+        fill: rgba(0, 0, 255, 0.5);
+        transform: translate(10px, 20px);
+    }
+    .border {
+        fill: green;
+        stroke: black;
+        stroke-width: 10px;
+    }
+</style>
+
+<svg viewBox="0 0 230 240" xmlns="http://www.w3.org/2000/svg">
+    <rect x="-10" y="-10" width="230" height="230" class="shadow" />
+    <rect x="5" y="5" width="200" height="200" class="border" />
+</svg>

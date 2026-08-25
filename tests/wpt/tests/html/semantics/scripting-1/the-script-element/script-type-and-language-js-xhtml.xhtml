@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Script @type and @language: JavaScript types</title>
+<link rel="author" title="Ms2ger" href="mailto:ms2ger@gmail.com" />
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#scriptingLanguages" />
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#prepare-a-script" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id="script-placeholder"/>
+<script src="resources/script-type-and-language-js.js"></script>
+
+<script>ran = false;</script>
+<script type="javascript">ran = true;</script>
+<script>testParserInsertedDidNotRun('type=javascript');</script>
+<script type="javascript1.0">ran = true;</script>
+<script>testParserInsertedDidNotRun('type=javascript1.0');</script>
+<script type="javascript1.1">ran = true;</script>
+<script>testParserInsertedDidNotRun('type=javascript1.1');</script>
+<script type="javascript1.2">ran = true;</script>
+<script>testParserInsertedDidNotRun('type=javascript1.2');</script>
+<script type="javascript1.3">ran = true;</script>
+<script>testParserInsertedDidNotRun('type=javascript1.3');</script>
+<script type="javascript1.4">ran = true;</script>
+<script>testParserInsertedDidNotRun('type=javascript1.4');</script>
+<script type="javascript1.5">ran = true;</script>
+<script>testParserInsertedDidNotRun('type=javascript1.5');</script>
+<script type="javascript1.6">ran = true;</script>
+<script>testParserInsertedDidNotRun('type=javascript1.6');</script>
+<script type="javascript1.7">ran = true;</script>
+<script>testParserInsertedDidNotRun('type=javascript1.7');</script>
+<script type="livescript">ran = true;</script>
+<script>testParserInsertedDidNotRun('type=livescript');</script>
+<script type="ecmascript">ran = true;</script>
+<script>testParserInsertedDidNotRun('type=ecmascript');</script>
+<script type="jscript">ran = true;</script>
+<script>testParserInsertedDidNotRun('type=jscript');</script>
+
+</body>
+</html>

@@ -1,0 +1,52 @@
+﻿<!doctype html>
+<title>CSS Lists and Counters: counters(c, &quot;.", lower-roman)</title>
+<link rel="help" href="https://drafts.csswg.org/css-lists/#inheriting-counters">
+<link rel="match" href="counters-002-ref.html">
+<meta name="assert" content="counters are not inherited from the previous sibling, when can be inherited from the ancestor">
+<style type="text/css">
+body, #test span:first-child { counter-reset: c; }
+p, #test span { counter-increment: c; }
+#test span::before { content: counters(c, ".", lower-roman); }
+</style>
+<p>The following two lines should look the same:</p>
+<div id="test">
+  <span></span>
+  <span></span>
+  <span></span>
+  <span></span>
+  <span></span>
+  <span></span>
+  <span></span>
+  <span></span>
+  <span></span>
+  <span></span>
+  <span></span>
+  <span></span>
+  <span style="counter-reset: c 48"></span>
+  <span></span>
+  <span style="counter-reset: c 388"></span>
+  <span></span>
+  <span style="counter-reset: c 3488"></span>
+  <span></span>
+  <span></span></div>
+<div>
+  <span>i.i</span>
+  <span>ii</span>
+  <span>iii</span>
+  <span>iv</span>
+  <span>v</span>
+  <span>vi</span>
+  <span>vii</span>
+  <span>viii</span>
+  <span>ix</span>
+  <span>x</span>
+  <span>xi</span>
+  <span>xii</span>
+  <span>xii.xlix</span>
+  <span>xiii</span>
+  <span>xiii.ccclxxxix</span>
+  <span>xiv</span>
+  <span>xiv.mmmcdlxxxix</span>
+  <span>xv</span>
+  <span>xvi</span>
+</div>

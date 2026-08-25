@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Inline box containing block boxes</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-04-04 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#anonymous-block-level" />
+        <link rel="match" href="inline-box-001-ref.xht" />
+
+        <meta name="assert" content="Inline boxes that contain block boxes will break up the inline content around the block box." />
+        <style type="text/css">
+            #div1
+            {
+                border: 2px solid blue;
+                display: inline;
+            }
+            div div
+            {
+                background: orange;
+                width: 2in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there are blue borders around the top, left and bottom but not the right side of the text "First line", and borders around the top, right, bottom but not the left of the text "Last line".</p>
+        <div id="div1">
+            First line
+            <div>Filler Text</div>
+            Last line
+        </div>
+    </body>
+</html>

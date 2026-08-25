@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>Image set type rendering</title>
+<link rel="author" title="Noam Rosenthal" href="mailto:noam@webkit.org">
+<link rel="author" title="Traian Captan" href="mailto:tcaptan@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#image-set-notation">
+<link rel="match" href="/css/reference/blank.html">
+<meta name="assert" content="image-set rendering with all unsupported types">
+<!--
+Spec definition:
+"An image-set() function contains a list of one or more <image-set-option>s,
+  and must select only one of them to determine what image it will represent:
+  First, remove any <image-set-option>s from the list that specify
+  an unknown or unsupported MIME type in their type() value."
+
+If all the values in the image set are of an unsupported type,
+the set should be empty.
+
+"This has no effect on the validity of the image-set() function"
+-->
+<style>
+  #test {
+    background-image: url("/images/red.png");
+    background-image: image-set(
+      url("/images/green.png") 1x type('image/unsupported'),
+      url("/images/green.png") 1x type('image/unsupported')
+    );
+    width: 100px;
+    height: 100px;
+  }
+</style>
+<div id="test"></div>

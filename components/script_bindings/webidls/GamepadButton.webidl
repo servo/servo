@@ -1,0 +1,13 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+// skip-unless CARGO_FEATURE_GAMEPAD
+
+// https://w3c.github.io/gamepad/#gamepadbutton-interface
+[Exposed=Window, Pref="dom_gamepad_enabled"]
+interface GamepadButton {
+    readonly attribute boolean pressed;
+    readonly attribute boolean touched;
+    readonly attribute double value;
+};

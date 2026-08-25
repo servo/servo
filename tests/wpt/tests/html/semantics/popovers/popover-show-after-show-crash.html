@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<div id="p" popover="auto"></div>
+<script>
+let triggered = false;
+p.addEventListener('beforetoggle', (e) => {
+  if (e.newState === 'closed' && !triggered) {
+    triggered = true;
+    p.removeAttribute('popover');
+    p.setAttribute('popover', 'auto');
+    p.showPopover();
+  }
+});
+p.showPopover();
+p.hidePopover();
+// This test passes if it does not crash.
+</script>

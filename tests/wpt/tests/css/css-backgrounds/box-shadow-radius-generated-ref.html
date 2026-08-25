@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<title>Box Shadow Border Radius (Outset)</title>
+<link rel="help" href="https://www.w3.org/TR/css-backgrounds-3/#shadow-shape">
+<div id="shadow"></div>
+<div id="target"></div><style>
+  #shadow {
+    position: absolute;
+    background: black;
+    top: calc(100px - var(--spread) * 1px);
+    left: calc(100px - var(--spread) * 1px);
+    width: calc((var(--width) + var(--spread) * 2) * 1px);
+    height: calc((var(--height) + var(--spread) * 2) * 1px);
+  }
+
+  #target {
+    position: absolute;
+    top: 100px;
+    left: 100px;
+    width: calc(var(--width) * 1px);
+    height: calc(var(--height) * 1px);
+    border-radius: var(--radius);
+    box-shadow: 0 0 0 var(--spread) black;
+    background: green;
+  }
+</style>
+
+<script>
+  const {searchParams} = new URL(location.href);
+  const width = +searchParams.get('width');
+  const height = +searchParams.get('height');
+  const spread = +searchParams.get('spread');
+  for (const param of searchParams) {
+    document.documentElement.style.setProperty(`--${param[0]}`, param[1]);
+  }
+  function adjusted_radius(radius_css) {
+    let [radius_width, radius_height] = radius_css.split(' ');
+    if (typeof radius_height === 'undefined')
+      radius_height = radius_width;
+
+    if (radius_width.endsWith('%'))
+      radius_width = parseFloat(radius_width) / 100 * width;
+    else
+      radius_width = parseFloat(radius_width);
+
+    if (radius_height.endsWith('%'))
+      radius_height = parseFloat(radius_height) / 100 * height;
+    else
+      radius_height = parseFloat(radius_height);
+
+    const coverage = Math.min(
+      2 * radius_width / width,
+      2 * radius_height / height
+    ) || 0;
+
+    return [radius_width, radius_height].map(value => {
+      if (value > spread || coverage > 1)
+        return value + spread;
+      else
+        return value + spread * (1 - (1 - value / spread)**3 * (1 - coverage ** 3));
+    }).map(v => v + 'px').join(' ');
+  }
+
+  const target = document.getElementById('target');
+  const shadow = document.getElementById('shadow');
+  const computed_style = getComputedStyle(target);
+  for (const radius_prop of ['borderTopLeftRadius', 'borderTopRightRadius', 'borderBottomRightRadius', 'borderBottomLeftRadius'])
+    shadow.style[radius_prop] = adjusted_radius(computed_style[radius_prop]);
+
+</script>
+

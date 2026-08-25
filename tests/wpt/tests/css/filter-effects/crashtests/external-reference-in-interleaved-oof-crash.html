@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>Interleaved OOF layout with url() valued 'filter' property</title>
+<style>
+  #target {
+    width: 100px;
+    height: 100px;
+    background-color: blue;
+    --f: url("data:image/svg+xml,");
+    position: absolute;
+    position-area: block-end span-inline-end;
+    position-try-fallbacks: block-start span-inline-end;
+  }
+</style>
+<div id="target" style="filter: var(--f)"></div>
+<script>
+  document.body.offsetTop;
+  target.style.setProperty('filter', 'var(--f)');
+  document.body.offsetTop;
+  target.style.removeProperty('filter');
+  document.body.offsetTop;
+</script>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#last-remembered">
+<title>Tests that contain-intrinsic-size: auto also works with content-visibility: hidden</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="log"></div>
+
+<div style="height: 2000px;"></div>
+
+<div style="contain-intrinsic-size: auto 1px;" id="test">
+  <div style="height: 50px;"></div> <!-- make 'test' have a 50px height -->
+</div>
+
+<script>
+function finalize() {
+  el.style.contain = "size";
+  el.style.contentVisibility = "hidden";
+  log.innerText = el.offsetHeight;
+  assert_equals(el.offsetHeight, 50);
+}
+
+var t = async_test("contain-intrinsic-size: auto");
+
+var log = document.getElementById("log");
+var el = document.getElementById("test");
+var observer = new ResizeObserver(function() {
+  requestAnimationFrame(t.step_func_done(finalize));
+  observer.unobserve(el);
+});
+
+observer.observe(el);
+el.offsetWidth;
+
+</script>

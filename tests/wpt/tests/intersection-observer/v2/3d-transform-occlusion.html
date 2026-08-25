@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+ body {
+   transform-style: preserve-3d;
+ }
+ div {
+   position: absolute;
+   width: 100px;
+   height: 100px;
+ }
+ #target1, #target2 {
+   background: green;
+ }
+ #target2 {
+   left: 150px;
+ }
+ #occluder {
+   background: red;
+   transform: translateZ(-10px) rotateY(30deg);
+   transform-origin: center;
+ }
+ #behind {
+   left: 150px;
+   background: red;
+   transform: translateZ(-10px) rotateY(10deg);
+   transform-origin: center;
+ }
+</style>
+
+<div id=occluder></div>
+<div id=target1></div>
+
+<div id=behind></div>
+<div id=target2></div>
+
+<script>
+  promise_test(() => {
+    return Promise.all([
+      new Promise((resolve, reject) => {
+        const target = document.getElementById("target1");
+        new IntersectionObserver(entries => {
+          // part of #occluder is visible above #target1
+          assert_false(entries[0].isVisible);
+          resolve();
+        }, {trackVisibility:true, delay:100}).observe(target);
+      }),
+      new Promise((resolve, reject) => {
+        const target = document.getElementById("target2");
+        new IntersectionObserver(entries => {
+          // #behind is entirely behind #target2
+          assert_true(entries[0].isVisible);
+          resolve();
+        }, {trackVisibility:true, delay:100}).observe(target);
+      })
+    ]);
+  }, "Intersection observer V2 test with occlusion by an element with a 3D transform.");
+</script>

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<title>CSS Positioned Layout Test: Auto margins resolve correctly after dynamic inset change</title>
+<link rel="author" title="Ting-Yu Lin" href="tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#abspos-margins">
+<meta name="assert" content="Auto margins on abspos elements are resolved correctly after a dynamic change to inset.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#container {
+  position: relative;
+  width: 400px;
+  height: 400px;
+}
+#target-both {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 200px;
+  height: 200px;
+}
+#target-inline {
+  position: absolute;
+  inset: 0;
+  margin: 0 auto;
+  width: 200px;
+  height: 200px;
+}
+</style>
+
+<div id="container">
+  <div id="target-both"></div>
+  <div id="target-inline"></div>
+</div>
+
+<script>
+// Force initial layout.
+document.body.offsetTop;
+
+test(() => {
+  document.getElementById("target-both").style.inset = "40px";
+  // Available margin space: 400 - 40 - 40 - 200 = 120px, so each auto margin = 60px.
+  // Expected offset from container edge: 40 + 60 = 100px.
+  assert_equals(document.getElementById("target-both").offsetLeft, 100,
+                "inline auto margin after inset change");
+  assert_equals(document.getElementById("target-both").offsetTop, 100,
+                "block auto margin after inset change");
+}, "margin:auto on abspos resolves correctly after dynamic inset change");
+
+test(() => {
+  document.getElementById("target-inline").style.inset = "40px";
+  // Inline axis: available margin space = 400 - 40 - 40 - 200 = 120px, each margin = 60px.
+  // Block axis: margin is 0, not auto.
+  assert_equals(document.getElementById("target-inline").offsetLeft, 100,
+                "inline auto margin after inset change");
+  assert_equals(document.getElementById("target-inline").offsetTop, 40,
+                "zero block margin after inset change");
+}, "margin:0 auto on abspos resolves correctly after dynamic inset change");
+</script>

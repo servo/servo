@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: 'Border-radius' is set with 'border-style: dotted'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css3-background/#the-border-color" />
+        <meta name="assert" content="'Border-style: dotted' follows the curve of the border." />
+        <style type="text/css">
+            div
+            {
+                border: 0.2in dotted;
+                height: 2in;
+                width: 2in;
+                border-radius: 80px;
+                border-top-color: purple;
+                border-right-color: green;
+                border-bottom-color: blue;
+                border-left-color: #808080;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a rounded border with purple dots on the top, green on the right side, blue on the bottom side, and grey on the left side.</p>
+        <div></div>
+    </body>
+</html>

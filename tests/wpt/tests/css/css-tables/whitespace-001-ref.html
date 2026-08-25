@@ -1,0 +1,24 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test Reference</title>
+<style>
+.outer {
+  display: block;
+  width: 500px;
+  background: purple;
+  border: 1px solid green;
+}
+.half {
+  display: inline-block;
+  width: 50%;
+  background: blue;
+}
+.half + .half {
+  background: yellow;
+}
+</style>
+<div class="outer">
+  <div class="half">A</div>
+  <!-- White space here should take up space -->
+  <div class="half">B</div>
+</div>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html><head>
+        <title> scheduler: Altering DOM using innerHTML during parse </title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="testlib/testlib.js"></script>
+</head>
+<body>
+
+        <div id="test"></div>
+        <div id="log">FAILED (This TC requires JavaScript enabled)</div>
+
+        <script>
+          var t = async_test();
+
+          addEventListener("load", t.step_func(function () {
+            assert_array_equals(eventOrder, ["inline script #1", "inline script #2"]);
+            t.done();
+          }), false);
+
+        </script>
+        <div id="container">
+          <script>t.step(function() {
+            log("inline script #1");
+            document.getElementById("container").innerHTML = "";
+          });
+          </script>
+          <script>t.step(function() {log("inline script #2")});</script>
+        </div>
+
+</body></html>

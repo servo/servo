@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      Test AudioBufferSourceNode With Looping a Single-Sample Buffer
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/webaudio/resources/audit-util.js"></script>
+    <script src="/webaudio/resources/audit.js"></script>
+  </head>
+  <body>
+    <script id="layout-test-code">
+      let audit = Audit.createTaskRunner();
+
+      let sampleRate = 44100;
+      let testDurationSamples = 1000;
+
+      audit.define('one-sample-loop', function(task, should) {
+        // Create the offline context for the test.
+        let context =
+            new OfflineAudioContext(1, testDurationSamples, sampleRate);
+
+        // Create the single sample buffer
+        let buffer = createConstantBuffer(context, 1, 1);
+
+        // Create the source and connect it to the destination
+        let source = context.createBufferSource();
+        source.buffer = buffer;
+        source.loop = true;
+        source.connect(context.destination);
+        source.start();
+
+        // Render it!
+        context.startRendering()
+            .then(function(audioBuffer) {
+              should(audioBuffer.getChannelData(0), 'Rendered data')
+                  .beConstantValueOf(1);
+            })
+            .then(task.done.bind(task));
+        ;
+      });
+
+      audit.run();
+    </script>
+  </body>
+</html>

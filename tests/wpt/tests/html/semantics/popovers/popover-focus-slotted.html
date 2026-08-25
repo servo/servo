@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Popover focus with slotted popover and invoker</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel=help href="https://crbug.com/447888734">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/html/semantics/popovers/resources/popover-utils.js"></script>
+
+<div id="host">
+  <template shadowrootmode="open">
+    <div>
+      <slot id="invoker" name="invoker"></slot>
+      <slot id="popover" popover="manual"></slot>
+    </div>
+  </template>
+  <button slot="invoker">Click me</button>
+  <button id="inner">Click me next</button>
+</div>
+
+<script>
+  const div = document.getElementById('host');
+  const invoker = div.shadowRoot.querySelector("#invoker");
+  const popover = div.shadowRoot.querySelector("#popover");
+  const inner = document.getElementById('inner');
+  popover.togglePopover({source: invoker});
+
+  promise_test(async () => {
+    assert_true(popover.matches(':popover-open'), 'Popover should be open');
+    inner.focus();
+    assert_equals(document.activeElement, inner, 'Start with inner focused');
+
+    // Tab forward
+    await sendTab();
+    assert_not_equals(document.activeElement, inner, 'Focus should move');
+  }, 'Tabbing forward out of a <slot popover> should not hang.');
+
+  promise_test(async () => {
+    assert_true(popover.matches(':popover-open'), 'Popover should be open');
+    inner.focus();
+    assert_equals(document.activeElement, inner, 'Start with inner focused');
+
+    // Tab backwards
+    await sendShiftTab();
+    assert_not_equals(document.activeElement, inner, 'Focus should move');
+  }, 'Tabbing backwards out of a <slot popover> should not hang.');
+</script>

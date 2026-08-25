@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>text-combine-upright:all (up to 4 chars)</title>
+<link rel="author" title="Richard Ishida" href="mailto:ishida@w3.org"/>
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#text-combine-upright"/>
+<meta name="assert" content="text-combine-upright:all will display up to four-character numbers horizontally."/>
+<style type="text/css">
+@font-face {
+    font-family: "webfont";
+    src: url("/fonts/CSSTest/mplus-1p-regular.woff") format("woff");
+    font-weight: normal;
+    font-style: normal;
+    }
+.test, .ref { font-family: webfont, serif; font-size: 24px; height: 300px; width: 300px; }
+</style>
+<!-- this is the test -->
+<style type="text/css">
+.test { writing-mode: vertical-rl; }
+.test span { text-combine-upright: all; }
+</style>
+</head>
+<body>
+<p class="instructions" dir="ltr">Test passes if all four numbers are upright and not more than one cell wide.</p>
+<div class="test">
+<p lang="ja"><span>W3C</span>会議は<span>2016</span>年<span>5</span>月<span>12</span>日です。<span>242</span>日目です。</p>
+</div>
+</body>
+</html>

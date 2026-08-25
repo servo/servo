@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Interaction of 'inert' attribute with modal dialog</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#inert">
+<meta name="assert" content="Checks that a modal dialog escapes inertness from ancestors.">
+<div id="log"></div>
+<div id="wrapper">
+  wrapper
+  <dialog id="dialog">
+    dialog
+    <span id="child">
+      child
+    </span>
+  </dialog>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+setup(() => {
+  dialog.showModal();
+  add_completion_callback(() => {
+    dialog.close();
+    getSelection().removeAllRanges();
+  });
+});
+
+function checkSelection(expectedText) {
+  const selection = getSelection();
+  selection.selectAllChildren(document.documentElement);
+  const actualText = selection.toString().trim();
+  assert_equals(actualText, expectedText);
+}
+
+test(function() {
+  checkSelection("dialog child");
+}, "Modal dialog only marks outside nodes as inert");
+
+test(function() {
+  child.inert = true;
+  this.add_cleanup(() => { child.inert = false; });
+  checkSelection("dialog");
+}, "Inner nodes with 'inert' attribute become inert anyways");
+
+test(function() {
+  dialog.inert = true;
+  this.add_cleanup(() => { dialog.inert = false; });
+  checkSelection("");
+}, "If the modal dialog has the 'inert' attribute, everything becomes inert");
+
+test(function() {
+  wrapper.inert = true;
+  this.add_cleanup(() => { wrapper.inert = false; });
+  checkSelection("dialog child");
+}, "If an ancestor of the dialog has the 'inert' attribute, the dialog escapes inertness");
+</script>

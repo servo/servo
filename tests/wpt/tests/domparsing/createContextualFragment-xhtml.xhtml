@@ -1,0 +1,64 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>createContextualFragment() in XML documents</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script><![CDATA[
+// Unlike the HTML fragment parser, the XML fragment parser happily returns
+// html, head and body elements, so createContextualFragment() has to pop them
+// off the returned fragment while preserving their children.
+
+const HTML_NS = "http://www.w3.org/1999/xhtml";
+
+function contextualFragment(markup) {
+  const range = document.createRange();
+  range.setStart(document.documentElement, 0);
+  return range.createContextualFragment(markup);
+}
+
+test(function() {
+  const fragment = contextualFragment("<body xmlns='" + HTML_NS + "'><p>Hello world</p></body>");
+
+  assert_equals(fragment.childNodes.length, 1);
+  assert_equals(fragment.firstChild.localName, "p");
+  assert_equals(fragment.firstChild.textContent, "Hello world");
+}, "A <body> element must be stripped, preserving its children");
+
+test(function() {
+  const fragment = contextualFragment("<html xmlns='" + HTML_NS + "'><head><title>hi</title></head><body><div id='inner'>content</div></body></html>");
+
+  assert_equals(fragment.querySelector("html"), null, "<html> must be stripped");
+  assert_equals(fragment.querySelector("head"), null, "the nested <head> must be stripped");
+  assert_equals(fragment.querySelector("body"), null, "the nested <body> must be stripped");
+
+  assert_equals(fragment.childNodes.length, 2);
+  assert_equals(fragment.firstChild.localName, "title");
+  assert_equals(fragment.firstChild.textContent, "hi");
+  assert_equals(fragment.lastChild.localName, "div");
+  assert_equals(fragment.lastChild.textContent, "content");
+}, "The <head> and <body> nested inside a stray <html> element must be stripped too");
+
+test(function() {
+  const fragment = contextualFragment("<html xmlns='" + HTML_NS + "'><html><body><p>Hello world</p></body></html></html>");
+
+  assert_equals(fragment.childNodes.length, 1);
+  assert_equals(fragment.firstChild.localName, "p");
+  assert_equals(fragment.firstChild.textContent, "Hello world");
+}, "Stripping must recurse through nested <html> elements");
+
+test(function() {
+  const fragment = contextualFragment("<html xmlns='http://fake-namespace'><head><title>hi</title></head></html>");
+
+  assert_equals(fragment.childNodes.length, 1);
+  const html = fragment.firstChild;
+  assert_equals(html.localName, "html");
+  assert_equals(html.namespaceURI, "http://fake-namespace");
+  assert_equals(html.childNodes.length, 1);
+  assert_equals(html.firstChild.localName, "head");
+}, "<html>, <head> and <body> in a different namespace must not be special");
+]]></script>
+</body>
+</html>

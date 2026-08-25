@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>caret-color second value has no effect when caret-shape is not block</title>
+<link rel="help" href="https://drafts.csswg.org/css-ui/#caret-color">
+<link rel="match" href="caret-color-non-block-shape-text-color-ref.html">
+<meta name="assert" content="The second value of caret-color only affects the character overlapping a block caret. With caret-shape: underscore, no character is overlapped, so the text color is not overridden.">
+<style>
+  div {
+    font-size: 5em;
+    color: black;
+  }
+  #target {
+    /* Hide the bar caret pixels so the screenshot is just the text. */
+    caret-color: transparent lime;
+    caret-shape: underscore;
+    caret-animation: manual;
+  }
+  #target:focus {
+    outline: none;
+  }
+</style>
+<div id="target" contenteditable spellcheck="false">abc</div>
+<script>
+  target.focus();
+</script>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<link rel="stylesheet" href="/html/canvas/resources/draw-element-image-styles.css" />
+<script src="/html/canvas/resources/color-grid-component.js"></script>
+<style>
+ body {
+   display: grid;
+   grid: 256px / 1fr 1fr 1fr;
+   align-items: start;
+ }
+ color-grid {
+   transform-origin: 0 0;
+   width:100px;
+   height:100px;
+ }
+</style>
+
+<div class="draw-element-wrapper">
+  <div class="css-is-awesome"></div>
+</div>
+
+<div class="draw-element-wrapper">
+  <color-grid></color-grid>
+</div>
+
+<div class="draw-element-wrapper">
+  <color-grid style="transform:scale(0.5)"></color-grid>
+</div>
+
+<div class="draw-element-wrapper">
+  <color-grid style="transform:scale(2)"></color-grid>
+</div>
+
+<div class="draw-element-wrapper">
+  <color-grid style="transform:scaleX(2) scaleY(0.5)"></color-grid>
+</div>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>test reference</title>
+<style>
+ruby {
+    ruby-overhang: spaces;
+    ruby-align: center;
+}
+div {
+    font-size: 20px;
+    border-left: 5px solid;
+    border-right: 5px solid;
+    width: max-content;
+}
+.test { border-color: orange; }
+.measure { border-color: blue; }
+</style>
+<body lang="ja">
+<p>Test passes if orange and blue lines are aligned.
+<div class=test>あ<ruby>&#x00B7;　あ　&#x00B7;<rt>あああああああ</ruby>あ</div>
+<div class=measure>あ&#x00B7;　あ　&#x00B7;あ</div>
+</body>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<link rel="match" href="table-collapsed-borders-paint-at-boundary-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#fragmentation">
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#rendering">
+<style>
+.multicol {
+  width: 500px;
+  height: 100px;
+  columns: 5;
+  column-fill: auto;
+  gap: 10px;
+  padding: 10px;
+  border: solid 3px;
+}
+</style>
+<div class="multicol">
+  <table style="border-collapse: collapse; width: 100%;">
+    <caption style="background: dodgerblue; height: 150px;"></caption>
+    <tbody>
+      <tr style="height: 45px;">
+        <td style="border: solid 10px lime;"></td>
+      </tr>
+      <tr style="height: 100px;">
+        <td style="border: solid 10px; border-left-width: 15px;"></td>
+      </tr>
+    </tbody>
+    <tbody>
+      <tr style="height: 50px;">
+        <td style="border: solid blue 10px; border-right-width: 15px;"></td>
+      </tr>
+      <tr style="height: 50px;">
+        <td style="border: solid blue 10px;"></td>
+      </tr>
+      <tr style="height: 80px;">
+        <td style="border: solid blue 10px;"></td>
+      </tr>
+    </tbody>
+  </table>
+</div>

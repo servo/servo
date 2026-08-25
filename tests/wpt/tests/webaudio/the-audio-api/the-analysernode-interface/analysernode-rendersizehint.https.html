@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>Test AnalyserNode with renderSizeHint</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/webaudio/resources/rendersizehint-robustness-helper.js"></script>
+<script>
+for (const config of ROBUSTNESS_TEST_CONFIGS) {
+  const {sampleRate, renderSizeHint} = config;
+
+  // Test 1: Stability with custom quantum and large fftSize
+  runQuantumRobustnessTest(
+      config,
+      audioContext => new AnalyserNode(audioContext, {fftSize: 4096}),
+      `Stability with large fftSize 4096 at ${sampleRate}Hz & ` +
+      `hint ${renderSizeHint}`
+  );
+
+  // Test 2: Stability with default fftSize and custom quantum
+  runQuantumRobustnessTest(
+      config,
+      audioContext => new AnalyserNode(audioContext),
+      `Default fftSize processing at ${sampleRate}Hz & hint ${renderSizeHint}`
+  );
+}
+</script>

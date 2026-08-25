@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="help" href="https://drafts.csswg.org/css-scroll-snap"/>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/dom/events/scrolling/scroll_support.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="resources/common.js"></script>
+</head>
+
+<body>
+  <style>
+    .iframe {
+      width: 1000px;
+      height: 1000px;
+    }
+  </style>
+  <script>
+    window.onload = async () => {
+      await waitForCompositorCommit();
+      // This test sets up a 3x3 grid within scroller:
+      // -------------------------
+      // | Box 1 | Box 2 | Box 3 |
+      // ------------------------
+      // | Box 4 | Box 5 | Box 6 |
+      // -------------------------
+      // | Box 7 | Box 8 | Box 9 |
+      // -------------------------
+      // within an iframe.
+      // This function just gets the numbers beside |box_number| on each row.
+      // E.g. 4: 4%3 = 1; so the numbers we want are 5 (4+1) and 6 (4+2).
+      function getAlignedNumbers(n) {
+        const mod_3 = n % 3;
+        if (mod_3 == 1) {
+          return [n + 1, n + 2];
+        } else if (mod_3 == 2) {
+          return [n - 1, n + 1];
+        }
+        return [n - 1, n - 2];
+      }
+
+      async function test(box_number) {
+        return promise_test(async (t) => {
+          let [other_box_1, other_box_2] = getAlignedNumbers(box_number);
+          let finish = null;
+          const finished = new Promise((res) => {
+            finish = res;
+          });
+          var iframe = document.createElement("iframe");
+          iframe.classList.add("iframe");
+          iframe.onload = async () => {
+            let boxes = iframe.contentDocument.getElementsByClassName("box");
+            const box = (i) => {
+              return boxes[i - 1];
+            }
+            let scroller = iframe.contentDocument.getElementById("scroller");
+            assert_equals(boxes.length, 9);
+            await runScrollSnapSelectionVerificationTest(t, scroller,
+                /*aligned_elements_x=*/[],
+                /*aligned_elements_y=*/[box(box_number),
+                                        box(other_box_1),
+                                        box(other_box_2)],
+                /*axis=*/"y",
+                /*expected_target_x*/null,
+                /*expected_target_y*/box(box_number));
+
+            // Let scroller no longer be a scroll container.
+            scroller.style.overflow = "visible";
+            assert_equals(scroller.scrollTop, 0);
+
+            // Let scroller be a scroll container once again.
+            scroller.style.overflow = "scroll";
+
+            // Run the test again.
+            await runScrollSnapSelectionVerificationTest(t, scroller,
+                /*aligned_elements_x=*/[],
+                /*aligned_elements_y=*/[box(box_number),
+                                        box(other_box_1),
+                                        box(other_box_2)],
+                /*axis=*/"y",
+                /*expected_target_x*/null,
+                /*expected_target_y*/box(box_number));
+
+            finish();
+          };
+          iframe.src = `prefer-targeted-element-iframe.html#box${box_number}`;
+          document.body.appendChild(iframe);
+          await finished;
+          document.body.removeChild(iframe);
+        }, `scroller selects targeted area box${box_number} among multiple` +
+           ` aligned areas.`);
+      }
+
+      await test(1);
+      await test(2);
+      await test(3);
+      await test(4);
+      await test(5);
+      await test(6);
+      await test(7);
+      await test(8);
+      await test(9);
+    }
+  </script>
+</body>
+</html>

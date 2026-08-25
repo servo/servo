@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Null Test</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<h1>Test of previousElementSibling and nextElementSibling returning null</h1>
+<div id="log"></div>
+<p id="parentEl">The result of this test is <span id="first_element_child" style="font-weight:bold;">unknown.</span></p>
+<script><![CDATA[
+test(function() {
+  var fec = document.getElementById("first_element_child");
+  assert_equals(fec.previousElementSibling, null)
+  assert_equals(fec.nextElementSibling, null)
+})
+]]></script>
+</body>
+</html>

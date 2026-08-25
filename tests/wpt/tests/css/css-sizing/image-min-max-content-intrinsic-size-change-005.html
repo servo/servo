@@ -1,0 +1,24 @@
+<!doctype html>
+<html class="reftest-wait">
+<title>CSS Test: Image size is not altered when it loads when min/max-size depends on the transferred intrinsic sizes, not natural sizes</title>
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<link rel="help" href="https://drafts.csswg.org/css-sizing/#sizing-values">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1546739">
+<link rel="match" href="image-min-max-content-intrinsic-size-change-001-ref.html">
+<style>
+  img {
+    border: 1px solid black;
+    height: 30px;
+    width: 40px;
+    min-height: min-content;
+    writing-mode: vertical-lr;
+  }
+</style>
+<img>
+<script>
+  let img = document.querySelector("img");
+  img.offsetWidth; // Ensure the image is laid out.
+  img.onload = () => document.documentElement.className = "";
+  img.src = "/css/support/60x60-green.png";
+</script>

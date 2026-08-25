@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+<meta charset=utf-8>
+<title>CSS Generated Content test: quotes</title>
+<meta name="assert" content="quotes:auto resets default behavior after quotes:none">
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-content-3/#quotes">
+<link rel=match href="reference/quotes-033-ref.html">
+<style>
+body { font: 32px serif; quotes: none; }
+.inner { quotes: auto; }
+</style>
+<body>
+<p>Test passes if quote marks in both lines match:
+<p>One <q>two</q> <span class="inner"><q>three <q>four</q></q></span> <q>five</q>
+<p>One two “three ‘four’” five

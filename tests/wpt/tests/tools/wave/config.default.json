@@ -1,0 +1,49 @@
+{
+  "browser_host": "web-platform.test",
+  "alternate_hosts": {
+    "alt": "not-web-platform.test"
+  },
+  "doc_root": ".",
+  "ws_doc_root": "./websockets/handlers",
+  "server_host": null,
+  "ports": {
+    "http": [8000, "auto"],
+    "https": [8443],
+    "ws": ["auto"],
+    "wss": ["auto"]
+  },
+  "check_subdomains": true,
+  "log_level": "debug",
+  "bind_address": true,
+  "ssl": {
+    "type": "pregenerated",
+    "encrypt_after_connect": false,
+    "openssl": {
+      "openssl_binary": "openssl",
+      "base_path": "_certs",
+      "force_regenerate": false,
+      "base_conf_path": null
+    },
+    "pregenerated": {
+      "host_key_path": "./tools/certs/web-platform.test.key",
+      "host_cert_path": "./tools/certs/web-platform.test.pem"
+    },
+    "none": {}
+  },
+  "aliases": [],
+  "wave": {
+    "results": "./results",
+    "timeouts": {
+      "automatic": 60000,
+      "manual": 300000
+    },
+    "enable_import_results": false,
+    "web_root": "/_wave",
+    "persisting_interval": 20,
+    "api_titles": [],
+    "enable_read_sessions": false,
+    "event_cache_duration": 60000,
+    "enable_test_type_selection": false,
+    "enable_test_file_selection": false
+  }
+}

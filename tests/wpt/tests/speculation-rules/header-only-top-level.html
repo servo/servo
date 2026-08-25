@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>Speculation-Rules header must only be fetched for top-level windows</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/html/browsers/browsing-the-web/remote-context-helper/resources/remote-context-helper.js"></script>
+
+<script>
+promise_test(async t => {
+  const uuid = token();
+  const rulesURL = (new URL(`resources/counter.py?uuid=${uuid}`, document.baseURI)).href;
+
+  const rcHelper = new RemoteContextHelper();
+  const rc = await rcHelper.addWindow({
+    headers: [["Speculation-Rules", `"${rulesURL}"`]]
+  });
+
+  await t.step_wait(async () => {
+    const requestCount1 = await (await fetch(rulesURL + "&check")).json();
+    return requestCount1 === 1;
+  }, "wait for request count to be updated for top-level window");
+
+  const iframe = rc.addIframe({
+    headers: [["Speculation-Rules", `"${rulesURL}"`]]
+  });
+
+  // Just wait 2 seconds and hope that any erroneous request shows up by then.
+  await new Promise(resolve => t.step_timeout(resolve, 2000));
+
+  const requestCount2 = await (await fetch(rulesURL + "&check")).json();
+  assert_equals(requestCount2, 1, "rules must not be fetched for iframes");
+});
+</script>

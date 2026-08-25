@@ -1,0 +1,43 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async t => {
+  let start_length = navigation.entries().length;
+  let start_index = navigation.currentEntry.index;
+
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+  await navigation.navigate("#foo").committed;
+  assert_equals(navigation.entries().length, start_length + 1);
+
+  let oncurrententrychange_back_called = false;
+  let back_committed = false;
+  navigation.oncurrententrychange = t.step_func(e => {
+    oncurrententrychange_back_called = true;
+    assert_equals(e.from, navigation.entries()[start_index + 1]);
+    assert_equals(e.navigationType, "traverse");
+    assert_equals(navigation.currentEntry.index, start_index);
+    assert_false(back_committed);
+  });
+  let back_result = navigation.back();
+  assert_false(oncurrententrychange_back_called);
+  await back_result.committed.then(() => back_committed = true);
+  assert_true(oncurrententrychange_back_called);
+
+  let oncurrententrychange_forward_called = false;
+  let forward_committed = false;
+  navigation.oncurrententrychange = t.step_func(e => {
+    oncurrententrychange_forward_called = true;
+    assert_equals(e.from, navigation.entries()[start_index]);
+    assert_equals(e.navigationType, "traverse");
+    assert_equals(navigation.currentEntry.index, start_index + 1);
+    assert_false(forward_committed);
+  });
+  let forward_result = navigation.forward();
+  assert_false(oncurrententrychange_forward_called);
+  await forward_result.committed.then(() => forward_committed = true);
+  assert_true(oncurrententrychange_forward_called);
+}, "currententrychange fires for same-document navigation.back() and navigation.forward()");
+</script>

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<script src="../resources/runner.js"></script>
+<!-- This is a micro benchmark to catch an unintentional regression.
+     If the reason of a regression is clear, it is okay.
+     We do not have to optimize the result of the benchmark. -->
+<div id="wrapper">
+  <div id="host"></div>
+</div>
+<script>
+'use strict';
+const numChildOfHost = 10;
+const numDivsInShadow = 100;
+const loops = 20;
+
+for (let i = 0; i < numChildOfHost; ++i) {
+  let div = document.createElement('div');
+  div.appendChild(document.createTextNode('div' + i));
+  host.appendChild(div);
+}
+
+const slot = document.createElement('slot');
+const shadowRoot = host.attachShadow({mode: 'open'});
+shadowRoot.appendChild(slot);
+
+for (let i = 0; i < numDivsInShadow; ++i) {
+  let div = document.createElement('div');
+  shadowRoot.appendChild(div);
+}
+
+function run() {
+  let div = document.createElement('div');
+  for (let i = 0; i < loops; ++i) {
+    host.appendChild(div);
+    slot.assignedNodes({flatten: true});
+    host.removeChild(div);
+    slot.assignedNodes({flatten: true});
+  }
+}
+
+PerfTestRunner.measureTime({
+  description: "Measure v1 distribution performance",
+  run: run,
+  done: () => {
+    wrapper.innerHTML = '';
+  }
+});
+</script>

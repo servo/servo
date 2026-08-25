@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="resources/dialog.css">
+</head>
+<style>
+.box {
+    height: 150px;
+    width: 150px;
+}
+.container {
+    perspective: 500px;
+    border: 1px solid black;
+    background-color: magenta;
+}
+.transformed {
+    transform: rotateY(45deg);
+    background-color: cyan;
+}
+</style>
+<body>
+<div class="pseudodialog" style="position: fixed; top: 10px; z-index:3000">
+    This white box is the topmost modal dialog. It should be on top of everything.
+</div>
+<div style="position: absolute; top: 0px; z-index: 3; background-color: red; left: 0; right: 0; height: 200px;"></div>
+<div class="pseudodialog" style="position: absolute; top: 50px; background-color: green; width: 75%; height: 400px; z-index:2000; overflow: auto;">
+    This green box is also a modal dialog. It should be rendered above the red and yellow regions.
+    <div class="container box">
+        <div class="transformed box">A transform within the dialog's subtree.</div>
+    </div>
+    <div class="box" style="position: absolute; top:300px; z-index: 2; background-color: cyan">
+        This shows z-index stacking within the dialog's subtree. The cyan box should be on top of the magenta one.
+    </div>
+    <div class="box" style="position: absolute; top:350px; left:50px; z-index: 1; background-color: magenta"></div>
+    <div style="position: fixed; top: 90px; left: 30px; background-color: green">This is part of the green dialog.</div>
+</div>
+<div style="position: absolute; top: 100px; left: 0px; right: 0px; height: 200em; background-color: yellow; z-index:1000">
+</div>
+</body>
+</html>

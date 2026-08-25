@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<link rel="author" href="mailto:atotic@google.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://crbug.com/970166">
+<meta name="assert" content="simplified layout calculates correct abspos position with floats">
+<style>
+
+#container {
+  position: relative;
+  background: gray;
+}
+#container::after {
+  content: '';
+  display: table;
+  clear:both;
+}
+#target {
+  position: absolute;
+  right: 0;
+  background: green;
+}
+</style>
+<div id="container">
+  <div style="float:left">floatleft</div>
+  <div id="target">
+    <div>text</div>
+    <div id="toggle">toggle</div>
+  </div>
+</div>
+<script>
+test(() => {
+  document.body.offsetTop;
+  let el = document.querySelector("#toggle");
+  el.style.display = "none";
+  document.body.offsetTop;
+  assert_equals(document.querySelector("#target").offsetTop, 0);
+}, '#target position is recalculated correctly.');
+</script>

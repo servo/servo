@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<!--
+[%provenance%]
+-->
+<html lang="en">
+  <meta charset="utf-8">
+  <title>HTTP headers on request for HTML "meta" element with http-equiv="refresh"</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/fetch/metadata/resources/helper.sub.js"></script>
+  <body>
+  <script>
+  'use strict';
+
+  function induceRequest(url, test) {
+    const win = window.open();
+    test.add_cleanup(() => win.close());
+
+    win.document.open();
+    win.document.write(
+      `<meta http-equiv="Refresh" content="0; URL=${url}">`
+    );
+    win.document.close();
+
+    return new Promise((resolve) => {
+      addEventListener('message', (event) => {
+          if (event.source === win) {
+            resolve();
+          }
+        });
+    });
+  }
+
+  const responseParams = {
+    mime: 'text/html',
+    body: `<script>opener.postMessage(0, '*')</${''}script>`
+  };
+  {%- for subtest in subtests %}
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    return induceRequest(
+        makeRequestURL(key, [% subtest.origins %], responseParams), t
+      )
+      .then(() => retrieve(key))
+      .then((headers) => {
+        {%- if subtest.expected == none %}
+          assert_not_own_property(headers, '[%subtest.headerName%]');
+        {%- else %}
+          assert_own_property(headers, '[%subtest.headerName%]');
+          assert_array_equals(headers['[%subtest.headerName%]'], ['[%subtest.expected%]']);
+        {%- endif %}
+        });
+  }, '[%subtest.headerName%][%subtest.description | pad("start", " - ")%]');
+
+  {%- endfor %}
+  </script>
+  </body>
+</html>

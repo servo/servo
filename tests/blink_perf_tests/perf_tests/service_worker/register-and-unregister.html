@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src='../resources/runner.js'></script>
+</head>
+<body>
+<script>
+let isDone = false;
+function testDone() {
+  isDone = true;
+}
+
+async function runTest() {
+  let index = 0;
+  while (!isDone) {
+    const script =
+        `/service_worker/resources/service-worker-${index}.generated.js`;
+    const scope = `/service_worker/resources/scope_${index}`;
+
+    const startTime = performance.now();
+    const registration = await navigator.serviceWorker.register(
+        script, { scope: scope });
+    await registration.unregister();
+    PerfTestRunner.measureValueAsync(performance.now() - startTime);
+    index++;
+  }
+  return;
+}
+
+PerfTestRunner.startMeasureValuesAsync({
+  description: 'Measure performance of register and unregister service worker.',
+  unit: 'ms',
+  run: runTest,
+  done: testDone,
+  iterationCount: 30
+});
+</script>
+</body>
+</html>

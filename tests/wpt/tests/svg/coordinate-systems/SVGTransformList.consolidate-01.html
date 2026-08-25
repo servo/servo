@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<title>SVGTransformList.prototype.consolidate</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/coords.html#__svg__SVGTransformList__consolidate">
+<script>
+function makeAnimatedTransformList(transformString) {
+  const e = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  if (transformString) {
+    e.setAttribute('transform', transformString);
+  }
+  return e.transform;
+}
+
+function makeTransformList(transformString) {
+  return makeAnimatedTransformList(transformString).baseVal;
+}
+
+function assert_svg_matrix(actual, expected) {
+  const EPSILON = 0.0001;
+  for (let component of ['a', 'b', 'c', 'd', 'e', 'f']) {
+    assert_approx_equals(actual[component], expected[component], EPSILON,
+                         `matrix component '${component}'`);
+  }
+}
+
+test(function() {
+  const roList = makeAnimatedTransformList('scale(1) translate(10 10)').animVal;
+  assert_equals(roList.length, 2);
+  assert_throws_dom('NoModificationAllowedError', () => { roList.consolidate() });
+  assert_equals(roList.length, 2);
+}, `${document.title}, throws if read-only`);
+
+test(function() {
+  const list = makeTransformList();
+  assert_equals(list.length, 0);
+  assert_equals(list.consolidate(), null);
+}, `${document.title}, returns null for empty transform list`);
+
+test(function() {
+  const list = makeTransformList('translate(100 50) scale(2 3) translate(25 75)');
+  assert_equals(list.length, 3);
+  assert_not_equals(list.consolidate(), null);
+  assert_equals(list.length, 1);
+  assert_equals(list[0].type, SVGTransform.SVG_TRANSFORM_MATRIX);
+  assert_svg_matrix(list[0].matrix, {a: 2, b: 0, c: 0, d: 3, e: 150, f: 275});
+}, `${document.title}, consolidates`);
+</script>

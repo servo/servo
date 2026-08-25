@@ -1,0 +1,16 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>The dir attribute: isolated from immediately following number, opposite direction</title>
+<style type="text/css">
+.test, .ref { font-size: 150%; border: 1px solid orange; margin: 10px; margin-right: 200px; padding: 5px; clear: both; }
+input { margin: 5px; }
+</style>
+</head>
+<body>
+<p class="instructions" dir="ltr">Test passes if the two boxes are identical.</p>
+<div class="ref"><div dir="ltr">&#8237;&#1488;3&#8236;</div><div dir="ltr">&#8237;a3&#8236;</div><div dir="rtl">&#8237;3&#1488;&#8236;</div><div dir="rtl">&#8237;3a&#8236;</div></div>
+<div class="ref"><div dir="ltr">&#8237;&#1488;3&#8236;</div><div dir="ltr">&#8237;a3&#8236;</div><div dir="rtl">&#8237;3&#1488;&#8236;</div><div dir="rtl">&#8237;3a&#8236;</div></div>
+</body>
+</html>

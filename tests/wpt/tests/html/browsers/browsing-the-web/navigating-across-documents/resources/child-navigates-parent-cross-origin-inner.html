@@ -1,0 +1,20 @@
+<!doctype html>
+<script>
+const params = new URL(window.location).searchParams;
+const property = params.get("property");
+
+try {
+  if (property === null) {
+    parent.location = "foo";
+  } else if (property === "reload") {
+    parent.location.reload();
+  } else if (property === "replace") {
+    parent.location.replace("foo");
+  } else {
+    parent.location[property] = "foo";
+  }
+  parent.parent.postMessage("success", "*");
+} catch (e) {
+  parent.parent.postMessage(`error: ${e.name}`, "*");
+}
+</script>

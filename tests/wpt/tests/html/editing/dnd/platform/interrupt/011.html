@@ -1,0 +1,40 @@
+<!doctype html>
+<title>Alert during drop</title>
+<style>
+  body > div {
+    height: 200px;
+    width: 200px;
+    background-color: orange;
+    display: inline-block;
+  }
+  body > div + div {
+    background-color: navy;
+  }
+</style>
+<script type="text/javascript">
+window.onload = function () {
+  var orange = document.getElementsByTagName('div')[0], blue = document.getElementsByTagName('div')[1];
+  orange.ondragstart = function (e) {
+    e.dataTransfer.setData('text','PASS');
+    e.dataTransfer.effectAllowed = 'all';
+  };
+  blue.ondragenter = blue.ondragover = function (e) {
+    e.preventDefault();
+  };
+  blue.ondrop = function (e) {
+    e.preventDefault();
+    alert('JS alert');
+  };
+};
+</script>
+<div draggable="true"></div>
+<div></div>
+
+<ol>
+  <li>Drag the orange square over the blue square, then release it.</li>
+  <li>An alert may appear - release the mouse over the page, not the dialog. Dismiss it (you may need to use keyboard or mouse gestures such as gesture-down,gesture-right).</li>
+  <li>The mouse cursor may continue to show that a drag is in operation. If so, attempt to select some of this text with the mouse before continuing to the text step.</li>
+  <li>Fail if the mouse continues to show that a drag is in operation.</li>
+  <li>Try to select some text in this sentence. Fail if it is not possible.</li>
+  <li>Try to drag the orange square downwards. Fail if it is not possible.</li>
+</ol>

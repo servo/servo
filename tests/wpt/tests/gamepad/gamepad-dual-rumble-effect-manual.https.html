@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <p>
+      This test requires a gamepad device to be connected. Please interact with
+      the gamepad for it to be recognized. The "Dual rumble!" button will be
+      enabled after that.
+    </p>
+    <p>
+      After pressing the "Dual rumble!" button below, you should expect all the
+      "dual-rumble" compatible gamepads to vibrate for one second.
+    </p>
+    <p>
+      Please press the "Confirm effect has played" button to conclude
+      the test.
+    </p>
+    <button id="play_dual_rumble_button" disabled>No dual-rumble gamepads detected</button>
+    <button id="confirm_effect_button" disabled>Confirm effect has played</button>
+    <script>
+      async_test(t => {
+        let connectedDualRumbleGamepads = {};
+        playEffectButton = document.getElementById('play_dual_rumble_button');
+
+        function isDualRumbleSupported(gamepad) {
+          return gamepad.vibrationActuator.effects.includes('dual-rumble');
+        }
+
+        window.addEventListener('gamepadconnected', (e) => {
+          if (!e.gamepad || !e.gamepad.vibrationActuator || !e.gamepad.vibrationActuator.effects) {
+            return;
+          }
+
+          if (isDualRumbleSupported(e.gamepad)) {
+            connectedDualRumbleGamepads[e.gamepad.index] = e.gamepad;
+
+            if (playEffectButton.disabled) {
+              playEffectButton.disabled = false;
+              playEffectButton.innerText = 'Dual rumble!'
+            }
+          }
+        });
+
+        window.addEventListener('gamepaddisconnected', (e) => {
+          delete connectedDualRumbleGamepads[e.gamepad.index];
+
+          let anyDualRumbleGamepad = false;
+          for (let index in connectedDualRumbleGamepads){
+            const gamepad = connectedDualRumbleGamepads[index];
+            if (!gamepad || !gamepad.vibrationActuator || !gamepad.vibrationActuator.effects) {
+              continue;
+            }
+
+            if (isDualRumbleSupported(gamepad)){
+              anyDualRumbleGamepad = true;
+              break;
+            }
+          }
+
+          if (!anyDualRumbleGamepad && !playEffectButton.disabled) {
+            playEffectButton.disabled = true;
+            playEffectButton.innerText = "No dual-rumble gamepads detected";
+          }
+        });
+
+        playEffectButton.addEventListener("click", () => {
+          let gamepads = navigator.getGamepads();
+          for (const gamepad of gamepads) {
+            if (gamepad && isDualRumbleSupported(gamepad)) {
+              gamepad.vibrationActuator.playEffect("dual-rumble", {
+                duration: 1000,
+                strongMagnitude: 1.0,
+                weakMagnitude: 1.0,
+              });
+            }
+          }
+
+          const confirmButton = document.getElementById("confirm_effect_button");
+          if (confirmButton.disabled) {
+            confirmButton.disabled = false;
+          }
+          confirmButton.addEventListener('click', () => {
+            t.done();
+          });
+        });
+      }, "Gamepads with dual-rumble capabilities should have the body's motors activated.");
+    </script>
+  </body>
+</html>

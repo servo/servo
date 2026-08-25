@@ -1,0 +1,13 @@
+<!DOCTYPE HTML>
+<script>
+onload = opener.t.step_func(function() {
+  localStorage.test6564729 = '0'
+  setTimeout(opener.t.step_func(function() {document.links[0].click()}), 100);
+});
+</script>
+<body
+      onbeforeunload="localStorage.test6564729 += '1'"
+      onpagehide="localStorage.test6564729 += '3'"
+      onunload="localStorage.test6564729 += '4'">
+<p><a href="005a.html">Follow this link to run the test.</a>
+<p><iframe src="005b.html"></iframe>

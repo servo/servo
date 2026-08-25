@@ -1,0 +1,108 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Viewport: Page</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, minimum-scale=1">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="viewport_support.js"></script>
+        <script>
+           setup({explicit_done: true, explicit_timeout: true});
+        </script>
+        <style>
+          html {
+            width: 100%;
+            height: 100%;
+          }
+        </style>
+    </head>
+    <body>
+    <h1>Viewport: Page</h1>
+    <h4>
+        Test Description: Tests the page scrolling properties.
+    </h4>
+    <h2 style="color: red">THIS IS A MANUAL TEST</h2>
+    <p id="skip">
+        <button id="skipbtn" onclick="skipManualTest();">Skip Test</button>
+    </p>
+    <h4>Instruction</h4>
+    <p id="instruction"></p>
+    <button id="continue">Start Test</button>
+    <div id="log"></div>
+    </body>
+    <script>
+        var continueBtn = document.getElementById("continue");
+        var icbWidth = 0;
+        var icbHeight = 0;
+
+        function continueTest() {
+          nextStep(function(instructionText) {
+            var instruction = document.getElementById("instruction");
+            continueBtn.innerText = "Continue";
+            instruction.innerText = instructionText;
+          });
+        }
+
+        continueBtn.addEventListener('click', continueTest);
+
+        addManualTestStep(
+            function() {},
+            null,
+            '1. Ensure the browser is at the default pinch and browser zoom ' +
+            'levels (100%). Most browsers: ctrl+0');
+
+        addManualTestStep(
+            showPinchWidget.bind(null, 1.5, 0, 0, continueTest),
+            null,
+            '2.Follow instructions on pinch zoom dialog.');
+
+        addManualTestStep(
+            function() {
+              continueBtn.style.position = "absolute";
+              continueBtn.style.left = "400%";
+              continueBtn.style.top = "400%";
+
+              assert_approx_equals(window.visualViewport.scale, 1.5, 0.2,
+                  "window.visualViewport.scale reflects pinch-zoom level");
+            },
+            'Tester pinch zoomed in correctly',
+            '3. Scroll fully to the bottom right. Click the continue button there.');
+
+        addManualTestStep(
+            function() {
+              var expectedLeft =
+                  document.documentElement.clientWidth * 4 +
+                  continueBtn.clientWidth -
+                  window.visualViewport.width;
+              var expectedTop =
+                  document.documentElement.clientHeight * 4 +
+                  continueBtn.clientHeight -
+                  window.visualViewport.height;
+              var viewPageLeft = window.visualViewport.pageLeft;
+              var viewPageTop = window.visualViewport.pageTop;
+
+              // This needs to happen before assertions in case they fail. A
+              // failed assertion stops running this function.
+              continueBtn.style.position = "";
+              continueBtn.style.left = "";
+              continueBtn.style.top = "";
+
+              window.scrollTo(0, 0);
+
+              assert_approx_equals(viewPageLeft, expectedLeft, 10,
+                  "window.visualViewport.scale reflects pinch-zoom level");
+              assert_approx_equals(viewPageTop, expectedTop, 10,
+                  "window.visualViewport.scale reflects pinch-zoom level");
+            },
+            'PageLeft and PageTop correct when scrolled',
+            '4. Pinch-zoom out fully');
+
+        addManualTestStep(
+            function() {
+                continueBtn.remove();
+            },
+            null,
+            'Test Complete');
+    </script>
+</html>

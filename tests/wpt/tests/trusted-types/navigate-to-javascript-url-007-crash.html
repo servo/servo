@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<script>
+  // The subframe navigates to a JavaScript URL, causing the default policy to
+  // be called, which in turn removes the subframe's browsing context.
+  let iframe = document.createElement("iframe");
+  iframe.srcdoc = `<!DOCTYPE html>
+<meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script';">
+<script>
+  window.addEventListener("load", _ => {
+    trustedTypes.createPolicy("default", {
+      createScript: s => {
+        window.frameElement.remove();
+        return s;
+      }
+    });
+    window.location = 'javascript:;';
+  });
+<\u002Fscript>`;
+  document.head.appendChild(iframe);
+</script>

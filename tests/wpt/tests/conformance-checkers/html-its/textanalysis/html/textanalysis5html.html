@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <script type="application/its+xml">  
+  <its:rules xmlns:its="http://www.w3.org/2005/11/its" version="2.0" xmlns:h="http://www.w3.org/1999/xhtml">
+    <its:param name="taCityParam">dublin</its:param>
+    <its:param name="taCapitalParam">capital</its:param>
+    <its:textAnalysisRule selector="//h:body/h:p/h:*[@id=$taCityParam]"
+      taClassRefPointer="@typeof"
+      taIdentRefPointer="@property"/>
+    <its:textAnalysisRule selector="//h:body/h:p/h:*[@id=$taCapitalParam]"
+      taClassRefPointer="@typeof"
+      taSourcePointer="@property"
+      taIdentPointer="@about"/>
+  </its:rules>
+  </script>  
+  <meta charset=utf-8>
+  <title>Textanalysis: Local Test</title>
+ </head>
+ <body>
+  <p><span id="dublin" typeof="http://nerd.eurecom.fr/ontology#Location" property="http://dbpedia.org/resource/Dublin">Dublin</span> is the <span id="capital" typeof="http://nerd.eurecom.fr/ontology#City" about="301467919" property="Wordnet3.0">capital</span> of Ireland.</p>
+ </body>
+</html>

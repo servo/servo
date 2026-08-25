@@ -1,0 +1,12 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: ‘min-width’ and ‘min-height’ affect percentage sizes in descendants</title>
+<link rel="author" name="Delan Azabani" href="mailto:dazabani@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css2/#min-max-widths">
+<link rel="help" href="https://drafts.csswg.org/css2/#min-max-heights">
+<link rel="match" href="absolute-non-replaced-min-max-001-ref.html">
+<meta name="assert" value="This test verifies that when the used ‘width’ and ‘height’ are affected by ‘min-width’ and ‘min-height’, the descendants are laid out with a containing block of the new size, so any percentage sizes are resolved against that new size.">
+<p>Test passes if there is a green square below.
+<div style="position: absolute; width: 0; height: 0; min-width: 1em; min-height: 1em; background: black;">
+    <div style="width: 100%; height: 100%; background: green;"></div>
+</div>

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>roles update after moveBefore</title>
+<link rel="author" href="mailto:lwarlow@igalia.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+<header id="header">Header</header>
+<section id="section"></section>
+<script>
+async function assertRoleEquals(element,expectedRole,message) {
+  const actualRole = await test_driver.get_computed_role(element);
+  assert_equals(actualRole,expectedRole,message);
+}
+promise_test(async () => {
+  await assertRoleEquals(header, 'banner');
+  section.moveBefore(header, null);
+  await assertRoleEquals(header, 'sectionheader');
+},'header elements role should become sectionheader when moved into a section');
+</script>

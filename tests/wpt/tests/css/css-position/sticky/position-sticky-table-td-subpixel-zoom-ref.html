@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<!-- Passes if a black transparent rectangle is painted with 1px borders. -->
+<html style="zoom: 1.5625; overflow:hidden;">
+  <style>
+    table {
+      border-spacing: 0; width:200px;}
+    td {
+      border: 1px solid black;
+      width: 100px;
+      height: 20px;
+    }
+    div::-webkit-scrollbar {
+      display: none;
+    }
+    div {
+      height:100px;
+      overflow:auto;
+    }
+  </style>
+
+  <div style="">
+    <table>
+      <tr>
+        <td style="";></td>
+      </tr>
+    </table>
+    <div style="height: 1000px;"></div>
+  </div>
+</html>

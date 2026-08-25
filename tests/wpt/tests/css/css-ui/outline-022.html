@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>CSS-UI test: outline works on nested spans</title>
+<link rel="author" href="mailto:atotic@google.com">
+<link rel="help" href="https://drafts.csswg.org/css-ui/#outline-props">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+body {
+  --outline-width: 10px;
+  --square-width: 80px;
+}
+#container {
+  width: var(--square-width);
+  padding: var(--outline-width);
+}
+#target {
+  font-family: Ahem;
+  font-size: var(--square-width);
+  outline: solid var(--outline-width) green;
+  color: green;
+}
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div id="container">
+  <span>
+    <span>
+      <span id="target">x</span>
+    </span>
+  </span>
+</div>

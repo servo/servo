@@ -1,0 +1,50 @@
+<!doctype html>
+<meta charset="utf-8">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testharness.js"></script>
+<!-- no testharnessreport.js -->
+<script src="/storage-access-api/helpers.js"></script>
+<script>
+'use strict';
+(async function() {
+  test_driver.set_test_context(window.top);
+
+  const testPrefix = 'sandboxed-iframe';
+
+  test(() => {
+    let iframe = document.createElement('iframe');
+    assert_true(
+        iframe.sandbox.supports('allow-storage-access-by-user-activation'),
+        '`allow-storage-access-by-user-activation`' +
+            'sandbox attribute should be supported');
+  }, '`allow-storage-access-by-user-activation` sandbox attribute is supported');
+  promise_test(
+      async t => {
+        t.add_cleanup(async () => {
+          await test_driver.set_permission({name: 'storage-access'}, 'prompt');
+        });
+        await test_driver.set_permission({name: 'storage-access'}, 'granted');
+        await MaybeSetStorageAccess('*', '*', 'blocked');
+        return promise_rejects_dom(
+            t, 'NotAllowedError', document.requestStorageAccess(),
+            'document.requestStorageAccess() call without user gesture.');
+      },
+      '[' + testPrefix +
+          '] document.requestStorageAccess() should reject with a NotAllowedError with no user gesture.');
+
+  promise_test(async t => {
+    t.add_cleanup(async () => {
+      await test_driver.set_permission({name: 'storage-access'}, 'prompt');
+    });
+    await test_driver.set_permission({name: 'storage-access'}, 'granted');
+    await MaybeSetStorageAccess('*', '*', 'blocked');
+
+    await RunCallbackWithGesture(async () => {
+      await promise_rejects_dom(
+          t, 'NotAllowedError', document.requestStorageAccess(),
+          'document.requestStorageAccess() call with user gesture.');
+    });
+  }, `[${testPrefix}] document.requestStorageAccess() should reject with a NotAllowedError, even with a user gesture`);
+})();
+</script>

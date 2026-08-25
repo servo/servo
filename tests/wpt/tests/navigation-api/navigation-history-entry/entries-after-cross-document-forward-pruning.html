@@ -1,0 +1,33 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/is_uuid.js"></script>
+<iframe id="i" src="/common/blank.html"></iframe>
+<script>
+promise_test(async (t) => {
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  await new Promise(r => window.onload = () => t.step_timeout(r, 0));
+
+  i.contentWindow.location.search = "?2";
+  await new Promise(r => i.onload = () => t.step_timeout(r, 0));
+
+  i.contentWindow.location.search = "?3";
+  await new Promise(r => i.onload = () => t.step_timeout(r, 0));
+
+  i.contentWindow.history.back();
+  await new Promise(r => i.onload = () => t.step_timeout(r, 0));
+
+  i.contentWindow.history.back();
+  await new Promise(r => i.onload = () => t.step_timeout(r, 0));
+
+  i.contentWindow.location.search = "?fork";
+  await new Promise(r => i.onload = () => t.step_timeout(r, 0));
+
+  const entries = i.contentWindow.navigation.entries();
+  const searches = entries.map(e => (new URL(e.url)).search);
+  assert_array_equals(searches, ["", "?fork"]);
+
+  assert_equals(i.contentWindow.navigation.entries().at(-1), i.contentWindow.navigation.currentEntry);
+}, "navigation.entries() behavior after forward-pruning due to cross-document navs");
+</script>

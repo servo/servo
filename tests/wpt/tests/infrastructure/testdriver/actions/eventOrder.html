@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>TestDriver actions: event order</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<button id="a">Button a</button>
+<button id="b">Button b</button>
+<input id="text-input">
+
+<script>
+// Pointer 1 is added before Pointer 2 so it comes first in the list of sources
+// Therefore its actions happen first
+let events = [];
+
+promise_test(() => {
+  Array.prototype.forEach.call(document.getElementsByTagName("button"),
+                               (x) => x.addEventListener("mousedown", () => {events.push(x.id)}));
+
+  let button_a = document.getElementById("a");
+  let button_b = document.getElementById("b");
+  return new test_driver.Actions()
+    .addPointer("pointer1")
+    .addPointer("pointer2")
+    .pointerMove(0, 0, {origin: button_a, sourceName: "pointer1"})
+    .pointerMove(0, 0, {origin: button_b, sourceName: "pointer2"})
+    .pointerDown({sourceName: "pointer2"})
+    .pointerDown({sourceName: "pointer1"})
+    .pointerUp({sourceName: "pointer2"})
+    .pointerUp({sourceName: "pointer1"})
+    .send()
+    .then(() => assert_array_equals(events, ["a", "b"]));
+});
+
+// This test uses a large number of keyboard sources to force race conditions
+// in implementations which incorrectly dispatch events. Despite belonging to
+// the same "tick," each action's initial event should be dispatched in series.
+promise_test(() => {
+  const input = document.getElementById("text-input");
+  const actions = new test_driver.Actions();
+  const code_for_a = "a".charCodeAt(0);
+  const keys = Array.from(Array(26))
+    .map((_, index) => ({
+      sourceName: "keyboard" + index,
+      code: String.fromCharCode(code_for_a + index)
+    }));
+
+  keys.forEach(({sourceName}) => actions.addKeyboard(sourceName));
+  keys.forEach(({code, sourceName}) => actions.keyDown(code, {sourceName}));
+  keys.forEach(({code, sourceName}) => actions.keyUp(code,{sourceName}));
+
+  return test_driver.click(input)
+    .then(() => actions.send())
+    .then(() => {
+      assert_equals(input.value, "abcdefghijklmnopqrstuvwxyz");
+    });
+}, "indivisible actions on the same track dispatch events in series");
+</script>

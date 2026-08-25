@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Grid positioned items implicit grid line</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#abspos" title="9. Absolute Positioning">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#implicit-grids" title="7.5. The Implicit Grid">
+<meta name="assert" content="This test checks that grid placement properties of absolutely positioned items using implicit grid lines are treated as 'auto'.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<link rel="stylesheet" href="/css/support/grid.css">
+<style>
+
+.grid {
+  grid-template-columns: 100px 200px;
+  grid-template-rows: 50px 150px;
+  width: 500px;
+  height: 300px;
+  border: 5px solid black;
+  margin: 30px;
+  padding: 15px;
+  /* Ensures that the grid container is the containing block of the absolutely positioned grid children. */
+  position: relative;
+}
+
+.absolute {
+  position: absolute;
+}
+
+.startImplicitLine {
+  background-color: blue;
+  grid-column: 5;
+  grid-row: 8;
+}
+
+.endImplicitLine {
+  background-color: orange;
+  grid-column: 1 / 5;
+  grid-row: 1 / 8;
+}
+
+.startImplicitLineSpan {
+  background-color: blue;
+  grid-column: span 5;
+  grid-row: span 8;
+}
+
+.endImplicitLineSpan {
+  background-color: orange;
+  grid-column: 1 / span 5;
+  grid-row: 1 / span 8;
+}
+
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script type="text/javascript">
+  setup({ explicit_done: true });
+</script>
+
+<body onload="document.fonts.ready.then(() => { checkLayout('.grid'); })">
+
+<div id="log"></div>
+
+<div class="grid">
+  <div class="absolute sizedToGridArea startImplicitLine"
+    data-offset-x="0" data-offset-y="0" data-expected-width="530" data-expected-height="330">
+  </div>
+  <div class="absolute sizedToGridArea endImplicitLine"
+    data-offset-x="15" data-offset-y="15" data-expected-width="515" data-expected-height="315">
+  </div>
+</div>
+
+<div class="grid">
+  <div class="absolute sizedToGridArea startImplicitLineSpan"
+    data-offset-x="0" data-offset-y="0" data-expected-width="530" data-expected-height="330">
+  </div>
+  <div class="absolute sizedToGridArea endImplicitLineSpan"
+    data-offset-x="15" data-offset-y="15" data-expected-width="515" data-expected-height="315">
+  </div>
+</div>
+
+<div class="grid directionRTL">
+  <div class="absolute sizedToGridArea startImplicitLine"
+    data-offset-x="0" data-offset-y="0" data-expected-width="530" data-expected-height="330">
+  </div>
+  <div class="absolute sizedToGridArea endImplicitLine"
+    data-offset-x="0" data-offset-y="15" data-expected-width="515" data-expected-height="315">
+  </div>
+</div>
+
+<div class="grid directionRTL">
+  <div class="absolute sizedToGridArea startImplicitLineSpan"
+    data-offset-x="0" data-offset-y="0" data-expected-width="530" data-expected-height="330">
+  </div>
+  <div class="absolute sizedToGridArea endImplicitLineSpan"
+    data-offset-x="0" data-offset-y="15" data-expected-width="515" data-expected-height="315">
+  </div>
+</div>
+
+</body>

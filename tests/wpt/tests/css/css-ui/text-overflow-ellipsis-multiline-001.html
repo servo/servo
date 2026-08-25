@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>Test multiline ellipsis with `::first-line`</title>
+<link rel="match" href="reference/text-overflow-ellipsis-multiline-001-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-ui-3/#ellipsing-details">
+<style>
+div {
+  width: 6ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+div::first-line {
+  color: orange;
+}
+</style>
+<div>
+  1234567<br>
+  1234567
+</div>

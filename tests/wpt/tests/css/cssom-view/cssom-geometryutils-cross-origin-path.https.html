@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<title>CSSOM View - GeometryUtils rejects a cross-origin frame path</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#the-geometryutils-interface">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/14170">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<style>
+  #outer { position: absolute; left: 20px; top: 30px; width: 100px; height: 80px; }
+</style>
+<div id="outer"></div>
+<iframe id="middle"></iframe>
+<script>
+promise_test(async t => {
+  const ready = new Promise(resolve => {
+    addEventListener("message", t.step_func(event => {
+      if (event.data === "geometry-utils-inner-ready") {
+        resolve();
+      }
+    }));
+  });
+
+  const middle = document.getElementById("middle");
+  middle.src = get_host_info().HTTPS_REMOTE_ORIGIN +
+    "/css/cssom-view/resources/geometry-utils-cross-origin-middle.html" +
+    `?inner_origin=${encodeURIComponent(location.origin)}`;
+  await ready;
+
+  const outer = document.getElementById("outer");
+  const inner = middle.contentWindow.frames[0].document.getElementById("inner");
+  assert_throws_dom("SecurityError", inner.ownerDocument.defaultView.DOMException,
+    () => inner.getBoxQuads({relativeTo: outer}), "getBoxQuads result");
+  assert_throws_dom("SecurityError", () =>
+    outer.convertPointFromNode({x: 0, y: 0}, inner),
+    "convertPointFromNode result");
+  assert_throws_dom("SecurityError", () =>
+    outer.convertRectFromNode(new DOMRect(0, 0, 10, 10), inner),
+    "convertRectFromNode result");
+  assert_throws_dom("SecurityError", () =>
+    outer.convertQuadFromNode(new DOMQuad(), inner),
+    "convertQuadFromNode result");
+}, "GeometryUtils does not expose geometry across an A-B-A frame path");
+</script>

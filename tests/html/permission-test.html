@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<title>Permission Test</title>
+<body>
+    <button type="button" onclick="onQueryButtonClick()">query</button>
+    <button type="button" onclick="onRequestButtonClick()">request</button>
+    <button type="button" onclick="onRevokeButtonClick()">revoke</button>
+    <input type="text" id="permissionName" value="geolocation"></input>
+    <pre id="log"></pre>
+    <script>
+    function onQueryButtonClick() {
+        let permissionName = document.getElementById('permissionName').value;
+        let permissionDescriptor = {name: permissionName};
+        window.navigator.permissions.query(permissionDescriptor)
+        .then(status => log("permission status of " + permissionName + " is: " + status.state))
+        .catch(err => log(err));
+    }
+    function onRequestButtonClick() {
+        let permissionName = document.getElementById('permissionName').value;
+        let permissionDescriptor = {name: permissionName};
+        window.navigator.permissions.request(permissionDescriptor)
+        .then(status => log("permission status of " + permissionName + " is: " + status.state))
+        .catch(err => log(err));
+    }
+    function onRevokeButtonClick() {
+        let permissionName = document.getElementById('permissionName').value;
+        let permissionDescriptor = {name: permissionName};
+        window.navigator.permissions.revoke(permissionDescriptor)
+        .then(status => log("permission status of " + permissionName + " is: " + status.state))
+        .catch(err => log(err));
+    }
+    function log(line) {
+        document.getElementById("log").textContent += line + '\n';
+    }
+    </script>
+</body>
+</html>

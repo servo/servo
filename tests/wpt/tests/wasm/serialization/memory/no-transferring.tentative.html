@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<!-- Based on similar tests in html/infrastructure/safe-passing-of-structured-data/shared-array-buffers/ -->
+<meta charset="utf-8">
+<title>WebAssembly.Memory objects cannot be transferred</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+
+for (const shared of [false, true]) {
+  const label = shared ? "shared" : "non-shared";
+  const memoryDescriptor = shared
+      ? { initial: 1, maximum: 1, shared: true }
+      : { initial: 1 };
+
+  test(() => {
+    const memory = new WebAssembly.Memory(memoryDescriptor);
+    assert_throws_dom("DataCloneError", () => window.postMessage(memory, "*", [memory]));
+    assert_throws_dom("DataCloneError", () => window.postMessage("test", "*", [memory]));
+  }, `Trying to transfer a ${label} WebAssembly.Memory to this window throws`);
+
+  test(() => {
+    const memory = new WebAssembly.Memory(memoryDescriptor);
+    const worker = new Worker("resources/echo-worker.js");
+    assert_throws_dom("DataCloneError", () => worker.postMessage(memory, [memory]));
+    assert_throws_dom("DataCloneError", () => worker.postMessage("test", [memory]));
+  }, `Trying to transfer a ${label} WebAssembly.Memory to a worker throws`);
+
+  test(() => {
+    const memory = new WebAssembly.Memory(memoryDescriptor);
+    const channel = new MessageChannel();
+    assert_throws_dom("DataCloneError", () => channel.port1.postMessage(memory, [memory]));
+    assert_throws_dom("DataCloneError", () => channel.port1.postMessage("test", [memory]));
+  }, `Trying to transfer a ${label} WebAssembly.Memory through a MessagePort throws`);
+}
+</script>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Images Reference: conic-gradient color stops with resolved angles</title>
+<style>
+  div {
+    display: inline-block;
+    width: 100px;
+    height: 100px;
+  }
+  .test1 {
+    background-image: conic-gradient(lime, 360deg, blue);
+  }
+  .test2 {
+    background-image: conic-gradient(lime 360deg, blue);
+  }
+  .test3 {
+    background-image: conic-gradient(lime 90deg, blue 0);
+  }
+</style>
+<div class="test1"></div>
+<div class="test2"></div>
+<div class="test3"></div>

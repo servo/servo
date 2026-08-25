@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Values Test: ::scroll-marker activation of multiple markers</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-activation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  body {
+    margin: 0;
+  }
+
+  #scroller {
+    width: 600px;
+    height: 300px;
+    overflow: auto;
+    scroll-marker-group: before;
+    white-space: nowrap;
+  }
+
+  #scroller div {
+    background: green;
+    display: inline-block;
+    width: 600px;
+    height: 200px;
+  }
+
+  #scroller::scroll-marker-group {
+    display: flex;
+    height: 20px;
+    width: 140px;
+  }
+
+  #scroller div::scroll-marker {
+    content: "";
+    width: 20px;
+    height: 20px;
+    background-color: red;
+    display: inline-block;
+  }
+
+  #scroller div::scroll-marker:target-current {
+    background-color: green;
+  }
+</style>
+<div id="scroller">
+  <div></div>
+  <div id="firstTarget"></div>
+  <div></div>
+  <div></div>
+  <div></div>
+  <div id="secondTarget"></div>
+  <div></div>
+</div>
+<script>
+  promise_test(async t => {
+    const firstTarget = document.getElementById("firstTarget");
+    const secondTarget = document.getElementById("secondTarget");
+
+    const firstTargetScrollMarkerX = 30;
+    const firstTargetScrollMarkerY = 10;
+    const secondTargetScrollMarkerX = 110;
+    const secondTargetScrollMarkerY = 10;
+
+    // Ensure the scroll markers are not active before activation.
+    assert_equals(getComputedStyle(firstTarget, "::scroll-marker").backgroundColor, "rgb(255, 0, 0)", "first target ::scroll-marker is not active before activation");
+    assert_equals(getComputedStyle(secondTarget, "::scroll-marker").backgroundColor, "rgb(255, 0, 0)", "second target ::scroll-marker is not active before activation");
+
+    // Activate the first target's scroll marker.
+    await new test_driver.Actions()
+      .pointerMove(firstTargetScrollMarkerX, firstTargetScrollMarkerY)
+      .pointerDown()
+      .pointerUp()
+      .send();
+    assert_equals(getComputedStyle(firstTarget, "::scroll-marker").backgroundColor, "rgb(0, 128, 0)", "first target ::scroll-marker is :target-current after activation");
+    assert_equals(getComputedStyle(secondTarget, "::scroll-marker").backgroundColor, "rgb(255, 0, 0)", "second target ::scroll-marker is not active when the first is activated");
+
+    // Activate the second target's scroll marker.
+    await new test_driver.Actions()
+      .pointerMove(secondTargetScrollMarkerX, secondTargetScrollMarkerY)
+      .pointerDown()
+      .pointerUp()
+      .send();
+    assert_equals(getComputedStyle(firstTarget, "::scroll-marker").backgroundColor, "rgb(255, 0, 0)", "first target ::scroll-marker is not when the second is activated");
+    assert_equals(getComputedStyle(secondTarget, "::scroll-marker").backgroundColor, "rgb(0, 128, 0)", "second target ::scroll-marker is :target-current after activation");
+
+    // Activate the first target's scroll marker again.
+    await new test_driver.Actions()
+      .pointerMove(firstTargetScrollMarkerX, firstTargetScrollMarkerY)
+      .pointerDown()
+      .pointerUp()
+      .send();
+    assert_equals(getComputedStyle(firstTarget, "::scroll-marker").backgroundColor, "rgb(0, 128, 0)", "first target ::scroll-marker is :target-current after activation");
+    assert_equals(getComputedStyle(secondTarget, "::scroll-marker").backgroundColor, "rgb(255, 0, 0)", "second target ::scroll-marker is not active when the first is activated again");
+  });
+</script>

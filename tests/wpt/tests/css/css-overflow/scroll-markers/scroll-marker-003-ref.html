@@ -1,0 +1,45 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Reference File: scroll container with ::scroll-marker-group before between other blocks</title>
+<style>
+  #scroller {
+    width: 600px;
+    height: 300px;
+    overflow: scroll;
+  }
+
+  #scroller div {
+    width: 600px;
+    height: 300px;
+    margin-bottom: 20px;
+    background: green;
+  }
+
+  #scroll-marker-group {
+    height: 40px;
+    border: 3px solid black;
+    padding: 5px;
+  }
+
+  #scroll-marker-group>div {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    background-color: blue;
+    border-radius: 100%;
+  }
+
+  #scroll-marker-group>#first {
+    background-color: purple;
+  }
+</style>
+<div>TEST BLOCK BEFORE</div>
+<div id="scroll-marker-group">
+  <div id="first"></div>
+  <div></div>
+</div>
+<div id="scroller">
+  <div></div>
+  <div></div>
+</div>
+<div>TEST BLOCK AFTER</div>

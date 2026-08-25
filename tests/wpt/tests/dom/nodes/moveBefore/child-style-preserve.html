@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <div id="container">
+    <p id="item">Test1</p>
+  </div>
+  <div>
+    <p>Test2</p>
+  </div>
+  <style>
+    #item {
+      width: 100px;
+    }
+  </style>
+  <script>
+    test(t => {
+      const container = document.querySelector('#container');
+      const item = document.querySelector('#item');
+      assert_equals(item.getBoundingClientRect().width, 100);
+      item.style.width = '200px';
+      document.body.moveBefore(container, null);
+      assert_equals(item.getBoundingClientRect().width, 200);
+    });
+  </script>
+</body>

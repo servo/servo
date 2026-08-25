@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<title>Touch Action None on body when style propagates from body to viewport</title>
+<head>
+  <style>
+    html {
+      touch-action: none;
+    }
+    body {
+      overflow: auto;
+    }
+  </style>
+  <link rel="help" href="crbug.com/1031745">
+  <link rel="help" href="https://drafts.csswg.org/css-overflow-3/#overflow-propagation">
+  <link rel="help" href="https://w3c.github.io/pointerevents/#determining-supported-touch-behavior">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="pointerevent_support.js"></script>
+</head>
+<body onload="onLoad()">
+  <h2>Pointer Events touch-action none on body when style propagates from body to viewport</h2>
+  <h4>Test Description: Try to touch scroll. You shouldn't be able to.</h4>
+  <p>Note: this test is for touch only</p>
+  Body with touch-action=none.
+  <p>Paragraph with touch-action=none</p>
+  <p>Paragraph with touch-action=none</p>
+  <p>Paragraph with touch-action=none</p>
+  <p>Paragraph with touch-action=none</p>
+  <p>Paragraph with touch-action=none</p>
+  <p>Paragraph with touch-action=none</p>
+  <p>Paragraph with touch-action=none</p>
+  <p>Paragraph with touch-action=none</p>
+  <p>Paragraph with touch-action=none</p>
+  <p>Paragraph with touch-action=none</p>
+  <p>Paragraph with touch-action=none</p>
+  <p>Paragraph with touch-action=none</p>
+  <p>Paragraph with touch-action=none</p>
+  <p>Paragraph with touch-action=none</p>
+  <p>Paragraph with touch-action=none</p>
+  <p>Paragraph with touch-action=none</p>
+  <p>Paragraph with touch-action=none</p>
+  <p>Paragraph with touch-action=none</p>
+  <p>Paragraph with touch-action=none</p>
+  <p>Paragraph with touch-action=none</p>
+  <p>Paragraph with touch-action=none</p>
+  <p>Paragraph with touch-action=none</p>
+  <p>Paragraph with touch-action=none</p>
+  <p>Paragraph with touch-action=none</p>
+  <p>Paragraph with touch-action=none</p>
+  <p>Paragraph with touch-action=none</p>
+  <p>Paragraph with touch-action=none</p>
+  <p>Paragraph with touch-action=none</p>
+  <p>Paragraph with touch-action=none</p>
+  <p>Paragraph with touch-action=none</p>
+  <p>Paragraph with touch-action=none</p>
+  <p>Paragraph with touch-action=none</p>
+  <p>Paragraph with touch-action=none</p>
+  <p>Paragraph with touch-action=none</p>
+  <p>Paragraph with touch-action=none</p>
+  <p>Paragraph with touch-action=none</p>
+  <p>Paragraph with touch-action=none</p>
+  <p>Paragraph with touch-action=none</p>
+  <p>Paragraph with touch-action=none</p>
+  <script>
+    function onLoad(){
+      var body = document.body;
+
+      if(!window.promise_test)
+        return;
+
+      promise_test(function(t){
+        return new Promise(async function(resolve,reject){
+          await touchScrollInTarget(body, 'down');
+          await touchScrollInTarget(body, 'right');
+          t.step(function(){
+            assert_equals(document.scrollingElement.scrollLeft, 0, "scrollingElement scroll x offset should be 0 in the end of the test");
+            assert_equals(document.scrollingElement.scrollTop, 0, "scrollingElement scroll y offset should be 0 in the end of the test");
+          });
+          resolve();
+      }).then(
+        ()=>{t.done();},
+        ()=>{t.done();}
+      );}, "touch-action none on body when style propagates to viewport");
+    }
+  </script>
+</body>
+</html>

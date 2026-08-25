@@ -1,0 +1,65 @@
+<!doctype html>
+<title>VTTCue.line</title>
+<link rel="help" href="https://w3c.github.io/webvtt/#dom-vttcue-line">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=common.js></script>
+<div id=log></div>
+<script>
+test(function(){
+    var video = document.createElement('video');
+    document.body.appendChild(video);
+    var c1 = new VTTCue(0, 1, 'text1');
+    assert_true('line' in c1, 'line is not supported');
+    assert_equals(c1.line, "auto");
+    var track = document.createElement('track');
+    var t = track.track;
+    t.addCue(c1);
+    assert_equals(c1.line, "auto");
+    video.appendChild(track);
+    assert_equals(c1.line, "auto");
+    t.mode = 'showing';
+    assert_equals(c1.line, "auto");
+    var c2 = new VTTCue(0, 1, 'text2');
+    var track2 = document.createElement('track');
+    var t2 = track2.track;
+    t2.addCue(c2);
+    assert_equals(c2.line, "auto");
+    video.appendChild(track2);
+    t2.mode = 'showing';
+    assert_equals(c2.line, "auto");
+    assert_equals(c1.line, "auto");
+    c1.line = -5;
+    assert_equals(c1.line, -5);
+    assert_equals(c2.line, "auto");
+    c1.line = 0;
+    c1.snapToLines = false;
+    assert_equals(c1.line, 0);
+    assert_equals(c2.line, "auto");
+}, document.title+', script-created cue');
+
+var t_parsed = async_test(document.title+', parsed cue');
+t_parsed.step(function(){
+    var video = document.createElement('video');
+    document.body.appendChild(video);
+    var t = document.createElement('track');
+    t.onload = this.step_func(function(){
+        var c1 = t.track.cues[0];
+        var c2 = t.track.cues[1];
+        var c3 = t.track.cues[2];
+        assert_equals(c1.line, "auto");
+        assert_equals(c2.line, 0);
+        assert_equals(c3.line, 0);
+
+        this.done();
+    });
+    t.onerror = this.step_func(function() {
+      assert_unreached('got error event');
+    });
+    t.src = make_vtt_track('WEBVTT\n\n00:00:00.000 --> 00:00:00.001\ntest\n\n'+
+                           '00:00:00.000 --> 00:00:00.001 line:0\ntest\n\n'+
+                           '00:00:00.000 --> 00:00:00.001 line:0%\ntest', this);
+    t.track.mode = 'showing';
+    video.appendChild(t);
+});
+</script>

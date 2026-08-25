@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/test-helper.js"></script>
+
+<script>
+
+// baseURL will be used to create a <base> element, which will change the
+// baseURL of the import map.
+const baseURL = "http://{{host}}:{{ports[http][0]}}/import-maps/resources/";
+const importMap = `
+{
+  "imports": {
+    "bare/bare": "./log.js?pipe=sub&name=bare"
+  }
+}
+`;
+
+promise_setup(function () {
+  return new Promise((resolve) => {
+    window.addEventListener("load", async () => {
+      await testStaticImport(importMap, baseURL, "bare/bare", "log:bare");
+      await testDynamicImport(importMap, baseURL, "bare/bare", "log:bare", "module");
+      await testDynamicImport(importMap, baseURL, "bare/bare", "log:bare", "text/javascript");
+
+      await testStaticImportInjectBase(importMap, baseURL, "bare/bare", "log:bare");
+      await testDynamicImportInjectBase(importMap, baseURL, "bare/bare", "log:bare", "module");
+      await testDynamicImportInjectBase(importMap, baseURL, "bare/bare", "log:bare", "text/javascript");
+      done();
+      resolve();
+    });
+  });
+}, { explicit_done: true });
+
+
+</script>
+<body>

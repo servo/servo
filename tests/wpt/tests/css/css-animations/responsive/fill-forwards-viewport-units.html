@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Animations: fill-forwards with viewport units responds to viewport resize</title>
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#animation-fill-mode">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/testcommon.js"></script>
+<style>
+  iframe {
+    width: 200px;
+    height: 200px;
+    border: none;
+  }
+</style>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+function createIframe(test) {
+  const iframe = document.createElement('iframe');
+  iframe.srcdoc = `
+    <style>
+      @keyframes grow {
+        from { width: 10vw; }
+        to { width: 50vw; }
+      }
+      #target {
+        width: 0px;
+        height: 100px;
+        background: green;
+        animation: grow 100s forwards linear;
+      }
+    </style>
+    <div id="target"></div>
+  `;
+  document.body.appendChild(iframe);
+  test.add_cleanup(() => iframe.remove());
+  return new Promise(resolve => iframe.addEventListener('load', () => resolve(iframe)));
+}
+
+promise_test(async t => {
+  const iframe = await createIframe(t);
+  const doc = iframe.contentDocument;
+  const win = iframe.contentWindow;
+  const target = doc.getElementById('target');
+  const anim = target.getAnimations()[0];
+
+  // Jump to end so fill-mode: forwards takes effect.
+  anim.currentTime = 100 * 1000;
+  await anim.finished;
+  await waitForAnimationFrames(2);
+
+  // iframe is 200px wide, so 50vw = 100px.
+  assert_approx_equals(
+    parseFloat(win.getComputedStyle(target).width), 100, 1,
+    'Filled width should be 50vw of 200px viewport'
+  );
+
+  // Resize iframe to 400px wide.
+  iframe.style.width = '400px';
+  target.offsetHeight;
+  await waitForAnimationFrames(3);
+
+  // 50vw of 400px = 200px.
+  assert_approx_equals(
+    parseFloat(win.getComputedStyle(target).width), 200, 1,
+    'Filled width should update to 50vw of 400px viewport after resize'
+  );
+
+  // Resize iframe to 600px wide.
+  iframe.style.width = '600px';
+  target.offsetHeight;
+  await waitForAnimationFrames(3);
+
+  // 50vw of 600px = 300px.
+  assert_approx_equals(
+    parseFloat(win.getComputedStyle(target).width), 300, 1,
+    'Filled width should update to 50vw of 600px viewport after second resize'
+  );
+}, 'fill: forwards with viewport units updates on viewport resize');
+</script>
+</body>

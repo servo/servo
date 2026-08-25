@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Inheritance of CSS Shapes properties</title>
+<link rel="help" href="https://drafts.csswg.org/css-shapes/#property-index">
+<meta name="assert" content="Properties inherit or not according to the spec.">
+<meta name="assert" content="Properties have initial values according to the spec.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/inheritance-testcommon.js"></script>
+</head>
+<body>
+<div id="container">
+<div id="target"></div>
+</div>
+<script>
+assert_not_inherited('shape-image-threshold', '0', '0.5');
+assert_not_inherited('shape-margin', '0px', '10px');
+assert_not_inherited('shape-outside', 'none', 'inset(10px 20px 30px 40px)');
+</script>
+</body>
+</html>

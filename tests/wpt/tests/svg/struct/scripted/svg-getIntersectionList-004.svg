@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml">
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <script>
+    const test = async_test('getIntersectionList() with nested &lt;svg&gt;');
+    window.onload = test.step_func_done(() => {
+      const testSVG = document.getElementById('askedForIntersection');
+      const r = testSVG.createSVGRect();
+      r.x = 0;
+      r.y = 0;
+      r.width = 100;
+      r.height = 100;
+
+      assert_equals(testSVG.getIntersectionList(r, testSVG).length, 2);
+    });
+  </script>
+  <rect x="0" y="0" width="100" height="100" id="r1"/>
+    <svg id="askedForIntersection">
+      <rect x="0" y="0" width="100" height="100" id="r2"/>
+    <svg id="nestedSVG">
+      <rect x="0" y="0" width="100" height="100" id="r3"/>
+    </svg>
+  </svg>
+</svg>

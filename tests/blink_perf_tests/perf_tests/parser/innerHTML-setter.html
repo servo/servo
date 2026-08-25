@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script src="../resources/runner.js"></script>
+<script>
+function generateBinDOMTree(depth) {
+  return depth == 0 ? "text" : ("<div>" + generateBinDOMTree(depth - 1) + generateBinDOMTree(depth - 1) + "</div>");
+}
+
+var div = document.createElement("div");
+document.body.appendChild(div);
+var tree = generateBinDOMTree(10);
+
+PerfTestRunner.measureRunsPerSecond({
+    description: "This benchmark tests innerHTML setter for a large DOM tree",
+    run: function() {
+        div.innerHTML = tree;
+        div.innerHTML = "";
+    }});
+</script>
+</body>
+</html>

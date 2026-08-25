@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<meta name="timeout" content="long">
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <title>Blocked frames are reported correctly</title>
+</head>
+<body>
+  <iframe src="support/content-security-policy.sub.html?policy=report-uri%20/reporting/resources/report.py%3Fop=put%26reportID={{$id:uuid()}}%3B%20frame-ancestors%20'none'"></iframe>
+  <script async defer src="../support/checkReport.sub.js?reportField=violated-directive&reportValue=frame-ancestors%20'none'&reportID={{$id}}"></script>
+</body>
+</html>

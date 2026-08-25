@@ -1,0 +1,30 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+ <head>
+  <title>CSS Test: Properties that apply to columns</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact" />
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/table/columns/001.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#columns" />
+  <style type="text/css">
+   table { border-collapse: collapse; color: green; }
+   col { width: 10em; background: lime; border: 0.5em solid blue; color: red; }
+   .container { margin: 1em; }
+   .a { visibility: collapse; }
+   .fail { background: red; color: yellow; font-weight: bold }
+  </style>
+ </head>
+ <body>
+  <p>There should be two identical blue-bordered lime-green boxes touching below, but no red.</p>
+  <div class="container">
+    <table>
+     <col class=""/>   <col class="a"/>   <col class=""/>
+     <tr>
+      <td>BOX</td>
+      <td class="fail"> FAIL </td>
+      <td>BOX</td>
+     </tr>
+    </table>
+  </div>
+ </body>
+</html>

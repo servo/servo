@@ -1,0 +1,29 @@
+<!doctype html>
+<html class="reftest-wait">
+  <head>
+    <title>Adopting a shadow host child into an iframe</title>
+    <link rel="help" href="https://dom.spec.whatwg.org/#concept-node-adopt">
+    <link rel="match" href="remove-from-shadow-host-and-adopt-into-iframe-ref.html">
+    <style>
+      iframe { border: 0; }
+    </style>
+    <script src="/common/reftest-wait.js"></script>
+    <script>
+      onload = () => {
+        const root = host.attachShadow({mode:"open"});
+        root.innerHTML = "<slot>";
+        // force a layout
+        host.offsetTop;
+        iframe.contentWindow.document.body.style.margin = 0;
+        iframe.contentWindow.document.body.appendChild(adopted);
+        host.remove();
+        takeScreenshot();
+      }
+    </script>
+  </head>
+  <body>
+    <p>You should see the word PASS below.</p>
+    <iframe id="iframe"></iframe>
+    <div id="host"><span id="adopted">PASS</span></div>
+  </body>
+</html>

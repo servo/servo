@@ -1,0 +1,42 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Largest Contentful Paint: largest image is reported.</title>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/largest-contentful-paint-helpers.js"></script>
+<img id="target"/>
+<img id="target2"/>
+<script>
+  setup({"hide_test_state": true});
+  const numInitial = 100;
+  const sleep = 1000;
+  const small_img_src = '/images/lcp-16x16.png';
+  let beforeLoad;
+  async_test(function (t) {
+    assert_implements(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
+    const img_src = '/element-timing/resources/progressive-image.py?name=square20.jpg&numInitial='
+      + numInitial + '&sleep=' + sleep;
+    const img1 = document.getElementById('target')
+    img1.src = img_src;
+    // After a brief wait, remove the image and add a smaller image to target2.
+    t.step_timeout(() => {
+      img1.parentNode.removeChild(img1);
+      document.getElementById('target2').src = small_img_src;
+      beforeLoad = performance.now();
+    }, 0);
+    new PerformanceObserver(
+      t.step_func(entryList => {
+        let images = entryList.getEntries().filter(e => e.id !== '');
+        if (!images.length)
+          return;
+        assert_equals(images.length, 1, 'Should only receive one entry');
+        const entry = images[0];
+        checkImage(images[0], window.location.origin + small_img_src, 'target2', 16 * 16,
+            beforeLoad);
+        t.done();
+      })
+    ).observe({type: 'largest-contentful-paint', buffered: true});
+  }, 'Largest Contentful Paint: image removed before loaded does not produce entry.');
+</script>
+</body>

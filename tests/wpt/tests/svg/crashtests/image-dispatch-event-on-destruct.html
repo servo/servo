@@ -1,0 +1,7 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVG image dispatching events during destruction should not crash</title>
+<link rel="help" href="https://crbug.com/40367886">
+<svg>
+  <image xlink:href="data:image/svg+xml,a"></image>
+</svg>

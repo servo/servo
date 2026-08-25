@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>Assures no crash upon call of LanguageDetector.availability() on a detached document</title>
+<link rel="author" href="mailto:christinesm@chromium.org">
+<link rel="help" href="https://issues.chromium.org/issues/384233287">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+<iframe src="about:blank"></iframe>
+<script>
+const iframe = frames[0];
+await test_driver.bless('Create LanguageDetector', null, iframe);
+
+const factory = iframe.LanguageDetector;
+const detectorPromise = await factory.create();
+document.getElementsByTagName("iframe")[0].remove();
+
+factory.availability();
+detectorPromise.then(detector => detector.detect());
+</script>
+</body>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<link rel="help" href="https://www.w3.org/TR/css-text-4/#text-indent-property">
+<meta name="assert" content="Floats are not part of lines, so if a float is too wide to fit any inline content beside it, the first formatted line goes below it">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+.container {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  font: 50px/50px Ahem;
+  text-indent: 50px;
+  color: green;
+  background-color: red;
+}
+
+.abs_pos {
+  position: absolute;
+  top: 50px;
+  width: 50px;
+  height: 50px;
+  background-color: green;
+}
+
+.float_box {
+  float: left;
+  width: 100px;
+  height: 50px;
+  background-color: green;
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class=container>
+  <div class=abs_pos></div>
+  <div class=float_box></div>x
+</div>

@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+<head>
+  <title>MediaRecorder Detached Context</title>
+  <link rel="help" href="https://w3c.github.io/mediacapture-record/MediaRecorder.html#mediarecorder">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+  async_test(t => {
+    const frame = document.body.appendChild(document.createElement('iframe'));
+    const recorderFunc = frame.contentWindow.MediaRecorder;
+    frame.remove();
+
+    try {
+      new recorderFunc(new MediaStream);
+    } catch (err) {
+      assert_equals(err.name, 'NotSupportedError');
+      t.done();
+    }
+    assert_unreached('MediaRecorder should have failed');
+  }, 'MediaRecorder creation with detached context');
+</script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>Tests that identical elements in the base style responds to font-size animation</title>
+<link rel="help" href="https://drafts.csswg.org/css-animations/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  @keyframes font_size_animation {
+    from { font-size: 10px; }
+    to { font-size: 20px; }
+  }
+  div {
+    font-size: 1px;
+    min-width: 1em;
+    animation: font_size_animation steps(2, end) 1000s -500s;
+  }
+</style>
+<div></div>
+<div></div>
+<div></div>
+<script>
+test(() => {
+  let divs = document.querySelectorAll('div');
+  for (let div of divs)
+    assert_equals(getComputedStyle(div).getPropertyValue('min-width'), '15px');
+}, 'Identical elements are all responsive to font-size animation');
+</script>

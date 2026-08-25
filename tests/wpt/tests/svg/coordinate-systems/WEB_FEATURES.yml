@@ -1,0 +1,6 @@
+rules:
+- abspos.html: [svg]
+- out-of-flow-svg-root.html: [svg]
+- outer-svg-intrinsic-size-001.html: [svg]
+- outer-svg-intrinsic-size-002.html: [svg]
+- viewBox-*: [svg]

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: non interpolable outline-style animation</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net">
+<link rel="help" href="https://drafts.csswg.org/css-ui-3/#propdef-outline-style">
+<link rel="help" href="https://www.w3.org/TR/web-animations-1/#dom-animatable-animate">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+@keyframes outline-anim {
+  from {
+    outline: solid 1px black;
+  }
+  to {
+    outline: dotted 1px black;
+  }
+}
+
+#test1 {
+  animation: outline-anim 3s 0s paused linear;
+  outline: solid 1px black;
+}
+#test2 {
+  animation: outline-anim 3s -1s paused linear;
+  outline: solid 1px black;
+}
+#test3 {
+  animation: outline-anim 3s -2s paused linear;
+  outline: solid 1px black;
+}
+#test4 {
+  animation: outline-anim 3s 0s paused reverse linear;
+  outline: solid 1px black;
+}
+</style>
+<body>
+  <div id="test1"></div>
+  <div id="test2"></div>
+  <div id="test3"></div>
+  <div id="test4"></div>
+  <div id=log></div>
+
+  <script>
+    // outline being a render-only property, its animation can be done off the main thread
+    // checking the values after the first paint is safer, hence requestAnimationFrame
+    setup({explicit_done:true});
+    requestAnimationFrame(function() {
+      // synchronous tests being run during the page's first paint
+      test(
+        function(){
+          var tests = document.querySelectorAll("div[id^='test']");
+          assert_equals(getComputedStyle(tests[0]).outlineStyle, 'solid');
+          assert_equals(getComputedStyle(tests[1]).outlineStyle, 'solid');
+          assert_equals(getComputedStyle(tests[2]).outlineStyle, 'dotted');
+          assert_equals(getComputedStyle(tests[3]).outlineStyle, 'dotted');
+        }, "outline-style is animated as a discrete type"
+      );
+      done();
+    });
+</script>
+</body>

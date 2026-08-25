@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#algo-grid-sizing">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1990170">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<link rel="match" href="../../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="This test verifies that when resolving the row sizes, grid container's max-block-size is ignored.">
+
+<style>
+.grid {
+  display: grid;
+  inline-size: 100px;
+  block-size: auto;
+  max-block-size: 10px;
+}
+
+.item {
+  background: green;
+  min-height: 0;
+  font: 100px/1 Ahem;
+  color: rgba(255, 255, 255, 0);
+}
+</style>
+
+<p>Test passes if there is a filled green square.</p>
+<div class="grid">
+  <div class="item">X</div>
+</div>

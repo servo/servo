@@ -1,0 +1,12 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Iframe credentialless (https://wicg.github.io/anonymous-iframe/)
+
+partial interface HTMLIFrameElement {
+  attribute boolean credentialless;
+};
+
+partial interface Window {
+  readonly attribute boolean credentialless;
+};

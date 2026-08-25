@@ -1,0 +1,49 @@
+<!doctype HTML>
+<html class="reftest-wait">
+<meta charset="utf8">
+<title>CSS Test: img with content-visibility:auto honors its object-fit (restoring its aspect ratio) when coming back from offscreen</title>
+<link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-contain-2/#content-visibility">
+<link rel="help" href="https://drafts.csswg.org/css-contain-2/#containment-size">
+<link rel="match" href="content-visibility-auto-img-001-ref.html">
+<meta name="assert" content="img elements honor their aspect-ratio and object-fit even after briefly having their aspect-ratio suppressed by content-visibility:auto">
+
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+body {
+  /* body needs to be tall enough so that we can programmatically scroll.  Use
+     'overflow:hidden' to suppress scrollbars so they don't interfere with the
+     reftest snapshot. */
+    height: 400vh;
+    overflow: hidden;
+}
+img {
+  width: 500px;  /* Much wider than the image's actual intrinsic width. */
+  height: 210px; /* The image's actual intrinsic height. */
+  object-fit: contain;
+  object-position: 0 0;
+  content-visibility: auto;
+}
+</style>
+<img id="myImg" src="resources/dice.png">
+
+<script>
+
+function runTest() {
+  // Scroll to the very end:
+  document.documentElement.scrollTop = document.documentElement.scrollHeight;
+
+  // Double-rAF to flush paints, and then scroll back to top
+  // and take screenshot:
+  requestAnimationFrame(()=>{
+    requestAnimationFrame(()=>{
+      document.documentElement.scrollTop = 0;
+      takeScreenshot();
+    });
+  });
+}
+
+window.onload = runTest;
+</script>
+</html>

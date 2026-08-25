@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Backgrounds Test: background-clip:border-area positioning is unchanged by an identity border-shape inset</title>
+<link rel="author" title="Jason Leo" href="mailto:cgqaq@chromium.org">
+<link rel="author" title="一丝" href="mailto:yiorsi@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-4/#background-clip">
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#border-shape">
+<link rel="match" href="clip-border-area-border-shape-background-position-ref.html">
+<meta name="assert" content="An identity border-shape inset(0) matching the border box must not alter the background positioning area. background-origin and background-position must produce the same painted result as if no border-shape were set.">
+<style>
+  .test {
+    display: inline-block;
+    vertical-align: top;
+    margin: 30px;
+    box-sizing: border-box;
+    border: 10px solid transparent;
+    background-repeat: no-repeat;
+    background-origin: border-box;
+    background-clip: border-area;
+    border-shape: inset(0);
+  }
+  .t1 {
+    width: 200px;
+    height: 100px;
+    background-position: 100px 0px;
+    background-image: linear-gradient(to right, green 100px, red 100px);
+  }
+  .t2 {
+    width: 100px;
+    height: 200px;
+    background-position: 0px -100px;
+    background-image: linear-gradient(to bottom, red 100px, green 100px);
+  }
+  .t3 {
+    width: 200px;
+    height: 100px;
+    background-position-x: right 100px;
+    background-image: linear-gradient(to right, red 100px, green 100px);
+  }
+  .t4 {
+    width: 100px;
+    height: 200px;
+    background-position-y: bottom 100px;
+    background-image: linear-gradient(to bottom, red 100px, green 100px);
+  }
+</style>
+<div class="test t1"></div>
+<div class="test t2"></div>
+<div class="test t3"></div>
+<div class="test t4"></div>

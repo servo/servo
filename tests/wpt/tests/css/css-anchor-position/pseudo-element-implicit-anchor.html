@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning: Originating element implicit anchor for pseudo elements</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#implicit">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
+<style>
+  #anchor::after {
+    content: "";
+    position: absolute;
+    position-anchor: auto;
+    width: 100px;
+    height: 100px;
+    bottom: anchor(top);
+    background: green;
+  }
+  #ref {
+    width: 100px;
+    height: 100px;
+    background: red;
+  }
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div id="ref"></div>
+<div id="anchor"></div>

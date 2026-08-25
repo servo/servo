@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel="help" href="https://drafts.css-houdini.org/css-layout-api/#dom-layoutconstraintsoptions-availableinlinesize">
+<link rel="help" href="https://drafts.css-houdini.org/css-layout-api/#dom-layoutconstraintsoptions-availableblocksize">
+<link rel="match" href="../green-square-ref.html">
+<meta name="assert" content="This test checks that resolving percentages against an invalid available size works as expected." />
+
+<style>
+.test {
+  background: red;
+  width: 100px;
+}
+
+.child {
+  visibility: hidden;
+  width: 10px;
+  line-height: 0;
+
+  --available-inline-size: -20;
+  --available-block-size: -10;
+}
+
+.inline {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+}
+
+@supports (display: layout(test)) {
+  .test {
+    background: green;
+    display: layout(test);
+  }
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+
+<div class="test">
+  <!-- The available inline-size gets clamped to zero, and the available block-size gets treated as indefinite. -->
+  <div class="child" style="--inline-size-expected: 0px; --block-size-expected: 10px; width: 100%; height: 100%;">
+    <div class="inline"></div>
+  </div>
+
+  <!-- For replaced elements, both axis should be resolved to 0px. -->
+  <img class="child" style="--inline-size-expected: 0px; --block-size-expected: 0px; width: 100%; height: 100%;" />
+<script>
+importWorkletAndTerminateTestAfterAsyncPaint(CSS.layoutWorklet, {url: 'support/layout-child-sizes-worklet.js'});
+</script>

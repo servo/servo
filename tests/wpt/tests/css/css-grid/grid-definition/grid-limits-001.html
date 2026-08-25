@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-grid/#overlarge-grids">
+<link rel="author" title="Tab Atkins-Bittner" href="https://xanthir.com/contact">
+<link rel="author" title="Elika J Etemad" href="http://inkedblade.net/contact">
+<meta name="flags" content="should">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../support/computed-testcommon.js"></script>
+<div id=target>
+    <div id=child1></div>
+    <div id=child2></div>
+</div>
+<style>
+    #target {
+        display: grid;
+        position: absolute;
+    }
+</style>
+<script>
+const target = document.querySelector("#target");
+const child1 = document.querySelector("#child1");
+const child2 = document.querySelector("#child2");
+
+test(()=>{
+    target.style.gridTemplateRows = "repeat(9999, 1px)";
+    target.style.gridTemplateColumns = "repeat(9999, 1px)";
+
+    const height = getComputedStyle(target).height;
+    const width = getComputedStyle(target).width;
+
+    assert_equals(height, "9999px", "repeat(9999, 1px) should make grid height 9999px");
+    assert_equals(width, "9999px", "repeat(9999, 1px) should make grid width 9999px");
+
+    target.removeAttribute('style');
+}, "repeat(9999) should be supported in both axises");
+
+test(()=>{
+    // Start from no explicit grid, so only implicit tracks happen
+    target.style.gridAutoRows = "1px";
+    target.style.gridAutoColumns = "1px";
+
+    child1.style.gridRowEnd = "10000";
+    child1.style.gridColumnEnd = "10000";
+
+    child2.style.gridRowStart = "-10000";
+    child2.style.gridColumnStart = "-10000";
+
+    const height = getComputedStyle(target).height;
+    const width = getComputedStyle(target).width;
+
+    assert_equals(height, "19998px", "Positioning children at lines -10k and 10k should generate 19998 implicit 1px tracks.");
+    assert_equals(width, "19998px", "Positioning children at lines -10k and 10k should generate 19998 implicit 1px tracks.");
+
+    target.removeAttribute('style');
+    child1.removeAttribute('style');
+    child2.removeAttribute('style');
+}, "Implicit grid should support lines [-10k, 10k].");
+</script>

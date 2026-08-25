@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Structured cloning of shared WebAssembly.Memory: success cases</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="log"></div>
+
+<script>
+"use strict";
+
+function makeSharedMemory() {
+  const memory = new WebAssembly.Memory({ shared: true, initial: 1, maximum: 1 });
+  new Int32Array(memory.buffer)[0] = 100;
+  return memory;
+}
+
+function assertSharedRoundtrip(original, echoed) {
+  assert_true(echoed instanceof WebAssembly.Memory,
+              "Echoed object is a WebAssembly.Memory");
+  assert_not_equals(echoed, original,
+                    "Structured cloning produces a fresh WebAssembly.Memory object");
+  assert_true(echoed.buffer instanceof SharedArrayBuffer,
+              "Echoed Memory's buffer is a SharedArrayBuffer");
+  assert_not_equals(echoed.buffer, original.buffer,
+                    "Echoed Memory's buffer is a fresh SharedArrayBuffer wrapper");
+  assert_equals(echoed.buffer.byteLength, original.buffer.byteLength,
+                "Echoed Memory's buffer has the same byte length");
+  assert_equals(echoed.buffer.byteLength, 65536,
+                "Echoed Memory's buffer is one wasm page (64 KiB)");
+  assert_equals(new Int32Array(echoed.buffer)[0], 100,
+                "Echoed Memory observes writes made before cloning");
+  assert_equals(new Int32Array(original.buffer)[1], 200,
+                "Original Memory observes writes made by the destination");
+}
+
+promise_test(t => {
+  return new Promise(resolve => {
+    const memory = makeSharedMemory();
+    const worker = new Worker("resources/shared-memory-worker.js");
+    worker.onmessage = t.step_func(({ data }) => {
+      assertSharedRoundtrip(memory, data);
+      resolve();
+    });
+    worker.postMessage(memory);
+  });
+}, "postMessaging a shared WebAssembly.Memory to a dedicated worker");
+
+promise_test(t => {
+  return new Promise(resolve => {
+    const iframe = document.createElement("iframe");
+    iframe.src = "resources/shared-memory-iframe.html";
+    iframe.onload = t.step_func(() => {
+      const memory = makeSharedMemory();
+      window.onmessage = t.step_func(({ data }) => {
+        assertSharedRoundtrip(memory, data);
+        resolve();
+      });
+      iframe.contentWindow.postMessage(memory, "*");
+    });
+    document.body.appendChild(iframe);
+  });
+}, "postMessaging a shared WebAssembly.Memory to a same-origin iframe");
+
+promise_test(t => {
+  return new Promise(resolve => {
+    const memory = makeSharedMemory();
+    const channel = new MessageChannel();
+    channel.port2.onmessage = ({ data }) => {
+      new Int32Array(data.buffer)[1] = 200;
+      channel.port2.postMessage(data);
+    };
+    channel.port1.onmessage = t.step_func(({ data }) => {
+      assertSharedRoundtrip(memory, data);
+      resolve();
+    });
+    channel.port1.postMessage(memory);
+  });
+}, "Cloning a shared WebAssembly.Memory through a MessageChannel");
+</script>

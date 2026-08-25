@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>
+  AudioContext is not interrupted when its iframe is merely scrolled out of view
+  (media-playback-while-not-visible permission policy)
+</title>
+<link rel="help" href="https://wicg.github.io/iframe-media-pausing/">
+<meta name="variant" content="?origin=same-origin">
+<meta name="variant" content="?origin=cross-origin">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/media-playback-while-not-visible-utils.js"></script>
+<body>
+<div id="container" style="height: 500px; overflow: scroll;">
+  <!-- The iframe is inserted here, before the spacer. -->
+  <div id="very-long-content" style="height: 5000px;"></div>
+</div>
+<script>
+const SAME_ORIGIN_BASE = new URL('resources/', location.href).href;
+const CROSS_ORIGIN_BASE =
+    'http://{{hosts[alt][]}}:{{ports[http][0]}}/webaudio/the-audio-api/' +
+    'media-playback-while-not-visible-permission-policy/resources/';
+
+const params = new URLSearchParams(location.search);
+const origin = params.get('origin');
+const base = origin === 'cross-origin' ? CROSS_ORIGIN_BASE : SAME_ORIGIN_BASE;
+
+async function createViewportIframe(t) {
+  if (document.readyState !== 'complete') {
+    await new Promise(resolve => window.addEventListener('load', resolve));
+  }
+
+  const running_state_transition_promise =
+      expectIframeAudioContextStateChangeEvent(t);
+
+  const iframe = document.createElement('iframe');
+  iframe.id = 'audio-context-frame';
+  iframe.allow = 'media-playback-while-not-visible \'none\'; autoplay *';
+  iframe.src = base + 'audiocontext-frame.html';
+
+  document.getElementById('container')
+      .insertBefore(iframe, document.getElementById('very-long-content'));
+  await new Promise(resolve => iframe.addEventListener('load', resolve));
+  t.add_cleanup(() => iframe.remove());
+
+  assert_equals(await running_state_transition_promise, 'running');
+  return iframe;
+}
+
+promise_test(
+    async t => {
+      const iframe = await createViewportIframe(t);
+
+      const statechange_promise =
+          expectIframeAudioContextStateChangeEvent(t, /*timeout=*/ 500);
+      // Scroll the iframe out of view.
+      const container = document.getElementById('container');
+      container.scrollTop = container.scrollHeight;
+
+      assert_equals(await statechange_promise, 'no state change');
+      assert_equals(await queryAudioContextState(iframe), 'running');
+    },
+    `${origin}: AudioContext should not be interrupted when its iframe is ` +
+        'scrolled out of view');
+</script>
+</body>

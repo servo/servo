@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<title>CSSOM View - getBoxQuads() options</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#the-geometryutils-interface">
+<link rel="help" href="https://hacks.mozilla.org/2014/03/introducing-the-getboxquads-api/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/geometry-utils.js"></script>
+<style>
+  html, body {
+    margin: 0;
+  }
+
+  #target {
+    position: absolute;
+    left: 40px;
+    top: 30px;
+    width: 200px;
+    height: 160px;
+    margin: 11px 13px 17px 19px;
+    border: solid;
+    border-width: 2px 4px 6px 8px;
+    padding: 3px 5px 7px 9px;
+    box-sizing: content-box;
+    background: lightblue;
+  }
+
+  #relative {
+    position: absolute;
+    left: 20px;
+    top: 15px;
+    width: 300px;
+    height: 220px;
+    border: 10px solid gray;
+    padding: 12px;
+  }
+
+  #child {
+    position: absolute;
+    left: 50px;
+    top: 45px;
+    width: 80px;
+    height: 40px;
+    margin: 10px 14px 18px 22px;
+    border: solid;
+    border-width: 1px 3px 5px 7px;
+    padding: 2px 4px 6px 8px;
+    box-sizing: content-box;
+    background: gold;
+  }
+
+  #rtl {
+    position: absolute;
+    left: 320px;
+    top: 30px;
+    width: 60px;
+    height: 25px;
+    direction: rtl;
+    writing-mode: vertical-rl;
+    border: 4px solid black;
+    padding: 6px;
+  }
+
+  #inline-container {
+    position: absolute;
+    left: 420px;
+    top: 30px;
+    width: 115px;
+    font: 18px/2 sans-serif;
+  }
+
+  #inline {
+    margin: 7px 11px;
+    border: solid;
+    border-width: 3px 5px;
+    padding: 2px 4px;
+  }
+
+  #scroll-spacer {
+    width: calc(100vw + 200px);
+    height: calc(100vh + 200px);
+  }
+</style>
+<div id="target"></div>
+<div id="relative">
+  <div id="child"></div>
+</div>
+<div id="rtl"></div>
+<div id="inline-container"><span id="inline">inline content wraps here</span></div>
+<div id="scroll-spacer"></div>
+<script>
+const boxes = ["margin", "border", "padding", "content"];
+const target = document.getElementById("target");
+const relative = document.getElementById("relative");
+const child = document.getElementById("child");
+const rtl = document.getElementById("rtl");
+const inline = document.getElementById("inline");
+
+test(() => {
+  assert_geometry_utils_exist();
+}, "GeometryUtils APIs exist on Element");
+
+for (const box of boxes) {
+  test(() => {
+    const quad = target.getBoxQuads({box})[0];
+    const expected = local_box_rect(target, box);
+    const borderRect = target.getBoundingClientRect();
+    assert_point_approx_equals(quad.p1,
+                               new DOMPoint(borderRect.left + expected.x,
+                                            borderRect.top + expected.y),
+                               `${box} p1`);
+    assert_point_approx_equals(quad.p3,
+                               new DOMPoint(borderRect.left + expected.x +
+                                              expected.width,
+                                            borderRect.top + expected.y +
+                                              expected.height),
+                               `${box} p3`);
+    assert_approx_equals(quad.getBounds().width, expected.width,
+                         GEOMETRY_UTILS_EPSILON, `${box} width`);
+    assert_approx_equals(quad.getBounds().height, expected.height,
+                         GEOMETRY_UTILS_EPSILON, `${box} height`);
+  }, `getBoxQuads({box: "${box}"}) returns the requested CSS box`);
+}
+
+test(() => {
+  const defaultQuad = target.getBoxQuads()[0];
+  const borderQuad = target.getBoxQuads({box: "border"})[0];
+  assert_quad_approx_equals(defaultQuad, borderQuad,
+                            "default getBoxQuads() border box");
+}, "getBoxQuads() defaults to the border box");
+
+test(() => {
+  const quad = child.getBoxQuads({relativeTo: relative})[0];
+  const childRect = child.getBoundingClientRect();
+  const relativeRect = relative.getBoundingClientRect();
+  assert_point_approx_equals(quad.p1,
+                             new DOMPoint(childRect.left - relativeRect.left,
+                                          childRect.top - relativeRect.top),
+                             "child border p1 relative to relative border box");
+  assert_point_approx_equals(quad.p3,
+                             new DOMPoint(childRect.right - relativeRect.left,
+                                          childRect.bottom - relativeRect.top),
+                             "child border p3 relative to relative border box");
+}, "getBoxQuads({relativeTo}) uses the relative element border-box origin");
+
+test(() => {
+  const quad = child.getBoxQuads({box: "content", relativeTo: relative})[0];
+  const childRect = child.getBoundingClientRect();
+  const relativeRect = relative.getBoundingClientRect();
+  const contentRect = local_box_rect(child, "content");
+  assert_point_approx_equals(quad.p1,
+                             new DOMPoint(childRect.left - relativeRect.left +
+                                            contentRect.x,
+                                          childRect.top - relativeRect.top +
+                                            contentRect.y),
+                             "child content p1 relative to relative");
+  assert_point_approx_equals(quad.p3,
+                             new DOMPoint(childRect.left - relativeRect.left +
+                                            contentRect.x + contentRect.width,
+                                          childRect.top - relativeRect.top +
+                                            contentRect.y + contentRect.height),
+                             "child content p3 relative to relative");
+}, "getBoxQuads() combines box and relativeTo options");
+
+test(() => {
+  const quad = rtl.getBoxQuads()[0];
+  assert_true(quad.p1.x < quad.p2.x, "p1 remains the physical left corner");
+  assert_true(quad.p1.y < quad.p4.y, "p1 remains the physical top corner");
+}, "getBoxQuads() point order is physical for bidi and writing-mode");
+
+for (const box of boxes) {
+  test(() => {
+    const style = getComputedStyle(inline);
+    const borderRects = inline.getClientRects();
+    const quads = inline.getBoxQuads({box});
+    assert_greater_than(quads.length, 1, "inline produces fragments");
+    assert_equals(quads.length, borderRects.length, "fragment count");
+
+    let left = 0;
+    let top = 0;
+    let right = 0;
+    let bottom = 0;
+    if (box === "margin") {
+      left = i => i === 0 ? -parseFloat(style.marginLeft) : 0;
+      top = -parseFloat(style.marginTop);
+      right = i => i === quads.length - 1 ? parseFloat(style.marginRight) : 0;
+      bottom = parseFloat(style.marginBottom);
+    } else if (box === "padding" || box === "content") {
+      left = i => i === 0 ? parseFloat(style.borderLeftWidth) : 0;
+      top = parseFloat(style.borderTopWidth);
+      right = i => i === quads.length - 1
+        ? -parseFloat(style.borderRightWidth) : 0;
+      bottom = -parseFloat(style.borderBottomWidth);
+      if (box === "content") {
+        const borderLeft = left;
+        const borderRight = right;
+        left = i => borderLeft(i) +
+          (i === 0 ? parseFloat(style.paddingLeft) : 0);
+        top += parseFloat(style.paddingTop);
+        right = i => borderRight(i) -
+          (i === quads.length - 1 ? parseFloat(style.paddingRight) : 0);
+        bottom -= parseFloat(style.paddingBottom);
+      }
+    }
+
+    for (let i = 0; i < quads.length; ++i) {
+      const rect = borderRects[i];
+      const fragmentLeft = typeof left === "function" ? left(i) : left;
+      const fragmentRight = typeof right === "function" ? right(i) : right;
+      assert_rect_approx_equals(
+        quads[i].getBounds(),
+        new DOMRect(rect.left + fragmentLeft, rect.top + top,
+                    rect.width + fragmentRight - fragmentLeft,
+                    rect.height + bottom - top),
+        `${box} fragment ${i}`
+      );
+    }
+  }, `getBoxQuads({box: "${box}"}) applies box edges to inline fragments`);
+}
+
+for (const box of boxes) {
+  test(() => {
+    assert_greater_than(document.scrollingElement.scrollWidth,
+                        document.documentElement.clientWidth,
+                        "the document has horizontal overflow");
+    assert_greater_than(document.scrollingElement.scrollHeight,
+                        document.documentElement.clientHeight,
+                        "the document has vertical overflow");
+
+    const quad = document.getBoxQuads({box})[0];
+    assert_point_approx_equals(quad.p1, new DOMPoint(0, 0),
+                               "document quad origin");
+    assert_approx_equals(quad.getBounds().width,
+                         document.documentElement.clientWidth,
+                         GEOMETRY_UTILS_EPSILON,
+                         "document quad excludes the vertical scrollbar");
+    assert_approx_equals(quad.getBounds().height,
+                         document.documentElement.clientHeight,
+                         GEOMETRY_UTILS_EPSILON,
+                         "document quad excludes the horizontal scrollbar");
+  }, `Document.getBoxQuads({box: "${box}"}) returns the layout viewport`);
+}
+</script>

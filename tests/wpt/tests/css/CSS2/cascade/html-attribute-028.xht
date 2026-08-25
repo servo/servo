@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Attribute 'text' vs. CSS 'color' specificity</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html#preshint" />
+        <link rel="help" href="http://www.w3.org/TR/css-cascade-3/#preshint" />
+        <link rel="help" href="http://www.w3.org/TR/css-cascade-4/#preshint" />
+        <link rel="match" href="../reference/filler-text-below-green.xht"/>
+        <meta name="assert" content="Attribute 'text' has a specificity of zero and is overridden by CSS." />
+        <style type="text/css">
+            p
+            {
+                color: black;
+            }
+            *
+            {
+                color: green;
+            }
+        </style>
+    </head>
+    <body text="red">
+        <p>Test passes if the "Filler Text" below is green.</p>
+        <div>Filler Text</div>
+    </body>
+</html>

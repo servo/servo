@@ -1,0 +1,47 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSSOM - Symbol.toStringTag value of CSS namespace object</title>
+<link rel="help" href="https://webidl.spec.whatwg.org/#es-namespaces">
+<link rel="help" href="https://drafts.csswg.org/cssom/#namespacedef-css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+
+test(() => {
+  assert_own_property(CSS, Symbol.toStringTag);
+
+  const propDesc = Object.getOwnPropertyDescriptor(CSS, Symbol.toStringTag);
+  assert_equals(propDesc.value, "CSS", "value");
+  assert_equals(propDesc.writable, false, "writable");
+  assert_equals(propDesc.enumerable, false, "enumerable");
+  assert_equals(propDesc.configurable, true, "configurable");
+}, "@@toStringTag exists on the namespace object with the appropriate descriptor");
+
+test(() => {
+  assert_equals(CSS.toString(), "[object CSS]");
+  assert_equals(Object.prototype.toString.call(CSS), "[object CSS]");
+}, "Object.prototype.toString applied to the namespace object");
+
+test(t => {
+  assert_own_property(CSS, Symbol.toStringTag, "Precondition: @@toStringTag on the namespace object");
+  t.add_cleanup(() => {
+    Object.defineProperty(CSS, Symbol.toStringTag, { value: "CSS" });
+  });
+
+  Object.defineProperty(CSS, Symbol.toStringTag, { value: "Test" });
+  assert_equals(CSS.toString(), "[object Test]");
+  assert_equals(Object.prototype.toString.call(CSS), "[object Test]");
+}, "Object.prototype.toString applied after modifying the namespace object's @@toStringTag");
+
+test(t => {
+  assert_own_property(CSS, Symbol.toStringTag, "Precondition: @@toStringTag on the namespace object");
+  t.add_cleanup(() => {
+    Object.defineProperty(CSS, Symbol.toStringTag, { value: "CSS" });
+  });
+
+  assert_true(delete CSS[Symbol.toStringTag]);
+  assert_equals(CSS.toString(), "[object Object]");
+  assert_equals(Object.prototype.toString.call(CSS), "[object Object]");
+}, "Object.prototype.toString applied after deleting @@toStringTag");
+</script>

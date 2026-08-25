@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>CSS Selectors Invalidation: :modal pseudo class in :has()</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/selectors/#relational">
+<link rel="help" href="https://drafts.csswg.org/selectors/#modal-state">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  #subject:has(#dialog:modal) { color: green; }
+  #subject:has(#fullscreenTarget:modal) { color: blue; }
+</style>
+<div id="subject">
+  This is some text.
+  <dialog id="dialog">This is a dialog</dialog>
+  <div id="fullscreenTarget">This is going to be fullscreened</div>
+</div>
+<script>
+  // Dialog tests
+  test(function() {
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 0, 0)",
+                  "ancestor should be black since dialog is not modal");
+    dialog.show();
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 0, 0)",
+                  "ancestor should be black since dialog is not modal");
+    dialog.close();
+  }, ":modal pseudo-class is not active with dialog.show()");
+  test(function() {
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 0, 0)",
+                  "ancestor should be black");
+    dialog.showModal();
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 128, 0)",
+                  "ancestor should be green since dialog is shown modally");
+    dialog.close();
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 0, 0)",
+                  "ancestor should be black since dialog is closed");
+  }, ":modal pseudo-class invalidation with showModal + close");
+  test(function() {
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 0, 0)",
+                  "ancestor should be black");
+    dialog.showModal();
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 128, 0)",
+                  "ancestor should be green since dialog is shown modally");
+    dialog.remove();
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 0, 0)",
+                  "ancestor should be black since dialog is removed");
+  }, ":modal pseudo-class invalidation with showModal + remove");
+
+  // Fullscreen tests
+  let waitForFullscreenChange = () => {
+    return new Promise((resolve) => {
+      document.addEventListener("fullscreenchange", resolve, { once: true });
+    });
+  };
+  promise_test(async function() {
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 0, 0)",
+                  "ancestor should be black");
+    test_driver.bless("fullscreen", () => fullscreenTarget.requestFullscreen());
+    await waitForFullscreenChange();
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 0, 255)",
+                  "ancestor should be blue since target is fullscreen");
+    document.exitFullscreen();
+    await waitForFullscreenChange();
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 0, 0)",
+                  "ancestor should be black since target is no longer fullscreen");
+  }, ":modal pseudo-class invalidation with requestFullscreen + exitFullscreen");
+  promise_test(async function() {
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 0, 0)",
+                  "ancestor should be black");
+    test_driver.bless("fullscreen", () => fullscreenTarget.requestFullscreen());
+    await waitForFullscreenChange();
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 0, 255)",
+                  "ancestor should be blue since target is fullscreen");
+    fullscreenTarget.remove();
+    await waitForFullscreenChange();
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 0, 0)",
+                  "ancestor should be black since target is removed");
+  }, ":modal pseudo-class invalidation with requestFullscreen + remove");
+</script>

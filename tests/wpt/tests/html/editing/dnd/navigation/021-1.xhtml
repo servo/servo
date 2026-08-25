@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Cross page drag and drop: helper file</title>
+<style type="text/css">
+p
+  {border:solid medium navy;
+  height:200px;
+  padding:1em;
+  margin:0;}
+div
+  {margin:100px;
+  padding:50px;}
+</style>
+<script type="application/ecmascript">
+function checkLink(event)
+  {document.querySelector('p').firstChild.nodeValue = (event.dataTransfer.getData('text/uri-list').replace(/\r\n$/,'') == 'data:text/plain,1')?'PASS':'FAIL'}
+</script>
+</head>
+<body>
+<div ondragenter="window.location.reload()">
+<p ondragenter="event.stopPropagation()" dropzone="copy string:text/uri-list" ondrop="checkLink(event)">Drop link here, you should see word PASS once you drop it.</p>
+</div>
+</body>
+</html>

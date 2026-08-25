@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<title>
+    CSS Gap Decorations: flex gaps are painted when going from no gap rule to a gap rule that would be visible.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="match" href="../agnostic/gap-decorations-006-ref.html">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+
+    .flex-container {
+        height: 110px;
+        width: 110px;
+
+        display: flex;
+
+        column-gap: 10px;
+        row-gap: 10px;
+
+        flex-wrap: wrap;
+    }
+
+    .flex-item {
+        background: skyblue;
+        width: 50px;
+    }
+</style>
+<script>
+    function setup() {
+        const button = document.getElementById('btn');
+        button.click();
+    }
+
+    function setDecorations() {
+        const container = document.querySelector('.flex-container');
+        if (container) {
+            container.style.columnRuleStyle = 'solid';
+            container.style.columnRuleWidth = '10px';
+            container.style.columnRuleColor = 'pink';
+            container.style.rowRuleStyle = 'solid';
+            container.style.rowRuleWidth = '10px';
+            container.style.rowRuleColor = 'green';
+        }
+    }
+</script>
+
+<body onload="setup()">
+    <div class="flex-container">
+        <div class="flex-item"></div>
+        <div class="flex-item"></div>
+        <div class="flex-item"></div>
+        <div class="flex-item"></div>
+    </div>
+    <button onclick="setDecorations()" id="btn">Set decorations</button>
+</body>

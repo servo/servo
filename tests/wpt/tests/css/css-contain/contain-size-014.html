@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>size-contained elements should still ignore children, even with an aspect-ratio</title>
+<link rel="author" title="Psychpsyo" href="psychpsyo@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-contain-1/#containment-size">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+  #outer {
+    position: relative;
+  }
+  #bottom {
+    container-type: size;
+    aspect-ratio: 1;
+    background-color: red;
+    width: 100px;
+  }
+  #top {
+    position: absolute;
+    top: 0;
+    left: 0;
+    background-color: green;
+    width: 100px;
+    height: 100px;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="outer">
+  <div id="bottom">
+    <img height="200">
+  </div>
+  <div id="top"></div>
+</div>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api-1/#conditional-rules">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+  CSS.registerProperty({
+    name: '--length',
+    syntax: '<length>',
+    initialValue: '0px',
+    inherits: false
+  });
+</script>
+
+<style>
+  #target { color: red; }
+  @supports(--length: green) {
+    #target { color: rgb(1, 2, 3); }
+  }
+</style>
+
+<div id=target></div>
+
+<script>
+
+test(function() {
+  let cs = getComputedStyle(target);
+  assert_equals(cs.getPropertyValue('color'), 'rgb(1, 2, 3)');
+}, '@supports should ignore registered syntax');
+
+test(function() {
+  assert_true(CSS.supports('--length: red'));
+  assert_true(CSS.supports('--length: 10px'));
+  assert_true(CSS.supports('--length: anything, really'));
+}, 'CSS.supports(conditionText) should ignore registered syntax');
+
+test(function() {
+  assert_true(CSS.supports('--length', 'red'));
+  assert_true(CSS.supports('--length', '10px'));
+  assert_true(CSS.supports('--length', ' anything, really'));
+}, 'CSS.supports(property, value) should ignore registered syntax');
+
+</script>

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>
+    CSS Test: Testing how a sizing change to one flex item impacts its sibling
+  </title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#layout-algorithm">
+  <link rel="match" href="flexbox-dyn-resize-001-ref.html">
+  <style>
+    .container {
+      width: 100px;
+      display: flex;
+      border: 1px solid purple;
+      margin-bottom: 15px;
+    }
+    .item {
+       margin: 2px;
+       background: lightblue;
+    }
+    .inline-box {
+      display: inline-block;
+      height: 10px;
+      width: 10px;
+      background: lightgray;
+      border: 1px solid black;
+     }
+  </style>
+  <script>
+  function go() {
+    // Make this item steal all the spare width (forcing its sibling to shrink)
+    // by giving it a huge 'width' and therefore huge flex-basis:
+    document.getElementById("change-width").style.width = "300px";
+
+    // Make this item steal all the spare width (forcing its sibling to shrink)
+    // by giving it a pretty big flex-basis and no shrinkability:
+    document.getElementById("change-flex").style.flex = "0 0 75px"
+  }
+  </script>
+</head>
+<body onload="go()">
+  <div class="container">
+    <div class="item" id="change-width">
+      <div class="inline-box"></div><div class="inline-box"></div>
+    </div>
+    <div class="item">
+      <div class="inline-box"></div><div class="inline-box"></div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="item" id="change-flex">
+      <div class="inline-box"></div><div class="inline-box"></div>
+    </div>
+    <div class="item">
+      <div class="inline-box"></div><div class="inline-box"></div>
+    </div>
+  </div>
+</body>
+</html>

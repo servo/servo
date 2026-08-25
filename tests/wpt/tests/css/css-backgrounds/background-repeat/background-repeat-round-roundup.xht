@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Test: background-repeat:round, rounding up</title>
+    <link rel="author" title="Jeffrey Carl Faden" href="http://www.jeffreyatw.com/" />
+    <link rel="match" href="reference/background-repeat-round-roundup.xht"/>
+    <link rel="help" href="http://www.w3.org/TR/css3-background/#the-background-repeat" />
+    <meta name="flags" content="image" />
+    <meta name="assert" content="The 'background-repeat: round' declaration must scale an image in one or more dimensions so it fits a whole number of times in the background positioning area." />
+    <style type="text/css">
+      <![CDATA[
+      div {
+        background-image: url("support/rectangle-96x60.png");
+        background-repeat: round;
+        height: 212px;
+        width: 252px;
+      }
+      ]]>
+    </style>
+  </head>
+  <body>
+    <p><img src="support/rectangle-96x60.png" alt="Image download support must be enabled"/></p>
+    <p>Test passes if the above image repeats in the below rectangle 12 times exactly: 3 columns, 4 rows. The top border of the containing rectangle should be orange, the right border yellow, the bottom border green, and the left border blue.</p>
+    <p>Test fails if the above image repeats in below rectangle less than 12 times, with partial images lining the right and the bottom.</p>
+    <div></div>
+  </body>
+</html>

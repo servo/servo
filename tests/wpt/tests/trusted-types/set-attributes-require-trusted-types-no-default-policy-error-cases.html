@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js" ></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/passthroughpolicy.js"></script>
+<meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script';">
+<script>
+  test(() => {
+    const element = document.createElement("div");
+    const otherElement = document.createElement("div");
+    element.setAttribute("onclick", passthroughpolicy.createScript("foo"));
+    assert_throws_js(TypeError, () => {
+      otherElement.setAttributeNode(element.attributes[0]);
+    });
+  }, "setAttributeNode runs Trusted Types check before inuse checks");
+
+  test(() => {
+    const element = document.createElement("div");
+    const otherElement = document.createElement("div");
+    element.setAttribute("onclick", passthroughpolicy.createScript("foo"));
+    assert_throws_js(TypeError, () => {
+      otherElement.setAttributeNodeNS(element.attributes[0]);
+    });
+  }, "setAttributeNodeNS runs Trusted Types check before inuse checks");
+
+  test(() => {
+    const element = document.createElement("div");
+    const otherElement = document.createElement("div");
+    element.setAttribute("onclick", passthroughpolicy.createScript("foo"));
+    assert_throws_js(TypeError, () => {
+      otherElement.attributes.setNamedItem(element.attributes[0]);
+    });
+  }, "setNamedItem runs Trusted Types check before inuse checks");
+
+  test(() => {
+    const element = document.createElement("div");
+    const otherElement = document.createElement("div");
+    element.setAttribute("onclick", passthroughpolicy.createScript("foo"));
+    assert_throws_js(TypeError, () => {
+      otherElement.attributes.setNamedItemNS(element.attributes[0]);
+    });
+  }, "setNamedItemNS runs Trusted Types check before inuse checks");
+
+  test(() => {
+    const element = document.createElement("div");
+    element.setAttribute("onclick", passthroughpolicy.createScript("foo"));
+    assert_throws_js(TypeError, () => {
+      element.setAttributeNode(element.attributes[0]);
+    });
+  }, "setAttributeNode runs Trusted Types check before same attribute early return");
+
+  test(() => {
+    const element = document.createElement("div");
+    element.setAttribute("onclick", passthroughpolicy.createScript("foo"));
+    assert_throws_js(TypeError, () => {
+      element.setAttributeNodeNS(element.attributes[0]);
+    });
+  }, "setAttributeNodeNS runs Trusted Types check before same attribute early return");
+
+  test(() => {
+    const element = document.createElement("div");
+    element.setAttribute("onclick", passthroughpolicy.createScript("foo"));
+    assert_throws_js(TypeError, () => {
+      element.attributes.setNamedItem(element.attributes[0]);
+    });
+  }, "setNamedItem runs Trusted Types check before same attribute early return");
+
+  test(() => {
+    const element = document.createElement("div");
+    element.setAttribute("onclick", passthroughpolicy.createScript("foo"));
+    assert_throws_js(TypeError, () => {
+      element.attributes.setNamedItemNS(element.attributes[0]);
+    });
+  }, "setNamedItemNS runs Trusted Types check before same attribute early return");
+</script>

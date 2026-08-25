@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+
+<p>Iframe 3</p>
+<div style="width: 100px; height: 100px; background: green" id="target">Target</div>
+
+<script>
+const options = {
+  root: null,
+  scrollMargin: "50px"
+};
+
+const observer = new IntersectionObserver(records => {
+  window.top.postMessage({ msgName: "isIntersectingChanged", value: records[0].isIntersecting }, "*");
+}, options);
+
+observer.observe(target);
+</script>

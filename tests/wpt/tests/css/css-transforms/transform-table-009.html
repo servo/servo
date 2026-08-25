@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test (Transforms): Table With Preserve-3D 1</title>
+    <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-2/#transform-style-property">
+    <meta name="assert" content="This is the same as transform-table-007.html,
+    except that transform-style is also explicitly applied to the intervening
+    &lt;tbody&gt;, so nothing should vanish.">
+    <link rel="match" href="transform-table-009-ref.html">
+    <link rel="mismatch" href="transform-table-009-notref.html">
+    <meta name="fuzzy" content="maxDifference=0-50;totalPixels=0-3">
+    <style>
+      table, tbody, tr, td {
+        margin: 0;
+        padding: 0;
+        border-spacing: 0;
+      }
+      div {
+        transform: rotateX(90deg);
+      }
+      body > div, table, tbody, tr, td {
+        transform-style: preserve-3d;
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      <table>
+        <tbody>
+          <tr>
+            <td>
+              <div>Some text</div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </body>
+</html>

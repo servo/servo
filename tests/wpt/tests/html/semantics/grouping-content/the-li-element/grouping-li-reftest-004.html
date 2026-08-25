@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>HTML LI element: implied scope</title>
+  <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.org">
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/grouping-content.html#the-li-element">
+  <link rel="help" href="https://drafts.csswg.org/css-lists/#propdef-counter-reset">
+  <link rel="match" href="grouping-li-reftest-004-ref.html">
+  <style>
+    body { margin-left: 40px }
+    li { list-style-type: decimal }
+  </style>
+</head>
+<body>
+<li></li>
+<li></li>
+<li></li>
+<li></li>
+<div><li></li></div>
+<div><div><li></li></div></div>
+</body>
+</html>

@@ -1,0 +1,61 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: 'list-style' shorthand and 'none' values</title>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#tokenization"/>
+  <link rel="match" href="list-style-020-ref.xht"/>
+  <meta name="assert" content=""/>
+  <style type="text/css">
+    /* For better readability */
+    .li {
+      font-size: 1.5em;
+      color: blue;
+    }
+    span {
+      color: black;
+      font-size: 0.67em;
+      vertical-align: middle;
+      padding-left: 0.2em;
+    }
+
+    .li {
+      display: list-item;
+      list-style: disc;
+      margin: 0.2em 0 0.2em 4em;
+      border-left: solid thin orange;
+    }
+
+    .one   { list-style: none; color: red; }
+    .two   { list-style: none none; color: red; }
+    .three { list-style: none square; }
+    .four  { list-style: square none; }
+    .five  { list-style: url(support/diamond.png) none; }
+    .six   { list-style: none url(support/diamond.png); }
+    .seven { list-style: none url(support/swatch-red.png) none;
+             list-style: url(support/swatch-red.png) none none;
+             list-style: none none url(support/swatch-red.png);
+             list-style: none square none;
+             list-style: square none none;
+             list-style: none none square;
+             list-style: square url(support/swatch-red.png) none;
+             list-style: url(support/swatch-red.png) none square;
+             list-style: none square url(support/swatch-red.png);
+           }
+
+  </style>
+ </head>
+ <body>
+   <p>Test passes if each word on the right of the orange line
+    describes the shape on the left.</p>
+
+   <div class="li one"><span>(nothing)</span></div>
+   <div class="li two"><span>(nothing)</span></div>
+   <div class="li three"><span>blue square</span></div>
+   <div class="li four"><span>blue square</span></div>
+   <div class="li five"><span>purple diamond</span></div>
+   <div class="li six"><span>purple diamond</span></div>
+   <div class="li seven"><span>blue circle</span></div>
+
+ </body>
+</html>

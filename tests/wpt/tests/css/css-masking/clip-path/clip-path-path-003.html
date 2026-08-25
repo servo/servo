@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>CSS Masking: clip-path property and path() function with non-zero reference box offset</title>
+<link rel="help" href="https://drafts.csswg.org/css-shapes/#basic-shape-functions">
+<link rel="help" href="https://drafts.csswg.org/css-shapes/#funcdef-basic-shape-path">
+<link rel="match" href="reference/green-100x100.html">
+<style>
+  #target {
+    clip-path: path('M0 100h100v100h-100z');
+  }
+</style>
+<svg>
+  <g id="target">
+    <rect y="-100" width="100" height="300" fill="red"/>
+    <rect width="100" height="100" fill="green"/>
+  </g>
+</svg>

@@ -1,0 +1,53 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL GLSL Conformance Tests - sampler operands</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../../resources/glsl-feature-tests.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+
+<script>
+// ESSL(1.00, 3.00, 3.10) section 4.1.7
+// Except for array indexing, structure field selection, and
+// parentheses, samplers are not allowed to be operands in expressions.
+</script>
+
+<script id="samplerAdding" type="x-shader/x-fragment">
+// This covers an ANGLE bug.
+// See https://bugs.chromium.org/p/angleproject/issues/detail?id=2028.
+uniform sampler2D s1;
+uniform sampler2D s2;
+void main() {
+    s1 + s2;
+}
+</script>
+
+<script>
+"use strict";
+GLSLConformanceTester.runTests([
+    { fShaderId: 'samplerAdding',
+      fShaderSuccess: false,
+      linkSuccess: false,
+      passMsg: 'Adding on samplers should fail'
+    },
+]);
+
+var successfullyParsed = true;
+</script>
+</body>
+</html>

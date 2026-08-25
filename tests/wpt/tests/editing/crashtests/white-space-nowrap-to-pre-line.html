@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>No crashes or DCHECK failures if white-space changes from nowrap to pre-line</title>
+<link rel="author" title="Peng Zhou" href="mailto:zhoupeng.1996@bytedance.com">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#white-space-property">
+<link rel="help" href="https://issues.chromium.org/issues/389738294">
+<style>
+span {
+  white-space: nowrap;
+}
+</style>
+<script>
+window.addEventListener('load', () => {
+  const span = document.querySelector('span');
+  span.innerHTML = 'text\n\t';
+  requestAnimationFrame(() => {
+    // pre-line should remove end-of-line spaces
+    span.style.whiteSpace = 'pre-line';
+  });
+});
+</script>
+</head>
+<body>
+<span></span>
+</body>
+</html>

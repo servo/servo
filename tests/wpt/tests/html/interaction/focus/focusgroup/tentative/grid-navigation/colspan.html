@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Validate that we deal correctly with colspans.</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<table focusgroup="grid">
+  <tr>
+    <td id=r1c1 tabindex=0>r1c1</td>
+    <td id=r1c2 tabindex=0 colspan=2>r1c2</td>
+    <td id=r1c4 tabindex=0>r1c4</td>
+  </tr>
+  <tr>
+    <td id=r2c1 tabindex=0>r2c1</td>
+    <td id=r2c2 tabindex=0>r2c2</td>
+    <td id=r2c3 tabindex=0>r2c3</td>
+    <td id=r2c4 tabindex=0>r2c4</td>
+  </tr>
+</table>
+
+<script>
+
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(r1c1, kRight);
+    assert_equals(document.activeElement, r1c2);
+
+    await focusAndSendDirectionalInput(r1c2, kRight);
+    assert_equals(document.activeElement, r1c4);
+  }, "Navigating right should move the focus to the next column, dealing correctly with colspans.");
+
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(r1c1, kDown);
+    assert_equals(document.activeElement, r2c1);
+
+    await focusAndSendDirectionalInput(r1c2, kDown);
+    assert_equals(document.activeElement, r2c2);
+
+    await focusAndSendDirectionalInput(r1c4, kDown);
+    assert_equals(document.activeElement, r2c4);
+  }, "Navigating down should move the focus to the right cell on the next row, dealing correctly with colspans.");
+
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(r1c4, kLeft);
+    assert_equals(document.activeElement, r1c2);
+
+    await focusAndSendDirectionalInput(r1c2, kLeft);
+    assert_equals(document.activeElement, r1c1);
+  }, "Navigating left should move to the previous column, dealing correctly with the colspans.");
+
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(r2c1, kUp);
+    assert_equals(document.activeElement, r1c1);
+
+    await focusAndSendDirectionalInput(r2c2, kUp);
+    assert_equals(document.activeElement, r1c2);
+
+    await focusAndSendDirectionalInput(r2c3, kUp);
+    assert_equals(document.activeElement, r1c2);
+
+    await focusAndSendDirectionalInput(r2c4, kUp);
+    assert_equals(document.activeElement, r1c4);
+  }, "Navigating up should move the focus to the right cell on the previous row, dealing correctly with colspans.");
+
+</script>

@@ -1,0 +1,16 @@
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+var global = this;
+test(function() {
+  assert_equals(window, window.window);
+  assert_equals(window, global);
+  for (var key in global) {
+    assert_equals(global[key], window[key]);
+  }
+});
+</script>
+</head>
+</html>

@@ -1,0 +1,116 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Scroll event should behave correctly for Element.ScrollX and Element.ScrollLeft</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="scroll_support.js"></script>
+<link rel="author" title="Jo Steven Novaryo" href="mailto:jo.steven.novaryo@huawei.com">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#extensions-to-the-window-interface">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#scrolling-events">
+<div id=log></div>
+<div id="container">
+</div>
+<script>
+
+
+function promiseForFrameLoad(frame) {
+  return new Promise(async (resolve) => {
+    frame.addEventListener("load", () => resolve(frame), { once: true });
+  });
+}
+
+async function promiseForSetupTargetFrame() {
+  const target = document.createElement("iframe");
+  target.src = "../resources/large-dimension-document.sub.html";
+  target.width = "200";
+  target.height = "200";
+
+  var container = document.getElementById("container");
+  container.innerHTML = "";
+  container.appendChild(target);
+
+  return promiseForFrameLoad(target);
+}
+
+promise_test(async (t) => {
+  var frame = await promiseForSetupTargetFrame();
+  var target = frame.contentWindow;
+
+  assert_equals(target.scrollX, 0);
+  var promiseForScrollX = waitForEvent("scroll", t, target);
+  target.scrollTo({left: 10});
+  await promiseForScrollX;
+  assert_equals(target.scrollX, 10);
+
+  assert_equals(target.scrollY, 0);
+  var promiseForScrollY = waitForEvent("scroll", t, target);
+  target.scrollTo({top: 10});
+  await promiseForScrollY;
+  assert_equals(target.scrollY, 10);
+
+}, "scrollX and scrollY should fire scroll event.");
+
+promise_test(async (t) => {
+  var frame = await promiseForSetupTargetFrame();
+  var target = frame.contentWindow;
+
+  target.addEventListener("scroll", () => assert_unreached("Any scroll event should not be observed"));
+
+  assert_equals(target.scrollX, 0);
+  target.scrollTo({left: 0});
+
+  assert_equals(target.scrollY, 0);
+  target.scrollTo({top: 0});
+
+  // Ensure all scroll event is flushed
+  await waitForNextFrame();
+  await waitForNextFrame();
+}, "scrollX and scrollY being set with the same value.");
+
+promise_test(async (t) => {
+  var frame = await promiseForSetupTargetFrame();
+  var target = frame.contentWindow;
+
+  target.addEventListener("scroll", () => assert_unreached("Any scroll event should not be observed"));
+
+  target.scrollTo({left: -100});
+  target.scrollTo({top: -100});
+
+  // Ensure all scroll event is flushed
+  await waitForNextFrame();
+  await waitForNextFrame();
+}, "scrollX and scrollY being set with invalid scroll Scroll.");
+
+promise_test(async (t) => {
+  var frame = await promiseForSetupTargetFrame();
+  var target = frame.contentWindow;
+  var frameDocEl = frame.contentDocument.documentElement;
+
+  assert_equals(target.scrollX, 0);
+  var promiseForScrollX = waitForEvent("scroll", t, target);
+  target.scrollTo({left: frameDocEl.scrollWidth});
+  await promiseForScrollX;
+  assert_greater_than(target.scrollX, 0);
+
+  assert_equals(target.scrollY, 0);
+  var promiseForScrollY = waitForEvent("scroll", t, target);
+  target.scrollTo({
+    top: frameDocEl.scrollHeight,
+    left: target.scrollX
+  });
+  await promiseForScrollY;
+  assert_greater_than(target.scrollY, 0);
+
+  target.addEventListener("scroll", () => assert_unreached("Any scroll event should not be observed"));
+
+  target.scrollTo({
+    left: target.scrollX + 10,
+    top: target.scrollY + 10,
+  });
+
+  // Ensure all scroll event is flushed
+  await waitForNextFrame();
+  await waitForNextFrame();
+}, "scrollX and scrollY when scrolling above maximum Scroll.");
+
+</script>

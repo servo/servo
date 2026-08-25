@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL ANGLE_multi_draw Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/desktop-gl-constants.js"></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/tests/compositing-test.js"></script>
+<script src="../../js/tests/invalid-vertex-attrib-test.js"></script>
+</head>
+<body>
+<script id="vshaderIllegalDrawID" type="x-shader/x-vertex">
+attribute vec2 vPosition;
+varying vec4 color;
+void main()
+{
+  color = vec4(1.0, 0.0, 0.0, 1.0);
+  gl_Position = vec4(vPosition * 2.0 - 1.0, gl_DrawID, 1);
+}
+</script>
+<script id="vshaderDrawIDZero" type="x-shader/x-vertex">
+#extension GL_ANGLE_multi_draw : require
+attribute vec2 vPosition;
+varying vec4 color;
+void main()
+{
+  if (gl_DrawID == 0) {
+    color = vec4(0, 1, 0, 1);
+  } else {
+    color = vec4(1, 0, 0, 1);
+  }
+  gl_Position = vec4(vPosition * 2.0 - 1.0, 0, 1);
+}
+</script>
+<!-- The behavior of the shaders below is described in runPixelTests() -->
+<script id="vshaderWithDrawID" type="x-shader/x-vertex">
+#extension GL_ANGLE_multi_draw : require
+attribute vec2 vPosition;
+attribute float vInstance;
+varying vec4 color;
+void main()
+{
+  // color_id = (gl_DrawID / 2) % 3
+  float quad_id = float(gl_DrawID / 2);
+  float color_id = quad_id - (3.0 * floor(quad_id / 3.0));
+  if (color_id < 0.5) {
+    color = vec4(1, 0, 0, 1);
+  } else if (color_id < 1.5) {
+    color = vec4(0, 1, 0, 1);
+  } else {
+    color = vec4(0, 0, 1, 1);
+  }
+  mat3 transform = mat3(1.0);
+  // vInstance starts at 1.0 on instanced calls
+  if (vInstance >= 1.0) {
+    transform[0][0] = 0.5;
+    transform[1][1] = 0.5;
+  }
+  if (vInstance == 1.0) {
+  } else if (vInstance == 2.0) {
+      transform[2][0] = 0.5;
+  } else if (vInstance == 3.0) {
+      transform[2][1] = 0.5;
+  } else if (vInstance == 4.0) {
+      transform[2][0] = 0.5;
+      transform[2][1] = 0.5;
+  }
+  gl_Position = vec4(transform * vec3(vPosition, 1.0) * 2.0 - 1.0, 1);
+}
+</script>
+<script id="vshaderEmulatedDrawID" type="x-shader/x-vertex">
+uniform int drawID;
+attribute vec2 vPosition;
+attribute float vInstance;
+varying vec4 color;
+void main()
+{
+  float quad_id = float(drawID / 2);
+  float color_id = quad_id - (3.0 * floor(quad_id / 3.0));
+  if (color_id == 0.0) {
+    color = vec4(1, 0, 0, 1);
+  } else if (color_id == 1.0) {
+    color = vec4(0, 1, 0, 1);
+  } else {
+    color = vec4(0, 0, 1, 1);
+  }
+  mat3 transform = mat3(1.0);
+  // vInstance starts at 1.0 on instanced calls
+  if (vInstance >= 1.0) {
+    transform[0][0] = 0.5;
+    transform[1][1] = 0.5;
+  }
+  if (vInstance == 1.0) {
+  } else if (vInstance == 2.0) {
+      transform[2][0] = 0.5;
+  } else if (vInstance == 3.0) {
+      transform[2][1] = 0.5;
+  } else if (vInstance == 4.0) {
+      transform[2][0] = 0.5;
+      transform[2][1] = 0.5;
+  }
+  gl_Position = vec4(transform * vec3(vPosition, 1.0) * 2.0 - 1.0, 1);
+}
+</script>
+<script id="vshaderNoDrawID" type="x-shader/x-vertex">
+attribute vec2 vPosition;
+attribute float vInstance;
+varying vec4 color;
+void main()
+{
+  color = vec4(1.0, 0.0, 0.0, 1.0);
+  mat3 transform = mat3(1.0);
+  // vInstance starts at 1.0 on instanced calls
+  if (vInstance >= 1.0) {
+    transform[0][0] = 0.5;
+    transform[1][1] = 0.5;
+  }
+  if (vInstance == 1.0) {
+  } else if (vInstance == 2.0) {
+      transform[2][0] = 0.5;
+  } else if (vInstance == 3.0) {
+      transform[2][1] = 0.5;
+  } else if (vInstance == 4.0) {
+      transform[2][0] = 0.5;
+      transform[2][1] = 0.5;
+  }
+  gl_Position = vec4(transform * vec3(vPosition, 1.0) * 2.0 - 1.0, 1);
+}
+</script>
+<script id="fshader" type="x-shader/x-fragment">
+precision mediump float;
+varying vec4 color;
+void main() {
+  gl_FragColor = color;
+}
+</script>
+<div id="description"></div>
+<canvas id="canvas" width="128" height="128"> </canvas>
+<div id="console"></div>
+
+<script>
+"use strict";
+description("This test verifies the functionality of the ANGLE_multi_draw extension, if it is available.");
+
+const wtu = WebGLTestUtils;
+const canvas = document.getElementById("canvas");
+const gl = wtu.create3DContext(canvas);
+const instancedExt = gl && gl.getExtension('ANGLE_instanced_arrays');
+const bufferUsageSet = [ gl.STATIC_DRAW, gl.DYNAMIC_DRAW ];
+
+// Check if the extension is either both enabled and supported or
+// not enabled and not supported.
+function runSupportedTest(extensionName, extensionEnabled) {
+  const supported = gl.getSupportedExtensions();
+  if (supported.indexOf(extensionName) >= 0) {
+    if (extensionEnabled) {
+      testPassed(extensionName + ' listed as supported and getExtension succeeded');
+      return true;
+    } else {
+      testFailed(extensionName + ' listed as supported but getExtension failed');
+    }
+  } else {
+    if (extensionEnabled) {
+      testFailed(extensionName + ' not listed as supported but getExtension succeeded');
+    } else {
+      testPassed(extensionName + ' not listed as supported and getExtension failed -- this is legal');
+    }
+  }
+  return false;
+}
+
+function runTest() {
+  if (!gl) {
+    return function() {
+      testFailed('WebGL context does not exist');
+    }
+  }
+
+  const extensionName = 'WEBGL_multi_draw';
+  const ext = gl.getExtension(extensionName);
+  if (!runSupportedTest(extensionName, ext)) {
+    return;
+  }
+
+  doTest(ext, false);
+  doTest(ext, true);
+}
+
+function doTest(ext, instanced) {
+
+  function runValidationTests(bufferUsage) {
+    const vertexBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([ 0.2,0.2, 0.8,0.2, 0.5,0.8 ]), bufferUsage);
+
+    const indexBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint8Array([ 0, 1, 2, 0]), bufferUsage);
+
+    const instanceBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, instanceBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([ 0, 1, 2, 3 ]), bufferUsage);
+
+    const program = wtu.setupProgram(gl, ["vshaderNoDrawID", "fshader"], ["vPosition", "vInstance"], [0, 1]);
+    expectTrue(program != null, "can compile simple program");
+
+    function setupDrawArrays() {
+      gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+      gl.enableVertexAttribArray(0);
+      gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    }
+
+    function setupDrawElements() {
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+      gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+      gl.enableVertexAttribArray(0);
+      gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    }
+
+    function setupInstanced() {
+      gl.bindBuffer(gl.ARRAY_BUFFER, instanceBuffer);
+      gl.enableVertexAttribArray(1);
+      gl.vertexAttribPointer(1, 1, gl.FLOAT, false, 0, 0);
+      if (wtu.getDefault3DContextVersion() < 2) {
+        instancedExt.vertexAttribDivisorANGLE(1, 1);
+      } else {
+        gl.vertexAttribDivisor(1, 1);
+      }
+    }
+
+    function setupDrawArraysInstanced() {
+      setupDrawArrays();
+      setupInstanced();
+    }
+
+    function setupDrawElementsInstanced() {
+      setupDrawElements();
+      setupInstanced();
+    }
+
+    // Wrap a draw call in a function to setup the draw call, execute,
+    // and check errors.
+    // The `drawFunc` is one of the extension entrypoints being tested. It may
+    // be undefined if that entrypoint is not supported on the context
+    function makeDrawCheck(drawFunc, setup) {
+      if (!drawFunc) {
+        return function() {};
+      }
+      return function(f_args, expect, msg) {
+        setup();
+        drawFunc.apply(ext, f_args);
+        wtu.glErrorShouldBe(gl, expect, drawFunc.name + " " + msg);
+        gl.disableVertexAttribArray(0);
+        gl.disableVertexAttribArray(1);
+      }
+    }
+
+    const checkMultiDrawArrays = makeDrawCheck(
+        ext.multiDrawArraysWEBGL, setupDrawArrays);
+    const checkMultiDrawElements = makeDrawCheck(
+        ext.multiDrawElementsWEBGL, setupDrawElements);
+    const checkMultiDrawArraysInstanced = makeDrawCheck(
+        ext.multiDrawArraysInstancedWEBGL, setupDrawArraysInstanced);
+    const checkMultiDrawElementsInstanced = makeDrawCheck(
+        ext.multiDrawElementsInstancedWEBGL, setupDrawElementsInstanced);
+
+    gl.useProgram(program);
+
+    // Check that drawing a single triangle works
+    if (!instanced) {
+      checkMultiDrawArrays(
+        [gl.TRIANGLES, [0], 0, [3], 0, 1],
+        gl.NO_ERROR, "with gl.TRIANGLES");
+      checkMultiDrawElements(
+        [gl.TRIANGLES, [3], 0, gl.UNSIGNED_BYTE, [0], 0, 1],
+        gl.NO_ERROR, "with gl.TRIANGLES");
+    } else {
+      checkMultiDrawElementsInstanced(
+        [gl.TRIANGLES, [3], 0, gl.UNSIGNED_BYTE, [0], 0, [1], 0, 1],
+        gl.NO_ERROR, "with gl.TRIANGLES");
+      checkMultiDrawArraysInstanced(
+        [gl.TRIANGLES, [0], 0, [3], 0, [1], 0, 1],
+        gl.NO_ERROR, "with gl.TRIANGLES");
+    }
+
+    // Zero drawcount permitted
+    if (!instanced) {
+      checkMultiDrawArrays(
+        [gl.TRIANGLES, [0], 0, [3], 0, 0],
+        gl.NO_ERROR, "with drawcount == 0");
+      checkMultiDrawElements(
+        [gl.TRIANGLES, [3], 0, gl.UNSIGNED_BYTE, [0], 0, 0],
+        gl.NO_ERROR, "with drawcount == 0");
+    } else {
+      checkMultiDrawElementsInstanced(
+        [gl.TRIANGLES, [3], 0, gl.UNSIGNED_BYTE, [0], 0, [1], 0, 0],
+        gl.NO_ERROR, "with drawcount == 0");
+      checkMultiDrawArraysInstanced(
+        [gl.TRIANGLES, [0], 0, [3], 0, [1], 0, 0],
+        gl.NO_ERROR, "with drawcount == 0");
+    }
+
+    // Check negative drawcount
+    if (!instanced) {
+      checkMultiDrawArrays(
+        [gl.TRIANGLES, [0], 0, [3], 0, -1],
+        gl.INVALID_VALUE, "with drawcount < 0");
+      checkMultiDrawElements(
+        [gl.TRIANGLES, [3], 0, gl.UNSIGNED_BYTE, [0], 0, -1],
+        gl.INVALID_VALUE, "with drawcount < 0");
+    } else {
+      checkMultiDrawElementsInstanced(
+        [gl.TRIANGLES, [3], 0, gl.UNSIGNED_BYTE, [0], 0, [1], 0, -1],
+        gl.INVALID_VALUE, "with drawcount < 0");
+      checkMultiDrawArraysInstanced(
+        [gl.TRIANGLES, [0], 0, [3], 0, [1], 0, -1],
+        gl.INVALID_VALUE, "with drawcount < 0");
+    }
+
+    // Check offsets greater than array length
+    if (!instanced) {
+      checkMultiDrawArrays(
+        [gl.TRIANGLES, [0], 1, [3], 0, 1],
+        gl.INVALID_OPERATION, "with firstsStart >= firstsList.length");
+      checkMultiDrawArrays(
+        [gl.TRIANGLES, [0], 0, [3], 1, 1],
+        gl.INVALID_OPERATION, "with countsStart >= countsList.length");
+
+      checkMultiDrawElements(
+        [gl.TRIANGLES, [3], 1, gl.UNSIGNED_BYTE, [0], 0, 1],
+        gl.INVALID_OPERATION, "with countsStart >= countsList.length");
+      checkMultiDrawElements(
+        [gl.TRIANGLES, [3], 0, gl.UNSIGNED_BYTE, [0], 1, 1],
+        gl.INVALID_OPERATION, "with offsetsStart >= offsetsList.length");
+    } else {
+      checkMultiDrawArraysInstanced(
+        [gl.TRIANGLES, [0], 1, [3], 0, [1], 0, 1],
+        gl.INVALID_OPERATION, "with firstsStart >= firstsList.length");
+      checkMultiDrawArraysInstanced(
+        [gl.TRIANGLES, [0], 0, [3], 1, [1], 0, 1],
+        gl.INVALID_OPERATION, "with countsStart >= countsList.length");
+      checkMultiDrawArraysInstanced(
+        [gl.TRIANGLES, [0], 0, [3], 0, [1], 1, 1],
+        gl.INVALID_OPERATION, "with instanceCountsStart >= instanceCountsList.length");
+
+      checkMultiDrawElementsInstanced(
+        [gl.TRIANGLES, [3], 1, gl.UNSIGNED_BYTE, [0], 0, [1], 0, 1],
+        gl.INVALID_OPERATION, "with countsStart >= countsList.length");
+      checkMultiDrawElementsInstanced(
+        [gl.TRIANGLES, [3], 0, gl.UNSIGNED_BYTE, [0], 1, [1], 0, 1],
+        gl.INVALID_OPERATION, "with offsetsStart >= offsetsList.length");
+      checkMultiDrawElementsInstanced(
+        [gl.TRIANGLES, [3], 0, gl.UNSIGNED_BYTE, [0], 0, [1], 1, 1],
+        gl.INVALID_OPERATION, "with instanceCountsStart >= instanceCountsList.length");
+    }
+  }
+
+  function runShaderTests(bufferUsage) {
+    const illegalProgram = wtu.setupProgram(gl, ["vshaderIllegalDrawID", "fshader"], ["vPosition"], [0]);
+    expectTrue(illegalProgram == null, "cannot compile program with gl_DrawID but no extension directive");
+
+    const drawIDProgram = wtu.setupProgram(gl, ["vshaderDrawIDZero", "fshader"], ["vPosition"], [0]);
+    wtu.setupProgram(gl, ["vshaderDrawIDZero", "fshader"], ["vPosition"], [0]);
+    expectTrue(drawIDProgram !== null, "can compile program with gl_DrawID");
+    gl.useProgram(drawIDProgram);
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([ 0,0, 1,0, 0,1, 0,1, 1,0, 1,1 ]), bufferUsage);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    wtu.checkCanvas(gl, [0, 255, 0, 255], "gl_DrawID is 0 for non-Multi* draw calls", 0);
+  }
+
+  function runPixelTests(bufferUsage, useSharedArrayBuffer) {
+    // An array of quads is tiled across the screen.
+    // gl_DrawID is checked by using it to select the color of the draw.
+    // Instanced entrypoints are tested here scaling and then instancing the
+    // array of quads over four quadrants on the screen.
+
+    // These tests also include "manyDraw" tests which emulate a multiDraw with
+    // a Javascript for-loop and gl_DrawID with a uniform constiable. They are
+    // included to ensure the test is written correctly.
+
+    const width = gl.canvas.width;
+    const height = gl.canvas.height;
+    const x_count = 8;
+    const y_count = 8;
+    const quad_count = x_count * y_count;
+    const tri_count = quad_count * 2;
+    const tileSize = [ 1/x_count, 1/y_count ];
+    const tilePixelSize = [ Math.floor(width / x_count), Math.floor(height / y_count) ];
+    const quadRadius = [ 0.25 * tileSize[0], 0.25 * tileSize[1] ];
+    const pixelCheckSize = [ Math.floor(quadRadius[0] * width), Math.floor(quadRadius[1] * height) ];
+
+    function getTileCenter(x, y) {
+      return [ tileSize[0] * (0.5 + x), tileSize[1] * (0.5 + y) ];
+    }
+
+    function getQuadVertices(x, y) {
+      const center = getTileCenter(x, y);
+      return [
+        [center[0] - quadRadius[0], center[1] - quadRadius[1], 0],
+        [center[0] + quadRadius[0], center[1] - quadRadius[1], 0],
+        [center[0] + quadRadius[0], center[1] + quadRadius[1], 0],
+        [center[0] - quadRadius[0], center[1] + quadRadius[1], 0],
+      ]
+    }
+
+    const indicesData = [];
+    const verticesData = [];
+    const nonIndexedVerticesData = [];
+    {
+      const is = new Uint16Array([0, 1, 2, 0, 2, 3]);
+      for (let y = 0; y < y_count; ++y) {
+        for (let x = 0; x < x_count; ++x) {
+          const quadIndex = y * x_count + x;
+          const starting_index = 4 * quadIndex;
+          const vs = getQuadVertices(x, y);
+          for (let i = 0; i < is.length; ++i) {
+            indicesData.push(starting_index + is[i]);
+          }
+          for (let i = 0; i < vs.length; ++i) {
+            for (let v = 0; v < vs[i].length; ++v) verticesData.push(vs[i][v]);
+          }
+          for (let i = 0; i < is.length; ++i) {
+            for (let v = 0; v < vs[is[i]].length; ++v) nonIndexedVerticesData.push(vs[is[i]][v]);
+          }
+        }
+      }
+    }
+
+    const indices = new Uint16Array(indicesData);
+    const vertices = new Float32Array(verticesData);
+    const nonIndexedVertices = new Float32Array(nonIndexedVerticesData);
+
+    const indexBuffer = gl.createBuffer();
+    const vertexBuffer = gl.createBuffer();
+    const nonIndexedVertexBuffer = gl.createBuffer();
+    const instanceBuffer = gl.createBuffer();
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, nonIndexedVertexBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, nonIndexedVertices, bufferUsage);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, vertices, bufferUsage);
+
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, bufferUsage);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, instanceBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([1, 2, 3, 4]), bufferUsage);
+
+    function checkResult(config, msg) {
+      const rects = [];
+      const expected = [
+        [255, 0, 0, 255],
+        [0, 255, 0, 255],
+        [0, 0, 255, 255],
+      ];
+      for (let y = 0; y < y_count; ++y) {
+        for (let x = 0; x < x_count; ++x) {
+          const center_x = x * tilePixelSize[0] + Math.floor(tilePixelSize[0] / 2);
+          const center_y = y * tilePixelSize[1] + Math.floor(tilePixelSize[1] / 2);
+          const quadID = y * x_count + x;
+          const colorID = config.drawID ? quadID % 3 : 0;
+          if (config.instanced) {
+            rects.push(wtu.makeCheckRect(
+                center_x / 2 - Math.floor(pixelCheckSize[0] / 4),
+                center_y / 2 - Math.floor(pixelCheckSize[1] / 4),
+                pixelCheckSize[0] / 2,
+                pixelCheckSize[1] / 2,
+                expected[colorID],
+                msg + " (" + x + "," + y + ")", 0));
+            rects.push(wtu.makeCheckRect(
+                center_x / 2 - Math.floor(pixelCheckSize[0] / 4) + width / 2,
+                center_y / 2 - Math.floor(pixelCheckSize[1] / 4),
+                pixelCheckSize[0] / 2,
+                pixelCheckSize[1] / 2,
+                expected[colorID],
+                msg + " (" + x + "," + y + ")", 0));
+            rects.push(wtu.makeCheckRect(
+                center_x / 2 - Math.floor(pixelCheckSize[0] / 4),
+                center_y / 2 - Math.floor(pixelCheckSize[1] / 4) + height / 2,
+                pixelCheckSize[0] / 2,
+                pixelCheckSize[1] / 2,
+                expected[colorID],
+                msg + " (" + x + "," + y + ")", 0));
+            rects.push(wtu.makeCheckRect(
+                center_x / 2 - Math.floor(pixelCheckSize[0] / 4) + width / 2,
+                center_y / 2 - Math.floor(pixelCheckSize[1] / 4) + height / 2,
+                pixelCheckSize[0] / 2,
+                pixelCheckSize[1] / 2,
+                expected[colorID],
+                msg + " (" + x + "," + y + ")", 0));
+          } else {
+            rects.push(wtu.makeCheckRect(
+                center_x - Math.floor(pixelCheckSize[0] / 2),
+                center_y - Math.floor(pixelCheckSize[1] / 2),
+                pixelCheckSize[0],
+                pixelCheckSize[1],
+                expected[colorID],
+                msg + " (" + x + "," + y + ")", 0));
+          }
+        }
+      }
+      wtu.checkCanvasRects(gl, rects);
+    }
+
+    function newIntArray(count) {
+      if (!useSharedArrayBuffer) {
+        return new Int32Array(count);
+      }
+      let sab = new SharedArrayBuffer(count * Int32Array.BYTES_PER_ELEMENT);
+      return new Int32Array(sab);
+    }
+
+    const firsts = newIntArray(tri_count);
+    const counts = newIntArray(tri_count);
+    const offsets = newIntArray(tri_count);
+    const instances = newIntArray(tri_count);
+
+    for (let i = 0; i < firsts.length; ++i) firsts[i] = i * 3;
+    counts.fill(3);
+    for (let i = 0; i < offsets.length; ++i) offsets[i] = i * 3 * 2;
+    instances.fill(4);
+
+    const firstsOffset = 47;
+    const countsOffset = firstsOffset + firsts.length;
+    const offsetsOffset = countsOffset + counts.length;
+    const instancesOffset = offsetsOffset + instances.length;
+
+    const buffer = newIntArray(firstsOffset + firsts.length + counts.length + offsets.length + instances.length);
+    buffer.set(firsts, firstsOffset);
+    buffer.set(counts, countsOffset);
+    buffer.set(offsets, offsetsOffset);
+    buffer.set(instances, instancesOffset);
+
+    let drawIDLocation;
+
+    const multiDrawArrays = function() {
+      ext.multiDrawArraysWEBGL(gl.TRIANGLES, firsts, 0, counts, 0, tri_count);
+    }
+
+    const multiDrawArraysWithNonzeroOffsets = function() {
+      ext.multiDrawArraysWEBGL(gl.TRIANGLES, buffer, firstsOffset, buffer, countsOffset, tri_count);
+    }
+
+    const multiDrawElements = function() {
+      ext.multiDrawElementsWEBGL(gl.TRIANGLES, counts, 0, gl.UNSIGNED_SHORT, offsets, 0, tri_count);
+    }
+
+    const multiDrawElementsWithNonzeroOffsets = function() {
+      ext.multiDrawElementsWEBGL(gl.TRIANGLES, buffer, countsOffset, gl.UNSIGNED_SHORT, buffer, offsetsOffset, tri_count);
+    }
+
+    const multiDrawArraysInstanced = function() {
+      ext.multiDrawArraysInstancedWEBGL(gl.TRIANGLES, firsts, 0, counts, 0, instances, 0, tri_count);
+    }
+
+    const multiDrawArraysInstancedWithNonzeroOffsets = function() {
+      ext.multiDrawArraysInstancedWEBGL(gl.TRIANGLES, buffer, firstsOffset, buffer, countsOffset, buffer, instancesOffset, tri_count);
+    }
+
+    const multiDrawElementsInstanced = function() {
+      ext.multiDrawElementsInstancedWEBGL(gl.TRIANGLES, counts, 0, gl.UNSIGNED_SHORT, offsets, 0, instances, 0, tri_count);
+    }
+
+    const multiDrawElementsInstancedWithNonzeroOffsets = function() {
+      ext.multiDrawElementsInstancedWEBGL(gl.TRIANGLES, buffer, countsOffset, gl.UNSIGNED_SHORT, buffer, offsetsOffset, buffer, instancesOffset, tri_count);
+    }
+
+    const manyDrawArrays = function() {
+      for (let i = 0; i < tri_count; ++i) {
+        gl.drawArrays(gl.TRIANGLES, firsts[i], counts[i]);
+      }
+    }
+
+    const manyDrawElements = function() {
+      for (let i = 0; i < tri_count; ++i) {
+        gl.drawElements(gl.TRIANGLES, counts[i], gl.UNSIGNED_SHORT, offsets[i]);
+      }
+    }
+
+    const manyDrawArraysEmulateDrawID = function() {
+      for (let i = 0; i < tri_count; ++i) {
+        gl.uniform1i(drawIDLocation, i);
+        gl.drawArrays(gl.TRIANGLES, firsts[i], counts[i]);
+      }
+    }
+
+    const manyDrawElementsEmulateDrawID = function() {
+      for (let i = 0; i < tri_count; ++i) {
+        gl.uniform1i(drawIDLocation, i);
+        gl.drawElements(gl.TRIANGLES, counts[i], gl.UNSIGNED_SHORT, offsets[i]);
+      }
+    }
+
+    function drawArraysInstanced() {
+      if (wtu.getDefault3DContextVersion() < 2) {
+        instancedExt.drawArraysInstancedANGLE.apply(instancedExt, arguments);
+      } else {
+        gl.drawArraysInstanced.apply(gl, arguments);
+      }
+    }
+
+    function drawElementsInstanced() {
+      if (wtu.getDefault3DContextVersion() < 2) {
+        instancedExt.drawElementsInstancedANGLE.apply(instancedExt, arguments);
+      } else {
+        gl.drawElementsInstanced.apply(gl, arguments);
+      }
+    }
+
+    function vertexAttribDivisor(attrib, divisor) {
+      if (wtu.getDefault3DContextVersion() < 2) {
+        instancedExt.vertexAttribDivisorANGLE(attrib, divisor);
+      } else {
+        gl.vertexAttribDivisor(attrib, divisor);
+      }
+    }
+
+    const manyDrawArraysInstanced = function() {
+      for (let i = 0; i < tri_count; ++i) {
+        drawArraysInstanced(gl.TRIANGLES, firsts[i], counts[i], 4);
+      }
+    }
+
+    const manyDrawElementsInstanced = function() {
+      for (let i = 0; i < tri_count; ++i) {
+        drawElementsInstanced(gl.TRIANGLES, counts[i], gl.UNSIGNED_SHORT, offsets[i], 4);
+      }
+    }
+
+    const manyDrawArraysInstancedEmulateDrawID = function() {
+      for (let i = 0; i < tri_count; ++i) {
+        gl.uniform1i(drawIDLocation, i);
+        drawArraysInstanced(gl.TRIANGLES, firsts[i], counts[i], 4);
+      }
+    }
+
+    const manyDrawElementsInstancedEmulateDrawID = function() {
+      for (let i = 0; i < tri_count; ++i) {
+        gl.uniform1i(drawIDLocation, i);
+        drawElementsInstanced(gl.TRIANGLES, counts[i], gl.UNSIGNED_SHORT, offsets[i], 4);
+      }
+    }
+
+    function checkDraw(config) {
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+      if (config.indexed) {
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+        gl.enableVertexAttribArray(0);
+        gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+      } else {
+        gl.bindBuffer(gl.ARRAY_BUFFER, nonIndexedVertexBuffer);
+        gl.enableVertexAttribArray(0);
+        gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+      }
+
+      if (config.instanced) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, instanceBuffer);
+        gl.enableVertexAttribArray(1);
+        gl.vertexAttribPointer(1, 1, gl.FLOAT, false, 0, 0);
+        vertexAttribDivisor(1, 1);
+      }
+
+      config.drawFunc();
+      wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors");
+      checkResult(config, config.drawFunc.name + (
+        config.instanced ? ' instanced' : ''
+      ) + (
+        config.drawID ? ' with gl_DrawID' : ''
+      ) + (
+        useSharedArrayBuffer ? ' and SharedArrayBuffer' : ''
+      ));
+
+      gl.disableVertexAttribArray(0);
+      gl.disableVertexAttribArray(1);
+    }
+
+    const noDrawIDProgram = wtu.setupProgram(gl, ["vshaderNoDrawID", "fshader"], ["vPosition", "vInstance"], [0, 1]);
+    expectTrue(noDrawIDProgram != null, "can compile simple program");
+    if (noDrawIDProgram) {
+      gl.useProgram(noDrawIDProgram);
+
+      if (!instanced) {
+        checkDraw({
+          drawFunc: multiDrawArrays,
+          drawID: false,
+        });
+        checkDraw({
+          drawFunc: multiDrawArraysWithNonzeroOffsets,
+          drawID: false,
+        });
+        checkDraw({
+          drawFunc: multiDrawElements,
+          indexed: true,
+          drawID: false,
+        });
+        checkDraw({
+          drawFunc: multiDrawElementsWithNonzeroOffsets,
+          indexed: true,
+          drawID: false,
+        });
+        checkDraw({
+          drawFunc: manyDrawArrays,
+          drawID: false,
+        });
+        checkDraw({
+          drawFunc: manyDrawElements,
+          indexed: true,
+          drawID: false,
+        });
+      } else {
+        checkDraw({
+          drawFunc: multiDrawArraysInstanced,
+          drawID: false,
+          instanced: true,
+        });
+        checkDraw({
+          drawFunc: multiDrawArraysInstancedWithNonzeroOffsets,
+          drawID: false,
+          instanced: true,
+        });
+        checkDraw({
+          drawFunc: multiDrawElementsInstanced,
+          indexed: true,
+          drawID: false,
+          instanced: true,
+        });
+        checkDraw({
+          drawFunc: multiDrawElementsInstancedWithNonzeroOffsets,
+          indexed: true,
+          drawID: false,
+          instanced: true,
+        });
+        checkDraw({
+          drawFunc: manyDrawArraysInstanced,
+          drawID: false,
+          instanced: true,
+        });
+        checkDraw({
+          drawFunc: manyDrawElementsInstanced,
+          indexed: true,
+          drawID: false,
+          instanced: true,
+        });
+      }
+    }
+
+    const withDrawIDProgram = wtu.setupProgram(gl, ["vshaderWithDrawID", "fshader"], ["vPosition", "vInstance"], [0, 1]);
+    expectTrue(withDrawIDProgram != null, "can compile program with ANGLE_multi_draw");
+    if (withDrawIDProgram) {
+      gl.useProgram(withDrawIDProgram);
+
+      if (!instanced) {
+        checkDraw({
+          drawFunc: multiDrawArrays,
+          drawID: true,
+        });
+        checkDraw({
+          drawFunc: multiDrawArraysWithNonzeroOffsets,
+          drawID: true,
+        });
+        checkDraw({
+          drawFunc: multiDrawElements,
+          indexed: true,
+          drawID: true,
+        });
+        checkDraw({
+          drawFunc: multiDrawElementsWithNonzeroOffsets,
+          indexed: true,
+          drawID: true,
+        });
+      } else {
+        checkDraw({
+          drawFunc: multiDrawArraysInstanced,
+          drawID: true,
+          instanced: true,
+        });
+        checkDraw({
+          drawFunc: multiDrawArraysInstancedWithNonzeroOffsets,
+          drawID: true,
+          instanced: true,
+        });
+        checkDraw({
+          drawFunc: multiDrawElementsInstanced,
+          indexed: true,
+          drawID: true,
+          instanced: true,
+        });
+        checkDraw({
+          drawFunc: multiDrawElementsInstancedWithNonzeroOffsets,
+          indexed: true,
+          drawID: true,
+          instanced: true,
+        });
+      }
+    }
+
+    const emulatedDrawIDProgram = wtu.setupProgram(gl, ["vshaderEmulatedDrawID", "fshader"], ["vPosition", "vInstance"], [0, 1]);
+    expectTrue(emulatedDrawIDProgram != null, "can compile program to emulate gl_DrawID");
+    drawIDLocation = gl.getUniformLocation(emulatedDrawIDProgram, "drawID");
+    if (emulatedDrawIDProgram) {
+      gl.useProgram(emulatedDrawIDProgram);
+
+      if (!instanced) {
+        checkDraw({
+          drawFunc: manyDrawArraysEmulateDrawID,
+          drawID: true,
+        });
+        checkDraw({
+          drawFunc: manyDrawElementsEmulateDrawID,
+          indexed: true,
+          drawID: true,
+        });
+      } else {
+        checkDraw({
+          drawFunc: manyDrawArraysInstancedEmulateDrawID,
+          drawID: true,
+          instanced: true,
+        });
+        checkDraw({
+          drawFunc: manyDrawElementsInstancedEmulateDrawID,
+          indexed: true,
+          drawID: true,
+          instanced: true,
+        });
+      }
+    }
+  }
+
+  for (let i = 0; i < bufferUsageSet.length; i++) {
+    let bufferUsage = bufferUsageSet[i];
+    debug("Testing with BufferUsage = " + bufferUsage);
+    runValidationTests(bufferUsage);
+    runShaderTests(bufferUsage);
+    runPixelTests(bufferUsage, false);
+  }
+
+  // Run a subset of the pixel tests with SharedArrayBuffer if supported.
+  if (window.SharedArrayBuffer) {
+    runPixelTests(bufferUsageSet[0], true);
+  }
+}
+
+function waitForComposite() {
+  debug('wait for composite');
+  return new Promise(resolve => wtu.waitForComposite(resolve));
+}
+
+async function testPreserveDrawingBufferFalse(gl, drawFn) {
+  debug('');
+  debug('test preserveDrawingBuffer: false');
+
+  if (drawFn(gl)) {
+    debug('skipped: extension does not exist');
+    return;
+  }
+
+  wtu.checkCanvasRect(gl, 0, 0, 20, 20, [255, 0, 0, 255],
+      "canvas should be red");
+
+  // enable scissor here, before compositing, to make sure it's correctly
+  // ignored and restored
+  gl.scissor(0, 10, 10, 10);
+  gl.enable(gl.SCISSOR_TEST);
+
+  await waitForComposite();
+
+  // scissor was set earlier
+  gl.clearColor(0, 0, 1, 1);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  wtu.checkCanvasRect(gl, 0, 10, 10, 10, [0, 0, 255, 255],
+      "cleared corner should be blue, stencil should be preserved");
+  wtu.checkCanvasRect(gl, 0, 0, 10, 10, [0, 0, 0, 0],
+      "remainder of buffer should be cleared");
+
+  gl.disable(gl.SCISSOR_TEST);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors");
+}
+
+async function testPreserveDrawingBufferTrue(gl, drawFn) {
+  debug('');
+  debug('test preserveDrawingBuffer: true');
+  if (drawFn(gl)) {
+    debug('skipped: extension does not exist');
+    return;
+  }
+
+  wtu.checkCanvasRect(gl, 0, 0, 20, 20, [255, 0, 0, 255],
+      "canvas should be red");
+
+  await waitForComposite();
+
+  wtu.checkCanvasRect(gl, 0, 0, 20, 20, [255, 0, 0, 255],
+      "canvas should be red");
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors");
+}
+
+async function doCompositingTests([glPreserveDrawingBufferFalse, glPreserveDrawingBufferTrue], drawFn) {
+  debug('');
+  debug(drawFn.name);
+
+  await testPreserveDrawingBufferFalse(glPreserveDrawingBufferFalse, drawFn);
+  await testPreserveDrawingBufferTrue(glPreserveDrawingBufferTrue, drawFn);
+}
+
+async function runDrawTests(testFn) {
+  function drawArrays(gl) {
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+  }
+
+  function drawElements(gl) {
+    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_BYTE, 0);
+  }
+
+  function drawArraysInstanced(gl) {
+    gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, 1);
+  }
+
+  function drawElementsInstanced(gl) {
+    gl.drawElementsInstanced(gl.TRIANGLES, 6, gl.UNSIGNED_BYTE, 0, 1);
+  }
+
+  function multiDrawArraysWEBGL(gl) {
+    const ext = gl.getExtension('WEBGL_multi_draw');
+    if (!ext) {
+      throw 'Should not have run this test without WEBGL_multi_draw';
+    }
+
+    ext.multiDrawArraysWEBGL(
+        gl.TRIANGLES,
+        [0], 0, // firsts
+        [6], 0, // counts
+        1,      // drawCount
+    );
+  }
+
+  function multiDrawElementsWEBGL(gl) {
+    const ext = gl.getExtension('WEBGL_multi_draw');
+    if (!ext) {
+      throw 'Should not have run this test without WEBGL_multi_draw';
+    }
+
+    ext.multiDrawElementsWEBGL(
+        gl.TRIANGLES,
+        [6], 0,   // counts
+        gl.UNSIGNED_BYTE,
+        [0], 0,   // offsets
+        1,        // drawCount
+    );
+  }
+
+  function multiDrawArraysInstancedWEBGL(gl) {
+    const ext = gl.getExtension('WEBGL_multi_draw');
+    if (!ext) {
+      throw 'Should not have run this test without WEBGL_multi_draw';
+    }
+    ext.multiDrawArraysInstancedWEBGL(
+        gl.TRIANGLES,
+        [0], 0, // firsts
+        [6], 0, // counts
+        [1], 0, // instances
+        1,      // drawCount
+    );
+  }
+
+  function multiDrawElementsInstancedWEBGL(gl) {
+    const ext = gl.getExtension('WEBGL_multi_draw');
+    if (!ext) {
+      throw 'Should not have run this test without WEBGL_multi_draw';
+    }
+    ext.multiDrawElementsInstancedWEBGL(
+        gl.TRIANGLES,
+        [6], 0, // counts
+        gl.UNSIGNED_BYTE,
+        [0], 0, // offsets
+        [1], 0, // instances
+        1,      // drawCount
+    );
+  }
+
+  await testFn(drawArrays);             // sanity check
+  await testFn(drawElements);           // sanity check
+
+  // It's only legal to call testFn if the extension is supported,
+  // since the invalid vertex attrib tests, in particular, expect the
+  // draw function to have an effect.
+  if (gl.getExtension('WEBGL_multi_draw')) {
+    await testFn(multiDrawArraysWEBGL);
+    await testFn(multiDrawElementsWEBGL);
+    await testFn(multiDrawArraysInstancedWEBGL);
+    await testFn(multiDrawElementsInstancedWEBGL);
+  }
+}
+
+async function runCompositingTests() {
+  const compositingTestFn = createCompositingTestFn({
+    webglVersion: 1,
+    shadersFn(gl) {
+      const vs = `\
+      //#extension GL_ANGLE_multi_draw : enable
+      attribute vec4 position;
+      void main() {
+        gl_Position = position;
+      }
+      `;
+      const fs = `\
+      precision mediump float;
+      void main() {
+        gl_FragColor = vec4(1, 0, 0, 1);
+      }
+      `;
+      return [vs, fs];
+    },
+  });
+  await runDrawTests(compositingTestFn);
+}
+
+async function runInvalidAttribTests(gl) {
+  const invalidAttribTestFn = createInvalidAttribTestFn(gl);
+  await runDrawTests(invalidAttribTestFn);
+}
+
+function testSideEffects() {
+  debug("")
+  debug("Testing that ANGLE_instanced_arrays is implicitly enabled")
+  const canvas = document.createElement("canvas");
+  const gl = wtu.create3DContext(canvas, undefined, 1);
+  if (!gl) {
+    testFailed('WebGL context creation failed');
+    return;
+  }
+  gl.enableVertexAttribArray(0);
+  const VERTEX_ATTRIB_ARRAY_DIVISOR_ANGLE = 0x88FE;
+  gl.getVertexAttrib(0, VERTEX_ATTRIB_ARRAY_DIVISOR_ANGLE);
+  wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "divisor enum unknown");
+  const ext = gl.getExtension("WEBGL_multi_draw");
+  if (ext) {
+    debug("WEBGL_multi_draw enabled");
+    gl.getVertexAttrib(0, VERTEX_ATTRIB_ARRAY_DIVISOR_ANGLE);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "divisor enum known");
+  }
+}
+
+async function main() {
+  runTest();
+  testSideEffects();
+  await runInvalidAttribTests(gl);
+  await runCompositingTests();
+  finishTest();
+}
+main();
+
+var successfullyParsed = true;
+</script>
+</body>
+</html>

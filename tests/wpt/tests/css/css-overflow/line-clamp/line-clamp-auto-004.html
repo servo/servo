@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: `line-clamp: auto` when the max-height isn't an exact number of lines</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/webkit-line-clamp-005-ref.html">
+<meta name="assert" content="line-clamp: auto will clamp lines that start before the maximum block size but overflow, and set the intrinsic block size to the last line before clamp">
+<style>
+.clamp {
+  line-clamp: auto;
+  max-height: 4.5lh;
+  font: 16px / 32px serif;
+  white-space: pre;
+  background-color: yellow;
+  padding: 0 4px;
+}
+</style>
+<div class="clamp">Line 1
+Line 2
+Line 3
+Line 4
+Line 5
+Line 6</div>

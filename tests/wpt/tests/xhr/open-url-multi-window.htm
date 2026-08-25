@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+  <head>
+    <title>XMLHttpRequest: open() resolving URLs (multi-Window; 1)</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-open()-method" data-tested-assertations="following::ol[1]/li[2]/ol[1]/li[2] following::ol[1]/li[7] following::ol[1]/li[14]/ul/li[2]" />
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      var test = async_test()
+      function init() {
+        test.step(function() {
+          var client = new self[0].XMLHttpRequest()
+          client.onreadystatechange = function() {
+            test.step(function() {
+              if(client.readyState == 4) {
+                assert_equals(client.responseText, "bottom\n")
+                test.done()
+              }
+            })
+          }
+          client.open("GET", "folder.txt")
+          client.send("")
+        })
+      }
+    </script>
+    <iframe src="resources/init.htm"></iframe>
+  </body>
+</html>

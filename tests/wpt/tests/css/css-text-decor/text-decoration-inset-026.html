@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Decoration 4: text-decoration-inset percentage</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-inset-property">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/8403">
+<link rel="match" href="reference/text-decoration-inset-026-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+  body { background: white; color: black; font: 20px/2 Ahem; }
+  p {
+    text-decoration-line: underline;
+    text-decoration-color: blue;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 5px;
+    text-decoration-inset: 10% 20%;
+  }
+</style>
+
+<!-- Underline should be inset 10% (20px) from start and 20% (40px) from end -->
+
+<p>abcdefghij</p>

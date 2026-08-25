@@ -1,0 +1,15 @@
+<!doctype html>
+<html class="a">
+ <head>
+  <title>element.getElementsByClassName(): simple</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+ </head>
+ <body class="a">
+  <div id="log"></div>
+  <script>test(function() {
+                 assert_array_equals(document.body.getElementsByClassName("a"), [])
+               })
+  </script>
+ </body>
+</html>

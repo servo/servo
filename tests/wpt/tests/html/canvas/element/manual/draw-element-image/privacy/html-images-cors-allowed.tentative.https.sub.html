@@ -1,0 +1,53 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>drawElementImage does draws CORS enabled cross-origin HTML images</title>
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src='/html/canvas/resources/canvas-tests.js'></script>
+  <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+  <style>
+  #child {
+    width: 10px;
+    height: 20px;
+    background: red;
+  }
+  #corsPNG {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+  }
+  #corsSVG {
+    position: absolute;
+    left: 0px;
+    top: 10px;
+  }
+  </style>
+</head>
+<body>
+  <canvas id=canvas width="10" height="20" layoutsubtree>
+    <div id=child>
+      <img id=corsPNG width=10 height=10 src="https://{{hosts[alt][www]}}:{{ports[https][0]}}/images/green-100x100.png?pipe=header(Access-Control-Allow-Origin,*)" crossOrigin=anonymous />
+      <img id=corsSVG width=10 height=10 src="https://{{hosts[alt][www]}}:{{ports[https][0]}}/images/green-100x100.svg?pipe=header(Access-Control-Allow-Origin,*)" crossOrigin=anonymous />
+    </div>
+  </canvas>
+  <script>
+    window.onload = function() {
+      promise_test(async function(t) {
+        await waitForCanvasPaint(canvas);
+        var context = canvas.getContext("2d", { willReadFrequently: true });
+        context.drawElementImage(child, 0, 0);
+
+        // Fetch all pixel data once to avoid multiple slow readbacks.
+        const imgData = context.getImageData(0, 0, canvas.width, canvas.height);
+
+        let pixel = _getPixelFromImageData(imgData, 5, 5);
+        assert_array_equals(pixel, [0, 255, 0, 255], "CORS png should draw");
+
+        pixel = _getPixelFromImageData(imgData, 5, 15);
+        assert_array_equals(pixel, [0, 255, 0, 255], "CORS svg should draw");
+      });
+    };
+  </script>
+</body>
+</html>

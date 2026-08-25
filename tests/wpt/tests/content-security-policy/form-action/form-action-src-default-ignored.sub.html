@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; connect-src 'self'; style-src 'self'; frame-src 'self';">
+    <title>form-action-src-default-ignored</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["PASS","TEST COMPLETE"]'></script>
+    <script src="../support/alertAssert.sub.js?alerts=[]"></script>
+    <script>
+        window.addEventListener('securitypolicyviolation', function(e) {
+            log('Fail');
+        });
+        window.addEventListener("message", function(event) {
+            log(event.data);
+        }, false);
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                document.getElementById('submit').click();
+                log("TEST COMPLETE");
+            }, 0);
+        });
+
+    </script>
+</head>
+
+<body>
+    <iframe name="test_target" id="test_iframe"></iframe>
+
+    <form action="/common/redirect.py?location=/content-security-policy/support/postmessage-pass.html" id="theform" method="post" target="test_target">
+        <input type="text" name="fieldname" value="fieldvalue">
+        <input type="submit" id="submit" value="submit">
+    </form>
+    <p>Tests that default-src does not cascade to form-action.</p>
+    <div id="log"></div>
+</body>
+
+</html>

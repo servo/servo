@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+  <title>HTML 5 Canvas Test: fillText() after transferControlToOffscreen draws text</title>
+  <link rel="mismatch" href="empty-ref.html">
+  <meta charset="utf-8">
+  <meta name="assert" content="fillText() after transferControlToOffscreen() draws text">
+  <script src="/common/reftest-wait.js"></script>
+</head>
+<body onload="runTest()">
+<canvas id="c"></canvas>
+<script>
+  function runTest() {
+    const c = document.getElementById("c");
+    const ctx = c.transferControlToOffscreen().getContext("2d");
+    ctx.fillText("T", 5, 50);
+    takeScreenshot();
+  }
+</script>
+</body>
+</html>

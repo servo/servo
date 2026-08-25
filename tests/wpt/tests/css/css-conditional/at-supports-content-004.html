@@ -1,0 +1,43 @@
+<!doctype html>
+<head>
+	<title>CSS Test (Conditional Rules): @counter-style rules inside @supports</title>
+	<!-- This test is paired with at-media-content-004.html ; please keep them in sync -->
+	<link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact">
+	<link rel="help" href="https://www.w3.org/TR/css-conditional-3/#contents-of">
+	<link rel="help" href="https://www.w3.org/TR/css-conditional-3/#at-supports">
+	<link rel="help" href="https://www.w3.org/TR/css-counter-styles-3/#the-counter-style-rule">
+	<link rel="match" href="at-supports-001-ref.html">
+	<meta name="assert"
+	      content="Test passes if @counter-style rules within @supports are supported.">
+	<link rel="stylesheet" href="/fonts/ahem.css">
+	<style>
+		div {
+			background: red;
+			color: green;
+			font: 100px/1 Ahem, sans-serif;
+			width: 100px;
+			height: 100px;
+		}
+		div::before {
+			content: counter(test, x);
+		}
+
+		@media all {
+			@counter-style x {
+				system: cyclic;
+				symbols: 'X';
+			}
+		}
+		@media not all {
+			@counter-style x {
+				system: cyclic;
+				symbols: ' ';
+			}
+		}
+	</style>
+</head>
+<body>
+	<p>Test passes if there is a <strong>filled green square</strong> and <strong>no red</strong>.</p>
+	<div class="test1"></div>
+</body>
+</html>

@@ -1,0 +1,807 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use js::context::JSContext;
+use script_bindings::inheritance::Castable;
+use style::attr::parse_legacy_color;
+use style::color::ColorFlags;
+use style::properties::PropertyDeclarationId;
+use style::properties::generated::{LonghandId, ShorthandId};
+use style::values::specified::text::TextDecorationLine;
+use style_traits::ToCss;
+
+use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
+use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLFontElementBinding::HTMLFontElementMethods;
+use crate::dom::bindings::str::DOMString;
+use crate::dom::document::Document;
+use crate::dom::element::Element;
+use crate::dom::execcommand::commands::backcolor::execute_backcolor_command;
+use crate::dom::execcommand::commands::bold::execute_bold_command;
+use crate::dom::execcommand::commands::createlink::execute_createlink_command;
+use crate::dom::execcommand::commands::defaultparagraphseparator::execute_default_paragraph_separator_command;
+use crate::dom::execcommand::commands::delete::execute_delete_command;
+use crate::dom::execcommand::commands::fontname::execute_fontname_command;
+use crate::dom::execcommand::commands::fontsize::{
+    execute_fontsize_command, font_size_loosely_equivalent, value_for_fontsize_command,
+};
+use crate::dom::execcommand::commands::forecolor::execute_forecolor_command;
+use crate::dom::execcommand::commands::forwarddelete::execute_forward_delete_command;
+use crate::dom::execcommand::commands::hilitecolor::execute_hilitecolor_command;
+use crate::dom::execcommand::commands::indent::execute_indent_command;
+use crate::dom::execcommand::commands::inserthorizontalrule::execute_insert_horizontal_rule_command;
+use crate::dom::execcommand::commands::insertimage::execute_insert_image_command;
+use crate::dom::execcommand::commands::insertlinebreak::execute_insert_line_break_command;
+use crate::dom::execcommand::commands::insertparagraph::execute_insert_paragraph_command;
+use crate::dom::execcommand::commands::inserttext::execute_insert_text_command;
+use crate::dom::execcommand::commands::italic::execute_italic_command;
+use crate::dom::execcommand::commands::removeformat::execute_removeformat_command;
+use crate::dom::execcommand::commands::strikethrough::execute_strikethrough_command;
+use crate::dom::execcommand::commands::stylewithcss::execute_style_with_css_command;
+use crate::dom::execcommand::commands::subscript::execute_subscript_command;
+use crate::dom::execcommand::commands::superscript::execute_superscript_command;
+use crate::dom::execcommand::commands::underline::execute_underline_command;
+use crate::dom::execcommand::commands::unlink::execute_unlink_command;
+use crate::dom::html::htmlelement::HTMLElement;
+use crate::dom::html::htmlfontelement::HTMLFontElement;
+use crate::dom::iterators::ShadowIncluding;
+use crate::dom::node::{Node, NodeTraits};
+use crate::dom::range::Range;
+use crate::dom::selection::Selection;
+
+#[derive(Default, Clone, Copy, MallocSizeOf)]
+pub(crate) enum DefaultSingleLineContainerName {
+    #[default]
+    Div,
+    Paragraph,
+}
+
+impl DefaultSingleLineContainerName {
+    pub(crate) fn str(&self) -> &str {
+        match self {
+            DefaultSingleLineContainerName::Div => "div",
+            DefaultSingleLineContainerName::Paragraph => "p",
+        }
+    }
+}
+
+impl From<DefaultSingleLineContainerName> for DOMString {
+    fn from(default_single_line_container_name: DefaultSingleLineContainerName) -> Self {
+        match default_single_line_container_name {
+            DefaultSingleLineContainerName::Div => DOMString::from("div"),
+            DefaultSingleLineContainerName::Paragraph => DOMString::from("p"),
+        }
+    }
+}
+
+pub(crate) enum BoolOrOptionalString {
+    Bool(bool),
+    OptionalString(Option<DOMString>),
+}
+
+impl From<Option<DOMString>> for BoolOrOptionalString {
+    fn from(optional_string: Option<DOMString>) -> Self {
+        Self::OptionalString(optional_string)
+    }
+}
+
+impl From<bool> for BoolOrOptionalString {
+    fn from(bool_: bool) -> Self {
+        Self::Bool(bool_)
+    }
+}
+
+pub(crate) struct RecordedStateOfCommand {
+    pub(crate) command: CommandName,
+    pub(crate) value: BoolOrOptionalString,
+}
+
+impl RecordedStateOfCommand {
+    pub(crate) fn for_command_node(command: CommandName, node: &Node) -> Self {
+        let value = node.effective_command_value(&command).into();
+        Self { command, value }
+    }
+
+    pub(crate) fn for_command_node_with_inline_activated_values(
+        command: CommandName,
+        node: &Node,
+    ) -> Self {
+        let effective_command_value = node.effective_command_value(&command);
+        let value = effective_command_value
+            .is_some_and(|effective_command_value| {
+                command
+                    .inline_command_activated_values()
+                    .contains(&effective_command_value.str().as_ref())
+            })
+            .into();
+        Self { command, value }
+    }
+
+    pub(crate) fn for_command_node_with_value(
+        cx: &mut JSContext,
+        command: CommandName,
+        document: &Document,
+    ) -> Self {
+        let value = command.current_value(cx, document).into();
+        Self { command, value }
+    }
+
+    fn for_command_state_override(command: CommandName, document: &Document) -> Option<Self> {
+        let value = document.state_override(&command)?.into();
+        Some(Self { command, value })
+    }
+
+    fn for_command_value_override(command: CommandName, document: &Document) -> Option<Self> {
+        let value_override = document.value_override(&command)?;
+        let value = Some(value_override).into();
+        Some(Self { command, value })
+    }
+}
+
+/// <https://w3c.github.io/editing/docs/execCommand/#relevant-css-property>
+#[derive(Clone, Copy, Eq, PartialEq)]
+pub(crate) enum CssPropertyName {
+    BackgroundColor,
+    Color,
+    FontFamily,
+    FontSize,
+    FontWeight,
+    FontStyle,
+    TextDecoration,
+    TextDecorationLine,
+}
+
+impl CssPropertyName {
+    pub(crate) fn resolved_value_for_node(&self, element: &Element) -> Option<DOMString> {
+        let style = element.style()?;
+
+        Some(
+            match self {
+                CssPropertyName::BackgroundColor => {
+                    let background_color = style.clone_background_color();
+                    if let Some(absolute_color) = background_color.as_absolute() {
+                        // Used as an early-exit when figuring out on which element to resolve
+                        // the style in `effective_command_value`
+                        if absolute_color.is_transparent() {
+                            return None;
+                        }
+                        // Requires legacy SRGB syntax, which is what all tests expect.
+                        // E.g. it should use `rgba()` instead of `rgb()`, even if the alpha
+                        // is zero.
+                        let mut absolute_color = *absolute_color;
+                        absolute_color.flags.insert(ColorFlags::IS_LEGACY_SRGB);
+                        return Some(absolute_color.to_css_string().into());
+                    }
+                    background_color.to_css_string()
+                },
+                CssPropertyName::Color => {
+                    // Detached font elements (e.g. does created with `document.createElement`
+                    // and not yet present in DOM) dont have a computed style for `color`.
+                    // Since we create detached parent elements and compute "effective command
+                    // value" for these elements, we need to special case this. Otherwise, we
+                    // would add both a `color` attribute and `color` style declaration
+                    // to a parent font element.
+                    if let Some(ancestor_font) = element.downcast::<HTMLFontElement>() {
+                        let color = ancestor_font.Color();
+                        if !color.is_empty() {
+                            return Some(color);
+                        }
+                    }
+                    style.clone_color().to_css_string()
+                },
+                CssPropertyName::FontFamily => {
+                    // Detached font elements (e.g. does created with `document.createElement`
+                    // and not yet present in DOM) dont have a computed style for `fontFamily`.
+                    // Since we create detached parent elements and compute "effective command
+                    // value" for these elements, we need to special case this. Otherwise, we
+                    // would add both a `face` attribute and `font-family` style declaration
+                    // to a parent font element.
+                    if let Some(ancestor_font) = element.downcast::<HTMLFontElement>() {
+                        let face = ancestor_font.Face();
+                        if !face.is_empty() {
+                            return Some(face);
+                        }
+                    }
+                    style.clone_font_family().to_css_string()
+                },
+                CssPropertyName::FontSize => {
+                    // Font size is special, in that it can't use the resolved styles to compute
+                    // values. That's because it is influenced by other factors as well, and it
+                    // should also take into account size attributes of font elements.
+                    //
+                    // Therefore, we do a manual traversal up the chain to mimic what style
+                    // resolution would have done. This also allows us to later check for
+                    // loose equivalence for font elements, since we would return the size as an
+                    // integer, without a size indicator (e.g. `px`).
+                    //
+                    // However, if no such relevant declaration exists, then we should fallback
+                    // to pixels after all. For the effective command value, this essentially means
+                    // we will overwrite it. For the value of the "fontsize" command, we would then
+                    // need to convert it using [`legacy_font_size_for`].
+                    return element
+                        .upcast::<Node>()
+                        .inclusive_ancestors(ShadowIncluding::No)
+                        .find_map(|ancestor| {
+                            if let Some(ancestor_font) = ancestor.downcast::<HTMLFontElement>() {
+                                Some(ancestor_font.Size())
+                            } else {
+                                self.value_set_for_style(ancestor.downcast::<Element>()?)
+                            }
+                        })
+                        .or_else(|| {
+                            let pixels = style.get_font().font_size.computed_size().px();
+                            Some(format!("{}px", pixels).into())
+                        });
+                },
+                CssPropertyName::FontWeight => style.clone_font_weight().to_css_string(),
+                CssPropertyName::FontStyle => style.clone_font_style().to_css_string(),
+                CssPropertyName::TextDecoration => unreachable!("Should use longhands instead"),
+                CssPropertyName::TextDecorationLine => {
+                    let text_decoration_line = style.get_text().text_decoration_line;
+                    if text_decoration_line == TextDecorationLine::NONE {
+                        return None;
+                    }
+                    text_decoration_line.to_css_string()
+                },
+            }
+            .into(),
+        )
+    }
+
+    /// Retrieves a respective css longhand value from the style declarations of an
+    /// element. Note that this is different than the computed values, since this is
+    /// only relevant when the author specified rules on the specific element.
+    pub(crate) fn value_set_for_style(&self, element: &Element) -> Option<DOMString> {
+        let style_attribute = element.style_attribute().borrow();
+        let declarations = style_attribute.as_ref()?;
+        let document = element.owner_document();
+        let shared_lock = document.style_shared_author_lock();
+        let read_lock = shared_lock.read();
+        let style = declarations.read_with(&read_lock);
+
+        let longhand_id = match self {
+            CssPropertyName::BackgroundColor => LonghandId::BackgroundColor,
+            CssPropertyName::Color => LonghandId::Color,
+            CssPropertyName::FontFamily => LonghandId::FontFamily,
+            CssPropertyName::FontSize => LonghandId::FontSize,
+            CssPropertyName::FontWeight => LonghandId::FontWeight,
+            CssPropertyName::FontStyle => LonghandId::FontStyle,
+            CssPropertyName::TextDecoration => {
+                let mut dest = String::new();
+                style
+                    .shorthand_to_css(ShorthandId::TextDecoration, &mut dest)
+                    .ok()?;
+                return Some(dest.into());
+            },
+            CssPropertyName::TextDecorationLine => LonghandId::TextDecorationLine,
+        };
+        style
+            .get(PropertyDeclarationId::Longhand(longhand_id))
+            .and_then(|value| {
+                let mut dest = String::new();
+                value.0.to_css(&mut dest).ok()?;
+                Some(dest.into())
+            })
+    }
+
+    fn property_name(&self) -> DOMString {
+        match self {
+            CssPropertyName::BackgroundColor => "background-color",
+            CssPropertyName::Color => "color",
+            CssPropertyName::FontFamily => "font-family",
+            CssPropertyName::FontSize => "font-size",
+            CssPropertyName::FontWeight => "font-weight",
+            CssPropertyName::FontStyle => "font-style",
+            CssPropertyName::TextDecoration => "text-decoration",
+            CssPropertyName::TextDecorationLine => "text-decoration-line",
+        }
+        .into()
+    }
+
+    pub(crate) fn set_for_element(
+        &self,
+        cx: &mut JSContext,
+        element: &HTMLElement,
+        new_value: DOMString,
+    ) {
+        let style = element.Style(cx);
+
+        let _ = style.SetProperty(cx, self.property_name(), new_value, "".into());
+    }
+
+    pub(crate) fn remove_from_element(&self, cx: &mut JSContext, element: &HTMLElement) {
+        let _ = element.Style(cx).RemoveProperty(cx, self.property_name());
+    }
+}
+
+#[derive(Clone, Copy, Eq, Hash, MallocSizeOf, PartialEq)]
+#[expect(unused)] // TODO(25005): implement all commands
+pub(crate) enum CommandName {
+    BackColor,
+    Bold,
+    Copy,
+    CreateLink,
+    Cut,
+    DefaultParagraphSeparator,
+    Delete,
+    FontName,
+    FontSize,
+    ForeColor,
+    FormatBlock,
+    ForwardDelete,
+    HiliteColor,
+    Indent,
+    InsertHorizontalRule,
+    InsertHtml,
+    InsertImage,
+    InsertLineBreak,
+    InsertOrderedList,
+    InsertParagraph,
+    InsertText,
+    InsertUnorderedList,
+    Italic,
+    JustifyCenter,
+    JustifyFull,
+    JustifyLeft,
+    JustifyRight,
+    Outdent,
+    Paste,
+    Redo,
+    RemoveFormat,
+    SelectAll,
+    Strikethrough,
+    StyleWithCss,
+    Subscript,
+    Superscript,
+    Underline,
+    Undo,
+    Unlink,
+    Usecss,
+}
+
+impl CommandName {
+    /// <https://w3c.github.io/editing/docs/execCommand/#indeterminate>
+    pub(crate) fn is_indeterminate(&self, cx: &mut JSContext, document: &Document) -> bool {
+        if !self.is_standard_inline_value_command() {
+            return false;
+        }
+        // https://w3c.github.io/editing/docs/execCommand/#standard-inline-value-command
+        // > it is indeterminate if among formattable nodes that are effectively contained in the active range,
+        // > there are two that have distinct effective command values.
+        let Some(selection) = document.GetSelection(cx) else {
+            return false;
+        };
+        let Some(active_range) = selection.active_range(cx) else {
+            return false;
+        };
+        let mut at_least_two_different_effective_values = false;
+        let mut previous_effective_value: Option<DOMString> = None;
+        active_range.for_each_effectively_contained_child(|node| {
+            if at_least_two_different_effective_values || !node.is_formattable(cx.no_gc()) {
+                return;
+            }
+            if let Some(effective_command_value) = node.effective_command_value(self) {
+                // https://w3c.github.io/editing/docs/execCommand/#the-subscript-command
+                // https://w3c.github.io/editing/docs/execCommand/#the-superscript-command
+                // > or if there is some formattable node effectively contained in
+                // > the active range with effective command value "mixed".
+                if matches!(self, CommandName::Subscript | CommandName::Superscript) &&
+                    effective_command_value == "mixed"
+                {
+                    at_least_two_different_effective_values = true;
+                }
+                if let Some(previous_effective_value) = &previous_effective_value {
+                    if &effective_command_value != previous_effective_value {
+                        at_least_two_different_effective_values = true;
+                    }
+                } else {
+                    previous_effective_value = Some(effective_command_value);
+                }
+            }
+        });
+        at_least_two_different_effective_values
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#state>
+    pub(crate) fn current_state(&self, cx: &mut JSContext, document: &Document) -> Option<bool> {
+        Some(match self {
+            CommandName::StyleWithCss => {
+                // https://w3c.github.io/editing/docs/execCommand/#the-stylewithcss-command
+                // > True if the CSS styling flag is true, otherwise false.
+                document.css_styling_flag()
+            },
+            _ => {
+                // https://w3c.github.io/editing/docs/execCommand/#inline-formatting-command-definitions
+                // > If a command has inline command activated values defined, its state is true if either
+                // > no formattable node is effectively contained in the active range,
+                // > and the active range's start node's effective command value is one of the given values;
+                // > or if there is at least one formattable node effectively contained in the active range,
+                // > and all of them have an effective command value equal to one of the given values.
+                let inline_command_activated_values = self.inline_command_activated_values();
+                if inline_command_activated_values.is_empty() {
+                    return None;
+                }
+                let selection = document.GetSelection(cx)?;
+                let active_range = selection.active_range(cx)?;
+                let mut at_least_one_child_is_formattable = false;
+                let mut all_children_have_matching_command_values = true;
+                active_range.for_each_effectively_contained_child(|node| {
+                    if !node.is_formattable(cx.no_gc()) {
+                        return;
+                    }
+                    at_least_one_child_is_formattable = true;
+                    all_children_have_matching_command_values &= node
+                        .effective_command_value(self)
+                        .is_some_and(|effective_value| {
+                            inline_command_activated_values.contains(&&*effective_value.str())
+                        });
+                });
+                if at_least_one_child_is_formattable {
+                    all_children_have_matching_command_values
+                } else {
+                    active_range
+                        .start_container()
+                        .effective_command_value(self)
+                        .is_some_and(|effective_value| {
+                            inline_command_activated_values.contains(&&*effective_value.str())
+                        })
+                }
+            },
+        })
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#value>
+    pub(crate) fn current_value(
+        &self,
+        cx: &mut JSContext,
+        document: &Document,
+    ) -> Option<DOMString> {
+        Some(match self {
+            CommandName::DefaultParagraphSeparator => {
+                // https://w3c.github.io/editing/docs/execCommand/#the-defaultparagraphseparator-command
+                // > Return the context object's default single-line container name.
+                document.default_single_line_container_name().into()
+            },
+            CommandName::FontSize => value_for_fontsize_command(cx, document)?,
+            _ if self.is_standard_inline_value_command() => {
+                // https://w3c.github.io/editing/docs/execCommand/#standard-inline-value-command
+                // > Its value is the effective command value of the first formattable node that
+                // > is effectively contained in the active range; or if there is no such node,
+                // > the effective command value of the active range's start node;
+                // > or if that is null, the empty string.
+                let selection = document.GetSelection(cx)?;
+                let active_range = selection.active_range(cx)?;
+
+                active_range
+                    .first_formattable_contained_node(cx.no_gc())
+                    .unwrap_or_else(|| active_range.start_container())
+                    .effective_command_value(self)
+                    .unwrap_or_default()
+            },
+            _ => return None,
+        })
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#equivalent-values>
+    pub(crate) fn are_equivalent_values(
+        &self,
+        first: Option<&DOMString>,
+        second: Option<&DOMString>,
+    ) -> bool {
+        match (first, second) {
+            // > Two quantities are equivalent values for a command if either both are null,
+            (None, None) => true,
+            (Some(first_str), Some(second_str)) => {
+                // > or both are strings and the command defines equivalent values and they match the definition.
+                match self {
+                    CommandName::Bold => {
+                        // https://w3c.github.io/editing/docs/execCommand/#the-bold-command
+                        // > Either the two strings are equal, or one is "bold" and the other is "700",
+                        // > or one is "normal" and the other is "400".
+                        first_str == second_str ||
+                            matches!(
+                                (first_str.str().as_ref(), second_str.str().as_ref()),
+                                ("bold", "700") |
+                                    ("700", "bold") |
+                                    ("normal", "400") |
+                                    ("400", "normal")
+                            )
+                    },
+                    CommandName::BackColor | CommandName::ForeColor | CommandName::HiliteColor => {
+                        // https://w3c.github.io/editing/docs/execCommand/#the-backcolor-command
+                        // https://w3c.github.io/editing/docs/execCommand/#the-forecolor-command
+                        // https://w3c.github.io/editing/docs/execCommand/#the-hilitecolor-command
+                        // > Either both strings are valid CSS colors and have the same red, green, blue, and alpha components,
+                        // > or neither string is a valid CSS color.
+                        match (
+                            parse_legacy_color(&first_str.str()),
+                            parse_legacy_color(&second_str.str()),
+                        ) {
+                            (Ok(first_legacy_color), Ok(second_legacy_color)) => {
+                                first_legacy_color == second_legacy_color
+                            },
+                            (Err(_), Err(_)) => true,
+                            _ => false,
+                        }
+                    },
+                    // > or both are strings and they're equal and the command does not define any equivalent values,
+                    _ => first_str == second_str,
+                }
+            },
+            _ => false,
+        }
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#loosely-equivalent-values>
+    pub(crate) fn are_loosely_equivalent_values(
+        &self,
+        first: Option<&DOMString>,
+        second: Option<&DOMString>,
+    ) -> bool {
+        // > Two quantities are loosely equivalent values for a command if either they are equivalent values for the command,
+        if self.are_equivalent_values(first, second) {
+            return true;
+        }
+        // > or if the command is the fontSize command;
+        // > one of the quantities is one of "x-small", "small", "medium", "large", "x-large", "xx-large", or "xxx-large";
+        // > and the other quantity is the resolved value of "font-size" on a font element whose size attribute
+        // > has the corresponding value set ("1" through "7" respectively).
+        if let (CommandName::FontSize, Some(first), Some(second)) = (self, first, second) {
+            font_size_loosely_equivalent(first, second)
+        } else {
+            false
+        }
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#record-current-overrides>
+    pub(crate) fn record_current_overrides(document: &Document) -> Vec<RecordedStateOfCommand> {
+        // Step 1. Let overrides be a list of (string, string or boolean) ordered pairs, initially empty.
+        let mut overrides = vec![];
+        // Step 2. If there is a value override for "createLink",
+        // add ("createLink", value override for "createLink") to overrides.
+        if let Some(value_override) =
+            RecordedStateOfCommand::for_command_value_override(CommandName::CreateLink, document)
+        {
+            overrides.push(value_override);
+        }
+        // Step 3. For each command in the list "bold", "italic", "strikethrough",
+        // "subscript", "superscript", "underline", in order:
+        // if there is a state override for command, add (command, command's state override) to overrides.
+        for command in [
+            CommandName::Bold,
+            CommandName::Italic,
+            CommandName::Strikethrough,
+            CommandName::Subscript,
+            CommandName::Superscript,
+            CommandName::Underline,
+        ] {
+            if let Some(state_override) =
+                RecordedStateOfCommand::for_command_state_override(command, document)
+            {
+                overrides.push(state_override);
+            }
+        }
+        // Step 4. For each command in the list "fontName", "fontSize", "foreColor", "hiliteColor",
+        // in order: if there is a value override for command,
+        // add (command, command's value override) to overrides.
+        for command in [
+            CommandName::FontName,
+            CommandName::FontSize,
+            CommandName::ForeColor,
+            CommandName::HiliteColor,
+        ] {
+            if let Some(value_override) =
+                RecordedStateOfCommand::for_command_value_override(command, document)
+            {
+                overrides.push(value_override);
+            }
+        }
+        // Step 5. Return overrides.
+        overrides
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#relevant-css-property>
+    pub(crate) fn relevant_css_property(&self) -> Option<CssPropertyName> {
+        // > This is defined for certain inline formatting commands, and is used in algorithms specific to those commands.
+        // > It is an implementation detail, and is not exposed to authors.
+        Some(match self {
+            CommandName::BackColor => CssPropertyName::BackgroundColor,
+            CommandName::Bold => CssPropertyName::FontWeight,
+            CommandName::FontName => CssPropertyName::FontFamily,
+            CommandName::FontSize => CssPropertyName::FontSize,
+            CommandName::ForeColor => CssPropertyName::Color,
+            CommandName::HiliteColor => CssPropertyName::BackgroundColor,
+            CommandName::Italic => CssPropertyName::FontStyle,
+            // > If a command does not have a relevant CSS property specified, it defaults to null.
+            _ => return None,
+        })
+    }
+
+    pub(crate) fn resolved_value_for_node(&self, element: &Element) -> Option<DOMString> {
+        let property = self.relevant_css_property()?;
+        property.resolved_value_for_node(element)
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#standard-inline-value-command>
+    pub(crate) fn is_standard_inline_value_command(&self) -> bool {
+        matches!(
+            self,
+            CommandName::BackColor |
+                CommandName::FontName |
+                CommandName::ForeColor |
+                CommandName::HiliteColor
+        )
+    }
+
+    pub(crate) fn is_enabled(&self, cx: &JSContext, range: &Range, editing_host: &Node) -> bool {
+        match self {
+            // The delete command is not enabled in the situation that the cursor is inside the
+            // editing host at the start, where a backspace would do nothing. However, if the
+            // editing host itself is selected then it is enabled.
+            //
+            // Therefore, start at the start_container and traverse its ancestors up to editing
+            // host. If the index remains 0, then there is no effective character to delete and
+            // the command is disabled.
+            CommandName::Delete => {
+                if !range.collapsed() {
+                    return true;
+                }
+                let start_container = range.start_container();
+                if *start_container == *editing_host {
+                    // TODO: This should return true. However, that crashes deletes at the start
+                    // of the editing host. There currently is no way to distinguish between a
+                    // range that is collapsed to a full node and set to before a node. Chromium
+                    // tracks this with a concept of "anchor position before/after node":
+                    // https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/renderer/core/editing/position.h;l=39;drc=a5c6d7b223bfc6028ecae4b1f17d711374238c0d
+                    return false;
+                }
+                let mut current_offset = range.start_offset();
+                for current_ancestor in
+                    start_container.inclusive_ancestors_unrooted(cx, ShadowIncluding::Yes)
+                {
+                    if current_offset != 0 {
+                        return true;
+                    }
+                    if *current_ancestor == editing_host {
+                        return false;
+                    }
+                    current_offset = current_ancestor.index();
+                }
+                false
+            },
+            _ => true,
+        }
+    }
+
+    pub(crate) fn is_enabled_in_plaintext_only_state(&self) -> bool {
+        matches!(
+            self,
+            CommandName::Copy |
+                CommandName::Cut |
+                CommandName::DefaultParagraphSeparator |
+                CommandName::FormatBlock |
+                CommandName::ForwardDelete |
+                CommandName::InsertHtml |
+                CommandName::InsertLineBreak |
+                CommandName::InsertParagraph |
+                CommandName::InsertText |
+                CommandName::Paste |
+                CommandName::Redo |
+                CommandName::StyleWithCss |
+                CommandName::Undo |
+                CommandName::Usecss |
+                CommandName::Delete
+        )
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#preserves-overrides>
+    fn preserves_overrides(&self) -> bool {
+        matches!(
+            self,
+            CommandName::Delete |
+                CommandName::FormatBlock |
+                CommandName::ForwardDelete |
+                CommandName::Indent |
+                CommandName::InsertHorizontalRule |
+                CommandName::InsertHtml |
+                CommandName::InsertImage |
+                CommandName::InsertLineBreak |
+                CommandName::InsertOrderedList |
+                CommandName::InsertParagraph |
+                CommandName::InsertUnorderedList |
+                CommandName::JustifyCenter |
+                CommandName::JustifyFull |
+                CommandName::JustifyLeft |
+                CommandName::JustifyRight |
+                CommandName::Outdent
+        )
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#action>
+    pub(crate) fn execute(
+        &self,
+        cx: &mut JSContext,
+        document: &Document,
+        selection: &Selection,
+        value: DOMString,
+    ) -> bool {
+        // https://w3c.github.io/editing/docs/execCommand/#preserves-overrides
+        // > If a command preserves overrides, then before taking its action,
+        // > the user agent must record current overrides.
+        let overrides = if self.preserves_overrides() {
+            Self::record_current_overrides(document)
+        } else {
+            vec![]
+        };
+        let result = match self {
+            CommandName::BackColor => execute_backcolor_command(cx, document, selection, value),
+            CommandName::Bold => execute_bold_command(cx, document, selection),
+            CommandName::CreateLink => execute_createlink_command(cx, document, selection, value),
+            CommandName::DefaultParagraphSeparator => {
+                execute_default_paragraph_separator_command(document, value)
+            },
+            CommandName::Delete => execute_delete_command(cx, document, selection),
+            CommandName::FontName => execute_fontname_command(cx, document, selection, value),
+            CommandName::FontSize => execute_fontsize_command(cx, document, selection, value),
+            CommandName::ForeColor => execute_forecolor_command(cx, document, selection, value),
+            CommandName::ForwardDelete => execute_forward_delete_command(cx, document, selection),
+            CommandName::HiliteColor => execute_hilitecolor_command(cx, document, selection, value),
+            CommandName::Indent => execute_indent_command(cx, document, selection),
+            CommandName::InsertHorizontalRule => {
+                execute_insert_horizontal_rule_command(cx, document, selection)
+            },
+            CommandName::InsertImage => {
+                execute_insert_image_command(cx, document, selection, value)
+            },
+            CommandName::InsertLineBreak => {
+                execute_insert_line_break_command(cx, document, selection)
+            },
+            CommandName::InsertParagraph => {
+                execute_insert_paragraph_command(cx, document, selection)
+            },
+            CommandName::InsertText => execute_insert_text_command(cx, document, selection, value),
+            CommandName::Italic => execute_italic_command(cx, document, selection),
+            CommandName::RemoveFormat => execute_removeformat_command(cx, document, selection),
+            CommandName::Strikethrough => execute_strikethrough_command(cx, document, selection),
+            CommandName::StyleWithCss => execute_style_with_css_command(document, value),
+            CommandName::Subscript => execute_subscript_command(cx, document, selection),
+            CommandName::Superscript => execute_superscript_command(cx, document, selection),
+            CommandName::Underline => execute_underline_command(cx, document, selection),
+            CommandName::Unlink => execute_unlink_command(cx, selection),
+            _ => false,
+        };
+
+        // https://w3c.github.io/editing/docs/execCommand/#preserves-overrides
+        // > After taking the action, if the active range is collapsed,
+        // > it must restore states and values from the recorded list.
+        if let Some(active_range) = selection
+            .active_range(cx)
+            .filter(|active_range| active_range.collapsed())
+        {
+            active_range.restore_states_and_values(cx, selection, document, overrides);
+        }
+
+        result
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#inline-command-activated-values>
+    pub(crate) fn inline_command_activated_values(&self) -> Vec<&str> {
+        match self {
+            // https://w3c.github.io/editing/docs/execCommand/#the-bold-command
+            CommandName::Bold => vec!["bold", "600", "700", "800", "900"],
+            // https://w3c.github.io/editing/docs/execCommand/#the-italic-command
+            CommandName::Italic => vec!["italic", "oblique"],
+            // https://w3c.github.io/editing/docs/execCommand/#the-strikethrough-command
+            CommandName::Strikethrough => vec!["line-through"],
+            // https://w3c.github.io/editing/docs/execCommand/#the-subscript-command
+            CommandName::Subscript => vec!["subscript"],
+            // https://w3c.github.io/editing/docs/execCommand/#the-superscript-command
+            CommandName::Superscript => vec!["superscript"],
+            // https://w3c.github.io/editing/docs/execCommand/#the-underline-command
+            CommandName::Underline => vec!["underline"],
+            _ => vec![],
+        }
+    }
+}

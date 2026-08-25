@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Text Decoration Test: text-underline-position respects variable font properties</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-underline-position-property">
+<meta name="assert" content="text-underline-position from-font respects MVAR table of variable fonts for variable metrics">
+<link rel="author" title="Dominik Röttsches" href="mailto:drott@chromium.org">
+<link rel="match" href="reference/text-underline-position-from-font-variable-ref.html">
+<style>
+@font-face {
+font-family: underline-variable;
+src: url(resources/UnderlineTest-VF.ttf);
+}
+
+.test {
+text-underline-position: from-font;
+font-size: 64px;
+line-height: 1.8;
+}
+
+.close_underline {
+text-decoration: underline;
+font-family: underline-variable, sans-serif;
+font-variation-settings: 'UNDO' 1;
+}
+
+.far_underline {
+text-decoration: underline;
+font-family: underline-variable, sans-serif;
+font-variation-settings: 'UNDO' 1000;
+}
+</style>
+</head>
+<body>
+    <p>Test passes if the underline on the first line is close to the baseline and far from the baseline on the
+    second line.</p>
+    <div class="test"><span class="close_underline">aagaa</span></div>
+    <div class="test"><span class="far_underline">aagaa</span></div>
+</body>
+</html>

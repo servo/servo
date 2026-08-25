@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Canvas's ImageBitmapRenderingContext test</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/scripting.html#the-imagebitmap-rendering-context">
+<script>
+var width = 10;
+var height = 10;
+
+function testCanvas(ctx, r, g, b, a)
+{
+    var color = ctx.getImageData(5, 5, 1, 1).data;
+    assert_array_equals(color, [r, g, b, a]);
+}
+
+promise_test(function() {
+    function transferFromImageBitmapToBlobOffscreen(greenImage) {
+        var bitmapCanvas = document.createElement('canvas');
+        bitmapCanvas.width = width;
+        bitmapCanvas.height = height;
+        var offscreenCanvas = bitmapCanvas.transferControlToOffscreen();
+        var bitmapCtx = offscreenCanvas.getContext('bitmaprenderer');
+        bitmapCtx.transferFromImageBitmap(greenImage);
+
+        return offscreenCanvas.convertToBlob();
+    }
+
+    function drawBlobToCanvas(blob) {
+        // Make sure the bitmap renderer canvas is filled correctly.
+        var pngImage = new Image();
+        var myCanvasToTest = document.createElement('canvas');
+        myCanvasToTest.width = width;
+        myCanvasToTest.height = height;
+
+        // Wait for the blob img to load.
+        return new Promise(function(resolve) {
+            pngImage.src = URL.createObjectURL(blob);
+            pngImage.onload = function() {
+                var myCtxToTest = myCanvasToTest.getContext('2d');
+                myCtxToTest.drawImage(pngImage, 0, 0);
+                resolve(myCtxToTest);
+            };
+        });
+    }
+
+    var greenCanvas = document.createElement('canvas');
+    greenCanvas.width = width;
+    greenCanvas.height = height;
+    var greenCtx = greenCanvas.getContext('2d');
+    greenCtx.fillStyle = '#0f0';
+    greenCtx.fillRect(0, 0, width, height);
+
+    return createImageBitmap(greenCanvas).then(
+        greenImage => transferFromImageBitmapToBlobOffscreen(greenImage)
+    ).then(
+        blob => drawBlobToCanvas(blob)
+    ).then(
+        ctx => testCanvas(ctx, 0, 255, 0, 255)
+    );
+},'Test that convertToBlob works and produce the expected image');
+
+</script>

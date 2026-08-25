@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+  var resources = {"audio": "/media/sound_5.mp3", "video":"/media/test.mp4"};
+
+  for (const key in resources){
+    async_test(t => {
+      let elem = document.body.appendChild(document.createElement(key));
+      elem.onerror = t.unreached_func(`${key} should load`);
+      elem.oncanplay = t.step_func(() => {
+        t.done();
+      });
+      elem.src = resources[key];
+    }, `Should load ${key}`);
+
+    async_test(t => {
+      let elem = document.body.appendChild(document.createElement(key));
+      elem.onerror = t.step_func(() => {
+        t.done();
+      });
+      elem.oncanplay = t.unreached_func(`${key} should not load`);
+      elem.src = resources[key] + "?\n<";
+    }, `Should not load ${key} with dangling markup in URL`);
+  }
+</script>

@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>GeolocationSensor must not be defined</title>
+<link rel="help" href="https://wicg.github.io/geolocation-sensor/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+// GeolocationSensor has been published as a Discontinued Draft:
+// https://www.w3.org/TR/2026/DISC-geolocation-sensor-20260203/
+
+test(() => {
+  assert_false("GeolocationSensor" in window, "GeolocationSensor must not be defined");
+}, "GeolocationSensor interface must not be defined");
+</script>

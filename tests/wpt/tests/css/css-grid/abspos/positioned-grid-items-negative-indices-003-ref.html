@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Absolutely positioned items with negative indices</title>
+<style>
+  #grid {
+    display: grid;
+    margin: 4px;
+    padding: 10px;
+    width: 500px;
+    height: 130px;
+    position: relative;
+  }
+
+  #firstItem {
+    grid-column: 1 / span 2;
+    background-color: hotpink;
+  }
+
+  #secondItem {
+    grid-column: 3 / span 6;
+    background-color: lightblue;
+  }
+
+</style>
+
+<p>The test passes if there are two tracks in hotpink and 6 in light blue.</p>
+<div id="grid">
+  <div id="firstItem"></div>
+  <div id="secondItem"></div>
+</div>

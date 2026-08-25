@@ -1,0 +1,15 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+"use strict";
+
+addEventListener("DOMContentLoaded", () => {
+  getSelection().selectAllChildren(document.body);
+  getSelection().removeAllRanges();
+  document.designMode = "on";
+}, {once: true});
+</script>
+<body contenteditable></body>
+</html>

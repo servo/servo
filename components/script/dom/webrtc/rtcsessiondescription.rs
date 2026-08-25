@@ -1,0 +1,76 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use dom_struct::dom_struct;
+use js::context::JSContext;
+use js::rust::HandleObject;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+
+use crate::dom::bindings::codegen::Bindings::RTCSessionDescriptionBinding::{
+    RTCSdpType, RTCSessionDescriptionInit, RTCSessionDescriptionMethods,
+};
+use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
+use crate::dom::window::Window;
+
+#[dom_struct]
+pub(crate) struct RTCSessionDescription {
+    reflector: Reflector,
+    ty: RTCSdpType,
+    sdp: DOMString,
+}
+
+impl RTCSessionDescription {
+    pub(crate) fn new_inherited(ty: RTCSdpType, sdp: DOMString) -> RTCSessionDescription {
+        RTCSessionDescription {
+            reflector: Reflector::new(),
+            ty,
+            sdp,
+        }
+    }
+
+    pub(crate) fn new(
+        cx: &mut JSContext,
+        window: &Window,
+        proto: Option<HandleObject>,
+        ty: RTCSdpType,
+        sdp: DOMString,
+    ) -> DomRoot<RTCSessionDescription> {
+        reflect_dom_object_with_proto(
+            cx,
+            Box::new(RTCSessionDescription::new_inherited(ty, sdp)),
+            window,
+            proto,
+        )
+    }
+}
+
+impl RTCSessionDescriptionMethods<crate::DomTypeHolder> for RTCSessionDescription {
+    /// <https://w3c.github.io/webrtc-pc/#dom-sessiondescription>
+    fn Constructor(
+        cx: &mut JSContext,
+        window: &Window,
+        proto: Option<HandleObject>,
+        config: &RTCSessionDescriptionInit,
+    ) -> Fallible<DomRoot<RTCSessionDescription>> {
+        Ok(RTCSessionDescription::new(
+            cx,
+            window,
+            proto,
+            config.type_,
+            config.sdp.clone(),
+        ))
+    }
+
+    /// <https://w3c.github.io/webrtc-pc/#dom-rtcsessiondescription-type>
+    fn Type(&self) -> RTCSdpType {
+        self.ty
+    }
+
+    /// <https://w3c.github.io/webrtc-pc/#dom-rtcsessiondescription-sdp>
+    fn Sdp(&self) -> DOMString {
+        self.sdp.clone()
+    }
+}

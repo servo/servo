@@ -1,0 +1,107 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "4.3.2-httpRequestStateValid.json",
+  "assertionType": "must",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "failAndContinue",
+  "errorMessage": "ERROR: Annotation contains a HTTP Request Header State that is NOT of format uri and NOT an object having a value key.",
+  "title": "If present all **States of _type_ HttpRequestState** have a **_value_ key** - [model 4.3.2](https://www.w3.org/TR/annotation-model/#request-header-state)",
+  "description": "True when no HTTP Request Header States present or all such states values are of format uri or are objects having value key. (Section 4.3.2)",
+  "type": "object",
+  "patternProperties":
+  {
+    "^(body|target)$":
+    {
+      "oneOf":
+      [
+        {"$ref": "id.json#/definitions/stringUri" },
+        {
+            "allOf":
+            [
+              { "$ref": "#/definitions/stateSchema" },
+              { "$ref": "#/definitions/itemsSchema" }
+            ]
+        },
+        {
+            "type": "array",
+            "minItems": 1,
+            "items":
+            {
+                "oneOf":
+                [
+                    {"$ref": "id.json#/definitions/stringUri" },
+                    {
+                        "allOf":
+                        [
+                          { "$ref": "#/definitions/stateSchema" },
+                          { "$ref": "#/definitions/itemsSchema" }
+                        ]
+                    }
+                ]
+            }
+        }
+      ]
+    }
+  },
+  "definitions":
+  {
+      "stateSchema":
+      {
+        "type": "object",
+        "properties":
+         {
+           "state":
+            {
+             "oneOf":
+              [
+                {"$ref": "id.json#/definitions/stringUri" },
+                {
+                 "type":"object",
+                 "allOf":
+                 [
+                  { "$ref": "specificResource.json#/definitions/requestHeaderStateTypeValidIfPresent" }
+                 ]
+                },
+                {
+                 "type": "array",
+                 "minItems": 1,
+                 "items":
+                 {
+                   "oneOf":
+                   [
+                    {"$ref": "id.json#/definitions/stringUri" },
+                    {
+                     "type":"object",
+                     "allOf":
+                     [
+                      { "$ref": "specificResource.json#/definitions/requestHeaderStateTypeValidIfPresent" }                     ]
+                    }
+                   ]
+                 }
+                }
+              ]
+            }
+         }
+      },
+
+      "itemsSchema":
+      {
+        "type": "object",
+        "properties":
+        {
+            "items":
+            {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "oneOf":
+                    [
+                        {"$ref": "id.json#/definitions/stringUri" },
+                        {"$ref": "#/definitions/stateSchema" }
+                    ]
+                }
+            }
+        }
+      }
+  }
+}

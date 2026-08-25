@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Shape Image Threshold - Invalid values</title>
+        <link rel="author" title="Adobe" href="http://html.adobe.com/">
+        <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+        <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shape-image-threshold-property">
+        <meta name="assert" content="shape-image-threshold is set to 0 when an invalid value is specified.">
+        <meta name="flags" content="ahem dom">
+        <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="support/parsing-utils.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script type="text/javascript">
+        // TODO
+        var shape_image_threshold_invalid_tests = [
+            {"name": "-0.5" },
+            {"name": "-100" },
+            {"name": "nonNumber" },
+            {"name": "3/4" },
+            {"name": "20%" }
+        ];
+        generate_tests( ParsingUtils.testShapeThresholdInlineStyle,
+                        ParsingUtils.buildTestCases(shape_image_threshold_invalid_tests, 'inline - invalid') );
+        </script>
+    </body>
+</html>

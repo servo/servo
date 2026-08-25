@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html class=test-wait>
+  <title>CSS Anchor Positioning: Don't crash when animating position and position-try-fallbacks in grid</title>
+  <link rel="help" href="https://crbug.com/339686368">
+  <style>
+    @keyframes --anim {
+      from {
+        position: absolute;
+        position-try-fallbacks: flip-block;
+      }
+    }
+    #parent {
+      display: inline-grid;
+    }
+    #victim {
+      height:100em;
+    }
+    #victim.anim {
+      animation: --anim 100ms linear;
+    }
+  </style>
+  <p>PASS if no crash</p>
+  <div id=parent>
+    <div id=victim></div>
+  </div>
+  <script>
+    victim.classList.add('anim');
+    victim.addEventListener('animationend', () => {
+      victim.offsetTop;
+      document.documentElement.classList.remove('test-wait');
+    });
+  </script>
+</html>

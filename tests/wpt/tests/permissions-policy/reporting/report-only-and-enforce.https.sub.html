@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+    <script src='/resources/testdriver.js'></script>
+    <script src='/resources/testdriver-vendor.js'></script>
+    <script src='../../mediacapture-streams/permission-helper.js'></script>
+    <script src='/reporting/resources/report-helper.js'></script>
+  </head>
+  <body>
+    <script>
+  const base_url = `${location.protocol}//${location.host}`;
+  const endpoint = `${base_url}/reporting/resources/report.py`;
+  const enforcing_id = '69c90b97-8b7c-4439-b5d2-ff03f237b2b2';
+  const report_only_id = '9d095a14-6b1c-40e1-be19-55a1fec97d11';
+
+  promise_test(async t => {
+    await setMediaPermission("granted", ["camera","microphone"]);
+    await promise_rejects_dom(
+        t, "NotAllowedError", navigator.mediaDevices.getUserMedia({video: true}),
+        "UserMedia camera access should not be allowed in this document.");
+    while(true) {
+      await wait(100);
+      const reports = await pollReports(endpoint, enforcing_id);
+      if (reports.length) {
+        checkReportExists(reports, 'permissions-policy-violation', location.href);
+        break;
+      }
+    }
+    const report_only_reports = await pollReports(endpoint, report_only_id);
+    assert_equals(report_only_reports.length, 0, "Report-only endpoint should not receive report.");
+  }, "Enforcing policy receives reports when both enforcing and report-only policies are set.");
+    </script>
+  </body>
+</html>

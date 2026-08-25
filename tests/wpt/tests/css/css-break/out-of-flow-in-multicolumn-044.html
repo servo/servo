@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<title>
+  Relative insets apply to nested fixedpos in a multicol after fragmentation.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-break-3/#transforms">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+  .multicol {
+    column-count: 2;
+    column-fill: auto;
+    column-gap: 0px;
+    height: 100px;
+    width: 100px;
+    margin-left: -200px;
+    margin-top: -50px;
+  }
+  .rel {
+    position: relative;
+  }
+  .abs {
+    position: absolute;
+  }
+  .fixed {
+    position: fixed;
+    width: 100%;
+    height: 200px;
+    background: green;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="multicol">
+  <div class="rel" style="top: 50px; left: 50px;">
+    <div style="transform: translateX(0); height: 200px;">
+      <div class="abs" style="width: 50px; height: 200px; top: 100px; left: 100px; background: red;"></div>
+      <div class="rel" style="top: 100px; left: 100px;">
+        <div class="abs">
+          <div class="abs">
+            <div class="fixed" style="background: green;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

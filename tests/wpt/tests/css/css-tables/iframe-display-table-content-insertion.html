@@ -1,0 +1,11 @@
+<!doctype html>
+<link rel="help" href="https://drafts.csswg.org/css-tables/#content-model">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1424656">
+<link rel="match" href="iframe-display-table-content-insertion-ref.html">
+<div><iframe
+  id=f style="display: table-column-group"></iframe><script>
+  document.body.offsetWidth;
+  var span = document.createElement("span");
+  span.textContent = "This text should be before the iframe";
+  f.before(span);
+</script></div>

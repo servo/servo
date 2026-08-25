@@ -1,0 +1,30 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>CSS Test: currentColor (with 'background-color')</title>
+		<link rel="author" title="L. David Baron" href="https://dbaron.org/" />
+		<link rel="author" title="Mozilla Corporation" href="http://mozilla.com/" />
+		<link rel="reviewer" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact" />
+		<link rel="help" href="http://www.w3.org/TR/css3-color/#currentcolor" />
+		<link rel="help" href="http://www.w3.org/Style/2011/REC-css3-color-20110607-errata.html#s.4.5" />
+		<link rel="match" href="t44-currentcolor-inherited-c-ref.xht" />
+		<meta name="assert" content="currentColor is a computed value" />
+		<style type="text/css"><![CDATA[
+		#one {
+			color: red;
+			background: currentColor;
+		}
+		#two {
+			color: green;
+			/* inherit currentColor, which then is green */
+			background: inherit;
+		}
+		#three {
+			color: white;
+		}
+		]]></style>
+	</head>
+	<body>
+		<div id="one"><div id="two"><p id="three">This paragraph should have a green background.</p></div></div>
+	</body>
+</html>

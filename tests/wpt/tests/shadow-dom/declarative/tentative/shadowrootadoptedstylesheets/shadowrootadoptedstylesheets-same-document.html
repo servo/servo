@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>shadowrootadoptedstylesheets only apply if they're from the same document</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel='help' href='https://github.com/whatwg/html/pull/12339'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script type="importmap">
+{
+  "imports": {
+    "foo": "data:text/css,span {color: blue;}"
+  }
+}
+</script>
+<script>
+    const new_document = Document.parseHTMLUnsafe(
+      "<div id='host'>" +
+        "<template shadowrootmode='open' shadowrootadoptedstylesheets='foo'>" +
+          "<span id='test_element'>Test content</span>" +
+        "</template>" +
+      "</div>"
+    );
+
+  const host = new_document.getElementById("host");
+  test(function (t) {
+    assert_equals(
+      host.shadowRoot.adoptedStyleSheets.length,
+      0,
+      "The shadowrootadoptedstylesheets attribute will only import stylesheets from the same document into adoptedStyleSheets.",
+    );
+
+   }, "adoptedStyleSheets is populated from a <template> element's shadowrootadoptedstylesheets attribute via Document.parseHTMLUnsafe.");
+</script>

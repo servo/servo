@@ -1,0 +1,175 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Vincent Hardy" status="accepted"
+    version="$Revision: 1.7 $" testname="$RCSfile: coords-units-01-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/coords.html#Units">
+      <p>
+        Verify the conversion processing of percentage and fraction values relative to
+        object bounding boxes. This is used when defining linear and radial gradients
+        as well as patterns.
+      </p>
+      <p>
+        The test validates conversion for coordinates, width, height and length. The first
+        test defines three corresponding linear gradients, which specify coordinates
+        using percentages for one, fractions for the second and user coordinates for the
+        third. The second test defines three corresponding radial gradients, which specify
+        a length (radius) using percentages for the first, fractions for the second and
+        user space for the third. Finally, the third test defines three corresponding patterns,
+        which specify their width and height using percentages for the first, fractions for the
+        second and user space coordinates for the last one.
+      </p>
+      <p>
+        The test also assumes that linear and radial gradients,
+        as well as patterns are implemented.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The rendered image should match the reference image.  Also, the text may
+        show minor differences, per CSS2 rules for font selection and matching.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: coords-units-01-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <g font-size="14">
+      <!-- ==================================================================== -->
+      <!-- The following gradients will be used to fill a rectangle with the    -->
+      <!-- following geometry in User space: x=0, y=0, width=50 height=20       -->
+      <!-- The gradient vector, in linearBoundingBox, is defined as: (0%, 0%)   -->
+      <!-- to (100%, 0%).                                                       -->
+      <!-- The gradient vector, in linearBoundingBoxFraction, is defined as:    -->
+      <!-- (0, 0) to (1, 0), which is equivalent.                               -->
+      <!-- According to the spec, for our rectangle, this corresponds to the    -->
+      <!-- following user space coordinates:                                    -->
+      <!-- (0%, 0%) becomes (0, 0) and (100%, 0%) becomes (20, 0)               -->
+      <!-- These values are used to define the linearUserSpace gradient.        -->
+      <!-- If the test succeeds, all the gradient should fill the rectangles    -->
+      <!-- the same way                                                         -->
+      <!-- ==================================================================== -->
+      <linearGradient id="linearBoundingBoxPercentage" gradientUnits="objectBoundingBox" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop stop-color="fuchsia" offset="0"/>
+        <stop stop-color="blue" offset="1"/>
+      </linearGradient>
+      <linearGradient id="linearBoundingBoxFraction" gradientUnits="objectBoundingBox" x1="0" y1="0" x2="1" y2="0">
+        <stop stop-color="fuchsia" offset="0"/>
+        <stop stop-color="blue" offset="1"/>
+      </linearGradient>
+      <linearGradient id="linearUserSpace" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="50" y2="0">
+        <stop stop-color="fuchsia" offset="0"/>
+        <stop stop-color="blue" offset="1"/>
+      </linearGradient>
+      <!-- Draw Text Comment -->
+      <text x="30" y="30">Bounding box relative coordinates (percentage and fraction)</text>
+      <g transform="translate(30, 40)">
+        <rect x="0" y="0" width="50" height="20" fill="url(#linearBoundingBoxPercentage)"/>
+        <rect x="0" y="0" width="50" height="20" transform="translate(0, 20)" fill="url(#linearBoundingBoxFraction)"/>
+        <rect x="0" y="0" width="50" height="20" transform="translate(0, 40)" fill="url(#linearUserSpace)"/>
+        <line x1="0" y1="20" x2="50" y2="20" stroke="#cccccc" stroke-width="1"/>
+        <line x1="0" y1="40" x2="50" y2="40" stroke="#cccccc" stroke-width="1"/>
+        <text x="60" y="15">Percentage</text>
+        <text x="60" y="35">Fraction</text>
+        <text x="60" y="55">User Space</text>
+      </g>
+      <!-- ==================================================================== -->
+      <!-- The following gradients will be used to fill a rectangle with the    -->
+      <!-- following geometry in User space: x=0, y=0, width=60 height=60       -->
+      <!-- The radial gradient outmost circle, in radialBoundingBox, is defined -->
+      <!-- as: cx=25% cy=25% r=25%                                              -->
+      <!-- The radial gradient outmost circle, in radialBoundingBoxFraction, is -->
+      <!-- defined as: cx=0.25 cy=0.25 and r=0.25                               -->
+      <!-- These two definition, for our rectangle, should be identical to the  -->
+      <!-- following radial gradient outmost circle, in radialUserSpace:        -->
+      <!-- cx=15 cy=15 r=15                                                     -->
+      <!-- ==================================================================== -->
+      <radialGradient id="radialBoundingBoxPercentage" gradientUnits="objectBoundingBox" cx="25%" cy="25%" r="25%" fx="25%" fy="25%">
+        <stop stop-color="fuchsia" offset="0"/>
+        <stop stop-color="blue" offset="1"/>
+      </radialGradient>
+      <radialGradient id="radialBoundingBoxFraction" gradientUnits="objectBoundingBox" cx="0.25" cy="0.25" r="0.25" fx="0.25" fy="0.25">
+        <stop stop-color="fuchsia" offset="0"/>
+        <stop stop-color="blue" offset="1"/>
+      </radialGradient>
+      <radialGradient id="radialUserSpace" gradientUnits="userSpaceOnUse" cx="15" cy="15" r="15" fx="15" fy="15">
+        <stop stop-color="fuchsia" offset="0"/>
+        <stop stop-color="blue" offset="1"/>
+      </radialGradient>
+      <!-- Draw Text Comment -->
+      <text x="30" y="130">Bounding box relative length (percentage and fraction)</text>
+      <g transform="translate(30, 140)">
+        <rect x="0" y="0" width="60" height="60" fill="url(#radialBoundingBoxPercentage)"/>
+        <rect x="0" y="0" width="60" height="60" transform="translate(61, 0)" fill="url(#radialBoundingBoxFraction)"/>
+        <rect x="0" y="0" width="60" height="60" transform="translate(122, 0)" fill="url(#radialUserSpace)"/>
+        <text x="0" y="73">Percent.</text>
+        <text x="61" y="73">Fraction</text>
+        <text x="122" y="73">User Space</text>
+      </g>
+      <!-- ==================================================================== -->
+      <!-- The following patterns will be used to fill a rectangle, with the    -->
+      <!-- following geometry in User space: x=0, y=0, width=50 height=30       -->
+      <!-- The pattern tile, in patterBoundingBoxPercentage, is defined as:     -->
+      <!-- x=25% y=25% width=50% height=50%                                     -->
+      <!-- The pattern tile, in patternBoundingBoxFraction, is defined as:      -->
+      <!-- x=0.25 y=0.25 width=0.50 height=0.50                                 -->
+      <!-- For our test rectangle, both correspond to the following User space  -->
+      <!-- coordinates: x=12.5 y=7.5 width=25 height=15                         -->
+      <!-- These coordinates are use to define the patternUserSpace tile        -->
+      <!-- ==================================================================== -->
+      <pattern id="patternBoundingBoxPercentage" patternUnits="objectBoundingBox" patternContentUnits="objectBoundingBox" x="25%" y="25%" width="50%" height="50%">
+        <circle cx="0.50" cy="0.50" r="0.25" fill="fuchsia"/>
+        <rect x="0.4" y="0.4" width=".2" height=".2" fill="blue"/>
+      </pattern>
+      <pattern id="patternBoundingBoxFraction" patternUnits="objectBoundingBox" patternContentUnits="objectBoundingBox" x="0.25" y="0.25" width="0.50" height="0.50">
+        <circle cx="0.50" cy="0.50" r="0.25" fill="fuchsia"/>
+        <rect x="0.4" y="0.4" width=".2" height=".2" fill="blue"/>
+      </pattern>
+      <pattern id="patternUserSpace" patternUnits="userSpaceOnUse" patternContentUnits="userSpaceOnUse" x="12.5" y="7.5" width="25" height="15">
+        <circle id="patternContent" cx="25" cy="15" r="10" fill="fuchsia"/>
+        <rect x="20" y="12" width="10" height="6" fill="blue"/>
+      </pattern>
+      <!-- Draw Text Comment -->
+      <text x="30" y="240">Bounding box relative width/height (percentage and fraction)</text>
+      <g transform="translate(30, 250)">
+        <rect x="0" y="0" width="50" height="30" fill="url(#patternBoundingBoxPercentage)" stroke="black"/>
+        <rect x="0" y="0" width="50" height="30" transform="translate(150, 0)" fill="url(#patternBoundingBoxFraction)" stroke="black"/>
+        <rect x="0" y="0" width="50" height="30" transform="translate(300, 0)" fill="url(#patternUserSpace)" stroke="black"/>
+        <text x="60" y="20">Percentage</text>
+        <text x="210" y="20">Fraction</text>
+        <text x="360" y="20">User Space</text>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.7 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

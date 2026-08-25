@@ -1,0 +1,46 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: text-decoration</title>
+  <meta name="flags" content="animated image" />
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#text-decoration"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <style type="text/css"><![CDATA[
+   p { color: navy; }
+   .one {text-decoration: underline;}
+   .two {text-decoration: overline;}
+   .three {text-decoration: line-through;}
+   .four {text-decoration: blink;}
+   b.five {text-decoration: none;}
+   .six {text-decoration: underline overline;}
+   .seven {text-decoration: underline overline line-through;}
+   div, strong, img { color: red; }
+   .eight { color: white; }
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-styling" title="15.4 Font styling: the 'font-style' property"/>
+  <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-style-prop"/>
+ </head>
+ <body>
+  <p class="one"> This sentence should be underlined. </p>
+  <p class="two"> This sentence should be overlined. </p>
+  <p class="three"> This sentence should be stricken out. </p>
+  <p class="four"> This sentence should be blinking (if the UA supports that). </p>
+  <p class="one"> The sentence should be underlined. <b class="five">This sentence should be underlined</b>. </p>
+  <p class="six"> This sentence should be underlined and overlined. </p>
+  <p class="seven"> This sentence should be underlined, overlined, and stricken. </p>
+  <div class="seven"></div> <!-- there should be no red on this page -->
+  <p> There should be no red at the end of this line.<img src="support/swatch-white.png" alt="FAIL: Images required." class="one"/>&#xA0;</p>
+  <p class="one">
+   The text of this sentence and all<span> </span>its<span>&nbsp;</span>spaces (including the space between the images)
+   <img src="support/square-teal.png" alt="FAIL: Images required."/>
+   <img src="support/square-purple.png" alt="FAIL: Images required."/>
+   should be underlined, but the images themselves should <em>not</em> be underlined.
+  </p>
+  <p class="one">
+   This sentence should have a long blue underline including between the two
+   arrows here&rarr;<span class="eight"> FAIL FAIL FAIL FAIL </span>&larr;and here.
+  </p>
+  <p>There should be a long blue underline between here&rarr;<span class="one"> &#xA0; &#xA0;&#xA0;&#xA0; &#xA0;&#xA0;&#xA0;&#xA0; &#xA0;&#xA0;&#xA0;&#xA0; &#xA0;&#xA0;&#xA0;&#xA0; </span> &larr;and here.</p>
+</body>
+</html>

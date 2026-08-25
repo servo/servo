@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: ::scroll-marker with ::scroll-marker-group on root element</title>
+<style>
+  body {
+    margin: 0;
+  }
+
+  #scroll-marker-group {
+    border: 3px solid black;
+    padding: 5px;
+    height: 20px;
+    display: block;
+    position: fixed;
+    top: 0;
+  }
+
+  .item {
+    width: 600px;
+    height: 300px;
+    margin-bottom: 20px;
+    background: green;
+  }
+
+  #first {
+    margin-top: 40px;
+  }
+
+  .scroll-marker {
+    width: 10px;
+    height: 10px;
+    background-color: blue;
+    border-radius: 100%;
+    display: inline-block;
+  }
+</style>
+<div id="scroll-marker-group">
+  <div class="scroll-marker"></div>
+  <div class="scroll-marker"></div>
+  <div class="scroll-marker"></div>
+</div>
+<div id="first" class="item"></div>
+<div class="item"></div>
+<div class="item"></div>

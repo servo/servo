@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+  <title>drawElementImage applies CSS blend-mode correctly</title>
+  <link rel="help" href="https://github.com/WICG/html-in-canvas">
+  <link rel="author" href="mailto:schenney@chromium.org">
+  <link rel="match" href="css-blend-mode-ref.html">
+  <meta name="assert" value="CSS blend-mode is applied correctly.">
+  <script src="/common/reftest-wait.js"></script>
+  <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+  <style>
+    canvas {
+      background: red;
+      border: 1px black solid;
+    }
+    div {
+      width: 100px;
+      height: 100px;
+      background: white;
+    }
+    div > div {
+      margin: 10px;
+      width: 80px;
+      height: 80px;
+      background: green;
+      mix-blend-mode: difference;
+    }
+  </style>
+</head>
+<body>
+  <canvas id=canvas width="100" height="100" layoutsubtree>
+    <div id="child">
+      <div></div>
+    </div>
+  </canvas>
+
+  <script>
+    onload = async () => {
+      await waitForCanvasPaint(canvas);
+      var context = canvas.getContext("2d");
+      context.drawElementImage(child, 0, 0);
+      takeScreenshot();
+    };
+  </script>
+</body>
+</html>

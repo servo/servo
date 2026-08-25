@@ -1,0 +1,100 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Jon Ferraiolo" status="accepted"
+    version="$Revision: 1.5 $" testname="$RCSfile: interact-order-03-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/interact.html#UIEventProcessing">
+      <p>
+        Test event bubbling of event attributes, part c.
+      </p>
+      <p>
+        The three strings tests event handling behavior on text.
+        Text selection only is available after event listeners and event
+        attributes have been processed, and after hyperlink processing
+        has occurred.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        First, click the string on the first line; then the second.  Lastly, all text should be selectable.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The supplemental text below the text strings describes what should occur.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: interact-order-03-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <defs>
+      <script type="text/ecmascript"><![CDATA[
+
+        function bubbleYes(evt, color){
+        // Get Document
+        var target = evt.target;
+        target.setAttribute('fill', '' +color);
+        }
+        function bubbleNo(evt, color){
+        // Get Document
+        var target = evt.target;
+        target.setAttribute('fill', '' +color);
+        evt.stopPropagation();
+        evt.preventDefault();
+        }
+
+      ]]></script>
+    </defs>
+    <text font-family="Arial" font-size="40" x="60" y="40">Event bubbling - c</text>
+    <g id="background">
+      <rect fill="#EEE" stroke="#000" x="10" y="55" width="460" height="230"/>
+    </g>
+    <g fill="#000" font-family="Arial" font-size="40">
+      <!-- Ensure that events get the event before the hyperlink which
+              happens before text selection -->
+      <a xlink:href="../images/interact-order-03-b-targ.svg" font-size="40">
+        <text x="20" y="90" onclick="bubbleNo(evt, 'red')" onmouseout="bubbleNo(evt, 'inherit')">
+          String turns red on click
+        </text>
+        <g onclick="bubbleYes(evt, 'blue')" onmouseout="bubbleYes(evt, 'inherit')">
+          <text x="60" y="160">
+            String hyperlinks to
+          </text>
+          <text x="20" y="200" font-size="33">
+            interact-order-03b-targ.svg
+          </text>
+        </g>
+        <text x="30" y="270" onclick="bubbleNo(evt, 'inherit')">
+          All strings are selectable.
+        </text>
+      </a>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.5 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

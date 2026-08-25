@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>CSS Test: font-variant-ligatures: none is not equivalent to rlig off.</title>
+<link rel="author" title="Chris Lilley" href="chris@w3.org">
+<link rel="help" href="https://www.w3.org/TR/css-fonts-3/#font-variant-ligatures-prop">
+<link rel="help" href="https://www.w3.org/TR/css-fonts-3/#font-feature-settings-prop">
+<link rel="match" href="font-variant-ligatures-11-ref.html">
+<meta name="assert" content="Required ligatures, needed for correctly rendering complex scripts, are not affected by the settings above, including ‘none’ (OpenType feature: rlig). Note: platforms are not required to allow disabling rlig.">
+<style>
+	.test {
+		font-family: serif;
+		font-size: 3em;
+		line-height: 1.1;
+	}
+	.high {
+		font-variant-ligatures: none;
+	}
+	.low {
+		font-feature-settings: "rlig" off;
+	}
+	.test :lang(ar) {
+		font-family: serif;
+	}
+</style>
+<body>
+<p>Test passes if the first line shows a lam-alef ligature (<span lang="ar">لا</span>)
+and the second shows an initial lam, final alef (<span lang="ar">&#xFEDF;&zwnj;&#xFE8E;</span>)
+which is <em>normally incorrect</em>.</p>
+<!-- presentation forms used here to show the unligated forms -->
+<section class="test">
+	<p class="high"><span lang="ar">لا</span> </p>
+	<p class="low"><span lang="ar">لا</span></p>
+</section>

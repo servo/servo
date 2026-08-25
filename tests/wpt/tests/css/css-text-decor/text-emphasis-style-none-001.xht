@@ -1,0 +1,34 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>CSS Test: text-emphasis-style - none - basic cases</title>
+		<link rel="author" title="Makoto Kikuchi" href="mailto:kikuchi@est.co.jp" />
+		<link rel="help" title="CSS Text Level 3: 11.2.1.  Emphasis Mark Style: the ‘text-emphasis-style’ property" href="http://www.w3.org/TR/css-text-decor-3/#text-emphasis-style-property" />
+		<link rel="match" href="reference/text-emphasis-style-none-001-ref.xht"/>
+		<meta name="assert" content="This property applies emphasis marks to the element's text. " />
+		<style type="text/css"><![CDATA[
+				.parent
+				{
+					border: solid 1px gray;
+					font-size: 2em;
+					width: 10em;
+				}
+				#test
+				{
+					text-emphasis-style: none;
+				}
+		]]></style>
+	</head>
+	<body>
+		<div>
+			<p>Test passes if a pair of upper and lower "Filler Text" in the square box is identical.</p>
+			none
+			<div class="parent">
+				<div><span id="test">Filler</span> Text</div>
+				<br />
+				<div>Filler Text</div>
+			</div>
+		</div>
+	</body>
+</html>

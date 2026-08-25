@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Test background blur and segmentation mask support</title>
+<link rel="help" href="https://w3c.github.io/mediacapture-extensions/">
+</head>
+<body>
+<h1 class="instructions">Description</h1>
+<p class="instructions">This test checks background blur and segmentation mask support.</p>
+<div id='log'></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+"use strict";
+
+const constraintSet = {
+  backgroundBlur: true,
+  backgroundSegmentationMask: true,
+};
+
+Object.keys(constraintSet).forEach(property => {
+  test(t => {
+    const supportedConstraints =
+        navigator.mediaDevices.getSupportedConstraints();
+    assert_implements_optional(
+        supportedConstraints[property],
+        `Optional property ${property} not in supported constraints`);
+  }, `Test getSupportedConstraints().${property}`);
+
+  promise_test(async t => {
+    const supportedConstraints =
+        navigator.mediaDevices.getSupportedConstraints();
+
+    const stream = await navigator.mediaDevices.getUserMedia({video: true});
+    assert_equals(stream.getAudioTracks().length, 0);
+    assert_equals(stream.getVideoTracks().length, 1);
+    const [videoTrack] = stream.getVideoTracks();
+
+    assert_equals(typeof videoTrack.getCapabilities, 'function');
+    const capabilities = videoTrack.getCapabilities();
+    assert_equals(typeof capabilities, 'object');
+
+    if (!supportedConstraints[property]) {
+      assert_false(property in capabilities);
+    }
+
+    assert_implements_optional(
+        property in capabilities,
+        `Optional property ${property} not in capabilities`);
+
+    // Accept [false], [false, true], [true] and [true, false].
+    assert_array_equals(
+        capabilities[property],
+        capabilities[property].length == 1
+            ? [!!capabilities[property][0]]
+            : [!!capabilities[property][0], !capabilities[property][0]]);
+  }, `Test getCapabilities().${property}`);
+
+  promise_test(async t => {
+    const supportedConstraints =
+        navigator.mediaDevices.getSupportedConstraints();
+
+    const stream = await navigator.mediaDevices.getUserMedia({video: true});
+    assert_equals(stream.getAudioTracks().length, 0);
+    assert_equals(stream.getVideoTracks().length, 1);
+    const [videoTrack] = stream.getVideoTracks();
+
+    const capabilities = videoTrack.getCapabilities();
+
+    assert_equals(typeof videoTrack.getSettings, 'function');
+    const settings = videoTrack.getSettings();
+    assert_equals(typeof settings, 'object');
+
+    if (!supportedConstraints[property] || !(property in capabilities))
+      assert_false(property in settings);
+
+    assert_implements_optional(
+        property in capabilities,
+        `Optional property ${property} not in capabilities`);
+
+    assert_in_array(settings[property], capabilities[property]);
+  }, `Test getSettings().${property}`);
+
+  promise_test(async t => {
+    const supportedConstraints =
+        navigator.mediaDevices.getSupportedConstraints();
+
+    const stream = await navigator.mediaDevices.getUserMedia({video: true});
+    assert_equals(stream.getAudioTracks().length, 0);
+    assert_equals(stream.getVideoTracks().length, 1);
+    const [videoTrack] = stream.getVideoTracks();
+
+    const capabilities = videoTrack.getCapabilities();
+    const constraints = {
+      [property]: {exact: constraintSet[property]}
+    };
+    const oldSettings = videoTrack.getSettings();
+
+    if (supportedConstraints[property] && !(property in capabilities)) {
+      // The user agent supports |constraints| but |videoTrack| is not capable
+      // to apply them.
+      await videoTrack.applyConstraints(constraints).then(
+        () => {
+          assert_unreached('Unexpected success applying constraints');
+        },
+        error => {});
+    } else {
+      // The user agent does not support |constraints| and will ignore them or
+      // the user agent supports |constraints| and |videoTrack| is capable to
+      // apply them.
+      await videoTrack.applyConstraints(constraints).then(
+        () => {},
+        error => {
+          assert_unreached(`Error applying constraints: ${error.message}`);
+        });
+    }
+
+    assert_equals(typeof videoTrack.getConstraints, 'function');
+    const appliedConstraints = videoTrack.getConstraints();
+    assert_equals(typeof appliedConstraints, 'object');
+    const newSettings = videoTrack.getSettings();
+
+    if (!supportedConstraints[property] || !(property in capabilities)) {
+      // The user agent does not support |constraints| and ignored them or
+      // the user agent supports |constraints| but |videoTrack| was not capable
+      // to apply them.
+      assert_object_equals(appliedConstraints, {});
+    } else {
+      // The user agent supports |constraints| and |videoTrack| was capable to
+      // apply them.
+      assert_object_equals(appliedConstraints, constraints);
+    }
+
+    if (!supportedConstraints[property] || !(property in capabilities) ||
+        !capabilities[property].includes(constraintSet[property])) {
+      // The user agent does not support |constraints| and ignored them or
+      // the user agent supports |constraints| but |videoTrack| was not capable
+      // to apply them or the user agent supports |constraints| and
+      // |videoTrack| was capable to apply them but could not satisfy advanced
+      // constraints and skipped them.
+      assert_object_equals(newSettings, oldSettings);
+    } else {
+      // The user agent supports |constraints| and |videoTrack| was capable to
+      // apply them and could satisfy advanced constraints.
+      assert_equals(newSettings[property], constraintSet[property]);
+    }
+  }, `Test applyConstraints() with ${property}`);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+---
+version: 2
+
+build:
+  os: ubuntu-22.04
+  tools:
+    # Keep version in sync with tox.ini/docs and ci.yml/docs.
+    python: "3.12"
+
+python:
+  install:
+    - method: pip
+      path: .
+      extra_requirements:
+        - docs

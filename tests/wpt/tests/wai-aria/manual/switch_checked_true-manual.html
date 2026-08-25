@@ -1,0 +1,138 @@
+<!doctype html>
+<html>
+  <head>
+    <title>switch checked true</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+    <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/wai-aria/scripts/ATTAcomm.js"></script>
+    <script>
+    setup({explicit_timeout: true, explicit_done: true });
+
+    var theTest = new ATTAcomm(
+    {
+   "steps" : [
+      {
+         "element" : "test",
+         "test" : {
+            "ATK" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_TOGGLE_BUTTON"
+               ],
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "STATE_CHECKABLE"
+               ],
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "STATE_CHECKED"
+               ]
+            ],
+            "AXAPI" : [
+               [
+                  "property",
+                  "AXRole",
+                  "is",
+                  "AXCheckBox"
+               ],
+               [
+                  "property",
+                  "AXSubrole",
+                  "is",
+                  "AXSwitch"
+               ],
+               [
+                  "property",
+                  "AXRoleDescription",
+                  "is",
+                  "switch"
+               ],
+               [
+                  "property",
+                  "AXValue",
+                  "is",
+                  "1"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "IA2_ROLE_TOGGLE_BUTTON"
+               ],
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "xml-roles:switch"
+               ],
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "checkable:true"
+               ]
+            ],
+            "MSAA" : [
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "STATE_SYSTEM_CHECKED"
+               ]
+            ],
+            "UIA" : [
+               [
+                  "property",
+                  "ControlType",
+                  "is",
+                  "Button"
+               ],
+               [
+                  "property",
+                  "controlPatterns",
+                  "contains",
+                  "Toggle"
+               ],
+               [
+                  "property",
+                  "LocalizedControlType",
+                  "is",
+                  "toggleswitch"
+               ],
+               [
+                  "property",
+                  "Toggle.ToggleState",
+                  "is",
+                  "On"
+               ]
+            ]
+         },
+         "title" : "step 1",
+         "type" : "test"
+      }
+   ],
+   "title" : "switch checked true"
+}
+
+    ) ;
+    </script>
+  </head>
+  <body>
+  <p>This test examines the ARIA properties for switch checked true.</p>
+   <div id='test' role='switch' aria-checked='true' tabindex='0'>power</div>
+
+  <div id="manualMode"></div>
+  <div id="log"></div>
+  <div id="ATTAmessages"></div>
+  </body>
+</html>

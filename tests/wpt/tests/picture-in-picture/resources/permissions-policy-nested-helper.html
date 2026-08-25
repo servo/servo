@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<!-- Embeds permissions-policy-helper.html in a plain <iframe> with no allow
+     attribute, then relays the result up to the parent frame. Used by the
+     permissions-policy.https.html test to verify that a PiP denial set on
+     this page's own embedding iframe is inherited by nested iframes that carry
+     no allow attribute of their own. -->
+<script>
+'use strict';
+
+window.addEventListener('load', () => {
+  const inner = document.createElement('iframe');
+  inner.src = '/picture-in-picture/resources/permissions-policy-helper.html';
+
+  window.addEventListener('message', (event) => {
+    if (event.source === inner.contentWindow &&
+        event.data.type === 'pip-policy-result') {
+      window.parent.postMessage(event.data, '*');
+    }
+  }, { once: true });
+
+  document.body.appendChild(inner);
+}, { once: true });
+</script>

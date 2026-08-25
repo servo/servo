@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1206914">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<p>Test passes if there is a filled green square.</p>
+<div id="target" style="font: 100px/1 Ahem; color: green; width: 50px; height: 100px; writing-mode: vertical-rl; line-height: 0; background: red;">
+  <div style="width: 100%;">
+    <span style="position: relative; left: -50px;">X</span>
+  </div>
+</div>
+<script>
+waitForAtLeastOneFrame().then(function() {
+  document.getElementById('target').style.width = '100px';
+  takeScreenshot();
+});
+</script>

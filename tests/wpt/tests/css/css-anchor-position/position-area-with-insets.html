@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning: position-area positioning with additional insets</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position/#position-area">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- The grid:
+
+          100      150      150
+      +--------+--------+--------+
+      |        |        |        |
+  150 |        |        |        |
+      |        |        |        |
+      +--------+--------+--------+
+      |        |        |        |
+   75 |        |        |        |
+      |        |        |        |
+      +--------+--------+--------+
+      |        |        |        |
+  175 |        |        |        |
+      |        |        |        |
+      +--------+--------+--------+
+
+  -->
+<style>
+  #container {
+    position: absolute;
+    width: 400px;
+    height: 400px;
+  }
+  #anchored {
+    position: absolute;
+    align-self: stretch;
+    justify-self: stretch;
+    position-anchor: --anchor;
+  }
+  #anchor {
+    margin-top: 150px;
+    margin-left: 100px;
+    width: 150px;
+    height: 75px;
+    anchor-name: --anchor;
+  }
+</style>
+<div id="container">
+  <div id="anchored"></div>
+  <div id="anchor"></div>
+</div>
+<script>
+  function test_position_area(position_area, insets, expected_offsets) {
+    anchored.style.positionArea = position_area;
+    for (const [prop, value] of Object.entries(insets)) {
+      anchored.style[prop] = value;
+    }
+
+    test(() => {
+      assert_equals(anchored.offsetLeft, expected_offsets.left, "Check expected offsetLeft");
+      assert_equals(anchored.offsetTop, expected_offsets.top, "Check expected offsetTop");
+      assert_equals(anchored.offsetWidth, expected_offsets.width, "Check expected offsetWidth");
+      assert_equals(anchored.offsetHeight, expected_offsets.height, "Check expected offsetHeight");
+    }, "Offsets for position-area: " + position_area + " and insets: " + JSON.stringify(insets));
+  }
+
+  test_position_area("span-all", {top:"5px", bottom:"5px", left:"5px", right:"5px"},
+                  {left:5, top:5, width:390, height:390});
+
+  test_position_area("center center", {top:"10px", bottom:"40px", left:"5px", right:"15px"},
+                  {left:105, top:160, width:130, height:25});
+
+  test_position_area("left bottom", {top:"10px", bottom:"40px", left:"5px", right:"15px"},
+                  {left:5, top:235, width:80, height:125});
+
+  test_position_area("span-right center", {top:"20%", bottom:"auto", left:"auto", right:"25%"},
+                  {left:100, top:165, width:225, height:60});
+
+  // No implicit anchor means the position-area should not apply, but the insets still should.
+  anchored.style.positionAnchor = "auto";
+  test_position_area("bottom right", {left:"50px", right:"100px", top:"30px" , bottom:"10px"},
+                  {left:50, top:30, width:250, height:360});
+</script>

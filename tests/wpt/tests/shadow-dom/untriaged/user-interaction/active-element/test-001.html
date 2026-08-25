@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Shadow DOM Test: A_07_03_01</title>
+<link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-20130514/#active-element">
+<meta name="assert" content="User Interaction: each shadow root must also have an activeElement property to store the value of the focused element in the shadow tree.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../../../html/resources/common.js"></script>
+<script src="../../../resources/shadow-dom-utils.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+test(unit(function (ctx) {
+    var d = newRenderedHTMLDocument(ctx);
+
+    var host = d.createElement('div');
+    d.body.appendChild(host);
+    var s = host.attachShadow({mode: 'open'});
+
+    var inp = d.createElement('input');
+    inp.setAttribute('type', 'text');
+    inp.setAttribute('id', 'inpId');
+    inp.setAttribute('value', 'Some text');
+    s.appendChild(inp);
+
+    inp.focus();
+
+    assert_equals(s.activeElement.tagName, 'INPUT', 'Point 1:activeElement property of shadow root ' +
+            'must return the value of the focused element in the shadow tree');
+    assert_equals(s.activeElement.getAttribute('id'), 'inpId', 'Point 2:activeElement property of shadow root ' +
+        'must return the value of the focused element in the shadow tree');
+
+}), 'A_07_03_01_T01');
+</script>
+</body>
+</html>

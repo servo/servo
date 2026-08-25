@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>Prerendered iframe</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<body>
+<script>
+assert_true(document.prerendering);
+
+const params = new URLSearchParams(location.search);
+const uid = params.get('uid');
+
+const bc = new PrerenderChannel('iframe-channel', uid);
+bc.postMessage('prerender success');
+bc.close();
+</script>
+</body>

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/intersection-observer-test-utils.js"></script>
+
+<style>
+body, html {
+  margin: 0;
+}
+pre, #log {
+  position: absolute;
+  top: 0;
+  left: 200px;
+}
+#target {
+  width: 100px;
+  height: 100px;
+  background-color: green;
+}
+#occluder {
+  width: 100px;
+  height: 100px;
+  background-color: blue;
+}
+</style>
+
+<div id="target"></div>
+<div id="occluder"></div>
+
+<script>
+async_test(t => {
+  let entries = [];
+  let delay = 100;
+  let target = document.getElementById("target");
+  let occluder = document.getElementById("occluder");
+
+  assert_true(!!target, "target exists");
+  assert_true(!!occluder, "occluder exists");
+  let observer = new IntersectionObserver(function(changes) {
+    entries = entries.concat(changes)
+  }, {trackVisibility: true, delay: delay});
+  observer.observe(target);
+  entries = entries.concat(observer.takeRecords());
+  assert_equals(entries.length, 0, "No initial notifications.");
+  // The first notification should be sent without delay.
+  waitForNotification(t, t.step_func(step0));
+
+  function waitForDelay(timerExpiredBeforeLastFrame, nextStep) {
+    requestAnimationFrame(t.step_func(() => {
+      if (timerExpiredBeforeLastFrame) {
+        // New notifications should have been generated during the previous
+        // frame and delivered by now.
+        assert_equals(entries.length, 2);
+        assert_greater_than(entries[1].time - entries[0].time, delay);
+        assert_false(entries[1].isVisible);
+        nextStep();
+      } else {
+        // Observer may not have updated yet. Wait for next frame.
+        let timerExpired = performance.now() - entries[0].time >= delay;
+        waitForDelay(timerExpired, nextStep);
+      }
+    }));
+  }
+
+  function step0() {
+    assert_equals(entries.length, 1);
+    assert_true(entries[0].isVisible);
+    // This should trigger a notification on the next run.
+    occluder.style.marginTop = "-10px";
+    // Enter a rAF loop until the delay timer expires.
+    waitForDelay(false, step1);
+  }
+
+  function step1() {
+    occluder.style.marginTop = "10px";
+    // This style invalidation should cause a frame to run before the observer
+    // can generate a notification (due to delay parameter). Make sure the
+    // notification will still be generated even if we don't force more frames
+    // with a rAF loop.
+    t.step_timeout(() => {
+      assert_equals(entries.length, 3);
+      assert_true(entries[0].isVisible);
+      t.done();
+    }, 2 * delay);
+  }
+
+}, "'delay' parameter throttles frequency of notifications.");
+</script>

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<head>
+
+<script src="support/scrollbars.js"></script>
+
+<style>
+.horizontal-header {
+  width: 120px;
+}
+.vertical-header {
+  width: 60px;
+}
+.container-row {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+.container {
+  flex: none;
+  margin: 5px;
+}
+.ltr {
+  direction: ltr;
+}
+.rtl {
+  direction: rtl;
+}
+.horizontal {
+  writing-mode: horizontal-tb;
+}
+.flipped-blocks {
+  writing-mode: vertical-rl;
+}
+.flipped-lines {
+  writing-mode: vertical-lr;
+}
+.flex {
+  border: 2px solid red;
+  overflow: scroll;
+  max-width: 100px;
+  max-height: 100px;
+  white-space: nowrap;
+  font-size: 0;
+  scrollbar-width: thin;
+  scrollbar-color: black white;
+}
+.row > div, .row-reverse > div {
+  display: inline-flex;
+}
+.column > div, .column-reverse > div {
+  display: flex;
+}
+
+.flex > div {
+  width: 30px;
+  height: 30px;
+  border: 2px solid blue;
+  flex-direction: column;
+  justify-content: center;
+}
+.flex > div > div {
+  font-size: 20px;
+  text-align: center;
+  flex: none;
+}
+</style>
+
+</head>
+
+<div class="container-row">
+  <div class="vertical-header ltr horizontal"></div>
+  <div class="horizontal-header ltr horizontal">ltr<br>horizontal-tb</div>
+  <div class="vertical-header ltr flipped-blocks">ltr<br>vertical-rl</div>
+  <div class="vertical-header ltr flipped-blocks">ltr<br>vertical-lr</div>
+  <div class="horizontal-header rtl horizontal">rtl<br>horizontal-tb</div>
+  <div class="vertical-header rtl flipped-blocks">rtl<br>vertical-rl</div>
+  <div class="vertical-header rtl flipped-blocks">rtl<br>vertical-lr</div>
+</div>
+
+<script>
+// Override createContentNode to emulate reverse flow direction.
+createContentNode = (flexDirection, textDirection, writingMode) => {
+  var flexNode = document.createElement("div");
+  flexNode.className = "flex " + flexDirection;
+  flexNode.title = "flex-direction: " + flexDirection + "; direction: " + textDirection + "; writing-mode: " + writingMode;
+  for (var i = 1; i < 4; i++)
+    flexNode.appendChild(createLeafNode(flexDirection.endsWith("reverse") ? 4 - i : i));
+  return flexNode;
+}
+
+flexDirections.forEach((flexDirection) => {
+  var containerRow = createContainerRow(flexDirection);
+  document.body.appendChild(containerRow);
+});
+
+// Scroll all flex containers to the emulated beginning of flow.
+var nodes = document.querySelectorAll(".ltr > .row-reverse");
+for (var i = 0; i < nodes.length; i++) {
+  nodes[i].scrollLeft = 10000;
+  nodes[i].scrollTop = 10000;
+}
+nodes = document.querySelectorAll(".rtl > .row-reverse");
+for (var i = 0; i < nodes.length; i++) {
+  nodes[i].scrollLeft = -10000;
+  nodes[i].scrollTop = -10000;
+}
+nodes = document.querySelectorAll(".column-reverse");
+for (var i = 0; i < nodes.length; i++) {
+  nodes[i].scrollLeft = 10000;
+  nodes[i].scrollTop = 10000;
+}
+nodes = document.querySelectorAll(".flipped-blocks > .column-reverse");
+for (var i = 0; i < nodes.length; i++) {
+  nodes[i].scrollLeft = -10000;
+  nodes[i].scrollTop = 0;
+}
+</script>

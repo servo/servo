@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Shadow DOM Test: Upper-boundary encapsuration on ownerDocument: basic tests</title>
+<link rel="author" title="Aleksei Yu. Semenov" href="mailto:sgrekhov@unipro.ru">
+<link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<link rel="author" title="Mikhail Fursov" href="mailto:mfursov@unipro.ru">
+<link rel="author" title="Yuta Kitamura" href="mailto:yutak@google.com">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-20130514/#upper-boundary-encapsulation">
+<meta name="assert" content="Upper-boundary encapsulation: The ownerDocument property of all nodes in shadow tree refers to the document of the shadow host.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../../../html/resources/common.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+test(function () {
+    var doc = document.implementation.createHTMLDocument('Test');
+    doc.body.innerHTML = '<div>A<div>B</div>C<div><span>D</span></div>E</div>';
+    var nodeIterator = doc.createNodeIterator(doc.body,
+                                              NodeFilter.SHOW_ELEMENT, null);
+    var node;
+    while (node = nodeIterator.nextNode()) {
+        var shadowRoot = node.attachShadow({mode: 'open'});
+        assert_equals(shadowRoot.ownerDocument, doc);
+    }
+}, 'ownerDocument property of a shadow root should be the document of the ' +
+   'shadow host, regardless of the location of the shadow host.');
+
+test(function () {
+    var MAX_DEPTH = 16;
+    var doc = document.implementation.createHTMLDocument('Test');
+    var tail = doc.body;
+    for (var depth = 1; depth <= MAX_DEPTH; ++depth) {
+        var div = doc.createElement('div');
+        div.id = 'depth-' + depth;
+        tail.appendChild(div);
+        tail = div;
+    }
+
+    for (var depth = 1; depth <= MAX_DEPTH; ++depth) {
+        var host = doc.getElementById('depth-' + depth);
+        var shadowRoot = host.attachShadow({mode: 'open'});
+        assert_equals(shadowRoot.ownerDocument, doc,
+                      'ownerDocument mismatch for #depth-' + depth);
+    }
+}, 'ownerDocument property of elements in a shadow tree should match ' +
+   'the document of the shadow host, regardless of the element\'s location ' +
+   'in a shadow tree.');
+
+test(function () {
+    var doc = document.implementation.createHTMLDocument('Test');
+    var shadowRoot = doc.body.attachShadow({mode: 'open'});
+    var div = doc.createElement('div');
+    shadowRoot.appendChild(div);
+    assert_equals(div.ownerDocument, doc);
+}, 'Elements added to a shadow tree should automatically get a valid ' +
+   'ownerDocument.');
+
+test(function () {
+    var doc1 = document.implementation.createHTMLDocument('Test 1');
+    var doc2 = document.implementation.createHTMLDocument('Test 2');
+    var shadowRoot = doc1.body.attachShadow({mode: 'open'});
+    var div = doc2.createElement('div');
+    shadowRoot.appendChild(div);
+    assert_equals(div.ownerDocument, doc1);
+}, 'ownerDocument property of an element in a shadow tree should be the ' +
+   'document of the shadow host, even if the host element is created from ' +
+   'another document.');
+
+test(function () {
+    var doc1 = document.implementation.createHTMLDocument('Test 1');
+    var doc2 = document.implementation.createHTMLDocument('Test 2');
+    var shadowRoot = doc1.body.attachShadow({mode: 'open'});
+    doc2.body.innerHTML =
+        '<div id="root">A<div>B</div>C<div><span>D</span></div>E</div>';
+    shadowRoot.appendChild(doc2.getElementById('root'));
+    var nodeIterator = doc1.createNodeIterator(
+        shadowRoot.getElementById('root'), 0xFFFFFFFF, null);
+    var node;
+    while (node = nodeIterator.nextNode()) {
+        assert_equals(node.ownerDocument, doc1);
+    }
+}, 'All children nodes of a shadow root get a valid ownerDocument when ' +
+   'added to a shadow tree.');
+
+test(function () {
+    var doc1 = document.implementation.createHTMLDocument('Test 1');
+    var doc2 = document.implementation.createHTMLDocument('Test 2');
+    var shadowRoot = doc1.body.attachShadow({mode: 'open'});
+    doc2.body.innerHTML = '<div id="parent"><div id="child"></div></div>';
+    shadowRoot.appendChild(doc2.getElementById('child'));
+    assert_equals(doc2.getElementById('parent').ownerDocument, doc2);
+}, 'ownerDocument property of a node should remain the same, even if its ' +
+   'child is adopted into a shadow tree.');
+</script>
+</body>
+</html>

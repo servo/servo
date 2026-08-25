@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Link Parameters - url function with modifier take precedence over URL fragment identifier</title>
+<link rel="author" title="Divyansh Mangal" href="mailto:dmangal@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-link-params/#setting">
+<link rel="match" href="circle-green-ref.html"/>
+<style>
+  .image-with-params {
+  width:100px;
+  height:100px;
+  background-image: url("circle-with-parameters.svg#param(--color,red)" param(--color, green));
+  }
+</style>
+<div class="image-with-params"></div>

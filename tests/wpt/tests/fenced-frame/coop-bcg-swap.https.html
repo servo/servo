@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>Test window.name after bcg swap</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+promise_test(async () => {
+  const fenced_frame = attachFencedFrameContext();
+
+  // This test verifies that COOP is not enabled in fenced frames. To do so, we
+  // set the fenced frame's `window.name` and navigate it to a cross-origin page
+  // with the `Cross-Origin-Opener-Policy: same-origin` response header.
+  await fenced_frame.execute(() => {
+    const remote_origin = get_host_info().REMOTE_ORIGIN;
+    window.name = "test";
+    const remote_url = new URL(location.pathname + location.search, remote_origin);
+
+    let existing_pipe_query = remote_url.searchParams.get('pipe');
+    const all_pipes = existing_pipe_query.split('|');
+    all_pipes.push('header(Cross-Origin-Opener-Policy, same-origin)');
+
+    remote_url.searchParams.set('pipe', all_pipes.join('|'));
+
+    window.executor.suspend(() => {
+      location.href = remote_url;
+    });
+  });
+
+  // Verify that the fenced frame's `window.name` is still there
+  await fenced_frame.execute(() => {
+    assert_equals(window.name, 'test');
+  });
+
+}, "window.name after bcg swap");
+</script>
+</body>

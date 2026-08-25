@@ -1,0 +1,15 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/_mozilla/bluetooth/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+promise_test(() => {
+    window.testRunner.setBluetoothMockDataSet(adapter_type.empty_name_heart_rate);
+    return window.navigator.bluetooth.requestDevice({
+        filters: [{name: ''}],
+        optionalServices: [generic_access.name]
+    })
+    .then(device => assert_equals(device.name, ''));
+}, 'An empty name device can be obtained by empty name filter.');
+</script>

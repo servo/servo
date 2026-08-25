@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Images: getComputedStyle().imageRendering</title>
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#propdef-image-rendering">
+<meta name="assert" content="image-rendering computed value is as specified.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<script>
+test_computed_value("image-rendering", "auto");
+test_computed_value("image-rendering", "smooth");
+test_computed_value("image-rendering", "high-quality");
+test_computed_value("image-rendering", "crisp-edges");
+test_computed_value("image-rendering", "pixelated");
+</script>
+</body>
+</html>

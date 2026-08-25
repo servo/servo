@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 4 Test: word-space-transform off on inline</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#word-space-transform">
+<link rel="match" href="reference/word-space-transform-004-ref.html">
+<meta name="assert" content="word-space-transform can be turned off on a inlines">
+<style>
+div {
+  font-size: 2em;
+}
+#test {
+  word-space-transform: space;
+}
+span {
+  word-space-transform: none;
+}
+</style>
+
+<p>Test passes if the two lines below are identical.
+
+<div id=test><span>a&#x200B;b</span>&#x200B;c</div>
+<div id=ref>ab c</div>

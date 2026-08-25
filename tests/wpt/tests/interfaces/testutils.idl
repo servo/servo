@@ -1,0 +1,9 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Test Utils Standard (https://testutils.spec.whatwg.org/)
+
+[Exposed=(Window,Worker)]
+namespace TestUtils {
+  [NewObject] Promise<undefined> gc();
+};

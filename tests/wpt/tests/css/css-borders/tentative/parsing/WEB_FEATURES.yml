@@ -1,0 +1,5 @@
+rules:
+- border-block-*-radius-*: []
+- border-inline-*-radius-*: []
+- border-*-radius-*: [border-radius]
+- box-shadow-*: [box-shadow]

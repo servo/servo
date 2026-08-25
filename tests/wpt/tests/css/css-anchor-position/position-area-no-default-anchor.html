@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/388575663">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#typedef-position-area">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<title>If the box does not have a default anchor box, or is not an absolutely positioned box, position-area has no effect.</title>
+<style>
+.abspos {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="position: relative; width: 100px; height: 200px;">
+  <div class="abspos" style="background: red;"></div>
+  <div class="abspos" style="position-area: left; background: green;"></div>
+</div>

@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>Test that short_name_localized falls back to the language-only key</title>
+<link rel="help" href="https://w3c.github.io/manifest/#short_name-member" />
+<link rel="help" href="https://w3c.github.io/manifest/#dfn-localizable-member" />
+<link rel="manifest" href="resources/short_name_localized-member-lang-fallback.webmanifest" />
+<script src="resources/short_name_localized-member-manual.js"></script>
+<h1>Testing language-only fallback for <code>short_name_localized</code></h1>
+<p>
+    Set your browser locale to a region variant not in the manifest (e.g.,
+    <code>en-GB</code>, <code>fr-CA</code>, or <code>ja-JP</code>). Install
+    this page as a web application. To pass, the installed app short name must
+    match the language-only key (e.g., "EN Short" for <code>en-GB</code>,
+    "FR Court" for <code>fr-CA</code>).
+</p>

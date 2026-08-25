@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning Test: scroll adjusted anchor-center with a vertical writing-mode containing block</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#anchor-center">
+<link rel="match" href="anchor-center-scroll-vertical-wm-001-ref.html">
+<meta name="assert" content="An abspos box with justify-self:anchor-center whose containing block is a vertical writing mode stays centered on its anchor along the block (vertical) axis after the anchor's scroller scrolls.">
+<style>
+  body { margin: 0; }
+  /* The containing block of #anchored. Its vertical writing-mode makes
+     justify-self the property that controls the vertical (Y) axis. */
+  #cb {
+    position: relative;
+    writing-mode: vertical-rl;
+    width: 400px;
+    height: 400px;
+  }
+  /* Reset to horizontal so the scroller's internal layout/scroll matches
+     the horizontal-writing-mode scroll tests. */
+  #scroller {
+    writing-mode: horizontal-tb;
+    width: 400px;
+    height: 400px;
+    overflow: auto;
+    background: orange;
+  }
+  #spacer { height: 100px; }
+  #anchor {
+    width: 100px;
+    height: 100px;
+    background: pink;
+    anchor-name: --anchor;
+  }
+  #anchored {
+    position: absolute;
+    position-anchor: --anchor;
+    justify-self: anchor-center;
+    left: 0;
+    width: 50px;
+    height: 50px;
+    background: purple;
+  }
+  #filler { height: 1000px; }
+</style>
+<div id="cb">
+  <div id="scroller">
+    <div id="spacer"></div>
+    <div id="anchor"></div>
+    <div id="filler"></div>
+  </div>
+  <div id="anchored"></div>
+</div>
+<script>
+  scroller.offsetTop;
+  scroller.scrollTop = 100;
+</script>

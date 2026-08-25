@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<link rel="author" title="Rob Buis" href="mailto:rbuis@igalia.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#document.title">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+
+function newXMLDocument() {
+  return document.implementation.createDocument(null, "foo", null);
+}
+
+test(function() {
+  var doc = newXMLDocument();
+  assert_equals(doc.title, "");
+  doc.title = "fail";
+  assert_equals(doc.title, "");
+}, "Should not be able to set document title in XML document");
+
+test(function() {
+  var doc = newXMLDocument();
+  doc.documentElement.appendChild(document.createElementNS("http://www.w3.org/1999/xhtml", "html:title"));
+  assert_equals(doc.title, "");
+  doc.title = "fail";
+  assert_equals(doc.title, "");
+}, "Should not be able to set document title in XML document with html:title element");
+</script>

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>ScrollTimeline source lookup with single-axis scroll containers (inactive)</title>
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#scroll-timelines-anonymous">
+<link rel="author" title="Free Debreuil" href="mailto:freedebreuil@google.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="./testcommon.js"></script>
+<style>
+#scroller {
+  width: 100px;
+  height: 100px;
+  overflow-x: clip;
+  overflow-y: scroll;
+}
+#subject {
+  width: 50px;
+  height: 200px;
+  animation: noop 1s;
+  animation-timeline: scroll(nearest inline);
+}
+@keyframes noop {}
+</style>
+
+<div id="scroller">
+  <div id="subject"></div>
+</div>
+
+<script>
+test(() => {
+  // Force layout so the timeline's construction-time snapshot sees it.
+  scroller.offsetHeight;
+  const jsTimeline = new ScrollTimeline({ source: scroller, axis: 'x' });
+  assert_equals(jsTimeline.source, scroller);
+  assert_equals(jsTimeline.currentTime, null);
+}, 'JS-created ScrollTimeline for a non-scrollable axis is inactive');
+
+test(() => {
+  scroller.offsetHeight;
+  const animations = subject.getAnimations();
+  assert_equals(animations.length, 1);
+  const cssTimeline = animations[0].timeline;
+  assert_equals(cssTimeline.source, document.documentElement);
+  assert_equals(cssTimeline.currentTime, null);
+}, 'CSS anonymous ScrollTimeline falls back when no ancestor matches the axis');
+
+promise_test(async t => {
+  t.add_cleanup(() => {
+    scroller.style.display = '';
+  });
+  scroller.offsetHeight;
+  const jsTimeline = new ScrollTimeline({ source: scroller, axis: 'y' });
+  assert_not_equals(jsTimeline.currentTime, null);
+
+  scroller.style.display = 'none';
+  await waitForNextFrame();
+  await waitForNextFrame();
+
+  assert_equals(jsTimeline.currentTime, null);
+}, 'ScrollTimeline becomes inactive when the reference element has display:none');
+</script>

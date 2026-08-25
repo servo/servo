@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>navigate too many calls</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+const maxCalls = 500;
+
+async function createIframe(t) {
+  const iframe = document.createElement("iframe");
+  iframe.src = "/common/blank.html";
+  t.add_cleanup(() => iframe.remove());
+
+  const iframeLoaded = new Promise(resolve => {
+    iframe.addEventListener("load", resolve, { once: true });
+  });
+  document.body.append(iframe);
+  await iframeLoaded;
+  return iframe;
+}
+
+function createHiddenLazyIframe(t, src) {
+  const iframe = document.createElement("iframe");
+  iframe.loading = "lazy";
+  iframe.hidden = true;
+  iframe.src = src;
+  t.add_cleanup(() => iframe.remove());
+
+  document.body.append(iframe);
+  return iframe;
+}
+
+function wait(t, ms) {
+  return new Promise(resolve => {
+    t.step_timeout(resolve, ms);
+  });
+}
+
+function waitForLoadOrTimeout(t, iframe, ms) {
+  return new Promise(resolve => {
+    let settled = false;
+
+    const timeoutId = t.step_timeout(() => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      resolve(false);
+    }, ms);
+
+    iframe.addEventListener("load", () => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      clearTimeout(timeoutId);
+      resolve(true);
+    }, { once: true });
+  });
+}
+
+function waitForHashchangeOrTimeout(t, win) {
+  return new Promise(resolve => {
+    let settled = false;
+
+    const timeoutId = t.step_timeout(() => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      resolve(false);
+    }, 500);
+
+    win.addEventListener("hashchange", () => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      clearTimeout(timeoutId);
+      resolve(true);
+    }, { once: true });
+  });
+}
+
+function reachPushStateRateLimit(win) {
+  for (let i = 0; i < maxCalls; ++i) {
+    const expectedState = `rate-limit-${i}`;
+
+    // Do not pass a URL here. The hidden lazy iframe is still on its initial
+    // about:blank Document, and about:blank cannot be rewritten to this test
+    // document's URL. Omitting the URL still performs a history update and
+    // therefore consumes the shared navigation/history rate limit.
+    win.history.pushState(expectedState, "");
+
+    if (win.history.state !== expectedState) {
+      return;
+    }
+  }
+
+  assert_unreached("No rate limit reached.");
+}
+
+promise_test(async t => {
+  const iframe = await createIframe(t);
+  const iframeWindow = iframe.contentWindow;
+
+  for (let i = 0; i < maxCalls; ++i) {
+    const previousURL = iframeWindow.location.href;
+    const expectedHash = `#fragment-${i}`;
+    const hashchangePromise = waitForHashchangeOrTimeout(t, iframeWindow);
+
+    iframeWindow.location.hash = expectedHash;
+
+    if (!await hashchangePromise) {
+      assert_equals(
+        iframeWindow.location.href,
+        previousURL,
+        "rate-limited fragment navigation must not update the URL"
+      );
+      return;
+    }
+
+    assert_not_equals(
+      iframeWindow.location.href,
+      previousURL,
+      "allowed fragment navigation must update the URL"
+    );
+    assert_true(
+      iframeWindow.location.href.endsWith(expectedHash),
+      "allowed fragment navigation must update to the requested fragment"
+    );
+  }
+
+  assert_unreached("No rate limit reached.");
+}, "fragment navigations through navigate are ignored after too many calls");
+
+promise_test(async t => {
+  const src = "/common/blank.html?lazy-src";
+  const srcURL = new URL(src, location.href).href;
+  const iframe = createHiddenLazyIframe(t, src);
+  const iframeWindow = iframe.contentWindow;
+
+  assert_equals(
+    iframeWindow.location.href,
+    "about:blank",
+    "hidden lazy iframe should still be on its initial about:blank Document"
+  );
+
+  reachPushStateRateLimit(iframeWindow);
+
+  const previousURL = iframeWindow.location.href;
+  const hashchangePromise = waitForHashchangeOrTimeout(t, iframeWindow);
+
+  iframeWindow.location.hash = "after-rate-limit";
+
+  assert_false(
+    await hashchangePromise,
+    "rate-limited fragment navigation must not fire hashchange"
+  );
+  assert_equals(
+    iframeWindow.location.href,
+    previousURL,
+    "rate-limited fragment navigation must not update the URL"
+  );
+
+  // Wait for the rate limiter to reset. If the pending lazy-load navigation was
+  // not cancelled before the rate-limit check, making the iframe visible below
+  // could otherwise still be rate-limited, hiding the ordering bug.
+  await wait(t, 11000);
+
+  const iframeLoaded = waitForLoadOrTimeout(t, iframe, 2000);
+  iframe.hidden = false;
+
+  assert_false(
+    await iframeLoaded,
+    "rate-limited navigation must cancel the pending lazy-load iframe navigation"
+  );
+  assert_false(
+    iframe.contentWindow.location.href === srcURL ||
+      iframe.contentWindow.location.href.startsWith(`${srcURL}#`),
+    "iframe must not navigate to its lazy-load src after being made visible"
+  );
+}, "rate-limited navigations cancel pending lazy-load iframe navigations");
+</script>
+</body>
+</html>

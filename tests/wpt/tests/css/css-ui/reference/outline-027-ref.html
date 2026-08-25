@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface: Reference test for outline with padding</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+.outline-container {
+  margin: 10px 0px;
+  width: 10px;
+  height: 10px;
+  outline: auto;
+  font: 10px/1 Ahem;
+}
+
+.outline-container > div {
+  color: lime;
+}
+</style>
+<p>Test passes if the outline is wrapping all the green boxes.</p>
+<div style="display: grid; grid-template-columns: repeat(6, 100px);">
+  <div>
+    <div class="outline-container" style="padding-left: 5px;">
+      <div>XX</div>
+    </div>
+    <div class="outline-container" style="padding-right: 5px;">
+      <div>XX</div>
+    </div>
+    <div class="outline-container" style="padding-top: 5px;">
+      <div>XX</div>
+    </div>
+    <div class="outline-container" style="padding-bottom: 5px;">
+      <div>XX</div>
+    </div>
+    <div class="outline-container" style="padding: 0px 5px;">
+      <div>XX</div>
+    </div>
+    <div class="outline-container" style="padding: 5px 0px;">
+      <div>XX</div>
+    </div>
+    <div class="outline-container" style="padding: 5px;">
+      <div>XX</div>
+    </div>
+  </div>
+  <div>
+    <div class="outline-container" style="padding-left: 20px;">
+      <div>XX</div>
+    </div>
+    <div class="outline-container" style="padding-right: 20px;">
+      <div>XX</div>
+    </div>
+    <div class="outline-container" style="padding-top: 20px;">
+      <div>XX</div>
+    </div>
+    <div class="outline-container" style="padding-bottom: 20px;">
+      <div>XX</div>
+    </div>
+    <div class="outline-container" style="padding: 0px 20px;">
+      <div>XX</div>
+    </div>
+    <div class="outline-container" style="padding: 20px 0px;">
+      <div>XX</div>
+    </div>
+    <div class="outline-container" style="padding: 20px;">
+      <div>XX</div>
+    </div>
+  </div>
+  <div>
+    <div class="outline-container" style="padding-left: 5px;">
+      <div>XX</div>
+    </div>
+    <div class="outline-container" style="padding-right: 5px;">
+      <div>XX</div>
+    </div>
+    <div class="outline-container" style="padding-top: 5px;">
+      <div>XX</div>
+    </div>
+    <div class="outline-container" style="padding-bottom: 5px;">
+      <div>XX</div>
+    </div>
+    <div class="outline-container" style="padding: 0px 5px;">
+      <div>XX</div>
+    </div>
+    <div class="outline-container" style="padding: 5px 0px;">
+      <div>XX</div>
+    </div>
+    <div class="outline-container" style="padding: 5px;">
+      <div>XX</div>
+    </div>
+  </div>
+  <div>
+    <div class="outline-container" style="padding-left: 20px;">
+      <div>XX</div>
+    </div>
+    <div class="outline-container" style="padding-right: 20px;">
+      <div>XX</div>
+    </div>
+    <div class="outline-container" style="padding-top: 20px;">
+      <div>XX</div>
+    </div>
+    <div class="outline-container" style="padding-bottom: 20px;">
+      <div>XX</div>
+    </div>
+    <div class="outline-container" style="padding: 0px 20px;">
+      <div>XX</div>
+    </div>
+    <div class="outline-container" style="padding: 20px 0px;">
+      <div>XX</div>
+    </div>
+    <div class="outline-container" style="padding: 20px;">
+      <div>XX</div>
+    </div>
+  </div>
+  <div>
+    <div class="outline-container" style="padding-left: 5px;">
+      <div>XX</div>
+    </div>
+    <div class="outline-container" style="padding-right: 5px;">
+      <div>XX</div>
+    </div>
+    <div class="outline-container" style="padding-top: 5px;">
+      <div>XX</div>
+    </div>
+    <div class="outline-container" style="padding-bottom: 5px;">
+      <div>XX</div>
+    </div>
+    <div class="outline-container" style="padding: 0px 5px;">
+      <div>XX</div>
+    </div>
+    <div class="outline-container" style="padding: 5px 0px;">
+      <div>XX</div>
+    </div>
+    <div class="outline-container" style="padding: 5px;">
+      <div>XX</div>
+    </div>
+  </div>
+  <div>
+    <div class="outline-container" style="padding-left: 20px;">
+      <div>XX</div>
+    </div>
+    <div class="outline-container" style="padding-right: 20px;">
+      <div>XX</div>
+    </div>
+    <div class="outline-container" style="padding-top: 20px;">
+      <div>XX</div>
+    </div>
+    <div class="outline-container" style="padding-bottom: 20px;">
+      <div>XX</div>
+    </div>
+    <div class="outline-container" style="padding: 0px 20px;">
+      <div>XX</div>
+    </div>
+    <div class="outline-container" style="padding: 20px 0px;">
+      <div>XX</div>
+    </div>
+    <div class="outline-container" style="padding: 20px;">
+      <div>XX</div>
+    </div>
+  </div>
+</div>

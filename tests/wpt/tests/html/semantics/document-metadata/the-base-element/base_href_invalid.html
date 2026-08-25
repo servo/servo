@@ -1,0 +1,12 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>base element with unparseable href should have .href getter return attr value</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+test(function() {
+  var b = document.createElement("base");
+  b.setAttribute("href", "//test:test");
+  assert_equals(b.href, "//test:test");
+});
+</script>

@@ -1,0 +1,24 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+</head>
+<body>
+    <button id="button" onclick="popup();">open popup</button>
+    <script>
+    function popup() {
+      window.popupWin = window.open('support/window-name-after-cross-origin-main-frame-navigation-popup.sub.html', '_blank');
+    }
+    async_test(t => {
+      t.add_cleanup(() => {
+        popupWin.close();
+      })
+      document.getElementById('button').click();
+      onmessage = t.step_func(e => {
+        assert_true(e.data);
+      });
+    }, 'window.name should equal "" after a cross-origin main frame navigation');
+    </script>
+</body>
+</html>

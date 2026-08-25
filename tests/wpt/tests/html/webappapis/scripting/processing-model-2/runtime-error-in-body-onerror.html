@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+ <head>
+  <title>runtime error in &lt;body onerror></title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script>
+    setup({allow_uncaught_exception:true});
+    var t = async_test();
+    var ran = 0;
+  </script>
+ </head>
+ <body onerror="ran++; undefined_variable_in_onerror;">
+  <div id=log></div>
+  <script>
+    undefined_variable;
+  </script>
+  <script>
+    t.step(function(){
+        assert_equals(ran, 1, 'ran');
+        t.done();
+    });
+  </script>
+ </body>
+</html>

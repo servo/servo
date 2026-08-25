@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Containment Test: 'contain: style' for counters (span descendants of &lt;body&gt;)</title>
+<link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+<link rel="help" href="https://www.w3.org/TR/css-contain-1/#containment-style">
+<link rel="match" href="reference/contain-style-counters-004-ref.html">
+<style>
+body {
+  counter-reset: counter-of-span 13;
+  contain: style;
+}
+body span {
+  counter-increment: counter-of-span 5;
+}
+div {
+  font-size: 3em;
+}
+div::after {
+  content: counter(counter-of-span);
+}
+</style>
+<body>
+  <p><span></span> <span></span> <span></span> <span></span></p>
+
+<!-- The <span>s aren't allowed to modify the counter instantiated on the <body>,
+       so a new instance of the counter is created.
+       Since the <div> isn't a sibling of the <span>, it will not inherit this new instance,
+       and instead it will read the original counter from the <body>, with value 13.
+       This is per example at: https://drafts.csswg.org/css-contain/#containment-style  -->
+  <p>Test passes if there is the number 13.</p>
+  <div></div>
+</body>

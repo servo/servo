@@ -1,0 +1,34 @@
+---
+name: Build docset
+
+on:
+  push:
+    tags: ["*"]
+  workflow_dispatch:
+
+env:
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  PIP_NO_PYTHON_VERSION_WARNING: "1"
+
+permissions:
+  contents: read
+
+jobs:
+  docset:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.x"
+
+      - run: python -Im pip install tox
+
+      - run: python -Im tox run -e docset
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: docset
+          path: attrs.tgz

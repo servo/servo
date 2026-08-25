@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<body>
+<canvas id ="output" width="300" height="400"></canvas>
+<script>
+var canvas = document.getElementById('output');
+var ctx = canvas.getContext('2d');
+
+ctx.beginPath();
+ctx.roundRect(10, 10, 100, 100, [20]);
+ctx.fill();
+</script>
+</body>
+</html>
+

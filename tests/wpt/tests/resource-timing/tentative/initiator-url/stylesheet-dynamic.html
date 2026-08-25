@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Resource Timing - initiatorUrl for resources loaded by a dynamically inserted stylesheet</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="../../resources/test-initiator.js"></script>
+</head>
+<body>
+<ol>
+  <li>X</li>
+</ol>
+<script>
+const link = document.createElement("link");
+link.rel = "stylesheet";
+link.href = "/resource-timing/resources/nested-dynamic-initiator.css";
+document.head.appendChild(link);
+
+const hostInfo = get_host_info();
+const documentInitiatorUrl = hostInfo["ORIGIN"] +
+  "/resource-timing/tentative/initiator-url/stylesheet-dynamic.html";
+const stylesheetInitiatorUrl = hostInfo["ORIGIN"] +
+  "/resource-timing/resources/nested-dynamic-initiator.css";
+
+// The dynamically inserted stylesheet is initiated by this document.
+initiator_url_test("nested-dynamic-initiator.css", documentInitiatorUrl,
+  "nested-dynamic-initiator.css initiatorUrl from document",
+  "nested-dynamic-initiator.css timeout");
+
+// The resources imported by the stylesheet are initiated by the stylesheet.
+const resources = [
+  "resource_timing_test0.css?label=dynamic-initiator",
+  "Ahem.ttf?label=dynamic-initiator",
+  "blue.png?label=dynamic-initiator",
+];
+for (const resource of resources) {
+  initiator_url_test(resource, stylesheetInitiatorUrl, resource +
+    " initiatorUrl from style sheet", resource + " timeout");
+}
+</script>
+</body>
+</html>

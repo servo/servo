@@ -1,0 +1,36 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>Track element - text tracks API test</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#text-track-api">
+<link rel="author" title="Hyunjin Cho">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<h1>Track element and API Test</h1>
+<div style="display:none;">
+    <video id="tracktest" src="/media/movie_300.mp4">
+        <track kind="subtitles" src="resources/track.en.vtt" srclang="en" label="English">
+        <track kind="captions" src="resources/track.en.vtt" srclang="en" label="English with Captions">
+        <track id="french" kind="subtitles" src="resources/track.fr.vtt" srclang="fr" label="Francais">
+        <track kind="subtitles" src="resources/track.de.vtt" srclang="de" label="Deutsch">
+    </video>
+</div>
+<div id="log"></div>
+<script>
+test(function() {
+    var t1 = document.getElementById('tracktest').textTracks;
+    assert_not_equals(t1, undefined, "textTracks member should not be undefined");
+}, "Check the track elements");
+test(function() {
+    var t2 = document.getElementById('tracktest').textTracks.getTrackById("french");
+    assert_not_equals(t2, undefined, "textTracks member should not be undefined");
+}, "Check getTrackById method");
+test(function() {
+    var t3 = document.getElementById('tracktest').textTracks.length;
+    assert_equals(t3, 4, "textTracks List should be 4");
+}, "Count track list");
+</script>
+</body>
+</html>

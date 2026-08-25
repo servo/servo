@@ -1,0 +1,46 @@
+<svg width="500" height="300"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+    <!--
+    Test 'Marker-start', 'marker-mid', and 'marker-end' apply markers at the
+    appropriate vertices when applied to 'line', 'path', 'polygon' and 'polyline'
+    elements.
+    Note: 'marker-mid' has no effect on the 'line' element.
+    -->
+    <html:link rel="help" href="https://www.w3.org/TR/2016/CR-SVG2-20160915/painting.html#Markers"/>
+    <html:link rel="match" href="marker-008-ref.svg"/>
+    <html:meta name="assert" content="Tests marker-* render at the appropriate vertices."/>
+    <style type="text/css">
+        .start
+        {
+            marker-start: url(#markerTest);
+        }
+        .end
+        {
+            marker-end: url(#markerTest);
+        }
+        .mid
+        {
+            marker-mid: url(#markerTest);
+        }
+    </style>
+    <defs>
+        <marker id="markerTest" markerWidth="10" markerHeight="10" fill="blue">
+            <rect width="50" height="55" />
+        </marker>
+    </defs>
+    <line class="start" x1="10" y1="50" x2="100" y2="50" stroke="black" />
+    <path class="start" d="M 10 100 L 50 100 L 100 100" stroke="black"/>
+    <polygon class="start" points="10,150 50,150 100,150" stroke="black"/>
+    <polyline class="start" points="10,200 50,200 100,200" stroke="black"/>
+
+    <line class="end" x1="150" y1="50" x2="250" y2="50" stroke="black"/>
+    <path class="end" d="M 150 100 L 200 100 L 250 100" stroke="black"/>
+    <polygon class="end" points="250,150 200,150" stroke="black"/>
+    <polyline class="end" points="150,200 200,200 250,200" stroke="black"/>
+
+    <line class="mid" x1="300" y1="50" x2="400" y2="50" stroke="black"/>
+    <path class="mid" d="M 300 100 L 350 100 L 400 100" stroke="black"/>
+    <polygon class="mid" points="300,150 350,150" stroke="black"/>
+    <polyline class="mid" points="300,200 350,200 400,200" stroke="black"/>
+</svg>

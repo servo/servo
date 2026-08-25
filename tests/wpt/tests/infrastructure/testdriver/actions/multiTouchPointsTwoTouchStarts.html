@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>TestDriver actions: two touch points with one moving one pause</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+div#test1{
+  position: fixed;
+  touch-action: none;
+  top: 0;
+  left: 0;
+  width: 100px;
+  height: 100px;
+  background-color: blue;
+}
+
+</style>
+
+<div id="test1">
+</div>
+
+<script>
+let event_type = [];
+let event_id = [];
+
+promise_test(async t => {
+  const test1 = document.getElementById("test1");
+  const handleEvent = e => {
+    event_type.push(e.type);
+    event_id.push(e.pointerId);
+  }
+  test1.addEventListener("pointerdown", handleEvent);
+  test1.addEventListener("pointerup", handleEvent);
+  test1.addEventListener("pointermove", handleEvent);
+
+  let actions = new test_driver.Actions()
+      .addPointer("touchPointer1", "touch")
+      .addPointer("touchPointer2", "touch")
+      .pointerMove(0, 0, {origin: test1, sourceName: "touchPointer1"})
+      .pointerMove(10, 0, {origin: test1, sourceName: "touchPointer2"})
+      .pointerDown({sourceName: "touchPointer1"})
+      .pointerMove(0, 5, {origin: test1, sourceName: "touchPointer1"})
+      .addTick()
+      .pointerDown({sourceName: "touchPointer2"})
+      .addTick()
+      .pointerUp({sourceName: "touchPointer1"})
+      .pointerUp({sourceName: "touchPointer2"});
+
+  await actions.send()
+
+  assert_array_equals(event_type, ["pointerdown", "pointermove", "pointerdown", "pointerup", "pointerup"]);
+  assert_array_equals(event_id, [2, 2, 3, 2, 3]);
+});
+</script>

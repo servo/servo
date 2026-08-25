@@ -1,0 +1,11 @@
+{
+  "name": "WPT browser.browsingData Test",
+  "version": "1.0",
+  "manifest_version": 3,
+  "permissions": ["browsingData"],
+  "background": {
+    "scripts": [ "background.js" ],
+    "service_worker": "background.js",
+    "type": "module"
+  }
+}

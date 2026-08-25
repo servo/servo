@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Borders and Box Decorations 4 Test: Computed values of 'box-shadow-blur'</title>
+<link rel="author" title="Sebastian Zartner" href="mailto:sebastianzartner@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#box-shadow-blur">
+<meta name="assert" content="This test checks that the computed value of 'box-shadow-blur' is correct.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+
+<div id="target"></div>
+
+<script>
+test_computed_value("box-shadow-blur", "0", "0px");
+test_computed_value("box-shadow-blur", "1px");
+test_computed_value("box-shadow-blur", "1em", "16px");
+test_computed_value("box-shadow-blur", "1px, 2px");
+</script>

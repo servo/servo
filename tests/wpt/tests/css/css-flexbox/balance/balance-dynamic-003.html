@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-2/">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<style>
+#flex {
+  display: flex;
+  flex-wrap: balance;
+  width: 120px;
+  flex-line-count: 3;
+}
+#flex > div {
+  width: 50px;
+  height: 50px;
+  background: green;
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="flex">
+  <div></div>
+  <div></div>
+  <div></div>
+  <div></div>
+</div>
+<script>
+document.body.offsetTop;
+// Reset to the initial value.
+document.getElementById('flex').style.flexLineCount = '1';
+</script>

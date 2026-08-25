@@ -1,0 +1,38 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Overflow: scrollbar-gutter on the root element</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#scrollbar-gutter-property">
+<link rel="match" href="scrollbar-gutter-root-both-edges-ref.html">
+
+<style>
+    body,html {
+        background-color: blue;
+        margin: 10px;
+        padding: 10px;
+        border: 5px solid black;
+    }
+
+    body{
+        border: 5px solid green;
+    }
+
+
+:root {
+  scrollbar-gutter: stable both-edges;
+}
+p {
+  background-color: purple;
+  color: white;
+}
+div {
+    position:absolute;
+    left:-20px;
+    top:150px;
+    background-color: green;
+    width: 100px;
+    height: 100px;
+    transform: translateZ(0);
+}
+</style>
+<p id="content">Should not have space around me in the inline axis.</p>
+<div></div>

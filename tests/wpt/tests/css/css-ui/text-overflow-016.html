@@ -1,0 +1,46 @@
+﻿<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: clipping the ellipsis</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="http://www.w3.org/TR/css3-ui/#ellipsing-details">
+<link rel="match" href="reference/text-overflow-016-ref.html">
+<meta name="flags" content="ahem">
+<meta name="assert" content="If there is insufficient space for the ellipsis, then clip the rendering of the ellipsis itself">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+.test, .test2 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100px;
+  white-space: pre;
+  font: 50px/1 Ahem;
+  height: 20px;
+  position: relative;
+}
+span {
+  display: inline-block;
+  width: 60px;
+  height: 1em;
+  vertical-align: bottom;
+}
+
+/* if the ellipsis is shorter than the expected 40px (or misplaced) the red background will show */
+.test {
+  color: green;
+  background: url("support/1x1-red.png") right / 40px auto no-repeat;
+}
+
+/* if the ellipsis (which is red) is longer that the expected 40px (or misplaced), it won't be fully covered by the green abspos */
+.test2 { color: red; }
+.test2::after {
+  content: "";
+  position: absolute;
+  top: 0; right: 0; bottom: 0;
+  width: 40px;
+  background: green;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class=test><span></span>filler text to make things overflow</div>
+<div class=test2><span></span>filler text to make things overflow</div>

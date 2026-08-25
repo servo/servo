@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#the-autofocus-attribute">
+<link rel='author' href='mailto:masonf@chromium.org'>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+promise_test(async t => {
+  let w = window.open('/common/blank.html');
+  await waitForLoad(w);
+  t.add_cleanup(() => { w.close(); });
+  w.document.body.innerHTML = '<dialog><div tabindex=0 autofocus></dialog><input autofocus>';
+  await waitUntilStableAutofocusState(w);
+  assert_equals(w.document.activeElement.tagName, 'INPUT');
+}, '<dialog> can contain autofocus, without stopping page autofocus content from working');
+
+promise_test(async t => {
+  let w = window.open('/common/blank.html');
+  await waitForLoad(w);
+  t.add_cleanup(() => { w.close(); });
+  w.document.body.innerHTML = '<dialog><div tabindex=0 autofocus></dialog><input autofocus>';
+  await waitUntilStableAutofocusState(w);
+  w.document.querySelector('dialog').show();
+  assert_equals(w.document.activeElement.tagName, 'DIV');
+}, '<dialog>-contained autofocus element gets focused when the dialog is shown');
+</script>

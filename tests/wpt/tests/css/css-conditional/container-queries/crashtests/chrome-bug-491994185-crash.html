@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>Crash Test: Layout subtree root becoming display:none</title>
+<link rel="help" href="https://issues.chromium.org/issues/491994185">
+<style>
+  #container {
+    container-type: inline-size;
+  }
+  @container (min-width: 300px) {
+    #victim { display: none; }
+  }
+</style>
+<div style="contain:strict;">
+  <div id="herring"></div>
+</div>
+<div>
+  <div style="contain:strict; width:400px;">
+    <div id="containerResizer" style="width:10px;">
+      <div id="container">
+        <div id="victim" style="contain:strict;">
+          <div id="innerElm"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  document.body.offsetTop;
+  innerElm.style.height = '40px';
+  herring.style.height = '60px';
+  containerResizer.style.width = '400px';
+  document.body.offsetTop;
+</script>

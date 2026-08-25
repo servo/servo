@@ -1,0 +1,3 @@
+rules:
+- historical.html: [form]
+- input-change-event-properties.html: [change-event]

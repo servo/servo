@@ -1,0 +1,30 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Right floated elements and text wrapping</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats" />
+        <meta name="assert" content="Block box is generated and floated to right and content flows on left side starting at the top." />
+        <style type="text/css">
+            div
+            {
+                width: 2in;
+            }
+            #span1
+            {
+                background-color: blue;
+                float: right;
+                height: 1in;
+                width: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the words "Filler Text" start above the blue box and flow down the left side of and wrap underneath the blue box.</p>
+        <div>
+            <span>Filler Text Filler Text Filler Text </span>
+            <span id="span1"></span>
+            <span>Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text</span>
+        </div>
+    </body>
+</html>

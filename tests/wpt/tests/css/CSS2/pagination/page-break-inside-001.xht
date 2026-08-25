@@ -1,0 +1,36 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: page-break-inside: avoid (basic)</title>
+<link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+<link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-break-props"/>
+<link rel="help" href="http://www.w3.org/TR/css3-page/#pg-br-before-after"/>
+<meta name="flags" content="paged" />
+<meta name="assert" content="The 'avoid' value of the 'page-break-inside' property causes the UA to avoid breaking inside the element."/>
+<style type="text/css">
+	* {
+		margin: 0;
+		padding: 0;
+		orphans: 1;
+		widows: 1;
+	}
+	html, body {
+		height:100%;
+		line-height: 1;
+	}
+	div.spacer {
+		height: 100%;
+        margin-bottom: -2em;
+    }
+	div#noBreak {
+		page-break-inside: avoid;
+		width: 0;
+	}
+
+</style>
+</head>
+<body>
+	<div class="spacer">This paragraph must be the only content on this page.  The letters a, b, and c are displayed on the next page.</div>
+	<div id="noBreak">a b c</div>
+</body>
+</html>

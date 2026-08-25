@@ -1,0 +1,61 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>RTCDtlsTransport.getRemoteCertificates() returns the remote peer certificate</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+  'use strict';
+
+  // The following helpers come from RTCPeerConnection-helper.js:
+  //   exchangeIceCandidates, exchangeOfferAnswer, trackFactories, waitForState
+
+  // A certificate's fingerprint is the digest of its DER bytes under some hash
+  // algorithm. By configuring one peer with a certificate whose fingerprint we
+  // know in advance, we can assert that the chain the other peer reports through
+  // getRemoteCertificates() contains that certificate. The spec does not
+  // constrain the ordering of the chain, so we only require membership.
+  //
+  // This test is served over HTTPS because crypto.subtle is only available in a
+  // secure context.
+  promise_test(async t => {
+    const cert = await RTCPeerConnection.generateCertificate(
+      {name: 'ECDSA', namedCurve: 'P-256'});
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection({certificates: [cert]});
+    t.add_cleanup(() => pc2.close());
+
+    pc1.addTrack(trackFactories.audio());
+    exchangeIceCandidates(pc1, pc2);
+
+    const fingerprints = cert.getFingerprints();
+    assert_greater_than(fingerprints.length, 0,
+      'Expect getFingerprints() to return at least one fingerprint');
+    const digestAlgorithms = ['sha-1', 'sha-256', 'sha-384', 'sha-512'];
+    const fingerprint = fingerprints.find(
+      f => digestAlgorithms.includes(f.algorithm));
+    assert_not_equals(fingerprint, undefined,
+      `Expect a fingerprint with a hash algorithm supported by WebCrypto, got ` +
+      JSON.stringify(fingerprints.map(f => f.algorithm)));
+    const algorithm = fingerprint.algorithm;
+    const expected = fingerprint.value.replace(/:/g, '');
+
+    await exchangeOfferAnswer(pc1, pc2);
+
+    const dtlsTransport = pc1.getSenders()[0].transport;
+    await waitForState(dtlsTransport, 'connected');
+
+    const certs = dtlsTransport.getRemoteCertificates();
+    assert_greater_than(certs.length, 0,
+      'Expect remote certificate chain to be non-empty when connected');
+
+    const hexDigests = await Promise.all(
+      [...certs].map(async der =>
+        new Uint8Array(await crypto.subtle.digest(algorithm, der)).toHex()));
+    assert_true(hexDigests.includes(expected),
+      `Expect remote certificate chain ${JSON.stringify(hexDigests)} to ` +
+      `contain the peer certificate ${algorithm} fingerprint ${expected}`);
+  });
+
+</script>

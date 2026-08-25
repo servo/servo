@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/get-host-info.sub.js"></script>
+  </head>
+
+  <body>
+    <script>
+      function createAndLoadIframe() {
+        return new Promise(resolve => {
+          addEventListener("message", function() {
+            assert_true(true, "Iframe loaded");
+            resolve();
+          }, { once: true });
+
+          let ifr = document.createElement('iframe');
+          document.body.appendChild(ifr);
+          ifr.src = get_host_info().HTTPS_REMOTE_ORIGIN + "/clear-site-data/support/iframe_executionContexts.html";
+        });
+      }
+
+      function loadClearSiteDataResource(what) {
+        return new Promise(resolve => {
+          addEventListener("message", function() {
+            assert_true(true, "Iframe re-loaded");
+            resolve();
+          }, { once: true });
+
+          let image = new Image();
+          image.src = get_host_info().HTTPS_REMOTE_ORIGIN + "/clear-site-data/support/echo-clear-site-data.py?" + what;
+        });
+      }
+
+      promise_test(function(test) {
+        return createAndLoadIframe()
+          .then(() => loadClearSiteDataResource("executionContexts"))
+      }, "executionContexts triggers the reload of contexts");
+
+      promise_test(function(test) {
+        return createAndLoadIframe()
+          .then(() => loadClearSiteDataResource("*"));
+      }, "* triggers the reload of contexts");
+    </script>
+  </body>
+</html>
+

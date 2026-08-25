@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+<script src="resources/webxr_test_asserts.js"></script>
+
+<script>
+
+let testName = "VisibilityMaskChangeEvent properly fires with expected values";
+
+let fakeViews = [{
+        eye:"left",
+        viewOffset: LEFT_OFFSET,
+        resolution: VALID_RESOLUTION,
+        fieldOfView: VALID_FIELD_OF_VIEW,
+        // The webxr-test-api requires that we still set this for now, but it is
+        // supposed to be ignored.
+        projectionMatrix: IDENTITY_MATRIX
+    }, {
+        eye:"right",
+        viewOffset: RIGHT_OFFSET,
+        resolution: VALID_RESOLUTION,
+        fieldOfView: VALID_FIELD_OF_VIEW,
+        // The webxr-test-api requires that we still set this for now, but it is
+        // supposed to be ignored.
+        projectionMatrix: IDENTITY_MATRIX
+    },
+];
+
+const leftMask = {
+  vertices: [ 0, 0, 0, 1, 1, 0, 1, 1 ],
+  indices: [0, 1, 2, 0, 2, 3]
+};
+
+const rightMask = {
+  vertices: [ 1, 1, 1, 2, 2, 1, 2, 2 ],
+  indices: [0, 2, 3, 0, 1, 2]
+};
+
+let fakeDeviceInitParams = {
+    supportsImmersive: true,
+    supportedModes: ["inline", "immersive-vr"],
+    views: fakeViews,
+    viewerOrigin: IDENTITY_TRANSFORM,
+    supportedFeatures: ALL_FEATURES
+};
+
+function assert_list_approx_equals(actual, expected, prefix) {
+  assert_equals(expected.length, actual.length, prefix + ": lengths not equal");
+  for (let i = 0; i < expected.length; i++) {
+    assert_approx_equals(actual[i], expected[i], FLOAT_EPSILON, prefix +
+    ": mismatch in list at component: " + i +
+    ", expected=" + expected, " actual=" + actual);
+  }
+}
+
+function validateMask(fakeView, mask) {
+  assert_equals(mask.eye, fakeView.eye);
+  assert_list_approx_equals(mask.vertices, fakeView.visibilityMask.vertices, fakeView.eye);
+  assert_list_approx_equals(mask.indices, fakeView.visibilityMask.indices, fakeView.eye);
+}
+
+let testFunction = function(session, fakeDeviceController, t) {
+  let eventWatcher = new EventWatcher(t, session, ["watcherdone"]);
+  let visibilityMaskEvents = 0;
+  session.addEventListener('visibilitymaskchange', (mask)=> {
+    visibilityMaskEvents++;
+    t.step(() => {
+      assert_equals(mask.session, session);
+      assert_less_than(mask.index, fakeViews.length, "Received an unexpected view");
+      validateMask(fakeViews[mask.index], mask);
+
+
+      if (visibilityMaskEvents >= 2) {
+        session.dispatchEvent(new Event("watcherdone"))
+      }
+    });
+  });
+
+  // We *could* set the visibilityMasks on the views by default; but UAs do not
+  // HAVE to, but MAY send events during the session resolution. By setting this
+  // after the session is resolved and the event is subscribed, we ensure we
+  // don't miss the event due to UA allowable differences.
+  fakeViews[0].visibilityMask = leftMask;
+  fakeViews[1].visibilityMask = rightMask;
+  fakeDeviceController.setViews(fakeViews);
+
+  // We don't need to do anything on the next animation frame, the act of
+  // requesting it after we update the views should be enough to trigger our
+  // events.
+  session.requestAnimationFrame(()=>{});
+  return eventWatcher.wait_for(["watcherdone"]);
+};
+
+xr_session_promise_test(
+  testName, testFunction, fakeDeviceInitParams, 'immersive-vr');
+
+</script>

@@ -1,0 +1,19 @@
+<!doctype html>
+<title>WebSockets: too few slashes after ws: and wss:</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../constants.sub.js></script>
+<meta name="variant" content="?default">
+<meta name="variant" content="?wss">
+<meta name="variant" content="?wpt_flags=h2">
+<div id=log></div>
+<script>
+var tests = [
+  [__SCHEME + ':', __PORT],
+  [__SCHEME + ':/', __PORT],
+];
+//Pass condition is to not throw
+for (var i = 0; i < tests.length; ++i) {
+  test(function(){new WebSocket(tests[i][0] + location.hostname + ':' + tests[i][1] + '/echo')}, tests[i][0]);
+}
+</script>

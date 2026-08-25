@@ -1,0 +1,82 @@
+<!doctype html>
+<html>
+  <head>
+    <title>XMLHttpRequest: send() - Redirects (basics)</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#infrastructure-for-the-send()-method" data-tested-assertations="following::dl[1]/dt[2] following::dl[1]/dd[2]/ol/li[1] following::dl[1]/dd[2]/ol/li[2]" />
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      // https://fetch.spec.whatwg.org/#statuses
+      const redirect_codes = new Set([301, 302, 303, 307, 308]);
+      function maybeRedirect(code, method="GET", redirectLocation="content.py") {
+        async_test(t => {
+          const client = new XMLHttpRequest();
+          client.onreadystatechange = t.step_func(() => {
+            if(client.readyState == 4) {
+              if (redirect_codes.has(code)) {
+                let expected_method = method;
+                let expected_content_type = "application/x-pony";
+                if ((method == "POST" && (code == "301" || code == "302")) ||
+                    (code == "303" && method != "GET" && method != "HEAD")) {
+                  expected_method = "GET";
+                  expected_content_type = "NO";
+                }
+                assert_equals(client.getResponseHeader("x-request-method"), expected_method);
+                assert_equals(client.getResponseHeader("x-request-content-type"), expected_content_type);
+                assert_equals(client.status, 200);
+              } else {
+                assert_equals(client.getResponseHeader("x-request-method"), null);
+                assert_equals(client.getResponseHeader("x-request-content-type"), null);
+                assert_equals(client.status, code);
+              }
+              t.done();
+            }
+          });
+          client.open(method, `resources/redirect.py?location=${redirectLocation}&code=${code}`);
+          client.setRequestHeader("Content-Type", "application/x-pony");
+          client.send(null);
+        }, `${document.title} (${code}, ${method}, ${redirectLocation})`);
+      }
+
+      maybeRedirect(300);
+      maybeRedirect(301);
+      maybeRedirect(302);
+      maybeRedirect(303);
+      maybeRedirect(304);
+      maybeRedirect(305);
+      maybeRedirect(306);
+      maybeRedirect(307);
+      maybeRedirect(308);
+      maybeRedirect(309);
+      maybeRedirect(310);
+      maybeRedirect(350);
+      maybeRedirect(399);
+      maybeRedirect(301, "POST");
+      maybeRedirect(302, "POST");
+      maybeRedirect(303, "POST");
+      maybeRedirect(307, "POST");
+      maybeRedirect(301, "HEAD");
+      maybeRedirect(302, "HEAD");
+      maybeRedirect(303, "HEAD");
+      maybeRedirect(307, "HEAD");
+
+      const redirectedLocation = encodeURIComponent("redirect.py?location=content.py");
+      maybeRedirect(301, "GET", redirectedLocation);
+      maybeRedirect(302, "GET", redirectedLocation);
+      maybeRedirect(303, "GET", redirectedLocation);
+      maybeRedirect(307, "GET", redirectedLocation);
+      maybeRedirect(301, "POST", redirectedLocation);
+      maybeRedirect(302, "POST", redirectedLocation);
+      maybeRedirect(303, "POST", redirectedLocation);
+      maybeRedirect(307, "POST", redirectedLocation);
+      maybeRedirect(303, "CHICKEN", redirectedLocation);
+      maybeRedirect(301, "HEAD", redirectedLocation);
+      maybeRedirect(302, "HEAD", redirectedLocation);
+      maybeRedirect(303, "HEAD", redirectedLocation);
+      maybeRedirect(307, "HEAD", redirectedLocation);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+<head>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/input-onmessage.js"></script>
+<script src="../resources/pending-input-utils.js"></script>
+</head>
+<body>
+  <p>Ensure that pointer events dispatched the to the toplevel document are detectable by isInputPending.</p>
+  <script>
+    window.addEventListener('load', () => {
+      PendingInputUtils.testDetectDiscretePendingInput(window, () => {
+        return new test_driver.Actions()
+          .addPointer('p', 'mouse')
+          .pointerMove(10, 10)
+          .pointerDown()
+          .pointerUp();
+      }, 'toplevel mouse events detected');
+    });
+  </script>
+</body>
+</html>

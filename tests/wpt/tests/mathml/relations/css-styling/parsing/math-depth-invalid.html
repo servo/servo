@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>MathML Core: parsing math-depth with invalid values</title>
+<link rel="author" title="Eri Pazos" href="mailto:eri@igalia.com">
+<link rel="help" href="https://w3c.github.io/mathml-core/#the-math-script-level-property">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+  test_invalid_value("math-depth", "auto");
+  test_invalid_value("math-depth", "invalid");
+  test_invalid_value("math-depth", "add");
+  test_invalid_value("math-depth", "add(0.5)");
+  test_invalid_value("math-depth", "add(1px)");
+  test_invalid_value("math-depth", "0.5");
+  test_invalid_value("math-depth", "1px");
+  test_invalid_value("math-depth", "auto-add add(1)");
+  test_invalid_value("math-depth", "auto-add 1");
+  test_invalid_value("math-depth", "add(1) 1");
+</script>
+</body>
+</html>

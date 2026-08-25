@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>Intra-level whitespace pairing</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<link rel="stylesheet" href="support/ruby-common.css">
+<style>
+  body { font-family: monospace; }
+  .container { border: 1px solid blue; margin: 20px; }
+</style>
+<style id="style"></style>
+<span id="ref1">12345</span> <span id="ref2">12345 67890</span>
+<div class="container"><ruby><rb>12345</rb> <rb>67890</rb><rt>09876</rt><rt>54321</rt></ruby></div>
+<div class="container"><ruby><rb>12345</rb><rb>67890</rb><rt>09876</rt> <rt>54321</rt></ruby></div>
+<div class="container"><ruby><rb>12345</rb> <rb>67890</rb><rt>09876</rt> <rt>54321</rt></ruby></div>
+<script type="text/javascript">
+  var ref2 = document.getElementById('ref2');
+  var style = document.getElementById('style');
+  var width2 = ref2.getBoundingClientRect().width + 'px';
+  // This is the same as the script in the corresponding
+  // testcase, except that here we skip the intermediate
+  // size and jump straight to the final size.
+  style.textContent = '.container { width: ' + width2 + '; }';
+</script>

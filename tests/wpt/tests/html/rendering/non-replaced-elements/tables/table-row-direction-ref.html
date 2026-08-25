@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<title>Table row direction</title>
+
+<style>
+  table {
+    border-collapse: collapse;
+  }
+
+  td {
+    border: 2px solid black;
+    width: 20px;
+    height: 20px;
+  }
+
+  td.special {
+    border-left: 5px solid green;
+    border-right: 5px solid blue;
+  }
+</style>
+
+Normal table with LTR and RTL rows:
+<table>
+  <tr>
+    <td></td>
+    <td class="special"></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td class="special"></td>
+  </tr>
+</table>
+
+<hr>
+
+RTL table with LTR and RTL rows:
+<table>
+  <tr>
+    <td class="special"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td class="special"></td>
+    <td></td>
+  </tr>
+</table>

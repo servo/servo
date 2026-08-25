@@ -1,0 +1,31 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Attribute 'vspace' vs. CSS 'margin' specificity</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html#preshint" />
+        <link rel="help" href="http://www.w3.org/TR/css-cascade-3/#preshint" />
+        <link rel="help" href="http://www.w3.org/TR/css-cascade-4/#preshint" />
+        <meta name="flags" content="image" />
+        <meta name="assert" content="Attribute 'vspace' has a specificity of zero and is overridden by CSS." />
+        <style type="text/css">
+            div
+            {
+                font: 16px/15px serif;
+            }
+            img
+            {
+                vertical-align: bottom; /* images must sit at bottom of line box, not on the baseline */
+            }
+            div *
+            {
+                margin: 0px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no space between the green and blue boxes below.</p>
+        <div><img vspace="200" alt="15x15 blue box" src="support/blue15x15.png" /></div>
+        <div><img alt="15x15 green box" src="support/green15x15.png" /></div>
+    </body>
+</html>

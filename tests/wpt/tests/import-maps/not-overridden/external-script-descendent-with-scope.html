@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script type="importmap">
+{
+  "imports": {
+    "a": "../resources/log.sub.js?name=A"
+  }
+}
+</script>
+<script type="module" src="../resources/importer.sub.js?name=a"></script>
+<script>
+const variable_defined = (variable) => {
+  return new Promise((resolve) => {
+    const interval = setInterval(() => {
+      if (eval(variable) !== undefined) {
+        clearInterval(interval);
+        resolve(variable);
+      }
+    }, 10);
+  });
+};
+const log = [];
+promise_test(async () => {
+  await variable_defined("log[0]");
+  // Try to redefine the descendent with an import map
+  const importMapScript = document.createElement('script');
+  importMapScript.type = 'importmap';
+  importMapScript.textContent =
+`{
+  "scopes": {
+    "/import-maps/resources/": {
+      "a": "../resources/log.sub.js?name=B"
+    },
+    "/resources/": {
+      "a": "../resources/log.sub.js?name=D",
+       "../resources/": "/foobar/"
+    }
+  },
+  "imports": {
+    "a": "../resources/log.sub.js?name=C"
+  }
+}`;
+  document.head.appendChild(importMapScript);
+
+  const inScopeModule = document.createElement('script');
+  inScopeModule.src = "../resources/in-scope-test.js";
+  inScopeModule.type = 'module';
+  document.head.appendChild(inScopeModule);
+  await variable_defined("window.inscope_test_result");
+  assert_true(window.inscope_test_result
+              .endsWith("/resources/log.sub.js?name=A"), "inscope");
+
+  const outOfScopeModule = document.createElement('script');
+  outOfScopeModule.src = "/resources/out-of-scope-test.js";
+  outOfScopeModule.type = 'module';
+  document.head.appendChild(outOfScopeModule);
+  await variable_defined("window.outscope_test_result");
+  assert_true(window.outscope_test_result
+              .endsWith("/resources/log.sub.js?name=D"), "out of scope 1");
+  assert_true(window.outscope_test_result2
+              .endsWith("/resources/log.sub.js?name=E"), "out of scope 2");
+
+  const inlineModule = document.createElement('script');
+  inlineModule.type = 'module';
+  inlineModule.innerHTML = `window.inline_test_result = import.meta.resolve("a");`;
+  document.head.appendChild(inlineModule);
+  await variable_defined("window.inline_test_result");
+  assert_true(window.inline_test_result
+              .endsWith("/resources/log.sub.js?name=A"), "inline");
+}, "Testing descendent resolution with scopes");
+</script>
+</body>
+</html>
+
+
+

@@ -1,0 +1,6 @@
+rules:
+- forced-colors-mode-42.html: [caret-color]
+- forced-colors-mode-43.html: [caret-color]
+- forced-colors-mode-44.html: [caret-color]
+- forced-colors-mode-45.html: [caret-color]
+- "*": [forced-colors]

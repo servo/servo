@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Declarative Fragment: buffer and for immutability after start tag</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div id="container">
+  <span>Before</span>
+  <div id="target-original" marker="original-marker">
+    <?start name="original-marker">Original Content<?end>
+  </div>
+  <div id="target-new" marker="new-marker">
+    <?start name="new-marker">New Content<?end>
+  </div>
+
+  <!-- We start with a targeted buffered template -->
+  <template for="original-marker" buffer id="test-template">
+    <span id="target1">Inside 1</span>
+    <script>
+      // Dynamically change/remove attributes during parsing
+      const tpl = document.getElementById('test-template');
+      tpl.setAttribute('for', 'new-marker'); // Change target
+      tpl.removeAttribute('buffer'); // Disable buffering (switch to streaming)
+    </script>
+    <span id="target2">Inside 2</span>
+  </template>
+  <span>After</span>
+</div>
+<script>
+test(() => {
+  const container = document.getElementById('container');
+  const targetOriginal = document.getElementById('target-original');
+  const targetNew = document.getElementById('target-new');
+
+  // Verify that the changes had NO EFFECT:
+  // 1. Buffering was still active, so no streaming occurred during parsing.
+  // 2. The target was still "original-marker" (so targetOriginal is replaced).
+  assert_equals(targetOriginal.querySelector('#target1').textContent, 'Inside 1');
+  assert_equals(targetOriginal.querySelector('#target2').textContent, 'Inside 2');
+
+  // 3. targetNew remained untouched.
+  assert_equals(targetNew.textContent.trim().replace(/\s+/g, ' '), 'New Content');
+
+  // 4. The template is removed.
+  assert_equals(container.querySelector('template'), null);
+}, "Modifying 'for' or 'buffer' attributes dynamically after start tag has no effect on the inclusion behavior");
+</script>
+</body>

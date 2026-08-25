@@ -1,0 +1,28 @@
+<!doctype html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>:has() invalidation inside display: none subtree</title>
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1875137">
+<link rel="help" href="https://drafts.csswg.org/selectors/#relational">
+<link rel="match" href="has-display-none-checked-ref.html">
+<style>
+body:has(input:checked) #fail {
+  display: none;
+}
+body:not(:has(input:checked)) #pass {
+  display: none;
+}
+</style>
+<div style="display: none">
+  <input type="checkbox" id="on">
+</div>
+<div id="fail">FAIL</div>
+<div id="pass">PASS</div>
+<script>
+  document.addEventListener("TestRendered", function() {
+    document.querySelector("input").checked = true;
+    document.documentElement.className = "";
+  });
+</script>

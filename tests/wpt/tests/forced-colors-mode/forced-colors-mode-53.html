@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Forced colors mode - Highlight pseudos use the originating element's forced colors state</title>
+<link rel="help" href="https://www.w3.org/TR/css-color-adjust-1/#forced-color-adjust-prop">
+<link rel="help" href="https://drafts.csswg.org/css-highlight-api-1/">
+<link rel=match href="forced-colors-mode-53-ref.html">
+<meta name="fuzzy" content="0-5;0-3">
+<style>
+  span {
+    background-color: lightgray;
+    color: orange;
+  }
+
+  span::highlight(foo) {
+    background-color: yellow;
+    color: blue;
+    text-decoration: underline;
+    text-decoration-color: orange;
+  }
+
+  .fcaOriginating {
+    forced-color-adjust: none;
+  }
+
+  .fcaPseudo::highlight(foo) {
+    forced-color-adjust: none;
+  }
+</style>
+<body>
+  <div><span>This content doesn't have forced-color-adjust set at all</span></div>
+  <div><span class="fcaOriginating">This content has forced-color-adjust:none on the originating element only</span></div>
+  <div><span class="fcaPseudo">This content has forced-color-adjust:none on the ::highlight pseudo only</span></div>
+  <div><span class="fcaOriginating fcaPseudo">This content has forced-color-adjust:none on the originating element and the ::highlight pseudo</span></div>
+  <script>
+    const ranges = [];
+    document.querySelectorAll("div").forEach(div => {
+      const range = new Range();
+      range.setStart(div, 0);
+      range.setEnd(div, 1);
+      ranges.push(range);
+    })
+
+    CSS.highlights.set("foo", new Highlight(...ranges));
+  </script>
+</body>

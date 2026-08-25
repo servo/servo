@@ -1,0 +1,10 @@
+rules:
+- active-selector-*: [user-action-pseudos]
+- hover-selector-*: [user-action-pseudos]
+- dom-hover-*: [user-action-pseudos]
+- focus-pseudo-class-*: [user-action-pseudos]
+- focus-selector-*: [user-action-pseudos]
+- lang-selector-*: [lang]
+- lang-pseudoclass-*: [lang]
+- link-visited-selector*: [link-selectors]
+- pseudo-009.xht: [link-selectors]

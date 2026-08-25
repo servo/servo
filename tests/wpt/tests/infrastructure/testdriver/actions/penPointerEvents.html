@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>TestDriver actions: pointerevent properties of pen type</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/pointerevents/pointerevent_support.js"></script>
+
+<style>
+div#test {
+  position: fixed;
+  touch-action: none;
+  top: 5px;
+  left: 5px;
+  width: 100px;
+  height: 100px;
+  background-color: blue;
+}
+</style>
+
+<div id="test">
+</div>
+
+<script>
+let eventList = [];
+
+promise_test(async t => {
+  let test = document.getElementById("test");
+  [
+    'pointerover', 'pointerenter', 'pointermove', 'pointerdown', 'pointerup',
+    'pointerout', 'pointerleave'
+  ].forEach(eventType => {
+    test.addEventListener(eventType, e => {
+      eventList.push(e);
+    });
+  });
+
+  let div = document.getElementById("test");
+  let actions = new test_driver.Actions()
+    .addPointer("penPointer1", "pen")
+    // Force initial position to be outside the test element
+    .pointerMove(0, 0)
+    // Prevent coalescence of move events.
+    .pointerDown()
+    .pointerUp()
+    // Trigger over and enter events.
+    .pointerMove(10, 10)
+    // Toggle of pen-contact state between each move to prevent coalescence of
+    // move events.
+    .pointerDown()
+    .pointerMove(0, 0, {origin: test})
+    .pointerUp()
+    .pointerMove(15, 0, {origin: test})
+    .pointerDown()
+    .pointerMove(30, 0, {origin: test})
+    .pointerUp()
+    .pointerMove(0, 0);
+    await actions.send()
+
+    const expectedEvents = [
+      {
+        type: 'pointerover',
+        button:  ButtonChange.NONE,
+        buttons: ButtonsBitfield.NONE
+      },
+      {
+        type: 'pointerenter',
+        button:  ButtonChange.NONE,
+        buttons: ButtonsBitfield.NONE
+      },
+      { type: 'pointermove',
+        button:  ButtonChange.NONE,
+        buttons: ButtonsBitfield.NONE,
+        clientX: 10,
+        clientY: 10
+      },
+      {
+        type: 'pointerdown',
+        button:  ButtonChange.PEN_CONTACT,
+        buttons: ButtonsBitfield.PEN_CONTACT,
+        clientX: 10,
+        clientY: 10
+      },
+      {
+        type: 'pointermove',
+        button:  ButtonChange.NONE,
+        buttons: ButtonsBitfield.PEN_CONTACT,
+        clientX: 55,
+        clientY: 55
+      },
+      {
+        type: 'pointerup',
+        button:  ButtonChange.PEN_CONTACT,
+        buttons: ButtonsBitfield.NONE,
+        clientX: 55,
+        clientY: 55
+      },
+      {
+        type: 'pointermove',
+        button:  ButtonChange.NONE,
+        buttons: ButtonsBitfield.NONE,
+        clientX: 70,
+        clientY: 55
+      },
+      {
+        type: 'pointerdown',
+        button:  ButtonChange.PEN_CONTACT,
+        buttons: ButtonsBitfield.PEN_CONTACT,
+        clientX: 70,
+        clientY: 55
+      },
+      {
+        type: 'pointermove',
+        button:  ButtonChange.NONE,
+        buttons: ButtonsBitfield.PEN_CONTACT,
+        clientX: 85,
+        clientY: 55
+      },
+      {
+        type: 'pointerup',
+        button:  ButtonChange.PEN_CONTACT,
+        buttons: ButtonsBitfield.NONE,
+        clientX: 85,
+        clientY: 55
+      },
+      {
+        type: 'pointerout',
+        button:  ButtonChange.NONE,
+        buttons: ButtonsBitfield.NONE,
+        clientX: 0,
+        clientY: 0
+      },
+      {
+        type: 'pointerleave',
+        button:  ButtonChange.NONE,
+        buttons: ButtonsBitfield.NONE,
+        clientX: 0,
+        clientY: 0
+      },
+    ];
+
+    for (let i = 0; i < expectedEvents.length; i++) {
+      const expectedValue = expectedEvents[i];
+      const actualValue = eventList[i];
+      assert_true(!!actualValue, `Missing $[i}-th event`);
+      assert_equals(actualValue.pointerType, 'pen', 'Unexpected pointer type');
+      for (key in expectedValue) {
+        assert_equals(actualValue[key], expectedValue[key],
+                      `Mismatch in event[${i}].${key}`);
+      }
+    }
+
+    assert_equals(eventList.length, expectedEvents.length,
+                  'Unexpected number of events');
+});
+</script>

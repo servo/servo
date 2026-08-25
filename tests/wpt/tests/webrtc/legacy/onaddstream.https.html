@@ -1,0 +1,157 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>onaddstream tests</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src='/mediacapture-streams/permission-helper.js'></script>
+<script>
+  'use strict';
+
+  const stopTracks = (...streams) => {
+    streams.forEach(stream => stream.getTracks().forEach(track => track.stop()));
+  };
+
+  const collectEvents = (target, name, check) => {
+    const events = [];
+    const handler = e => {
+      check(e);
+      events.push(e);
+    };
+
+    target.addEventListener(name, handler);
+
+    const finishCollecting = () => {
+      target.removeEventListener(name, handler);
+      return events;
+    };
+
+    return {finish: finishCollecting};
+  };
+
+  const collectAddTrackEvents = stream => {
+    const checkEvent = e => {
+      assert_true(e.track instanceof MediaStreamTrack, "Track is set on event");
+      assert_true(stream.getTracks().includes(e.track),
+        "track in addtrack event is in the stream");
+    };
+    return collectEvents(stream, "addtrack", checkEvent);
+  };
+
+  const collectRemoveTrackEvents = stream => {
+    const checkEvent = e => {
+      assert_true(e.track instanceof MediaStreamTrack, "Track is set on event");
+      assert_true(!stream.getTracks().includes(e.track),
+        "track in removetrack event is not in the stream");
+    };
+    return collectEvents(stream, "removetrack", checkEvent);
+  };
+
+  const collectTrackEvents = pc => {
+    const checkEvent = e => {
+      assert_true(e.track instanceof MediaStreamTrack, "Track is set on event");
+      assert_true(e.receiver instanceof RTCRtpReceiver, "Receiver is set on event");
+      assert_true(e.transceiver instanceof RTCRtpTransceiver, "Transceiver is set on event");
+      assert_true(Array.isArray(e.streams), "Streams is set on event");
+      e.streams.forEach(stream => {
+        assert_true(stream.getTracks().includes(e.track),
+           "Each stream in event contains the track");
+      });
+      assert_equals(e.receiver, e.transceiver.receiver,
+                    "Receiver belongs to transceiver");
+      assert_equals(e.track, e.receiver.track,
+                    "Track belongs to receiver");
+    };
+
+    return collectEvents(pc, "track", checkEvent);
+  };
+
+  // comparable() - produces copy of object that is JSON comparable.
+  // o = original object (required)
+  // t = template of what to examine. Useful if o is non-enumerable (optional)
+
+  const comparable = (o, t = o) => {
+    if (typeof o != 'object' || !o) {
+      return o;
+    }
+    if (Array.isArray(t) && Array.isArray(o)) {
+      return o.map((n, i) => comparable(n, t[i]));
+    }
+    return Object.keys(t).sort()
+        .reduce((r, key) => (r[key] = comparable(o[key], t[key]), r), {});
+  };
+
+  const stripKeyQuotes = s => s.replace(/"(\w+)":/g, "$1:");
+
+  const hasProps = (observed, expected) => {
+    const observable = comparable(observed, expected);
+    assert_equals(stripKeyQuotes(JSON.stringify(observable)),
+       stripKeyQuotes(JSON.stringify(comparable(expected))));
+  };
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    await setMediaPermission();
+    const stream1 = await navigator.mediaDevices.getUserMedia({audio: true, video: true});
+    t.add_cleanup(() => stopTracks(stream1));
+    const audio1 = stream1.getAudioTracks()[0];
+    pc1.addTrack(audio1, stream1);
+    const video1 = stream1.getVideoTracks()[0];
+    pc1.addTrack(video1, stream1);
+
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+    const stream2 = await navigator.mediaDevices.getUserMedia({audio: true, video: true});
+    t.add_cleanup(() => stopTracks(stream2));
+    const audio2 = stream2.getAudioTracks()[0];
+    pc2.addTrack(audio2, stream2);
+    const video2 = stream2.getVideoTracks()[0];
+    pc2.addTrack(video2, stream2);
+
+    const offer = await pc1.createOffer();
+
+    let trackEventCollector = collectTrackEvents(pc2);
+    let addstreamEventCollector = collectEvents(pc2, "addstream", e => {
+      hasProps(e, {stream: {id: stream1.id}});
+      assert_equals(e.stream.getAudioTracks().length, 1, "One audio track");
+      assert_equals(e.stream.getVideoTracks().length, 1, "One video track");
+    });
+
+    await pc2.setRemoteDescription(offer);
+
+    let addstreamEvents = addstreamEventCollector.finish();
+    assert_equals(addstreamEvents.length, 1, "Should have 1 addstream event");
+
+    let trackEvents = trackEventCollector.finish();
+
+    hasProps(trackEvents,
+      [
+        {streams: [addstreamEvents[0].stream]},
+        {streams: [addstreamEvents[0].stream]}
+      ]);
+
+    await pc1.setLocalDescription(offer);
+    const answer = await pc2.createAnswer();
+
+    trackEventCollector = collectTrackEvents(pc1);
+    addstreamEventCollector = collectEvents(pc1, "addstream", e => {
+      hasProps(e, {stream: {id: stream2.id}});
+      assert_equals(e.stream.getAudioTracks().length, 1, "One audio track");
+      assert_equals(e.stream.getVideoTracks().length, 1, "One video track");
+    });
+
+    await pc1.setRemoteDescription(answer);
+    addstreamEvents = addstreamEventCollector.finish();
+    assert_equals(addstreamEvents.length, 1, "Should have 1 addstream event");
+
+    trackEvents = trackEventCollector.finish();
+
+    hasProps(trackEvents,
+      [
+        {streams: [addstreamEvents[0].stream]},
+        {streams: [addstreamEvents[0].stream]}
+      ]);
+  },"Check onaddstream");
+</script>

@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<title>MediaSession.setCameraActive</title>
+<script src=/resources/testharness.js></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+test(function(t) {
+  window.navigator.mediaSession.setCameraActive(true);
+  window.navigator.mediaSession.setCameraActive(false);
+}, "Test that setCameraActive() can be executed for boolean values");
+
+</script>

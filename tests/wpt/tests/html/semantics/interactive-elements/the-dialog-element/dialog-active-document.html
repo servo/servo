@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel=help href="https://github.com/whatwg/html/pull/10705">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+  test(() => {
+    const doc = document.implementation.createHTMLDocument();
+    const dialog = doc.createElement('dialog');
+    doc.body.appendChild(dialog);
+    assert_throws_dom('InvalidStateError',() => dialog.showModal());
+    assert_false(dialog.matches('[open]'));
+  },'showModal should throw when the document isn\'t active');
+</script>

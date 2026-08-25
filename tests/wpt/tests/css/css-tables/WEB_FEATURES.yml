@@ -1,0 +1,5 @@
+rules:
+- box-shadow-*: [box-shadow]
+- table-cell-inline-size-box-sizing-quirks.html: [box-sizing]
+- table-has-box-sizing-border-box-*: [box-sizing]
+- "*": [display-table]

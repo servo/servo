@@ -1,0 +1,37 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD//XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: A multi-line flex container with the 'align-content' property set to 'space-around'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#align-content-property" />
+        <link rel="match" href="reference/align-content-001-ref.html" />
+        <meta name="assert" content="This test checks that a multi-line flex container with 'align-content: space-around' distributes lines evenly in the flex container, with half-size spaces on either end." />
+        <meta name="fuzzy" content="maxDifference=0-1; totalPixels=0-7236" />
+        <style type="text/css">
+            #flexbox
+            {
+                background: linear-gradient(to bottom, green 0, green 15px, red 15px, red 35px, green 35px, green 65px, red 65px, red 85px, green 85px, green 100px);
+                align-content: space-around;
+                display: flex;
+                flex-flow: wrap;
+                height: 100px;
+                width: 300px;
+            }
+            div div
+            {
+                background-color: green;
+                height: 22px;
+                width: 150px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page.</p>
+        <div id="flexbox">
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+        </div>
+    </body>
+</html>

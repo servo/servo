@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Highlight API Reference: custom highlight with ignored selection on user-select:none text</title>
+<link rel="help" href="https://drafts.csswg.org/css-highlight-api-1/#painting">
+<style>
+  ::highlight(example) {
+    background-color: black;
+    color: silver;
+  }
+  ::selection {
+    background-color: lime;
+    color: red;
+  }
+  #nonselectable { user-select: none; }
+</style>
+<body><span id="nonselectable">Lorem ipsum</span><span id="selectable">dolor</span></body>
+<script>
+  const nonselectable = document.getElementById("nonselectable").firstChild;
+
+  // Highlight "Lorem".
+  const range = new Range();
+  range.setStart(nonselectable, 0);
+  range.setEnd(nonselectable, 5);
+  CSS.highlights.set("example", new Highlight(range));
+
+  // Only the selectable span is selected. The user-select:none text
+  // ("Lorem ipsum") keeps its originating color with no selection background --
+  // exactly how the test should render once the selection is correctly ignored
+  // on the non-selectable text.
+  const selectable = document.getElementById("selectable").firstChild;
+  getSelection().setBaseAndExtent(selectable, 0, selectable, selectable.length);
+</script>
+</body>
+</html>

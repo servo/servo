@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>
+  OOFs and nested column balancing.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#abspos-breaking">
+<link rel="match" href="../reference/ref-filled-green-200px-square.html">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="height:200px; width:200px; background:red;">
+  <div style="width:200px; columns:1;">
+    <div style="width:200px; columns:2; column-rule:solid green; background:green;">
+      <div style="contain:size; height:100px;"></div>
+      <div style="contain:size; height:100px;"></div>
+      <div style="position:relative;">
+        <div style="position:absolute; height:100px;"></div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<title>anchor-center overflow adjustments (anchored < inset area)</title>
+
+<style>
+  .container {
+    width: 80px; height: 80px;
+    border: solid gray;
+    margin: 6px;
+    position: relative;
+    float: left;
+  }
+
+  .anchor {
+    border: solid;
+    margin: 16px;
+    position: absolute;
+  }
+  .tl { top: 0; left: 0; }
+  .tr { top: 0; right: 0; }
+  .bl { bottom: 0; left: 0; }
+  .br { bottom: 0; right: 0; }
+
+  .anchored {
+    width: 40px; height: 40px;
+    border: solid;
+    position: absolute;
+    margin: 8px;
+  }
+
+  .tl { border-color: blue; }
+  .tr { border-color: aqua; }
+  .bl { border-color: fuchsia; }
+  .br { border-color: orange; }
+
+  body > div { clear: both; }
+</style>
+
+<div>
+  <div class=container>
+    <div class="anchor tl"></div><div class="anchored tl"></div>
+    <div class="anchor tr"></div><div class="anchored tr"></div>
+    <div class="anchor bl"></div><div class="anchored bl"></div>
+    <div class="anchor br"></div><div class="anchored br"></div>
+  </div>
+
+  <div class=container>
+    <div class="anchor tl"></div><div class="anchored tl"></div>
+    <div class="anchor tr"></div><div class="anchored tr"></div>
+    <div class="anchor bl"></div><div class="anchored bl"></div>
+    <div class="anchor br"></div><div class="anchored br"></div>
+  </div>
+
+  <div class=container>
+    <div class="anchor tl"></div><div class="anchored tl"></div>
+    <div class="anchor tr"></div><div class="anchored tr"></div>
+    <div class="anchor bl"></div><div class="anchored bl"></div>
+    <div class="anchor br"></div><div class="anchored br"></div>
+  </div>
+
+  <div class=container>
+    <div class="anchor tl"></div><div class="anchored tl"></div>
+    <div class="anchor tr"></div><div class="anchored tr"></div>
+    <div class="anchor bl"></div><div class="anchored bl"></div>
+    <div class="anchor br"></div><div class="anchored br"></div>
+  </div>
+
+  <div class=container>
+    <div class="anchor tl"></div><div class="anchored tl"></div>
+    <div class="anchor tr"></div><div class="anchored tr"></div>
+    <div class="anchor bl"></div><div class="anchored bl"></div>
+    <div class="anchor br"></div><div class="anchored br"></div>
+  </div>
+
+  <div class=container>
+    <div class="anchor tl"></div><div class="anchored tl"></div>
+    <div class="anchor tr"></div><div class="anchored tr"></div>
+    <div class="anchor bl"></div><div class="anchored bl"></div>
+    <div class="anchor br"></div><div class="anchored br"></div>
+  </div>
+</div>
+
+
+<div>
+  <div class=container>
+    <div class="anchor tl"></div><div class="anchored tl"></div>
+    <div class="anchor tr"></div><div class="anchored tr"></div>
+    <div class="anchor bl"></div><div class="anchored bl"></div>
+    <div class="anchor br"></div><div class="anchored br"></div>
+  </div>
+
+  <div class=container>
+    <div class="anchor tl"></div><div class="anchored tl"></div>
+    <div class="anchor tr"></div><div class="anchored tr"></div>
+    <div class="anchor bl"></div><div class="anchored bl"></div>
+    <div class="anchor br"></div><div class="anchored br"></div>
+  </div>
+
+  <div class=container>
+    <div class="anchor tl"></div><div class="anchored tl"></div>
+    <div class="anchor tr"></div><div class="anchored tr"></div>
+    <div class="anchor bl"></div><div class="anchored bl"></div>
+    <div class="anchor br"></div><div class="anchored br"></div>
+  </div>
+
+  <div class=container>
+    <div class="anchor tl"></div><div class="anchored tl"></div>
+    <div class="anchor tr"></div><div class="anchored tr"></div>
+    <div class="anchor bl"></div><div class="anchored bl"></div>
+    <div class="anchor br"></div><div class="anchored br"></div>
+  </div>
+
+  <div class=container>
+    <div class="anchor tl"></div><div class="anchored tl"></div>
+    <div class="anchor tr"></div><div class="anchored tr"></div>
+    <div class="anchor bl"></div><div class="anchored bl"></div>
+    <div class="anchor br"></div><div class="anchored br"></div>
+  </div>
+
+  <div class=container>
+    <div class="anchor tl"></div><div class="anchored tl"></div>
+    <div class="anchor tr"></div><div class="anchored tr"></div>
+    <div class="anchor bl"></div><div class="anchored bl"></div>
+    <div class="anchor br"></div><div class="anchored br"></div>
+  </div>
+</div>

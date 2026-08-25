@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>Test that newline is still visible after deleting contents of last line of pre plaintext-only editor.</title>
+<link rel="match" href="backspace-end-of-plaintext-only-pre-ref.html">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1969451">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>pre { border: 2px solid black; }</style>
+<pre contenteditable="plaintext-only">a
+b
+c</pre>
+<script>
+const editor = document.querySelector('pre');
+editor.focus();
+const textNode = editor.firstChild;
+getSelection().collapse(textNode, textNode.length);
+test_driver.send_keys(editor, '\uE003') // backspace
+  .then(() => document.documentElement.classList.remove('reftest-wait'));
+</script>
+</html>

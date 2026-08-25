@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>A line-clamp container must establish an independent block formatting context</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2042999">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp-containers">
+<link rel="author" title="Seva Alipov" href="mailto:salipov@mozilla.com">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.clamp-box {
+  border: 1px solid;
+  width: 50px;
+  height: fit-content;
+  display: flow-root;
+  font-family: ahem;
+}
+.float {
+  float: left;
+  width: 100px;
+  height: 100px;
+  border: 1px solid black;
+  padding: 10px;
+  font-family: ahem;
+}
+</style>
+<div class="outer">
+<div class="float">F</div>
+<div class="clamp-box">A&hellip;</div>
+</div>

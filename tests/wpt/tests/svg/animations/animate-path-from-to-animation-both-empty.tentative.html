@@ -1,0 +1,31 @@
+<!doctype html>
+<title>SVG path 'd' from-to animation with both values empty</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/paths.html#TheDProperty"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+<script src="support/animated-path-helpers.js"></script>
+<svg>
+  <path id="path" fill="green" d="M 40 40 L 60 40 L 60 60 L 40 60 Z">
+    <animate id="animation" attributeName="d"
+             from="" to=""
+             begin="0s" dur="4s" fill="freeze"/>
+  </path>
+</svg>
+<script>
+const rootSVGElement = document.querySelector("svg");
+
+// Both from and to are empty; the animated value is empty throughout.
+function sample1() {
+  assert_animated_path_equals(path, "");
+}
+
+smil_async_test((t) => {
+  const expectedValues = [
+    ["animation", 0.001, sample1],
+    ["animation", 2.0, sample1],
+    ["animation", 3.999, sample1],
+  ];
+  runAnimationTest(t, expectedValues);
+});
+</script>

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#abspos { position: absolute }
+</style>
+<div id="container">
+  <div id="abspos">
+    <div id="abspos_child"></div>
+  </div>
+  <p id="p1">Example</p>
+  <p id="p2">Example</p>
+</div>
+
+<script>
+setup({explicit_done:true});
+
+window.onload = () => {
+    test((t) => {
+        ServoTestUtils.forceLayout();
+        abspos_child.style.width = "100px";
+        let result = ServoTestUtils.forceLayout();
+
+        // abspos_child + abspos
+        assert_equals(result.rebuiltFragmentCount, 2, "rebuiltFragmentCount");
+        assert_equals(result.restyleFragmentCount, 0, "restyleFragmentCount");
+        // container + body + root
+        assert_equals(result.onlyDescendantsChangedCount, 3, "onlyDescendantsChangedCount");
+    }, "Changing an element within an abspos should mark ancestor fragments of the abspos as DescendantsChanged");
+
+    test((t) => {
+        ServoTestUtils.forceLayout();
+        abspos.style.width = "100px";
+        let result = ServoTestUtils.forceLayout();
+
+        // abspos_child + abspos
+        assert_equals(result.rebuiltFragmentCount, 2, "rebuiltFragmentCount");
+        assert_equals(result.restyleFragmentCount, 0, "restyleFragmentCount");
+        // container + body + root
+        assert_equals(result.onlyDescendantsChangedCount, 3, "onlyDescendantsChangedCount");
+    }, "Changing an abspos should mark ancestor fragments as DescendantsChanged");
+
+    done();
+}
+</script>

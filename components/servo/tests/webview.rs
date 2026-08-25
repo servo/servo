@@ -1,0 +1,1222 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+//! WebView API unit tests.
+mod common;
+
+use std::cell::{Cell, RefCell};
+use std::collections::HashMap;
+use std::rc::Rc;
+use std::sync::Arc;
+use std::sync::atomic::AtomicUsize;
+
+use dpi::PhysicalSize;
+use embedder_traits::UrlRequest;
+use euclid::{Point2D, Size2D};
+use http::{HeaderMap, HeaderName, HeaderValue};
+use http_body_util::combinators::BoxBody;
+use hyper::body::{Bytes, Incoming};
+use hyper::{Request as HyperRequest, Response as HyperResponse};
+use itertools::Itertools;
+use net::test_util::{make_body, make_server, replace_host_table};
+use servo::{
+    ContextMenuAction, ContextMenuElementInformation, ContextMenuElementInformationFlags,
+    ContextMenuItem, CreateNewWebViewRequest, Cursor, EmbedderControl, InputEvent, InputMethodType,
+    JSValue, LoadStatus, MouseButton, MouseButtonAction, MouseButtonEvent, MouseLeftViewportEvent,
+    MouseMoveEvent, PrefValue, RenderingContext, Scroll, SimpleDialog, Theme, WebView,
+    WebViewBuilder, WebViewDelegate, WebViewPoint, WebViewVector,
+};
+use servo_config::prefs::Preferences;
+use servo_url::ServoUrl;
+use url::Url;
+use webrender_api::units::{DeviceIntSize, DevicePoint, DeviceVector2D};
+
+use crate::common::{
+    ServoTest, WebViewDelegateImpl, click_at_point, evaluate_javascript,
+    show_webview_and_wait_for_rendering_to_be_ready,
+};
+
+/// Wait for the WebRender scene to reflect the current state of the WebView
+/// by triggering a screenshot, waiting for it to be ready, and then throwing
+/// away the results.
+fn wait_for_webview_scene_to_be_up_to_date(servo_test: &ServoTest, webview: &WebView) {
+    let waiting = Rc::new(Cell::new(true));
+    let callback_waiting = waiting.clone();
+    webview.take_screenshot(None, move |result| {
+        assert!(result.is_ok());
+        callback_waiting.set(false);
+    });
+    servo_test.spin(move || waiting.get());
+}
+
+fn open_context_menu_at_point(webview: &WebView, point: DevicePoint) {
+    let point = point.into();
+    webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(point)));
+    webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
+        MouseButtonAction::Down,
+        MouseButton::Secondary,
+        point,
+    )));
+    webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
+        MouseButtonAction::Up,
+        MouseButton::Secondary,
+        point,
+    )));
+}
+
+#[test]
+fn test_create_webview() {
+    let servo_test = ServoTest::new();
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .build();
+
+    servo_test.spin(move || !delegate.url_changed.get());
+
+    let url = webview.url();
+    assert!(url.is_some());
+    assert_eq!(url.unwrap().to_string(), "about:blank");
+}
+
+#[test]
+fn test_create_webview_http() {
+    let servo_test = ServoTest::new();
+
+    static MESSAGE: &'static [u8] = b"<!DOCTYPE html>\nHello";
+    let handler =
+        move |_: HyperRequest<Incoming>,
+              response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
+            *response.body_mut() = make_body(MESSAGE.to_vec());
+        };
+    let (server, url) = make_server(handler);
+
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(url.as_url().clone())
+        .build();
+
+    servo_test.spin(move || !delegate.url_changed.get());
+
+    let _ = server.close();
+
+    let url = webview.url();
+    assert!(url.is_some());
+    let url = url.unwrap();
+    assert_eq!(url.scheme(), "http");
+    let host = url.host_str();
+    assert!(host.is_some());
+    assert_eq!(host.unwrap(), "localhost");
+}
+
+#[test]
+fn test_create_webview_http_custom_host() {
+    let servo_test = ServoTest::new();
+
+    static MESSAGE: &'static [u8] = b"<!DOCTYPE html>\n<title>Hello</title>";
+    let handler =
+        move |_: HyperRequest<Incoming>,
+              response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
+            *response.body_mut() = make_body(MESSAGE.to_vec());
+        };
+    let (server, url) = make_server(handler);
+    let port = url.port().unwrap();
+
+    let ip = "127.0.0.1".parse().unwrap();
+    let mut host_table = HashMap::new();
+    host_table.insert("www.example.com".to_owned(), ip);
+
+    replace_host_table(host_table);
+
+    let custom_url = ServoUrl::parse(&format!("http://www.example.com:{}", port)).unwrap();
+
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(custom_url.clone().into_url())
+        .build();
+
+    servo_test.spin(move || !delegate.load_status_changed.get() || !delegate.url_changed.get());
+
+    let _ = server.close();
+
+    let page_title = webview.page_title();
+    assert!(page_title.is_some());
+    assert_eq!(page_title.unwrap(), "Hello");
+
+    let url = webview.url();
+    assert!(url.is_some());
+    assert_eq!(url.unwrap(), custom_url.into_url());
+}
+
+#[test]
+fn test_create_webview_and_immediately_drop_webview_before_shutdown() {
+    let servo_test = ServoTest::new();
+    WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone()).build();
+}
+
+#[test]
+fn test_theme_change() {
+    let servo_test = ServoTest::new();
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(Url::parse("data:text/html,page one").unwrap())
+        .build();
+
+    let is_dark_theme_script = "window.matchMedia('(prefers-color-scheme: dark)').matches";
+
+    // The default theme is "light".
+    let result = evaluate_javascript(&servo_test, webview.clone(), is_dark_theme_script);
+    assert_eq!(result, Ok(JSValue::Boolean(false)));
+
+    // Changing the theme updates the current page.
+    webview.notify_theme_change(Theme::Dark);
+    let result = evaluate_javascript(&servo_test, webview.clone(), is_dark_theme_script);
+    assert_eq!(result, Ok(JSValue::Boolean(true)));
+
+    delegate.reset();
+    webview.load(Url::parse("data:text/html,page two").unwrap());
+    servo_test.spin(move || !delegate.url_changed.get());
+
+    // The theme persists after a navigation.
+    let result = evaluate_javascript(&servo_test, webview.clone(), is_dark_theme_script);
+    assert_eq!(result, Ok(JSValue::Boolean(true)));
+
+    // Now test the same thing, but setting the theme immediately after creating the WebView.
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(Url::parse("data:text/html,page one").unwrap())
+        .build();
+    webview.notify_theme_change(Theme::Dark);
+    let result = evaluate_javascript(&servo_test, webview.clone(), is_dark_theme_script);
+    assert_eq!(result, Ok(JSValue::Boolean(true)));
+}
+
+#[test]
+fn test_theme_change_media_query_event() {
+    let servo_test = ServoTest::new();
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(
+            Url::parse(
+                r#"data:text/html,<!DOCTYPE html><html><script>
+            let mediaQueryChanges = 0;
+            const mediaQueryList = window.matchMedia('(prefers-color-scheme: dark)');
+            mediaQueryList.addEventListener('change', () => {
+                mediaQueryChanges += 1;
+                console.log(mediaQueryChanges);
+            });
+            </script></html>"#,
+            )
+            .unwrap(),
+        )
+        .build();
+
+    // Check that we increment mediaQueryChanges each time the theme changes.
+
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+    let result = evaluate_javascript(&servo_test, webview.clone(), "mediaQueryChanges");
+    assert_eq!(result, Ok(JSValue::Number(0.0)));
+
+    webview.notify_theme_change(Theme::Dark);
+
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+    let result = evaluate_javascript(&servo_test, webview.clone(), "mediaQueryChanges");
+    assert_eq!(result, Ok(JSValue::Number(1.0)));
+
+    webview.notify_theme_change(Theme::Light);
+
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+    let result = evaluate_javascript(&servo_test, webview.clone(), "mediaQueryChanges");
+    assert_eq!(result, Ok(JSValue::Number(2.0)));
+}
+
+#[test]
+fn test_cursor_change() {
+    let servo_test = ServoTest::new();
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(
+            Url::parse(
+                "data:text/html,<!DOCTYPE html><style> html { cursor: crosshair; margin: 0}</style><body>hello</body>",
+            )
+            .unwrap(),
+        )
+        .build();
+
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+
+    webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(
+        DevicePoint::new(10., 10.).into(),
+    )));
+
+    let captured_delegate = delegate.clone();
+    servo_test.spin(move || !captured_delegate.cursor_changed.get());
+    assert_eq!(webview.cursor(), Cursor::Crosshair);
+
+    delegate.reset();
+    webview.notify_input_event(InputEvent::MouseLeftViewport(
+        MouseLeftViewportEvent::default(),
+    ));
+
+    let captured_delegate = delegate.clone();
+    servo_test.spin(move || !captured_delegate.cursor_changed.get());
+    assert_eq!(webview.cursor(), Cursor::Default);
+}
+
+// A test to ensure that the cursor doesn't change when hovering over a input with type color
+#[test]
+fn test_cursor_unchanged_input_color() {
+    let servo_test = ServoTest::new();
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(
+            Url::parse(
+                "data:text/html,<!DOCTYPE html><body><input type=\"color\"><p>Test text for Cursor change</p></body>",
+            )
+            .unwrap(),
+        )
+        .build();
+
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+
+    webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(
+        DevicePoint::new(20., 65.).into(),
+    )));
+
+    let captured_delegate = delegate.clone();
+    servo_test.spin(move || !captured_delegate.cursor_changed.get());
+    assert_eq!(webview.cursor(), Cursor::Text);
+
+    delegate.reset();
+    webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(
+        DevicePoint::new(20., 25.).into(),
+    )));
+
+    let captured_delegate = delegate.clone();
+    servo_test.spin(move || !captured_delegate.cursor_changed.get());
+    assert_eq!(webview.cursor(), Cursor::Default);
+}
+
+/// A test that ensure that negative resize requests do not get passed to the embedder.
+#[test]
+fn test_negative_resize_to_request() {
+    let servo_test = ServoTest::new();
+    struct WebViewResizeTestDelegate {
+        rendering_context: Rc<dyn RenderingContext>,
+        popup: RefCell<Option<WebView>>,
+        resize_request: Cell<Option<DeviceIntSize>>,
+    }
+
+    impl WebViewDelegate for WebViewResizeTestDelegate {
+        fn request_create_new(&self, parent_webview: WebView, request: CreateNewWebViewRequest) {
+            let webview = request
+                .builder(self.rendering_context.clone())
+                .delegate(parent_webview.delegate())
+                .build();
+            self.popup.borrow_mut().replace(webview.clone());
+        }
+
+        fn request_resize_to(&self, _: WebView, requested_outer_size: DeviceIntSize) {
+            self.resize_request.set(Some(requested_outer_size));
+        }
+    }
+
+    let delegate = Rc::new(WebViewResizeTestDelegate {
+        rendering_context: servo_test.rendering_context.clone(),
+        popup: None.into(),
+        resize_request: None.into(),
+    });
+
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(
+            Url::parse(
+                "data:text/html,<!DOCTYPE html><script>\
+                    let popup = window.open('about:blank');\
+                    popup.resizeTo(-100, -100);\
+                </script></body>",
+            )
+            .unwrap(),
+        )
+        .build();
+
+    let load_webview = webview.clone();
+    let _ = servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
+
+    let popup = delegate
+        .popup
+        .borrow()
+        .clone()
+        .expect("Should have created popup");
+
+    let load_webview = popup.clone();
+    let _ = servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
+
+    // Resize requests should be floored to 1.
+    assert_eq!(
+        delegate.resize_request.get(),
+        Some(DeviceIntSize::new(1, 1))
+    );
+
+    // Ensure that the popup WebView is released before the end of the test.
+    *delegate.popup.borrow_mut() = None;
+}
+
+/// This test verifies that trying to set the WebView size to a negative value does
+/// not crash Servo.
+#[test]
+fn test_resize_webview_zero() {
+    let servo_test = ServoTest::new();
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(Url::parse("data:text/html,<!DOCTYPE html><body>hello</body>").unwrap())
+        .build();
+    webview.resize(PhysicalSize::new(0, 0));
+
+    let load_webview = webview.clone();
+    let _ = servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
+
+    // Reset the WebView size for other tests.
+    webview.resize(PhysicalSize::new(500, 500));
+}
+
+/// This test ensure's that when a `WebView` is resize, input event are handled properly in the newly
+/// exposed region.
+#[test]
+fn test_webview_resize_interactivity() {
+    let servo_test = ServoTest::new();
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(
+            Url::parse(
+                "data:text/html,<!DOCTYPE html>\
+                <style>\
+                    html { margin: 0; }\
+                    div { margin-top: 500px; width: 100px; height: 100px; cursor: crosshair; }\
+                </style>\
+                <body><div></div></body>",
+            )
+            .unwrap(),
+        )
+        .build();
+
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+
+    // Resize the WebView to expose the `<div>`.
+    assert_eq!(webview.size(), Size2D::new(500., 500.));
+    webview.resize(PhysicalSize::new(600, 600));
+
+    wait_for_webview_scene_to_be_up_to_date(&servo_test, &webview);
+
+    webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(
+        DevicePoint::new(20., 520.).into(),
+    )));
+
+    let captured_delegate = delegate.clone();
+    servo_test.spin(move || !captured_delegate.cursor_changed.get());
+    assert_eq!(webview.cursor(), Cursor::Crosshair);
+}
+
+#[test]
+fn test_control_show_and_hide() {
+    let servo_test = ServoTest::new();
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(
+            Url::parse(
+                "data:text/html,\
+                    <!DOCTYPE html>\
+                        <select id=select style=\"width: 500px; height: 500px\">\
+                            <option>one</option>\
+                        </select>
+                        <script>\
+                            select.addEventListener('click', () => {\
+                                setTimeout(() => select.parentNode.removeChild(select), 100);\
+                            });\
+                        </script>",
+            )
+            .unwrap(),
+        )
+        .build();
+
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+    click_at_point(&webview, Point2D::new(50., 50.));
+
+    // The form control should be shown and then immediately hidden.
+    let captured_delegate = delegate.clone();
+    servo_test.spin(move || captured_delegate.number_of_controls_shown.get() != 1);
+    let captured_delegate = delegate.clone();
+    servo_test.spin(move || captured_delegate.number_of_controls_hidden.get() != 1);
+}
+
+#[test]
+fn test_page_zoom() {
+    let servo_test = ServoTest::new();
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .build();
+
+    // Default zoom should be 1.0
+    assert_eq!(webview.page_zoom(), 1.0);
+
+    webview.set_page_zoom(1.5);
+    assert_eq!(webview.page_zoom(), 1.5);
+
+    webview.set_page_zoom(0.5);
+    assert_eq!(webview.page_zoom(), 0.5);
+
+    // Should clamp to minimum
+    webview.set_page_zoom(-1.0);
+    assert_eq!(webview.page_zoom(), 0.1);
+
+    // Should clamp to maximum
+    webview.set_page_zoom(100.0);
+    assert_eq!(webview.page_zoom(), 10.0);
+}
+
+#[test]
+fn test_viewport_meta_tag_initial_scale() {
+    let servo_test = ServoTest::new_with_builder(|builder| {
+        let mut preferences = Preferences::default();
+        preferences.viewport_meta_enabled = true;
+        preferences.dom_visual_viewport_enabled = true;
+        builder.preferences(preferences)
+    });
+
+    let initial_scale: f64 = 2.0;
+
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(
+            Url::parse(
+                format!(
+                    "data:text/html,\
+                    <!DOCTYPE html>\
+                    <meta name=viewport content=\"initial-scale={}\">",
+                    initial_scale
+                )
+                .as_str(),
+            )
+            .unwrap(),
+        )
+        .build();
+
+    // Initially HiDPI should be 1.0
+    assert_eq!(webview.hidpi_scale_factor().get(), 1.0);
+
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+
+    // HiDPI should be same after parsing the viewport meta from page.
+    assert_eq!(webview.hidpi_scale_factor().get(), 1.0);
+
+    // devicePixelRatio should be unaffected by Meta Tag.
+    assert_eq!(
+        Ok(JSValue::Number(webview.hidpi_scale_factor().get() as f64)),
+        evaluate_javascript(&servo_test, webview.clone(), "window.devicePixelRatio;")
+    );
+
+    // Meta Tag should affect VisualViewport Scale.
+    assert_eq!(
+        Ok(JSValue::Number(initial_scale)),
+        evaluate_javascript(&servo_test, webview.clone(), "window.visualViewport.scale;")
+    );
+}
+
+#[test]
+fn test_show_and_hide_ime() {
+    let servo_test = ServoTest::new();
+
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(
+            Url::parse(
+                "data:text/html,<!DOCTYPE html> \
+                <input type=\"text\" value=\"servo\" style=\"width: 200px; height: 200px;\">",
+            )
+            .unwrap(),
+        )
+        .build();
+
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+    click_at_point(&webview, Point2D::new(150., 150.));
+
+    // The form control should be shown.
+    let captured_delegate = delegate.clone();
+    servo_test.spin(move || captured_delegate.number_of_controls_shown.get() != 1);
+
+    {
+        let controls = delegate.controls_shown.borrow();
+        assert_eq!(controls.len(), 1);
+        let EmbedderControl::InputMethod(ime) = &controls[0] else {
+            unreachable!("Expected embedder control to be an IME");
+        };
+
+        assert_eq!(ime.input_method_type(), InputMethodType::Text);
+        assert_eq!(ime.text(), "servo");
+        assert_eq!(ime.insertion_point(), Some(5));
+    }
+
+    click_at_point(&webview, Point2D::new(300., 300.));
+
+    // The form control should be hidden when the field no longer has focus.
+    let captured_delegate = delegate.clone();
+    servo_test.spin(move || captured_delegate.number_of_controls_hidden.get() != 1);
+}
+
+#[test]
+fn test_alert_dialog() {
+    test_simple_dialog("window.alert('Alert');", |dialog| {
+        let SimpleDialog::Alert(..) = dialog else {
+            unreachable!("Expected dialog to be a SimpleDialog::Alert");
+        };
+        assert_eq!(dialog.message(), "Alert");
+    });
+}
+
+#[test]
+fn test_prompt_dialog() {
+    test_simple_dialog("window.prompt('Prompt');", |dialog| {
+        let SimpleDialog::Prompt(..) = dialog else {
+            unreachable!("Expected dialog to be a SimpleDialog::Prompt");
+        };
+        assert_eq!(dialog.message(), "Prompt");
+    });
+}
+
+#[test]
+fn test_confirm_dialog() {
+    test_simple_dialog("window.confirm('Confirm');", |dialog| {
+        let SimpleDialog::Confirm(..) = dialog else {
+            unreachable!("Expected dialog to be a SimpleDialog::Confirm");
+        };
+        assert_eq!(dialog.message(), "Confirm");
+    });
+}
+
+// A helper function to share code among the dialog tests.
+//
+// `prompt` must be a string that can be used in the `onclick` attribute and therefore must
+// be escaped correctly. Use single quotes instead of double quotes for string literals.
+fn test_simple_dialog(prompt: &str, validate: impl Fn(&SimpleDialog)) {
+    let make_test_html = |prompt: &str| {
+        let html = format!(
+            "data:text/html,<!DOCTYPE html>\
+            <input type=\"button\" value=\"click\" style=\"width: 200px; height: 200px;\"\
+            onclick=\"{}\">",
+            prompt
+        );
+        Url::parse(&html).unwrap()
+    };
+
+    let servo_test = ServoTest::new();
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(make_test_html(prompt))
+        .build();
+
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+
+    // The dialog should NOT be shown.
+    assert!(delegate.active_dialog.borrow().is_none());
+
+    click_at_point(&webview, Point2D::new(100., 100.));
+    let captured_delegate = delegate.clone();
+    servo_test.spin(move || captured_delegate.active_dialog.borrow().is_none());
+
+    let active_dialog = delegate.active_dialog.borrow();
+    validate(
+        active_dialog
+            .as_ref()
+            .expect("the spin call above ensures this is not None"),
+    );
+}
+
+#[test]
+fn test_simple_context_menu() {
+    let servo_test = ServoTest::new();
+
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(Url::parse("data:text/html,<!DOCTYPE html>").unwrap())
+        .build();
+
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+    open_context_menu_at_point(&webview, DevicePoint::new(50.0, 50.0));
+
+    // Wait for a context menu to appear.
+    let captured_delegate = delegate.clone();
+    servo_test.spin(move || {
+        let controls = captured_delegate.controls_shown.borrow();
+        !controls
+            .iter()
+            .any(|control| matches!(control, EmbedderControl::ContextMenu(_)))
+    });
+    assert!(delegate.number_of_controls_shown.get() > 0);
+
+    let context_menu = {
+        let mut controls = delegate.controls_shown.borrow_mut();
+
+        let Some(index) = controls
+            .iter()
+            .position(|control| matches!(control, EmbedderControl::ContextMenu(_)))
+        else {
+            unreachable!("Exepcted to find context menu in controls");
+        };
+        let EmbedderControl::ContextMenu(context_menu) = controls.remove(index) else {
+            unreachable!("Expected embedder control to be a ContextMenu");
+        };
+
+        let items = context_menu.items();
+        assert!(matches!(
+            items[0],
+            ContextMenuItem::Item {
+                action: ContextMenuAction::GoBack,
+                ..
+            }
+        ));
+        assert!(matches!(
+            items[1],
+            ContextMenuItem::Item {
+                action: ContextMenuAction::GoForward,
+                ..
+            }
+        ));
+        assert!(matches!(
+            items[2],
+            ContextMenuItem::Item {
+                action: ContextMenuAction::Reload,
+                ..
+            }
+        ));
+
+        context_menu
+    };
+
+    delegate.reset();
+    context_menu.select(ContextMenuAction::Reload);
+
+    servo_test.spin(move || !delegate.load_status_changed.get());
+}
+
+#[test]
+fn test_open_context_menu_closes_existing() {
+    let servo_test = ServoTest::new();
+
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(Url::parse("data:text/html,<!DOCTYPE html>").unwrap())
+        .build();
+
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+    open_context_menu_at_point(&webview, DevicePoint::new(50.0, 50.0));
+
+    // Wait for a context menu to appear.
+    let captured_delegate = delegate.clone();
+    servo_test.spin(move || {
+        let controls = captured_delegate.controls_shown.borrow();
+        !controls
+            .iter()
+            .any(|control| matches!(control, EmbedderControl::ContextMenu(_)))
+    });
+    assert!(delegate.number_of_controls_shown.get() > 0);
+
+    assert_eq!(delegate.number_of_controls_hidden.get(), 0);
+
+    open_context_menu_at_point(&webview, DevicePoint::new(25.0, 25.0));
+
+    let captured_delegate = delegate.clone();
+    servo_test.spin(move || captured_delegate.number_of_controls_hidden.get() != 1);
+
+    let captured_delegate = delegate.clone();
+    servo_test.spin(move || captured_delegate.number_of_controls_shown.get() != 2);
+}
+
+#[test]
+fn test_contextual_context_menu_items() {
+    let servo_test = ServoTest::new();
+
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(
+            Url::parse(
+                "data:text/html,<!DOCTYPE html>\
+                <a href=\"https://servo.org\"><div style=\"width: 50px; height: 50px;\">Link</div></a> \
+                <div><img src=\"https://servo.org/img.png\" style=\"width: 50px; height: 50px;\"></div> \
+                <div><input type=\"text\" style=\"width: 50px; height: 50px;\"></div> \
+                <a href=\"https://nested.org\"><img src=\"https://servo.org/nested.png\" style=\"width: 50px; height: 50px;\"></a>"
+            )
+            .unwrap(),
+        )
+        .build();
+
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+
+    let assert_context_menu =
+        |delegate: Rc<WebViewDelegateImpl>,
+         expected_actions: &[ContextMenuAction],
+         expected_info: ContextMenuElementInformation| {
+            assert!(delegate.controls_shown.borrow().is_empty());
+
+            // Wait for a context menu to appear.
+            let captured_delegate = delegate.clone();
+            servo_test.spin(move || {
+                let controls = captured_delegate.controls_shown.borrow();
+                !controls
+                    .iter()
+                    .any(|control| matches!(control, EmbedderControl::ContextMenu(_)))
+            });
+            assert!(delegate.number_of_controls_shown.get() > 0);
+
+            {
+                let mut controls = delegate.controls_shown.borrow_mut();
+
+                let Some(index) = controls
+                    .iter()
+                    .position(|control| matches!(control, EmbedderControl::ContextMenu(_)))
+                else {
+                    unreachable!("Exepcted to find context menu in controls");
+                };
+                let EmbedderControl::ContextMenu(context_menu) = controls.remove(index) else {
+                    unreachable!("Expected embedder control to be a ContextMenu");
+                };
+
+                assert_eq!(context_menu.element_info(), &expected_info);
+
+                let items = context_menu.items();
+                for expected_action in expected_actions {
+                    assert!(items.iter().any(|item| {
+                        let ContextMenuItem::Item { action, .. } = item else {
+                            return false;
+                        };
+                        action == expected_action
+                    }));
+                }
+                context_menu.dismiss();
+            }
+
+            delegate.reset();
+        };
+
+    open_context_menu_at_point(&webview, DevicePoint::new(25.0, 25.0));
+    assert_context_menu(
+        delegate.clone(),
+        &[
+            ContextMenuAction::CopyLink,
+            ContextMenuAction::OpenLinkInNewWebView,
+        ],
+        ContextMenuElementInformation {
+            flags: ContextMenuElementInformationFlags::Link,
+            link_url: Url::parse("https://servo.org").ok(),
+            image_url: None,
+        },
+    );
+
+    open_context_menu_at_point(&webview, DevicePoint::new(25.0, 75.0));
+    assert_context_menu(
+        delegate.clone(),
+        &[
+            ContextMenuAction::CopyImageLink,
+            ContextMenuAction::OpenImageInNewView,
+        ],
+        ContextMenuElementInformation {
+            flags: ContextMenuElementInformationFlags::Image,
+            link_url: None,
+            image_url: Url::parse("https://servo.org/img.png").ok(),
+        },
+    );
+
+    open_context_menu_at_point(&webview, DevicePoint::new(25.0, 125.0));
+    assert_context_menu(
+        delegate.clone(),
+        &[
+            ContextMenuAction::SelectAll,
+            ContextMenuAction::Cut,
+            ContextMenuAction::Copy,
+            ContextMenuAction::Paste,
+        ],
+        ContextMenuElementInformation {
+            flags: ContextMenuElementInformationFlags::EditableText,
+            link_url: None,
+            image_url: None,
+        },
+    );
+
+    open_context_menu_at_point(&webview, DevicePoint::new(25.0, 175.0));
+    assert_context_menu(
+        delegate.clone(),
+        &[
+            ContextMenuAction::CopyLink,
+            ContextMenuAction::OpenLinkInNewWebView,
+            ContextMenuAction::CopyImageLink,
+            ContextMenuAction::OpenImageInNewView,
+        ],
+        ContextMenuElementInformation {
+            flags: ContextMenuElementInformationFlags::Link |
+                ContextMenuElementInformationFlags::Image,
+            link_url: Url::parse("https://nested.org").ok(),
+            image_url: Url::parse("https://servo.org/nested.png").ok(),
+        },
+    );
+
+    servo_test.spin(move || !delegate.load_status_changed.get());
+}
+
+#[test]
+fn test_can_go_forward_and_can_go_back() {
+    let servo_test = ServoTest::new();
+
+    let page_1_url = Url::parse("data:text/html,<!DOCTYPE html> page 1").unwrap();
+    let page_2_url = Url::parse("data:text/html,<!DOCTYPE html> page 2").unwrap();
+
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(page_1_url.clone())
+        .build();
+
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+
+    assert!(!webview.can_go_forward());
+    assert!(!webview.can_go_back());
+
+    let load_webview = webview.clone();
+    webview.load(page_2_url.clone());
+    servo_test.spin(move || load_webview.url() != Some(page_2_url.clone()));
+
+    assert!(!webview.can_go_forward());
+    assert!(webview.can_go_back());
+
+    webview.go_back(1);
+
+    let load_webview = webview.clone();
+    servo_test.spin(move || load_webview.url() != Some(page_1_url.clone()));
+
+    assert!(webview.can_go_forward());
+    assert!(!webview.can_go_back());
+}
+
+#[test]
+fn test_pinch_zoom_update_dom_visual_viewport() {
+    let servo_test = ServoTest::new_with_builder(|builder| {
+        let mut preferences = Preferences::default();
+        preferences.dom_visual_viewport_enabled = true;
+        builder.preferences(preferences)
+    });
+
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(Url::parse("data:text/html,<!DOCTYPE html><body>Hello world!</body>").unwrap())
+        .build();
+
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+    let eval_visual_viewport = |attribute: &str| match evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        format!("window.visualViewport.{}", attribute),
+    ) {
+        Ok(JSValue::Number(number)) => Some(number),
+        _ => None,
+    };
+
+    // Default value of the DOM visual viewport is initialized correctly.
+    assert_eq!(eval_visual_viewport("scale"), Some(1.));
+    assert_eq!(eval_visual_viewport("width"), Some(500.));
+    assert_eq!(eval_visual_viewport("height"), Some(500.));
+    assert_eq!(eval_visual_viewport("offsetLeft"), Some(0.));
+    assert_eq!(eval_visual_viewport("offsetTop"), Some(0.));
+
+    webview.adjust_pinch_zoom(5., DevicePoint::new(100., 100.));
+    wait_for_webview_scene_to_be_up_to_date(&servo_test, &webview);
+
+    // The visual viewport size and offset is correct after a pinch zoom.
+    assert_eq!(eval_visual_viewport("scale"), Some(5.));
+    assert_eq!(eval_visual_viewport("width"), Some(100.));
+    assert_eq!(eval_visual_viewport("height"), Some(100.));
+    assert_eq!(eval_visual_viewport("offsetLeft"), Some(80.));
+    assert_eq!(eval_visual_viewport("offsetTop"), Some(80.));
+
+    // Note that the scroll vector will be affected by the pinch zoom scale.
+    webview.notify_scroll_event(
+        Scroll::Delta(WebViewVector::Device(DeviceVector2D::new(100., 100.))),
+        WebViewPoint::Device(DevicePoint::zero()),
+    );
+    wait_for_webview_scene_to_be_up_to_date(&servo_test, &webview);
+
+    // The visual viewport size and offset is correct after the scroll event.
+    assert_eq!(eval_visual_viewport("scale"), Some(5.));
+    assert_eq!(eval_visual_viewport("width"), Some(100.));
+    assert_eq!(eval_visual_viewport("height"), Some(100.));
+    assert_eq!(eval_visual_viewport("offsetLeft"), Some(100.));
+    assert_eq!(eval_visual_viewport("offsetTop"), Some(100.));
+}
+
+#[test]
+fn test_webview_load_with_headers() {
+    let servo_test = ServoTest::new();
+    let request_count = Arc::new(AtomicUsize::new(0));
+    let request_count_clone = request_count.clone();
+
+    let mut headers = HeaderMap::new();
+    headers.append(HeaderName::from_static("world"), "hello".parse().unwrap());
+    headers.append(HeaderName::from_static("second"), "header".parse().unwrap());
+    headers.append(
+        HeaderName::from_static("accept-encoding"),
+        "customzip".parse().unwrap(),
+    );
+    static MESSAGE: &'static [u8] = b"<!DOCTYPE html>\nHello";
+    let handler =
+        move |req: HyperRequest<Incoming>,
+              response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
+            if request_count_clone.fetch_add(1, std::sync::atomic::Ordering::SeqCst) == 2 {
+                let headers = req.headers();
+                assert_eq!(
+                    headers.get("world"),
+                    Some(&HeaderValue::from_static("hello"))
+                );
+                assert_eq!(
+                    headers.get("second"),
+                    Some(&HeaderValue::from_static("header"))
+                );
+
+                // headers should be added if they already exist.
+                assert!(
+                    headers
+                        .get_all("accept-encoding")
+                        .iter()
+                        .contains(&HeaderValue::from_static("customzip"))
+                );
+                assert!(headers.get_all("accept-encoding").iter().count() > 1);
+            } else {
+                *response.body_mut() = make_body(MESSAGE.to_vec());
+            }
+        };
+    let (server, url) = make_server(handler);
+
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(url.url().into_url())
+        .build();
+
+    {
+        let delegate = delegate.clone();
+        servo_test.spin(move || !delegate.url_changed.get());
+    }
+
+    let urlrequest = UrlRequest::new(url.url().into_url()).headers(headers);
+    webview.load_request(urlrequest);
+    {
+        let request_count = request_count.clone();
+        servo_test.spin(move || request_count.load(std::sync::atomic::Ordering::SeqCst) < 2);
+    }
+    assert_eq!(request_count.load(std::sync::atomic::Ordering::SeqCst), 2);
+    server.close();
+}
+
+#[test]
+fn test_console_log_and_error_ordering() {
+    let servo_test = ServoTest::new();
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+
+    let _webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(
+            Url::parse(
+                "data:text/html,<!doctype html><script>\
+                    console.log('Hello');\
+                    DocumentFragment.prototype.querySelector.call(document, 'body');\
+                </script>",
+            )
+            .unwrap(),
+        )
+        .build();
+
+    // Wait until both messages have arrived through the embedder channel.
+    let captured = delegate.clone();
+    servo_test.spin(move || captured.console_messages.borrow().len() < 2);
+
+    let messages = delegate.console_messages.borrow();
+    assert_eq!(
+        messages.len(),
+        2,
+        "Expected exactly 2 console messages, got: {messages:?}"
+    );
+
+    // The console.log("Hello") must arrive first.
+    assert!(
+        messages[0].1.contains("Hello"),
+        "Expected first message to contain 'Hello', got: {:?}",
+        messages[0].1
+    );
+
+    // The uncaught TypeError must arrive second.
+    assert!(
+        messages[1].1.contains("DocumentFragment") || messages[1].1.contains("querySelector"),
+        "Expected second message to contain error info, got: {:?}",
+        messages[1].1
+    );
+}
+
+#[test]
+fn test_preferences_change() {
+    let servo_test = ServoTest::new();
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+
+    let test_page =
+        Url::parse("data:text/html,<div id=\"target\" style=\"backdrop-filter: sepia(1)\"></div>")
+            .expect("Data URL failed to build");
+
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(test_page.clone())
+        .build();
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+
+    assert_eq!(
+        // The backdrop-filter style is feature flagged by the layout.unimplemented feature,
+        // so when layout.unimplemented feature is disabled, the backdrop-filter style specified
+        // in the stylesheet won't parse and the computed value undefined
+        Ok(JSValue::Array(vec![
+            JSValue::String("".to_string()),
+            JSValue::String("".to_string())
+        ])),
+        evaluate_javascript(
+            &servo_test,
+            webview.clone(),
+            "let old_value = target.style.getPropertyValue('backdrop-filter');
+            target.style.backdropFilter = 'sepia(1)';
+            let new_value = target.style.getPropertyValue('backdrop-filter');
+            [old_value, new_value]"
+        )
+    );
+
+    servo_test
+        .servo()
+        .set_preference("layout_unimplemented", PrefValue::Bool(true));
+
+    webview.reload();
+
+    assert_eq!(
+        // When layout.unimplemented feature is enabled, the backdrop-filter style specified in
+        // the stylesheet will parse and the computed value will be that value
+        Ok(JSValue::Array(vec![
+            JSValue::String("sepia(1)".to_string()),
+            JSValue::String("opacity(0.5)".to_string())
+        ])),
+        evaluate_javascript(
+            &servo_test,
+            webview,
+            "let old_value = target.style.getPropertyValue('backdrop-filter');
+            target.style.backdropFilter = 'opacity(0.5)';
+            let new_value = target.style.getPropertyValue('backdrop-filter');
+            [old_value, new_value]"
+        )
+    );
+}
+
+#[test]
+fn test_fullscreen() {
+    let servo_test = ServoTest::new();
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+
+    let test_page = Url::parse(
+        "data:text/html,\
+        <button onclick='this.requestFullscreen()'>click</button>\
+        <a href=about:blank>click</a>",
+    )
+    .expect("Data URL failed to build");
+
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(test_page.clone())
+        .build();
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+
+    click_at_point(&webview, Point2D::new(10., 10.));
+
+    let captured = delegate.clone();
+    servo_test.spin(move || !captured.fullscreen.get());
+
+    assert!(
+        evaluate_javascript(
+            &servo_test,
+            webview.clone(),
+            "document.querySelector('a').click();"
+        )
+        .is_ok()
+    );
+
+    let captured = delegate.clone();
+    servo_test.spin(move || captured.fullscreen.get());
+}
+
+#[test]
+fn test_webview_title_updates_when_document_title_is_updated() {
+    let servo_test = ServoTest::new();
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let test_page = Url::parse(
+        "data:text/html,\
+        <script>document.title='Success';</script>",
+    )
+    .expect("Data URL failed to build");
+
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(test_page.clone())
+        .build();
+
+    // Wait for the page to load
+    let load_webview = webview.clone();
+    servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
+
+    assert_eq!(webview.page_title().as_deref(), Some("Success"));
+}
+
+#[test]
+fn test_webview_title_updates_when_title_element_is_created_from_javascript() {
+    let servo_test = ServoTest::new();
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let test_page = Url::parse(
+        "data:text/html,\
+        <body>\
+        <script>\
+        let title = document.createElement('title');\
+        title.textContent = 'Success';\
+        document.body.appendChild(title);\
+        </script>",
+    )
+    .expect("Data URL failed to build");
+
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(test_page.clone())
+        .build();
+
+    // Wait for the page to load
+    let load_webview = webview.clone();
+    servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
+
+    assert_eq!(webview.page_title().as_deref(), Some("Success"));
+}

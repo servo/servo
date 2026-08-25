@@ -1,0 +1,14 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="i" src="resources/navigatesuccess-cross-document-helper.html"></iframe>
+<script>
+async_test(t => {
+  // The iframe will post a message if it receives a navigatesuccess.
+  window.onmessage = t.unreached_func("navigatesuccess received");
+  window.onload = t.step_func(() => {
+    i.contentWindow.location.search = "?1";
+    i.onload = t.step_func_done(() => assert_equals(i.contentWindow.location.search, "?1"));
+  });
+}, "navigatesuccess does not fire for a cross-document navigation");
+</script>

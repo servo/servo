@@ -1,0 +1,24 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Restyling of a child of a parent that didn't match nth-child but now
+  does should be correct.</title>
+<link rel="match" href="restyle-nth-child-ref.html">
+<style>
+  .container div {
+    width: 50px;
+    height: 50px;
+    background: blue;
+  }
+  .container div:nth-child(2) {
+    background: green;
+  }
+</style>
+<div class="container">
+  <div></div>
+</div>
+<script>
+  let container = document.querySelector('.container');
+  window.onload = function() {
+    container.insertBefore(document.createElement('div'), container.firstChild);
+  }
+</script>

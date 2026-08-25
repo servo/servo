@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>TestDriver click on a document in an iframe</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<iframe src="click_child.html"></iframe>
+
+<script>
+setup({single_test: true});
+addEventListener("load", () => {
+    let child = frames[0];
+    let button = child.document.getElementById("button");
+    test_driver
+        .click(button)
+        .then(() => {
+            assert_equals(child.document.getElementById("log").textContent, "PASS");
+            done();
+        })
+        .catch(() => assert_unreached("click failed"));
+});
+</script>

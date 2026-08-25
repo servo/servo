@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>Canvas.drawElementImage: transparent background rect (ref)</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<link rel="author" href="mailto:schenney@chromium.org">
+<style>
+#child {
+  width: 100px;
+  height: 100px;
+  background: transparent;
+
+  position: relative;
+  left: 20px;
+  top: 30px;
+}
+.grandchild {
+  position: absolute;
+  background: green;
+  width: 20px;
+  height: 20px;
+}
+#canvas {
+  width: 200px;
+  height: 200px;
+  background: grey;
+}
+</style>
+
+<div id=canvas>
+  <div id=child>
+    <div class="grandchild" style="left: 0px; top:0px"></div>
+    <div class="grandchild" style="left: 80px; top:0px"></div>
+    <div class="grandchild" style="left: 0px; top:80px"></div>
+    <div class="grandchild" style="left: 80px; top:80px"></div>
+  </div>
+</div>

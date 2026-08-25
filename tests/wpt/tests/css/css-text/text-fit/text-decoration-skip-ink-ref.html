@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+#grow-consistent {
+  font: 40px/2 Ahem;
+  color: rgba(0, 0, 0, 0.5);
+  width: 160px;
+  white-space: pre;
+  border: 1px solid gray;
+  text-decoration: underline lime;
+  text-decoration-skip-ink: auto;
+  text-decoration-thickness: 4px;
+  margin-bottom: 8px;
+}
+#grow-line {
+  font: 20px/2 Ahem;
+  color: rgba(0, 0, 0, 0.5);
+  width: 160px;
+  white-space: pre;
+  border: 1px solid gray;
+  text-decoration-skip-ink: auto;
+}
+</style>
+
+<div id="grow-consistent">ÉpÉ
+pÉpÉ</div>
+<div id="grow-line"><span style="font-size:40px;text-decoration: underline lime">ÉpÉp</span>
+<span style="text-decoration: underline lime;">pÉpÉpÉpÉ</span></div>
+
+<script>
+document.fonts.ready.then(() => {
+  document.documentElement.classList.remove('reftest-wait');
+});
+</script>

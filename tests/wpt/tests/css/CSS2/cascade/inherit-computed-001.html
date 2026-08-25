@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS cascading: Inherit the computed value</title>
+<link rel="help" href="http://www.w3.org/TR/CSS22/cascade.html#value-def-inherit">
+<link rel="help" href="http://www.w3.org/TR/CSS22/changes.html#s.6.2.1">
+<meta name="assert" content="Each property may also have a cascaded value of 'inherit', which means that, for a given element, the property takes as specified value the computed value of the element's parent.">
+<link rel="match" href="inherit-computed-001-ref.html">
+<link rel="author" title="Bert Bos" href="mailto:bert@w3.org">
+
+<style>
+ p {font-size: larger; border: medium solid}
+ span {font-size: inherit}
+ em {color: red; border: inherit}
+</style>
+
+<p>This line is all <span>in one font</span> size
+<em></em> and there is no red.

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: scoped fractional border shift</title>
+<link rel="help" href="https://www.w3.org/TR/css-view-transitions-2/">
+<link rel="match" href="fractional-border-shift-ref.html">
+<link rel="author" href="github.com/vmpstr">
+<script src="/common/reftest-wait.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style>
+#target {
+  width: 100.9px;
+  height: 100px;
+  position: relative;
+  top: 50px;
+  left: 50.7px;
+  border: 1px solid black;
+}
+
+::view-transition-group(*),
+::view-transition-old(*),
+::view-transition-new(*) {
+  animation-play-state: paused;
+}
+</style>
+
+<div id=target></div>
+
+<script>
+failIfNot(target.startViewTransition, "Missing element.startViewTransition");
+
+function runTest() {
+  target.startViewTransition().ready.then(takeScreenshot);
+}
+
+onload = () => waitForCompositorReady().then(runTest);
+</script>

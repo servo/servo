@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>Syncbases with tangled dependencies</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<svg viewBox="0 0 500 200" xmlns="http://www.w3.org/2000/svg">
+  <rect width="100%" height="100%" fill="none">
+    <animate id="minani" attributeName="x" fill="freeze" begin="min.click" dur="100ms" values="0; 0"/>
+    <animate id="maxani" attributeName="x" fill="freeze" begin="max.click" dur="100ms" values="0; 0"/>
+  </rect>
+  <rect id="min" width="100" height="100" fill="green">
+    <set attributeName="height" fill="freeze" begin="minani.begin" to="0"/>
+    <set attributeName="height" fill="freeze" begin="maxani.begin+0.1s" to="100"/>
+  </rect>
+  <rect id="max" x="110" width="100" height="100" fill="blue"/>
+</svg>
+<script>
+  async_test(t => {
+    let clicks = 3;
+    let min = document.querySelector("#min");
+    let max = document.querySelector("#max");
+    // Remove the visible squares once the test is finished (passes or fails).
+    t.add_cleanup(() => document.querySelector("svg").remove());
+    function round() {
+      clicks--;
+      if (clicks == 0) {
+        t.step_timeout(t.step_func_done(() => {
+          assert_equals(window.getComputedStyle(min, null).height, "100px");
+        }), 500);
+      } else
+        t.step_timeout(round, 250);
+      min.dispatchEvent(new Event("click"));
+      t.step_timeout(() => max.dispatchEvent(new Event("click")), 130);
+    }
+    t.step_timeout(round, 250);
+  });
+</script>

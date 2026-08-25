@@ -1,0 +1,23 @@
+<!doctype html>
+<html class="reftest-wait">
+<title>Test animation as children of switch elements</title>
+<link rel="match" href="../struct/reftests/reference/green-100x100.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<script>
+function test() {
+  document.getElementsByTagName('svg')[0].setCurrentTime(2);
+  waitForAtLeastOneFrame().then(takeScreenshot);
+}
+</script>
+<svg onload="test()">
+  <switch>
+    <g systemLanguage="x-xl">
+      <set xlink:href="#test" attributeName="width" begin="2s" to="0" />
+    </g>
+    <g>
+      <set xlink:href="#test" attributeName="height" begin="2s" to="100" />
+    </g>
+  </switch>
+  <rect id="test" width="100" height="0" fill="green"/>
+</svg>

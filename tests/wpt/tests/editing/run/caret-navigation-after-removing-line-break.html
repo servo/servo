@@ -1,0 +1,78 @@
+<!DOCTYPE HTML>
+<style>
+    .wrap span {
+        white-space: pre-wrap;
+    }
+</style>
+<div class="wrap">
+    <span id="initial" contenteditable="true"> abcd </span>111<span id="before" contenteditable="true"> efgh </span>222<br><span id="after" contenteditable="true"> ijkl </span>333<span id="next" contenteditable="true"> mnop </span>444<span id="last" contenteditable="true"> qrst </span>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script>
+const KEY_CODE_MAP = {
+  'ArrowLeft':  '\uE012',
+  'ArrowUp':    '\uE013',
+  'ArrowRight': '\uE014',
+  'ArrowDown':  '\uE015',
+  'Tab': '\uE004',
+  'S': '\u0053',
+};
+
+function keyPress(target, key) {
+  const code = KEY_CODE_MAP[key];
+  return test_driver.send_keys(target, code);
+}
+
+function deletebr() {
+  let el;
+  el = document.querySelector('br');
+  if (el) {
+    el.remove();
+  }
+}
+
+// Delete the <br> element so that we get a single line
+deletebr();
+
+const s = getSelection();
+promise_test(async t => {
+  initial.focus();
+  let node = initial.firstChild;
+  assert_equals(s.anchorNode, node, "Focus must be at the span with 'abcd'");
+  assert_equals(s.anchorOffset, 0, "Caret must be at the start of the 'abcd' text");
+
+  await keyPress(initial, "Tab");
+  node = before.firstChild
+  assert_equals(s.anchorNode, node, "Caret moved to span with 'efgh'");
+  assert_equals(s.anchorOffset, 0, "Caret must be at the start of the 'efgh' text");
+
+  await keyPress(before, "Tab");
+  node = after.firstChild
+  assert_equals(s.anchorNode, node, "Focus must be at the span with 'ijkl'");
+  assert_equals(s.anchorOffset, 0, "Caret must be at the start of the 'efgh' text");
+
+  await keyPress(after, "Tab");
+  node = next.firstChild
+  assert_equals(s.anchorNode, node, "Focus must be at the span with 'mnop'");
+  assert_equals(s.anchorOffset, 0, "Caret must be at the start of the 'efgh' text");
+
+}, "Navigate after deleting <br>");
+
+promise_test(async t => {
+  initial.focus();
+  await keyPress(initial, "Tab");
+  await keyPress(before, "Tab");
+  await keyPress(after, "Tab");
+  await keyPress(next, "ArrowRight");
+  await keyPress(next, "ArrowRight");
+  await keyPress(next, "ArrowRight");
+
+  await keyPress(next, "S");
+  assert_equals(next.firstChild.textContent, " mnSop ", "Inserting a 'S' char betwen 'n' and 'o'");
+}, "Insert text after deleting <br>")
+
+</script>

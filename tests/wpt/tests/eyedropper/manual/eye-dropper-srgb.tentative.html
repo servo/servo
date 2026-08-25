@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>EyeDropper API: picked color should be sRGB, not device-RGB</title>
+<style>
+#swatches {
+  display: flex;
+  gap: 16px;
+  margin-top: 16px;
+}
+.swatch {
+  width: 120px;
+  height: 120px;
+  border: 1px solid #000;
+}
+#color {
+  background: url("resources/eye_dropper_icon.svg") no-repeat;
+  width: 20px;
+  height: 20px;
+  border: 0;
+  padding: 10px;
+}
+#color:disabled {
+  visibility: hidden;
+}
+#action {
+  font-weight: bold;
+}
+.passed { color: green; font-size: x-large; }
+.failed { color: red; font-size: x-large; }
+</style>
+</head>
+<body>
+  <p>
+    The EyeDropper API must return the <b>sRGB</b> value of the sampled pixel.
+    <b>Run this on a wide-gamut (e.g. P3) display</b>, where device-RGB and sRGB
+    differ. PASS if each picked sRGBHex matches the requested swatch (±4 per
+    channel for 8-bit color-managed quantization).
+  </p>
+  <div id="action"></div>
+  <button id="color"></button>
+  <div id="swatches"></div>
+
+  <script>
+    // Saturated primaries/secondaries are the most affected by wide-gamut
+    // device-RGB mis-conversion. The swatches are picked left to right.
+    const SWATCHES = [
+      "#ff0000", "#00ff00", "#0000ff",
+      "#ffff00", "#00ffff", "#ff00ff",
+    ];
+    const TOLERANCE = 4;
+    let index = 0;
+
+    const swatchesEl = document.getElementById("swatches");
+    for (const hex of SWATCHES) {
+      const swatch = document.createElement("div");
+      swatch.className = "swatch";
+      swatch.style.backgroundColor = hex;
+      swatchesEl.appendChild(swatch);
+    }
+
+    function updateAction() {
+      action.textContent =
+        `TODO: Click the eye dropper icon, then swatch ${index + 1} of ` +
+        `${SWATCHES.length} (${SWATCHES[index]}).`;
+    }
+    updateAction();
+
+    function finish(pass, reason) {
+      const span = document.createElement("span");
+      span.textContent = pass ? "PASS" : "FAIL";
+      span.className = pass ? "passed" : "failed";
+      action.textContent = reason;
+      action.prepend(span, " ");
+      color.disabled = true;
+    }
+
+    function hexToRgb(hex) {
+      const n = parseInt(hex.slice(1), 16);
+      return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+    }
+
+    document.getElementById("color").addEventListener("click", () => {
+      const expected = hexToRgb(SWATCHES[index]);
+      new EyeDropper().open().then(result => {
+        const got = hexToRgb(result.sRGBHex);
+        if (!got.every((v, i) => Math.abs(v - expected[i]) <= TOLERANCE)) {
+          finish(false, `Picked ${result.sRGBHex}, expected ${SWATCHES[index]}.`);
+          return;
+        }
+        if (++index === SWATCHES.length) {
+          finish(true, "All swatches returned their sRGB values.");
+        } else {
+          updateAction();
+        }
+      });
+    });
+  </script>
+</body>
+</html>

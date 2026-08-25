@@ -1,0 +1,52 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset='utf-8'>
+  <title>SourceBuffer#mode with generate timestamps flag true</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id="log"></div>
+
+<script>
+var mimes = ['audio/aac', 'audio/mpeg'];
+
+//check the browser supports the MIME used in this test
+function isTypeSupported(mime) {
+    if(!MediaSource.isTypeSupported(mime)) {
+        this.step(function() {
+            assert_unreached("Browser doesn't support the MIME used in this test: " + mime);
+        });
+        this.done();
+        return false;
+    }
+    return true;
+}
+function mediaTest(mime) {
+    async_test(function(t) {
+        if(!isTypeSupported.bind(t)(mime)) {
+            return;
+        }
+        var mediaSource = new MediaSource();
+        mediaSource.addEventListener('sourceopen', t.step_func_done(function(e) {
+            var sourceBuffer = mediaSource.addSourceBuffer(mime);
+            assert_equals(sourceBuffer.updating, false, "SourceBuffer.updating is false");
+            assert_throws_js(TypeError,
+                             function() {
+                                 sourceBuffer.mode = "segments";
+                             },
+                             'SourceBuffer#mode with generate timestamps flag true');
+        }), false);
+        var video = document.createElement('video');
+        video.src = window.URL.createObjectURL(mediaSource);
+    }, mime + ' : ' +
+       'If generate timestamps flag equals true and new mode equals "segments", ' +
+       'then throw a TypeError exception and abort these steps.');
+}
+mimes.forEach(function(mime) {
+    mediaTest(mime);
+});
+</script>
+</body>
+</html>

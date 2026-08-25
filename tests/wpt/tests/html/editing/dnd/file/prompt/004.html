@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>drag &amp; drop - file drop prompt for file:</title>
+<style>
+  body > div {
+    height: 200px;
+    width: 200px;
+    background-color: orange;
+  }
+</style>
+
+<script>
+window.onload = function() {
+  if( location.protocol != 'file:' ) {
+    document.getElementsByTagName('p')[0].innerHTML = 'Save this page to your local filesystem, and load it from there.';
+    return;
+  }
+  var orange = document.getElementsByTagName('div')[0];
+  orange.ondragover = orange.ondragenter = orange.ondrop = function(e) {
+    e.preventDefault();
+  };
+};
+</script>
+
+<div></div>
+
+<p>Drag a file from your desktop onto the orange square. A prompt should appear, either showing the server name as localhost, or otherwise identifying this file as the target of the upload.</p>
+<noscript><p>Enable JavaScript and reload</p></noscript>

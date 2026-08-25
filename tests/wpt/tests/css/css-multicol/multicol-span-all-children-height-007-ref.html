@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS Multi-column Layout Test Reference: Test fragmentation for a nested multi-column container with column-span</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+
+  <style>
+  .outer {
+    column-count: 2;
+    column-fill: auto;
+    column-rule: 6px solid black;
+    width: 400px;
+    height: 110px;
+  }
+  .inner {
+    column-count: 2;
+    column-rule: 3px solid green;
+    box-sizing: border-box;
+    height: 110px;
+    background-color: lightgreen;
+    border: solid purple;
+  }
+  .block1 {
+    background-color: yellow;
+    height: 200px;
+  }
+  .spanner {
+    column-span: all;
+    height: 50px;
+    background-color: lightblue;
+  }
+  .block2 {
+    background-color: yellow;
+    height: 120px;
+  }
+  </style>
+
+  <article class="outer">
+    <article class="inner" style="border-width: 10px 10px 0;">
+      <div class="block1">block1</div>
+    </article>
+    <article class="inner" style="border-width: 0 10px;">
+      <div class="spanner">spanner</div>
+      <div class="block2">block2</div>
+    </article>
+    <article class="inner" style="border-width: 0 10px 10px; height:auto;">
+      <div class="block2"></div>
+    </article>
+  </article>
+</html>

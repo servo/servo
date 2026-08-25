@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Text Module Test: parsing text-align-all with invalid values</title>
+<link rel="help" href="https://www.w3.org/TR/css-text-3/#propdef-text-align-all">
+<meta name="assert" content="text-align-all supports only the grammar 'start | end | left | right | center | justify | match-parent'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("text-align-all", "auto");
+test_invalid_value("text-align-all", "start end");
+test_invalid_value("text-align-all", "left right");
+test_invalid_value("text-align-all", "center justify");
+test_invalid_value("text-align-all", "match-parent match-parent");
+</script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Text-decorations should be contiguous across inline box boundaries</title>
+    <link rel="author" title="Martin Robinson" href="mrobinson@igalia.com" />
+    <link rel="help" href="https://www.w3.org/TR/css-text-decor-4/#text-decoration-property" />
+    <style>
+      div {
+        font-size: 100px;
+      }
+      .test1 {
+        text-decoration: wavy red underline;
+      }
+      .test2 {
+        text-decoration: dotted red underline;
+      }
+      .test3 {
+        text-decoration: dashed red underline;
+      }
+    </style>
+  </head>
+  <body>
+    <div class=test1>foobarbaz</div>
+    <div class=test2>foobarbaz</div>
+    <div class=test3>foobarbaz</div>
+  </body>
+</html>

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://chromium-review.googlesource.com/c/chromium/src/+/4023021">
+<link rel=help href="https://github.com/whatwg/html/pull/8221#discussion_r1041135388">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="resources/popover-utils.js"></script>
+
+<button id=target>target</button>
+<div id=popover popover=auto>popover</div>
+
+<script>
+for (const capture of [true, false]) {
+  for (const eventName of ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'click']) {
+    promise_test(async t => {
+      t.add_cleanup(() => {
+        try {
+          popover.hidePopover();
+        } catch {}
+      });
+
+      popover.showPopover();
+      document.addEventListener(eventName, event => {
+        event.preventDefault();
+      }, {capture, once: true});
+      // Click away from the popover to activate light dismiss.
+      await clickOn(target);
+      assert_equals(document.querySelectorAll(':popover-open').length, 0,
+        'The popover should be closed via light dismiss even when preventDefault is called.');
+
+      popover.showPopover();
+      document.addEventListener(eventName, event => {
+        event.stopPropagation();
+      }, {capture, once: true});
+      // Click away from the popover to activate light dismiss.
+      await clickOn(target);
+      assert_equals(document.querySelectorAll(':popover-open').length, 0,
+        'The popover should be closed via light dismiss even when stopPropagation is called.');
+
+    }, `Tests the interactions between popover light dismiss and pointer/mouse events. eventName: ${eventName}, capture: ${capture}`);
+  }
+}
+
+promise_test(async t => {
+  t.add_cleanup(() => {
+    try {
+      popover.hidePopover();
+    } catch {}
+  });
+  popover.showPopover();
+
+  const expectedEvents = [
+    'pointerdown',
+    'mousedown',
+    'beforetoggle newState: closed',
+    'pointerup',
+    'mouseup',
+    'click'
+  ];
+  const events = [];
+
+  for (const eventName of ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'click']) {
+    document.addEventListener(eventName, () => events.push(eventName));
+  }
+  popover.addEventListener('beforetoggle', event => {
+    events.push('beforetoggle newState: ' + event.newState);
+  });
+
+  // Click away from the popover to activate light dismiss.
+  await clickOn(target);
+
+  assert_array_equals(events, expectedEvents,
+    'pointer and popover events should be fired in the correct order.');
+
+  assert_equals(document.querySelectorAll(':popover-open').length, 0,
+    'The popover should be closed via light dismiss.');
+
+}, 'Tests the order of pointer/mouse events during popover light dismiss.');
+</script>

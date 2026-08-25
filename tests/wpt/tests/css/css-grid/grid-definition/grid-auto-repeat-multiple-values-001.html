@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>CSS Grid Layout Test: Auto Repaeat with Multiple Tracks and Gutters</title>
+    <link rel="author" title="Yu Shen" href="shenyu.tcv@gmail.com">
+    <link rel="help" href="https://www.w3.org/TR/css-grid-1/#repeat-notation">
+    <link rel="match" href="../reference/grid-auto-repeat-multiple-values-001-ref.html">
+    <style>
+        .grid-container {
+            display: grid;
+            border: solid thick;
+            margin: 10px;
+        }
+
+        .columns {
+            grid-template-columns: repeat(auto-fill, 50px 50px);
+            grid-auto-rows: 25px;
+            grid-column-gap: 100px;
+            width: 300px;
+        }
+
+        .rows {
+            grid-auto-flow: column;
+            grid-template-rows: repeat(auto-fill, 50px 50px);
+            grid-auto-columns: 25px;
+            grid-row-gap: 100px;
+            width: min-content;
+            height: 300px;
+        }
+
+        .grid-container>div {
+            background: lime;
+        }
+    </style>
+</head>
+
+<body>
+    <p>The test passes if it has the same visual effect as reference.</p>
+    <div class="grid-container columns">
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+    </div>
+    <div class="grid-container rows">
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+    </div>
+</body>
+
+</html>

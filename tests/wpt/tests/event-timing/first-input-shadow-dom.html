@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<meta charset=utf-8 />
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+
+<body>
+<div id='container'>
+  <custom-button id='custom_button'></custom-button>
+</div>
+<script>
+promise_test(t => {
+  assert_implements(window.PerformanceEventTiming, 'Event Timing is not supported.');
+  let innerButtonClicked = false;
+  customElements.define('custom-button', class extends HTMLElement {
+    connectedCallback() {
+      this.attachShadow({mode: 'open'});
+      this.shadowRoot.innerHTML = `<button id='inner_button_id'>Click me</button>`;
+      this.shadowRoot.getElementById('inner_button_id').onpointerdown = () => {
+        innerButtonClicked = true;
+      };
+    }
+  });
+  const observerPromise = new Promise(resolve => {
+    new PerformanceObserver(t.step_func(entryList => {
+      // There must only be one first-input entry.
+      assert_equals(entryList.getEntries().length, 1);
+      // entry.target must be the shadow host due to retargetting.
+      assert_equals(entryList.getEntries()[0].target,
+          document.getElementById('custom_button'));
+      assert_true(innerButtonClicked, 'Did not reach the shadow DOM event listener!');
+      resolve();
+    })).observe({entryTypes: ['first-input']});
+  });
+  const clickPromise = test_driver.click(document.getElementById('custom_button'));
+  return Promise.all([observerPromise, clickPromise]);
+}, "Event Timing: test first input on shadow DOM.");
+</script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+<!doctype html>
+<title>Reuse Wasm loaded as classic script</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+  'use strict';
+  setup({allow_uncaught_exception: true});
+  promise_test(t => {
+    return new Promise((resolve, reject) => {
+      window.addEventListener('test_finished', resolve);
+    });
+  });
+</script>
+
+<!-- This should throw, but browsers should be able to handle the subsequent
+module import properly.
+
+This test is for Chromium https://crbug.com/425682456 while other browsers
+should also pass the test. The crossorigin attribute is added to make
+Chromium's Blink MemoryCache to use the same underlying Resource for the
+classic script here and as the Wasm module below. -->
+<script crossorigin src="./resources/exported-names.wasm"></script>
+
+<script type=module>
+import source exportedNamesSource from "./resources/exported-names.wasm";
+assert_true(exportedNamesSource instanceof WebAssembly.Module);
+assert_array_equals(WebAssembly.Module.exports(exportedNamesSource).map(({ name }) => name).sort(),
+                    ["func", "glob", "mem", "tab"]);
+window.dispatchEvent(new Event('test_finished'));
+</script>

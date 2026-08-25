@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<head>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="match" href="centered-paint-offset-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style>
+
+body { margin: 20px }
+#scope { contain: layout; text-align: center;
+  width: 200px; height: 100px; padding: 20px;
+  background: #eee; border: 20px solid #acf; }
+#scope::view-transition-group(*) { animation-play-state: paused; }
+#scope::view-transition-new(*) { animation: unset; opacity: 1; }
+#scope::view-transition-old(*) { animation: unset; opacity: 0; }
+
+</style>
+</head>
+<body>
+<div id=scope>
+</div>
+<script>
+
+failIfNot(scope.startViewTransition, "Missing element.startViewTransition");
+
+async function runTest() {
+  await waitForCompositorReady();
+  const t = scope.startViewTransition(() => {
+  });
+  await t.ready;
+  takeScreenshot();
+}
+onload = () => runTest();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-multicol-1/#column-span">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+  .ib {
+    display: inline-block;
+    vertical-align: top;
+    width: 100%;
+    height: 50px;
+    background: green;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="columns:10; width:100px; gap:0; orphans:1; widows:1; background:red;">
+  <span>
+    <div style="height:150px;">
+      <div style="height:1000px;"></div>
+      <div style="column-span:all; margin-top:-100px; height:50px; background:green;"></div>
+    </div>
+  </span>
+  <div class="ib"></div>
+  <div class="ib"></div>
+  <div class="ib"></div>
+  <div class="ib"></div>
+  <div class="ib"></div>
+  <div class="ib"></div>
+  <div class="ib"></div>
+  <div class="ib"></div>
+  <div class="ib"></div>
+  <div class="ib"></div>
+</div>

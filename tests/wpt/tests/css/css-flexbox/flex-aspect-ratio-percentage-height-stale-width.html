@@ -1,0 +1,29 @@
+<title>CSS Flexbox: percentage height of descendant must not resolve against stale logical width when flex container has aspect-ratio</title>
+<link rel="help" href="https://www.w3.org/TR/css-sizing-4/#aspect-ratio">
+<link rel="help" href="https://www.w3.org/TR/css-flexbox-1/">
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=315334">
+<link rel="match" href="reference/flex-aspect-ratio-percentage-height-stale-width-ref.html">
+<meta name="assert" content="Changing an ancestor's inline size must not change a flex container with aspect-ratio's block size. The aspect-ratio block-size derivation must use the current layout's logical width, not a stale value carried from a previous layout."/>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+#ancestor {
+    width: 100px;
+    font: 20px/1 Ahem;
+    color: green;
+}
+</style>
+
+<div id="ancestor">
+    <div style="display: flex">
+        <div style="display: flex; aspect-ratio: 1">
+            <div>
+                <div style="height: 100%; aspect-ratio: 2; background: green">X</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+ancestor.offsetHeight;
+ancestor.style.width = "200px";
+</script>

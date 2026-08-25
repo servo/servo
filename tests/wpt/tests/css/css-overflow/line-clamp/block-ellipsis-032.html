@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: block-ellipsis after hanging whitespacce</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#block-ellipsis">
+<link rel="match" href="reference/block-ellipsis-032-ref.html">
+<meta name="assert" content="If the block-ellipsis soft wrap opportunity is preceded by hangable whitespace, it is removed before placing the ellipsis.">
+<style>
+.clamp {
+  line-clamp: 1;
+  border: 1px solid black;
+  font-family: monospace;
+  margin-bottom: 1em;
+  /* The non-hanging text in the first line is 22 to 26ch, plus 1ch for the ellipsis. The hanging whitespace is extra 8ch */
+  width: 29ch;
+}
+.right {
+    text-align: right;
+}
+.justified {
+    text-align: justify;
+}
+.green {
+    color: green;
+    font-weight: bold;
+}
+.hangs {
+    white-space: pre-wrap;
+    background-color: red;
+}
+</style>
+
+<p>Test passes if the text in the following blocks, including the ellipsis, is aligned to the proper
+margin, and if they all have some green text and no red.</p>
+
+<div class="clamp">
+    This text is <span class="green">left-aligned</span><span class="hangs">        </span>Clamped
+</div>
+<div class="clamp right">
+    This text is <span class="green">right-aligned</span><span class="hangs">        </span>Clamped
+</div>
+<div class="clamp justified">
+    This text is <span class="green">justified</span><span class="hangs">        </span>Clamped
+</div>

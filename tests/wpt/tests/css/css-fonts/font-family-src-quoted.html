@@ -1,0 +1,74 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset=utf-8>
+<link rel="author" title="Myles C. Maxfield" href="mailto:mmaxfield@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#font-face-src-formats" />
+<meta name="assert" content="Tests that local() and url() in serialization of @font-face blocks are quoted"/>
+<script type="text/javascript" src="/resources/testharness.js"></script>
+<script type="text/javascript" src="/resources/testharnessreport.js"></script>
+<style id="style">
+/* 0 */
+@font-face {
+    font-family: "A";
+    src: local("B");
+}
+/* 1 */
+@font-face {
+    font-family: "C";
+    src: url("D") format("opentype");
+}
+/* 2 */
+@font-face {
+    font-family: "E";
+    src: url("F") format("opentype");
+}
+/* 3 */
+@font-face {
+    font-family: "M";
+    src: url("N\"O") format("opentype");
+}
+/* 4 */
+@font-face {
+    font-family: "P";
+    src: url("Q\A R") format("opentype");
+}
+/* 5 */
+@font-face {
+    font-family: "S";
+    src: url("T\\U") format("opentype");
+}
+/* 6 */
+@font-face {
+    font-family: "V";
+    src: local("W\"X");
+}
+/* 7 */
+@font-face {
+    font-family: "Y";
+    src: local("Z\A A");
+}
+/* 8 */
+@font-face {
+    font-family: "B";
+    src: local("C\\D");
+}
+</style>
+</head>
+<body>
+<script>
+test(function(t) {
+    let rules = document.getElementById("style").sheet.cssRules;
+    assert_not_equals(rules[0].cssText.indexOf('local("B")'), -1);
+    assert_not_equals(rules[1].cssText.indexOf('opentype'), -1);
+    assert_not_equals(rules[2].cssText.indexOf('F")'), -1);
+    assert_not_equals(rules[3].cssText.indexOf('url(\"N\\\"O\")'), -1);
+    assert_not_equals(rules[4].cssText.indexOf('url(\"Q\\a R\")'), -1);
+    assert_not_equals(rules[5].cssText.indexOf('url(\"T\\\\U\")'), -1);
+    assert_not_equals(rules[6].cssText.indexOf('local(\"W\\\"X\")'), -1);
+    assert_not_equals(rules[7].cssText.indexOf('local(\"Z\\a A\")'), -1);
+    assert_not_equals(rules[8].cssText.indexOf('local(\"C\\\\D\")'), -1);
+});
+</script>
+</body>
+</html>

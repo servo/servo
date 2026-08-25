@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<style>
+.test {
+  width: 200px;
+  overflow: hidden;
+}
+
+.float {
+  float: left;
+  width: 50%;
+  height: 100px;
+
+  background: orange;
+  clip-path: polygon(0 0, 100% 100%, 0 100%);
+}
+
+.flex {
+  display: flex;
+  height: 50px;
+  background: rebeccapurple;
+}
+</style>
+<div class="test">
+  <div class="float"></div>
+  <div class="flex"></div>
+</div>

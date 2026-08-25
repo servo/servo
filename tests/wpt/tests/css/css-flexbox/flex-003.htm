@@ -1,0 +1,53 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD//XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Comparing two different elements using different values for the 'flex-grow' sub-property on the 'flex' shorthand</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#flex-property" />
+        <link rel="match" href="reference/justify-content-001-ref.html">
+        <meta name="assert" content="This test checks that the flex items with a different flex grow factor have different flexibilities."/>
+        <style type="text/css">
+            div
+            {
+                height: 50px;
+            }
+            #flexbox
+            {
+                background-color: red;
+                display: flex;
+                width: 300px;
+            }
+            #flexItem1
+            {
+                flex: 1 0 auto;
+                width: 100px;
+            }
+            #flexItem2
+            {
+                flex: 2 0 auto;
+                width: 50px;
+            }
+            #flexItem1, #ref1
+            {
+                background-color: blue;
+            }
+            #flexItem2, #ref2
+            {
+                background-color: orange;
+            }
+            #ref1, #ref2
+            {
+                display: inline-block;
+                width: 150px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a single blue rectangle on the left, a single orange rectangle directly to its right, and there is no red visible on the page.</p>
+        <div id="flexbox">
+            <div id="flexItem1"></div>
+            <div id="flexItem2"></div>
+        </div>
+        <div id="ref1"></div><div id="ref2"></div>
+    </body>
+</html>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Decoration Test: Parsing text-decoration-skip-spaces with invalid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-skip-spaces-property">
+<meta name="assert" content="text-decoration-skip-spaces supports only the grammar 'none | all | [ start || end ]'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+test_invalid_value("text-decoration-skip-spaces", "none start");
+test_invalid_value("text-decoration-skip-spaces", "none end");
+test_invalid_value("text-decoration-skip-spaces", "none all");
+test_invalid_value("text-decoration-skip-spaces", "start none");
+test_invalid_value("text-decoration-skip-spaces", "all start");
+test_invalid_value("text-decoration-skip-spaces", "all end");
+test_invalid_value("text-decoration-skip-spaces", "start all");
+test_invalid_value("text-decoration-skip-spaces", "end all");
+test_invalid_value("text-decoration-skip-spaces", "start end all");
+test_invalid_value("text-decoration-skip-spaces", "auto");
+test_invalid_value("text-decoration-skip-spaces", "underline");
+test_invalid_value("text-decoration-skip-spaces", "edges");
+test_invalid_value("text-decoration-skip-spaces", "box-decoration");
+test_invalid_value("text-decoration-skip-spaces", "10px");
+test_invalid_value("text-decoration-skip-spaces", "20%");
+test_invalid_value("text-decoration-skip-spaces", "0");
+test_invalid_value("text-decoration-skip-spaces", "star");
+test_invalid_value("text-decoration-skip-spaces", "ends");
+test_invalid_value("text-decoration-skip-spaces", "invalid");
+</script>

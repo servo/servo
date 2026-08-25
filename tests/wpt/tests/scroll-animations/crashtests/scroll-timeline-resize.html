@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<title>This test passes if it does not crash when resizing the scroller</title>
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/">
+<script src="/web-animations/testcommon.js"></script>
+<style>
+@keyframes scrolling {
+  from, to { background: lightblue; }
+}
+#box {
+  width: 200px;
+  height: 50px;
+  overflow: auto;
+  animation: scrolling;
+  animation-timeline: scroll(self);
+}
+</style>
+<body onload="run()">
+  <div id="box">
+    <h3>Resize this box!</h3>
+    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer finibus elit sed ultricies semper. Proin faucibus sollicitudin nisi, id pellentesque lectus iaculis id.</p>
+  </div>
+</body>
+<script>
+async function run() {
+  let anims = document.getAnimations();
+  if (anims.length == 0) {
+    // Make this timeout.
+    return;
+  }
+  await anims[0].ready;
+  // Wait for some frames to wait for the setup of compositor animations.
+  await waitForAnimationFrames(2);
+  box.style.height = "200px";
+  await waitForAnimationFrames(2);
+  document.documentElement.className = "";
+}
+</script>

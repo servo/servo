@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<title>CSS Fonts - reference</title>
+<link rel="author" title="Jonathan Kew" href="jkew@mozilla.com">
+<meta charset="utf-8">
+
+<style>
+@font-face {
+  font-family: test;
+  font-weight: 900;
+  src: url(resources/Inter.var.subset.ttf);
+}
+div {
+  font: 32px test;
+  position: absolute;
+  margin: 1em;
+}
+.heavy {
+  background: green;
+  color: green;
+  font-weight: 900;
+}
+</style>
+
+Test passes if there is a green rectangle and <strong>no red</strong>:
+
+<div class=heavy>
+aaaaaaaaaaaaaaaaaaaaaaaaaaaa
+</div>

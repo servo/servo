@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTMLTextAreaElement Test: select()</title>
+<link rel="author" title="Intel" href="http://www.intel.com/">
+<meta name="flags" content="interact">
+
+<p>Test passes if content of the input area is selected</p>
+
+<textarea id="test_obj">1234567</textarea>
+<script>
+var textarea = document.querySelector("#test_obj");
+textarea.select();
+</script>

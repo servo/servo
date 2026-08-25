@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api-1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/utils.js"></script>
+<div id="target"></div>
+<script>
+
+test(() => {
+    const customProperty = generate_name();
+    CSS.registerProperty({
+      name: customProperty,
+      syntax: "<number>",
+      inherits: false,
+      initialValue: "1"
+    });
+
+    // Create transitions for our custom property with
+    // a longer list of transition-duration values.
+    const target = document.getElementById("target");
+    target.style.transitionProperty = customProperty;
+    target.style.transitionDuration = "100s, 200s";
+
+    // Trigger a style change by getting the custom property
+    // value from the computed style.
+    getComputedStyle(target).getPropertyValue(customProperty);
+
+    // Set a new value for the custom property, which will yield a
+    // transition.
+    target.style.setProperty(customProperty, "2");
+    const animations = target.getAnimations();
+    assert_equals(animations.length, 1, "A single transition was generated");
+
+    const transition = animations[0];
+    assert_class_string(transition, "CSSTransition", "A CSSTransition is running");
+    assert_equals(transition.transitionProperty, customProperty);
+}, 'Using a single "transition-property" value set to a custom property and two "transition-duration" values correctly yields a CSS Transition.');
+
+</script>

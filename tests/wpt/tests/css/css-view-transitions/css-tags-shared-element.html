@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: use css tags for shared elements</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<link rel="match" href="css-tags-shared-element-ref.html">
+
+<script src="/common/reftest-wait.js"></script>
+<style>
+div { contain: paint; }
+#left {
+  background: green;
+  width: 100px;
+  height: 100px;
+  position: absolute;
+  top: 50px;
+  left: 50px;
+}
+#right {
+  width: 50px;
+  height: 50px;
+  background: blue;
+  position: absolute;
+  top: 50px;
+  left: 250px;
+}
+.left-tag {
+  view-transition-name: left-element;
+}
+.right-tag {
+  view-transition-name: right-element;
+}
+
+.hidden {
+  background: pink;
+  width: 10px;
+  height: 10px;
+  view-transition-name: hidden;
+}
+
+html::view-transition-group(hidden) { animation-duration: 300s; }
+html::view-transition-image-pair(hidden) { animation: unset; opacity: 0; }
+
+html::view-transition-group(left-element),
+html::view-transition-group(right-element) { animation-duration: 0s; }
+
+html::view-transition-new(left-element),
+html::view-transition-new(right-element) { animation: unset; opacity: 0; }
+
+html::view-transition-old(left-element),
+html::view-transition-old(right-element) { animation: unset; opacity: 1; }
+
+html::view-transition-group(root) { animation: unset; opacity: 0; }
+html::view-transition { background: lightpink; }
+
+</style>
+
+<div id=left class="left-tag"></div>
+<div id=right class="right-tag"></div>
+
+<div id=hidden class=hidden></div>
+
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+async function runTest() {
+  document.startViewTransition(() => {
+    left.classList.remove("left-tag");
+    left.classList.add("right-tag");
+
+    right.classList.remove("right-tag");
+    right.classList.add("left-tag");
+
+    requestAnimationFrame(() => requestAnimationFrame(takeScreenshot))
+  });
+}
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+

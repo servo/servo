@@ -1,0 +1,8 @@
+[package]
+name = "test"
+version = "0.0.1"
+license = "MPL-2.0"
+publish = false
+
+[dependencies]
+test-package = { path = "../crate" }

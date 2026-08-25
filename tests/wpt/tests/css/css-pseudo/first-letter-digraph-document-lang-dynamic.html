@@ -1,0 +1,29 @@
+<!doctype html>
+<html class="reftest-wait" lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>CSS Test: ::first-letter Dutch 'ij' digraph reacts to dynamic lang change on the document element</title>
+  <link rel="match" href="reference/first-letter-digraph-document-lang-dynamic-ref.html">
+  <link rel="help" href="https://drafts.csswg.org/selectors-3/#first-letter">
+  <meta name="assert" content="Changing the lang attribute on the document element updates the locale used by ::first-letter for descendants that inherit the language.">
+  <style>
+  div { font-size: 32px; }
+  div p { margin: 0; color: lightgray; }
+  div p::first-letter { color: green; }
+  </style>
+  <script>
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      document.documentElement.setAttribute("lang", "nl");
+      document.documentElement.classList.remove("reftest-wait");
+    });
+  });
+  </script>
+</head>
+<body>
+  <p>Test passes if both "I" and "J" are green:</p>
+  <div>
+    <p>ijsselmeer</p>
+  </div>
+</body>
+</html>

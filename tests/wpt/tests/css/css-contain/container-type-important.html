@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Containers: !important flag parsing</title>
+    <link rel="help" href="https://crbug.com/343249146">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div id="target" style="container-type: size !important">Some text.</div>
+  </body>
+  <script>
+test(() => {
+  assert_equals(target.style.containerType, 'size');
+});
+  </script>
+</html>

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+'use strict';
+
+promise_test(async (t) => {
+  t.add_cleanup(async () => {
+    await test_driver.clear_display_features();
+  });
+
+  // There is always one segment the dimension of the viewport.
+  assert_true(matchMedia('(horizontal-viewport-segments: 1)').matches);
+  assert_true(matchMedia('(vertical-viewport-segments: 1)').matches);
+
+  assert_false(matchMedia('(horizontal-viewport-segments: 2)').matches);
+  assert_false(matchMedia('(vertical-viewport-segments: 2)').matches);
+
+  const horizontalViewportSegmentsMQL = window.matchMedia('(horizontal-viewport-segments: 2)');
+  const verticalViewportSegmentsMQL = window.matchMedia('(vertical-viewport-segments: 2)');
+  let promise = new Promise(resolve => {
+    horizontalViewportSegmentsMQL.addEventListener(
+      'change',
+      () => { resolve(horizontalViewportSegmentsMQL.matches); },
+      { once: true }
+    );
+  });
+  await test_driver.set_display_features([{
+    orientation: 'vertical', maskLength: 20, offset: 20
+  }]);
+  assert_true(await promise, 'The horizontal viewport segments media query should match.');
+
+  promise = new Promise(resolve => {
+    verticalViewportSegmentsMQL.addEventListener(
+      'change',
+      () => { resolve(verticalViewportSegmentsMQL.matches); },
+      { once: true }
+    );
+  });
+  await test_driver.set_display_features([{
+    orientation: 'horizontal', maskLength: 20, offset: 20
+  }]);
+  assert_true(await promise, 'The vertical viewport segments media query should match.');
+}, 'Tests the Viewport Segments Media Query change event handler.');
+</script>
+</head>
+<body>
+</body>
+</html>

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+
+<title>CSS Container Queries Test: style() query with root-relative units for registered custom property</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#style-container">
+<link rel="author" title="Kiet Ho" href="mailto:kiet.ho@apple.com">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+
+<style>
+  @property --length {
+    syntax: "<length>";
+    initial-value: 0px;
+    inherits: false;
+  }
+
+  :root, body {
+    font-size: 16px;
+    line-height: 20px;
+  }
+
+  #container {
+    --length: 100px;
+  }
+
+  #t1, #t2, #t3, #t4 { color: red; }
+
+  @container style(--length: 10rem) {
+    #t1 { color: green; }
+  }
+
+  @container style(--length: 10rlh) {
+    #t2 { color: green; }
+  }
+
+  @container style(--length: 10vb) {
+    #t3 { color: green; }
+  }
+
+  @container style(--length: 10vi) {
+    #t4 { color: green; }
+  }
+</style>
+<div id="container">
+  <div id="t1">Target 1: rem</div>
+  <div id="t2">Target 2: rlh</div>
+  <div id="t3">Target 3: vb</div>
+  <div id="t4">Target 4: vi</div>
+</div>
+<script>
+  test(() => assert_implements_style_container_queries());
+
+  test(() => {
+    assert_equals(getComputedStyle(t1).color, "rgb(255, 0, 0)", "color before");
+    document.documentElement.style.fontSize = "10px";
+    assert_equals(getComputedStyle(t1).color, "rgb(0, 128, 0)", "color after");
+  }, "rem in container style queries responds to root font size change");
+
+  test(() => {
+    assert_equals(getComputedStyle(t2).color, "rgb(255, 0, 0)", "color before");
+    document.documentElement.style.lineHeight = "10px";
+    assert_equals(getComputedStyle(t2).color, "rgb(0, 128, 0)", "color after");
+  }, "rlh in container style queries responds to root line height change");
+
+  test(() => {
+    container.style.setProperty("--length", "10vw");
+    container.style.writingMode = "horizontal-tb";
+
+    assert_equals(getComputedStyle(t3).color, "rgb(255, 0, 0)", "In horizontal-tb mode, vb doesn't match vw");
+    assert_equals(getComputedStyle(t4).color, "rgb(0, 128, 0)", "In horizontal-tb mode, vi matches vw");
+
+    container.style.writingMode = "vertical-rl";
+
+    assert_equals(getComputedStyle(t3).color, "rgb(0, 128, 0)", "In vertical-rl mode, vb matches vw");
+    assert_equals(getComputedStyle(t4).color, "rgb(255, 0, 0)", "In vertical-rl mode, vi doesn't match vw");
+  }, "vi, vb in container style queries respond to root writing mode change");
+</script>

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Sizing of an empty grid within a flexbox</title>
+<link rel="author" title="Ethan Jimenez" href="mailto:ethavar@microsoft.com"/>
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1246609">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="Checks that the intrinsic sizes of an empty grid are correctly computed.">
+<style>
+  .flex {
+    display: flex;
+    width: 100px;
+    height: 100px;
+    background-color: red;
+  }
+
+  .flex-item {
+    width: 50px;
+    background-color: green;
+  }
+
+  .empty-grid {
+    display: grid;
+    grid-gap: 50px;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div class="flex">
+  <div class="flex-item"></div>
+  <div class="empty-grid"></div>
+  <div class="flex-item"></div>
+</div>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>Cross-document navigation with view transition</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-navigation-1/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  promise_test(async (t) => {
+    await new Promise(r => window.onload = () => t.step_timeout(r, 0));
+    let child = document.createElement("iframe");
+    child.src = "resources/crossdoc-002-helper.html";
+    document.documentElement.appendChild(child);
+    await new Promise(r => child.contentWindow.onload = () => t.step_timeout(r, 0));
+    child.contentWindow.postMessage("navigate");
+
+    let data;
+    do {
+      const message = await new Promise(resolve => window.addEventListener("message", resolve));
+      data = message.data;
+      if (data.msg == "FAIL-NO-VT") {
+        assert_true(false, "FAIL: No view transition active");
+        break;
+      }
+      assert_false(data.match.from, `"From" route should never match in this test, but did for ${data.msg}`);
+      switch (data.msg) {
+      case "source.swap":
+      case "target.start":
+      case "target.load":
+        assert_true(data.match.to, data.msg);
+        break;
+      case "target.done":
+        assert_false(data.match.to, data.msg);
+        break;
+      }
+    } while (data.msg != "target.done");
+  }, "Go to matching route, with view transition");
+</script>

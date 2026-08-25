@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/webxr_util.js"></script>
+<script src="../resources/webxr_test_asserts.js"></script>
+<script src="../resources/webxr_test_constants.js"></script>
+<script src="../resources/webxr_test_constants_fake_world.js"></script>
+
+<script>
+
+// 1m above world origin.
+const VIEWER_ORIGIN_TRANSFORM = {
+  position: [0, 1, 0],
+  orientation: [0, 0, 0, 1],
+};
+
+const fakeDeviceInitParams = {
+  supportedModes: ["immersive-ar"],
+  views: VALID_VIEWS,
+  supportedFeatures: ALL_FEATURES,
+  viewerOrigin: VIEWER_ORIGIN_TRANSFORM,
+};
+
+// All test cases require anchors.
+const sessionInit = { 'requiredFeatures': ['anchors'] };
+
+// Create an anchor, move it and verify that new pose gets propagated to the caller.
+const anchorCreateAndMove = function(session, fakeDeviceController, t) {
+  const debug = xr_debug.bind(this, 'anchorCreateAndMove');
+
+  let anchorController = null;
+  fakeDeviceController.setAnchorCreationCallback((parameters, controller) => {
+      anchorController = controller;
+      return Promise.resolve(true);
+  });
+
+  const watcherDone = new Event("watcherdone");
+  const eventWatcher = new EventWatcher(t, session, ["watcherdone"]);
+  const eventPromise = eventWatcher.wait_for(["watcherdone"]);
+
+  session.requestReferenceSpace('local').then((localRefSpace) => {
+    debug("requesting animation frame");
+
+    session.requestAnimationFrame((time, frame) => {
+      debug("rAF 1");
+
+      let createdAnchor = null;
+      frame.createAnchor(new XRRigidTransform(), localRefSpace)
+        .then((anchor) => {
+          createdAnchor = anchor;
+        });
+
+      session.requestAnimationFrame((time_2, frame_2) => {
+        debug("rAF 2");
+
+        const pre_move_pose = frame_2.getPose(createdAnchor.anchorSpace, localRefSpace);
+
+        t.step(() => {
+          assert_true(frame_2.trackedAnchors.has(createdAnchor),
+                      "Newly created anchor must be in tracked anchors set on subsequent RAF (2)!");
+          // We have created an anchor with an identity pose relative to local space and have not moved it yet:
+          assert_matrix_approx_equals(pre_move_pose.transform.matrix,
+                                      IDENTITY_MATRIX, FLOAT_EPSILON);
+        });
+
+        anchorController.setAnchorOrigin(VALID_POSE_TRANSFORM);
+
+        session.requestAnimationFrame((time_3, frame_3) => {
+          debug("rAF 3");
+
+          const post_move_pose = frame_3.getPose(createdAnchor.anchorSpace, localRefSpace);
+
+          t.step(() => {
+            assert_true(frame_3.trackedAnchors.has(createdAnchor),
+                        "Newly created anchor must be in tracked anchors set on subsequent RAF (3)!");
+            // The anchor was moved by VALID_POSE_TRANSFORM, validate that its pose got adjusted:
+            assert_matrix_approx_equals(post_move_pose.transform.matrix,
+                                        VALID_POSE_MATRIX, FLOAT_EPSILON);
+          });
+
+          session.dispatchEvent(watcherDone);
+        });
+      });
+    });
+  }); // session.requestReferenceSpace(...).then({...});
+
+  return eventPromise;
+};
+
+xr_session_promise_test(
+  "Ensures free-floating anchor move gets propagated to anchor poses",
+  anchorCreateAndMove, fakeDeviceInitParams, 'immersive-ar', sessionInit);
+
+</script>

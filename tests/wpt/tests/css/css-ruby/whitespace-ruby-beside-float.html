@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<title>RUBY with only whitespace inside, before float, inside container with large text-indent</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://issues.chromium.org/issues/510947981">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="display:flow-root; width:100px; text-indent:100px; background:red;">
+  <ruby> </ruby>
+  <div style="float:left; width:100px; height:100px; background:green;"></div>
+</div>

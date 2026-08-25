@@ -1,0 +1,19 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+ <head>
+  <title>CSS Test: CSS Inline Box Model: Layering Model</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/inline/002.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#inline-boxes" />
+  <link rel="match" href="inlines-002-ref.xht" />
+
+  <style type="text/css">
+   span { background: red; padding: 0.5em 0; }
+   strong { font: inherit; border: 0.5em solid green; background: white; }
+  </style>
+ </head>
+ <body>
+  <p><span><strong>This should have a green border.</strong></span></p>
+ </body>
+</html>

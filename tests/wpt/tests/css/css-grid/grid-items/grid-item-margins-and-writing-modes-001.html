@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<title>CSS Grid: Grid items and logical margins</title>
+<link rel="author" title="Javier Fernandez" href="mailto:jfernandez@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#propdef-grid-template-columns">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#propdef-grid-column">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#propdef-grid-row">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#grid-items">
+<link rel="match" href="grid-item-margins-and-writing-modes-001-ref.html">
+<meta name="assert" content="This test ensures that the border, margin, and padding
+combining with RTL direction and different writing-modes generate the proper layout."/>
+<link href="/css/support/grid.css" rel="stylesheet">
+<link href="/fonts/ahem.css"  rel="stylesheet"/>
+<style>
+.grid {
+    grid-template-columns: 80px;
+}
+
+.block {
+    background-color: grey;
+    width: 80px;
+    height: 80px;
+    position: relative;
+    margin-bottom: 5px;
+    border: 1px solid;
+}
+
+.item {
+    font: 15px/1 Ahem;
+    background-color: green;
+    grid-column: 1 / 2;
+    grid-row: 1 / 2;
+    width: 40px;
+    height: 20px;
+    margin: 4px 8px 12px 16px;
+}
+</style>
+
+<body>
+    <div class="grid block">
+        <div class="item">X</div>
+    </div>
+    <div class="grid block verticalRL">
+        <div class="item">X</div>
+    </div>
+    <div class="grid block verticalLR">
+        <div class="item">X</div>
+    </div>
+    <div class="grid block directionRTL">
+        <div class="item">X</div>
+    </div>
+    <div class="grid block directionRTL verticalRL">
+        <div class="item">X</div>
+    </div>
+    <div class="grid block directionRTL verticalLR">
+        <div class="item">X</div>
+    </div>
+</body>
+
+</body>
+</html>

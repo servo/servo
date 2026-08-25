@@ -1,0 +1,59 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>pointer-events: auto descendant correctly targets scrolls</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<style>
+  body {
+    height: 200vh;
+  }
+
+  #overlay {
+    overflow: auto;
+    height: 300px;
+    border: 2px solid blue;
+    pointer-events: none;
+  }
+
+  #scrollable {
+    background: white;
+    border: 3px solid green;
+    height: 150px;
+    /* pointer-events: auto; should allow scrolling over this element. */
+    pointer-events: auto;
+  }
+
+  #spacer {
+    height: 200vh;
+  }
+
+</style>
+
+<body id="body">
+  <div id="overlay">
+    <div id="scrollable"></div>
+    <div id="spacer"></div>
+  </div>
+</body>
+<script>
+  promise_test(async (t) => {
+    let scrolled = new Promise((resolve) => {
+      let scrollers = [window, document.getElementById("overlay")];
+      let onscroll = (evt) => {
+        for (const scroller of scrollers) {
+          scroller.removeEventListener("scroll", onscroll);
+        }
+        resolve(evt.target.id || "root");
+      }
+      for (const scroller of scrollers) {
+        scroller.addEventListener("scroll", onscroll);
+      }
+    });
+    const actions = new test_driver.Actions().scroll(50, 50, 0, 50, { duration: 50 });
+    actions.send();
+    assert_equals(await scrolled, "overlay", "Incorrect element scrolled");
+  }, "Wheel-scroll over pointer-events: auto descendant scrolls pointer-events: none scroller.");
+</script>

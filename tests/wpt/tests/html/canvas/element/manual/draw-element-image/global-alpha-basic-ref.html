@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<title>Canvas.drawElementImage: compositing op green rect (ref)</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<link rel="author" href="mailto:schenney@chromium.org">
+<style>
+#canvas {
+  background: grey;
+}
+</style>
+
+<canvas id=canvas width="200" height="200" layoutsubtree>
+</canvas>
+
+<script>
+function runTest() {
+  var context = canvas.getContext("2d");
+  context.fillStyle = "blue";
+  context.fillRect(70, 80, 110, 100);
+  context.fillStyle = "green";
+  context.globalAlpha = 0.5;
+  context.fillRect(20, 30, 100, 100);
+}
+
+onload = () => runTest();
+
+</script>
+</html>

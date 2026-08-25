@@ -1,0 +1,150 @@
+#data
+&
+#errors
+#document-fragment
+| "&"
+
+#data
+&amp
+#errors
+#document-fragment
+| "&"
+
+#data
+&amp;
+#errors
+#document-fragment
+| "&"
+
+#data
+&AMP;
+#errors
+#document-fragment
+| "&"
+
+#data
+&lt;
+#errors
+#document-fragment
+| "<"
+
+#data
+&gt;
+#errors
+#document-fragment
+| ">"
+
+#data
+a&lrm;b
+#errors
+#document-fragment
+| "a\u200Eb"
+
+#data
+a&rlm;b
+#errors
+#document-fragment
+| "a\u200Fb"
+
+#data
+&quot;
+#errors
+#document-fragment
+| "\u0022"
+
+#data
+&nbsp;
+#errors
+#document-fragment
+| "\u00A0"
+
+#data
+&copy;
+#errors
+#document-fragment
+| "\u00A9"
+
+#data
+&&
+#errors
+#document-fragment
+| "&&"
+
+#data
+&1
+#errors
+#document-fragment
+| "&1"
+
+#data
+&1;
+#errors
+#document-fragment
+| "&1;"
+
+#data
+&<
+#errors
+#document-fragment
+| "&"
+
+#data
+&<c
+#errors
+#document-fragment
+| "&"
+| <span>
+
+#data
+&#32;
+#errors
+#document-fragment
+| " "
+
+#data
+&#x20;
+#errors
+#document-fragment
+| " "
+
+#data
+&;
+#errors
+#document-fragment
+| "&;"
+
+#data
+&ClockwiseContourIntegral;
+#errors
+#document-fragment
+| "\u2232"
+
+#data
+&nsubE;
+#errors
+#document-fragment
+| "\u2AC5\u0338"
+
+#data
+&notin;
+#errors
+#document-fragment
+| "\u2209"
+
+#data
+&not;
+#errors
+#document-fragment
+| "\u00AC"
+
+#data
+&not
+#errors
+#document-fragment
+| "\u00AC"
+
+#data
+&notit;
+#errors
+#document-fragment
+| "\u00ACit;"

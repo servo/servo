@@ -1,0 +1,114 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Scrollbars: scrollbar-width on scrollable areas correctly interacts with ::-webkit-scrollbar on container</title>
+<link rel="author" title="Luke Warlow" href="mailto:luke@warlow.dev" />
+<link rel="help" href="https://drafts.csswg.org/css-scrollbars-1/#width-compat" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<style>
+  .container {
+    overflow: auto;
+    height: 200px;
+    width: 200px;
+    margin: 1px;
+    padding: 0px;
+    border: none;
+    background: deepskyblue;
+  }
+
+  .content {
+    height: 300px;
+    width: 100%;
+    background: lightsalmon;
+  }
+
+  .container.auto {
+    scrollbar-width: auto;
+  }
+
+  .container.auto::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* This is so that browsers that don't implement the WebKit prefix still pass the test */
+  @supports not selector(::-webkit-scrollbar) {
+    .container.auto {
+      overflow: hidden;
+    }
+  }
+
+  .container.thin {
+    scrollbar-width: thin;
+  }
+
+  .container.thin::-webkit-scrollbar {
+    display: none;
+  }
+
+  .container.none {
+    scrollbar-width: none;
+  }
+
+  .container.none::-webkit-scrollbar {
+    width: 20px;
+    background-color: lightgray;
+  }
+</style>
+<script>
+  function performTest() {
+    setup({ explicit_done: true });
+
+    // ltr
+
+    test(function () {
+      let container = document.getElementById('container_auto');
+      let content = document.getElementById('content_auto');
+      assert_equals(container.scrollWidth, 200, "auto scrollWidth");
+      assert_equals(container.clientWidth, 200, "auto clientWidth");
+      assert_equals(container.offsetLeft, content.offsetLeft, "auto offsetLeft");
+      assert_equals(container.clientWidth, content.clientWidth, "auto clientWidth");
+      assert_equals(container.offsetWidth, content.offsetWidth, "auto offsetWidth");
+    }, "scrollbar-width auto defers to ::-webkit-scrollbar");
+
+    test(function () {
+      let container = document.getElementById('container_thin');
+      let content = document.getElementById('content_thin');
+      assert_less_than(container.scrollWidth, container.offsetWidth, "thin scrollWidth");
+      assert_less_than(container.clientWidth, container.offsetWidth, "thin clientWidth");
+      assert_equals(container.offsetLeft, content.offsetLeft, "thin offsetLeft");
+      assert_equals(container.clientWidth, content.clientWidth, "thin clientWidth");
+      assert_not_equals(container.offsetWidth, content.offsetWidth, "thin offsetWidth");
+    }, "scrollbar-width thin overrides ::-webkit-scrollbar");
+
+    test(function () {
+      let container = document.getElementById('container_none');
+      let content = document.getElementById('content_none');
+      assert_equals(container.scrollWidth, 200, "none scrollWidth");
+      assert_equals(container.clientWidth, 200, "none clientWidth");
+      assert_equals(container.offsetLeft, content.offsetLeft, "none offsetLeft");
+      assert_equals(container.clientWidth, content.clientWidth, "none clientWidth");
+      assert_equals(container.offsetWidth, content.offsetWidth, "none offsetWidth");
+    }, "scrollbar-width none overrides ::-webkit-scrollbar");
+
+    done();
+  }
+</script>
+
+<body onload="performTest()">
+
+  Test scrollbar-width: vertical scrollbar
+
+  <div class="container auto" id="container_auto">
+    <div class="content" id="content_auto">auto</div>
+  </div>
+
+  <div class="container thin" id="container_thin">
+    <div class="content" id="content_thin">thin</div>
+  </div>
+
+  <div class="container none" id="container_none">
+    <div class="content" id="content_none">none</div>
+  </div>
+
+</body>

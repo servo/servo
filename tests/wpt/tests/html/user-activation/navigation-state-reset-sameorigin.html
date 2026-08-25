@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+  </head>
+  <body>
+    <h1>Post-navigation activation state in child</h1>
+    <p>
+      Tests that navigating a same-origin child frame resets its activation
+      states.
+    </p>
+    <ol id="instructions">
+      <li>Click inside the yellow area.</li>
+    </ol>
+
+    <iframe id="child" width="200" height="50"> </iframe>
+    <script>
+      function message(type) {
+        return new Promise((resolve) => {
+          window.addEventListener("message", function listener(event) {
+            const data = JSON.parse(event.data);
+            if (data.type === type) {
+              window.removeEventListener("message", listener);
+              resolve(data);
+            }
+          });
+        });
+      }
+      promise_test(async (t) => {
+        var child = document.getElementById("child");
+        child.src = "./resources/child-one.html";
+        const unclickeData = await message("child-one-loaded");
+
+        assert_false(navigator.userActivation.isActive,
+              "main page transient user activation state before click");
+        assert_false(navigator.userActivation.hasBeenActive,
+              "main page sticky user activation state before click");
+        assert_false(unclickeData.isActive,
+              "child-one transient user activation state after loaded");
+        assert_false(unclickeData.hasBeenActive,
+              "child-one sticky user activation state after loaded");
+
+        const [, child1Data] = await Promise.all([
+          test_driver.click(child),
+          message("child-one-clicked"),
+        ]);
+
+        assert_true(navigator.userActivation.isActive,
+              "main page transient user activation state after click");
+        assert_true(navigator.userActivation.hasBeenActive,
+              "main page sticky user activation state after click");
+        assert_true(child1Data.isActive,
+              "child-one transient user activation state after click");
+        assert_true(child1Data.hasBeenActive,
+              "child-one sticky user activation state after click");
+
+        child.src = "./resources/child-two.html";
+        const child2Data = await message("child-two-loaded");
+
+        assert_true(navigator.userActivation.isActive,
+              "main page transient user activation state after navigation");
+        assert_true(navigator.userActivation.hasBeenActive,
+              "main page sticky user activation state after navigation");
+        assert_false(child2Data.isActive,
+              "child-two transient user activation state after loaded");
+        assert_true(child2Data.hasBeenActive,
+              "child-two sticky user activation state after loaded");
+      }, "Post-navigation state reset.");
+    </script>
+  </body>
+</html>

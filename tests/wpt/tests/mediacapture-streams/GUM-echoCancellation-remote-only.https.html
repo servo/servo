@@ -1,0 +1,27 @@
+<!doctype html>
+<title>getUserMedia echoCancellation remote-only</title>
+<p class="instructions">When prompted, accept to share your audio stream.</p>
+<meta name=timeout content=long>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=permission-helper.js></script>
+<script>
+  'use strict'
+
+  // https://w3c.github.io/mediacapture-main/#dom-echocancellationmodeenum-remote-only
+
+  promise_test(async t => {
+    await setMediaPermission("granted", ["microphone"]);
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: false,
+      audio: {echoCancellation: {exact: "remote-only"}},
+    });
+    const track = stream.getAudioTracks()[0];
+    t.add_cleanup(() => track.stop());
+    const settings = track.getSettings();
+    assert_equals(settings.echoCancellation, "remote-only");
+  }, 'getUserMedia suports "remote-only"');
+
+</script>

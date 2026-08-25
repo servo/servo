@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Sandboxing: Creating a PresentationRequest from a nested context fails when allow-presentation is not set</title>
+<link rel="author" title="Francois Daoust" href="https://www.w3.org/People/#fd">
+<link rel="help" href="http://w3c.github.io/presentation-api/#constructing-a-presentationrequest">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+    async_test(function (t) {
+        var startWhenReady = t.step_func(function (ev) {
+            var childFrame = document.getElementById('childFrame');
+            if (ev.data === 'ready') {
+                window.removeEventListener('message', startWhenReady);
+                window.addEventListener('message', checkFinalMessage);
+                childFrame.contentWindow.postMessage('create', '*');
+            }
+        });
+
+        var checkFinalMessage = t.step_func_done(function (ev) {
+            assert_equals(ev.data, 'SecurityError', 'Presentation sandboxing did not work as expected.');
+        });
+
+        window.addEventListener('message', startWhenReady);
+    });
+</script>
+<iframe id="childFrame" sandbox="allow-scripts" style="display:none" src="support/iframe.html"></iframe>

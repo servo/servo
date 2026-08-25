@@ -1,0 +1,52 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="i"></iframe>
+
+
+<script type="module">
+import { Recorder } from "./resources/helpers.mjs";
+
+promise_test(async t => {
+  await new Promise(resolve => {
+    i.src = "/common/blank.html";
+    i.onload = () => t.step_timeout(resolve, 0)
+  });
+
+  const fromStart = i.contentWindow.navigation.currentEntry;
+
+  const recorder = new Recorder({
+    window: i.contentWindow,
+    finalExpectedEvent: "promise microtask"
+  });
+
+  recorder.setUpNavigationAPIListeners();
+
+  // Use https://web-platform-tests.org/writing-tests/server-pipes.html to make
+  // sure the response doesn't come back quickly, since once the response comes
+  // back the page would be unloaded and that would break our test.
+  const result1 = i.contentWindow.navigation.navigate("?pipe=trickle(d100)");
+  recorder.setUpResultListeners(result1, " 1");
+
+  const result2 = i.contentWindow.navigation.navigate("?2");
+  recorder.setUpResultListeners(result2, " 2");
+
+  Promise.resolve().then(() => recorder.record("promise microtask"));
+
+  await recorder.readyToAssert;
+
+  recorder.assert([
+    /* event name, location.hash value, navigation.transition properties */
+    ["navigate", "", null],
+    ["AbortSignal abort", "", null],
+    ["navigateerror", "", null],
+
+    ["navigate", "", null],
+    ["committed rejected 1", "", null],
+    ["finished rejected 1", "", null],
+    ["promise microtask", "", null]
+  ]);
+
+  recorder.assertErrorsAreAbortErrors();
+}, "event and promise ordering when navigate() is called to a cross-document destination, interrupting another navigate() to a cross-document destination");
+</script>

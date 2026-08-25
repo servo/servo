@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Implementations that are unable to provide all three angles must set the values of the unknown angles to null</title>
+    <meta name=viewport content="width=device-width, maximum-scale=1.0">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="author" title="Mosquito FP7">
+    <link rel="reviewer author" title="Zhiqiang Zhang" href="mailto:zhiqiang.zhang@intel.com"> <!-- 2013-10-12 -->
+  </head>
+  <body>
+    <p>Precondition: implementation is unable to provide all three angles</p>
+    <p>Rotate the device to run the test.</p>
+    <div id="log"></div>
+    <script>
+      var t1 = async_test("Alpha, Beta and Gamma are null. absolute is false.");
+      var run = false;
+      window.addEventListener("deviceorientation", function(e) {
+        if (!run) {
+          run = true;
+          t1.step(function() {
+            assert_equals(e.alpha, null, "alpha is set to null");
+            assert_equals(e.beta, null, "beta is set to null");
+            assert_equals(e.gamma, null, "gamma is set to null");
+            assert_false(e.absolute, "absolute is set to false");
+          });
+          t1.done();
+        }
+      }, false);
+
+      test(function() {
+        var evt = new DeviceOrientationEvent("foo");
+        assert_equals(evt.alpha, null, "alpha is set to null");
+        assert_equals(evt.beta, null, "beta is set to null");
+        assert_equals(evt.gamma, null, "gamma is set to null");
+        assert_false(evt.absolute, "absolute is set to false");
+      }, "User created event is initialized properly");
+    </script>
+  </body>
+</html>
+

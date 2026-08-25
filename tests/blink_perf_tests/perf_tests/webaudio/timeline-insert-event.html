@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      Test performance of AudioParamTimeline::InsertEvent.
+    </title>
+    <script src="../resources/runner.js"></script>
+  </head>
+  <body>
+    <script>
+      // Number of events to insert.
+      let numberOfEvents = 10000;
+      let sampleRate = 44100;
+      let gainNode = null;
+      let timeInterval = .03;
+      let initialValue = 1;
+      let startingValueDelta = initialValue / numberOfEvents;
+
+      // Convert time (in seconds) to sample frames.
+      function timeToSampleFrame(time, sampleRate) {
+        return Math.floor(0.5 + time * sampleRate);
+      }
+
+      function renderLength(numberOfEvents) {
+        return timeToSampleFrame((numberOfEvents + 1) * timeInterval, sampleRate);
+      }
+
+      PerfTestRunner.measureTime({
+        description: "Measures performance of 10k InsertEvents using calls to setValueAtTime.",
+
+        setup: function () {
+          let context =
+                new OfflineAudioContext(2, renderLength(numberOfEvents), sampleRate);
+          gainNode = context.createGain();
+        },
+
+        run: function() {
+          let value = initialValue;
+          for (let k = 0; k < numberOfEvents; ++k) {
+            let startTime = k * timeInterval;
+            gainNode.gain.setValueAtTime(value, startTime);
+            value -= startingValueDelta;
+          }
+        },
+        iterationCount: 5,
+        warmUpCount: 2,
+        tracingCategories: 'disabled-by-default-webaudio.audionode',
+        traceEventsToMeasure: ['AudioParamTimeline::InsertEvent'],
+      });
+    </script>
+  </body>
+</html>

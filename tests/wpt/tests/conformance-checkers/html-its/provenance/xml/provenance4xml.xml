@@ -1,0 +1,27 @@
+<text xmlns:dc="http://purl.org/dc/elements/1.1/"
+  xmlns:its="http://www.w3.org/2005/11/its" its:version="2.0">
+  <dc:creator>John Doe</dc:creator>
+  <its:provenanceRecords xml:id="pr1">
+    <its:provenanceRecord
+      toolRef="http://www.provdata.com/tool/#onlinemtex"
+      revPerson="James Joyce"
+      revToolRef="http://www.provdata.com/RevTool/#mycat-v1"
+      revOrg="acme-CAT-v2.3"
+      provRef="http://www.examplelsp.com/excontent987/production/prov/e6354"/>
+  </its:provenanceRecords>
+  <its:provenanceRecords xml:id="pr2">
+    <its:provenanceRecord
+      personRef="http://www.provdata.com/person/#John_Doe"
+      orgRef="http://www.provdata.com/org/#legaltrans-ex"
+      revPersonRef="http://www.provdata.com/RevPerson/#Tommy_Atkins"
+      revOrgRef="http://www.provdata.com/RevOrg/#vistatec"
+      provRef="http://www.examplelsp.com/excontent987/legal/prov/e6354 http://www.vistatec.com/job-12-7-15-X31/reviewed/prov/re8573469"/>
+  </its:provenanceRecords>
+  <its:rules xmlns:its="http://www.w3.org/2005/11/its" version="2.0" xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="provenance4xmlrules.xml"/>
+  <title>Translation Revision Provenance Agent: Global Test in XML</title>
+  <body>
+    <par ref="#pr1"> This paragraph was translated from the machine.</par>
+    <legalnotice ref="#pr2">This text was
+      translated directly by a person.</legalnotice>
+  </body>
+</text>

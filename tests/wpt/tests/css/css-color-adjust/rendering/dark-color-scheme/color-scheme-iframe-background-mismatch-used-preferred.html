@@ -1,0 +1,9 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Used (not preferred) color-scheme is used for iframe backplate decisions</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-adjust/#color-scheme-effect">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1787127">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="match" href="color-scheme-iframe-background-mismatch-used-preferred-ref.html">
+<iframe frameborder=0 scrolling=no style="color-scheme: dark" srcdoc="<style>:root { background-color: green }</style><iframe frameborder=0 srcdoc=&quot;<font color=green>This text should <em>not</em> be visible</font>&quot;></iframe>">

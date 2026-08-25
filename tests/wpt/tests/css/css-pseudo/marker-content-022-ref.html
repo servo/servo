@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Reference: ::marker pseudo elements styled with 'content' property</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<style>
+.symbol {
+  list-style-type: disc;
+}
+.decimal {
+  list-style-type: decimal;
+}
+.string {
+  list-style-type: "string";
+}
+.content::marker {
+  content: "content";
+}
+</style>
+<ol>
+  <li class="symbol"><span><div>foo</div></span></li>
+  <li class="decimal"><span><div>foo</div></span></li>
+  <li class="string"><span><div>foo</div></span></li>
+  <li class="content"><span><div>foo</div></span></li>
+</ol>

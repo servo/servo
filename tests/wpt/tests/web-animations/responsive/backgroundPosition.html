@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id='container'>
+<div id='element'></div>
+</div>
+
+<script>
+var element = document.getElementById('element');
+var container = document.getElementById('container');
+
+test(function() {
+    element.style.fontSize = '10px';
+    var player = element.animate([
+        {backgroundPosition: '10% 1em'},
+        {backgroundPosition: '20% 5em'}],
+        10);
+    player.pause();
+    player.currentTime = 5;
+    element.style.fontSize = '20px';
+    assert_equals(getComputedStyle(element).backgroundPosition, '15% 60px');
+}, 'Background position responsive to style changes');
+
+</script>

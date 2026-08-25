@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<!-- Copyright © 2016 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<html>
+    <head>
+        <title>Test MediaSource behavior when seeking beyond the duration of the clip.</title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="mediasource-util.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script>
+
+            function seekToSpecifiedTimeSetEOSAndVerifyDone(test, mediaElement, mediaSource, seekToTime)
+            {
+                assert_less_than(mediaElement.currentTime, mediaElement.duration, 'Not at the end yet.');
+                test.expectEvent(mediaElement, 'seeking', 'mediaElement seeking');
+                // Seek to specified time.
+                mediaElement.currentTime = seekToTime;
+                if (seekToTime >= mediaSource.duration) {
+                    assert_equals(mediaElement.currentTime, mediaSource.duration, 'Current time equals duration.');
+                } else {
+                    assert_equals(mediaElement.currentTime, seekToTime, 'Current time equals specified seek time.');
+                }
+
+                test.waitForExpectedEvents(function()
+                {
+                    test.expectEvent(mediaElement, 'timeupdate', 'mediaElement time updated.');
+                    test.expectEvent(mediaElement, 'seeked', 'mediaElement seeked');
+                    test.expectEvent(mediaElement, 'ended', 'mediaElement ended.');
+                    test.expectEvent(mediaSource, 'sourceended', 'mediaSource ended.');
+                    mediaSource.endOfStream();
+                    assert_true(mediaElement.seeking, 'mediaElement seeking.');
+                });
+
+                test.waitForExpectedEvents(function()
+                {
+                    assert_equals(mediaElement.currentTime, mediaSource.duration, 'Current time equals duration.');
+                    test.done();
+                });
+            };
+
+            mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
+            {
+                mediaElement.play();
+                var initSegment = MediaSourceUtil.extractSegmentData(mediaData, segmentInfo.init);
+
+                // Append the initialization segment to trigger a transition to HAVE_METADATA.
+                test.expectEvent(sourceBuffer, 'updateend', 'sourceBuffer end update.');
+                test.expectEvent(mediaElement, 'loadedmetadata', 'Reached HAVE_METADATA');
+                sourceBuffer.appendBuffer(initSegment);
+
+                test.waitForExpectedEvents(function()
+                {
+                    // Add sufficient segments to have at least 2s of play-time.
+                    var playbackData = MediaSourceUtil.getMediaDataForPlaybackTime(mediaData, segmentInfo, 2.0);
+                    test.expectEvent(sourceBuffer, 'updateend', 'sourceBuffer');
+                    test.expectEvent(mediaElement, 'playing', 'Playing media.');
+                    sourceBuffer.appendBuffer(playbackData);
+                });
+
+                test.waitForExpectedEvents(function()
+                {
+                    assert_equals(mediaElement.duration, segmentInfo.duration);
+                    assert_greater_than_equal(mediaElement.duration, 2.0, 'Duration is >2.0s.');
+
+                    test.expectEvent(sourceBuffer, "updateend");
+                    sourceBuffer.remove(1.5, Infinity);
+                    assert_true(sourceBuffer.updating, "updating");
+                });
+
+                test.waitForExpectedEvents(function()
+                {
+                    assert_false(sourceBuffer.updating, "updating");
+                    test.waitForCurrentTimeChange(mediaElement, function()
+                    {
+                        // Update duration.
+                        mediaSource.duration = 1.5;
+                        seekToSpecifiedTimeSetEOSAndVerifyDone(test, mediaElement, mediaSource, 1.8);
+                    });
+                });
+            }, 'Test seeking beyond updated media duration.');
+
+            mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
+            {
+                mediaElement.play();
+
+                // Append all media data for complete playback.
+                test.expectEvent(sourceBuffer, 'updateend', 'sourceBuffer end update.');
+                test.expectEvent(mediaElement, 'loadedmetadata', 'Reached HAVE_METADATA');
+                test.expectEvent(mediaElement, 'playing', 'Playing media.');
+                sourceBuffer.appendBuffer(mediaData);
+
+                test.waitForExpectedEvents(function()
+                {
+                    test.waitForCurrentTimeChange(mediaElement, function()
+                    {
+                        seekToSpecifiedTimeSetEOSAndVerifyDone(test, mediaElement, mediaSource, mediaSource.duration, mediaSource.duration + 0.1);
+                    });
+                });
+
+            }, 'Test seeking beyond media duration.');
+        </script>
+    </body>
+</html>

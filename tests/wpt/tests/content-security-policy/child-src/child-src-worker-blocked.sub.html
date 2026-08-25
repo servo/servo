@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>child-src-worker-blocked</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <meta http-equiv="Content-Security-Policy" content="child-src 'none'; script-src 'unsafe-inline'; connect-src 'self';">
+</head>
+
+<body>
+    <p> This test used to check the child-src csp controlling worker creation. This behaviour has been deprecated but it's still supported
+        until the transition is done. This still tests that behaviour but we need to go through extra hoops to make sure 'script-src'
+        does not affect the result in any way (for instance by allowing 'self').
+    </p>
+    <script>
+      async_test(function(t) {
+        document.addEventListener("securitypolicyviolation", t.step_func(function(e) {
+          if (e.blockedURI != "{{location[scheme]}}://{{location[host]}}/content-security-policy/support/post-message.js")
+            return;
+
+          assert_equals(e.violatedDirective, "worker-src");
+          t.done();
+        }));
+      }, "Should throw a securitypolicyviolation event");
+
+      async_test(function(t) {
+        try {
+          var foo = new Worker('{{location[scheme]}}://{{location[host]}}/content-security-policy/support/post-message.js');
+          foo.onerror = function(event) {
+            event.preventDefault();
+            t.done();
+          }
+          foo.onmessage = function(event) {
+            assert_unreached("Should not be able to start worker");
+          };
+        } catch (e) {
+          t.done();
+        }
+      }, "Should block worker because it does not match any directive including the deprecated 'child-src'");
+    </script>
+    <div id="log"></div>
+</body>
+</html>

@@ -1,0 +1,37 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Client Hints: Delegation of hints to cross-origin frames and resources for self</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+// Here's the set-up for this test:
+// Step 1. (Site 1 Window) verify ch-device-memory availability.
+// Step 2. (Site 1 Window) set up listener and embed Site 2 Frame.
+// Step 3. (Site 2 Frame) verify ch-device-memory availability.
+// Step 4. (Site 2 Frame) embeds Site 1 Frame.
+// Step 5. (Site 3 Frame) verify ch-device-memory availability.
+// Step 6. (Site 1 Window) exit.
+
+promise_test(async (t) => {
+  // Step 1
+  let r = await fetch("/client-hints/inner-delegation/resources/was-sec-ch-device-memory-received.py");
+  assert_equals(r.status, 200, "Site 1 fetching Site 1 didn't recieve sec-ch-device-memory");
+  r = await fetch("https://{{hosts[alt][]}}:{{ports[https][0]}}/client-hints/inner-delegation/resources/was-sec-ch-device-memory-received.py");
+  assert_equals(r.status, 400, "Site 1 fetching Site 2 did recieve sec-ch-device-memory");
+  r = await fetch("https://{{domains[www2]}}:{{ports[https][0]}}/client-hints/inner-delegation/resources/was-sec-ch-device-memory-received.py");
+  assert_equals(r.status, 400, "Site 1 fetching Site 3 did recieve sec-ch-device-memory");
+  // Step 2
+  const site2Frame = document.createElement("iframe");
+  site2Frame.src = "https://{{hosts[alt][]}}:{{ports[https][0]}}/client-hints/inner-delegation/resources/accept_ch_delegation_to_self_iframe.sub.https.html";
+  site2Frame.allow = "ch-device-memory self"
+  document.body.appendChild(site2Frame);
+  // Step 6
+  return new Promise(resolve => {
+    window.addEventListener("message", resolve);
+  }).then(e => {
+    assert_equals(e.data, "ch-device-memory is available as expected for self");
+  });
+}, "postMessage: First-Party to Third-Party, Cross-Partition, Same-Origin");
+</script>
+</body>

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<title>
+  navigateEvent.deferPageSwap: deferring method should complete before
+  committing
+</title>
+<body>
+  <script>
+    switch (new URLSearchParams(location.search).get("phase") || "test") {
+      case "test":
+        promise_test(async (t) => {
+          window.step_timeout = t.step_timeout;
+          const done = Promise.withResolvers();
+          window.did_load = done.resolve;
+          const popup = window.open("?phase=initial");
+          const events = await done.promise;
+          assert_array_equals(events, [
+            "navigate",
+            "handler",
+            "preview",
+            "abort",
+            "navigateerror",
+            "restore",
+          ]);
+        });
+        break;
+
+      case "initial":
+          const events = [];
+          navigation.addEventListener("navigateerror", () => {
+            events.push("navigateerror");
+          });
+          navigation.addEventListener(
+            "navigate",
+            (navigate_event) => {
+              navigate_event.signal.addEventListener("abort", () => {
+                events.push("abort");
+              });
+              events.push("navigate");
+              navigate_event.deferPageSwap({
+                handler: async (controller) => {
+                  const {resolve, promise} = Promise.withResolvers();
+                  events.push("handler");
+                  controller.addRestoreCallback(() => {
+                    events.push("restore");
+                    window.opener.did_load(events);
+                  });
+                  window.step_timeout(() => {
+                    events.push("preview");
+                    window.stop();
+                    resolve();
+                  }, 10);
+                  await promise;
+                }
+              });
+            },
+            { once: true }
+          );
+
+          navigation.navigate("?next");
+        break;
+    }
+  </script>
+</body>

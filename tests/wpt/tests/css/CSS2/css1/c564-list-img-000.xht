@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: list-style-image</title>
+  <meta name="flags" content="image" />
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#list-style-image"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <style type="text/css"><![CDATA[
+   body { color: navy; }
+   .one {list-style-image: url(support/square-purple.png);}
+   .two {list-style-image: none;}
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#lists" title="12.5 Lists"/>
+ </head>
+ <body>
+  <p>Each bullet should look as described.</p>
+  <ul class="one">
+   <li>purple square</li>
+   <li>purple square</li>
+   <li>purple square</li>
+  </ul>
+  <ul class="two">
+   <li>disc</li>
+   <li>disc</li>
+   <li>disc</li>
+  </ul>
+ </body>
+</html>

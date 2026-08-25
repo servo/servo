@@ -1,0 +1,36 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>activeElement when focusing different-site iframe's contentWindow</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+setup({explicit_done:true});
+window.onmessage = function(e) {
+    var actual = e.data;
+    test(function() {
+        // Handle trailing events separately to get make it easier to see
+        // if they are the only deviation from the expection.
+        var endedWith = false;
+        if (actual.endsWith(",willspineventloop,")) {
+            endedWith = true;
+            actual += "innerbodyfocus,";
+        }
+        assert_false(endedWith, "Should have gotten innerbodyfocus after willspineventloop");
+    }, "Check trailing events");
+    test(function() {
+        // This is a Fission oddity
+        var endedWith = false;
+        if (actual.endsWith(",willspineventloop,innerbodyfocus,")) {
+            endedWith = true;
+            actual += "innerbodyblur,innerbodyfocus,";
+        }
+        assert_true(endedWith, "Should have gotten innerbodyfocus after willspineventloop");
+    }, "Check more trailing events");
+    test(function() {
+        assert_equals(actual, "outeronload,activeElement:BODY,willfocusiframe,didfocusiframe,activeElement:IFRAME,willbluriframe,didbluriframe,activeElement:IFRAME,willspineventloop,innerbodyfocus,innerbodyblur,innerbodyfocus,", 'Check log');
+    }, "Check result");
+    w.close();
+    done();
+};
+var w = window.open("support/activeelement-after-focusing-different-site-iframe-outer-contentwindow.sub.html");
+</script>

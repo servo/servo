@@ -1,0 +1,33 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+  <style type="text/css"><![CDATA[
+  span {font: 20px/1 Ahem;}
+
+  div > span {border: blue solid 2px;}
+
+  span#yellow-stripe {color: yellow;}
+
+  span#orange-stripe {color: orange;}
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if the yellow stripe is on the left-hand side of the hollow blue rectangle and the orange stripe is on the right-hand side of the hollow blue rectangle.</p>
+
+  <div>
+       <span><span id="yellow-stripe">123456</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span id="orange-stripe">123456</span></span>
+  </div>
+
+ </body>
+</html>

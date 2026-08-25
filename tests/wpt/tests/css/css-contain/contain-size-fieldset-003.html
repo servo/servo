@@ -1,0 +1,99 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Test: 'contain: size' on fieldset elements should cause them to be sized as if they had no contents.</title>
+  <link rel="author" title="Morgan Rae Reschenberg" href="mailto:mreschenberg@berkeley.edu">
+  <link rel="help" href="https://drafts.csswg.org/css-contain/#containment-size">
+  <link rel="match" href="contain-size-fieldset-003-ref.html">
+  <style>
+  .contain {
+    contain: size;
+    visibility: hidden;
+    border: none;
+    color: transparent;
+  }
+  .container {
+    border: 10px solid green;
+    display: inline-block;
+    vertical-align: top;
+  }
+  .innerContents {
+    height: 50px;
+    width: 50px;
+  }
+  .minHeight {
+    min-height: 30px;
+  }
+  .height {
+    height: 30px;
+  }
+  .minWidth {
+    min-width: 30px;
+  }
+  .width {
+    width: 30px;
+  }
+  </style>
+</head>
+<body>
+  <!--Note: The following .container class is used to help test if size-contained
+  fieldsets and non-contained fieldsets have the same size. Normally, we'd test
+  that a fieldset with children and size-containment is drawn identically to a
+  fieldset without containment or children. However, when we have a legend as
+  a child, border placement and padding of the fieldset are changed.
+  To check the dimensions between the ref-case and test-case without
+  failing because of the border/padding differences, we make the fieldset
+  {visibility:hidden; border:none;} and add a .container wrapper div.-->
+
+  <!--CSS Test: A size-contained fieldset element with no specified size should size itself as if it had no contents.-->
+  <div class="container">
+  <fieldset class="contain">
+    <legend>legend</legend>
+    <div class="innerContents">inner</div>
+  </fieldset>
+  </div>
+  <br>
+
+  <!--CSS Test: A size-contained fieldset element with specified min-height should size itself as if it had no contents.-->
+  <div class="container">
+  <fieldset class="contain minHeight">
+    <legend>legend</legend>
+    <div class="innerContents">inner</div>
+  </fieldset>
+  </div>
+  <br>
+
+  <!--CSS Test: A size-contained fieldset element with specified height should size itself as if it had no contents.-->
+  <div class="container">
+  <fieldset class="contain height">
+    <legend>legend</legend>
+    <div class="innerContents">inner</div>
+  </fieldset>
+  </div>
+  <br>
+
+  <!--CSS Test: A size-contained fieldset element with specified min-width should size itself as if it had no contents.-->
+  <div class="container">
+  <fieldset class="contain minWidth">
+    <legend>legend</legend>
+    <div class="innerContents">inner</div>
+  </fieldset>
+  </div>
+  <br>
+
+  <!--CSS Test: A size-contained fieldset element with specified width should size itself as if it had no contents.-->
+  <div class="container">
+  <fieldset class="contain width">
+    <legend>legend</legend>
+    <div class="innerContents">inner</div>
+  </fieldset>
+  </div>
+  <br>
+
+  <!--CSS Test: A size contained fieldset element with a legend should draw its legend and border in the same way as a non-contained fieldset element-->
+  <fieldset class="height" style="contain:size;">
+    <legend>legend</legend>
+  </fieldset>
+</body>
+</html>

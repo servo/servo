@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Selectors Invalidation: :nth-last-child(... of S) with ancestor in S</title>
+<link rel="author" title="Zach Hoffman" href="mailto:zach@zrhoffman.net">
+<link rel="author" title="Steinar H. Gunderson" href="mailto:sesse@chromium.org">
+<link rel="match" href="nth-child-containing-ancestor-ref.html">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#child-index">
+<style>
+  div:nth-last-child(odd of .a .b) {
+    color: green;
+  }
+</style>
+<div id="toggler">
+  <div>
+    <div>
+      <div class="b">Should be green</div>
+    </div>
+  </div>
+</div>
+<script>
+  document.documentElement.offsetTop;
+  toggler.classList.toggle("a");
+</script>

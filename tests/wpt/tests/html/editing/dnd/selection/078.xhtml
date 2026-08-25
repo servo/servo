@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Selection drag and drop from password to text input</title>
+<style type="text/css">
+input[placeholder]
+  {width:300px;
+  height:100px;
+  margin-top:20px;}
+</style>
+</head>
+<body onload="document.querySelector('input').select()">
+<p>You should not be able to drag and drop selection from password field to the input below.</p>
+<p><input type="password" value="FAIL"/></p>
+<p><input placeholder="Drop selection here"/></p>
+</body>
+</html>

@@ -1,0 +1,67 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>drawElementImage does not use cross-origin feImages in SVG patterns</title>
+  <link rel="help" href="https://github.com/WICG/html-in-canvas">
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src='/html/canvas/resources/canvas-tests.js'></script>
+  <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+</head>
+<body>
+  <canvas id="canvas" width="100" height="100" layoutsubtree>
+    <svg width="100" height="100">
+      <defs>
+        <pattern id="pattern-same" patternUnits="userSpaceOnUse" x="0" y="0" width="100" height="50">
+          <filter id="filter-same">
+            <feImage href="https://{{location[host]}}/images/green-100x100.png"/>
+          </filter>
+          <rect x=0 y=0 width=100 height=50 filter="url(#filter-same)"> </rect>
+        </pattern>
+        <pattern id="pattern-cross" patternUnits="userSpaceOnUse" x="0" y="0" width="100" height="50">
+          <filter id="filter-cross">
+            <feImage href="https://{{hosts[alt][www]}}:{{ports[https][0]}}/images/red-100x100.png"/>
+          </filter>
+          <rect x=0 y=0 width=100 height=50 filter="url(#filter-cross)"> </rect>
+        </pattern>
+      </defs>
+      <rect x="0" y="0" width="100" height="50" fill="url(#pattern-same)"/>
+      <rect x="0" y="50" width="100" height="50" fill="url(#pattern-cross)"/>
+    </svg>
+  </canvas>
+
+  <script>
+    window.onload = () => {
+      promise_test(async function(t) {
+        const preloadImage = (url) => new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = () => reject(new Error(`Failed to load image: ${url}`));
+          img.src = url;
+        });
+
+        const sameOriginImageEl = document.querySelector('#filter-same feImage');
+        const crossOriginImageEl = document.querySelector('#filter-cross feImage');
+        await Promise.all([
+          preloadImage(sameOriginImageEl.getAttribute('href')),
+          preloadImage(crossOriginImageEl.getAttribute('href'))
+        ]);
+
+        await waitForCanvasPaint(canvas);
+        var ctx = canvas.getContext('2d');
+        ctx.fillStyle = 'blue';
+        ctx.fillRect(0, 0, 100, 100);
+        ctx.drawElementImage(document.querySelector('svg'), 0, 0);
+
+        // Fetch all pixel data once to avoid multiple slow readbacks.
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+        let pixel = _getPixelFromImageData(imgData, 50, 25);
+        assert_array_equals(pixel, [0, 255, 0, 255], "Same origin pattern should draw");
+        pixel = _getPixelFromImageData(imgData, 50, 75);
+        assert_array_equals(pixel, [0, 0, 0, 255], "Cross origin pattern should not draw");
+      });
+    }
+  </script>
+</body>
+</html>

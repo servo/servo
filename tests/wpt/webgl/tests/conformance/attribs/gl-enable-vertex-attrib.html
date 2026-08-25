@@ -1,0 +1,53 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+  <head>
+<meta charset="utf-8">
+    <title>WebGL Enable Vertex Attrib Test</title>
+    <link rel="stylesheet" href="../../resources/js-test-style.css"/>
+    <script src=/resources/testharness.js></script>
+    <script src=/resources/testharnessreport.js></script>
+    <script src="../../js/js-test-pre.js"></script>
+    <script src="../../js/webgl-test-utils.js"> </script>
+    <script src="../../js/tests/invalid-vertex-attrib-test.js"></script>
+</head>
+<body>
+<canvas id="example" width="50" height="50">
+</canvas>
+<div id="description"></div>
+<div id="console"></div>
+
+<script>
+"use strict";
+description("tests that turning on attribs that have no buffer bound fails to draw");
+const wtu = WebGLTestUtils;
+const gl = wtu.create3DContext("example");
+
+async function runInvalidAttribTests() {
+    const invalidAttribTestFn = createInvalidAttribTestFn(gl);
+
+    function drawArrays(gl) {
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+    }
+
+    function drawElements(gl) {
+      gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_BYTE, 0);
+    }
+
+    await invalidAttribTestFn(drawArrays);
+    await invalidAttribTestFn(drawElements);
+    finishTest();
+}
+runInvalidAttribTests();
+
+var successfullyParsed = true;
+</script>
+
+</body>
+</html>
+

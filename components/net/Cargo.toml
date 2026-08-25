@@ -1,0 +1,110 @@
+[package]
+name = "servo-net"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+description.workspace = true
+autotests = false # Inhibit lookup for tests/*.rs without [[test]] sections
+
+[lib]
+name = "net"
+path = "lib.rs"
+test = false
+doctest = false
+
+[features]
+test-util = ["hyper-util/server-graceful", "dep:servo-default-resources", "net_traits/test-util"]
+tracing = ["dep:tracing"]
+
+[dependencies]
+aws-lc-rs = { workspace = true }
+async-compression = { workspace = true, features = ["brotli", "gzip", "tokio", "zlib", "zstd"] }
+async-recursion = { workspace = true }
+async-tungstenite = { workspace = true }
+base64 = { workspace = true }
+bytes = { workspace = true }
+chrono = { workspace = true }
+content-security-policy = { workspace = true }
+cookie = { workspace = true }
+crossbeam-channel = { workspace = true }
+data-url = { workspace = true }
+devtools_traits = { workspace = true }
+embedder_traits = { workspace = true }
+fst = { workspace = true }
+fonts = { workspace = true }
+futures = { workspace = true }
+futures-core = { workspace = true }
+futures-util = { workspace = true }
+headers = { workspace = true }
+http = { workspace = true }
+http-body-util = { workspace = true }
+hyper = { workspace = true, features = ["client", "http1", "http2"] }
+hyper-rustls = { workspace = true }
+hyper-util = { workspace = true }
+hyper_serde = { workspace = true }
+imsz = { workspace = true }
+ipc-channel = { workspace = true }
+itertools = { workspace = true }
+log = { workspace = true }
+malloc_size_of = { workspace = true }
+malloc_size_of_derive = { workspace = true }
+mime = { workspace = true }
+mime_guess = { workspace = true }
+net_traits = { workspace = true }
+nom = { workspace = true }
+paint_api = { workspace = true }
+parking_lot = { workspace = true }
+pixels = { workspace = true }
+profile_traits = { workspace = true }
+postcard = { workspace = true }
+quick_cache = { workspace = true, features = ["ahash"] }
+rand = { workspace = true }
+regex = { workspace = true }
+resvg = { workspace = true }
+rustc-hash = { workspace = true }
+rustls = { workspace = true, features = ["aws-lc-rs"] }
+rustls-pki-types = { workspace = true }
+rustls-platform-verifier = { workspace = true }
+rusqlite = { workspace = true }
+serde = { workspace = true }
+servo-base = { workspace = true }
+servo-config = { workspace = true }
+servo-default-resources = { workspace = true, optional = true }
+servo-tracing = { workspace = true }
+servo-url = { workspace = true }
+servo_arc = { workspace = true }
+sea-query = { workspace = true }
+sea-query-rusqlite = { workspace = true }
+smallvec = { workspace = true }
+tempfile = { workspace = true }
+time = { workspace = true }
+tokio = { workspace = true, features = ["fs", "macros", "rt-multi-thread", "sync"] }
+tokio-rustls = { workspace = true }
+tokio-stream = { workspace = true }
+tokio-util = { workspace = true, features = ["codec", "io"] }
+tower = { workspace = true }
+tracing = { workspace = true, optional = true }
+tungstenite = { workspace = true }
+url = { workspace = true }
+uuid = { workspace = true }
+webpki-roots = { workspace = true }
+webrender_api = { workspace = true }
+
+[dev-dependencies]
+flate2 = { workspace = true }
+fst = { workspace = true }
+hyper = { workspace = true, features = ["full"] }
+hyper-util = { workspace = true, features = ["server-graceful"] }
+# This must always be a path dependency, we don't want to add a dependency on a
+# crates.io version of ourselves - we want to enable a feature of ourselves.
+net = { package = "servo-net", path = ".", features = ["test-util"] }
+rustls = { workspace = true, features = ["aws-lc-rs"] }
+servo-default-resources = { workspace = true }
+
+[[test]]
+name = "main"
+path = "tests/main.rs"

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Masking: clip-path changing dynamically</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://drafts.fxtf.org/css-masking/#the-clip-path">
+<link rel="help" href="https://github.com/servo/servo/issues/38506">
+<meta name="assert" content="Dynamic changes of clip-path can start or stop establishing a stacking context.">
+<link rel="match" href="../../reference/ref-filled-green-200px-square.html">
+<style>
+.target {
+  width: 200px;
+  height: 100px;
+  position: relative;
+}
+.target > div {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="a" class="target" style="clip-path: none; background: red">
+  <div style="background: green"></div>
+</div>
+<div id="b" class="target" style="clip-path: inset(0); background: green">
+  <div style="background: red"></div>
+</div>
+<script src="/common/reftest-wait.js"></script>
+<script>
+requestAnimationFrame(() => requestAnimationFrame(() => {
+  document.getElementById("a").style.clipPath = "inset(0)";
+  document.getElementById("b").style.clipPath = "none";
+  takeScreenshot();
+}));
+</script>
+</html>

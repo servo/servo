@@ -1,0 +1,202 @@
+<!doctype html>
+<html>
+  <head>
+    <title>application activedescendant</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+    <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/wai-aria/scripts/ATTAcomm.js"></script>
+    <script>
+    setup({explicit_timeout: true, explicit_done: true });
+
+    var theTest = new ATTAcomm(
+    {
+   "steps" : [
+      {
+         "element" : "test",
+         "event" : "focus",
+         "title" : "step 1",
+         "type" : "event"
+      },
+      {
+         "element" : "test",
+         "test" : {
+            "ATK" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_EMBEDDED"
+               ],
+               [
+                  "property",
+                  "states",
+                  "doesNotContain",
+                  "STATE_FOCUSED"
+               ],
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "STATE_FOCUSABLE"
+               ]
+            ],
+            "AXAPI" : [
+               [
+                  "property",
+                  "AXRole",
+                  "is",
+                  "AXGroup"
+               ],
+               [
+                  "property",
+                  "AXSubrole",
+                  "is",
+                  "AXWebApplication"
+               ],
+               [
+                  "property",
+                  "AXRoleDescription",
+                  "is",
+                  "web application"
+               ],
+               [
+                  "property",
+                  "AXFocused",
+                  "is",
+                  "false"
+               ]
+            ],
+            "MSAA" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_SYSTEM_APPLICATION"
+               ],
+               [
+                  "property",
+                  "states",
+                  "doesNotContain",
+                  "STATE_SYSTEM_FOCUSED"
+               ],
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "STATE_SYSTEM_FOCUSABLE"
+               ]
+            ],
+            "UIA" : [
+               [
+                  "property",
+                  "ControlType",
+                  "is",
+                  "Pane"
+               ],
+               [
+                  "property",
+                  "LocalizedControlType",
+                  "is",
+                  "application"
+               ],
+               [
+                  "property",
+                  "IUIAutomationElement.UIA_IsKeyboardFocusablePropertyId",
+                  "is",
+                  "true"
+               ],
+               [
+                  "property",
+                  "IUIAutomationElement.UIA_HasKeyboardFocusPropertyId",
+                  "is",
+                  "false"
+               ]
+            ]
+         },
+         "title" : "step 2",
+         "type" : "test"
+      },
+      {
+         "element" : "bob",
+         "test" : {
+            "ATK" : [
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "STATE_FOCUSED"
+               ],
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "STATE_FOCUSABLE"
+               ]
+            ],
+            "AXAPI" : [
+               [
+                  "property",
+                  "AXFocused",
+                  "is",
+                  "true"
+               ],
+               [
+                  "result",
+                  "AXUIElementIsAttributeSettable(AXFocused)",
+                  "is",
+                  "true"
+               ]
+            ],
+            "MSAA" : [
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "STATE_SYSTEM_FOCUSED"
+               ],
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "STATE_SYSTEM_FOCUSABLE"
+               ]
+            ],
+            "UIA" : [
+               [
+                  "property",
+                  "IUIAutomationElement.UIA_IsKeyboardFocusablePropertyId",
+                  "is",
+                  "true"
+               ],
+               [
+                  "property",
+                  "IUIAutomationElement.UIA_HasKeyboardFocusPropertyId",
+                  "is",
+                  "true"
+               ]
+            ]
+         },
+         "title" : "step 3",
+         "type" : "test"
+      }
+   ],
+   "title" : "application activedescendant"
+}
+
+    ) ;
+    </script>
+  </head>
+  <body>
+  <p>This test examines the ARIA properties for application activedescendant.</p>
+     <div id='test' tabindex="0" aria-activedescendant="bob" role='application'>
+     <div id='bob' role='group'>Hello world</div>
+  </div>
+ then role:application, aria-activedescendant: bob
+
+  <div id="manualMode"></div>
+  <div id="log"></div>
+  <div id="ATTAmessages"></div>
+  </body>
+</html>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+    <script src='/common/utils.js'></script>
+    <script src='/content-security-policy/support/testharness-helper.js'></script>
+    <script src='/content-security-policy/support/prefetch-helper.js'></script>
+
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline'">
+    <script>
+      promise_test(async t => {
+        assert_true(await try_to_prefetch("/common/dummy.xml", t));
+      }, 'Prefetch should succeed when allowed by default-src');
+    </script>
+  </head>
+
+  <body>
+  </body>
+
+</html>

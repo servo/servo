@@ -1,0 +1,81 @@
+<!DOCTYPE HTML>
+<html><head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes Test: row-direction subgrid maps subgridded rows with an orthogonal writing-mode</title>
+  <link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+  <link rel="match" href="row-subgrid-orthogonal-writing-mode-001-ref.html">
+  <style>
+html,body {
+  color:black; background-color:white; font:12px/1 monospace;
+}
+
+.grid-lanes {
+  display: grid-lanes;
+  grid-template-rows: repeat(5, auto);
+  place-content: start;
+  border: 1px solid;
+}
+
+.subgrid {
+  display: grid;
+  grid-template-rows: subgrid;
+  background: lightgrey;
+  grid-row: 2 / span 5;
+  min-width:10px;
+  min-height:0;
+  border: 0 solid lightblue;
+  border-bottom-width: 40px;
+}
+
+.vlr {
+  writing-mode: vertical-lr;
+  background: blue;
+}
+
+x {
+  min-width:10px;
+  min-height:0px;
+}
+x:nth-child(2n+1) { background: silver; }
+x:nth-child(2n+2) { background: grey; }
+x:nth-child(2n+3) { background: pink; }
+x:nth-child(2n+4) { background: black; }
+
+.hl { writing-mode: horizontal-tb; direction:ltr; }
+.hr { writing-mode: horizontal-tb; direction:rtl; }
+.vl { writing-mode: vertical-lr; }
+.vr { writing-mode: vertical-rl; }
+.vlr { writing-mode: vertical-lr; direction:rtl; }
+.vrl { writing-mode: vertical-rl; direction:ltr; }
+
+.vlr, .vrl, .vl, .vr {
+  grid-template-columns: subgrid;
+  grid-template-rows: none;
+  grid-column: 2 / span 5;
+}
+
+  </style>
+</head>
+<body>
+<div class="grid-lanes">
+  <div class="subgrid vrl" style="text-indent:10px">
+    A B
+  </div>
+</div>
+
+<div class="grid-lanes">
+  <div class="subgrid vr">
+    <div class="subgrid hr">A B</div>
+  </div>
+</div>
+
+<div class="grid-lanes">
+<div class="subgrid vlr">
+<div class="subgrid hl">
+  <x style="grid-row:2 / span 2; height: 100px">A B C D E F</x>
+</div>
+</div>
+</div>
+</body>
+</html>

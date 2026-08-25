@@ -1,0 +1,17 @@
+<!doctype html>
+<title>
+  Having lots of filter primitives shouldn't crash.
+</title>
+<div style="filter:url(#test1)">test</div>
+<svg
+  width="768"
+  height="768"
+  viewBox="0 0 768 768"
+  xmlns="http://www.w3.org/2000/svg">
+    <filter id="test1">
+        <feMorphology operator="dilate" radius="1" />
+    </filter>
+</svg>
+<script>
+test1.innerHTML = test1.innerHTML.repeat(10000);
+</script>

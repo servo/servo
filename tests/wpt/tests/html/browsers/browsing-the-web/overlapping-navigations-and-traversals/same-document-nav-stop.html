@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Stop after a same-document navigations</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script type="module">
+import { createIframe } from "./resources/helpers.mjs";
+
+promise_test(async t => {
+  const iframe = await createIframe(t);
+
+  iframe.contentWindow.location.hash = "#1";
+  iframe.contentWindow.stop();
+
+  assert_equals(iframe.contentWindow.location.hash, "#1");
+}, "fragment navigations are not stopped by stop()");
+
+promise_test(async t => {
+  const iframe = await createIframe(t);
+
+  iframe.contentWindow.history.pushState(null, "", "?1");
+  iframe.contentWindow.stop();
+
+  assert_equals(iframe.contentWindow.location.search, "?1");
+}, "pushState() navigations are not stopped by stop()");
+</script>

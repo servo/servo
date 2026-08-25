@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Inheritance of Compositing and Blending properties</title>
+<link rel="help" href="https://drafts.fxtf.org/compositing-1/#property-index">
+<meta name="assert" content="Properties do not inherit.">
+<meta name="assert" content="Properties have initial values according to the spec.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/inheritance-testcommon.js"></script>
+</head>
+<body>
+<div id="container">
+  <div id="target"></div>
+</div>
+<script>
+assert_not_inherited('background-blend-mode', 'normal', 'multiply');
+assert_not_inherited('isolation', 'auto', 'isolate');
+assert_not_inherited('mix-blend-mode', 'normal', 'overlay');
+</script>
+</body>
+</html>

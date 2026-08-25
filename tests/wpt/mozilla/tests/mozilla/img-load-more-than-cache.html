@@ -1,0 +1,48 @@
+<!doctype html>
+    <meta charset="utf-8">
+    <title>Test Loading more images than keys obtained in a batch by the image cache</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <body>
+        <img src="test1.jpg" id="img1">
+        <img src="test2.jpg" id="img2">
+        <img src="test3.jpg" id="img3">
+        <img src="test4.jpg" id="img4">
+        <img src="test5.jpg" id="img5">
+        <img src="test6.jpg" id="img6">
+        <img src="test7.jpg" id="img7">
+        <img src="test8.jpg" id="img8">
+        <img src="test9.jpg" id="img9">
+        <img src="test10.jpg" id="img10">
+        <img src="test11.jpg" id="img11">
+        <script>
+            promise_test(function() {
+            let image_tags = [];
+            image_tags.push(document.getElementById('img1'));
+            image_tags.push(document.getElementById('img2'));
+            image_tags.push(document.getElementById('img3'));
+            image_tags.push(document.getElementById('img4'));
+            image_tags.push(document.getElementById('img5'));
+            image_tags.push(document.getElementById('img6'));
+            image_tags.push(document.getElementById('img7'));
+            image_tags.push(document.getElementById('img8'));
+            image_tags.push(document.getElementById('img9'));
+            image_tags.push(document.getElementById('img10'));
+            image_tags.push(document.getElementById('img11'));
+
+            return Promise.all(image_tags.map((elem) => {
+                if (elem.complete === true) {
+                    return Promise.resolve(true)
+                } else {
+                    return new Promise(resolve => {
+                        elem.onload = () => resolve(true);
+                        elem.onerror = () => resolve(false);
+                    })
+                }
+            })).then(function(values) {
+                assert_equals(values.every((elem, index, array) => elem), true)
+            });
+            })
+        </script>
+    </body>
+</html>

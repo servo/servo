@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<title>CSS Gradient test: gradients to/from transparent</title>
+
+<style>
+.test {
+  display: inline-block;
+  width: 25px;
+  height: 100px;
+  margin: 10px;
+}
+.b {
+  background: linear-gradient(rgba(255 0 0 / 0), 75%, red);
+}
+.e {
+  background: linear-gradient(blue, 75%, rgba(0 0 255 / 0));
+}
+</style>
+
+<p>All three gradients should look the same:</p>
+<div class="test b"></div>
+<div class="test b"></div>
+<div class="test b"></div>
+
+<p>All three gradients should look the same:</p>
+<div class="test e"></div>
+<div class="test e"></div>
+<div class="test e"></div>

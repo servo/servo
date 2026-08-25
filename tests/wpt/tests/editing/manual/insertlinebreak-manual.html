@@ -1,0 +1,24 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Manual insertLineBreak (Shift-Enter) tests</title>
+<link rel=stylesheet href=../include/tests.css>
+
+<p><input type=button value="Clear cached results" onclick="clearCachedResults()">
+
+<div id=tests>
+    <input type=button value="Run tests" onclick="runTests()">
+    <table border=1><tr><th>Input<th>Spec<th>Browser<th>Same</table>
+    <p><label>New test input: <input></label> <input type=button value="Add test" onclick="addTest()">
+</div>
+
+<div id=overlay>Tap Shift-Enter (or Mac equivalent) repeatedly until this
+annoying message disappears!  (But not too quickly.  And don't hit any other
+keys or click with the mouse anywhere, it will mess it up.<span id=testcount>
+<span></span> manual test(s) remain.</span>)</div>
+
+<script src=../include/implementation.js></script>
+<script src=../include/tests.js></script>
+<script>
+var command = "insertlinebreak";
+</script>
+<script src=../include/manualtest.js></script>

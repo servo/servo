@@ -1,0 +1,1613 @@
+# WARNING: This file is auto-generated. Do NOT modify it manually, but rather
+# modify the generating script file. Otherwise changes will be lost!
+
+group keywords "Usage of keywords as identifiers."
+
+	case attribute
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float attribute = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case const
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float const = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case uniform
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float uniform = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case varying
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float varying = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case break
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float break = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case continue
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float continue = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case do
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float do = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case for
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float for = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case while
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float while = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case if
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float if = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case else
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float else = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case in
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float in = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case out
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float out = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case inout
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float inout = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case float
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float float = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case int
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float int = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case void
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float void = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case bool
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float bool = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case true
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float true = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case false
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float false = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case lowp
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float lowp = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case mediump
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float mediump = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case highp
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float highp = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case precision
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float precision = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case invariant
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float invariant = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case discard
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float discard = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case return
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float return = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case mat2
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float mat2 = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case mat3
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float mat3 = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case mat4
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float mat4 = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case vec2
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float vec2 = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case vec3
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float vec3 = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case vec4
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float vec4 = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case ivec2
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float ivec2 = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case ivec3
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float ivec3 = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case ivec4
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float ivec4 = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case bvec2
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float bvec2 = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case bvec3
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float bvec3 = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case bvec4
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float bvec4 = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case sampler2D
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float sampler2D = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case samplerCube
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float samplerCube = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case struct
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float struct = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+
+end # keywords
+group reserved_keywords "Usage of reserved keywords as identifiers."
+
+	case asm
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float asm = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case class
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float class = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case union
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float union = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case enum
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float enum = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case typedef
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float typedef = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case template
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float template = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case this
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float this = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case packed
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float packed = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case goto
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float goto = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case switch
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float switch = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case default
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float default = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case inline
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float inline = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case noinline
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float noinline = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case volatile
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float volatile = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case public
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float public = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case static
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float static = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case extern
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float extern = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case external
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float external = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case interface
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float interface = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case flat
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float flat = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case long
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float long = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case short
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float short = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case double
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float double = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case half
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float half = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case fixed
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float fixed = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case unsigned
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float unsigned = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case superp
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float superp = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case input
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float input = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case output
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float output = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case hvec2
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float hvec2 = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case hvec3
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float hvec3 = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case hvec4
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float hvec4 = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case dvec2
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float dvec2 = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case dvec3
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float dvec3 = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case dvec4
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float dvec4 = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case fvec2
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float fvec2 = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case fvec3
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float fvec3 = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case fvec4
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float fvec4 = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case sampler1D
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float sampler1D = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case sampler3D
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float sampler3D = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case sampler1DShadow
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float sampler1DShadow = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case sampler2DShadow
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float sampler2DShadow = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case sampler2DRect
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float sampler2DRect = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case sampler3DRect
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float sampler3DRect = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case sampler2DRectShadow
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float sampler2DRectShadow = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case sizeof
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float sizeof = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case cast
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float cast = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case namespace
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float namespace = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case using
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float using = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+
+end # reserved_keywords
+group invalid_identifiers "Usage of invalid identifiers."
+
+	case gl_begin
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float gl_Invalid = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case digit
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float 0123 = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+	case digit_begin
+		expect compile_fail
+		values {}
+
+		both ""
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				float 0invalid = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+
+end # invalid_identifiers

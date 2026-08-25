@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>Shorten column content to reduce number of columns needed, and thus also remove a snap area</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://issues.chromium.org/issues/402354445">
+<style>
+  .carousel {
+    columns: 1;
+    block-size: 100px;
+    overflow-x: scroll;
+    scroll-marker-group: after;
+
+    &::scroll-marker-group {
+      overflow-x: scroll;
+      scroll-snap-type: x mandatory;
+    }
+    &::column::scroll-marker {
+      display: block;
+      content: "x";
+      scroll-snap-align: center;
+    }
+ }
+</style>
+<div class="carousel">
+  <div id="child" style="height:110px; background:cyan;"></div>
+</div>
+<script>
+  document.body.offsetTop;
+  child.style.height = "50px";
+</script>

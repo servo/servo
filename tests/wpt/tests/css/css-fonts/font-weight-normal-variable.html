@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8"/>
+<title>CSS Test: Variations are applied for font-weight: normal</title>
+<link rel="match" href="font-weight-normal-variable-ref.html">
+<link rel="author" title="Simon Wülker" href="simon.wuelker@arcor.de">
+<link rel="help" href="https://github.com/servo/servo/issues/45748">
+<meta name="assert" content="Variations are applied for font-weight: normal">
+<style>
+    @font-face {
+        font-family: "Noto Sans JP";
+        src: url('support/fonts/NotoSansJP.subset.ttf') format('truetype');
+        font-display: swap;
+        font-style: normal;
+    }
+    .normal {
+        font-family: "Noto Sans JP";
+        font-size: 3em;
+        font-weight: normal;
+    }
+</style>
+
+<p class="normal">test</p>

@@ -1,0 +1,51 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset=utf-8>
+  <title>Test for default cookie path</title>
+  <meta name=help href="http://tools.ietf.org/html/rfc6265#section-5.1.4">
+
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+</head>
+<body>
+<div id=log></div>
+
+<script>
+var body = document.getElementsByTagName('body')[0];
+var createIframe = function (src, done) {
+  var iframe = document.createElement('iframe');
+  iframe.src = src;
+  body.appendChild(iframe);
+  iframe.onload = function () {
+    done(iframe);
+  };
+};
+
+async_test(function (t) {
+  var iframe;
+  var verify = t.step_func(function () {
+    assert_true(
+      !!iframe.contentWindow.isCookieSet('cookies-path-default'),
+      'cookie can be retrieved from expected path'
+    );
+    iframe.contentWindow.expireCookies().then(t.step_func(function () {
+      assert_false(
+        !!iframe.contentWindow.isCookieSet('cookies-path-default'),
+        'cookie can be referenced using the expected path'
+      );
+      t.done();
+    }));
+  });
+
+  createIframe('/cookies/resources/echo-cookie.html', t.step_func(function (_iframe) {
+    iframe = _iframe;
+
+    createIframe('/cookies/resources/set.py?cookies-path-default=1', verify);
+  }));
+});
+</script>
+</body>
+</html>

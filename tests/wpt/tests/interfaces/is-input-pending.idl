@@ -1,0 +1,16 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Early detection of input events (https://wicg.github.io/is-input-pending/)
+
+dictionary IsInputPendingOptions {
+  boolean includeContinuous = false;
+};
+
+[Exposed=Window] interface Scheduling {
+   boolean isInputPending(optional IsInputPendingOptions isInputPendingOptions = {});
+};
+
+partial interface Navigator {
+  readonly attribute Scheduling scheduling;
+};

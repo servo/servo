@@ -1,0 +1,28 @@
+<!doctype html>
+<title>pagehide / unload event order</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+var t = async_test();
+
+var events = [];
+
+onload = function() {setTimeout(function() {
+  var iframe = document.getElementsByTagName("iframe")[0]
+
+  iframe.onload = function() {
+                    setTimeout(function() {
+                                 iframe.contentWindow.location="001-2.html";
+                               }, 100);
+                    iframe.onload = t.step_func(function() {
+                                                  assert_array_equals(events, ["pagehide", "unload"])
+                                                  t.done()});
+                  };
+
+  iframe.src = "004-1.html?" + Math.random();
+
+}, 100)};
+
+</script>
+<iframe></iframe>

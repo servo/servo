@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>CSS Values: Chrome crash</title>
+<link rel="help" href="https://crbug.com/423078653">
+<style>
+  @keyframes --anim {
+    from {
+      -webkit-perspective-origin-y: calc(10px * sibling-index());
+    }
+  }
+  #target {
+    animation: --anim 1s;
+  }
+</style>
+<div id="target">

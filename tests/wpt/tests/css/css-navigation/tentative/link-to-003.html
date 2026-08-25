@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>:link-to(name) on link</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-navigation-1/#link-to-pseudo-class">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<style>
+  @location --r1 {
+    pathname: "/*/other.html";
+  }
+  :link-to(--r1) {
+    background: green;
+  }
+  a {
+    display: block;
+    width: 100px;
+    height: 100px;
+    background: red;
+  }
+</style>
+<a href="other.html"></a>

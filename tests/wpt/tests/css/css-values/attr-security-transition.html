@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>CSS Values and Units Test: attr() security limitations</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#attr-security">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  @property --s {
+    syntax: "<string>";
+    inherits: false;
+    initial-value: "x";
+  }
+  #attr {
+    --s: attr(href);
+    transition: --s 10s allow-discrete -9s;
+    background-image: image-set(var(--s));
+  }
+  @starting-style {
+    #attr { --s: "x"; }
+  }
+</style>
+
+<html>
+  <body>
+    <div id="attr" href="https://does-not-exist.test/404.png">div</div>
+  </body>
+</html>
+
+<script>
+    var elem = document.getElementById("attr");
+    test(() => {
+        assert_equals(window.getComputedStyle(elem).getPropertyValue("background-image"), 'none');
+    }, `background-image value should be attr-tainted`);
+</script>

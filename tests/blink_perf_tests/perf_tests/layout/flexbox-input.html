@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<script src="../resources/runner.js"></script>
+<div style="display: flex; width: 600px; height: 600px;">
+  <div style="width: 200px;"></div>
+  <div style="display: flex; flex-direction: column; flex-grow: 1; overflow-y: auto;">
+    <div style="flex-grow: 1; position: relative;">
+      <div style="position: absolute; width: 100%; height: 100%; display: flex; flex-direction: column;">
+        <div id="container" style="overflow-y: auto;"></div>
+      </div>
+    </div>
+    <div id="target" style="min-height: 20px"></div>
+  </div>
+</div>
+<script>
+const container = document.getElementById('container');
+for (let i = 0; i < 500; i++) {
+  const child = document.createElement('div');
+  child.innerText = 'This is some placeholder text.';
+  container.appendChild(child);
+}
+
+const target = document.getElementById('target');
+PerfTestRunner.measureRunsPerSecond({
+  description: 'Measures performance of a series of nested flexboxes with input changing.',
+  run: () => {
+    target.innerText = Math.random();
+    PerfTestRunner.forceLayout();
+  },
+  done: () => {
+    document.body.children[0].style.display = 'none';
+  }
+});
+</script>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+    <head>
+    <title>CSS Test: cssom view window screen attribute</title>
+    <link rel="author" title="jingke" href="mailto:jingkewhu@gmail.com">
+    <link rel="help" href="http://www.w3.org/TR/cssom-view/#the-screen-interface">
+    <meta name="flags" content="dom">
+    <meta name="assert" content="window screen interface">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    </head>
+    <body>
+        <div id="myDiv"></div>
+        <div id="log"></div>
+        <script>
+        test(function(){assert_true(window.screen.width >= 0 && window.screen.width < 6000000);},
+            "window.screen.width >= 0 && window.screen.width < 6000000");
+        test(function(){assert_true(window.screen.height >= 0 && window.screen.height < 6000000);},
+            "window.screen.height >= 0 && window.screen.height < 6000000");
+        test(function(){assert_true(window.screen.availWidth >= 0 && window.screen.availWidth <= window.screen.width);},
+            "window.screen.availWidth >= 0 && window.screen.availWidth <= window.screen.width");
+        test(function(){assert_true(window.screen.availHeight >= 0 && window.screen.availHeight <= window.screen.height);},
+            "window.screen.availHeight >= 0 && window.screen.availHeight <= window.screen.height");
+        test(function(){assert_in_array(window.screen.colorDepth, [0, 16, 24, 30, 32]);},
+            "window.screen.colorDepth == 0 || window.screen.colorDepth == 16 || window.screen.colorDepth == 24 || window.screen.colorDepth == 30 || window.screen.colorDepth == 32");
+        test(function(){assert_equals(window.screen.pixelDepth, window.screen.colorDepth);},
+            "window.screen.pixelDepth must return the value returned by window.screen.colorDepth");
+        </script>
+
+    </body>
+</html>

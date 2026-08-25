@@ -1,0 +1,169 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>Test RTCPeerConnection.generateCertificate</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./third_party/sdp/sdp.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170515/webrtc.html
+
+  /*
+   *  4.10. Certificate Management
+   *    partial interface RTCPeerConnection {
+   *      static Promise<RTCCertificate> generateCertificate(
+   *        AlgorithmIdentifier keygenAlgorithm);
+   *    };
+   *
+   *  4.10.2. RTCCertificate Interface
+   *    interface RTCCertificate {
+   *      readonly attribute DOMTimeStamp expires;
+   *      ...
+   *    };
+   *
+   *  [WebCrypto]
+   *  11. Algorithm Dictionary
+   *    typedef (object or DOMString) AlgorithmIdentifier;
+   */
+
+  /*
+   *  4.10. The following values must be supported by a user agent:
+   *        { name: "RSASSA-PKCS1-v1_5", modulusLength: 2048,
+   *          publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-256" },
+   *        and { name: "ECDSA", namedCurve: "P-256" }.
+   */
+  [1024, 2048].forEach(modulusLength => {
+    promise_test(t =>
+      // Test common RSA key sizes. Only 2048 is mandatory to support.
+      RTCPeerConnection.generateCertificate({
+        name: 'RSASSA-PKCS1-v1_5',
+        modulusLength,
+        publicExponent: new Uint8Array([1, 0, 1]),
+        hash: 'SHA-256'
+      }).then(cert => {
+        assert_true(cert instanceof RTCCertificate,
+          'Expect cert to be instance of RTCCertificate');
+
+        assert_greater_than(cert.expires, Date.now(),
+          'Expect generated certificate to expire reasonably long after current time');
+      }),
+      `generateCertificate({modulusLength: ${modulusLength}}) with RSASSA-PKCS1-v1_5 parameters should succeed`);
+  });
+
+  promise_test(t =>
+    RTCPeerConnection.generateCertificate({
+      name: 'ECDSA',
+      namedCurve: 'P-256'
+    }).then(cert => {
+      assert_true(cert instanceof RTCCertificate,
+        'Expect cert to be instance of RTCCertificate');
+
+      assert_greater_than(cert.expires, Date.now(),
+        'Expect generated certificate to expire reasonably long after current time');
+    }),
+    'generateCertificate() with compulsary ECDSA parameters should succeed');
+
+  /*
+   *  4.10. A user agent must reject a call to generateCertificate() with a
+   *        DOMException of type NotSupportedError if the keygenAlgorithm
+   *        parameter identifies an algorithm that the user agent cannot or
+   *        will not use to generate a certificate for RTCPeerConnection.
+   */
+  promise_test(t =>
+    promise_rejects_dom(t, 'NotSupportedError',
+      RTCPeerConnection.generateCertificate('invalid-algo')),
+    'generateCertificate() with invalid string algorithm should reject with NotSupportedError');
+
+  promise_test(t =>
+    promise_rejects_dom(t, 'NotSupportedError',
+      RTCPeerConnection.generateCertificate({
+        name: 'invalid-algo'
+      })),
+    'generateCertificate() with invalid algorithm dict should reject with NotSupportedError');
+
+  promise_test(t =>
+    promise_rejects_dom(t, 'NotSupportedError',
+      RTCPeerConnection.generateCertificate({
+        name: 'RSASSA-PKCS1-v1_5',
+        modulusLength: 2048,
+        publicExponent: new Uint8Array([1, 0, 1]),
+        hash: 'SHA-1'
+      })),
+    'generateCertificate with RSASSA-PKCS1-v1_5 parameters and SHA-1 signature should reject with NotSupportedError');
+
+  /*
+   *  4.10.1. Dictionary RTCCertificateExpiration
+   *    dictionary RTCCertificateExpiration {
+   *      [EnforceRange]
+   *      DOMTimeStamp expires;
+   *    };
+   *
+   *    If this parameter is present it indicates the maximum time that
+   *    the RTCCertificate is valid for relative to the current time.
+   *
+   *    When generateCertificate is called with an object argument,
+   *    the user agent attempts to convert the object into a
+   *    RTCCertificateExpiration. If this is unsuccessful, immediately
+   *    return a promise that is rejected with a newly created TypeError
+   *    and abort processing.
+   */
+
+  promise_test(t => {
+    const start = Date.now();
+    return RTCPeerConnection.generateCertificate({
+      name: 'ECDSA',
+      namedCurve: 'P-256',
+      expires: 2000
+    }).then(cert => {
+      assert_approx_equals(cert.expires, start+2000, 1000);
+    })
+  }, 'generateCertificate() with valid expires parameter should succeed');
+
+  promise_test(t => {
+    return RTCPeerConnection.generateCertificate({
+      name: 'ECDSA',
+      namedCurve: 'P-256',
+      expires: 0
+    }).then(cert => {
+      assert_less_than_equal(cert.expires, Date.now());
+    })
+  }, 'generateCertificate() with 0 expires parameter should generate expired cert');
+
+  promise_test(t => {
+    return promise_rejects_js(t, TypeError,
+      RTCPeerConnection.generateCertificate({
+        name: 'ECDSA',
+        namedCurve: 'P-256',
+        expires: -1
+      }))
+  }, 'generateCertificate() with invalid range for expires should reject with TypeError');
+
+  promise_test(t => {
+    return promise_rejects_js(t, TypeError,
+      RTCPeerConnection.generateCertificate({
+        name: 'ECDSA',
+        namedCurve: 'P-256',
+        expires: 'invalid'
+      }))
+  }, 'generateCertificate() with invalid type for expires should reject with TypeError');
+
+  promise_test(t => {
+    return RTCPeerConnection.generateCertificate({
+      name: 'ECDSA',
+      namedCurve: 'P-256',
+    }).then(async cert => {
+      const pc = new RTCPeerConnection({certificates: [cert]});
+      pc.createDataChannel('wpt');
+      const offer = await pc.createOffer();
+      const sections = SDPUtils.splitSections(offer.sdp);
+      const dtlsParameters = SDPUtils.getDtlsParameters(sections[1], sections[0]);
+      assert_equals(dtlsParameters.fingerprints[0].algorithm, cert.getFingerprints()[0].algorithm);
+      // https://www.rfc-editor.org/rfc/rfc4572#section-5 requires uppercase hex in the SDP.
+      assert_equals(dtlsParameters.fingerprints[0].value, cert.getFingerprints()[0].value.toUpperCase());
+    })
+  }, 'generateCertificate() certificate fingerprint shows up in the SDP');
+
+</script>

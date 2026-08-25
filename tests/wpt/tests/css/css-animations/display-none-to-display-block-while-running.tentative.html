@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>An animation that returns display to block must display the element while still running</title>
+<link rel="help" href="https://drafts.csswg.org/css-display-4/#display-animation">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/6429">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#target {
+  width: 100px;
+  height: 100px;
+}
+</style>
+<div id="target"></div>
+<script>
+'use strict';
+
+// The animation takes display to none for its first 60ms, so the target loses
+// its box on the first tick and can only get it back if the running animation
+// restyles the frameless element.
+promise_test(async t => {
+  const target = document.getElementById('target');
+  const revealTime = 60;
+  const anim = target.animate(
+    [
+      { display: 'none', offset: 0 },
+      { display: 'none', offset: 0.3 },
+      { display: 'block', offset: 1 },
+    ],
+    { duration: 200, iterations: Infinity });
+  t.add_cleanup(() => anim.cancel());
+
+  // ResizeObserver reports box size changes without forcing a style flush.
+  // Inspecting with getComputedStyle() would flush style, redisplaying the
+  // element and mask the failure.
+  const reappeared = new Promise(resolve => {
+    const observer = new ResizeObserver(entries => {
+      // The target still has its box until the animation's first sample, so
+      // only a observation after 60ms onwards counts.
+      if (entries[entries.length - 1].contentRect.width > 0 &&
+          anim.currentTime >= revealTime) {
+        resolve(anim.currentTime);
+      }
+    });
+    observer.observe(target);
+    t.add_cleanup(() => observer.disconnect());
+  });
+
+  // requestAnimationFrame runs before style and layout, so counting ticks does
+  // not flush either.
+  const missed = (async () => {
+    while (anim.currentTime < revealTime) {
+      await new Promise(requestAnimationFrame);
+    }
+    for (let i = 0; i < 5; i++) {
+      await new Promise(requestAnimationFrame);
+    }
+    return null;
+  })();
+
+  const timeAtReappearance = await Promise.race([reappeared, missed]);
+
+  assert_not_equals(timeAtReappearance, null,
+    'element must get a box when the animation returns display to block');
+}, 'An animation returning display to block displays the element while it ' +
+   'is still running');
+</script>

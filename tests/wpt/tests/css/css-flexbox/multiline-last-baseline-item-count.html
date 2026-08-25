@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Flexbox: last baseline of a multi-line flex container comes from its last line</title>
+<link rel="author" title="Ahmad Saleem" href="mailto:ahmad.saleem792@gmail.com">
+<link rel="help" href="https://www.w3.org/TR/css-flexbox-1/#flex-baselines">
+<link rel="help" href="https://www.w3.org/TR/css-align-3/#baseline-values">
+<link rel="match" href="multiline-last-baseline-item-count-ref.html">
+<meta name="assert" content="When the first and last lines of a wrapping flex container have a different number of items, the container's last baseline is taken from an item on the last line, even if an earlier line has a baseline-aligned item.">
+<style>
+body { margin: 0; }
+.outer {
+    display: flex;
+    align-items: last baseline;
+    font: 16px/30px monospace;
+}
+.flex {
+    display: flex;
+    flex-wrap: wrap;
+    width: 100px;
+}
+.flex > div {
+    width: 45px;
+    height: 30px;
+}
+</style>
+</head>
+<body>
+<p>Test passes if "Ref" shares a baseline with "C" (the bottom row), not "B".</p>
+<div class="outer">
+    <div class="flex">
+        <div>A</div>
+        <div style="align-self: baseline">B</div>
+        <div>C</div>
+    </div>
+    <div>Ref</div>
+</div>
+</body>
+</html>

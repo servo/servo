@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  window.markupErrored = false;
+  window.markupLoaded = false;
+</script>
+<script src="resources/empty.json" type="speculationrules" onload="window.markupLoaded = true;" onerror="window.markupErrored = true;"></script>
+<script>
+promise_test(async () => {
+  await new Promise((resolve, reject) => {
+    const element = document.createElement("script");
+    element.onload = () => { reject("Got an unexpected load event"); };
+    element.onerror = () => { resolve("Got an error event"); };
+    element.src = "resources/empty.json";
+    element.type = "speculationrules";
+    document.head.appendChild(element);
+  })
+}, "Test that an external speculation rules script fires an error event");
+
+promise_test(async () => {
+  await new Promise((resolve, reject) => {
+    const element = document.createElement("script");
+    element.type = "speculationrules";
+    element.onload = () => { reject("Got an unexpected load event"); };
+    element.onerror = () => { resolve("Got an error event"); };
+    element.src = "resources/empty.json";
+    document.head.appendChild(element);
+  })
+}, "Test that an external speculation rules script fires an error event, regardless of attribute order");
+
+promise_test(async () => {
+  assert_true(window.markupErrored, "error");
+  assert_false(window.markupLoaded, "load");
+}, "Test that an external speculation rules script in markup fires an error event");
+</script>

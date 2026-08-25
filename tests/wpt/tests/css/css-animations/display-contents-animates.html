@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:mrobinson@igalia.com">
+<link rel=help href="https://drafts.csswg.org/css-display-4/#display-animation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-animations/support/testcommon.js"></script>
+
+<div id="outer" style="visibility: hidden; display: contents">
+        <div id="inner">hello</div>
+</div>
+
+<style>
+@keyframes display1 {
+  /* Visibility, is discrete, animatable, and inherited. */
+  0% { visibility: visible; }
+  100% { visibility: hidden; }
+}
+.animate1 {
+  animation: display1 1s infinite;
+}
+</style>
+<script>
+promise_test(async (t) => {
+  t.add_cleanup(() => outer.classList.remove('animate1'));
+
+  let numAnimationstartFired = 0;
+  outer.addEventListener('animationstart', () => numAnimationstartFired++);
+
+  await waitForAnimationFrames(1);
+  outer.classList.add('animate1');
+  await waitForAnimationFrames(2);
+
+  assert_equals(getComputedStyle(inner).visibility, 'visible',
+    'The display should be inline during the animation.');
+  assert_equals(numAnimationstartFired, 1,
+    'Only one animation should start.');
+}, 'Animations inside of display:contents should work properly.');
+</script>

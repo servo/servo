@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8"/>
+<title>CSS Writing Modes reference</title>
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com"/>
+
+<style>
+div {
+  writing-mode: vertical-rl;
+  font: 32px serif;
+  margin: 1em;
+  padding: .25em;
+  border: 1px solid gray;
+}
+span {
+  text-combine-upright: all;
+}
+</style>
+
+Both boxes should render the same:
+
+<div>
+<p><span>1</span>test</p>
+<p><span>(2)</span>test</p>
+<p><span>(3.a)</span>test</p>
+<p>你好<span>hello</span></p>
+</div>
+
+<div>
+<p><span>1</span>test</p>
+<p><span>(2)</span>test</p>
+<p><span>(3.a)</span>test</p>
+<p>你好<span>hello</span></p>
+</div>

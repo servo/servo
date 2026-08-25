@@ -1,0 +1,24 @@
+<!doctype html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+<meta charset="utf-8">
+<title>CSS Reference: Gradient list markers with dynamic font-size change</title>
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<style>
+li {
+  list-style-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' style='background: blue'></svg>");
+}
+::marker {
+  font-size: 36px;
+}
+</style>
+<ul>
+  <li>text</li>
+  <li>text</li>
+  <li>text</li>
+  <li>text</li>
+</ul>
+</html>

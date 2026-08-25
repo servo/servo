@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<title>Anchor-positioned element with 3D-transformed anchor</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#determining-position">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width:100px; height:100px; background:red;">
+  <div style="width:200px; height:100px; transform-origin:0 0; transform:perspective(10px) translateZ(-10px); anchor-name:--a; background:green;"></div>
+</div>
+<div style="position:absolute; position-anchor:--a; position-area:block-end center; width:anchor-size(width); height:anchor-size(height); background:green;"></div>

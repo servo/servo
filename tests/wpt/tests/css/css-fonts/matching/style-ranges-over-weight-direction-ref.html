@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<style>
+    @font-face {
+    font-family: variable_axes;
+    src: url("resources/variabletest_matching.ttf");
+    }
+
+    body {
+    font-family: variable_axes, sans-serif;
+    font-size: 80px;
+    }
+</style>
+<span>1p;c</span>
+ <span>1p;c</span>
+ <span>2p;c</span>
+ <span>2e;x</span>
+ <span>2e;x</span>
+ <span>6t;n</span>
+ <span>6i;v</span>
+ <span>7i;v</span>
+ <span>7i;v</span>
+<script>
+    document.fonts.ready.then(
+        () => { document.documentElement.classList.remove("reftest-wait"); });
+</script>
+</html>

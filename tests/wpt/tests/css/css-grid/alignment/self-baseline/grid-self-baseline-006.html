@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: baseline context and self alignment</title>
+<link rel="author" title="Javier Fernandez" href="mailto:jfernandez@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid/#alignment">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#baseline-align-self">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#align-by-baseline">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#align-items-property">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#align-self-property">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=412410">
+<link rel="match" href="grid-self-baseline-006-ref.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<link rel="stylesheet" href="/css/support/alignment.css">
+<link rel="stylesheet" href="/css/support/grid.css">
+<meta name="assert" content="Test that items orthogonal to the baseline-axis will use a synthesized baseline (border-box 'under' edge). No item shares any row-like Baseline Context and all items share 'first-column' Baseline Context. The 'justify-self' property (orthogonal to the shared context) aligns all items along the baseline-axis using the column-like baseline." />
+
+<style>
+body { margin: 0; }
+.block {
+   background: grey;
+   float: left;
+   margin: 5px;
+   text-orientation: sideways;
+   font-family: Ahem;
+   line-height: 1;
+}
+.block > :nth-child(1) { font-size:24px; }
+.block > :nth-child(2) { font-size:32px; }
+.block > :nth-child(3) { font-size:48px; }
+.block > :nth-child(4) { font-size:64px; }
+.item {
+   border-width: 2px 5px 3px 4px;
+   border-style: solid;
+   padding: 6px 3px 7px 8px;
+   margin: 10px 6px 4px 12px;
+}
+.extraTopPadding { padding-top: 30px; }
+.extraBottomPadding { padding-bottom: 30px; }
+.extraRightPadding { padding-right: 30px; }
+.grid { grid: 65px 75px 100px 125px / 100px; }
+</style>
+
+<p>4x1 with parallel items.</p>
+<div class="block grid contentStart justifyItemsBaseline alignItemsStart"><div class="item">É</div><div class="item">É</div><div class="item">É</div><div class="item">É</div></div>
+<div class="block grid contentStart justifyItemsBaseline alignItemsStart"><div class="item extraRightPadding">É</div><div class="item">É</div><div class="item">É</div><div class="item">É</div></div>
+<div class="block grid verticalLR contentStart justifyItemsBaseline alignItemsStart"><div class="item">É</div><div class="item">É</div><div class="item">É</div><div class="item">É</div></div>
+<div class="block grid verticalLR contentStart justifyItemsBaseline alignItemsStart"><div class="item extraTopPadding">É</div><div class="item">É</div><div class="item">É</div><div class="item">É</div></div>
+<div class="block grid verticalRL contentStart justifyItemsBaseline alignItemsStart"><div class="item">É</div><div class="item">É</div><div class="item">É</div><div class="item">É</div></div>
+<div class="block grid verticalRL contentStart justifyItemsBaseline alignItemsStart"><div class="item extraBottomPadding">É</div><div class="item">É</div><div class="item">É</div><div class="item">É</div></div>

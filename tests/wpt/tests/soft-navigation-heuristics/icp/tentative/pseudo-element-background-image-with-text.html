@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/soft-navigation-heuristics/resources/soft-navigation-test-helper.js"></script>
+
+<style>
+  #content::before {
+    content: "";
+    display: block;
+    width: 256px;
+    height: 256px;
+    background-image: url(/images/lcp-256x256.png);
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+  }
+</style>
+
+<button id="testButton">Click here!</button>
+<div id="container"></div>
+
+<script>
+  promise_test(async t => {
+    const imageUrl = '/images/lcp-256x256.png';
+
+    testButton.addEventListener('click', async () => {
+      container.innerHTML = `<div><div id="content">Text</div></div>`;
+    }, {once: true});
+
+    const helper = new SoftNavigationTestHelper(t);
+    // It's possible there is an entry for the text and the image, so wait for
+    // the entry for the image.
+    const icpPromise = helper.waitForIcp(icp => {
+      return icp.largestContentfulPaint.id === 'content' &&
+          icp.largestContentfulPaint.url.endsWith(imageUrl);
+    });
+
+    if (test_driver) {
+      test_driver.click(testButton);
+    }
+
+    const icps = await icpPromise;
+    const finalIcp = icps.at(-1);
+    assert_equals(
+        finalIcp.largestContentfulPaint.id, 'content',
+        'Expected the LCP element to be "content"');
+    assert_true(
+        finalIcp.largestContentfulPaint.url.endsWith(imageUrl),
+        'Expected the LCP url to be the image url');
+  }, 'InteractionContentfulPaint supports adding text elements with image pseudo elements');
+</script>

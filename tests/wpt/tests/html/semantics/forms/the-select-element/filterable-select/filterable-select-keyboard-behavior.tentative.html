@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/whatwg/html/issues/12050">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<div class=test data-description="appearance:auto sibling input and select">
+  <input id=input1 filter=select1>
+  <select id=select1 size=2>
+    <option class=one>one</option>
+    <option class=two>two</option>
+    <option class=three>three</option>
+  </select>
+</div>
+
+<div class=test data-description="appearance:base-select sibling input and select">
+  <input id=input2 filter=select2>
+  <select id=select2 size=2 class=base>
+    <option class=one>one</option>
+    <option class=two>two</option>
+    <option class=three>three</option>
+  </select>
+</div>
+
+<div class=test data-description="nested input in listbox select">
+  <select size=2 class=base>
+    <input>
+    <option class=one>one</option>
+    <option class=two>two</option>
+    <option class=three>three</option>
+  </select>
+</div>
+
+<div class=test data-description="nested input in dropdown select">
+  <select class="base dropdown">
+    <input>
+    <option class=one>one</option>
+    <option class=two>two</option>
+    <option class=three>three</option>
+  </select>
+</div>
+
+<style>
+.base, .base::picker(select) {
+  appearance: base-select;
+}
+.dropdown::picker(select) {
+  block-size: calc(max(24px, 1lh) * 2);
+}
+</style>
+
+<script>
+const tabKey = '\uE004';
+const enterKey = '\uE007';
+const spaceKey = '\uE00D';
+const arrowUp = '\uE013';
+const arrowDown = '\uE015';
+function pressKey(keyCode) {
+  return (new test_driver.Actions()
+    .keyDown(keyCode)
+    .keyUp(keyCode))
+    .send();
+}
+
+document.querySelectorAll('.test').forEach(testContainer => {
+  const input = testContainer.querySelector('input');
+  const select = testContainer.querySelector('select');
+  const optionOne = testContainer.querySelector('.one');
+  const optionTwo = testContainer.querySelector('.two');
+  const optionThree = testContainer.querySelector('.three');
+  const description = testContainer.getAttribute('data-description');
+  const dropdown = select.classList.contains('dropdown');
+
+  function activeOptions() {
+    return [...testContainer.querySelectorAll(':active-option')];
+  }
+  function selectedOptions() {
+    return [...select.selectedOptions];
+  }
+
+  function isOptionVisible(option) {
+    const selectRect = select.getBoundingClientRect();
+    const optionRect = option.getBoundingClientRect();
+    const tolerance = 1;
+    return optionRect.top >= selectRect.top - tolerance &&
+           optionRect.bottom <= selectRect.bottom + tolerance;
+  }
+
+  promise_test(async () => {
+    let expectedSelectedOptions = [];
+
+    if (dropdown) {
+      expectedSelectedOptions = [optionOne];
+      await test_driver.bless();
+      select.showPicker();
+    }
+
+    assert_array_equals(activeOptions(), expectedSelectedOptions,
+      'Nothing should match :active-option at the start of the test.');
+    assert_array_equals(selectedOptions(), expectedSelectedOptions,
+      'No options should be selected at the start of the test.');
+
+    input.focus();
+    assert_array_equals(activeOptions(), [optionOne],
+      'First option should match :active-option after focusing input.');
+    assert_array_equals(selectedOptions(), expectedSelectedOptions,
+      'No options should be selected after focusing the input.');
+    if (!dropdown) {
+      assert_true(isOptionVisible(optionOne),
+        'Option one should be visible after focusing the input.');
+      assert_false(isOptionVisible(optionThree),
+        'Option three should not be visible after focusing the input.');
+    }
+
+    await pressKey(arrowDown);
+    await pressKey(arrowDown);
+    assert_array_equals(activeOptions(), [optionThree],
+      'Last option should match :active-option after pressing down arrow twice.');
+    assert_array_equals(selectedOptions(), expectedSelectedOptions,
+      'No options should be selected after pressing down arrow twice.');
+    if (!dropdown) {
+      assert_true(isOptionVisible(optionThree),
+        'Option three should be visible after pressing down arrow twice.');
+    }
+
+    await pressKey(arrowDown);
+    assert_array_equals(activeOptions(), [optionThree],
+      'Last option should match :active-option after pressing down on last option.');
+    assert_array_equals(selectedOptions(), expectedSelectedOptions,
+      'No options should be selected after pressing down arrow on the last option.');
+
+    await pressKey(arrowUp);
+    await pressKey(arrowUp);
+    assert_array_equals(activeOptions(), [optionOne],
+      'First option should match :active-option after pressing up arrow twice.');
+    assert_array_equals(selectedOptions(), expectedSelectedOptions,
+      'No options should be selected after pressing up arrow twice.');
+    if (!dropdown) {
+      assert_true(isOptionVisible(optionOne),
+        'Option one should be visible after pressing up arrow twice.');
+      assert_false(isOptionVisible(optionThree),
+        'Option three should not be visible after pressing up arrow twice.');
+    }
+
+    await pressKey(arrowUp);
+    assert_array_equals(activeOptions(), [optionOne],
+      'First option should match :active-option after pressing up on first option.');
+    assert_array_equals(selectedOptions(), expectedSelectedOptions,
+      'No options should be selected after pressing up arrow on first option.');
+
+    await pressKey(arrowDown);
+    await pressKey(enterKey);
+    assert_array_equals(selectedOptions(), [optionTwo],
+      'Active option should become selected after pressing enter.');
+    if (dropdown) {
+      assert_false(select.matches(':open'),
+        'Picker should close after selecting an option.');
+      assert_array_equals(activeOptions(), [],
+        'No options should match :active-option after closing the picker.');
+      await test_driver.bless();
+      select.showPicker();
+      input.focus();
+      await pressKey(arrowDown);
+      await pressKey(arrowDown);
+    } else {
+      assert_array_equals(activeOptions(), [optionTwo],
+        'Same option should match :active-option after pressing enter.');
+    }
+
+    await pressKey(arrowDown);
+    await pressKey(spaceKey);
+    assert_array_equals(selectedOptions(), [optionTwo],
+      'Active option should not become selected after pressing space.');
+    assert_array_equals(activeOptions(), [optionThree],
+      'Same option should match :active-option after pressing space.');
+  }, `${description}: Keyboard behavior for filterable select.`);
+});
+</script>

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(t => {
+  return new Promise(resolve => {
+    window.addEventListener("message", t.step_func(e => {
+      assert_equals(e.data, "503,614");
+      resolve();
+    }));
+  });
+});
+</script>
+<iframe src="../resources/viewport-measurement.html" width=503 height=614>

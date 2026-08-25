@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="help" href="https://drafts.csswg.org/css-inline-3/#baseline-shift-property">
+  <link rel="match" href="baseline-shift-length-percentage-ref.html">
+  <link rel="stylesheet" href="/fonts/ahem.css">
+  <meta name="flags" content="ahem image" />
+  <meta charset="utf-8">
+</head>
+<body>
+  <span id="line" style="font: 20px/2 'Ahem';">
+    <img style="baseline-shift: -0.2em" src="/css/support/60x60-green.png">
+    <span style="baseline-shift: 0">X</span>
+    <span style="baseline-shift: 1em">X</span>
+    <span style="baseline-shift: -100%">X</span>
+  </span>
+</body>
+</html>

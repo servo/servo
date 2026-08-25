@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Native select blocks directional exit</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<meta name="assert" content="A focused select blocks directional navigation out of the focusgroup.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<!-- Select: up/down picks options. -->
+<div id="toolbar" focusgroup="toolbar">
+  <button tabindex=0 id="btnBefore">Before</button>
+  <select id="target">
+    <option>A</option>
+    <option>B</option>
+  </select>
+  <button tabindex=0 id="btnAfter">After</button>
+</div>
+
+<script>
+  const name = 'select';
+
+  // Directional navigation TO the directional-input element works.
+  promise_test(async t => {
+    await focusAndWait(btnBefore);
+    assert_equals(document.activeElement, btnBefore, 'Precondition: before button focused');
+
+    await focusAndSendDirectionalInput(btnBefore, kRight);
+    assert_equals(document.activeElement, target, `Right should navigate TO ${name}`);
+  }, `${name}: directional navigation TO element works`);
+
+  // Directional navigation FROM the directional-input element is blocked.
+  promise_test(async t => {
+    await focusAndWait(target);
+    assert_equals(document.activeElement, target, `Precondition: ${name} is focused`);
+
+    await assert_directional_input_does_not_move_focus(target);
+  }, `${name}: directional navigation FROM element is blocked`);
+</script>

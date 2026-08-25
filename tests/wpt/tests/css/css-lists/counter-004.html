@@ -1,0 +1,96 @@
+﻿<!doctype html>
+<meta charset="utf-8">
+<title>CSS Lists and Counters: counter(c, &quot;.", georgian)</title>
+<link rel="help" href="https://drafts.csswg.org/css-lists/#inheriting-counters">
+<link rel="match" href="counter-004-ref.html">
+<meta name="assert" content="counters are not inherited from the previous sibling, when can be inherited from the ancestor">
+<style type="text/css">
+#test { counter-reset: c; }
+#test span { counter-increment: c; }
+#test span::before { content: counter(c, georgian); }
+</style>
+<p>The following two lines should look the same:</p>
+<div id="test">
+  <span></span>
+  <span></span>
+  <span></span>
+  <span></span>
+  <span></span>
+  <span></span>
+  <span></span>
+  <span></span>
+  <span></span>
+  <span></span>
+  <span></span>
+  <span></span>
+  <span style="counter-reset: c 19"></span>
+  <span style="counter-reset: c 29"></span>
+  <span style="counter-reset: c 39"></span>
+  <span style="counter-reset: c 49"></span>
+  <span style="counter-reset: c 59"></span>
+  <span style="counter-reset: c 69"></span>
+  <span style="counter-reset: c 79"></span>
+  <span style="counter-reset: c 89"></span>
+  <span style="counter-reset: c 99"></span>
+  <span style="counter-reset: c 199"></span>
+  <span style="counter-reset: c 299"></span>
+  <span style="counter-reset: c 399"></span>
+  <span style="counter-reset: c 499"></span>
+  <span style="counter-reset: c 599"></span>
+  <span style="counter-reset: c 699"></span>
+  <span style="counter-reset: c 799"></span>
+  <span style="counter-reset: c 899"></span>
+  <span style="counter-reset: c 999"></span>
+  <span style="counter-reset: c 1999"></span>
+  <span style="counter-reset: c 2999"></span>
+  <span style="counter-reset: c 3999"></span>
+  <span style="counter-reset: c 4999"></span>
+  <span style="counter-reset: c 5999"></span>
+  <span style="counter-reset: c 6999"></span>
+  <span style="counter-reset: c 7999"></span>
+  <span style="counter-reset: c 8999"></span>
+  <span style="counter-reset: c 9999"></span>
+  <span style="counter-reset: c 19998"></span>
+</div>
+<div>
+  <span>ა</span>
+  <span>ბ</span>
+  <span>გ</span>
+  <span>დ</span>
+  <span>ე</span>
+  <span>ვ</span>
+  <span>ზ</span>
+  <span>ჱ</span>
+  <span>თ</span>
+  <span>ი</span>
+  <span>ია</span>
+  <span>იბ</span>
+  <span>კ</span>
+  <span>ლ</span>
+  <span>მ</span>
+  <span>ნ</span>
+  <span>ჲ</span>
+  <span>ო</span>
+  <span>პ</span>
+  <span>ჟ</span>
+  <span>რ</span>
+  <span>ს</span>
+  <span>ტ</span>
+  <span>ჳ</span>
+  <span>ფ</span>
+  <span>ქ</span>
+  <span>ღ</span>
+  <span>ყ</span>
+  <span>შ</span>
+  <span>ჩ</span>
+  <span>ც</span>
+  <span>ძ</span>
+  <span>წ</span>
+  <span>ჭ</span>
+  <span>ხ</span>
+  <span>ჴ</span>
+  <span>ჯ</span>
+  <span>ჰ</span>
+  <span>ჵ</span>
+  <span>ჵჰშჟთ</span>
+</div>

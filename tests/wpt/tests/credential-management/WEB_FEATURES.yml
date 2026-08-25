@@ -1,0 +1,4 @@
+rules:
+- federatedcredential-framed-get.sub.https.html: [federated-credentials]
+- passwordcredential-framed-get.sub.https.html: [password-credentials]
+- "*": [credential-management]

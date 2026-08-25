@@ -1,0 +1,224 @@
+[graph]
+all-features = false
+no-default-features = false
+#features = []
+
+# The output table provides options for how/if diagnostics are outputted
+[output]
+feature-depth = 1
+
+# This section is considered when running `cargo deny check advisories`
+# More documentation for the advisories section can be found here:
+# https://embarkstudios.github.io/cargo-deny/checks/advisories/cfg.html
+[advisories]
+ignore = [
+    # The crate `paste` is no longer maintained.
+    "RUSTSEC-2024-0436",
+    # The crate `unic-char-range` is unmaintained.
+    "RUSTSEC-2025-0075",
+    # The crate `unic-common` is unmaintained.
+    "RUSTSEC-2025-0080",
+    # The crate `unic-char-property` is unmaintained.
+    "RUSTSEC-2025-0081",
+    # The crate `unic-ucd-version` is unmaintained.
+    "RUSTSEC-2025-0098",
+    # The crate `unic-ucd-ident` is unmaintained.
+    "RUSTSEC-2025-0100",
+    # The crate `rsa` is vulnerable to Marvin Attack that leaks
+    # cryptographic secret via side channel. Wait for a patch in stable
+    # release version from upstream.
+    "RUSTSEC-2023-0071",
+    # The crate `bincode` is unmaintained. This crate is now pinned in Servo.
+    # See the comment above `bincode` entry in Cargo.toml.
+    "RUSTSEC-2025-0141",
+    # The crate `ttf-parser` is unmaintained.
+    # This is a dependency of `usvg`, `rustybuzz`, `fontdb`.
+    # We will need to wait for upstream actions.
+    "RUSTSEC-2026-0192",
+]
+
+# This section is considered when running `cargo deny check licenses`
+# More documentation for the licenses section can be found here:
+# https://embarkstudios.github.io/cargo-deny/checks/licenses/cfg.html
+[licenses]
+# List of explicitly allowed licenses
+# See https://spdx.org/licenses/ for list of possible licenses
+# [possible values: any SPDX 3.11 short identifier (+ optional exception)].
+allow = [
+    "Apache-2.0 WITH LLVM-exception",
+    "Apache-2.0",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "BSL-1.0",
+    "CC0-1.0",
+    "CDLA-Permissive-2.0",
+    "ISC",
+    "MIT",
+    "MPL-2.0",
+    "OFL-1.1",
+    "Ubuntu-font-1.0",
+    "Unicode-3.0",
+    "Zlib",
+]
+# The confidence threshold for detecting a license from license text.
+# The higher the value, the more closely the license text must be to the
+# canonical license text of a valid SPDX license file.
+# [possible values: any between 0.0 and 1.0].
+confidence-threshold = 0.8
+# Allow 1 or more licenses on a per-crate basis, so that particular licenses
+# aren't accepted for every possible crate as with the normal allow list
+exceptions = []
+
+
+# This section is considered when running `cargo deny check bans`.
+# More documentation about the 'bans' section can be found here:
+# https://embarkstudios.github.io/cargo-deny/checks/bans/cfg.html
+[bans]
+external-default-features = "allow"
+highlight = "all"
+multiple-versions = "deny"
+wildcards = "allow"
+workspace-default-features = "allow"
+
+# List of crates that are allowed. Use with care!
+allow = []
+
+# List of crates to deny:
+deny = [
+    "num",
+]
+
+# List of crates to skip for the duplicate check:
+skip = [
+    "base64",
+    "bitflags",
+    "cookie",
+    "redox_syscall",
+
+    # New versions of these dependencies is pulled in by GStreamer / GLib.
+    "itertools",
+
+    # Duplicated by btleplug
+    "jni",
+    "jni-sys",
+
+    # Duplicated by egui
+    "foldhash",
+    "windows-collections",
+    "windows-future",
+    "windows-numerics",
+    "windows-strings",
+    "windows-threading",
+
+    # Duplicated by egui-file-dialog
+    "windows",
+    "windows-link",
+    "windows-result",
+
+    # Duplicated by winit.
+    "windows-sys",
+
+    # wgpu has the latest and greatest.
+    "windows-core",
+
+    # Duplicated by gilrs.
+    "core-foundation",
+
+    # wgpu crates still depend on 1.1.0
+    "rustc-hash",
+
+    # wgpu depends on thiserror 2, while rest is still on 1
+    "thiserror",
+    "thiserror-impl",
+
+    # duplicated by webdriver
+    "http",
+
+    # duplicated by winit
+    "block2",
+    "objc2-app-kit",
+    "objc2-foundation",
+    "objc2",
+
+    # duplicated by tungstenite
+    "getrandom",
+    "rand",
+    "rand_chacha",
+    "rand_core",
+    "sha1",
+
+    # duplicated by blurz/blurmock
+    "hex",
+
+    # duplciated by rustix
+    "linux-raw-sys",
+
+    # duplicated by async-io
+    "rustix",
+
+    # duplicated by sea-query
+    "heck",
+
+    # duplicated by bindgen as build dependency
+    # Remove when cexpr updates its nom version
+    # and bindgen updates the cexpr version
+    "nom",
+
+    # Dependency by quick_cache and other
+    "hashbrown",
+
+    # The following 5 duplicates were introduced when Servo's CI was failing to
+    # detect duplicates introduced in automatic dependabot PRs (#38945). They
+    # are added here to allow the fix for this issue to land as a priority.
+    # These need to be investigated separately to see if the duplication can be
+    # avoided.
+    "libloading",
+
+    # Duplicated by wgpu/egui+dependencies
+    "objc2-ui-kit",
+    "read-fonts",
+    "font-types",
+    "skrifa",
+    "vello_common",
+    "vello_cpu",
+    "fearless_simd",
+
+    # Duplicated by resvg/image
+    "roxmltree",
+    "tiny-skia",
+    "tiny-skia-path",
+
+    # Duplicated by content-security-policy
+    "sha2",
+
+    # Duplicated by sha1 and sha2, which are duplicated by tungstenite
+    # and content-security-policy.
+    "cpufeatures",
+    "crypto-common",
+    "digest",
+    "block-buffer",
+
+    # Duplicated by ml-kem. This should be gone in next version (>0.3.2)
+    # of ml-kem.
+    "sha3",
+
+    # Duplicated by bindgen
+    "shlex",
+
+    # Duplicated by vello (disabled by default) which uses old wgpu.
+    "bit-set",
+    "naga",
+    "wgpu-core",
+    "wgpu-core-deps-apple",
+    "wgpu-core-deps-emscripten",
+    "wgpu-core-deps-windows-linux-android",
+    "wgpu-hal",
+    "wgpu-naga-bridge",
+    "wgpu-types",
+]
+
+# github.com organizations to allow git sources for
+[sources.allow-org]
+github = [
+    "servo",
+]

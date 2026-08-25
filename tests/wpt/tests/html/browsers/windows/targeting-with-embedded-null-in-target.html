@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Targeting with embedded null in target</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <iframe name="abc">
+  </iframe>
+  <a href="resources/message-parent.html" target="abc">Click me</a>
+  <script>
+    var t = async_test();
+    var target_name = "abc\u0000def";
+
+    onmessage = t.step_func_done(function (e) {
+        assert_equals(e.data.name, target_name,
+                      "Should come from a window with the right name");
+        assert_equals(e.source, frames[1],
+                      "Should come frome the right window");
+    });
+
+    t.step(function() {
+        var iframe = document.createElement("iframe");
+        iframe.setAttribute("name", target_name);
+        document.body.appendChild(iframe);
+        var a = document.querySelector("a");
+        a.target = target_name;
+        a.click();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,94 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="timeout" content="long">
+  <script src="/resources/testharness.js"></script>
+  <script src="../../nested-testharness.js"></script>
+  <title>single_test</title>
+</head>
+<body>
+<script>
+promise_test(() => {
+  return makeTest(
+      () => {
+        setup({ single_test: true });
+        done();
+      }
+    ).then(({harness, tests}) => {
+      assert_equals(harness, 'OK');
+      assert_equals(tests['Document title'], 'PASS');
+    });
+}, 'Expected usage');
+
+promise_test(() => {
+  return makeTest(
+      () => {
+        setup({ single_test: true });
+        throw new Error('this error is expected');
+      }
+    ).then(({harness, tests}) => {
+      assert_equals(harness, 'OK');
+      assert_equals(tests['Document title'], 'FAIL');
+    });
+}, 'Uncaught exception');
+
+promise_test(() => {
+  return makeTest(
+      () => {
+        setup({ single_test: true });
+        Promise.reject(new Error('this error is expected'));
+      }
+    ).then(({harness, tests}) => {
+      assert_equals(harness, 'OK');
+      assert_equals(tests['Document title'], 'FAIL');
+    });
+}, 'Unhandled rejection');
+
+promise_test(() => {
+  return makeTest(
+      () => {
+        setup({ single_test: true });
+        test(function() {}, 'sync test');
+      }
+    ).then(({harness, tests}) => {
+      assert_equals(harness, 'OK');
+      assert_equals(tests['Document title'], 'FAIL');
+      assert_equals(
+        Object.keys(tests).length, 1, 'no additional subtests created'
+      );
+    });
+}, 'Erroneous usage: subtest declaration (synchronous test)');
+
+promise_test(() => {
+  return makeTest(
+      () => {
+        setup({ single_test: true });
+        async_test(function(t) { t.done(); }, 'async test');
+      }
+    ).then(({harness, tests}) => {
+      assert_equals(harness, 'OK');
+      assert_equals(tests['Document title'], 'FAIL');
+      assert_equals(
+        Object.keys(tests).length, 1, 'no additional subtests created'
+      );
+    });
+}, 'Erroneous usage: subtest declaration (asynchronous test)');
+
+promise_test(() => {
+  return makeTest(
+      () => {
+        setup({ single_test: true });
+        promise_test(function() { return Promise.resolve(); }, 'promise test');
+      }
+    ).then(({harness, tests}) => {
+      assert_equals(harness, 'OK');
+      assert_equals(tests['Document title'], 'FAIL');
+      assert_equals(
+        Object.keys(tests).length, 1, 'no additional subtests created'
+      );
+    });
+}, 'Erroneous usage: subtest declaration (promise test)');
+</script>
+</body>
+</html>

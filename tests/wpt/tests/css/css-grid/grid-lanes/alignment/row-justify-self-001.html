@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes Test: justify-self on items adjacent to gaps in row direction</title>
+  <link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3/#alignment">
+  <link rel="match" href="row-justify-self-001-ref.html">
+  <style>
+    html, body {
+      color: black; background-color: white; font: 16px/1 monospace; padding: 0; margin: 0;
+    }
+
+    .grid-lanes {
+      display: grid-lanes;
+      grid-lanes-direction: row;
+      grid-template-rows: repeat(3, 80px);
+      gap: 10px;
+      padding: 2px;
+      margin: 5px;
+    }
+
+    item {
+      display: block;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+<div class="grid-lanes">
+  <item style="width: 40px; background: #f4a0a0; justify-self: center;">1</item>
+  <item style="width: 80px; background: #f4a0a0;">2</item>
+  <item style="width: 200px; background: #2ca02c;">3</item>
+  <item style="width: 50px; background: #f4a0a0; grid-row: span 2; justify-self: center;">4</item>
+  <item style="width: 50px; background: #2ca02c; grid-row: span 3;">5</item>
+</div>
+
+<div class="grid-lanes">
+  <item style="background: #f4a0a0; justify-self: stretch;">1</item>
+  <item style="width: 80px; background: #f4a0a0;">2</item>
+  <item style="width: 200px; background: #2ca02c;">3</item>
+  <item style="background: #f4a0a0; grid-row: span 2; justify-self: stretch;">4</item>
+  <item style="width: 50px; background: #2ca02c; grid-row: span 3;">5</item>
+</div>
+
+</body>
+</html>

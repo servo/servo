@@ -1,0 +1,15 @@
+<!-- quirks -->
+<title>Origin check for stylesheet with non-CSS MIME type quirk: recursive @import</title>
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1477672">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1850965">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+setup({ single_test: true });
+let errors = 0;
+onload = () => {
+  assert_equals(errors, 1);
+  done();
+};
+</script>
+<link rel="stylesheet" href="data:/,@import url('x/');" onerror="errors++">

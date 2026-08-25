@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <script>
+    test(t => {
+      assert_throws_dom('NotAllowedError', () => {
+        new Profiler({ sampleInterval: 10, maxBufferSize: Number.MAX_SAFE_INTEGER });
+      });
+    }, 'profiling should throw without passing document policy');
+  </script>
+</body>
+</html>

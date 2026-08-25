@@ -1,0 +1,268 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="timeout" content="long">
+  <script src="/resources/testharness.js"></script>
+  <title>Test the methods that make assertions about exceptions</title>
+</head>
+<body>
+<script>
+function makeTest(...bodies) {
+  const closeScript = '<' + '/script>';
+  let src = `
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>Document title</title>
+<script src="/resources/testharness.js?${Math.random()}">${closeScript}
+</head>
+
+<body>
+<div id="log"></div>`;
+  bodies.forEach((body) => {
+    src += '<script>(' + body + ')();' + closeScript;
+  });
+
+  const iframe = document.createElement('iframe');
+
+  document.body.appendChild(iframe);
+  iframe.contentDocument.write(src);
+
+  return new Promise((resolve) => {
+    window.addEventListener('message', function onMessage(e) {
+      if (e.source !== iframe.contentWindow) {
+        return;
+      }
+      if (!e.data || e.data.type !=='complete') {
+        return;
+      }
+      window.removeEventListener('message', onMessage);
+      resolve(e.data);
+    });
+
+    iframe.contentDocument.close();
+  }).then(({ tests, status }) => {
+    const summary = {
+      harness: getEnumProp(status, status.status),
+      tests: {}
+    };
+
+    tests.forEach((test) => {
+      summary.tests[test.name] = getEnumProp(test, test.status);
+    });
+
+    return summary;
+  });
+}
+
+function getEnumProp(object, value) {
+  for (let property in object) {
+    if (!/^[A-Z]+$/.test(property)) {
+      continue;
+    }
+
+    if (object[property] === value) {
+      return property;
+    }
+  }
+}
+
+promise_test(() => {
+  return makeTest(() => {
+    test(() => {
+      assert_throws_js(TypeError, () => { throw new TypeError(); });
+    });
+  }).then(({harness, tests}) => {
+    assert_equals(harness, 'OK');
+    assert_equals(tests['Document title'], 'PASS');
+  });
+}, 'assert_throws_js on a TypeError');
+
+promise_test(() => {
+  return makeTest(() => {
+    test(() => {
+      assert_throws_js(RangeError, () => { throw new RangeError(); });
+    });
+  }).then(({harness, tests}) => {
+    assert_equals(harness, 'OK');
+    assert_equals(tests['Document title'], 'PASS');
+  });
+}, 'assert_throws_js on a RangeError');
+
+promise_test(() => {
+  return makeTest(() => {
+    test(() => {
+      assert_throws_js(TypeError, () => { throw new RangeError(); });
+    });
+  }).then(({harness, tests}) => {
+    assert_equals(harness, 'OK');
+    assert_equals(tests['Document title'], 'FAIL');
+  });
+}, 'assert_throws_js on a TypeError when RangeError is thrown');
+
+promise_test(() => {
+  return makeTest(() => {
+    test(() => {
+      assert_throws_js(Error, () => { throw new TypeError(); });
+    });
+  }).then(({harness, tests}) => {
+    assert_equals(harness, 'OK');
+    assert_equals(tests['Document title'], 'FAIL');
+  });
+}, 'assert_throws_js on an Error when TypeError is thrown');
+
+promise_test(() => {
+  return makeTest(() => {
+    test(() => {
+      assert_throws_js(Error,
+                       () => { throw new DOMException("hello", "Error"); });
+    });
+  }).then(({harness, tests}) => {
+    assert_equals(harness, 'OK');
+    assert_equals(tests['Document title'], 'FAIL');
+  });
+}, 'assert_throws_js on an Error when a DOMException is thrown');
+
+promise_test(() => {
+  return makeTest(() => {
+    test(() => {
+      assert_throws_js(SyntaxError,
+                       () => { throw new DOMException("hey", "SyntaxError"); });
+    });
+  }).then(({harness, tests}) => {
+    assert_equals(harness, 'OK');
+    assert_equals(tests['Document title'], 'FAIL');
+  });
+}, 'assert_throws_js on a SyntaxError when a DOMException is thrown');
+
+promise_test(() => {
+  return makeTest(() => {
+    test(() => {
+      assert_throws_dom("SyntaxError",
+                        () => { throw new DOMException("x", "SyntaxError"); });
+    });
+  }).then(({harness, tests}) => {
+    assert_equals(harness, 'OK');
+    assert_equals(tests['Document title'], 'PASS');
+  });
+}, 'assert_throws_dom basic sanity');
+
+promise_test(() => {
+  return makeTest(() => {
+    test(() => {
+      assert_throws_dom(12,
+                        () => { throw new DOMException("x", "SyntaxError"); });
+    });
+  }).then(({harness, tests}) => {
+    assert_equals(harness, 'OK');
+    assert_equals(tests['Document title'], 'PASS');
+  });
+}, 'assert_throws_dom with numeric code');
+
+promise_test(() => {
+  return makeTest(() => {
+    test(() => {
+      assert_throws_dom("SYNTAX_ERR",
+                        () => { throw new DOMException("x", "SyntaxError"); });
+    });
+  }).then(({harness, tests}) => {
+    assert_equals(harness, 'OK');
+    assert_equals(tests['Document title'], 'PASS');
+  });
+}, 'assert_throws_dom with string name for code');
+
+promise_test(() => {
+  return makeTest(() => {
+    test(() => {
+      assert_throws_dom("DataError",
+                        () => { throw new DOMException("x", "DataError"); });
+    });
+  }).then(({harness, tests}) => {
+    assert_equals(harness, 'OK');
+    assert_equals(tests['Document title'], 'PASS');
+  });
+}, 'assert_throws_dom for a code-less DOMException type');
+
+promise_test(() => {
+  return makeTest(() => {
+    test(() => {
+      assert_throws_dom("NoSuchError",
+                        () => { throw new DOMException("x", "NoSuchError"); });
+    });
+  }).then(({harness, tests}) => {
+    assert_equals(harness, 'OK');
+    assert_equals(tests['Document title'], 'FAIL');
+  });
+}, 'assert_throws_dom for a nonexistent DOMException type');
+
+promise_test(() => {
+  return makeTest(() => {
+    test(() => {
+      assert_throws_dom("SyntaxError", () => { throw new SyntaxError(); });
+    });
+  }).then(({harness, tests}) => {
+    assert_equals(harness, 'OK');
+    assert_equals(tests['Document title'], 'FAIL');
+  });
+}, 'assert_throws_dom when a non-DOM exception is thrown');
+
+promise_test(() => {
+  return makeTest(() => {
+    test(() => {
+      assert_throws_exactly(5, () => { throw 5; });
+    });
+  }).then(({harness, tests}) => {
+    assert_equals(harness, 'OK');
+    assert_equals(tests['Document title'], 'PASS');
+  });
+}, 'assert_throws_exactly with number');
+
+promise_test(() => {
+  return makeTest(() => {
+    test(() => {
+      assert_throws_exactly("foo", () => { throw "foo"; });
+    });
+  }).then(({harness, tests}) => {
+    assert_equals(harness, 'OK');
+    assert_equals(tests['Document title'], 'PASS');
+  });
+}, 'assert_throws_exactly with string');
+
+promise_test(() => {
+  return makeTest(() => {
+    test(() => {
+      assert_throws_exactly({}, () => { throw {}; });
+    });
+  }).then(({harness, tests}) => {
+    assert_equals(harness, 'OK');
+    assert_equals(tests['Document title'], 'FAIL');
+  });
+}, 'assert_throws_exactly with different objects');
+
+promise_test(() => {
+  return makeTest(() => {
+    test(() => {
+      var obj = {};
+      assert_throws_exactly(obj, () => { throw obj; });
+    });
+  }).then(({harness, tests}) => {
+    assert_equals(harness, 'OK');
+    assert_equals(tests['Document title'], 'PASS');
+  });
+}, 'assert_throws_exactly with same object');
+
+promise_test(() => {
+  return makeTest(() => {
+    test(() => {
+      assert_throws_exactly(TypeError, () => { throw new TypeError; });
+    });
+  }).then(({harness, tests}) => {
+    assert_equals(harness, 'OK');
+    assert_equals(tests['Document title'], 'FAIL');
+  });
+}, 'assert_throws_exactly with bogus TypeError bits ');
+
+</script>
+</body>
+</html>

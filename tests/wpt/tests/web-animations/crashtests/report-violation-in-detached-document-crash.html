@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Reporting animation violation in detached document should not crash</title>
+<link rel="help" href="https://crbug.com/40679544">
+<script>
+  var doc = new Document();
+  var div = document.createElement('div');
+  doc.prepend(div);
+  div.animate({'right': ['auto']});
+</script>

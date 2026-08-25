@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>CSS Test: translate webgl canvas in an animation via set current time (ref).</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org"/>
+<link rel="help" href="https://www.w3.org/TR/css-transforms-1/#funcdef-transform-translate"/>
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+canvas {
+  will-change: transform;
+  transform: translate(150px);
+}
+</style>
+
+<canvas id="canvas" width="150" height="150"></canvas>
+
+<script>
+async function runReference() {
+  const gl = canvas.getContext("webgl");
+  if(gl != null) {
+    gl.clearColor(0.0, 1.0, 0.0, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+  }
+
+  requestAnimationFrame(takeScreenshot);
+}
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runReference));
+</script>
+</html>

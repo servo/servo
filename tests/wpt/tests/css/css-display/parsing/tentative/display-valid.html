@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Display: Parsing display with valid values</title>
+<link rel="author" title="Ethan Jimenez" href="mailto:ethavar@microsoft.com">
+<link rel="help" href="https://www.w3.org/TR/css-grid-3/#grid-lanes-containers">
+<meta name="assert" content="display supports the new values 'grid-lanes | inline-grid-lanes'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+// https://www.w3.org/TR/css-grid-3/#grid-lanes-containers
+test_valid_value("display", "grid-lanes");
+test_valid_value("display", "block grid-lanes", "grid-lanes");
+test_valid_value("display", "grid-lanes block", "grid-lanes");
+test_valid_value("display", "inline-grid-lanes");
+test_valid_value("display", "inline grid-lanes");
+test_valid_value("display", "grid-lanes inline", "inline grid-lanes");
+
+</script>
+</body>
+</html>

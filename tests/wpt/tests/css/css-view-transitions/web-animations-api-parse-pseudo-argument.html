@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions with web-animation API: full parsing of argument</title>
+<link rel="help" href="https://www.w3.org/TR/css-view-transitions-1/">
+<link rel="match" href="web-animations-api-ref.html">
+<meta name="fuzzy" content="maxDifference=0-2; totalPixels=0-500">
+<meta name="variant" content="?first-pseudo=::view-transition-group( first)">
+<meta name="variant" content="?first-pseudo=::view-transition-group(first)">
+<meta name="variant" content="?first-pseudo=::view-transition-group( first">
+<meta name="variant" content="?first-pseudo=::view-transition-group(      first )">
+<meta name="variant" content="?first-pseudo=::view-transition-group(first )">
+<meta name="variant" content="?first-pseudo=::view-transition-group(first">
+<script src="/common/reftest-wait.js">
+</script>
+<style>
+  #first {
+    background: blue;
+    width: 100px;
+    height: 100px;
+    contain: paint;
+  }
+
+  #second {
+    background: green;
+    width: 100px;
+    height: 100px;
+    contain: paint;
+  }
+
+  /* Unset all animations since the test drives it using WA-API */
+  html::view-transition-group(*),
+  html::view-transition-image-pair(*),
+  html::view-transition-new(*),
+  html::view-transition-old(*) {
+    animation: unset;
+  }
+
+  html::view-transition-group(root) {
+    opacity: 0;
+  }
+</style>
+<div id=first></div>
+<div id=second></div>
+<script>
+  failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+  const firstPseudo = new URL(location.href).searchParams.get("first-pseudo") ?? "::view-transition-group(first)";
+
+  function setAnimation() {
+    document.documentElement.animate({ transform: ['translate(100px)', 'translate(100px)'] }, { duration: 10000, pseudoElement: firstPseudo });
+    document.documentElement.animate({ transform: ['translate(150px)', 'translate(150px)'] }, { duration: 10000, pseudoElement: '::view-transition-group(second)' });
+    requestAnimationFrame(takeScreenshot);
+  }
+
+  async function runTest() {
+    first.style.viewTransitionName = "first";
+    document.startViewTransition(() => {
+      first.style.viewTransitionName = "";
+      second.style.viewTransitionName = "second";
+      requestAnimationFrame(setAnimation);
+    });
+  }
+  onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>
+  HTML partial updates - template content stream
+</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <script>
+    for (const safe of [true, false]) {
+      for (const method of ["streamAfterHTML", "streamBeforeHTML", "streamReplaceWithHTML"]) {
+        const method_name = `${method}${safe ? "" : "Unsafe"}`;
+        promise_test(async () => {
+          const template = document.createElement("template");
+          const child = document.createElement("div");
+          template.content.appendChild(child);
+          const stream = child[method_name]();
+          const writer = stream.getWriter();
+          await writer.write('<span>html;</span>');
+          await writer.close();
+          const expected_length = method === "streamReplaceWithHTML" ? 1 : 2;
+          assert_equals(template.content.childNodes.length, expected_length, `Template content has ${expected_length} children`);
+          if (method === "streamBeforeHTML" || method === "streamReplaceWithHTML") {
+            assert_equals(template.content.childNodes[0].tagName, "SPAN", "First child is span");
+          } else {
+            assert_equals(template.content.childNodes[1].tagName, "SPAN", "Second child is span");
+          }
+        }, `${method_name} on a child of a template content`);
+      }
+    }
+  </script>
+</body>

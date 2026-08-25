@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang=en>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Grid positioned item dynamic change.</title>
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#abspos">
+<link rel="match" href="grid-positioned-item-dynamic-change-006-ref.html">
+<meta name="assert" content="This test checks that positioned items update upon dynamic changes.">
+<style>
+.absolute {
+  background: green;
+  position: absolute;
+  grid-row: 2 / 3;
+  grid-column: 1 / 2;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  left: 0;
+}
+</style>
+<body>
+<p>Test passes if it matches the reference.</p>
+<div style="display: grid; position: relative; width: 100px;">
+  <div style="background: green;">
+    <div id="target"></div>
+  </div>
+  <div style="background: red; height: 25px;"></div>
+  <div class="absolute"></div>
+</div>
+<script>
+document.body.offsetTop;
+document.getElementById('target').style.height = '75px';
+document.documentElement.classList.remove('reftest-wait');
+</script>
+</body>
+</html>

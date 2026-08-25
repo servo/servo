@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<meta charset="utf-8">
+<title>mfrac created dynamically</title>
+<link rel="help" href="https://w3c.github.io/mathml-core/#fractions-mfrac">
+<link rel="help" href="https://w3c.github.io/mathml-core/#dom-and-javascript">
+<meta name="assert" content="A dynamically added mfrac should render like the equivalent markup.">
+<link rel="match" href="frac-created-dynamically-ref.html">
+<script>
+  window.addEventListener("load", function() {
+
+  // force initial layout so we're sure what we're testing against
+  document.documentElement.getBoundingClientRect();
+
+  var mfrac = document.createElementNS("http://www.w3.org/1998/Math/MathML","mfrac");
+  var mspace1 = document.createElementNS("http://www.w3.org/1998/Math/MathML","mspace");
+  mspace1.setAttribute("width", "50px");
+  mspace1.setAttribute("height", "50px");
+  mspace1.setAttribute("style", "background: black");
+  var mspace2 = document.createElementNS("http://www.w3.org/1998/Math/MathML","mspace");
+  mspace2.setAttribute("width", "50px");
+  mspace2.setAttribute("height", "50px");
+  mspace2.setAttribute("style", "background: black");
+  mfrac.appendChild(mspace1);
+  mfrac.appendChild(mspace2);
+  document.getElementsByTagName("math")[0].appendChild(mfrac);
+
+  document.documentElement.classList.remove('reftest-wait');
+  });
+</script>
+</head>
+<body>
+  <p>This test passes if you see a fraction.</p>
+  <math></math>
+  <script src="/mathml/support/feature-detection.js"></script>
+  <script>MathMLFeatureDetection.ensure_for_match_reftest("has_mfrac");</script>
+</body>
+</html>

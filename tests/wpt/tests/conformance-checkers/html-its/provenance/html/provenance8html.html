@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>Test</title>
+    <script id="pr1" type="application/its+xml">
+      <its:provenanceRecords xml:id="pr1" xmlns:its="http://www.w3.org/2005/11/its">
+        <its:provenanceRecord
+               tool="onlinemtex"
+               revPerson="James Joyce"
+               revTool="mycat-v1.0"
+               revOrg="acme-CAT-v2.3"
+               provRef="http://www.examplelsp.com/excontent987/production/prov/e6354"/>
+      </its:provenanceRecords>
+	</script>
+    <script id="pr2" type="application/its+xml">
+	  <its:provenanceRecords xml:id="pr2" xmlns:its="http://www.w3.org/2005/11/its">
+        <its:provenanceRecord
+            person="John Doe"
+            org="legaltrans-ex"
+            revPerson="Tommy Atkins"
+            revOrg="vistatec"
+            provRef="http://www.vistatec.com/job-12-7-15-X31/reviewed/prov/re8573469"/>
+      </its:provenanceRecords>       
+    </script>
+    <script type="application/its+xml">   
+     <its:rules xmlns:its="http://www.w3.org/2005/11/its" xmlns:h="http://www.w3.org/1999/xhtml" version="2.0">
+     <its:param name="provenanceParam">prov-records-ref1</its:param>
+	<its:provRule selector="//*[@class=$provenanceParam]" provenanceRecordsRefPointer="h:a/@href"/>
+     </its:rules>
+    </script>
+  </head>
+  <body>
+    <p class="prov-records-ref1"><a href="#pr1"></a>This paragraph was translated from the machine.</p>
+    <p class="prov-records-ref2"><a href="#pr2"></a>This text was translated directly by a person.</p>
+  </body>
+</html>

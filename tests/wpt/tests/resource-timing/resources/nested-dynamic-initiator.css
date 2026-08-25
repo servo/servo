@@ -1,0 +1,10 @@
+@import "resource_timing_test0.css?label=dynamic-initiator";
+
+@font-face {
+    font-family: remoteFont;
+    src: url('/fonts/Ahem.ttf?label=dynamic-initiator');
+}
+ol {
+    font-family: remoteFont;
+    list-style-image: url('blue.png?label=dynamic-initiator');
+}

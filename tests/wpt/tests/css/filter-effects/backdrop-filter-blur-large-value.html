@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>CSS Backdrop Filters: Very large blur value should fully blend colors</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty">
+<link rel="match" href="backdrop-filter-blur-large-value-ref.html">
+<meta name=fuzzy content="maxDifference=0-1;totalPixels=0-80000">
+<style>
+.left, .right {
+    position: absolute;
+    top: 0;
+    width: 200px;
+    height: 200px;
+}
+.left {
+    left: 0;
+    background: rgb(255, 0, 0);
+}
+.right {
+    left: 200px;
+    background: rgb(0, 255, 0);
+}
+.overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 400px;
+    height: 200px;
+    backdrop-filter: blur(100000px);
+}
+</style>
+<div class="left"></div>
+<div class="right"></div>
+<div class="overlay"></div>

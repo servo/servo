@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Masking: mask-clip: no-clip should not clip in the presence of border-radius</title>
+    <link rel="help" href="http://www.w3.org/TR/css-masking-1/#the-mask-clip">
+    <link rel="match" href="mask-clip-7-ref.html">
+    <meta name="assert" content="mask-clip: no-clip with border-radius should not clip.">
+    <meta content="ahem" name="flags">
+    <link rel="stylesheet" href="/fonts/ahem.css" />
+    <style>
+      div.mask {
+        mask-image: linear-gradient(black, black);
+        mask-clip: no-clip;
+        background-color: purple;
+        width: 40px;
+        height: 20px;
+        border-radius: 5px;
+        position: relative;
+      }
+      span.mask {
+        font: 20px/1 Ahem;
+        line-height: 20px;
+        mask-image: linear-gradient(black, black);
+        mask-clip: no-clip;
+        color: purple;
+        border-radius: 5px;
+        position: relative;
+      }
+      .unclipped-child {
+        position: absolute;
+        top: -6px;
+        left: -6px;
+        width: 52px;
+        height: 32px;
+        background: purple;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="mask"><div class="unclipped-child"></div></div>
+    <br>
+    <span class="mask">XX<span class="unclipped-child"></span></span>
+  </body>
+</html>

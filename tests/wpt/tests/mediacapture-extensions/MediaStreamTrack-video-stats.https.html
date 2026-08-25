@@ -1,0 +1,345 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<button id="button">User gesture</button>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+'use strict';
+
+async function getFrameStatsUntil(track, condition) {
+  while (true) {
+    const stats = track.stats.toJSON();
+    if (condition(stats)) {
+      return stats;
+    }
+    // Repeat in the next task execution cycle.
+    await Promise.resolve();
+  }
+}
+
+promise_test(async t => {
+  const stream = await navigator.mediaDevices.getUserMedia({video:true});
+  const [track] = stream.getTracks();
+  t.add_cleanup(() => track.stop());
+
+  const firstStats =
+      await getFrameStatsUntil(track, stats => stats.totalFrames > 0);
+  await getFrameStatsUntil(track,
+                           stats => stats.totalFrames > firstStats.totalFrames);
+}, `totalFrames increases over time`);
+
+promise_test(async t => {
+  const stream = await navigator.mediaDevices.getUserMedia({video:true});
+  const [track] = stream.getTracks();
+  t.add_cleanup(() => track.stop());
+
+  // `deliveredFrames` increments for each deliverable frame, even if the
+  // `track` does not have any sink.
+  const firstStats = await getFrameStatsUntil(
+      track, stats => stats.deliveredFrames > 0);
+  await getFrameStatsUntil(
+      track, stats => stats.deliveredFrames > firstStats.deliveredFrames);
+}, `deliveredFrames increases, even without sinks`);
+
+promise_test(async t => {
+  const stream = await navigator.mediaDevices.getUserMedia({
+          video:{frameRate:{ideal:20}}
+      });
+  const [track] = stream.getTracks();
+  t.add_cleanup(() => track.stop());
+
+  // Assert test prerequisite is met: frames will be discarded if the track is
+  // opened with a higher frame rate than we apply after it is opened.
+  assert_greater_than(track.getSettings().frameRate, 10);
+  await track.applyConstraints({frameRate:{ideal:10}});
+
+  await getFrameStatsUntil(track, stats => stats.discardedFrames > 0);
+}, `discardedFrames increases when frameRate decimation is happening`);
+
+promise_test(async t => {
+  const stream = await navigator.mediaDevices.getUserMedia({video:true});
+  const [track] = stream.getTracks();
+  t.add_cleanup(() => track.stop());
+
+  // Hold a reference directly to the [SameObject] stats, bypassing the
+  // `track.stats` getter in the subsequent getting of `totalFrames`.
+  const stats = track.stats;
+  const firstTotalFrames = stats.totalFrames;
+  while (stats.totalFrames == firstTotalFrames) {
+    await Promise.resolve();
+  }
+  assert_greater_than(stats.totalFrames, firstTotalFrames);
+}, `Counters increase even if we don't call the track.stats getter`);
+
+promise_test(async t => {
+  const stream = await navigator.mediaDevices.getUserMedia({video:true});
+  const [track] = stream.getTracks();
+  t.add_cleanup(() => track.stop());
+
+  const firstTotalFrames = track.stats.totalFrames;
+  // Busy-loop for 100 ms, all within the same task execution cycle.
+  const firstTimeMs = performance.now();
+  while (performance.now() - firstTimeMs < 100) {}
+  // The frame counter should not have changed.
+  assert_equals(track.stats.totalFrames, firstTotalFrames);
+}, `Counters do not increase in the same task execution cycle`);
+
+promise_test(async t => {
+  const stream = await navigator.mediaDevices.getUserMedia({
+          video:{frameRate:{ideal:20}}
+      });
+  const [track] = stream.getTracks();
+  t.add_cleanup(() => track.stop());
+
+  // Assert test prerequisite is met: frames will be discarded if the track is
+  // opened with a higher frame rate than we apply after it is opened.
+  assert_greater_than(track.getSettings().frameRate, 10);
+  await track.applyConstraints({frameRate:{ideal:10}});
+
+  // Wait until we have both delivered and discarded frames.
+  const stats = await getFrameStatsUntil(track, stats =>
+      stats.deliveredFrames > 0 && stats.discardedFrames > 0);
+
+  // This test assumes that no frames are dropped, otherwise `totalFrames` can
+  // be greater than the sum of `deliveredFrames` and `discardedFrames`.
+  assert_equals(stats.totalFrames,
+                stats.deliveredFrames + stats.discardedFrames);
+}, `totalFrames is the sum of deliveredFrames and discardedFrames`);
+
+promise_test(async t => {
+  const stream = await navigator.mediaDevices.getUserMedia({video:true});
+  const [track] = stream.getTracks();
+  t.add_cleanup(() => track.stop());
+
+  const a = track.stats;
+  await getFrameStatsUntil(track, stats => stats.totalFrames > 0);
+  const b = track.stats;
+  // The counters may have changed, but `a` and `b` are still the same object.
+  assert_equals(a, b);
+}, `SameObject policy applies`);
+
+promise_test(async t => {
+  const stream = await navigator.mediaDevices.getUserMedia({
+          video:{frameRate:{ideal:20}}
+      });
+  const [track] = stream.getTracks();
+  t.add_cleanup(() => track.stop());
+
+  // Assert test prerequisite is met: frames will be discarded if the track is
+  // opened with a higher frame rate than we apply after it is opened.
+  assert_greater_than(track.getSettings().frameRate, 10);
+  await track.applyConstraints({frameRate:{ideal:10}});
+
+  // Wait for media to flow before disabling the `track`.
+  const initialStats = await getFrameStatsUntil(track, stats =>
+      stats.deliveredFrames > 0 && stats.discardedFrames > 0 &&
+      stats.totalFrames > 10);
+  track.enabled = false;
+  // Upon disabling, the counters are not reset.
+  const disabledSnapshot = track.stats.toJSON();
+  assert_greater_than_equal(disabledSnapshot.deliveredFrames,
+                            initialStats.deliveredFrames);
+  assert_greater_than_equal(disabledSnapshot.discardedFrames,
+                            initialStats.discardedFrames);
+  assert_greater_than_equal(disabledSnapshot.totalFrames,
+                            initialStats.totalFrames);
+
+  // Wait enough time that frames should have been produced.
+  await new Promise(r => t.step_timeout(r, 500));
+
+  // Frame metrics should be frozen, but because `enabled = false` does not
+  // return a promise, we allow some lee-way in case a frame was still in flight
+  // during the disabling.
+  assert_approx_equals(
+      track.stats.deliveredFrames, disabledSnapshot.deliveredFrames, 1);
+  assert_approx_equals(
+      track.stats.discardedFrames, disabledSnapshot.discardedFrames, 1);
+  assert_approx_equals(
+      track.stats.totalFrames, disabledSnapshot.totalFrames, 1);
+}, `Stats are frozen while disabled`);
+
+promise_test(async t => {
+  const stream = await navigator.mediaDevices.getUserMedia({
+          video:{frameRate:{ideal:20}}
+      });
+  const [track] = stream.getTracks();
+  t.add_cleanup(() => track.stop());
+
+  // Assert test prerequisite is met: frames will be discarded if the track is
+  // opened with a higher frame rate than we apply after it is opened.
+  assert_greater_than(track.getSettings().frameRate, 10);
+  await track.applyConstraints({frameRate:{ideal:10}});
+
+  // Wait for media to flow before disabling the `track`.
+  const initialStats = await getFrameStatsUntil(track, stats =>
+      stats.deliveredFrames > 10 && stats.discardedFrames > 10);
+  track.enabled = false;
+
+  // Re-enable the track. The stats counters should be greater than or equal to
+  // what they were previously.
+  track.enabled = true;
+  assert_greater_than_equal(track.stats.deliveredFrames,
+                            initialStats.deliveredFrames);
+  assert_greater_than_equal(track.stats.discardedFrames,
+                            initialStats.discardedFrames);
+  assert_greater_than_equal(track.stats.totalFrames,
+                            initialStats.totalFrames);
+}, `Disabling and re-enabling does not reset the counters`);
+
+promise_test(async t => {
+  const stream = await navigator.mediaDevices.getUserMedia({
+          video:{frameRate:{ideal:20}}
+      });
+  const [originalTrack] = stream.getTracks();
+  t.add_cleanup(() => originalTrack.stop());
+
+  // Assert test prerequisite is met: frames will be discarded if the track is
+  // opened with a higher frame rate than we apply after it is opened.
+  assert_greater_than(originalTrack.getSettings().frameRate, 10);
+  await originalTrack.applyConstraints({frameRate:{ideal:10}});
+
+  // Wait for media to flow before disabling the `track`.
+  await getFrameStatsUntil(originalTrack, stats =>
+      stats.deliveredFrames > 0 && stats.discardedFrames > 0);
+  originalTrack.enabled = false;
+  const originalTrackInitialStats = originalTrack.stats.toJSON();
+
+  // Clone the track, its counters should be zero initially.
+  // This is not racy because the cloned track is also disabled.
+  const clonedTrack = originalTrack.clone();
+  t.add_cleanup(() => clonedTrack.stop());
+  const clonedTrackStats = clonedTrack.stats.toJSON();
+  assert_equals(clonedTrackStats.deliveredFrames, 0);
+  assert_equals(clonedTrackStats.discardedFrames, 0);
+  assert_equals(clonedTrackStats.totalFrames, 0);
+
+  // Enabled the cloned track and wait for media to flow.
+  clonedTrack.enabled = true;
+  await getFrameStatsUntil(clonedTrack, stats =>
+      stats.deliveredFrames > 0 && stats.discardedFrames > 0);
+
+  // This does not affect the original track's stats, which are still frozen due
+  // to the original track being disabled.
+  assert_equals(originalTrack.stats.deliveredFrames,
+                originalTrackInitialStats.deliveredFrames);
+  assert_equals(originalTrack.stats.discardedFrames,
+                originalTrackInitialStats.discardedFrames);
+  assert_equals(originalTrack.stats.totalFrames,
+                originalTrackInitialStats.totalFrames);
+}, `New stats baselines when a track is cloned from a disabled track`);
+
+promise_test(async t => {
+  const stream = await navigator.mediaDevices.getUserMedia({
+          video:{frameRate:{ideal:20}}
+      });
+  const [originalTrack] = stream.getTracks();
+  t.add_cleanup(() => originalTrack.stop());
+
+  // Assert test prerequisite is met: frames will be discarded if the track is
+  // opened with a higher frame rate than we apply after it is opened.
+  assert_greater_than(originalTrack.getSettings().frameRate, 10);
+  await originalTrack.applyConstraints({frameRate:{ideal:10}});
+
+  // Wait for media to flow.
+  await getFrameStatsUntil(originalTrack, stats =>
+      stats.deliveredFrames > 0 && stats.discardedFrames > 0);
+
+  // Clone the track. While its counters should initially be zero, it would be
+  // racy to assert that they are exactly zero because media is flowing.
+  const clonedTrack = originalTrack.clone();
+  t.add_cleanup(() => clonedTrack.stop());
+
+  // Ensure that as media continues to flow, the cloned track will necessarily
+  // have less frames than the original track on all accounts since its counters
+  // will have started from zero.
+  const clonedTrackStats = await getFrameStatsUntil(clonedTrack, stats =>
+      stats.deliveredFrames > 0 && stats.discardedFrames > 0);
+  assert_less_than(clonedTrackStats.deliveredFrames,
+                   originalTrack.stats.deliveredFrames);
+  assert_less_than(clonedTrackStats.discardedFrames,
+                   originalTrack.stats.discardedFrames);
+  assert_less_than(clonedTrackStats.totalFrames,
+                   originalTrack.stats.totalFrames);
+}, `New stats baselines when a track is cloned from an enabled track`);
+
+promise_test(async t => {
+  const stream = await navigator.mediaDevices.getUserMedia({
+          video:{frameRate:{ideal:20}}
+      });
+  const [originalTrack] = stream.getTracks();
+  t.add_cleanup(() => originalTrack.stop());
+
+  // Assert test prerequisite is met: frames will be discarded if the track is
+  // opened with a higher frame rate than we apply after it is opened.
+  assert_greater_than(originalTrack.getSettings().frameRate, 10);
+  await originalTrack.applyConstraints({frameRate:{ideal:10}});
+
+  // Wait for media to flow.
+  await getFrameStatsUntil(originalTrack, stats =>
+      stats.deliveredFrames > 0 && stats.discardedFrames > 0);
+
+  // Clone and wait for media to flow.
+  const cloneA = originalTrack.clone();
+  t.add_cleanup(() => cloneA.stop());
+  await getFrameStatsUntil(cloneA, stats =>
+      stats.deliveredFrames > 0 && stats.discardedFrames > 0);
+
+  // Clone the clone and wait for media to flow.
+  const cloneB = cloneA.clone();
+  t.add_cleanup(() => cloneB.stop());
+  await getFrameStatsUntil(cloneB, stats =>
+      stats.deliveredFrames > 0 && stats.discardedFrames > 0);
+
+  // Because every clone reset its counters and every waits for media before
+  // cloning, this must be true: originalStats > cloneAStats > cloneBStats.
+  const originalStats = originalTrack.stats.toJSON();
+  const cloneAStats = cloneA.stats.toJSON();
+  const cloneBStats = cloneB.stats.toJSON();
+  assert_greater_than(originalStats.totalFrames, cloneAStats.totalFrames);
+  assert_greater_than(cloneAStats.totalFrames, cloneBStats.totalFrames);
+}, `New stats baselines for the clone of a clone`);
+
+promise_test(async t => {
+  const stream = await navigator.mediaDevices.getUserMedia({video:true});
+  const [originalTrack] = stream.getTracks();
+  t.add_cleanup(() => originalTrack.stop());
+
+  // Wait for some frames and assert that no frames are discarded.
+  const firstStats = await getFrameStatsUntil(originalTrack, stats =>
+      stats.deliveredFrames > 20);
+  assert_equals(firstStats.discardedFrames, 0);
+  // Make a clone that discards almost all frames. This should not affect the
+  // discarded frames counter of the original track.
+  const clonedTrack = originalTrack.clone();
+  await clonedTrack.applyConstraints({frameRate:{ideal:1}});
+  // Wait for some more frames. There should still be no frames discarded.
+  const secondStats = await getFrameStatsUntil(originalTrack, stats =>
+      stats.deliveredFrames > 40);
+  assert_equals(secondStats.discardedFrames, 0);
+}, `A low FPS clone does not affect the original track's discardedFrames`);
+
+promise_test(async t => {
+  const canvas = document.createElement('canvas');
+  const stream = canvas.captureStream(10);
+  const [track] = stream.getTracks();
+  t.add_cleanup(() => track.stop());
+
+  assert_equals(track.stats, null);
+}, `track.stats is null on non-device tracks, such as canvas`);
+
+promise_test(async t => {
+  // getDisplayMedia() requires inducing a user gesture.
+  const p = new Promise(r => button.onclick = r);
+  await test_driver.click(button);
+  await p;
+
+  const stream = await navigator.mediaDevices.getDisplayMedia({video:true});
+  const [track] = stream.getTracks();
+  t.add_cleanup(() => track.stop());
+
+  await getFrameStatsUntil(track, stats => stats.totalFrames > 0)
+}, `track.stats is supported on getDisplayMedia tracks`);
+</script>

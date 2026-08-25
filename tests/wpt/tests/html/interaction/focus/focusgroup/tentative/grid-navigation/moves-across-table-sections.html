@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Table with one or less row per section (head, 2 bodies and foot).</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<table focusgroup="grid wrap">
+  <thead>
+    <tr>
+      <td id=r1c1 tabindex=0>r1c1</td>
+    </tr>
+    <tr>
+      <td id=r2c1 tabindex=0>r2c1</td>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td id=r3c1 tabindex=0>r3c1</td>
+    </tr>
+    <tr>
+      <td id=r4c1 tabindex=0>r4c1</td>
+    </tr>
+  </tbody>
+  <tbody></tbody>
+  <tfoot>
+    <tr>
+      <td id=r5c1 tabindex=0>r5c1</td>
+    </tr>
+    <tr>
+      <td id=r6c1 tabindex=0>r6c1</td>
+    </tr>
+  </tfoot>
+</table>
+
+<script>
+
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(r1c1, kDown);
+    assert_equals(document.activeElement, r2c1);
+
+    await focusAndSendDirectionalInput(r2c1, kDown);
+    assert_equals(document.activeElement, r3c1);
+
+    await focusAndSendDirectionalInput(r3c1, kDown);
+    assert_equals(document.activeElement, r4c1);
+
+    await focusAndSendDirectionalInput(r4c1, kDown);
+    assert_equals(document.activeElement, r5c1);
+
+    await focusAndSendDirectionalInput(r5c1, kDown);
+    assert_equals(document.activeElement, r6c1);
+
+    await focusAndSendDirectionalInput(r6c1, kDown);
+    assert_equals(document.activeElement, r1c1);
+  }, "Navigating down should move the focus to the next row even when that row is in another section.");
+
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(r6c1, kUp);
+    assert_equals(document.activeElement, r5c1);
+
+    await focusAndSendDirectionalInput(r5c1, kUp);
+    assert_equals(document.activeElement, r4c1);
+
+    await focusAndSendDirectionalInput(r4c1, kUp);
+    assert_equals(document.activeElement, r3c1);
+
+    await focusAndSendDirectionalInput(r3c1, kUp);
+    assert_equals(document.activeElement, r2c1);
+
+    await focusAndSendDirectionalInput(r2c1, kUp);
+    assert_equals(document.activeElement, r1c1);
+
+    await focusAndSendDirectionalInput(r1c1, kUp);
+    assert_equals(document.activeElement, r6c1);
+  }, "Navigating up should move the focus to the previous row even when that row is in another section.");
+
+</script>

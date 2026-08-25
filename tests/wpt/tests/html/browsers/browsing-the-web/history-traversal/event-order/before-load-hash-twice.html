@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Popstate/hashchange/load event ordering</title>
+
+<script>
+// Set these up super-early before we hit the network for the test harness, just in case.
+let hashchangesLeft = 2;
+let popstatesLeft = 2;
+let hashResolve;
+let hashPromise = new Promise(r => hashResolve = r);
+
+window.onhashchange = () => {
+  hashchangesLeft--;
+  if (hashchangesLeft == 0) {
+    hashResolve();
+  }
+}
+window.onpopstate = () => popstatesLeft--;
+</script>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+promise_test(t => {
+  assert_equals(popstatesLeft, 2);
+
+  location.hash = "#1";
+  assert_equals(popstatesLeft, 1);
+  location.hash = "#2";
+  assert_equals(popstatesLeft, 0);
+
+  // hashchange and load are specced to fire on different task sources, and
+  // their ordering is therefore not guaranteed.
+  assert_equals(hashchangesLeft, 2);
+  return Promise.all([hashPromise, new Promise(r => window.onload = r)]);
+}, "when changing hash twice, before load");
+</script>

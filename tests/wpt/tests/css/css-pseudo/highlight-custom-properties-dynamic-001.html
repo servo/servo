@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Pseudo Test: Dynamic Custom Properties for Highlights</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo/#highlight-styling">
+<link rel="match" href="highlight-custom-properties-dynamic-001-ref.html">
+<link rel="author" title="Stephen Chenney" href="mailto:schenney@igalia.com">
+<meta name="assert" value="Custom property values in highlights update correctly when the property is updated.">
+<head>
+  <style>
+    div {
+      --background-color: red;
+    }
+    ::selection {
+      background-color: var(--background-color, red);
+    }
+  </style>
+</head>
+<div id="originating">Green background when selected</div>
+<script>
+  window.getSelection().selectAllChildren(document.body);
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      originating.style.setProperty("--background-color", "green");
+      requestAnimationFrame(() => takeScreenshot());
+    });
+  });
+</script>
+</html>

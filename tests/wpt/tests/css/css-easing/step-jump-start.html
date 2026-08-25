@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Animations Test: animation-timing-function steps(3, jump-start)</title>
+<link rel="author" title="Euclid Ye" href="mailto:yezhizhenjiakang@gmail.com">
+<link rel="help" href="https://github.com/servo/servo/issues/43060">
+<link rel="help" href="https://drafts.csswg.org/css-easing/#typedef-step-position">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+
+<style>
+  @keyframes step-anim {
+    0% {
+      width: 0px;
+    }
+    100% {
+      width: 90px;
+    }
+  }
+
+  .test {
+    width: 10px;
+    height: 20px;
+    background: green;
+    margin-bottom: 5px;
+    animation: step-anim 3s steps(3, jump-start) paused;
+    animation-delay: calc(var(--at) * -1s);
+  }
+</style>
+
+<div class="test" style="--at: 0.0" data-expected-width="30"></div>
+<div class="test" style="--at: 0.9" data-expected-width="30"></div>
+
+<div class="test" style="--at: 1.0" data-expected-width="60"></div>
+<div class="test" style="--at: 1.9" data-expected-width="60"></div>
+
+<div class="test" style="--at: 2.0" data-expected-width="90"></div>
+<div class="test" style="--at: 2.9" data-expected-width="90"></div>
+
+<div class="test" style="--at: 3.0" data-expected-width="10"></div>
+
+<script>
+  checkLayout(".test");
+</script>

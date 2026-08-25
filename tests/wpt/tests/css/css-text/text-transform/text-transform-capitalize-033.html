@@ -1,0 +1,14 @@
+<!doctype html>
+<title>CSS Test: text-transform ignores out of flow</title>
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<link rel="help" href="https://drafts.csswg.org/css-text/#propdef-text-transform">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=906369">
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=191807">
+<link rel="match" href="text-transform-capitalize-033-ref.html">
+<p>
+  Should read "Pass" below
+</p>
+<p style="text-transform: capitalize; font-kerning: none">
+  p<span style="position: absolute"></span>ass
+</p>

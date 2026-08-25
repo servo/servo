@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-sizes">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.flex { display: flex; }
+img { font: 20px/1 Ahem; }
+</style>
+
+<div class="flex" id="t1">
+    <div><img src="support/ratio-2-1.svg" style="min-height: 30px"></div>
+    <div>text</div>
+</div>
+
+<div style="display: grid; grid-template-columns: auto 1fr" id="t2">
+    <div><img src="support/ratio-2-1.svg" style="min-height: 30px"></div>
+    <div>text</div>
+</div>
+
+<div class="flex" id="t3">
+    <div><img src="support/ratio-3-1.svg" style="min-height: 50px"></div>
+    <div>text</div>
+</div>
+
+<script>
+setup({ explicit_done: true });
+
+window.addEventListener('load', function() {
+    test(function() {
+        var wrapper = document.querySelector('#t1 > div:first-child');
+        var img = wrapper.querySelector('img');
+        assert_greater_than(wrapper.offsetWidth, 0, 'Flex item should have non-zero width');
+        assert_equals(img.offsetHeight, 30, 'Image height should honor min-height');
+        assert_equals(img.offsetWidth, 60, 'Image width should be min-height * ratio (30 * 2)');
+    }, 'Replaced element in flex: min-height transfers to preferred width via aspect ratio');
+
+    test(function() {
+        var wrapper = document.querySelector('#t2 > div:first-child');
+        var img = wrapper.querySelector('img');
+        assert_greater_than(wrapper.offsetWidth, 0, 'Grid item should have non-zero width');
+        assert_equals(img.offsetHeight, 30, 'Image height should honor min-height');
+        assert_equals(img.offsetWidth, 60, 'Image width should be min-height * ratio (30 * 2)');
+    }, 'Replaced element in grid: min-height transfers to preferred width via aspect ratio');
+
+    test(function() {
+        var wrapper = document.querySelector('#t3 > div:first-child');
+        var img = wrapper.querySelector('img');
+        assert_greater_than(wrapper.offsetWidth, 0, 'Flex item should have non-zero width');
+        assert_equals(img.offsetHeight, 50, 'Image height should honor min-height');
+        assert_equals(img.offsetWidth, 150, 'Image width should be min-height * ratio (50 * 3)');
+    }, 'Replaced element in flex: min-height with 3:1 ratio');
+
+    done();
+});
+</script>

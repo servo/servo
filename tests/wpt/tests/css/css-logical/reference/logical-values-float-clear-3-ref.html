@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<style>
+body > div { width: 15em; height: 10em; margin: 1em; padding: 2px; border: 1px solid silver; }
+div > div { margin: .5em; padding: .5em; background: yellow; }
+.a { clear: left; }
+.b { clear: right; }
+.fl { float: left; height: 4em; }
+.fr { float: right; height: 2em; }
+.fl2 { float: left; height: 2em; }
+.fr4 { float: right; height: 4em; }
+.ltr { direction: ltr; }
+.rtl { direction: rtl; }
+</style>
+
+<body>
+<div class="ltr">
+ <div class="fl">Start</div>
+ <div class="fr">End</div>
+ <p class="a">a b c d e f g h i j k l m n o p q r s t u v w x y z LTR clear:inline-start</p>
+</div>
+
+<div class="ltr">
+ <div class="fl">Start</div>
+ <div class="fr">End</div>
+ <p class="b">a b c d e f g h i j k l m n o p q r s t u v w x y z LTR clear:inline-end</p>
+</div>
+
+<div class="rtl">
+ <div class="fl2">End</div>
+ <div class="fr4">Start</div>
+ <p class="b">a b c d e f g h i j k l m n o p q r s t u v w x y z RTL clear:inline-start</p>
+</div>
+
+<div class="rtl">
+ <div class="fl2">End</div>
+ <div class="fr4">Start</div>
+ <p class="a">a b c d e f g h i j k l m n o p q r s t u v w x y z RTL clear:inline-end</p>
+</div>

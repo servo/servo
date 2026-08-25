@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml">
+    <title>SVG Test: focus - resetting an explicitly set tabindex</title>
+    <metadata>
+        <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/interact.html#Focus"/>
+        <h:link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#attr-tabindex"/>
+        <h:meta name="assert" content="Verify that an explicitly set tabIndex is reset to the default value when the tabindex attribute is changed to a value that is not a valid integer, or removed"/>
+    </metadata>
+    <a id="anchor" href="#"></a>
+    <rect id="rect"></rect>
+    <g id="g"></g>
+    <circle id="circle"></circle>
+    <text id="text"></text>
+    <svg id="nested"></svg>
+    <h:script src="/resources/testharness.js"/>
+    <h:script src="/resources/testharnessreport.js"/>
+    <script><![CDATA[
+    // tabindex is defined by HTML, which parses the attribute as an integer and
+    // falls back to the default tab index for any value that fails to parse.
+    // That includes the empty string, garbage, and out-of-range integers.
+    const invalidValues = ["", "invalid", " ", "9999999999", "-9999999999"];
+
+    // The HTML rules for parsing integers stop at the first non-digit and keep
+    // the digits collected so far, so these are valid despite the trailing junk.
+    const valuesWithTrailingGarbage = [["1.5", 1], ["4abc", 4], ["-2 ", -2]];
+
+    // [id, default tabIndex]
+    const elements = [
+        ["anchor", 0],
+        ["rect", -1],
+        ["g", -1],
+        ["circle", -1],
+        ["text", -1],
+        ["nested", -1],
+    ];
+
+    for (const [id, expectedDefault] of elements) {
+        const el = document.getElementById(id);
+
+        test(() => {
+            assert_equals(el.tabIndex, expectedDefault);
+        }, `default value of ${id}.tabIndex`);
+
+        for (const invalidValue of invalidValues) {
+            test(() => {
+                el.setAttribute("tabindex", "3");
+                assert_equals(el.tabIndex, 3, "valid value");
+
+                el.setAttribute("tabindex", invalidValue);
+                assert_equals(el.getAttribute("tabindex"), invalidValue);
+                assert_equals(el.tabIndex, expectedDefault, "invalid value");
+
+                el.removeAttribute("tabindex");
+            }, `changing tabindex from "3" to "${invalidValue}" resets ${id}.tabIndex`);
+        }
+
+        test(() => {
+            valuesWithTrailingGarbage.forEach(([value, expectedTabIndex]) => {
+                el.setAttribute("tabindex", "3");
+                assert_equals(el.tabIndex, 3, "valid value");
+
+                el.setAttribute("tabindex", value);
+                assert_equals(el.tabIndex, expectedTabIndex, `"${value}"`);
+            });
+            el.removeAttribute("tabindex");
+        }, `trailing garbage after the digits of ${id}'s tabindex is ignored`);
+
+        test(() => {
+            el.setAttribute("tabindex", "3");
+            assert_equals(el.tabIndex, 3, "valid value");
+
+            el.removeAttribute("tabindex");
+            assert_equals(el.tabIndex, expectedDefault, "attribute removed");
+        }, `removing tabindex resets ${id}.tabIndex`);
+    }
+    ]]></script>
+</svg>

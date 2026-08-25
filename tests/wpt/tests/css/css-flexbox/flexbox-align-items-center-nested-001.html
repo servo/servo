@@ -1,0 +1,47 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: Flexbox nested containers with align-items: center and flexible items</title>
+<link rel="match" href="flexbox-align-items-center-nested-001-ref.html">
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="help" href="https://www.w3.org/TR/css-flexbox-1/#align-items-property">
+<style>
+html, body { margin: 0; padding: 0; }
+body {
+  height: 400px;
+  position: relative;
+}
+
+.container-0 {
+  display: flex;
+  position: absolute;
+  height: 100%;
+  flex-direction: column;
+}
+
+.container-1 {
+  flex: 1 0 auto;
+  display: flex;
+  align-items: center;
+}
+
+.container-2 {
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.content {
+  width: 200px;
+  height: 200px;
+  background: blue;
+}
+</style>
+<body>
+  <div class="container-0">
+    <div class="container-1">
+      <div class="container-2">
+        <div class="content"></div>
+      </div>
+    </div>
+  </div>
+</body>

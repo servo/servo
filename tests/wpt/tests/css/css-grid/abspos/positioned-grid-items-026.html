@@ -1,0 +1,25 @@
+<!DOCTYPE HTML>
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#abspos">
+<link rel="match" href="positioned-grid-items-026-ref.html">
+<meta name="assert" content="Checks that scrollbars are included in calculating the grid-area.">
+<style>
+#container {
+  display: grid;
+  height: 100px;
+  width: 100px;
+  overflow: scroll;
+  border: solid 3px;
+  position: relative;
+}
+
+#container > div {
+  position: absolute;
+  background: green;
+  inset: 0;
+  grid-column-start: 1;
+  grid-row-start: 1;
+}
+</style>
+<div id="container">
+  <div></div>
+</div>

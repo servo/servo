@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Writing mode</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+<link rel="help" href="https://www.w3.org/TR/css-writing-modes-3/#orthogonal-flows">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="In the face of multiple levels of orthogonal flow nesting, children's sizes propagate up to parents.">
+<style>
+body > div {
+  background: green;
+  writing-mode: vertical-lr;
+}
+
+div > div { writing-mode: horizontal-tb; }
+
+div > div > div {
+  writing-mode: vertical-rl;
+  height: 100px;
+  font-size: 100px;
+  line-height: 1;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div>
+  <div><div>&nbsp;</div></div>
+</div>

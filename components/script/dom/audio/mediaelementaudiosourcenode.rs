@@ -1,0 +1,107 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use std::sync::mpsc;
+
+use dom_struct::dom_struct;
+use js::context::JSContext;
+use js::rust::HandleObject;
+use script_bindings::reflector::reflect_dom_object_with_proto;
+use servo_media::audio::audio_node::{AudioNodeInit, AudioNodeMessage};
+use servo_media::audio::media_element_source_node::MediaElementSourceNodeMessage;
+
+use crate::dom::audio::audiocontext::AudioContext;
+use crate::dom::audio::audionode::AudioNode;
+use crate::dom::bindings::codegen::Bindings::MediaElementAudioSourceNodeBinding::{
+    MediaElementAudioSourceNodeMethods, MediaElementAudioSourceOptions,
+};
+use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::html::htmlmediaelement::HTMLMediaElement;
+use crate::dom::window::Window;
+
+#[dom_struct]
+pub(crate) struct MediaElementAudioSourceNode {
+    node: AudioNode,
+    media_element: Dom<HTMLMediaElement>,
+}
+
+impl MediaElementAudioSourceNode {
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
+    fn new_inherited(
+        cx: &mut JSContext,
+        context: &AudioContext,
+        media_element: &HTMLMediaElement,
+    ) -> Fallible<MediaElementAudioSourceNode> {
+        let node = AudioNode::new_inherited(
+            cx,
+            AudioNodeInit::MediaElementSourceNode,
+            &context.base(),
+            Default::default(),
+            0,
+            1,
+        )?;
+        let (sender, receiver) = mpsc::channel();
+        node.message(AudioNodeMessage::MediaElementSourceNode(
+            MediaElementSourceNodeMessage::GetAudioRenderer(sender),
+        ));
+        let audio_renderer = receiver.recv();
+        media_element.set_audio_renderer(audio_renderer.ok(), cx);
+        let media_element = Dom::from_ref(media_element);
+        Ok(MediaElementAudioSourceNode {
+            node,
+            media_element,
+        })
+    }
+
+    pub(crate) fn new(
+        cx: &mut JSContext,
+        window: &Window,
+        context: &AudioContext,
+        media_element: &HTMLMediaElement,
+    ) -> Fallible<DomRoot<MediaElementAudioSourceNode>> {
+        Self::new_with_proto(cx, window, None, context, media_element)
+    }
+
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
+    fn new_with_proto(
+        cx: &mut JSContext,
+        window: &Window,
+        proto: Option<HandleObject>,
+        context: &AudioContext,
+        media_element: &HTMLMediaElement,
+    ) -> Fallible<DomRoot<MediaElementAudioSourceNode>> {
+        let node = MediaElementAudioSourceNode::new_inherited(cx, context, media_element)?;
+        Ok(reflect_dom_object_with_proto(
+            cx,
+            Box::new(node),
+            window,
+            proto,
+        ))
+    }
+}
+
+impl MediaElementAudioSourceNodeMethods<crate::DomTypeHolder> for MediaElementAudioSourceNode {
+    /// <https://webaudio.github.io/web-audio-api/#dom-mediaelementaudiosourcenode-mediaelementaudiosourcenode>
+    fn Constructor(
+        cx: &mut JSContext,
+        window: &Window,
+        proto: Option<HandleObject>,
+        context: &AudioContext,
+        options: &MediaElementAudioSourceOptions,
+    ) -> Fallible<DomRoot<MediaElementAudioSourceNode>> {
+        MediaElementAudioSourceNode::new_with_proto(
+            cx,
+            window,
+            proto,
+            context,
+            &options.mediaElement,
+        )
+    }
+
+    /// <https://webaudio.github.io/web-audio-api/#dom-mediaelementaudiosourcenode-mediaelement>
+    fn MediaElement(&self) -> DomRoot<HTMLMediaElement> {
+        DomRoot::from_ref(&*self.media_element)
+    }
+}

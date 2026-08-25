@@ -1,0 +1,66 @@
+<!doctype html>
+<html class=reftest-wait>
+<title>CSS Container Queries Test: Size queries on CSS Layout API containers</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#size-container">
+<link rel="help" href="https://drafts.css-houdini.org/css-layout-api/">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+<style>
+  #test1 {
+    width: 400px;
+    height: 100px;
+  }
+  #outer {
+    display: inline; /* Shouldn't pass without layout api support */
+    display: layout(half);
+    height: 100px;
+    container-type: inline-size;
+  }
+  @container (width = 400px) {
+    #inner {
+      display: inline; /* Shouldn't pass without layout api support */
+      display: layout(half);
+      height: 100px;
+      container-type: inline-size;
+    }
+  }
+  @container (width = 200px) {
+    #green {
+      background-color: green;
+      height: 100px;
+    }
+  }
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div id="test1">
+  <div id="outer">
+    <div id="inner">
+      <div id="green"></div>
+    </div>
+  </div>
+</div>
+
+<script id="code" type="text/worklet">
+  registerLayout("half", class {
+    async intrinsicSizes() {}
+    async layout(children, edges, constraints, styleMap) {
+      const childInlineSize = constraints.fixedInlineSize / 2;
+      const childFragments = await Promise.all(children.map((child) => {
+        return child.layoutNextFragment({fixedInlineSize: childInlineSize});
+      }));
+
+      for (let childFragment of childFragments) {
+        childFragment.inlineOffset = 0;
+        childFragment.blockOffset = 0;
+      }
+      const autoBlockSize = 100;
+      return {autoBlockSize, childFragments};
+    }
+  });
+</script>
+
+<script>
+  importWorkletAndTerminateTestAfterAsyncPaint(CSS.layoutWorklet, document.getElementById("code").textContent);
+</script>
+</html>

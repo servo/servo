@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<title>Crash focusing image map non-slotted area element</title>
+<link rel="help" href="https://crbug.com/531745321">
+<img src="/images/green-1x1.png" usemap="#map">
+<div>
+  <template shadowrootmode="open"></template>
+  <map name="map"><area id="area" href="."></map>
+</div>
+<script>
+  window.onload = () => {
+    area.focus();
+    document.documentElement.classList.remove("test-wait");
+  };
+</script>

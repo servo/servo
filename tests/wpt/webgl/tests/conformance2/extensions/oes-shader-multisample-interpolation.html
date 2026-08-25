@@ -1,0 +1,316 @@
+<!--
+Copyright (c) 2023 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL OES_shader_multisample_interpolation Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas width="32" height="32" id="c"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description("This test verifies the functionality of the OES_shader_multisample_interpolation extension, if it is available.");
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("c", { antialias: false }, 2);
+var ext;
+
+function runShaderTests(extensionEnabled) {
+    debug("");
+    debug("Testing various shader compiles with extension " + (extensionEnabled ? "enabled" : "disabled"));
+
+    const macroVertex = `#version 300 es
+        in vec4 vPosition;
+        void main() {
+        #ifdef GL_OES_shader_multisample_interpolation
+            gl_Position = vPosition;
+        #else
+            #error no GL_OES_shader_multisample_interpolation;
+        #endif
+        }`;
+
+    const macroFragment = `#version 300 es
+        precision highp float;
+        out vec4 my_FragColor;
+        void main() {
+        #ifdef GL_OES_shader_multisample_interpolation
+            my_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+        #else
+            #error no GL_OES_shader_multisample_interpolation;
+        #endif
+        }`;
+
+    for (const shaders of [[wtu.simpleVertexShaderESSL300, macroFragment],
+                           [macroVertex, wtu.simpleColorFragmentShaderESSL300]]) {
+        // Expect the macro shader to succeed ONLY if enabled
+        if (wtu.setupProgram(gl, shaders)) {
+            if (extensionEnabled) {
+                testPassed("Macro defined in shaders when extension is enabled");
+            } else {
+                testFailed("Macro defined in shaders when extension is disabled");
+            }
+        } else {
+            if (extensionEnabled) {
+                testFailed("Macro not defined in shaders when extension is enabled");
+            } else {
+                testPassed("Macro not defined in shaders when extension is disabled");
+            }
+        }
+    }
+
+    const missingVertex = `#version 300 es
+        sample out float interpolant;
+        in vec4 vPosition;
+        void main() {
+            gl_Position = vPosition;
+        }`;
+
+    const missingFragment = `#version 300 es
+        precision highp float;
+        sample in float interpolant;
+        out vec4 my_FragColor;
+        void main() {
+            my_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+        }`;
+
+    // Always expect the shader missing the #extension pragma to fail (whether enabled or not)
+    for (const shaders of [[missingVertex, wtu.simpleColorFragmentShaderESSL300],
+                           [wtu.simpleVertexShaderESSL300, missingFragment],
+                           [missingVertex, missingFragment]]) {
+        if (wtu.setupProgram(gl, shaders)) {
+            testFailed("Sample interpolation qualifier allowed without #extension pragma");
+        } else {
+            testPassed("Sample interpolation qualifier disallowed without #extension pragma");
+        }
+    }
+
+    const validVertex = `#version 300 es
+        #extension GL_OES_shader_multisample_interpolation : enable
+        sample out float interpolant;
+        in vec4 vPosition;
+        void main() {
+            gl_Position = vPosition;
+        }`;
+
+    const validFragment = `#version 300 es
+        #extension GL_OES_shader_multisample_interpolation : enable
+        precision highp float;
+        sample in float interpolant;
+        out vec4 my_FragColor;
+        void main() {
+            my_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+        }`;
+
+    // Try to compile a shader using a sample qualifier that should only succeed if enabled
+    if (wtu.setupProgram(gl, [validVertex, validFragment])) {
+        if (extensionEnabled) {
+            testPassed("Sample interpolation qualifier compiled successfully when extension enabled");
+        } else {
+            testFailed("Sample interpolation qualifier compiled successfully when extension disabled");
+        }
+    } else {
+        if (extensionEnabled) {
+            testFailed("Sample interpolation qualifier failed to compile when extension enabled");
+        } else {
+            testPassed("Sample interpolation qualifier failed to compile when extension disabled");
+        }
+    }
+}
+
+function runQueryTests(extensionEnabled) {
+    debug("");
+    debug("Testing parameters with extension " + (extensionEnabled ? "enabled" : "disabled"));
+    if (extensionEnabled) {
+        shouldBeGreaterThanOrEqual("gl.getParameter(ext.FRAGMENT_INTERPOLATION_OFFSET_BITS_OES)", "4");
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+
+        const limit = 0.5 - Math.pow(2, -gl.getParameter(ext.FRAGMENT_INTERPOLATION_OFFSET_BITS_OES));
+        shouldBeLessThanOrEqual("gl.getParameter(ext.MIN_FRAGMENT_INTERPOLATION_OFFSET_OES)", `-${limit}`);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+        shouldBeGreaterThanOrEqual("gl.getParameter(ext.MAX_FRAGMENT_INTERPOLATION_OFFSET_OES)", `${limit}`);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+    } else {
+        shouldBeNull("gl.getParameter(0x8E5B /* MIN_FRAGMENT_INTERPOLATION_OFFSET_OES */)");
+        wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "parameter unknown without enabling the extension");
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+        shouldBeNull("gl.getParameter(0x8E5C /* MAX_FRAGMENT_INTERPOLATION_OFFSET_OES */)");
+        wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "parameter unknown without enabling the extension");
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+        shouldBeNull("gl.getParameter(0x8E5D /* FRAGMENT_INTERPOLATION_OFFSET_BITS_OES */)");
+        wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "parameter unknown without enabling the extension");
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+    }
+}
+
+function checkEnums() {
+    debug("");
+    debug("Check enums");
+    shouldBe("ext.MIN_FRAGMENT_INTERPOLATION_OFFSET_OES", "0x8E5B");
+    shouldBe("ext.MAX_FRAGMENT_INTERPOLATION_OFFSET_OES", "0x8E5C");
+    shouldBe("ext.FRAGMENT_INTERPOLATION_OFFSET_BITS_OES", "0x8E5D");
+}
+
+/*
+ * This test renders a triangle using MSAAx4 and 1x1 viewport
+ * with the following vertex colors.
+ *
+ * | Position |   Color   |
+ * |==========|===========|
+ * | (-1, -1) | (0, 0, 0) |
+ * | (-1, +1) | (0, 1, 0) |
+ * | (+1, -1) | (1, 0, 0) |
+ *
+ * This triangle cannot cover all four samples.
+ *
+ * When default interpolation is used, the vertex color is interpolated
+ * once, most likely in the pixel center.
+ *
+ * When per-sample interpolation is used, the vertex color is interpolated
+ * several times, producing a distinct value for each covered sample.
+ * Due to the asymmetry of sample positions, the resolved pixel color must
+ * not match the color produced by default interpolation.
+ *
+ * OpenGL specs do not guarantee specific sample positions, so the test
+ * checks only that the resolved colors are different.
+ */
+function runInterpolationTest() {
+    debug("");
+    debug("Testing multisample interpolation");
+
+    function draw(program) {
+        gl.viewport(0, 0, 1, 1);
+        gl.useProgram(program);
+
+        const posLoc = gl.getAttribLocation(program, "position");
+        const buf = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+        gl.bufferData(
+            gl.ARRAY_BUFFER,
+            new Float32Array([
+                -1.0, -1.0,
+                -1.0, +1.0,
+                +1.0, -1.0]),
+            gl.STATIC_DRAW);
+
+        gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(posLoc);
+
+        const rbo = gl.createRenderbuffer();
+        gl.bindRenderbuffer(gl.RENDERBUFFER, rbo);
+        gl.renderbufferStorageMultisample(gl.RENDERBUFFER, 4, gl.RGBA8, 1, 1);
+
+        const fbo = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, rbo);
+
+        wtu.framebufferStatusShouldBe(gl, gl.FRAMEBUFFER, gl.FRAMEBUFFER_COMPLETE);
+
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo);
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+        gl.blitFramebuffer(0, 0, 1, 1, 0, 0, 1, 1, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+    }
+
+    const vertexCenter = `#version 300 es
+        in vec4 position;
+        out vec4 interp_color;
+        void main() {
+            gl_Position = position;
+            interp_color = vec4(position.xy * 0.5 + 0.5, 0.0, 1.0);
+        }`;
+
+    const fragmentCenter = `#version 300 es
+        precision highp float;
+        in vec4 interp_color;
+        out vec4 fragColor;
+        void main() {
+            fragColor = interp_color;
+        }`;
+    const programCenter = wtu.setupProgram(gl, [vertexCenter, fragmentCenter]);
+
+    draw(programCenter);
+    const centerColor = new Uint8Array(4);
+    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, centerColor);
+
+    const vertexSample = `#version 300 es
+        #extension GL_OES_shader_multisample_interpolation : require
+        in vec4 position;
+        sample out vec4 interp_color;
+        void main() {
+            gl_Position = position;
+            interp_color = vec4(position.xy * 0.5 + 0.5, 0.0, 1.0);
+        }`;
+
+    const fragmentSample = `#version 300 es
+        #extension GL_OES_shader_multisample_interpolation : require
+        precision highp float;
+        sample in vec4 interp_color;
+        out vec4 fragColor;
+        void main() {
+            fragColor = interp_color;
+        }`;
+    const programSample = wtu.setupProgram(gl, [vertexSample, fragmentSample]);
+
+    draw(programSample);
+    const sampleColor = new Uint8Array(4);
+    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, sampleColor);
+
+    const message = `Pixel-center value: ${centerColor}, sample-average value: ${sampleColor}`;
+    if (centerColor[0] == sampleColor[0] && centerColor[1] == sampleColor[1]) {
+        testFailed(message);
+    } else {
+        testPassed(message);
+    }
+}
+
+function runTest() {
+    if (!gl) {
+        testFailed("WebGL context does not exist");
+        return;
+    }
+    testPassed("WebGL context exists");
+
+    runQueryTests(false);
+    runShaderTests(false);
+
+    debug("");
+    ext = gl.getExtension("OES_shader_multisample_interpolation");
+    wtu.runExtensionSupportedTest(gl, "OES_shader_multisample_interpolation", ext !== null);
+
+    if (!ext) {
+        testPassed("No OES_shader_multisample_interpolation support -- this is legal");
+    } else {
+        testPassed("Successfully enabled OES_shader_multisample_interpolation extension");
+        checkEnums();
+        runQueryTests(true);
+        runShaderTests(true);
+        runInterpolationTest();
+    }
+}
+
+runTest();
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

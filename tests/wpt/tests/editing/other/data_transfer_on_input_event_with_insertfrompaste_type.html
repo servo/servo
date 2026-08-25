@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>
+  This test is for testing data transfer on input event with
+  insertFromPaste type.
+</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../include/editor-test-utils.js"></script>
+<div id="copy" contenteditable="true">copyMe</div>
+<div contenteditable="true" id="paste"></div>
+<textarea id="paste2"></textarea>
+<script>
+  const editable = document.getElementById("paste");
+  const textarea = document.querySelector("textarea");
+  // The editable div should have dataTransfer on input event with
+  // insertFromPaste type.
+  editable.addEventListener("input", (e) => {
+    assert_equals(e.inputType, "insertFromPaste");
+    assert_not_equals(e.dataTransfer, null);
+    assert_equals(e.dataTransfer.getData("text"), "copyMe");
+  });
+  // The textarea should not have dataTransfer on input event with
+  // insertFromPaste type.
+  textarea.addEventListener("input", (e) => {
+    assert_equals(e.inputType, "insertFromPaste");
+    assert_equals(e.dataTransfer, null);
+    assert_equals(e.data, "copyMe");
+  });
+  promise_test(async () => {
+    const range = document.createRange();
+    const contentToCopy = document.getElementById("copy");
+    range.selectNodeContents(contentToCopy);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    // Send copy command
+    const utils = new EditorTestUtils(contentToCopy);
+    await utils.sendCopyShortcutKey();
+
+    selection.removeAllRanges();
+    const paste = document.getElementById("paste");
+    paste.focus();
+    await utils.sendPasteShortcutKey();
+    const paste2 = document.getElementById("paste2");
+    paste2.focus();
+    await utils.sendPasteShortcutKey();
+  }, "The data transfer on input event with insertFromPaste type should not be null on contenteditable elements but null on textarea or input elements.");
+</script>

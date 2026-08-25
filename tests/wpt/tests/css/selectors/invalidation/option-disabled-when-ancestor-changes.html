@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Selectors Invalidation: option/optgroup :disabled when ancestor select or fieldset disabled changes</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/semantics-other.html#selector-disabled">
+<link rel="help" href="https://github.com/whatwg/html/pull/12205">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  option, optgroup { color: black }
+  option:disabled, optgroup:disabled { color: red }
+
+  #select_subject_option:has(option:disabled) { background-color: green }
+  #select_subject_optgroup:has(optgroup:disabled) { background-color: blue }
+  #fieldset_subject_option:has(option:disabled) { background-color: green }
+  #fieldset_subject_optgroup:has(optgroup:disabled) { background-color: blue }
+</style>
+
+<div id="select_subject_option">
+  <select id="select_a">
+    <option id="option_a">a</option>
+  </select>
+</div>
+
+<div id="select_subject_optgroup">
+  <select id="select_b">
+    <optgroup id="optgroup_b" label="group"></optgroup>
+  </select>
+</div>
+
+<fieldset id="fieldset_a">
+  <div id="fieldset_subject_option">
+    <select>
+      <option id="option_c">c</option>
+    </select>
+  </div>
+</fieldset>
+
+<fieldset id="fieldset_b">
+  <div id="fieldset_subject_optgroup">
+    <select>
+      <optgroup id="optgroup_d" label="group"></optgroup>
+    </select>
+  </div>
+</fieldset>
+
+<script>
+const black = "rgb(0, 0, 0)";
+const red = "rgb(255, 0, 0)";
+const green = "rgb(0, 128, 0)";
+const blue = "rgb(0, 0, 255)";
+const transparent = "rgba(0, 0, 0, 0)";
+
+function colorOf(element) {
+  return getComputedStyle(element).color;
+}
+
+function backgroundColorOf(element) {
+  return getComputedStyle(element).backgroundColor;
+}
+
+test(t => {
+  t.add_cleanup(() => { select_a.disabled = false; });
+
+  assert_equals(colorOf(option_a), black, "option color before");
+  assert_equals(backgroundColorOf(select_subject_option), transparent, ":has(option:disabled) before");
+
+  select_a.disabled = true;
+  assert_equals(colorOf(option_a), red, "option color after disabling select");
+  assert_equals(backgroundColorOf(select_subject_option), green, ":has(option:disabled) after disabling select");
+
+  select_a.disabled = false;
+  assert_equals(colorOf(option_a), black, "option color after re-enabling select");
+  assert_equals(backgroundColorOf(select_subject_option), transparent, ":has(option:disabled) after re-enabling select");
+}, "option :disabled and :has(option:disabled) invalidate when ancestor select disabled toggles");
+
+test(t => {
+  t.add_cleanup(() => { select_b.disabled = false; });
+
+  assert_equals(colorOf(optgroup_b), black, "optgroup color before");
+  assert_equals(backgroundColorOf(select_subject_optgroup), transparent, ":has(optgroup:disabled) before");
+
+  select_b.disabled = true;
+  assert_equals(colorOf(optgroup_b), red, "optgroup color after disabling select");
+  assert_equals(backgroundColorOf(select_subject_optgroup), blue, ":has(optgroup:disabled) after disabling select");
+
+  select_b.disabled = false;
+  assert_equals(colorOf(optgroup_b), black, "optgroup color after re-enabling select");
+  assert_equals(backgroundColorOf(select_subject_optgroup), transparent, ":has(optgroup:disabled) after re-enabling select");
+}, "optgroup :disabled and :has(optgroup:disabled) invalidate when ancestor select disabled toggles");
+
+test(t => {
+  t.add_cleanup(() => { fieldset_a.disabled = false; });
+
+  assert_equals(colorOf(option_c), black, "option color before");
+  assert_equals(backgroundColorOf(fieldset_subject_option), transparent, ":has(option:disabled) before");
+
+  fieldset_a.disabled = true;
+  assert_equals(colorOf(option_c), red, "option color after disabling fieldset");
+  assert_equals(backgroundColorOf(fieldset_subject_option), green, ":has(option:disabled) after disabling fieldset");
+
+  fieldset_a.disabled = false;
+  assert_equals(colorOf(option_c), black, "option color after re-enabling fieldset");
+  assert_equals(backgroundColorOf(fieldset_subject_option), transparent, ":has(option:disabled) after re-enabling fieldset");
+}, "option :disabled and :has(option:disabled) invalidate when ancestor fieldset disabled toggles");
+
+test(t => {
+  t.add_cleanup(() => { fieldset_b.disabled = false; });
+
+  assert_equals(colorOf(optgroup_d), black, "optgroup color before");
+  assert_equals(backgroundColorOf(fieldset_subject_optgroup), transparent, ":has(optgroup:disabled) before");
+
+  fieldset_b.disabled = true;
+  assert_equals(colorOf(optgroup_d), red, "optgroup color after disabling fieldset");
+  assert_equals(backgroundColorOf(fieldset_subject_optgroup), blue, ":has(optgroup:disabled) after disabling fieldset");
+
+  fieldset_b.disabled = false;
+  assert_equals(colorOf(optgroup_d), black, "optgroup color after re-enabling fieldset");
+  assert_equals(backgroundColorOf(fieldset_subject_optgroup), transparent, ":has(optgroup:disabled) after re-enabling fieldset");
+}, "optgroup :disabled and :has(optgroup:disabled) invalidate when ancestor fieldset disabled toggles");
+</script>

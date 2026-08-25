@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Test: order - dynamic changes</title>
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="https://www.w3.org/TR/css-display-3/#order-property">
+<link rel="match" href="../reference/ref-filled-green-200px-square.html">
+<meta name="assert" content="Order can be changed dynamically.">
+
+<style>
+main {
+  display: flex;
+}
+div {
+  height: 200px;
+  width: 200px;
+}
+#red {
+  position: absolute;
+  z-index: -1;
+  background: red;
+}
+#green {
+  background: green;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<main>
+  <div id="red"></div>
+  <div id="target"></div>
+  <div id="green"></div>
+</main>
+
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<script>
+waitForAtLeastOneFrame().then(() => {
+  document.getElementById("target").style.order = "1";
+  takeScreenshot();
+});
+</script>
+</html>

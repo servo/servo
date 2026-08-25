@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    html, body {
+      color: black; background-color: white; font: 16px/1 monospace; padding: 0; margin: 0;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-rows: repeat(4, 50px);
+      grid-template-columns: 20px 20px 30px 20px;
+      padding: 2px;
+      margin: 5px;
+    }
+
+    .track {
+      display: flex;
+      flex-direction: row;
+    }
+
+    item {
+      display: block;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+<div class="grid">
+  <item style="grid-row: 1; grid-column: 1 / span 3; width: 70px; background: salmon;">1</item>
+  <item style="grid-row: 4; grid-column: 1; width: 20px; background: salmon;">2</item>
+  <item style="grid-row: 3 / span 2; grid-column: 2; width: 20px; background: salmon;">3</item>
+  <item style="grid-row: 1 / span 4; grid-column: 4; width: 20px; background: salmon;">4</item>
+  <div class="track" style="grid-row: 2 / span 2; grid-column: 1;">
+    <item style="flex-grow: 1; background: green;">5</item>
+  </div>
+</div>
+
+<div class="grid">
+  <item style="grid-row: 1; grid-column: 1 / span 3; width: 70px; background: salmon;">1</item>
+  <item style="grid-row: 4; grid-column: 1; width: 20px; background: salmon;">2</item>
+  <item style="grid-row: 3 / span 2; grid-column: 2; width: 20px; background: salmon;">3</item>
+  <item style="grid-row: 1 / span 4; grid-column: 4; width: 20px; background: salmon;">4</item>
+  <div class="track" style="grid-row: 2 / span 2; grid-column: 1; justify-content: center;">
+    <item style="width: 10px; background: green;">5</item>
+  </div>
+</div>
+
+</body>
+</html>

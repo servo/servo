@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+button {
+    color: green;
+}
+
+button:disabled {
+    color: red;
+}
+
+.trigger-style-recalc {
+    /* No change, we just need a new style recalculation. */
+    font-weight:bold;
+}
+</style>
+</head>
+<body style="color: green">
+<button>The test passes if this is in green.</button>
+<dialog></dialog>
+<script>
+"use strict";
+test(function() {
+    document.querySelector('dialog').showModal();
+    var button = document.querySelector('button');
+    button.classList.add('trigger-style-recalc');
+    var color = document.defaultView.getComputedStyle(button).getPropertyValue('color');
+    assert_equals(color, 'rgb(0, 128, 0)');
+}, "Tests inert elements do not match the :disabled selector.");
+</script>
+</body>
+</html>

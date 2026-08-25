@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>Tests that the ascentOverride, descentOverride and lineGapOverride attributes of FontFace work</title>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+#target {
+  position: absolute;
+  font-family: Ahem;
+  font-size: 20px;
+}
+
+#first-line {
+  position: absolute;
+  left: 0;
+  top: 0.7em;
+}
+
+#second-line {
+  position: absolute;
+  left: 0;
+  top: 3.7em;
+}
+</style>
+
+<div id="target">
+  <div id="first-line">XXXXX</div>
+  <div id="second-line">XXXXX</div>
+</div>

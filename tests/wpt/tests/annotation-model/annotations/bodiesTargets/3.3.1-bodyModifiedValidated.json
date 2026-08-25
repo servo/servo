@@ -1,0 +1,44 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "3.3.1-bodyModifiedValidated.json",
+    "assertionType": "must",
+    "expectedResult": "valid",
+    "onUnexpectedResult" : "failAndContinue",
+    "errorMessage": "ERROR: A body or body/source has multiple modified key values for a body or source, or a single modified key value that is not of format date-time.",
+    "title": "If present all body-level or body/source-level **_modified_ keys** have a **single value** that is of **format date-time** - [model 3.3.1](https://www.w3.org/TR/annotation-model/#lifecycle-information)",
+    "description": "True when no body-level or body/source-level (SR body) modified key present or when all modified keys have a single value that is of format date-time (Section 3.3.1)",
+    "type": "object",
+    "properties":
+    {
+      "body":
+       {
+          "oneOf":
+          [
+            { "$ref": "id.json#/definitions/arraySingleStringUri" },
+            { "allOf":
+               [
+                  { "$ref": "otherProperties.json#/definitions/modifiedValidIfPresent" },
+                  { "$ref": "specificResource.json#/definitions/sourceWithModified" }
+               ]
+            },
+            {
+                "type": "array",
+                "minItems": 1,
+                "items":
+                {
+                    "oneOf":
+                    [
+                        { "$ref": "id.json#/definitions/arraySingleStringUri" },
+                        { "allOf":
+                           [
+                              { "$ref": "otherProperties.json#/definitions/modifiedValidIfPresent" },
+                              { "$ref": "specificResource.json#/definitions/sourceWithModified" }
+                           ]
+                        }
+                    ]
+                }
+            }
+          ]
+       }
+   }
+}

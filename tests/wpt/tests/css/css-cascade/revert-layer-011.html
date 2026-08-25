@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>CSS Cascade Layers: 'revert-layer' from animation origin to author origin on custom property</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-5/#revert-layer">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<link rel="match" href="reference/ref-filled-green-100px-square.xht">
+
+<style>
+#target {
+  width: var(--x);
+  --x: 150px;
+  height: 100px;
+  background-color: green;
+  animation: anim linear 2s -1s paused;
+}
+
+@property --x {
+  syntax: '<length>';
+  initial-value: 0px;
+  inherits: false;
+}
+
+@keyframes anim {
+  from { --x: 50px; }
+  to { --x: revert-layer; }
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="target"></div>

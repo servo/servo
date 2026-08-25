@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Writing Modes reference: text-align in orthogonal table cell</title>
+
+<meta name="flags" content="ahem" />
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+
+<style>
+table {
+  font: 20px/1 Ahem;
+  border: 1px solid gray;
+}
+
+td {
+  width: 3.5em;
+  height: 1.75em;
+  padding: 0;
+  color: green;
+  vertical-align: top;
+}
+
+td > div {
+  position: relative;
+  top: 0.5em;
+}
+
+.left {
+  left: 0.5em;
+}
+.center {
+  left: 1em;
+}
+.right {
+  left: 1.5em;
+}
+</style>
+
+<table>
+ <tr>
+  <td><div class=left>X</div></td>
+ </tr>
+ <tr>
+  <td><div class=center>X</div></td>
+ </tr>
+ <tr>
+  <td><div class=right>X</div></td>
+ </tr>
+ <tr>
+  <td><div class=left>X</div></td>
+ </tr>
+ <tr>
+  <td><div class=right>X</div></td>
+ </tr>
+</table>
+<br>
+<table>
+ <tr>
+  <td><div class=left>X</div></td>
+ </tr>
+ <tr>
+  <td><div class=center>X</div></td>
+ </tr>
+ <tr>
+  <td><div class=right>X</div></td>
+ </tr>
+ <tr>
+  <td><div class=right>X</div></td>
+ </tr>
+ <tr>
+  <td><div class=left>X</div></td>
+ </tr>
+</table>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: text-overflow - emoji string</title>
+<link rel="author" title="Minseong Kim" href="mailto:jja08111@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4">
+<link rel="match" href="reference/text-overflow-string-003-ref.html">
+<meta name="assert" content="Test checks that emoji string are shown instead of overflowing textual content">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  @font-face {
+    /* A subset of Noto Color Emoji (only the code points used below) so the
+       emoji ellipsis has known advance widths regardless of the platform's
+       emoji font. Every emoji glyph advances 12px and "🤷‍♂️" is a single ZWJ
+       cluster, so "🟢😀🤷‍♂️" is 3 glyphs wide. */
+    font-family: "emoji-test";
+    src: url("/fonts/noto/color-emoji/NotoColorEmoji-subset.ttf");
+  }
+  div {
+    font-family: "emoji-test";
+    font-size: 10px;
+    overflow: hidden;
+    text-overflow: "🟢😀🤷‍♂️";
+    /* 90px for Ahem glyphs + 38px for the ellipsis string + 1px margin. */
+    width: calc(90px + 38px + 1px);
+  }
+  span {
+    font-family: Ahem;
+    font-size: 30px;
+  }
+</style>
+<body>
+  <p>Test passes if there is an 🟢😀🤷‍♂️ after a black rectangle below.</p>
+  <div>
+    <span>TestChecksThatTheBrokenContentRepalcedByEmojiString</span>
+  </div>
+</body>

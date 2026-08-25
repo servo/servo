@@ -1,0 +1,10 @@
+rules:
+- iframe-loading-lazy-base-url*: [base]
+- iframe-loading-lazy*: [loading-lazy]
+- iframe-with-base.html: [base]
+- srcdoc_change_hash.html: [hashchange]
+- srcdoc*: [iframe-srcdoc]
+- iframe_sandbox_*: [iframe-sandbox]
+- sandbox-*: [iframe-sandbox]
+- sandbox_*: [iframe-sandbox]
+- "*": [iframe]

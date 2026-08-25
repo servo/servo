@@ -1,0 +1,45 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>dialog element: open</title>
+<link rel=help href="https://html.spec.whatwg.org/multipage/forms.html#dom-dialog-open">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<dialog id="d1">
+  <p>foobar</p>
+  <button>OK</button>
+</dialog>
+<dialog id="d2" open>
+  <p>foobar</p>
+  <button>OK</button>
+</dialog>
+<script>
+  var d1 = document.getElementById('d1');
+  var d2 = document.getElementById('d2');
+
+  test(function(){
+    assert_false(d1.open);
+    assert_true(d2.open);
+  }, "On getting, the IDL open attribute must return true if the content open attribute is set, and false if it is absent.");
+
+  test(function(){
+    d1.open = true;
+    assert_true(d1.hasAttribute("open"));
+    d2.open = false;
+    assert_false(d2.hasAttribute("open"));
+  }, "On setting, the content open attribute must be removed if the IDL open attribute is set to false, and must be present if the IDL open attribute is set to true.");
+
+  async_test(function(t){
+    d2.open = true;
+    assert_true(d2.hasAttribute("open"));
+    d2.onclose = t.unreached_func("close event should not be fired when just setting the open attribute");
+    d2.open = false;
+    assert_false(d2.hasAttribute("open"));
+
+    // close event is async, give it a chance to be fired
+    t.step_timeout(function() {
+      requestAnimationFrame(() => {
+        t.done();
+      });
+    }, 0);
+  }, "On setting it to false, the close event should not be fired");
+</script>

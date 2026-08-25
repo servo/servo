@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#comp-func">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#numbers">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#calc-type-checking">
+<link rel="author" title="Xiaocheng Hu" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/numeric-testcommon.js"></script>
+<div id="target"></div>
+<script>
+// Identity tests
+test_math_used('min(1)', '1', {type:'number'});
+test_math_used('max(1)', '1', {type:'number'});
+
+// Nestings
+test_math_used('min(0.2, max(0.1, 0.15))', '0.15', {type:'number'});
+test_math_used('max(0.1, min(0.2, 0.15))', '0.15', {type:'number'});
+
+// General calculations
+test_math_used('calc(min(0.1, 0.2) + 0.05)', '0.15', {type:'number'});
+test_math_used('calc(min(0.1, 0.2) - 0.05)', '0.05', {type:'number'});
+test_math_used('calc(min(0.1, 0.2) * 2)', '0.2', {type:'number'});
+test_math_used('calc(min(0.1, 0.2) / 2)', '0.05', {type:'number'});
+test_math_used('calc(max(0.1, 0.2) + 0.05)', '0.25', {type:'number'});
+test_math_used('calc(max(0.1, 0.2) - 0.05)', '0.15', {type:'number'});
+test_math_used('calc(max(0.1, 0.2) * 2)', '0.4', {type:'number'});
+test_math_used('calc(max(0.1, 0.2) / 2)', '0.1', {type:'number'});
+test_math_used('calc(min(0.1, 0.2) + max(0.1, 0.05))', '0.2', {type:'number'});
+test_math_used('calc(min(0.1, 0.2) - max(0.1, 0.05))', '0', {type:'number'});
+</script>

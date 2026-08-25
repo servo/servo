@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      Test ABSN Outputs Silence if buffer is null
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/webaudio/resources/audit-util.js"></script>
+  </head>
+
+  <body>
+    <script>
+      promise_test(async () => {
+        // Create test context.  Length and sampleRate are pretty arbitrary, but
+        // we don't need either to be very large.
+        const context = new OfflineAudioContext(
+            {numberOfChannels: 1, length: 1024, sampleRate: 8192});
+
+        // Just create a constant buffer for testing.  Anything will do as long
+        // as the buffer contents are not identically zero.
+        const audioBuffer =
+            new AudioBuffer({length: 10, sampleRate: context.sampleRate});
+        const audioBufferSourceNode = new AudioBufferSourceNode(context);
+
+        audioBuffer.getChannelData(0).fill(1);
+
+        audioBufferSourceNode.buffer = audioBuffer;
+
+        // This is the important part.  Setting the buffer to null after setting
+        // it to something else should cause the source to produce silence.
+        audioBufferSourceNode.buffer = null;
+
+        audioBufferSourceNode.start();
+        audioBufferSourceNode.connect(context.destination);
+
+        const renderedBuffer = await context.startRendering();
+
+        // Since the buffer is null, the output of the source should be
+        // silence.
+        const actual = renderedBuffer.getChannelData(0);
+        assert_constant_value(actual, 0, 'ABSN output');
+      }, 'ABSN with null buffer');
+    </script>
+  </body>
+</html>

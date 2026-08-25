@@ -1,0 +1,88 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Reftest Reference</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <link rel="author" title="Morgan Rae Reschenberg" href="mailto:mreschenberg@berkeley.edu">
+  <style>
+  .basic {
+    overflow: auto;
+    position: relative;
+    border: 2px solid green;
+  }
+  .height-ref {
+    height: 60px;
+    background: lightblue;
+  }
+  .width-ref {
+    width: 60px;
+  }
+  .floatLBasic-ref {
+    float: left;
+  }
+  .floatLWidth-ref {
+    float: left;
+    width: 60px;
+  }
+  .flexBaselineCheck {
+    display: flex;
+    align-items: baseline;
+  }
+  .innerContents {
+    color: transparent;
+    height: 100px;
+    width: 100px;
+    position: absolute;
+  }
+  .zeroHeightContents {
+    color: transparent;
+    height: 0px;
+    width: 0px;
+  }
+  </style>
+</head>
+<body>
+  <!-- NOTE: In the reference-case scenarios here, we use the same DOM as in
+       the testcase, and we simply use 'position: absolute' on the descendants
+       wherever the testcase has 'contain: size' on the container.  This
+       produces an accurate reference rendering, because out-of-flow content
+       doesn't contribute to the container's sizing, but does create scrollable
+       overflow (i.e. it produces scrollbars of the appropriate size for the
+       amount of overflow). -->
+  <div class="basic"><div class="innerContents">inner</div></div>
+  <br>
+
+  <div class="basic height-ref"><div class="innerContents">inner</div></div>
+  <br>
+
+  <div class="basic height-ref"><div class="innerContents">inner</div></div>
+  <br>
+
+  <div class="basic width-ref"><div class="innerContents">inner</div></div>
+  <br>
+
+  <div class="basic width-ref"><div class="innerContents">inner</div></div>
+  <br>
+
+  <div class="basic floatLBasic-ref"><div class="innerContents">inner</div></div>
+  <br>
+
+  <div class="basic floatLWidth-ref"><div class="innerContents">inner</div></div>
+  <br>
+
+  <div class="flexBaselineCheck">
+    outside before
+    <div class="basic">
+      <!-- We use the out-of-flow "innerContents" to create the correct
+           amount of scrollable overflow to match the testcase, and we
+           use the smaller in-flow "zeroHeightContents" to provide a
+           baseline that we can use to verify the testcase's baseline
+           alignment position. -->
+      <div class="innerContents">inner</div>
+      <div class="zeroHeightContents">i</div>
+    </div>
+    outside after
+  </div>
+</body>
+</html>

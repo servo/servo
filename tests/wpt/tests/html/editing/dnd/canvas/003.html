@@ -1,0 +1,59 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../resources/test-helper.js"></script>
+<head>
+<title>Drag and drop from iframe: dropping block element onto canvas</title>
+<style type="text/css">
+iframe
+  {width:150px;
+  height:150px;
+  border-style:none;}
+</style>
+<script>
+function paint(color)
+  {var canvas = document.querySelector('canvas'),
+  c = canvas.getContext('2d');
+  c.fillStyle = color;
+  c.beginPath();
+  c.moveTo(0,0);
+  c.lineTo(100,0);
+  c.lineTo(100,100);
+  c.lineTo(0,100);
+  c.closePath();
+  c.fill();}
+function start(event)
+  {event.dataTransfer.effectAllowed = 'copy';
+  event.dataTransfer.setData('text/plain', 'green');}
+</script>
+</head>
+<body onload="paint('gray')">
+<p><iframe src="003-1.xhtml">Green box</iframe></p>
+<p>Drag green box above to the gray canvas below. Canvas should turn green when you drop green box on it.</p>
+<p>
+  <canvas width="100" height="100" ondragenter="event.preventDefault()" ondragover="return false">Canvas</canvas>
+</p>
+<script>
+async function test(){
+  await new Promise(loaded => window.addEventListener("load", loaded));
+  const iframe = document.querySelector('iframe');
+  const innerDoc = iframe.contentDocument || iframe.contentWindow.document;
+  const div = innerDoc.querySelector('div');
+  const canvas = document.querySelector('canvas');
+  function onDropCallBack(event) {
+    paint(event.dataTransfer.getData('text/plain'));
+    let style = window.getComputedStyle(canvas);
+    let currentColor = "rgba(0, 0, 0, 0)";
+    assert_equals(style.getPropertyValue("background-color"), currentColor);
+    return true;
+  }
+
+  dragDropTest(iframe, canvas, onDropCallBack, 'Dragging the canvas to the bottom iframe should turn it green');
+}
+test();
+</script>
+</body>
+</html>

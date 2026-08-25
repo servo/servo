@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CSS Test: size of table rows when the table has no columns</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/10132">
+<meta name="assert" content="If a table has rows but no columns, the rows are as wide as the inner width of the table.">
+
+<style>
+#tests table {
+  box-sizing: border-box;
+  width: 60px;
+  height: 60px;
+}
+</style>
+
+<div id="log"></div>
+
+<main id="tests">
+  <table cellspacing="0">
+    <tr data-expected-width="60" data-expected-height="60"></tr>
+  </table>
+
+  <table cellspacing="0">
+    <tr data-expected-width="60" data-expected-height="30"></tr>
+    <tr data-expected-width="60" data-expected-height="30"></tr>
+  </table>
+
+  <table cellspacing="10">
+    <tr data-expected-width="60" data-expected-height="40"></tr>
+  </table>
+
+  <table cellspacing="10">
+    <tr data-expected-width="60" data-expected-height="15"></tr>
+    <tr data-expected-width="60" data-expected-height="15"></tr>
+  </table>
+
+  <table cellspacing="0" border="5">
+    <tr data-expected-width="50" data-expected-height="50"></tr>
+  </table>
+
+  <table cellspacing="0" border="5">
+    <tr data-expected-width="50" data-expected-height="25"></tr>
+    <tr data-expected-width="50" data-expected-height="25"></tr>
+  </table>
+
+  <table cellspacing="10" border="5">
+    <tr data-expected-width="50" data-expected-height="30"></tr>
+  </table>
+
+  <table cellspacing="10" border="5">
+    <tr data-expected-width="50" data-expected-height="10"></tr>
+    <tr data-expected-width="50" data-expected-height="10"></tr>
+  </table>
+</main>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script>
+checkLayout("tr");
+</script>

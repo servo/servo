@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<title>Selectedness is updated during moveBefore()</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+
+<select>
+  <option value=A>A</option>
+  <optgroup label=Optgroup>
+    <option value=B>B</option>
+  </optgroup>
+  <option value=C>C</option>
+</select>
+
+<script>
+test(t => {
+  const optionA = document.querySelector('option[value=A]');
+  const optionB = document.querySelector('option[value=B]');
+  const optionC = document.querySelector('option[value=C]');
+
+  assert_true(optionA.selected, "A is selected by default");
+  assert_false(optionB.selected, "B not selected before first move");
+  assert_false(optionC.selected, "C not selected before first move");
+
+  // `moveBefore()`, like `insertBefore()` and kin, leaves a text-only-rendered
+  // non-select-owned <option> tag in the "selected" state.
+  document.body.moveBefore(optionA, null);
+  assert_true(optionA.selected, "A STILL selected after it is moved out");
+  assert_true(optionB.selected, "B becomes selected after first move");
+  assert_false(optionC.selected, "C is not selected after first move");
+
+  document.body.moveBefore(optionB, null);
+  assert_true(optionA.selected, "A STILL selected after second move");
+  assert_true(optionB.selected, "B STILL selected after it is moved out");
+  assert_true(optionC.selected, "C becomes selected after second move");
+
+  // Move A back into <select> before C.
+  document.querySelector('select').moveBefore(optionA, optionC);
+  assert_true(optionA.selected, "A STILL selected after it is moved back in");
+  assert_true(optionB.selected, "B STILL selected after third move");
+  assert_false(optionC.selected, "C no longer selected after third move");
+}, "Option selectedness is updated on option and optgroup DOM moves");
+
+test(t => {
+  const select = document.createElement("select");
+  select.innerHTML = `
+    <option value=A>A</option>
+    <option value=B>B</option>
+    <option value=C selected>C</option>
+  `;
+  document.body.append(select);
+  t.add_cleanup(() => select.remove());
+
+  const [optionA, optionB, optionC] = select.querySelectorAll("option");
+
+  assert_equals(select.selectedIndex, 2, "C is initially selected at index 2");
+
+  select.moveBefore(optionC, optionA);
+  assert_equals(select.selectedIndex, 0, "C selected index updates after moving before A");
+
+  select.moveBefore(optionB, null);
+  assert_equals(select.selectedIndex, 0, "C remains at selected index 0 after moving B to the end");
+}, "Selected index is updated when an option moves within the same select");
+</script>

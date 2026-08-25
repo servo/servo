@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>Select label, appearance modes</title>
+<link rel="author" href="mailto:wpt@keithcirkel.co.uk">
+<link rel="help"  href="https://html.spec.whatwg.org/multipage/form-elements.html#the-select-element">
+<link rel="match"  href="select-label-appearance-ref.html">
+
+<select><button>ButtonText</button><option>OptionText</option></select>
+
+<select><option>OptionText</option></select>
+
+<select style="appearance:base-select"><button>ButtonText</button><option>OptionText</option></select>
+
+<select style="appearance:base-select">&nbsp;<option>OptionText</option></select>
+
+<select style="appearance:base-select"><label>LabelText</label><option>OptionText</option></select>
+
+<select id=s style="appearance:base-select"><option>OptionText</option></select>
+
+<select id=s2><button>ButtonText</button><option>OptionText</option></select>
+
+<select id=s3 style="appearance:base-select"><button>ButtonText</button><option>OptionText</option></select>
+
+<script>
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const b = document.createElement('button')
+      b.textContent = 'ButtonText';
+      s.prepend(b);
+      s2.style.appearance = 'base-select';
+      s3.style.appearance = 'auto';
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          document.documentElement.classList.remove("reftest-wait");
+        });
+      });
+    });
+  });
+</script>

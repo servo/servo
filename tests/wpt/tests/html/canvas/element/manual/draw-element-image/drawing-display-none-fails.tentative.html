@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>Drawing an element with display:none should fail</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<canvas id="canvas_2d" layoutsubtree width="100" height="100" style="background: green;">
+  <div id="canvas_2d_div" style="width: 100px; height: 100px; background: red;"></div>
+</canvas>
+
+<<script>
+  promise_test(async function() {
+    canvas_2d_div.getBoundingClientRect();
+    canvas_2d_div.style.display = 'none';
+    await new Promise(requestAnimationFrame);
+    await new Promise(setTimeout);
+    const context_2d = canvas_2d.getContext('2d');
+    assert_throws_dom(
+      "InvalidStateError",
+      () => context_2d.drawElementImage(canvas_2d_div, 0, 0),
+      'drawElementImage cannot draw display:none elements.');
+  }, 'drawElementImage with display:none element');
+</script>

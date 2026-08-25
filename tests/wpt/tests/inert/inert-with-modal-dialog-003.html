@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Interaction of 'inert' attribute with modal dialog</title>
+<link rel="author" title="Peng Zhou" href="mailto:zhoupeng.1996@bytedance.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#inert">
+<meta name="assert" content="Checks that a modal dialog escapes inertness from ancestors.">
+<div id="log"></div>
+<div id="wrapper">
+  find wrapper
+  <dialog id="dialog">
+    find dialog
+    <span id="child">
+      find child
+    </span>
+  </dialog>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+function cleanup() {
+  dialog.close();
+  getSelection().removeAllRanges();
+}
+
+function setupTest(element, context) {
+  element.inert = true;
+  dialog.showModal();
+  context.add_cleanup(() => {
+    element.inert = false;
+    cleanup();
+  });
+}
+
+setup(() => {
+  dialog.showModal();
+  add_completion_callback(cleanup);
+});
+
+test(function() {
+  setupTest(child, this);
+  assert_false(window.find("wrapper"));
+  assert_true(window.find("dialog"));
+  assert_false(window.find("child"));
+}, "Inner nodes with 'inert' attribute become inert anyways");
+
+test(function() {
+  setupTest(dialog, this);
+  assert_false(window.find("wrapper"));
+  assert_false(window.find("dialog"));
+  assert_false(window.find("child"));
+}, "If the modal dialog has the 'inert' attribute, everything becomes inert");
+
+test(function() {
+  setupTest(wrapper, this);
+  assert_false(window.find("wrapper"));
+  assert_true(window.find("dialog"));
+  assert_true(window.find("child"));
+}, "If an ancestor of the dialog has the 'inert' attribute, the dialog escapes inertness");
+</script>

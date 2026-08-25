@@ -1,0 +1,21 @@
+[package]
+name = "profile_tests"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lib]
+name = "profile_tests"
+path = "lib.rs"
+doctest = false
+
+[dependencies]
+servo-base = { workspace = true }
+ipc-channel = { workspace = true }
+profile = { workspace = true }
+profile_traits = { workspace = true }
+servo-config = { workspace = true }
+time = { workspace = true }

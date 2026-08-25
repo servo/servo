@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+setup({allow_uncaught_exception : true});
+
+const t_parse = async_test("Import maps shouldn't be parsed as scripts");
+const t_already_started = async_test("The Already Started flag is passed through cloneNode");
+const t_evaluate = async_test("Import maps shouldn't be executed as scripts");
+const t_external = async_test(
+   "External import maps shouldn't be executed as scripts");
+const t_change_type = async_test(
+   "Import maps shouldn't be executed as scripts after changing type");
+
+const parseErrorHandler = event => {
+  event.preventDefault();
+  t_parse.unreached_func("An import map is parsed as a classic script")();
+};
+
+window.addEventListener("error", parseErrorHandler, {once: true});
+</script>
+
+<!-- This import map causes a parse error when parsed as a classic script. -->
+<script type="importmap">
+{
+  "imports": {
+  }
+}
+</script>
+
+<script>
+window.removeEventListener("error", parseErrorHandler);
+t_parse.done();
+
+const alreadyStartedErrorHandler = event => {
+  event.preventDefault();
+  t_already_started.unreached_func("An import map is evaluated as a classic script")();
+};
+
+window.addEventListener("error", alreadyStartedErrorHandler, {once: true});
+</script>
+
+<script>
+// Once Already Started is true on a classic script, it cannot be
+// converted into an import map.
+const dynamicScriptClassic = document.createElement("script");
+dynamicScriptClassic.type = "text/javascript";
+dynamicScriptClassic.innerText = "t_already_started.step(function() { assert_true(true, 'Classic script connected dynamically.');});";
+
+// Inserting a <script> with contents sets Already Started to true.
+document.head.appendChild(dynamicScriptClassic);
+document.head.removeChild(dynamicScriptClassic);
+
+// The existing innerText would be a parse error if parsed as an import
+// map, but is valid as a classic script.
+dynamicScriptClassic.type = "importmap";
+document.head.appendChild(dynamicScriptClassic);
+
+// The Already Started flag on a script is persisted upon cloning, so
+// the clone won't be parsed as an import map even though its `type`
+// was set to "importmap" when it was connected.
+const clonedClassicScript = dynamicScriptClassic.cloneNode(/*deep=*/true);
+t_already_started.step(function() {
+  assert_equals(clonedClassicScript.type, "importmap");
+  assert_equals(clonedClassicScript.innerText, dynamicScriptClassic.innerText);
+});
+document.head.appendChild(clonedClassicScript);
+
+// Creating an empty <script> tag does not set Already Started to true,
+// so the type can be changed later.
+const dynamicScriptEmpty = document.createElement("script");
+dynamicScriptEmpty.type = "text/javascript";
+document.head.appendChild(dynamicScriptEmpty);
+
+// The Already Started flag is copied onto clones, so the type can be
+// changed later.
+const clonedDynamicScriptEmpty = dynamicScriptEmpty.cloneNode(/*deep=*/true);
+t_already_started.step(function() {
+  assert_equals(clonedDynamicScriptEmpty.type, "text/javascript");
+});
+clonedDynamicScriptEmpty.setAttribute("type", "importmap");
+t_already_started.step(function() {
+  assert_equals(clonedDynamicScriptEmpty.type, "importmap");
+});
+
+// Since the contents are not empty, connecting the clone will set the
+// Already Started flag to true and lock the type into an import map.
+document.head.appendChild(clonedDynamicScriptEmpty);
+document.head.removeChild(clonedDynamicScriptEmpty);
+
+// This would cause a parse error when parsed as a classic script.
+clonedDynamicScriptEmpty.innerText = "{ \"imports\": {  } }";
+document.head.appendChild(clonedDynamicScriptEmpty);
+
+// The original element can have its contents set and will executed
+// as a classic script. Ensure this is executed by completing the test.
+dynamicScriptEmpty.innerText = "t_already_started.done();";
+document.head.appendChild(dynamicScriptEmpty);
+</script>
+
+<script>
+// Remove prior error handler, because the following import maps can
+// causes parse errors.
+window.removeEventListener("error", alreadyStartedErrorHandler);
+</script>
+
+<script>
+// A dynamically created import map isn't parsed as a classic script.
+const dynamicScript = document.createElement("script");
+dynamicScript.type = "importmap";
+t_evaluate.step(function() {
+  assert_equals(dynamicScript.type, "importmap");
+});
+dynamicScript.innerText = "t_evaluate.unreached_func('A dynamically-created import map is evaluated')();";
+document.head.appendChild(dynamicScript);
+
+// Changing the type shouldn't execute script.
+dynamicScript.type = "text/javascript";
+t_evaluate.step(function() {
+  assert_equals(dynamicScript.type, "text/javascript");
+});
+
+// Nor should removing it and re-inserting it.
+document.head.removeChild(dynamicScript);
+document.head.appendChild(dynamicScript);
+</script>
+
+<!-- Test the same with markup. -->
+<script type="importmap">
+t_evaluate.unreached_func("An import map is evaluated")();
+</script>
+
+<script>
+t_evaluate.done();
+</script>
+
+<script type="importmap" id="changeType">
+t_change_type.unreached_func("An import map is evaluated after changing type")();
+</script>
+
+<script>
+// Change the type from "importmap" to other valid values and ensure
+// script never executes.
+let changeType = document.getElementById("changeType");
+changeType.setAttribute("type", "text/javascript");
+changeType.setAttribute("type", "module");
+changeType.setAttribute("type", "");
+changeType.removeAttribute("type");
+t_change_type.done();
+</script>
+
+<!-- Import Maps do not execute external scripts. -->
+<script type="importmap" src="data:text/javascript,t_external.unreached_func('An external import map is evaluated')();"></script>
+
+<script>
+t_external.done();
+</script>

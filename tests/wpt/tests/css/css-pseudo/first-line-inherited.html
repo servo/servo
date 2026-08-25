@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>CSS Pseudo-Element Test: Inherited ::first-line styles</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#first-line-inheritance">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
+<style>
+  div { border-color: green; }
+  div::first-line { border-color: red; }
+  span {
+    display: inline-block;
+    border-style: solid;
+    border-width: 50px;
+    border-color: inherit;
+  }
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div><span></span></div>

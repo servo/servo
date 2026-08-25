@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="500" height="500">
+    <path d="M50,50 h100 v100 z m150,0 h100 v100 z m150,0 h100 v100 z"
+    fill="none" stroke="black" stroke-width="10"
+    />
+    <circle cx="50" cy="50" r="25" fill="green"/>
+    <circle cx="50" cy="50" r="20" fill="skyblue" opacity="0.9"/>
+    <circle cx="150" cy="50" r="20" fill="skyblue" opacity="0.9"/>
+    <circle cx="150" cy="150" r="20" fill="skyblue" opacity="0.9"/>
+
+    <circle cx="200" cy="50" r="20" fill="skyblue" opacity="0.9"/>
+    <circle cx="200" cy="50" r="20" fill="skyblue" opacity="0.9"/>
+    <circle cx="300" cy="50" r="20" fill="skyblue" opacity="0.9"/>
+    <circle cx="300" cy="150" r="20" fill="skyblue" opacity="0.9"/>
+
+    <circle cx="350" cy="50" r="20" fill="skyblue" opacity="0.9"/>
+    <circle cx="350" cy="50" r="15" fill="maroon" opacity="0.85"/>
+    <circle cx="450" cy="50" r="20" fill="skyblue" opacity="0.9"/>
+    <circle cx="450" cy="150" r="20" fill="skyblue" opacity="0.9"/>
+</svg>

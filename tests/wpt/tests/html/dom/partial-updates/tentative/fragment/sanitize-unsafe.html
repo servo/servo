@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Declarative Fragment: unsafe sanitization bypass</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div id="container-streaming-targeted">
+  <div id="target-streaming" marker="marker-streaming">
+    <?start name="marker-streaming">Original Content<?end>
+  </div>
+  <template for="marker-streaming" sanitize="unsafe">
+    <span id="ok-streaming">Allowed</span>
+    <script id="bad-streaming">window.badStreamingScriptRun = true;</script>
+  </template>
+</div>
+
+<div id="container-buffered-targeted">
+  <div id="target-buffered" marker="marker-buffered">
+    <?start name="marker-buffered">Original Content<?end>
+  </div>
+  <template for="marker-buffered" buffer sanitize="invalid-value">
+    <span id="ok-buffered">Allowed</span>
+    <script id="bad-buffered">window.badBufferedScriptRun = true;</script>
+  </template>
+</div>
+
+<div id="container-in-place">
+  <div id="target-in-place">
+    <template for sanitize="random">
+      <span id="ok-in-place">Allowed</span>
+      <script id="bad-in-place">window.badInPlaceScriptRun = true;</script>
+    </template>
+  </div>
+</div>
+
+<script>
+test(() => {
+  assert_true(!!window.badStreamingScriptRun, "Script in streaming targeted template with sanitize=unsafe should run");
+  assert_true(!!window.badBufferedScriptRun, "Script in buffered targeted template with sanitize=invalid-value should run");
+  assert_true(!!window.badInPlaceScriptRun, "Script in in-place template with sanitize=random should run");
+
+  const targetStreaming = document.getElementById('target-streaming');
+  assert_equals(targetStreaming.querySelector('#ok-streaming').textContent, 'Allowed');
+  assert_not_equals(targetStreaming.querySelector('#bad-streaming'), null, "Script element should not be stripped");
+
+  const targetBuffered = document.getElementById('target-buffered');
+  assert_equals(targetBuffered.querySelector('#ok-buffered').textContent, 'Allowed');
+  assert_not_equals(targetBuffered.querySelector('#bad-buffered'), null, "Script element should not be stripped");
+
+  const targetInPlace = document.getElementById('target-in-place');
+  assert_equals(targetInPlace.querySelector('#ok-in-place').textContent, 'Allowed');
+  assert_not_equals(targetInPlace.querySelector('#bad-in-place'), null, "Script element should not be stripped");
+}, "Template with non-empty sanitize attribute values (unsafe or invalid) bypasses safe sanitization and allows script tags");
+</script>
+</body>

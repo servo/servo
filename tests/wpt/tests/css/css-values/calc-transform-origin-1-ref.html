@@ -1,0 +1,25 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>CSS Reference: Test for calc() on transform-origin</title>
+  <link rel="author" title="L. David Baron" href="https://bugzilla.mozilla.org/show_bug.cgi?id=594934">
+<style type="text/css">
+
+body { margin: 100px }
+
+p {
+    height: 50px; width: 200px;
+    background: yellow;
+    transform: rotate(15deg);
+}
+
+#one { transform-origin: 150px 20px; }
+#two { transform-origin: -22px -35px; }
+
+</style>
+</head>
+<body>
+<p id="one">hello</p>
+<p id="two">hello</p>
+</body>
+</html>

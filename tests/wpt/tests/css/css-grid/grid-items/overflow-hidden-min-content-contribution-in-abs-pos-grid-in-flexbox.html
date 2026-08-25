@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#min-size-auto">
+<link rel="match" href="../../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="block size min-content contribution is computed correctly when automatic min block size resolves to 0">
+
+<style>
+    .flexbox {
+        display: flex;
+        width: 100px;
+        height: 100px;
+    }
+    .flex-item {
+        flex-grow: 1;
+        position: relative;
+    }
+    .grid {
+        display: grid;
+        grid-template-rows: auto 1fr;
+        font: 100px/1 Ahem;
+        color: green;
+        position: absolute;
+        top: 0;
+        bottom: 0;
+    }
+    .grid-item {
+        overflow: hidden;
+    }
+</style>
+</head>
+<body>
+<p>Test passes if there is a filled green square.</p>
+<div class="flexbox">
+    <div class="flex-item">
+        <div class="grid">
+            <div class="grid-item">
+                <div>x</div>
+            <div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

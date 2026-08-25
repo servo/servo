@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+<head>
+  <title>CSS Test: Try various flex-flow values, with 'direction: ltr' and 'writing-mode: vertical-lr'</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#propdef-flex-direction">
+  <link rel="match" href="flexbox-writing-mode-003-ref.html">
+  <meta charset="utf-8">
+  <style>
+    .flexContainer {
+      display: flex;
+      width: 40px;
+      height: 30px;
+      border: 1px solid gray;
+      margin-bottom: 5px;
+      direction: ltr;
+      writing-mode: vertical-lr;
+    }
+    .flexContainer > * {
+      width: 20px;
+      height: 15px;
+    }
+    .item1 {
+      /* Note: flex items are ordered as "CMYK": cyan, magenta, yellow, black */
+      background: cyan;
+    }
+    .item2 {
+      background: magenta;
+    }
+    .item3 {
+      background: yellow;
+    }
+    .item4 {
+      background: black;
+    }
+  </style>
+</head>
+<body>
+  <div class="flexContainer" style="flex-flow: row wrap">
+    <div class="item1"></div><div class="item2"></div>
+    <div class="item3"></div><div class="item4"></div>
+  </div>
+  <div class="flexContainer" style="flex-flow: row wrap-reverse">
+    <div class="item1"></div><div class="item2"></div>
+    <div class="item3"></div><div class="item4"></div>
+  </div>
+  <div class="flexContainer" style="flex-flow: row-reverse wrap">
+    <div class="item1"></div><div class="item2"></div>
+    <div class="item3"></div><div class="item4"></div>
+  </div>
+  <div class="flexContainer" style="flex-flow: row-reverse wrap-reverse">
+    <div class="item1"></div><div class="item2"></div>
+    <div class="item3"></div><div class="item4"></div>
+  </div>
+
+  <div class="flexContainer" style="flex-flow: column wrap">
+    <div class="item1"></div><div class="item2"></div>
+    <div class="item3"></div><div class="item4"></div>
+  </div>
+  <div class="flexContainer" style="flex-flow: column wrap-reverse">
+    <div class="item1"></div><div class="item2"></div>
+    <div class="item3"></div><div class="item4"></div>
+  </div>
+  <div class="flexContainer" style="flex-flow: column-reverse wrap">
+    <div class="item1"></div><div class="item2"></div>
+    <div class="item3"></div><div class="item4"></div>
+  </div>
+  <div class="flexContainer" style="flex-flow: column-reverse wrap-reverse">
+    <div class="item1"></div><div class="item2"></div>
+    <div class="item3"></div><div class="item4"></div>
+  </div>
+
+</body>
+</html>

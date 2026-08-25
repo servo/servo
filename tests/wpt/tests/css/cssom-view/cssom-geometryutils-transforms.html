@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<title>CSSOM View - GeometryUtils with transform-like CSS properties</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#the-geometryutils-interface">
+<link rel="help" href="https://drafts.csswg.org/css-transforms-2/">
+<link rel="help" href="https://drafts.fxtf.org/motion-1/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/geometry-utils.js"></script>
+<style>
+  html, body {
+    margin: 0;
+  }
+
+  #stage {
+    position: absolute;
+    left: 20px;
+    top: 20px;
+    width: 700px;
+    height: 850px;
+  }
+
+  .case {
+    position: absolute;
+    width: 90px;
+    height: 50px;
+    border: 4px solid black;
+    padding: 6px;
+    background: gold;
+    box-sizing: content-box;
+  }
+
+  #css-transform {
+    left: 40px;
+    top: 35px;
+    transform: translate(24px, 11px) rotate(23deg) scale(1.2, 0.75)
+      skewX(8deg);
+    transform-origin: 10px 35px;
+  }
+
+  #individual-transform {
+    left: 240px;
+    top: 45px;
+    translate: 18px 12px;
+    rotate: -31deg;
+    scale: 0.85 1.25;
+    transform-origin: right bottom;
+  }
+
+  #zoomed {
+    left: 450px;
+    top: 45px;
+    zoom: 1.4;
+    transform: rotate(11deg);
+  }
+
+  #perspective-parent {
+    position: absolute;
+    left: 55px;
+    top: 220px;
+    width: 180px;
+    height: 140px;
+    perspective: 260px;
+    perspective-origin: 20% 80%;
+    border: 2px solid gray;
+  }
+
+  #perspective-child {
+    left: 30px;
+    top: 35px;
+    transform: rotateY(38deg) translateZ(22px);
+    transform-origin: center center;
+  }
+
+  #preserve-3d-parent {
+    position: absolute;
+    left: 330px;
+    top: 225px;
+    width: 170px;
+    height: 130px;
+    transform-style: preserve-3d;
+    transform: rotateX(12deg) rotateY(-18deg);
+  }
+
+  #preserve-3d-child {
+    left: 25px;
+    top: 30px;
+    transform: translateZ(35px) rotateY(25deg);
+  }
+
+  #motion-path {
+    left: 70px;
+    top: 470px;
+    offset-path: path("M 0 0 L 160 70");
+    offset-distance: 60%;
+    offset-rotate: 40deg;
+  }
+
+  #scale-zero {
+    left: 350px;
+    top: 500px;
+    transform: scale(0);
+  }
+
+  #relative-target {
+    position: absolute;
+    left: 80px;
+    top: 680px;
+    width: 240px;
+    height: 130px;
+    border: 5px solid gray;
+    transform: rotate(19deg);
+    transform-origin: 20px 10px;
+  }
+
+  #relative-source {
+    left: 45px;
+    top: 35px;
+    transform: rotate(-24deg) translate(12px, 8px);
+  }
+</style>
+<div id="stage">
+  <div id="css-transform" class="case"></div>
+  <div id="individual-transform" class="case"></div>
+  <div id="zoomed" class="case"></div>
+  <div id="perspective-parent">
+    <div id="perspective-child" class="case"></div>
+  </div>
+  <div id="preserve-3d-parent">
+    <div id="preserve-3d-child" class="case"></div>
+  </div>
+  <div id="motion-path" class="case"></div>
+  <div id="scale-zero" class="case"></div>
+  <div id="relative-target">
+    <div id="relative-source" class="case"></div>
+  </div>
+</div>
+<script>
+const transformedCases = [
+  ["css-transform", "transform, transform-origin, skew, rotate and scale"],
+  ["individual-transform", "individual translate, rotate and scale"],
+  ["zoomed", "zoom with transform"],
+  ["perspective-child", "perspective and perspective-origin"],
+  ["preserve-3d-child", "transform-style: preserve-3d"],
+  ["motion-path", "offset-path, offset-distance and offset-rotate"],
+];
+
+for (const [id, description] of transformedCases) {
+  test(() => {
+    const element = document.getElementById(id);
+    assert_quad_bounds_match_bounding_rect(
+      element,
+      {box: "border"},
+      `${description} border quad bounds`
+    );
+  }, `getBoxQuads() matches getBoundingClientRect() for ${description}`);
+}
+
+test(() => {
+  const quad = document.getElementById("css-transform").getBoxQuads()[0];
+  assert_not_equals(Math.round(quad.p1.y), Math.round(quad.p2.y),
+                    "top edge is not axis-aligned");
+  assert_not_equals(Math.round(quad.p2.x), Math.round(quad.p3.x),
+                    "right edge is not axis-aligned");
+}, "getBoxQuads() preserves non-axis-aligned corners for CSS transforms");
+
+test(() => {
+  assert_true(CSS.supports("offset-path", "path(\"M 0 0 L 1 1\")"),
+              "offset-path is supported");
+  assert_true(CSS.supports("offset-rotate", "40deg"),
+              "offset-rotate is supported");
+}, "Motion path properties used by this test are supported");
+
+test(() => {
+  const bounds = document.getElementById("scale-zero").getBoxQuads()[0]
+    .getBounds();
+  assert_approx_equals(bounds.width, 0, GEOMETRY_UTILS_EPSILON,
+                       "scale(0) width");
+  assert_approx_equals(bounds.height, 0, GEOMETRY_UTILS_EPSILON,
+                       "scale(0) height");
+}, "getBoxQuads() returns a zero-size bounds for scale(0)");
+
+test(() => {
+  const source = document.getElementById("relative-source");
+  const target = document.getElementById("relative-target");
+  const relativeQuad = source.getBoxQuads({relativeTo: target})[0];
+  const convertedQuad = target.convertQuadFromNode(
+    quad_from_rect(local_box_rect(source, "border")),
+    source
+  );
+  assert_quad_approx_equals(relativeQuad, convertedQuad,
+                            "relative quad and converted quad");
+}, "getBoxQuads({relativeTo}) matches convertQuadFromNode() in a transformed subtree");
+</script>

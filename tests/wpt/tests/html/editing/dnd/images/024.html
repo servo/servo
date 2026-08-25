@@ -1,0 +1,53 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../resources/test-helper.js"></script>
+<head>
+  <title>Dropping image on the root scrollbar of an object. No drop event should be sent.</title>
+  <style type="text/css">
+    p:first-child {
+      padding-left: 1em;
+    }
+
+    object {
+      height: 6em;
+      width: 3em;
+    }
+
+    img {
+      width: 5px;
+      height: 5px;
+    }
+  </style>
+  <script>
+    function dragImage() {
+      event.dataTransfer.effectAllowed = 'copy';
+    }
+  </script>
+</head>
+<body ondragenter="event.preventDefault()" ondragover="return false">
+  <p><img
+      src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAEElEQVR42mNgaGD4D8YwBgAw9AX9Y9zBwwAAAABJRU5ErkJggg=="
+      alt="PNG green pixel" ondragstart="dragImage()" /></p>
+  <p>Drag little square above and drop it on vertical scrollbar. The drop event should not be sent, and the word PASS should not appear in the object.</p>
+  <object type="application/xhtml+xml" data="helper-drop-vertical-scrollbar.xhtml">XHTML document</object>
+  <script>
+    async function test() {
+      await new Promise(loaded => window.addEventListener("load", loaded));
+
+      const img = document.querySelector('img');
+      const object = document.querySelector('object');
+      const objDoc = object.contentDocument || object.contentWindow.document;
+      const div = objDoc.querySelector('div');
+
+      dragDropTestNoDropEvent(img, div,
+        'Dragging the image to the vertical object scrollbar should NOT trigger drop event',
+        /*dragIframe=*/ null, object, DropPosition.RIGHT_SCROLLBAR);
+    }
+    test();
+  </script>
+</body>
+</html>

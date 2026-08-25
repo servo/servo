@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>JPEG XL integration: SVG image element</title>
+<link rel="help" href="https://github.com/web-platform-tests/interop-jpegxl">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<svg width="30" height="30" viewBox="0 0 3 3">
+  <image id="svgimg" href="resources/3x3_srgb_lossless.jxl" width="3" height="3"></image>
+</svg>
+
+<script>
+promise_test(async () => {
+  const image = document.getElementById('svgimg');
+  await new Promise((resolve, reject) => {
+    image.addEventListener('load', resolve, { once: true });
+    image.addEventListener('error', () => reject(new Error('svg image failed')), { once: true });
+  });
+  assert_true(true, 'svg image loaded');
+}, 'SVG <image> can load JPEG XL image');
+</script>

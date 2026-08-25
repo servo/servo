@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: Resolution of margin-left or margin-right set to auto on a non-replaced block box</title>
+<link rel="match" href="margin-auto-on-block-box-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css2/#blockwidth">
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<meta name="assert" content="
+    margin-left:auto shouldn't resolve to a negative amount (assuming direction:ltr).
+    margin-right:auto may resolve to a negative amount when there is over-constraintment.">
+
+<style>
+.wrapper {
+  width: 100px;
+  margin-left: 250px;
+}
+.test {
+  width: 50px;
+  height: 5px;
+  background: black;
+  margin: auto;
+}
+.test.big {
+  width: 200px;
+}
+</style>
+
+<div class="wrapper">
+  <div class="test"></div>
+  <div class="test big"></div>
+
+  <div class="test" style="margin-left: -125px"></div>
+  <div class="test" style="margin-left: -100px"></div>
+  <div class="test" style="margin-left: -75px"></div>
+  <div class="test" style="margin-left: -50px"></div>
+  <div class="test" style="margin-left: -25px"></div>
+  <div class="test" style="margin-left: 0"></div>
+  <div class="test" style="margin-left: 25px"></div>
+  <div class="test" style="margin-left: 50px"></div>
+  <div class="test" style="margin-left: 75px"></div>
+  <div class="test" style="margin-left: 100px"></div>
+  <div class="test" style="margin-left: 125px"></div>
+
+  <div class="test big" style="margin-left: -250px"></div>
+  <div class="test big" style="margin-left: -200px"></div>
+  <div class="test big" style="margin-left: -150px"></div>
+  <div class="test big" style="margin-left: -100px"></div>
+  <div class="test big" style="margin-left: -50px"></div>
+  <div class="test big" style="margin-left: 0"></div>
+  <div class="test big" style="margin-left: 50px"></div>
+  <div class="test big" style="margin-left: 100px"></div>
+  <div class="test big" style="margin-left: 150px"></div>
+  <div class="test big" style="margin-left: 200px"></div>
+  <div class="test big" style="margin-left: 250px"></div>
+
+  <div class="test" style="margin-right: -125px"></div>
+  <div class="test" style="margin-right: -100px"></div>
+  <div class="test" style="margin-right: -75px"></div>
+  <div class="test" style="margin-right: -50px"></div>
+  <div class="test" style="margin-right: -25px"></div>
+  <div class="test" style="margin-right: 0"></div>
+  <div class="test" style="margin-right: 25px"></div>
+  <div class="test" style="margin-right: 50px"></div>
+  <div class="test" style="margin-right: 75px"></div>
+  <div class="test" style="margin-right: 100px"></div>
+  <div class="test" style="margin-right: 125px"></div>
+
+  <div class="test big" style="margin-right: -250px"></div>
+  <div class="test big" style="margin-right: -200px"></div>
+  <div class="test big" style="margin-right: -150px"></div>
+  <div class="test big" style="margin-right: -100px"></div>
+  <div class="test big" style="margin-right: -50px"></div>
+  <div class="test big" style="margin-right: 0"></div>
+  <div class="test big" style="margin-right: 50px"></div>
+  <div class="test big" style="margin-right: 100px"></div>
+  <div class="test big" style="margin-right: 150px"></div>
+  <div class="test big" style="margin-right: 200px"></div>
+  <div class="test big" style="margin-right: 250px"></div>
+</div>

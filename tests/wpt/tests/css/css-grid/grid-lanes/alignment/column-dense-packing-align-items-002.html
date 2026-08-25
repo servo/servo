@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes Test: align-items center and stretch in column direction with dense-packed item</title>
+  <link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3/#alignment">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3/#grid-lanes-dense-packing">
+  <link rel="match" href="column-dense-packing-align-items-002-ref.html">
+  <style>
+    html, body {
+      color: black; background-color: white; font: 16px/1 monospace; padding: 0; margin: 0;
+    }
+
+    .grid-lanes {
+      display: grid-lanes;
+      grid-template-columns: repeat(3, 60px);
+      grid-lanes-pack: dense;
+      padding: 2px;
+      margin: 5px;
+    }
+
+    item {
+      display: block;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+<div class="grid-lanes" style="align-items: stretch;">
+  <item style="height: 20px; background: salmon; grid-column: 1 / span 2;">0</item>
+  <item style="height: 80px; background: salmon; grid-column: 1;">1</item>
+  <item style="height: 30px; background: salmon; grid-column: 1 / span 2;">2</item>
+  <item style="height: 80px; background: salmon; grid-column: 3;">4</item>
+  <item style="height: 20px; background: salmon; grid-column: 1 / span 3;">5</item>
+  <item style="background: green; grid-column: 2;">3</item>
+  <item style="background: green; grid-column: 3;">6</item>
+</div>
+
+<div class="grid-lanes" style="align-items: center;">
+  <item style="height: 20px; background: salmon; grid-column: 1 / span 2;">0</item>
+  <item style="height: 80px; background: salmon; grid-column: 1;">1</item>
+  <item style="height: 30px; background: salmon; grid-column: 1 / span 2;">2</item>
+  <item style="height: 80px; background: salmon; grid-column: 3;">4</item>
+  <item style="height: 20px; background: salmon; grid-column: 1 / span 3;">5</item>
+  <item style="height: 40px; background: green; grid-column: 2;">3</item>
+  <item style="height: 30px; background: green; grid-column: 3;">6</item>
+</div>
+
+</body>
+</html>

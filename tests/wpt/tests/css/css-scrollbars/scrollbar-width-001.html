@@ -1,0 +1,174 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Scrollbars: scrollbar-width with horizontal text and vertical scrollbar</title>
+<link rel="author" title="Felipe Erias Morandeira" href="mailto:felipeerias@gmail.com" />
+<link rel="help" href="https://www.w3.org/TR/css-scrollbars-1/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<style>
+  /* Use scrollbar-gutter to reserve space for the scrollbar. */
+  .container {
+    scrollbar-gutter: stable;
+    writing-mode: horizontal-tb;
+    overflow: auto;
+    height: 200px;
+    width: 200px;
+    margin: 1px;
+    padding: 0px;
+    border: none;
+    background: deepskyblue;
+  }
+
+  .content {
+    height: 300px;
+    width: 100%;
+    background: lightsalmon;
+  }
+
+  /* writing directions */
+  .ltr {
+    direction: ltr;
+  }
+
+  .rtl {
+    direction: rtl;
+  }
+
+  .container.auto {
+    scrollbar-width: auto;
+  }
+
+  .container.thin {
+    scrollbar-width: thin;
+  }
+
+  .container.none {
+    scrollbar-width: none;
+  }
+</style>
+<script type="text/javascript">
+
+  function performTest() {
+    setup({ explicit_done: true });
+
+    // ltr
+
+    test(function () {
+      let container = document.getElementById('container_ltr_auto');
+      let content = document.getElementById('content_ltr_auto');
+      assert_less_than(container.scrollWidth, container.offsetWidth, "ltr auto scrollWidth");
+      assert_less_than(container.clientWidth, container.offsetWidth, "ltr auto clientWidth");
+      assert_equals(container.offsetLeft, content.offsetLeft, "ltr auto offsetLeft");
+      assert_equals(container.clientWidth, content.clientWidth, "ltr auto clientWidth");
+      assert_not_equals(container.offsetWidth, content.offsetWidth, "ltr auto offsetWidth");
+    }, "horizontal-tb, ltr, scrollbar-width auto");
+
+    test(function () {
+      let container = document.getElementById('container_ltr_thin');
+      let content = document.getElementById('content_ltr_thin');
+      assert_less_than(container.scrollWidth, container.offsetWidth, "ltr thin scrollWidth");
+      assert_less_than(container.clientWidth, container.offsetWidth, "ltr thin clientWidth");
+      assert_equals(container.offsetLeft, content.offsetLeft, "ltr thin offsetLeft");
+      assert_equals(container.clientWidth, content.clientWidth, "ltr thin clientWidth");
+      assert_not_equals(container.offsetWidth, content.offsetWidth, "ltr thin offsetWidth");
+    }, "horizontal-tb, ltr, scrollbar-width thin");
+
+    test(function () {
+      let auto_scrollbar_width =
+      document.getElementById('container_ltr_auto').offsetWidth -
+      document.getElementById('container_ltr_auto').clientWidth;
+      let thin_scrollbar_width =
+      document.getElementById('container_ltr_thin').offsetWidth -
+      document.getElementById('container_ltr_thin').clientWidth;
+      assert_less_than_equal(thin_scrollbar_width, auto_scrollbar_width, "ltr, thin <= auto");
+    }, 'horizontal-tb, ltr, scrollbar-width "thin" is same or thinner than "auto"');
+
+    test(function () {
+      let container = document.getElementById('container_ltr_none');
+      let content = document.getElementById('content_ltr_none');
+      assert_equals(container.scrollWidth, 200, "ltr none scrollWidth");
+      assert_equals(container.clientWidth, 200, "ltr none clientWidth");
+      assert_equals(container.offsetLeft, content.offsetLeft, "ltr none offsetLeft");
+      assert_equals(container.clientWidth, content.clientWidth, "ltr none clientWidth");
+      assert_equals(container.offsetWidth, content.offsetWidth, "ltr none offsetWidth");
+    }, "horizontal-tb, ltr, scrollbar-width none");
+
+    // rtl
+
+    test(function () {
+      let container = document.getElementById('container_rtl_auto');
+      let content = document.getElementById('content_rtl_auto');
+      assert_less_than(container.scrollWidth, container.offsetWidth, "rtl auto scrollWidth");
+      assert_less_than(container.clientWidth, container.offsetWidth, "rtl auto clientWidth");
+      assert_less_than(container.offsetLeft, content.offsetLeft, "rtl auto offsetLeft");
+      assert_equals(container.clientWidth, content.clientWidth, "rtl auto clientWidth");
+      assert_not_equals(container.offsetWidth, content.offsetWidth, "rtl auto offsetWidth");
+    }, "horizontal-tb, rtl, scrollbar-width auto");
+
+    test(function () {
+      let container = document.getElementById('container_rtl_thin');
+      let content = document.getElementById('content_rtl_thin');
+      assert_less_than(container.scrollWidth, container.offsetWidth, "rtl thin scrollWidth");
+      assert_less_than(container.clientWidth, container.offsetWidth, "rtl thin clientWidth");
+      assert_less_than(container.offsetLeft, content.offsetLeft, "rtl thin offsetLeft");
+      assert_equals(container.clientWidth, content.clientWidth, "rtl thin clientWidth");
+      assert_not_equals(container.offsetWidth, content.offsetWidth, "rtl thin offsetWidth");
+    }, "horizontal-tb, rtl, scrollbar-width thin");
+
+    test(function () {
+      let auto_scrollbar_width =
+      document.getElementById('container_rtl_auto').offsetWidth -
+      document.getElementById('container_rtl_auto').clientWidth;
+      let thin_scrollbar_width =
+      document.getElementById('container_rtl_thin').offsetWidth -
+      document.getElementById('container_rtl_thin').clientWidth;
+      assert_less_than_equal(thin_scrollbar_width, auto_scrollbar_width, "rtl, thin < auto");
+    }, 'horizontal-tb, rtl, scrollbar-width "thin" is same or thinner than "auto"');
+
+    test(function () {
+      let container = document.getElementById('container_rtl_none');
+      let content = document.getElementById('content_rtl_none');
+      assert_equals(container.scrollWidth, 200, "rtl none scrollWidth");
+      assert_equals(container.clientWidth, 200, "rtl none clientWidth");
+      assert_equals(container.offsetLeft, content.offsetLeft, "rtl none offsetLeft");
+      assert_equals(container.clientWidth, content.clientWidth, "rtl none clientWidth");
+      assert_equals(container.offsetWidth, content.offsetWidth, "rtl none offsetWidth");
+    }, "horizontal-tb, rtl, scrollbar-width none");
+
+    done();
+  }
+
+</script>
+
+<body onload="performTest()">
+
+  Test scrollbar-width: vertical scrollbar, ltr direction
+
+  <div class="container ltr auto" id="container_ltr_auto">
+    <div class="content" id="content_ltr_auto">auto</div>
+  </div>
+
+  <div class="container ltr thin" id="container_ltr_thin">
+    <div class="content" id="content_ltr_thin">thin</div>
+  </div>
+
+  <div class="container ltr none" id="container_ltr_none">
+    <div class="content" id="content_ltr_none">none</div>
+  </div>
+
+  Test scrollbar-width: vertical scrollbar, rtl direction
+
+  <div class="container rtl auto" id="container_rtl_auto">
+    <div class="content" id="content_rtl_auto">auto</div>
+  </div>
+
+  <div class="container rtl thin" id="container_rtl_thin">
+    <div class="content" id="content_rtl_thin">thin</div>
+  </div>
+
+  <div class="container rtl none" id="container_rtl_none">
+    <div class="content" id="content_rtl_none">none</div>
+  </div>
+
+</body>

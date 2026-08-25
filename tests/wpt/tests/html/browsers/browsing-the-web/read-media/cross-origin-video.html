@@ -1,0 +1,35 @@
+<!doctype html>
+<title>Test cross origin load of media document in parts</title>
+<link rel="motivation" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1781759">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/get-host-info.sub.js"></script>
+<body></body>
+<script>
+promise_test(async () => {
+  const frame = document.createElement('iframe');
+  const dir = location.pathname.replace(/\/[^\/]*$/, '/');
+  frame.src =
+    // remote origin intermediate document
+    get_host_info().HTTP_NOTSAMESITE_ORIGIN + dir
+    // iframe-document.sub.html has an iframe with src=childsrc.
+    + 'resources/iframe-document.sub.html?childsrc='
+    // same origin video document, so that we can play().
+    + get_host_info().ORIGIN
+    // 'PartialContent' ensures that the entire video resource does not load
+    // in one fetch.
+    + '/service-workers/service-worker/resources/fetch-access-control.py?'
+    + 'VIDEO%26PartialContent';
+
+  let v = document.createElement("video");
+  frame.src += "%26mp4";
+
+  document.body.appendChild(frame);
+  await new Promise(resolve => frame.onload = resolve);
+
+  const inner = frame.contentWindow.frames[0];
+  const video = inner.document.body.childNodes[0];
+  video.muted = true;  // to allow playback
+  return video.play();
+});
+</script>

@@ -1,0 +1,3 @@
+rules:
+- access-key-label.html: [accesskey]
+- aria-attribute-reflection.html: [aria-attribute-reflection]

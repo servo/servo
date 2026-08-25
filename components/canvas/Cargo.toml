@@ -1,0 +1,43 @@
+[package]
+name = "servo-canvas"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+description.workspace = true
+
+[lib]
+name = "servo_canvas"
+path = "lib.rs"
+
+[features]
+tracing = ["dep:tracing"]
+vello = ["dep:vello", "dep:pollster", "dep:futures-intrusive"]
+
+[dependencies]
+bytemuck = { workspace = true, features = ["extern_crate_alloc"] }
+crossbeam-channel = { workspace = true }
+euclid = { workspace = true }
+fonts = { workspace = true }
+futures-intrusive = { workspace = true, optional = true }
+kurbo = { workspace = true }
+log = { workspace = true }
+malloc_size_of = { workspace = true }
+paint_api = { workspace = true }
+peniko = { workspace = true }
+pixels = { workspace = true }
+pollster = { workspace = true, optional = true }
+profile_traits = { workspace = true }
+rustc-hash = { workspace = true }
+servo-base = { workspace = true }
+servo-canvas-traits = { workspace = true }
+servo-config = { workspace = true }
+servo-tracing = { workspace = true }
+stylo = { workspace = true }
+tracing = { workspace = true, optional = true }
+vello = { workspace = true, optional = true }
+vello_cpu = { workspace = true }
+webrender_api = { workspace = true }

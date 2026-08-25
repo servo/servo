@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Declarative Fragment: buffer attribute (in-place include)</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div id="container">
+  <span>Before</span>
+  <template for buffer>
+    <span id="target1">Inside 1</span>
+    <script>
+      window.target1PresentDuringScript = !!document.getElementById('target1');
+      window.target2PresentDuringScript = !!document.getElementById('target2');
+    </script>
+    <span id="target2">Inside 2</span>
+  </template>
+  <span>After</span>
+</div>
+<script>
+test(() => {
+  const container = document.getElementById('container');
+  // Verify children insertion and order by checking adjacent elements
+  assert_equals(container.querySelector('#target1').previousElementSibling.textContent, 'Before');
+  assert_equals(container.querySelector('#target2').nextElementSibling.textContent, 'After');
+
+  // Verify that the template is not in the DOM
+  assert_equals(container.querySelector('template'), null);
+
+  // Verify that the script executed after all children were parsed (atomic insert)
+  assert_true(window.target1PresentDuringScript, "target1 should be present during script execution");
+  assert_true(window.target2PresentDuringScript, "target2 should be present during script execution (atomic buffering check)");
+}, "In-place template with buffer attribute buffers children and inserts them atomically at finalization");
+</script>
+</body>

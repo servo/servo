@@ -1,0 +1,7 @@
+rules:
+- gradient-position-*: [gradients]
+- gradient-interpolation-*: [gradient-interpolation]
+- image-orientation-*: [image-orientation]
+- image-rendering-*: [image-rendering]
+- object-fit-*: [object-fit]
+- object-position-*: [object-position]

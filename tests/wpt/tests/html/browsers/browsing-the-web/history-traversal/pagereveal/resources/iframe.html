@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<!-- Logs rAF, pageshow, and pagereveal events. Load with '?restore' to ignore
+     events prior to pageshow.persisted -->
+<script>
+// If the test is checking behavior after a BFCache restore, only record once
+// pageshow.persisted has been seen.
+const params = new URLSearchParams(window.location.search);
+let should_record = !params.has('restore');
+
+let event_log = [];
+
+addEventListener('message', async e => {
+  if (e.data === 'getEventLog') {
+    // Ensure at least one animation frame is produced to ensure
+    // pagereveal must have fired.
+    await new Promise(requestAnimationFrame);
+    e.source.postMessage(event_log, '*');
+  }
+});
+
+addEventListener('load', () => {
+  window.parent.postMessage('loaded', '*');
+})
+
+function recordRafs() {
+  requestAnimationFrame( () => {
+    if (should_record)
+      event_log.push('rAF');
+
+    recordRafs();
+  });
+}
+
+recordRafs();
+
+addEventListener('pageshow', (e) => {
+  if (e.persisted)
+    should_record = true;
+
+  if (should_record)
+    event_log.push('pageshow' + (e.persisted ? '.persisted' : ''));
+});
+
+addEventListener('pagereveal', () => {
+  if (should_record)
+    event_log.push('pagereveal');
+});
+</script>

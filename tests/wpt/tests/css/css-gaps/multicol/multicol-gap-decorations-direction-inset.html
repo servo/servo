@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<title>
+    CSS Gap Decorations: Multicolumn gap decorations with direction values and asymmetric insets.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-gaps-1/#inset">
+<link rel="match" href="multicol-gap-decorations-direction-inset-ref.html">
+<link rel="author" title="Kevin Babbitt" href="mailto:kbabbitt@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+    .multicol {
+        column-count: 3;
+        column-width: 100px;
+        column-height: 100px;
+        column-gap: 20px;
+        row-gap: 20px;
+        column-wrap: wrap;
+        width: 340px;
+        height: 220px;
+        column-rule: 6px solid blue;
+        row-rule: 6px solid red;
+        column-rule-break: intersection;
+        row-rule-break: intersection;
+        row-rule-inset-start: 10px;
+        row-rule-inset-end: 0px;
+        column-rule-inset-start: 10px;
+        column-rule-inset-end: 0px;
+        margin-bottom: 20px;
+    }
+    .item {
+        background: lightgray;
+        width: 100px;
+        height: 100px;
+    }
+    .item:first-child {
+        background: salmon;
+    }
+</style>
+<div class="multicol" style="direction: ltr;">
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+</div>
+<div class="multicol" style="direction: rtl;">
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+</div>

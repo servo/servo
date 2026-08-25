@@ -1,0 +1,61 @@
+<!-- Test is a derivative of attr-pseudo-elem-invalidation.html -->
+<!DOCTYPE html>
+<title>CSS Values and Units Test: attr() invalidation of pseudo elements</title>
+<meta name="assert" content="Verify invalidation for attr() dependencies strictly on pseudo elements.">
+<link rel="help" href="https://drafts.csswg.org/css-values/#attr-notation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  /* Eager + content generated pseudos */
+  #div::after { content: "y"; font-size: attr(data-foo type(<percentage>)); }
+  #div::before { content: "x"; font-size: attr(data-foo type(<percentage>)); }
+  #div::first-letter { font-size: attr(data-foo type(<percentage>)); }
+  #div::first-line { font-size: attr(data-foo type(<percentage>)); }
+  #dialog::backdrop { font-size: attr(data-foo type(<percentage>)); }
+  #li::marker { font-size: attr(data-foo type(<percentage>)); }
+
+  #text-input::placeholder { font-size: attr(data-foo type(<percentage>)); }
+  #file::file-selector-button { font-size: attr(data-foo type(<percentage>)); }
+  #details::details-content { font-size: attr(data-foo type(<percentage>)); }
+</style>
+<div id="div">Some text</div>
+<dialog id="dialog">Some text in modal</dialog>
+<ol><li id="li">Item</li></ol>
+<input id="text-input" placeholder="Enter text">
+<input id="file" type="file">
+<details id="details" open><p>Some content</p></details>
+<script>
+  const tests = [
+    { id: "div", pseudo: "::after" },
+    { id: "div", pseudo: "::before" },
+    { id: "div", pseudo: "::first-letter" },
+    { id: "div", pseudo: "::first-line" },
+    { id: "li",  pseudo: "::marker" },
+    { id: "text-input", pseudo: "::placeholder" },
+    { id: "file",  pseudo: "::file-selector-button" },
+    { id: "details",  pseudo: "::details-content" },
+  ];
+
+  function test_pseudo_element_invalidation({ id, pseudo }) {
+    const elem = document.getElementById(id);
+    elem.setAttribute("data-foo", "150%");
+    const old_font_size = window.getComputedStyle(elem, pseudo).getPropertyValue("font-size");
+    elem.setAttribute("data-foo", "300%");
+    const new_font_size = window.getComputedStyle(elem, pseudo).getPropertyValue("font-size");
+    test(() => {
+      assert_not_equals(new_font_size, old_font_size,
+                        "Change of attribute value should lead to invalidation of "
+                         + pseudo + " element style.");
+    });
+  }
+
+  function test_backdrop_invalidation() {
+    const dlg = document.getElementById("dialog");
+    dlg.showModal();
+    test_pseudo_element_invalidation({id: "dialog", pseudo: "::backdrop"});
+    dlg.close();
+  }
+
+  tests.forEach(test_pseudo_element_invalidation);
+  test_backdrop_invalidation();
+</script>

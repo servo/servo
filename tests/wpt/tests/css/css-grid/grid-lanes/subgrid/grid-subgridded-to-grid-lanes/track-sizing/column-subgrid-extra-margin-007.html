@@ -1,0 +1,68 @@
+<!DOCTYPE HTML>
+<html>
+<meta charset="utf-8">
+<title>CSS Grid Lanes Test: Subgrid with no grid items accommodates gutter size and padding</title>
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+<link rel="match" href="column-subgrid-extra-margin-006-ref.html">
+<style>
+.wrapper {
+  width: 116px;
+  height: 100px;
+  background: red;
+}
+.grid-lanes {
+  display: inline-grid-lanes;
+  grid-template-columns: repeat(4, auto);
+  background: red;
+}
+.subgrid {
+  display: grid;
+  grid-template: auto / subgrid;
+  background: green;
+  padding: 11px 7px 9px 3px;
+}
+</style>
+</head>
+<body>
+<p>Test passes if there is a filled green rectangle and <strong>no red</strong>.</p>
+<div class="wrapper">
+<!--
+  Grid lanes container width = 116px (4 columns of 29px each).
+
+  Same nested structure as -006 but with pad-L and pad-R swapped
+  (pad-L = 3, pad-R = 7). The dominant leaf is the mirror leaf:
+    leaf's pad-R (7) + inner's pad-R (7) + outer's pad-R (7) on the
+    end side, plus the leaf's pad-L (3) and half of outer's
+    column-gap (10/2 = 5) on the start side, for a total of 29.
+
+  Per the WG resolution at
+  https://github.com/w3c/csswg-drafts/issues/10926, in a grid-lanes
+  container every subgrid in an auto-placed chain must accommodate
+  its margin contribution at every column it could land in. Because the
+  dominant leaf's total is invariant under pad-L/pad-R swap (the
+  chain is symmetric), this test produces the same uniform per-track
+  size as -006:
+    4 columns * 29px = 116px.
+-->
+  <div class="grid-lanes">
+    <div class="subgrid" style="grid-column: span 4; gap: 20px 10px">
+      <div class="subgrid" style="grid-column: span 2;">
+        <div class="subgrid"></div>
+        <div class="subgrid"></div>
+        <div class="subgrid"></div>
+        <div class="subgrid"></div>
+        <div class="subgrid"></div>
+      </div>
+      <div class="subgrid" style="grid-column: span 2;">
+        <div class="subgrid"></div>
+        <div class="subgrid"></div>
+        <div class="subgrid"></div>
+        <div class="subgrid"></div>
+        <div class="subgrid"></div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

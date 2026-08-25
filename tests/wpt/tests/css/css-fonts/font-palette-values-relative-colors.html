@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8">
+<title>Test @font-palette-values override-colors using relative colors</title>
+<link rel="help" href="https://www.w3.org/TR/css-fonts-4/#override-color">
+<link rel="match" href="font-palette-values-relative-colors-ref.html">
+<link rel="author" title="Gaurav Kumar" href="mailto:gauravkum@microsoft.com">
+<style>
+  @font-face {
+    font-family: "COLR Palettes";
+    src: url("resources/COLR-palettes-test-font.ttf");
+  }
+
+  @font-palette-values --relative-color {
+    font-family: "COLR Palettes";
+    override-colors: 3 lch(from blue calc(0.5 * l) c h), 7 lch(from red calc(0.5 * l) c h);
+  }
+
+  @font-palette-values --simple-color {
+    font-family: "COLR Palettes";
+    override-colors: 3 blue, 7 red;
+  }
+
+  .test {
+    font-family: "COLR Palettes";
+    font-size: 3rem;
+  }
+</style>
+</head>
+<body>
+  <p>Relative color: <span class="test" style="font-palette: --relative-color;">A</span></p>
+  <p>Simple color: <span class="test" style="font-palette: --simple-color;">A</span></p>
+  <p>Default: <span class="test">A</span></p>
+</body>

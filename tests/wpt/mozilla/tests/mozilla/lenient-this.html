@@ -1,0 +1,22 @@
+<html>
+    <head>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script>
+            var handler = function () { };
+            document.onreadystatechange = handler;
+            var obj = {};
+
+            test(function() {
+                var val = Object.getOwnPropertyDescriptor(Document.prototype, "onreadystatechange").get.call(document);
+                assert_equals(val, handler, "test1-0, basic test");
+            }, "basic test");
+
+            test(function() {
+                var val = Object.getOwnPropertyDescriptor(Document.prototype, "onreadystatechange").get.call(obj);
+                assert_equals(val, undefined, "test2-0, calling getter returns undefined");
+                assert_equals(Document.prototype.onreadystatechange, undefined, "test2-1, property access returns undefined");
+            }, 'Should not throw for attribute marked "[LenientThis]"');
+        </script>
+    </head>
+</html>

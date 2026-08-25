@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Box Alignment Level 3: parsing place-content with invalid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#propdef-place-content">
+<meta name="assert" content="place-content supports only the grammar '<align-content> <justify-content>?'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("place-content", "auto");
+
+test_invalid_value("place-content", "self-end unsafe");
+test_invalid_value("place-content", "self-start");
+
+test_invalid_value("place-content", "left");
+test_invalid_value("place-content", "unsafe right");
+test_invalid_value("place-content", "left normal");
+test_invalid_value("place-content", "unsafe right stretch");
+
+test_invalid_value("place-content", "normal flex-start baseline");
+test_invalid_value("place-content", "first baseline first baseline");
+
+test_invalid_value("place-content", "baseline safe");
+</script>
+</body>
+</html>

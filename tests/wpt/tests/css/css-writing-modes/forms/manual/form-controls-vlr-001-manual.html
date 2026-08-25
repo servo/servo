@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>writing mode:vertical-lr, input type=text</title>
+<link rel="author" title="Richard Ishida" href="mailto:ishida@w3.org"/>
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#block-flow"/>
+<meta name="flags" content="should"/>
+<meta name="assert" content="writing-mode:vertical-lr will display an input field for text vertically, and with vertical text inside."/>
+<style type="text/css">
+@font-face {
+    font-family: 'webfont';
+    src: 	url('/fonts/noto/NotoSansMongolian-regular.woff2') format('woff2');
+    font-weight: normal;
+    font-style: normal;
+	}
+input { font-family: webfont; font-size: 34px; }
+</style>
+<!-- this is the test -->
+<style type="text/css">
+.test { writing-mode: vertical-lr; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the input field is vertical and the text inside it has default vertical settings.</p>
+<div class="test">
+<input type="text" value="ᠮᠤᠩᠭᠤᠯ W3C i18n ᠤᠯᠤᠰ" />
+</div>
+</body>
+</html>

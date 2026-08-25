@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang=en>
+<meta charset="utf-8">
+<title>CSS Test: hanging-punctuation - first, U+3000</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel="match" href="reference/hanging-punctuation-first-002-ref.html"/>
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#hanging-punctuation-property">
+<meta name="assert" content="hanging-punctuation: first hangs U+300 IDEOGRAPHIC SPACE " >
+<style>
+.test {
+    hanging-punctuation: first;
+}
+div { /*not part of the test, just to make things more visually obvious*/
+    line-height: 1;
+    font-size: 40px;
+}
+</style>
+
+<p>Test passes if the up and down arrows below are aligned.
+
+<div class=test>　↓</div>
+<div class=ref>↑</div>

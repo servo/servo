@@ -1,0 +1,67 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+                      "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Ignoring at-rules inside @media blocks</title>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#parsing-errors"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/media.html#at-media-rule"/>
+  <link rel="match" href="at-rule-013-ref.xht"/>
+  <meta name="flags" content="invalid"/>
+  <meta name="assert" content="At-rules inside @media blocks are ignored up to
+        up to the end of the block that contains the invalid at-keyword, or up
+        to and including the next semicolon (;) or up to and including the next
+        block ({...}), whichever comes first."/>
+  <style type="text/css"><![CDATA[
+    p {
+      color: red;
+      background: red;
+    }
+    @media all {
+      #semicolon { background: transparent; }
+      @foo ] & | # $ % test-token \
+       [; # { background: red; } ]
+       (; #semicolon { background: red; } } } } )
+       '; #semicolon { background: red; } } } }',
+       "; #semicolon { background: red; }' } } }"
+      ;
+      #semicolon { color: green; }
+    }
+    @media all {
+      #block { background: transparent; }
+      @foo ] & | # $ % test-token \
+       [; #block { background: red; } ]
+       (; #block { background: red; } )
+       '; #block { background: red; }',
+       "; #block { background: red; }'"
+       {; #block { background: red; }
+          #block { background: red; } }
+      #block { color: green; }
+    }
+    @media all {
+      #eob { background: transparent; }
+      @import "support/import-red.css"
+    }
+    #eob {
+      color: green;
+    }
+    @media all {
+      #eob-complex { background: transparent; }
+      @import "support/import-red.css"
+       [; #eob-complex { background: red; } ]
+       (; #eob-complex { background: red; } )
+       '; #eob-complex { background: red; }',
+       "; #eob-complex { background: red; }'"
+    }
+    #eob-complex {
+      color: green;
+    }
+  ]]></style>
+ </head>
+ <body>
+  <p id="semicolon">This sentence must be green.</p>
+  <p id="block">This sentence must be green.</p>
+  <p id="eob">This sentence must be green.</p>
+  <p id="eob-complex">This sentence must be green.</p>
+ </body>
+</html>

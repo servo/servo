@@ -1,0 +1,6 @@
+rules:
+- textarea-setcustomvalidity.html: [constraint-validation]
+- textarea-validity-clone.html: [constraint-validation]
+- textarea-validity-valueMissing-inside-datalist.html: [constraint-validation]
+- change-to-empty-value.html: [change-event]
+- "*": [textarea]

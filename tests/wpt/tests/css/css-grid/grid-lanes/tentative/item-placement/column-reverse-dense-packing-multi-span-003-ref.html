@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<style>
+.grid {
+  display: grid;
+  grid-auto-flow: dense;
+  grid-template-columns: repeat(5, 50px);
+}
+</style>
+<body>
+<p>Ensure that dense-packing with multi-span items follows the grid-lanes dense packing algorithm.</p>
+<div class="grid">
+  <div style="background: brown; height: 80px; grid-column: 5;"></div>
+  <div style="background: brown; height: 60px; grid-column: 4;"></div>
+  <div style="background: brown; height: 40px; grid-column: 3;"></div>
+  <div style="background: brown; height: 30px; grid-column: 2;"></div>
+  <div style="background: brown; height: 20px;"></div>
+  <div style="background: brown; height: 20px; grid-column: span 5;"></div>
+  <div style="background: pink; height: 30px; grid-column: 2 / span 4;">
+    Item that should not end up in gap.
+  </div>
+  <div style="background: yellow; height: 20px; grid-column: span 4; transform: translateY(-70px);">
+    Item that should end up in gap.
+  </div>
+</div>
+</body>
+</html>

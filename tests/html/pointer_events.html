@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+#overlay {
+    width: 200px;
+    height: 150px;
+    background: green;
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+button {
+    position: relative;
+    top: 10px;
+    width: 150px;
+    height: 50px;
+    border: solid black 2px;
+    box-sizing: border-box;
+    font: Helvetica bold;
+    font-size: 18px;
+    text-align: center;
+    background: black;
+    color: white;
+}
+</style>
+</head>
+<body>
+<button id=button>Click me!</button>
+<div id=overlay></div>
+<script>
+document.getElementById('button').addEventListener('click', function() { alert("Ouch!"); });
+</script>
+</body>
+</html>
+

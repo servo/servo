@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  table
+  {
+  background-color: green;
+  border-spacing: 0px;
+  margin: 40px auto auto 40px;
+  table-layout: fixed;
+  }
+
+  col {width: 40px;}
+
+  td {padding: 0px;}
+
+  img {vertical-align: top;}
+  ]]>
+  </style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a big square green H.</p>
+
+  <table>
+    <col></col><col></col><col></col>
+    <tr><td></td><td><img src="support/swatch-white.png" width="40" height="40" alt="Image download support must be enabled" /></td><td></td></tr>
+    <tr><td></td><td><img src="support/swatch-green.png" width="40" height="40" alt="Image download support must be enabled" /></td><td></td></tr>
+    <tr><td></td><td><img src="support/swatch-white.png" width="40" height="40" alt="Image download support must be enabled" /></td><td></td></tr>
+  </table>
+
+ </body>
+</html>

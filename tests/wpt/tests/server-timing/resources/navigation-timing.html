@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<head>
+    <meta charset='utf-8' />
+    <script>
+      const server_timing = performance.getEntriesByType('navigation')[0].serverTiming;
+      const compare_entry = (entry, expected) => {
+        if (!entry) {
+          return false;
+        }
+        const keys = Object.keys(expected);
+        for (key of keys) {
+          if (entry[key] != expected[key]) {
+            return false;
+          }
+        }
+        return true;
+      };
+
+      if (!compare_entry(server_timing[0], {
+            duration: 1.1,
+            name: 'metric1',
+            description: 'document',
+          }) ||
+          !compare_entry(server_timing[1], {
+            duration: 1.2,
+            name: 'metric1',
+            description: 'document',
+          })) {
+        parent.postMessage("FAIL", "*");
+      }
+      parent.postMessage( "PASS", "*");
+    </script>
+    <!-- The script above should not go beyond 800 bytes, or it will be trickled, defeating the test -->
+</head>
+<body>
+  <!-- This comment is here to make sure the document body is larger than 800 bytes, so will be trickled down -->
+</body>
+</html>

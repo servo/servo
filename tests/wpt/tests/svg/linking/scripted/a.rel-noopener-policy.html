@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset=utf-8>
+  <meta name="timeout" content="long">
+  <title>Test behavior of target=_blank links</title>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+</head>
+<body>
+  <svg>
+    <a href="resources/a.rel-noopener-policy-target.html?a1" id="a1" rel="noopener" target="_blank">Click me</a>
+    <a href="resources/a.rel-noopener-policy-target.html?a2" id="a2" rel="opener" target="_blank">Click me</a>
+    <a href="resources/a.rel-noopener-policy-target.html?a3" id="a3" target="_blank">Click me</a>
+    <a href="resources/a.rel-noopener-policy-target.html?a4" id="a4" rel="opener noopener" target="_blank">Click me</a>
+    <a href="resources/a.rel-noopener-policy-target.html?a5" id="a5" rel="noopener opener" target="_blank">Click me</a>
+    <a href="resources/a.rel-noopener-policy-target.html?a6" id="a6" rel="noreferrer" target="_blank">Click me</a>
+    <a href="resources/a.rel-noopener-policy-target.html?a7" id="a7" rel="opener noreferrer" target="_blank">Click me</a>
+    <a href="resources/a.rel-noopener-policy-target.html?a8" id="a8" rel="noopener opener noreferrer" target="_blank">Click me</a>
+  </svg>
+  <script>
+
+  let tests = [
+    { id: "a1", hasOpener: false, name: "SVG Anchor element with target=_blank with rel=noopener" },
+    { id: "a2", hasOpener: true, name: "SVG Anchor element with target=_blank with rel=opener" },
+    { id: "a3", hasOpener: false, name: "SVG Anchor element with target=_blank with implicit rel=noopener" },
+    { id: "a4", hasOpener: false, name: "SVG Anchor element with target=_blank with rel=opener+noopener" },
+    { id: "a5", hasOpener: false, name: "SVG Anchor element with target=_blank with rel=noopener+opener" },
+    { id: "a6", hasOpener: false, name: "SVG Anchor element with target=_blank with rel=noreferrer" },
+    { id: "a7", hasOpener: false, name: "SVG Anchor element with target=_blank with rel=opener+noreferrer" },
+    { id: "a8", hasOpener: false, name: "SVG Anchor element with target=_blank with rel=noopener+opener+noreferrer" },
+  ];
+
+  tests.forEach(data => {
+    async_test(
+      test => {
+        let bc = new BroadcastChannel(data.id);
+        bc.addEventListener("message", test.step_func_done(e => {
+          assert_equals(e.data.hasOpener, data.hasOpener);
+        }), {once: true});
+
+        document.getElementById(data.id).dispatchEvent(new MouseEvent('click'));
+      }, data.name);
+  });
+  </script>
+</body>
+</html>

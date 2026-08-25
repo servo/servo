@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Selector: pseudo-classes (:in-range, :out-of-range) input type change</title>
+<link rel="author" title="Rune Lillesveen" href="mailto:rune@opera.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#pseudo-classes">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  span {
+    color: red;
+  }
+  #t1:in-range + span {
+    color: green;
+  }
+  #t2:out-of-range + span {
+    color: green;
+  }
+</style>
+<input id="t1" type="text" min="0" max="10" value="5">
+<span id="sibling1">This text should be green.</span>
+<input id="t2" type="text" min="0" max="10" value="50">
+<span id="sibling2">This text should be green.</span>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(sibling1).color, "rgb(255, 0, 0)",
+      "Not matching :in-range for type=text");
+
+    t1.type = "number";
+
+    assert_equals(getComputedStyle(sibling1).color, "rgb(0, 128, 0)",
+      "Matching :in-range for type=number");
+  }, "Evaluation of :in-range changes for input type change.");
+
+  test(() => {
+    assert_equals(getComputedStyle(sibling2).color, "rgb(255, 0, 0)",
+      "Not matching :out-of-range for type=text");
+
+    t2.type = "number";
+
+    assert_equals(getComputedStyle(sibling2).color, "rgb(0, 128, 0)",
+      "Matching :in-range for type=number");
+  }, "Evaluation of :out-of-range changes for input type change.");
+</script>

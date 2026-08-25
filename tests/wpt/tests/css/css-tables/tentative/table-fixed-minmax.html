@@ -1,0 +1,146 @@
+<!doctype html>
+<title>Table minmax tricks</title>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<link rel="author" title="Aleks Totic" href="atotic@chromium.org" />
+<link rel="help" href="https://www.w3.org/TR/css-tables-3/" />
+<style>
+  main table {
+   table-layout:fixed;
+   width: 100%;
+   background: #ddd;
+   border-spacing: 0;
+  }
+  main td {
+    padding: 0;
+  }
+</style>
+<h1>Infinite intrinsic table widths</h1>
+<p>Originally, algorithm for computing intrinsic table inline size had a special case: <br>
+  If table is fixed, and has a width:%, its intrinsic inline size was "infinite". <br>
+This ensured that fixed table with 100% width inside block layout would expand to container's width. </p>
+<p>Different containers do not have reasonable handling of intrinsic infinitely sized
+children. For those, table's intrinsic size should never be infinite, but instead
+default to regular max size.</p>
+
+<main>
+<h3>Flexbox</h3>
+
+<p>flex width:auto</p>
+<div id="flextest" style="display:flex;">
+  <table>
+    <td>flex</td>
+  </table>
+  <div style="width:98px;border:1px solid black;flex-shrink:0">flex div</div>
+</div>
+
+<p>flex width:max-content</p>
+<div id="flextest_max" style="display:flex;width:max-content">
+  <table>
+    <td><div style="width:100px">flex</div></td>
+  </table>
+  <div style="width:100px;border:1px solid black;flex-shrink:0">flex div</div>
+</div>
+
+<p>flex width:min-content</p>
+<div id="flextest_min1" style="display: flex; width: min-content;">
+  <table style="flex: 0 0 content; min-width: 0px;">
+    <td style="width: 100px;"></td>
+  </table>
+</div>
+
+<div id="flextest_min2" style="display: flex; width: min-content;">
+  <div style="flex: 0 0 auto; min-width: 0px;">
+    <table>
+      <td style="width: 100px;"></td>
+    </table>
+  </div>
+</div>
+
+<h3>Grid</h3>
+<p>grid width:auto</p>
+<div id="grid" style="display:grid;grid-template-columns: 1fr;width:auto">
+  <table>
+    <td><div style="width:100px">grid</div></td>
+  </table>
+</div>
+<p>grid width:max-content</p>
+<div id="grid_max" style="display:grid;grid-template-columns: 1fr;width:max-content">
+  <table>
+    <td><div style="width:100px">grid</div></td>
+  </table>
+</div>
+
+<h3>Table</h3>
+<table id="table_container" style="table-layout:auto;width:auto; background: #aaa;">
+  <tr>
+    <td>
+      <table>
+        <td><div style="width:100px">table</div></td>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<h3>Absolute</h3>
+<div id="absolute" style="width:400px;height:100px;outline:solid 1px green;position:relative">
+  <table style="position:absolute;right:0;top:0">
+    <td>absolute</td>
+  </table>
+</div>
+
+<script>
+  test(_ => {
+    let flexbox = document.querySelector("#flextest");
+    let table = flexbox.querySelector("table");
+    let div = flexbox.querySelector("div");
+    assert_equals(div.offsetWidth, 100);
+    assert_equals(flexbox.offsetWidth, document.body.offsetWidth);
+    assert_equals(flexbox.offsetWidth, table.offsetWidth + div.offsetWidth);
+  }, "table's width inside flexbox width:auto is not infinite");
+
+  test(_ => {
+    let flexbox = document.querySelector("#flextest_max");
+    let table = flexbox.querySelector("table");
+    assert_greater_than(table.offsetWidth, document.body.offsetWidth);
+  }, "table's width inside flexbox width:max-content is infinite");
+
+  test(_ => {
+    let flexbox = document.querySelector("#flextest_min1");
+    let table = flexbox.querySelector("table");
+    assert_equals(flexbox.offsetWidth, 100);
+    assert_greater_than(table.offsetWidth, document.body.offsetWidth);
+  }, "table's width inside flexbox width:min-content is infinite, but the flexbox is finite; scenario 1");
+
+  test(_ => {
+    let flexbox = document.querySelector("#flextest_min2");
+    let table = flexbox.querySelector("table");
+    assert_equals(flexbox.offsetWidth, 100);
+    assert_greater_than(table.offsetWidth, document.body.offsetWidth);
+  }, "table's width inside flexbox width:min-content is infinite, but the flexbox is finite; scenario 2");
+
+  test(_ => {
+    let grid = document.querySelector("#grid");
+    let table = grid.querySelector("table");
+    assert_equals(grid.offsetWidth, document.body.offsetWidth);
+    assert_equals(grid.offsetWidth, table.offsetWidth);
+  }, "table's width inside grid width:auto is not infinite");
+
+  test(_ => {
+    let grid = document.querySelector("#grid_max");
+    let table = grid.querySelector("table");
+    assert_greater_than(table.offsetWidth, document.body.offsetWidth);
+  }, "table's width inside grid width:max-content is infinite");
+
+  test(_ => {
+    let table = document.querySelector("#table_container");
+    assert_equals(table.offsetWidth, document.body.offsetWidth);
+  }, "table's width inside a table cell is infinite");
+
+  test(_ => {
+    let abs = document.querySelector("#absolute");
+    let table = abs.querySelector("table");
+    assert_equals(table.offsetWidth, abs.offsetWidth);
+  }, "table's width inside an absolute block is infinite");
+
+</script>

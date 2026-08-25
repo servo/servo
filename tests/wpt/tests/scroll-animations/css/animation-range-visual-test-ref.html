@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#named-timeline-range">
+<link rel="stylesheet" href="support/animation-range.css">
+<script src="/common/reftest-wait.js"></script>
+<style>
+.meter {
+  animation: active-interval linear 100s paused;
+  animation-timeline: auto;
+}
+
+.bar {
+  animation: slide-in linear 100s paused;
+  animation-timeline: auto;
+}
+</style>
+</head>
+<body onload="test();">
+<h3>View timeline</h3>
+<template id="meters">
+  <div class="meters">
+    <div class="cover"><div class="meter"><div class="bar"></div></div><div>Cover</div></div>
+    <div class="contain"><div class="meter"><div class="bar"></div></div><div>Contain</div></div>
+    <div class="entry"><div class="meter"><div class="bar"></div></div><div>Entry</div></div>
+    <div class="exit"><div class="meter"><div class="bar"></div></div><div>Exit</div></div>
+  </div>
+</template>
+<div class="flex">
+  <div>
+    <div class="scroller" data-scroll-top="10">
+      <div class="subject" data-progress=".08333,-1,.5,-1"></div>
+      <div class="spacer"></div>
+    </div>
+  </div>
+  <div>
+    <div class="scroller" data-scroll-top="30">
+      <div class="subject" data-progress=".25,.125,2,-1"></div>
+      <div class="spacer"></div>
+    </div>
+  </div>
+  <div>
+    <div class="scroller" data-scroll-top="90">
+      <div class="subject" data-progress=".75,.875,2,-1"></div>
+      <div class="spacer"></div>
+    </div>
+  </div>
+  <div>
+    <div class="scroller" data-scroll-top="110">
+      <div class="subject" data-progress=".91667,2,2,.5"></div>
+      <div class="spacer"></div>
+    </div>
+  </div>
+</div>
+</body>
+<script>
+  function test() {
+    let template = document.querySelector('#meters');
+    let scrollers = document.querySelectorAll('.scroller');
+    for (let i = 0; i < scrollers.length; i++) {
+      let subject = scrollers[i].querySelector('.subject');
+      let clone = template.content.cloneNode(true);
+      let meters = clone.querySelectorAll('.meter');
+      let progress = subject.getAttribute('data-progress').split(',').map(s => parseFloat(s));
+      for (let meter of meters) {
+        let bar = meter.querySelector('.bar');
+        let startTime = -progress.splice(0, 1)[0] * 100;
+        meter.style.animationDelay = `${startTime}s`;
+        bar.style.animationDelay = `${startTime}s`;
+      }
+      subject.appendChild(clone);
+      scrollers[i].scrollTop = parseInt(scrollers[i].getAttribute('data-scroll-top'));
+    }
+    takeScreenshot();
+  }
+</script>
+</html>

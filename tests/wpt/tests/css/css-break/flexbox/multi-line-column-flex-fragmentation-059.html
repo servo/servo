@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<title>
+    Suppress column flexbox gaps: row gaps (including any additional space from content distribution)
+    if it's split across fragmentainer breaks or is the last content before a break.
+    Tests justify-content: space-between.
+</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/11520">
+<link rel="match" href="multi-line-column-flex-fragmentation-059-ref.html">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+     .multi-column {
+        columns: 2;
+        height: 60px;
+        column-width: 60px;
+        width: 130px;
+        gap: 10px;
+    }
+
+    body {
+        margin: 0px;
+    }
+
+    #flexbox {
+        border: 2px solid rgb(96 139 168);
+        width: 60px;
+        background-color: #fff;
+        display: flex;
+        flex-direction: column;
+        flex-wrap: wrap;
+        height: 110px;
+        justify-content: space-between;
+    }
+
+    .item {
+        width: 60px;
+        height: 25px;
+        background-color: #007bff;
+        color: white;
+    }
+</style>
+<div class="multi-column">
+<div id="flexbox">
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+</div>
+</div>

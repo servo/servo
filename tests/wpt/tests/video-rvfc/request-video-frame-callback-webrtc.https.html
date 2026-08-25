@@ -1,0 +1,154 @@
+<!doctype html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>WebRTC video.requestVideoFrameCallback() test</title>
+  <script src="/webrtc/RTCPeerConnection-helper.js"></script>
+</head>
+<body>
+  <div id="log"></div>
+  <div>
+    <video id="local-view" muted autoplay="autoplay"></video>
+    <video id="remote-view" muted autoplay="autoplay"></video>
+  </div>
+
+  <!-- These files are in place when executing on W3C. -->
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script type="text/javascript">
+  var test = async_test('Test video.requestVideoFrameCallback() parameters for WebRTC applications.');
+
+  //
+  // This test is based on /webrtc/simplecall.https.html, but it calls to
+  // video.requestVideoFrameCallback() before ending, to verify WebRTC required
+  // and optional parameters.
+  //
+
+  var gFirstConnection = null;
+  var gSecondConnection = null;
+  var verify_params = (now, metadata) => {
+    assert_greater_than(now, 0);
+
+    // Verify all required fields
+    assert_greater_than(metadata.presentationTime, 0);
+    assert_greater_than(metadata.expectedDisplayTime, 0);
+    assert_greater_than(metadata.presentedFrames, 0);
+    assert_greater_than(metadata.width, 0);
+    assert_greater_than(metadata.height, 0);
+    assert_true("mediaTime" in metadata, "mediaTime should be present");
+
+    // Verify WebRTC only fields.
+    assert_true("rtpTimestamp" in metadata, "rtpTimestamp should be present");
+    assert_true("receiveTime" in metadata, "receiveTime should be present");
+    // Verifying that captureTime is too unreliable to be included in tests.
+  }
+
+  var verify_local_metadata = (now, metadata) => {
+    assert_greater_than(metadata.expectedDisplayTime, 0);
+    assert_greater_than(metadata.presentedFrames, 0);
+    assert_greater_than(metadata.width, 0);
+    assert_greater_than(metadata.height, 0);
+    assert_true("captureTime" in metadata, "captureTime should always be present for local sources.");
+    assert_greater_than(metadata.captureTime, 0);
+  }
+
+  // If the remote video gets video data that implies the negotiation
+  // as well as the ICE and DTLS connection are up.
+  document.getElementById('remote-view')
+      .addEventListener('loadedmetadata', function() {
+    document.getElementById('remote-view').requestVideoFrameCallback(test.step_func_done(verify_params));
+  });
+
+  document.getElementById('local-view')
+      .addEventListener('loadmetadata', function() {
+    document.getElementById('local-view').requestVideoFrameCallback(test.step_func_done(verify_local_metadata));
+  });
+
+
+  function getNoiseStreamOkCallback(localStream) {
+    gFirstConnection = new RTCPeerConnection(null);
+    test.add_cleanup(() => gFirstConnection.close());
+    gFirstConnection.onicecandidate = onIceCandidateToFirst;
+
+    gSecondConnection = new RTCPeerConnection(null);
+    test.add_cleanup(() => gSecondConnection.close());
+    gSecondConnection.onicecandidate = onIceCandidateToSecond;
+    gSecondConnection.ontrack = onRemoteTrack;
+
+    localStream.getTracks().forEach(function(track) {
+      // Bidirectional streams are needed in order for captureTime to be
+      // populated. Use the same source in both directions.
+      gFirstConnection.addTrack(track, localStream);
+      gSecondConnection.addTrack(track, localStream);
+    });
+
+    gFirstConnection.createOffer().then(onOfferCreated, failed('createOffer'));
+
+    var videoTag = document.getElementById('local-view');
+    videoTag.srcObject = localStream;
+  };
+
+  var onOfferCreated = test.step_func(function(offer) {
+    gFirstConnection.setLocalDescription(offer);
+
+    // This would normally go across the application's signaling solution.
+    // In our case, the "signaling" is to call this function.
+    receiveCall(offer.sdp);
+  });
+
+  function receiveCall(offerSdp) {
+    var parsedOffer = new RTCSessionDescription({ type: 'offer',
+                                                  sdp: offerSdp });
+    gSecondConnection.setRemoteDescription(parsedOffer);
+
+    gSecondConnection.createAnswer().then(onAnswerCreated,
+                                   failed('createAnswer'));
+  };
+
+  var onAnswerCreated = test.step_func(function(answer) {
+    gSecondConnection.setLocalDescription(answer);
+
+    // Similarly, this would go over the application's signaling solution.
+    handleAnswer(answer.sdp);
+  });
+
+  function handleAnswer(answerSdp) {
+    var parsedAnswer = new RTCSessionDescription({ type: 'answer',
+                                                   sdp: answerSdp });
+    gFirstConnection.setRemoteDescription(parsedAnswer);
+  };
+
+  var onIceCandidateToFirst = test.step_func(function(event) {
+    // If event.candidate is null = no more candidates.
+    if (event.candidate) {
+      gSecondConnection.addIceCandidate(event.candidate);
+    }
+  });
+
+  var onIceCandidateToSecond = test.step_func(function(event) {
+    if (event.candidate) {
+      gFirstConnection.addIceCandidate(event.candidate);
+    }
+  });
+
+  var onRemoteTrack = test.step_func(function(event) {
+    var videoTag = document.getElementById('remote-view');
+    if (!videoTag.srcObject) {
+      videoTag.srcObject = event.streams[0];
+    }
+  });
+
+  // Returns a suitable error callback.
+  function failed(function_name) {
+    return test.unreached_func('WebRTC called error callback for ' + function_name);
+  }
+
+  // This function starts the test.
+  test.step(function() {
+    getNoiseStream({ video: true, audio: true })
+      .then(test.step_func(getNoiseStreamOkCallback), failed('getNoiseStream'));
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Truncated markup declaration at end of input becomes a bogus comment</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/parsing.html#markup-declaration-open-state">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/parsing.html#after-doctype-name-state">
+<link rel="help" href="https://crbug.com/40727112">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+function bodyChildren(doc) {
+  return [...doc.body.childNodes].map(n =>
+      n.nodeType === Node.TEXT_NODE ? `#text:${n.data}` :
+      n.nodeType === Node.COMMENT_NODE ? `#comment:${n.data}` : n.nodeName);
+}
+
+test(() => {
+  const doc = new DOMParser().parseFromString("Abc<!d>Hi", "text/html");
+  assert_array_equals(bodyChildren(doc),
+                      ["#text:Abc", "#comment:d", "#text:Hi"]);
+}, "An incomplete markup declaration at end of input becomes a bogus comment");
+
+test(() => {
+  const doc = new DOMParser().parseFromString("<!DOCTYPE html pu", "text/html");
+  assert_not_equals(doc.doctype, null, "doctype should be emitted");
+  assert_equals(doc.doctype.name, "html");
+}, "A DOCTYPE with a truncated PUBLIC keyword at end of input is emitted");
+
+async_test(t => {
+  const iframe = document.createElement("iframe");
+  iframe.srcdoc = "Abc<!d>Hi";
+  iframe.onload = t.step_func_done(() => {
+    assert_array_equals(bodyChildren(iframe.contentDocument),
+                        ["#text:Abc", "#comment:d", "#text:Hi"]);
+  });
+  document.body.appendChild(iframe);
+}, "An incomplete markup declaration at the end of a navigated document " +
+   "becomes a bogus comment");
+</script>

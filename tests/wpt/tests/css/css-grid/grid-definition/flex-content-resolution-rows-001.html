@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html>
+<title>CSS Grid Layout Test: Auto repeat tracks, grid-template-rows and flexible lengths.</title>
+<link rel="author" title="Julien Chaffraix" href="mailto:jchaffraix@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#track-sizes">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#fr-unit">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=235258">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<link rel="stylesheet" href="/css/support/grid.css">
+<meta name="assert" content="Test that resolving auto tracks on grid items using <flex> values with grid-template-rows works properly." />
+
+<style>
+.gridFlexContent {
+    grid-template-columns: 50px;
+    grid-template-rows: 1fr 1fr;
+}
+.gridMaxFlexContent {
+    grid-template-columns: 50px;
+    grid-template-rows: minmax(30px, 2fr);
+}
+.gridTwoMaxFlexContent {
+    grid-template-columns: 50px;
+    grid-template-rows: minmax(10px, 1fr) minmax(10px, 2fr);
+}
+.gridTwoDoubleMaxFlexContent {
+    grid-template-columns: 50px;
+    grid-template-rows: minmax(10px, 0.5fr) minmax(10px, 2fr);
+}
+.gridRespectBaseSize {
+    grid-template-columns: 50px;
+    grid-template-rows: minmax(75px, 1fr) minmax(0px, 2fr);
+}
+.gridRespectProportions {
+    grid-template-columns: 50px;
+    grid-template-rows: minmax(25px, .25fr) minmax(0px, .5fr) minmax(0px, 2fr);
+}
+.gridRespectBaseSizeProportions {
+    grid-template-columns: 50px;
+    grid-template-rows: minmax(50px, .25fr) minmax(0px, .5fr) minmax(0px, 1fr);
+}
+.gridRespectBaseSizeBeforeProportions {
+    grid-template-columns: 50px;
+    grid-template-rows: minmax(50px, .25fr) minmax(0px, .5fr) minmax(0px, 1fr);
+}
+.thirdRowFirstColumn {
+    background-color: yellow;
+    grid-column: 1;
+    grid-row: 3;
+}
+</style>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script type="text/javascript">
+  setup({ explicit_done: true });
+</script>
+
+<body onload="document.fonts.ready.then(() => { checkLayout('.grid'); })">
+
+<div class="grid gridFlexContent constrainedContainer" style="position: relative;">
+    <div class="sizedToGridArea firstRowFirstColumn" data-offset-x="0" data-offset-y="0" data-expected-width="50" data-expected-height="30">X<br>X<br>X</div>
+    <div class="sizedToGridArea secondRowFirstColumn" data-offset-x="0" data-offset-y="30" data-expected-width="50" data-expected-height="50">X<br>X<br>X<br>X<br>X</div>
+</div>
+
+<div class="constrainedContainer">
+    <div class="grid gridMaxFlexContent">
+        <div class="sizedToGridArea firstRowFirstColumn" data-expected-width="50" data-expected-height="30"></div>
+    </div>
+</div>
+
+<!-- Allow the extra logical space distribution to occur. -->
+<div style="width: 10px; height: 40px">
+    <div class="grid gridMaxFlexContent" style="height: 100%;">
+        <div class="sizedToGridArea firstRowFirstColumn" data-expected-width="50" data-expected-height="40"></div>
+    </div>
+</div>
+
+<div style="width: 10px; height: 40px">
+    <div class="grid gridMaxFlexContent">
+        <div class="sizedToGridArea firstRowFirstColumn" data-expected-width="50" data-expected-height="30"></div>
+    </div>
+</div>
+
+<div style="width: 10px; height: 100px;">
+    <div class="grid gridMaxFlexContent" style="height: 100%;">
+        <div class="sizedToGridArea firstRowFirstColumn" data-expected-width="50" data-expected-height="100"></div>
+    </div>
+</div>
+
+<div style="width: 10px; height: 100px;">
+    <div class="grid gridMaxFlexContent">
+        <div class="sizedToGridArea firstRowFirstColumn" data-expected-width="50" data-expected-height="30"></div>
+    </div>
+</div>
+
+<div class="constrainedContainer">
+    <div class="grid gridTwoMaxFlexContent" style="height: 100%">
+        <div class="sizedToGridArea firstRowFirstColumn" data-expected-width="50" data-expected-height="10"></div>
+        <div class="sizedToGridArea secondRowFirstColumn" data-expected-width="50" data-expected-height="10"></div>
+    </div>
+</div>
+
+<div class="constrainedContainer">
+    <div class="grid gridTwoMaxFlexContent">
+        <div class="sizedToGridArea firstRowFirstColumn" data-expected-width="50" data-expected-height="10"></div>
+        <div class="sizedToGridArea secondRowFirstColumn" data-expected-width="50" data-expected-height="20"></div>
+    </div>
+</div>
+
+<!-- Allow the extra logical space distribution to occur. -->
+<div style="width: 10px; height: 60px">
+    <div class="grid gridTwoMaxFlexContent" style="height: 100%">
+        <div class="sizedToGridArea firstRowFirstColumn" data-expected-width="50" data-expected-height="20"></div>
+        <div class="sizedToGridArea secondRowFirstColumn" data-expected-width="50" data-expected-height="40"></div>
+    </div>
+</div>
+
+<div style="width: 10px; height: 60px">
+    <div class="grid gridTwoMaxFlexContent">
+        <div class="sizedToGridArea firstRowFirstColumn" data-expected-width="50" data-expected-height="10"></div>
+        <div class="sizedToGridArea secondRowFirstColumn" data-expected-width="50" data-expected-height="20"></div>
+    </div>
+</div>
+
+<div style="width: 10px; height: 120px;">
+    <div class="grid gridTwoMaxFlexContent" style="height: 100%">
+        <div class="sizedToGridArea firstRowFirstColumn" data-expected-width="50" data-expected-height="40"></div>
+        <div class="sizedToGridArea secondRowFirstColumn" data-expected-width="50" data-expected-height="80"></div>
+    </div>
+</div>
+
+<div style="width: 10px; height: 120px;">
+    <div class="grid gridTwoMaxFlexContent">
+        <div class="sizedToGridArea firstRowFirstColumn" data-expected-width="50" data-expected-height="10"></div>
+        <div class="sizedToGridArea secondRowFirstColumn" data-expected-width="50" data-expected-height="20"></div>
+    </div>
+</div>
+
+<div class="constrainedContainer">
+    <div class="grid gridTwoDoubleMaxFlexContent" style="height: 100%">
+        <div class="sizedToGridArea firstRowFirstColumn" data-expected-width="50" data-expected-height="10"></div>
+        <div class="sizedToGridArea secondRowFirstColumn" data-expected-width="50" data-expected-height="10"></div>
+    </div>
+</div>
+
+<!-- We normalize fraction flex factors to 1, so we don't keep exact proportions with >1 factors. -->
+<div class="constrainedContainer">
+    <div class="grid gridTwoDoubleMaxFlexContent">
+        <div class="sizedToGridArea firstRowFirstColumn" data-expected-width="50" data-expected-height="10"></div>
+        <div class="sizedToGridArea secondRowFirstColumn" data-expected-width="50" data-expected-height="20"></div>
+    </div>
+</div>
+
+<!-- Allow the extra logical space distribution to occur. -->
+<div style="width: 10px; height: 60px">
+    <div class="grid gridTwoDoubleMaxFlexContent" style="height: 100%">
+        <div class="sizedToGridArea firstRowFirstColumn" data-expected-width="50" data-expected-height="12"></div>
+        <div class="sizedToGridArea secondRowFirstColumn" data-expected-width="50" data-expected-height="48"></div>
+    </div>
+</div>
+
+<!-- We normalize fraction flex factors to 1, so we don't keep exact proportions with >1 factors. -->
+<div style="width: 10px; height: 60px">
+    <div class="grid gridTwoDoubleMaxFlexContent">
+        <div class="sizedToGridArea firstRowFirstColumn" data-expected-width="50" data-expected-height="10"></div>
+        <div class="sizedToGridArea secondRowFirstColumn" data-expected-width="50" data-expected-height="20"></div>
+    </div>
+</div>
+
+<div style="width: 10px; height: 120px;">
+    <div class="grid gridTwoDoubleMaxFlexContent" style="height: 100%">
+        <div class="sizedToGridArea firstRowFirstColumn" data-expected-width="50" data-expected-height="24"></div>
+        <div class="sizedToGridArea secondRowFirstColumn" data-expected-width="50" data-expected-height="96"></div>
+    </div>
+</div>
+
+<!-- We normalize fraction flex factors to 1, so we don't keep exact proportions with >1 factors. -->
+<div style="width: 10px; height: 120px;">
+    <div class="grid gridTwoDoubleMaxFlexContent">
+        <div class="sizedToGridArea firstRowFirstColumn" data-expected-width="50" data-expected-height="10"></div>
+        <div class="sizedToGridArea secondRowFirstColumn" data-expected-width="50" data-expected-height="20"></div>
+    </div>
+</div>
+
+<!-- Flex track length must be at least its baseSize. -->
+<div style="width: 10px; height: 100px;">
+    <div class="grid gridRespectBaseSize" style="height: 100%;">
+        <div class="sizedToGridArea firstRowFirstColumn" data-expected-width="50" data-expected-height="75"></div>
+        <div class="sizedToGridArea secondRowFirstColumn" data-expected-width="50" data-expected-height="25"></div>
+    </div>
+</div>
+
+<div style="width: 10px; height: 100px;">
+    <div class="grid gridRespectBaseSize">
+        <div class="sizedToGridArea firstRowFirstColumn" data-expected-width="50" data-expected-height="75"></div>
+        <div class="sizedToGridArea secondRowFirstColumn" data-expected-width="50" data-expected-height="150"></div>
+    </div>
+</div>
+
+<!-- Flex track lengths must be proportional to their flex factors.. -->
+<div style="width: 10px; height: 275px;">
+    <div class="grid gridRespectProportions" style="height: 100%;">
+        <div class="sizedToGridArea firstRowFirstColumn" data-expected-width="50" data-expected-height="25"></div>
+        <div class="sizedToGridArea secondRowFirstColumn" data-expected-width="50" data-expected-height="50"></div>
+        <div class="sizedToGridArea thirdRowFirstColumn" data-expected-width="50" data-expected-height="200"></div>
+    </div>
+</div>
+
+<div style="width: 10px; height: 275px;">
+    <div class="grid gridRespectProportions">
+        <div class="sizedToGridArea firstRowFirstColumn" data-expected-width="50" data-expected-height="25"></div>
+        <div class="sizedToGridArea secondRowFirstColumn" data-expected-width="50" data-expected-height="13"></div>
+        <div class="sizedToGridArea thirdRowFirstColumn" data-expected-width="50" data-expected-height="50"></div>
+    </div>
+</div>
+
+<!-- Flex track lengths must be proportional but still respecting their base sizes. -->
+<div style="width: 10px; height: 350px;">
+    <div class="grid gridRespectBaseSizeProportions" style="height: 100%;">
+        <div class="sizedToGridArea firstRowFirstColumn" data-expected-width="50" data-expected-height="50"></div>
+        <div class="sizedToGridArea secondRowFirstColumn" data-expected-width="50" data-expected-height="100"></div>
+        <div class="sizedToGridArea thirdRowFirstColumn" data-expected-width="50" data-expected-height="200"></div>
+    </div>
+</div>
+
+<div style="width: 10px; height: 350px;">
+    <div class="grid gridRespectBaseSizeProportions">
+        <div class="sizedToGridArea firstRowFirstColumn" data-expected-width="50" data-expected-height="50"></div>
+        <div class="sizedToGridArea secondRowFirstColumn" data-expected-width="50" data-expected-height="25"></div>
+        <div class="sizedToGridArea thirdRowFirstColumn" data-expected-width="50" data-expected-height="50"></div>
+    </div>
+</div>
+
+<!-- Not enough space to respect proportions, because minTrackBreadh it's a harder requirement -->
+<div style="width: 10px; height: 275px;">
+    <div class="grid gridRespectBaseSizeBeforeProportions" style="height: 100%;">
+        <div class="sizedToGridArea firstRowFirstColumn" data-expected-width="50" data-expected-height="50"></div>
+        <div class="sizedToGridArea secondRowFirstColumn" data-expected-width="50" data-expected-height="75"></div>
+        <div class="sizedToGridArea thirdRowFirstColumn" data-expected-width="50" data-expected-height="150"></div>
+    </div>
+</div>
+
+<div style="width: 10px; height: 275px;">
+    <div class="grid gridRespectBaseSizeBeforeProportions">
+        <div class="sizedToGridArea firstRowFirstColumn" data-expected-width="50" data-expected-height="50"></div>
+        <div class="sizedToGridArea secondRowFirstColumn" data-expected-width="50" data-expected-height="25"></div>
+        <div class="sizedToGridArea thirdRowFirstColumn" data-expected-width="50" data-expected-height="50"></div>
+    </div>
+</div>
+
+</body>
+</html>

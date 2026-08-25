@@ -1,0 +1,38 @@
+<!doctype html>
+<head>
+	<title>CSS Test (Conditional Rules): @font-face rules inside @supports</title>
+	<!-- This test is paired with at-media-content-002.html ; please keep them in sync -->
+	<link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact">
+	<link rel="help" href="https://www.w3.org/TR/css-conditional-3/#contents-of">
+	<link rel="help" href="https://www.w3.org/TR/css-conditional-3/#at-supports">
+	<link rel="help" href="https://www.w3.org/TR/css-fonts-3/#font-face-rule">
+	<link rel="match" href="at-supports-001-ref.html">
+	<meta name="assert"
+	      content="Test passes if @font-face rules within @supports are supported.">
+	<style>
+		div {
+			background: red;
+			color: green;
+			font: 100px/1 Blockify, sans-serif;
+			width: 100px;
+		}
+
+		@supports (color: blue) {
+			@font-face {
+				font-family: 'Blockify';
+				src: url('/fonts/Ahem.ttf');
+			}
+		}
+		@supports not (color: blue) {
+			@font-face {
+				font-family: 'Blockify';
+				src: local('Arial'), url('/fonts/fail.woff');
+			}
+		}
+	</style>
+</head>
+<body>
+	<p>Test passes if there is a <strong>filled green square</strong> and <strong>no red</strong>.</p>
+	<div class="test1">X</div>
+</body>
+</html>

@@ -1,0 +1,6 @@
+{
+  "id": "common-cli-tools",
+  "version": "1.0.0",
+  "name": "Common CLI Tools",
+  "description": "Installs common command-line tools for interactive work in the Servo devcontainer."
+}

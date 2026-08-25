@@ -1,0 +1,28 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+ <head>
+
+  <title>CSS Test: The bidi algorithm and inlines in CSS wrapping bidi formatting characters</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-07-01 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/inline/bidi/011.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#bidi-box-model"/>
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#bidi-control-codes"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#bidi-box-model"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#direction"/>
+  <link rel="help" href="http://unicode.org/reports/tr9/"/>
+  <link rel="match" href="bidi-011-ref.xht" />
+
+  <style type="text/css">
+   div div { border: solid black; color: navy; margin: 1em; padding: 1em; font: 2em monospace; }
+   span { border: solid orange; padding: 0.1em 1em; margin: 0.1em 1em; background: yellow; }
+  </style>
+ </head>
+ <body>
+  <p> The following two lines should be identical. (Force bidi: &#x05D0;) </p>
+  <div>
+   <div class="test">TE<span>&#x202E;TSET</span>&#x202D;ST </div>
+   <div class="reference">TEST<span>TEST</span></div>
+  </div>
+ </body>
+</html>

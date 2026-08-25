@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<head>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="match" href="shadow-dom-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+</head>
+<body>
+<my-el id=c></my-el>
+<script>
+
+  const ss = new CSSStyleSheet();
+  ss.replaceSync(`
+    #scope { contain: strict; position: relative;
+             background: red; width: 100px; height: 100px;
+             view-transition-name: none; }
+    #part { view-transition-name: foo; background: blue;
+            margin: 25px; width: 50px; height: 50px; }
+    #scope::view-transition { background: lightgrey; }
+    #scope::view-transition-group(foo) { animation-play-state: paused; }
+    #scope::view-transition-new(foo) { animation: unset; opacity: 1; }
+    #scope::view-transition-old(foo) { animation: unset; opacity: 0; }
+  `);
+
+  customElements.define('my-el', class extends HTMLElement {
+    #shadow = this.attachShadow({ mode: "open" });
+    connectedCallback() {
+      this.#shadow.adoptedStyleSheets.push(ss);
+      this.#shadow.innerHTML = `
+        <div id=scope>
+          <div id=part></div>
+        </div>
+      `;
+    }
+    play() {
+      const scope = this.#shadow.querySelector("#scope");
+      return scope.startViewTransition(() => {});
+    }
+  });
+
+  onload = async () => {
+    await waitForCompositorReady();
+    await c.play().ready;
+    requestAnimationFrame(takeScreenshot);
+  }
+
+</script>
+</body>
+</html>

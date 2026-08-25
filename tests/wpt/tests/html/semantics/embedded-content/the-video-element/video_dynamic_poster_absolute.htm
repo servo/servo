@@ -1,0 +1,12 @@
+<!DOCTYPE HTML>
+<meta charset=UTF-8>
+<title>The 'HTMLVideoElement' interface supports setting 'poster' to an absolute URL</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-video-poster">
+<link rel="match" href="video_dynamic_poster-ref.htm">
+<meta name="assert" content="The 'HTMLVideoElement' interface supports setting 'poster' to an absolute URL">
+<video id="video0">Your browser does not support video.</video>
+<script>
+var testElem = document.getElementById("video0");
+testElem.poster = "/media/poster.png";
+</script>

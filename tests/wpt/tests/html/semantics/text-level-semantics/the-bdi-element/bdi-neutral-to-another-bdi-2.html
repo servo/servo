@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>HTML Test: BDI: neutral to another immediately following BDI</title>
+    <link rel="match" href="bdi-neutral-to-another-bdi-2-ref.html">
+    <link rel="author" title="Aharon Lanin" href="mailto:aharon@google.com" />
+    <link rel="author" title="Shai Berger" href="mailto:shai@platonix.com" />
+    <link rel="author" title="HTML5 bidi test WG" href="mailto:html5bidi@googlegroups.com" />
+    <link rel="help" href="https://html.spec.whatwg.org/multipage/#the-bdi-element" />
+    <meta name="assert" content="
+      'For the purposes of applying the bidirectional algorithm to the paragraph-level
+      container that a bdi element finds itself within, the bdi element must be treated
+      like a U+FFFC OBJECT REPLACEMENT CHARACTER.'
+      Thus, when a BDI contains text of the same strong direction as another BDI following it, the
+      two must not form a directional run as would be the case if the BDIs were just SPANs, even if
+      the two BDIs are not separated by anything at all." />
+    <style>
+      body{
+        font-size:2em;
+      }
+      .test, .ref {
+        border: medium solid gray;
+        width: 400px;
+        margin: 20px;
+      }
+      .comments {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="instructions">Test passes if the two boxes below look exactly the same.</div>
+    <div class="comments">
+      Key to entities used below:
+        &#x05D0; ... &#x05D5; - The first six Hebrew letters (strongly RTL).
+        &#x202D; - The LRO (left-to-right override) formatting character.
+        &#x202C; - The PDF (pop directional formatting) formatting character; closes LRO.
+      If the BDIs in the test's first DIV were SPANs, the &#x05D1; would be rendered to the left of
+      the &#x05D0;.
+    </div>
+    <div class="test">
+      <div dir="ltr"><bdi>&#x05D0;</bdi><bdi>&#x05D1;</bdi>...</div>
+      <div dir="ltr"><bdi dir="rtl">&#x05D0;</bdi><bdi dir="rtl">&#x05D1;</bdi>...</div>
+      <div dir="ltr"><bdi dir="ltr">&#x05D0;</bdi><bdi dir="ltr">&#x05D1;</bdi>...</div>
+      <div dir="rtl"><bdi>a</bdi><bdi>b</bdi>...</div>
+      <div dir="rtl"><bdi dir="ltr">a</bdi><bdi dir="ltr">b</bdi>...</div>
+      <div dir="rtl"><bdi dir="rtl">a</bdi><bdi dir="rtl">b</bdi>...</div>
+    </div>
+    <div class="ref">
+      <div dir="ltr">&#x202D;&#x05D0;&#x05D1;...&#x202C;</div>
+      <div dir="ltr">&#x202D;&#x05D0;&#x05D1;...&#x202C;</div>
+      <div dir="ltr">&#x202D;&#x05D0;&#x05D1;...&#x202C;</div>
+      <div dir="rtl">&#x202D;...ba&#x202C;</div>
+      <div dir="rtl">&#x202D;...ba&#x202C;</div>
+      <div dir="rtl">&#x202D;...ba&#x202C;</div>
+    </div>
+  </body>
+</html>

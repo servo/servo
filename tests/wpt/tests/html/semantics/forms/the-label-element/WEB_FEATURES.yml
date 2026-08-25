@@ -1,0 +1,3 @@
+rules:
+- clicking-*: [mouse-events]
+- "*": [label]

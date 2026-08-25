@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<title>CSS Grid: auto repeat computation for intrinsic sizes.</title>
+<link rel="author" title="Sergio Villar" href="mailto:svillar@igalia.com"/>
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#repeat-notation"/>
+<meta name="assert" content="Checks that auto repeat tracks are properly recomputed and items are properly repositioned when grids have intrinsic inline sizes."/>
+<link rel="issue" href="https://crbug.com/621517"/>
+<link href="/css/support/grid.css" rel="stylesheet"/>
+<link href="/css/support/width-keyword-classes.css" rel="stylesheet"/>
+
+<style>
+.grid {
+    border: 2px solid black;
+    position: relative;
+    padding-top: 10px;
+    justify-items: start;
+}
+
+.item {
+    background: cyan;
+    height: 20px;
+}
+
+.gridAutoFillFixed { grid-template-columns: repeat(auto-fill, 20px) minmax(min-content, 40px); }
+.gridAutoFillAuto { grid-template-columns: repeat(auto-fill, 10px) minmax(60px, auto); }
+.gridAutoFitFixed { grid-template-columns: repeat(auto-fit, 20px) minmax(min-content, 40px); }
+.gridAutoFitAuto { grid-template-columns: repeat(auto-fit, 10px) minmax(60px, auto); }
+
+.paddingTop { padding-top: 10px; }
+
+.abs {
+    height: 5px;
+    position: absolute;
+    width: 100%;
+}
+</style>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+
+<body onload="checkLayout('.grid')">
+
+<div class="grid gridAutoFillFixed paddingTop max-content" data-expected-width="104" data-expected-height="34">
+    <div class="item" style="grid-column: 1 / -1; width: 100px;" data-expected-width="100" data-expected-height="20" data-offset-x="0" data-offset-y="10"></div>
+    <div class="abs" style="grid-column: 1 / 2; background: purple;" data-expected-width="20" data-expected-height="5" data-offset-x="0" data-offset-y="0"></div>
+    <div class="abs" style="grid-column: 2 / 3; background: orange;" data-expected-width="20" data-expected-height="5" data-offset-x="20" data-offset-y="0"></div>
+    <div class="abs" style="grid-column: 3 / 4; background: yellow;" data-expected-width="20" data-expected-height="5" data-offset-x="40" data-offset-y="0"></div>
+    <div class="abs" style="grid-column: 4 / 5; background: green;" data-expected-width="40" data-expected-height="5" data-offset-x="60" data-offset-y="0"></div>
+</div>
+
+<div class="grid gridAutoFillFixed paddingTop min-content" data-expected-width="104" data-expected-height="34">
+    <div class="item" style="grid-column: 1 / -1; width: 100px;" data-expected-width="100" data-expected-height="20" data-offset-x="0" data-offset-y="10"></div>
+    <div class="abs" style="grid-column: 1 / 2; background: purple;" data-expected-width="20" data-expected-height="5" data-offset-x="0" data-offset-y="0"></div>
+    <div class="abs" style="grid-column: 2 / 3; background: orange;" data-expected-width="20" data-expected-height="5" data-offset-x="20" data-offset-y="0"></div>
+    <div class="abs" style="grid-column: 3 / 4; background: yellow;" data-expected-width="20" data-expected-height="5" data-offset-x="40" data-offset-y="0"></div>
+    <div class="abs" style="grid-column: 4 / 5; background: green;" data-expected-width="40" data-expected-height="5" data-offset-x="60" data-offset-y="0"></div>
+</div>
+
+<div class="grid gridAutoFillAuto paddingTop max-content" data-expected-width="104" data-expected-height="34">
+    <div class="item" style="grid-column: 1 / -1; width: 100px;" data-expected-width="100" data-expected-height="20" data-offset-x="0" data-offset-y="10"></div>
+    <div class="abs" style="grid-column: 1 / 2; background: purple;" data-expected-width="10" data-expected-height="5" data-offset-x="0" data-offset-y="0"></div>
+    <div class="abs" style="grid-column: 2 / 3; background: orange;" data-expected-width="10" data-expected-height="5" data-offset-x="10" data-offset-y="0"></div>
+    <div class="abs" style="grid-column: 3 / 4; background: yellow;" data-expected-width="10" data-expected-height="5" data-offset-x="20" data-offset-y="0"></div>
+    <div class="abs" style="grid-column: 4 / 5; background: green;" data-expected-width="10" data-expected-height="5" data-offset-x="30" data-offset-y="0"></div>
+</div>
+
+<div class="grid gridAutoFillAuto paddingTop min-content" data-expected-width="74" data-expected-height="34">
+    <div class="item" style="grid-column: 1 / -1; width: 100px;" data-expected-width="100" data-expected-height="20" data-offset-x="0" data-offset-y="10"></div>
+    <div class="abs" style="grid-column: 1 / 2; background: purple;" data-expected-width="10" data-expected-height="5" data-offset-x="0" data-offset-y="0"></div>
+    <div class="abs" style="grid-column: 2 / 3; background: orange;" data-expected-width="60" data-expected-height="5" data-offset-x="10" data-offset-y="0"></div>
+    <div class="abs" style="grid-column: 3 / 4; background: yellow;" data-expected-width="0" data-expected-height="5" data-offset-x="70" data-offset-y="0"></div>
+    <div class="abs" style="grid-column: 4 / 5; background: green;" data-expected-width="70" data-expected-height="5" data-offset-x="0" data-offset-y="0"></div>
+</div>
+
+<!-- auto-fill -->
+
+<div class="grid gridAutoFitFixed paddingTop max-content" data-expected-width="104" data-expected-height="34">
+    <div class="item" style="grid-column: 1 / -1; width: 100px;" data-expected-width="100" data-expected-height="20" data-offset-x="0" data-offset-y="10"></div>
+    <div class="abs" style="grid-column: 1 / 2; background: purple;" data-expected-width="20" data-expected-height="5" data-offset-x="0" data-offset-y="0"></div>
+    <div class="abs" style="grid-column: 2 / 3; background: orange;" data-expected-width="20" data-expected-height="5" data-offset-x="20" data-offset-y="0"></div>
+    <div class="abs" style="grid-column: 3 / 4; background: yellow;" data-expected-width="20" data-expected-height="5" data-offset-x="40" data-offset-y="0"></div>
+    <div class="abs" style="grid-column: 4 / 5; background: green;" data-expected-width="40" data-expected-height="5" data-offset-x="60" data-offset-y="0"></div>
+</div>
+
+<div class="grid gridAutoFitFixed paddingTop min-content" data-expected-width="104" data-expected-height="34">
+    <div class="item" style="grid-column: 1 / -1; width: 100px;" data-expected-width="100" data-expected-height="20" data-offset-x="0" data-offset-y="10"></div>
+    <div class="abs" style="grid-column: 1 / 2; background: purple;" data-expected-width="20" data-expected-height="5" data-offset-x="0" data-offset-y="0"></div>
+    <div class="abs" style="grid-column: 2 / 3; background: orange;" data-expected-width="20" data-expected-height="5" data-offset-x="20" data-offset-y="0"></div>
+    <div class="abs" style="grid-column: 3 / 4; background: yellow;" data-expected-width="20" data-expected-height="5" data-offset-x="40" data-offset-y="0"></div>
+    <div class="abs" style="grid-column: 4 / 5; background: green;" data-expected-width="40" data-expected-height="5" data-offset-x="60" data-offset-y="0"></div>
+</div>
+
+<div class="grid gridAutoFitAuto paddingTop max-content" data-expected-width="104" data-expected-height="34">
+    <div class="item" style="grid-column: 1 / -1; width: 100px;" data-expected-width="100" data-expected-height="20" data-offset-x="0" data-offset-y="10"></div>
+    <div class="abs" style="grid-column: 1 / 2; background: purple;" data-expected-width="10" data-expected-height="5" data-offset-x="0" data-offset-y="0"></div>
+    <div class="abs" style="grid-column: 2 / 3; background: orange;" data-expected-width="10" data-expected-height="5" data-offset-x="10" data-offset-y="0"></div>
+    <div class="abs" style="grid-column: 3 / 4; background: yellow;" data-expected-width="10" data-expected-height="5" data-offset-x="20" data-offset-y="0"></div>
+    <div class="abs" style="grid-column: 4 / 5; background: green;" data-expected-width="10" data-expected-height="5" data-offset-x="30" data-offset-y="0"></div>
+</div>
+
+<div class="grid gridAutoFitAuto paddingTop min-content" data-expected-width="74" data-expected-height="34">
+    <div class="item" style="grid-column: 1 / -1; width: 100px;" data-expected-width="100" data-expected-height="20" data-offset-x="0" data-offset-y="10"></div>
+    <div class="abs" style="grid-column: 1 / 2; background: purple;" data-expected-width="10" data-expected-height="5" data-offset-x="0" data-offset-y="0"></div>
+    <div class="abs" style="grid-column: 2 / 3; background: orange;" data-expected-width="60" data-expected-height="5" data-offset-x="10" data-offset-y="0"></div>
+    <div class="abs" style="grid-column: 3 / 4; background: yellow;" data-expected-width="0" data-expected-height="5" data-offset-x="70" data-offset-y="0"></div>
+    <div class="abs" style="grid-column: 4 / 5; background: green;" data-expected-width="70" data-expected-height="5" data-offset-x="0" data-offset-y="0"></div>
+</div>
+
+</body>

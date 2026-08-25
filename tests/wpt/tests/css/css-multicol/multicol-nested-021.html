@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-multicol-1/#the-multi-column-model">
+<link rel="help" href="https://www.w3.org/TR/css-break-3/#unforced-breaks">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="columns:2; column-fill:auto; column-gap:0; width:100px; height:100px; background:red;">
+  <!-- First outer column -->
+  <div style="height:50px; background:green;"></div>
+  <div style="columns:2; column-fill:auto; column-gap:0;">
+    <!-- First and second inner column in the first row -->
+    <div style="width:200%; height:100px; background:green;"></div>
+    <!-- Second outer column, first column in the second row.  -->
+    <div style="height:50px; background:green;"></div>
+    <!-- Second column in the second row. Pushing this to a third outer column
+         (and third inner row) wouldn't be ideal, since we'd overflow just as
+         much in the block direction by doing that. -->
+    <div style="contain:size; height:150px;">
+      <div style="height:100px; background:green;"></div>
+    </div>
+  </div>
+</div>

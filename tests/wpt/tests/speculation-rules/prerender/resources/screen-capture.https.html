@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script>
+
+assert_true(document.prerendering);
+
+async function invokeScreenCaptureAPI(){
+  const bc = new PrerenderChannel('prerender-channel');
+
+  try {
+    await navigator.mediaDevices.getDisplayMedia();
+    bc.postMessage('unexpected success');
+  } catch (err){
+    bc.postMessage(err.name);
+  } finally {
+    bc.close();
+  }
+}
+
+invokeScreenCaptureAPI();
+
+</script>

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Keyboard scrolling targets the last clicked element</title>
+<link rel="help" href="">
+<link rel="author" href="flackr@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/css/css-scroll-snap/support/common.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+<style>
+  .scroller {
+    overflow: auto;
+    height: 200px;
+    border: 1px solid black;
+  }
+  .spacer {
+    height: 200vh;
+  }
+</style>
+<body id="body">
+<div class="scroller" id="outer">
+  <div class="scroller" id="inner">
+    <div id="target"><span>This is the targeted node</span></div>
+    <div class="spacer"></div>
+  </div>
+  <div class="spacer"></div>
+</div>
+<div class="spacer"></div>
+</body>
+<script>
+
+const target = document.getElementById("target");
+const outer = document.getElementById("outer");
+const inner = document.getElementById("inner");
+const scrollTargets = [document, outer, inner];
+
+function raf() {
+  return new Promise((resolve) => {
+    requestAnimationFrame(resolve);
+  });
+}
+
+async function getKeyboardScrollingElement(test, clickTarget, onclick) {
+  const click_promise = waitForEvent("click", test, clickTarget);
+  await test_driver.click(clickTarget);
+  await click_promise;
+  await onclick();
+  await raf();
+  const scrollEndPromise = waitForScrollEndFallbackToDelayWithoutScrollEvent(scrollTargets);
+  await keyPress(document.body, "ArrowDown");
+  return scrollEndPromise;
+}
+
+function friendlyName(node) {
+  if (node == document) return "document";
+  if (node.id) return `#${node.id}`;
+  return `<${node.tagName}>`;
+}
+
+async function resetScroll() {
+  for (const scrollTarget of scrollTargets) {
+    const scroller = scrollTarget.scrollingElement || scrollTarget;
+    scroller.scrollTo(0, 0);
+  }
+  return raf();
+}
+
+promise_test(async (test) => {
+  test.add_cleanup(resetScroll);
+  const scrolled = await getKeyboardScrollingElement(test, target, async () => {
+    target.remove();
+    test.add_cleanup(() => {
+      inner.insertBefore(target, inner.firstChild);
+    });
+  });
+  assert_equals(friendlyName(scrolled), "#inner");
+}, "Keyboard scrolling scrolls the scroller when clicked target is removed");
+
+// Notably removing all children is a different code path than removing
+// a single child. This is a regression test for https://crbug.com/40941145.
+promise_test(async (test) => {
+  test.add_cleanup(resetScroll);
+  const scrolled = await getKeyboardScrollingElement(test, target.firstElementChild, async () => {
+    const previous = target.innerHTML;
+    target.innerHTML = "";
+    test.add_cleanup(() => {
+      target.innerHTML = previous;
+    });
+  });
+  assert_equals(friendlyName(scrolled), "#inner");
+}, "Keyboard scrolling scrolls the scroller when clicked children are removed");
+
+promise_test(async (test) => {
+  test.add_cleanup(resetScroll);
+  const scrolled = await getKeyboardScrollingElement(test, target, async () => {
+    inner.remove();
+    test.add_cleanup(() => {
+      outer.insertBefore(inner, outer.firstChild);
+    });
+  });
+  assert_equals(friendlyName(scrolled), "#outer");
+}, "Keyboard scrolling scrolls the next nearest scroller if the clicked scroller is removed");
+
+</script>

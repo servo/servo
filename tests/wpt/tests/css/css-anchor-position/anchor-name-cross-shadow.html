@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<title>Tests that the anchor element can be in a different tree scope</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#target-anchor-element">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.cb {
+  position: absolute;
+}
+
+#host1::part(anchor) {
+  anchor-name: --a1;
+  margin-left: 15px;
+}
+#target1 {
+  position: absolute;
+  left: anchor(--a1 left);
+}
+</style>
+
+<div class="cb">
+  <div id="host1"></div>
+  <div id="target1"></div>
+</div>
+
+<div class="cb">
+  <div id="host2"></div>
+</div>
+
+<script>
+test(() => {
+  host1.attachShadow({mode: 'open'}).innerHTML = '<div part="anchor"></div>';
+  assert_equals(target1.offsetLeft, 15);
+}, 'Should be able to set anchor-name to a shadow DOM part and anchor to it');
+
+test(() => {
+  let shadow = host2.attachShadow({mode: 'open'});
+  shadow.innerHTML = `
+    <style>
+      :host {
+        anchor-name: --a2;
+        margin-left: 15px;
+      }
+      #target2 {
+        position: absolute;
+        left: anchor(--a2 left);
+      }
+    </style>
+    <div id="target2"></div>
+  `;
+  assert_equals(shadow.getElementById('target2').offsetLeft, 15);
+}, 'Should be able to set anchor-name to the shadow host and anchor to it');
+</script>

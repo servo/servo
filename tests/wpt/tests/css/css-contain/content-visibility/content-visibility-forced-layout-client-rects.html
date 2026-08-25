@@ -1,0 +1,105 @@
+<!doctype HTML>
+<html>
+<meta charset="utf8">
+<title>Content Visibility: nested forced layouts</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<meta name="assert" content="nested content-visibility items are all processed when layout is forced">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+body, html {
+  padding: 0;
+  margin: 0;
+}
+.spacer {
+  height: 3000px;
+}
+.target {
+  width: 12px;
+  height: 34px;
+
+  position: relative;
+  left: 5px;
+  top: 7px;
+}
+
+.hidden {
+  content-visibility: hidden;
+}
+
+.will-hide {
+  contain: style;
+  contain: size;
+  contain: layout;
+  contain: paint;
+}
+</style>
+
+<div class=spacer></div>
+
+<div class="will-hide">
+    <div id=one>A line of a certain length...</div>
+</div>
+
+<div class="will-hide">
+    <div class=target id=two></div>
+</div>
+
+<div class="will-hide">
+    <div class=target id=three></div>
+</div>
+
+<div class="will-hide">
+  <div class="will-hide">
+    <div class=target id=four></div>
+  </div>
+</div>
+
+<div class="will-hide">
+  <div class="will-hide">
+    <div class="will-hide">
+      <div class="will-hide">
+        <div class="will-hide">
+          <div class=target id=five></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function hideContent() {
+  document
+        .querySelectorAll('.will-hide')
+        .forEach(content => content.classList.add("hidden"));
+}
+
+function showContent() {
+  document
+        .querySelectorAll('.will-hide')
+        .forEach(content => content.classList.remove("hidden"));
+}
+
+const ids = ["one", "two", "three", "four", "five"];
+for (let i = 0; i < ids.length; ++i) {
+  test(() => {
+    const expectedRect = document.getElementById(ids[i]).getClientRects()[0];
+    const expectedBoundingRect = document.getElementById(ids[i]).getBoundingClientRect();
+    hideContent();
+
+    const rect = document.getElementById(ids[i]).getClientRects()[0];
+    assert_equals(rect.width, expectedRect.width, `width for "${ids[i]}"`);
+    assert_equals(rect.height, expectedRect.height, `height for "${ids[i]}`);
+
+    const boundingRect = document.getElementById(ids[i]).getClientRects()[0];
+    assert_equals(boundingRect.width, expectedBoundingRect.width, `width for "${ids[i]}"`);
+    assert_equals(boundingRect.height, expectedBoundingRect.height, `height for "${ids[i]}`);
+
+    showContent();
+  }, `${ids[i]}.getBoundingClientRect(): `);
+}
+</script>
+</html>

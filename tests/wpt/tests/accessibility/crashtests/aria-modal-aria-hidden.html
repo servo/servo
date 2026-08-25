@@ -1,0 +1,28 @@
+<!-- Test that aria-modal, aria-owns, aria-hidden, and aria-labelledby can work together without crashing.
+     This test case is a minimized version of a crash that occurred from a chat app. -->
+<!DOCTYPE html>
+<html class="test-wait">
+<div role="main" aria-owns="owned"></div>
+<div id="owned">
+  <span aria-hidden="true" id="hidden-label"></span>
+</div>
+<div role="dialog" aria-modal="true">
+  <a aria-labelledby="hidden-label"></a>
+</div>
+<script>
+let dialogNode = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+  dialogNode = document.querySelector("[role=dialog]")
+  dialogNode.remove();
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      document.querySelector("[role=main]").setAttribute("aria-hidden", true);
+      document.querySelector("body").appendChild(dialogNode);
+      document.documentElement.className = '';
+    });
+  });
+});
+
+</script>
+</html>

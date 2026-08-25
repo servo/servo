@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.sub.js"></script>
+
+<script>
+  setup(() => assertSpeculationRulesIsSupported());
+
+  promise_test(async t => {
+    let urls = getPrefetchUrlList(5);
+    insertSpeculationRules({ prefetch: [{ source: 'list', urls: urls }] });
+    await new Promise(resolve => t.step_timeout(resolve, 3000));
+
+    let prefetched_count = (await Promise.all(urls.map(isUrlPrefetched))).reduce(
+      (count, was_prefetched) => count + (was_prefetched ? 1 : 0), 0);
+
+    assert_greater_than_equal(prefetched_count, 2, "At least two urls should be prefetched to pass the test.");
+  }, "browser should be able to prefetch multiple urls");
+</script>

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>Handling of instantiation errors, 5</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+    setup({allow_uncaught_exception: true});
+
+    const test_load = async_test(
+        "Test that loading a graph in which a module is already " +
+        "errored results an error.");
+
+    window.log = [];
+    window.addEventListener("error", ev => {
+      test_load.step(() => assert_equals(ev.error.constructor, SyntaxError));
+      log.push(ev.message);
+    });
+
+    window.addEventListener("load", test_load.step_func_done(ev => {
+      assert_equals(log.length, 4, 'Log length');
+      assert_equals(log[1], 1);
+      assert_equals(log[3], 2);
+      assert_not_equals(log[0], log[2],
+        'Instantiation error objects for different root scripts');
+    }));
+
+    function unreachable() { log.push("unexpected"); }
+</script>
+<script type="module" src="./instantiation-error-5a.js"
+    onerror="unreachable()" onload="log.push(1)"></script>
+<script type="module" src="./instantiation-error-5d.js"
+    onerror="unreachable()" onload="log.push(2)"></script>

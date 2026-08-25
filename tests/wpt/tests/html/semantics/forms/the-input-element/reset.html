@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>input type reset</title>
+<link rel="author" title="Denis Ah-Kang" href="mailto:denis@w3.org">
+<link rel=help href="https://html.spec.whatwg.org/multipage/#reset-button-state-(type=reset)">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<form>
+  <input type=text id=input1 value="foobar">
+  <input type=text id=input2>
+  <input type=reset id=r1>
+</form>
+
+<input type=text id=input3 value="barfoo">
+
+<table>
+  <form>
+    <tr>
+      <td>
+        <input type=text id=input4 value="foobar">
+        <input type=reset id=r2>
+      </td>
+    </tr>
+  </form>
+</table>
+
+<div>
+  <form>
+    <input type=text id=input5 value="foobar">
+  </div>
+  <input type=reset id=r3>
+</form>
+
+<div>
+  <form>
+    <input type=reset id=r4>
+  </div>
+  <input type=text id=input6 value="foobar">
+</form>
+
+<form id=form5>
+  <input type=reset id=r5>
+</form>
+<input form=form5 type=text id=input7 value="foobar">
+
+<form id=form6>
+  <input type=text id=input8 value="foobar">
+</form>
+<input type=reset form=form6 id=r6>
+
+<script>
+  var input1 = document.getElementById('input1'),
+      input2 = document.getElementById('input2'),
+      input3 = document.getElementById('input3'),
+      input7 = document.getElementById('input7'),
+      input8 = document.getElementById('input8'),
+      r1 = document.getElementById('r1');
+
+  test(function(){
+    assert_equals(input1.value, "foobar");
+    assert_equals(input2.value, "");
+    assert_equals(input3.value, "barfoo");
+    input1.value = "foobar1";
+    input2.value = "notempty";
+    input3.value = "barfoo1";
+    assert_equals(input1.value, "foobar1");
+    assert_equals(input2.value, "notempty");
+    assert_equals(input3.value, "barfoo1");
+    r1.click();
+    assert_equals(input1.value, "foobar");
+    assert_equals(input2.value, "");
+    assert_equals(input3.value, "barfoo1");
+  }, "reset button only resets the form owner");
+
+  test(function(){
+    assert_false(r1.willValidate);
+  }, "the element is barred from constraint validation");
+
+  test(function(){
+    assert_equals(input1.value, "foobar");
+    assert_equals(input2.value, "");
+    assert_equals(input3.value, "barfoo1");
+    r1.disabled = true;
+    r1.click();
+    assert_equals(input1.value, "foobar");
+    assert_equals(input2.value, "");
+    assert_equals(input3.value, "barfoo1");
+  }, "clicking on a disabled reset does nothing");
+
+  function testReset(inputId, buttonId) {
+    var inp = document.getElementById(inputId);
+    assert_equals(inp.value, "foobar");
+    inp.value = "barfoo";
+    assert_equals(inp.value, "barfoo");
+    document.getElementById(buttonId).click();
+    assert_equals(inp.value, "foobar");
+  }
+
+  test(function(){
+    testReset("input4", "r2");
+    testReset("input5", "r3");
+    testReset("input6", "r4");
+  }, "reset button resets controls associated with their form using the form element pointer");
+
+  test(function(){
+    testReset("input7", "r5");
+  }, "reset button resets controls associated with a form using the form attribute");
+
+  test(function(){
+    testReset("input8", "r6");
+  }, "reset button associated with a form using the form attribute resets all the form's controls");
+</script>

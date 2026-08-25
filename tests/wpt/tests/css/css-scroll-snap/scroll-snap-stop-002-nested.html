@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap/#scroll-snap-stop" />
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1/#snap-overflow" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+div {
+  position: absolute;
+}
+.scroller {
+  width: 400px;
+  height: 100px;
+  overflow: scroll;
+  scroll-snap-type: x mandatory;
+}
+#space {
+  left: 0px;
+  top: 0px;
+  width: 2100px;
+  height: 50px;
+}
+.target {
+  width: 50px;
+  height: 50px;
+  scroll-snap-align: start;
+  top: 0px;
+}
+</style>
+
+<div class="scroller" id="scroller7">
+  <div id="space"></div>
+  <div class="target" style="left:   0px;"></div>
+  <div class="target" style="left: 400px; width: 900px;"></div>
+  <div class="target" style="left: 900px; scroll-snap-stop: always;"></div
+</div>
+
+<script>
+
+test(() => {
+  assert_equals(scroller7.scrollLeft, 0);
+  assert_equals(scroller7.scrollTop, 0);
+
+  // start                                       dest  always
+  //   |-------------------------|================|=====|=====
+  //   0                        400              700   900
+
+  // Scoll on the element whose snap area is larger than the snapport.
+  scroller7.scrollBy(600, 0);
+  // Stops before the smaller snap area @ 900px enters the snapport.
+  assert_equals(scroller7.scrollLeft + scroller7.clientWidth, 900);
+  assert_equals(scroller7.scrollTop, 0);
+
+  scroller7.scrollTo(0, 0);
+  scroller7.scrollBy(800, 0);
+  // Now the smaller snap area is closer, so we snap to it.
+  assert_equals(scroller7.scrollLeft, 900);
+  assert_equals(scroller7.scrollTop, 0);
+}, "`scroll-snap-stop: always` snap point is further than the scroll " +
+   "destination and a snap area covers the snapport");
+
+</script>

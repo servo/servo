@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<head>
+  <title>CSS Reference: min/max-content size on box-decoration-break:slice inline box with bidi text and white-space:nowrap</title>
+  <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<style>
+html,body {
+  color:black; background-color:white; font:10px/1 monospace; padding:0; margin:0;
+}
+
+div {
+  border: 5px solid blue;
+  white-space: pre;
+}
+.max > div {
+  width: max-content;
+}
+
+span {
+  border: 2px solid gray;
+  padding: 0 10px 0 6px;
+  border-width: 0 8px 0 5px;
+  margin: 0 4px 0 3px;
+  background: yellow;
+}
+
+f { margin-right: 30px; float: left; }
+.l { margin-right:0; border-right-width:0; padding-right:0 }
+.r { margin-left:0; border-left-width:0; padding-left:0 }
+</style>
+<body>
+<f class="max">
+<div><span>&#x202e;a&#x202d;bc</span><span>d&#x202e;e&#x202d;f</span>
+</div>
+<div><span>&#x202e;a&#x202d;bc</span>aa<span>d&#x202e;e&#x202d;f</span>
+</div>
+<div><span>&#x202e;a&#x202d;bc</span> <span>d&#x202e;e&#x202d;f</span>
+</div>
+<div><span>&#x202e;a&#x202d;bc </span><span>d&#x202e;e&#x202d;f</span>
+</div>
+<div><span>&#x202e;a&#x202d;bc</span><span> d&#x202e;e&#x202d;f</span>
+</div>
+<div><span>&#x202e;a&#x202d;bc</span> aa<span>d&#x202e;e&#x202d;f</span>
+</div>
+<div><span>&#x202e;a&#x202d;bc </span>aa<span>d&#x202e;e&#x202d;f</span>
+</div>
+<div><span>&#x202e;a&#x202d;bc</span>aa<span> d&#x202e;e&#x202d;f</span>
+</div>
+<div><span>&#x202e;a&#x202d;bc</span> aa <span>d&#x202e;e&#x202d;f</span>
+</div>
+<div><span>&#x202e;a&#x202d;bc</span>aa <span>d&#x202e;e&#x202d;f</span>
+</div>
+<div><span>&#x202e;a&#x202d;bc</span>aa</div>
+</f>
+
+<f class="max">
+<div><span>&#x202e;a&#x202d;bc</span><span>d&#x202e;e&#x202d;f</span>
+</div>
+<div><span>&#x202e;a&#x202d;bc</span>aa<span>d&#x202e;e&#x202d;f</span>
+</div>
+<div><span>&#x202e;a&#x202d;bc</span> <span>d&#x202e;e&#x202d;f</span>
+</div>
+<div><span>&#x202e;a&#x202d;bc </span><span>d&#x202e;e&#x202d;f</span>
+</div>
+<div><span>&#x202e;a&#x202d;bc</span><span> d&#x202e;e&#x202d;f</span>
+</div>
+<div><span>&#x202e;a&#x202d;bc</span> aa<span>d&#x202e;e&#x202d;f</span>
+</div>
+<div><span>&#x202e;a&#x202d;bc </span>aa<span>d&#x202e;e&#x202d;f</span>
+</div>
+<div><span>&#x202e;a&#x202d;bc</span>aa<span> d&#x202e;e&#x202d;f</span>
+</div>
+<div><span>&#x202e;a&#x202d;bc</span> aa <span>d&#x202e;e&#x202d;f</span>
+</div>
+<div><span>&#x202e;a&#x202d;bc</span>aa <span>d&#x202e;e&#x202d;f</span>
+</div>
+<div><span>&#x202e;a&#x202d;bc</span>aa</div>
+</f>

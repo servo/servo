@@ -1,0 +1,43 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+
+ <head>
+
+  <title>CSS Writing Modes Test: 'text-decoration: underline' and mixed text</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#line-mappings" title="7.5 Line-Relative Mappings" />
+  <link rel="help" href="http://www.w3.org/TR/css-text-decor-3/#text-underline-position-property" title="2.6. Text Underline Position: the 'text-underline-position' property" />
+
+  <meta content="This test checks that when latin and mongolian glyphs are used in mixed text-orientation (therefore with text centrally baseline-aligned), then the text-decoration of the parent box is used across the parent box." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  div#vrl
+    {
+      font-size: 4em;
+      margin-left: 2em;
+      writing-mode: vertical-lr;
+    }
+
+  span#parent
+    {
+      text-decoration: underline;
+    }
+
+  span#child
+    {
+      color: transparent;
+    }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is <strong>one and only one vertical straight and unbroken line</strong>. Such line should have the same thickness over its entire length.</p>
+
+  <div id="vrl"><span id="parent"><span id="child" lang="mn">ᠨ<span lang="en">AB</span>ᠨ</span></span></div>
+
+ </body>
+</html>

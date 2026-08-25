@@ -1,0 +1,65 @@
+<!doctype html>
+<html class=reftest-wait>
+<title>Nested View Transitions: rotated container</title>
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="match" href="rotated-container-ref.html">
+<!-- Accommodate anti-aliasing along border -->
+<meta name=fuzzy content="maxDifference=0-80; totalPixels=0-2000">
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+:root { view-transition-name: none }
+::view-transition { background: pink }
+::view-transition-group(*) {
+  animation-duration: 1s;
+  animation-play-state: paused;
+}
+::view-transition-old(*) {
+  animation: unset;
+  opacity: 0;
+}
+::view-transition-new(*) {
+  animation: unset;
+  opacity: 1;
+}
+
+#target {
+  width: 100px;
+  height: 100px;
+  position: absolute;
+  left: 50px;
+  top: 50px;
+  background: lightblue;
+
+  view-transition-name: container;
+  view-transition-group: contain;
+}
+.after {
+  transform: translateX(100px) rotate(45deg);
+}
+#item {
+  view-transition-name: item;
+  width: 50px;
+  height: 50px;
+  background: blue;
+}
+</style>
+
+<div id=target>
+  <div id=item></div>
+</div>
+
+<script>
+async function runTest() {
+  const transition = document.startViewTransition(() => target.classList.toggle("after"));
+  await transition.ready;
+  document.documentElement.getAnimations({ subtree: true }).forEach((a) =>{
+    a.currentTime = 1000;
+  });
+  requestAnimationFrame(takeScreenshot);
+}
+
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+</html>

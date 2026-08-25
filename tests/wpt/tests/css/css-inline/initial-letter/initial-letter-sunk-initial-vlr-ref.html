@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Tests initial letter sunk initial in vertical-lr</title>
+<link rel="author" title="Google LLC" href="https://www.google.com/">
+<link rel="help" href="https://drafts.csswg.org/css-inline/#sunk-initial">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" >
+<style>
+    .sample {
+        border: solid 1px green;
+        font-family: Ahem;
+        font-size: 20px;
+        height: 230px;
+        line-height: 24px;
+        writing-mode: vertical-lr;
+    }
+
+    .fake-initial-letter {
+        background: lime;
+        display: inline-block;
+        height: 80px;
+        margin-left: -4px;
+        margin-right: 8px;
+        width: 80px;
+    }
+
+    .remainder {
+        display: inline-block;
+        margin-left: 24px;
+        margin-top: -20px;
+        vertical-align: bottom;
+    }
+
+    .remainder2 {
+        display: inline-block;
+    }
+</style>
+</head>
+<body>
+<div class="sample">
+<div class="fake-initial-letter"></div>
+<div class="remainder">bc<br>def<br>ghi<br></div><br>
+<div class="remainder2">jkl<br>mno<br></div>
+</div>
+</body>
+</html>

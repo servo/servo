@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<title>
+  CSS Gap Decorations: in a fragmented grid, row gaps suppressed due to fragmentation
+  still consume a value from the rule pattern.
+</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/11520">
+<link rel="match" href="grid-gap-decorations-fragmentation-033-ref.html">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+  body {
+    margin: 0px;
+  }
+  .multi-col {
+    height: 75px;
+    width: 500px;
+    columns: 4;
+    column-fill: auto;
+    column-gap: 10px;
+    background: lightgray;
+  }
+  .grid-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(13, 10px);
+    column-gap: 10px;
+    row-gap: 10px;
+    row-rule: solid 5px;
+    row-rule-color: teal, repeat(3, lime), yellow, repeat(2, red, white), repeat(auto, purple);
+    column-rule: solid 6px blue;
+  }
+  .grid-container>div {
+    background-color: skyblue;
+  }
+</style>
+<div class="multi-col">
+  <div class="grid-container">
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+  </div>
+</div>

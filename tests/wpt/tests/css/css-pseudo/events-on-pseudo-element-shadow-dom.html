@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/w3c/uievents/pull/413">
+<link rel=help href="https://drafts.csswg.org/css-pseudo/#CSSPseudoElement-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+  #host {
+    margin: 20px;
+  }
+  #host2 {
+    margin: 20px;
+  }
+  #host2::before {
+    content: "HOST_BEFORE";
+    display: block;
+    width: 100px;
+    height: 100px;
+    background: red;
+  }
+  #host3 {
+    margin: 20px;
+  }
+  #host4 {
+    margin: 20px;
+  }
+  #host4::before {
+    content: "before";
+    display: list-item;
+    list-style-position: inside;
+    height: 40px;
+  }
+  #host4::after {
+    content: "after";
+    display: list-item;
+    list-style-position: inside;
+    height: 40px;
+  }
+  #host4::before::marker {
+    content: "before-marker";
+    font-size: 20px;
+  }
+  #host4::after::marker {
+    content: "after-marker";
+    font-size: 20px;
+  }
+</style>
+
+<div id=host>
+  <template shadowrootmode=open>
+    <style>
+      #inner::before {
+        content: "BEFORE";
+        display: block;
+        width: 100px;
+        height: 100px;
+        background: blue;
+      }
+    </style>
+    <div id=inner></div>
+  </template>
+</div>
+
+<div id=host2>
+  <template shadowrootmode=open>
+  </template>
+</div>
+
+<div id=host3>
+  <template shadowrootmode=open>
+    <style>
+      #inner3::before {
+        content: "before";
+        display: list-item;
+        list-style-position: inside;
+        height: 40px;
+      }
+      #inner3::after {
+        content: "after";
+        display: list-item;
+        list-style-position: inside;
+        height: 40px;
+      }
+      #inner3::before::marker {
+        content: "before-marker";
+        font-size: 20px;
+      }
+      #inner3::after::marker {
+        content: "after-marker";
+        font-size: 20px;
+      }
+    </style>
+    <div id=inner3></div>
+  </template>
+</div>
+
+<div id=host4>
+  <template shadowrootmode=open>
+  </template>
+</div>
+
+<script>
+  promise_test(async () => {
+    const host = document.getElementById('host');
+    const shadowRoot = host.shadowRoot;
+    const inner = shadowRoot.getElementById('inner');
+
+    let innerPseudoTarget = undefined;
+    let hostPseudoTarget = undefined;
+    let clickEvent = undefined;
+
+    inner.addEventListener('click', event => {
+      innerPseudoTarget = event.pseudoTarget;
+      clickEvent = event;
+    });
+    host.addEventListener('click', event => {
+      hostPseudoTarget = event.pseudoTarget;
+    });
+
+    const pseudo = inner.pseudo('::before');
+    const rect = inner.getBoundingClientRect();
+    const x = rect.left + 50;
+    const y = rect.top + 50;
+
+    await new test_driver.Actions()
+      .pointerMove(x, y)
+      .pointerDown()
+      .pointerUp()
+      .send();
+
+    assert_not_equals(innerPseudoTarget, undefined,
+      'Inner listener should have fired');
+    assert_not_equals(hostPseudoTarget, undefined,
+      'Host listener should have fired');
+
+    assert_equals(innerPseudoTarget, pseudo,
+      'Inside shadow DOM: pseudoTarget should be the CSSPseudoElement');
+    assert_equals(hostPseudoTarget, null,
+      'Outside shadow DOM (retargeted): pseudoTarget should be null');
+    assert_equals(clickEvent.pseudoTarget, null,
+      'After dispatch, pseudoTarget should be null');
+  }, 'event.pseudoTarget is null when retargeted across shadow boundary');
+
+  promise_test(async () => {
+    const host2 = document.getElementById('host2');
+
+    let hostPseudoTarget = undefined;
+    let clickEvent = undefined;
+
+    host2.addEventListener('click', event => {
+      hostPseudoTarget = event.pseudoTarget;
+      clickEvent = event;
+    });
+
+    const pseudo = host2.pseudo('::before');
+    const rect = host2.getBoundingClientRect();
+    const x = rect.left + 50;
+    const y = rect.top + 50;
+
+    await new test_driver.Actions()
+      .pointerMove(x, y)
+      .pointerDown()
+      .pointerUp()
+      .send();
+
+    assert_equals(hostPseudoTarget, pseudo,
+      'pseudoTarget should be the CSSPseudoElement during event dispatch.');
+    assert_equals(clickEvent.pseudoTarget, null,
+      'pseudoTarget should be null after event dispatch.');
+  }, 'event.pseudoTarget is preserved when clicking host pseudo-element');
+
+  for (const pseudoType of ['::before', '::after']) {
+    promise_test(async () => {
+      const host3 = document.getElementById('host3');
+      const shadowRoot = host3.shadowRoot;
+      const inner3 = shadowRoot.getElementById('inner3');
+
+      let innerPseudoTarget = undefined;
+      let hostPseudoTarget = undefined;
+      let clickEvent = undefined;
+
+      inner3.addEventListener('click', event => {
+        innerPseudoTarget = event.pseudoTarget;
+        clickEvent = event;
+      });
+      host3.addEventListener('click', event => {
+        hostPseudoTarget = event.pseudoTarget;
+      });
+
+      const pseudo = inner3.pseudo(pseudoType).pseudo('::marker');
+      const rect = inner3.getBoundingClientRect();
+      const x = rect.left + 15;
+      const y = pseudoType === '::before' ? rect.top + 10 : rect.top + 50;
+
+      await new test_driver.Actions()
+        .pointerMove(x, y)
+        .pointerDown()
+        .pointerUp()
+        .send();
+
+      assert_not_equals(innerPseudoTarget, undefined,
+        'Inner listener should have fired');
+      assert_not_equals(hostPseudoTarget, undefined,
+        'Host listener should have fired');
+
+      assert_equals(innerPseudoTarget, pseudo,
+        'Inside shadow DOM: pseudoTarget should be the CSSPseudoElement');
+      assert_equals(hostPseudoTarget, null,
+        'Outside shadow DOM (retargeted): pseudoTarget should be null');
+      assert_equals(clickEvent.pseudoTarget, null,
+        'After dispatch, pseudoTarget should be null');
+    }, `event.pseudoTarget is null when clicking ${pseudoType}::marker retargeted across shadow boundary`);
+
+    promise_test(async () => {
+      const host4 = document.getElementById('host4');
+
+      let hostPseudoTarget = undefined;
+      let clickEvent = undefined;
+
+      host4.addEventListener('click', event => {
+        hostPseudoTarget = event.pseudoTarget;
+        clickEvent = event;
+      });
+
+      const pseudo = host4.pseudo(pseudoType).pseudo('::marker');
+      const rect = host4.getBoundingClientRect();
+      const x = rect.left + 15;
+      const y = pseudoType === '::before' ? rect.top + 10 : rect.top + 50;
+
+      await new test_driver.Actions()
+        .pointerMove(x, y)
+        .pointerDown()
+        .pointerUp()
+        .send();
+
+      assert_equals(hostPseudoTarget, pseudo,
+        'pseudoTarget should be the CSSPseudoElement during event dispatch.');
+      assert_equals(clickEvent.pseudoTarget, null,
+        'pseudoTarget should be null after event dispatch.');
+    }, `event.pseudoTarget is preserved when clicking host ${pseudoType}::marker pseudo-element`);
+  }
+</script>

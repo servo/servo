@@ -1,0 +1,26 @@
+<!doctype html>
+<html class="reftest-wait">
+<head>
+<meta charset=utf-8>
+<title>The effect value of consecutive animations targeting 'opacity' in a shadow root</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations/">
+<link rel="match" href="effect-value-opacity-replaced-effect-in-shadow-root-ref.html">
+</head>
+<body>
+<custom-element></custom-element>
+<script>
+'use strict';
+
+(async function () {
+  const customElement = document.querySelector('custom-element');
+  const shadowRoot = customElement.attachShadow({ mode: 'open' });
+  shadowRoot.innerHTML = `<div style="width: 100px; height: 100px; background-color: green"></div>`;
+  const target = shadowRoot.firstElementChild;
+
+  await target.animate({ opacity: [1, 0] }, { duration: 10, fill: 'both' }).finished;
+  await target.animate({ opacity: [0, 1] }, { duration: 10, fill: 'both' }).finished;
+  document.documentElement.classList.remove("reftest-wait");
+})();
+</script>
+</body>
+</html>

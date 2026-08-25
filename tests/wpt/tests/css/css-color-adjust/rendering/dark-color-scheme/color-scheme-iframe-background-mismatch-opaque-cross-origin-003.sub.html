@@ -1,0 +1,25 @@
+<!doctype html>
+
+<title>CSS Color Adjustment Test: Cross-origin frame with light color-scheme should not get opaque background when embedding element is also light, even though the parent document is dark</title>
+<link rel="author" title="Kiet Ho" href="mailto:kiet.ho@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-color-adjust/#color-scheme-effect">
+<link rel="match" href="color-scheme-iframe-background-mismatch-opaque-cross-origin-003-ref.html">
+
+<style>
+  html {
+    color-scheme: dark;
+  }
+
+  iframe {
+    margin: 0;
+    border: 0;
+    padding: 0;
+    width: 200px;
+    height: 200px;
+    display: block;
+    color-scheme: light;
+  }
+</style>
+
+<p>You should not see any white boxes.</p>
+<iframe src="http://{{hosts[alt][]}}:{{ports[http][0]}}/css/css-color-adjust/rendering/dark-color-scheme/support/light-frame-empty.html"></iframe>

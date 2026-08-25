@@ -1,0 +1,11 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Subresource Integrity (https://w3c.github.io/webappsec-subresource-integrity/)
+
+dictionary IntegrityViolationReportBody : ReportBody {
+  USVString documentURL;
+  USVString blockedURL;
+  USVString destination;
+  boolean   reportOnly;
+};

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>pausing animated image for background image with border-radius</title>
+<link rel="help" href="https://drafts.csswg.org/css-image-animation-1/">
+<meta charset="utf-8" />
+<link rel="match" href="image-animation-background-paused-rounded-ref.html" />
+<script src="/common/reftest-wait.js"></script>
+<script>
+  takeScreenshotDelayed(300);
+</script>
+
+<style>
+  div {
+    width: 20px;
+    height: 10px;
+    border-radius: 4px;
+    background-image: url("../../images/anim-gr.gif");
+    image-animation: paused;
+  }
+</style>
+
+<div></div>
+
+</html>

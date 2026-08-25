@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/414645284">
+<div id="target"></div>
+<script>
+  target.animate([
+    { offset: "calc(20% * sibling-index())" },
+  ], 2000);
+</script>

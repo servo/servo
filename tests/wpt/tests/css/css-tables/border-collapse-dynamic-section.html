@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<table style="border-collapse: collapse; width: 100px; background: red;">
+  <tbody>
+    <tr id="target" style="height: 50px; display: none;">
+      <td style="border: solid green 25px; background: green; padding: 0;"></td>
+    </tr>
+  </tbody>
+  <tbody>
+    <tr style="height: 25px;">
+      <td style="border: solid green 25px; padding: 0;"></td>
+    </tr>
+  </tbody>
+</table>
+<script>
+document.body.offsetTop;
+document.getElementById('target').style.display = '';
+</script>

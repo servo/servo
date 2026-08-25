@@ -1,0 +1,38 @@
+<!doctype html>
+<title>Scoped Custom Element Registries: declarative shadow root</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="host">
+  <template shadowrootmode="open" shadowrootcustomelementregistry>
+    <custom-element></custom-element>
+    <div></div>
+  </template>
+</div>
+<script>
+test(() => {
+  const customElement = host.shadowRoot.firstElementChild;
+  assert_equals(customElement.customElementRegistry, null);
+  customElement.attachShadow({
+    mode: "open"
+  });
+  assert_equals(customElement.customElementRegistry, null);
+  assert_equals(customElement.shadowRoot.customElementRegistry, window.customElements);
+}, "Custom element inside 'shadowrootcustomelementregistry' declarative shadow root should use document's registry as attachShadow default registry");
+
+test(() => {
+  const divElement = host.shadowRoot.lastElementChild;
+  assert_equals(divElement.customElementRegistry, null);
+  divElement.attachShadow({
+    mode: "open"
+  });
+  assert_equals(divElement.customElementRegistry, null);
+  assert_equals(divElement.shadowRoot.customElementRegistry, window.customElements);
+}, "Built-in element inside 'shadowrootcustomelementregistry' declarative shadow root should use document's registry as attachShadow default registry");
+
+test(() => {
+  const container = document.createElement("div");
+  container.setHTMLUnsafe('<div><template shadowrootmode="open" shadowrootcustomelementregistry><div></div></template></div>');
+  const divElement = container.firstElementChild.shadowRoot.firstElementChild;
+  assert_equals(divElement.customElementRegistry, null);
+}, "Built-in element inside 'shadowrootcustomelementregistry' shadow root parsed via setHTMLUnsafe should use null registry");
+</script>

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: two BODY elements</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#overflow-propagation">
+<meta name="assert" content="If there are multiple <body> elements, the
+  one that propagates `overflow` to the viewport is the first one.
+
+  Therefore, the first <body> should get `overflow: visible` and its
+  overflowing contents should be visible. And the second <body> should
+  be able to keep `overflow: hidden` and hide its overflowing contents.">
+<link rel="match" href="overflow-body-propagation-012-ref.html">
+<style>
+body {
+  overflow: hidden;
+  width: 0px;
+  height: 0px;
+  border: solid red;
+  border-width: 0 400px 200px 0;
+  margin-bottom: 0;
+}
+body > div {
+  background: green;
+  width: 400px;
+  height: 200px;
+}
+#clone {
+  border-color: green;
+  margin-top: 0;
+}
+#clone > div {
+  background: red;
+}
+</style>
+<body>
+  <div></div>
+</body>
+<script>
+let clone = document.body.cloneNode(true);
+clone.id = "clone";
+document.documentElement.appendChild(clone);
+</script>

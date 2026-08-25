@@ -1,0 +1,14 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="iframe"></iframe>
+<script>
+async_test(t => {
+  iframe.onload = t.step_func(() => {
+    t.step_timeout(t.step_func_done(() => {
+      assert_equals(iframe.contentDocument.body.textContent, "done");
+    }), 0);
+  });
+  iframe.src = "resources/document-open-after-replaceState-helper.html";
+}, "document.open() after replaceState should not crash when updating navigation entries");
+</script>

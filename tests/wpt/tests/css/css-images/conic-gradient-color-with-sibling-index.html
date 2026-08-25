@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>CSS Images Test: conic-gradient() with hsl() and sibling-index() calculation</title>
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#conic-gradients">
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#tree-counting">
+<link rel="match" href="conic-gradient-color-with-sibling-index-ref.html">
+<style>
+  div {
+    width: 100px;
+    height: 100px;
+    background: conic-gradient(hsl(calc(50deg * sibling-index()) 100% 50%), green);
+  }
+</style>
+<span></span>
+<div></div>

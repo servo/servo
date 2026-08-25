@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+
+  <meta name="referrer" content="no-referrer" id="referrermeta">
+</head>
+<body>
+  <script>
+    async function fetchAndGetReferrer() {
+      let response = await fetch('/common/security-features/subresource/xhr.py');
+      let data = await response.json();
+      return data.headers.referer;
+    }
+
+    promise_test(async t => {
+      assert_equals(await fetchAndGetReferrer(), undefined,
+                    'referrer should not be set');
+
+      // Add second meta tag.
+      const second_meta = document.createElement('meta');
+      second_meta.name = 'referrer';
+      second_meta.content = 'strict-origin';
+      document.head.appendChild(second_meta);
+      // Second meta should override the first.
+      assert_equals(await fetchAndGetReferrer(), location.origin + '/',
+                    'referrer should be origin only');
+
+      second_meta.remove();
+      assert_equals(await fetchAndGetReferrer(), window.location.origin + '/',
+                    'referrer should be origin only');
+    }, 'referrer policy does not change when second <meta name="referrer"> is removed');
+  </script>
+</body>

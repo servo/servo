@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+  <head>
+    <title>JavaScript URI does not match absolute HTTP URL</title>
+    <style type="text/css">
+html, body { margin: 0; padding: 0; }
+div { height: 100px; width: 100px; background: orange; }
+    </style>
+    <script type="text/javascript" src="../resources/crossorigin.sub.js"></script>
+    <script type="text/javascript">
+window.onload = function () {
+  document.getElementsByTagName('div')[0].ondragstart = function (e) {
+    e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.setData('text','dummy text');
+    e.dataTransfer.allowTargetOrigin('http://'+httpHostMain);
+  };
+};
+    </script>
+  </head>
+  <body>
+
+    <div draggable="true"></div>
+
+  </body>
+</html>

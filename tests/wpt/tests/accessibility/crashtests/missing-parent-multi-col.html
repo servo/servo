@@ -1,0 +1,21 @@
+<!-- This test ensures that after a large layout change to a subtree, there are
+     no extra accessibility objects remaining from the old subtree -->
+<!DOCTYPE html>
+<html class="test-wait">
+<style>
+.step1::after { display: table-row-group; float: left; counter-reset: subsection; column-width: 10px; }
+.step2::after { display: block; }
+</style>
+
+<script>
+const quote = document.createElement('q');
+quote.setAttribute('class', 'step1');
+document.documentElement.appendChild(quote);
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    quote.setAttribute('class', 'step2');
+    document.documentElement.className = '';
+  });
+});
+</script>
+</html>

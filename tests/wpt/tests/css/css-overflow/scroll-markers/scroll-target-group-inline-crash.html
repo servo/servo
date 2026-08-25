@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow Test: scroll-target-group with inline parent of the target doesn't crash</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-target-group">
+<style>
+  nav {
+    scroll-target-group: auto;
+  }
+</style>
+<span>
+  <div id="target">Target element in span</div>
+</span>
+<nav>
+  <a href="#target">Anchor to target</a>
+</nav>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <title>View transitions: Transition has implementation-defined timeout.</title>
+  <link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+  <link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+  <meta name="timeout" content="long">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script>
+    promise_test(async t => {
+      assert_implements(document.startViewTransition, "Missing document.startViewTransition");
+      const transition = document.startViewTransition(() => {
+        return new Promise(() => {});
+      });
+      transition.updateCallbackDone.then(() => {
+        assert_unreached();
+      });
+      transition.finished.then(() => {
+        assert_unreached();
+      });
+      await promise_rejects_dom(t, "TimeoutError", transition.ready);
+    }, "View transition should have an implementation-defined timeout on the update callback");
+</script>
+</body>
+</html>

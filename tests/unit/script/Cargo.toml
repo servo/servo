@@ -1,0 +1,21 @@
+[package]
+name = "script_tests"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lib]
+name = "script_tests"
+path = "lib.rs"
+
+[dependencies]
+encoding_rs = { workspace = true }
+euclid = { workspace = true }
+keyboard-types = { workspace = true }
+script = { workspace = true }
+servo-base = { workspace = true }
+servo-url = { workspace = true }
+tempfile = { workspace = true }

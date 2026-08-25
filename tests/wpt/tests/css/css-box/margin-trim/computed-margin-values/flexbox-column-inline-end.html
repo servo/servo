@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="author" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-box-4/#margin-trim-flex">
+<meta name="assert" content="trimmed inline-end margins should be reflected in computed style">
+<style>
+flexbox {
+    display: flex;
+    flex-direction: column;
+    width: min-content;
+    margin-trim: inline-end;
+}
+item {
+    display: block;
+    background-color: green;
+    width: 50px;
+    height: 50px;
+}
+item:nth-child(1) {
+    margin-inline-end: 10px;
+}
+item:nth-child(2) {
+    margin-inline-end: -10px;
+}
+item:nth-child(3) {
+    margin-inline-end: 30%;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+</head>
+<body onload="checkLayout('flexbox > item')">
+<div id="target">
+<flexbox>
+    <item data-expected-margin-right="0" data-offset-x="8"></item>
+    <item data-expected-margin-right="0" data-offset-x="8"></item>
+    <item data-expected-margin-right="0" data-offset-x="8"></item>
+</flexbox>
+</div>
+</body>
+</html>

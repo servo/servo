@@ -1,0 +1,41 @@
+﻿<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>CSS Text level 3 Test: letter spacing changes within element tree</title>
+    <link rel="author" title="Mike Bremford" href="http://bfo.com" />
+    <link rel="help" href="https://drafts.csswg.org/css-text-3/#letter-spacing-property" />
+    <link rel="match" href="reference/letter-spacing-nesting-003-ref.xht" />
+    <meta name="assert" content="Changes in letter spacing affect the spacing between letters within that element only" />
+    <style>
+      .test, .control {
+          font: 50px/1 monospace;
+          font-kerning: none;
+      }
+      .control {
+          position: absolute;
+          color: red;
+          z-index: -1;
+          white-space: pre;
+      }
+      .control span {
+          /* to ensure both background and text overlay correctly */
+          background: linear-gradient(to bottom, red 50%, green 50%, green 100%);
+      }
+      .test span {
+          background: linear-gradient(to bottom, green 50%, transparent 50%, transparent 100%);
+      }
+      .wide {
+          letter-spacing: 2ch;
+      }
+      .narrow {
+          letter-spacing: 1ch;
+      }
+    </style>
+ </head>
+ <body>
+  <p>Test passes if no red is visible except for anti-aliasing differences, and the green rectangle does not extend beyond B to C.</p>
+  <!-- A <ls> <ls> <bg>B <ls> <ls> C</bg> <ls> D -->
+  <div class="control">A <span>B  C</span> D</div>
+  <div class="test narrow">A<span class="wide">BC</span>D</div>
+  </body>
+</html>

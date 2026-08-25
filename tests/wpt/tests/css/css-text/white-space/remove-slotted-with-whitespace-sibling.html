@@ -1,0 +1,11 @@
+<!doctype html>
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-rules">
+<link rel="match" href="../../reference/pass_if_two_words.html">
+<p>There should be a space between "two" and "words" below.</p>
+<div id="host">two<div id="rm"></div> <span>words</span></div>
+<script>
+  let root = host.attachShadow({mode:"open"});
+  root.innerHTML = "<slot></slot>";
+  host.offsetTop;
+  rm.slot = "unknown";
+</script>

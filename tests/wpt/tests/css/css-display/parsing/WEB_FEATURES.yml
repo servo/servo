@@ -1,0 +1,5 @@
+rules:
+- display-computed.html: [display, two-value-display]
+- display-invalid.html: [display, two-value-display]
+- display-valid.html: [display, two-value-display]
+- "**": [two-value-display]

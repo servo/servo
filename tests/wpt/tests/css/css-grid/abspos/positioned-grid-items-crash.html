@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<title>CSS Grid Layout Test: Positioned grid items</title>
+<link rel="author" title="Manuel Rego" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid/#abspos" title="9. Absolute Positioning">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=402504">
+<meta name="assert" content="Checks that positioned grid items (absolute or fixed) do not cause a crash."/>
+
+<link rel="stylesheet" href="/css/support/grid.css">
+<body>
+    <div class="grid">
+        <div style="position: absolute;"></div>
+        <div style="position: fixed;"></div>
+    </div>
+</body>
+</html>

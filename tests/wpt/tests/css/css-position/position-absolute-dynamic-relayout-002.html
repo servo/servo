@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<link rel="help" href="https://www.w3.org/TR/css-position-3/" />
+<meta name="assert" content="This test checks that a dynamic change padding-box location, but no change in available-size positions correctly an absolute child correctly."/>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="target" style="position: relative; background: red; margin: 25px; width: 50px; height: 50px;">
+  <div style="position: absolute; top: 0; left: 0; width: 50px; height: 50px; background: green;"></div>
+</div>
+<script>
+  document.body.offsetTop;
+  const target = document.getElementById('target');
+  target.style.border = '25px solid green';
+  target.style.margin = '0';
+</script>

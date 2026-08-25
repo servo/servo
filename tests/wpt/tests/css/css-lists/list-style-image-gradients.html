@@ -1,0 +1,35 @@
+<!doctype html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+<meta charset="utf-8">
+<title>CSS Test: Gradient list markers</title>
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-lists/#image-markers">
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#typedef-gradient">
+<link rel="match" href="list-style-image-gradients-ref.html">
+<meta name="assert" content="list-style-image:<gradient> with a single color renders the same as an image without an intrinsic size of the same color">
+<style>
+.none > li { list-style-type: none; }
+</style>
+<ul>
+  <li style="list-style-image: linear-gradient(blue, blue)">text</li>
+  <li style="list-style-image: repeating-linear-gradient(blue, blue 2px, blue 4px)">text</li>
+  <li style="list-style-image: radial-gradient(blue, blue)">text</li>
+  <li style="list-style-image: repeating-radial-gradient(blue, blue .2em, blue .4em)">text</li>
+</ul>
+<ol>
+  <li style="list-style-image: linear-gradient(blue, blue)">text</li>
+  <li style="list-style-image: repeating-linear-gradient(blue, blue 2px, blue 4px)">text</li>
+  <li style="list-style-image: radial-gradient(blue, blue)">text</li>
+  <li style="list-style-image: repeating-radial-gradient(blue, blue .2em, blue .4em)">text</li>
+</ol>
+<ol class="none">
+  <li style="list-style-image: linear-gradient(blue, blue)">text</li>
+  <li style="list-style-image: repeating-linear-gradient(blue, blue 2px, blue 4px)">text</li>
+  <li style="list-style-image: radial-gradient(blue, blue)">text</li>
+  <li style="list-style-image: repeating-radial-gradient(blue, blue .2em, blue .4em)">text</li>
+</ol>
+</html>

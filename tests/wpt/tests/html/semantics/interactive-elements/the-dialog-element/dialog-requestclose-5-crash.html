@@ -1,0 +1,19 @@
+<!doctype html>
+<link rel="help" href="https://html.spec.whatwg.org/#dom-dialog-requestclose" />
+
+<!-- This test passes if it does not crash. -->
+
+<dialog id=d></dialog>
+
+<script>
+let fired = false;
+d.addEventListener('beforetoggle', e => {
+  if (e.newState === 'closed' && !fired) {
+    fired = true;
+    d.close();
+    d.setAttribute('open', '');
+  }
+});
+d.showModal();
+d.requestClose('close');
+</script>

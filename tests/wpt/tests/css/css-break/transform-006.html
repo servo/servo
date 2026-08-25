@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-break-3/#transforms">
+<meta name="assert" content="Test that transform-origin is calculated correctly and individually for each fragment, also when the transform-establishing element is overflowed.">
+<link rel="match" href="transform-006-ref.html">
+<style>
+  .transformed {
+      transform: rotate(25deg);
+      transform-origin: bottom right;
+      background: hotpink;
+  }
+  .child {
+      margin-left: auto;
+      width: 50px;
+      background: lime;
+  }
+</style>
+<div style="columns:4; column-fill:auto; width:460px; column-gap:20px; margin-top:50px; height:100px; background:yellow;">
+  <div class="transformed" style="margin-top:50px; height:175px;">
+    <div class="child" style="height:300px;"></div>
+  </div>
+</div>

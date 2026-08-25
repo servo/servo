@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    html, body {
+      color: black; background-color: white; font: 16px/1 monospace; padding: 0; margin: 0;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 60px);
+      grid-template-rows: 20px 80px 30px 20px;
+      padding: 2px;
+      margin: 5px;
+    }
+
+    .track {
+      display: flex;
+      flex-direction: column;
+    }
+
+    item {
+      display: block;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+<div class="grid">
+  <item style="grid-column: 1 / span 2; grid-row: 1; height: 20px; background: salmon;">0</item>
+  <div class="track" style="grid-column: 1; grid-row: 2;">
+    <item style="height: 80px; background: salmon;">1</item>
+  </div>
+  <div class="track" style="grid-column: 2; grid-row: 2;">
+    <item style="height: 40px; background: green;">3</item>
+  </div>
+  <item style="grid-column: 1 / span 2; grid-row: 3; height: 30px; background: salmon;">2</item>
+  <div class="track" style="grid-column: 3; grid-row: 1 / span 4;">
+    <item style="height: 80px; background: salmon;">4</item>
+    <item style="height: 30px; background: green;">6</item>
+    <div style="flex-grow: 1;"></div>
+    <div style="height: 20px;"></div>
+  </div>
+  <item style="grid-column: 1 / span 3; grid-row: 4; height: 20px; background: salmon;">5</item>
+</div>
+
+<div class="grid">
+  <item style="grid-column: 1 / span 2; grid-row: 1; height: 20px; background: salmon;">0</item>
+  <div class="track" style="grid-column: 1; grid-row: 2;">
+    <item style="height: 80px; background: salmon;">1</item>
+  </div>
+  <div class="track" style="grid-column: 2; grid-row: 2;">
+    <div style="flex-grow: 1;"></div>
+    <item style="height: 40px; background: green;">3</item>
+  </div>
+  <item style="grid-column: 1 / span 2; grid-row: 3; height: 30px; background: salmon;">2</item>
+  <div class="track" style="grid-column: 3; grid-row: 1 / span 4;">
+    <item style="height: 80px; background: salmon;">4</item>
+    <div style="flex-grow: 1;"></div>
+    <item style="height: 30px; background: green;">6</item>
+    <div style="height: 20px;"></div>
+  </div>
+  <item style="grid-column: 1 / span 3; grid-row: 4; height: 20px; background: salmon;">5</item>
+</div>
+
+</body>
+</html>

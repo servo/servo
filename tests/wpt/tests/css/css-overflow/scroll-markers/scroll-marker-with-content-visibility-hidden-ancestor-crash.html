@@ -1,0 +1,69 @@
+<!doctype html>
+<html class="test-wait">
+<meta charset="utf-8">
+<title>::scroll-markers with content-visibility: hidden ancestors, getBoundingClientRect crash</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-pseudo">
+<link rel="help" href="https://crbug.com/398717539">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<link rel="assert" content="Test should not crash when interacting with c-v hidden elements with scroll markers">
+<style>
+#scroller {
+  position: relative;
+  width: 500px;
+  height: 200px;
+  overflow: auto;
+  scroll-marker-group: after;
+  columns: 1;
+
+  &::scroll-marker-group {
+    height: 20px;
+    width: 200px;
+  }
+}
+
+.wrapper {
+  height: 100%;
+  content-visibility: hidden;
+}
+
+.item {
+  width: 100%;
+  height: 100%;
+  &::scroll-marker {
+    display: inline-block;
+    content: "";
+    width: 10px;
+    height: 10px;
+    border: 1px solid black;
+    border-radius: 50%;
+  }
+
+  &::scroll-marker:target-current {
+    background: blue;
+  }
+}
+
+</style>
+
+<div id=scroller>
+  <div id=w1 class=wrapper><div id=e1 class=item>item 1</div></div>
+  <div class=wrapper><div class=item>item 2</div></div>
+  <div class=wrapper><div class=item>item 3</div></div>
+  <div class=wrapper><div class=item>item 4</div></div>
+  <div class=wrapper><div class=item>item 5</div></div>
+</div>
+
+<script>
+onload = requestAnimationFrame(() => requestAnimationFrame(() => {
+  e1.getBoundingClientRect();
+
+  requestAnimationFrame(() => {
+    w1.style.contentVisibility = "visible";
+    requestAnimationFrame(() => {
+      w1.style.contentVisibility = "hidden";
+
+      requestAnimationFrame(() => { document.documentElement.className = "" });
+    });
+  });
+}));
+</script>

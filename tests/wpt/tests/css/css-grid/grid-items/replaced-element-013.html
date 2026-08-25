@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#algo-overview">
+<meta name="assert" content="A replaced element resolves its percentage against the definite row.">
+<link rel="match" href="../../reference/ref-filled-green-100px-square-only.html">
+<p>Test passes if there is a filled green square.</p>
+<div style="display: inline-grid; grid-template-rows: 100px; background: green;">
+  <canvas width=20 height=10 style="height: 50%;"></canvas>
+</div>

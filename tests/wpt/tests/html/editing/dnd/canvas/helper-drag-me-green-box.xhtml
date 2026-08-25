@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Canvas drag and drop: helper file</title>
+<style type="text/css">
+div
+  {width:20px;
+  height:20px;
+  background-color:green;}
+body
+  /* Center the div in this iframe since we know the iframe size (it's fixed
+  * in the parent page to 'width:300px; height:200px;') */
+  {margin-top:90px;
+  margin-left:140px;}
+</style>
+<script type="application/ecmascript">
+function start(event)
+  {event.dataTransfer.effectAllowed = 'copy';
+  event.dataTransfer.setData('text/plain', 'green');}
+</script>
+</head>
+<body>
+<div draggable="true" ondragstart="start(event)"/></body>
+</html>

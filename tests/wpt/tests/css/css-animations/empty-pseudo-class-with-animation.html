@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<link rel="author" href="mailto:graouts@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-animations/">
+<link rel="help" href="https://drafts.csswg.org/selectors/#the-empty-pseudo">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-animations/support/testcommon.js"></script>
+
+<div class="container"></div>
+
+<style>
+
+.container {
+  width: 100px;
+  height: 100px;
+  background-color: rgb(0, 255, 0);
+}
+
+.container:empty {
+  background-color: rgb(255, 0, 0);
+  animation: anim 1s;
+}
+
+@keyframes anim { }
+
+</style>
+
+<script>
+
+promise_test(async () => {
+  const container = document.querySelector(".container");
+  const computedStyle = getComputedStyle(container);
+
+  // Check that the :empty rule applies initially.
+  assert_equals(computedStyle.backgroundColor, 'rgb(255, 0, 0)',
+    'The initial background-color matches the value set by the :empty rule.');
+
+  // Await a couple of frames to let any animation-related style updates happen.
+  await waitForAnimationFrames(2);
+
+  // Append a child which should no longer let the :empty rule apply.
+  container.appendChild(document.createElement("span"));
+  assert_equals(computedStyle.backgroundColor, 'rgb(0, 255, 0)',
+    'The background-color after inserting a child into the container no longer matches the value set by the :empty rule.');
+}, 'Setting an "animation" style property on an element does not interfere with the :empty pseudo-class.');
+
+</script>

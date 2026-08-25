@@ -1,0 +1,20 @@
+<!doctype html>
+<meta charset=windows-1252>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+test(() => {
+  const url = new URL("/", location);
+  url.protocol = "ws";
+  const input = "?\u20AC";
+  const expected = url.href + "?%E2%82%AC";
+
+  let ws = new WebSocket(url.href + input);
+  assert_equals(ws.url, expected);
+  ws.close();
+
+  ws = new WebSocket("/" + input);
+  assert_equals(ws.url, expected);
+  ws.close();
+}, "URL's percent-encoding is always in UTF-8 for WebSocket");
+</script>

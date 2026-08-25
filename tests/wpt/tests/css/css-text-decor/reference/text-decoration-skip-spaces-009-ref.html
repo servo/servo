@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang=en>
+<meta charset="utf-8">
+<title>Test reference</title>
+<link rel="author" title="Perry Wang" href="mailto:perryuwang@gmail.com">
+<style>
+div {
+    color: orange;
+    font-size: 2em;
+    white-space: pre;
+}
+span {
+    text-decoration: underline;
+    text-decoration-color: blue;
+}
+::selection {
+    background: transparent;
+    color: red;
+}
+</style>
+
+<p>Test passes if the blue underline appears only under AB, CDE, and FG — not under the spaces between them — even when selected.
+
+<div><span>AB</span> <span>CDE</span> <span>FG</span></div>
+<script>
+  const div = document.querySelector('div');
+  const range = document.createRange();
+  range.selectNodeContents(div);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+</script>

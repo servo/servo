@@ -1,0 +1,3 @@
+rules:
+- page-orientation-*: [page-orientation]
+- "*": [page-setup]

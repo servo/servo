@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSSOM View - Smooth scrollIntoView + smooth scroll to fragment</title>
+    <link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-scrollintoview">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/dom/events/scrolling/scroll_support.js"></script>
+  </head>
+  <body>
+    <style>
+      iframe {
+        width: 100vw;
+        height: 100vh;
+      }
+    </style>
+    <script>
+      let frame = null;
+      async function test_smooth_scrollintoview_with_smooth_fragment() {
+        return new Promise((resolve) => {
+          window.addEventListener("message", (evt) => {
+            assert_equals(evt.data, "ready");
+
+            // Check that the fragment scroll completed.
+            const fragment_scroll_container =
+              frame.contentDocument.getElementById("fragment_scroll_container");
+            const fragment_scroll_target =
+              frame.contentDocument.getElementById("fragment_scroll_target");
+            assert_approx_equals(fragment_scroll_container.scrollTop,
+              fragment_scroll_target.offsetTop, 1,
+              "scroll to fragment was completed");
+
+            // Check that the scrollIntoView completed.
+            const scrollintoview_container =
+              frame.contentDocument.getElementById("scrollintoview_container");
+            const scrollintoview_target =
+              frame.contentDocument.getElementById("scrollintoview_target");
+            assert_approx_equals(scrollintoview_container.scrollTop,
+              scrollintoview_target.offsetTop, 1,
+              "scrollIntoView was completed");
+
+            resolve();
+          });
+        });
+      }
+
+      promise_test(async (t) =>  {
+        frame = document.createElement("iframe");
+        let test_complete_promise =
+          test_smooth_scrollintoview_with_smooth_fragment();
+        frame.src =
+          "smooth-scrollIntoView-with-smooth-fragment-scroll-iframe.html" +
+          "#fragment_scroll_target";
+        document.documentElement.appendChild(frame);
+        await test_complete_promise;
+        frame.src = "";
+        frame.remove();
+      }, "Smooth scroll to hash fragment (on pageload) alongside smooth " +
+         "scrollIntoView runs to completion.");
+
+      promise_test(async (t) =>  {
+        frame = document.createElement("iframe");
+        const iframe_load_promise = new Promise((resolve) => {
+          frame.addEventListener("load", resolve);
+        });
+        const test_complete_promise =
+          test_smooth_scrollintoview_with_smooth_fragment();
+        frame.src =
+          "smooth-scrollIntoView-with-smooth-fragment-scroll-iframe.html";
+        document.documentElement.appendChild(frame);
+        await iframe_load_promise;
+        const link = frame.contentDocument.getElementById("fragment_link");
+        link.click();
+        await test_complete_promise;
+        frame.src = "";
+        frame.remove();
+      }, "Smooth scroll to hash fragment (on click) alongside smooth " +
+         "scrollIntoView runs to completion.");
+    </script>
+  </body>

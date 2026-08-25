@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/intersection-observer-test-utils.js"></script>
+
+<style>
+pre, #log {
+  position: absolute;
+  top: 120px;
+  left: 0;
+}
+#target {
+  display: inline;
+}
+</style>
+
+<div id="target">
+  <div>
+    <img width=100 height=100 />
+  </div>
+</div>
+
+<script>
+var vw = document.documentElement.clientWidth;
+var vh = document.documentElement.clientHeight;
+var entries = [];
+var target;
+
+runTestCycle(function() {
+  target = document.getElementById("target");
+  assert_true(!!target, "target exists");
+  var observer = new IntersectionObserver(function(changes) {
+    entries = entries.concat(changes)
+  });
+  observer.observe(target);
+  entries = entries.concat(observer.takeRecords());
+  assert_equals(entries.length, 0, "No initial notifications.");
+  runTestCycle(step0, "First rAF");
+}, "Inline target containing a block child");
+
+function step0() {
+  assert_equals(entries.length, 1);
+  checkRect(entries[0].boundingClientRect, clientBounds(target),
+            "entry.boundingClientRect == target.getBoundingClientRect()");
+}
+</script>

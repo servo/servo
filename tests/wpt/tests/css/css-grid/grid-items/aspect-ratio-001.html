@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#algo-overview">
+<meta name="assert" content="An element with an aspect-ratio resolves its percentage against the definite row.">
+<link rel="match" href="../../reference/ref-filled-green-100px-square-only.html">
+<p>Test passes if there is a filled green square.</p>
+<div style="display: inline-grid; grid-template-rows: 100px; background: green;">
+  <div style="aspect-ratio: 1/1; height: 100%;"></div>
+</div>

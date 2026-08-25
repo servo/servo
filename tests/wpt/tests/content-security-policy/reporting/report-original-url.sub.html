@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <!-- CSP headers
+       Content-Security-Policy: img-src {{location[scheme]}}://{{domains[www1]}}:{{ports[http][0]}}; script-src 'unsafe-inline' 'self'; report-uri /reporting/resources/report.py?op=put&reportID=$id
+       -->
+</head>
+<body>
+<script>
+function createListener(expectedURL, test) {
+    var listener = test.step_func(e => {
+        if (e.blockedURI == expectedURL) {
+            document.removeEventListener('securitypolicyviolation', listener);
+            test.done();
+        }
+    });
+    document.addEventListener('securitypolicyviolation', listener);
+}
+
+async_test(t => {
+    var i = document.createElement('img');
+    createListener("{{location[scheme]}}://{{location[host]}}/content-security-policy/support/fail.png?t=1", t);
+    i.src = "{{location[scheme]}}://{{location[host]}}/content-security-policy/support/fail.png?t=1";
+}, "Direct block, same-origin = full URL in report");
+
+async_test(t => {
+    var i = document.createElement('img');
+    createListener("{{location[scheme]}}://{{domains[www2]}}:{{ports[http][0]}}/content-security-policy/support/fail.png?t=2", t);
+    i.src = "{{location[scheme]}}://{{domains[www2]}}:{{ports[http][0]}}/content-security-policy/support/fail.png?t=2";
+}, "Direct block, cross-origin = full URL in report");
+
+async_test(t => {
+    var i = document.createElement('img');
+    var url = "{{location[scheme]}}://{{domains[www1]}}:{{ports[http][0]}}/common/redirect.py?location=" + encodeURIComponent("{{location[scheme]}}://{{location[host]}}/content-security-policy/support/fail.png?t=3");
+    createListener(url, t);
+    i.src = url;
+}, "Block after redirect, same-origin = original URL in report");
+
+async_test(t => {
+    var i = document.createElement('img');
+    var url = "{{location[scheme]}}://{{domains[www1]}}:{{ports[http][0]}}/common/redirect.py?location=" + encodeURIComponent("{{location[scheme]}}://{{domains[www2]}}:{{ports[http][0]}}/content-security-policy/support/fail.png?t=4");
+    createListener(url, t);
+    i.src = url;
+}, "Block after redirect, cross-origin = original URL in report");
+</script>
+
+<script async defer src='../support/checkReport.sub.js?reportField=violated-directive&reportValue=img-src {{location[scheme]}}%3A%2F%2F{{domains[www1]}}%3A{{ports[http][0]}}'></script>
+</body>
+</html>

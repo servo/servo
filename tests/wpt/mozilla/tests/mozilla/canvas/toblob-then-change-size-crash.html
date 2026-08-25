@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<!-- https://github.com/servo/servo/issues/36702 -->
+<canvas id="canvas"></canvas>
+<script>
+  canvas.toBlob(() => {});
+  canvas.width = 0;
+</script>
+

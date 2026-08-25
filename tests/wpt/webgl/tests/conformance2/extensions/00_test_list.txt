@@ -1,0 +1,30 @@
+ext-color-buffer-float.html
+--min-version 2.0.1 ext-color-buffer-half-float.html
+--min-version 2.0.1 ext-conservative-depth.html
+ext-disjoint-timer-query-webgl2.html
+--min-version 2.0.1 ext-render-snorm.html
+--min-version 2.0.1 ext-texture-filter-anisotropic.html
+--min-version 2.0.1 ext-texture-norm16.html
+promoted-extensions.html
+promoted-extensions-in-shaders.html
+--min-version 2.0.1 nv-shader-noperspective-interpolation.html
+--min-version 2.0.1 oes-draw-buffers-indexed.html
+--min-version 2.0.1 oes-sample-variables.html
+--min-version 2.0.1 oes-shader-multisample-interpolation.html
+--min-version 2.0.1 ovr_multiview2.html
+--min-version 2.0.1 ovr_multiview2_depth.html
+--min-version 2.0.1 ovr_multiview2_draw_buffers.html
+--min-version 2.0.1 ovr_multiview2_flat_varying.html
+--min-version 2.0.1 ovr_multiview2_instanced_draw.html
+--min-version 2.0.1 ovr_multiview2_non_multiview_shaders.html
+--min-version 2.0.1 ovr_multiview2_single_view_operations.html
+--min-version 2.0.1 ovr_multiview2_timer_query.html
+--min-version 2.0.1 ovr_multiview2_transform_feedback.html
+--min-version 2.0.1 required-extensions.html
+--min-version 2.0.1 webgl-blend-func-extended.html
+--min-version 2.0.1 webgl-clip-cull-distance.html
+--min-version 2.0.1 webgl-multi-draw-instanced-base-vertex-base-instance.html
+--min-version 2.0.1 webgl-provoking-vertex.html
+--min-version 2.0.1 webgl-render-shared-exponent.html
+--min-version 2.0.1 webgl-shader-pixel-local-storage.html
+--min-version 2.0.1 webgl-stencil-texturing.html

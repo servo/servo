@@ -1,0 +1,40 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: page-break-before: right</title>
+<link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+<link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-break-props"/>
+<link rel="help" href="http://www.w3.org/TR/css3-page/#pg-br-before-after"/>
+<meta name="flags" content="paged" />
+<meta name="assert" content=" - The 'right' value of the 'page-break-before' property forces one or two page breaks before the box so that the page after the break is formatted as a right page."/>
+<style type="text/css">
+	@page {margin: 7%;}
+	@page :left {
+		margin-right: 50%;
+	}
+	@page :right {
+		margin-left: 50%;
+	}
+	@page :first {
+		@top-center {
+           content: ""
+        }
+		border: 1em solid blue;
+		margin: 7%;
+	}
+	p.spacer {page-break-after: always;}
+	p.goRight {
+		page-break-before: right;
+	}
+</style>
+</head>
+<body>
+	<!-- Right & 1 blank left page -->
+	<p class="spacer">When printed, this test produces 4 or 5 pages of output. The next page may or may not be blank. This content must appear inside a blue box.</p>
+	<!-- Right page -->
+	<p class="goRight spacer">When printed, this content should be on the right side of the third page.</p>
+	<p class="spacer">When printed, this content should be on the left side of the page.</p>
+	<p class="goRight">When printed, this content should appear on the right side of the page.</p>
+	<p>Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Etiam diam erat, convallis fermentum, volutpat a, dignissim a, est. Proin vel lacus. Quisque sit amet neque ac quam lacinia varius. In hac habitasse platea dictumst. Phasellus sodales velit vel metus. Ut in tortor dignissim libero elementum mattis. Proin rutrum vehicula lacus. Nunc mi ante, auctor id, vulputate sit amet, lobortis egestas, diam. Phasellus nibh elit, ultricies vitae, dignissim eu, vulputate ut, ante. Praesent interdum, ipsum eget fermentum luctus, enim ligula porttitor erat, id nonummy urna augue non eros. Morbi auctor pharetra tortor. Quisque eu lorem ut ipsum suscipit sollicitudin. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Suspendisse potenti. Pellentesque in nisl vitae leo cursus adipiscing. Cras risus nisi, fermentum vulputate, consectetuer a, porttitor et, nibh. Integer vel enim. Donec euismod.</p>
+</body>
+</html>

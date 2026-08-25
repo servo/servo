@@ -1,0 +1,25 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Window#document</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+async_test(function() {
+  var URL = "/common/blank.html";
+
+  var iframe = document.createElement("iframe");
+  document.body.appendChild(iframe);
+  var initialWindow = iframe.contentWindow;
+  var initialDocument = initialWindow.document;
+  assert_equals(initialDocument.URL, "about:blank");
+  iframe.src = URL;
+  iframe.onload = this.step_func_done(function() {
+    assert_equals(iframe.contentWindow, initialWindow);
+    assert_equals(initialDocument.URL, "about:blank");
+    var loadedDocument = initialWindow.document;
+    assert_equals(loadedDocument.URL, location.href.replace(location.pathname, URL));
+    assert_not_equals(initialDocument, loadedDocument);
+  });
+}, "Document in a browsing context");
+</script>

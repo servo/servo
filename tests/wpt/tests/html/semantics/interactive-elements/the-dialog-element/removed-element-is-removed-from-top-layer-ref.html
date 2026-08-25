@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="resources/dialog.css">
+<style>
+.pseudodialog {
+    height: 100px;
+    width: 100px;
+}
+
+#bottomDialog {
+    background-color: blue;
+    top: 0px;
+}
+
+#topDialog {
+    background-color: green;
+    top: 50px;
+    left: 50px;
+}
+</style>
+</head>
+<body>
+<p>Bug <a href="https://bugs.webkit.org/show_bug.cgi?id=105489">105489</a>: Elements must be reattached when inserted/removed from top layer
+<p>The test passes if you see a green rectangle stacked on top of a blue rectangle.
+<div id="bottomDialog" class="pseudodialog"></div>
+<div id="topDialog" class="pseudodialog"></div>
+</body>
+</html>
+

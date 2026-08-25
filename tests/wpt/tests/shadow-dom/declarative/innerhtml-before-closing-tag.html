@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<title>Declarative Shadow DOM innerHTML</title>
+<link rel='author' href='mailto:masonf@chromium.org'>
+<link rel='help' href='https://github.com/whatwg/dom/issues/831'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+
+<body>
+<script>
+function myObserver(mutationsList) {
+  for (let mutation of mutationsList) {
+    if (Array.from(mutation.addedNodes).map(n=>n.id).includes('shadow')) {
+      assert_unreached('For streaming declarative Shadow DOM, the <template> element should never get added to the tree');
+    }
+  }
+  const host = document.querySelector('#host');
+  if (!host)
+    return;
+  const shadow = host.shadowRoot;
+  if (!shadow)
+    return;
+  const replaceNode = shadow.querySelector('#toreplace');
+  assert_true(!!replaceNode);
+  replaceNode.innerHTML = "<span id=newcontent>This should be in &lt;div>'s shadow root</span>";
+  observer.disconnect();
+}
+var observer = new MutationObserver(myObserver);
+observer.observe(document.body, { childList: true, subtree: true });
+</script>
+
+<div id=host>
+  <template id=shadow shadowrootmode=open>
+    <span id=toreplace><span id=oldcontent>This should get removed</span></span>
+    <!-- Ensure observer runs at this point (https://github.com/web-platform-tests/wpt/issues/35393) -->
+    <script> // some content, which shouldn't be necessary </script>
+  </template>
+</div>
+
+<script>
+test(t => {
+  t.add_cleanup(function() { observer.disconnect(); });
+  let host = document.querySelector('#host');
+  let template = host.querySelector('template');
+  assert_true(!template, 'Declarative shadow template should not be present');
+  let shadowroot = host.shadowRoot;
+  assert_true(!!shadowroot, 'Shadow root should be present');
+  assert_true(!!shadowroot.querySelector('#newcontent'),'The innerHTML replacement content should be present');
+  assert_true(!shadowroot.querySelector('#oldcontent'),'The old replaced content should not be present');
+}, 'Declarative Shadow DOM: innerHTML should work while parsing streaming declarative shadow root <template>');
+</script>
+</body>

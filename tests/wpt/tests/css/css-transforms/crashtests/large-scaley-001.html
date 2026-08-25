@@ -1,0 +1,11 @@
+<!DOCTYPE HTML>
+<title>CSS Test (Transforms): Transform with large scaleY()</title>
+<link rel="author" title="Philip Rogers" href="mailto:pdr@google.com">
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Google" href="http://www.google.com/">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1230937">
+<link rel="help" href="https://drafts.csswg.org/css-transforms-1/#two-d-transform-functions">
+<meta name="assert" content="This should not crash.">
+
+<div style="transform: scaley(99e99);">a</div>
+<div style="mix-blend-mode: saturation;">a</div>

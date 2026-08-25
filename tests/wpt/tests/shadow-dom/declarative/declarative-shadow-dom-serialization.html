@@ -1,0 +1,55 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>
+  Declarative Shadow DOM: serialization of shadow root contents via getHTML
+</title>
+<link rel="author" href="mailto:wpt@keithcirkel.co.uk" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="a">
+  <template shadowrootmode="open" shadowrootserializable>
+    <p>shadow content</p>
+    <slot>fallback</slot>
+  </template>
+  light content
+</div>
+
+<div id="b">
+  <template shadowrootmode="open" shadowrootserializable>
+    <div><span>nested</span></div>
+    <ul>
+      <li>item</li>
+    </ul>
+  </template>
+</div>
+
+<script>
+  test(() => {
+    const html = a.getHTML({ serializableShadowRoots: true });
+    // Assert includes to avoid concerning ourselves with whitespace shenanigans
+    assert_true(html.includes(`<p>shadow content</p>`), "should serialize <p>");
+    assert_true(
+      html.includes(`<slot>fallback</slot>`),
+      "should serialize <slot>",
+    );
+    assert_true(html.includes(`light content`), "should serialize light DOM");
+  }, "shadow root children are serialized inside template");
+
+  test(() => {
+    const html = b.getHTML({ serializableShadowRoots: true });
+    // Assert includes to avoid concerning ourselves with whitespace shenanigans
+    assert_true(
+      html.includes(`<div><span>nested</span></div>`),
+      "should serialize nested elements",
+    );
+    assert_true(
+      html.includes(`<ul>`),
+      "should serialize list",
+    );
+    assert_true(
+      html.includes(`<li>item</li>`),
+      "should serialize list item",
+    );
+  }, "nested elements inside shadow root are serialized");
+</script>

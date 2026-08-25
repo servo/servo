@@ -1,0 +1,16 @@
+<html>
+<head>
+  <title></title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <div id="foo" style="border-width: 1px"></div>
+  <script>
+    test(function() {
+      var border_width = document.getElementById("foo").style["borderWidth"];
+      assert_equals(border_width, "1px 1px 1px 1px");
+    });
+  </script>
+</body>
+</html>

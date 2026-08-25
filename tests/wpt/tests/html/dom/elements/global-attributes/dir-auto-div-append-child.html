@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>HTML Test: input with dir=auto, then append a child</title>
+<meta charset="utf-8">
+<meta name="assert" content="The dir global attribute set to auto applies when a child is appended" />
+<link rel="author" title="HTML5 bidi test WG" href="mailto:japhet@chromium.org" />
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#the-dir-attribute" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div id="div" dir="auto"></div>
+<script>
+test(() => {
+  assert_equals(getComputedStyle(div).direction, "ltr");
+  div.appendChild(document.createTextNode('اختبر SomeText'));
+  assert_equals(getComputedStyle(div).direction, "rtl");
+}, 'dir auto: updates on appendChild');
+</script>
+</body>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+<script src="resources/history-length-test-helper.js"></script>
+<script src="/common/utils.js"></script>
+<title>Test fenced frames can't see outer page history length</title>
+
+<body>
+<script>
+promise_test(async () => {
+  const kAssertionDesc =  "history.length Should never reflect the length " +
+                          "of joint session history that occured outside " +
+                          "of the fenced frame tree. history.length will " +
+                          "always return 1."
+
+  maybeNavigateForHistory();
+
+  const fenced_history_length_key = token();
+  const outer_page_ready_for_next_navigation_key = token();
+
+  // Append an iframe to the outer page for subsequent navigations within
+  // the iframe
+  const iframe = document.createElement('iframe');
+  const embed_scope_iframe = "outer_page::iframe";
+  iframe.src = generateURL("resources/history-length-outer-page-navigation-" +
+      "not-reflected-in-fenced-inner.html",
+      [fenced_history_length_key, outer_page_ready_for_next_navigation_key,
+       embed_scope_iframe, null]);
+  document.body.append(iframe);
+
+  await nextValueFromServer(outer_page_ready_for_next_navigation_key);
+
+  // Append a fenced frame to observe 'history.length' and report it back
+  // to the outer page
+  const embed_scope_fenced_frame = "outer_page::fenced_frame";
+  attachFencedFrame(generateURL(
+      "resources/history-length-outer-page-navigation-" +
+      "not-reflected-in-fenced-inner.html",
+      [fenced_history_length_key, outer_page_ready_for_next_navigation_key,
+       embed_scope_fenced_frame, "outer_page::fenced_frame"])
+  );
+
+  // Wait for the fenced frame to report 'history.length'
+  let result = await nextValueFromServer(fenced_history_length_key);
+  assert_equals(result, "PASS > " + " history.length: 1", kAssertionDesc);
+}, "history.length should not reflect navigations within outer page in " +
+  "fenced frame");
+</script>
+</body>

@@ -1,0 +1,12 @@
+<!doctype html>
+<title>Reference: Inside list marker and normal text render identically: circle</title>
+<style>
+* {
+    margin: 0;
+    padding: 0;
+}
+p::before {
+    content: counter(test, circle);
+}
+</style>
+<p> Filler Text

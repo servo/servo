@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en" >
+<meta charset="utf-8">
+<title>test reference</title>
+<link rel='author' title='Florian Rivoal' href='https://florian.rivoal.net'>
+<body>
+<p>The example below consists of 2 base characters (今日), jointly annotated with their pronunciation (きょう).
+For ease of comparison, it is preceded by some context text: “例文は”.
+This test passes if:
+<ul>
+    <li>the base characters are presented inline with and similarly to the context text, as if they are all part of the same sentence, and
+    <li>the annotation is presented as an annotation, and
+    <li>the annotation is jointly associated with the whole base, not just part of it.
+</ul>
+
+<p>Note: This is not a layout or rendering test.
+The precise appearance is not specified,
+and implementations may therefore validly vary.
+
+<hr> <!-- incorrect rendering: annotation displayed identical to base text, grouped-->
+例文は<span>今日</span><span>きょう</span>

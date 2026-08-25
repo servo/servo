@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Highlight API Test: Invalid StaticRanges are not painted</title>
+<link rel="help" href="https://drafts.csswg.org/css-highlight-api-1/">
+<link rel="match" href="custom-highlight-painting-staticrange-001-ref.html">
+<meta name="assert" value="StaticRanges that are invalid or collapsed should not be painted when they're in a Highlight">
+<style>
+  ::highlight(example-highlight) {
+    background-color: yellow;
+    color: blue;
+  }
+</style>
+<body><span id="first">One </span><span id="second">two </span><span id="third">three…</span>
+<script>
+  let h = new Highlight();
+  h.add(new StaticRange({startContainer: document.body, startOffset: 0, endContainer: document.body, endOffset: 0}));
+  h.add(new StaticRange({startContainer: document.body, startOffset: 1, endContainer: document.body, endOffset: 0}));
+  h.add(new StaticRange({startContainer: document.body, startOffset: 1, endContainer: document.body, endOffset: 100}));
+  h.add(new StaticRange({startContainer: document, startOffset: 0, endContainer: document, endOffset: 1}));
+  h.add(new StaticRange({startContainer: document.querySelector("#third").firstChild, startOffset: 1, endContainer: document.querySelector("#first").firstChild, endOffset: 2}));
+  CSS.highlights.set("example-highlight", h);
+</script>

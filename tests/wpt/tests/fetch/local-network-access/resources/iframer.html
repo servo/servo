@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Iframer</title>
+
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="support.sub.js"></script>
+<script>
+"use strict";
+
+// Set permissions, then attempts to iframe a resource from the url parameter.
+//
+// Permission setting is documented in the sourceResolveOptions() function in
+// support.sub.js.
+Promise.resolve().then(async () => {
+    const window_url = new URL(window.location.href);
+    let permission_name = getPermissionName(window_url);
+    let permission_value = getPermissionValue(window_url);
+
+    test_driver.set_test_context(opener);
+    await test_driver.set_permission({ name: permission_name }, permission_value);
+
+    const child = document.createElement('iframe');
+    child.src = new URL(window.location).searchParams.get('url');
+    document.body.appendChild(child);
+});
+</script>

@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<title>document.implementation.createHTMLDocument: document.contentType === 'text/html'</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+test(function() {
+  var doc = document.implementation.createHTMLDocument("test");
+  assert_equals(doc.contentType, "text/html");
+});
+</script>

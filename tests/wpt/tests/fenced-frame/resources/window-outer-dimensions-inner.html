@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<script src="utils.js"></script>
+<title>Fenced frame content to report the result of prerendering</title>
+
+<body>
+  <script>
+    async function report() { // Needed in order to use top-level await.
+      // This file is meant to run in a <fencedframe>. It reports its dimensions
+      // back to the outermost page, which in turn checks for correctness.
+      const [window_outer_size_key, window_inner_size_key, dimension,
+             extra_children] = parseKeylist();
+
+      const url = new URL(location.href);
+
+      if (extra_children == "0") {
+        let outer_result = (dimension == "width") ?
+          window.outerWidth : window.outerHeight;
+
+        let inner_result = (dimension == "width") ?
+          window.innerWidth : window.innerHeight;
+
+        writeValueToServer(window_outer_size_key, outer_result);
+        writeValueToServer(window_inner_size_key, inner_result);
+      } else {
+          const iframe = document.createElement('iframe');
+          const frame_url = generateURL('window-outer-dimensions-inner.html',
+            [window_outer_size_key, window_inner_size_key, dimension,
+            (parseInt(extra_children) - 1)]);
+          iframe.src = frame_url;
+          document.body.append(iframe);
+      }
+
+    }
+    report();
+  </script>
+</body>

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="euc-kr">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  // This file is actually ascii, because otherwise text editors would have hard time.
+
+  promise_test(async (t) => {
+    // "icon" in Korean language
+    const iconKorean = "\uc544\uc774\ucf58";
+    const id = crypto.randomUUID();
+
+    assert_true(navigator.sendBeacon(
+        `/beacon/resources/url-echo.py?cmd=store&id=${id}&icon=${iconKorean}`, "x"));
+
+    // Poll the echo endpoint until the beacon is received. The stored value
+    // is the raw query string sendBeacon() sent.
+    const statUrl = `/beacon/resources/url-echo.py?cmd=stat&id=${id}`;
+    for (let i = 0; i < 30; i++) {
+      const response = await fetch(statUrl);
+      const text = await response.text();
+      if (text) {
+        assert_equals(text, `cmd=store&id=${id}&icon=%EC%95%84%EC%9D%B4%EC%BD%98`, "URL encoded with utf-8");
+        return;
+      }
+      await new Promise(resolve => t.step_timeout(resolve, 200));
+    }
+    assert_unreached("sendBeacon was not received");
+  });
+</script>

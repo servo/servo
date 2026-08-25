@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>attr() with MathML attributes</title>
+<link rel="help" href="https://www.w3.org/TR/css-values-4/#attr-notation">
+<link rel="match" href="/css/css-content/attr-case-sensitivity-ref-003.html">
+<link rel="mismatch" href="/css/css-content/attr-case-sensitivity-ref-002.html">
+<meta name="assert" content="This test checks that MathML attribute names specified in the attr() function are case-sensitive.">
+<style>
+    #casematch:before { content: attr(definitionURL); }
+    #lowercase:before { content: attr(definitionurl); }
+</style>
+<!-- Test uses the fact that MathML attributes have a namespace -->
+<math id="casematch" definitionURL="casematch"></math>
+<math id="lowercase" definitionURL="lowercase"></math>

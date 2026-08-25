@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+// Here's the set-up for this test:
+// Step 1 (top-frame) Embeds a cross-origin iframe.
+// Step 2 (sub-frame) Make a cross-origin POST request.
+// Step 3 (sub-frame) Checks if platform version header is present and alerts top frame.
+// Step 4 (top-frame) Asserts header was present and returns.
+async_test(t => {
+    // Step 4
+    window.addEventListener("message", t.step_func(e => {
+        assert_equals(e.data, "HadPlatformVersion");
+        t.done();
+    }));
+
+    // Step 1
+    let iframe = document.createElement("iframe");
+    iframe.src = "https://{{domains[www1]}}:{{ports[https][0]}}/client-hints/resources/accept-ch.wildcard.iframe.https.sub.html";
+    document.body.appendChild(iframe);
+}, "Accept-CH with wildcard policy and iframe subresource");
+</script>
+</body>
+</html>

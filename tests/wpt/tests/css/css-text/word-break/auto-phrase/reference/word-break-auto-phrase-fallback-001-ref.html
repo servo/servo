@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test reference</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<style>
+div {
+  font-size: 2em;
+  border: solid orange;
+  margin: 5px;
+  width: min-content; /*not 0, to avoid falling into overflow fallback behavior */
+  word-break: normal;
+}
+</style>
+
+<p>Test passes if the two boxes below are identical.
+
+<div id=test lang=ja>กรุงเทพคือสวยงาม</div>
+
+<!-- keeping the lang=ja because it may affects font selection-->
+<div id=ref lang=ja>กรุงเทพคือสวยงาม</div>

@@ -1,0 +1,55 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL GLSL Conformance Tests</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../../resources/glsl-feature-tests.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="fragmentShader" type="text/something-not-javascript">
+// A matrix constructor with two writes and reads to the same variable inside it in different parameters must succeed "mat2(index++, vec4(index++))"
+// ESSL 1.00 spec section 5.4 Constructors: "Arguments are evaluated from left to right."
+precision mediump float;
+bool equal(mat2 m1, mat2 m2)
+{
+    float EPSILON = 0.00001;
+    for (int i = 0; i < 2; i++) {
+        for (int j = 0; j < 2; j++) {
+            if (abs(m1[i][j] - m2[i][j]) > EPSILON)
+                return false;
+        }
+    }
+    return true;
+}
+void main()
+{
+    int i = 0;
+    mat2 m = mat2(i++, vec4(i++));
+    if (equal(m, mat2(0, 1, 1, 1)))
+        gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
+    else
+        gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+}
+</script>
+
+<script>
+"use strict";
+GLSLConformanceTester.runRenderTest();
+var successfullyParsed = true;
+</script>
+</body>
+</html>

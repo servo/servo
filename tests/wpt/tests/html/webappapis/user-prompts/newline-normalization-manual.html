@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Newline normalization in simple dialogs</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#simple-dialogs">
+
+<p>The dialogs should all contain text looking like:</p>
+
+<pre>Line 1.1
+Line 1.2
+Line 1.3
+Line 1.4
+
+Line 2.1</pre>
+
+<script>
+"use strict";
+
+for (const func of [alert, confirm, prompt]) {
+  func('Line 1.1\nLine 1.2\rLine 1.3\r\nLine 1.4\n\rLine 2.1');
+}
+</script>

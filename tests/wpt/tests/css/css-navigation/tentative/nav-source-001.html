@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<title>:nav-source</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-navigation-1/#nav-source-pseudo-class">
+<style>
+  :nav-source {
+    --trigger: matched;
+  }
+</style>
+<a id="elm1" href="/target/">elm</a>
+<a id="elm2" href="/target/">elm</a>
+<a id="elm3" href="/different/">elm</a>
+<form id="form1" action="/target/"><input type="submit" id="btn1"></form>
+<form id="form2" action="/target/"></form>
+<form id="form3" action="/target/"><input type="submit" id="btn3"></form>
+<form id="form4" action="/target/"></form>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/test-navigation.js"></script>
+<script>
+  async function clickElm(elm) {
+    let rect = elm.getBoundingClientRect();
+    await new test_driver.Actions().pointerMove(rect.left + 2, rect.top + 2).pointerDown().pointerUp().send();
+  }
+
+  promise_test(async (t) => {
+    await new Promise(r => window.onload = () => t.step_timeout(r, 0));
+
+    const match_params = [
+      [elm1, "--trigger"],
+      [elm2, "--trigger"],
+      [elm3, "--trigger"],
+      [btn1, "--trigger"],
+      [form2, "--trigger"],
+      [btn3, "--trigger"],
+      [form4, "--trigger"],
+    ];
+
+    await test_navigation(t, "nav1", ()=> { clickElm(elm1); },              [1,0,0,0,0,0,0], [1,0,0,0,0,0,0], match_params);
+    await test_navigation(t, "nav2", ()=> { navigation.back(); },           [0,0,0,0,0,0,0], [0,0,0,0,0,0,0], match_params);
+    await test_navigation(t, "nav3", ()=> { navigation.forward(); },        [0,0,0,0,0,0,0], [0,0,0,0,0,0,0], match_params);
+    await test_navigation(t, "nav4", ()=> { clickElm(elm2); },              [0,1,0,0,0,0,0], [0,1,0,0,0,0,0], match_params);
+    await test_navigation(t, "nav5", ()=> { clickElm(btn1); },              [0,0,0,1,0,0,0], [0,0,0,1,0,0,0], match_params);
+    await test_navigation(t, "nav6", ()=> { form2.submit(); },              [0,0,0,0,1,0,0], [0,0,0,0,1,0,0], match_params);
+    await test_navigation(t, "nav7", ()=> { form3.requestSubmit(btn3); },   [0,0,0,0,0,1,0], [0,0,0,0,0,1,0], match_params);
+    await test_navigation(t, "nav8", ()=> { form4.requestSubmit(); },       [0,0,0,0,0,0,1], [0,0,0,0,0,0,1], match_params);
+  }, ":nav-source");
+</script>

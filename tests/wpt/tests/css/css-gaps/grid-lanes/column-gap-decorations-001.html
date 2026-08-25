@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: grid-axis column rules in a grid-lanes waterfall (no row rules)</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/">
+<link rel="match" href="column-gap-decorations-001-ref.html">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-columns: repeat(3, 86px);
+    gap: 10px;
+    background: #cdd5e0;
+    width: max-content;
+    column-rule: 4px solid blue;
+  }
+  .lanes > div {
+    background: #5b8def;
+    color: #fff;
+    font: 600 12px/1 sans-serif;
+  }
+  .lanes > div.h70 { height: 70px; }
+  .lanes > div.h85 { height: 85px; }
+  .lanes > div.h100 { height: 100px; }
+  .lanes > div.h120 { height: 120px; }
+  .lanes > div.h140 { height: 140px; }
+</style>
+<div class="lanes">
+  <div class="h120">1</div>
+  <div class="h85">2</div>
+  <div class="h140">3</div>
+  <div class="h100">4</div>
+  <div class="h70">5</div>
+  <div class="h120">6</div>
+  <div class="h85">7</div>
+  <div class="h100">8</div>
+</div>

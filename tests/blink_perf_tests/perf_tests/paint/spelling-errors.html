@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<title>Spelling error makers painting</title>
+<script src="../resources/runner.js"></script>
+<script src="resources/paint.js"></script>
+<p>To run this test use: <code>content_shell --expose-internals-for-testing</code>.</p>
+<p id="warning" style="color: red;"></p>
+<pre id="log"></pre>
+<div>Word count: <span id="wc">0</span></div>
+<main contenteditable></main>
+<script>
+  const LOREM_IPSUM = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. ";
+  const INITIAL_WORDS = 3000;
+  const main = document.querySelector("main");
+  const wc = document.querySelector("#wc");
+
+  function createRange(element, start, end) {
+    let range = new Range();
+    range.setStart(element.firstChild, start);
+    range.setEnd(element.firstChild, end);
+    return range;
+  }
+
+  function setupTest() {
+    if (!window.internals)
+      document.querySelector("#warning").innerHTML = "WARNING: use <code>content_shell --expose-internals-for-testing</code> to run this test more accurately!";
+
+    // Use real spell checker as a last resort. content_shell only has intenals,
+    // while chrome only has real spell checker. Some words in the test input
+    // might be in the dictionary (e.g. sit, do).
+    main.spellcheck = !window.internals;
+
+    main.focus();
+
+    // Type the initial words in bulk. This is much faster than typing it one
+    // letter at a time with simulateTyping.
+    const wordsInSentence = LOREM_IPSUM.split(" ").length - 1;
+    const repeatedSentence = LOREM_IPSUM.repeat(Math.ceil(INITIAL_WORDS / wordsInSentence));
+    const repeatedWords = repeatedSentence.split(" ");
+    const input = repeatedWords.slice(0, INITIAL_WORDS).join(" ");
+    document.execCommand("insertText", false, input);
+    wc.textContent = INITIAL_WORDS;
+
+    // Mark the initial words as spelling errors.
+    try {
+      for (let i = 0, wordStart = 0; i < INITIAL_WORDS; i++) {
+        const wordEnd = wordStart + repeatedWords[i].length;
+        const range = createRange(main, wordStart, wordEnd);
+        internals.setMarker(document, range, "spelling");
+        wordStart = wordEnd + 1; // space (U+0020 or U+00A0)
+      }
+    } catch (_) {
+      /* empty */
+    }
+  }
+
+  function simulateTyping() {
+    // Type the input, one letter at a time.
+    document.execCommand("insertText", false, LOREM_IPSUM[main.textContent.length % LOREM_IPSUM.length]);
+
+    // After typing each word, mark that word as a spelling error.
+    // In content_shell, spaces are U+00A0 (&nbsp;) until they are no longer
+    // trailing, but in chrome, they can stay as U+00A0 permanently.
+    // https://w3c.github.io/editing/docs/execCommand/#canonical-space-sequences
+    // https://w3c.github.io/editing/docs/execCommand/#the-inserttext-command
+    const newContent = main.textContent;
+    if (newContent.at(-2) == " " || newContent.at(-2) == "\xA0") {
+      document.querySelector("#wc").textContent++;
+
+      const end = newContent.length - 2;
+      const words = newContent.slice(0, end);
+      let start;
+      for (start = words.length - 1; start >= 0; start--)
+        if (words[start] == " " || words[start] == "\xA0")
+          break;
+
+      try {
+        const range = createRange(main, start == -1 ? 0 : start + 1, end);
+        internals.setMarker(document, range, "spelling");
+      } catch (_) {
+        /* empty */
+      }
+    }
+  }
+
+  setupTest();
+
+  measurePaint({
+    description: "Measure frame time for typing in contenteditable with many spelling errors",
+    run: () => void simulateTyping(),
+  });
+</script>

@@ -1,0 +1,75 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>toDataURL() runs fine with WebGL2 PIXEL PACK parameters</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="test"></canvas>
+<script>
+"use strict";
+description("This test verifies toDataURL() runs fine with WebGL2 PIXEL PACK parameters");
+// This is a regression test for crbug.com/740603
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("test");
+var gl = wtu.create3DContext(canvas, null, 2);
+if (!gl) {
+  testFailed("context does not exist");
+} else {
+  testPassed("context exists");
+
+  debug("");
+  debug("Testing PACK_SKIP_ROWS");
+  gl.pixelStorei(gl.PACK_SKIP_ROWS, 100);
+  var img = new Image();
+  img.src = canvas.toDataURL();  // This should not crash in ASAN
+  gl.pixelStorei(gl.PACK_SKIP_ROWS, 0);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Test should not generate GL error");
+
+  debug("");
+  debug("Testing PACK_SKIP_PIXELS");
+  gl.pixelStorei(gl.PACK_SKIP_PIXELS, 10000);
+  img = new Image();
+  img.src = canvas.toDataURL();  // This should not crash in ASAN
+  gl.pixelStorei(gl.PACK_SKIP_PIXELS, 0);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Test should not generate GL error");
+
+  debug("");
+  debug("Testing PACK_ROW_LENGTH");
+  gl.pixelStorei(gl.PACK_ROW_LENGTH, 2048);
+  img = new Image();
+  img.src = canvas.toDataURL();  // This should not crash in ASAN
+  gl.pixelStorei(gl.PACK_ROW_LENGTH, 0);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Test should not generate GL error");
+
+  debug("");
+  debug("Testing PIXEL_PACK_BUFFER");
+  var buffer = gl.createBuffer();
+  gl.bindBuffer(gl.PIXEL_PACK_BUFFER, buffer);
+  img = new Image();
+  img.src = canvas.toDataURL();  // This should not crash in ASAN
+  gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Test should not generate GL error");
+}
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

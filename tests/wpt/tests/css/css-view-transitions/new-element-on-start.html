@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: new element tag specified for start phase</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<link rel="match" href="new-element-on-start-ref.html">
+
+<script src="/common/reftest-wait.js"></script>
+<style>
+div {
+  width: 100px;
+  height: 100px;
+  contain: paint;
+  position: absolute;
+  top: 50px;
+}
+
+.before {
+  background: lightblue;
+  left: 50px;
+}
+.after {
+  background: black;
+  left: 200px;
+}
+.hidden {
+  background: red;
+  left: 350px;
+}
+
+html::view-transition-group(hidden) { animation-duration: 300s; }
+html::view-transition-image-pair(hidden) { opacity: 0; }
+
+html::view-transition-group(before) { animation-duration: 0s; }
+html::view-transition-image-pair(before) { filter: invert(1); }
+
+html::view-transition-group(after) { animation-duration: 0s; }
+html::view-transition-image-pair(after) { filter: invert(1); }
+
+html::view-transition-group(root) { animation: unset; opacity: 0; }
+html::view-transition { background: lightpink; }
+
+</style>
+
+<div id=before class=before></div>
+<div id=after class=after></div>
+
+<div id=hidden class=hidden></div>
+
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+async function runTest() {
+  hidden.style.viewTransitionName = "hidden";
+  before.style.viewTransitionName = "before";
+  let transition = document.startViewTransition(() => {
+    before.remove();
+    after.style.viewTransitionName = "after";
+  });
+  transition.ready.then(() => requestAnimationFrame(() => requestAnimationFrame(takeScreenshot)));
+}
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+

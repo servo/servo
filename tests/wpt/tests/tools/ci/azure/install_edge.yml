@@ -1,0 +1,61 @@
+parameters:
+  channel: dev
+
+# Should match https://web-platform-tests.org/running-tests/chrome.html
+# Just replace chrome with edgechromium
+steps:
+- ${{ if eq(parameters.channel, 'stable') }}:
+  - powershell: |
+      $edgeInstallerName = 'MicrosoftEdgeSetup.exe'
+      # Link to Stable channel installer
+      Start-BitsTransfer -Source 'https://go.microsoft.com/fwlink/?linkid=2108834&Channel=Stable&language=en' -Destination MicrosoftEdgeSetup.exe
+      if (-not (Test-Path $edgeInstallerName)) {
+        Throw "Failed to download Edge installer to $edgeInstallerName."
+      }
+      cmd /c START /WAIT $edgeInstallerName /silent /install
+      $edgePath = "$env:systemdrive\Program Files (x86)\Microsoft\Edge\Application"
+      if (Test-Path $edgePath) {
+        Write-Host "##vso[task.prependpath]$edgePath"
+        Write-Host "Edge Stable installed at $edgePath."
+        (Get-Item -Path "$edgePath\msedge.exe").VersionInfo | Format-List
+      } else {
+        Copy-Item -Path "$env:temp\*edge*.log" -Destination $(Build.ArtifactStagingDirectory)  -Force
+        Throw "Failed to install Edge at $edgePath"
+      }
+    displayName: 'Install Edge Stable'
+
+- ${{ if eq(parameters.channel, 'canary') }}:
+  - powershell: |
+      $edgeInstallerName = 'MicrosoftEdgeSetup.exe'
+      # Link to Canary channel installer
+      Start-BitsTransfer -Source 'https://go.microsoft.com/fwlink/?linkid=2084649&Channel=Canary&language=en-us' -Destination MicrosoftEdgeSetup.exe
+      if (-not (Test-Path $edgeInstallerName)) {
+        Throw "Failed to download Edge installer to $edgeInstallerName."
+      }
+      cmd /c START /WAIT $edgeInstallerName /silent /install
+      $edgePath = "$env:localappdata\Microsoft\Edge SxS\Application"
+      if (Test-Path $edgePath) {
+        Write-Host "##vso[task.prependpath]$edgePath"
+        Write-Host "Edge Canary installed at $edgePath."
+        (Get-Item -Path "$edgePath\msedge.exe").VersionInfo | Format-List
+      } else {
+        Copy-Item -Path "$env:temp\*edge*.log" -Destination $(Build.ArtifactStagingDirectory)  -Force
+        Throw "Failed to install Edge Canary at $edgePath"
+      }
+    displayName: 'Install Edge Canary'
+- ${{ if eq(parameters.channel, 'dev') }}:
+  - powershell: |
+      $edgeInstallerName = 'MicrosoftEdgeSetup.exe'
+      # Link to Dev channel installer
+      Start-BitsTransfer -Source 'https://go.microsoft.com/fwlink/?linkid=2069324&Channel=Dev&language=en-us' -Destination MicrosoftEdgeSetup.exe
+      cmd /c START /WAIT $edgeInstallerName /silent /install
+      $edgePath = "$env:systemdrive\Program Files (x86)\Microsoft\Edge Dev\Application"
+      if (Test-Path $edgePath) {
+        Write-Host "##vso[task.prependpath]$edgePath"
+        Write-Host "Edge Canary installed at $edgePath."
+        (Get-Item -Path "$edgePath\msedge.exe").VersionInfo | Format-List
+      } else {
+        Copy-Item -Path "$env:temp\*edge*.log" -Destination $(Build.ArtifactStagingDirectory) -Force
+        Throw "Failed to install Edge Dev at $edgePath"
+      }
+    displayName: 'Install Edge Dev'

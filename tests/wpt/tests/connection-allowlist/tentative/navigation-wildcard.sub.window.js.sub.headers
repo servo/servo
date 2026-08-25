@@ -1,0 +1,2 @@
+Content-Type: text/html
+Connection-Allowlist: (response-origin "*://:subdomain.{{hosts[alt][]}}:*")

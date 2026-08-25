@@ -1,0 +1,29 @@
+﻿<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: ellipsis, revealing more text</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="http://www.w3.org/TR/css3-ui/#ellipsis-scrolling">
+<link rel="match" href="reference/text-overflow-021-ref.html">
+<meta name="flags" content="dom should">
+<meta name="assert" content="When an element with ellipsis is scrolled, more content should be revealed, until the element is scrolled far enough to display the edge of the content at which point that content should be displayed rather than an ellipsis.">
+<style>
+div {
+  font-family: monospace;
+  width: 16ch;
+  white-space: pre;
+  overflow: scroll;
+  text-overflow: ellipsis;
+  border: solid blue;
+}
+</style>
+
+<p>This test passes if the text is in the blue box below is “PASS”.
+<div id=test>                PASS</div>
+<script>
+var test = document.getElementById("test");
+test.scrollBy(500,0);
+document.documentElement.className = "";
+</script>
+
+

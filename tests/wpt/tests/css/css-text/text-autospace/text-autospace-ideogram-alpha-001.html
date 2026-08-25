@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-autospace-property">
+<link rel="match" href="text-autospace-ideogram-alpha-001-ref.html">
+<link rel="author" title="Vitor Roriz" href="https://github.com/vitorroriz">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+    .no-autospace {
+        text-autospace: no-autospace;
+    }
+    .auto-space {
+        text-autospace: ideograph-alpha;
+    }
+    .manual-space {
+        margin-left: 0.125em;
+    }
+    p {
+        font-size: 40px;
+        margin: 2px;
+        font-family: Ahem;
+    }
+</style>
+</head>
+<body>
+    <p class="no-autospace">A水水</p>
+    <p class="auto-space">A水水</p>
+    <p class="no-autospace">A<span class="manual-space">水水</span></p>
+</body>
+</html>

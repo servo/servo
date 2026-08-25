@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="Content-Security-Policy" content="script-src-elem 'nonce-abc';
+    script-src 'nonce-abc' 'nonce-def';">
+    <script nonce='abc' src="/resources/testharness.js"></script>
+    <script nonce='abc' src="/resources/testharnessreport.js"></script>
+</head>
+
+<body>
+    <script nonce='abc'>
+      var t = async_test("Should fire a spv event");
+      window.addEventListener('securitypolicyviolation', t.step_func_done(function(e) {
+        assert_equals(e.violatedDirective, 'script-src-elem');
+        assert_equals(e.blockedURI, 'inline');
+      }));
+
+    </script>
+
+    <script nonce='def'>
+      t.step_func(function() {
+        assert_unreached("Should not have executed the inline block");
+      });
+    </script>
+</body>
+
+</html>

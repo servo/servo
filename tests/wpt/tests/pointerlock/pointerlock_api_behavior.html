@@ -1,0 +1,65 @@
+<!doctype html>
+<html>
+<head>
+  <title>Pointer Lock API behavior test</title>
+  <meta name="viewport" content="width=device-width">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="test-helper.js"></script>
+</head>
+<body>
+  <div id="target" style="width:200px;height:200px;background:green"></div>
+</body>
+<script>
+  promise_test(async function(t) {
+    assert_equals(document.pointerLockElement, null,
+      "pointerLockElement should be null before test.");
+
+    var handler = e => assert_unreached(
+      `Unexpected firing of ${e.type}`);
+    document.addEventListener('pointerlockchange', handler);
+    document.addEventListener('pointerlockerror', handler);
+
+    // Should be a harmless no-op.
+    document.exitPointerLock();
+
+    // Give any async events a chance to fire.
+    await new Promise(resolve => t.step_timeout(resolve, 500));
+
+    document.removeEventListener('pointerlockchange', handler);
+    document.removeEventListener('pointerlockerror', handler);
+
+    assert_equals(document.pointerLockElement, null,
+      "document.pointerLockElement should be null after exitPointerLock."
+    );
+  }, "exitPointerLock() is a no-op when pointer is not locked");
+
+  promise_test(async function(t) {
+    var target = document.getElementById("target");
+
+    const lockEvent = await lockPointerAndWaitForEvent(
+      target, /*provideTransientActivation=*/ true);
+
+    assert_not_equals(lockEvent, null,
+      "lockEvent should've been set in 'pointerlockchange'");
+    assert_false(lockEvent.bubbles,
+      "pointerlockchange event should not bubble.");
+    assert_false(lockEvent.cancelable,
+      "pointerlockchange event should not be cancelable.");
+    assert_equals(lockEvent.target, document,
+      "pointerlockchange event target should be the document.");
+
+    const unlockEvent = await unlockPointerAndWaitForEvent();
+
+    assert_not_equals(unlockEvent, null,
+      "unlockEvent should've been set in 'pointerlockchange'");
+    assert_false(unlockEvent.bubbles,
+      "pointerlockchange on unlock should not bubble.");
+    assert_false(unlockEvent.cancelable,
+      "pointerlockchange on unlock should not be cancelable.");
+  }, "pointerlockchange event does not bubble and is not cancelable");
+</script>
+</html>

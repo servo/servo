@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Finish notification steps run when reversing during positive delay</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations/#updating-the-finished-state">
+<link rel="help" href="http://crbug.com/386304676">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+/*
+ * This test lives in a separate file from updating-the-finished-state.html
+ * because other animations may scheule frames that are fulfilled even after
+ * their tests are completed and the animations are torn down, causing this
+ * test to always pass even when it would fail in isolation.
+ */
+
+promise_test(async t => {
+  const animation = createDiv(t).animate(
+      { opacity: [0, 1] }, { duration: 1000, delay: 50 });
+  await animation.ready;
+
+  animation.currentTime = 100;
+  animation.reverse();
+
+  const waitForFinished = new Promise((resolve, reject) => {
+    const timeout = step_timeout(() => {
+      reject('timeout');
+    }, 1000);
+    animation.finished.then(() => {
+      clearTimeout(timeout);
+      resolve('resolved finished');
+    }, () => {
+      clearTimeout(timeout);
+      reject('rejected finished');
+    });
+  });
+
+  await waitForFinished;
+  assert_time_equals_literal(animation.currentTime, 0,
+                             'Animation should finish at currentTime 0');
+}, 'Finish notification steps run when reversing during positive delay');
+
+</script>
+</body>

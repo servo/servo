@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<meta charset="utf-8">
+<title>element.animate with fontStyle should not crash</title>
+<link rel="help" href="https://crbug.com/40365302">
+<div id="target">This test passes if it does not crash.</div>
+<script>
+  target.animate([{fontStyle: "oblique"}, {fontStyle: "oblique"}], 1000);
+  requestAnimationFrame(() => {
+    document.documentElement.classList.remove('test-wait');
+  });
+</script>

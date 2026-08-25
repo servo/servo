@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+
+  <title>CSS Backgrounds Test: box-shadow and empty box (edge)</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-backgrounds-3/#the-box-shadow">
+  <link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+
+  <meta content="This test checks that an empty box can have a box shadow." name="assert">
+
+  <!--
+
+  <shadow> = inset? && <length>{2,4} && <color>?
+
+  A comma-separated pair of numbers in curly braces {A,B}
+  indicates that the preceding type, word, or group occurs
+  at least A and at most B times.
+
+  A question mark (?) indicates that the preceding type,
+  word, or group is optional (occurs zero or one times).
+
+  The components of each <shadow> are interpreted as follows:
+
+  1st <length>
+    Specifies the horizontal offset
+    of the shadow. A positive value draws a shadow that is offset to the right of the box, a negative length to the left.
+  2nd <length>
+    Specifies the vertical offset
+    of the shadow. A positive value offsets the shadow down, a negative one up.
+  4th <length>
+    Specifies the spread distance. Positive values cause the shadow to expand in all directions by the specified radius. Negative values cause the shadow to contract.
+
+  -->
+
+  <style>
+  div#green-overlapping-test
+    {
+      background-color: red;
+      height: 0px;
+      width: 0px;
+
+      box-shadow: green 50px 50px 0px 50px;
+    }
+
+  div#red-overlapped-reference
+    {
+      background-color: red;
+      height: 100px;
+      position: relative;
+      width: 100px;
+      z-index: -1;
+    }
+  </style>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.
+
+  <div id="green-overlapping-test"></div>
+
+  <div id="red-overlapped-reference"></div>

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/cssom-view-1/#dom-element-getclientrects">
+<link rel="match" href="../reference/nothing.html">
+<style>
+  .container {
+    float: left;
+    width: 8em;
+    height: 7em;
+    padding: 1em;
+    color: red;
+  }
+  .correctionFluid {
+    position: absolute;
+    background: white;
+
+    /* Add some fluff to cover text ink-overflow. */
+    outline:2px solid white;
+  }
+</style>
+<p>There should be nothing below.</p>
+  <div class="container" style="writing-mode:horizontal-tb;">
+    <br><span class="child">FAIL</span>
+  </div>
+  <div class="container" style="writing-mode:vertical-lr;">
+    <br><span class="child">FAIL</span>
+  </div>
+  <div class="container" style="writing-mode:vertical-rl;">
+    <br><span class="child">FAIL</span>
+  </div>
+  <div class="container" style="writing-mode:horizontal-tb; direction:rtl;">
+    <br><span class="child">FAIL</span>
+  </div>
+  <div class="container" style="writing-mode:vertical-lr; direction:rtl;">
+    <br><span class="child">FAIL</span>
+  </div>
+  <div class="container" style="writing-mode:vertical-rl; direction:rtl;">
+    <br><span class="child">FAIL</span>
+  </div>
+<script>
+  // Create a white absolutely positioned box for each span.child
+  // element and cover it.
+
+  let elements = document.querySelectorAll("span.child");
+  elements.forEach((element)=> {
+    let correctionFluid = document.createElement("div");
+    correctionFluid.className = "correctionFluid";
+    var r = element.getClientRects()[0];
+    correctionFluid.style.left = r.left + "px";
+    correctionFluid.style.top = r.top + "px";
+    correctionFluid.style.width = r.width + "px";
+    correctionFluid.style.height = r.height + "px";
+    document.body.appendChild(correctionFluid);
+  });
+</script>

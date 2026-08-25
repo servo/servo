@@ -1,0 +1,189 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>Testing contenteditable=plaintext-only which is nested with contenteditable=true</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../include/editor-test-utils.js"></script>
+<script>
+"use strict";
+
+addEventListener("load", () => {
+  const editingHost = document.createElement("div");
+  editingHost.setAttribute("contenteditable", "");
+  document.body.appendChild(editingHost);
+  editingHost.focus();
+  const utils = new EditorTestUtils(editingHost);
+  for (const trueOrEmpty of ["", "true"]) {
+    for (const explicitlySetFocus of [false, true]) {
+      for (const data of [
+        {
+          desc: `contenteditable="plaintext-only" in contenteditable="${trueOrEmpty}" should support style edit`,
+          init: `<div contenteditable="plaintext-only">[abc]</div>`,
+          run: function () {
+            document.execCommand("bold");
+          },
+          expected: `<div contenteditable="plaintext-only"><b>abc</b></div>`
+        },
+        {
+          desc: `contenteditable="plaintext-only" in contenteditable="${
+            trueOrEmpty
+          }" and contenteditable="false" should not support style edit`,
+          init: `<div contenteditable="false"><div contenteditable="plaintext-only">[abc]</div></div>`,
+          run: function () {
+            document.execCommand("bold");
+          },
+          expected: `<div contenteditable="false"><div contenteditable="plaintext-only">abc</div></div>`,
+        },
+        {
+          desc: `contenteditable="plaintext-only" in contenteditable="${trueOrEmpty}" should insert paragraph at typing Enter`,
+          init: `<div contenteditable="plaintext-only"><p>a[b]c</p></div>`,
+          run: function () {
+            return utils.sendEnterKey();
+        },
+          expected: `<div contenteditable="plaintext-only"><p>a</p><p>c</p></div>`
+        },
+        {
+          desc: `contenteditable="plaintext-only" in contenteditable="${
+            trueOrEmpty
+          }" and contenteditable="false" should insert line break at typing Enter`,
+          init: `<div contenteditable="false"><div contenteditable="plaintext-only"><p>a[b]c</p></div></div>`,
+          run: function () {
+            return utils.sendEnterKey();
+          },
+          expected: `<div contenteditable="false"><div contenteditable="plaintext-only"><p>a<br>c</p></div></div>`,
+        },
+        {
+          desc: `styling start boundary of contenteditable="plaintext-only" in contenteditable="${
+            trueOrEmpty
+          }" should apply the style to entire the range`,
+          init: `A[B<div contenteditable="plaintext-only">C]D</div>EF`,
+          run: function () {
+            document.execCommand("bold");
+          },
+          expected: `A<b>B</b><div contenteditable="plaintext-only"><b>C</b>D</div>EF`,
+        },
+        {
+          desc: `styling end boundary of contenteditable="plaintext-only" in contenteditable="${
+            trueOrEmpty
+          }" should apply the style to entire the range`,
+          init: `AB<div contenteditable="plaintext-only">C[D</div>E]F`,
+          run: function () {
+            document.execCommand("bold");
+          },
+          expected: `AB<div contenteditable="plaintext-only">C<b>D</b></div><b>E</b>F`,
+        },
+        {
+          desc: `even after moving selection into contenteditable="plaintext-only" in contenteditable="${
+            trueOrEmpty
+          }" and contenteditable="false" from parent editing host should not support style edit`,
+          init: `A[]B<div contenteditable="false"><div contenteditable="plaintext-only">CD</div></div>EF`,
+          run: function () {
+            getSelection().selectAllChildren(editingHost.querySelector("div[contenteditable=plaintext-only]"));
+            document.execCommand("bold");
+          },
+          expected: `AB<div contenteditable="false"><div contenteditable="plaintext-only">CD</div></div>EF`,
+        },
+      ]) {
+        promise_test(async () => {
+          editingHost.setAttribute("contenteditable", trueOrEmpty);
+          utils.setupEditingHost(data.init);
+          if (explicitlySetFocus) {
+            editingHost.querySelector("[contenteditable=plaintext-only]").focus();
+          }
+          await data.run();
+          assert_equals(editingHost.outerHTML, `<div contenteditable="${trueOrEmpty}">${data.expected}</div>`);
+        }, data.desc + (explicitlySetFocus ? " (explicitly setting focus to the nested one)" : ""));
+      }
+
+      for (const data of [
+        {
+          desc: `contenteditable="${trueOrEmpty}" in contenteditable="plaintext-only" should not support style edit`,
+          init: `<div contenteditable="${trueOrEmpty}">[abc]</div>`,
+          run: function () {
+            document.execCommand("bold");
+          },
+          expected: `<div contenteditable="${trueOrEmpty}">abc</div>`
+        },
+        {
+          desc: `contenteditable="${
+            trueOrEmpty
+          }" in contenteditable="plaintext-only" and contenteditable="false" should support style edit`,
+          init: `<div contenteditable="false"><div contenteditable="${trueOrEmpty}">[abc]</div></div>`,
+          run: function () {
+            document.execCommand("bold");
+          },
+          expected: `<div contenteditable="false"><div contenteditable="${trueOrEmpty}"><b>abc</b></div></div>`,
+        },
+        {
+          desc: `contenteditable="${trueOrEmpty}" in contenteditable="plaintext-only" should insert line break at typing Enter`,
+          init: `<div contenteditable="${trueOrEmpty}"><p>a[b]c</p></div>`,
+          run: function () {
+            return utils.sendEnterKey();
+          },
+          expected: `<div contenteditable="${trueOrEmpty}"><p>a<br>c</p></div>`
+        },
+        {
+          desc: `contenteditable="${
+            trueOrEmpty
+          }" in contenteditable="plaintext-only" and contenteditable="false" should insert paragraph at typing Enter`,
+          init: `<div contenteditable="false"><div contenteditable="${trueOrEmpty}"><p>a[b]c</p></div></div>`,
+          run: function () {
+            return utils.sendEnterKey();
+          },
+          expected: `<div contenteditable="false"><div contenteditable="${trueOrEmpty}"><p>a</p><p>c</p></div></div>`,
+        },
+        {
+          desc: `styling start boundary of contenteditable="${
+            trueOrEmpty
+          }" in contenteditable="plaintext-only" should not apply the style`,
+          init: `A[B<div contenteditable="${trueOrEmpty}">C]D</div>EF`,
+          run: function () {
+            document.execCommand("bold");
+          },
+          expected: `AB<div contenteditable="${trueOrEmpty}">CD</div>EF`,
+        },
+        {
+          desc: `styling end boundary of contenteditable="${
+            trueOrEmpty
+          }" in contenteditable="plaintext-only" should not apply the style`,
+          init: `AB<div contenteditable="${trueOrEmpty}">C[D</div>E]F`,
+          run: function () {
+            document.execCommand("bold");
+          },
+          expected: `AB<div contenteditable="${trueOrEmpty}">CD</div>EF`,
+        },
+        {
+          desc: `even after moving selection into contenteditable="${
+            trueOrEmpty
+          }" in contenteditable="plaintext-only" and contenteditable="false" from parent editing host should support style edit`,
+          init: `A[]B<div contenteditable="false"><div contenteditable="${trueOrEmpty}">CD</div></div>EF`,
+          run: function () {
+            getSelection().selectAllChildren(editingHost.querySelector(`div[contenteditable="${trueOrEmpty}"]`));
+            document.execCommand("bold");
+          },
+          expected: `AB<div contenteditable="false"><div contenteditable="${trueOrEmpty}"><b>CD</b></div></div>EF`,
+        },
+      ]) {
+        promise_test(async () => {
+          editingHost.setAttribute("contenteditable", "plaintext-only");
+          utils.setupEditingHost(data.init);
+          if (explicitlySetFocus) {
+            editingHost.querySelector(`[contenteditable='${trueOrEmpty}']`).focus();
+          }
+          await data.run();
+          assert_equals(editingHost.outerHTML, `<div contenteditable="plaintext-only">${data.expected}</div>`);
+        }, data.desc + (explicitlySetFocus ? " (explicitly setting focus to the nested one)" : ""));
+      }
+    }
+  }
+}, {once: true});
+</script>
+</head>
+<body></body>
+</html>

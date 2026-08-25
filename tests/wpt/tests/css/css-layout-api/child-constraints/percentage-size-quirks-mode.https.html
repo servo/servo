@@ -1,0 +1,55 @@
+<html class=reftest-wait>
+<link rel="help" href="https://drafts.css-houdini.org/css-layout-api/#dom-layoutconstraintsoptions-percentageblocksize">
+<link rel="match" href="../green-square-ref.html">
+<meta name="assert" content="This test checks that setting a percentage block-size works correctly in quirks mode." />
+
+<style>
+.container {
+  height: 200px;
+}
+
+.test {
+  background: red;
+  width: 100px;
+}
+
+.child {
+  visibility: hidden;
+  width: 10px;
+  line-height: 0;
+}
+
+.inline {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+}
+
+@supports (display: layout(test)) {
+  .test {
+    background: green;
+    display: layout(test);
+  }
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+
+<div class="container">
+  <div class="test">
+    <!-- TODO explain. -->
+    <div class="child" style="--percentage-block-size: 50px; --inline-size-expected: 10px; --block-size-expected: 10px;">
+      <div style="height: 20%"></div>
+    </div>
+
+    <!-- TODO explain. -->
+    <div class="child" style="--inline-size-expected: 10px; --block-size-expected: 10px;">
+      <div style="height: 100%">
+        <div class="inline"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+importWorkletAndTerminateTestAfterAsyncPaint(CSS.layoutWorklet, {url: 'support/layout-child-sizes-worklet.js'});
+</script>

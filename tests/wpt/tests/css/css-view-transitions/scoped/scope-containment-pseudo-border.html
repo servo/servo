@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+  <meta charset="utf-8">
+  <link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+  <link rel="match" href="scope-containment-pseudo-border-ref.html">
+  <script src="/common/reftest-wait.js"></script>
+  <script src="/web-animations/testcommon.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+    }
+    #scope {
+      width: min-content;
+      height: auto;
+      background: lightgray;
+      position: absolute;
+      left: 50px;
+      top: 50px;
+    }
+    #child {
+      width: 100px;
+      height: 100px;
+      background: lightblue;
+    }
+    #scope::view-transition-group(root) {
+      border: 1px solid black;
+      animation-play-state: paused;
+    }
+    #scope::view-transition-old(root),
+    #scope::view-transition-new(root) {
+      animation-play-state: paused;
+    }
+  </style>
+</head>
+<body>
+  <div id="scope">
+    <div id="child"></div>
+  </div>
+
+  <script>
+    window.onload = async () => {
+      await waitForCompositorReady();
+      const scope = document.querySelector("#scope");
+
+      const transition = scope.startViewTransition(() => {
+        scope.innerHTML = "";
+      });
+
+      await transition.ready;
+      takeScreenshotOnAnimationsReady();
+    };
+  </script>
+</body>
+</html>

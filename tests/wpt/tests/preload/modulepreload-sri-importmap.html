@@ -1,0 +1,44 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>modulepreload with an invalid integrity does not poison a later import (with an import map)</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script type="importmap">
+  {
+    "imports": {
+      "test": "https://example.com/test.js"
+    }
+  }
+</script>
+<body>
+<script>
+  // As modulepreload-sri.html, but with an import map registered. The import map
+  // does not affect resolution of module1.js, so it must not change the result:
+  // a modulepreload whose integrity check fails is a fetch error, which is not
+  // cached in the module map, so a later no-integrity <script type=module> for
+  // the same URL fetches it again and loads successfully.
+  // https://html.spec.whatwg.org/#fetch-a-single-module-script
+  //
+  // The <script> is only inserted after the modulepreload has finished, so the
+  // two never join a single in-flight fetch.
+  promise_test(async () => {
+    const link = document.createElement('link');
+    link.rel = 'modulepreload';
+    link.href = 'resources/module1.js';
+    link.integrity = 'sha384-invalid';
+    await new Promise((resolve, reject) => {
+      link.onload = () => reject(new Error('modulepreload should have failed its integrity check'));
+      link.onerror = resolve;
+      document.head.appendChild(link);
+    });
+
+    const script = document.createElement('script');
+    script.type = 'module';
+    script.src = 'resources/module1.js';
+    await new Promise((resolve, reject) => {
+      script.onload = resolve;
+      script.onerror = () => reject(new Error('script should have loaded'));
+      document.body.appendChild(script);
+    });
+  }, "A module script should load even if an earlier modulepreload for the same URL failed its integrity check, with an import map registered");
+</script>

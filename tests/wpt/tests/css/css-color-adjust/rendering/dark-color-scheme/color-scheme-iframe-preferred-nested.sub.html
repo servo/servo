@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+
+<!--
+  Each test case is a chain of nested iframes, some of which has color-scheme set
+  on the embedding element. This is controlled by `origins` and `colorSchemes`
+  search parameters (encoded as JSON arrays):
+  * `origins[i]` is the i'th nested iframe's src origin ("main" or "alt")
+  * `colorSchemes[i]` is the color scheme of the embedder element of the i'th
+    nested iframe ("dark", "light", or "" to not explicitly specify)
+  0'th iframe is in the test page.
+
+  Once the chain is set up, the leaf page (page at the end of the chain) sends back
+  the evaluation result of @media (prefers-color-scheme) to the test page at the top,
+  and the test page checks if the result is correct or not.
+-->
+
+<title>prefers-color-scheme in nested iframes works</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-adjust/#color-scheme-effect">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/7493">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<main id="main">
+</main>
+
+<template id="leafpage">
+  <style>
+    @media (prefers-color-scheme: dark) {
+      #target { background-color: #00ff00; }
+    }
+
+    @media (prefers-color-scheme: light) {
+      #target { background-color: #ff0000; }
+    }
+
+    #target {
+      width: 100px;
+      height: 100px;
+    }
+  </style>
+  <div id="target"></div>
+</template>
+
+<script>
+  const mainURL = new URL(location.pathname, "http://{{hosts[][]}}:{{ports[http][0]}}");
+  const altURL = new URL(location.pathname, "http://{{hosts[alt][]}}:{{ports[http][0]}}");
+
+  const params = new URLSearchParams(location.search);
+  const origins = JSON.parse(params.get("origins"));
+  const colorSchemes = JSON.parse(params.get("colorSchemes"));
+
+  const isTestPage = !origins && !colorSchemes;
+  const isLeafPage = origins && !origins.length && colorSchemes && !colorSchemes.length;
+  const isIntermediatePage = !isTestPage && !isLeafPage;
+
+  function createNextIframe(origins, colorSchemes) {
+    const origin = origins.shift();
+    const colorScheme = colorSchemes.shift();
+
+    const iframe = document.createElement("iframe");
+    if (colorScheme)
+      iframe.style.colorScheme = colorScheme;
+
+    const childURL = origin == "alt" ? new URL(altURL): new URL(mainURL);
+    childURL.searchParams.append("origins", JSON.stringify(origins));
+    childURL.searchParams.append("colorSchemes", JSON.stringify(colorSchemes));
+    iframe.src = childURL.toString();
+
+    return iframe;
+  }
+
+  if (isLeafPage) {
+    main.appendChild(leafpage.content.cloneNode(true));
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const targetComputedBackgroundColor = getComputedStyle(target).backgroundColor;
+        window.top.postMessage(targetComputedBackgroundColor, "*");
+      });
+    });
+  } else if (isIntermediatePage) {
+    main.appendChild(createNextIframe(origins, colorSchemes));
+  } else if (isTestPage) {
+    function nested_test(origins, colorSchemes, expectedColor) {
+      promise_test(async (t) => {
+        main.appendChild(createNextIframe(origins, colorSchemes));
+
+        const actualColor = (await new Promise((resolve) => window.addEventListener("message", resolve, { once: true }))).data;
+        assert_equals(actualColor, expectedColor);
+        main.replaceChildren();
+      });
+    }
+
+    const expectedLightColor = "rgb(255, 0, 0)";
+    const expectedDarkColor = "rgb(0, 255, 0)";
+
+    // 3 nested
+    nested_test(["main", "main"], ["dark", ""], expectedDarkColor);
+    nested_test(["main", "alt"], ["light", ""], expectedLightColor);
+    nested_test(["alt", "alt"], ["dark", ""], expectedDarkColor);
+
+    // 4 nested
+    nested_test(["main", "main", "alt"], ["light", "", "dark"], expectedDarkColor);
+    nested_test(["main", "alt", "main"], ["light", "dark", ""], expectedDarkColor);
+    nested_test(["alt", "main", "main"], ["light", "", ""], expectedLightColor);
+    nested_test(["main", "main", "main"], ["dark", "", ""], expectedDarkColor);
+
+    // 5 nested
+    nested_test(["main", "alt", "main", "alt"], ["light", "", "dark", ""], expectedDarkColor);
+    nested_test(["alt", "main", "alt", "main"], ["light", "dark", "", ""], expectedDarkColor);
+    nested_test(["alt", "main", "alt", "main"], ["", "dark", "", ""], expectedDarkColor);
+    nested_test(["alt", "main", "main", "alt"], ["light", "", "", ""], expectedLightColor);
+    nested_test(["main", "main", "main", "main"], ["dark", "", "", ""], expectedDarkColor);
+  };
+</script>

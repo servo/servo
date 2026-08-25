@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>forced-color-adjust: preserve-parent-color and :visited links</title>
+<link rel="help" href="https://www.w3.org/TR/css-color-adjust-1/#forced-colors-properties">
+<link rel="help" href="https://drafts.csswg.org/css-color/#visited">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .preserve {
+    forced-color-adjust: preserve-parent-color;
+    color: inherit;
+  }
+</style>
+<body>
+  <a href="" id="visited_link">
+    <span id="visited_child" class="preserve">child</span>
+  </a>
+  <a href="unvisited" id="unvisited_link">
+    <span id="unvisited_child" class="preserve">child</span>
+  </a>
+</body>
+<script>
+  test(() => {
+    assert_equals(
+      getComputedStyle(visited_child).color,
+      getComputedStyle(visited_link).color,
+      "Child of visited link with forced-color-adjust: preserve-parent-color " +
+      "must inherit the parent's unvisited rendered color via getComputedStyle().");
+
+    assert_equals(
+      getComputedStyle(unvisited_child).color,
+      getComputedStyle(unvisited_link).color,
+      "Child of unvisited link with forced-color-adjust: preserve-parent-color " +
+      "must inherit the parent's unvisited rendered color via getComputedStyle().");
+
+    assert_equals(
+      getComputedStyle(visited_child).color,
+      getComputedStyle(unvisited_child).color,
+      "getComputedStyle() must not differ between children of visited and " +
+      "unvisited links.");
+  }, "forced-color-adjust: preserve-parent-color and :visited links");
+</script>

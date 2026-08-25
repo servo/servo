@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title></title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-cascade/#at-import">
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=235930">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="Checks that the page is rendered correctly when @import rule is removed with JS.">
+<p>Test passes if there is a filled green square.</p>
+<div style="width:100px; height:100px;"></div>
+<script>
+const style = document.createElement("style");
+document.head.append(style);
+const {sheet} = style;
+sheet.insertRule("@import url('data:text/css,div { background: red !important }');");
+sheet.insertRule("div { background: green }", 1);
+sheet.deleteRule(0);
+</script>

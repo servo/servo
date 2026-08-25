@@ -1,0 +1,9 @@
+rules:
+- clip-rect-*: [clip, writing-mode]
+- bidi-*: [layout-direction-override, writing-mode]
+- text-combine-upright-*: [text-combine-upright, writing-mode]
+- text-orientation-*: [text-orientation, writing-mode]
+- text-shadow-*: [text-shadow, writing-mode]
+- text-underline-position-*: [text-underline-position, writing-mode]
+- writing-mode-parsing-svg1-001.html: [writing-mode-svg-values]
+- "*": [writing-mode]

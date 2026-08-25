@@ -1,0 +1,7 @@
+<doc its:version="2.0" xmlns:its="http://www.w3.org/2005/11/its">
+ <section xml:id="S001">
+  <par>A <its:span term="yes" termInfoRef="http://en.wikipedia.org/wiki/Motherboard">motherboard</its:span>,
+   also known as a <its:span term="yes">logic <its:span term="yes">board</its:span></its:span> on Apple Computers,
+   is the primary circuit board making up a modern computer.</par>
+ </section> 
+</doc>

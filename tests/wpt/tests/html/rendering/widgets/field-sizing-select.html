@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#field-sizing">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<style>
+.disable-default {
+  field-sizing: content;
+}
+</style>
+<div id="container"></div>
+<script>
+const container = document.querySelector('#container');
+const DISABLE = 'class="disable-default"';
+
+// Tests for drop-down box ====================================================
+
+test(() => {
+  const s = '<select>><option>1<option>quick brown<option>fox</select>';
+  container.innerHTML = s + s;
+  container.lastElementChild.style.fieldSizing = 'content';
+  const widthForContent1 = container.lastElementChild.offsetWidth;
+  assert_greater_than(container.firstElementChild.offsetWidth,
+                      widthForContent1);
+  container.lastElementChild.selectedIndex = 1;
+  const widthForContentQuickBrown = container.lastElementChild.offsetWidth;
+  assert_greater_than(widthForContentQuickBrown, widthForContent1);
+}, 'dropdown: The width should depend on the selected OPTION');
+
+test(() => {
+  container.innerHTML = '<select><option>foo<option>quick brown fox</select>';
+  const select = container.firstElementChild;
+  const initialWidth = select.offsetWidth;
+  select.style.fieldSizing = 'content';
+  assert_less_than(select.offsetWidth, initialWidth);
+  select.style.fieldSizing = 'fixed';
+  assert_equals(select.offsetWidth, initialWidth);
+}, 'dropdown: Change the field-sizing value dynamically');
+
+// Tests for list box =========================================================
+
+// Some paltforms don't support list box rendering.
+container.innerHTML = '<select></select><select multiple></select>';
+if (container.firstElementChild.offsetHeight != container.lastElementChild.offsetHeight) {
+
+  test(() => {
+    container.innerHTML = `<select multiple><option>fox</select>` +
+                          `<select multiple ${DISABLE}><option>fox</select>`;
+    const former = container.firstElementChild;
+    const latter = container.lastElementChild;
+    const widthForOneItem = latter.offsetWidth;
+    const heightForOneItem = latter.offsetHeight;
+    assert_equals(former.offsetWidth, widthForOneItem);
+    assert_greater_than(former.offsetHeight, heightForOneItem);
+
+    latter.add(new Option('quick brown'));
+    assert_greater_than(latter.offsetWidth, widthForOneItem);
+    assert_greater_than(latter.offsetHeight, heightForOneItem);
+  }, 'listbox: The size depend on the content');
+
+  test(() => {
+    container.innerHTML = `<select size="4"></select><select size="4" ${DISABLE}></select>`;
+    const former = container.firstElementChild;
+    const latter = container.lastElementChild;
+    const widthForZeroItem = latter.offsetWidth;
+    const heightForZeroItem = latter.offsetHeight;
+    assert_equals(former.offsetWidth, widthForZeroItem);
+    assert_greater_than(former.offsetHeight, heightForZeroItem);
+
+    latter.add(new Option('quick brown'));
+    assert_greater_than(latter.offsetWidth, widthForZeroItem);
+    assert_greater_than(latter.offsetHeight, heightForZeroItem);
+  }, 'listbox: The size attribute value is ignored');
+
+  test(() => {
+    container.innerHTML = '<select multiple><option>foo<option>quick brown fox</select>';
+    const select = container.firstElementChild;
+    const initialHeight = select.offsetHeight;
+    select.style.fieldSizing = 'content';
+    assert_less_than(select.offsetHeight, initialHeight);
+    select.style.fieldSizing = 'fixed';
+    assert_equals(select.offsetHeight, initialHeight);
+  }, 'listbox: Change the field-sizing value dynamically');
+
+}
+</script>
+</body>

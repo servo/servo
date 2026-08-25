@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Animations Test: animation-timing-function - steps with parameters (<number>, end)</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="reviewer" title="Zhiqiang Zhang" href="mailto:zhiqiang.zhang@intel.com"> <!-- 2015-05-07 -->
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#animation-name">
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#animation-duration">
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#animation-fill-mode">
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#animation-timing-function">
+<meta name="flags" content="animated">
+<meta name="assert" content="When animation-timing-function is set to steps with paramenters
+                             (<number>, end), animation will be defined by the number that divides
+                             the domain of operation into equally size intervals, evey time the changes
+                             happens at the end of the interval.">
+<style>
+  div {
+    float: left;
+    height: 100px;
+    width: 100px;
+    position: absolute;
+  }
+
+  #test-step-end {
+    animation-name: sample;
+    animation-duration: 10s;
+    animation-fill-mode: forwards;
+    animation-timing-function: steps(3, end);
+
+    background-color: blue;
+  }
+
+  #ref-1 {
+    background-color: yellow;
+    left: 200px;
+  }
+
+  #ref-2 {
+    background-color: green;
+    left: 100px;
+  }
+
+  #ref-3 {
+    background-color: red;
+    left: 0px;
+  }
+
+  @keyframes sample {
+    from {
+      left: 300px;
+    }
+    to {
+      left: 0px;
+    }
+  }
+</style>
+<body>
+  <p>
+    Test passes if there are a filled square with 'Filler Text',
+    which jumps three times from right to left and orderly covers
+    the filled YELLOW, GREEN and RED squares.
+  </p>
+  <div id="ref-1"></div>
+  <div id="ref-2"></div>
+  <div id="ref-3"></div>
+  <div id="test-step-end">Filler Text</div>
+</body>
+

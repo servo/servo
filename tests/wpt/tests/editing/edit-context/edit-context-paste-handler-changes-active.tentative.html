@@ -1,0 +1,145 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>If active EditContext is changed during paste event handler, pasted contents should go to new editor.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../include/editor-test-utils.js"></script>
+<div id=outer><div id=inner></div></div>
+<textarea></textarea>
+<input id=copiedText value="Copied text">
+<script>
+'use strict';
+
+/* The specification is unclear about whether the data should go to the
+   old or the new editor if focus changes during a paste handler,
+   but all browsers currently use the new editor for contenteditable. */
+
+const outer = document.getElementById('outer');
+const inner = document.getElementById('inner');
+const textArea = document.querySelector('textarea');
+
+promise_setup(async () => {
+  const copiedText = document.getElementById('copiedText');
+  copiedText.focus();
+  copiedText.select();
+  await new EditorTestUtils(copiedText).sendCopyShortcutKey();
+});
+
+function reset() {
+  outer.editContext = null;
+  inner.editContext = null;
+  outer.contentEditable = false;
+  inner.contentEditable = false;
+  outer.replaceChildren(inner);
+  inner.replaceChildren();
+  textArea.value = '';
+}
+
+promise_test(async t => {
+  t.add_cleanup(reset);
+  inner.editContext = new EditContext();
+  inner.focus();
+  let receivedPaste = false;
+  inner.addEventListener('paste', () => {
+    receivedPaste = true;
+    inner.editContext = null;
+  }, {once: true});
+  let receivedTextUpdate = false;
+  inner.editContext.addEventListener('textupdate', () => {
+    receivedTextUpdate = true;
+  }, {once: true});
+  await new EditorTestUtils(inner).sendPasteShortcutKey();
+  assert_true(receivedPaste, 'Should fire paste event.');
+  assert_false(receivedTextUpdate, 'Should not fire textupdate.');
+}, 'Paste handler detaches EditContext');
+
+promise_test(async t => {
+  t.add_cleanup(reset);
+  inner.editContext = new EditContext();
+  inner.focus();
+  let receivedPaste = false;
+  inner.addEventListener('paste', () => {
+    receivedPaste = true;
+    textArea.focus();
+  }, {once: true});
+  let receivedTextUpdate = false;
+  inner.editContext.addEventListener('textupdate', () => {
+    receivedTextUpdate = true;
+  }, {once: true});
+  await new EditorTestUtils(inner).sendPasteShortcutKey();
+  assert_true(receivedPaste, 'Should fire paste event.');
+  assert_equals(textArea.value, 'Copied text',
+                '<textarea> should receive text.');
+  assert_false(receivedTextUpdate, 'Should not fire textupdate.');
+}, 'Paste handler redirects focus from EditContext to <textarea>');
+
+promise_test(async t => {
+  t.add_cleanup(reset);
+  inner.editContext = new EditContext();
+  inner.focus();
+  let receivedPaste = false;
+  let innerReceivedTextUpdate = false;
+  let outerReceivedTextUpdate = false;
+  inner.addEventListener('paste', () => {
+    receivedPaste = true;
+    outer.editContext = new EditContext();
+    outer.editContext.addEventListener('textupdate', () => {
+      outerReceivedTextUpdate = true;
+    }, {once: true});
+    outer.focus();
+  }, {once: true});
+  inner.editContext.addEventListener('textupdate', () => {
+    innerReceivedTextUpdate = true;
+  }, {once: true});
+  await new EditorTestUtils(inner).sendPasteShortcutKey();
+  assert_true(receivedPaste, 'Should fire paste event.');
+  assert_true(outerReceivedTextUpdate, 'New EditContext should receive text.');
+  assert_false(innerReceivedTextUpdate,
+               'Should not fire textupdate at old editor.');
+}, 'Paste handler redirects focus to another EditContext editor');
+
+promise_test(async t => {
+  t.add_cleanup(reset);
+  inner.editContext = new EditContext();
+  inner.contentEditable = true;
+  inner.focus();
+  let receivedPaste = false;
+  let receivedTextUpdate = false;
+  inner.addEventListener('paste', () => {
+    receivedPaste = true;
+    inner.editContext = null;
+  }, {once: true});
+  inner.editContext.addEventListener('textupdate', () => {
+    receivedTextUpdate = true;
+  }, {once: true});
+  await new EditorTestUtils(inner).sendPasteShortcutKey();
+  assert_true(receivedPaste, 'Should fire paste event.');
+  assert_false(receivedTextUpdate, 'Should not fire textupdate.');
+  assert_equals(inner.textContent, 'Copied text',
+                'Pasted text should be inserted into DOM');
+}, 'Paste handler detaches EditContext from contenteditable element.');
+
+promise_test(async t => {
+  t.add_cleanup(reset);
+  inner.editContext = new EditContext();
+  inner.focus();
+  let receivedPaste = false;
+  let receivedTextUpdate = false;
+  inner.addEventListener('paste', () => {
+    receivedPaste = true;
+    outer.contentEditable = true;
+  }, {once: true});
+  inner.editContext.addEventListener('textupdate', () => {
+    receivedTextUpdate = true;
+  }, {once: true});
+  await new EditorTestUtils(inner).sendPasteShortcutKey();
+  assert_true(receivedPaste, 'Should fire paste event.');
+  assert_false(receivedTextUpdate, 'Should not fire textupdate.');
+  assert_equals(inner.textContent, 'Copied text',
+                'Pasted text should be inserted into DOM.');
+}, 'Paste handler sets contenteditable on parent of EditContext editor');
+
+</script>

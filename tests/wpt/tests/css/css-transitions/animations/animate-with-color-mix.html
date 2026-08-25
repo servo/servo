@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="help" href="https://www.w3.org/TR/css-color-4/#interpolation">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CSS transitions with color-mix</title>
+</head>
+<style>
+  #target-1, #target-2, #target-3, #target-4, #target-5, #target-6 {
+    color: black;
+    height: 100px;
+    width: 100px;
+    display: inline-block;
+    transition: background-color 1s linear;
+  }
+  #target-1,
+  #target-2.update-2,
+  #target-3,
+  #target-4.update-4 {
+    background-color: color-mix(in srgb, white 50%,
+                                currentcolor);
+  }
+  #target-1.update-1,
+  #target-2 {
+    background-color: rgb(0, 255, 0);
+  }
+
+  #target-3.update-3,
+  #target-4 {
+    background-color: color(srgb 0.0 1.0 0.0);
+  }
+
+  #target-5, #target-6.update-6 {
+    background-color: color-mix(in srgb, transparent 50%,
+                                currentcolor);
+  }
+
+  #target-6, #target-5.update-5 {
+    background-color: rgba(255, 255, 255, 0.75);
+  }
+
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="/css/support/color-testcommon.js"></script>
+<body>
+  <div id="target-1"></div>
+  <div id="target-2"></div>
+  <div id="target-3"></div>
+  <div id="target-4"></div>
+  <div id="target-5"></div>
+  <div id="target-6"></div>
+</body>
+<script>
+  'use strict';
+
+  async function runAnimationTest(t, elementId, update,
+                                  expected_colors) {
+    const elem = document.getElementById(elementId);
+    t.add_cleanup(() => {
+      elem.classList.remove(update);
+    });
+    await waitForNextFrame();
+    await waitForNextFrame();
+    elem.classList.add(update);
+    const anim = elem.getAnimations()[0];
+    await anim.ready;
+    // Keep the animation in effect when it reaches the end.
+    anim.effect.updateTiming({ fill: 'forwards' });
+    expected_colors.forEach(data => {
+      anim.currentTime = 1000 * data.at;
+      const actual = getComputedStyle(elem).backgroundColor;
+      const expected = data.value;
+      assert_oklab_color(
+          actual, expected,
+          `Background color at ${100*data.at}% animation progress`);
+    });
+  }
+
+  const gray_to_green = [
+    { at: 0, value: 'oklab(0.5981 0.0000 0.0000)' },
+    { at: 0.25, value: 'oklab(0.6652 -0.0584 0.0449)' },
+    { at: 0.5, value: 'oklab(0.7323 -0.1169 0.0898)' },
+    { at: 0.75, value: 'oklab(0.7994 -0.1754 0.1346)' },
+    { at: 1, value: 'oklab(0.8664 -0.2338 0.1795)' }
+  ];
+
+  const green_to_gray = [
+    { at: 0, value: 'oklab(0.8664 -0.2338 0.1795)' },
+    { at: 0.25, value: 'oklab(0.7994 -0.1754 0.1346)' },
+    { at: 0.5, value: 'oklab(0.7323 -0.1169 0.0898)' },
+    { at: 0.75, value: 'oklab(0.6652 -0.0584 0.0449)' },
+    { at: 1, value: 'oklab(0.5981 0.0000 0.0000)' }
+  ];
+
+  const translucent_black_to_white = [
+    { at: 0,    value: 'oklab(0 0 0 / 0.5)' },
+    { at: 0.25, value: 'oklab(0.3330 0 0 / 0.5623)' },
+    { at: 0.5,  value: 'oklab(0.5997 0 0 / 0.6245)' },
+    { at: 0.75, value: 'oklab(0.8180 0 0 / 0.6868)' },
+    { at: 1,    value: 'oklab(1 0 0 / 0.75)' }
+  ];
+
+  const translucent_white_to_black = [
+    { at: 0,    value: 'oklab(1 0 0 / 0.75)' },
+    { at: 0.25, value: 'oklab(0.8180 0 0. / 0.6868)' },
+    { at: 0.5,  value: 'oklab(0.5997 0 0 / 0.6245)' },
+    { at: 0.75, value: 'oklab(0.3330 0 0 / 0.5623)' },
+    { at: 1,    value: 'oklab(0 0 0 / 0.5)' }
+  ];
+
+  window.onload = async () => {
+    promise_test(t => {
+      return runAnimationTest(t, 'target-1', 'update-1',
+                              gray_to_green);
+    }, 'Transition from color-mix to legacy rgb');
+
+    promise_test(t => {
+      return runAnimationTest(t, 'target-2', 'update-2',
+                              green_to_gray);
+    }, 'Transition from legacy rgb to color-mix');
+
+    promise_test(t => {
+      return runAnimationTest(t, 'target-3', 'update-3',
+                              gray_to_green);
+    }, 'Transition from color-mix to srgb');
+
+    promise_test(t => {
+      return runAnimationTest(t, 'target-4', 'update-4',
+                              green_to_gray);
+    }, 'Transition from srgb to color-mix');
+
+    promise_test(t => {
+      return runAnimationTest(t, 'target-5', 'update-5',
+                              translucent_black_to_white);
+    }, 'Transition from color-mix with transparency to legacy rgba');
+
+        promise_test(t => {
+      return runAnimationTest(t, 'target-6', 'update-6',
+                              translucent_white_to_black);
+    }, 'Transition from legacy rgba to color-mix with transparency');
+  };
+</script>
+</html>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ARIA Notify iframe Manual Test</title>
+</head>
+<body>
+  <script>
+    'use strict';
+
+    function testAriaNotify() {
+      const resultDiv = document.getElementById('result');
+      const urlParams = new URLSearchParams(window.location.search);
+      const message = urlParams.get('message') || 'Default announcement message';
+
+      if (!document.ariaNotify) {
+        resultDiv.textContent = 'ariaNotify API is not supported in this browser';
+        return;
+      }
+
+      // Check if the feature is allowed by permissions policy
+      document.ariaNotify(message);
+      resultDiv.textContent = `ariaNotify called with message: "${message}"`;
+    }
+  </script>
+  <button onclick="testAriaNotify()">Make Announcement</button>
+  <div id="result"></div>
+
+</body>
+</html>

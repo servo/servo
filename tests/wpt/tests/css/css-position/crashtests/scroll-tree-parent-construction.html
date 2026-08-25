@@ -1,0 +1,52 @@
+<!DOCTYPE HTML>
+<html class="test-wait">
+<head>
+<style>
+  #ifr { border: 5px solid #ddd; width: 200px; height: 150px; }
+</style>
+</head>
+<body>
+<iframe id=ifr srcdoc="
+  <style>
+  body { margin: 0 }
+  * { box-sizing: border-box }
+  .c1 { width: 90px; height: 300px; }
+  .f1 {
+    position: fixed;
+    background: #ddf;
+    left: 30px;
+    top: 10px;
+    width: 120px;
+    height: 120px;
+  }
+  .s1 {
+    overflow: scroll;
+    margin: 10px;
+    height: 100px;
+    width: 100px;
+    border: 5px solid gray;
+  }
+  </style>
+  <div class=c1>AAA</div>
+  <div class=f1>
+    <div class=s1>
+      <div class=c1>AAA</div>
+    </div>
+  </div>"></iframe>
+<script>
+  raf = async () => {
+    return new Promise(resolve => {
+      requestAnimationFrame(resolve);
+    });
+  }
+  onload = async () => {
+    await raf();
+    await raf();
+    ifr.contentWindow.location.reload();
+    for (let i = 0; i < 10; i++)
+      await raf();
+    document.documentElement.className = "";
+  };
+</script>
+</body>
+</html>

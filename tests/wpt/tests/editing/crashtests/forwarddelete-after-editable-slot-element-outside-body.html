@@ -1,0 +1,17 @@
+<!doctype html>
+<html contentEditable="true">
+<head>
+<meta charset="utf-8">
+<title>ForwardDelete should not crash when trying to forwardDelete at the end of the document, outside of body.</title>
+<link rel="author" title="Psychpsyo" href="mailto:psychpsyo@gmail.com">
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  getSelection().selectAllChildren(document.documentElement);
+  getSelection().collapseToEnd();
+  document.execCommand("forwardDelete");
+});
+</script>
+</head>
+<body></body>
+<slot></slot>
+</html>

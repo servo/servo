@@ -1,0 +1,64 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Column group visibility property</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#columns" />
+        <meta name="assert" content="Visibility can be set on a table column group." />
+        <style type="text/css">
+           #table
+           {
+               display: table;
+           }
+           .cg1, .cg2
+           {
+               display: table-column-group;
+           }
+           .cg2
+           {
+               visibility: collapse;
+           }
+           .col
+           {
+               display: table-column;
+           }
+           .tr
+           {
+               display: table-row;
+           }
+           .td1, .td2
+           {
+               display: table-cell;
+           }
+           .td2
+           {
+               background: red;
+           }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page.</p>
+        <div id="table">
+            <div class="cg1">
+                <div class="col"></div>
+                <div class="col"></div>
+            </div>
+            <div class="cg2">
+                <div class="col"></div>
+                <div class="col"></div>
+            </div>
+            <div class="tr">
+                <div class="td1">Filler Text</div>
+                <div class="td1">Filler Text</div>
+                <div class="td2">This test</div>
+                <div class="td2">failed.</div>
+            </div>
+            <div class="tr">
+                <div class="td1">Filler Text</div>
+                <div class="td1">Filler Text</div>
+                <div class="td2">This test</div>
+                <div class="td2">failed.</div>
+            </div>
+        </div>
+     </body>
+</html>

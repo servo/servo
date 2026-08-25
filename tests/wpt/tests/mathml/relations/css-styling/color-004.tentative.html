@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<meta charset="utf-8">
+<title>color</title>
+<link rel="help" href="https://w3c.github.io/mathml-core/#css-styling">
+<link rel="help" href="https://w3c.github.io/mathml-core/#text-mtext">
+<link rel="help" href="https://github.com/mathml-refresh/mathml-core/pull/24">
+<link rel="match" href="color-004.tentative-ref.html"/>
+<meta name="assert" content="Verify that the color is used for text and graphical elements of the menclose element.">
+</head>
+<body>
+  <p>Test passes if you see a green square.</p>
+  <div style="background: green; color: red; width: 200px; height: 200px; padding: 1px;">
+    <math><menclose notation="left" style="color: green"><mn>1</mn></menclose></math>
+    <math><menclose notation="right" style="color: green"><mn>2</mn></menclose></math>
+    <math><menclose notation="top" style="color: green"><mn>3</mn></menclose></math>
+    <math><menclose notation="bottom" style="color: green"><mn>4</mn></menclose></math>
+    <math><menclose notation="box" style="color: green"><mn>5</mn></menclose></math>
+    <math><menclose notation="roundedbox" style="color: green"><mn>6</mn></menclose></math>
+    <math><menclose notation="actuarial" style="color: green"><mn>7</mn></menclose></math>
+    <math><menclose notation="madruwb" style="color: green"><mn>8</mn></menclose></math>
+    <math><menclose notation="horizontalstrike" style="color: green"><mn>9</mn></menclose></math>
+    <math><menclose notation="verticalstrike" style="color: green"><mn>10</mn></menclose></math>
+    <math><menclose notation="updiagonalstrike" style="color: green"><mn>11</mn></menclose></math>
+    <math><menclose notation="downdiagonalstrike" style="color: green"><mn>12</mn></menclose></math>
+    <math><menclose notation="longdiv" style="color: green"><mn>13</mn></menclose></math>
+    <math><menclose notation="circle" style="color: green"><mn>14</mn></menclose></math>
+    <div id="dynamic">
+      <math><menclose notation="left"><mn>1</mn></menclose></math>
+      <math><menclose notation="right"><mn>2</mn></menclose></math>
+      <math><menclose notation="top"><mn>3</mn></menclose></math>
+      <math><menclose notation="bottom"><mn>4</mn></menclose></math>
+      <math><menclose notation="box"><mn>5</mn></menclose></math>
+      <math><menclose notation="roundedbox"><mn>6</mn></menclose></math>
+      <math><menclose notation="actuarial"><mn>7</mn></menclose></math>
+      <math><menclose notation="madruwb"><mn>8</mn></menclose></math>
+      <math><menclose notation="horizontalstrike"><mn>9</mn></menclose></math>
+      <math><menclose notation="verticalstrike"><mn>10</mn></menclose></math>
+      <math><menclose notation="updiagonalstrike"><mn>11</mn></menclose></math>
+      <math><menclose notation="downdiagonalstrike"><mn>12</mn></menclose></math>
+      <math><menclose notation="longdiv"><mn>13</mn></menclose></math>
+      <math><menclose notation="circle"><mn>14</mn></menclose></math>
+    </div>
+  </div>
+  <script>
+    window.addEventListener("load", () => {
+        document.getElementById("dynamic").style.color = "green";
+        document.documentElement.classList.remove("reftest-wait");
+    });
+  </script>
+  <script src="/mathml/support/feature-detection.js"></script>
+  <script>MathMLFeatureDetection.ensure_for_match_reftest("has_menclose");</script>
+</body>
+</html>

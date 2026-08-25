@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Reference for scroll timeline with a specified scroller</title>
+<style>
+  #scroller {
+    overflow: scroll;
+    width: 100px;
+    height: 100px;
+    scrollbar-width: none;
+  }
+
+  #contents {
+    height: 200px;
+  }
+
+  #box {
+    width: 100px;
+    height: 100px;
+    background-color: green;
+    transform: translateX(50px);
+  }
+</style>
+
+<div id="scroller">
+  <div id="contents"></div>
+  <div id="box"></div>
+</div>
+
+<script>
+  window.addEventListener('load', function() {
+    const scroller = document.getElementById("scroller");
+    // Move the scroller to the halfway point.
+    const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+    scroller.scrollTop = 0.5 * maxScroll;
+
+    document.documentElement.classList.remove("reftest-wait");
+  });
+</script>

@@ -1,0 +1,872 @@
+# WARNING: This file is auto-generated. Do NOT modify it manually, but rather
+# modify the generating script file. Otherwise changes will be lost!
+# See split-conversions.js
+
+group scalar_to_matrix "Scalar to Matrix Conversions"
+
+	case float_to_mat4
+		version 300 es
+		values
+		{
+			input float in0 = [ 0.0 | 1.0 | 2.0 | 3.5 | -0.5 | -8.25 | -20.125 | 36.8125 ];
+			output mat4 out0 = [ mat4(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0) | mat4(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0) | mat4(2.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 2.0) | mat4(3.5, 0.0, 0.0, 0.0, 0.0, 3.5, 0.0, 0.0, 0.0, 0.0, 3.5, 0.0, 0.0, 0.0, 0.0, 3.5) | mat4(-0.5, 0.0, 0.0, 0.0, 0.0, -0.5, 0.0, 0.0, 0.0, 0.0, -0.5, 0.0, 0.0, 0.0, 0.0, -0.5) | mat4(-8.25, 0.0, 0.0, 0.0, 0.0, -8.25, 0.0, 0.0, 0.0, 0.0, -8.25, 0.0, 0.0, 0.0, 0.0, -8.25) | mat4(-20.125, 0.0, 0.0, 0.0, 0.0, -20.125, 0.0, 0.0, 0.0, 0.0, -20.125, 0.0, 0.0, 0.0, 0.0, -20.125) | mat4(36.8125, 0.0, 0.0, 0.0, 0.0, 36.8125, 0.0, 0.0, 0.0, 0.0, 36.8125, 0.0, 0.0, 0.0, 0.0, 36.8125) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_to_mat4x3
+		version 300 es
+		values
+		{
+			input float in0 = [ 0.0 | 1.0 | 2.0 | 3.5 | -0.5 | -8.25 | -20.125 | 36.8125 ];
+			output mat4x3 out0 = [ mat4x3(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0) | mat4x3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0) | mat4x3(2.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0) | mat4x3(3.5, 0.0, 0.0, 0.0, 3.5, 0.0, 0.0, 0.0, 3.5, 0.0, 0.0, 0.0) | mat4x3(-0.5, 0.0, 0.0, 0.0, -0.5, 0.0, 0.0, 0.0, -0.5, 0.0, 0.0, 0.0) | mat4x3(-8.25, 0.0, 0.0, 0.0, -8.25, 0.0, 0.0, 0.0, -8.25, 0.0, 0.0, 0.0) | mat4x3(-20.125, 0.0, 0.0, 0.0, -20.125, 0.0, 0.0, 0.0, -20.125, 0.0, 0.0, 0.0) | mat4x3(36.8125, 0.0, 0.0, 0.0, 36.8125, 0.0, 0.0, 0.0, 36.8125, 0.0, 0.0, 0.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat4x3(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_to_mat4x2
+		version 300 es
+		values
+		{
+			input float in0 = [ 0.0 | 1.0 | 2.0 | 3.5 | -0.5 | -8.25 | -20.125 | 36.8125 ];
+			output mat4x2 out0 = [ mat4x2(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0) | mat4x2(1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0) | mat4x2(2.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0) | mat4x2(3.5, 0.0, 0.0, 3.5, 0.0, 0.0, 0.0, 0.0) | mat4x2(-0.5, 0.0, 0.0, -0.5, 0.0, 0.0, 0.0, 0.0) | mat4x2(-8.25, 0.0, 0.0, -8.25, 0.0, 0.0, 0.0, 0.0) | mat4x2(-20.125, 0.0, 0.0, -20.125, 0.0, 0.0, 0.0, 0.0) | mat4x2(36.8125, 0.0, 0.0, 36.8125, 0.0, 0.0, 0.0, 0.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat4x2(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_to_mat3x4
+		version 300 es
+		values
+		{
+			input float in0 = [ 0.0 | 1.0 | 2.0 | 3.5 | -0.5 | -8.25 | -20.125 | 36.8125 ];
+			output mat3x4 out0 = [ mat3x4(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0) | mat3x4(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0) | mat3x4(2.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0) | mat3x4(3.5, 0.0, 0.0, 0.0, 0.0, 3.5, 0.0, 0.0, 0.0, 0.0, 3.5, 0.0) | mat3x4(-0.5, 0.0, 0.0, 0.0, 0.0, -0.5, 0.0, 0.0, 0.0, 0.0, -0.5, 0.0) | mat3x4(-8.25, 0.0, 0.0, 0.0, 0.0, -8.25, 0.0, 0.0, 0.0, 0.0, -8.25, 0.0) | mat3x4(-20.125, 0.0, 0.0, 0.0, 0.0, -20.125, 0.0, 0.0, 0.0, 0.0, -20.125, 0.0) | mat3x4(36.8125, 0.0, 0.0, 0.0, 0.0, 36.8125, 0.0, 0.0, 0.0, 0.0, 36.8125, 0.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat3x4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_to_mat3
+		version 300 es
+		values
+		{
+			input float in0 = [ 0.0 | 1.0 | 2.0 | 3.5 | -0.5 | -8.25 | -20.125 | 36.8125 ];
+			output mat3 out0 = [ mat3(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0) | mat3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0) | mat3(2.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 2.0) | mat3(3.5, 0.0, 0.0, 0.0, 3.5, 0.0, 0.0, 0.0, 3.5) | mat3(-0.5, 0.0, 0.0, 0.0, -0.5, 0.0, 0.0, 0.0, -0.5) | mat3(-8.25, 0.0, 0.0, 0.0, -8.25, 0.0, 0.0, 0.0, -8.25) | mat3(-20.125, 0.0, 0.0, 0.0, -20.125, 0.0, 0.0, 0.0, -20.125) | mat3(36.8125, 0.0, 0.0, 0.0, 36.8125, 0.0, 0.0, 0.0, 36.8125) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat3(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_to_mat3x2
+		version 300 es
+		values
+		{
+			input float in0 = [ 0.0 | 1.0 | 2.0 | 3.5 | -0.5 | -8.25 | -20.125 | 36.8125 ];
+			output mat3x2 out0 = [ mat3x2(0.0, 0.0, 0.0, 0.0, 0.0, 0.0) | mat3x2(1.0, 0.0, 0.0, 1.0, 0.0, 0.0) | mat3x2(2.0, 0.0, 0.0, 2.0, 0.0, 0.0) | mat3x2(3.5, 0.0, 0.0, 3.5, 0.0, 0.0) | mat3x2(-0.5, 0.0, 0.0, -0.5, 0.0, 0.0) | mat3x2(-8.25, 0.0, 0.0, -8.25, 0.0, 0.0) | mat3x2(-20.125, 0.0, 0.0, -20.125, 0.0, 0.0) | mat3x2(36.8125, 0.0, 0.0, 36.8125, 0.0, 0.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat3x2(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_to_mat2x4
+		version 300 es
+		values
+		{
+			input float in0 = [ 0.0 | 1.0 | 2.0 | 3.5 | -0.5 | -8.25 | -20.125 | 36.8125 ];
+			output mat2x4 out0 = [ mat2x4(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0) | mat2x4(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0) | mat2x4(2.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0) | mat2x4(3.5, 0.0, 0.0, 0.0, 0.0, 3.5, 0.0, 0.0) | mat2x4(-0.5, 0.0, 0.0, 0.0, 0.0, -0.5, 0.0, 0.0) | mat2x4(-8.25, 0.0, 0.0, 0.0, 0.0, -8.25, 0.0, 0.0) | mat2x4(-20.125, 0.0, 0.0, 0.0, 0.0, -20.125, 0.0, 0.0) | mat2x4(36.8125, 0.0, 0.0, 0.0, 0.0, 36.8125, 0.0, 0.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat2x4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_to_mat2x3
+		version 300 es
+		values
+		{
+			input float in0 = [ 0.0 | 1.0 | 2.0 | 3.5 | -0.5 | -8.25 | -20.125 | 36.8125 ];
+			output mat2x3 out0 = [ mat2x3(0.0, 0.0, 0.0, 0.0, 0.0, 0.0) | mat2x3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0) | mat2x3(2.0, 0.0, 0.0, 0.0, 2.0, 0.0) | mat2x3(3.5, 0.0, 0.0, 0.0, 3.5, 0.0) | mat2x3(-0.5, 0.0, 0.0, 0.0, -0.5, 0.0) | mat2x3(-8.25, 0.0, 0.0, 0.0, -8.25, 0.0) | mat2x3(-20.125, 0.0, 0.0, 0.0, -20.125, 0.0) | mat2x3(36.8125, 0.0, 0.0, 0.0, 36.8125, 0.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat2x3(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_to_mat2
+		version 300 es
+		values
+		{
+			input float in0 = [ 0.0 | 1.0 | 2.0 | 3.5 | -0.5 | -8.25 | -20.125 | 36.8125 ];
+			output mat2 out0 = [ mat2(0.0, 0.0, 0.0, 0.0) | mat2(1.0, 0.0, 0.0, 1.0) | mat2(2.0, 0.0, 0.0, 2.0) | mat2(3.5, 0.0, 0.0, 3.5) | mat2(-0.5, 0.0, 0.0, -0.5) | mat2(-8.25, 0.0, 0.0, -8.25) | mat2(-20.125, 0.0, 0.0, -20.125) | mat2(36.8125, 0.0, 0.0, 36.8125) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat2(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_to_mat4
+		version 300 es
+		values
+		{
+			input int in0 = [ 0 | 1 | 2 | 5 | 8 | 11 | -12 | -66 | -192 | 255 ];
+			output mat4 out0 = [ mat4(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0) | mat4(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0) | mat4(2.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 2.0) | mat4(5.0, 0.0, 0.0, 0.0, 0.0, 5.0, 0.0, 0.0, 0.0, 0.0, 5.0, 0.0, 0.0, 0.0, 0.0, 5.0) | mat4(8.0, 0.0, 0.0, 0.0, 0.0, 8.0, 0.0, 0.0, 0.0, 0.0, 8.0, 0.0, 0.0, 0.0, 0.0, 8.0) | mat4(11.0, 0.0, 0.0, 0.0, 0.0, 11.0, 0.0, 0.0, 0.0, 0.0, 11.0, 0.0, 0.0, 0.0, 0.0, 11.0) | mat4(-12.0, 0.0, 0.0, 0.0, 0.0, -12.0, 0.0, 0.0, 0.0, 0.0, -12.0, 0.0, 0.0, 0.0, 0.0, -12.0) | mat4(-66.0, 0.0, 0.0, 0.0, 0.0, -66.0, 0.0, 0.0, 0.0, 0.0, -66.0, 0.0, 0.0, 0.0, 0.0, -66.0) | mat4(-192.0, 0.0, 0.0, 0.0, 0.0, -192.0, 0.0, 0.0, 0.0, 0.0, -192.0, 0.0, 0.0, 0.0, 0.0, -192.0) | mat4(255.0, 0.0, 0.0, 0.0, 0.0, 255.0, 0.0, 0.0, 0.0, 0.0, 255.0, 0.0, 0.0, 0.0, 0.0, 255.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_to_mat4x3
+		version 300 es
+		values
+		{
+			input int in0 = [ 0 | 1 | 2 | 5 | 8 | 11 | -12 | -66 | -192 | 255 ];
+			output mat4x3 out0 = [ mat4x3(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0) | mat4x3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0) | mat4x3(2.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0) | mat4x3(5.0, 0.0, 0.0, 0.0, 5.0, 0.0, 0.0, 0.0, 5.0, 0.0, 0.0, 0.0) | mat4x3(8.0, 0.0, 0.0, 0.0, 8.0, 0.0, 0.0, 0.0, 8.0, 0.0, 0.0, 0.0) | mat4x3(11.0, 0.0, 0.0, 0.0, 11.0, 0.0, 0.0, 0.0, 11.0, 0.0, 0.0, 0.0) | mat4x3(-12.0, 0.0, 0.0, 0.0, -12.0, 0.0, 0.0, 0.0, -12.0, 0.0, 0.0, 0.0) | mat4x3(-66.0, 0.0, 0.0, 0.0, -66.0, 0.0, 0.0, 0.0, -66.0, 0.0, 0.0, 0.0) | mat4x3(-192.0, 0.0, 0.0, 0.0, -192.0, 0.0, 0.0, 0.0, -192.0, 0.0, 0.0, 0.0) | mat4x3(255.0, 0.0, 0.0, 0.0, 255.0, 0.0, 0.0, 0.0, 255.0, 0.0, 0.0, 0.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat4x3(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_to_mat4x2
+		version 300 es
+		values
+		{
+			input int in0 = [ 0 | 1 | 2 | 5 | 8 | 11 | -12 | -66 | -192 | 255 ];
+			output mat4x2 out0 = [ mat4x2(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0) | mat4x2(1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0) | mat4x2(2.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0) | mat4x2(5.0, 0.0, 0.0, 5.0, 0.0, 0.0, 0.0, 0.0) | mat4x2(8.0, 0.0, 0.0, 8.0, 0.0, 0.0, 0.0, 0.0) | mat4x2(11.0, 0.0, 0.0, 11.0, 0.0, 0.0, 0.0, 0.0) | mat4x2(-12.0, 0.0, 0.0, -12.0, 0.0, 0.0, 0.0, 0.0) | mat4x2(-66.0, 0.0, 0.0, -66.0, 0.0, 0.0, 0.0, 0.0) | mat4x2(-192.0, 0.0, 0.0, -192.0, 0.0, 0.0, 0.0, 0.0) | mat4x2(255.0, 0.0, 0.0, 255.0, 0.0, 0.0, 0.0, 0.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat4x2(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_to_mat3x4
+		version 300 es
+		values
+		{
+			input int in0 = [ 0 | 1 | 2 | 5 | 8 | 11 | -12 | -66 | -192 | 255 ];
+			output mat3x4 out0 = [ mat3x4(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0) | mat3x4(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0) | mat3x4(2.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0) | mat3x4(5.0, 0.0, 0.0, 0.0, 0.0, 5.0, 0.0, 0.0, 0.0, 0.0, 5.0, 0.0) | mat3x4(8.0, 0.0, 0.0, 0.0, 0.0, 8.0, 0.0, 0.0, 0.0, 0.0, 8.0, 0.0) | mat3x4(11.0, 0.0, 0.0, 0.0, 0.0, 11.0, 0.0, 0.0, 0.0, 0.0, 11.0, 0.0) | mat3x4(-12.0, 0.0, 0.0, 0.0, 0.0, -12.0, 0.0, 0.0, 0.0, 0.0, -12.0, 0.0) | mat3x4(-66.0, 0.0, 0.0, 0.0, 0.0, -66.0, 0.0, 0.0, 0.0, 0.0, -66.0, 0.0) | mat3x4(-192.0, 0.0, 0.0, 0.0, 0.0, -192.0, 0.0, 0.0, 0.0, 0.0, -192.0, 0.0) | mat3x4(255.0, 0.0, 0.0, 0.0, 0.0, 255.0, 0.0, 0.0, 0.0, 0.0, 255.0, 0.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat3x4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_to_mat3
+		version 300 es
+		values
+		{
+			input int in0 = [ 0 | 1 | 2 | 5 | 8 | 11 | -12 | -66 | -192 | 255 ];
+			output mat3 out0 = [ mat3(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0) | mat3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0) | mat3(2.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 2.0) | mat3(5.0, 0.0, 0.0, 0.0, 5.0, 0.0, 0.0, 0.0, 5.0) | mat3(8.0, 0.0, 0.0, 0.0, 8.0, 0.0, 0.0, 0.0, 8.0) | mat3(11.0, 0.0, 0.0, 0.0, 11.0, 0.0, 0.0, 0.0, 11.0) | mat3(-12.0, 0.0, 0.0, 0.0, -12.0, 0.0, 0.0, 0.0, -12.0) | mat3(-66.0, 0.0, 0.0, 0.0, -66.0, 0.0, 0.0, 0.0, -66.0) | mat3(-192.0, 0.0, 0.0, 0.0, -192.0, 0.0, 0.0, 0.0, -192.0) | mat3(255.0, 0.0, 0.0, 0.0, 255.0, 0.0, 0.0, 0.0, 255.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat3(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_to_mat3x2
+		version 300 es
+		values
+		{
+			input int in0 = [ 0 | 1 | 2 | 5 | 8 | 11 | -12 | -66 | -192 | 255 ];
+			output mat3x2 out0 = [ mat3x2(0.0, 0.0, 0.0, 0.0, 0.0, 0.0) | mat3x2(1.0, 0.0, 0.0, 1.0, 0.0, 0.0) | mat3x2(2.0, 0.0, 0.0, 2.0, 0.0, 0.0) | mat3x2(5.0, 0.0, 0.0, 5.0, 0.0, 0.0) | mat3x2(8.0, 0.0, 0.0, 8.0, 0.0, 0.0) | mat3x2(11.0, 0.0, 0.0, 11.0, 0.0, 0.0) | mat3x2(-12.0, 0.0, 0.0, -12.0, 0.0, 0.0) | mat3x2(-66.0, 0.0, 0.0, -66.0, 0.0, 0.0) | mat3x2(-192.0, 0.0, 0.0, -192.0, 0.0, 0.0) | mat3x2(255.0, 0.0, 0.0, 255.0, 0.0, 0.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat3x2(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_to_mat2x4
+		version 300 es
+		values
+		{
+			input int in0 = [ 0 | 1 | 2 | 5 | 8 | 11 | -12 | -66 | -192 | 255 ];
+			output mat2x4 out0 = [ mat2x4(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0) | mat2x4(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0) | mat2x4(2.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0) | mat2x4(5.0, 0.0, 0.0, 0.0, 0.0, 5.0, 0.0, 0.0) | mat2x4(8.0, 0.0, 0.0, 0.0, 0.0, 8.0, 0.0, 0.0) | mat2x4(11.0, 0.0, 0.0, 0.0, 0.0, 11.0, 0.0, 0.0) | mat2x4(-12.0, 0.0, 0.0, 0.0, 0.0, -12.0, 0.0, 0.0) | mat2x4(-66.0, 0.0, 0.0, 0.0, 0.0, -66.0, 0.0, 0.0) | mat2x4(-192.0, 0.0, 0.0, 0.0, 0.0, -192.0, 0.0, 0.0) | mat2x4(255.0, 0.0, 0.0, 0.0, 0.0, 255.0, 0.0, 0.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat2x4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_to_mat2x3
+		version 300 es
+		values
+		{
+			input int in0 = [ 0 | 1 | 2 | 5 | 8 | 11 | -12 | -66 | -192 | 255 ];
+			output mat2x3 out0 = [ mat2x3(0.0, 0.0, 0.0, 0.0, 0.0, 0.0) | mat2x3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0) | mat2x3(2.0, 0.0, 0.0, 0.0, 2.0, 0.0) | mat2x3(5.0, 0.0, 0.0, 0.0, 5.0, 0.0) | mat2x3(8.0, 0.0, 0.0, 0.0, 8.0, 0.0) | mat2x3(11.0, 0.0, 0.0, 0.0, 11.0, 0.0) | mat2x3(-12.0, 0.0, 0.0, 0.0, -12.0, 0.0) | mat2x3(-66.0, 0.0, 0.0, 0.0, -66.0, 0.0) | mat2x3(-192.0, 0.0, 0.0, 0.0, -192.0, 0.0) | mat2x3(255.0, 0.0, 0.0, 0.0, 255.0, 0.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat2x3(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_to_mat2
+		version 300 es
+		values
+		{
+			input int in0 = [ 0 | 1 | 2 | 5 | 8 | 11 | -12 | -66 | -192 | 255 ];
+			output mat2 out0 = [ mat2(0.0, 0.0, 0.0, 0.0) | mat2(1.0, 0.0, 0.0, 1.0) | mat2(2.0, 0.0, 0.0, 2.0) | mat2(5.0, 0.0, 0.0, 5.0) | mat2(8.0, 0.0, 0.0, 8.0) | mat2(11.0, 0.0, 0.0, 11.0) | mat2(-12.0, 0.0, 0.0, -12.0) | mat2(-66.0, 0.0, 0.0, -66.0) | mat2(-192.0, 0.0, 0.0, -192.0) | mat2(255.0, 0.0, 0.0, 255.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat2(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uint_to_mat4
+		version 300 es
+		values
+		{
+			input uint in0 = [ 0 | 2 | 3 | 8 | 9 | 12 | 10 | 45 | 193 | 255 ];
+			output mat4 out0 = [ mat4(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0) | mat4(2.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 2.0) | mat4(3.0, 0.0, 0.0, 0.0, 0.0, 3.0, 0.0, 0.0, 0.0, 0.0, 3.0, 0.0, 0.0, 0.0, 0.0, 3.0) | mat4(8.0, 0.0, 0.0, 0.0, 0.0, 8.0, 0.0, 0.0, 0.0, 0.0, 8.0, 0.0, 0.0, 0.0, 0.0, 8.0) | mat4(9.0, 0.0, 0.0, 0.0, 0.0, 9.0, 0.0, 0.0, 0.0, 0.0, 9.0, 0.0, 0.0, 0.0, 0.0, 9.0) | mat4(12.0, 0.0, 0.0, 0.0, 0.0, 12.0, 0.0, 0.0, 0.0, 0.0, 12.0, 0.0, 0.0, 0.0, 0.0, 12.0) | mat4(10.0, 0.0, 0.0, 0.0, 0.0, 10.0, 0.0, 0.0, 0.0, 0.0, 10.0, 0.0, 0.0, 0.0, 0.0, 10.0) | mat4(45.0, 0.0, 0.0, 0.0, 0.0, 45.0, 0.0, 0.0, 0.0, 0.0, 45.0, 0.0, 0.0, 0.0, 0.0, 45.0) | mat4(193.0, 0.0, 0.0, 0.0, 0.0, 193.0, 0.0, 0.0, 0.0, 0.0, 193.0, 0.0, 0.0, 0.0, 0.0, 193.0) | mat4(255.0, 0.0, 0.0, 0.0, 0.0, 255.0, 0.0, 0.0, 0.0, 0.0, 255.0, 0.0, 0.0, 0.0, 0.0, 255.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uint_to_mat4x3
+		version 300 es
+		values
+		{
+			input uint in0 = [ 0 | 2 | 3 | 8 | 9 | 12 | 10 | 45 | 193 | 255 ];
+			output mat4x3 out0 = [ mat4x3(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0) | mat4x3(2.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0) | mat4x3(3.0, 0.0, 0.0, 0.0, 3.0, 0.0, 0.0, 0.0, 3.0, 0.0, 0.0, 0.0) | mat4x3(8.0, 0.0, 0.0, 0.0, 8.0, 0.0, 0.0, 0.0, 8.0, 0.0, 0.0, 0.0) | mat4x3(9.0, 0.0, 0.0, 0.0, 9.0, 0.0, 0.0, 0.0, 9.0, 0.0, 0.0, 0.0) | mat4x3(12.0, 0.0, 0.0, 0.0, 12.0, 0.0, 0.0, 0.0, 12.0, 0.0, 0.0, 0.0) | mat4x3(10.0, 0.0, 0.0, 0.0, 10.0, 0.0, 0.0, 0.0, 10.0, 0.0, 0.0, 0.0) | mat4x3(45.0, 0.0, 0.0, 0.0, 45.0, 0.0, 0.0, 0.0, 45.0, 0.0, 0.0, 0.0) | mat4x3(193.0, 0.0, 0.0, 0.0, 193.0, 0.0, 0.0, 0.0, 193.0, 0.0, 0.0, 0.0) | mat4x3(255.0, 0.0, 0.0, 0.0, 255.0, 0.0, 0.0, 0.0, 255.0, 0.0, 0.0, 0.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat4x3(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uint_to_mat4x2
+		version 300 es
+		values
+		{
+			input uint in0 = [ 0 | 2 | 3 | 8 | 9 | 12 | 10 | 45 | 193 | 255 ];
+			output mat4x2 out0 = [ mat4x2(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0) | mat4x2(2.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0) | mat4x2(3.0, 0.0, 0.0, 3.0, 0.0, 0.0, 0.0, 0.0) | mat4x2(8.0, 0.0, 0.0, 8.0, 0.0, 0.0, 0.0, 0.0) | mat4x2(9.0, 0.0, 0.0, 9.0, 0.0, 0.0, 0.0, 0.0) | mat4x2(12.0, 0.0, 0.0, 12.0, 0.0, 0.0, 0.0, 0.0) | mat4x2(10.0, 0.0, 0.0, 10.0, 0.0, 0.0, 0.0, 0.0) | mat4x2(45.0, 0.0, 0.0, 45.0, 0.0, 0.0, 0.0, 0.0) | mat4x2(193.0, 0.0, 0.0, 193.0, 0.0, 0.0, 0.0, 0.0) | mat4x2(255.0, 0.0, 0.0, 255.0, 0.0, 0.0, 0.0, 0.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat4x2(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uint_to_mat3x4
+		version 300 es
+		values
+		{
+			input uint in0 = [ 0 | 2 | 3 | 8 | 9 | 12 | 10 | 45 | 193 | 255 ];
+			output mat3x4 out0 = [ mat3x4(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0) | mat3x4(2.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0) | mat3x4(3.0, 0.0, 0.0, 0.0, 0.0, 3.0, 0.0, 0.0, 0.0, 0.0, 3.0, 0.0) | mat3x4(8.0, 0.0, 0.0, 0.0, 0.0, 8.0, 0.0, 0.0, 0.0, 0.0, 8.0, 0.0) | mat3x4(9.0, 0.0, 0.0, 0.0, 0.0, 9.0, 0.0, 0.0, 0.0, 0.0, 9.0, 0.0) | mat3x4(12.0, 0.0, 0.0, 0.0, 0.0, 12.0, 0.0, 0.0, 0.0, 0.0, 12.0, 0.0) | mat3x4(10.0, 0.0, 0.0, 0.0, 0.0, 10.0, 0.0, 0.0, 0.0, 0.0, 10.0, 0.0) | mat3x4(45.0, 0.0, 0.0, 0.0, 0.0, 45.0, 0.0, 0.0, 0.0, 0.0, 45.0, 0.0) | mat3x4(193.0, 0.0, 0.0, 0.0, 0.0, 193.0, 0.0, 0.0, 0.0, 0.0, 193.0, 0.0) | mat3x4(255.0, 0.0, 0.0, 0.0, 0.0, 255.0, 0.0, 0.0, 0.0, 0.0, 255.0, 0.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat3x4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uint_to_mat3
+		version 300 es
+		values
+		{
+			input uint in0 = [ 0 | 2 | 3 | 8 | 9 | 12 | 10 | 45 | 193 | 255 ];
+			output mat3 out0 = [ mat3(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0) | mat3(2.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 2.0) | mat3(3.0, 0.0, 0.0, 0.0, 3.0, 0.0, 0.0, 0.0, 3.0) | mat3(8.0, 0.0, 0.0, 0.0, 8.0, 0.0, 0.0, 0.0, 8.0) | mat3(9.0, 0.0, 0.0, 0.0, 9.0, 0.0, 0.0, 0.0, 9.0) | mat3(12.0, 0.0, 0.0, 0.0, 12.0, 0.0, 0.0, 0.0, 12.0) | mat3(10.0, 0.0, 0.0, 0.0, 10.0, 0.0, 0.0, 0.0, 10.0) | mat3(45.0, 0.0, 0.0, 0.0, 45.0, 0.0, 0.0, 0.0, 45.0) | mat3(193.0, 0.0, 0.0, 0.0, 193.0, 0.0, 0.0, 0.0, 193.0) | mat3(255.0, 0.0, 0.0, 0.0, 255.0, 0.0, 0.0, 0.0, 255.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat3(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uint_to_mat3x2
+		version 300 es
+		values
+		{
+			input uint in0 = [ 0 | 2 | 3 | 8 | 9 | 12 | 10 | 45 | 193 | 255 ];
+			output mat3x2 out0 = [ mat3x2(0.0, 0.0, 0.0, 0.0, 0.0, 0.0) | mat3x2(2.0, 0.0, 0.0, 2.0, 0.0, 0.0) | mat3x2(3.0, 0.0, 0.0, 3.0, 0.0, 0.0) | mat3x2(8.0, 0.0, 0.0, 8.0, 0.0, 0.0) | mat3x2(9.0, 0.0, 0.0, 9.0, 0.0, 0.0) | mat3x2(12.0, 0.0, 0.0, 12.0, 0.0, 0.0) | mat3x2(10.0, 0.0, 0.0, 10.0, 0.0, 0.0) | mat3x2(45.0, 0.0, 0.0, 45.0, 0.0, 0.0) | mat3x2(193.0, 0.0, 0.0, 193.0, 0.0, 0.0) | mat3x2(255.0, 0.0, 0.0, 255.0, 0.0, 0.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat3x2(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uint_to_mat2x4
+		version 300 es
+		values
+		{
+			input uint in0 = [ 0 | 2 | 3 | 8 | 9 | 12 | 10 | 45 | 193 | 255 ];
+			output mat2x4 out0 = [ mat2x4(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0) | mat2x4(2.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0) | mat2x4(3.0, 0.0, 0.0, 0.0, 0.0, 3.0, 0.0, 0.0) | mat2x4(8.0, 0.0, 0.0, 0.0, 0.0, 8.0, 0.0, 0.0) | mat2x4(9.0, 0.0, 0.0, 0.0, 0.0, 9.0, 0.0, 0.0) | mat2x4(12.0, 0.0, 0.0, 0.0, 0.0, 12.0, 0.0, 0.0) | mat2x4(10.0, 0.0, 0.0, 0.0, 0.0, 10.0, 0.0, 0.0) | mat2x4(45.0, 0.0, 0.0, 0.0, 0.0, 45.0, 0.0, 0.0) | mat2x4(193.0, 0.0, 0.0, 0.0, 0.0, 193.0, 0.0, 0.0) | mat2x4(255.0, 0.0, 0.0, 0.0, 0.0, 255.0, 0.0, 0.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat2x4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uint_to_mat2x3
+		version 300 es
+		values
+		{
+			input uint in0 = [ 0 | 2 | 3 | 8 | 9 | 12 | 10 | 45 | 193 | 255 ];
+			output mat2x3 out0 = [ mat2x3(0.0, 0.0, 0.0, 0.0, 0.0, 0.0) | mat2x3(2.0, 0.0, 0.0, 0.0, 2.0, 0.0) | mat2x3(3.0, 0.0, 0.0, 0.0, 3.0, 0.0) | mat2x3(8.0, 0.0, 0.0, 0.0, 8.0, 0.0) | mat2x3(9.0, 0.0, 0.0, 0.0, 9.0, 0.0) | mat2x3(12.0, 0.0, 0.0, 0.0, 12.0, 0.0) | mat2x3(10.0, 0.0, 0.0, 0.0, 10.0, 0.0) | mat2x3(45.0, 0.0, 0.0, 0.0, 45.0, 0.0) | mat2x3(193.0, 0.0, 0.0, 0.0, 193.0, 0.0) | mat2x3(255.0, 0.0, 0.0, 0.0, 255.0, 0.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat2x3(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uint_to_mat2
+		version 300 es
+		values
+		{
+			input uint in0 = [ 0 | 2 | 3 | 8 | 9 | 12 | 10 | 45 | 193 | 255 ];
+			output mat2 out0 = [ mat2(0.0, 0.0, 0.0, 0.0) | mat2(2.0, 0.0, 0.0, 2.0) | mat2(3.0, 0.0, 0.0, 3.0) | mat2(8.0, 0.0, 0.0, 8.0) | mat2(9.0, 0.0, 0.0, 9.0) | mat2(12.0, 0.0, 0.0, 12.0) | mat2(10.0, 0.0, 0.0, 10.0) | mat2(45.0, 0.0, 0.0, 45.0) | mat2(193.0, 0.0, 0.0, 193.0) | mat2(255.0, 0.0, 0.0, 255.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat2(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_to_mat4
+		version 300 es
+		values
+		{
+			input bool in0 = [ true | false ];
+			output mat4 out0 = [ mat4(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0) | mat4(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_to_mat4x3
+		version 300 es
+		values
+		{
+			input bool in0 = [ true | false ];
+			output mat4x3 out0 = [ mat4x3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0) | mat4x3(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat4x3(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_to_mat4x2
+		version 300 es
+		values
+		{
+			input bool in0 = [ true | false ];
+			output mat4x2 out0 = [ mat4x2(1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0) | mat4x2(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat4x2(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_to_mat3x4
+		version 300 es
+		values
+		{
+			input bool in0 = [ true | false ];
+			output mat3x4 out0 = [ mat3x4(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0) | mat3x4(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat3x4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_to_mat3
+		version 300 es
+		values
+		{
+			input bool in0 = [ true | false ];
+			output mat3 out0 = [ mat3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0) | mat3(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat3(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_to_mat3x2
+		version 300 es
+		values
+		{
+			input bool in0 = [ true | false ];
+			output mat3x2 out0 = [ mat3x2(1.0, 0.0, 0.0, 1.0, 0.0, 0.0) | mat3x2(0.0, 0.0, 0.0, 0.0, 0.0, 0.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat3x2(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_to_mat2x4
+		version 300 es
+		values
+		{
+			input bool in0 = [ true | false ];
+			output mat2x4 out0 = [ mat2x4(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0) | mat2x4(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat2x4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_to_mat2x3
+		version 300 es
+		values
+		{
+			input bool in0 = [ true | false ];
+			output mat2x3 out0 = [ mat2x3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0) | mat2x3(0.0, 0.0, 0.0, 0.0, 0.0, 0.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat2x3(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_to_mat2
+		version 300 es
+		values
+		{
+			input bool in0 = [ true | false ];
+			output mat2 out0 = [ mat2(1.0, 0.0, 0.0, 1.0) | mat2(0.0, 0.0, 0.0, 0.0) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat2(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+
+end # scalar_to_matrix

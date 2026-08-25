@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Test for bug 612565 of Mozilla</title>
+</head>
+  <body>
+    <iframe></iframe>
+  </body>
+  <script>
+    onload = function() {
+      var i = document.querySelector("iframe");
+      var doc = i.contentDocument;
+      doc.body.appendChild(doc.createTextNode("foo"));
+      doc.designMode = "on";
+      while (doc.body.firstChild) {
+        doc.body.firstChild.remove();
+      }
+    };
+  </script>
+</html>

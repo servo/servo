@@ -1,0 +1,12 @@
+<!doctype html>
+<title>HTMLTrackElement.track</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+test(function(){
+    var track = document.createElement('track');
+    assert_equals(track.track, track.track, 'same object should be returned');
+    assert_true(track.track instanceof TextTrack, 'returned object should be a TextTrack');
+});
+</script>

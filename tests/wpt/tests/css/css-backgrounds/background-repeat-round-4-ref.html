@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Background: background-repeat: background image repeat with specified position</title>
+    <link rel="author" title="Ethan Lin" href="mailto:ethlin@mozilla.com">
+    <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+    <style type="text/css">
+      .outer {
+        width: 72px;
+        height: 72px;
+        border: 1px solid black;
+        background-image: url(support/aqua-yellow-32x32.png);
+        background-size: 36px 36px;
+        background-repeat: repeat;
+        background-position: 5px 5px;
+      }
+      .outer_gradient {
+        width: 72px;
+        height: 72px;
+        border: 1px solid black;
+        background-image: linear-gradient(to top left, red, green);
+        background-size: 36px 36px;
+        background-repeat: repeat;
+        background-position: 5px 5px;
+      }
+    </style>
+    </head>
+    <body>
+      <div class="outer"></div>
+      <div class="outer_gradient"></div>
+    </body>
+</html>

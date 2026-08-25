@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+/*
+[Exposed=Window,
+ Constructor(DOMString type, SpeechSynthesisEventInit eventInitDict)]
+interface SpeechSynthesisEvent : Event {
+    readonly attribute SpeechSynthesisUtterance utterance;
+    readonly attribute unsigned long charIndex;
+    readonly attribute float elapsedTime;
+    readonly attribute DOMString name;
+};
+*/
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new SpeechSynthesisEvent();
+  });
+}, "SpeechSynthesisEvent with no arguments throws TypeError");
+
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new SpeechSynthesisEvent("type");
+  });
+}, "SpeechSynthesisEvent with no eventInitDict throws TypeError");
+
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new SpeechSynthesisEvent("type", {});
+  });
+}, `SpeechSynthesisEvent with empty eventInitDict throws TypeError (requires
+    utterance)`);
+
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new SpeechSynthesisEvent("type", {charIndex: 10, elapsedTime: 50, name:"foo"});
+  });
+}, `SpeechSynthesisEvent with eventInitDict not having utterance throws
+    TypeError`);
+
+test(() => {
+  const utterance = new SpeechSynthesisUtterance("foo");
+  const event = new SpeechSynthesisEvent("type", {utterance: utterance});
+  assert_equals(event.utterance, utterance);
+  assert_equals(event.charIndex, 0);
+  assert_equals(event.charLength, 0);
+  assert_equals(event.elapsedTime, 0);
+  assert_equals(event.name, "");
+}, "SpeechSynthesisEvent with eventInitDict having an utterance");
+
+test(() => {
+  const utterance = new SpeechSynthesisUtterance("foo");
+  const event = new SpeechSynthesisEvent("type", {
+    utterance: utterance,
+    charIndex: 5,
+    charLength: 3,
+    elapsedTime: 100,
+    name: "foo"
+  });
+  assert_equals(event.bubbles, false);
+  assert_equals(event.cancelable, false);
+  assert_equals(event.type, "type");
+  assert_equals(event.utterance, utterance);
+  assert_equals(event.charIndex, 5);
+  assert_equals(event.charLength, 3);
+  assert_equals(event.elapsedTime, 100);
+  assert_equals(event.name, "foo");
+}, "SpeechSynthesisEvent with custom eventInitDict");
+</script>

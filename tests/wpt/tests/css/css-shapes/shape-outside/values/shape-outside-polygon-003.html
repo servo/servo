@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Shape Outside Polygon Invalid Points</title>
+        <link rel="author" title="Adobe" href="http://html.adobe.com/">
+        <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+        <link rel="reviewer" title="Alan Stearns" href="mailto:stearns@adobe.com"> <!-- 2014-03-04 -->
+        <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#funcdef-polygon">
+        <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shape-outside-property">
+        <meta name="assert" content="A polygonal basic shape's points may be either lengths or percentages">
+        <meta name="flags" content="ahem dom">
+        <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="support/parsing-utils.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script type="text/javascript">
+            var invalid_polygon_points_tests = [
+                {"name": "polygon()"},
+                {"name": "polygon(evenodd)"},
+                {"name": "polygon(nonzero)"},
+                {"name": "polygon(evenodd, foo bar)"},
+                {"name": "polygon(nonzero, bar foo)"},
+                {"name": "polygon(foo, 1px 2px)"},
+                {"name": "polygon(evenodd 1px 2px)"},
+                {"name": "polygon(nonzero 1px 2px)"},
+                {"name": "polygon(1px)"},
+                {"name": "polygon(1px 2px 3px)"},
+                {"name": "polygon(1px 2px 3px 4px)"},
+                {"name": "polygon(1px, 2px)"},
+                {"name": "polygon(1px 2px evenodd)"},
+                {"name": "polygon(1px 2px nonzero)"},
+                {"name": "polygon(evenodd, 10 20)"},
+                {"name": "polygon(nonzero, 10 20)"}
+            ];
+            generate_tests( ParsingUtils.testInlineStyle,
+                            ParsingUtils.buildTestCases(invalid_polygon_points_tests) );
+        </script>
+    </body>
+</html>

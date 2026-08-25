@@ -1,0 +1,74 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>ANGLE ambiguous function call test</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="fshaderAmbiguousHLSLFunctionCall" type="x-shader/x-fragment">
+precision mediump float;
+uniform vec4 uv;
+uniform mat2 um;
+vec4 foo(vec4 v) {
+    return v;
+}
+vec4 foo(mat2 m) {
+    return vec4(m);
+}
+void main()
+{
+    gl_FragColor = foo(uv) + foo(um);
+}
+</script>
+<script id="fshaderAmbiguousHLSLStructFunctionCall" type="x-shader/x-fragment">
+precision mediump float;
+uniform float u_zero;
+struct S { float foo; };
+struct S2 { float foo; };
+float get(S s) { return s.foo + u_zero; }
+float get(S2 s2) { return 0.25 + s2.foo + u_zero; }
+void main()
+{
+    S s;
+    s.foo = 0.5;
+    S2 s2;
+    s2.foo = 0.25;
+    gl_FragColor = vec4(0.0, get(s) + get(s2), 0.0, 1.0);
+}
+</script>
+<script type="text/javascript">
+"use strict";
+description("Test overloaded functions with vec4 and mat2 parameters that have had issues in ANGLE. Issues were due to HLSL compiler treating float4 and float2x2 as the same type when resolving which overloaded function to call.");
+
+GLSLConformanceTester.runTests([
+{
+  fShaderId: 'fshaderAmbiguousHLSLFunctionCall',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: "Disambiguate correctly between overloaded function calls with 4-component float parameters"
+},
+{
+  fShaderId: 'fshaderAmbiguousHLSLStructFunctionCall',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: "Disambiguate correctly between overloaded function calls with struct parameters",
+  render: true
+}
+]);
+</script>
+</body>
+</html>

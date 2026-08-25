@@ -1,0 +1,94 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>CSS Ruby test: no m/b/p/ effect on base/annotation containers</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel="help" href="https://drafts.csswg.org/css-ruby-1/#ruby-layout">
+<link rel="help" href="https://drafts.csswg.org/css-ruby-1/#box-style">
+<link rel="match" href="ruby-box-model-001-ref.html">
+<meta name=assert content="the content box of base (resp annotation) container boxes should be tightly rapping around their content, and stacked up without gap. Margins/Borders/Padding on the base (resp annotation) container boxes do not apply.">
+
+<style>
+.r { display: ruby; }
+.rbc { display: ruby-base-container; }
+.rb { display: ruby-base; }
+.rtc { display: ruby-text-container; }
+.rt { display: ruby-text; }
+
+.pv { padding-top: 100px; padding-bottom: 100px; }
+.ph { padding-left: 100px; padding-right: 100px; }
+.bv, .bh { border-style: solid; border-color: transparent; }
+.bv  { border-top-width: 100px; border-bottom-width: 100px; }
+.bh { border-left-width: 100px; border-right-width: 100px; }
+.mv { margin-top: 100px; margin-bottom: 100px; }
+.mh { margin-left: 100px; margin-right: 100px; }
+
+.r { font: 50px/1 monospace; }
+
+.rb { background: pink; }
+.rt { background: orange; }
+</style>
+
+<p>Test passes if, in each of the base/annotations pairs below, there is no gap between the pink box of the base and the orange box of the annotation.</p>
+
+<span class=r>
+    <span class="rbc pv">
+        <span class=rb>b1</span>
+    </span>
+    <span class="rtc pv">
+        <span class=rt>a1</span>
+    </span>
+</span>
+
+<span class=r>
+    <span class="rbc ph">
+        <span class=rb>b2</span>
+    </span>
+    <span class="rtc ph">
+        <span class=rt>a2</span>
+    </span>
+</span>
+
+<span class=r>
+    <span class="rbc bv">
+        <span class=rb>b3</span>
+    </span>
+    <span class="rtc bv">
+        <span class=rt>a3</span>
+    </span>
+</span>
+
+<span class=r>
+    <span class="rbc bh">
+        <span class=rb>b4</span>
+    </span>
+    <span class="rtc bh">
+        <span class=rt>a4</span>
+    </span>
+</span>
+
+<span class=r>
+    <span class="rbc mv">
+        <span class=rb>b5</span>
+    </span>
+    <span class="rtc mv">
+        <span class=rt>a5</span>
+    </span>
+</span>
+
+<span class=r>
+    <span class="rbc mh">
+        <span class=rb>b6</span>
+    </span>
+    <span class="rtc mh">
+        <span class=rt>a6</span>
+    </span>
+</span>
+
+<span class=r>
+    <span class="rbc ph pv mh mv bh bv">
+        <span class=rb>b7</span>
+    </span>
+    <span class="rtc ph pv mh mv bh bv">
+        <span class=rt>a7</span>
+    </span>
+</span>

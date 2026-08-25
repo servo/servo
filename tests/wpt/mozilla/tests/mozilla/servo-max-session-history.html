@@ -1,0 +1,14 @@
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body></body>
+<iframe src="max-session-history-frame.html"></iframe>
+<script>
+  let t = async_test("Forward then back triggered a reload.");
+  onmessage = t.step_func(() => {
+      t.done();
+  });
+</script>
+</html>

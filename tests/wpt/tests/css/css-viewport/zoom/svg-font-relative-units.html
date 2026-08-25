@@ -1,0 +1,46 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-viewport/#zoom-property">
+<link rel="match" href="svg-font-relative-units-ref.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+  :root {
+    font: 10px/1 Ahem;
+    zoom: 2;
+  }
+  body { margin: 0 }
+  .container {
+    font-size: 20px;
+  }
+  .child {
+    zoom: 2;
+  }
+  line {
+    stroke-width: 2px;
+    stroke: lime;
+  }
+  svg {
+    background-color: black;
+  }
+</style>
+<div class="container">
+  <div class="child">
+    <svg width=100 height=100>
+      <!-- Font-relative units -->
+      <line y1=10 y2=10 x1=0 x2=1em />
+      <line y1=15 y2=15 x1=0 x2=1ex />
+      <line y1=20 y2=20 x1=0 x2=1cap />
+      <line y1=25 y2=25 x1=0 x2=1ch />
+      <line y1=30 y2=30 x1=0 x2=1ic />
+      <line y1=35 y2=35 x1=0 x2=1lh />
+
+      <!-- Root font-relative units -->
+      <line y1=60 y2=60 x1=0 x2=1rem />
+      <line y1=65 y2=65 x1=0 x2=1rex />
+      <line y1=70 y2=70 x1=0 x2=1rcap />
+      <line y1=75 y2=75 x1=0 x2=1rch />
+      <line y1=80 y2=80 x1=0 x2=1ric />
+      <line y1=85 y2=85 x1=0 x2=1rlh />
+    </svg>
+  </div>
+</div>

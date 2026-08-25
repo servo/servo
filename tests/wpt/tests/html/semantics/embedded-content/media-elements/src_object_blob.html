@@ -1,0 +1,26 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>HTMLMediaElement.srcObject blob</title>
+<script src='/common/media.js'></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<video></video>
+<script>
+  const video = document.querySelector("video");
+  promise_test(async () => {
+    const blob = await fetch(getVideoURI('/media/movie_5'))
+          .then(r => r.blob());
+    try {
+      video.srcObject = blob;
+    } catch (error) {
+      assert_unreached(error);
+    }
+    const done = new Promise(res => video.addEventListener('ended', res));
+    test_driver.bless('initiate media playback', function () {
+      video.play();
+    });
+    return done;
+  });
+</script>

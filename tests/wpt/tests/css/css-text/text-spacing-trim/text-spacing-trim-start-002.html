@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-spacing-trim-property">
+<link rel="match" href="text-spacing-trim-start-002-ref.html">
+<style>
+@font-face {
+  font-family: halt-font;
+  src: url('/fonts/noto/cjk/NotoSansCJKjp-Regular-subset-halt.otf');
+}
+#container {
+  font-family: halt-font;
+  font-size: 20px;
+  inline-size: 3.6em;
+  text-spacing-trim: trim-start;
+}
+</style>
+<div id="container">
+  <!--
+    The available width is set to fit 3.5 full-width characters, but not 4.
+    4 characters can fit only if the first open parenthesis is set half-width.
+  -->
+  <div>（国国国（国国国<br>（国国国</div>
+</div>

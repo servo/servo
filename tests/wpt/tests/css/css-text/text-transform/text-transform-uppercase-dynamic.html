@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<link rel="help" href="http://www.w3.org/TR/css-text-3/#text-transform">
+<link rel="match" href="reference/text-transform-uppercase-dynamic-ref.html">
+<style>
+.test { text-transform: uppercase; }
+</style>
+<script>
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    document.getElementById('sp').setAttribute('lang', 'my');
+    document.documentElement.classList.remove('reftest-wait');
+  });
+});
+</script>
+<div class="test" lang="lt">
+  <span id="sp">i̇̃ Ĩ</span>
+</div>
+</html>

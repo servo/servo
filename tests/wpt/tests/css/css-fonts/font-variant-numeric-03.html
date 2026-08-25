@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>CSS Test:  font-variant-numeric: oldstyle-nums; low level equivalence</title>
+<link rel="author" title="Chris Lilley" href="chris@w3.org">
+<link rel="match" href="font-variant-numeric-03-ref.html">
+<link rel="help" href="https://www.w3.org/TR/css-fonts-3/#font-variant-numeric-prop">
+<link rel="help" href="https://www.w3.org/TR/css-fonts-3/#font-feature-settings-prop">
+<meta name="assert" content="Enables display of old-style numerals (OpenType feature: onum). ">
+<style>
+  @font-face {
+    font-family: fwf;
+    src: url(support/fonts/FontWithFancyFeatures.otf);
+  }
+  .test {
+	  font-family: fwf;
+	  font-size: 3em;
+	  line-height: 1.1;
+  }
+  .high {
+	 font-variant-numeric: oldstyle-nums;
+  }
+  .low {
+   font-feature-settings: "lnum" off, "onum" on, "pnum" off, "tnum" off, "frac" off, "afrc" off, "ordn" off, "zero" off;
+  }
+
+
+</style>
+<body>
+<p>Test passes if the three lines below are identical, with one cross (✗), then one check mark (✓) followed by six crosses (✗). </p>
+<section class="test">
+	<p class="high">PQRSTUVW</p>
+	<p class="low">PQRSTUVW</p>
+	<p class="ref">BABBBBBB</p>
+</section>

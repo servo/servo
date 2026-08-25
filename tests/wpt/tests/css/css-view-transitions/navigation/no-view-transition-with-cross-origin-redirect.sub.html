@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<title>navigation with a  same-origin final url with cross-origin redirects</title>
+<link rel="help" href="https://html.spec.whatwg.org/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  @view-transition {
+    navigation: auto;
+  }
+</style>
+<script>
+  const params = new URLSearchParams(location.search);
+  const mode = params.get("mode") || "test";
+
+  switch (mode) {
+  case "test":
+    promise_test(async t => {
+      const event = await new Promise(resolve => {
+        window.did_reveal = e => { resolve(e) };
+        const popup = window.open("?mode=old");
+        t.add_cleanup(() => popup.close());
+      });
+
+      assert_equals(event.viewTransition, null, "ViewTransition must not be triggered.");
+    });
+    break;
+  case "old":
+    onload = () => requestAnimationFrame(() => requestAnimationFrame(() => {
+      let crossOriginPath = "http://{{hosts[alt][]}}:{{ports[http][1]}}";
+      let newUrl = crossOriginPath + "/common/redirect.py?location=" + encodeURIComponent(location.href.split('?')[0] + "?mode=new");
+      location.replace(newUrl);
+    }));
+    break;
+  case "new":
+    onpagereveal = e => window.opener.did_reveal(e);
+    break;
+  }
+</script>

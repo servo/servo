@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test for the 'secure-payment-confirmation' payment method authentication - user opt out case</title>
+<link rel="help" href="https://w3c.github.io/secure-payment-confirmation/#sctn-user-opt-out">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="utils.sub.js"></script>
+<script>
+'use strict';
+
+promise_test(async t => {
+  const authenticator = await window.test_driver.add_virtual_authenticator(
+      AUTHENTICATOR_OPTS);
+  t.add_cleanup(() => {
+    return window.test_driver.remove_virtual_authenticator(authenticator);
+  });
+
+  await window.test_driver.set_spc_transaction_mode("autoOptOut");
+  t.add_cleanup(() => {
+    return window.test_driver.set_spc_transaction_mode("none");
+  });
+
+
+  const credential = await createCredential();
+
+  const challenge = 'server challenge';
+  const payeeOrigin = 'https://merchant.com';
+  const displayName = 'Troycard ***1234';
+  const request = new PaymentRequest([{
+    supportedMethods: 'secure-payment-confirmation',
+    data: {
+      credentialIds: [credential.rawId],
+      challenge: Uint8Array.from(challenge, c => c.charCodeAt(0)),
+      rpId: window.location.hostname,
+      payeeOrigin,
+      timeout: 60000,
+      instrument: {
+        displayName,
+        icon: ICON_URL,
+      },
+      showOptOut: true,
+    }
+  }], PAYMENT_DETAILS);
+
+  await test_driver.bless('user activation');
+  return promise_rejects_dom(t, "OptOutError", request.show());
+}, 'SPC opt-out returns OptOutError');
+</script>

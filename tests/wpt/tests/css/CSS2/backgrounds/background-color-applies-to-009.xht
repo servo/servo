@@ -1,0 +1,28 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Background-color applied to elements with 'display' set to 'block'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-04-21 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#propdef-background" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background-properties" />
+        <link rel="match" href="../reference/ref-filled-black-96px-square.xht" />
+
+        <meta name="assert" content="The 'background-color' property applies to elements with 'display' set to 'block'." />
+        <style type="text/css">
+            span
+            {
+                background-color: black;
+                display: block;
+                height: 1in;
+                width: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a filled black square.</p>
+        <div>
+            <span></span>
+        </div>
+    </body>
+</html>

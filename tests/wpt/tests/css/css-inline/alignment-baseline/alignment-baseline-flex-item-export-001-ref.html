@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="help" href="https://drafts.csswg.org/css-inline-3/#baseline-synthesis-box">
+  <link rel="stylesheet" href="/fonts/baseline-diagnostic/baseline-diagnostic-font.css">
+  <meta name="flags" content="image" />
+  <meta charset="utf-8">
+  <style>
+    :root {
+      font: 200px/1 'BaselineDiagnostic';
+    }
+
+    .flex-container {
+      display: inline-flex;
+    }
+
+    img {
+      width: 100px;
+      height: 100px;
+    }
+  </style>
+</head>
+<body>
+  <span>X<span class="flex-container"><img src="/images/checkerboard.svg"></span></span>
+</body>
+</html>

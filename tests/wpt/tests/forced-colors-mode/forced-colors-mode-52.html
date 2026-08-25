@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Forced colors mode - SVG inherits parent's used color by default.</title>
+<link rel="help" href="https://www.w3.org/TR/css-color-adjust-1/#forced-color-adjust-prop">
+<link rel=match href="forced-colors-mode-52-ref.html">
+<style>
+  body {
+    color: red;
+  }
+  svg {
+    fill: currentColor;
+    stroke: currentColor;
+  }
+</style>
+<body>
+  The triangle below should be canvasText in forced colors mode.
+  <svg height="200" width="350">
+    <path d="M150 0 L75 200 L225 200 Z" />
+  </svg>
+</body>

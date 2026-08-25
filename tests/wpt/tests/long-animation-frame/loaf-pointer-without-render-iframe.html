@@ -1,0 +1,57 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Long Animation Frame Timing: Pointer events without render in an iframe</title>
+<meta name="timeout" content="long">
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-actions.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+<body>
+<script>
+const BUSY_DURATION = 60;
+function event_handler() {
+  busy_wait(BUSY_DURATION);
+}
+
+function click_iframe(iframe) {
+  return new test_driver.Actions()
+    .pointerMove(10, 10, {origin: iframe})
+    .pointerDown()
+    .pointerUp()
+    .send();
+}
+
+promise_test(async t => {
+  const iframe = document.createElement("iframe");
+  iframe.src = "resources/long-pointerdown.html"
+  t.add_cleanup(() => iframe.remove());
+  document.body.append(iframe);
+  await new Promise(resolve => iframe.addEventListener("load", resolve));
+  iframe.focus();
+  await click_iframe(iframe);
+  await new Promise(resolve => requestAnimationFrame(() => resolve()));
+  await new Promise(resolve => t.step_timeout(resolve, 0));
+  const loaf_promise = new Promise(resolve => {
+    function on_message(event) {
+      resolve(event.data);
+    }
+
+    addEventListener("message", on_message);
+    t.add_cleanup(() => removeEventListener("message", on_message));
+
+    new PerformanceObserver(entries => {
+      for (const e of entries.getEntries())
+        if (entries.getEntries().some(
+          e => !e.renderStart && e.scripts.some(script => script.invoker === "BODY.onpointerdown")))
+          resolve("MAIN");
+      }).observe({type: "long-animation-frame"});
+    });
+
+    await click_iframe(iframe);
+
+  assert_equals(await loaf_promise, "FRAME");
+}, "Input events in iframes that don't cause a render should only create LoAF for the iframe")
+</script>
+</body>

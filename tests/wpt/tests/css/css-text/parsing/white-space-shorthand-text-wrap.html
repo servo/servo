@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#propdef-white-space">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#propdef-text-wrap">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.balance {
+  text-wrap: balance;
+}
+</style>
+<div id="balance" class="balance"></div>
+<script>
+test(() => {
+  const target = document.getElementById('balance');
+  assert_equals(getComputedStyle(target).textWrap, 'balance');
+}, "`text-wrap: balance` should be set");
+</script>
+
+<style>
+#text-wrap-after-white-space {
+  white-space: normal;
+  text-wrap: balance;
+}
+</style>
+<div id="text-wrap-after-white-space"></div>
+<script>
+test(() => {
+  const target = document.getElementById('text-wrap-after-white-space');
+  assert_equals(getComputedStyle(target).textWrap, 'balance');
+}, "`text-wrap` should not be affected by previous `white-space`");
+</script>
+
+<style>
+#white-space-after-text-wrap-balance {
+  text-wrap: balance;
+  white-space: normal;
+}
+</style>
+<div id="white-space-after-text-wrap-balance"></div>
+<script>
+test(() => {
+  const target = document.getElementById('white-space-after-text-wrap-balance');
+  assert_equals(getComputedStyle(target).textWrap, 'balance');
+}, "`white-space` should not overwrite previous `text-wrap-style: balance`");
+</script>
+
+<style>
+#white-space-after-text-wrap-nowrap {
+  text-wrap: nowrap balance;
+  white-space: normal;
+}
+</style>
+<div id="white-space-after-text-wrap-nowrap"></div>
+<script>
+test(() => {
+  const target = document.getElementById('white-space-after-text-wrap-nowrap');
+  assert_equals(getComputedStyle(target).textWrap, 'balance');
+}, "`white-space` should overwrite previous `text-wrap-mode: nowrap`");
+</script>
+
+<style>
+.normal {
+  white-space: normal;
+}
+</style>
+<div class="normal">
+  <div id="parent-white-space" class="balance"></div>
+</div>
+<script>
+test(() => {
+  const target = document.getElementById('parent-white-space');
+  assert_equals(getComputedStyle(target).textWrap, 'balance');
+}, "`text-wrap` should not be affected by `white-space` on the parent");
+</script>
+
+<div style="text-wrap: balance nowrap;">
+  <div id="parent-text-wrap" class="normal"></div>
+</div>
+<script>
+test(() => {
+  const target = document.getElementById('parent-text-wrap');
+  assert_equals(getComputedStyle(target).textWrap, 'balance');
+}, "`white-space` should overwrite `text-wrap-mode` on the parent");
+</script>

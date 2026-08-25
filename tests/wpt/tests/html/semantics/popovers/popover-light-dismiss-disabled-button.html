@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Popover light dismiss behavior with disabled buttons</title>
+<meta name="timeout" content="long">
+<link rel="author" href="mailto:lwarlow@igalia.com">
+<link rel=help href="https://html.spec.whatwg.org/multipage/popover.html">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/popover-utils.js"></script>
+<style>
+  [popover] {
+    /* Position most popovers at the bottom-right, out of the way */
+    inset:auto;
+    bottom:0;
+    right:0;
+  }
+  [popover]::backdrop {
+    /* This should *not* affect anything: */
+    pointer-events: auto;
+  }
+</style>
+<button id="commandButton" command="toggle-popover" commandfor="popover" disabled>command/commandfor</button>
+<button id="popovertargetButton" popovertarget="popover" disabled>popovertarget</button>
+<input type="button" id="popovertargetInputButton" popovertarget="popover" disabled value="input popovertarget">
+<div id="popover" popover>Popover</div>
+
+<script>
+  let popoverHideCount = 0;
+  popover.addEventListener('beforetoggle',(e) => {
+    if (e.newState !== "closed")
+      return;
+    ++popoverHideCount;
+    e.preventDefault(); // 'beforetoggle' should not be cancellable.
+  });
+  promise_test(async (t) => {
+    t.add_cleanup(() => {
+        popover.hidePopover();
+    });
+    popover.showPopover();
+    assert_true(popover.matches(':popover-open'));
+    await waitForRender();
+    pHideCount = popoverHideCount;
+    await clickOn(commandButton);
+    assert_false(popover.matches(':popover-open'),'popover should be closed');
+    assert_equals(popoverHideCount,pHideCount+1,'popover should get hidden once');
+  }, 'Clicking on disabled command button should just close popover like normal');
+  promise_test(async (t) => {
+    t.add_cleanup(() => {
+        popover.hidePopover();
+    });
+    popover.showPopover();
+    assert_true(popover.matches(':popover-open'));
+    await waitForRender();
+    pHideCount = popoverHideCount;
+    await clickOn(popovertargetButton);
+    assert_false(popover.matches(':popover-open'),'popover should be closed');
+    assert_equals(popoverHideCount,pHideCount+1,'popover should get hidden once');
+  }, 'Clicking on disabled popovertarget button should just close popover like normal');
+  promise_test(async (t) => {
+    t.add_cleanup(() => {
+        popover.hidePopover();
+    });
+    popover.showPopover();
+    assert_true(popover.matches(':popover-open'));
+    await waitForRender();
+    pHideCount = popoverHideCount;
+    await clickOn(popovertargetInputButton);
+    assert_false(popover.matches(':popover-open'),'popover should be closed');
+    assert_equals(popoverHideCount,pHideCount+1,'popover should get hidden once');
+  }, 'Clicking on disabled popovertarget input button should just close popover like normal');
+</script>

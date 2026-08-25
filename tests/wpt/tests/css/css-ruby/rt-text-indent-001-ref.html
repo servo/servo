@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Ruby Reference: 'text-indent' inherited from an explicit-width ancestor should not inflate 'rt'</title>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+html, body {
+  margin: 0;
+}
+div {
+  font: 20px/1 Ahem;
+  width: 100px;
+  text-indent: 50px;
+}
+rt {
+  font-size: 20px;
+}
+span {
+  display: inline-block;
+  text-indent: 0;
+}
+</style>
+<div><ruby><rb>X</rb><rt><span>Y</span></rt></ruby>Z</div>

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Same-document traversals during same-document traversals (using pushState())</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!--
+  Compare this to cross-document-traversal-cross-document-traversal.html. Since
+  there are no network loads or document unloads to cancel tasks, both
+  traversals should observably go through. Target step calculation for the
+  second traversal should take place after the first traversal is finished. So
+  we end up with both traversals observable in sequence.
+-->
+
+<body>
+<script type="module">
+import { createIframe, delay, waitForPopstate } from "./resources/helpers.mjs";
+
+promise_test(async t => {
+  const iframe = await createIframe(t);
+
+  // Setup
+  iframe.contentWindow.history.pushState(1, "", "/1");
+  assert_equals(iframe.contentWindow.location.pathname, "/1", "setup /1");
+  iframe.contentWindow.history.pushState(2, "", "/2");
+  assert_equals(iframe.contentWindow.location.pathname, "/2", "setup /2");
+  iframe.contentWindow.history.pushState(3, "", "/3");
+  assert_equals(iframe.contentWindow.location.pathname, "/3", "setup /3");
+  iframe.contentWindow.history.back();
+  await waitForPopstate(iframe.contentWindow);
+  assert_equals(iframe.contentWindow.location.pathname, "/2", "we made our way to /2 for setup");
+
+  iframe.contentWindow.history.back();
+  assert_equals(iframe.contentWindow.location.pathname, "/2", "must not go back synchronously");
+
+  iframe.contentWindow.history.forward();
+  assert_equals(iframe.contentWindow.location.pathname, "/2", "must not go forward synchronously");
+
+  const event1 = await waitForPopstate(iframe.contentWindow);
+  assert_equals(event1.state, 1, "state 1");
+  // Cannot test iframe.contentWindow.location.pathname since the second history
+  // traversal task is racing with the fire an event task, so we don't know
+  // which will happen first.
+
+  const event2 = await waitForPopstate(iframe.contentWindow);
+  assert_equals(event2.state, 2, "state 2");
+  assert_equals(iframe.contentWindow.location.pathname, "/2");
+}, "same-document traversals in opposite directions: queued up");
+
+promise_test(async t => {
+  const iframe = await createIframe(t);
+
+  // Setup
+  iframe.contentWindow.history.pushState(1, "", "/1");
+  assert_equals(iframe.contentWindow.location.pathname, "/1", "setup /1");
+  iframe.contentWindow.history.pushState(2, "", "/2");
+  assert_equals(iframe.contentWindow.location.pathname, "/2", "we made our way to /2 for setup");
+
+  iframe.contentWindow.history.back();
+  assert_equals(iframe.contentWindow.location.pathname, "/2", "must not go back synchronously");
+
+  iframe.contentWindow.history.forward();
+  assert_equals(iframe.contentWindow.location.pathname, "/2", "must not go forward synchronously");
+
+  const event1 = await waitForPopstate(iframe.contentWindow);
+  assert_equals(event1.state, 1, "state 1");
+  // Cannot test iframe.contentWindow.location.pathname since the second history
+  // traversal task is racing with the fire an event task, so we don't know
+  // which will happen first.
+
+  const event2 = await waitForPopstate(iframe.contentWindow);
+  assert_equals(event2.state, 2, "state 2");
+  assert_equals(iframe.contentWindow.location.pathname, "/2");
+}, "same-document traversals in opposite directions, second traversal invalid at queuing time: queued up");
+
+promise_test(async t => {
+  const iframe = await createIframe(t);
+
+  // Setup
+  iframe.contentWindow.history.pushState(1, "", "/1");
+  assert_equals(iframe.contentWindow.location.pathname, "/1", "setup /1");
+  iframe.contentWindow.history.pushState(2, "", "/2");
+  assert_equals(iframe.contentWindow.location.pathname, "/2", "setup /2");
+  iframe.contentWindow.history.pushState(3, "", "/3");
+  assert_equals(iframe.contentWindow.location.pathname, "/3", "we made our way to /3 for setup");
+
+  iframe.contentWindow.history.back();
+  assert_equals(iframe.contentWindow.location.pathname, "/3", "must not go back synchronously (1)");
+
+  iframe.contentWindow.history.back();
+  assert_equals(iframe.contentWindow.location.pathname, "/3", "must not go back synchronously (2)");
+
+  const event1 = await waitForPopstate(iframe.contentWindow);
+  assert_equals(event1.state, 2, "state 1");
+  // Cannot test iframe.contentWindow.location.pathname since the second history
+  // traversal task is racing with the fire an event task, so we don't know
+  // which will happen first.
+
+  const event2 = await waitForPopstate(iframe.contentWindow);
+  assert_equals(event2.state, 1, "state 2");
+  assert_equals(iframe.contentWindow.location.pathname, "/1");
+}, "same-document traversals in the same (back) direction: queue up");
+
+promise_test(async t => {
+  const iframe = await createIframe(t);
+
+  // Setup
+  iframe.contentWindow.history.pushState(1, "", "/1");
+  assert_equals(iframe.contentWindow.location.pathname, "/1", "setup /1");
+  iframe.contentWindow.history.pushState(2, "", "/2");
+  assert_equals(iframe.contentWindow.location.pathname, "/2", "setup /2");
+  iframe.contentWindow.history.pushState(3, "", "/3");
+  assert_equals(iframe.contentWindow.location.pathname, "/3", "setup /3");
+  iframe.contentWindow.history.back();
+  await waitForPopstate(iframe.contentWindow);
+  assert_equals(iframe.contentWindow.location.pathname, "/2", "setup /2 again");
+  iframe.contentWindow.history.back();
+  await waitForPopstate(iframe.contentWindow);
+  assert_equals(iframe.contentWindow.location.pathname, "/1", "we made our way to /1 for setup");
+
+  iframe.contentWindow.history.forward();
+  assert_equals(iframe.contentWindow.location.pathname, "/1", "must not go forward synchronously (1)");
+
+  iframe.contentWindow.history.forward();
+  assert_equals(iframe.contentWindow.location.pathname, "/1", "must not go forward synchronously (2)");
+
+  const event1 = await waitForPopstate(iframe.contentWindow);
+  assert_equals(event1.state, 2, "state 1");
+  // Cannot test iframe.contentWindow.location.pathname since the second history
+  // traversal task is racing with the fire an event task, so we don't know
+  // which will happen first.
+
+  const event2 = await waitForPopstate(iframe.contentWindow);
+  assert_equals(event2.state, 3, "state 2");
+  assert_equals(iframe.contentWindow.location.pathname, "/3");
+}, "same-document traversals in the same (forward) direction: queue up");
+</script>

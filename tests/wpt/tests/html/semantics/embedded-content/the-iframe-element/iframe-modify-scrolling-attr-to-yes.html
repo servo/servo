@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>modify iframe scrolling attr to yes</title>
+<link rel="author" title="Jinfeng Ma" href="mailto:majinfeng1@xiaomi.org">
+<link rel="help" href="https://www.w3.org/TR/html401/present/frames.html#adef-scrolling">
+<link rel="match" href="iframe-modify-scrolling-attr-to-yes-ref.html">
+
+<p>Test passes if you can see the scrollbars of the iframe displayed below.</p>
+<iframe src="support/iframe-which-content-height-equals-400px.html" scrolling="no" width="200px" height="100px">
+</iframe>
+
+<script>
+    let iframe = document.querySelector("iframe");
+    iframe.onload = function () {
+        iframe.scrolling = 'yes';
+    };
+</script>

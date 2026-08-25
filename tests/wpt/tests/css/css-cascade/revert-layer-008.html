@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<title>CSS Cascade Layers: 'revert-layer' triggers a smooth transition</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-5/#revert-layer">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+@layer revert-to, revert-from;
+
+@layer revert-from {
+  #target {
+    font-size: 10px;
+    transition: font-size 2s linear -1s;
+  }
+
+  #target.reverted {
+    font-size: revert-layer;
+  }
+}
+
+@layer revert-to {
+  #target { font-size: 20px; }
+}
+</style>
+
+<div id="target"></div>
+
+<script>
+function raf() {
+  return new Promise(resolve => requestAnimationFrame(resolve));
+}
+promise_test(async () => {
+  const target = document.getElementById('target');
+  getComputedStyle(target).getPropertyValue('font-size');
+
+  await raf();
+  target.classList.toggle('reverted');
+
+  const result = getComputedStyle(target).getPropertyValue('font-size');
+  assert_equals(result, '15px');
+}, "'revert-layer' should revert font-size to 20px and trigger a smooth transition");
+</script>

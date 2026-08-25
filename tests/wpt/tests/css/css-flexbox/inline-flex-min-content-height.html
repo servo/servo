@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Flexbox Layout Test: Atomic inline Flexible Box with height: min-content</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing/#valdef-width-min-content">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<meta name=assert content="This test checks that height: min-content computes to 'auto' for atomic inline level flexible box.">
+<style>
+  #flexbox {
+    background-color: green;
+    display: inline-flex;
+    height: min-content;
+  }
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div id="flexbox">
+  <div id="item">
+    <div style="width:100px; height:100px;"></div>
+  </div>
+</div>

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<title>Dynamically changing SVGStyleElement.media should change the rendering accordingly</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://svgwg.org/svg2-draft/styling.html#StyleElement">
+
+<svg width="10" height="10">
+  <style>
+    #rect1 { fill: red; }
+  </style>
+  <style id="overriding-style" media="not all">
+    #rect1 { fill: green; }
+  </style>
+  <rect id="rect1" width="10" height="10"/>
+</svg>
+
+<svg width="10" height="10">
+  <style id="muted-style" media="aural">
+    #rect2 { fill: green; }
+  </style>
+  <rect id="rect2" width="10" height="10"/>
+</svg>
+
+<script>
+  const green = "rgb(0, 128, 0)";
+
+  test(() => {
+    const rect = document.getElementById("rect1");
+    assert_not_equals(getComputedStyle(rect).fill, green,
+                      "initial fill should not come from the muted stylesheet");
+    document.getElementById("overriding-style").media = "all";
+    assert_equals(getComputedStyle(rect).fill, green,
+                  "fill should switch once the second sheet's media matches");
+  }, "Changing the media attribute updates the associated stylesheet");
+
+  test(() => {
+    const style = document.getElementById("muted-style");
+    const rect = document.getElementById("rect2");
+    assert_not_equals(getComputedStyle(rect).fill, green,
+                      "rule should not apply while media=aural");
+    style.removeAttribute("media");
+    assert_equals(getComputedStyle(rect).fill, green,
+                  "removing the media attribute should make the rule apply");
+  }, "Removing the media attribute updates the associated stylesheet");
+</script>

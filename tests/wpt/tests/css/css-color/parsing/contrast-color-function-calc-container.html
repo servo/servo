@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test CSS Color Module 5 contrast-color() computed value with calc() and container units</title>
+<link rel="author" title="Sam Weinig" href="mailto:sam@webkit.org">
+<link rel="help" href="https://drafts.csswg.org/css-color-5/#contrast-color">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#serializing-color-function-values">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<style>
+  #container {
+    container-type: inline-size;
+    width: 10px;
+    color: pink;
+  }
+</style>
+<body>
+<div id="container">
+  <div id="target"></div>
+</div>
+<script>
+// NOTE: As the algorithm for determining constrast is not defined, all computed values can validly be either `rgb(0, 0, 0)` or `rgb(255, 255, 255)`.
+test_computed_value("background-color", `contrast-color(color(srgb calc(1 + (sign(20cqw - 10px) * 1)) calc(1 + (sign(20cqw - 10px) * 1)) calc(1 + (sign(20cqw - 10px) * 1))))`, ["rgb(0, 0, 0)", "rgb(255, 255, 255)"]);
+test_valid_value("background-color", "contrast-color(color(srgb calc(0.5) calc(1 + (sign(20cqw - 10px) * 0.5)) 1 / .5))", "contrast-color(color(srgb calc(0.5) calc(1 + (0.5 * sign(20cqw - 10px))) 1 / 0.5))");
+</script>

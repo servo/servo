@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script src="../resources/runner.js"></script>
+<script>
+var longStr = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+for (var i = 0; i < 15; i++)
+  longStr = longStr + longStr;
+
+PerfTestRunner.measureRunsPerSecond({
+description: "This benchmark covers `atob`.",
+  setup: function() {},
+  run: function() {
+    atob(longStr);
+  }
+});
+</script>
+</body>
+</html>
+

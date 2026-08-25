@@ -1,0 +1,12 @@
+rules:
+- table-backgrounds-*: [background-position, background-image]
+- table-background*: [background-image]
+- table-layer-transparency-003.xht: [background-image]
+- table-layer-transparency-005.xht: [background-image]
+- table-layer-transparency-008.xht: [background-image]
+- background-table-*: [background-repeat]
+- border-conflict-*: [borders]
+- border-style-*: [borders]
+- column-border-*: [borders]
+- table-margin-*: [margin]
+- tables-101.xht: [margin]

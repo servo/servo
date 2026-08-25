@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api-1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/utils.js"></script>
+<div id="target"></div>
+<script>
+
+transition_test({
+  syntax: "<number>",
+  from: "100",
+  to: "200",
+  expected: "150"
+}, 'A custom property of type <number> can yield a CSS Transition');
+
+// This tests if there is a transition to a random floating-point number.
+promise_test(async () => {
+  const customProperty = generate_name();
+
+  CSS.registerProperty({
+    name: customProperty,
+    syntax: "<number>",
+    inherits: false,
+    initialValue: "100"
+  });
+
+  assert_equals(
+    getComputedStyle(target).getPropertyValue(customProperty),
+    "100",
+    "Element has the expected initial value"
+  );
+
+  const transitionEventPromise = new Promise(resolve => {
+    let listener = event => {
+        target.removeEventListener("transitionrun", listener);
+        assert_equals(
+          event.propertyName,
+          customProperty,
+          "TransitionEvent has the expected property name"
+        );
+        resolve();
+    };
+    target.addEventListener("transitionrun", listener);
+  });
+
+  target.style.transition = `${customProperty} 1s -500ms linear`;
+  target.style.setProperty(customProperty, "112.24859");
+
+  const animations = target.getAnimations();
+  assert_equals(animations.length, 1, "A single animation is running");
+
+  const transition = animations[0];
+  assert_class_string(
+    transition,
+    "CSSTransition",
+    "A CSSTransition is running"
+  );
+  assert_equals(transition.playState, "running", "The transition is running");
+
+  await transitionEventPromise;
+}, 'The to value of a custom property to a random floating-point number can ' +
+   'yield a CSS Transition');
+
+</script>

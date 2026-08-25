@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <meta charset="UTF-8">
+
+  <title>CSS Background and Borders Test: 'background-attachment: local' and 'overflow: hidden'</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="http://www.w3.org/TR/css3-background/#the-background-attachment">
+  <link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+  <script src="/common/reftest-wait.js"></script>
+  <link rel="preload" as="image" href="support/100x100-gr-rr.png" onload="takeScreenshot()" />
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+
+  <!--
+
+  More info:
+
+  Re: [css3-background] background-attachment: local
+  http://lists.w3.org/Archives/Public/www-style/2013May/0542.html
+
+  -->
+
+  <meta content="This test checks that when an element has 'background-attachment: local', then the background image is fixed with regard to what is the element's scrollable area and not to its viewport. In this test, what would be the scrollable area for the div#target element is where the red area of its background image 100x100-gr-rr.png is and such area is clipped due to 'overflow: hidden'." name="assert">
+
+  <style>
+  div#control
+    {
+      background-color: red;
+      border: solid green;
+      border-width: 50px 0 0 50px;
+      height: 50px;
+      margin-bottom: -100px;
+      width: 50px;
+    }
+
+  div#target
+    {
+      background-attachment: local;
+      background-image: url("support/100x100-gr-rr.png");
+      background-repeat: no-repeat;
+      background-position: center;
+      font-family: Ahem;
+      font-size: 100px;
+      line-height: 1;
+      height: 100px;
+      overflow: hidden;
+      width: 100px;
+    }
+  </style>
+
+  <body>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.
+
+  <div id="control"></div>
+
+  <div id="target">&nbsp;&nbsp;<br>&nbsp;&nbsp;</div>
+
+  <!--
+
+  div#control is
+
+  (0px, 0px)              (100px, 0px)
+  +.......................+
+  |                       |
+  |                       |
+  |     green  area       |
+  |                       |
+  |                       |
+  |     green  area       |
+  |                       |
+  |             +........+|
+  |   green     |  red   ||
+  |    area     | area   ||
+  |             |        ||
+  |             +........+|
+  +.......................+
+(0px, 100px)            (100px, 100px)
+
+
+  =   =   =   =   =   =   =
+
+
+  div#target with background-position: top left
+
+  (0px, 0px)              (100px, 0px)
+  +.......................+
+  | +........+            |
+  | | green  |    red     |
+  | |  area  |    area    |
+  | |        |            |
+  | +........+            |
+  |                       |
+  |      red  area        |
+  |                       |
+  |                       |
+  |      red  area        |
+  |                       |
+  |                       |
+  +.......................+
+(0px, 100px)            (100px, 100px)
+
+
+  =   =   =   =   =   =   =
+
+
+  div#target with background-position: center
+
+  (0px, 0px)              (100px, 0px)
+  +.......................+
+  |                       |
+  |     green  area       |
+  |                       |   overflowed
+  |                       |      area
+  |     green  area       |        |
+  |                       |        V
+  |           +...........| ...........+
+  |           | +........+|             |
+  |   green   | |  green ||     red     |
+  |    area   | |  area  ||    area     |
+  |           | |        ||             |
+  |           | +........+|             |
+  +.......................+             |
+              |                         |
+              |        red  area        |   <==  overflowed
+              |                         |   <==     area
+              |        red  area        |
+              |                         |
+              |                         |
+              +.........................+
+
+  -->

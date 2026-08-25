@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>window.performance.timing for dynamically created documents</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+<link rel="help" href="http://www.w3.org/TR/navigation-timing/#sec-navigation-timing-interface"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/performance-timeline-utils.js"></script>
+<script src="resources/webperftestharness.js"></script>
+<script>
+setup({explicit_done: true});
+
+// explicitly test the namespace before we start testing
+test_namespace();
+
+var originalTiming = {};
+var didOpen = false;
+
+function onload_test() {
+  if (!didOpen) {
+    step_timeout(testTimingWithDocumentOpen, 0);
+    didOpen = true;
+  }
+}
+
+function testTimingWithDocumentOpen() {
+  var subcontentWindow = document.getElementById("frameContext").contentWindow;
+
+  if (subcontentWindow.performance === undefined)
+  {
+    // avoid script errors
+    done();
+    return;
+  }
+
+  var timing = subcontentWindow.performance.timing;
+  for (i in timingAttributes) {
+    originalTiming[timingAttributes[i]] = timing[timingAttributes[i]];
+  }
+
+  var subdocument = subcontentWindow.document;
+  subdocument.open();
+  subdocument.write('<!DOCTYPE HTML>');
+  subdocument.write('<html>');
+  subdocument.write('<head>');
+  subdocument.write('<meta charset="utf-8" />');
+  subdocument.write('<title><Green Test Page</title>');
+  subdocument.write('</head>');
+  subdocument.write('<body style="background-color:#00FF00;">');
+  subdocument.write('</body>');
+  subdocument.write('</html>');
+  subdocument.close();
+
+  step_timeout(function() {
+    var timing = subcontentWindow.performance.timing;
+    for (var i in timingAttributes) {
+      test_equals(timing[timingAttributes[i]],
+                  originalTiming[timingAttributes[i]],
+                  timingAttributes[i] + " is the same after document open.");
+    }
+    done();
+  }, 0);
+}
+</script>
+</head>
+<body>
+<h1>Description</h1>
+<p>This test validates window.performance.timing remains constant when a
+document is replaced using document.open.</p>
+
+<p>This page should be loaded with a yellow frame below. It then replaces the
+document in that frame with a green document.</p>
+
+<p>The test passes if all of the checks to performance.timing are correct and
+the frame below ends with a green background.</p>
+
+<div id="log"></div>
+<br />
+<iframe id="frameContext" onload="onload_test();" src="resources/blank_page_yellow.html" style="width: 250px; height: 250px;"></iframe>
+</body>
+</html>

@@ -1,0 +1,32 @@
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+async_test(function() {
+  var onloads = 0;
+  function check(ev) {
+    assert_true(ev instanceof Event, "Should be Event");
+    ev.preventDefault();
+    assert_equals(ev.defaultPrevented, false);
+    assert_equals(ev.target, document);
+    assert_equals(ev.currentTarget, window);
+  }
+
+  window.onload = this.unreached_func("this inline handler should be overwritten");
+  window.onload = this.step_func(function(ev) {
+    onloads++;
+    assert_equals(onloads, 1);
+    check(ev);
+  });
+  addEventListener("load", this.step_func_done(function(ev) {
+    onloads++;
+    assert_equals(onloads, 2);
+    check(ev);
+  }));
+});
+</script>
+</body>
+</html>

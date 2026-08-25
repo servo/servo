@@ -1,0 +1,60 @@
+<!doctype html>
+<meta charset="windows-1253">
+<title>meta charset in iframes with windows-1253 inhering from parent</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+
+<script>
+setup({explicit_done:true});
+window.onload = function() {
+  runAllTests();
+  done();
+};
+
+function runAllTests() {
+  const prefix = "Test: ";
+  let iframes = document.getElementsByTagName("iframe");
+  for (let i = 0; i < iframes.length; ++i) {
+    let iframe = iframes[i];
+    test(function() {
+      let doc = iframe.contentWindow.document;
+      let link = doc.getElementsByTagName("link")[0];
+      let match = (link.rel == "match");
+      let content = doc.documentElement.textContent;
+      let index = content.indexOf(prefix);
+      let c = content.substring(index + prefix.length, index + prefix.length + 1);
+      if (match) {
+        assert_equals(doc.characterSet, "windows-1251", 'Check characterSet');
+        assert_equals(c, "\u0436", 'Check character');
+      } else {
+        assert_equals(doc.characterSet, "windows-1253", 'Check characterSet');
+        assert_equals(c, "\u03B6", 'Check character');
+      }
+    }, "Check " + iframe.src);
+  }
+}
+
+</script>
+
+<iframe src="after-1kb.html"></iframe>
+<iframe src="after-bogus-after-1kb.html"></iframe>
+<iframe src="after-bogus.html"></iframe>
+<iframe src="after-head-after-1kb-crlf.html"></iframe>
+<iframe src="after-head-after-1kb.html"></iframe>
+<iframe src="after-head-in-1kb-crlf.html"></iframe>
+<iframe src="after-head-in-1kb.html"></iframe>
+<iframe src="baseline.html"></iframe>
+<iframe src="document-write.html"></iframe>
+<iframe src="in-comment.html"></iframe>
+<iframe src="in-noscript-after-template-after-1kb.html"></iframe>
+<iframe src="in-object.html"></iframe>
+<iframe src="in-script.html"></iframe>
+<iframe src="in-style.html"></iframe>
+<iframe src="in-svg.html"></iframe>
+<iframe src="in-svg-in-cdata.html"></iframe>
+<iframe src="in-template-after-1kb.html"></iframe>
+<iframe src="in-template.html"></iframe>
+<iframe src="in-title.html"></iframe>
+<iframe src="ncr.html"></iframe>
+<iframe src="non-ascii-in-comment-before.html"></iframe>
+<iframe src="non-ascii-in-title-before.html"></iframe>

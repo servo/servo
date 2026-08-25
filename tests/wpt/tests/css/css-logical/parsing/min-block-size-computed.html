@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Logical Properties and Values: getComputedStyle().minBlockSize</title>
+<link rel="help" href="https://drafts.csswg.org/css-logical/#propdef-min-block-size">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#min-size-auto">
+<meta name="assert" content="Computed min-block-size is the specified keyword, or the length-percentage made absolute.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<style>
+  #target {
+    font-size: 40px;
+  }
+  #container {
+    display: flex;
+  }
+  #box {
+    min-block-size: auto;
+  }
+</style>
+</head>
+<body>
+<div id="target"></div>
+<div id="container">
+  <div id="box"></div>
+</div>
+<script>
+test_computed_value("min-block-size", "auto", "0px");
+
+test_computed_value("min-block-size", "10px");
+test_computed_value("min-block-size", "20%");
+test_computed_value("min-block-size", "calc(10px + 0.5em)", "30px");
+test_computed_value("min-block-size", "calc(10px - 0.5em)", "0px");
+test_computed_value("min-block-size", "calc(20% + 10px)");
+
+test_computed_value("min-block-size", "min-content");
+test_computed_value("min-block-size", "max-content");
+
+test(() => {
+  const picture = document.getElementById('box');
+  assert_equals(getComputedStyle(picture).minBlockSize, 'auto');
+}, 'min-block-size auto computes to auto with flex layout.');
+</script>
+</body>
+</html>

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Constraint validation</title>
+<link rel="author" title="Intel" href="http://www.intel.com/">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#constraint-validation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<form id="fm1" style="display:none">
+  <fieldset id="test0">
+    <input type="text" required value="" id="test1">
+  </fieldset>
+  <input type="email" value="abc" id="test2">
+  <button id="test3">TEST</button>
+  <select id="test4"></select>
+  <textarea id="test5"></textarea>
+  <output id="test6"></output>
+</form>
+<form id="fm2" style="display:none">
+  <fieldset>
+    <input type="text" required value="abc">
+  </fieldset>
+  <input type="email" value="test@example.com">
+  <button>TEST</button>
+  <select></select>
+  <textarea></textarea>
+  <output></output>
+</form>
+<form id="fm3"  style="display:none">
+  <fieldset id="fs">
+    <legend><input type="text" id="inp1"></legend>
+    <input type="text" required value="" id="inp2">
+  </fieldset>
+</form>
+
+<script>
+  var cancelable = true,
+      times1 = 0,
+      times2 = 0,
+      invalidList1 = [],
+      invalidList2 = [],
+      test1,
+      test2,
+      fm1,
+      fm2,
+      fm3;
+
+  setup(function () {
+    fm1 = document.getElementById("fm1");
+    fm2 = document.getElementById("fm2");
+    fm3 = document.getElementById("fm3");
+    test1 = document.getElementById("test1");
+    test2 = document.getElementById("test2");
+    for (var index = 0; index < fm1.elements.length; index++) {
+      var ele = fm1.elements.item(index);
+      ele.addEventListener("invalid", function (e) {
+        times1++;
+        invalidList1.push(e.target);
+        if (!e.cancelable)
+          cancelable = e.cancelable;
+      }, false);
+    }
+
+    for (var index = 0; index < fm2.elements.length; index++) {
+      var ele = fm2.elements.item(index);
+      ele.addEventListener("invalid", function (e) {
+        times2++;
+        invalidList2.push(ele);
+      }, false);
+    }
+  });
+
+  test(function(){
+    assert_false(fm1.checkValidity(), "The checkValidity method should be false.");
+  }, "If there is any invalid submittable element whose form owner is the form, the form.checkValidity must be false");
+
+  test(function(){
+    assert_true("reportValidity" in fm1, "The reportValidity method is not supported");
+    assert_false(fm1.reportValidity(), "The reportValidity method should be false.");
+  }, "If there is any invalid submittable element whose form owner is the form, the form.reportValidity must be false");
+
+  test(function(){
+    assert_true(fm2.checkValidity(), "The checkValidity method should be true.");
+  }, "If all of the submittable elements whose form owner is the form are valid, the form.checkValidity must be true");
+
+  test(function(){
+    assert_true("reportValidity" in fm2, "The reportValidity method is not supported.");
+    assert_true(fm2.reportValidity(), "The reportValidity method should be true.");
+  }, "If all of the submittable elements whose form owner is the form are valid, the form.reportValidity must be true");
+
+  test(function(){
+    assert_false(fm3.checkValidity(), "The checkValidity method should be false.");
+    document.getElementById("fs").disabled = true;
+    assert_true(fm3.checkValidity(), "The checkValidity method should be true.");
+
+    document.getElementById("inp1").value = "aaa";
+    document.getElementById("inp1").type = "url";
+    assert_false(fm3.checkValidity(), "The checkValidity method should be false.");
+  }, "Check the checkValidity method of the form element when it has a fieldset child");
+
+  test(function(){
+    // Restore the condition to default which was modified during the previous test.
+    document.getElementById("fs").disabled = false;
+    document.getElementById("inp1").value = "";
+    document.getElementById("inp1").type = "text";
+
+    assert_true("reportValidity" in fm3, "The reportValidity method is not supported.");
+    assert_false(fm3.reportValidity(), "The reportValidity method should be false.");
+    document.getElementById("fs").disabled = true;
+    assert_true(fm3.reportValidity(), "The reportValidity method should be true.");
+
+    document.getElementById("inp1").value = "aaa";
+    document.getElementById("inp1").type = "url";
+    assert_false(fm3.reportValidity(), "The reportValidity method should be false.");
+  }, "Check the reportValidity method of the form element when it has a fieldset child");
+
+  test(function () {
+    assert_equals(times1, 4, "The invalid event will be fired if the checkValidity or reportValidity method are called.");
+    assert_array_equals(invalidList1, [test1, test2, test1, test2], "The invalid event must be fired at the invalid control");
+    assert_true(cancelable, "The invalid event is cancelable.");
+  }, "The invalid event must be fired at the invalid controls");
+
+  test(function () {
+    assert_equals(times2, 0,  "The invalid event should not be fired, times should be 0.");
+    assert_array_equals(invalidList2, [], "The invalid event should not be fired, invalid list should be empty");
+  }, "The invalid event must not be fired at the invalid controls");
+</script>

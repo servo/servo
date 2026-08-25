@@ -1,0 +1,53 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>:has-slotted and query-selector</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/pull/10586" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="ancestor"><template shadowrootmode="open"><div id="host"><template shadowrootmode="open"><style>
+  slot {
+    color: rgb(0, 0, 0);
+  }
+  :has-slotted {
+    color: rgb(0, 255, 0);
+  }
+</style><slot></slot></template><slot></slot></div></template></div>
+<script>
+  const host = ancestor.shadowRoot.querySelector('#host');
+  for(const container of [host, ancestor]) {
+    host.replaceChildren(document.createElement('slot'));
+    ancestor.replaceChildren();
+    const slot = host.shadowRoot.querySelector("slot");
+
+    test(function () {
+      assert_equals(slot.assignedNodes({flatten: true}).length, 0, "slot should have 0 nodes");
+      assert_false(slot.matches(":has-slotted"), "slot element should not match :has-slotted");
+      assert_equals(getComputedStyle(slot).color, "rgb(0, 0, 0)", "slot element should not match :has-slotted");
+      assert_equals(host.shadowRoot.querySelectorAll(":has-slotted").length, 0, "slot element should not match :has-slotted");
+    }, ":has-slotted does not match or querySelector when there are no assigned nodes" + (container == ancestor ? " (flattened)" : ""));
+
+    test(function () {
+      container.append(document.createElement("div"));
+      assert_equals(slot.assignedNodes({flatten: true}).length, 1, "slot should have 1 node");
+      assert_true(slot.matches(":has-slotted"), "slot element should match :has-slotted with 1 child node");
+      assert_equals(getComputedStyle(slot).color, "rgb(0, 255, 0)", "slot element should match :has-slotted with 1 child node");
+      assert_equals(host.shadowRoot.querySelectorAll(":has-slotted").length, 1, "slot element should match :has-slotted with 1 child node");
+    }, ":has-slotted must match/querySelector when an element is assigned" + (container == ancestor ? " (flattened)" : ""));
+
+    test(function () {
+      container.replaceChildren();
+      assert_equals(slot.assignedNodes({flatten: true}).length, 0, "slot should have 0 nodes");
+      assert_false(slot.matches(":has-slotted"), "slot element should not match :has-slotted after empty");
+      assert_equals(getComputedStyle(slot).color, "rgb(0, 0, 0)", "slot element should not match :has-slotted after empty");
+      assert_equals(host.shadowRoot.querySelectorAll(":has-slotted").length, 0, "slot element should not match :has-slotted after empty");
+    }, ":has-slotted does not when child nodes are replaced" + (container == ancestor ? " (flattened)" : ""));
+
+    test(function () {
+      container.append(document.createTextNode(""));
+      assert_equals(slot.assignedNodes({flatten: true}).length, 1, "slot should have 1 node");
+      assert_true(slot.matches(":has-slotted"), "slot element should match :has-slotted with 1 text node");
+      assert_equals(getComputedStyle(slot).color, "rgb(0, 255, 0)", "slot element should match :has-slotted with 1 text node");
+      assert_equals(host.shadowRoot.querySelectorAll(":has-slotted").length, 1, "slot element should match :has-slotted with 1 text node");
+    }, ":has-slotted must match/querySelector when a text node is assigned" + (container == ancestor ? " (flattened)" : ""));
+  }
+</script>

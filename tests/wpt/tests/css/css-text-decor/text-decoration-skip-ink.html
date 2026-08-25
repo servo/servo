@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" title="1.4.2. Text Decoration Line Continuity: the text-decoration-skip-ink property"
+      href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-skip-ink-property" />
+</head>
+<body>
+<script>
+function testTextDecorationSkipInk() {
+      test(
+          function() {
+              assert_equals(
+                  getComputedStyle(document.body)["text-decoration-skip-ink"],
+                  "auto",
+                  "Must be set to value auto as initial value.");
+          },
+          'Body must have text-decoration-skip-ink auto by default.');
+      test(
+          function() {
+              assert_true(CSS.supports('text-decoration-skip-ink', "auto"),
+                          "Text-decoration-skip-ink must allow setting the value auto.");
+              assert_true(CSS.supports('text-decoration-skip-ink', "none"),
+                          "Text-decoration-skip-ink must allow setting the value none.");
+              assert_true(CSS.supports('text-decoration-skip-ink', "all"),
+                          "Text-decoration-skip-ink must allow setting the value all.");
+          },
+          'Property text-decoration-skip-ink must support values auto, none and all.')
+}
+
+testTextDecorationSkipInk();
+</script>
+</body>
+</html>

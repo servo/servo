@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8">
+<meta name="timeout" content="long"/>
+<meta name="assert" content="Verify that <link rel=compression-dictionary> is body-ok.">
+<link rel="help" href="https://html.spec.whatwg.org/#body-ok">
+<link rel="help" href="https://github.com/whatwg/html/pull/11620">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/compression-dictionary-util.sub.js"></script>
+</head>
+<body>
+<p id="paragraph">Hello<link id="inBodyLink" rel="compression-dictionary" href="./resources/register-dictionary.py">World!</p>
+<p id="reference">HelloWorld!</p>
+<script>
+  promise_test(async (t) => {
+    let nodes = paragraph.childNodes;
+    assert_equals(nodes.length, 3);
+
+    assert_equals(nodes[0].nodeType, Node.TEXT_NODE);
+    assert_equals(nodes[0].textContent, "Hello");
+
+    assert_equals(nodes[1], inBodyLink);
+    const inBodyLinkRect = nodes[1].getBoundingClientRect();
+    assert_equals(inBodyLinkRect.width, 0);
+    assert_equals(inBodyLinkRect.height, 0);
+    assert_equals(inBodyLinkRect.x, 0);
+    assert_equals(inBodyLinkRect.y, 0);
+
+    assert_equals(nodes[2].nodeType, Node.TEXT_NODE);
+    assert_equals(nodes[2].textContent, "World!");
+
+    const epsilon = 0.1;
+    assert_approx_equals(paragraph.clientWidth, reference.clientWidth, epsilon);
+    assert_approx_equals(paragraph.clientHeight, reference.clientHeight, epsilon);
+ }, '<link rel="compression-dictionary"> is allowed in a paragraph.');
+
+compression_dictionary_promise_test(async (t) => {
+  // Wait until `available-dictionary` header is available.
+  assert_equals(
+      await waitUntilAvailableDictionaryHeader(t, {}),
+      kDefaultDictionaryHashBase64);
+
+  // Check if the data compressed using Brotli with the dictionary can be
+  // decompressed.
+  const data_url = `${kCompressedDataPath}?content_encoding=dcb`;
+  assert_equals(await (await fetch(data_url)).text(), kExpectedCompressedData);
+}, 'A <link rel="compression-dictionary"> in body is loaded.');
+
+</script>
+</body>

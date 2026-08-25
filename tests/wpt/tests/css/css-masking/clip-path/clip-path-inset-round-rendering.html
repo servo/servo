@@ -1,0 +1,27 @@
+<!doctype html>
+<title>clip-path: inset() border-radius not dropped due to floating-point precision</title>
+<link rel="help" href="https://drafts.csswg.org/css-shapes/#funcdef-basic-shape-inset">
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=258125">
+<link rel="match" href="clip-path-inset-round-rendering-ref.html">
+<meta name="assert" content="clip-path: inset() with border-radius should render rounded corners even when constraint scaling of radii introduces floating-point imprecision.">
+<meta name="fuzzy" content="maxDifference=0-13; totalPixels=0-677" />
+<style>
+body { margin: 0; }
+.test { display: inline-block; }
+/*
+ * 661px x 445px with inset(11.2923% round 50% 50% 0 0) triggers a
+ * floating-point precision edge case where constrained radii sum can
+ * exceed the inset rect width by an epsilon, causing border-radius
+ * to be dropped entirely.
+ */
+#case1 {
+  width: 661px;
+  height: 445px;
+  clip-path: inset(11.2923% round 50% 50% 0 0);
+}
+.inner {
+  background: green;
+  height: 100%;
+}
+</style>
+<div class="test" id="case1"><div class="inner"></div></div>

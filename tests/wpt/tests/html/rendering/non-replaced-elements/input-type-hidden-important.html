@@ -1,0 +1,53 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>input[type=hidden] is display:none !important in the UA stylesheet</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#hidden-elements">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#the-page">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  /* All of these are *normal* (non-!important) author declarations.
+     The UA rule is `input[type=hidden i] { display: none !important; }`,
+     so none of them may take effect: hidden inputs must stay display:none.
+     A UA rule without !important (as in WebKit previously) would lose to
+     these author rules and wrongly reveal the input. */
+  input            { display: block; }
+  input.flex       { display: flex; }
+  input#by-id      { display: inline-block; }
+  input[type=hidden i] { display: grid; }  /* same specificity as UA, but normal vs UA-important */
+</style>
+
+<input type="hidden" id="default">
+<input type="hidden" class="flex" id="flex">
+<input type="hidden" id="by-id">
+<input type="hidden" id="attr-selector">
+
+<script>
+function displayOf(id) {
+  return getComputedStyle(document.getElementById(id)).display;
+}
+
+test(() => {
+  assert_equals(displayOf("default"), "none");
+}, "Author `input { display: block }` must not override UA !important");
+
+test(() => {
+  assert_equals(displayOf("flex"), "none");
+}, "Author `input.flex { display: flex }` must not override UA !important");
+
+test(() => {
+  assert_equals(displayOf("by-id"), "none");
+}, "Author `input#by-id { display: inline-block }` must not override UA !important");
+
+test(() => {
+  assert_equals(displayOf("attr-selector"), "none");
+}, "Author `input[type=hidden] { display: grid }` (normal) must not override UA !important");
+
+test(() => {
+  const el = document.createElement("input");
+  el.type = "hidden";
+  el.style.display = "block"; // inline style, normal importance
+  document.body.appendChild(el);
+  assert_equals(getComputedStyle(el).display, "none");
+}, "Inline `style=display:block` (normal) must not override UA !important");
+</script>

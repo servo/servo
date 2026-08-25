@@ -1,0 +1,82 @@
+<!doctype html>
+<body>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script>
+async function main() {
+  const uid = new URLSearchParams(location.search).get('uid');
+  const prerenderChannel = new PrerenderChannel('iframe-with-slm-channel', uid);
+
+  const nestedSameUid = token();
+  const nestedSameChannel = new PrerenderChannel('iframe-channel', nestedSameUid);
+  const nestedSameQueue = new BroadcastMessageQueue(nestedSameChannel);
+
+  const nestedCrossUid = token();
+  const nestedCrossChannel = new PrerenderChannel('iframe-channel', nestedCrossUid);
+  const nestedCrossQueue = new BroadcastMessageQueue(nestedCrossChannel);
+
+  // 1. Same-origin nested iframe (relative URL)
+  const nestedSameUrl = new URL(
+      `cross-origin-iframe-src-prerender.html?uid=${nestedSameUid}`,
+      window.location.href);
+  const sameIframe = document.createElement('iframe');
+  sameIframe.src = nestedSameUrl.href;
+  document.body.appendChild(sameIframe);
+
+  // 2. Cross-origin nested iframe (AUTHENTICATED_ORIGIN)
+  // The current page is loaded on HTTPS_REMOTE_ORIGIN so AUTHENTICATED_ORIGIN
+  // (not HTTPS_REMOTE_ORIGIN) is used as another origin.
+  const nestedCrossUrl = new URL(
+      `/speculation-rules/prerender/resources/cross-origin-iframe-src-prerender.html?uid=${nestedCrossUid}`,
+      get_host_info()['AUTHENTICATED_ORIGIN']);
+  const crossIframe = document.createElement('iframe');
+  crossIframe.src = nestedCrossUrl.href;
+  document.body.appendChild(crossIframe);
+
+  try {
+    if (!document.prerendering) {
+      throw new Error('The middle iframe itself should be prerendered');
+    }
+
+    // Wait for both nested iframes to load during prerendering
+    const sameOnload = await nestedSameQueue.nextMessage();
+    if (sameOnload !== 'onload. initial_prerendering=true') {
+      throw new Error('SLM middle iframe: same-origin nested load failed: ' + sameOnload);
+    }
+    const crossOnload = await nestedCrossQueue.nextMessage();
+    if (crossOnload !== 'onload. initial_prerendering=true') {
+      throw new Error('SLM middle iframe: cross-origin nested load failed: ' + crossOnload);
+    }
+
+    // Signal onload for this middle iframe
+    prerenderChannel.postMessage('onload');
+
+    // Wait for this middle iframe to activate
+    await new Promise((resolve) => {
+      document.addEventListener('prerenderingchange', () => resolve(), {once: true});
+    });
+
+    // Wait for both nested iframes to finish prerendering upon activation
+    const sameFinish = await nestedSameQueue.nextMessage();
+    if (sameFinish !== 'document.prerendering changes to false from true') {
+      throw new Error('SLM middle iframe: same-origin nested finish failed: ' + sameFinish);
+    }
+    const crossFinish = await nestedCrossQueue.nextMessage();
+    if (crossFinish !== 'document.prerendering changes to false from true') {
+      throw new Error('SLM middle iframe: cross-origin nested finish failed: ' + crossFinish);
+    }
+
+    prerenderChannel.postMessage('iframe with SLM finished correctly.');
+  } catch (e) {
+    prerenderChannel.postMessage('error: ' + e.message);
+  } finally {
+    prerenderChannel.close();
+    nestedSameChannel.close();
+    nestedCrossChannel.close();
+  }
+}
+
+main();
+</script>
+</body>

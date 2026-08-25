@@ -1,0 +1,50 @@
+<!-- This is an autogen file. Run support/generate_object_view_box_tests.py to update -->
+<!DOCTYPE html>
+<html>
+<title>CSS object-view-box with object-fit:contain</title>
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<link rel="match" href="object-view-box-fit-contain-canvas-ref.html">
+<script src="support/testHelper.js"></script>
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#the-object-view-box">
+
+<body>
+<style>
+.view_box_subset {
+  object-view-box: inset(50px 0px 0px 0px);
+  object-fit: contain;
+  width: 50px;
+  height: 100px;
+  background-color: grey;
+  margin: 5px;
+}
+
+.view_box_subset_with_position {
+  object-view-box: inset(50px 0px 0px 0px);
+  object-fit: contain;
+  width: 50px;
+  height: 100px;
+  background-color: grey;
+  margin: 5px;
+
+  object-position: 0% 0%;
+  background-color: grey;
+}
+
+.view_box_subset_with_scaling {
+  object-view-box: inset(50px 0px 0px 0px);
+  object-fit: contain;
+  background-color: grey;
+  margin: 5px;
+
+  width: 100px;
+  height: 200px;
+  object-position: 25px 125px;
+}
+</style>
+<canvas class="view_box_subset"></canvas>
+<canvas class="view_box_subset_with_position"></canvas>
+<canvas class="view_box_subset_with_scaling"></canvas>
+</body>
+<script>
+  populateElements("");
+</script>

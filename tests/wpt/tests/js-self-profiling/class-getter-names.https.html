@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+
+  <script src="resources/profile-utils.js"></script>
+</head>
+
+<body>
+  <script>
+    // Getter methods should use `get ${label}` as the function/frame name. Source:
+    // https://www.ecma-international.org/ecma-262/#sec-method-definitions-runtime-semantics-propertydefinitionevaluation
+    promise_test(t => ProfileUtils.testFunction(sample => {
+      class SomeClass {
+        get someValue() {
+          sample();
+        }
+      }
+      let instance = new SomeClass();
+      instance.someValue;
+    }, {
+      name: 'get someValue',
+    }
+    ), 'class getter names are logged correctly');
+  </script>
+</body>
+
+</html>

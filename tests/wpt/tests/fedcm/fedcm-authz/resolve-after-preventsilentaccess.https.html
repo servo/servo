@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<title>IdentityProvider.resolve after preventSilentAccess should reset user interaction</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script type="module">
+import {request_options_with_mediation_optional,
+        fedcm_test,
+        select_manifest,
+        fedcm_get_and_select_first_account} from '../support/fedcm-helper.sub.js';
+
+fedcm_test(async t => {
+  let test_options = request_options_with_mediation_optional("manifest_with_continue_on.json");
+  await select_manifest(t, test_options);
+
+  // Signs in account "1234" so that they will be a returning user
+  test_options.identity.providers[0].nonce = "token";
+  let cred = await fedcm_get_and_select_first_account(t, test_options);
+  assert_equals(cred.token, "account=1234");
+
+  try {
+    await navigator.credentials.preventSilentAccess();
+  } catch (ex) {
+    // In Chrome's content_shell, the promise will be rejected
+    // even though the part we care about succeeds.
+  }
+
+  // Ensure that mediation: silent fails as expected.
+  await select_manifest(t, test_options);
+  test_options.mediation = "silent";
+  let cred_promise = navigator.credentials.get(test_options);
+  await promise_rejects_dom(t, 'NetworkError', cred_promise);
+
+  // Now trigger continue_on/IdentityProvider.resolve.
+  await select_manifest(t, test_options);
+  test_options.mediation = "optional";
+  test_options.identity.providers[0].nonce = "2";
+  cred = await fedcm_get_and_select_first_account(t, test_options);
+  assert_equals(cred.token, "account=1234");
+  assert_equals(cred.isAutoSelected, false);
+
+  // Now silent mediation should work.
+  await select_manifest(t, test_options);
+  test_options.mediation = "silent";
+  test_options.identity.providers[0].nonce = "token";
+  cred = await navigator.credentials.get(test_options);
+  assert_equals(cred.token, "account=1234");
+  assert_equals(cred.isAutoSelected, true);
+}, "Test that resolve clears the preventSilentAccess state.");
+</script>

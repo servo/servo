@@ -1,0 +1,17 @@
+<!doctype html>
+<title>CSS Lists: sibling elements with counter-reset: reversed()</title>
+<link rel="help" href="https://drafts.csswg.org/css-lists/#counter-reset">
+<link rel="help" href="https://drafts.csswg.org/css-lists/#inheriting-counters">
+<link rel="help" href="https://drafts.csswg.org/css-lists/#instantiating-counters">
+<link rel="author" title="Minseong Kim" href="mailto:jja08111@gmail.com">
+<link rel="match" href="counter-reset-reversed-siblings-002-ref.html">
+<style>
+  .list { counter-reset: reversed(c); }
+  .item::before { content: counter(c); }
+</style>
+<div class="list">
+  <div class="item" style="counter-increment: c -1;"></div>
+</div>
+<div class="list">
+  <div class="item" style="counter-increment: c -3;"></div>
+</div>

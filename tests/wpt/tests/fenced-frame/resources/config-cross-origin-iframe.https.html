@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<script src="utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<title>Fenced frame attribution reporting self navigation test</title>
+
+<body>
+<script>
+// This helper function will navigate a child iframe to a remote origin page.
+// It will then check to make sure that window.fence APIs are not allowed after
+// the navigation. This code is meant to run in a fenced frame.
+const [key] = parseKeylist();
+
+const event = {
+  eventType: "reserved.top_navigation_commit",
+  eventData: "data!",
+  destination: ["buyer"],
+}
+
+// These should gracefully fail without badmessaging the renderer.
+window.fence.setReportEventDataForAutomaticBeacons(event);
+window.fence.reportEvent(event);
+
+const configs = window.fence.getNestedConfigs();
+
+// Report how many configs were obtained. Cross-origin pages should not
+// obtain any nested configs.
+writeValueToServer(key, configs.length);
+
+</script>
+</body>

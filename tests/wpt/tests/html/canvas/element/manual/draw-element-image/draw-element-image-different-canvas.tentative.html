@@ -1,0 +1,124 @@
+<!DOCTYPE HTML>
+<title>Prevent drawing ElementImages into different canvases</title>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+<style>
+  #child1, #child2 {
+    width: 100px;
+    height: 100px;
+    background: green;
+  }
+</style>
+<canvas id="canvas1" width="200" height="200" layoutsubtree>
+  <div id="child1"></div>
+</canvas>
+<canvas id="canvas2" width="200" height="200" layoutsubtree>
+  <div id="child2"></div>
+</canvas>
+<canvas id="canvas3" width="200" height="200" layoutsubtree></canvas>
+
+<script>
+  'use strict';
+
+  promise_test(async t => {
+    await waitForCanvasPaint(canvas1);
+
+    const elementImage1 = canvas1.captureElementImage(child1);
+    const ctx2 = canvas2.getContext('2d');
+
+    assert_throws_dom('InvalidStateError', () => {
+      ctx2.drawElementImage(elementImage1, 0, 0);
+    }, 'Drawing an ElementImage into a different canvas must throw InvalidStateError');
+
+    assert_throws_dom('InvalidStateError', () => {
+      canvas2.getElementTransform(elementImage1, new DOMMatrix());
+    }, 'Getting transform for an ElementImage from a different canvas must throw InvalidStateError');
+
+    assert_throws_dom('InvalidStateError', () => {
+      let standaloneCtx = new OffscreenCanvas(200, 200).getContext('2d');
+      standaloneCtx.drawElementImage(elementImage1, 0, 0);
+    }, 'Drawing an ElementImage into a standalone OffscreenCanvas must throw InvalidStateError');
+
+    assert_throws_dom('InvalidStateError', () => {
+      let standalone = new OffscreenCanvas(200, 200);
+      standalone.getElementTransform(elementImage1, new DOMMatrix());
+    }, 'Getting transform for an ElementImage from a standalone OffscreenCanvas must throw InvalidStateError');
+  }, 'Prevent drawing ElementImage into a different canvas on main thread');
+
+  const workerCode = `
+    let canvas2, ctx1, ctx2;
+    self.onmessage = function(e) {
+      if (e.data.canvas1) {
+        ctx1 = e.data.canvas1.getContext('2d');
+      }
+      if (e.data.canvas2) {
+        canvas2 = e.data.canvas2;
+        ctx2 = canvas2.getContext('2d');
+      }
+      if (e.data.elementImage1) {
+        let results = {};
+
+        try {
+          ctx2.drawElementImage(e.data.elementImage1, 0, 0);
+          results.drawError = 'success';
+        } catch (e) {
+          results.drawError = e.name;
+        }
+
+        try {
+          canvas2.getElementTransform(e.data.elementImage1, new DOMMatrix());
+          results.transformError = 'success';
+        } catch (e) {
+          results.transformError = e.name;
+        }
+
+        try {
+          let standaloneCtx = new OffscreenCanvas(200, 200).getContext('2d');
+          standaloneCtx.drawElementImage(e.data.elementImage1, 0, 0);
+          results.standaloneDrawError = 'success';
+        } catch (e) {
+          results.standaloneDrawError = e.name;
+        }
+
+        try {
+          let standalone = new OffscreenCanvas(200, 200);
+          standalone.getElementTransform(e.data.elementImage1, new DOMMatrix());
+          results.standaloneTransformError = 'success';
+        } catch (e) {
+          results.standaloneTransformError = e.name;
+        }
+
+        self.postMessage(results);
+      }
+    };
+  `;
+
+  promise_test(async t => {
+    await waitForCanvasPaint(canvas1);
+
+    const blob = new Blob([workerCode], { type: 'application/javascript' });
+    const worker = new Worker(URL.createObjectURL(blob));
+
+    const offscreen1 = canvas1.transferControlToOffscreen();
+    const offscreen2 = canvas3.transferControlToOffscreen();
+
+    worker.postMessage({ canvas1: offscreen1 }, [offscreen1]);
+    worker.postMessage({ canvas2: offscreen2 }, [offscreen2]);
+
+    const response_promise = new Promise(resolve => {
+      worker.onmessage = t.step_func(msg => {
+        resolve(msg.data);
+      });
+    });
+
+    const elementImage1 = canvas1.captureElementImage(child1);
+    worker.postMessage({ elementImage1: elementImage1 }, [elementImage1]);
+
+    const result = await response_promise;
+    assert_equals(result.drawError, 'InvalidStateError', 'Drawing an ElementImage into a different canvas must throw InvalidStateError');
+    assert_equals(result.transformError, 'InvalidStateError', 'Getting the transform for an ElementImage from a different canvas must throw InvalidStateError');
+    assert_equals(result.standaloneDrawError, 'InvalidStateError', 'Drawing an ElementImage into a standalone OffscreenCanvas must throw InvalidStateError');
+    assert_equals(result.standaloneTransformError, 'InvalidStateError', 'Getting the transform for an ElementImage from a standalone OffscreenCanvas must throw InvalidStateError');
+  }, 'Prevent drawing ElementImage into a different canvas in a worker thread');
+</script>

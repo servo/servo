@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>
+  An inline SVG resized by its container re-resolves a mask whose content uses
+  viewport-relative lengths.
+</title>
+<link rel="help" href="https://www.w3.org/TR/SVG/masking.html#MaskElement">
+<link rel="help" href="https://www.w3.org/TR/SVG/coords.html#Units">
+<link rel="match" href="inline-svg-resize-viewport-dependent-mask-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+  #parent { width: 300px; }
+  #parent.small { width: 150px; }
+</style>
+
+<div id="parent">
+  <svg width="100%" height="20" xmlns="http://www.w3.org/2000/svg">
+    <mask id="m">
+      <rect x="1%" y="0%" width="98%" height="20" fill="white"></rect>
+    </mask>
+    <rect mask="url(#m)" x="0%" width="100%" height="20" fill="green"></rect>
+  </svg>
+</div>
+
+<script>
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      document.getElementById("parent").classList.add("small");
+      document.documentElement.classList.remove("reftest-wait");
+    });
+  });
+</script>

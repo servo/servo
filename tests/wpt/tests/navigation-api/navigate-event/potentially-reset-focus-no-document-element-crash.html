@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2040190">
+<link rel="help" href="https://html.spec.whatwg.org/#potentially-reset-the-focus">
+<title>Test that potentially-reset-the-focus doesn't crash when there is no document element.</title>
+</head>
+<body>
+<iframe id="i" srcdoc="<title>x</title>"></iframe>
+<script>
+const iframe = document.getElementById('i');
+iframe.addEventListener('load', () => {
+  const w = iframe.contentWindow;
+  w.navigation.onnavigate = (e) => {
+    e.intercept();
+    w.document.documentElement.remove();
+  };
+  w.navigation.reload();
+}, { once: true });
+</script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+rules:
+- media-dependency-002.xht: [import]
+- media-dependency-004.xht: [import]
+- media-dependency-005.xht: [import]
+- media-dependency-008.xht: [import]

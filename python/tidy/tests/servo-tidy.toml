@@ -1,0 +1,19 @@
+key-outside = ""
+
+[configs]
+skip-check-licenses = false
+disallowed-coauthors = ["llm@example.com"]
+wrong-key = false
+
+[blocked-packages]
+
+[wrong]
+wrong-key = true
+
+[ignore]
+files = [
+    "./fake/file.html",
+]
+directories = [
+    "./fake/dir",
+]

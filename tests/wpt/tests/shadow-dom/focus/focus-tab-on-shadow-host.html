@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: Use tab to navigate the focus to an element inside shadow host with delegatesFocus</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/shadow-utils.js"></script>
+
+<body>
+  <div id="host"></div>
+</body>
+
+<script>
+const host = document.getElementById("host");
+
+const shadowRoot = host.attachShadow({ mode: "open", delegatesFocus: true });
+const input = document.createElement("input");
+shadowRoot.appendChild(input);
+
+promise_test(async function() {
+  assert_equals(document.activeElement, document.body);
+  // Press <tab>
+  await navigateFocusForward();
+  assert_equals(document.activeElement, host);
+  assert_equals(shadowRoot.activeElement, input);
+  assert_true(host.matches(':focus'));
+  assert_true(input.matches(':focus'));
+  assert_true(input.matches(':focus-visible'));
+}, ":focus should be applied to the host and :focus-visible should be applied to the child node when the focus is moved by <tab>");
+</script>

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+
+  <script src="resources/profile-utils.js"></script>
+
+  <script src="https://{{hosts[alt][]}}:{{ports[https][0]}}/js-self-profiling/resources/profiling-script.js"></script>
+</head>
+<body>
+  <script>
+    promise_test(async t => {
+      const trace = await ProfilingScript.profileBuiltinsInNewTask();
+
+      // Ensure that no signal from the external script was gathered.
+      assert_equals(trace.resources.length, 0);
+      assert_equals(trace.frames.length, 0);
+      assert_equals(trace.stacks.length, 0);
+      assert_greater_than(trace.samples.length, 0);
+    }, 'no-cors cross-origin script execution is not observable');
+  </script>
+</body>
+</html>

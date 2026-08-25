@@ -1,0 +1,20 @@
+<!doctype html>
+<meta charset=utf-8>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/script-factory.js"></script>
+<div id=log></div>
+<script>
+async_test(t => {
+  window.addEventListener("message", t.step_func_done(({ data }) => {
+    assert_equals(data.id, "");
+    assert_equals(data.origin, "null");
+    assert_false(data.sameOriginNoCORPSuccess); // This is effectively a no-op for this test
+    assert_true(data.crossOriginNoCORPFailure, "Cross-origin without CORP did not fail");
+  }));
+  const frame = document.createElement("iframe");
+  t.add_cleanup(() => frame.remove());
+  frame.src = `data:text/html,<script>${encodeURIComponent(createScript("null", window.origin))}<\/script>`;
+  document.body.append(frame);
+}, "Cross-Origin-Embedder-Policy and data: URLs");
+</script>

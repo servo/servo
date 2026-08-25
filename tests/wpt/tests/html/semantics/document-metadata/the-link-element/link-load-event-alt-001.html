@@ -1,0 +1,35 @@
+<!doctype html>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#the-link-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+  async_test(function (t) {
+    let reached_end = false;
+    const BAD = "file:///nope.css";
+
+    // This ongoing load is needed to trigger the deferral codepath.
+    {
+      const ongoing = document.createElement("link");
+      ongoing.rel = "stylesheet";
+      ongoing.href = "style.css?link-load-event-alt";
+      ongoing.onerror = t.unreached_func("Shouldn't error");
+      document.head.appendChild(ongoing);
+    }
+
+    const alt = document.createElement("link");
+    alt.rel = "alternate stylesheet";
+    alt.title = "alt";
+    alt.href = BAD;
+    alt.onerror = t.step_func_done(() => {
+      assert_true(reached_end, "Shouldn't fire error event synchronously");
+    });
+    alt.onload = t.unreached_func("Should not load");
+    document.head.appendChild(alt);
+
+    const s = document.createElement("style");
+    s.textContent = '@import url("' + BAD + '");';
+    document.head.appendChild(s);
+    reached_end = true;
+  });
+</script>

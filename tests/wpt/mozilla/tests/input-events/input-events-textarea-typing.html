@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Input Event typing tests</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<textarea id="plain"></textarea>
+<script>
+let inputEventsLog = [];
+const plain = document.getElementById('plain');
+
+function log(event) {
+    const clone = new event.constructor(event.type, event);
+    inputEventsLog.push(clone);
+}
+
+function resetPlain() {
+    inputEventsLog = [];
+    plain.value = '';
+}
+
+plain.addEventListener('input', log);
+
+promise_test(async function() {
+    this.add_cleanup(resetPlain);
+    plain.focus();
+    const message = 'Hello';
+    await test_driver.send_keys(plain, message);
+    assert_equals(inputEventsLog.length, 5);
+    for (let i = 0; i < inputEventsLog.length; i += 1) {
+        const inputEvent = inputEventsLog[i];
+        assert_equals(inputEvent.type, 'input');
+        assert_equals(inputEvent.inputType, 'insertText');
+        assert_equals(inputEvent.data, message[i]);
+    }
+}, 'It triggers input events on text typing');
+
+promise_test(async function() {
+    this.add_cleanup(resetPlain);
+    const expectedResult = [
+        // Pressing 'a'
+        'insertText',
+        // Return
+        'insertLineBreak'
+    ];
+
+    await test_driver.click(plain);
+    await test_driver.send_keys(plain,"a");
+    await test_driver.send_keys(plain,'\uE006'); // Return
+    assert_equals(inputEventsLog.length, expectedResult.length);
+    expectedResult.forEach((er, index) => assert_equals(inputEventsLog[index].inputType, er));
+}, 'Newline character in plain text editing should get insertLinebreak input event');
+
+promise_test(async function() {
+    this.add_cleanup(resetPlain);
+    plain.value = 'Preexisting content';
+    plain.focus();
+    await test_driver.send_keys(plain, "\uE012"); // Left
+    await test_driver.send_keys(plain, "\uE017"); // Delete
+
+    assert_equals(inputEventsLog.length, 1);
+    const [inputEvent] = inputEventsLog;
+    assert_equals(inputEvent.type, 'input');
+    assert_equals(inputEvent.inputType, 'deleteContentForward');
+    assert_equals(inputEvent.data, null);
+}, 'It triggers input events on typing DELETE with pre-existing content');
+
+promise_test(async function() {
+    this.add_cleanup(resetPlain);
+    plain.value = 'Preexisting content';
+    plain.focus();
+    await test_driver.send_keys(plain, "\uE012"); // Left
+    await test_driver.send_keys(plain, "\uE003"); // Back Space
+
+    assert_equals(inputEventsLog.length, 1);
+    const [inputEvent] = inputEventsLog;
+    assert_equals(inputEvent.type, 'input');
+    assert_equals(inputEvent.inputType, 'deleteContentBackward');
+    assert_equals(inputEvent.data, null);
+}, 'It triggers input events on typing BACK_SPACE with pre-existing content');
+
+promise_test(async function () {
+    this.add_cleanup(resetPlain);
+    plain.value = 'Preexisting Content';
+
+    const expectedResult = [
+        // Pressing 'a', 'b'
+        'insertText',
+        'insertText',
+        // Delete twice
+        'deleteContentForward',
+        'deleteContentForward',
+        // Pressing 'c', 'd'
+        'insertText',
+        'insertText',
+        // Backspace
+        'deleteContentBackward'
+    ];
+    const result = [];
+
+    plain.addEventListener("input", (inputEvent) => {
+      result.push(inputEvent.inputType);
+    });
+
+    plain.focus();
+    for (let i = 0; i < 7; i += 1) {
+      await test_driver.send_keys(plain, "\uE012"); // Left
+    }
+    await test_driver.send_keys(plain, "a"); // Preexisting a|Content
+    await test_driver.send_keys(plain, "b"); // Preexisting ab|Content
+    // Delete
+    await test_driver.send_keys(plain, "\uE017"); // Preexisting ab|ontent
+    // Delete
+    await test_driver.send_keys(plain, "\uE017"); // Preexisting ab|ntent
+    await test_driver.send_keys(plain, "c"); // Preexisting abc|ntent
+    await test_driver.send_keys(plain, "d"); // Preexisting abcd|ntent
+    // Backspace
+    await test_driver.send_keys(plain, "\uE003"); // Preexisting abc|ntent
+
+    assert_equals(result.length, expectedResult.length);
+    expectedResult.forEach((er, index) => assert_equals(result[index], er));
+}, 'Input events have correct inputType updated when different inputs are typed');
+
+promise_test(async function () {
+    this.add_cleanup(resetPlain);
+    plain.value = 'Preexisting content';
+
+    const expectedResult = [
+        // Remove selected text with Backspace
+        'deleteContentBackward',
+        // Remove selected text with Delete
+        'deleteContentForward'
+    ];
+    const result = [];
+
+    plain.addEventListener("input", (inputEvent) => {
+      result.push(inputEvent.inputType);
+    });
+
+    // Move caret before "content"
+    plain.focus();
+    for (let i = 0; i < 7; i += 1) {
+      await test_driver.send_keys(plain, "\uE012"); // Left
+    }
+    // Select text to the left
+    await new test_driver.Actions()
+        .keyDown('\uE008') // Shift
+        .keyDown('\uE012') // Arrow Left
+        .keyUp('\uE012')
+        .keyUp('\uE008')
+        .send(); // Preexisting| ^content
+    // Backspace
+    await test_driver.send_keys(plain, "\uE003"); // Preexisting|content
+    // Select text to the right
+    await new test_driver.Actions()
+        .keyDown('\uE008') // Shift
+        .keyDown('\uE014') // Arrow Right
+        .keyUp('\uE014')
+        .keyUp('\uE008')
+        .send(); // Preexisting^c|ontent
+    // Delete
+    await test_driver.send_keys(plain, "\uE017"); // Preexistingontent
+
+    assert_equals(result.length, expectedResult.length);
+    expectedResult.forEach((er, index) => assert_equals(result[index], er));
+}, 'Input events have correct inputType when selected text is removed with Backspace or Delete');
+
+promise_test(async function() {
+    this.add_cleanup(resetPlain);
+    const expectedResult = [
+        // Pressing 'a'.
+        'plain-keydown-a',
+        'plain-keypress-a',
+        'plain-input-a-null',
+        'plain-keyup-a',
+    ];
+    const result = [];
+
+    for (const eventType of ['input', 'keydown', 'keypress', 'keyup']) {
+        const listener = event => {
+            if (event.key === 'Shift') return;
+            const eventInfo = [event.target.id, event.type, event.data || event.key];
+            if (event instanceof InputEvent) eventInfo.push(String(event.dataTransfer));
+            result.push(eventInfo.join('-'));
+        }
+        plain.addEventListener(eventType, listener);
+    }
+
+    plain.focus();
+    await new test_driver.Actions()
+        .keyDown('a')
+        .keyUp('a')
+        .send();
+
+    console.log(result);
+    assert_equals(result.length, expectedResult.length);
+    expectedResult.forEach((er, index) => assert_equals(result[index], er));
+}, 'InputEvents have correct data/order when typing on textarea');
+</script>

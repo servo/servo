@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.csswg.org/css-shapes-1/#basic-shape-interpolation">
+<link rel="match" href="clip-path-animation-inset-50-percent-ref.html">
+<style>
+.container {
+  width: 100px;
+  height: 100px;
+  background-color: green;
+  animation: clippath 20s steps(2, jump-end) -9.95s;
+}
+@keyframes clippath {
+  0%   { clip-path: inset(50% 50%); }
+  100% { clip-path: inset(0% 0%); }
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/web-animations/resources/timing-utils.js"></script>
+<body>
+<div class="container"></div>
+
+<script>
+  waitForAnimationTime(document.getAnimations()[0], 50).then(takeScreenshot);
+</script>
+</body>
+</html>

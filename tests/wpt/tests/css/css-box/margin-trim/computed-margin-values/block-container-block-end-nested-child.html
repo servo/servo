@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="author" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-box-4/#margin-trim-block">
+<meta name="assert" content="Items, including self-collapsing ones, at the block-end of the container should have their margins trimmed">
+<style>
+container {
+    display: block;
+    inline-size: min-content;
+    margin-trim: block-end;
+}
+item {
+    display: block;
+    background-color: green;
+    inline-size: 50px;
+    block-size: 10px;
+    margin-block-end: 10px;
+}
+.border {
+    border: 1px solid black;
+}
+.collapsed {
+    block-size: 0px;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+</head>
+<body onload="checkLayout('item')">
+    <div id="target">
+        <container>
+            <item data-expected-margin-bottom="10"></item>
+            <item data-expected-margin-bottom="0" style="block-size: auto;">
+                <div><item data-expected-margin-bottom="10"></item></div>
+                <div>
+                    <item data-expected-margin-bottom="0" style="block-size: auto;">
+                        <div><item data-expected-margin-bottom="0"></item></div>
+                    </item>
+                    <item class="collapsed" data-expected-margin-bottom="0">
+                        <div><item class="collapsed" data-expected-margin-bottom="0"></item></div>
+                    </item>
+                </div>
+                <item class="collapsed" data-expected-margin-bottom="0">
+                    <div><item class="collapsed" data-expected-margin-bottom="0"></item></div>
+                </item>
+            </item>
+            <item class="collapsed" data-expected-margin-bottom="0">
+                <div><item class="collapsed" data-expected-margin-bottom="0"></item></div>
+            </item>
+        </container>
+    </div>
+</body>
+</html>

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: Scrollable Overflow Transform Unreachable Scrollable Overflow</title>
+<link rel="author" title="Jo Steven Novaryo" href="mailto:steven.novaryo@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#scrollable" />
+<meta name="assert" content="Checks that the box in unreachable scrollable overflow region with transform is not included in the calculation.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<style>
+  .container {
+    width: 100px;
+    height: 100px;
+    overflow: scroll;
+    background: silver;
+    border: solid thick;
+    scrollbar-width: none;
+  }
+
+  .relative {
+    position: relative;
+  }
+
+  .absolute {
+    position: absolute;
+  }
+
+  .element {
+    width: 100px;
+    height: 100px;
+    background: lime;
+  }
+</style>
+<body onload="checkLayout('.container')">
+  <div class="container" data-expected-scroll-width="100" data-expected-scroll-height="100">
+    <div style="transform: translate(-300px, -300px);" class="element">
+    </div>
+  </div>
+
+  <div class="container" data-expected-scroll-width="100" data-expected-scroll-height="100">
+    <div style="transform: translate(300px, -300px);" class="element">
+    </div>
+  </div>
+
+  <div class="container" data-expected-scroll-width="100" data-expected-scroll-height="100">
+    <div style="transform: translate(-300px, 300px);" class="element">
+    </div>
+  </div>
+
+  <div class="container relative" data-expected-scroll-width="100" data-expected-scroll-height="100">
+    <div style="transform: translate(-300px, -300px);" class="element absolute">
+    </div>
+  </div>
+
+  <div class="container relative" data-expected-scroll-width="100" data-expected-scroll-height="100">
+    <div style="transform: translate(300px, -300px);" class="element absolute">
+    </div>
+  </div>
+
+  <div class="container relative" data-expected-scroll-width="100" data-expected-scroll-height="100">
+    <div style="transform: translate(-300px, 300px);" class="element absolute">
+    </div>
+  </div>
+
+</body>

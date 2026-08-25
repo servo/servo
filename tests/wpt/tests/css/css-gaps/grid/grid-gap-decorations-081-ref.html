@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+  body { margin: 0px; }
+  .container {
+    display: grid;
+    grid-template: repeat(2, 100px) / repeat(3, 100px);
+    gap: 20px;
+    padding: 10px;
+    position: relative;
+  }
+  .item {
+    background: rgba(192 192 192 / 0.75);
+  }
+  .col-rule {
+    position: absolute;
+    width: 0px;
+    border-left: 6px solid rgba(128 0 0 / 0.5);
+  }
+</style>
+<div class="container">
+  <div class="item">A</div>
+  <div class="item">B</div>
+  <div class="item">C</div>
+  <div class="item">D</div>
+  <div class="item">E</div>
+  <div class="item">F</div>
+  <!-- Two segments per column gap. With overlap-join and no row-rule, each
+       segment extends to the row gap center (y=120) and overlaps by 3px (half
+       the rule width) on each side, matching the painter's segment endpoints. -->
+  <div class="col-rule" style="left: 117px; top: 10px; height: 112px;"></div>
+  <div class="col-rule" style="left: 117px; top: 119px; height: 111px;"></div>
+  <div class="col-rule" style="left: 237px; top: 10px; height: 112px;"></div>
+  <div class="col-rule" style="left: 237px; top: 119px; height: 111px;"></div>
+</div>

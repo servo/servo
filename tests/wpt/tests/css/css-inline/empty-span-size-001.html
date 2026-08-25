@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel="author" title="David Shin" href="mailto:dshin@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#invisible-line-boxes">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1931466">
+<link rel="match" href="empty-span-size-001-ref.html">
+<style>
+.container, .has-height {
+  border: 1px solid;
+}
+
+.inline {
+  outline: 1px solid;
+}
+
+input {
+  outline: 1px solid;
+  background: transparent;
+  padding: 0;
+  border: 0;
+  line-height: 10px;
+  vertical-align: top;
+}
+
+.oa {
+  overflow: hidden;
+  height: 100px;
+}
+
+.filler {
+  height: 100px;
+  box-sizing: border-box;
+  border: 1px solid;
+}
+
+.bad {
+  background: red;
+}
+
+ul {
+  margin: 0;
+}
+
+li {
+  width: 0;
+}
+
+</style>
+<!-- Empty inline element in empty line has a height of zero. -->
+<div class="container"><span class="inline"></span></div><br>
+<!-- Empty inline element should not contribute to scrollable overflow. -->
+<div class="container oa">
+  <div class="filler bad"></div>
+  <span id="scrollTarget"></span>
+  <div class="filler"></div>
+</div><br>
+<!-- ... But not if the line has a meaningful height. -->
+<div class="container"><span class="inline"></span><span class="has-height"></span><span class="inline"></span></div><br>
+<!-- ... Or if the line is present in some kind of context that gives a meaningful height. -->
+<div class="container"><ul><li></li><li></li></ul></div><br>
+<div class="container"><input type="button" value=""></div><br>
+<script>
+scrollTarget.scrollIntoView();
+document.documentElement.className = "";
+</script>
+</html>

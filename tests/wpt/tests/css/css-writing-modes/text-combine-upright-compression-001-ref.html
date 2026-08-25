@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>CSS Reference: text-combine-upright, no compression</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org">
+<link rel="stylesheet" href="support/width-test.css">
+<link rel="stylesheet" href="support/tcy.css">
+<style>
+.test { writing-mode: vertical-rl; }
+.test > p { border: 1px solid black; }
+</style>
+</head>
+<body>
+<p>Test passes if there are two identical zeros in the blocks below.</p>
+<div class="test">
+  <p><span class="fake-tcy">0</span></p>
+  <p><span class="fake-tcy">0</span></p>
+</div>
+</body>
+</html>

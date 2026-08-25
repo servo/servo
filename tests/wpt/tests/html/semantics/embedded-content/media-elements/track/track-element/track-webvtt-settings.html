@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>WebVTT settings</title>
+<script src="track-helpers.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+check_cues_from_track("resources/settings.vtt", function(track) {
+    var expected = [
+        { line: 100, position: "auto", align: "start", vertical: "" },
+        { line: 15, position: 40, align: "center", vertical: "rl" },
+        { line: "auto", position: 10, align: "center", vertical: "" },
+        { line: 95, position: "auto", align: "end", vertical: "lr" }
+    ];
+
+    assert_cues_match(track.cues, expected);
+});
+
+check_cues_from_track("resources/settings-bad-separation.vtt", function(track) {
+    var expected = [
+        { line: 43, position: 10, align: "center", vertical: "" },
+        { line: "auto", position: 50, align: "end", vertical: "" },
+        { line: "auto", position: "auto", align: "center", vertical: "" },
+        { line: "auto", position: 90, align: "center", vertical: "lr" }
+    ];
+
+    assert_cues_match(track.cues, expected);
+});
+</script>

@@ -1,0 +1,35 @@
+{
+  "version": "1.0.0",
+  "lockfileVersion": 1,
+  "requires": true,
+  "dependencies": {
+    "fs-extra": {
+      "version": "7.0.1",
+      "resolved": "https://registry.npmjs.org/fs-extra/-/fs-extra-7.0.1.tgz",
+      "integrity": "sha512-YJDaCJZEnBmcbw13fvdAM9AwNOJwOzrE4pqMqBq5nFiEqXUqHwlK4B+3pUw6JNvfSPtX05xFHtYy/1ni01eGCw==",
+      "requires": {
+        "graceful-fs": "^4.1.2",
+        "jsonfile": "^4.0.0",
+        "universalify": "^0.1.0"
+      }
+    },
+    "graceful-fs": {
+      "version": "4.2.3",
+      "resolved": "https://registry.npmjs.org/graceful-fs/-/graceful-fs-4.2.3.tgz",
+      "integrity": "sha512-a30VEBm4PEdx1dRB7MFK7BejejvCvBronbLjht+sHuGYj8PHs7M/5Z+rt5lw551vZ7yfTCj4Vuyy3mSJytDWRQ=="
+    },
+    "jsonfile": {
+      "version": "4.0.0",
+      "resolved": "https://registry.npmjs.org/jsonfile/-/jsonfile-4.0.0.tgz",
+      "integrity": "sha1-h3Gq4HmbZAdrdmQPygWPnBDjPss=",
+      "requires": {
+        "graceful-fs": "^4.1.6"
+      }
+    },
+    "universalify": {
+      "version": "0.1.2",
+      "resolved": "https://registry.npmjs.org/universalify/-/universalify-0.1.2.tgz",
+      "integrity": "sha512-rBJeI5CXAlmy1pV+617WB9J63U6XcazHHF2f2dbJix4XzpUF0RS3Zbj0FGIOCAva5P/d/GBOYaACQ1w+0azUkg=="
+    }
+  }
+}

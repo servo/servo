@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<title>getHTML serialization ordering of shadowrootreferencetarget</title>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+
+<!--
+  This test verifies the `shadowrootreferencetarget` attribute
+  is serialized by getHTML() between `shadowrootclonable` and
+  `shadowrootcustomelementregistry`.
+
+  TODO(crbug.com/346835896): Once shadowrootreferencetarget is no
+  longer tentative, this test should be merged into
+  shadow-dom/declarative/gethtml.html and
+  shadow-dom/declarative/gethtml-ordering.html and this standalone
+  copy removed.
+-->
+
+<div id=host>
+  <template shadowrootreferencetarget=target
+            shadowrootclonable
+            shadowrootserializable
+            shadowrootdelegatesfocus
+            shadowrootmode=open>
+    <span id=target></span>
+  </template>
+</div>
+
+<div id=host-empty-reference-target>
+  <template shadowrootreferencetarget
+            shadowrootclonable
+            shadowrootserializable
+            shadowrootdelegatesfocus
+            shadowrootmode=open>
+    <span id=target></span>
+  </template>
+</div>
+
+<script>
+  function removeWhitespaceNodes(el) {
+    el.shadowRoot && removeWhitespaceNodes(el.shadowRoot);
+    const iter = document.createNodeIterator(el, NodeFilter.SHOW_TEXT,
+        (node) => (node.data.replace(/\s/g,'').length === 0) ?
+        NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT);
+    let node;
+    while (node = iter.nextNode()) {
+      node.remove();
+    }
+    return el;
+  }
+
+  test(() => {
+    const host = removeWhitespaceNodes(document.getElementById('host'));
+    const serialized = host.getHTML({shadowRoots: [host.shadowRoot]});
+    const expected =
+        '<template shadowrootmode="open" shadowrootdelegatesfocus="" ' +
+        'shadowrootserializable="" shadowrootclonable="" ' +
+        'shadowrootreferencetarget="target"><span id="target"></span>' +
+        '</template>';
+    assert_equals(serialized, expected);
+  }, 'shadowrootreferencetarget is serialized in the expected order');
+
+  test(() => {
+    const host =
+        removeWhitespaceNodes(
+            document.getElementById('host-empty-reference-target'));
+    const serialized = host.getHTML({shadowRoots: [host.shadowRoot]});
+    const expected =
+        '<template shadowrootmode="open" shadowrootdelegatesfocus="" ' +
+        'shadowrootserializable="" shadowrootclonable="" ' +
+        'shadowrootreferencetarget=""><span id="target"></span>' +
+        '</template>';
+    assert_equals(serialized, expected);
+  }, 'shadowrootreferencetarget with no value is serialized as empty string');
+
+  test(() => {
+    const host = document.createElement('div');
+    const shadow = host.attachShadow({
+      mode: 'open',
+      delegatesFocus: true,
+      serializable: true,
+      clonable: true,
+      referenceTarget: 'target',
+      customElementRegistry: new CustomElementRegistry(),
+    });
+    const span = document.createElement('span');
+    span.id = 'target';
+    shadow.append(span);
+    const serialized = host.getHTML({shadowRoots: [shadow]});
+    const expected =
+        '<template shadowrootmode="open" shadowrootdelegatesfocus="" ' +
+        'shadowrootserializable="" shadowrootclonable="" ' +
+        'shadowrootreferencetarget="target" ' +
+        'shadowrootcustomelementregistry=""><span id="target"></span>' +
+        '</template>';
+    assert_equals(serialized, expected);
+  }, 'shadowrootreferencetarget is serialized before ' +
+     'shadowrootcustomelementregistry');
+</script>

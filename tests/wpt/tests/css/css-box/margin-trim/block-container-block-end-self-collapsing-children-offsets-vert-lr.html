@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-box-4/#margin-trim-block">
+<meta name="assert" content="self-collapsing children at end of block with margin-trim block-end should be positioned at the bottom of the block container">
+<style>
+body {
+    writing-mode: vertical-lr;
+}
+container {
+    display: block;
+    margin-trim: block;
+    margin-block-end: 10px;
+}
+item {
+    display: block;
+    margin-block-end: 40px;
+    inline-size: 50px;
+    block-size: 50px;
+    background-color: green;
+}
+.collapsed {
+    margin-block-start: 50px;
+    block-size: 0px;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+</head>
+<body onload="checkLayout('container > item')">
+    <div id="target">
+        <container>
+            <item data-offset-x="8"></item>
+            <item data-offset-x="58" class="collapsed"></item>
+            <item data-offset-x="58" class="collapsed"></item>
+        </container>
+    </div>
+</body>
+</html>

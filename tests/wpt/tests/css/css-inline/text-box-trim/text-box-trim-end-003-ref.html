@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<title>Test `text-box: trim-start text` selects correct text-over baseline</title>
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-edge">
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-trim">
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#typedef-text-edge">
+<meta charset="utf-8">
+<style>
+@font-face {
+  /**
+   * CSSTest font has non-zero internal leading (max ascent + max descent is
+   * greater than the em-size). Trimming to the `text` edge should only trim
+   * external leading (from the line-height) and not a font's internal leading.
+   *
+   * https://drafts.csswg.org/css-inline-3/#typedef-text-edge
+   */
+  font-family: CSSTest;
+  src: url(/fonts/CSSTest/csstest-basic-regular.ttf);
+}
+.spacer {
+  background: lightgray;
+  block-size: 100px;
+}
+.target {
+  font: 100px/1 CSSTest;
+  margin-block-start: 0.5em;
+}
+canvas {
+  background: green;
+  vertical-align: text-bottom;
+}
+.inner {
+  background: orange;
+}
+</style>
+<div class="spacer"></div>
+<div class="target">
+  <span class="inner">Test</span><canvas width="50" height="50"></canvas>
+</div>
+<div class="spacer"></div>

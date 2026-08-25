@@ -1,0 +1,23 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "4-bodySpecificResourceNoValue.json",
+    "assertionType": "must",
+    "expectedResult": "valid",
+    "onUnexpectedResult" : "failAndContinue",
+    "errorMessage": "An Specific Resource body cannot include a value key. value key is only valid with Embedded Textual Body.",
+    "title": "If a **Specific Resource** is a body, it does NOT have a **_value_ key** - [model 4](https://www.w3.org/TR/annotation-model/#specific-resources)",
+    "description": "True when no Specific Resource bodies or when none of the Specific Resource bodies include the value key. (Section 4)",
+    "type": "object",
+    "properties":
+    {
+        "body":
+        {
+           "allOf": [
+                      { "not": { "$ref": "specificResource.json#/definitions/specificResourceWithValue" } },
+                      { "items": { "not": { "$ref": "specificResource.json#/definitions/specificResourceWithValue" } } },
+                      { "not": { "$ref": "specificResource.json#/definitions/itemSRWithValue" }  },
+                      { "items": { "not": { "$ref": "specificResource.json#/definitions/itemSRWithValue" } } }
+                     ]
+         }
+     }
+}

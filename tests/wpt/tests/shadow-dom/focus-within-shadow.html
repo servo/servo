@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://crbug.com/1300584">
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+
+<div id=host>
+  <template shadowrootmode=open>
+    <button><slot></slot></button>
+  </template>
+  <span>Content</span>
+</div>
+
+<script>
+  const host = document.getElementById('host');
+  test(() => {
+    const shadowButton = host.shadowRoot.querySelector('button');
+    shadowButton.focus();
+    assert_equals(document.activeElement,host,'nodes within shadow DOM aren\'t exposed');
+    host.textContent = 'New Content';
+    assert_equals(document.activeElement,host,'Clearing light DOM shouldn\'t clear focus');
+  },'Don\'t clear focus within shadow root if light DOM children are cleared');
+</script>
+

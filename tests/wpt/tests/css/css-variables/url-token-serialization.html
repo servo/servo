@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Variables: url() token serialization in custom properties</title>
+<link rel="help" href="https://drafts.csswg.org/css-variables-2/#serializing-custom-props">
+<link rel="help" href="https://drafts.csswg.org/css-syntax-3/#serialization">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="target"></div>
+<script>
+// "Specified values of custom properties must be serialized exactly as
+// specified by the author. Simplifications that might occur in other
+// properties, such as dropping comments, normalizing whitespace,
+// reserializing numeric tokens from their value, etc., must not occur."
+//
+// The url() token value should not have its contents escaped using CSS
+// identifier serialization rules. Characters like "." and "/" are valid
+// in url() tokens and must not be backslash-escaped.
+
+function test_url_roundtrip(input, description) {
+    test(function() {
+        var target = document.getElementById('target');
+        target.style.setProperty('--test', input);
+        var result = target.style.getPropertyValue('--test');
+        target.style.removeProperty('--test');
+        assert_equals(result, input);
+    }, description);
+}
+
+function test_url_serialization(input, expected, description) {
+    test(function() {
+        var target = document.getElementById('target');
+        target.style.setProperty('--test', input);
+        var result = target.style.getPropertyValue('--test');
+        target.style.removeProperty('--test');
+        assert_equals(result, expected);
+    }, description);
+}
+
+test_url_roundtrip(
+    'url(image.png)',
+    'Period in url() token must not be escaped'
+);
+
+test_url_roundtrip(
+    'url(path/to/image.png)',
+    'Slashes and periods in url() token must not be escaped'
+);
+
+test_url_roundtrip(
+    'url(https://example.com/image.png?q=1&v=2#frag)',
+    'Colons, slashes, periods, question marks, equals, ampersands, and hash in url() token must not be escaped'
+);
+
+test_url_roundtrip(
+    'url(~icons+set!v2)',
+    'Tilde, plus, and exclamation mark in url() token must not be escaped'
+);
+
+test_url_serialization(
+    'url(foo\\ bar)',
+    'url(foo\\ bar)',
+    'Escaped space in url() token must be serialized as an escape'
+);
+
+test_url_serialization(
+    'url(foo\\\tbar)',
+    'url(foo\\\tbar)',
+    'Escaped tab in url() token must be serialized as an escape'
+);
+</script>

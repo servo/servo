@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+  <title>Test FencedFrames Resize Lock</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="resources/utils.js"></script>
+  <script src="/common/dispatcher/dispatcher.js"></script>
+  <script src="/common/utils.js"></script>
+
+  <body>
+
+    <script>
+      promise_test(async t => {
+        const fencedframe = attachFencedFrameContext();
+
+        // Set up the inner frame to receive mouse events.
+        await fencedframe.execute(() => {
+          window.testing_touchpoint = 'pending'
+          window.addEventListener('mousedown', async (event) => {
+            window.testing_touchpoint = event.clientX + "," + event.clientY;
+          });
+        });
+
+        let getCoordinates = async () => {
+          return fencedframe.execute(() => {
+            let point = window.testing_touchpoint;
+            window.testing_touchpoint = 'pending';
+            return point;
+          });
+        }
+
+        // Send an event to the origin of the frame.
+        for (let i = 0; i < 3; i++) {
+          await new test_driver.Actions()
+                  .setContext(window)
+                  .addPointer("finger1", "touch")
+                  .pointerMove(10, 10, {origin: "viewport", sourceName: "finger1"})
+                  .pointerDown({sourceName: "finger1"})
+                  .pointerUp({sourceName: "finger1"})
+                  .send();
+        }
+
+        let result = await getCoordinates();
+        assert_equals(result, "0,0", "fenced frame event before resize 1");
+
+        // The frame should be frozen at 300x150. Resize to create a 2x scale
+        // and a horizontal offset of 50px.
+        frame.width = "700";
+        frame.height = "300";
+
+        // Let the inner frame animate in order for the resize to take effect.
+        await fencedframe.execute(async () => {
+          await new Promise(resolve => requestAnimationFrame(resolve));
+        });
+
+        // The hit-test data is replicated in the browser and updated
+        // asynchronously. Wait to ensure the update has finished.
+        t.step_timeout(async () => {
+            // Now send an event to the same location. The event should be
+            // routed to the main frame.
+            let promise = new Promise((resolve, reject) => {
+                window.addEventListener('mousedown', (event) => {
+                let point = event.clientX + "," + event.clientY;
+                assert_equals(result, "10,10", "main frame event after resize");
+              });
+            });
+            for (let i = 0; i < 3; i++) {
+              await new test_driver.Actions()
+                      .setContext(window)
+                      .addPointer("finger1", "touch")
+                      .pointerMove(10, 10, {origin: "viewport", sourceName: "finger1"})
+                      .pointerDown({sourceName: "finger1"})
+                      .pointerUp({sourceName: "finger1"})
+                      .send();
+            }
+            await promise;
+
+            // Send an event to where the origin of the scaled frame should
+            // render.
+            for (let i = 0; i < 3; i++) {
+              await new test_driver.Actions()
+                      .setContext(window)
+                      .addPointer("finger1", "touch")
+                      .pointerMove(60, 10, {origin: "viewport", sourceName: "finger1"})
+                      .pointerDown({sourceName: "finger1"})
+                      .pointerUp({sourceName: "finger1"})
+                      .send();
+            }
+            result = await getCoordinates();
+            assert_equals(result, "0,0", "fenced frame event after resize 1");
+
+            // Send an event where the bottom left of the scaled frame should
+            // render.
+            for (let i = 0; i < 3; i++) {
+              await new test_driver.Actions()
+                      .setContext(window)
+                      .addPointer("finger1", "touch")
+                      .pointerMove(660, 310, {origin: "viewport", sourceName: "finger1"})
+                      .pointerDown({sourceName: "finger1"})
+                      .pointerUp({sourceName: "finger1"})
+                      .send();
+            }
+            result = await getCoordinates();
+            assert_equals(result, "300,150", "fenced frame event after resize 2");
+        }, 1000);
+      }, "Test Resize Lock");
+    </script>
+
+  </body>
+</html>

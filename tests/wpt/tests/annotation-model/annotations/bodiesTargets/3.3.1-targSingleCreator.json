@@ -1,0 +1,38 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "3.3.1-targSingleCreator.json",
+    "assertionType": "should",
+    "expectedResult": "valid",
+    "onUnexpectedResult" : "passAndContinue",
+    "errorMessage": "The description of a target should include creator key with a single value.",
+    "title": "Implements **target _creator_ key** with a **single value**  [model 3.3.1](https://www.w3.org/TR/annotation-model/#lifecycle-information)",
+    "description": "True when Annotation includes one or more targets, one or more of which includes creator key with a single value. (Section 3.3.1)",
+    "type": "object",
+    "properties":
+    {
+        "target":
+        {
+           "oneOf": [
+                      { "anyOf": [
+                        { "$ref": "otherProperties.json#/definitions/singleCreatorPropertyFound" },
+                        { "$ref": "otherProperties.json#/definitions/itemSingleCreatorPropertyFound" },
+                        { "$ref": "otherProperties.json#/definitions/sourceSingleCreatorPropertyFound" }
+                        ]
+                      },
+                       { "not":
+                         { "items":
+                            { "not":
+                               { "anyOf": [
+                                  { "$ref": "otherProperties.json#/definitions/singleCreatorPropertyFound" },
+                                  { "$ref": "otherProperties.json#/definitions/itemSingleCreatorPropertyFound" },
+                                  { "$ref": "otherProperties.json#/definitions/sourceSingleCreatorPropertyFound" }
+                                 ]
+                               }
+                             }
+                         }
+                       }
+                     ]
+         }
+     },
+     "required": [ "target" ]
+}

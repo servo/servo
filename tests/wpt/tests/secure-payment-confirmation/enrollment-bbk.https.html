@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test for registering a PublicKeyCredential with "payment" extension creates a browser bound key</title>
+<link rel="help" href="https://w3c.github.io/secure-payment-confirmation/#client-extension-processing-registration">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src=../webauthn/resources/common-inputs.js></script>
+<script src=../webauthn/resources/utils.js></script>
+<script src="utils.sub.js"></script>
+<script src="utils-bbk.js"></script>
+<script>
+'use strict';
+
+async function testBrowserBoundKeyOnPasskeyEnrollment(t, options) {
+  options = Object.assign({
+    // Override the browserBoundPubKeyCredParams on assertion. An empty list
+    // should allow the user agent to default to [ES256, RS256].
+    browserBoundPubKeyCredParams: [],
+    // When browserBoundPubKeyCredParams nor pubKeyCredParams are specified,
+    // then ES256 and RS256 signature algorithms are allowed which correspond
+    // to EC2 and RSA keys.
+    expectedKeyTypes: [cose_key_type_ec2, cose_key_type_rsa],
+    // When set to true, the test allows a credential response where both the
+    // browser bound public key and the browser bound signature are not included.
+    allowNoBrowserBoundKey: false,
+  }, options);
+
+  await window.test_driver.add_virtual_authenticator(
+    AUTHENTICATOR_OPTS)
+    .then(authenticator => {
+      t.add_cleanup(() => {
+        return window.test_driver.remove_virtual_authenticator(authenticator);
+      });
+    });
+
+  const credential = await createCredential(/*set_payment_extension=*/true, {
+    browserBoundPubKeyCredParams: options.browserBoundPublicKey,
+  });
+  const browserBoundPublicKey = getBrowserBoundPublicKeyFromCredential(credential);
+
+  const verificationResult = await verifyBrowserBoundKey(credential, options.expectedKeyTypes);
+  if (!options.allowNoBrowserBoundKey) {
+    assert_true(verificationResult ==
+       BrowserBoundKeyVerificationResult.BrowserBoundKeySignatureVerified,
+      "The browser bound signature could not be verified.");
+  }
+}
+
+promise_test(async t => {
+  testBrowserBoundKeyOnPasskeyEnrollment(t, {
+    browserBoundPubKeyCredParams: [], // Let the user agent provide a default.
+    expectedKeyTypes: [cose_key_type_ec2, cose_key_type_rsa],
+  });
+}, 'Creates a browser bound key on enrollment');
+
+promise_test(async t => {
+  testBrowserBoundKeyOnPasskeyEnrollment(t, {
+    browserBoundPubKeyCredParams: [{
+      type: "public-key",
+      alg: -7, // "ES256"
+    }],
+    expectedKeyTypes: [cose_key_type_ec2],
+    allowNoBrowserBoundKey: true,
+  });
+}, 'If ES256 is supported creates a browser bound key on enrollment.');
+
+promise_test(async t => {
+  testBrowserBoundKeyOnPasskeyEnrollment(t, {
+    browserBoundPubKeyCredParams: [{
+      type: "public-key",
+      alg: -257, // "RS256"
+    }],
+    expectedKeyTypes: [cose_key_type_rsa],
+    allowNoBrowserBoundKey: true,
+  });
+}, 'If RS256 is supported creates a browser bound key on enrollment.');
+
+</script>

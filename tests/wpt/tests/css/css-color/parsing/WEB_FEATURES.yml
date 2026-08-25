@@ -1,0 +1,12 @@
+rules:
+- "*-color-mix-*": [color-mix]
+- color-mix-out-of-gamut.html: [color-mix]
+- relative-*: [relative-color]
+- "*-relative-*": [relative-color]
+- color-valid-system-color.html: [system-color]
+- "*contrast-color*.html": [contrast-color]
+- color-computed-hsl.html: [hsl]
+- color-invalid-hsl.html: [hsl]
+- color-valid-hsl.html: [hsl]
+- opacity-*.html: [opacity]
+- "*-named-color.html": [named-color]

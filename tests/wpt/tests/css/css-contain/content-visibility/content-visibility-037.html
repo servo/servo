@@ -1,0 +1,39 @@
+<!doctype HTML>
+<html class="reftest-wait">
+<meta charset="utf8">
+<title>Content Visibility: hidden grid with positioned child</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<link rel="match" href="container-ref.html">
+<meta name="assert" content="content-visibility hidden grid does not paint the subtree">
+
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+#grid {
+  display: grid;
+  width: 150px;
+  height: 150px;
+  background: lightblue;
+}
+#positioned {
+  position: absolute;
+}
+.hidden {
+  content-visibility: hidden;
+}
+</style>
+
+<div id=grid>
+  <div id=positioned>Test fails if this text is visible.</div>
+</div>
+
+<script>
+function runTest() {
+  document.getElementById("grid").classList.add("hidden");
+  requestAnimationFrame(takeScreenshot);
+}
+
+window.onload = () => requestAnimationFrame(runTest);
+</script>
+</html>

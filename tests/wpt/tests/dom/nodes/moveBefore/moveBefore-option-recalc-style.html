@@ -1,0 +1,19 @@
+<!doctype html>
+<title>moveBefore() of an option element between two selects</title>
+<link
+  rel="help"
+  href="https://dom.spec.whatwg.org/#dom-parentnode-movebefore"
+/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<select>
+  <option id="mv">OPTION</option>
+</select>
+<select id="move_to"></select>
+<script>
+  test(() => {
+    document.body.offsetTop;
+    move_to.moveBefore(mv, null);
+    assert_equals(mv.parentElement, move_to);
+  });
+</script>

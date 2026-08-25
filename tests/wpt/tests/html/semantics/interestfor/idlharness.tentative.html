@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<link rel="author" href="mailto:masonf@chromium.org" />
+<link rel="help" href="https://open-ui.org/components/interest-invokers.explainer/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+
+<script>
+  idl_test(["interest-invokers.tentative"],
+  ["html","dom","SVG"], (idl_array) => {
+    idl_array.add_objects({
+      HTMLAnchorElement: ['document.createElement("a")'],
+      HTMLAreaElement: ['document.createElement("area")'],
+      HTMLButtonElement: ['document.createElement("button")'],
+      SVGAElement: ['document.createElementNS("http://www.w3.org/2000/svg", "a")'],
+      InterestEvent: ['new InterestEvent("interest")']
+    });
+  });
+</script>

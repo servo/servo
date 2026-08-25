@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>WebMCP: executeTool with declarative tool returning circular object via respondWith</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/helpers.js"></script>
+<body>
+<form id="form" toolname="circular_tool" tooldescription="Declarative tool returning circular object" toolautosubmit>
+</form>
+
+<script>
+promise_test(async t => {
+  await waitForTool('circular_tool');
+
+  const form = document.querySelector('#form');
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    let a = {};
+    a['a'] = a;
+    e.respondWith(Promise.resolve(a));
+  });
+
+  const tools = await document.modelContext.getTools();
+  const tool = tools.find(t => t.name === 'circular_tool');
+  assert_true(!!tool, 'Tool should be registered');
+
+  await promise_rejects_dom(
+    t,
+    'UnknownError',
+    document.modelContext.executeTool(tool, '{}'),
+    'executeTool() should reject with UnknownError when respondWith is passed a circular object'
+  );
+}, 'Declarative tool executeTool() rejects when respondWith() receives a circular object');
+</script>
+</body>

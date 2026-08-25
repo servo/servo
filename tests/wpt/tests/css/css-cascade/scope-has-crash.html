@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>Firefox bug: Crash when collapsing :has() invalidation with empty @scope rule</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2013351">
+<link rel="author" href="mailto:dshin@mozilla.com">
+<style>
+@scope (:not(:has(:nth-child(2 of .category)))) {
+    .category {
+      grid-column:span 2
+    }
+}
+
+@scope (.category-wrap:has(:nth-child(2 of .category))) {
+  /* Non-matching @media-rule, etc */
+}
+</style>
+<div id=dut class=category-wrap>
+  <div class=department></div>
+  <div class=category></div>
+  <div class=category></div>
+</div>
+<script>
+// Force layout so that we trigger an invalidation below.
+getComputedStyle(dut).height;
+const d = document.createElement("div");
+d.classList.add('category');
+dut.appendChild(d);
+</script>

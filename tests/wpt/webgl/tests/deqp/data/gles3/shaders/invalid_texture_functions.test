@@ -1,0 +1,1143 @@
+# WARNING: This file is auto-generated. Do NOT modify it manually, but rather
+# modify the generating script file. Otherwise changes will be lost!
+
+case texture_sampler3dshadow_vec4
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump sampler3DShadow s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(texture(s, vec4(0)));
+			${OUTPUT}
+		}
+	""
+end
+case texture_sampler2darrayshadow_vec4_float
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump sampler2DArrayShadow s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(texture(s, vec4(0), float(0)));
+			${OUTPUT}
+		}
+	""
+end
+case textureproj_samplercube_vec4
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump samplerCube s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(textureProj(s, vec4(0)));
+			${OUTPUT}
+		}
+	""
+end
+case textureproj_isamplercube_vec4
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump isamplerCube s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(textureProj(s, vec4(0)));
+			${OUTPUT}
+		}
+	""
+end
+case textureproj_usamplercube_vec4
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump usamplerCube s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(textureProj(s, vec4(0)));
+			${OUTPUT}
+		}
+	""
+end
+case textureproj_samplercube_vec4_float
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump samplerCube s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(textureProj(s, vec4(0), float(0)));
+			${OUTPUT}
+		}
+	""
+end
+case textureproj_isamplercube_vec4_float
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump isamplerCube s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(textureProj(s, vec4(0), float(0)));
+			${OUTPUT}
+		}
+	""
+end
+case textureproj_usamplercube_vec4_float
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump usamplerCube s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(textureProj(s, vec4(0), float(0)));
+			${OUTPUT}
+		}
+	""
+end
+case textureproj_sampler2darrayshadow_vec4
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump sampler2DArrayShadow s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(textureProj(s, vec4(0)));
+			${OUTPUT}
+		}
+	""
+end
+case textureproj_sampler2darrayshadow_vec4_float
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump sampler2DArrayShadow s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(textureProj(s, vec4(0), float(0)));
+			${OUTPUT}
+		}
+	""
+end
+case texturelod_samplercubeshadow_vec4_float
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump samplerCubeShadow s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(textureLod(s, vec4(0), float(0)));
+			${OUTPUT}
+		}
+	""
+end
+case texturelod_sampler2darrayshadow_vec4_float
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump sampler2DArrayShadow s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(textureLod(s, vec4(0), float(0)));
+			${OUTPUT}
+		}
+	""
+end
+case textureoffset_samplercube_vec3_ivec2
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump samplerCube s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(textureOffset(s, vec3(0), ivec2(0)));
+			${OUTPUT}
+		}
+	""
+end
+case textureoffset_isamplercube_vec3_ivec2
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump isamplerCube s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(textureOffset(s, vec3(0), ivec2(0)));
+			${OUTPUT}
+		}
+	""
+end
+case textureoffset_usamplercube_vec3_ivec2
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump usamplerCube s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(textureOffset(s, vec3(0), ivec2(0)));
+			${OUTPUT}
+		}
+	""
+end
+case textureoffset_samplercube_vec3_ivec3
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump samplerCube s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(textureOffset(s, vec3(0), ivec3(0)));
+			${OUTPUT}
+		}
+	""
+end
+case textureoffset_isamplercube_vec3_ivec3
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump isamplerCube s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(textureOffset(s, vec3(0), ivec3(0)));
+			${OUTPUT}
+		}
+	""
+end
+case textureoffset_usamplercube_vec3_ivec3
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump usamplerCube s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(textureOffset(s, vec3(0), ivec3(0)));
+			${OUTPUT}
+		}
+	""
+end
+case textureoffset_samplercube_vec3_ivec2_float
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump samplerCube s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(textureOffset(s, vec3(0), ivec2(0), float(0)));
+			${OUTPUT}
+		}
+	""
+end
+case textureoffset_samplercube_vec3_ivec3_float
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump samplerCube s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(textureOffset(s, vec3(0), ivec3(0), float(0)));
+			${OUTPUT}
+		}
+	""
+end
+case textureoffset_sampler2darray_vec3_ivec3
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump sampler2DArray s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(textureOffset(s, vec3(0), ivec3(0)));
+			${OUTPUT}
+		}
+	""
+end
+case textureoffset_sampler2darray_vec3_ivec3_float
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump sampler2DArray s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(textureOffset(s, vec3(0), ivec3(0), float(0)));
+			${OUTPUT}
+		}
+	""
+end
+case textureoffset_samplercubeshadow_vec4_ivec2
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump samplerCubeShadow s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(textureOffset(s, vec4(0), ivec2(0)));
+			${OUTPUT}
+		}
+	""
+end
+case textureoffset_samplercubeshadow_vec4_ivec3
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump samplerCubeShadow s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(textureOffset(s, vec4(0), ivec3(0)));
+			${OUTPUT}
+		}
+	""
+end
+case textureoffset_sampler2darrayshadow_vec4_ivec2
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump sampler2DArrayShadow s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(textureOffset(s, vec4(0), ivec2(0)));
+			${OUTPUT}
+		}
+	""
+end
+case textureoffset_sampler2darrayshadow_vec4_ivec2_float
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump sampler2DArrayShadow s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(textureOffset(s, vec4(0), ivec2(0), float(0)));
+			${OUTPUT}
+		}
+	""
+end
+case texelfetch_samplercube_ivec3_int
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump samplerCube s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(texelFetch(s, ivec3(0), int(0)));
+			${OUTPUT}
+		}
+	""
+end
+case texelfetch_isamplercube_ivec3_int
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump isamplerCube s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(texelFetch(s, ivec3(0), int(0)));
+			${OUTPUT}
+		}
+	""
+end
+case texelfetch_usamplercube_ivec3_int
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump usamplerCube s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(texelFetch(s, ivec3(0), int(0)));
+			${OUTPUT}
+		}
+	""
+end
+case texelfetch_sampler2dshadow_ivec2_int
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump sampler2DShadow s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(texelFetch(s, ivec2(0), int(0)));
+			${OUTPUT}
+		}
+	""
+end
+case texelfetch_samplercubeshadow_ivec3_int
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump samplerCubeShadow s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(texelFetch(s, ivec3(0), int(0)));
+			${OUTPUT}
+		}
+	""
+end
+case texelfetch_sampler2darrayshadow_ivec3_int
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump sampler2DArrayShadow s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(texelFetch(s, ivec3(0), int(0)));
+			${OUTPUT}
+		}
+	""
+end
+case texelfetch_samplercube_ivec3_int_ivec3
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump samplerCube s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(texelFetch(s, ivec3(0), int(0), ivec3(0)));
+			${OUTPUT}
+		}
+	""
+end
+case texelfetch_sampler2dshadow_ivec2_int_ivec2
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump sampler2DShadow s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(texelFetch(s, ivec2(0), int(0), ivec2(0)));
+			${OUTPUT}
+		}
+	""
+end
+case texelfetch_samplercubeshadow_ivec3_int_ivec3
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump samplerCubeShadow s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(texelFetch(s, ivec3(0), int(0), ivec3(0)));
+			${OUTPUT}
+		}
+	""
+end
+case texelfetch_sampler2darrayshadow_ivec3_int_ivec3
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump sampler2DArrayShadow s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(texelFetch(s, ivec3(0), int(0), ivec3(0)));
+			${OUTPUT}
+		}
+	""
+end
+case textureprojoffset_samplercube_vec4_ivec2
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump samplerCube s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(textureProjOffset(s, vec4(0), ivec2(0)));
+			${OUTPUT}
+		}
+	""
+end
+case textureprojoffset_samplercube_vec4_ivec3
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump samplerCube s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(textureProjOffset(s, vec4(0), ivec3(0)));
+			${OUTPUT}
+		}
+	""
+end
+case textureprojoffset_samplercubeshadow_vec4_ivec3
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump samplerCubeShadow s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(textureProjOffset(s, vec4(0), ivec3(0)));
+			${OUTPUT}
+		}
+	""
+end
+case textureprojoffset_sampler2darrayshadow_vec4_ivec2
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump sampler2DArrayShadow s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(textureProjOffset(s, vec4(0), ivec2(0)));
+			${OUTPUT}
+		}
+	""
+end
+case textureprojoffset_sampler2darrayshadow_vec4_ivec3
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump sampler2DArrayShadow s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(textureProjOffset(s, vec4(0), ivec3(0)));
+			${OUTPUT}
+		}
+	""
+end
+case texturelodoffset_samplercube_vec3_float_ivec2
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump samplerCube s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(textureLodOffset(s, vec3(0), float(0), ivec2(0)));
+			${OUTPUT}
+		}
+	""
+end
+case texturelodoffset_samplercube_vec3_float_ivec3
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump samplerCube s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(textureLodOffset(s, vec3(0), float(0), ivec3(0)));
+			${OUTPUT}
+		}
+	""
+end
+case texturelodoffset_samplercubeshadow_vec3_float_ivec3
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump samplerCubeShadow s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(textureLodOffset(s, vec3(0), float(0), ivec3(0)));
+			${OUTPUT}
+		}
+	""
+end
+case texturelodoffset_sampler2darrayshadow_vec3_float_ivec2
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump sampler2DArrayShadow s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(textureLodOffset(s, vec3(0), float(0), ivec2(0)));
+			${OUTPUT}
+		}
+	""
+end
+case texturelodoffset_sampler2darrayshadow_vec3_float_ivec3
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump sampler2DArrayShadow s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(textureLodOffset(s, vec3(0), float(0), ivec3(0)));
+			${OUTPUT}
+		}
+	""
+end
+case textureprojlod_samplercube_vec4_float
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump samplerCube s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(textureProjLod(s, vec4(0), float(0)));
+			${OUTPUT}
+		}
+	""
+end
+case textureprojlod_sampler2darray_vec4_float
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump sampler2DArray s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(textureProjLod(s, vec4(0), float(0)));
+			${OUTPUT}
+		}
+	""
+end
+case textureprojlod_sampler2darrayshadow_vec4_float
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump sampler2DArrayShadow s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(textureProjLod(s, vec4(0), float(0)));
+			${OUTPUT}
+		}
+	""
+end
+case texturegrad_sampler2darray_vec3_vec3_vec3
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump sampler2DArray s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(textureGrad(s, vec3(0), vec3(0), vec3(0)));
+			${OUTPUT}
+		}
+	""
+end
+case texturegradoffset_samplercube_vec3_vec3_vec3_ivec2
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump samplerCube s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(textureGradOffset(s, vec3(0), vec3(0), vec3(0), ivec2(0)));
+			${OUTPUT}
+		}
+	""
+end
+case texturegradoffset_samplercube_vec3_vec3_vec3_ivec3
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump samplerCube s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(textureGradOffset(s, vec3(0), vec3(0), vec3(0), ivec3(0)));
+			${OUTPUT}
+		}
+	""
+end
+case texturegradoffset_samplercubeshadow_vec4_vec3_vec3_ivec2
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump samplerCubeShadow s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(textureGradOffset(s, vec4(0), vec3(0), vec3(0), ivec2(0)));
+			${OUTPUT}
+		}
+	""
+end
+case texturegradoffset_samplercubeshadow_vec4_vec3_vec3_ivec3
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump samplerCubeShadow s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(textureGradOffset(s, vec4(0), vec3(0), vec3(0), ivec3(0)));
+			${OUTPUT}
+		}
+	""
+end
+case textureprojgrad_samplercube_vec4_vec3_vec3
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump samplerCube s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(textureProjGrad(s, vec4(0), vec3(0), vec3(0)));
+			${OUTPUT}
+		}
+	""
+end
+case textureprojgrad_sampler2darray_vec4_vec2_vec2
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump sampler2DArray s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(textureProjGrad(s, vec4(0), vec2(0), vec2(0)));
+			${OUTPUT}
+		}
+	""
+end
+case textureprojgradoffset_samplercube_vec4_vec3_vec3_ivec2
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump samplerCube s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(textureProjGradOffset(s, vec4(0), vec3(0), vec3(0), ivec2(0)));
+			${OUTPUT}
+		}
+	""
+end
+case textureprojgradoffset_samplercube_vec4_vec3_vec3_ivec3
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump samplerCube s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(textureProjGradOffset(s, vec4(0), vec3(0), vec3(0), ivec3(0)));
+			${OUTPUT}
+		}
+	""
+end
+case textureprojgradoffset_sampler2darray_vec4_vec2_vec2_ivec2
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump sampler2DArray s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(textureProjGradOffset(s, vec4(0), vec2(0), vec2(0), ivec2(0)));
+			${OUTPUT}
+		}
+	""
+end
+case textureprojgradoffset_sampler2darray_vec4_vec2_vec2_ivec3
+	expect compile_fail
+	values {}
+	version 300 es
+
+	both ""
+		#version 300 es
+		precision mediump float;
+		${DECLARATIONS}
+		uniform mediump sampler2DArray s;
+
+		void main()
+		{
+			${SETUP}
+			${POSITION_FRAG_COLOR} = vec4(textureProjGradOffset(s, vec4(0), vec2(0), vec2(0), ivec3(0)));
+			${OUTPUT}
+		}
+	""
+end

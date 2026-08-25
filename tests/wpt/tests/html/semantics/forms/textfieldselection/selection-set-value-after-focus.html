@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Setting the value from script during a mouse click keeps the caret at the end after focus</title>
+<link rel=help href="https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#dom-textarea/input-selectionstart">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<input id="input">
+<button id="focusButton">Focus</button>
+<button id="setButton">Set</button>
+
+<script>
+const input = document.getElementById('input');
+const focusButton = document.getElementById('focusButton');
+const setButton = document.getElementById('setButton');
+
+focusButton.addEventListener('click', () => input.focus());
+setButton.addEventListener('click', () => input.value = '123');
+
+function clickElement(element) {
+  return new test_driver.Actions()
+      .pointerMove(0, 0, { origin: element })
+      .pointerDown()
+      .pointerUp()
+      .send();
+}
+
+// Focusing the field then changing its value from script during a mouse click
+// must leave the caret at the end of the new value, not jump it to the start.
+promise_test(async () => {
+  input.value = '12';
+
+  // Focus the input with a real mouse click, then set the value from script
+  // inside another mouse click (which blurs the input).
+  await clickElement(focusButton);
+  await clickElement(setButton);
+
+  assert_equals(input.selectionStart, 3, 'selectionStart after value change');
+  assert_equals(input.selectionEnd, 3, 'selectionEnd after value change');
+
+  // The caret must still be at the end when the field is focused again.
+  await clickElement(focusButton);
+  assert_equals(input.selectionStart, 3, 'selectionStart after refocus');
+  assert_equals(input.selectionEnd, 3, 'selectionEnd after refocus');
+}, 'Script value change during a mouse click keeps the caret at the end after focus');
+</script>

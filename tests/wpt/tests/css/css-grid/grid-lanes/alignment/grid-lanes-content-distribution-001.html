@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes Test: alignment with aspect-ratio and max-width</title>
+  <link rel="author" title="Yanling Wang" href="mailto:yanlingwang@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3">
+  <link rel="match" href="../../../reference/ref-filled-green-100px-square-only.html">
+</head>
+<body>
+  <!-- Alignment must work after max-width clamps the aspect ratio in grid-lanes. -->
+  <p>Test passes if there is a filled green square.</p>
+  <div style="display: grid-lanes; flow-tolerance: 0; grid-template-rows: auto; width: 100px; aspect-ratio: 2; max-width: 50px; align-content: center;">
+    <div style="width: 100px; height: 100px; background: green;"></div>
+  </div>
+</body>
+</html>

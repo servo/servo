@@ -1,0 +1,8 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<script>
+window.opener.postMessage({cookie: document.cookie}, '*');
+// Close this window to work around a Chrome crash when leaving windows opened
+// in tests. https://crbug.com/374852560
+window.close();
+</script>

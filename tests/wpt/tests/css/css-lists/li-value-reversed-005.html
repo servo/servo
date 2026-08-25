@@ -1,0 +1,13 @@
+<!doctype html>
+<title>Non-list items with explicit list-item counter increments don't increment the ol reversed start value</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1573907">
+<link rel="help" href="https://html.spec.whatwg.org/#attr-ol-reversed">
+<link rel="help" href="https://html.spec.whatwg.org/#ordinal-value">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="match" href="li-value-reversed-005-ref.html">
+<ol reversed>
+ <li>zero
+ <div style="counter-increment: list-item 1; counter-set: list-item 1"></div>
+ <li>zero
+</ol>

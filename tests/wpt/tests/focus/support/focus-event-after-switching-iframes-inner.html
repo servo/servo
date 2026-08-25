@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Focus event inner document</title>
+</head>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<body>
+<h1>Inner</h1>
+<script>
+let innerlog = "innerlog:";
+
+window.onmessage = function(e) {
+  if (e.data == "getlog") {
+    parent.postMessage(innerlog, "*");
+  } else if (e.data == "focus") {
+    test_driver.set_test_context(window.parent);
+    test_driver.click(document.body);
+  }
+};
+
+window.onfocus = function() {
+  innerlog += "windowfocus,";
+  parent.postMessage("focus", "*");
+};
+
+window.onblur = function() {
+  innerlog += "windowblur,";
+};
+
+window.onload = function() {
+  parent.postMessage("ready", "*");
+}
+</script>
+</body>
+</html>

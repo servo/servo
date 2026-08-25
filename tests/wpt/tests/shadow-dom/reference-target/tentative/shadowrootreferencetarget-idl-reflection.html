@@ -1,0 +1,57 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+
+test(() => {
+  assert_true(HTMLTemplateElement.prototype.hasOwnProperty("shadowRootReferenceTarget"),
+      "HTMLTemplateElement should expose the shadowRootReferenceTarget IDL attribute");
+}, "shadowRootReferenceTarget is present on HTMLTemplateElement");
+
+test(() => {
+  const t = document.createElement('template');
+  assert_equals(t.shadowRootReferenceTarget, null,
+      "Missing shadowrootreferencetarget content attribute reflects as null");
+}, "shadowRootReferenceTarget getter returns null when the content attribute is absent");
+
+test(() => {
+  const t = document.createElement('template');
+  t.setAttribute('shadowrootreferencetarget', 'target');
+  assert_equals(t.shadowRootReferenceTarget, 'target',
+      "The shadowRootReferenceTarget IDL should reflect the content attribute");
+
+  t.setAttribute('shadowrootreferencetarget', '');
+  assert_equals(t.shadowRootReferenceTarget, '',
+      "An empty content attribute reflects as an empty string");
+}, "shadowRootReferenceTarget getter reflects the shadowrootreferencetarget content attribute");
+
+test(() => {
+  const t = document.createElement('template');
+  t.shadowRootReferenceTarget = 'target';
+  assert_equals(t.getAttribute('shadowrootreferencetarget'), 'target',
+      "Setting the IDL attribute updates the content attribute");
+  assert_equals(t.shadowRootReferenceTarget, 'target');
+
+  t.shadowRootReferenceTarget = '';
+  assert_equals(t.getAttribute('shadowrootreferencetarget'), '',
+      "Setting the IDL attribute to an empty string sets an empty content attribute");
+  assert_equals(t.shadowRootReferenceTarget, '');
+}, "Setting shadowRootReferenceTarget updates the shadowrootreferencetarget content attribute");
+
+test(() => {
+  const t = document.createElement('template');
+  t.setAttribute('shadowrootreferencetarget', 'target');
+  assert_equals(t.shadowRootReferenceTarget, 'target');
+
+  t.shadowRootReferenceTarget = null;
+  assert_false(t.hasAttribute('shadowrootreferencetarget'),
+      "Setting the nullable IDL attribute to null removes the content attribute");
+  assert_equals(t.shadowRootReferenceTarget, null);
+}, "Setting shadowRootReferenceTarget to null removes the shadowrootreferencetarget content attribute");
+</script>
+</body>
+</html>

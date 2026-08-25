@@ -1,0 +1,32 @@
+<title>Nested flex containers with aspect-ratio do not inflate container height through content min-size feedback</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#definite-sizes">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio-size-transfers">
+<link rel="match" href="flex-aspect-ratio-cross-size-002-ref.html">
+<style>
+.container {
+  width: 200px;
+  background: green;
+}
+.outer {
+  display: flex;
+  aspect-ratio: 4;
+}
+.inner {
+  display: flex;
+  aspect-ratio: 1;
+}
+.box {
+  height: 100%;
+  aspect-ratio: 2;
+}
+</style>
+<p>Test passes if the green strip below is 200x50 and not taller.</p>
+<div class="container">
+  <div class="outer">
+    <div class="inner">
+      <div>
+        <div class="box"></div>
+      </div>
+    </div>
+  </div>
+</div>

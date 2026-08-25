@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<title>A preload declared in markup with both href and imagesrcset only fetches the imagesrcset candidate</title>
+<meta name="timeout" content="long">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/links.html#preload">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/images.html#create-a-source-set">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/preload/resources/preload_helper.js"></script>
+<!--
+  dynamic-adding-preload-imagesrcset.html covers the same combination from
+  script, which the preload scanner never sees. These links are in markup so
+  the scanner does see them.
+
+  Keep the 1x candidate below: without it, href joins the source set as the 1x
+  candidate and may legitimately be fetched.
+-->
+<link rel="preload" as="image" href="resources/square.png?markup-w-href"
+      imagesrcset="resources/square.png?markup-w-200 200w, resources/square.png?markup-w-400 400w, resources/square.png?markup-w-800 800w"
+      imagesizes="400px">
+<link rel="preload" as="image" href="resources/square.png?markup-x-href"
+      imagesrcset="resources/square.png?markup-x-1x 1x, resources/square.png?markup-x-2x 2x">
+<body>
+<script>
+    function candidateFetches(urls) {
+        return urls.reduce((total, url) => total + numberOfResourceTimingEntries(url), 0);
+    }
+
+    promise_setup(() => new Promise(resolve => {
+        if (document.readyState === "complete")
+            resolve();
+        else
+            addEventListener("load", resolve);
+    }));
+
+    promise_test(async t => {
+        verifyPreloadAndRTSupport();
+        const candidates = [
+            "resources/square.png?markup-w-200",
+            "resources/square.png?markup-w-400",
+            "resources/square.png?markup-w-800",
+        ];
+        await t.step_wait(() => candidateFetches(candidates) >= 1,
+                          "a w-descriptor candidate should be preloaded", 3000);
+        verifyNumberOfResourceTimingEntries("resources/square.png?markup-w-href", 0);
+        assert_equals(candidateFetches(candidates), 1,
+                      "exactly one w-descriptor candidate should be preloaded");
+    }, "Preload in markup with href and imagesrcset (w descriptors) does not fetch href");
+
+    promise_test(async t => {
+        verifyPreloadAndRTSupport();
+        const candidates = [
+            "resources/square.png?markup-x-1x",
+            "resources/square.png?markup-x-2x",
+        ];
+        await t.step_wait(() => candidateFetches(candidates) >= 1,
+                          "an x-descriptor candidate should be preloaded", 3000);
+        verifyNumberOfResourceTimingEntries("resources/square.png?markup-x-href", 0);
+        assert_equals(candidateFetches(candidates), 1,
+                      "exactly one x-descriptor candidate should be preloaded");
+    }, "Preload in markup with href and imagesrcset (x descriptors) does not fetch href");
+</script>
+</body>

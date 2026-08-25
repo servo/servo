@@ -1,0 +1,218 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Live Range members and Attr nodes</title>
+<link rel=help href="https://dom.spec.whatwg.org/#interface-range">
+<link rel=help href="https://github.com/whatwg/dom/issues/607">
+<div id=log></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+"use strict";
+
+// An Attr node is not a CharacterData node, so its length is its number of
+// children, i.e. 0, regardless of the length of its value. See
+// https://dom.spec.whatwg.org/#concept-node-length
+function attributeNode() {
+  const element = document.createElement("div");
+  element.setAttribute("x", "abc");
+  return element.getAttributeNode("x");
+}
+
+test(() => {
+  const attr = attributeNode();
+  assert_equals(attr.value, "abc", "sanity check: the attribute value is non-empty");
+  // No length attribute is exposed on Attr, but its DOM "length" concept is 0.
+  const range = new Range();
+  range.setStart(attr, 0);
+  assert_equals(range.startContainer, attr);
+  assert_equals(range.startOffset, 0);
+}, "setStart() to an Attr node at offset 0 is allowed");
+
+test(() => {
+  const attr = attributeNode();
+  const range = new Range();
+  range.setEnd(attr, 0);
+  assert_equals(range.endContainer, attr);
+  assert_equals(range.endOffset, 0);
+}, "setEnd() to an Attr node at offset 0 is allowed");
+
+test(() => {
+  const attr = attributeNode();
+  const range = new Range();
+  assert_throws_dom("IndexSizeError", () => range.setStart(attr, 1));
+}, "setStart() to an Attr node past its length (0) throws IndexSizeError");
+
+test(() => {
+  const attr = attributeNode();
+  const range = new Range();
+  assert_throws_dom("IndexSizeError", () => range.setEnd(attr, 1));
+}, "setEnd() to an Attr node past its length (0) throws IndexSizeError");
+
+// setStartBefore()/setStartAfter()/setEndBefore()/setEndAfter() and selectNode()
+// all operate on the node's parent, which is null for an Attr node.
+for (const method of ["setStartBefore", "setStartAfter", "setEndBefore", "setEndAfter", "selectNode"]) {
+  test(() => {
+    const attr = attributeNode();
+    const range = new Range();
+    assert_throws_dom("InvalidNodeTypeError", () => range[method](attr));
+  }, `${method}() with an Attr node throws InvalidNodeTypeError (null parent)`);
+}
+
+test(() => {
+  const attr = attributeNode();
+  const range = new Range();
+  range.selectNodeContents(attr);
+  assert_equals(range.startContainer, attr, "startContainer");
+  assert_equals(range.startOffset, 0, "startOffset");
+  assert_equals(range.endContainer, attr, "endContainer");
+  assert_equals(range.endOffset, 0, "endOffset");
+  assert_true(range.collapsed, "collapsed");
+  assert_equals(range.commonAncestorContainer, attr, "commonAncestorContainer");
+}, "selectNodeContents() on an Attr node selects an empty range rooted at the Attr");
+
+// The point/node query methods short-circuit on differing roots. An Attr node's
+// root is itself, so it never shares a root with a document-rooted range.
+test(() => {
+  const attr = attributeNode();
+  const range = new Range();
+  assert_throws_dom("WrongDocumentError", () => range.comparePoint(attr, 0));
+}, "comparePoint() with an Attr node not sharing the range's root throws WrongDocumentError");
+
+test(() => {
+  const attr = attributeNode();
+  const range = new Range();
+  assert_false(range.isPointInRange(attr, 0));
+}, "isPointInRange() with an Attr node not sharing the range's root returns false");
+
+test(() => {
+  const attr = attributeNode();
+  const range = new Range();
+  assert_false(range.intersectsNode(attr));
+}, "intersectsNode() with an Attr node not sharing the range's root returns false");
+
+// When the range is rooted at the Attr node itself, the queries proceed.
+test(() => {
+  const attr = attributeNode();
+  const range = new Range();
+  range.selectNodeContents(attr);
+  assert_equals(range.comparePoint(attr, 0), 0, "comparePoint at offset 0");
+  assert_throws_dom("IndexSizeError", () => range.comparePoint(attr, 1),
+    "comparePoint past the Attr node's length (0)");
+}, "comparePoint() with an Attr node sharing the range's root");
+
+test(() => {
+  const attr = attributeNode();
+  const range = new Range();
+  range.selectNodeContents(attr);
+  assert_true(range.isPointInRange(attr, 0), "isPointInRange at offset 0");
+  assert_throws_dom("IndexSizeError", () => range.isPointInRange(attr, 1),
+    "isPointInRange past the Attr node's length (0)");
+}, "isPointInRange() with an Attr node sharing the range's root");
+
+test(() => {
+  const attr = attributeNode();
+  const range = new Range();
+  range.selectNodeContents(attr);
+  // An Attr node has a null parent, so a range sharing its root intersects it.
+  assert_true(range.intersectsNode(attr));
+}, "intersectsNode() with an Attr node sharing the range's root returns true");
+
+// compareBoundaryPoints() compares against another range's root. An Attr node's
+// root is itself, so it never shares a root with a document-rooted range.
+test(() => {
+  const attr = attributeNode();
+  const attrRange = new Range();
+  attrRange.selectNodeContents(attr);
+  const documentRange = new Range();
+  assert_throws_dom("WrongDocumentError",
+    () => attrRange.compareBoundaryPoints(Range.START_TO_START, documentRange));
+}, "compareBoundaryPoints() across an Attr-rooted range and a document-rooted range throws WrongDocumentError");
+
+test(() => {
+  const attr = attributeNode();
+  const range1 = new Range();
+  range1.selectNodeContents(attr);
+  const range2 = new Range();
+  range2.selectNodeContents(attr);
+  for (const how of [Range.START_TO_START, Range.START_TO_END, Range.END_TO_END, Range.END_TO_START]) {
+    assert_equals(range1.compareBoundaryPoints(how, range2), 0, `how=${how}`);
+  }
+}, "compareBoundaryPoints() between two ranges rooted at the same Attr node returns 0");
+
+// The mutation methods all operate on a collapsed range (the Attr node's length
+// is 0), so they are no-ops that do not throw and produce empty fragments.
+test(() => {
+  const attr = attributeNode();
+  const range = new Range();
+  range.selectNodeContents(attr);
+  range.deleteContents();
+  assert_equals(range.startContainer, attr, "startContainer");
+  assert_equals(range.startOffset, 0, "startOffset");
+  assert_true(range.collapsed, "collapsed");
+}, "deleteContents() on an Attr-rooted range is a no-op");
+
+test(() => {
+  const attr = attributeNode();
+  const range = new Range();
+  range.selectNodeContents(attr);
+  const fragment = range.extractContents();
+  assert_equals(fragment.childNodes.length, 0, "extracted fragment is empty");
+  assert_equals(range.startContainer, attr, "startContainer is unchanged");
+}, "extractContents() on an Attr-rooted range returns an empty fragment");
+
+test(() => {
+  const attr = attributeNode();
+  const range = new Range();
+  range.selectNodeContents(attr);
+  const fragment = range.cloneContents();
+  assert_equals(fragment.childNodes.length, 0, "cloned fragment is empty");
+}, "cloneContents() on an Attr-rooted range returns an empty fragment");
+
+// insertNode() and surroundContents() end up inserting into the Attr node, which
+// is not a valid parent, so they throw HierarchyRequestError.
+test(() => {
+  const attr = attributeNode();
+  const range = new Range();
+  range.selectNodeContents(attr);
+  assert_throws_dom("HierarchyRequestError",
+    () => range.insertNode(document.createElement("span")));
+}, "insertNode() into an Attr-rooted range throws HierarchyRequestError");
+
+test(() => {
+  const attr = attributeNode();
+  const range = new Range();
+  range.selectNodeContents(attr);
+  assert_throws_dom("HierarchyRequestError",
+    () => range.surroundContents(document.createElement("span")));
+}, "surroundContents() on an Attr-rooted range throws HierarchyRequestError");
+
+// An Attr node is also not a valid node to insert as content or as a new parent.
+test(() => {
+  const container = document.createElement("div");
+  const range = new Range();
+  range.setStart(container, 0);
+  range.setEnd(container, 0);
+  assert_throws_dom("HierarchyRequestError", () => range.insertNode(attributeNode()));
+}, "insertNode() with an Attr node argument throws HierarchyRequestError");
+
+test(() => {
+  const attr = attributeNode();
+  const range = new Range();
+  range.selectNodeContents(attr);
+  const clone = range.cloneRange();
+  assert_equals(clone.startContainer, attr, "startContainer");
+  assert_equals(clone.startOffset, 0, "startOffset");
+  assert_equals(clone.endContainer, attr, "endContainer");
+  assert_equals(clone.endOffset, 0, "endOffset");
+}, "cloneRange() preserves an Attr-rooted range");
+
+// The stringifier only serializes Text nodes; an Attr node is neither Text nor
+// does it contain any, so the result is the empty string.
+test(() => {
+  const attr = attributeNode();
+  const range = new Range();
+  range.selectNodeContents(attr);
+  assert_equals(range.toString(), "", "toString()");
+  assert_equals(String(range), "", "String()");
+}, "stringifying an Attr-rooted range returns the empty string");
+</script>

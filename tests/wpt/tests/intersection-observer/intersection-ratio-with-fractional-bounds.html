@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<title>IntersectionObserver ratio with fractional bounds</title>
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1020466">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  body {
+    margin: 0;
+  }
+  #container {
+    display: flex;
+  }
+  #left {
+    height: 100px;
+    width: 0.88875%;
+    background: lightblue;
+  }
+  #target {
+    height: 100px;
+    width: 99.11125%;
+    background: rebeccapurple;
+  }
+</style>
+
+<div id="container">
+  <div id="left"></div>
+  <div id="target"></div>
+</div>
+
+<script>
+async_test(function(t) {
+  let target = document.getElementById("target");
+  let observer = new IntersectionObserver(t.step_func_done(function(entries) {
+    assert_equals(entries.length, 1);
+    assert_equals(entries[0].intersectionRatio, 1);
+    assert_equals(entries[0].isIntersecting, true);
+  }));
+  observer.observe(target);
+});
+</script>

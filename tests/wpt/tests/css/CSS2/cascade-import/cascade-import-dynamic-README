@@ -1,0 +1,4 @@
+These tests are meaningless if the control tests do not pass.
+
+Note: These tests are not as trivial as they seem. At least one UA
+failed all but one of them at one point.

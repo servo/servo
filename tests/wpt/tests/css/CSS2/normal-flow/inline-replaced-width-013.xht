@@ -1,0 +1,30 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+ <head>
+  <title>CSS Test: Replaced inline elements wrapping around floats (pixel widths)</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-10-20 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/replaced/003.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#inline-replaced-width" />
+  <link rel="match" href="inline-replaced-width-012-ref.xht" />
+
+  <meta name="flags" content="image" />
+
+  <style type="text/css">
+   div { width: 600px; height: 200px; background: red; }
+   div p { height: 100px; background: green; }
+   img { vertical-align: bottom; }
+   img.float { float: left; }
+   img.flow { width: 600px; height: 100px; }
+  </style>
+ </head>
+ <body>
+  <p>Test passes if there is <strong>no red</strong>.</p>
+  <div>
+   <p>
+    <img src="support/swatch-green.png" height="100" alt="Image download support must be enabled" class="float"/>
+    <img src="support/swatch-green.png" alt="Image support required for this test" class="flow"/>
+   </p>
+  </div>
+ </body>
+</html>

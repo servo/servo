@@ -1,0 +1,93 @@
+<!doctype html>
+<title>currentSrc should not be reset when changing source</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<audio src="/media/sine440.mp3"></audio>
+<script>
+let v;
+let t = async_test("Test currentSrc behaviour in various playback scenarios");
+v = document.querySelector('audio');
+function queueTaskAndStep(f) {
+  step_timeout(function() {
+    t.step(f);
+  }, 0);
+}
+
+function next() {
+  let testcase = tests.shift();
+  if (!testcase) {
+    t.done();
+    return;
+  }
+  step_timeout(testcase, 0);
+}
+
+let tests = [
+  function() {
+    v.src = "/media/sound_0.mp3";
+    queueTaskAndStep(function() {
+      assert_true(v.currentSrc.indexOf("sound_0.mp3") != -1, "currentSrc must be equal to the source after load if present");
+      next();
+    });
+  },
+  function() {
+    v.src = URL.createObjectURL(new MediaSource());
+    queueTaskAndStep(function() {
+      assert_not_equals(v.currentSrc, "", "currentSrc must not be equal to the empty string after load if playing a MediaSource from the src attribute");
+      next();
+    });
+  },
+  function() {
+    fetch('/media/sound_0.mp3')
+      .then(function(response) {
+        return response.arrayBuffer();
+      }).then((b) => {
+        v.src = URL.createObjectURL(new Blob([new Uint8Array(b)], ["audio/mpeg"]));
+        queueTaskAndStep(function() {
+          assert_not_equals(v.currentSrc, "", "currentSrc must be not equal to the empty string after load if playing a Blob from the src attribute");
+          next();
+        });
+    });
+  },
+  function() {
+    v.src = "/media/sound_0.mp3";
+    // Source should be ignored when there is an `src`
+    let sourceNode = document.createElement("source");
+    sourceNode.setAttribute("src", "/media/sine440.mp3");
+    sourceNode.setAttribute("type", "audio/mpeg");
+    v.appendChild(sourceNode);
+    queueTaskAndStep(function() {
+      assert_true(v.currentSrc.indexOf("sine440.mp3") == -1, "The src attribute takes precedence over any source child element when both are preset");
+      next();
+    })
+  },
+  function() {
+    // But taken into account when there is no `src` attribute;
+    v.src = "";
+    v.removeAttribute("src");
+    queueTaskAndStep(function() {
+      assert_true(v.currentSrc.indexOf("sine440.mp3") != -1, "The child source element is the current source when no src attribute is present");
+      next();
+    });
+  },
+  function() {
+    v.firstChild.remove();
+    v.src = "https://test:test/";
+    queueTaskAndStep(function() {
+      assert_true(v.currentSrc.indexOf("sine440.mp3") != -1, "Not reset when a new load errors");
+      next();
+    });
+  },
+  function() {
+    v.srcObject = new MediaStream();
+    queueTaskAndStep(function() {
+      assert_equals(v.currentSrc, "", "When playing a MediaStream, currentSrc should also be reset to an empty string");
+      next();
+    });
+  }
+];
+
+next();
+
+</script>

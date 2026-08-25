@@ -1,0 +1,6 @@
+rules:
+- addWindow-urlType-data.window.js: [data-urls]
+- addIframe-srcdoc-startOn.window.js: [iframe-srcdoc]
+- addIframe-srcdoc.window.js: [iframe-srcdoc]
+- addIframe-urlType.window.js: [iframe]
+- addIframe.window.js: [iframe]

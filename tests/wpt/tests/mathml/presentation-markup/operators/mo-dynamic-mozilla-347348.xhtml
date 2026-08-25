@@ -1,0 +1,26 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=347348"/>
+<link rel="match" href="mo-dynamic-mozilla-347348-ref.xhtml"/>
+<script>
+function foo()
+{
+  var mo = document.getElementById("mo");
+  mo.removeChild(mo.firstChild);
+}
+</script>
+</head>
+
+<body onload="foo();">
+
+<div><math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+<mrow>
+  <mi>x</mi>
+  <mo id="mo">=</mo>
+  <mi>y</mi>
+  </mrow>
+</math></div>
+
+</body>
+</html>

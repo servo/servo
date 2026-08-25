@@ -1,0 +1,19 @@
+<!DOCTYPE HTML>
+<link rel="mismatch" href="min-size-empty-001-notref.html">
+<style>
+
+select, select::picker(select) {
+  appearance: base-select;
+}
+select::picker-icon {
+  display: none;
+}
+
+select {
+  width: 23px;
+  height: calc(max(1lh, 24px) - 1px);
+}
+
+</style>
+
+<select></select>

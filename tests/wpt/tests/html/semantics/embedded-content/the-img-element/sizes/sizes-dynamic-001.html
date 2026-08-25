@@ -1,0 +1,20 @@
+<!doctype html>
+<html class="reftest-wait">
+<title>Image intrinsic size specified via sizes attribute reacts properly to media changes</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="match" href="sizes-dynamic-001-ref.html">
+<link rel="help" href="https://html.spec.whatwg.org/#sizes-attributes">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1149357">
+<script>
+function frameLoaded(frame) {
+  frame.width = "500";
+  let img = frame.contentDocument.querySelector('img');
+
+  // Trigger the viewport resize, which will trigger the image load task.
+  img.offsetWidth;
+
+  // Wait for the image load task to run.
+  setTimeout(() => document.documentElement.removeAttribute("class"), 0);
+}
+</script>
+<iframe onload="frameLoaded(this)" width="200" height="500" srcdoc='<!doctype html><img srcset="/images/green-256x256.png 100w" style="max-width: 100%" sizes="(min-width: 400px) 10px, 20px">'></iframe>

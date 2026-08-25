@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Reftest Reference</title>
+    <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com"/>
+    <style>
+      div { height: 20px; border: 0; }
+      div.flexbox {
+        width: 200px;
+        margin-bottom: 2px;
+      }
+
+      <!-- customizations for flexbox border/padding -->
+      .borderA {
+        border-style: dashed;
+        border-color: purple;
+        border-top-width: 6px;
+        border-right-width: 4px;
+        border-bottom-width: 2px;
+        border-left-width: 8px;
+      }
+
+      .borderB {
+        border-style: dashed;
+        border-color: purple;
+        border-top-width: 4px;
+        border-right-width: 5px;
+        border-bottom-width: 6px;
+        border-left-width: 7px;
+      }
+
+      .paddingA {
+        padding: 4px 3px 2px 1px;
+      }
+
+      .paddingB {
+        padding: 8px 11px 14px 17px;
+      }
+
+      div.child1 {
+        display: inline-block;
+        width: 74px;
+        background: lightgreen;
+        border-style: dotted;
+        border-left-width: 2px;
+        border-right-width: 4px;
+      }
+      div.child2 {
+        display: inline-block;
+        width: 110px;
+        background: yellow;
+        border-style: dashed;
+        border-left-width: 7px;
+        border-right-width: 3px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="flexbox borderA"
+         ><div class="child1"/><div class="child2"/></div>
+    <div class="flexbox borderA paddingA"
+         ><div class="child1"/><div class="child2"/></div>
+    <div class="flexbox borderA paddingB"
+         ><div class="child1"/><div class="child2"/></div>
+    <div class="flexbox borderB"
+         ><div class="child1"/><div class="child2"/></div>
+    <div class="flexbox borderB paddingA"
+         ><div class="child1"/><div class="child2"/></div>
+    <div class="flexbox borderB paddingB"
+         ><div class="child1"/><div class="child2"/></div>
+    <div class="flexbox paddingA"
+         ><div class="child1"/><div class="child2"/></div>
+    <div class="flexbox paddingB"
+         ><div class="child1"/><div class="child2"/></div>
+  </body>
+</html>
+

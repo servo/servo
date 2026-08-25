@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>Top layer elements should not be painted into canvas</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<link rel="help" href="https://www.w3.org/TR/css-position-4/#top-layer">
+<link rel="match" href="top-layer-not-painted-in-canvas-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+
+<style>
+  dialog {
+    width: 100px;
+    height: 50px;
+    background: green;
+    border: none;
+    outline: none;
+  }
+  #target {
+    width: 50px;
+    height: 100px;
+    background: green;
+  }
+</style>
+<canvas id="canvas" width="200" height="200" layoutsubtree>
+  <div id="target">
+    <dialog id="dialog"></dialog>
+  </div>
+</canvas>
+
+<script>
+onload = async () => {
+  await waitForCanvasPaint(canvas);
+  dialog.showModal();
+  await waitForCanvasPaint(canvas);
+  canvas.getContext('2d').drawElementImage(target, 100, 0);
+  takeScreenshot();
+};
+</script>
+</html>

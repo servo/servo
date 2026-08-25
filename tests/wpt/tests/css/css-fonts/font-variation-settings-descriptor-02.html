@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>CSS Test: font-variation-settings descriptor</title>
+<link rel="author" title="Sejal Anand" href="mailto:sejalanand@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#font-rend-desc">
+<link rel="match" href="font-variation-settings-descriptor-02-ref.html">
+<meta name="assert" content="The 'wght' feature should be resolved, and the CSS property should take precedence over font-variation-settings defined in the @font-face descriptor.">
+<style>
+  @font-face {
+    font-family: "wght";
+    src: url(variations/resources/Inter.var.subset.ttf);
+    font-variation-settings: 'wght' 100;
+  }
+  .wghtHalf {
+    font-family: wght;
+    font-variation-settings: 'wght' 50;
+  }
+</style>
+<body>
+ <p>Test passes if the line below has lighter text.</p>
+ <div class="wghtHalf">
+  <span>filler text</span>
+ </div>
+</body>
+</html>

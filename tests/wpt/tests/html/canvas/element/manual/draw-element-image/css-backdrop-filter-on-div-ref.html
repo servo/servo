@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<head>
+  <title>drawElementImage paints CSS backdrop filter within bounds - ref</title>
+  <link rel="author" href="mailto:schenney@chromium.org">
+  <style>
+    div {
+      width: 100px;
+      height: 100px;
+      background: green;
+    }
+    div > div {
+      width: 50px;
+      height: 50px;
+      background: transparent;
+      backdrop-filter: grayscale();
+      border: 1px solid black;
+    }
+  </style>
+</head>
+<body>
+  <div id="child">
+    <div id="filtered"><p>Hello</p></div>
+  </div>
+</body>

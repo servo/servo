@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<title>Hit Test border-radius clipping with perspective</title>
+<link rel="author" title="Peng Zhou" href="mailto:pengzhou@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds/#border-radius">
+<link rel="help" href="https://drafts.csswg.org/css-transforms-2/#perspective-property">
+<link rel="help" href="https://issues.chromium.org/issues/40811639">
+<link rel="help" href="https://issues.chromium.org/issues/456164629">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  body {
+    margin: 0px;
+    padding: 0px;
+  }
+  #wrapper {
+    width: 100px;
+    height: 100px;
+    border: 1px solid #ccc;
+    border-radius: 50px;
+    overflow: hidden;
+    perspective: 200px;
+    transform-style: preserve-3d;
+  }
+  #near, #middle {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+  }
+  #near {
+    transform: translateZ(70px);
+    left: 15px;
+    top: 15px;
+    background: blue;
+  }
+  #middle {
+    transform: translateZ(-70px);
+    left: 3px;
+    top: 3px;
+    background: orange;
+  }
+</style>
+<div id="wrapper">
+  <div id="near"></div>
+  <div id="middle"></div>
+</div>
+<script>
+  const sceneRect = document.getElementById('wrapper').getBoundingClientRect();
+  test(() => {
+    const x = sceneRect.left + 20;
+    const y = sceneRect.top + 20;
+    const hit = document.elementFromPoint(x, y);
+    assert_not_equals(hit, near);
+    assert_equals(hit, middle);
+  }, 'Near-Z element projected outside border-radius is clipped');
+
+  test(() => {
+    const x = sceneRect.left + 8;
+    const y = sceneRect.top + 8;
+    const hit = document.elementFromPoint(x, y);
+    assert_not_equals(hit, near);
+    assert_equals(hit, document.body);
+  }, 'Corner point outside border-radius hits body after perspective');
+</script>

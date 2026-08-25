@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<script src="../resources/runner.js"></script>
+<style>
+.a .b { background-color: green }
+</style>
+<div id="root"></div>
+<script>
+function appendDivChildren(root, childCount, levels) {
+    if (levels <= 0)
+        return;
+    for (var i = 0; i < childCount; i++) {
+        var div = document.createElement("div");
+        appendDivChildren(div, childCount, levels - 1)
+        root.appendChild(div);
+    }
+}
+
+var root = document.getElementById("root");
+appendDivChildren(root, 5, 5);
+root.firstChild.className = "b";
+document.body.offsetTop; // force style recalc.
+
+PerfTestRunner.measureRunsPerSecond({
+    description: "Measure the style recalc performance when changing a class affecting the style of a single descendant.",
+    run: function() {
+        root.className = "a";
+        root.offsetTop; // force recalc.
+        root.className = "";
+        root.offsetTop; // force recalc.
+    }});
+</script>

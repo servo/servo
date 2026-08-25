@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Values and Units Test: using lh in line-height</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#font-relative-lengths">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="The lh unit resolves against the parent when used in the line-height property.">
+<style>
+div {
+  font-size: 50px;
+  line-height: 1;
+  width: 100px;
+  height: 100px;
+  background: red;
+}
+aside {
+  background: green;
+  font-size: 42px; /* number doesn't matter, as long as it's neither 100 nor 50 */
+  line-height: 2lh;
+}
+
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div><aside>&nbsp;</aside></div>

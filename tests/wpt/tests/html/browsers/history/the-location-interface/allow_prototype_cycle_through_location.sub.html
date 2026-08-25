@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+
+  <title>Location objects' custom [[GetPrototypeOf]] trap permit [[Prototype]] chain cycles to be created through them</title>
+
+  <link rel="author" title="Jeff Walden" href="http://whereswalden.com/" />
+  <link rel="help" href="https://tc39.github.io/ecma262/#sec-ordinarysetprototypeof" />
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/browsers.html#location-getprototypeof" />
+
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id="log"></div>
+
+<hr />
+
+<iframe id="same-origin-different-window"></iframe>
+<iframe id="cross-origin-joined-via-document-domain"></iframe>
+
+<script>
+"use strict";
+
+// Handle same-origin, same-window testing first, before any async-requiring
+// testing.
+test(function() {
+  var LocationPrototype = Location.prototype;
+  var ObjectPrototype = Object.prototype;
+
+  var loc = window.location;
+
+  var locProto = Object.getPrototypeOf(loc);
+  assert_equals(locProto, LocationPrototype,
+                "loc's initial [[Prototype]]");
+
+  var originalLocProtoProto = Object.getPrototypeOf(locProto);
+  assert_equals(originalLocProtoProto, ObjectPrototype,
+                "Location.prototype's initial [[Prototype]]");
+
+  Object.setPrototypeOf(locProto, loc);
+
+  assert_equals(Object.getPrototypeOf(locProto), loc,
+                "LocationPrototype's new [[Prototype]]");
+  assert_equals(Object.getPrototypeOf(loc), locProto,
+                "loc's new [[Prototype]]");
+
+  // Reset so as not to muck with testharness.js expectations.
+  Object.setPrototypeOf(locProto, originalLocProtoProto);
+}, "same-origin, same-window location cycle");
+
+var pathdir =
+  location.pathname.substring(0, location.pathname.lastIndexOf('/') + 1);
+
+var triggerCrossOriginTest = (function() {
+  var crossOrigin =
+    document.getElementById("cross-origin-joined-via-document-domain");
+
+  var t = async_test("cross-origin location has null prototype");
+
+  return new Promise(function(resolve, reject) {
+    crossOrigin.onload = t.step_func_done(function(e) {
+      try {
+        var win = crossOrigin.contentWindow;
+
+        var loc = win.location;
+
+        // Between un-opted-in windows, location objects appear to have null
+        // [[Prototype]].
+        assert_equals(Object.getPrototypeOf(loc), null,
+                      "cross-origin unjoined location's [[Prototype]");
+
+        resolve();
+      } catch (e) {
+        reject(e);
+        throw e;
+      }
+    });
+
+    crossOrigin.src =
+      "//{{domains[www]}}:" + location.port + pathdir + "cross_origin_joined_frame.sub.html";
+  })
+  .catch(t.unreached_func("crossOrigin onload/src setting"));
+})();
+
+var triggerSameOriginTest = (function() {
+  var sameOriginDifferentWindow =
+    document.getElementById("same-origin-different-window");
+
+  var t = async_test("same-origin, different-window location cycle");
+
+  return new Promise(function(resolve, reject) {
+    sameOriginDifferentWindow.onload = t.step_func_done(function() {
+      try {
+        var win = sameOriginDifferentWindow.contentWindow;
+
+        var loc = win.location;
+        var LocationPrototype = win.Location.prototype;
+        var ObjectPrototype = win.Object.prototype;
+
+        var locProto = Object.getPrototypeOf(loc);
+        assert_equals(locProto, LocationPrototype,
+                      "loc's initial [[Prototype]]");
+
+        var originalLocProtoProto = Object.getPrototypeOf(locProto);
+        assert_equals(originalLocProtoProto, ObjectPrototype,
+                      "Location.prototype's initial [[Prototype]]");
+
+        Object.setPrototypeOf(locProto, loc);
+
+        assert_equals(Object.getPrototypeOf(locProto), loc,
+                      "LocationPrototype's new [[Prototype]]");
+        assert_equals(Object.getPrototypeOf(loc), locProto,
+                      "loc's new [[Prototype]]");
+
+        // Reset so as not to muck with testharness.js expectations.
+        Object.setPrototypeOf(locProto, originalLocProtoProto);
+
+        resolve();
+      } catch (e) {
+        reject(e);
+        throw e;
+      }
+    });
+
+    sameOriginDifferentWindow.src = "same_origin_frame.html";
+  })
+  .catch(t.unreached_func("sameOriginDifferentWindow onload/src setting"));
+})();
+
+function crossOriginJoinTest() {
+  var win =
+    document.getElementById("cross-origin-joined-via-document-domain")
+            .contentWindow;
+
+  assert_equals(document.domain, "{{host}}");
+
+  var loc = win.location;
+
+  var threw = false;
+  try {
+    // Still cross-origin until the document.domain set below.
+    win.Location;
+  } catch (e) {
+    threw = true;
+  }
+
+  assert_equals(threw, true,
+                "accessing win.Location before joining win's origin");
+
+  // Join with other frames that have set |document.domain| to this same
+  // value -- namely, this cross-origin frame.  Now access between the two
+  // windows should be permitted.
+  assert_equals(document.domain, "{{host}}",
+                "initial document.domain sanity check");
+  document.domain = "{{host}}";
+
+  var LocationPrototype = win.Location.prototype;
+  var ObjectPrototype = win.Object.prototype;
+
+  var locProto = Object.getPrototypeOf(loc);
+  assert_equals(locProto, LocationPrototype,
+                "loc's initial [[Prototype]]");
+
+  var originalLocProtoProto = Object.getPrototypeOf(locProto);
+  assert_equals(originalLocProtoProto, ObjectPrototype,
+                "Location.prototype's initial [[Prototype]]");
+
+  Object.setPrototypeOf(locProto, loc);
+
+  assert_equals(Object.getPrototypeOf(locProto), loc,
+                "LocationPrototype's new [[Prototype]]");
+  assert_equals(Object.getPrototypeOf(loc), locProto,
+                "loc's new [[Prototype]]");
+
+  // Reset so as not to muck with testharness.js expectations.
+  Object.setPrototypeOf(locProto, originalLocProtoProto);
+}
+
+function run() {
+  var t =
+    async_test("cross-origin, but joined via document.domain, location cycle");
+
+  // The cross-origin/joined case must be tested after both unjoined same-origin
+  // and unjoined cross-origin tests: by mucking with document.domain, the
+  // cross-origin/joined case makes it impossible to perform those tests.
+  t.step(function() {
+    Promise.all([triggerCrossOriginTest, triggerSameOriginTest])
+           .then(t.step_func_done(crossOriginJoinTest),
+                 t.unreached_func("cross-origin joined error case"));
+  });
+}
+run();
+</script>
+</body>
+</html>

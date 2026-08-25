@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="utils.js"></script>
+<script src="deferred-promise-utils.js"></script>
+<script>
+
+const params = new URLSearchParams(location.search);
+
+// The main test page (restriction-broadcast-channel.html) loads the initiator
+// page, then the initiator page will prerender itself with the `prerendering`
+// parameter.
+const isPrerendering = params.has('prerendering');
+
+if (!isPrerendering) {
+  loadInitiatorPage();
+} else {
+  const prerenderEventCollector = new PrerenderEventCollector();
+
+  // Create separate channels as a sender channel cannot receive a message sent
+  // by itself.
+  const sender = new BroadcastChannel('test');
+  const receiver = new BroadcastChannel('test');
+
+  const promise = new Promise(resolve => {
+    receiver.onmessage = e => {
+      prerenderEventCollector.addEvent(`received message: ${e.data}`);
+      resolve();
+    };
+  });
+  sender.postMessage('hello');
+
+  prerenderEventCollector.start(promise, 'BroadcastChannel');
+}
+</script>

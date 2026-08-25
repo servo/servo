@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Paged Media: parsing @page selectors</title>
+<link rel="author" title="Mozilla" href="https://mozilla.org"/>
+<link rel="help" href="https://drafts.csswg.org/css-page/#page-selectors"/>
+<meta name="assert" content="Test that @page selectors are parsed correctly.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+    @page a, B {
+        size: 1in;
+    }
+    @page A,b,C {
+        size: 2in;
+    }
+    @page auto {
+        size: 3in;
+    }
+    @page something, auto {
+        size: 4in;
+    }
+    @page auto, other_thing {
+        size: 5in;
+    }
+    @page _a, Z {
+        size: 6in;
+    }
+    @page -b, y {
+        size: 7in;
+    }
+    @page _abcd {
+        size: 8in;
+    }
+    @page n,-XYZ {
+        size: 9in;
+    }
+</style>
+
+<script>
+    let expectedForSelector = {
+        "a, B" : "size: 1in;",
+        "A, b, C" : "size: 2in;",
+        "auto" : "size: 3in;",
+        "something, auto" : "size: 4in;",
+        "auto, other_thing" : "size: 5in;",
+        "_a, Z" : "size: 6in;",
+        "-b, y" : "size: 7in;",
+        "_abcd" : "size: 8in;",
+        "n, -XYZ" : "size: 9in;"
+    };
+    let styleSheets = document.styleSheets;
+    for (let sheet of styleSheets) {
+        let rules = sheet.cssRules;
+        for (let rule of rules) {
+            if (rule.type == CSSRule.PAGE_RULE) {
+                let expected = expectedForSelector[rule.selectorText];
+                test(function(){
+                    assert_equals(rule.style.cssText, expected, "unexpected @page contents");
+                }, "contents for selector ['" + rule.selectorText + "']");
+                delete expectedForSelector[rule.selectorText];
+            }
+        }
+    }
+    // Validate that we can assign an empty selector
+    test(function() {
+        let rule = styleSheets[0].cssRules[0];
+        assert_equals(rule.type, CSSRule.PAGE_RULE, "expected first rule to be @page");
+        rule.selectorText = "";
+        assert_equals(rule.selectorText, "", "unexpected selector when assigning blank string");
+    }, "expected empty selector when assigning blank string");
+    test(function() {
+        assert_equals(Object.keys(expectedForSelector).length, 0, "missing @page selectors");
+    });
+</script>

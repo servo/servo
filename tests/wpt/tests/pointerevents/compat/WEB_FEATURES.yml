@@ -1,0 +1,3 @@
+rules:
+- "*touch-action*": [touch-action]
+- "*": [pointer-events-api]

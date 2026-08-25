@@ -1,0 +1,11 @@
+[run]
+branch = True
+parallel = True
+omit =
+  */site-packages/*
+  */lib_pypy/*
+
+[paths]
+wptserve =
+  wptserve
+  .tox/**/site-packages/wptserve

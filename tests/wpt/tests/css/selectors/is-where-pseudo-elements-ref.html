@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>:is() combined with pseudo elements</title>
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#matches">
+<style>
+  #b::before, #d::before {
+    content: "before ";
+    color: green;
+  }
+  #e::after, #h::after {
+    content: " after";
+    color: green;
+  }
+  #a::first-letter, #b::first-letter {
+    color: blue;
+  }
+  #g::first-line, #l::first-line {
+    color: magenta;
+  }
+</style>
+<main id=main>
+  <div id=a>a</div>
+  <div id=b>b</div>
+  <div id=c>c</div>
+  <div id=d>d</div>
+  <div id=e>e</div>
+  <div id=f>f</div>
+  <div id=g>g</div>
+  <div id=h>h</div>
+  <div id=j>j</div>
+  <div id=k>k</div>
+  <div id=l>l<br>l2</div>
+</main>

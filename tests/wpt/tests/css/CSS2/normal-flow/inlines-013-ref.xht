@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  p {font: 1em/1.25 serif;}
+
+  div {font: 64px/1 monospace;}
+
+  div#wrapper
+  {
+  position: relative;
+  top: 28px;
+  }
+
+  div#test
+  {
+  position: relative;
+  bottom: 64px;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>You should see the word PASS below, with the<br />
+  word fail crossed out with Xs on the line below.</p>
+
+  <div id="wrapper">
+    <div id="control1">PASS</div>
+
+    <div id="control2">FAIL</div>
+
+    <div id="test">XXXX</div>
+  </div>
+
+ </body>
+</html>

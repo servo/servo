@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#baseline-source">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+
+<script>
+test_invalid_value('baseline-source', 'foobar');
+test_invalid_value('baseline-source', 'default');
+test_invalid_value('baseline-source', 'auto first');
+test_invalid_value('baseline-source', 'first auto');
+test_invalid_value('baseline-source', '3px');
+test_invalid_value('baseline-source', '10%');
+</script>

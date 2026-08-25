@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Forced colors mode - visited caret-color with system color.</title>
+<link rel="help" href="https://www.w3.org/TR/css-color-adjust-1/#forced-colors-properties">
+<link rel=match href="forced-colors-mode-44-ref.html">
+<style>
+  a {
+    caret-color: orange;
+  }
+  a:visited {
+    caret-color: GrayText;
+  }
+  [contenteditable] {
+    outline: none;
+  }
+</style>
+<a id="link" contenteditable href="">link</a>
+<script>
+  window.onload = function() {
+    document.getElementById("link").focus();
+  }
+</script>
+

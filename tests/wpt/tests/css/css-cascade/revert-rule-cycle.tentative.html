@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<title>The revert-rule keyword: cycle resolution</title>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-cascade-5/#revert-rule-keyword">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/13916">
+<link rel="help" href="https://issues.chromium.org/issues/542646754">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  .container {
+    color: green;
+    margin-left: 100px;
+    --x: green;
+  }
+
+  @layer base {
+    #target1, #target2 {
+      color: red;
+      margin-left: 50px;
+      --x: red;
+    }
+  }
+
+  /* Test Case 1: 2-layer cycle */
+  @layer a {
+    #target1 {
+      color: revert-rule !important;
+      margin-left: revert-rule !important;
+      --x: revert-rule !important;
+    }
+  }
+  @layer b {
+    #target1 {
+      color: revert-layer;
+      margin-left: revert-layer;
+      --x: revert-layer;
+    }
+  }
+
+  /* Test Case 2: Multi-layer chain cycle */
+  @layer a {
+    #target2 {
+      color: revert-rule !important;
+      margin-left: revert-rule !important;
+      --x: revert-rule !important;
+    }
+  }
+  @layer b {
+    #target2 {
+      color: revert-layer;
+      margin-left: revert-layer;
+      --x: revert-layer;
+    }
+  }
+  @layer c {
+    #target2 {
+      color: revert-layer;
+      margin-left: revert-layer;
+      --x: revert-layer;
+    }
+  }
+</style>
+
+<div class="container">
+  <div id="target1"></div>
+  <div id="target2"></div>
+</div>
+
+<script>
+test(() => {
+  assert_equals(getComputedStyle(target1).color, 'rgb(0, 128, 0)',
+    'revert-rule cycle on inherited property should resolve to unset (inheriting from parent)');
+  assert_equals(getComputedStyle(target1).marginLeft, '0px',
+    'revert-rule cycle on non-inherited property should resolve to unset (initial value)');
+  assert_equals(getComputedStyle(target1).getPropertyValue('--x').trim(), 'green',
+    'revert-rule cycle on custom property should resolve to unset (inheriting from parent)');
+}, 'Cycle between revert-rule !important and revert-layer resolves to unset instead of lower layers');
+
+test(() => {
+  assert_equals(getComputedStyle(target2).color, 'rgb(0, 128, 0)',
+    'revert-rule multi-layer cycle on inherited property should resolve to unset');
+  assert_equals(getComputedStyle(target2).marginLeft, '0px',
+    'revert-rule multi-layer cycle on non-inherited property should resolve to unset');
+  assert_equals(getComputedStyle(target2).getPropertyValue('--x').trim(), 'green',
+    'revert-rule multi-layer cycle on custom property should resolve to unset');
+}, 'Multi-layer chain cycle with revert-rule !important resolves to unset instead of lower layers');
+</script>

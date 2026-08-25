@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/webmcp/resources/helpers.js"></script>
+
+<form toolname="submit_test" tooldescription="Submit test form" target="hidden_iframe" action="about:blank" toolautosubmit>
+</form>
+<iframe name="hidden_iframe" style="display:none"></iframe>
+
+<script>
+promise_test(async t => {
+  const tool = await waitForTool('submit_test');
+  assert_true(!!tool, 'Tool should be registered');
+
+  let form = document.querySelector('form');
+  let submitFired = false;
+
+  form.addEventListener('submit', (e) => {
+    submitFired = true;
+    e.preventDefault();
+    form.submit();
+  });
+
+  // Call executeTool. If it throws, the test fails automatically.
+  await document.modelContext.executeTool(tool, '{}');
+
+  assert_true(submitFired, 'submit event should have fired');
+}, 'executeTool resolves successfully when submit handler calls form.submit()');
+</script>

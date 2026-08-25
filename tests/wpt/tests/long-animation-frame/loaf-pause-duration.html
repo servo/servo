@@ -1,0 +1,30 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Long Animation Frame Timing: pause</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<h1>Long Animation Frame: pause</h1>
+<div id="log"></div>
+<script>
+
+promise_test(async t => {
+  const pause_duration = very_long_frame_duration / 2;
+  [entry, script] = await expect_long_frame_with_script((t, busy_wait) => t.step_timeout(() => {
+    busy_wait(pause_duration);
+    const sync_xhr = new XMLHttpRequest();
+    sync_xhr.open("GET", `/xhr/resources/delay.py?ms=${pause_duration}`, /*async=*/false);
+    sync_xhr.send();
+  }, 0), script => (
+        script.invoker === "TimerHandler:setTimeout" &&
+        script.duration >= very_long_frame_duration), t);
+  assert_true("pauseDuration" in script);
+  assert_greater_than(script.pauseDuration, pause_duration);
+}, "Synchronous XHR should be counted as pauseDuration");
+
+// TODO: Test for alert/confirm, requires WPT infra changes.
+</script>
+</body>

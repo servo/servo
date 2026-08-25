@@ -1,0 +1,36 @@
+stylesheets, rules
+<link rel="help" href="https://w3c.github.io/webvtt/#collect-a-webvtt-block">
+
+// There's no way to test the actual style from js
+assert_equals(document.styleSheets.length, 0);
+
+===
+WEBVTT
+
+STYLE
+::cue(#foo) {
+    width: 20px;
+} /*
+NOTE hello
+00:00:00.000 -- > 00:00:01.000
+*/
+.foo {
+    width: 19px;
+}
+
+.bar {
+    width: 18px;
+}
+
+foo
+00:00:00.000 --> 00:00:01.000
+text
+
+STYLE
+::cue(::bar) {
+    width: 18px;
+}
+
+bar
+00:00:00.000 --> 00:00:01.000
+text

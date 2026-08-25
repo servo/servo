@@ -1,0 +1,22 @@
+<html>
+<body>
+<script>
+
+// This test checks if browser attaches the device-memory client hint in the
+// HTTP request headers.
+
+// echo-client-hints-received.py sets the response headers depending on the set
+// of client hints it receives in the request headers.
+
+fetch("/client-hints/accept-ch-stickiness/resources/echo-client-hints-received.py").then(r => {
+  if(r.status == 200 && r.headers.has("device-memory-received") && r.headers.has("device-memory-deprecated-received")) {
+    window.top.opener.postMessage('PASS', '*');
+  }
+  else {
+    window.top.opener.postMessage('FAIL', '*');
+  }
+});
+
+</script>
+</body>
+</html>

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#word-break-property">
+<link rel="match" href="reference/word-break-auto-phrase-wbr-nobr-001-ref.html">
+<!--
+  This test assumes that all engines segment a Japanese text:
+    ドライブ
+  as a single phrase.
+
+  While assuming all engines segment this way looks fairly reasonable,
+  segmenting differently doesn't necessarily mean a failure because the
+  algorithm is UA dependent. Please add references if different.
+-->
+<style>
+@font-face {
+  font-family: mplus;
+  src: url(/fonts/mplus-1p-regular.woff);
+}
+.container > div {
+  font-family: mplus;
+  word-break: auto-phrase;
+  width: 3em;
+  font-size: 10px;
+  border: 1px solid;
+}
+</style>
+<div class="container" lang="ja">
+  <!-- A phrase that doesn't fit should fall back to `normal`. -->
+  <div>ドライブ</div>
+  <!-- `<wbr>` in a phrase should allow breaking there. -->
+  <div>ドラ<wbr>イブ</div>
+  <!-- `&ZeroWidthSpace;` in a phrase should allow breaking there too. -->
+  <div>ドラ&ZeroWidthSpace;イブ</div>
+</div>

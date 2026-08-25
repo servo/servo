@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<title>The animation-timeline: scroll-timeline-name</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1">
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/rewrite#scroll-timelines-named">
+<link rel="help" src="https://github.com/w3c/csswg-drafts/issues/6674">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="support/testcommon.js"></script>
+<style>
+  @keyframes grow-progress {
+    to { width: 300px; }
+  }
+
+  .scrollcontainer {
+    overflow-x: scroll;
+    display: flex;
+    flex-direction: row;
+    scroll-timeline:  --timeline inline;
+  }
+
+  .progress {
+    position: absolute;
+    z-index: 10;
+    left: 0;
+    top: 0;
+    width: 100px;
+    height: 1em;
+    background: red;
+    animation: auto grow-progress linear forwards;
+    animation-timeline: scroll(inline nearest);
+  }
+
+  .entry {
+    min-height:  90vh;
+    min-width: 100vw;
+  }
+
+  .entry:nth-child(even) {
+    background-color:  #eee;
+  }
+
+  .entry:nth-child(odd) {
+   background-color:  #ddd;
+  }
+</style>
+<body>
+  <div class = "scrollcontainer" id = "scroller">
+    <div class = "progress" id = "target"></div>
+    <div class = "entry"></div>
+    <div class = "entry"></div>
+    <div class = "entry"></div>
+  </div>
+</body>
+<script>
+"use strict";
+
+setup(assert_implements_animation_timeline);
+
+promise_test(async t => {
+  const maxScroll = scroller.scrollWidth - scroller.clientWidth;
+  scroller.scrollLeft = maxScroll;
+
+  // Advance to next frame so that scroll-timeline has a valid time.
+  await waitForNextFrame();
+
+  // Flex container is not position relative and therefore not the container for
+  // the progress element.
+  assert_equals(getComputedStyle(target).width, "100px");
+
+  // Once the scroller is position relative, it becomes the container block for
+  // the progress element.
+  scroller.style.position = 'relative';
+  await waitForNextFrame();
+
+  assert_equals(getComputedStyle(target).width, "300px");
+}, 'Resolving scroll(nearest) for an absolutely positioned element');
+
+</script>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<script src="../../resources/runner.js"></script>
+<style>
+    #target div { display:table; } /* Just to slow it down a little. */
+</style>
+<pre id="log"></pre>
+<!-- This multicol container has 3 columns. It contains a row of columns, a spanner, and another
+     row of columns. Height is fixed and column-fill is auto, so we only need to balance the row
+     that precedes the spanner. That first row has 12 equal pieces of content, so it should be
+     possible to balance it perfectly and easily (i.e. it should only need 2 layout passes). It
+     also contains some deeply nested tables, to slow down performance. -->
+<div id="target" style="display:none; -webkit-columns:3; column-fill:auto; width:40em; height:41.5em; line-height:2em;">
+    <div><div><div><div><div><div><div><div>content content</div></div></div></div></div></div></div></div>
+    <div><div><div><div><div><div><div><div>content content</div></div></div></div></div></div></div></div>
+    <div><div><div><div><div><div><div><div>content content</div></div></div></div></div></div></div></div>
+    <div><div><div><div><div><div><div><div>content content</div></div></div></div></div></div></div></div>
+    <div><div><div><div><div><div><div><div>content content</div></div></div></div></div></div></div></div>
+    <div><div><div><div><div><div><div><div>content content</div></div></div></div></div></div></div></div>
+    <div><div><div><div><div><div><div><div>content content</div></div></div></div></div></div></div></div>
+    <div><div><div><div><div><div><div><div>content content</div></div></div></div></div></div></div></div>
+    <div><div><div><div><div><div><div><div>content content</div></div></div></div></div></div></div></div>
+    <div><div><div><div><div><div><div><div>content content</div></div></div></div></div></div></div></div>
+    <div><div><div><div><div><div><div><div>content content</div></div></div></div></div></div></div></div>
+    <div><div><div><div><div><div><div><div>content content</div></div></div></div></div></div></div></div>
+    <div style="-webkit-column-span:all;">spanner.</div>
+    <div><div><div><div><div><div><div><div>content content</div></div></div></div></div></div></div></div>
+    <div><div><div><div><div><div><div><div>content content</div></div></div></div></div></div></div></div>
+    <div><div><div><div><div><div><div><div>content content</div></div></div></div></div></div></div></div>
+    <div><div><div><div><div><div><div><div>content content</div></div></div></div></div></div></div></div>
+    <div><div><div><div><div><div><div><div>content content</div></div></div></div></div></div></div></div>
+    <div><div><div><div><div><div><div><div>content content</div></div></div></div></div></div></div></div>
+    <div><div><div><div><div><div><div><div>content content</div></div></div></div></div></div></div></div>
+    <div><div><div><div><div><div><div><div>content content</div></div></div></div></div></div></div></div>
+</div>
+<script>
+    var target = document.getElementById("target");
+    var style = target.style;
+
+    function test() {
+        style.display = "block";
+        PerfTestRunner.forceLayout();
+        style.display = "none";
+        PerfTestRunner.forceLayout();
+    }
+
+    PerfTestRunner.measureRunsPerSecond({
+        description: "Measures performance of multicol layout when not balancing columns.",
+        run: test
+    });
+</script>

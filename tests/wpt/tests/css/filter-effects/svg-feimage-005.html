@@ -1,0 +1,21 @@
+<!doctype html>
+<title>&lt;feImage> with overriding preserveAspectRatio=none</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#feImageElement">
+<link rel="match" href="reference/green-100x100.html">
+<style>
+#target {
+  filter: url(#f);
+  width: 100px;
+  height: 100px;
+  background-color: red;
+}
+</style>
+<div id="target"></div>
+<svg>
+  <filter id="f" primitiveUnits="objectBoundingBox" color-interpolation-filters="sRGB" x="0" y="0" width="1" height="1">
+    <feImage x="0" y="0" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'>
+        <rect width='1' height='1' fill='green'/>
+      </svg>" preserveAspectRatio="none" width=".5" height="1"/>
+    <feTile/>
+  </filter>
+</svg>

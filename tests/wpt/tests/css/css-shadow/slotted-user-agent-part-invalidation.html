@@ -1,0 +1,36 @@
+<!doctype html>
+<title>CSS Test: Style invalidation for ::slotted() combined with user-agent pseudo-elements</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/css-scoping/#slotted-pseudo">
+<div id="host">
+  <details open>
+    <summary>Summary</summary>
+    <span id="content">Details content</span>
+  </details>
+</div>
+<script>
+test(function() {
+  const root = host.attachShadow({mode: "closed"});
+  root.innerHTML = `
+    <style>
+      ::slotted(details)::details-content {
+        color: red;
+      }
+      .active ::slotted(details)::details-content {
+        color: green;
+      }
+    </style>
+    <div id="wrapper"><slot></slot></div>
+  `;
+
+  const wrapper = root.querySelector("#wrapper");
+
+  assert_equals(getComputedStyle(content).color, "rgb(255, 0, 0)",
+    "initial ::slotted(details)::details-content style applies");
+
+  wrapper.className = "active";
+  assert_equals(getComputedStyle(content).color, "rgb(0, 128, 0)",
+    "::details-content style updates when ancestor class changes");
+});
+</script>

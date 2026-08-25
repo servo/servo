@@ -1,0 +1,2 @@
+rules:
+- a-download-*: [download]

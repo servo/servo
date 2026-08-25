@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>ShadowRoot's  delegatesFocus attribute</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="host1"></div>
+<div id="host2"></div>
+<div id="host3"></div>
+<script>
+test(t => {
+  const host = document.getElementById("host1");
+  const shadowRoot = host.attachShadow({mode: "closed"});
+  assert_equals(shadowRoot.delegatesFocus, false);
+}, "default delegatesFocus value");
+
+test(t => {
+  const host = document.getElementById("host2");
+  const shadowRoot = host.attachShadow({mode: "closed", delegatesFocus: false});
+  assert_equals(shadowRoot.delegatesFocus, false);
+}, "delegatesFocus set to false in init dict");
+
+test(t => {
+  const host = document.getElementById("host3");
+  const shadowRoot = host.attachShadow({mode: "closed", delegatesFocus: true});
+  assert_equals(shadowRoot.delegatesFocus, true);
+}, "delegatesFocus set to true in init dict");
+</script>

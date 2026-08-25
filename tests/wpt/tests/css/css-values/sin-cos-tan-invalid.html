@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#comp-func">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#angles">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#calc-type-checking">
+<link rel="author" title="Apple Inc">
+<link rel="author" title="Seokho Song" href="seokho@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/parsing-testcommon.js"></script>
+<script>
+function test_invalid_angle(value) {
+  test_invalid_value('transform', `rotate(${value})`);
+}
+
+// Syntax checking
+test_invalid_angle('sin()');
+test_invalid_angle('sin( )');
+test_invalid_angle('sin(,)');
+test_invalid_angle('sin(1dag)');
+test_invalid_angle('sin(1deg, )');
+test_invalid_angle('sin(, 1deg)');
+test_invalid_angle('sin(1deg + )');
+test_invalid_angle('sin(1deg - )');
+test_invalid_angle('sin(1deg * )');
+test_invalid_angle('sin(1deg / )');
+test_invalid_angle('sin(1deg 2deg)');
+test_invalid_angle('sin(1deg, , 2deg)');
+test_invalid_angle('cos()');
+test_invalid_angle('cos( )');
+test_invalid_angle('cos(,)');
+test_invalid_angle('cos(1dag)');
+test_invalid_angle('cos(1deg, )');
+test_invalid_angle('cos(, 1deg)');
+test_invalid_angle('cos(1deg + )');
+test_invalid_angle('cos(1deg - )');
+test_invalid_angle('cos(1deg * )');
+test_invalid_angle('cos(1deg / )');
+test_invalid_angle('cos(1deg 2deg)');
+test_invalid_angle('cos(1deg, , 2deg)');
+test_invalid_angle('tan()');
+test_invalid_angle('tan( )');
+test_invalid_angle('tan(,)');
+test_invalid_angle('tan(1dag)');
+test_invalid_angle('tan(1deg, )');
+test_invalid_angle('tan(, 1deg)');
+test_invalid_angle('tan(1deg + )');
+test_invalid_angle('tan(1deg - )');
+test_invalid_angle('tan(1deg * )');
+test_invalid_angle('tan(1deg / )');
+test_invalid_angle('tan(1deg 2deg)');
+test_invalid_angle('tan(1deg, , 2deg)');
+test_invalid_angle('sin(90px)');
+test_invalid_angle('sin(30deg + 1.0471967rad, 0)');
+test_invalid_angle('cos( 0 ,)');
+test_invalid_angle('cos( () 30deg - 0.523599rad )');
+test_invalid_angle('tan(45deg )');
+test_invalid_angle('tan(30deg, + 0.261799rad)');
+</script>

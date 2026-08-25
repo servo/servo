@@ -1,0 +1,15 @@
+<!DOCTYPE HTML>
+<title>CSS Test (Transforms): Transform and perspective with w negative</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Google" href="http://www.google.com/">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1229117">
+<link rel="help" href="https://drafts.csswg.org/css-transforms-2/#processing-of-perspective-transformed-boxes">
+<meta name="assert" content="This should not crash.">
+
+<style>
+button {
+  transform:translate3d(1866px, 1794px, 1359px) perspective(848px);
+  clip-path: ellipse(822px 405px);
+}
+</style>
+<button autofocus='true'></button>

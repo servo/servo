@@ -1,0 +1,11 @@
+rules:
+- fieldset-checkvalidity.html: [constraint-validation]
+- fieldset-setcustomvalidity.html: [constraint-validation]
+- fieldset-validationmessage.html: [constraint-validation]
+- fieldset-validity.html: [constraint-validation]
+- fieldset-willvalidate.html: [constraint-validation]
+- disabled-001.html: [fieldset]
+- disabled-003.html: [fieldset]
+- fieldset-intrinsic-size.html: [fieldset]
+- HTMLFieldSetElement.html: [fieldset]
+- disabled-002.xhtml: [input-file]

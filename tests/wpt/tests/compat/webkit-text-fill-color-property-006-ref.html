@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>webkit-text-fill-color on text-overflow ellipsis reference</title>
+<link rel="author" title="Jeremy Chen" href="jeremychen@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+div {
+  font-size: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 150px;
+  color: green;
+}
+span {
+  font-family: Ahem;
+  font-size: 30px;
+}
+</style>
+<body>
+<p>Test passes if there is a <strong>green ellipsis</strong> after "TestChecks".</p>
+<div>
+  <span>TestChecksThatTextColorAndEllipsisColorShouldBeTheSame</span>
+</div>
+</body>

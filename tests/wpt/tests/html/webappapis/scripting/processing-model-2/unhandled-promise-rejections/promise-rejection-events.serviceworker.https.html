@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Promise rejection events tests: in a service worker context</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+<link rel="help" href="https://html.spec.whatwg.org/#unhandled-promise-rejections">
+
+<script>
+'use strict';
+service_worker_test('support/promise-rejection-events.js', 'Service worker setup');
+</script>

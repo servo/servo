@@ -1,0 +1,47 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: ::scroll-marker with counter-increment</title>
+<link rel="match" href="scroll-marker-010-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-pseudo">
+<style>
+  #scroller {
+    width: 600px;
+    height: 300px;
+    overflow: scroll;
+    scroll-marker-group: after;
+    counter-reset: test;
+  }
+
+  #scroller div {
+    width: 600px;
+    height: 300px;
+    margin-bottom: 20px;
+    background: green;
+  }
+
+  #scroller::scroll-marker-group {
+    border: 3px solid black;
+    padding: 5px;
+    height: 60px;
+    display: block;
+  }
+
+  #scroller div::scroll-marker {
+    counter-increment: test;
+    content: counter(test);
+    width: 30px;
+    height: 30px;
+    background-color: blue;
+    border-radius: 100%;
+    display: inline-block;
+  }
+
+  #scroller #first::scroll-marker {
+    background-color: purple;
+    margin-right: 4px;
+  }
+</style>
+<div id="scroller">
+  <div id="first"></div>
+  <div></div>
+</div>

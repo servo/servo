@@ -1,0 +1,13 @@
+// META: title=Language Model Prompt Streaming - undefined
+// META: script=/resources/testdriver.js
+// META: script=/resources/testdriver-vendor.js
+// META: script=../../../resources/util.js
+// META: timeout=long
+
+'use strict';
+
+promise_test(async (t) => {
+  await ensureLanguageModel();
+  const model = await createLanguageModel();
+  for await (const _ of model.promptStreaming(undefined)) { }
+}, 'LanguageModel.promptStreaming() allows undefined input');

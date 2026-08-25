@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>CSS Basic User Interface Test: UA style interactivity for [inert]</title>
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#inertness">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .auto { interactivity: auto; }
+</style>
+<div id="t1" inert></div>
+<div inert>
+  <div id="t2"></div>
+  <div id="t3" class="auto"></div>
+</div>
+<div id="t4" inert class="auto"></div>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(t1).interactivity, "inert");
+  }, "[inert] { interactivity: inert }");
+
+  test(() => {
+    assert_equals(getComputedStyle(t2).interactivity, "inert");
+  }, "[inert] { interactivity: inert } inherited");
+
+  test(() => {
+    assert_equals(getComputedStyle(t3).interactivity, "auto");
+  }, "Author interactivity:auto on a descendant can override inherited UA [inert] { interactivity: inert }");
+
+  test(() => {
+    assert_equals(getComputedStyle(t4).interactivity, "inert");
+  }, "Author interactivity:auto does not override UA [inert] { interactivity: inert } on the element itself");
+
+</script>

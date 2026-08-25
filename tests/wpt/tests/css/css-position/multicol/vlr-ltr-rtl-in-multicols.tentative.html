@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-width" />
+<link rel="match" href="vlr-in-multicols-ref.html">
+<meta name="assert" content="This test checks the static position of an out of flow absolute positioned element, under various conditions." />
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  body { writing-mode: vertical-lr; }
+  .container {
+    position: relative;
+    background: green;
+    font: 20px/1 Ahem;
+    inline-size: 80px;
+    block-size: 120px;
+    color: green;
+  }
+  .multicol {
+    column-count: 2;
+    column-fill: auto;
+    column-gap: 0;
+    block-size: 60px;
+    inline-size: 160px;
+  }
+  .red { color: red; }
+  .cb { position: relative; }
+  .rtl { direction: rtl; }
+  .ltr { direction: ltr; }
+  .inline { display: inline; }
+  .abs { position: absolute; }
+  .inset-start { inset-block-start: 0; inset-inline-start: 0; }
+  .inset-end { inset-block-end: 0; inset-inline-end: 0; }
+</style>
+
+There should be no red.
+<div class="multicol">
+  <div class="container ltr">
+    XX<span class="rtl"><span class="red">XX</span>
+        <div class="abs inline inset-end">XX</div>
+        XXXX XXXX XXXX XXXX <span class="red">XX</span>XX
+        <div class="abs inline inset-start">XX</div>
+     </span>
+  </div>
+</div>
+
+<div class="multicol">
+  <div class="container ltr">
+    XX<span class="rtl"><span class="red">XX</span>
+        <div class="abs block inset-end">XX</div>
+        XXXX XXXX XXXX XXXX
+        <div class="abs block inset-start">XX</div>
+        <br><span class="red">XX</span>XX
+      </span>
+  </div>
+</div>
+
+<div class="multicol">
+  <div class="container ltr">
+    XX<span class="rtl cb"><span class="red">XX</span>
+       <div class="abs inline inset-end">XX</div>
+       XXXX XXXX XXXX XXXX
+       <div class="abs inline inset-start">XX</div>
+       XX<span class="red">XX</span>
+     </span>
+  </div>
+</div>
+
+<div class="multicol">
+  <div class="container ltr">
+    XX<span class="rtl cb"><span class="red">XX</span>
+       <div class="abs block inset-end">XX</div>
+       XXXX XXXX XXXX XX
+       <div class="abs block inset-start">XX</div>
+       <br>XX<span class="red">XX</span>
+     </span>
+  </div>
+</div>
+
+<div class="multicol">
+  <div class="container ltr">
+    <span class="cb">X<span class="rtl"><span class="red">XX</span>
+      <div class="abs inline inset-end">XX</div>
+      XXXX XXXX XXXX XX
+      <div class="abs inline inset-start">XX</div>
+      <span class="red">XX</span>X
+    </span></span>
+  </div>
+</div>
+
+<div class="multicol">
+  <div class="container ltr">
+    <span class="cb">X<span class="rtl"><span class="red">XX</span>
+      <div class="abs block inset-end">XX</div>
+      XXXX XXXX XXXX XX
+      <div class="abs block inset-start">XX</div>
+      <br><span class="red">XX</span>X
+    </span></span>
+  </div>
+</div>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>Layout Instability: shift of a transformed container</title>
+<link rel="help" href="https://wicg.github.io/layout-instability/" />
+<style>
+body { margin: 0; }
+#transformed { position: relative; transform: translateX(20px); width: 100px; height: 100px; background: blue; }
+</style>
+<div id="transformed"></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/util.js"></script>
+<script>
+
+promise_test(async () => {
+  const watcher = new ScoreWatcher;
+
+  // Wait for the initial render to complete.
+  await waitForAnimationFrames(2);
+
+  document.querySelector("#transformed").style = "top: 50px";
+
+  const expectedScore = computeExpectedScore(100 * (100 + 50), 50);
+
+  await watcher.promise;
+  assert_equals(watcher.score, expectedScore);
+}, 'Move transformed container');
+
+</script>

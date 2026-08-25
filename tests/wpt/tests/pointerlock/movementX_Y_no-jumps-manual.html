@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<body>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<meta name='flags' content='interact'>
+<style type="text/css">
+    #status-log {
+        margin: 10px 0;
+        color: green;
+        color: green;
+    }
+</style>
+</head>
+<body>
+    <h2>Description</h2>
+    <p>This test that movementX/Y do not jump by a large value when exiting and re-entering the window.</p>
+    <hr/>
+
+    <h2>Manual Test Steps:</h2>
+    <p>
+        <ol>
+            <li>Make sure the window is not maximized.</li>
+            <li>Click to start Test.</li>
+            <li>Move the mouse slowly out of the window.
+            <li>Move as fast as needed to a different location outside the window at least 100 pixels away</li>
+            <li>Slowly re-enter the window.</li>
+            <li>Click again to end tests.</li>
+        </ol>
+    </p>
+    <hr/>
+
+    <div id="status-log">Waiting... Click to start loging.</div>
+    <div class="data-log">
+        <table>
+            <tr><td></td><td>X</td><td>Y</td></tr>
+            <tr><td>client_init:</td><td id="clientX_init-log">X</td><td id="clientY_init-log">Y</td></tr>
+            <tr><td>client_last:</td><td id="clientX_last-log">X</td><td id="clientY_last-log">Y</td></tr>
+            <tr><td>client_delta:</td><td id="clientX_delta-log">X</td><td id="clientY_delta-log">Y</td></tr>
+            <tr><td>movement_sum:</td><td id="movementX_sum-log">X</td><td id="movementY_sum-log">Y</td></tr>
+            <tr><td>movement:</td><td id="movementX-log">X</td><td id="movementY-log">Y</td></tr>
+        </table>
+    </div>
+    <hr/>
+
+    <div id="log"></div>
+
+    <script type="text/javascript" >
+        var status_log = document.querySelector('#status-log'),
+            movementX_log = document.querySelector('#movementX-log'),
+            movementY_log = document.querySelector('#movementY-log'),
+            movementX_sum_log = document.querySelector('#movementX_sum-log'),
+            movementY_sum_log = document.querySelector('#movementY_sum-log'),
+            clientX_init_log = document.querySelector('#clientX_init-log'),
+            clientY_init_log = document.querySelector('#clientY_init-log'),
+            clientX_last_log = document.querySelector('#clientX_last-log'),
+            clientY_last_log = document.querySelector('#clientY_last-log');
+            clientX_delta_log = document.querySelector('#clientX_delta-log'),
+            clientY_delta_log = document.querySelector('#clientY_delta-log');
+
+        var click_counter = 0;
+
+        var clientX_init, clientY_init, movementX, movementY, movementX_sum, movementY_sum, clientX_last, clientY_last;
+
+        var movementX_Y_outside_window_Test = async_test("Test that movementX/Y do not have large values when re-entering from outside the window.");
+
+        document.addEventListener("click", function (e) {
+            click_counter++;
+
+            switch(click_counter) {
+                case 1:
+                    status_log.innerHTML = "logging...";
+                break;
+                case 2:
+                    status_log.innerHTML = "done";
+
+                    // approximately(+/- 10)
+                    // a little drift should be tollerated
+                    movementX_Y_outside_window_Test.step(function() {
+                        assert_equals(movementX_sum, clientX_last - clientX_init, "sum of movementX = clientX_init - clientX_last");
+                        assert_equals(movementY_sum, clientY_last - clientY_init, "sum of movementY = clientY_init - clientY_last");
+                    });
+                    movementX_Y_outside_window_Test.done();
+                break;
+            }
+        });
+
+        document.addEventListener("mousemove", function (e) {
+            movementX = e.movementX;
+            movementY = e.movementY;
+
+            if(click_counter === 1) {
+                if(!clientX_init) {
+                    clientX_init = e.clientX;
+                    clientY_init = e.clientY;
+                    movementX_sum = movementX;
+                    movementY_sum = movementY;
+                }
+
+                movementX_Y_outside_window_Test.step(function() {
+                    assert_less_than(Math.abs(movementX), 50, "movementX should not have large jumps in value.");
+                    assert_less_than(Math.abs(movementY), 50, "movementY should not have large jumps in value.");
+                });
+
+                movementX_sum += movementX;
+                movementY_sum += movementY;
+
+                clientX_last = e.clientX;
+                clientY_last = e.clientY;
+                clientX_delta = clientX_last - clientX_init;
+                clientY_delta = clientY_last - clientY_init;
+
+                updateData();
+            }
+        });
+
+        document.addEventListener("mouseenter", function (e) {
+            if(click_counter === 1) {
+                movementX_Y_outside_window_Test.step(function() {
+                    assert_greater_than(Math.abs(e.clientX-clientX_last) + Math.abs(e.clientY-clientY_last), 100, "Test requires mouse to be moved at least 100 pixels outside of window.");
+                });
+            }
+        });
+
+        function updateData() {
+            clientX_init_log.innerHTML = clientX_init;
+            clientY_init_log.innerHTML = clientY_init;
+            clientX_last_log.innerHTML = clientX_last;
+            clientY_last_log.innerHTML = clientY_last;
+            clientX_delta_log.innerHTML = clientX_delta;
+            clientY_delta_log.innerHTML = clientY_delta;
+            movementX_log.innerHTML = movementX;
+            movementY_log.innerHTML = movementY;
+            movementX_sum_log.innerHTML = movementX_sum;
+            movementY_sum_log.innerHTML = movementY_sum;
+        }
+        </script>
+    </body>
+</html>

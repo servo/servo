@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+<head>
+  <title>aria-actions: target's own name unaffected (tentative)</title>
+  <link rel="help" href="https://github.com/w3c/aria/pull/2208">
+  <link rel="help" href="https://github.com/w3c/aria/pull/1805">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/wai-aria/scripts/aria-utils.js"></script>
+</head>
+<body>
+
+<!--
+  Two assertions in one scenario:
+    1. the host's accname excludes the action target's content, and
+    2. the target's own accname continues to follow the standard
+       algorithm (aria-label wins over text content).
+
+  The second assertion is the name an assistive technology will surface
+  as the action label, so it has to stay stable when the host references
+  the element via aria-actions.
+-->
+
+<button class="ex" aria-actions="edit-target"
+        data-testname="aria-actions: host accname excludes labelled target"
+        data-expectedlabel="Run">
+  Run
+  <span id="edit-target" class="ex"
+        aria-label="Edit document"
+        data-testname="aria-actions: target keeps its own aria-label"
+        data-expectedlabel="Edit document">Edit</span>
+</button>
+
+<script>
+  AriaUtils.verifyLabelsBySelector(".ex");
+</script>
+
+</body>
+</html>

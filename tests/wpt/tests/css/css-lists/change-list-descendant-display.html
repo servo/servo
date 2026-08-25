@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Lists: test the change of descendant's display</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="match" href="change-list-descendant-display-ref.html">
+<link rel="help" href="https://www.w3.org/TR/CSS22/generate.html#lists">
+<meta name="assert" content="Check that an outside marker looks good when
+  the descendant of the list item that contains the 1st line box changes
+  from 'display: block' to 'display: inline' or vice versa.">
+<style>
+.inline {
+  display: inline;
+}
+</style>
+<ol>
+  <li><div class="target">text</div></li>
+  <li><div class="target inline">text</div></li>
+  <li><div><div class="target">text</div></div></li>
+  <li><div><div class="target inline">text</div></div></li>
+  <li><div><div><div class="target">text</div></div></div></li>
+  <li><div><div><div class="target inline">text</div></div></div></li>
+</ol>
+<script src="/common/reftest-wait.js"></script>
+<script>
+addEventListener("load", async () => {
+  for (let target of document.querySelectorAll(".target")) {
+    await new Promise(resolve => requestAnimationFrame(resolve));
+    target.classList.toggle("inline");
+  }
+  takeScreenshot();
+}, {once: true});
+</script>
+</html>

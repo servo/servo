@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+
+  <meta charset="utf-8">
+
+  <title>CSS Reference Test</title>
+
+  <!--
+
+  Author is Chris Nardi
+
+  -->
+
+  <style>
+  .borderContainer
+    {
+      height: 50px;
+      position: relative;
+      width: 50px;
+    }
+
+  .borderContainer > div
+    {
+      background-image: url("../support/green-dot.png");
+      height: 10px;
+      position: absolute;
+      width: 10px;
+    }
+
+  .left
+    {
+      left: 0px;
+    }
+
+  .left1
+    {
+      left: 10px;
+    }
+
+  .left2
+    {
+      left: 20px;
+    }
+
+  .left3
+    {
+      left: 30px;
+    }
+
+  .right
+    {
+      right: 0px;
+    }
+
+  .top
+    {
+      top: 0px;
+    }
+
+  .top1
+    {
+      top: 10px;
+    }
+
+  .top2
+    {
+      top: 20px;
+    }
+
+  .top3
+    {
+      top: 30px;
+    }
+
+  .bottom
+    {
+      bottom: 0px;
+    }
+  </style>
+
+    <p>Pass if the square has borders made of green dots and <strong>no red</strong>.
+
+    <div class="borderContainer">
+        <div class="top left"></div><div class="top left1"></div><div class="top left2"></div><div class="top left3"></div><div class="top right"></div>
+        <div class="left top1"></div><div class="right top1"></div>
+        <div class="left top2"></div><div class="right top2"></div>
+        <div class="left top3"></div><div class="right top3"></div>
+        <div class="bottom left"></div><div class="bottom left1"></div><div class="bottom left2"></div><div class="bottom left3"></div><div class="bottom right"></div>
+    </div>

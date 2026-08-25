@@ -1,0 +1,1 @@
+window.events.push('slow');

@@ -1,0 +1,37 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Test recursive `Document.execCommand()` calls</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div contenteditable><br></div>
+<script>
+"use strict";
+
+setup({explicit_done: true});
+
+/**
+ * This test checks whether the browser allows or disallows recursive
+ * Document.execCommand() calls.
+ * https://github.com/w3c/editing/issues/200#issuecomment-578097441
+ */
+function runTests() {
+  test(function () {
+    let editor = document.querySelector("div[contenteditable]");
+    editor.focus();
+    let counter = 0;
+    editor.addEventListener("input", event => {
+      if (++counter < 10) {
+        let result = document.execCommand("insertText", false, `, ${counter}`);
+        assert_false(result,
+            '`execCommand("insertText") in the "input" event listener should return `false`');
+      }
+    });
+    document.execCommand("insertText", false, "0");
+    assert_equals(editor.textContent, "0",
+        '`execCommand("insertText") in the "input" event listener should do nothing');
+  }, "Recursive `Document.execCommand()` shouldn't be supported");
+  done();
+}
+
+window.addEventListener("load", runTests, {once: true});
+</script>

@@ -1,0 +1,88 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>GLSL array equality test with structs containing arrays</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<!--
+Structure array comparisons are detailed in the ESSL 3.00 spec section 5.7
+-->
+<script id="fshader-same-struct" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+out vec4 color;
+
+struct MyStruct {
+    bool a[2];
+};
+
+void main() {
+    MyStruct b;
+    b.a[0] = true;
+    b.a[1] = false;
+
+    MyStruct c;
+    c.a[0] = true;
+    c.a[1] = false;
+
+    color = b == c ? vec4(0, 1.0, 0, 1.0) : vec4(1.0, 0, 0, 1.0);
+}
+</script>
+<script id="fshader-different-struct" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+out vec4 color;
+
+struct MyStruct {
+    bool a[2];
+};
+
+void main() {
+    MyStruct b;
+    b.a[0] = true;
+    b.a[1] = true;
+
+    MyStruct c;
+    c.a[0] = true;
+    c.a[1] = false;
+
+    color = b != c ? vec4(0, 1.0, 0, 1.0) : vec4(1.0, 0, 0, 1.0);
+}
+</script>
+<script type="application/javascript">
+"use strict";
+description("Comparing structs containing arrays should work.");
+debug("");
+
+GLSLConformanceTester.runRenderTests([
+{
+  fShaderId: 'fshader-same-struct',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Comparing two structs containing arrays with the same values should equal to each other'
+},
+{
+  fShaderId: 'fshader-different-struct',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Comparing two structs containing arrays with different values should not equal to each other'
+},
+], 2);
+
+</script>
+</body>
+</html>
+

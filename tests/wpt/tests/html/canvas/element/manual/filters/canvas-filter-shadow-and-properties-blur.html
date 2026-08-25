@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<link rel="match" href="canvas-filter-shadow-and-properties-blur-expected.html"/>
+<meta name="fuzzy" content="maxDifference=0-13; totalPixels=0-25600">
+<body>
+  <canvas id="canvas" width="300" height="300"></canvas>
+</body>
+<script>
+  /*
+  The shadow and shadow blur effects should be the same regardless if they were
+  defined with filters or properties. The blur parameter is set as double when
+  using the shadowBlur property since its uses havlf of the value set as the
+  standard deviation for the gaussian blur (https://html.spec.whatwg.org/multipage/canvas.html#dom-context-2d-shadowblur-dev)
+  while the filter parameter is used directly as the standard deviation
+  (https://drafts.fxtf.org/filter-effects/#funcdef-filter-drop-shadow). The
+  fuzziness is defined with a maxDifference of 13 as to be the 5% of 256, since
+  the CSS spec defines the expected behavior in relation to an ideal Gaussian blur
+   with a tolerance of 5%. See: https://drafts.csswg.org/css-backgrounds-3/#shadow-blur.
+  */
+  var canvas = document.getElementById('canvas');
+  var ctx = canvas.getContext('2d');
+  ctx.filter = 'drop-shadow(10px 10px 2px red)';
+  ctx.fillRect(20, 20, 50, 50);
+  ctx.filter = 'drop-shadow(10px 10px 4px blue)';
+  ctx.fillRect(100, 20, 50, 50);
+  ctx.filter = 'drop-shadow(10px 10px 10px yellow)';
+  ctx.fillRect(20, 100, 50, 50);
+  ctx.filter = 'drop-shadow(10px 10px 15px cyan)';
+  ctx.fillRect(100, 100, 50, 50);
+</script>

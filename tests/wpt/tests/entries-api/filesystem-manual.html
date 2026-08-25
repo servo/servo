@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Entries API: FileSystem manual test</title>
+<link rel=help href="https://wicg.github.io/entries-api/#api-domfilesystem">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support.js"></script>
+
+<script>
+entry_test((t, entry) => {
+  const fs = entry.filesystem;
+
+  assert_idl_attribute(fs, 'name', 'has name attribute');
+  assert_equals(typeof fs.name, 'string', 'name is a string');
+
+  assert_idl_attribute(fs, 'root', 'has root attribute');
+  assert_true(fs.root.isDirectory,
+              'FileSystem root is a directory entry');
+
+  assert_equals(fs.root.name, '', 'root name is empty string');
+
+  assert_equals(fs.root.fullPath, '/', 'root path is /');
+
+  t.done();
+
+}, 'FileSystem - API');
+
+entry_test((t, entry) => {
+  const fs = entry.filesystem;
+
+  getChildEntry(entry, 'file.txt', t.step_func(child => {
+    const cfs = child.filesystem;
+    assert_not_equals(fs, cfs.filesystem, 'FileSystem objects do not have object identity');
+    assert_equals(fs.name, cfs.name, 'FileSystem names match');
+
+    t.done();
+  }), t.unreached_func('child entry file.txt should be present'));
+
+}, 'FileSystem - name consistency and object identity');
+</script>

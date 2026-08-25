@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<script src="utils.js"></script>
+<script>
+
+const params = new URLSearchParams(location.search);
+
+// The main test page (restriction-notification.https.html) loads the initiator
+// page, then the initiator page will prerender itself with the `prerendering`
+// parameter.
+const isPrerendering = params.has('prerendering');
+
+if (!isPrerendering) {
+  loadInitiatorPage();
+} else {
+  // Used to communicate with the initiator page.
+  const prerenderChannel = new PrerenderChannel('prerender-channel');
+  // Used to communicate with the main test page.
+  const testChannel = new PrerenderChannel('test-channel');
+
+  window.addEventListener('load', () => {
+    // Inform the initiator page that this page is ready to be activated.
+    prerenderChannel.postMessage('readyToActivate');
+    prerenderChannel.close();
+  });
+
+  document.addEventListener('prerenderingchange', () => {
+    // Accessing the Notification API is allowed after the prerendering state
+    // changed.
+    const permission = Notification.permission;
+    const notification = new Notification('New Notification');
+
+    notification.onerror = function(_) {
+      testChannel.postMessage('notification error');
+      testChannel.close();
+    }
+    notification.onshow = function() {
+      testChannel.postMessage('notification showed');
+      notification.close();
+      testChannel.close();
+    };
+  });
+}
+
+</script>

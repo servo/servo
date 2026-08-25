@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>CSS Reftest Reference</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com" />
+<style>
+.outside { list-style-position: outside }
+.inside { list-style-position: inside }
+.type-roman { list-style-type: upper-roman }
+.type-string { list-style-type: "II. " }
+.content-counter::marker { content: counter(list-item, upper-roman) ". " }
+.content-string::marker { content: "IV. " }
+</style>
+<ol class="outside">
+  <li class="type-roman">type-roman</li>
+  <li class="type-string">type-string</li>
+  <li class="content-counter">content-counter</li>
+  <li class="content-string">content-string</li>
+</ol>
+<ol class="inside">
+  <li class="type-roman">type-roman</li>
+  <li class="type-string">type-string</li>
+  <li class="content-counter">content-counter</li>
+  <li class="content-string">content-string</li>
+</ol>

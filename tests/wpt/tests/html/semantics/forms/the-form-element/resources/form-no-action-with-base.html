@@ -1,0 +1,19 @@
+<!doctype html>
+<base href="target/"></base>
+
+<form>
+  <input type="text" name="name" value="value">
+  <input type="submit" value="Submit">
+</form>
+
+<script>
+"use strict";
+
+if (window.location.search.startsWith("?name=value")) {
+  // The action pointed to ourself, so the form submitted something
+  window.parent.success(window.location.href);
+} else {
+  const form = document.querySelector("form");
+  form.submit();
+}
+</script>

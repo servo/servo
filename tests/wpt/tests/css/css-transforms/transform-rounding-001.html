@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test (Transforms): Rounding</title>
+    <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-property">
+    <meta name="assert" content='This tests that the implementation does not
+    round intermediate matrices to the extent that it significantly distorts
+    the final result.  (No requirement in the specification places any specific
+    constraints on rounding, but simple cases like this should not deviate
+    dramatically from the mathematically precise result.)'>
+    <link rel="match" href="transform-rounding-ref.html">
+    <style>
+      div {
+        height: 100px;
+        width: 100px;
+        background: blue;
+        transform: scale(100000) translate(0.001px) scale(0.00001);
+      }
+    </style>
+  </head>
+  <body>
+    <div></div>
+  </body>
+</html>

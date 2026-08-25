@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Pseudo-Elements Test: active selection and text-decoration</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-pseudo-4/#highlight-selectors">
+  <link rel="help" href="https://www.w3.org/TR/css-pseudo-4/#highlight-styling">
+  <link rel="help" href="https://www.w3.org/TR/css-pseudo-4/#highlight-painting">
+  <link rel="match" href="reference/active-selection-014-ref.html">
+
+  <meta content="should" name="flags">
+  <meta name="assert" content="This test checks that 'text-decoration' applies to highlight pseudo-element. Since neither 'color' nor 'background-color' has been specified by the pseudo-element selector in this test, then OS-default highlight colors should be used. The consequence of this is that the highlight color determines also the color of the underline.">
+
+  <link rel="stylesheet" href="support/highlights.css">
+  <style>
+  div
+    {
+      font-size: 300%;
+    }
+
+  div::selection
+    {
+      text-decoration: underline;
+    }
+  </style>
+
+  <!--
+  "
+  The element's own text decorations (both line decorations
+  and emphasis marks) are thus drawn in the pseudo-element's
+  own color when that is not currentColor, regardless of
+  their original color or fill specifications.
+  "
+  coming from
+  https://www.w3.org/TR/css-pseudo-4/#highlight-painting
+  -->
+
+  <script>
+  function startTest()
+  {
+  var targetRange = document.createRange();
+  /* We first create an empty range */
+  targetRange.selectNodeContents(document.getElementById("test"));
+  /* Then we set the range boundaries to the children of div#test */
+  window.getSelection().addRange(targetRange);
+  /* Finally, we now select such range of content */
+  }
+  </script>
+
+  <body onload="startTest();">
+
+  <p>Test passes if each glyph of "Selected Text" is underlined and if color and background color of "Selected Text" are the OS-default highlight colors. The underline color must also be the same as the highlight color of "Selected Text".
+
+  <div id="test" class="highlight_reftest">Selected Text</div>

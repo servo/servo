@@ -1,0 +1,51 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Single-axis scroll containers clamp disabled axes on dynamic style changes</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-scrollto">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-scrollwidth">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-scrollheight">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/5572">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  body {
+    margin: 0;
+  }
+
+  #scroller {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100px;
+    height: 100px;
+    overflow: hidden;
+    scrollbar-width: none;
+  }
+
+  #content {
+    width: 300px;
+    height: 300px;
+  }
+</style>
+<div id="log"></div>
+<div id="scroller"><div id="content"></div></div>
+<script>
+test(() => {
+  const scroller = document.getElementById('scroller');
+
+  assert_equals(scroller.scrollWidth, 300);
+  assert_equals(scroller.scrollHeight, 300);
+
+  scroller.scrollTo(40, 50);
+  assert_equals(scroller.scrollLeft, 40);
+  assert_equals(scroller.scrollTop, 50);
+
+  scroller.style.overflowX = 'scroll';
+  scroller.style.overflowY = 'clip';
+
+  assert_equals(scroller.scrollLeft, 40);
+  assert_equals(scroller.scrollTop, 0);
+  assert_equals(scroller.scrollWidth, 300);
+  assert_equals(scroller.scrollHeight, 300);
+}, 'changing from overflow: hidden to a single-axis scroller clamps the disabled axis and its scroll dimensions');
+</script>

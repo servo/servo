@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+
+<title>CSS writing-mode test: orthogonal table cells</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1959395">
+<link rel="match" href="orthogonal-cell-001-ref.html">
+
+<style>
+table { margin: 10px; }
+td { background: green; padding: 10px 20px 30px 40px; }
+div { width: 20px; height: 40px; background: blue; }
+.htb { writing-mode: horizontal-tb; }
+.vlr { writing-mode: vertical-lr; }
+.vrl { writing-mode: vertical-rl; }
+</style>
+
+<p>All five green squares should look the same, with a blue rectangle towards the upper right.</p>
+
+<table>
+  <td><div></div></td>
+</table>
+
+<!-- The different writing modes should not disrupt the table cell/row sizing. -->
+<table class=htb>
+  <td class=vlr><div></div></td>
+</table>
+
+<table class=htb>
+  <td class=vrl><div></div></td>
+</table>
+
+<table class=vlr>
+  <td class=htb><div></div></td>
+</table>
+
+<table class=vrl>
+  <td class=htb><div></div></td>
+</table>

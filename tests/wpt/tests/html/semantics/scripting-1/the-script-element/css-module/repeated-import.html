@@ -1,0 +1,136 @@
+<!doctype html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Module repeated imports</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/common/utils.js"></script>
+</head>
+<body>
+
+<script>
+  const base = key => `../serve-custom-response.py?key=${key}`;
+
+  function setServer(key, params) {
+    return fetch(`${base(key)}&action=set&${params}`, { cache: 'no-cache' });
+  }
+
+  function resetStat(key) {
+    return fetch(`${base(key)}&action=reset-stat`, { cache: 'no-cache' });
+  }
+</script>
+
+<script type="module">
+  const token_1 = token()
+  // test 1: Simulate network error
+  const simulateNetworkError = async () => {
+    await resetStat(token_1);
+    await setServer(token_1, 'network-error=true');
+    try {
+      await import(base(token_1), { with: { type: 'css' } });
+      assert_unreached('CSS module should not load successfully due to network error');
+    } catch (e) {
+      const statResponse = await fetch(`${base(token_1)}&action=stat`, { cache: 'no-cache' });
+      const statText = await statResponse.text();
+      // some browsers may request multiple times on network error
+      assert_not_equals(statText, '0', 'Import should have attempted to fetch');
+    }
+  };
+
+  // test 2: Simulate 404 error, previous network error should not be cached
+  const simulate404Error = async () => {
+    await resetStat(token_1);
+    await setServer(token_1, 'network-error=false&code=404');
+    try {
+      await import(base(token_1), { with: { type: 'css' } });
+      assert_unreached('CSS module should not load successfully due to 404 error');
+    } catch (e) {
+      const statResponse = await fetch(`${base(token_1)}&action=stat`, { cache: 'no-cache' });
+      const statText = await statResponse.text();
+      assert_equals(statText, '1', 'Import should have attempted to fetch again after network error');
+    }
+  };
+
+  // test3: Simulate MIME type mismatch, previous 404 error should not be cached
+  const simulateMIMEError = async () => {
+    await resetStat(token_1);
+    await setServer(token_1, 'network-error=false&code=200&content-type=text/plain');
+    try {
+      await import(base(token_1), { with: { type: 'css' } });
+      assert_unreached('CSS module should not load successfully due to MIME type mismatch');
+    } catch (e) {
+      const statResponse = await fetch(`${base(token_1)}&action=stat`, { cache: 'no-cache' });
+      const statText = await statResponse.text();
+      assert_equals(statText, '1', 'Import should have attempted to fetch again after MIME type mismatch');
+    }
+  };
+
+  // test4: Successful import after errors
+  const simulateSuccessfulImport = async () => {
+    await resetStat(token_1);
+    await setServer(token_1, 'network-error=false&code=200&content-type=text/css');
+    try {
+      // First import after previous errors should refetch the resource
+      const module = await import(base(token_1), { with: { type: 'css' } });
+      assert_equals(module.default.rules[0].cssText, '#test { background-color: rgb(0, 255, 0); }',
+        'CSS module should load successfully after previous errors');
+      const statResponse = await fetch(`${base(token_1)}&action=stat`, { cache: 'no-cache' });
+      const statText = await statResponse.text();
+      assert_equals(statText, '1', 'Import should have attempted to fetch again after previous errors');
+    } catch (e) {
+      assert_unreached('CSS module should load successfully after previous errors');
+    }
+  };
+
+  promise_test(async t => {
+    await simulateNetworkError();
+    await simulate404Error();
+    await simulateMIMEError();
+    await simulateSuccessfulImport();
+  }, 'CSS Module repeated imports');
+</script>
+
+<script type="module">
+  promise_test(async () => {
+    const token_2 = token()
+    await resetStat(token_2);
+    await setServer(token_2, 'network-error=false&code=200&content-type=text/css');
+    try {
+      for (let i = 0; i < 5; i++) {
+        const module = await import(base(token_2), { with: { type: 'css' } });
+        assert_equals(module.default.rules[0].cssText, '#test { background-color: rgb(0, 255, 0); }',
+          `CSS module should load successfully on attempt ${i + 1}`);
+      }
+      const statResponse = await fetch(`${base(token_2)}&action=stat`, { cache: 'no-cache' });
+      const statText = await statResponse.text();
+      assert_equals(statText, '1', 'Import should only be fetched once for multiple imports');
+    } catch (e) {
+      assert_unreached('CSS module should load successfully on multiple imports');
+    }
+  }, 'CSS Module repeated serial imports');
+</script>
+
+<script type="module">
+  promise_test(async () => {
+    const token_3 = token()
+    await resetStat(token_3);
+    await setServer(token_3, 'network-error=false&code=200&content-type=text/css');
+    try {
+      const importPromises = [];
+      for (let i = 0; i < 5; i++) {
+        importPromises.push(import(base(token_3), { with: { type: 'css' } }));
+      }
+      const modules = await Promise.all(importPromises);
+      for (let i = 0; i < modules.length; i++) {
+        assert_equals(modules[i].default.rules[0].cssText, '#test { background-color: rgb(0, 255, 0); }',
+          `CSS module should load successfully on attempt ${i + 1}`);
+      }
+      const statResponse = await fetch(`${base(token_3)}&action=stat`, { cache: 'no-cache' });
+      const statText = await statResponse.text();
+      assert_equals(statText, '1', 'Import should only be fetched once for parallel imports');
+    } catch (e) {
+      assert_unreached('CSS module should load successfully on parallel imports');
+    }
+  }, 'CSS Module repeated parallel imports');
+</script>
+</body>

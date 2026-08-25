@@ -1,0 +1,56 @@
+<!doctype html>
+<title>Historical WebVR features must be removed</title>
+<link rel="help" href="https://immersive-web.github.io/webxr/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+  // WebVR was deprecated in favor of WebXR. These APIs should no longer exist.
+  // See: https://immersive-web.github.io/webvr/spec/1.1/
+
+  function isInterfaceRemoved(name) {
+    test(function () {
+      assert_false(name in window);
+      assert_equals(window[name], undefined);
+    }, "Historical WebVR features must be removed: " + name);
+  }
+
+  var removedInterfaces = [
+    "VRDisplay",
+    "VRDisplayCapabilities",
+    "VRDisplayEvent",
+    "VREyeParameters",
+    "VRFrameData",
+    "VRPose",
+    "VRStageParameters",
+  ];
+  removedInterfaces.forEach(isInterfaceRemoved);
+
+  function isRemovedFromNavigator(name) {
+    test(function () {
+      assert_false(name in navigator);
+      assert_equals(navigator[name], undefined);
+    }, "Historical WebVR navigator member must be removed: " + name);
+  }
+
+  var navigatorRemoved = ["getVRDisplays", "activeVRDisplays", "vrEnabled"];
+  navigatorRemoved.forEach(isRemovedFromNavigator);
+
+  function isRemovedFromWindow(name) {
+    test(function () {
+      assert_false(name in window);
+      assert_equals(window[name], undefined);
+    }, "Historical WebVR window event handler must be removed: " + name);
+  }
+
+  var windowRemoved = [
+    "onvrdisplayactivate",
+    "onvrdisplayblur",
+    "onvrdisplayconnect",
+    "onvrdisplaydeactivate",
+    "onvrdisplaydisconnect",
+    "onvrdisplayfocus",
+    "onvrdisplaypresentchange",
+  ];
+  windowRemoved.forEach(isRemovedFromWindow);
+</script>

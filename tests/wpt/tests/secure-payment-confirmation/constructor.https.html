@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>Test for the 'secure-payment-confirmation' payment method constructor</title>
+<link rel="help" href="https://w3c.github.io/secure-payment-confirmation/#sctn-payment-method-spc">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+'use strict';
+
+const details = {total:
+    {label: 'Total', amount: {value: '0.01', currency: 'USD'}}};
+
+// This file contains general tests for constructing a Secure Payment
+// Confirmation payment request, that are not parts of the 'steps to validate
+// payment method data'. For those, see constructor-validate-payment-method-data.https.html
+
+test(() => {
+  new PaymentRequest([{
+    supportedMethods: 'secure-payment-confirmation',
+    data: {
+      // All valid parameters.
+      credentialIds: [Uint8Array.from('x', c => c.charCodeAt(0))],
+      challenge: Uint8Array.from('x', c => c.charCodeAt(0)),
+      payeeOrigin: window.location.origin,
+      timeout: 60000,
+      instrument: {
+        displayName: 'X',
+        icon: 'https://example.test/icon.png',
+      },
+      rpId: 'relying-party.example',
+    },
+  }], details);
+}, 'Valid payment method data does not throw exceptions.');
+
+test(() => {
+  new PaymentRequest([{
+    supportedMethods: 'secure-payment-confirmation',
+    data: {
+      credentialIds: [Uint8Array.from('x', c => c.charCodeAt(0))],
+      challenge: Uint8Array.from('x', c => c.charCodeAt(0)),
+      payeeOrigin: window.location.origin,
+      // Omitted timeout field.
+      instrument: {
+        displayName: 'X',
+        icon: 'https://example.test/icon.png',
+      },
+      rpId: 'relying-party.example',
+    },
+  }], details);
+}, 'The timeout field is optional.');
+
+test(() => {
+  assert_throws_js(RangeError, () => {
+    new PaymentRequest([{
+      supportedMethods: 'secure-payment-confirmation',
+      data: {
+        credentialIds: [Uint8Array.from('x', c => c.charCodeAt(0))],
+        challenge: Uint8Array.from('x', c => c.charCodeAt(0)),
+        payeeOrigin: window.location.origin,
+        timeout: 60000,
+        instrument: {
+          displayName: 'X',
+          icon: 'https://example.test/icon.png',
+        },
+        rpId: 'relying-party.example',
+      },
+    }, {supportedMethods: 'https://example.com/pay'}], details);
+  });
+}, 'Extra payment method not allowed afterward.');
+
+test(() => {
+  assert_throws_js(RangeError, () => {
+    new PaymentRequest([{supportedMethods: 'https://example.com/pay'}, {
+      supportedMethods: 'secure-payment-confirmation',
+      data: {
+        credentialIds: [Uint8Array.from('x', c => c.charCodeAt(0))],
+        challenge: Uint8Array.from('x', c => c.charCodeAt(0)),
+        payeeOrigin: window.location.origin,
+        timeout: 60000,
+        instrument: {
+          displayName: 'X',
+          icon: 'https://example.test/icon.png',
+        },
+        rpId: 'relying-party.example',
+      },
+    }], details);
+  });
+}, 'Extra payment method not allowed beforehand.');
+
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new PaymentRequest([{
+      supportedMethods: 'secure-payment-confirmation',
+      data: {
+        // Omitted credentialIds field.
+        challenge: Uint8Array.from('x', c => c.charCodeAt(0)),
+        payeeOrigin: window.location.origin,
+        timeout: 60000,
+        instrument: {
+          displayName: 'X',
+          icon: 'https://example.test/icon.png',
+        },
+        rpId: 'relying-party.example',
+      },
+    }], details);
+  });
+}, 'The credentialIds field is required.');
+
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new PaymentRequest([{
+      supportedMethods: 'secure-payment-confirmation',
+      data: {
+        credentialIds: [Uint8Array.from('x', c => c.charCodeAt(0))],
+        // Omitted challenge field.
+        payeeOrigin: window.location.origin,
+        timeout: 60000,
+        instrument: {
+          displayName: 'X',
+          icon: 'https://example.test/icon.png',
+        },
+        rpId: 'relying-party.example',
+      },
+    }], details);
+  });
+}, 'The challenge field is required.');
+
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new PaymentRequest([{
+      supportedMethods: 'secure-payment-confirmation',
+      data: {
+        credentialIds: [Uint8Array.from('x', c => c.charCodeAt(0))],
+        challenge: Uint8Array.from('x', c => c.charCodeAt(0)),
+        payeeOrigin: window.location.origin,
+        timeout: 60000,
+        rpId: 'relying-party.example',
+        // Omitted instrument field.
+      },
+    }], details);
+  });
+}, 'Instrument field is required.');
+
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new PaymentRequest([{
+      supportedMethods: 'secure-payment-confirmation',
+      data: {
+        credentialIds: [Uint8Array.from('x', c => c.charCodeAt(0))],
+        challenge: Uint8Array.from('x', c => c.charCodeAt(0)),
+        payeeOrigin: window.location.origin,
+        timeout: 60000,
+        instrument: {
+          // Ommitted instrument display name.
+          icon: 'https://example.test/icon.png',
+        },
+        rpId: 'relying-party.example',
+      },
+    }], details);
+  });
+}, 'Instrument display name is required.');
+
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new PaymentRequest([{
+      supportedMethods: 'secure-payment-confirmation',
+      data: {
+        credentialIds: [Uint8Array.from('x', c => c.charCodeAt(0))],
+        challenge: Uint8Array.from('x', c => c.charCodeAt(0)),
+        payeeOrigin: window.location.origin,
+        timeout: 60000,
+        instrument: {
+          displayName: 'X',
+          // Ommitted instrument icon.
+        },
+        rpId: 'relying-party.example',
+      },
+    }], details);
+  });
+}, 'Instrument icon is required.');
+
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new PaymentRequest([{
+      supportedMethods: 'secure-payment-confirmation',
+      data: {
+        credentialIds: [Uint8Array.from('x', c => c.charCodeAt(0))],
+        challenge: Uint8Array.from('x', c => c.charCodeAt(0)),
+        payeeOrigin: window.location.origin,
+        timeout: 60000,
+        instrument: {
+          displayName: 'X',
+          icon: 'https://example.test/icon.png',
+        },
+        // Omitted rpId.
+      },
+    }], details);
+  });
+}, 'rpId is required.');
+</script>

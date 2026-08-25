@@ -1,0 +1,10 @@
+rules:
+- request-upload*: [fetch-request-streams]
+
+# Note: Test coverage for this feature is very incomplete
+- http-response-code.any.js: [early-data, fetch]
+
+# The following classifier for "http2" intentionally overlaps with the above
+# classifier for "fetch" because "statusText" is a Fetch API concept.
+- status.h2.any.js: [http2, fetch]
+- "*": [fetch]

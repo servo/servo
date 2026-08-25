@@ -1,0 +1,20 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Navigating to the same URL with an empty fragment aborts the navigation</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe src="empty_fragment_iframe.html"></iframe>
+<script>
+// If the navigation were not aborted, we would expect multiple load events
+// as the page continually reloads itself.
+async_test(function(t) {
+  var count = 0;
+  var iframe = document.querySelector('iframe');
+  iframe.onload = t.step_func(function() {
+    count++;
+  });
+  window.child_succeeded = t.step_func_done(function() {
+    assert_equals(count, 1);
+  });
+});
+</script>

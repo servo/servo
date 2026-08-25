@@ -1,0 +1,3 @@
+rules:
+- snap-events-with-pseudo-target.tentative.html: [scroll-snap-events]
+- snapevents-at-document-bubble-to-window.html: [scroll-snap-events]

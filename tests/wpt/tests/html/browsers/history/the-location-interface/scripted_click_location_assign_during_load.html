@@ -1,0 +1,16 @@
+<!doctype html>
+<title>location.assign with click during load</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<p>The popup blocker must be disabled for this test</p>
+<div id="log"></div>
+<script>
+var t = async_test();
+var win = window.open("scripted_click_location_assign_during_load-1.html");
+
+var history_length;
+do_test = t.step_func(function(new_length) {
+  assert_equals(new_length, history_length + 1);
+  t.done();
+});
+</script>

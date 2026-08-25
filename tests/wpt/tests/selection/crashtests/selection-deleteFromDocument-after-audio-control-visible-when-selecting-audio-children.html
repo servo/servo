@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+"use strict";
+
+addEventListener("DOMContentLoaded", () => {
+  getSelection().setBaseAndExtent(
+    document.querySelector("audio"), 1,
+    document.querySelector("textarea"), 1
+  );
+  document.body.appendChild(
+    document.querySelector("datalist")
+  );
+  document.querySelector("audio").controls = true;
+  getSelection().deleteFromDocument();
+});
+</script>
+</head>
+<body>
+<audio>
+<datalist></datalist>
+<textarea>A</textarea>
+</audio></body></html>

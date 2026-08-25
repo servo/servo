@@ -1,0 +1,13 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Removing a property from the style object updates the attributeRemove u</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div style="color: red"></div>
+<script>
+test(function() {
+  var div = document.querySelector('div');
+  div.style.color = "";
+  assert_equals(div.getAttribute('style'), "");
+}, "Removing a property from the style object updates the attribute");
+</script>

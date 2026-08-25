@@ -1,0 +1,7 @@
+<!doctype html>
+<p>This window should close itself and the test result appear in the original window
+<script>
+onload = function() {
+  setTimeout(function() {opener.do_test(history.length); window.close();}, 100);
+}
+</script>

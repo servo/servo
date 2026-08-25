@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<title>Clicking in a disabled input type=text field should not cause a crash</title>
+<link rel="help" href="https://github.com/servo/servo/issues/42074">
+<head>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+</head>
+
+<input id=target type=text value="text" disabled>
+
+<script>
+    async function test() {
+      await new test_driver.Actions()
+        .pointerMove(5, 5, { origin: target })
+        .pointerDown()
+        .pointerUp()
+        .send();
+    }
+    test();
+</script>
+
+</html>

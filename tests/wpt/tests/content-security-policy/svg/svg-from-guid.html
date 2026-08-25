@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>svg-from-guid</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["TEST COMPLETE"]'></script>
+    <script src="../support/alertAssert.sub.js?alerts=[]"></script>
+    <script>
+        window.addEventListener("message", function(event) {
+            alert_assert(event.data);
+        }, false);
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                log("TEST COMPLETE");
+            }, 1);
+        });
+    </script>
+</head>
+
+<body>
+    <p>Tests that an SVG loaded in an iframe with a policy enforces it, not
+    the policy enforced by this parent frame.  The SVG should render and
+    not redirect to a different resource.</p>
+    <!--
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="6cm" height="5cm" viewBox="0 0 600 500"
+     xmlns="http://www.w3.org/2000/svg" version="1.1">
+  <desc>Example script01 - redirect</desc>
+
+  <script id="postmessagescript" type="application/ecmascript"> <![CDATA[
+    location = "/content-security-policy/support/postmessage-fail.html";
+  ]]> </script>
+
+  <circle cx="300" cy="225" r="100" fill="lawngreen"/>
+
+  <text x="300" y="250"
+        font-family="Verdana"
+        font-size="50"
+        text-anchor="middle">
+      PASS
+    </text>
+</svg>
+    -->
+    <iframe name="test_target" id="test_iframe" src="data:image/svg+xml;charset=utf-8;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBzdGFuZGFsb25lPSJubyI/Pg0KPCFET0NUWVBFIHN2ZyBQVUJMSUMgIi0vL1czQy8vRFREIFNWRyAxLjEvL0VOIg0KICAiaHR0cDovL3d3dy53My5vcmcvR3JhcGhpY3MvU1ZHLzEuMS9EVEQvc3ZnMTEuZHRkIj4NCjxzdmcgd2lkdGg9IjZjbSIgaGVpZ2h0PSI1Y20iIHZpZXdCb3g9IjAgMCA2MDAgNTAwIg0KICAgICB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZlcnNpb249IjEuMSI+DQogIDxkZXNjPkV4YW1wbGUgc2NyaXB0MDEgLSByZWRpcmVjdDwvZGVzYz4NCg0KICA8c2NyaXB0IGlkPSJwb3N0bWVzc2FnZXNjcmlwdCIgdHlwZT0iYXBwbGljYXRpb24vZWNtYXNjcmlwdCI+IDwhW0NEQVRBWw0KICAgIGxvY2F0aW9uID0gIi9jb250ZW50LXNlY3VyaXR5LXBvbGljeS9ibGluay1jb250cmliL3Jlc291cmNlcy9wb3N0bWVzc2FnZS1mYWlsLmh0bWwiOw0KICBdXT4gPC9zY3JpcHQ+DQoNCiAgPGNpcmNsZSBjeD0iMzAwIiBjeT0iMjI1IiByPSIxMDAiIGZpbGw9Imxhd25ncmVlbiIvPg0KDQogIDx0ZXh0IHg9IjMwMCIgeT0iMjUwIg0KICAgICAgICBmb250LWZhbWlseT0iVmVyZGFuYSINCiAgICAgICAgZm9udC1zaXplPSI1MCINCiAgICAgICAgdGV4dC1hbmNob3I9Im1pZGRsZSI+DQogICAgICBQQVNTDQogICAgPC90ZXh0Pg0KPC9zdmc+"></iframe>
+    <div id="log"></div>
+</body>
+
+</html>

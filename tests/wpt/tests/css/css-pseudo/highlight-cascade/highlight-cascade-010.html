@@ -1,0 +1,29 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: highlight styling: late property registration updates highlights</title>
+<link rel="author" title="Stephen Chenney" href="mailto:schenney@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#highlight-cascade">
+<meta name="assert" value="This test verifies that custom property values when defined on a highlight pseudo update when the property registration happens after first style recalc.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+    #originating::spelling-error {
+        color: white;
+        --x: initial;
+        background-color: var(--x, red);
+    }
+</style>
+<div id="originating">Text wth a spelling error</div>
+<script>
+  promise_test(async () => {
+    await new Promise(requestAnimationFrame);
+    CSS.registerProperty({
+      name: '--x',
+      inherits: true,
+      initialValue: "green"
+    });
+    await new Promise(requestAnimationFrame);
+    const originating_spelling = getComputedStyle(document.querySelector("div"), "::spelling-error");
+    assert_equals(originating_spelling.getPropertyValue("--x"), "green");
+  }, "the custom property receives its initial value from a deferred registration");
+</script>

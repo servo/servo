@@ -1,0 +1,12 @@
+rules:
+- position-absolute-center-003.html: [box-sizing]
+- position-absolute-center-004.html: [box-sizing]
+- position-absolute-*: [absolute-positioning]
+- backdrop-inherit-computed.html: [backdrop]
+- backdrop-inherit-rendered.html: [backdrop]
+- backdrop-tree-abiding-slotted.html: [backdrop]
+- replaced-object-backdrop.html: [backdrop]
+- position-fixed-*: [fixed-positioning]
+- position-relative-*: [relative-positioning]
+- "*z-index*": [z-index]
+- position-static-*.html: [static-positioning]

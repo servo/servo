@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>Canvas descendants can be painted into the top layer</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<link rel="help" href="https://www.w3.org/TR/css-position-4/#top-layer">
+<link rel="match" href="dialog-paints-in-top-layer-ref.html">
+
+<style>
+  dialog {
+    width: 100px;
+    height: 100px;
+    background: green;
+    border: none;
+    outline: none;
+  }
+  #not-painted {
+    width: 100px;
+    height: 100px;
+    background: red;
+  }
+</style>
+<canvas width="200" height="200" layoutsubtree>
+  <div id="not-painted">
+    <dialog id="dialog"></dialog>
+  </div>
+</canvas>
+
+<script>
+onload = () => {
+  dialog.showModal();
+}
+</script>

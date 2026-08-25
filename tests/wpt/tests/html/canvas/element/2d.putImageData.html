@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<head>
+    <meta charset="UTF-8">
+    <meta rel="author" title="Simon Wülker" href="simon.wuelker@arcor.de">
+    <meta name="assert" content="Calling putImageData should update the displayed canvas data">
+    <title>putImageData() causes the canvas to be redrawn</title>
+    <link rel="match" href="2d.putImageData-ref.html">
+    <link rel="help" href="https://github.com/servo/servo/pull/43218">
+</head>
+
+<body>
+    <canvas id="canvas" width="50px" height="50px"></canvas>
+    <script>
+      let ctx = canvas.getContext("2d")
+      let size = 50;
+      var pixels = ctx.createImageData(size, size);
+      for(var x = 0; x < size; x++) {
+        for(var y = 0; y < size; y++) {
+          pixels.data[(x + y * size) * 4 + 0] = 0;
+          pixels.data[(x + y * size) * 4 + 1] = 255;
+          pixels.data[(x + y * size) * 4 + 2] = 0;
+          pixels.data[(x + y * size) * 4 + 3] = 255;
+        }
+      }
+      ctx.putImageData(pixels, 0, 0);
+    </script>
+</body>

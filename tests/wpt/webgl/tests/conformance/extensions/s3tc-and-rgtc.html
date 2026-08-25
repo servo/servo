@@ -1,0 +1,1062 @@
+﻿<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/tests/compressed-texture-utils.js"></script>
+<title>WebGL WEBGL_compressed_texture_s3tc and EXT_texture_compression_rgtc Conformance Tests</title>
+<style>
+img {
+ border: 1px solid black;
+ margin-right: 1em;
+}
+
+.testimages br {
+  clear: both;
+}
+
+.testimages > div {
+  float: left;
+  margin: 1em;
+}
+</style>
+</head>
+<body>
+<div id="description"></div>
+<canvas id="canvas" width="8" height="8" style="width: 8px; height: 8px;"></canvas>
+<div id="console"></div>
+<script>
+"use strict";
+description("This test verifies the functionality of the WEBGL_compressed_texture_s3tc extension, if it is available. It also tests the related formats from the EXT_texture_compression_rgtc extension.");
+
+debug("");
+
+// Acceptable interpolation error depends on endpoints:
+// 1.0 / 255.0 + 0.03 * max(abs(endpoint0 - endpoint1), abs(endpoint0_p - endpoint1_p))
+// For simplicity, assume the worst case (e0 is 0.0, e1 is 1.0). After conversion to unorm8, it is 9.
+const DEFAULT_COLOR_ERROR = 9;
+
+/*
+BC1 (DXT1) block
+e0 = [  0, 255, 0]
+e1 = [255,   0, 0]
+e0 < e1, so it uses 3-color mode
+
+local palette
+    0: [  0, 255, 0, 255]
+    1: [255,   0, 0, 255]
+    2: [128, 128, 0, 255]
+    3: [  0,   0, 0, 255] // for BC1 RGB
+    3: [  0,   0, 0,   0] // for BC1 RGBA
+selectors
+    3 2 1 0
+    2 2 1 0
+    1 1 1 0
+    0 0 0 0
+
+Extending this block with opaque alpha and uploading as BC2 or BC3
+will generate wrong colors because BC2 and BC3 do not have 3-color mode.
+*/
+var img_4x4_rgba_dxt1 = new Uint8Array([
+    0xE0, 0x07, 0x00, 0xF8, 0x1B, 0x1A, 0x15, 0x00
+]);
+
+/*
+BC2 (DXT3) block
+
+Quantized alpha values
+    0 1 2 3
+    4 5 6 7
+    8 9 A B
+    C D E F
+
+RGB block
+e0 = [255,   0, 0]
+e1 = [  0, 255, 0]
+BC2 has only 4-color mode
+
+local palette
+    0: [255,   0, 0]
+    1: [  0, 255, 0]
+    2: [170,  85, 0]
+    3: [ 85, 170, 0]
+selectors
+    0 1 2 3
+    1 1 2 3
+    2 2 2 3
+    3 3 3 3
+*/
+var img_4x4_rgba_dxt3 = new Uint8Array([
+    0x10, 0x32, 0x54, 0x76, 0x98, 0xBA, 0xDC, 0xFE,
+    0x00, 0xF8, 0xE0, 0x07, 0xE4, 0xE5, 0xEA, 0xFF
+]);
+
+/*
+BC3 (DXT5) block
+
+Alpha block (aka DXT5A)
+e0 = 255
+e1 = 0
+e0 > e1, so using 6 intermediate points
+local palette
+    255, 0, 219, 182, 146, 109, 73, 36
+selectors
+    0 1 2 3
+    1 2 3 4
+    2 3 4 5
+    3 4 5 6
+
+RGB block
+e0 = [255,   0, 0]
+e1 = [  0, 255, 0]
+BC3 has only 4-color mode
+
+local palette
+    0: [255,   0, 0]
+    1: [  0, 255, 0]
+    2: [170,  85, 0]
+    3: [ 85, 170, 0]
+selectors
+    3 2 1 0
+    3 2 1 1
+    3 2 2 2
+    3 3 3 3
+*/
+var img_4x4_rgba_dxt5 = new Uint8Array([
+    0xFF, 0x00, 0x88, 0x16, 0x8D, 0x1A, 0x3B, 0xD6,
+    0x00, 0xF8, 0xE0, 0x07, 0x1B, 0x5B, 0xAB, 0xFF
+]);
+
+// BC4 - just the alpha block from BC3 above, interpreted as the red channel.
+// See http://www.reedbeta.com/blog/understanding-bcn-texture-compression-formats/#bc4
+// for format details.
+var img_4x4_r_bc4 = new Uint8Array([
+    0xFF, 0x00, 0x88, 0x16, 0x8D, 0x1A, 0x3B, 0xD6,
+]);
+
+// BC5 - Two BC3 alpha blocks, interpreted as the red and green channels.
+var img_4x4_rg_bc5 = new Uint8Array([
+    0xFF, 0x00, 0x88, 0x16, 0x8D, 0x1A, 0x3B, 0xD6,
+    0x00, 0xFF, 0x88, 0x16, 0x8D, 0x1A, 0x3B, 0xD6,
+]);
+
+// Signed BC4 - change endpoints to use full -1 to 1 range.
+var img_4x4_signed_r_bc4 = new Uint8Array([
+    0x7F, 0x80, 0x88, 0x16, 0x8D, 0x1A, 0x3B, 0xD6,
+]);
+
+// Signed BC5 - Two BC3 alpha blocks, interpreted as the red and green channels.
+var img_4x4_signed_rg_bc5 = new Uint8Array([
+    0x7F, 0x80, 0x88, 0x16, 0x8D, 0x1A, 0x3B, 0xD6,
+    0x80, 0x7F, 0x88, 0x16, 0x8D, 0x1A, 0x3B, 0xD6,
+]);
+
+
+/*
+8x8 block endpoints use half-intensity values (appear darker than 4x4)
+*/
+var img_8x8_rgba_dxt1 = new Uint8Array([
+    0xe0,0x03,0x00,0x78,0x13,0x10,0x15,0x00,
+    0x0f,0x00,0xe0,0x7b,0x11,0x10,0x15,0x00,
+    0xe0,0x03,0x0f,0x78,0x44,0x45,0x40,0x55,
+    0x0f,0x00,0xef,0x03,0x44,0x45,0x40,0x55
+]);
+var img_8x8_rgba_dxt3 = new Uint8Array([
+    0xf6,0xff,0xf6,0xff,0xff,0xff,0xff,0xff,0x00,0x78,0xe0,0x03,0x44,0x45,0x40,0x55,
+    0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xe0,0x7b,0x0f,0x00,0x44,0x45,0x40,0x55,
+    0xff,0xff,0xff,0xff,0xf6,0xff,0xf6,0xff,0x0f,0x78,0xe0,0x03,0x11,0x10,0x15,0x00,
+    0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xef,0x03,0x0f,0x00,0x11,0x10,0x15,0x00
+]);
+var img_8x8_rgba_dxt5 = new Uint8Array([
+    0xff,0x69,0x01,0x10,0x00,0x00,0x00,0x00,0x00,0x78,0xe0,0x03,0x44,0x45,0x40,0x55,
+    0xff,0xff,0x00,0x00,0x00,0x00,0x00,0x00,0xe0,0x7b,0x0f,0x00,0x44,0x45,0x40,0x55,
+    0xff,0x69,0x00,0x00,0x00,0x01,0x10,0x00,0x0f,0x78,0xe0,0x03,0x11,0x10,0x15,0x00,
+    0xff,0xff,0x00,0x00,0x00,0x00,0x00,0x00,0xef,0x03,0xef,0x00,0x11,0x10,0x15,0x00
+]);
+var img_8x8_r_bc4 = new Uint8Array([
+    0x7F, 0x00, 0x88, 0x16, 0x8D, 0x1A, 0x3B, 0xD6,
+    0x7F, 0x00, 0x88, 0x16, 0x8D, 0x1A, 0x3B, 0xD6,
+    0x7F, 0x00, 0x88, 0x16, 0x8D, 0x1A, 0x3B, 0xD6,
+    0x7F, 0x00, 0x88, 0x16, 0x8D, 0x1A, 0x3B, 0xD6,
+]);
+var img_8x8_rg_bc5 = new Uint8Array([
+    0x7F, 0x00, 0x88, 0x16, 0x8D, 0x1A, 0x3B, 0xD6, 0x00, 0x7F, 0x88, 0x16, 0x8D, 0x1A, 0x3B, 0xD6,
+    0x7F, 0x00, 0x88, 0x16, 0x8D, 0x1A, 0x3B, 0xD6, 0x00, 0x7F, 0x88, 0x16, 0x8D, 0x1A, 0x3B, 0xD6,
+    0x7F, 0x00, 0x88, 0x16, 0x8D, 0x1A, 0x3B, 0xD6, 0x00, 0x7F, 0x88, 0x16, 0x8D, 0x1A, 0x3B, 0xD6,
+    0x7F, 0x00, 0x88, 0x16, 0x8D, 0x1A, 0x3B, 0xD6, 0x00, 0x7F, 0x88, 0x16, 0x8D, 0x1A, 0x3B, 0xD6,
+]);
+
+var wtu = WebGLTestUtils;
+var ctu = CompressedTextureUtils;
+var contextVersion = wtu.getDefault3DContextVersion();
+var canvas = document.getElementById("canvas");
+var gl = wtu.create3DContext(canvas, {antialias: false});
+var program = wtu.setupTexturedQuad(gl);
+var ext = null;
+var ext_rgtc = {};
+var vao = null;
+var validFormats = {
+    COMPRESSED_RGB_S3TC_DXT1_EXT  : 0x83F0,
+    COMPRESSED_RGBA_S3TC_DXT1_EXT : 0x83F1,
+    COMPRESSED_RGBA_S3TC_DXT3_EXT : 0x83F2,
+    COMPRESSED_RGBA_S3TC_DXT5_EXT : 0x83F3,
+};
+var name;
+var supportedFormats;
+
+if (!gl) {
+    testFailed("WebGL context does not exist");
+} else {
+    testPassed("WebGL context exists");
+
+    // Run tests with extension disabled
+    ctu.testCompressedFormatsUnavailableWhenExtensionDisabled(gl, validFormats, expectedByteLength, 4);
+
+    // Query the extension and store globally so shouldBe can access it
+    ext = wtu.getExtensionWithKnownPrefixes(gl, "WEBGL_compressed_texture_s3tc");
+    if (!ext) {
+        testPassed("No WEBGL_compressed_texture_s3tc support -- this is legal");
+        wtu.runExtensionSupportedTest(gl, "WEBGL_compressed_texture_s3tc", false);
+    } else {
+        testPassed("Successfully enabled WEBGL_compressed_texture_s3tc extension");
+
+        wtu.runExtensionSupportedTest(gl, "WEBGL_compressed_texture_s3tc", true);
+        runTestExtension();
+    }
+    ext_rgtc = wtu.getExtensionWithKnownPrefixes(gl, "EXT_texture_compression_rgtc");
+    if (ext_rgtc) {
+        ext = ext || {};
+        // Make ctu.formatToString work for rgtc enums.
+        for (const name in ext_rgtc)
+            ext[name] = ext_rgtc[name];
+        runTestRGTC();
+    }
+}
+
+function expectedByteLength(width, height, format) {
+    if (format == validFormats.COMPRESSED_RGBA_S3TC_DXT3_EXT || format == validFormats.COMPRESSED_RGBA_S3TC_DXT5_EXT) {
+        return Math.floor((width + 3) / 4) * Math.floor((height + 3) / 4) * 16;
+    }
+    return Math.floor((width + 3) / 4) * Math.floor((height + 3) / 4) * 8;
+}
+
+function getBlockDimensions(format) {
+    return {width: 4, height: 4};
+}
+
+function runTestExtension() {
+    debug("");
+    debug("Testing WEBGL_compressed_texture_s3tc");
+
+    // Test that enum values are listed correctly in supported formats and in the extension object.
+    ctu.testCompressedFormatsListed(gl, validFormats);
+    ctu.testCorrectEnumValuesInExt(ext, validFormats);
+    // Test that texture upload buffer size is validated correctly.
+    ctu.testFormatRestrictionsOnBufferSize(gl, validFormats, expectedByteLength, getBlockDimensions);
+
+    // Test each format
+    testDXT1_RGB();
+    testDXT1_RGBA();
+    testDXT3_RGBA();
+    testDXT5_RGBA();
+
+    // Test compressed PBOs with a single format
+    if (contextVersion >= 2) {
+        testDXT5_RGBA_PBO();
+    }
+
+    // Test TexImage validation on level dimensions combinations.
+    debug("");
+    debug("When level equals 0, width and height must be a multiple of 4.");
+    debug("When level is larger than 0, this constraint doesn't apply.");
+    ctu.testTexImageLevelDimensions(gl, ext, validFormats, expectedByteLength, getBlockDimensions,
+      [
+        { level: 0, width: 4, height: 3, expectation: gl.INVALID_OPERATION, message: "0: 4x3" },
+        { level: 0, width: 3, height: 4, expectation: gl.INVALID_OPERATION, message: "0: 3x4" },
+        { level: 0, width: 2, height: 2, expectation: gl.INVALID_OPERATION, message: "0: 2x2" },
+        { level: 0, width: 4, height: 4, expectation: gl.NO_ERROR, message: "0: 4x4" },
+        { level: 1, width: 2, height: 2, expectation: gl.NO_ERROR, message: "1: 2x2" },
+        { level: 2, width: 1, height: 1, expectation: gl.NO_ERROR, message: "2: 1x1" },
+    ]);
+
+    ctu.testTexSubImageDimensions(gl, ext, validFormats, expectedByteLength, getBlockDimensions, 16, 16,
+      [
+        { xoffset: 0, yoffset: 0, width: 4, height: 3,
+          expectation: gl.INVALID_OPERATION, message: "height is not a multiple of 4" },
+        { xoffset: 0, yoffset: 0, width: 3, height: 4,
+          expectation: gl.INVALID_OPERATION, message: "width is not a multiple of 4" },
+        { xoffset: 1, yoffset: 0, width: 4, height: 4,
+          expectation: gl.INVALID_OPERATION, message: "xoffset is not a multiple of 4" },
+        { xoffset: 0, yoffset: 1, width: 4, height: 4,
+          expectation: gl.INVALID_OPERATION, message: "yoffset is not a multiple of 4" },
+        { xoffset: 12, yoffset: 12, width: 4, height: 4,
+          expectation: gl.NO_ERROR, message: "is valid" },
+    ]);
+
+    if (contextVersion >= 2) {
+        debug("");
+        debug("Testing NPOT textures");
+        ctu.testTexImageLevelDimensions(gl, ext, validFormats, expectedByteLength, getBlockDimensions,
+          [
+            { level: 0, width: 0, height: 0, expectation: gl.NO_ERROR, message: "0: 0x0 is valid" },
+            { level: 0, width: 1, height: 1, expectation: gl.INVALID_OPERATION, message: "0: 1x1 is invalid" },
+            { level: 0, width: 2, height: 2, expectation: gl.INVALID_OPERATION, message: "0: 2x2 is invalid" },
+            { level: 0, width: 3, height: 3, expectation: gl.INVALID_OPERATION, message: "0: 3x3 is invalid" },
+            { level: 0, width: 10, height: 10, expectation: gl.INVALID_OPERATION, message: "0: 10x10 is invalid" },
+            { level: 0, width: 11, height: 11, expectation: gl.INVALID_OPERATION, message: "0: 11x11 is invalid" },
+            { level: 0, width: 11, height: 12, expectation: gl.INVALID_OPERATION, message: "0: 11x12 is invalid" },
+            { level: 0, width: 12, height: 11, expectation: gl.INVALID_OPERATION, message: "0: 12x11 is invalid" },
+            { level: 0, width: 12, height: 12, expectation: gl.NO_ERROR, message: "0: 12x12 is valid" },
+            { level: 1, width:  0, height:  0, expectation: gl.NO_ERROR, message: "1: 0x0, is valid" },
+            { level: 1, width:  3, height:  3, expectation: gl.INVALID_OPERATION, message: "1: 3x3, is invalid" },
+            { level: 1, width:  5, height:  5, expectation: gl.INVALID_OPERATION, message: "1: 5x5, is invalid" },
+            { level: 1, width:  5, height:  6, expectation: gl.INVALID_OPERATION, message: "1: 5x6, is invalid" },
+            { level: 1, width:  6, height:  5, expectation: gl.INVALID_OPERATION, message: "1: 6x5, is invalid" },
+            { level: 1, width:  6, height:  6, expectation: gl.NO_ERROR, message: "1: 6x6, is valid" },
+            { level: 2, width:  0, height:  0, expectation: gl.NO_ERROR, message: "2: 0x0, is valid" },
+            { level: 2, width:  3, height:  3, expectation: gl.NO_ERROR, message: "2: 3x3, is valid" },
+            { level: 3, width:  1, height:  3, expectation: gl.NO_ERROR, message: "3: 1x3, is valid" },
+            { level: 3, width:  1, height:  1, expectation: gl.NO_ERROR, message: "3: 1x1, is valid" },
+        ]);
+
+        debug("");
+        debug("Testing partial updates");
+        ctu.testTexSubImageDimensions(gl, ext, validFormats, expectedByteLength, getBlockDimensions, 12, 12,
+        [
+          { xoffset: 0, yoffset: 0, width: 4, height: 3,
+            expectation: gl.INVALID_OPERATION, message: "height is not a multiple of 4" },
+          { xoffset: 0, yoffset: 0, width: 3, height: 4,
+            expectation: gl.INVALID_OPERATION, message: "width is not a multiple of 4" },
+          { xoffset: 1, yoffset: 0, width: 4, height: 4,
+            expectation: gl.INVALID_OPERATION, message: "xoffset is not a multiple of 4" },
+          { xoffset: 0, yoffset: 1, width: 4, height: 4,
+            expectation: gl.INVALID_OPERATION, message: "yoffset is not a multiple of 4" },
+          { xoffset: 8, yoffset: 8, width: 4, height: 4,
+            expectation: gl.NO_ERROR, message: "is valid" },
+        ]);
+
+        debug("");
+        debug("Testing immutable NPOT textures");
+        ctu.testTexStorageLevelDimensions(gl, ext, validFormats, expectedByteLength, getBlockDimensions,
+          [
+            { width: 12, height: 12, expectation: gl.NO_ERROR, message: "0: 12x12 is valid" },
+            { width:  6, height:  6, expectation: gl.NO_ERROR, message: "1: 6x6, is valid" },
+            { width:  3, height:  3, expectation: gl.NO_ERROR, message: "2: 3x3, is valid" },
+            { width:  1, height:  1, expectation: gl.NO_ERROR, message: "3: 1x1, is valid" },
+        ]);
+    }
+}
+
+function runTestRGTC() {
+    var tests = [
+        {   width: 4,
+            height: 4,
+            channels: 1,
+            data: img_4x4_r_bc4,
+            format: ext_rgtc.COMPRESSED_RED_RGTC1_EXT,
+            hasAlpha: false,
+        },
+        {   width: 4,
+            height: 4,
+            channels: 1,
+            data: img_4x4_signed_r_bc4,
+            format: ext_rgtc.COMPRESSED_SIGNED_RED_RGTC1_EXT,
+            hasAlpha: false,
+        },
+        {   width: 4,
+            height: 4,
+            channels: 2,
+            data: img_4x4_rg_bc5,
+            format: ext_rgtc.COMPRESSED_RED_GREEN_RGTC2_EXT,
+            hasAlpha: false,
+        },
+        {   width: 4,
+            height: 4,
+            channels: 2,
+            data: img_4x4_signed_rg_bc5,
+            format: ext_rgtc.COMPRESSED_SIGNED_RED_GREEN_RGTC2_EXT,
+            hasAlpha: false,
+            error: 18, // Signed, so twice the normal error.
+                       // Experimentally needed by e.g. RTX 3070.
+        },
+        {   width: 8,
+            height: 8,
+            channels: 2,
+            data: img_8x8_r_bc4,
+            format: ext_rgtc.COMPRESSED_RED_RGTC1_EXT,
+            hasAlpha: false,
+            subX0: 0,
+            subY0: 0,
+            subWidth: 4,
+            subHeight: 4,
+            subData: img_4x4_r_bc4,
+        },
+        {   width: 8,
+            height: 8,
+            channels: 2,
+            data: img_8x8_rg_bc5,
+            format: ext_rgtc.COMPRESSED_RED_GREEN_RGTC2_EXT,
+            hasAlpha: false,
+            subX0: 0,
+            subY0: 0,
+            subWidth: 4,
+            subHeight: 4,
+            subData: img_4x4_rg_bc5,
+        },
+    ];
+    testDXTTextures(tests);
+}
+
+function testDXT1_RGB() {
+    var tests = [
+        {   width: 4,
+            height: 4,
+            channels: 3,
+            data: img_4x4_rgba_dxt1,
+            format: ext.COMPRESSED_RGB_S3TC_DXT1_EXT,
+            hasAlpha: false,
+        },
+        {   width: 8,
+            height: 8,
+            channels: 3,
+            data: img_8x8_rgba_dxt1,
+            format: ext.COMPRESSED_RGB_S3TC_DXT1_EXT,
+            hasAlpha: false,
+            subX0: 0,
+            subY0: 0,
+            subWidth: 4,
+            subHeight: 4,
+            subData: img_4x4_rgba_dxt1
+        }
+    ];
+    testDXTTextures(tests);
+}
+
+function testDXT1_RGBA() {
+    var tests = [
+        {   width: 4,
+            height: 4,
+            channels: 4,
+            data: img_4x4_rgba_dxt1,
+            format: ext.COMPRESSED_RGBA_S3TC_DXT1_EXT,
+            // This is a special case -- the texture is still opaque
+            // though it's RGBA.
+            hasAlpha: false,
+        },
+        {   width: 8,
+            height: 8,
+            channels: 4,
+            data: img_8x8_rgba_dxt1,
+            format: ext.COMPRESSED_RGBA_S3TC_DXT1_EXT,
+            // This is a special case -- the texture is still opaque
+            // though it's RGBA.
+            hasAlpha: false,
+        }
+    ];
+    testDXTTextures(tests);
+}
+
+function testDXT3_RGBA() {
+    var tests = [
+        {   width: 4,
+            height: 4,
+            channels: 4,
+            data: img_4x4_rgba_dxt3,
+            format: ext.COMPRESSED_RGBA_S3TC_DXT3_EXT,
+            hasAlpha: true,
+        },
+        {   width: 8,
+            height: 8,
+            channels: 4,
+            data: img_8x8_rgba_dxt3,
+            format: ext.COMPRESSED_RGBA_S3TC_DXT3_EXT,
+            hasAlpha: true,
+            subX0: 0,
+            subY0: 0,
+            subWidth: 4,
+            subHeight: 4,
+            subData: img_4x4_rgba_dxt3
+        }
+    ];
+    testDXTTextures(tests);
+}
+
+function testDXT5_RGBA() {
+    var tests = [
+        {   width: 4,
+            height: 4,
+            channels: 4,
+            data: img_4x4_rgba_dxt5,
+            format: ext.COMPRESSED_RGBA_S3TC_DXT5_EXT,
+            hasAlpha: true,
+        },
+        {   width: 8,
+            height: 8,
+            channels: 4,
+            data: img_8x8_rgba_dxt5,
+            format: ext.COMPRESSED_RGBA_S3TC_DXT5_EXT,
+            hasAlpha: true,
+            subX0: 0,
+            subY0: 0,
+            subWidth: 4,
+            subHeight: 4,
+            subData: img_4x4_rgba_dxt5
+        }
+    ];
+    testDXTTextures(tests);
+}
+
+function testDXTTextures(tests) {
+    debug("<hr/>");
+    for (var ii = 0; ii < tests.length; ++ii) {
+        testDXTTexture(tests[ii], false);
+        if (contextVersion >= 2) {
+            debug("<br/>");
+            testDXTTexture(tests[ii], true);
+        }
+    }
+}
+
+function uncompressDXTBlock(
+    destBuffer, destX, destY, destWidth, src, srcOffset, format) {
+    // Decoding routines follow D3D11 functional spec wrt
+    // endpoints unquantization and interpolation.
+    // Some hardware may produce slightly different values - it's normal.
+
+    function make565(src, offset) {
+        return src[offset + 0] + (src[offset + 1] << 8);
+    }
+    function make8888From565(c) {
+        // These values exactly match hw decoder when selectors are 0 or 1.
+        function replicateBits(v, w) {
+           return (v << (8 - w)) | (v >> (w + w - 8));
+        }
+        return [
+                replicateBits((c >> 11) & 0x1F, 5),
+                replicateBits((c >>  5) & 0x3F, 6),
+                replicateBits((c >>  0) & 0x1F, 5),
+                255
+            ];
+    }
+    function mix(mult, c0, c1, div) {
+        var r = [];
+        for (var ii = 0; ii < c0.length; ++ii) {
+            // For green channel (6 bits), this interpolation exactly matches hw decoders
+
+            // For red and blue channels (5 bits), this interpolation exactly
+            // matches only some hw decoders and stays within acceptable range for others.
+            r[ii] = Math.floor((c0[ii] * mult + c1[ii]) / div + 0.5);
+        }
+        return r;
+    }
+    var isBC45 = ext_rgtc &&
+        (format == ext_rgtc.COMPRESSED_RED_RGTC1_EXT ||
+         format == ext_rgtc.COMPRESSED_RED_GREEN_RGTC2_EXT ||
+         format == ext_rgtc.COMPRESSED_SIGNED_RED_RGTC1_EXT ||
+         format == ext_rgtc.COMPRESSED_SIGNED_RED_GREEN_RGTC2_EXT);
+    let colorOffset = srcOffset;
+    if (!isBC45) {
+        var isDXT1 = format == ext.COMPRESSED_RGB_S3TC_DXT1_EXT ||
+                     format == ext.COMPRESSED_RGBA_S3TC_DXT1_EXT;
+        if (!isDXT1) {
+            colorOffset += 8;
+        }
+        var color0 = make565(src, colorOffset + 0);
+        var color1 = make565(src, colorOffset + 2);
+        var c0gtc1 = color0 > color1 || !isDXT1;
+        var rgba0 = make8888From565(color0);
+        var rgba1 = make8888From565(color1);
+        var colors = [
+                rgba0,
+                rgba1,
+                c0gtc1 ? mix(2, rgba0, rgba1, 3) : mix(1, rgba0, rgba1, 2),
+                c0gtc1 ? mix(2, rgba1, rgba0, 3) : [0, 0, 0, 255]
+            ];
+    }
+    const isSigned = ext_rgtc && (format == ext_rgtc.COMPRESSED_SIGNED_RED_RGTC1_EXT || format == ext_rgtc.COMPRESSED_SIGNED_RED_GREEN_RGTC2_EXT);
+    const signedSrc = new Int8Array(src);
+
+    // yea I know there is a lot of math in this inner loop.
+    // so sue me.
+    for (var yy = 0; yy < 4; ++yy) {
+        var pixels = src[colorOffset + 4 + yy];
+        for (var xx = 0; xx < 4; ++xx) {
+            var dstOff = ((destY + yy) * destWidth + destX + xx) * 4;
+            if (!isBC45) {
+                var code = (pixels >> (xx * 2)) & 0x3;
+                var srcColor = colors[code];
+            }
+            var alpha;
+            var rgChannel2 = 0;
+            let decodeAlpha = (offset) => {
+                let alpha;
+                var alpha0 = (isSigned ? signedSrc : src)[offset + 0];
+                var alpha1 = (isSigned ? signedSrc : src)[offset + 1];
+                var alphaOff = (yy >> 1) * 3 + 2;
+                var alphaBits =
+                     src[offset + alphaOff + 0] +
+                     src[offset + alphaOff + 1] * 256 +
+                     src[offset + alphaOff + 2] * 65536;
+                var alphaShift = (yy % 2) * 12 + xx * 3;
+                var alphaCode = (alphaBits >> alphaShift) & 0x7;
+                if (alpha0 > alpha1) {
+                    switch (alphaCode) {
+                    case 0:
+                        alpha = alpha0;
+                        break;
+                    case 1:
+                        alpha = alpha1;
+                        break;
+                    default:
+                        alpha = Math.floor(((8 - alphaCode) * alpha0 + (alphaCode - 1) * alpha1) / 7.0 + 0.5);
+                        break;
+                    }
+                } else {
+                    switch (alphaCode) {
+                    case 0:
+                        alpha = alpha0;
+                        break;
+                    case 1:
+                        alpha = alpha1;
+                        break;
+                    case 6:
+                        alpha = 0;
+                        break;
+                    case 7:
+                        alpha = 255;
+                        break;
+                    default:
+                        alpha = Math.floor(((6 - alphaCode) * alpha0 + (alphaCode - 1) * alpha1) / 5.0 + 0.5);
+                        break;
+                    }
+                }
+                return alpha;
+            }
+
+            switch (format) {
+            case ext.COMPRESSED_RGB_S3TC_DXT1_EXT:
+                alpha = 255;
+                break;
+            case ext.COMPRESSED_RGBA_S3TC_DXT1_EXT:
+                alpha = (code == 3 && !c0gtc1) ? 0 : 255;
+                break;
+            case ext.COMPRESSED_RGBA_S3TC_DXT3_EXT:
+                {
+                    var alpha0 = src[srcOffset + yy * 2 + (xx >> 1)];
+                    var alpha1 = (alpha0 >> ((xx % 2) * 4)) & 0xF;
+                    alpha = alpha1 | (alpha1 << 4);
+                }
+                break;
+            case ext_rgtc.COMPRESSED_RED_GREEN_RGTC2_EXT:
+            case ext_rgtc.COMPRESSED_SIGNED_RED_GREEN_RGTC2_EXT:
+                rgChannel2 = decodeAlpha(srcOffset + 8);
+                // FALLTHROUGH
+            case ext.COMPRESSED_RGBA_S3TC_DXT5_EXT:
+            case ext_rgtc.COMPRESSED_RED_RGTC1_EXT:
+            case ext_rgtc.COMPRESSED_SIGNED_RED_RGTC1_EXT:
+                alpha = decodeAlpha(srcOffset);
+                break;
+            default:
+                throw "bad format";
+            }
+            if (isBC45) {
+                destBuffer[dstOff + 0] = alpha;
+                destBuffer[dstOff + 1] = rgChannel2;
+                destBuffer[dstOff + 2] = 0;
+                destBuffer[dstOff + 3] = 255;
+                if (isSigned) {
+                    destBuffer[dstOff + 0] = Math.max(0, alpha) * 2;
+                    destBuffer[dstOff + 1] = Math.max(0, rgChannel2) * 2;
+                }
+            } else {
+                destBuffer[dstOff + 0] = srcColor[0];
+                destBuffer[dstOff + 1] = srcColor[1];
+                destBuffer[dstOff + 2] = srcColor[2];
+                destBuffer[dstOff + 3] = alpha;
+            }
+        }
+    }
+}
+
+function getBlockSize(format) {
+  var isDXT1 = format == ext.COMPRESSED_RGB_S3TC_DXT1_EXT ||
+               format == ext.COMPRESSED_RGBA_S3TC_DXT1_EXT;
+  var isBC4 = ext_rgtc && (format == ext_rgtc.COMPRESSED_RED_RGTC1_EXT || format == ext_rgtc.COMPRESSED_SIGNED_RED_RGTC1_EXT);
+  return isDXT1 || isBC4 ? 8 : 16;
+}
+
+function uncompressDXT(width, height, data, format) {
+    if (width % 4 || height % 4) throw "bad width or height";
+
+    var dest = new Uint8Array(width * height * 4);
+    var blocksAcross = width / 4;
+    var blocksDown = height / 4;
+    var blockSize = getBlockSize(format);
+    for (var yy = 0; yy < blocksDown; ++yy) {
+        for (var xx = 0; xx < blocksAcross; ++xx) {
+            uncompressDXTBlock(
+                dest, xx * 4, yy * 4, width, data,
+                (yy * blocksAcross + xx) * blockSize, format);
+        }
+    }
+    return dest;
+}
+
+function uncompressDXTIntoSubRegion(width, height, subX0, subY0, subWidth, subHeight, data, format)
+{
+    if (width % 4 || height % 4 || subX0 % 4 || subY0 % 4 || subWidth % 4 || subHeight % 4)
+        throw "bad dimension";
+
+    var dest = new Uint8Array(width * height * 4);
+    // Zero-filled DXT1 or BC4/5 texture represents [0, 0, 0, 255]
+    if (format == ext.COMPRESSED_RGB_S3TC_DXT1_EXT || format == ext.COMPRESSED_RGBA_S3TC_DXT1_EXT ||
+        format == ext.COMPRESSED_RED_RGTC1_EXT || format == ext.COMPRESSED_SIGNED_RED_RGTC1_EXT ||
+        format == ext.COMPRESSED_RED_GREEN_RGTC2_EXT || format == ext.COMPRESSED_SIGNED_RED_GREEN_RGTC2_EXT) {
+        for (var i = 3; i < dest.length; i += 4) dest[i] = 255;
+    }
+    var blocksAcross = subWidth / 4;
+    var blocksDown = subHeight / 4;
+    var blockSize = getBlockSize(format);
+    for (var yy = 0; yy < blocksDown; ++yy) {
+        for (var xx = 0; xx < blocksAcross; ++xx) {
+            uncompressDXTBlock(
+                dest, subX0 + xx * 4, subY0 + yy * 4, width, data,
+                (yy * blocksAcross + xx) * blockSize, format);
+        }
+    }
+    return dest;
+}
+
+function copyRect(data, srcX, srcY, dstX, dstY, width, height, stride) {
+  var bytesPerLine = width * 4;
+  var srcOffset = srcX * 4 + srcY * stride;
+  var dstOffset = dstX * 4 + dstY * stride;
+  for (; height > 0; --height) {
+    for (var ii = 0; ii < bytesPerLine; ++ii) {
+      data[dstOffset + ii] = data[srcOffset + ii];
+    }
+    srcOffset += stride;
+    dstOffset += stride;
+  }
+}
+
+function testDXTTexture(test, useTexStorage) {
+    test.error = test.error || DEFAULT_COLOR_ERROR;
+
+    var data = new Uint8Array(test.data);
+    var width = test.width;
+    var height = test.height;
+    var format = test.format;
+
+    var uncompressedData = uncompressDXT(width, height, data, format);
+
+    canvas.width = width;
+    canvas.height = height;
+    gl.viewport(0, 0, width, height);
+    debug("testing " + ctu.formatToString(ext, format) + " " + width + "x" + height +
+          (useTexStorage ? " via texStorage2D" : " via compressedTexImage2D"));
+
+    var tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    if (useTexStorage) {
+        if (test.subData) {
+            var uncompressedDataSub = uncompressDXTIntoSubRegion(
+                width, height, test.subX0, test.subY0, test.subWidth, test.subHeight, test.subData, format);
+            var tex1 = gl.createTexture();
+            gl.bindTexture(gl.TEXTURE_2D, tex1);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+            gl.texStorage2D(gl.TEXTURE_2D, 1, format, width, height);
+            wtu.glErrorShouldBe(gl, gl.NO_ERROR, "allocating compressed texture via texStorage2D");
+            gl.compressedTexSubImage2D(
+                gl.TEXTURE_2D, 0, test.subX0, test.subY0, test.subWidth, test.subHeight, format, test.subData);
+            wtu.glErrorShouldBe(gl, gl.NO_ERROR, "uploading compressed texture data via compressedTexSubImage2D");
+
+            wtu.clearAndDrawUnitQuad(gl);
+            wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawing unit quad 1");
+            compareRect(width, height, test.channels, uncompressedDataSub, "NEAREST", test.error);
+
+            // Clean up and recover
+            gl.deleteTexture(tex1);
+            gl.bindTexture(gl.TEXTURE_2D, tex);
+        }
+
+        gl.texStorage2D(gl.TEXTURE_2D, 1, format, width, height);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "allocating compressed texture via texStorage2D");
+        wtu.clearAndDrawUnitQuad(gl);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawing unit quad");
+        var clearColor = (test.hasAlpha ? [0, 0, 0, 0] : [0, 0, 0, 255]);
+        wtu.checkCanvas(gl, clearColor, "texture should be initialized to black");
+        gl.compressedTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, width, height, format, data);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "uploading compressed texture data via compressedTexSubImage2D");
+    } else {
+        gl.compressedTexImage2D(gl.TEXTURE_2D, 0, format, width, height, 0, data);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "uploading compressed texture");
+    }
+    gl.generateMipmap(gl.TEXTURE_2D);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "trying to generate mipmaps from compressed texture");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "after clearing generateMipmap error");
+    wtu.clearAndDrawUnitQuad(gl);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawing unit quad 1");
+    compareRect(width, height, test.channels, uncompressedData, "NEAREST", test.error);
+    // Test again with linear filtering.
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    wtu.clearAndDrawUnitQuad(gl);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawing unit quad 2");
+    compareRect(width, height, test.channels, uncompressedData, "LINEAR", test.error);
+
+    if (!useTexStorage) {
+        // It's not allowed to redefine textures defined via texStorage2D.
+        gl.compressedTexImage2D(gl.TEXTURE_2D, 0, format, width, height, 1, data);
+        wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "non 0 border");
+
+        gl.compressedTexImage2D(gl.TEXTURE_2D, 0, format, width + 4, height, 0, data);
+        wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "data size does not match dimensions");
+        gl.compressedTexImage2D(gl.TEXTURE_2D, 0, format, width, height + 4, 0, data);
+        wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "data size does not match dimensions");
+        gl.compressedTexImage2D(gl.TEXTURE_2D, 0, format, width - 4, height, 0, data);
+        wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "data size does not match dimensions");
+        gl.compressedTexImage2D(gl.TEXTURE_2D, 0, format, width, height - 4, 0, data);
+        wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "data size does not match dimensions");
+
+        gl.compressedTexImage2D(gl.TEXTURE_2D, 0, format, width - 1, height, 0, data);
+        wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "invalid dimensions");
+        gl.compressedTexImage2D(gl.TEXTURE_2D, 0, format, width - 2, height, 0, data);
+        wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "invalid dimensions");
+        gl.compressedTexImage2D(gl.TEXTURE_2D, 0, format, width, height - 1, 0, data);
+        wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "invalid dimensions");
+        gl.compressedTexImage2D(gl.TEXTURE_2D, 0, format, width, height - 2, 0, data);
+        wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "invalid dimensions");
+
+        if (width == 4) {
+            // The width/height of the implied base level must be a multiple of the block size.
+            gl.compressedTexImage2D(gl.TEXTURE_2D, 1, format, 1, height, 0, data);
+            wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "invalid dimensions for level > 0");
+            gl.compressedTexImage2D(gl.TEXTURE_2D, 1, format, 2, height, 0, data);
+            wtu.glErrorShouldBe(gl, gl.NO_ERROR, "valid dimensions for level > 0");
+        }
+        if (height == 4) {
+            // The width/height of the implied base level must be a multiple of the block size.
+            gl.compressedTexImage2D(gl.TEXTURE_2D, 1, format, width, 1, 0, data);
+            wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "invalid dimensions for level > 0");
+            gl.compressedTexImage2D(gl.TEXTURE_2D, 1, format, width, 2, 0, data);
+            wtu.glErrorShouldBe(gl, gl.NO_ERROR, "valid dimensions for level > 0");
+        }
+    }
+
+    // pick a wrong format that uses the same amount of data.
+    var wrongFormat;
+    switch (format) {
+    case ext.COMPRESSED_RGB_S3TC_DXT1_EXT:
+      wrongFormat = ext.COMPRESSED_RGBA_S3TC_DXT1_EXT;
+      break;
+    case ext.COMPRESSED_RGBA_S3TC_DXT1_EXT:
+      wrongFormat = ext.COMPRESSED_RGB_S3TC_DXT1_EXT;
+      break;
+    case ext.COMPRESSED_RGBA_S3TC_DXT3_EXT:
+      wrongFormat = ext.COMPRESSED_RGBA_S3TC_DXT5_EXT;
+      break;
+    case ext.COMPRESSED_RGBA_S3TC_DXT5_EXT:
+      wrongFormat = ext.COMPRESSED_RGBA_S3TC_DXT3_EXT;
+      break;
+    case ext_rgtc.COMPRESSED_RED_RGTC1_EXT:
+    case ext_rgtc.COMPRESSED_SIGNED_RED_RGTC1_EXT:
+      wrongFormat = ext_rgtc.COMPRESSED_RED_GREEN_RGTC2_EXT;
+      break;
+    case ext_rgtc.COMPRESSED_RED_GREEN_RGTC2_EXT:
+    case ext_rgtc.COMPRESSED_SIGNED_RED_GREEN_RGTC2_EXT:
+      wrongFormat = ext_rgtc.COMPRESSED_RED_RGTC1_EXT;
+      break;
+    }
+
+    gl.compressedTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, width, height, wrongFormat, data);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "format does not match");
+
+    gl.compressedTexSubImage2D(gl.TEXTURE_2D, 0, 4, 0, width, height, format, data);
+    wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "dimension out of range");
+    gl.compressedTexSubImage2D(gl.TEXTURE_2D, 0, 0, 4, width, height, format, data);
+    wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "dimension out of range");
+
+    gl.compressedTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, width + 4, height, format, data);
+    wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "data size does not match dimensions");
+    gl.compressedTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, width, height + 4, format, data);
+    wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "data size does not match dimensions");
+    gl.compressedTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, width - 4, height, format, data);
+    wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "data size does not match dimensions");
+    gl.compressedTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, width, height - 4, format, data);
+    wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "data size does not match dimensions");
+
+    gl.compressedTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, width - 1, height, format, data);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "invalid dimensions");
+    gl.compressedTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, width - 2, height, format, data);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "invalid dimensions");
+    gl.compressedTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, width, height - 1, format, data);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "invalid dimensions");
+    gl.compressedTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, width, height - 2, format, data);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "invalid dimensions");
+
+    var subData = new Uint8Array(data.buffer, 0, getBlockSize(format));
+
+    if (width == 8 && height == 8) {
+        gl.compressedTexSubImage2D(gl.TEXTURE_2D, 0, 1, 0, 4, 4, format, subData);
+        wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "invalid offset");
+        gl.compressedTexSubImage2D(gl.TEXTURE_2D, 0, 0, 1, 4, 4, format, subData);
+        wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "invalid offset");
+    }
+
+    var stride = width * 4;
+    for (var yoff = 0; yoff < height; yoff += 4) {
+        for (var xoff = 0; xoff < width; xoff += 4) {
+            copyRect(uncompressedData, 0, 0, xoff, yoff, 4, 4, stride);
+            gl.compressedTexSubImage2D(gl.TEXTURE_2D, 0, xoff, yoff, 4, 4, format, subData);
+            wtu.glErrorShouldBe(gl, gl.NO_ERROR, "uploading compressed texture");
+            // First test NEAREST filtering.
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+            wtu.clearAndDrawUnitQuad(gl);
+            compareRect(width, height, test.channels, uncompressedData, "NEAREST", test.error);
+            wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawing unit quad");
+            // Next test LINEAR filtering.
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            wtu.clearAndDrawUnitQuad(gl);
+            wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawing unit quad");
+            compareRect(width, height, test.channels, uncompressedData, "LINEAR", test.error);
+        }
+    }
+}
+
+function testDXT5_RGBA_PBO() {
+    debug("");
+    debug("testing PBO uploads");
+    var width = 8;
+    var height = 8;
+    var channels = 4;
+    var data = img_8x8_rgba_dxt5;
+    var format = ext.COMPRESSED_RGBA_S3TC_DXT5_EXT;
+    var uncompressedData = uncompressDXT(width, height, data, format);
+
+    var tex = gl.createTexture();
+
+    // First, PBO size = image size
+    var pbo1 = gl.createBuffer();
+    gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, pbo1);
+    gl.bufferData(gl.PIXEL_UNPACK_BUFFER, data, gl.STATIC_DRAW);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "uploading a PBO");
+
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texStorage2D(gl.TEXTURE_2D, 1, format, width, height);
+    gl.compressedTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, width, height, format, data.length, 0);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "uploading a texture from a PBO");
+
+    gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, null);
+    wtu.clearAndDrawUnitQuad(gl);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawing unit quad");
+    compareRect(width, height, channels, uncompressedData, "NEAREST", DEFAULT_COLOR_ERROR);
+
+    // Clear the texture before the next test
+    gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, null);
+    gl.compressedTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, width, height, format, new Uint8Array(data.length));
+
+    // Second, image is just a subrange of the PBO
+    var pbo2 = gl.createBuffer();
+    gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, pbo2);
+    gl.bufferData(gl.PIXEL_UNPACK_BUFFER, data.length*3, gl.STATIC_DRAW);
+    gl.bufferSubData(gl.PIXEL_UNPACK_BUFFER, data.length, data);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "uploading a PBO subrange");
+    gl.compressedTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, width, height, format, data.length, data.length);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "uploading a texture from a PBO subrange");
+    gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, null);
+    wtu.clearAndDrawUnitQuad(gl);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawing unit quad");
+    compareRect(width, height, channels, uncompressedData, "NEAREST", DEFAULT_COLOR_ERROR);
+}
+
+function compareRect(width, height, channels, expectedData, filteringMode, colorError) {
+    var actual = new Uint8Array(width * height * 4);
+    gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, actual);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "reading back pixels");
+
+    var failed = false;
+    for (var yy = 0; yy < height; ++yy) {
+        for (var xx = 0; xx < width; ++xx) {
+            var offset = (yy * width + xx) * 4;
+            var expected = expectedData.slice(offset, offset + 4);
+            const was = actual.slice(offset, offset + 4);
+
+            // Compare RGB values
+            for (var jj = 0; jj < 3; ++jj) {
+                if (Math.abs(was[jj] - expected[jj]) > colorError) {
+                    failed = true;
+                    testFailed(`RGB at (${xx}, ${yy}) expected: ${expected}` +
+                               ` +/- ${colorError}, was ${was}`);
+                    break;
+                }
+            }
+
+            if (channels == 3) {
+                // BC1 RGB is allowed to be mapped to BC1 RGBA.
+                // In such a case, 3-color mode black value can be transparent:
+                // [0, 0, 0, 0] instead of [0, 0, 0, 255].
+
+                if (actual[offset + 3] != expected[3]) {
+                    // Got non-opaque value for opaque format
+
+                    // Check RGB values. Notice, that the condition here
+                    // is more permissive than needed since we don't have
+                    // compressed data at this point.
+                    if (was[0] == 0 &&
+                        was[1] == 0 &&
+                        was[2] == 0 &&
+                        was[3] == 0) {
+                            debug("<b>DXT1 RGB is mapped to DXT1 RGBA</b>");
+                    } else {
+                        failed = true;
+                        testFailed('Alpha at (' + xx + ', ' + yy +
+                                              ') expected: ' + expected[3] + ' was ' + was);
+                    }
+                }
+            } else {
+                // Compare Alpha values
+                // Acceptable interpolation error depends on endpoints:
+                // 1.0 / 65535.0 + 0.03 * max(abs(endpoint0 - endpoint1), abs(endpoint0_p - endpoint1_p))
+                // For simplicity, assume the worst case (e0 is 0.0, e1 is 1.0). After conversion to unorm8, it is 8.
+                if (Math.abs(was[3] - expected[3]) > 8) {
+                    failed = true;
+                    testFailed('Alpha at (' + xx + ', ' + yy +
+                                          ') expected: ' + expected + ' +/- 8 was ' + was);
+                }
+            }
+        }
+    }
+    if (!failed) {
+        testPassed("texture rendered correctly with " + filteringMode + " filtering");
+    }
+}
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

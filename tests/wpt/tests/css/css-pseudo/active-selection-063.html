@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Pseudo-Elements Test: active selection and consecutive preserved &amp;Tab;</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-pseudo-4/#highlight-selectors">
+  <link rel="help" href="https://www.w3.org/TR/css-text-3/#tab-size-property">
+  <link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+
+  <meta name="assert" content="In this test, tab characters are preserved and converted into 4 consecutive blank spaces. The background of such blank spaces can be painted. The lines are broken after each tab character since 'white-space: pre' preserves line breaks.">
+
+  <style>
+  div
+    {
+      background-color: red;
+      color: red;
+      float: left; /* or display: inline-block or position: absolute or width: 4em */
+      font-family: Ahem;
+      font-size: 25px;
+      line-height: 1;
+      /* -moz-tab-size: 4; */
+      /*
+      Implement 'tab-size' (dropping the -moz- prefix)
+      https://bugzilla.mozilla.org/show_bug.cgi?id=737785
+      */
+      tab-size: 4;
+      white-space: pre;
+    }
+
+  div::selection
+    {
+      background-color: green;
+    }
+  </style>
+
+  <script>
+  function startTest()
+  {
+  var targetRange = document.createRange();
+  /* We first create an empty range */
+  targetRange.selectNodeContents(document.getElementById("test"));
+  /* Then we set the range boundaries to the children of div#test */
+  window.getSelection().addRange(targetRange);
+  /* Finally, we now select such range of content */
+  }
+  </script>
+
+  <body onload="startTest();">
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.
+
+  <div id="test">&Tab;
+&Tab;
+&Tab;
+&Tab;</div>

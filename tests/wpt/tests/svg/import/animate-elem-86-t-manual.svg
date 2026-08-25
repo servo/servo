@@ -1,0 +1,92 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="[empty]" author="ED" status="created"
+    version="$Revision: 1.5 $" testname="$RCSfile: animate-elem-86-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/animate.html#Animation">
+        <p>
+          [[Describe which section and what specific assertion is being tested
+          by the test. If the test has a number of sub tests, multiple
+          "testComponent" elements can be specified within the "testDescription"
+          element.]]
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        This tests performs tests on fill="freeze" values.
+      </p>
+      <p>
+        Currently, this test does not claim to show correct
+        behaviour in SVG 1.1. The reason is only to show the
+        difference between current viewers at this point.
+      </p>
+      <p>
+        When the correct behaviour has been defined, this test
+        can be adjusted to reflect that.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        [[Describe the pass criteria of the test here. The pass criteria is what
+        should be displayed when the test is run.]]
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: animate-elem-86-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <text text-anchor="middle" x="240" y="30" font-size="20">fill="freeze" with discrete calcMode</text>
+
+    <g transform="translate(100, 100)">
+      <g transform="translate(80,25)" text-anchor="end" font-size="14">
+        <text>discrete</text>
+      </g>
+
+      <g id="timeMarkersText" transform="translate(150, 5)" text-anchor="middle" font-size="14">
+        <text>&gt; 2s</text>
+        <text x="80">0s-2s</text>
+      </g>
+
+      <g transform="translate(150,20)" stroke="black">
+        <defs>
+          <rect id="shadow" x="-6" y="-6" width="12" height="12" fill="#ccc" stroke="black" stroke-width="1"/>
+        </defs>
+
+        <g id="setOne">
+          <use xlink:href="#shadow" x="0"/>
+          <use xlink:href="#shadow" x="80"/>
+
+          <rect x="-6" y="-6" width="12" height="12" fill="rgb(204,0,102)">
+            <animate id="firstSet" calcMode="discrete" attributeName="x" values="74;-6" dur="4s" end="2s" fill="freeze"/>
+          </rect>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.5 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+</svg>

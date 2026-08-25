@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<title>Move the fullscreen element to another document</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../trusted-click.js"></script>
+<div></div>
+<iframe></iframe>
+<script>
+  promise_test(async (t) => {
+    t.add_cleanup(() => {
+      if (document.fullscreenElement) {
+        return document.exitFullscreen();
+      }
+    });
+    const div = document.querySelector("div");
+    const iframe = document.querySelector("iframe");
+    const [, event] = await Promise.all([
+      trusted_request(div),
+      fullScreenChange(),
+    ]);
+
+    assert_equals(document.fullscreenElement, div);
+    assert_equals(event.target, div);
+
+    assert_equals(div.ownerDocument, document);
+    iframe.contentDocument.body.appendChild(div);
+    assert_not_equals(div.ownerDocument, document);
+    // Moving /div/ removes it from the top layer and thus the fullscreen
+    // element synchronously becomes null.
+    assert_equals(document.fullscreenElement, null);
+
+    div.onfullscreenchange = t.unreached_func(
+      "fullscreenchange fired on element"
+    );
+    iframe.contentDocument.onfullscreenchange = t.unreached_func(
+      "fullscreenchange fired on other document"
+    );
+    const secondEvent = await fullScreenChange();
+    assert_equals(document.fullscreenElement, null);
+    assert_equals(secondEvent.target, document);
+  });
+</script>

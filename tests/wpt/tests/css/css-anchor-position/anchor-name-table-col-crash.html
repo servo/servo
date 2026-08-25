@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<link rel="help" href="https://bugzil.la/1998440">
+<style>
+    * {
+        contain-intrinsic-size: auto none !important;
+        anchor-name: --anchor-name_0;
+    }
+</style>
+<script>
+  window.addEventListener("load", async () => {
+    const body = document.getElementById("id_3")
+    const table = document.createElement("table")
+    const tr = document.createElement("tr")
+    table.appendChild(tr)
+    const col = document.createElement("col")
+    table.appendChild(col)
+    body.appendChild(table)
+  })
+</script>
+<body id="id_3">
+<ol></ol>
+</body>

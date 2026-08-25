@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<!--
+[%provenance%]
+-->
+<html lang="en">
+  <meta charset="utf-8">
+  <title>HTTP headers on request using the "fetch" API</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/fetch/metadata/resources/helper.sub.js"></script>
+  <body>
+  <script>
+  'use strict';
+
+  function induceRequest(url, init) {
+    return fetch(url, init);
+  }
+
+  {%- for subtest in subtests %}
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+
+    return induceRequest(
+        makeRequestURL(key, [% subtest.origins %]),
+        [%subtest.init | default({}) | tojson%]
+      )
+      .then(() => retrieve(key))
+      .then((headers) => {
+        {%- if subtest.expected == none %}
+          assert_not_own_property(headers, '[%subtest.headerName%]');
+        {%- else %}
+          assert_own_property(headers, '[%subtest.headerName%]');
+          assert_array_equals(headers['[%subtest.headerName%]'], ['[%subtest.expected%]']);
+        {%- endif %}
+        });
+  }, '[%subtest.headerName%] - [%subtest.description | pad("end", ", ")%][%subtest.init | collection("init")%]');
+
+  {%- endfor %}
+  </script>
+  </body>
+</html>

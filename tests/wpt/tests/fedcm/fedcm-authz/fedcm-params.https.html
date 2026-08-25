@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API network request tests.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+
+<script type="module">
+import {fedcm_test,
+        request_options_with_mediation_required,
+        fedcm_get_and_select_first_account} from '../support/fedcm-helper.sub.js';
+
+fedcm_test(async t => {
+  let param = { get foo() { throw "error"; } };
+  let options = request_options_with_mediation_required();
+  options.identity.providers[0].params = param;
+  try {
+    await navigator.credentials.get(options);
+    assert_unreached("The getter exception should have been passed through");
+  } catch (ex) {
+    assert_equals(ex, "error");
+  }
+}, "If a getter in a custom parameter object throws an exception, it should get passed through");
+
+fedcm_test(async t => {
+  let param = { "a string": "a value" };
+  let options = request_options_with_mediation_required("manifest_check_params.json");
+  options.identity.providers[0].params = param;
+  const cred = await fedcm_get_and_select_first_account(t, options);
+  assert_equals(cred.token, "token");
+}, "Parameters should be sent to the server correctly");
+
+</script>

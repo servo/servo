@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Following hyperlinks</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<p><a id=link href="http://:">test</a></p>
+<script>
+async_test(function(t) {
+  var a = document.getElementById("link");
+  a.click();
+  setTimeout(function() {
+    // Don't crash.
+    t.done();
+  }, 0);
+});
+</script>

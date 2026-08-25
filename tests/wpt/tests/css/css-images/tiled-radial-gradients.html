@@ -1,0 +1,30 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Two Ellipses with Custom Placement (with gradients)</title>
+        <link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#propdef-background-size">
+        <meta name="assert" content="Gradients are correctly repeated.">
+        <link rel="match" href="tiled-radial-gradients-ref.html">
+        <meta name="fuzzy" content="maxDifference=0-2; totalPixels=0-8009">
+        <style>
+            body {
+                margin: 0px;
+            }
+            #gradient {
+                position: absolute;
+                width: 600px;
+                height: 200px;
+                left: 0px;
+                margin: 0px;
+                background-color: aquamarine;
+                background-image: radial-gradient(closest-side, red 40%, transparent 40%);
+                background-size: 300px 200px;
+                background-position: 80px 0px;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="gradient"></div>
+    </body>
+</html>

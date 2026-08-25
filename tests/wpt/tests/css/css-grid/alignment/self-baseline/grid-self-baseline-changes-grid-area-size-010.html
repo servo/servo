@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Self-Baseline alignment may change grid area width</title>
+<link rel="author" title="Javier Fernandez Garcia-Boente" href="mailto:jfernandez@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#row-align">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#baseline-align-self">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#align-by-baseline">
+<link rel="match" href="../../../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="Row-Axis Self-Baseline alignment may change grid area width on auto-sized grid.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+.block, .grid { font: 10px/1 Ahem; }
+.big { font-size: 20px; }
+.block {
+  position: absolute;
+  z-index: -1;
+  background: green;
+  width: 100px;
+  height: 100px;
+}
+.block > div {
+  position: absolute;
+  color: red;
+}
+.grid {
+  display: inline-grid;
+  color: green;
+  grid-auto-rows: 50px;
+  justify-items: baseline;
+  justify-content: start;
+}
+.grid > div { writing-mode: vertical-lr; }
+.big { font-size: 20px; }
+.firstRowFirstColumn {
+  grid-row: 1;
+  grid-column: 1;
+}
+.secondRowFirstColumn {
+  grid-row: 2;
+  grid-column: 1;
+}
+.firstRowSecondColumn {
+  grid-row: 1;
+  grid-column: 2;
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="block">
+  <div style="top: 0px; left: 5px;">XXXX<br>XXXX</div>
+  <div style="top: 20px; left: 15px;">X</div>
+  <div style="top: 30px; left: 15px;">X X</div>
+  <div style="top: 50px; left: 0px" class="big">X</div>
+</div>
+<div class="grid">
+  <div class="firstRowFirstColumn">XX XXXX XX</div>
+  <div class="secondRowFirstColumn big">X</div>
+  <div class="firstRowSecondColumn">XX X</div>
+</div>

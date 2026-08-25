@@ -1,0 +1,2 @@
+rules:
+- "**": [measure-memory]

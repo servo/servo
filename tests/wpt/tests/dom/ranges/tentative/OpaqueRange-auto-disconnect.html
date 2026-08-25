@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body></body>
+<script>
+const controls = ['textarea', 'input'];
+
+function setupControl(control) {
+  document.body.innerHTML = control === 'textarea'
+      ? '<textarea>Hello</textarea>'
+      : '<input type="text" value="Hello">';
+  return document.body.firstElementChild;
+}
+
+function assertDisconnected(range, description) {
+  assert_equals(range.startOffset, 0, description + ": startOffset resets to 0");
+  assert_equals(range.endOffset, 0, description + ": endOffset resets to 0");
+  assert_true(range.collapsed, description + ": range is collapsed");
+}
+
+controls.forEach(control => {
+  test(() => {
+    const el = setupControl(control);
+    const range = el.createValueRange(1, 4);
+    el.remove();
+    assertDisconnected(range, control);
+  }, `OpaqueRange disconnected on element removal (${control})`);
+
+  test(() => {
+    const el = setupControl(control);
+    const ranges = [
+      el.createValueRange(0, 3),
+      el.createValueRange(2, 5),
+    ];
+    el.remove();
+    for (const [i, range] of ranges.entries()) {
+      assertDisconnected(range, `range ${i}`);
+    }
+  }, `All OpaqueRanges disconnected on element removal (${control})`);
+
+  test(() => {
+    const el = setupControl(control);
+    const oldRange = el.createValueRange(1, 4);
+    el.remove();
+    assertDisconnected(oldRange, "old range after removal");
+
+    document.body.appendChild(el);
+    const newRange = el.createValueRange(0, 5);
+    assert_equals(newRange.startOffset, 0);
+    assert_equals(newRange.endOffset, 5);
+  }, `Element accepts new OpaqueRanges after re-insertion (${control})`);
+
+  test(() => {
+    document.body.innerHTML = control === 'textarea'
+        ? '<div><textarea>Hello</textarea></div>'
+        : '<div><input type="text" value="Hello"></div>';
+    const div = document.body.firstElementChild;
+    const el = div.firstElementChild;
+    const range = el.createValueRange(1, 4);
+    div.remove();
+    assertDisconnected(range, "ancestor removal");
+  }, `OpaqueRange disconnected on ancestor removal (${control})`);
+
+  test(() => {
+    const el = setupControl(control);
+    const range = el.createValueRange(1, 4);
+    document.body.innerHTML = '';
+    assertDisconnected(range, "innerHTML replacement");
+  }, `OpaqueRange disconnected on implicit removal via innerHTML (${control})`);
+
+  test(() => {
+    const el = setupControl(control);
+    const range = el.createValueRange(1, 4);
+    range.disconnect();
+    assertDisconnected(range, "manually disconnected");
+    el.remove();
+    assertDisconnected(range, "after element removal");
+  }, `No error when element removed after manual disconnect (${control})`);
+
+  test(() => {
+    const el = setupControl(control);
+    const range = el.createValueRange(1, 4);
+    const otherDoc = document.implementation.createHTMLDocument();
+    otherDoc.body.appendChild(document.adoptNode(el));
+    assertDisconnected(range, "adoptNode");
+  }, `OpaqueRange disconnected when element adopted into another document (${control})`);
+});
+
+for (const newType of ["color", "search"]) {
+  test(() => {
+    document.body.innerHTML = '<input type="text" value="Hello">';
+    const input = document.body.firstElementChild;
+    const range = input.createValueRange(1, 4);
+    input.type = newType;
+    assertDisconnected(range, `type changed to ${newType}`);
+  }, `OpaqueRange disconnected on input type change to "${newType}".`);
+}
+
+test(() => {
+  document.body.innerHTML = '<input type="text" value="Hello">';
+  const input = document.body.firstElementChild;
+  const oldRange = input.createValueRange(1, 4);
+  input.type = "color";
+  assertDisconnected(oldRange, "after type changed to color");
+
+  input.type = "text";
+  input.value = "World";
+  const newRange = input.createValueRange(0, 5);
+  assert_equals(newRange.startOffset, 0);
+  assert_equals(newRange.endOffset, 5);
+}, "Input accepts new OpaqueRanges after type changes back to text.");
+</script>

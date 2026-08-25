@@ -1,0 +1,43 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "3.3.1-bodyCreatedValidated.json",
+    "assertionType": "must",
+    "expectedResult": "valid",
+    "onUnexpectedResult" : "failAndContinue",
+    "errorMessage": "ERROR: A body or body/source has multiple created key values for a body or source, or a single created key value that is not of format date-time.",
+    "title": "If present all body-level or body/source-level **_created_ keys** have a **single value** that is of **format date-time** - [model 3.3.1](https://www.w3.org/TR/annotation-model/#lifecycle-information)",
+    "description": "True when no body-level or body/source-level (SR body) created key present or when all created keys have a single value that is of format date-time (Section 3.3.1)",
+    "type": "object",
+    "properties":
+    {
+      "body":
+       {
+          "oneOf":
+          [
+            { "$ref": "id.json#/definitions/arraySingleStringUri" },
+            { "allOf":
+               [
+                  { "$ref": "otherProperties.json#/definitions/createdValidIfPresent" },
+                  { "$ref": "specificResource.json#/definitions/sourceWithCreated" }
+               ]
+            },
+            {
+                "type": "array",
+                "items":
+                {
+                    "oneOf":
+                    [
+                        { "$ref": "id.json#/definitions/arraySingleStringUri" },
+                        { "allOf":
+                           [
+                              { "$ref": "otherProperties.json#/definitions/createdValidIfPresent" },
+                              { "$ref": "specificResource.json#/definitions/sourceWithCreated" }
+                           ]
+                        }
+                    ]
+                }
+            }
+          ]
+       }
+   }
+}

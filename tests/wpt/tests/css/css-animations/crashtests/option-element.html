@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Animating option element should not crash</title>
+<link rel="help" href="https://crbug.com/41116260">
+<object>
+  <div>
+    <option id="testA"></option>
+  </div>
+</object>
+
+<video>
+  <option id="testB"></option>
+</video>
+
+<video>
+  <object>
+    <option id="testC"></option>
+  </object>
+</video>
+
+<script>
+  testA.animate([{fontSize: 'large'}, {fontSize: '24px'}], 1000);
+  testB.animate([{fontSize: '6rem'}, {fontSize: 'x-large'}], 1000);
+  try {
+    testC.animate([{outlineColor: 'invert'}, {outlineColor: 'inherit'}], 1000);
+  } catch (e) {}
+</script>

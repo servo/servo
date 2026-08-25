@@ -1,0 +1,22 @@
+[package]
+name = "servo-media-player"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+description.workspace = true
+
+[lib]
+name = "servo_media_player"
+path = "lib.rs"
+
+[dependencies]
+malloc_size_of = { workspace = true }
+malloc_size_of_derive = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+servo-base = { workspace = true }
+servo-media-streams = { workspace = true }
+servo-media-traits = { workspace = true }

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src='/common/get-host-info.sub.js'></script>
+  <script src='/webcodecs/utils.js'></script>
+  <script id='workerCode' type='javascript/worker'>
+    self.onmessage = (e) => {
+      postMessage(e.data);
+    };
+  </script>
+  <script id='sharedWorkerCode' type='javascript/worker'>
+    let received = new Map();
+    self.onconnect = function (event) {
+      const port = event.ports[0];
+      port.onmessage = function (e) {
+        if (e.data == 'create-chunk') {
+          let chunkOrError = null;
+          try {
+            chunkOrError = new EncodedVideoChunk({
+              type: 'key',
+              timestamp: 0,
+              duration: 1,
+              data: new Uint8Array([2, 3, 4, 5])
+            });
+          } catch (error) {
+            chunkOrError = error
+          }
+          port.postMessage(chunkOrError);
+          return;
+        }
+        if (e.data.hasOwnProperty('id')) {
+          port.postMessage(
+            received.get(e.data.id) ? 'RECEIVED' : 'NOT_RECEIVED');
+          return;
+        }
+        if (e.data.toString() == '[object EncodedVideoChunk]') {
+          received.set(e.data.timestamp, e.data);
+        }
+      };
+    };
+  </script>
+</head>
+<body>
+<script>
+const HELPER = '/webcodecs/encodedVideoChunk-serialization.crossAgentCluster.helper.html';
+const SAMEORIGIN_BASE = get_host_info().HTTPS_ORIGIN;
+const CROSSORIGIN_BASE = get_host_info().HTTPS_NOTSAMESITE_ORIGIN;
+const SAMEORIGIN_HELPER = SAMEORIGIN_BASE + HELPER;
+const CROSSORIGIN_HELPER = CROSSORIGIN_BASE + HELPER;
+const SERVICE_WORKER = 'serialization.crossAgentCluster.serviceworker.js';
+
+promise_test(async () => {
+  const target = (await appendIframe(SAMEORIGIN_HELPER)).contentWindow;
+  let chunk = createEncodedVideoChunk(10);
+  assert_true(await canSerializeEncodedVideoChunk(target, chunk));
+}, 'Verify chunks can be passed within the same agent clusters');
+
+promise_test(async () => {
+  const target = (await appendIframe(CROSSORIGIN_HELPER)).contentWindow;
+  let chunk = createEncodedVideoChunk(20);
+  assert_false(await canSerializeEncodedVideoChunk(target, chunk));
+}, 'Verify chunks cannot be passed accross the different agent clusters');
+
+promise_test(async () => {
+  const blob = new Blob([document.querySelector('#workerCode').textContent], {
+    type: 'text/javascript',
+  });
+  const worker = new Worker(window.URL.createObjectURL(blob));
+  let chunk = createEncodedVideoChunk(30);
+  worker.postMessage(chunk);
+  const received = await new Promise(resolve => worker.onmessage = e => {
+    resolve(e.data);
+  });
+  assert_equals(received.toString(), '[object EncodedVideoChunk]');
+  assert_equals(received.timestamp, 30);
+}, 'Verify chunks can be passed back and forth between main and worker');
+
+promise_test(async () => {
+  const encodedScriptText = btoa("self.onmessage = (e) => { postMessage(e.data);};");
+  const scriptURL = 'data:text/javascript;base64,' + encodedScriptText;
+  const worker = new Worker(scriptURL);
+  let chunk = createEncodedVideoChunk(40);
+  worker.postMessage(chunk);
+  const received = await new Promise(resolve => worker.onmessage = e => {
+    resolve(e.data);
+  });
+  assert_equals(received.toString(), '[object EncodedVideoChunk]');
+  assert_equals(received.timestamp, 40);
+
+}, 'Verify chunks can be passed back and forth between main and data-url worker');
+
+promise_test(async () => {
+  const blob = new Blob([document.querySelector('#sharedWorkerCode').textContent], {
+    type: 'text/javascript',
+  });
+  const worker = new SharedWorker(window.URL.createObjectURL(blob));
+  let chunk = createEncodedVideoChunk(50);
+  worker.port.postMessage(chunk);
+  worker.port.postMessage({'id': 50});
+  const received = await new Promise(resolve => worker.port.onmessage = e => {
+    resolve(e.data);
+  });
+  assert_equals(received, 'NOT_RECEIVED');
+}, 'Verify chunks cannot be passed to sharedworker');
+
+promise_test(async () => {
+  navigator.serviceWorker.register(SERVICE_WORKER);
+  navigator.serviceWorker.ready.then((registration) => {
+    let chunk = createEncodedVideoChunk(60);
+    registration.active.postMessage(chunk);
+    registration.active.postMessage({'encodedVideoChunkId': 60});
+  });
+  const received = await new Promise(resolve =>
+    navigator.serviceWorker.onmessage = (e) => { resolve(e.data); });
+  assert_equals(received, 'NOT_RECEIVED');
+}, 'Verify chunks cannot be passed to serviceworker');
+
+promise_test(async () => {
+  const blob = new Blob([document.querySelector('#sharedWorkerCode').textContent], {
+    type: 'text/javascript',
+  });
+  const worker = new SharedWorker(window.URL.createObjectURL(blob));
+  worker.port.postMessage('create-chunk');
+  const received = await new Promise(resolve => worker.port.onmessage = e => {
+    resolve(e.data);
+  });
+  assert_true(received instanceof ReferenceError);
+}, 'Verify chunks is unavailable in sharedworker');
+
+promise_test(async () => {
+  navigator.serviceWorker.register(SERVICE_WORKER);
+  let registration = await navigator.serviceWorker.ready;
+  registration.active.postMessage('create-EncodedVideoChunk');
+  const received = await new Promise(resolve =>
+    navigator.serviceWorker.onmessage = (e) => { resolve(e.data); });
+  assert_true(received instanceof ReferenceError);
+}, 'Verify chunks is unavailable in serviceworker');
+
+function appendIframe(src) {
+  const frame = document.createElement('iframe');
+  document.body.appendChild(frame);
+  frame.src = src;
+  return new Promise(resolve => frame.onload = () => resolve(frame));
+};
+
+function createEncodedVideoChunk(ts) {
+  return new EncodedVideoChunk({
+    type: 'key',
+    timestamp: ts,
+    duration: 1234,
+    data: new Uint8Array([5, 6, 7, 8])
+  });
+}
+
+function canSerializeEncodedVideoChunk(target, chunk) {
+  target.postMessage(chunk, '*');
+  target.postMessage({'id': chunk.timestamp}, '*');
+  return new Promise(resolve => window.onmessage = e => {
+    resolve(e.data == 'RECEIVED');
+  });
+};
+</script>
+</body>
+</html>

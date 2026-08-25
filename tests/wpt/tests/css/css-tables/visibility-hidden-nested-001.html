@@ -1,0 +1,140 @@
+<!doctype html>
+<meta charset="utf-8">
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<link rel='stylesheet' href='support/base.css' />
+<link rel="author" title="Joy Yu" href="mailto:joysyu@mit.edu">
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#computing-the-table-width">
+<link rel="help" href="https://drafts.csswg.org/css-box-3/#visibility-prop">
+<style>
+    x-table {
+      border: 5px solid black;
+    }
+    x-table span {
+        display: inline-block;
+        vertical-align: top;
+        background: lime;
+        margin: 3px;
+        height: 100px;
+        width: 100px;
+    }
+</style>
+<main>
+    <h1>Visibility hidden</h1>
+    <a href="https://drafts.csswg.org/css-tables-3/#computing-the-table-width">Spec</a>
+    <p>
+    Setting a table to visibility:hidden, but rows and cells to different visibility values.
+    </p>
+    <x-table id="one">
+      <x-tbody>
+        <x-tr id="visibleRow">
+            <x-td>
+                <span>row 1</span>
+            </x-td>
+            <x-td>
+                <span></span>
+            </x-td>
+        </x-tr>
+        <x-tr>
+            <x-td>
+                <span>row 2</span>
+            </x-td>
+            <x-td id="visibleCell">
+                <span></span>
+            </x-td>
+        </x-tr>
+        <x-tr>
+            <x-td>
+                <span>row 3</span>
+            </x-td>
+            <x-td>
+                <span id="visibleSpan"></span>
+            </x-td>
+        </x-tr>
+      </x-tbody>
+    </x-table>
+    Bottom table is identical to top, except entire table is hidden, the second row
+    is visible with a nested hidden cell, and the third row is visible with a nested
+    hidden span.
+    <x-table id="two" style="visibility:hidden;">
+      <x-tbody>
+        <x-tr id="invisibleRow">
+            <x-td>
+                <span>row 1</span>
+            </x-td>
+            <x-td>
+                <span></span>
+            </x-td>
+        </x-tr>
+        <x-tr style="visibility:visible;">
+            <x-td>
+                <span>row 2</span>
+            </x-td>
+            <x-td id="invisibleCell" style="visibility:hidden;">
+                <span></span>
+            </x-td>
+        </x-tr>
+        <x-tr style="visibility:visible;">
+            <x-td>
+                <span>row 3</span>
+            </x-td>
+            <x-td>
+                <span id="invisibleSpan" style="visibility:hidden;"></span>
+            </x-td>
+        </x-tr>
+      </x-tbody>
+    </x-table>
+</main>
+
+<script>
+    tests = [
+    [
+        document.getElementById('two').offsetHeight,
+        document.getElementById('one').offsetHeight,
+        "table visibility:hidden doesn't change table height"
+    ],
+    [
+        document.getElementById('two').offsetWidth,
+        222,
+        "table visibility:hidden doesn't change table width"
+    ],
+    [
+        document.getElementById('visibleRow').offsetWidth,
+        document.getElementById('invisibleRow').offsetWidth,
+        "row visibility:hidden doesn't change row width"
+    ],
+    [
+        document.getElementById('visibleRow').offsetHeight,
+        document.getElementById('invisibleRow').offsetHeight,
+        "row visibility:hidden doesn't change row height"
+    ],
+    [
+        document.getElementById('visibleCell').offsetWidth,
+        document.getElementById('invisibleCell').offsetWidth,
+        "cell visibility:hidden doesn't change cell width"
+    ],
+    [
+        document.getElementById('visibleCell').offsetHeight,
+        document.getElementById('invisibleCell').offsetHeight,
+        "cell visibility:hidden doesn't change cell height"
+    ],
+    [
+        document.getElementById('visibleSpan').offsetWidth,
+        document.getElementById('invisibleSpan').offsetWidth,
+        "span visibility:hidden doesn't change span width"
+    ],
+    [
+        document.getElementById('visibleSpan').offsetHeight,
+        document.getElementById('invisibleSpan').offsetHeight,
+        "span visibility:hidden doesn't change span height"
+    ]];
+
+    for (i = 0; i< tests.length; i++) {
+        test(function()
+            {
+                assert_equals.apply(this, tests[i]);
+            },
+            tests[i][2]);
+    };
+</script>
+</html>

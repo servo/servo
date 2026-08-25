@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+
+<style>
+  #containing-block {
+    width: 300px;
+    height: 300px;
+    position: relative;
+    outline: 1px black solid;
+  }
+
+  #anchor {
+    width: 100px;
+    height: 100px;
+    position: absolute;
+    top: 100px;
+    left: 0px;
+    background: cyan;
+  }
+
+  .anchored {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+  }
+
+  #anchored-anchor-function {
+    top: 200px;
+    left: 100px;
+    background: green;
+  }
+
+  #anchored-position-area {
+    top: 0px;
+    left: 100px;
+    background: blue;
+  }
+</style>
+
+<div id="containing-block">
+  <div id="anchor"></div>
+  <div class="anchored" id="anchored-anchor-function"></div>
+  <div class="anchored" id="anchored-position-area"></div>
+</div>

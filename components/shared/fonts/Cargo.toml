@@ -1,0 +1,36 @@
+[package]
+name = "servo-fonts-traits"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+description.workspace = true
+
+[lib]
+name = "fonts_traits"
+path = "lib.rs"
+
+[dependencies]
+atomic_refcell = { workspace = true }
+log = { workspace = true }
+malloc_size_of = { workspace = true }
+malloc_size_of_derive = { workspace = true }
+memmap2 = { workspace = true }
+num-derive = { workspace = true }
+num-traits = { workspace = true }
+parking_lot = { workspace = true }
+profile_traits = { workspace = true }
+read-fonts = { workspace = true }
+serde = { workspace = true }
+servo_arc = { workspace = true }
+servo-base = { workspace = true }
+servo-url = { workspace = true }
+stylo = { workspace = true }
+uuid = { workspace = true }
+webrender_api = { workspace = true }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+dwrote = { workspace = true }

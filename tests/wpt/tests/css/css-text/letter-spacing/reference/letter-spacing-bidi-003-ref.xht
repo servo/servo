@@ -1,0 +1,30 @@
+﻿<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="author" title="Mike Bremford" href="http://bfo.com" />
+    <style>
+      .control {
+          font: 50px/1 monospace;
+          width: 14ch;
+          font-kerning: none;
+          border: 1px solid black;
+          white-space: pre;
+      }
+      .red {
+          color: red;
+          position: absolute;
+          z-index: -1;
+      }
+    </style>
+ </head>
+ <body>
+  <p>Test passes if no red is visible except for anti-aliasing differences.</p>
+  <!-- bet <ls> alef <ls> <space stretched from justification> A <ls> B -->
+  <div class="control red">&#x5d0; &#x5d1;<div style="float: right">A B</div></div>
+  <div class="control">&#x5d0; &#x5d1;<div style="float: right">A B</div></div>
+
+  <!-- A <ls> B <ls> <space stretched from justification> alef <ls> bet -->
+  <div class="control red">A B<div style="float: right">&#x5d0; &#x5d1;</div></div>
+  <div class="control">A B<div style="float: right">&#x5d0; &#x5d1;</div></div>
+  </body>
+</html>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <title>CSS Test: CSS 2.1 replaced element sizing</title>
+  <link rel="match" href="replaced-elements-width-40-ref.html">
+  <link rel="author" title="L. David Baron" href="https://dbaron.org/">
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#inline-replaced-width">
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#inline-replaced-height">
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#min-max-widths">
+  <meta name="flags" content="should"> <!-- undefinedness in 10.3.2 -->
+  <style type="text/css">
+
+  div { width: 200px }
+  img { width: 40px }
+
+  </style>
+</head>
+<body>
+
+<div>
+  <img src="support/height-25-width-50.svg">,
+  <img src="support/height-25-ratio-2.svg">,
+  <img src="support/width-50-ratio-2.svg">,
+  <img src="support/height-25-no-ratio.svg">,
+  <img src="support/width-50-no-ratio.svg">,
+  <img src="support/ratio-2.svg">,
+  <img src="support/no-ratio.svg">.
+</div>
+
+</body>
+</html>

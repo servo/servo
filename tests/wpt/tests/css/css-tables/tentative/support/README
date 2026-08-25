@@ -1,0 +1,13 @@
+This test suite is created as part of Chrome's NG table rewrite in 2020.
+TablesNG: https://crbug.com/958381
+
+Many parts of table layout algorithm have been left unspecified by the
+existing specification:
+https://www.w3.org/TR/css-tables-3/
+
+These tests are an attempt to exaustively test all parts of the
+algorithm. When specification did not specify the algorithm,
+the proposed algorithm is described in the tests.
+
+Our goal is that these tests will guide creation of a more complete
+table standard.

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>CSS Test: Float inside inline box</title>
+<link rel="author" href="mailto:obrufau@igalia.com" title="Oriol Brufau">
+<link rel="match" href="../../reference/ref-filled-green-200px-square.html">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visuren.html#floats">
+<link rel="help" href="https://github.com/servo/servo/issues/46350">
+<meta name="assert" content="The float should be placed correctly even if it's inside
+    an inline box which is inside another inline box with padding, border and margin.">
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div style="position: absolute; z-index: -1; width: 200px; height: 200px; background: red"></div>
+
+<span style="padding: 30px; border: 30px solid transparent; margin: 40px">
+  <span>
+    <span style="float: left; background: green; width: 200px; height: 200px"></span>
+  </span>
+</span>

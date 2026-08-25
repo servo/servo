@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>ElementInternals behaviors API</title>
+<link rel="author" href="mailto:ansollan@microsoft.com">
+<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/PlatformProvidedBehaviors/explainer.md">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="container"></div>
+
+<script>
+customElements.define('test-element', class extends HTMLElement {});
+
+const container = document.getElementById('container');
+
+test(() => {
+  const element = document.createElement('test-element');
+  const ei = element.attachInternals({ behaviors: [] });
+  assert_not_equals(ei, null);
+}, 'attachInternals({ behaviors: [] }) accepts empty behaviors array');
+
+test(() => {
+  const element = document.createElement('test-element');
+  const ei = element.attachInternals();
+  assert_not_equals(ei.behaviors, undefined);
+  assert_equals(ei.behaviors.length, 0);
+}, 'behaviors returns empty array when no behaviors configured');
+
+test(() => {
+  const element = document.createElement('test-element');
+  const behavior = new HTMLSubmitButtonBehavior();
+  const ei = element.attachInternals({ behaviors: [behavior] });
+  const behaviors = ei.behaviors;
+  assert_equals(behaviors.length, 1);
+  assert_equals(behaviors[0], behavior);
+  assert_true(Object.isFrozen(behaviors));
+}, 'behaviors is a read-only frozen array');
+
+test(() => {
+  const element = document.createElement('test-element');
+  const behavior = new HTMLSubmitButtonBehavior();
+  const ei = element.attachInternals({ behaviors: [behavior] });
+  const behaviors = ei.behaviors;
+  behaviors[0] = new HTMLSubmitButtonBehavior();
+  assert_equals(ei.behaviors[0], behavior,
+    'indexed assignment should not modify the array');
+  assert_equals(ei.behaviors.length, 1);
+}, 'behaviors array cannot be modified after attachment');
+
+test(() => {
+  class CustomSubmitBehavior extends HTMLSubmitButtonBehavior {}
+  assert_throws_js(TypeError, () => new CustomSubmitBehavior());
+}, 'HTMLSubmitButtonBehavior cannot be subclassed');
+
+test(() => {
+  const element = document.createElement('test-element');
+  const b = new HTMLSubmitButtonBehavior();
+  assert_throws_js(TypeError,
+    () => element.attachInternals({ behaviors: [b, b] }));
+}, 'attachInternals throws TypeError for duplicate behavior instance');
+
+test(() => {
+  const element = document.createElement('test-element');
+  assert_throws_js(TypeError,
+    () => element.attachInternals({
+      behaviors: [new HTMLSubmitButtonBehavior(), new HTMLSubmitButtonBehavior()]
+    }));
+}, 'attachInternals throws TypeError for multiple instances of same behavior type');
+
+test(() => {
+  const shared = new HTMLSubmitButtonBehavior();
+  const element1 = document.createElement('test-element');
+  const ei = element1.attachInternals({ behaviors: [shared] });
+  assert_equals(ei.behaviors.length, 1);
+  const element2 = document.createElement('test-element');
+  assert_throws_js(TypeError,
+    () => element2.attachInternals({ behaviors: [shared] }));
+}, 'attachInternals throws TypeError when behavior is already attached to another element');
+
+for (const [label, value] of [
+  ['string', 'not a behavior'],
+  ['null', null],
+  ['undefined', undefined],
+  ['plain object', { formAction: 'test.html' }],
+  ['number', 42],
+  ['DOM element', document.createElement('div')],
+]) {
+  test(() => {
+    const element = document.createElement('test-element');
+    assert_throws_js(TypeError,
+      () => element.attachInternals({ behaviors: [value] }));
+  }, `attachInternals throws TypeError for ${label} in behaviors array`);
+}
+
+test(() => {
+  const element = document.createElement('test-element');
+  const behavior = new HTMLSubmitButtonBehavior();
+  element.attachInternals({ behaviors: [behavior] });
+
+  container.appendChild(element);
+  behavior.name = 'preserved-btn';
+  behavior.value = 'Preserved';
+  behavior.disabled = true;
+  element.remove();
+
+  assert_equals(behavior.name, 'preserved-btn');
+  assert_equals(behavior.disabled, true);
+
+  container.appendChild(element);
+
+  assert_equals(behavior.name, 'preserved-btn');
+  assert_equals(behavior.value, 'Preserved');
+  assert_equals(behavior.disabled, true);
+
+  element.remove();
+}, 'Behavior state is preserved across disconnect and reconnect');
+</script>

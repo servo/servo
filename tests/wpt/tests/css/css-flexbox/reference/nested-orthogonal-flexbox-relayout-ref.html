@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<style>
+#column {
+    display: flex;
+    flex-direction: column;
+    border: 5px solid yellow;
+    width: 200px;
+}
+
+#row {
+    display: flex;
+    flex-direction: row;
+    border: 5px solid blue;
+}
+
+.item {
+    border: 5px solid green;
+}
+</style>
+<body>
+<div id="column">
+    <div id="row">
+        <div class="item">This text should not overflow its box</div>
+    </div>
+</div>

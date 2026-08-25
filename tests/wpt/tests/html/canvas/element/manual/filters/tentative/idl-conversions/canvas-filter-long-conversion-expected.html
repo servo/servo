@@ -1,0 +1,26 @@
+<body>
+  <canvas id="canvas" width="300" height="300"></canvas>
+</body>
+<script>
+  var ctx = document.getElementById('canvas').getContext('2d');
+  // Null and False both evaluate to zero
+  ctx.filter  = new CanvasFilter({filter: "gaussianBlur", stdDeviation: 0});
+  ctx.fillRect(10, 10, 30, 30);
+  ctx.filter  = new CanvasFilter({filter: "gaussianBlur", stdDeviation: 0});
+  ctx.fillRect(50, 10, 30, 30);
+  ctx.filter  = new CanvasFilter({filter: "gaussianBlur", stdDeviation: 0});
+  ctx.fillRect(90, 10, 30, 30);
+  // True evaluates to one
+  ctx.filter  = new CanvasFilter({filter: "gaussianBlur", stdDeviation: 1});
+  ctx.fillRect(130, 10, 30, 30);
+  // String, Number and Object should all work
+  ctx.filter  = new CanvasFilter({filter: "gaussianBlur", stdDeviation: 5});
+  ctx.fillRect(10, 50, 30, 30);
+  ctx.filter  = new CanvasFilter({filter: "gaussianBlur", stdDeviation: 5});
+  ctx.fillRect(50, 50, 30, 30);
+  ctx.filter  = new CanvasFilter({filter: "gaussianBlur", stdDeviation: 5});
+  ctx.fillRect(90, 50, 30, 30);
+  // Valid sequence
+  ctx.filter  = new CanvasFilter({filter: "gaussianBlur", stdDeviation: 5});
+  ctx.fillRect(130, 50, 30, 30);
+</script>

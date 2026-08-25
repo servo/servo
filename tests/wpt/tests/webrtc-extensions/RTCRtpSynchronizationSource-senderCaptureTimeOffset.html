@@ -1,0 +1,91 @@
+<!doctype html>
+<meta charset=utf-8>
+<!-- This file contains a test that waits for 2 seconds. -->
+<meta name="timeout" content="long">
+<title>senderCaptureTimeOffset attribute in RTCRtpSynchronizationSource</title>
+<div><video id="remote" width="124" height="124" autoplay></video></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/webrtc/RTCPeerConnection-helper.js"></script>
+<script src="/webrtc-extensions/RTCRtpSynchronizationSource-helper.js"></script>
+<script>
+'use strict';
+
+function listenForSenderCaptureTimeOffset(t, receiver) {
+  return new Promise((resolve) => {
+    function listen() {
+      const ssrcs = receiver.getSynchronizationSources();
+      assert_true(ssrcs != undefined);
+      if (ssrcs.length > 0) {
+        assert_equals(ssrcs.length, 1);
+        if (ssrcs[0].captureTimestamp != undefined) {
+          resolve(ssrcs[0].senderCaptureTimeOffset);
+          return true;
+        }
+      }
+      return false;
+    };
+    t.step_wait(listen, 'No abs-capture-time capture time header extension.');
+  });
+}
+
+// Passes if `getSynchronizationSources()` contains `senderCaptureTimeOffset` if
+// and only if expected.
+for (const kind of ['audio', 'video']) {
+  promise_test(async t => {
+    const [caller, callee] = await initiateSingleTrackCall(
+        t, /* caps=  */{[kind]: true}, /* absCaptureTimeOffered= */false,
+        /* absCaptureTimeAnswered= */false);
+    const receiver = callee.getReceivers()[0];
+
+    for (const ssrc of await listenForSSRCs(t, receiver)) {
+      assert_equals(typeof ssrc.senderCaptureTimeOffset, 'undefined');
+    }
+  }, '[' + kind + '] getSynchronizationSources() should not contain ' +
+      'senderCaptureTimeOffset if absolute capture time RTP header extension ' +
+      'is not offered');
+
+  promise_test(async t => {
+    const [caller, callee] = await initiateSingleTrackCall(
+        t, /* caps=  */{[kind]: true}, /* absCaptureTimeOffered= */false,
+        /* absCaptureTimeAnswered= */false);
+    const receiver = callee.getReceivers()[0];
+
+    for (const ssrc of await listenForSSRCs(t, receiver)) {
+      assert_equals(typeof ssrc.senderCaptureTimeOffset, 'undefined');
+    }
+  }, '[' + kind + '] getSynchronizationSources() should not contain ' +
+      'senderCaptureTimeOffset if absolute capture time RTP header extension ' +
+      'is offered, but not answered');
+
+  promise_test(async t => {
+    const [caller, callee] = await initiateSingleTrackCall(
+        t, /* caps=  */{[kind]: true}, /* absCaptureTimeOffered= */true,
+        /* absCaptureTimeAnswered= */true);
+    const receiver = callee.getReceivers()[0];
+    let senderCaptureTimeOffset = await listenForSenderCaptureTimeOffset(
+        t, receiver);
+    assert_true(senderCaptureTimeOffset != undefined);
+  }, '[' + kind + '] getSynchronizationSources() should contain ' +
+      'senderCaptureTimeOffset if absolute capture time RTP header extension ' +
+      'is negotiated');
+}
+
+// Passes if `senderCaptureTimeOffset` is zero, which is expected since the test
+// creates a local peer connection between `caller` and `callee`.
+promise_test(async t => {
+  const [caller, callee] = await initiateSingleTrackCall(
+      t, /* caps=  */{audio: true, video: true},
+      /* absCaptureTimeOffered= */true, /* absCaptureTimeAnswered= */true);
+  const receivers = callee.getReceivers();
+  assert_equals(receivers.length, 2);
+
+  for (let i = 0; i < 2; ++i) {
+    let senderCaptureTimeOffset = await listenForSenderCaptureTimeOffset(
+        t, receivers[i]);
+    assert_equals(senderCaptureTimeOffset, 0);
+  }
+}, 'Audio and video RTCRtpSynchronizationSource.senderCaptureTimeOffset must ' +
+   'be zero');
+
+</script>

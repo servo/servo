@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/whatwg/html/issues/10762">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+select, ::picker(select) {
+  appearance: base-select;
+}
+</style>
+
+<select id=defaultbutton>
+  <option class=one>one</option>
+  <option class=two>two</option>
+</select>
+
+<select id=custombutton>
+  <button>button</button>
+  <option class=one>one</option>
+  <option class=two>two</option>
+</select>
+
+<script>
+const keyCodes = ['Enter', 'Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
+
+function dispatchKeyboardEvents(element, code) {
+  const key = code == 'Space' ? ' ' : code;
+  element.dispatchEvent(new KeyboardEvent('keydown', {key, code}));
+  element.dispatchEvent(new KeyboardEvent('keypress', {key, code}));
+  element.dispatchEvent(new KeyboardEvent('keyup', {key, code}));
+}
+
+function dispatchMouseEvents(element) {
+  element.dispatchEvent(new MouseEvent('pointerdown'));
+  element.dispatchEvent(new MouseEvent('mousedown'));
+  element.dispatchEvent(new MouseEvent('pointerup'));
+  element.dispatchEvent(new MouseEvent('mouseup'));
+  element.dispatchEvent(new MouseEvent('click'));
+}
+
+['defaultbutton', 'custombutton'].forEach(id => {
+  promise_test(async () => {
+    assert_true(CSS.supports('appearance', 'base-select'),
+      'This test requires appearance:base-select in order to run.');
+
+    const select = document.getElementById(id);
+    const firstOption = select.querySelector('option.one');
+    const secondOption = select.querySelector('option.two');
+
+    select.click();
+    assert_false(select.matches(':open'),
+      'select.click() should not open the picker.');
+
+    dispatchMouseEvents(select);
+    assert_false(select.matches(':open'),
+      'Synthetic mouse/pointer events should not open the picker.');
+
+    for (const keyCode of keyCodes) {
+      dispatchKeyboardEvents(select, keyCode);
+      assert_false(select.matches(':open'),
+        `Synthetic ${keyCode} events should not open the picker.`);
+      assert_equals(select.value, 'one',
+        `Synthetic ${keyCode} events should not change the selects value.`);
+    }
+
+    await test_driver.click(select);
+    assert_true(select.matches(':open'),
+      'Select should open after a real click occurs.');
+    assert_equals(document.activeElement, firstOption,
+      'Selected <option> should be focused after opening the picker.');
+
+    secondOption.click();
+    assert_true(select.matches(':open'),
+      'option.click() should not close the picker.');
+    assert_equals(select.value, 'one',
+      'option.click() should not change select.value.');
+
+    dispatchMouseEvents(secondOption);
+    assert_true(select.matches(':open'),
+      'Synthetic mouse/pointer events should not close the picker.');
+    assert_equals(select.value, 'one',
+      'Synthetic mouse/pointer events should not change select.value.');
+
+    for (const keyCode of keyCodes) {
+      dispatchKeyboardEvents(firstOption, keyCode);
+      assert_true(select.matches(':open'),
+        `Synthetic ${keyCode} events on selected <option> should not close the picker.`);
+      assert_equals(select.value, 'one',
+        `Synthetic ${keyCode} events on selected <option> should not change select.value.`);
+
+      dispatchKeyboardEvents(secondOption, keyCode);
+      assert_true(select.matches(':open'),
+        `Synthetic ${keyCode} events on non-selected <option> should not close the picker.`);
+      assert_equals(select.value, 'one',
+        `Synthetic ${keyCode} events on non-selected <option> should not change select.value.`);
+    }
+  }, `${id}: Synthetic events should not trigger behaviors of select element.`);
+});
+</script>

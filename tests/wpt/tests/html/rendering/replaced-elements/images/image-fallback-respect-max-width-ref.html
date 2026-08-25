@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Image fallback respect max-width</title>
+<style>
+  div {
+    max-width: 200px;
+  }
+  img {
+    width: 200px;
+    height: auto;
+  }
+</style>
+<body>
+  <div>
+    <img src="" width="10000" height="100">
+    <img src="" width="10000" height="100"
+      alt="Lorem ipsum dolor sit amet, consectetur adipisicing elit.">
+    <img src="" width="1000" height="100">
+  </div>
+</body>

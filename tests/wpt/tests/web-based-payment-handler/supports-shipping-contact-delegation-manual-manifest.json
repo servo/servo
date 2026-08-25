@@ -1,0 +1,23 @@
+{
+  "default_applications": ["supports-shipping-contact-delegation-manual-manifest.json"],
+  "name": "Test Payment Handler",
+  "icons": [
+    {
+      "src": "/images/rgrg-256x256.png",
+      "sizes": "256x256",
+      "type": "image/png"
+    }
+  ],
+  "serviceworker": {
+    "src": "app-supports-shipping-contact-delegation.js",
+    "scope": "supports-shipping-contact-delegation-manual-payment-app/"
+  },
+  "payment": {
+    "supported_delegations": [
+      "shippingAddress",
+      "payerName",
+      "payerPhone",
+      "payerEmail"
+    ]
+  }
+}

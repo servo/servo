@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Absolutely positioned elements child behavior</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+		<link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-09-20 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#absolute-positioning" />
+		<link rel="match" href="position-absolute-007-ref.xht" />
+
+        <meta name="assert" content="The contents of an absolutely positioned element do not flow around any other boxes and can obscure the contents of another box." />
+        <style type="text/css">
+            #div1
+            {
+                position: relative;
+            }
+            #div2
+            {
+                background: orange;
+                position: absolute;
+                height: 1in;
+                top: 0.5in;
+                width: 1in;
+            }
+            #div3
+            {
+                background: blue;
+                float: left;
+                height: 2in;
+                width: 0.5in
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the "Filler Text" overflow below the orange square and overlaps the bottom blue square.</p>
+        <div id="div1">
+            <div id="div2">
+                Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text
+            </div>
+            <div id="div3"></div>
+        </div>
+    </body>
+</html>

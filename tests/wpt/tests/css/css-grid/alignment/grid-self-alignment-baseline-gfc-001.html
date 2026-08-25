@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid: a grid with baseline self-alignment participates in its flex parent's baseline alignment</title>
+<link rel="help" href="https://drafts.csswg.org/css-align/#baseline-values">
+<link rel="match" href="grid-self-alignment-baseline-gfc-001-ref.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<meta name="assert" content="A display:grid box whose resolved align-self is baseline aligns its own baseline with the baseline of its flex parent's line.">
+<style>
+  body { margin: 0; }
+  .flex { display: flex; align-items: baseline; font: 100px/1 Ahem; }
+  .reference { font-size: 100px; }
+  .grid {
+    display: grid;
+    grid-template-rows: auto;
+    grid-template-columns: auto;
+    align-self: baseline;
+    font-size: 50px;
+  }
+  .grid > .item { grid-row: 1 / 2; }
+</style>
+<div class="flex">
+  <span class="reference">X</span>
+  <div class="grid"><div class="item">X</div></div>
+</div>

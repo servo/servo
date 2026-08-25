@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+<title>ViewTimeline with missing subject</title>
+<link rel="help" href="https://www.w3.org/TR/scroll-animations-1/#viewtimeline-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<style type="text/css">
+  #target {
+    background:  blue;
+    height:  100px;
+    width:  100px;
+  }
+  #scroller {
+    overflow:  scroll;
+  }
+  #filler {
+    height:  300vh;
+  }
+</style>
+<body onload="runTests()">
+  <div id="scroller">
+    <div id="target"></div>
+    <div id="filler"></div>
+  </div>
+</body>
+<script type="text/javascript">
+  function raf() {
+    return new Promise(resolve => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(resolve);
+      })
+    });
+  }
+  function runTests() {
+    promise_test(async t => {
+      const timeline = new ViewTimeline();
+      const anim =
+          target.animate(
+              { backgroundColor: ['green', 'red' ] },
+              { duration: 100,
+                timeline: timeline });
+      await raf();
+      scroller.scrollTop = 50;
+      await raf();
+      assert_equals(timeline.currentTime, null,
+                    'ViewTimeline with missing subject is inactive');
+    });
+  }
+
+</script>
+</html>

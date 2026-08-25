@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1918576">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="This test verifies that the outer div's max-height shouldn't establish a percentage basis to resolve the target's height when computing outer div's min-content width.">
+
+<style>
+#reference-overlapped-green {
+  position: absolute;
+  background-color: green;
+  width: 100px;
+  height: 100px;
+  z-index: -1;
+}
+.outer {
+  width: min-content;
+  max-height: 100px;
+  background: red;
+}
+.target {
+  aspect-ratio: 1/1;
+  height: 100%;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="reference-overlapped-green"></div>
+<div class="outer">
+  <div class="target"></div>
+</div>

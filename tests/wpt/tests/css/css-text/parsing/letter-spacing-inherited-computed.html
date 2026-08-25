@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="author" title="Vitor Roriz" href="https://github.com/vitorroriz">
+<!-- Based on css/css-viewport/zoom/letter-spacing.html by Stefan Zager -->
+<link rel="help" href="https://drafts.csswg.org/css-viewport/">
+<div id="regular" style="letter-spacing: 2px; font-size: 12px">
+  12px font text with 2px letter-spacing
+</div>
+
+<hr>
+
+<div id="zoomed-letter-spacing" style="letter-spacing: 2px; font-size: 12px; zoom: 2">
+  12px font zoomed text with 2px letter-spacing
+</div>
+
+<hr>
+
+<div style="letter-spacing: 2px; font-size: 12px">
+  <div id="zoomed-inherited-letter-spacing" style="zoom:2">
+    12px font zoomed inherited text with 2px letter-spacing
+  </div>
+</div>
+
+<hr>
+
+<script>
+test(() => {
+    assert_equals(getComputedStyle(document.getElementById("regular")).letterSpacing, '2px');
+}, "computed letter-spacing");
+test(() => {
+    assert_equals(getComputedStyle(document.getElementById("zoomed-letter-spacing")).letterSpacing, '2px');
+}, "computed zoomed letter-spacing");
+test(() => {
+    assert_equals(getComputedStyle(document.getElementById("zoomed-inherited-letter-spacing")).letterSpacing, '2px');
+}, "computed zoomed inherited letter-spacing");
+</script>

@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<title>!important declarations interact correctly with animations and transitions per cascade level</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-5/#importance">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+@keyframes changeColor {
+    from { color: rgb(0, 0, 255); }
+    to { color: rgb(0, 0, 255); }
+}
+
+@keyframes changeColorAndOpacity {
+    from { color: rgb(0, 0, 255); opacity: 0; }
+    to { color: rgb(0, 0, 255); opacity: 0; }
+}
+
+#target1 {
+    color: rgb(255, 0, 0) !important;
+    opacity: 1;
+    transition: opacity 1000s steps(1);
+    animation: changeColor 1000s forwards;
+}
+
+#target2 {
+    transition: color 1000s linear;
+}
+
+#target2.green {
+    color: rgb(0, 128, 0) !important;
+}
+
+#target2.red {
+    color: rgb(255, 0, 0) !important;
+}
+
+#target3 {
+    color: rgb(255, 0, 0) !important;
+    transition: opacity 1000s linear;
+    animation: changeColor 1000s forwards;
+}
+
+#target3.start {
+    opacity: 1 !important;
+}
+
+#target3.end {
+    opacity: 0.5 !important;
+}
+
+#target4 {
+    color: rgb(255, 0, 0) !important;
+    opacity: 1 !important;
+    background-color: white;
+    transition: background-color 1000s steps(1);
+    animation: changeColorAndOpacity 1000s forwards;
+}
+</style>
+<div id="target1">Test</div>
+<div id="target2" class="green">Test</div>
+<div id="target3" class="start">Test</div>
+<div id="target4">Test</div>
+<script>
+test(() => {
+    // Before any transition, !important correctly overrides the animation.
+    assert_equals(getComputedStyle(target1).color, 'rgb(255, 0, 0)',
+        'color should be red before transition starts');
+}, '!important overrides animation when no transition is running');
+
+promise_test(async t => {
+    // Trigger a transition on opacity.
+    target1.style.opacity = '0.5';
+
+    // Now both a CSS animation and a CSS transition are running.
+    // getAnimations() returns them in composite order: transitions before animations.
+    const allAnimations = target1.getAnimations();
+    assert_equals(allAnimations.length, 2, 'Should have exactly two animations');
+    assert_true(allAnimations[0] instanceof CSSTransition, 'First animation should be a CSSTransition');
+    assert_true(allAnimations[1] instanceof CSSAnimation, 'Second animation should be a CSSAnimation');
+
+    // Per CSS cascade spec, !important declarations override CSS animations.
+    // This must remain true even when a CSS transition is also running.
+    assert_equals(getComputedStyle(target1).color, 'rgb(255, 0, 0)',
+        'color: red !important should still override the animation while a transition is running');
+}, '!important overrides animation even when a CSS transition is concurrently running');
+
+promise_test(async t => {
+    // target2 starts with class "green" giving it color: green !important.
+    assert_equals(getComputedStyle(target2).color, 'rgb(0, 128, 0)');
+
+    // Switch to class "red" to change computed color to red !important,
+    // triggering a transition from green to red.
+    target2.className = 'red';
+
+    const animations = target2.getAnimations();
+    assert_equals(animations.length, 1, 'Should have exactly one animation');
+    assert_true(animations[0] instanceof CSSTransition, 'The animation should be a CSSTransition');
+
+    // The transition is running on color. Per CSS cascade spec, transitions
+    // sit above !important in the cascade. The mid-transition value must NOT
+    // be snapped to the !important target; the transition must animate.
+    const color = getComputedStyle(target2).color;
+    assert_not_equals(color, 'rgb(255, 0, 0)',
+        'transition on color should not be overridden by !important');
+}, '!important does not override a running CSS transition');
+
+promise_test(async t => {
+    // target3 has an animation on color and a transition on opacity.
+    // Trigger the transition by switching !important opacity values.
+    target3.className = 'end';
+
+    const animations = target3.getAnimations();
+    assert_equals(animations.length, 2, 'Should have exactly two animations');
+    assert_true(animations.some(a => a instanceof CSSTransition), 'Should have a CSSTransition');
+    assert_true(animations.some(a => a instanceof CSSAnimation), 'Should have a CSSAnimation');
+
+    // !important should override the animation on color.
+    assert_equals(getComputedStyle(target3).color, 'rgb(255, 0, 0)',
+        'color: red !important should override the animation on color');
+
+    // The transition on opacity should NOT be overridden by !important.
+    const opacity = getComputedStyle(target3).opacity;
+    assert_not_equals(opacity, '0.5',
+        'opacity transition should not be snapped to the !important target value');
+}, '!important overrides animation but not transition on the same element');
+
+promise_test(async t => {
+    // target4 animates both color and opacity, with !important on both.
+    // A transition runs on background-color (a non-animated property).
+    target4.style.backgroundColor = 'rgb(0, 128, 0)';
+
+    const animations = target4.getAnimations();
+    assert_true(animations.some(a => a instanceof CSSTransition), 'Should have a CSSTransition on background-color');
+    assert_true(animations.some(a => a instanceof CSSAnimation), 'Should have a CSSAnimation');
+
+    // !important should override the animation on both color and opacity.
+    assert_equals(getComputedStyle(target4).color, 'rgb(255, 0, 0)',
+        'color: red !important should override animation');
+    assert_equals(getComputedStyle(target4).opacity, '1',
+        'opacity: 1 !important should override animation');
+}, '!important overrides multiple animated properties even with a concurrent transition');
+</script>

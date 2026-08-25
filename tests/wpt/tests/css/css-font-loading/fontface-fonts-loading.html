@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>Test document.fonts.ready loading with two fonts</title>
+<link rel="help" href="https://drafts.csswg.org/css-font-loading/#fontfaceset-ready">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+@font-face {
+  font-family: "AhemTest";
+  src: url("/fonts/Ahem.ttf") format("truetype");
+}
+.initial {
+  font-family: "AhemTest", sans-serif;
+  font-size: 20px;
+}
+</style>
+<div>Font loading test</div>
+<script>
+promise_test(async t => {
+  const fontSet = document.fonts;
+  const readyPromise1 = fontSet.ready;
+  await readyPromise1;
+  assert_equals(fontSet.status, "loaded", "ready promise should resolve when fonts loaded");
+
+  const dynamicFace = new FontFace("AhemTest2", "url(/fonts/Ahem.ttf)");
+  fontSet.add(dynamicFace);
+  dynamicFace.load();
+  const readyPromise2 = fontSet.ready;
+  assert_not_equals(readyPromise1, readyPromise2, "A new FontFace added should create a new document.fonts.ready promise");
+
+  await readyPromise2;
+  assert_equals(fontSet.status, "loaded", "document.fonts.status should be 'loaded'");
+}, "document.fonts.ready is replaced as new fonts are loaded");
+</script>

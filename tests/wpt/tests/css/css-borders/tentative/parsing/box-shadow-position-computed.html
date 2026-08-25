@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Borders and Box Decorations 4 Test: Computed values of 'box-shadow-position'</title>
+<link rel="author" title="Sebastian Zartner" href="mailto:sebastianzartner@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#box-shadow-position">
+<meta name="assert" content="This test checks that the computed value of 'box-shadow-position' is correct.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+
+<div id="target"></div>
+
+<script>
+test_computed_value("box-shadow-position", "inset");
+test_computed_value("box-shadow-position", "outset");
+test_computed_value("box-shadow-position", "inset, outset");
+test_computed_value("box-shadow-position", "outset, inset");
+</script>

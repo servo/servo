@@ -1,0 +1,19 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Verifies overflow:visible doesn't clip using border-radius</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow/#propdef-overflow">
+<link rel="author" title="Khushal Sagar" href="mailto:khushalsagar@chromium.org">
+<link rel="match" href="overflow-img-ref.html">
+<style>
+  .default {
+    width: 25px;
+    height: 50px;
+    object-fit: none;
+    overflow: visible;
+    border-radius: 50%;
+    object-position: 0% 0%;
+  }
+</style>
+<body>
+<img class=default src="../css-images/support/exif-orientation-6-ru.jpg"></img>
+</body>

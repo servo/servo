@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang=en>
+<meta charset="utf-8">
+<title>CSS Inline reference</title>
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+<style>
+.green { color: green; }
+.red { color: red; }
+.ref {
+  display: inline-block;
+}
+div div {
+  width: 50px;
+  height: 0px;
+  border: 20px solid green;
+  margin: 10px;
+}
+</style>
+<p>Test passes if the <span class=green>green</span> boxes have <span class=red>no red</span> in the middle.</p>
+
+<div class=ref>
+  <div></div>
+  <div></div>
+  <div></div>
+  <div></div>
+  <div></div>
+  <div></div>
+</div>
+
+<div class=ref>
+  <div></div>
+  <div></div>
+  <div></div>
+  <div></div>
+  <div></div>
+  <div></div>
+</div>
+
+<div class=ref>
+  <div></div>
+  <div></div>
+  <div></div>
+  <div></div>
+  <div></div>
+  <div></div>
+</div>

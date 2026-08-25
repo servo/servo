@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/cookies/resources/cookie-helper.sub.js"></script>
+</head>
+<body>
+  <script>
+    //
+    //  Set-Cookie: domain-attribute-missing=b; Path=/
+    //
+    const cookieName = "domain-attribute-missing";
+    // Clean up cookie at the end to avoid interfering with subsequent tests.
+    add_completion_callback(tests => document.cookie =
+      `${cookieName}=0; Path=/; expires=01-jan-1970 00:00:00 GMT`);
+
+    test(t => {
+      assert_dom_cookie(cookieName, "b", true);
+    }, "No domain attribute => available via `document.cookie`");
+
+    async_test(t => {
+      fetch("/cookies/resources/list.py", { credentials: "include" })
+        .then(t.step_func(r => r.json()))
+        .then(t.step_func_done(r => {
+          assert_equals(r[cookieName], "b");
+        }))
+        .catch(_ => assert_unreached);
+    }, "No domain attribute => sent with same-origin requests.");
+
+    async_test(t => {
+      fetch(`${SECURE_SUBDOMAIN_ORIGIN}/cookies/resources/list.py`, { credentials: "include" })
+        .then(t.step_func(r => r.json()))
+        .then(t.step_func_done(r => {
+          assert_equals(r[cookieName], undefined);
+        }))
+        .catch(_ => assert_unreached);
+    }, "No domain attribute => not sent with subdomain requests.");
+  </script>
+</body>

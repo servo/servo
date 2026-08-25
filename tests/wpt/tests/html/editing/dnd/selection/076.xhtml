@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Selection drag and drop from number to text input</title>
+<style type="text/css">
+input[placeholder]
+  {width:300px;
+  height:100px;
+  margin-top:20px;}
+</style>
+</head>
+<body onload="document.querySelector('input').select()">
+<p>Drag selected number to the input below. Copy of selection should end up in the input once you drop it there.</p>
+<p><input type="number" value="123456789"/></p>
+<p><input placeholder="Drop selection here"/></p>
+</body>
+</html>

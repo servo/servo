@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: when applied to a multicol container, `line-clamp` does nothing</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#invisible-line-boxes">
+<link rel="match" href="reference/line-clamp-039-ref.html">
+<meta name="assert" content="The `content` property, which is one of the longhands for `line-clamp`, applies to multicol containers. However, the value `collapse`, which is set with all non-`none` `line-clamp` values, acts the same as the initial value `auto` in a multicol container. Therefore, `line-clamp` has no effect in multicol containers.">
+<style>
+#clamp-and-columns {
+  line-clamp: 2;
+  columns: 3;
+  background-color: yellow;
+}
+p {
+  margin: 0;
+}
+</style>
+<div id="clamp-and-columns">
+  <!-- First column -->
+  <p>Line 1</p>
+  <p>Line 2</p>
+  <p>Line 3</p>
+  <!-- Second column -->
+  <p>Line 4</p>
+  <p>Line 5</p>
+  <p>Line 6</p>
+  <!-- Third column -->
+  <p>Line 7</p>
+  <p>Line 8</p>
+  <p>Line 9</p>
+</div>

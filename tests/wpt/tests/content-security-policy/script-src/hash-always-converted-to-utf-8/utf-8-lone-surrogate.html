@@ -1,0 +1,31 @@
+<html>
+<head>
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'nonce-abc' 'sha256-YJSaNEZFStZqU2Mp2EttwhcP2aT9lnDvexn+BM2HfKo=';">
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+</head>
+<body>
+    <script nonce="abc">
+      var t = async_test("Should convert the script contents to UTF-8 before hashing");
+      var count = 0;
+      var script_ran = function() {
+        // if both blocks run the tests is succsssful
+        if (++count == 2) t.done();
+      }
+      window.addEventListener("securitypolicyviolation", t.unreached_func("Should not have fired a spv"));
+
+      // Insert a script element that contains the U+FFFD replacement character
+      var scr1 = document.createElement('script');
+      scr1.text ="//\uFFFD\nscript_ran();";
+      document.body.appendChild(scr1);
+
+      // Insert a script element that contains a surrogate character but it otherwise
+      // entirely identical to the previously inserted one, the surrogate should be
+      // be converted to U+FFFD when converting to UTF-8 so it should have the
+      // same hash as the one inserted before
+      var scr2 = document.createElement('script');
+      scr2.text ="//\uD801\nscript_ran();";
+      document.body.appendChild(scr2);
+    </script>
+</body>
+</html>

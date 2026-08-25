@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<link rel="author" title="Squarespace" href="https://www.squarespace.com/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  .below-viewport {
+    margin-top: 1000vh;
+  }
+</style>
+
+<audio class="below-viewport" src="/media/sine440.mp3" loading="lazy" preload="auto" controls></audio>
+
+<script>
+  const t = async_test(
+    "Audio with loading=lazy and preload=auto that is not visible in viewport does not load audio data"
+  );
+
+  const audio = document.querySelector("audio");
+
+  t.step_timeout(() => {
+    assert_equals(audio.readyState, HTMLMediaElement.HAVE_NOTHING);
+    t.done();
+  }, 1000);
+</script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/helper.sub.js"></script>
+<script src="support/csp-violations.js"></script>
+
+<meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script'; connect-src 'none';">
+<body>
+<script src="support/trusted-types-reporting-for-SharedWorker-constructor.js">
+</script>

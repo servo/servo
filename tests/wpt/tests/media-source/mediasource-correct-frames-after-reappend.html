@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<!-- Copyright © 2019 Igalia. -->
+<html>
+<head>
+    <title>Frame checking test for MSE playback in presence of a reappend.</title>
+    <meta name="timeout" content="long">
+    <meta name="charset" content="UTF-8">
+    <link rel="author" title="Alicia Boya García" href="mailto:aboya@igalia.com">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="mediasource-util.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<canvas id="test-canvas"></canvas>
+<script>
+    function waitForEventPromise(element, event) {
+        return new Promise(resolve => {
+            function handler(ev) {
+                element.removeEventListener(event, handler);
+                resolve(ev);
+            }
+            element.addEventListener(event, handler);
+        });
+    }
+
+    function appendBufferPromise(sourceBuffer, data) {
+        sourceBuffer.appendBuffer(data);
+        return waitForEventPromise(sourceBuffer, "update");
+    }
+
+    function waitForPlayerToReachTimePromise(mediaElement, time) {
+        return new Promise(resolve => {
+            function timeupdate() {
+                if (mediaElement.currentTime < time)
+                    return;
+
+                mediaElement.removeEventListener("timeupdate", timeupdate);
+                resolve();
+            }
+            mediaElement.addEventListener("timeupdate", timeupdate);
+        });
+    }
+
+    function readPixel(imageData, x, y) {
+        return {
+            r: imageData.data[4 * (y * imageData.width + x)],
+            g: imageData.data[1 + 4 * (y * imageData.width + x)],
+            b: imageData.data[2 + 4 * (y * imageData.width + x)],
+            a: imageData.data[3 + 4 * (y * imageData.width + x)],
+        };
+    }
+
+    function isPixelLit(pixel) {
+        const threshold = 200; // out of 255
+        return pixel.r >= threshold && pixel.g >= threshold && pixel.b >= threshold;
+    }
+
+    // The test video has a few gray boxes. Each box interval (1 second) a new box is lit white and a different note
+    // is played. This test makes sure the right number of lit boxes and the right note are played at the right time.
+    const totalBoxes = 7;
+    const boxInterval = 1; // seconds
+
+    const videoWidth = 320;
+    const videoHeight = 240;
+    const boxesY = 210;
+    const boxSide = 20;
+    const boxMargin = 20;
+    const allBoxesWidth = totalBoxes * boxSide + (totalBoxes - 1) * boxMargin;
+    const boxesX = new Array(totalBoxes).fill(undefined)
+        .map((_, i) => (videoWidth - allBoxesWidth) / 2 + boxSide / 2 + i * (boxSide + boxMargin));
+
+    // Sound starts playing A4 (440 Hz) and goes one chromatic note up with every box lit.
+    // By comparing the player position to both the amount of boxes lit and the note played we can detect A/V
+    // synchronization issues automatically.
+    const noteFrequencies = new Array(1 + totalBoxes).fill(undefined)
+        .map((_, i) => 440 * Math.pow(Math.pow(2, 1 / 12), i));
+
+    // We also check the first second [0, 1) where no boxes are lit, therefore we start counting at -1 to do the check
+    // for zero lit boxes.
+    let boxesLitSoFar = -1;
+
+    mediasource_test(async function (test, mediaElement, mediaSource) {
+        const canvas = document.getElementById("test-canvas");
+        const canvasCtx = canvas.getContext("2d");
+        canvas.width = videoWidth;
+        canvas.height = videoHeight;
+
+        const videoData = await (await fetch("mp4/test-boxes-video.mp4")).arrayBuffer();
+        const audioData = (await (await fetch("mp4/test-boxes-audio.mp4")).arrayBuffer());
+
+        const videoSb = mediaSource.addSourceBuffer('video/mp4; codecs="avc1.4d401f"');
+        const audioSb = mediaSource.addSourceBuffer('audio/mp4; codecs="mp4a.40.2"');
+
+        mediaElement.addEventListener('error', test.unreached_func("Unexpected event 'error'"));
+        mediaElement.addEventListener('ended', onEnded);
+        mediaElement.addEventListener('timeupdate', onTimeUpdate);
+
+        await appendBufferPromise(videoSb, videoData);
+        await appendBufferPromise(audioSb, audioData);
+        mediaElement.play();
+
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        source = audioCtx.createMediaElementSource(mediaElement);
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 8192;
+        source.connect(analyser);
+        analyser.connect(audioCtx.destination);
+
+        const freqDomainArray = new Float32Array(analyser.frequencyBinCount);
+
+        function checkNoteBeingPlayed() {
+            const expectedNoteFrequency = noteFrequencies[boxesLitSoFar];
+
+            analyser.getFloatFrequencyData(freqDomainArray);
+            const maxBin = freqDomainArray.reduce((prev, curValue, i) =>
+                curValue > prev.value ? {index: i, value: curValue} : prev,
+                {index: -1, value: -Infinity});
+            const binFrequencyWidth = audioCtx.sampleRate / analyser.fftSize;
+            const binFreq = maxBin.index * binFrequencyWidth;
+
+            assert_true(Math.abs(expectedNoteFrequency - binFreq) <= binFrequencyWidth,
+                `The note being played matches the expected one (boxes lit: ${boxesLitSoFar}, ${expectedNoteFrequency.toFixed(1)} Hz)` +
+                `, found ~${binFreq.toFixed(1)} Hz`);
+        }
+
+        function countLitBoxesInCurrentVideoFrame() {
+            canvasCtx.drawImage(mediaElement, 0, 0);
+            const imageData = canvasCtx.getImageData(0, 0, videoWidth, videoHeight);
+            const lights = boxesX.map(boxX => isPixelLit(readPixel(imageData, boxX, boxesY)));
+            let litBoxes = 0;
+            for (let i = 0; i < lights.length; i++) {
+                if (lights[i])
+                    litBoxes++;
+            }
+            for (let i = litBoxes; i < lights.length; i++) {
+                assert_false(lights[i], 'After the first non-lit box, all boxes must non-lit');
+            }
+            return litBoxes;
+        }
+
+        await waitForPlayerToReachTimePromise(mediaElement, 2.5);
+        await appendBufferPromise(audioSb, audioData);
+        mediaSource.endOfStream();
+
+        function onTimeUpdate() {
+            const graceTime = 0.5;
+            if (mediaElement.currentTime >= (1 + boxesLitSoFar) * boxInterval + graceTime && boxesLitSoFar < totalBoxes) {
+                assert_equals(countLitBoxesInCurrentVideoFrame(), boxesLitSoFar + 1, "Num of lit boxes:");
+                boxesLitSoFar++;
+                checkNoteBeingPlayed();
+            }
+        }
+
+        function onEnded() {
+            assert_equals(boxesLitSoFar, totalBoxes, "Boxes lit at video ended event");
+            test.done();
+        }
+    }, "Test the expected frames are played at the expected times, even in presence of reappends");
+</script>
+</body>
+</html>

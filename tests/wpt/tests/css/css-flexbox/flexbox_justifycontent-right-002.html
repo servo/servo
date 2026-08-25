@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<title>flexbox | justify-content: right in columns</title>
+<link rel="author" title="Eric Meyer" href="mailto:emeyer@igalia.com">
+<link rel="help" href="https://www.w3.org/TR/css-align-3/#align-justify-content">
+<link rel="match" href="flexbox_justifycontent-right-002-ref.html">
+<style>
+div {
+  background: blue;
+  margin: 1em 0;
+  width: 12em;
+  height: 10em;
+  display: flex;
+  justify-content: right;
+}
+div#column {
+  flex-direction: column;
+}
+div#column-reverse {
+  flex-direction: column-reverse;
+}
+span {
+  background: white;
+  padding: 0 2em;
+  width: 4em;
+  height: 2em;
+}
+span:nth-child(1) {background: yellow;}
+span:nth-child(2) {background: pink;}
+span:nth-child(3) {background: lightblue;}
+</style>
+
+<p>Test passes if the numbered boxes are placed in the top left corner of the first flex container and top-to-bottom order is 1, 2, 3, and placed in the top left corner of the second flexbox container and top-to-bottom order is 3, 2, 1.</p>
+
+<div id="column">
+  <span>one</span>
+  <span>two</span>
+  <span>three</span>
+</div>
+
+<div id="column-reverse">
+  <span>one</span>
+  <span>two</span>
+  <span>three</span>
+</div>

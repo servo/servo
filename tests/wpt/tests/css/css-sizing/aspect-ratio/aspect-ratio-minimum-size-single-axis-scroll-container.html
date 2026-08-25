@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<title>CSS Sizing: aspect-ratio automatic minimum size respects single-axis scroll containers</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio-minimum">
+<link rel="author" title="Free Debreuil" href="mailto:freedebreuil@google.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+
+<style>
+.target {
+  aspect-ratio: 1 / 1;
+}
+.inline {
+  display: inline-block;
+  width: auto;
+  height: 100px;
+}
+.block {
+  width: 100px;
+  height: auto;
+}
+.content {
+  width: 200px;
+  height: 200px;
+}
+.x-scroller {
+  overflow-x: hidden;
+  overflow-y: clip;
+}
+.y-scroller {
+  overflow-x: clip;
+  overflow-y: hidden;
+}
+</style>
+
+<p>
+  The target has a 100px size from its aspect ratio, but its content is
+  200px x 200px. If the ratio-dependent axis does not have a scrollable
+  overflow value, the automatic minimum size raises that axis to 200px.
+  However, if the ratio-dependent axis has a scrollable overflow value, the
+  automatic minimum size is zero and the axis stays 100px.
+</p>
+
+<div class="target inline x-scroller" data-expected-width="100" data-expected-height="100">
+  <div class="content"></div>
+</div>
+
+<div class="target inline y-scroller" data-expected-width="200" data-expected-height="100">
+  <div class="content"></div>
+</div>
+
+<div class="target block y-scroller" data-expected-width="100" data-expected-height="100">
+  <div class="content"></div>
+</div>
+
+<div class="target block x-scroller" data-expected-width="100" data-expected-height="200">
+  <div class="content"></div>
+</div>
+
+<script>
+checkLayout('.target');
+</script>

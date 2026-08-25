@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang=en>
+  <meta charset=utf-8>
+  <title>CSS-contain test: layout containment on ruby-base-container</title>
+  <link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+  <meta name=flags content="ahem">
+  <meta name=assert content="layout containment does not apply to ruby-base-container">
+  <link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+  <link rel=help href="https://drafts.csswg.org/css-contain-1/#containment-layout">
+
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+div {
+  position: relative;
+  background: red;
+  width: 100px;
+  height: 100px;
+  padding: 25px;
+  box-sizing: border-box;
+}
+rbc {
+  contain: layout;
+  display: ruby-base-container;
+  font-family: Ahem;
+  font-size: 100px;
+  line-height: 1;
+}
+rbc::after {
+  content: "X";
+  color: green;
+  position: absolute;
+  top:0; left: 0;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div><ruby><rbc></rbc></ruby></div>

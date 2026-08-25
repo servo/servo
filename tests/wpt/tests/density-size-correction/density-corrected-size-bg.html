@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<head>
+    <title>Density corrected size: background images</title>
+    <link rel="author" title="Noam Rosenthal" href="noam@webkit.org">
+    <link rel="match" href="density-corrected-size-bg-ref.html" />
+    <meta name="assert" content="Assert that background images with EXIF density-corrected-size are rendered correctly">
+</head>
+<body>
+    <style>
+        body {
+            --lores: url(resources/exif-resolution-valid-lores.jpg);
+            --hires: url(resources/exif-resolution-valid-hires.jpg);
+            --default: url(resources/exif-resolution-none.jpg);
+            --non-uniform: url(resources/exif-resolution-valid-non-uniform.jpg);
+        }
+        .default-bg {background-image: var(--default); }
+        .lores-bg {background-image: var(--lores); }
+        .hires-bg {background-image: var(--hires); }
+        .invalid-bg {background-image: var(--invalid); }
+        .non-uniform-bg {background-image: var(--non-uniform); }
+        .box { width: 200px; height: 200px; display: inline-block; }
+        .tiled {background-repeat: repeat; }
+        .stretch {background-repeat: no-repeat; background-size: contain; }
+    </style>
+    <div class="default-bg tiled box"></div>
+    <div class="lores-bg tiled box"></div>
+    <div class="hires-bg tiled box"></div>
+    <div class="non-uniform-bg tiled box"></div>
+    <br/>
+    <div class="lores-bg stretch box"></div>
+    <div class="default-bg stretch box"></div>
+    <div class="non-uniform-bg stretch box"></div>
+</body>
+</html>

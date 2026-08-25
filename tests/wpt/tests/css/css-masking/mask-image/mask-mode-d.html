@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Masking: mask-mode with raster image</title>
+    <link rel="author" title="CJ Ku" href="mailto:cku@mozilla.com">
+    <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+    <link rel="help" href="https://www.w3.org/TR/css-masking-1/#propdef-mask-mode">
+    <link rel="match" href="mask-mode-ref.html">
+    <meta name="assert" content="Test checks that whether mask-mode is filled automatically according to the number of mask layers.">
+    <meta name="fuzzy" content="maxDifference=0-1;totalPixels=0-10000">
+    <style type="text/css">
+      div {
+        background-color: blue;
+        position: absolute;
+        margin: 0px;
+        padding: 0px;
+        width: 100px;
+        height: 100px;
+        top: 10px;
+      }
+
+      div.auto {
+        left: 10px;
+        mask-mode: match-source;
+        mask-image: linear-gradient(black 0%, black 100%), linear-gradient(blue 0%, blue 100%);
+      }
+
+      div.alpha {
+        left: 120px;
+        mask-mode: alpha alpha;
+        mask-image: linear-gradient(black 0%, black 100%), linear-gradient(blue 0%, blue 100%);
+      }
+
+      div.luminance1 {
+        left: 230px;
+        mask-mode: luminance;
+        mask-image: linear-gradient(black 0%, black 100%), linear-gradient(blue 0%, blue 100%);
+      }
+
+      div.luminance2 {
+        left: 340px;
+        mask-mode: luminance;
+        mask-image: linear-gradient(black 0%, black 100%), linear-gradient(red 0%, red 100%);
+      }
+
+      div.luminance3 {
+        left: 450px;
+        mask-mode: luminance;
+        mask-image: linear-gradient(black 0%, black 100%), linear-gradient(lime 0%, lime 100%);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="auto"></div>
+    <div class="alpha"></div>
+    <div class="luminance1"></div>
+    <div class="luminance2"></div>
+    <div class="luminance3"></div>
+  </body>
+</html>

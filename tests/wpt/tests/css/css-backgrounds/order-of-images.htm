@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Backgrounds Test: Order of multiple overlapping background images</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css3-background/#the-background-image" />
+        <link rel="match" href="reference/order-of-images-ref.html" />
+        <meta name="assert" content="Background images are listed in order, with the first image being rendered on top of all the other images, and so on." />
+        <style type="text/css">
+            div
+            {
+                width: 250px;
+                height: 250px;
+                background-image: url("support/blue_color.png"), url("support/orange_color.png"), url("support/black_color.png");
+                background-repeat: no-repeat;
+                background-position: 30px 30px, 60px 60px, 90px 90px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if a blue box overlaps an orange box, which overlaps a black box.</p>
+        <div></div>
+    </body>
+</html>

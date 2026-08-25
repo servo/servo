@@ -1,0 +1,22 @@
+<!doctype html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Scrollbars: scrollbar-width correctly updates with overflow: scroll</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="match" href="scrollbar-width-paint-003-ref.html">
+<link rel="help" href="https://www.w3.org/TR/css-scrollbars-1/">
+<script src="/common/reftest-wait.js"></script>
+<style>
+  :root {
+    overflow: scroll;
+    scrollbar-width: thin;
+    scrollbar-color: green green;
+  }
+</style>
+<script>
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    document.documentElement.style.scrollbarWidth = 'auto';
+    takeScreenshot();
+  }));
+</script>

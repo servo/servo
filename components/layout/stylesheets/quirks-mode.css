@@ -1,0 +1,49 @@
+/*
+
+https://html.spec.whatwg.org/multipage/#flow-content-3
+
+> In quirks mode, the following rules are also expected to apply:
+
+*/
+
+@namespace url(http://www.w3.org/1999/xhtml);
+
+
+form { margin-bottom: 1em; }
+
+
+table {
+  font-weight: initial;
+  font-style: initial;
+  font-variant: initial;
+  font-size: initial;
+  line-height: initial;
+  white-space: initial;
+  /* text-align: initial; -- see FIXME below */
+}
+
+/*
+ * FIXME(pcwalton): Actually saying `text-align: initial` above breaks `<table>` inside `<center>`
+ * in quirks mode. This is because we (following Gecko, WebKit, and Blink) implement the  HTML5
+ * align-descendants rules with a special `text-align: -moz-center`. `text-align: initial`, if
+ * placed on the `<table>` element per the spec, would break this behavior. So we place it on
+ * `<tbody>` instead.
+ */
+tbody {
+  text-align: initial;
+}
+
+
+/* FIXME: https://html.spec.whatwg.org/multipage/#margin-collapsing-quirks */
+
+
+input:not([type=image]), textarea { box-sizing: border-box; }
+
+
+img[align=left i] { margin-right: 3px; }
+img[align=right i] { margin-left: 3px; }
+
+/* https://html.spec.whatwg.org/multipage/rendering.html#lists:quirks-mode */
+li { list-style-position: inside; }
+li :is(dir, menu, ol, ul) { list-style-position: outside; }
+:is(dir, menu, ol, ul) :is(dir, menu, ol, ul, li) { list-style-position: unset; }

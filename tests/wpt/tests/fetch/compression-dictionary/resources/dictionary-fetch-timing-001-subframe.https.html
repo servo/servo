@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<script>
+  let timedEntries = [];
+  const observer = new PerformanceObserver((list) => {
+    list.getEntries().forEach(entry => {
+      const url = new URL(entry.name);
+      timedEntries.push({pathname: url.pathname, search: url.search, time: entry.fetchStart});
+    });
+  });
+  observer.observe({ type: "resource", buffered: true});
+</script>
+<link rel="compression-dictionary" href="./register-dictionary.py?linkElement">
+<link rel="stylesheet" href="/html/semantics/document-metadata/interactions-of-styling-and-scripting/stylesheet.py?delay=1">
+<script src="/common/utils.js"></script>
+<img src="/images/wide-gamut-pattern.png"/>
+<script>
+  window.addEventListener("load", _ => {
+    timedEntries.push({name: "load event", time: performance.now()});
+    function waitForDictionaryLoad() {
+      if (timedEntries.find(e => e.search === "?linkHeader") &&
+          timedEntries.find(e => e.search === "?linkElement")) {
+        let sortedEvents = timedEntries.
+            sort((entry1, entry2) => entry1.time - entry2.time).
+            map(entry => entry.name || entry.pathname + entry.search);
+        window.parent.postMessage({sortedEvents});
+        return;
+      }
+      (window.requestIdleCallback || requestAnimationFrame)(waitForDictionaryLoad);
+    }
+    waitForDictionaryLoad();
+  });
+</script>

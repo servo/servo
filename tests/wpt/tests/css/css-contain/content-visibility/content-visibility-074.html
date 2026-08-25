@@ -1,0 +1,69 @@
+<!doctype HTML>
+<html class="reftest-wait">
+<meta charset="utf8">
+<title>CSS Content Visibility: toggling auto with composited descedant</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<link rel="match" href="content-visibility-074-ref.html">
+<meta name="assert" content="after toggling content-visibility auto a few times, composited descedant is visible.">
+
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+#a { will-change: transform; }
+#b { height: 15000px; }
+#c {
+  width: 800px;
+  height: 600px;
+}
+#d {
+  will-change: transform;
+  top: 0px;
+  width: 500px;
+  height: 500px;
+  background: green;
+}
+.auto {
+  content-visibility: auto;
+}
+
+</style>
+
+<div id="a">
+</div>
+<div id="b">
+  <div id="c" class=auto>
+    <div id="d"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+function runTest(step) {
+  if (step % 2 == 0) {
+    requestAnimationFrame(() => runTest(step + 1));
+    return;
+  }
+
+  switch(step) {
+    case 1:
+      document.getElementById("c").classList.remove("auto");
+      break;
+    case 3:
+      document.getElementById("c").classList.add("auto");
+      break;
+    case 5:
+      document.getElementById("c").classList.remove("auto");
+      break;
+    case 7:
+      document.getElementById("c").classList.add("auto");
+      break;
+    case 9:
+      takeScreenshot();
+      return;
+  }
+  requestAnimationFrame(() => runTest(step + 1));
+}
+
+window.onload = () => requestAnimationFrame(() => runTest(0));
+</script>

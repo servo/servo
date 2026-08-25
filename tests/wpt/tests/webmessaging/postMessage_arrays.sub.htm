@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title> postMessage with arrays </title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id=log></div>
+
+<div style="display:none">
+    <iframe width="70%" onload="PostMessageTest()" src="{{location[scheme]}}://{{domains[www]}}:{{location[port]}}/webmessaging/support/ChildWindowPostMessage.htm"></iframe>
+</div>
+
+<script>
+
+
+    var description = "Test Description: Messages can be structured objects, e.g., arrays.";
+
+    var t = async_test(description);
+
+    var DATA = [1,2,3,4,5,6,7,8];
+    var TYPE = "object";
+    var TARGET = document.querySelector("iframe");
+
+    function PostMessageTest()
+    {
+        TARGET.contentWindow.postMessage(DATA, "*");
+    }
+
+    window.onmessage = t.step_func(function(e)
+    {
+        assert_equals(typeof(e.data), TYPE);
+        assert_array_equals(e.data, DATA);
+        t.done();
+    });
+</script>
+</body>
+</html>

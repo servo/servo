@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>CSS Transitions Test: No transition if @starting-style display value is none</title>
+<link rel="help" href="https://drafts.csswg.org/css-transitions-2/#defining-before-change-style-the-starting-style-rule">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-transitions/support/helper.js"></script>
+<div id="target"></div>
+<style>
+  #target {
+    transition-property: background-color;
+    transition-duration: 100s;
+    transition-timing-function: steps(2, start);
+    background-color: green;
+  }
+  @starting-style {
+    #target {
+      display: none;
+      background-color: red;
+    }
+  }
+</style>
+<script>
+  setup(() => {
+    assert_true(supportsStartingStyle(), "Prerequisite: @starting-style parses");
+  });
+
+  promise_test(async t => {
+    await waitForAnimationFrames(2);
+    assert_equals(getComputedStyle(target).backgroundColor, "rgb(0, 128, 0)",
+                  "No transition of background-color when @starting-style display is 'none'");
+  }, "@starting-style with display:none");
+</script>

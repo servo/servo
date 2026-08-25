@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="stylesheet" href="resources/interest-button-styles.css">
+
+<div class=example>
+  <button class=invoker>
+    <span class=before>::before</span>
+    <span class=content>Button</span>
+    <span class=after>::after</span>
+    <span class=fake-interest-button>::interest-button</span>
+  </button>
+</div>
+<div class=example>
+  <a href=# class=invoker>
+    <span class=before>::before</span>
+    <span class=content>Link</span>
+    <span class=after>::after</span>
+    <span class=fake-interest-button>::interest-button</span>
+  </a>
+</div>
+<div class=example>
+  <img src=/images/blue.png usemap=#map1 width=40 height=40>
+  <span class=before>::before</span>
+  <map id=map1><area href=/ shape=default class=invoker></map>
+  <span class=after>::after</span>
+  <span class=fake-interest-button>::interest-button</span>
+</div>
+
+<div class="example defaultcontent">
+  <button class=invoker>
+    <span>Button</span>
+  </button>
+</div>
+<div class="example defaultcontent">
+  <a href="#" class=invoker><span>Link</span>
+  </a>
+</div>
+
+<style>
+  .fake-interest-button {
+    display: inline-block;
+  }
+  .example:not(.defaultcontent) span:not(.fake-interest-button) {
+    border: 1px solid lime;
+  }
+  .example {
+    width: 400px;
+    height: 50px;
+  }
+</style>
+
+<script>
+  const stripWhitespace = node => [...node.childNodes].forEach(c =>
+    c.nodeType === 3 && !c.nodeValue.trim() ? c.remove() : stripWhitespace(c)
+  );
+  document.querySelectorAll('.example').forEach(stripWhitespace);
+</script>
+

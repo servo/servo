@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Multielement selection drag and drop</title>
+<style type="text/css">
+textarea
+  {width:300px;
+  height:100px;
+  margin-top:20px;
+  padding:10px;}
+</style>
+</head>
+<body onload="window.getSelection().selectAllChildren(document.querySelector('div'))">
+<div>
+  <p>Drag selected text to the textarea.</p>
+  <p>Copy of selection should end up in the textarea once you drop it there.</p>
+</div>
+<p><textarea placeholder="Drop selection here"/></p>
+</body>
+</html>

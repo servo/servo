@@ -1,0 +1,17 @@
+<title>Verify srcdoc content loads when src is about:srcdoc#foo.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<iframe id=myframe srcdoc='srcdoc_text' src='about:srcdoc#foo'></iframe>
+
+<script>
+  async_test(function(t) {
+    // Verify that the srcdoc content is loaded before we start.
+    window.onload = t.step_func_done(() => {
+        assert_true(typeof myframe.contentDocument !== 'undefined',
+            'iframe has contentDocument');
+        assert_equals(myframe.contentDocument.body.innerText, 'srcdoc_text',
+            'iframe contains srcdoc content');
+    }, '');
+  }, 'Verify srcdoc content loads when src is about:srcdoc#foo.');
+</script>

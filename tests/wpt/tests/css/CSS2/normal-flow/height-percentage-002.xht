@@ -1,0 +1,34 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Percentage based 'height' computes to 'auto' when containing block has no specified height</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+		<link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-10-29 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#propdef-height" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#the-height-property" />
+		<link rel="match" href="../reference/ref-if-there-is-no-red.xht" />
+
+        <meta name="assert" content="A percentage height is computed to 'auto' when the element is not absolutely positioned and there is no 'height' explicitly set on the containing block (or when the containing block's height is set to 'auto')." />
+        <style type="text/css">
+            div
+            {
+                width: 1in;
+            }
+            #div1
+            {
+                color: white;
+            }
+            div div
+            {
+                background: red;
+                height: 50%;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is <strong>no red</strong>.</p>
+        <div id="div1">Text sample
+            <div></div>
+        </div>
+    </body>
+</html>

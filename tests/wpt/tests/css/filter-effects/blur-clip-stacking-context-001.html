@@ -1,0 +1,35 @@
+<!doctype html>
+<title>CSS Test: Blurs are correctly clipped by an overflow: hidden ancestor</title>
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#funcdef-filter-blur">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#valdef-overflow-hidden">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1459065">
+<link rel="match" href="blur-clip-stacking-context-ref.html">
+<style>
+  #cover, #clip, #blur {
+    width: 100px;
+    height: 100px;
+  }
+
+  #cover, #clip {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+  }
+
+  #cover {
+    background: green;
+  }
+
+  #clip {
+    overflow: hidden;
+    background: red;
+  }
+
+  #blur {
+    background: blue;
+    filter: blur(20px);
+  }
+</style>
+<div id="clip"><div id="blur"></div></div>
+<div id="cover"></div>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<!-- Tests that select button part text is truncated by the button. -->
+<link rel=author href="mailto:pkotwicz@chromium.org">
+<link rel="match" href="select-overflow-x-ref.tentative.html">
+<style>
+select {
+  width:30px;
+  height:20px;
+}
+select::part(button) {
+  background-color:blue;
+}
+</style>
+<select>
+  <option>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;</option>
+</select>
+
+<style>
+  select, ::picker(select) {
+    appearance: base-select;
+  }
+</style>

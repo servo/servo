@@ -1,0 +1,12 @@
+<!doctype html>
+<svg width="450" height="250" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="spot">
+      <feDiffuseLighting lighting-color="white">
+        <feSpotLight x="350" y="100" z="30" limitingConeAngle="45"
+                     pointsAtX="350" pointsAtY="150" pointsAtZ="0"/>
+      </feDiffuseLighting>
+    </filter>
+  </defs>
+  <rect x="300" y="100" width="100" height="100" filter="url(#spot)" />
+</svg>

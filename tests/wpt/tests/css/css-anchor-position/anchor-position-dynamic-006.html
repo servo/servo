@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<link rel="help" href="https://issues.chromium.org/issues/444588111">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+.relayout-root {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  overflow: hidden;
+  background: red;
+}
+
+#target {
+  position: absolute;
+  background: green;
+  width: 100px;
+  height: 50px;
+  display: none;
+  anchor-name: --a;
+}
+
+.anchored {
+  position:absolute;
+  position-anchor: --a;
+  width: 100px;
+  height: 50px;
+  top: anchor(bottom);
+  background: green;
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="relayout-root">
+  <div style="position: absolute;">
+    <div id="target"></div>
+  </div>
+</div>
+<div class="anchored"></div>
+<script>
+document.body.offsetTop;
+target.style.display = 'initial';
+</script>

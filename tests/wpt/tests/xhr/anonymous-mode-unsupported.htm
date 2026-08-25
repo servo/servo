@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+  <head>
+    <title>XMLHttpRequest: anonymous mode unsupported</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+    /*
+      Older versions of the XMLHttpRequest spec had an 'anonymous' mode
+      The point of this mode was to handle same-origin requests like other-origin requests,
+      i.e. require preflight, drop authentication data (cookies and HTTP auth)
+      Also the Origin: and Referer: headers would not be sent
+
+      This mode was dropped due to lack of implementations and interest,
+      and this test is here just to assert failure if any implementation
+      supports this based on an older spec version.
+    */
+      document.cookie = 'test=anonymous-mode-unsupported'
+      test = async_test();
+      test.add_cleanup(function(){
+        // make sure we clean up the cookie again to avoid confusing other tests..
+        document.cookie = 'test=;expires=Fri, 28 Feb 2014 07:25:59 GMT';
+      })
+      test.step(function() {
+        var client = new XMLHttpRequest({anonymous:true})
+        client.open("GET", "resources/inspect-headers.py?filter_name=cookie")
+        client.onreadystatechange = test.step_func(function(){
+          if(client.readyState === 4){
+            assert_equals(client.responseText, 'Cookie: test=anonymous-mode-unsupported\n', 'The deprecated anonymous:true should be ignored, cookie sent anyway')
+            test.done();
+          }
+        });
+        client.send(null)
+      })
+    </script>
+  </body>
+</html>

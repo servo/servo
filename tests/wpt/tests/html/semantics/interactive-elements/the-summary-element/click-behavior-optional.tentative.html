@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>summary element: click behavior</title>
+<link rel="author" title="Mu-An Chiou" href="mailto:hi@muan.co">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#the-summary-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+  <div id="log"></div>
+
+  <details id="details">
+    <summary id="summary">Summary</summary>
+    <p>Contents</p>
+  </details>
+</body>
+
+<script>
+  // This behavior is not specified by HTML standards, but setting focus on
+  // clicked summary tag is the current behavior on Chrome, Safari, and Firefox
+  // in both Windows and macOS.
+  async_test(t => {
+    const details = document.getElementById("details")
+    const summary = document.getElementById("summary")
+
+    t.step_timeout(() => {
+      details.addEventListener("toggle", t.step_func_done(function () {
+        assert_equals(details.open, true, "details should be open")
+        assert_equals(document.activeElement, summary, "active element should be summary")
+        t.done()
+      }))
+
+      new test_driver.click(summary)
+    }, 200)
+  }, "clicking on summary should open details and set focus on summary")
+</script>

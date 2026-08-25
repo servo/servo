@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<link rel="author" title="Google LLC" href="http://www.google.com" />
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#cross-sizing" />
+<title>css-flexbox: Tests that we size items in a wrapping column flexbox as fit-content</title>
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+
+<style>
+.flex {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: center;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100px;
+  line-height: 1;
+}
+.flex > div {
+  min-height: 0;
+  background: green;
+}
+.flex * {
+  vertical-align: top;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div class="flex">
+  <div style="align-self: stretch;">
+    <div style="display: inline-block; width: 20px; height: 40px;"></div>
+  </div>
+  <div style="height: 60px;">
+    <div style="display: inline-block; height: 15px; width: 20px;"></div>
+    <div style="display: inline-block; height: 15px; width: 100px;"></div>
+    <div style="display: inline-block; height: 15px; width: 100px;"></div>
+    <div style="display: inline-block; height: 15px; width: 100px;"></div>
+  </div>
+</div>

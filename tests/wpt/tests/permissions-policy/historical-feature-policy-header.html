@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>Feature-Policy header should not be supported</title>
+<link rel="help" href="https://www.w3.org/TR/permissions-policy/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <script>
+    // Test: Feature-Policy header should be ignored by compliant browsers
+    // The header file sets: Feature-Policy: sync-xhr 'none'
+    // If Feature-Policy is correctly ignored, sync XHR should still work
+    test(() => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("GET", document.location.href, false);
+      xhr.send();
+      assert_equals(
+        xhr.status,
+        200,
+        "Sync XHR should succeed because Feature-Policy header should be ignored"
+      );
+    }, "Feature-Policy header should not block features (use Permissions-Policy instead)");
+  </script>
+</body>

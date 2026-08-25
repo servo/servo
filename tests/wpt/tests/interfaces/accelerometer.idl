@@ -1,0 +1,28 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Accelerometer (https://w3c.github.io/accelerometer/)
+
+[SecureContext, Exposed=Window]
+interface Accelerometer : Sensor {
+  constructor(optional AccelerometerSensorOptions options = {});
+  readonly attribute double? x;
+  readonly attribute double? y;
+  readonly attribute double? z;
+};
+
+enum AccelerometerLocalCoordinateSystem { "device", "screen" };
+
+dictionary AccelerometerSensorOptions : SensorOptions {
+  AccelerometerLocalCoordinateSystem referenceFrame = "device";
+};
+
+[SecureContext, Exposed=Window]
+interface LinearAccelerationSensor : Accelerometer {
+  constructor(optional AccelerometerSensorOptions options = {});
+};
+
+[SecureContext, Exposed=Window]
+interface GravitySensor : Accelerometer {
+  constructor(optional AccelerometerSensorOptions options = {});
+};

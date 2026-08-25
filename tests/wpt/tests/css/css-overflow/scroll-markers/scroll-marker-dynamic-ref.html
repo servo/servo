@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>CSS Test Reference: ::scroll-marker dynamic creation and removal</title>
+<style>
+  #scroller {
+    width: 600px;
+    height: 300px;
+    overflow: scroll;
+  }
+
+  #scroller div {
+    width: 600px;
+    height: 300px;
+    margin-bottom: 20px;
+    background: green;
+  }
+
+  #scroll-marker-group {
+    border: 3px solid black;
+    padding: 5px;
+    height: 20px;
+    display: block;
+  }
+
+  #scroll-marker {
+    width: 10px;
+    height: 10px;
+    background-color: aqua;
+    border-radius: 100%;
+    display: inline-block;
+  }
+</style>
+<div id="scroller">
+  <div></div>
+</div>
+<div id="scroll-marker-group">
+  <div id="scroll-marker"></div>
+</div>

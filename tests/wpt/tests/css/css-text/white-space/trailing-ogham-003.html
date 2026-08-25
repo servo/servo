@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 3 Test: trailing nowrap ogham spaces</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
+<link rel="match" href="reference/trailing-ogham-001-ref.html">
+<meta name="assert" content="tailing collaspible (nowrap) ogham spaces are removed">
+<style>
+div {
+    border: solid;
+    width: min-content;
+    white-space: nowrap;
+}
+.br { border-color: blue; }
+.end-of-element { border-color: orange; }
+
+</style>
+
+<p>Test passes if the content of the blue and orange boxes is identical to that of the black box.
+
+<div class=br>᚛ᚑᚌᚐᚋ᚜&#x1680;<br>᚛ᚑᚌᚐᚋ᚜</div>
+<div class=end-of-element>᚛ᚑᚌᚐᚋ᚜<br>᚛ᚑᚌᚐᚋ᚜&#x1680;</div>
+<div class=ref>᚛ᚑᚌᚐᚋ᚜<br>᚛ᚑᚌᚐᚋ᚜</div>

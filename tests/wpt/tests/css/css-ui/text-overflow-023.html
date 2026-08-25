@@ -1,0 +1,40 @@
+﻿<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: interacting with the ellipsis</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="http://www.w3.org/TR/css3-ui/#text-overflow">
+<meta name="flags" content="ahem dom should">
+<meta name="assert" content="Pointer events on the ellipsis should be dispatched to the elided inline element if there's one, rather than directly to the block.">
+<!-- This is tested indirectly, using elementFromPoint instead of actually triggering a pointer event, because:
+  * Actual pointer events can only be dispatched in an manual test, while elementFromPoint allows for an automated test
+  * These two methods are expected to give the same result
+
+  This indirection and the slight risk of false positive or false negative it introduces
+  is preferable to a manual test which would hardly anyone would ever run.
+-->
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+#parent {
+  position: absolute;
+  top: 0; left: 0;
+  font: 50px/1 Ahem ;
+  overflow: hidden;
+  width: 3em;
+  text-overflow: ellipsis;
+}
+</style>
+<div id=parent>&nbsp;&nbsp;<span id=target>&nbsp;&nbsp;</span></div>
+<script>
+setup({explicit_done: true});
+document.fonts.ready.then(()=> {
+  test(
+    function() {
+      var e = document.elementFromPoint(125,25);
+      assert_equals(e.id,"target", "the element targeted by a hit on the ellipsis is the elided inline.");
+    }, "Checks hit testing on the ellipsis");
+  done();
+});
+</script>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Canvas.drawElementImage: green rect when zoomed</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<link rel="author" href="mailto:schenney@chromium.org">
+<link rel="match" href="basic-rect-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+<style>
+body {
+  zoom: 200%;
+  margin: 4px;
+}
+#child {
+  width: 50px;
+  height: 50px;
+  background: green;
+}
+#canvas {
+  background: grey;
+  width: 100px;
+  height: 100px;
+}
+</style>
+
+<canvas id=canvas width="100" height="100" layoutsubtree>
+  <div id=child></div>
+</canvas>
+
+<script>
+onload = async () => {
+  const rectangle = canvas.getBoundingClientRect();
+  canvas.width = rectangle.width * devicePixelRatio;
+  canvas.height = rectangle.height * devicePixelRatio;
+  await waitForCanvasPaint(canvas);
+  canvas.getContext("2d").drawElementImage(child, 20 * devicePixelRatio, 30 * devicePixelRatio);
+  takeScreenshot();
+};
+</script>
+</html>

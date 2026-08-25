@@ -1,0 +1,21 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Generated Content: Entities</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/content/007.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#content" />
+  <link rel="match" href="content-177-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+   div { position: relative; font: 3em sans-serif; color: red; }
+   span { position: absolute; top: 0; left: 0; }
+   .control { color: green; }
+   .test:before { content: 'TEST &#x46;&#x41;&#x49;&#x4c;'; }
+  ]]></style>
+ </head>
+ <body>
+    <p>Test passes if there is a jumble of green letters and symbols that makes no sense and if there is <strong>no red</strong>.</p>
+  <div><span class="test">ED</span><span class="control">TEST &amp;#x46;&amp;#x41;&amp;#x49;&amp;#x4c;ED</span></div>
+ </body>
+</html>

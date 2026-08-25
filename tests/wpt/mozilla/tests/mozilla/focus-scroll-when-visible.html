@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Focused Input shouldn't be scrolled if the input is visible.</title>
+  <link rel="author" title="Jo Steven Novaryo" href="mailto:steven.novaryo@gmail.com">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<style>
+#hidden_container {
+  overflow: hidden;
+  width: 200px;
+  height: 200px;
+}
+input {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  border: 0px;
+  font-size: 10px;
+}
+.overflowing_child {
+  width: 1000px;
+  height: 1000px;
+}
+body {
+  margin: 0;
+}
+</style>
+<body>
+  <div id="hidden_container">
+    <input id="target">
+    <div class="overflowing_child"></div>
+  </div>
+  <script>
+
+  // This should give UAs with smooth scrolling enough time to finish the smooth scroll.
+  const FRAME_DELAY = 1000;
+
+  async function waitForNextFrame() {
+    const startTime = performance.now();
+    return new Promise(resolve => {
+      window.requestAnimationFrame((frameTime) => {
+        if (frameTime < startTime + FRAME_DELAY) {
+          window.requestAnimationFrame(resolve);
+        } else {
+          resolve();
+        }
+      });
+    });
+  }
+
+  function resetAndSetPosition(top, left) {
+    target.blur();
+    target.style = `top: ${top}px; left: ${left}px`;
+  }
+
+  function assertUnchanged(initialRect) {
+    let focusedRect = target.getBoundingClientRect();
+    assert_equals(initialRect.top, focusedRect.top);
+    assert_equals(initialRect.left, focusedRect.left);
+    assert_equals(initialRect.bottom, focusedRect.bottom);
+    assert_equals(initialRect.right, focusedRect.right);
+  }
+
+  function assertScrollToTheMiddle() {
+    let focusedRect = target.getBoundingClientRect();
+    let containerRect = hidden_container.getBoundingClientRect();
+    assert_equals((containerRect.height - focusedRect.height) / 2, focusedRect.top);
+    assert_equals((containerRect.width - focusedRect.width) / 2, focusedRect.left);
+    assert_equals(containerRect.height - (containerRect.height - focusedRect.height) / 2, focusedRect.bottom);
+    assert_equals(containerRect.width - (containerRect.width - focusedRect.width) / 2, focusedRect.right);
+  }
+
+  promise_test(async t => {
+    resetAndSetPosition(0, 0);
+    let initialRect = target.getBoundingClientRect();
+    await waitForNextFrame();
+    target.focus();
+    await waitForNextFrame();
+    assertUnchanged(initialRect);
+  }, 'Element that could not be scrolled to the center should be unchanged.');
+
+  promise_test(async t => {
+    resetAndSetPosition(100, 100);
+    await waitForNextFrame();
+    let initialRect = target.getBoundingClientRect();
+    target.focus();
+    await waitForNextFrame();
+    assertUnchanged(initialRect);
+  }, 'Element that is completely visible should be unchanged.');
+
+  promise_test(async t => {
+    resetAndSetPosition(125, 125);
+    await waitForNextFrame();
+    let initialRect = target.getBoundingClientRect();
+    target.focus();
+    await waitForNextFrame();
+    assertUnchanged(initialRect);
+  }, 'Element that is halfway visible should be unchanged.');
+
+  promise_test(async t => {
+    resetAndSetPosition(300, 300);
+    await waitForNextFrame();
+    let initialRect = target.getBoundingClientRect();
+    target.focus();
+    await waitForNextFrame();
+    assertScrollToTheMiddle();
+  }, 'Element that completely hidden should be scrolled.');
+  </script>
+</body>
+</html>

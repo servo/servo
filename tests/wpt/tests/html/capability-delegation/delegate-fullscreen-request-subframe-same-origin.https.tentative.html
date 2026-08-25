@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<!--
+   Tentative due to:
+     https://github.com/WICG/capability-delegation/issues/10
+-->
+<title>Capability Delegation of Fullscreen Requests: Subframe Same-Origin</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/utils.js"></script>
+
+<div>
+  Verifies that element.requestFullscreen() calls from a same-origin subframe without user
+  activation work if and only if the top frame has user activation, regardless of whether it
+  delegates the capability or not.
+
+  https://wicg.github.io/capability-delegation/spec.html
+
+  See wpt/html/user-activation/propagation*.html for frame tree user activation visibility tests.
+</div>
+
+<iframe allow="fullscreen" width="300px" height="50px"
+        src="./resources/delegate-fullscreen-request-recipient.html">
+</iframe>
+
+<script>
+  function testSameOriginSubframeFullscreenDelegation(capability, activate, expectation) {
+      const message = {"type": "make-fullscreen-request"};
+      const expectationType = expectation ? "succeeds" : "fails";
+      const delegationType = capability ? "with delegation" : "without delegation";
+      const activationType = activate ? "with user activation" : "with no user activation";
+
+      promise_test(async () => {
+          const data = await postCapabilityDelegationMessage(frames[0], message, window.location, capability, activate);
+          assert_equals(data.result, expectation ? "success" : "failure");
+      }, `Fullscreen requests from a same-origin subframe ${expectationType} ${delegationType} from an opener ${activationType}`);
+  }
+
+  promise_setup(async () => {
+      // Make sure the recipient iframe has loaded.
+      return getMessageData("recipient-loaded", frames[0]);
+  });
+
+  testSameOriginSubframeFullscreenDelegation(/*capability=*/"", /*activate=*/false, /*expectation=*/false);
+  testSameOriginSubframeFullscreenDelegation(/*capability=*/"", /*activate=*/true, /*expectation=*/true);
+  testSameOriginSubframeFullscreenDelegation(/*capability=*/"fullscreen", /*activate=*/true, /*expectation=*/true);
+</script>

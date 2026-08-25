@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Named items: img becomes exposed by id when a name is added</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-document-nameditem">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<img id="bar">
+<script>
+test(function() {
+  let img = document.querySelector("img#bar");
+  assert_equals(document.bar, undefined, "before adding a name");
+
+  img.setAttribute("name", "whatever");
+
+  assert_equals(document.bar, img, "after adding a name");
+}, "An img with an id but no name becomes exposed by its id once a name attribute is added.");
+</script>

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<title>CSS Pseudo Test: CSSPseudoElement with view transitions</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#CSSPseudoElement-interface">
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/#pseudo">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #target {
+    width: 100px;
+    height: 100px;
+    background: blue;
+    contain: paint;
+    view-transition-name: target;
+  }
+  #other {
+    width: 100px;
+    height: 100px;
+    background: green;
+    contain: paint;
+    view-transition-name: other;
+  }
+</style>
+<div id="target"></div>
+<div id="other"></div>
+<script>
+  promise_test(async t => {
+    assert_implements(document.startViewTransition, "Missing document.startViewTransition");
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    let transition = document.startViewTransition(() => {
+      document.getElementById("target").style.background = "red";
+    });
+    t.add_cleanup(() => transition.skipTransition());
+    await transition.ready;
+    let html = document.documentElement;
+    let vt = html.pseudo("::view-transition");
+    assert_true(vt instanceof CSSPseudoElement, "::view-transition is CSSPseudoElement");
+    assert_equals(vt.type, "::view-transition");
+    assert_equals(vt.parent, html);
+
+    let group = vt.pseudo("::view-transition-group(target)");
+    assert_true(group instanceof CSSPseudoElement, "::view-transition-group works via parent proxy");
+    assert_equals(group.type, "::view-transition-group");
+    assert_equals(group.parent, vt, "parent of group should be view-transition");
+
+    let imagePair = group.pseudo("::view-transition-image-pair(target)");
+    assert_true(imagePair instanceof CSSPseudoElement, "::view-transition-image-pair works via parent proxy");
+    assert_equals(imagePair.type, "::view-transition-image-pair");
+    assert_equals(imagePair.parent, group, "parent of image-pair should be group");
+
+    let oldVT = imagePair.pseudo("::view-transition-old(target)");
+    assert_true(oldVT instanceof CSSPseudoElement, "::view-transition-old works via parent proxy");
+    assert_equals(oldVT.type, "::view-transition-old");
+    assert_equals(oldVT.parent, imagePair, "parent of old should be image-pair");
+
+    let newVT = imagePair.pseudo("::view-transition-new(target)");
+    assert_true(newVT instanceof CSSPseudoElement, "::view-transition-new works via parent proxy");
+    assert_equals(newVT.type, "::view-transition-new");
+    assert_equals(newVT.parent, imagePair, "parent of new should be image-pair");
+  }, "CSSPseudoElement can represent view transition pseudo-elements");
+
+  promise_test(async t => {
+    assert_implements(document.startViewTransition, "Missing document.startViewTransition");
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    let transition = document.startViewTransition(() => {
+      document.getElementById("target").style.background = "green";
+    });
+    t.add_cleanup(() => transition.skipTransition());
+    await transition.ready;
+    let html = document.documentElement;
+
+    let newVT = html.pseudo("::view-transition-new(target)");
+    assert_true(newVT instanceof CSSPseudoElement, "Direct fetch of deep pseudo-element works");
+    assert_equals(newVT.type, "::view-transition-new");
+
+    let imagePair = newVT.parent;
+    assert_true(imagePair instanceof CSSPseudoElement, "Parent is instantiated");
+    assert_equals(imagePair.type, "::view-transition-image-pair");
+
+    let group = imagePair.parent;
+    assert_true(group instanceof CSSPseudoElement, "Grandparent is instantiated");
+    assert_equals(group.type, "::view-transition-group");
+
+    let vt = group.parent;
+    assert_true(vt instanceof CSSPseudoElement, "Great-grandparent is instantiated");
+    assert_equals(vt.type, "::view-transition");
+    assert_equals(vt.parent, html, "Ultimate parent is the originating element");
+
+    let invalidGrandchild = vt.pseudo("::view-transition-image-pair(target)");
+    assert_equals(invalidGrandchild, null, "Cannot fetch a grandchild directly from a higher ancestor pseudo");
+
+    let invalidGrandchild2 = group.pseudo("::view-transition-new(target)");
+    assert_equals(invalidGrandchild2, null, "Cannot fetch a grandchild directly from an intermediate pseudo");
+
+    let invalidChild = newVT.pseudo("::view-transition-group(target)");
+    assert_equals(invalidChild, null, "Cannot fetch an ancestor from a descendant");
+  }, "CSSPseudoElement hierarchy is correctly built when querying sub-pseudo-elements");
+
+  promise_test(async t => {
+    assert_implements(document.startViewTransition, "Missing document.startViewTransition");
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    let transition = document.startViewTransition();
+    t.add_cleanup(() => transition.skipTransition());
+    await transition.ready;
+    let html = document.documentElement;
+    const types = [
+      "::view-transition",
+      "::view-transition-group(root)",
+      "::view-transition-image-pair(root)",
+      "::view-transition-old(root)",
+      "::view-transition-new(root)"
+    ];
+
+    for (const type of types) {
+      let pseudo = html.pseudo(type);
+      assert_true(pseudo instanceof CSSPseudoElement, `${type} fetched from html is CSSPseudoElement`);
+      assert_equals(pseudo.type, type.split('(')[0], `${type} has correct type`);
+
+      let pseudo2 = html.pseudo(type);
+      assert_equals(pseudo, pseudo2, `${type} is cached on html`);
+    }
+
+    let vt = html.pseudo("::view-transition");
+    let groupDirect = html.pseudo("::view-transition-group(root)");
+    let groupViaProxy = vt.pseudo("::view-transition-group(root)");
+    assert_equals(groupDirect, groupViaProxy, "VT pseudo elements are identity consistent regardless of fetch path");
+
+    let imagePairDirect = html.pseudo("::view-transition-image-pair(root)");
+    let imagePairViaProxy = groupDirect.pseudo("::view-transition-image-pair(root)");
+    assert_equals(imagePairDirect, imagePairViaProxy, "VT pseudo elements are identity consistent regardless of fetch path");
+  }, "CSSPseudoElement for view transitions is identity-consistent and can be fetched directly from originating element");
+
+  promise_test(async t => {
+    assert_implements(document.startViewTransition, "Missing document.startViewTransition");
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    let transition = document.startViewTransition(() => {
+      document.getElementById("target").style.background = "yellow";
+      document.getElementById("other").style.background = "yellow";
+    });
+    t.add_cleanup(() => transition.skipTransition());
+    await transition.ready;
+    let html = document.documentElement;
+
+    let groupTarget = html.pseudo("::view-transition-group(target)");
+    let groupOther = html.pseudo("::view-transition-group(other)");
+    let groupRoot = html.pseudo("::view-transition-group(root)");
+
+    assert_true(groupTarget instanceof CSSPseudoElement, "Target group exists");
+    assert_true(groupOther instanceof CSSPseudoElement, "Other group exists");
+    assert_true(groupRoot instanceof CSSPseudoElement, "Root group exists");
+
+    assert_not_equals(groupTarget, groupRoot, "Named transitions must not match the root transition");
+    assert_not_equals(groupTarget, groupOther, "Different view transition names must return different instances");
+
+    // Cross-name query validation:
+    // ::view-transition-group(target).pseudo("::view-transition-image-pair(other)") should fail
+    let invalidCrossChild = groupTarget.pseudo("::view-transition-image-pair(other)");
+    assert_equals(invalidCrossChild, null, "Cannot fetch a child with a mismatched view transition name from an intermediate proxy");
+
+    // ::view-transition.pseudo("::view-transition-group(target)") should work (A(null).pseudo(B(target)))
+    let vt = html.pseudo("::view-transition");
+    let groupTargetViaVT = vt.pseudo("::view-transition-group(target)");
+    assert_equals(groupTargetViaVT, groupTarget, "Fetching named group from root VT proxy works");
+  }, "CSSPseudoElement isolates view transitions with different names and validates them during traversal");
+</script>
+</html>

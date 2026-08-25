@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-2/#flex-line-count-property">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<body>
+<script>
+test_invalid_value("flex-line-count", "1.5");
+test_invalid_value("flex-line-count", "0");
+test_invalid_value("flex-line-count", "-1");
+test_invalid_value("flex-line-count", "auto");
+test_invalid_value("flex-line-count", "wrap");
+</script>
+</body>

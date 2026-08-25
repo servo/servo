@@ -1,0 +1,56 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../resources/test-helper.js"></script>
+<head>
+<title>Drag and drop: dropping block element onto canvas</title>
+<style type="text/css">
+div
+  {width:20px;
+  height:20px;
+  background-color:green;}
+</style>
+<script type="application/ecmascript">
+function paint(color)
+  {var canvas = document.querySelector('canvas'),
+  c = canvas.getContext('2d');
+  c.fillStyle = 'green';
+  c.beginPath();
+  c.moveTo(0,0);
+  c.lineTo(100,0);
+  c.lineTo(100,100);
+  c.lineTo(0,100);
+  c.closePath();
+  c.fill();}
+function start(event)
+  {event.dataTransfer.effectAllowed = 'copy';
+  event.dataTransfer.setData('text/plain', 'green');}
+</script>
+</head>
+<body onload="paint('gray')">
+<div draggable="true" ondragstart="start(event)"></div>
+<p>Drag green box above to the gray canvas below. Canvas should turn green when you drop green box on it.</p>
+<p>
+  <canvas width="100" height="100" ondragenter="event.preventDefault()" ondragover="return false">Canvas</canvas>
+</p>
+<script>
+async function test(){
+  const canvas = document.querySelector('canvas');
+  const div = document.querySelector('div');
+  function onDropCallBack(event) {
+    paint(event.dataTransfer.getData('text/plain'));
+    let style = getComputedStyle(div);
+    let currentColor = "rgb(0, 128, 0)";
+    assert_equals(style.getPropertyValue("background-color"), currentColor);
+    return true;
+  }
+
+  dragDropTest(div, canvas, onDropCallBack, 'Dragging the canvas to the bottom div should turn it green');
+};
+test();
+</script>
+</body>
+</html>

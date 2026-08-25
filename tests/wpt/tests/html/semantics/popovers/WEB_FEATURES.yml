@@ -1,0 +1,9 @@
+rules:
+- popover-close-request.html: [closewatcher]
+- popovertarget-disabled-fieldset.html: [invoker-commands]
+- popover-hint-crash.html: [popover-hint]
+- popover-light-dismiss-hint.html: [popover-hint]
+- popover-top-layer-nesting-hints.html: [popover-hint]
+- popover-types-with-hints.html: [popover-hint]
+- popover-toggle-source.html: [toggleevent-source]
+- "*": [popover]

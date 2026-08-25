@@ -1,0 +1,149 @@
+<!doctype html>
+<meta charset='utf-8'>
+<title>Async Cookies: cookieStore basic API across origins</title>
+<link rel='help' href='https://cookiestore.spec.whatwg.org/'>
+<link rel='author' href='jarrydg@chromium.org' title='Jarryd Goodman'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='resources/helpers.js'></script>
+<style>iframe { display: none; }</style>
+
+<script>
+'use strict';
+
+const kPath = '/cookiestore/resources/helper_iframe.sub.html';
+const kCorsBase = `https://{{domains[www1]}}:{{ports[https][0]}}`;
+const kCorsUrl = `${kCorsBase}${kPath}`;
+
+promise_test(async t => {
+  const iframe = await createIframe(kCorsUrl, t);
+  assert_true(iframe != null);
+
+  iframe.contentWindow.postMessage({
+    opname: 'set-cookie',
+    name: 'cookie-name',
+    value: 'cookie-value',
+  }, kCorsBase);
+  t.add_cleanup(async () => {
+    await cookieStore.delete({ name: 'cookie-name', domain: '{{host}}' });
+  });
+  await waitForMessage();
+
+  const cookies = await cookieStore.getAll();
+  assert_equals(cookies.length, 1);
+  assert_equals(cookies[0].name, 'cookie-name');
+  assert_equals(cookies[0].value, 'cookie-value');
+}, 'cookieStore.get() sees cookieStore.set() in cross-origin frame');
+
+promise_test(async t => {
+  const iframe = await createIframe(kCorsUrl, t);
+  assert_true(iframe != null);
+
+  await cookieStore.set({
+    name: 'cookie-name',
+    value: 'cookie-value',
+    domain: '{{host}}',
+  });
+
+  const cookie = await cookieStore.get('cookie-name');
+  assert_equals(cookie.value, 'cookie-value');
+
+  iframe.contentWindow.postMessage({
+    opname: 'get-cookie',
+    name: 'cookie-name',
+  }, kCorsBase);
+  t.add_cleanup(async () => {
+    await cookieStore.delete({ name: 'cookie-name', domain: '{{host}}' });
+  });
+
+  const message = await waitForMessage();
+
+  const { frameCookie } = message;
+  assert_not_equals(frameCookie, null);
+  assert_equals(frameCookie.name, 'cookie-name');
+  assert_equals(frameCookie.value, 'cookie-value');
+}, 'cookieStore.get() in cross-origin frame sees cookieStore.set()');
+
+promise_test(async t => {
+  const iframe = await createIframe(kCorsUrl, t);
+  assert_true(iframe != null);
+
+  document.cookie = "__Host-test=a; Path=/; Secure";
+  iframe.contentWindow.postMessage({
+    opname: 'set-host-cookie',
+    name: '__Host-test',
+    value: 'b',
+  }, kCorsBase);
+
+  const message = await waitForMessage();
+  t.add_cleanup(async () => {
+    await cookieStore.delete({ name: '__Host-test'});
+  });
+
+  assert_equals(document.cookie, '__Host-test=a');
+
+  // Cleanup iframe cookie
+  iframe.contentWindow.postMessage({
+    opname: 'delete-host-cookie',
+    name: '__Host-test',
+  }, kCorsBase);
+  await waitForMessage();
+}, 'cookieStore.set() in cross-origin does not overwrite the __Host- cookie');
+
+promise_test(async t => {
+  const iframe = await createIframe(kCorsUrl, t);
+  assert_true(iframe != null);
+
+  document.cookie = "__Host-test=a; Path=/; Secure";
+  await cookieStore.set({name: "__Host-test", value: "a", path: "/"});
+  t.add_cleanup(async () => {
+    await cookieStore.delete({ name: '__Host-test'});
+  });
+
+  iframe.contentWindow.postMessage({
+    opname: 'set-host-cookie',
+    name: '__Host-test',
+    value: 'b',
+  }, kCorsBase);
+
+  let message = await waitForMessage();
+
+  let cookies = await cookieStore.getAll();
+  assert_equals(cookies.length, 1);
+  assert_equals(cookies[0].name, '__Host-test');
+  assert_equals(cookies[0].value, 'a');
+
+  iframe.contentWindow.postMessage({
+    opname: 'get-cookie',
+    name: '__Host-test',
+  }, kCorsBase);
+  message = await waitForMessage();
+  let { frameCookie } = message;
+  assert_not_equals(frameCookie, null);
+  assert_equals(frameCookie.name, '__Host-test');
+  assert_equals(frameCookie.value, 'b');
+
+  // Make sure deleting the cookie doesn't affect the other domain's cookie
+  await cookieStore.delete({ name: '__Host-test'});
+  cookies = await cookieStore.getAll();
+  assert_equals(cookies.length, 0);
+
+  iframe.contentWindow.postMessage({
+    opname: 'get-cookie',
+    name: '__Host-test',
+  }, kCorsBase);
+  message = await waitForMessage();
+  ({ frameCookie } = message);
+  assert_not_equals(frameCookie, null);
+  assert_equals(frameCookie.name, '__Host-test');
+  assert_equals(frameCookie.value, 'b');
+
+  // Cleanup iframe cookie
+  iframe.contentWindow.postMessage({
+    opname: 'delete-host-cookie',
+    name: '__Host-test',
+  }, kCorsBase);
+  await waitForMessage();
+}, "__Host- cookies set via cookieStore.set() in same-site domains don't overwrite each other");
+
+</script>

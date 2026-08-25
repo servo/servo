@@ -1,0 +1,13 @@
+<html>
+<body>
+<script>
+// The important part of this page are the headers.
+
+// If this page was opened as a popup, notify the opener.
+if (window.opener) {
+  window.opener.postMessage("done_loading", "*");
+  window.close();
+}
+</script>
+</body>
+</html>

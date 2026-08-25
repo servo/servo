@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>textarea element value/defaultValue/textContent functionality</title>
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me"/>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-textarea-value"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+"use strict";
+
+test(() => {
+
+  const textarea = document.createElement("textarea");
+
+  textarea.appendChild(document.createCDATASection("foo bar baz"));
+  assert_equals(textarea.defaultValue, "foo bar baz", "the defaultValue should reflect the textContent");
+  assert_equals(textarea.value, "foo bar baz",
+    "changing the child text content should change the raw value, and subsequently the api value");
+
+}, "defaultValue and value include CDATASection Text nodes");
+</script>
+</body>
+</html>

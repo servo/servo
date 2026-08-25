@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<link rel="match" href="svg-filter-render-sandbox-frame-ref.tentative.html">
+<style type="text/css">
+    iframe {
+        border: none;
+    }
+    .svg-filter {
+        filter: url(#svg-filter);
+    }
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/svg/styling/support/svg-filter-render-util.js"></script>
+<script>
+    onload = async () => {
+        await waitForRender(takeScreenshot);
+    };
+</script>
+</head>
+<body>
+    <svg width="0" height="0" display="none">
+        <filter id="svg-filter">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="5" />
+        </filter>
+    </svg>
+    <div>
+        SVG filter security test: this test passes if there is no filter effect on the sandbox frame.
+    </div>
+    <br />
+    <div>
+        <iframe class="svg-filter" sandbox width="100px" height="100px" src="/svg/styling/support/svg-filter-render-iframe.html"></iframe>
+    </div>
+</body>
+</html>

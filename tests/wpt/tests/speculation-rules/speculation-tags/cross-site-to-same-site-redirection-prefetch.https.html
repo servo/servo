@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>Cross-site prefetch attempts with speculation tags</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/html/browsers/browsing-the-web/remote-context-helper/resources/remote-context-helper.js"></script>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script src="/speculation-rules/resources/utils.js"></script>
+<script src="/speculation-rules/prefetch/resources/utils.sub.js"></script>
+
+<script>
+"use strict";
+
+setup(() => assertSpeculationRulesIsSupported());
+
+promise_test(async t => {
+  const agent = await spawnWindow(t);
+
+  const finalUrl = agent.getExecutorURL({ page: 2 });
+  const nextUrl = new URL("/common/redirect.py?location=" + encodeURIComponent(finalUrl),
+                          agent.getExecutorURL({ hostname: get_host_info().NOTSAMESITE_HOST }));
+  await agent.forceSpeculationRules({
+      tag: 'tag1',
+      prefetch: [{source: "list", urls: [nextUrl]}]
+  });
+  await agent.navigate(nextUrl, {expectedDestinationUrl: finalUrl});
+
+  const headers = await agent.getRequestHeaders();
+  assert_prefetched(headers, "must be prefetched");
+  assert_equals(headers["sec_speculation_tags"], '"tag1"');
+}, "same-site redirection prefetch should have Sec-Speculation-Tags even if cross-site url in the redirection chain");
+
+</script>

@@ -1,0 +1,27 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="resources/helpers.js"></script>
+
+<body>
+<script>
+promise_test(async t => {
+  let closeEvent, cancelEvent;
+  const watcher = new CloseWatcher();
+  watcher.oncancel = e => { cancelEvent = e; };
+  watcher.onclose = e => { closeEvent = e; };
+
+  await test_driver.bless("call requestClose()", () => watcher.requestClose());
+
+  assert_equals(cancelEvent.constructor, Event, "cancel constructor");
+  assert_false(cancelEvent.bubbles, "cancel bubles");
+  assert_true(cancelEvent.cancelable, "cancel cancelable");
+
+  assert_equals(closeEvent.constructor, Event, "close constructor");
+  assert_false(closeEvent.bubbles, "close bubles");
+  assert_false(closeEvent.cancelable, "close cancelable");
+}, "cancel and close event properties are correct");
+</script>

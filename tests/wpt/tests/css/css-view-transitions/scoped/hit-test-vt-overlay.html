@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+
+body { margin: 0; }
+#scope {
+  position: relative; width: 100px; height: 110px;
+  background: white; contain: strict; view-transition-name: none;
+}
+#part {
+  position: absolute; top: 10px; left: 10px;
+  width: 50px; height: 50px; background: #8cf;
+  z-index: 1; view-transition-name: foo;
+}
+#higher-nonpart {
+  position: absolute; top: 20px; left: 40px;
+  z-index: 2; width: 50px; height: 50px; background: #f88;
+}
+#inflow-nonpart {
+  background: #4f8; width: 50px; height: 50px;
+  margin-left: 20px; margin-top: 50px;
+}
+::view-transition { background: rgba(0, 0, 0, 0.1); height: 40px; }
+::view-transition-group(*) { animation-play-state: paused; }
+::view-transition-new(*) { animation: unset; opacity: 1; }
+::view-transition-old(*) { animation: unset; opacity: 0; }
+
+</style>
+</head>
+<body>
+<div id=scope>
+  <div id=part></div>
+  <div id=higher-nonpart></div>
+  <div id=inflow-nonpart></div>
+</div>
+<script>
+
+promise_test(async t => {
+  await scope.startViewTransition(() => {}).ready;
+  const cases = [
+    [25, 30, "scope"],
+    [50, 30, "scope"],
+    [75, 30, "scope"],
+    [25, 50, "scope"],
+    [50, 50, "scope"],
+    [75, 50, "higher-nonpart"],
+    [50, 80, "inflow-nonpart"]
+  ];
+  for (const c of cases) {
+    const [x, y, expected] = c;
+    assert_equals(document.elementFromPoint(x, y).id,
+                  expected, `at (${x}, ${y})`);
+  }
+});
+
+</script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>TestDriver delete_all_cookies method</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+promise_test(async t => {
+  document.cookie = "test1=1";
+  document.cookie = "test2=2; path=/";
+  document.cookie = "test3=3; path=/cookies/resources";
+
+  return test_driver.delete_all_cookies().then(() => {
+    assert_true(document.cookie === "");
+  });
+}, "DOM-set cookies get deleted");
+
+promise_test(async t => {
+  const cookies = ["test1=1", "test2=2; path=/", "test3=3; path=/cookies/resources", "test4=4; HttpOnly"];
+  for (const cookie of cookies) {
+      const encoded = encodeURIComponent(JSON.stringify(cookie));
+      await fetch(`/cookies/resources/cookie.py?set=${encoded}`)
+  }
+
+  return test_driver.delete_all_cookies().then(() => {
+    assert_true(document.cookie === "");
+  });
+}, "HTTP-set cookies get deleted");
+</script>

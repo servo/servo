@@ -1,0 +1,55 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>drawElementImage does not reveal visited link colors in first-letter</title>
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+  <style>
+    #link {
+      font-family: Ahem;
+      font-size: 20px;
+      background-color: green;
+      color: green;
+      display: block;
+    }
+    #link::first-letter {
+      background-color: blue;
+      color: blue;
+    }
+    #link:visited {
+      background-color: red;
+      color: red;
+    }
+    #link:visited::first-letter {
+      background-color: red;
+      color: red;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas" width="100" height="100" layoutsubtree>
+    <a id="link" href="">Visited color outside of canvas</a>
+  </canvas>
+
+  <script>
+    window.onload = () => {
+      promise_test(async function(t) {
+        await waitForCanvasPaint(canvas);
+
+        var context = canvas.getContext("2d");
+
+        // Draw the element image
+        context.drawElementImage(link, 0, 0);
+
+        // The canvas should NOT reflect the visited state (red), it should paint the unvisited state (green).
+        let pixel = context.getImageData(5, 5, 1, 1).data;
+        assert_false(pixel[0] > 0, "The canvas should not reflect the visited state.");
+        assert_false(pixel[1] > 0, "The canvas should not reflect the visited state.");
+        assert_true(pixel[2] > 0, "The canvas should not reflect the visited state.");
+      });
+    };
+  </script>
+</body>
+</html>

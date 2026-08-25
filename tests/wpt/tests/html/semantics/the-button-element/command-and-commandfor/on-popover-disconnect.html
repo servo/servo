@@ -1,0 +1,30 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="author" title="Keith Cirkel" href="mailto:wpt@keithcirkel.co.uk" />
+<meta name="timeout" content="long">
+<link rel="help" href="https://open-ui.org/components/invokers.explainer/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/invoker-utils.js"></script>
+
+<div id="invokee" popover></div>
+<button id="invokerbutton" commandfor="invokee" command="show-popover"></button>
+
+<script>
+  const invokee = document.getElementById('invokee');
+  test(
+    function (t) {
+      assert_false(invokee.matches(":popover-open"), "invokee :popover-open");
+      let fired = false;
+      invokee.addEventListener('command', () => {
+        fired = true;
+        invokee.remove();
+      });
+      invokerbutton.click();
+      assert_true(fired, "command event fired");
+      assert_false(invokee.isConnected, "popover no longer connected");
+      assert_false(invokee.matches(":popover-open"), "invokee :popover-open");
+    },
+    `invoking a popover and removing during command event does not raise an error`,
+  );
+</script>

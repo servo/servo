@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: text-emphasis, Cn</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-3/#text-emphasis-style-property">
+<meta name="assert" content="Emphasis marks should not be rendered for non-characters">
+<link rel="match" href="text-emphasis-style-property-010-ref.html">
+<p>Pass if there is nothing rendered below:</p>
+<div style="color: white; white-space: pre-wrap; text-emphasis: filled circle red">
+<script>
+  // U+FDD0..U+FDEF and U+XXFFFE..U+XXFFFF are noncharacters,
+  // and thus guaranteed to be unassigned.
+  var codepoints = [];
+  for (var code = 0xFDD0; code <= 0xFDEF; ++code) {
+    codepoints.push(code);
+  }
+  for (var plane = 0; plane <= 0x10; ++plane) {
+    codepoints.push(plane * 0x10000 + 0xFFFE);
+    codepoints.push(plane * 0x10000 + 0xFFFF);
+  }
+  document.write(codepoints.map(function (code) {
+    return String.fromCodePoint(code);
+  }).join(' '));
+</script>
+</div>

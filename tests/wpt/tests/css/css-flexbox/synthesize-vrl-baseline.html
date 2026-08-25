@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#generate-baselines">
+<link rel="help" href="https://www.w3.org/TR/css-inline-3/#valdef-dominant-baseline-auto">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<style>
+#inline-block {
+  display: inline-block;
+  width: 100px;
+  height: 50px;
+  background: green;
+}
+
+#inline-flex {
+  display: inline-flex;
+}
+
+#inline-flex > div {
+  width: 100px;
+  height: 50px;
+  background: green;
+}
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div style="width: 100px; height: 100px; line-height: 0; writing-mode: vertical-rl; background: red;">
+  <span id="inline-block"></span><span id="inline-flex"><div></div></span>
+</div>

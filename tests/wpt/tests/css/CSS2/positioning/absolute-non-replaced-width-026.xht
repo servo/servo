@@ -1,0 +1,60 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: absolutely positioned non-replaced element with 'left' and 'right' not set to 'auto' and 'width' set to 'auto' - max-width, horizontal margins</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" title="10.3.7 Absolutely positioned, non-replaced elements" href="http://www.w3.org/TR/CSS21/visudet.html#abs-non-replaced-width" />
+  <link rel="help" title="10.4 Minimum and maximum widths: 'min-width' and 'max-width'" href="http://www.w3.org/TR/CSS21/visudet.html#min-max-widths" />
+  <link rel="match" href="absolute-non-replaced-width-026-ref.xht" />
+
+  <meta content="When 'width' is computed according to the equation and rules of section 10.3.7 and when such computed 'width' is greater than 'max-width', then the equation and rules of section 10.3.7 are applied again but this time assuming the computed 'max-width' value. Then all three properties ('width', 'left' and 'right') are not 'auto' and 'margin-left' is 'auto': in which case, the 'margin-left' get all of available, remaining horizontal space." name="assert" />
+
+  <!--
+  Credit must go to Boris Zbarsky for explaining this in
+  http://lists.w3.org/Archives/Public/www-style/2010Oct/0147.html
+  -->
+
+  <style type="text/css"><![CDATA[
+  body {margin: 8px;}
+
+  div#overlapped-red
+  {
+  background-color: red;
+  color: yellow;
+  font-size: 2em;
+  height: 100px;
+  margin-left: auto;
+  margin-right: 0px;
+  width: 100px;
+  }
+
+  div#abs-pos-overlapping-green
+  {
+  background-color: green;
+  height: 100px;
+  left: 8px;
+  margin-left: auto;
+  margin-right: 0px;
+  max-width: 100px;
+  position: absolute;
+  right: 8px;
+  width: auto;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a green square on the <strong>right side</strong> of this page and if there is <strong>no red</strong>.</p>
+
+  <div id="abs-pos-overlapping-green"></div>
+
+  <div id="overlapped-red">FAIL</div>
+
+ </body>
+</html>

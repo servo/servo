@@ -1,0 +1,4 @@
+Cache-Control: max-age=600
+Access-Control-Allow-Origin: *
+Timing-Allow-Origin: *
+Cross-Origin-Resource-Policy: cross-origin

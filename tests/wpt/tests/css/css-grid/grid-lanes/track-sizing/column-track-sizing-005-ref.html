@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<style>
+.grid {
+    display: grid;
+    grid-template-columns: 90px 80px 100px;
+    width: 290px;
+    height: 425px;
+    gap: 10px;
+    background: lightgoldenrodyellow;
+}
+</style>
+<body>
+  <p>Test that grid-lanes tracks are correctly sized with mix of explicit and auto item placement.</p>
+  <div class="grid">
+    <div style="width: 50px; height: 50px; background: orange;"></div>
+    <div style="width: 30px; height: 30px; background: yellow;"></div>
+    <div style="width: 25px; height: 25px; background: green;"></div>
+
+    <div style="width: 60px; height: 60px; background: pink;"></div>
+    <div style="width: 80px; height: 80px; background: purple; transform: translateY(-20px);"></div>
+    <div style="width: 100px; height: 100px; background: blue; transform: translateY(-25px);"></div>
+
+    <div style="width: 90px; height: 90px; background: teal; transform: translateY(-40px);"></div>
+    <div style="width: 40px; height: 40px; background: lime; transform: translateY(-40px);"></div>
+    <div style="width: 15px; height: 15px; background: coral; transform: translateY(-25px);"></div>
+
+    <div style="width: 90px; height: 25px; background: green; transform: translateY(-40px);"></div>
+    <div style="width: 80px; height: 50px; background: orange; transform: translateY(-90px);"></div>
+    <div style="width: 10px; height: 10px; background: fuchsia; grid-column: 3; transform: translateY(-100px);"></div>
+
+    <div style="width: 90px; height: 60px; background: pink; grid-column: 1; transform: translateY(-65px);"></div>
+    <div style="width: 80px; height: 80px; background: purple; transform: translateY(-90px);"></div>
+    <div style="width: 100px; height: 30px; background: yellow; transform: translateY(-140px);"></div>
+
+    <div style="width: 90px; height: 90px; background: teal; grid-column: 1; transform: translateY(-85px);"></div>
+    <div style="width: 80px; height: 40px; background: lime; transform: translateY(-90px);"></div>
+    <div style="width: 100px; height: 100px; background: blue; transform: translateY(-190px);"></div>
+
+    <div style="width: 100px; height: 15px; background: coral; transform: translateY(-190px); grid-column: 3;"></div>
+    <div style="width: 100px; height: 10px; background: fuchsia; transform: translateY(-190px); grid-column: 3;"></div>
+  </div>
+</body>
+</html>

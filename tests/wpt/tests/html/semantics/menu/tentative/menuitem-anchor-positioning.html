@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel=author href=mailto:dom@chromium.org>
+<link rel=help href=https://open-ui.org/components/menu.explainer>
+<link rel="match" href="menuitem-anchor-positioning-ref.html">
+
+<style>
+:focus-visible {
+  outline: none;
+}
+</style>
+
+<menubar>
+  <menuitem>Nothing</menuitem>
+  <submenu>
+    <menuitem id="trigger">Trigger</menuitem>
+    <menulist id="menulist">
+      <submenu>
+        <menuitem id=trigger2>Trigger 2</menuitem>
+        <menulist id="submenu">
+          <menuitem>Most nested item</menuitem>
+        </menulist>
+      </submenu>
+      <submenu>
+        <menuitem id=trigger3>Trigger 3</menuitem>
+        <menulist id="submenu2">
+          <menuitem>Most nested item 2</menuitem>
+        </menulist>
+      </submenu>
+    </menulist>
+  </submenu>
+</menubar>
+
+<script>
+  trigger.click();
+  trigger2.click();
+</script>

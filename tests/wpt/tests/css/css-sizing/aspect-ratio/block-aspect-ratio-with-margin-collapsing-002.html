@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>CSS aspect-ratio: margin-collapsing with aspect-ratio on parent element</title>
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<link rel="help" href="https://drafts.csswg.org/css2/#collapsing-margins">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht" />
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div style="background: green; width: 100px; height: 25px; margin-bottom: -200px;"></div>
+<div style="background: green; width: 100px; margin: 0px; aspect-ratio: 2/1">
+  <div style="width: 100px; margin-top: 50px; margin-bottom: 200px;"></div>
+</div>
+<div style="background: green; width: 100px; height: 25px;"></div>

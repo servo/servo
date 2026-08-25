@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Capability elements have button role</title>
+<link rel="help" href="https://github.com/WICG/PEPC/blob/main/explainer.md">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+<!--
+  All capability elements (subclasses of HTMLCapabilityElementBase) must have
+  the button accessibility role. When adding a new capability element, add it
+  to the list below.
+-->
+<install id="install_element"></install>
+<usermedia id="usermedia_element" type="camera"></usermedia>
+<geolocation id="geolocation_element"></geolocation>
+
+<script>
+  // Update this list when a new capability element is added.
+  const capabilityElements = [
+    "install_element",
+    "usermedia_element",
+    "geolocation_element",
+  ];
+
+  for (const id of capabilityElements) {
+    const el = document.getElementById(id);
+    promise_test(async t => {
+      const role = await test_driver.get_computed_role(el);
+      assert_equals(role, "button");
+    }, `${el.tagName.toLowerCase()} element has button role`);
+  }
+</script>
+</body>

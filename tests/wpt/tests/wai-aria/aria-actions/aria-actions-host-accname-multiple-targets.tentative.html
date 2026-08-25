@@ -1,0 +1,38 @@
+<!doctype html>
+<html>
+<head>
+  <title>aria-actions: all listed direct targets excluded (tentative)</title>
+  <link rel="help" href="https://github.com/w3c/aria/pull/2208">
+  <link rel="help" href="https://github.com/w3c/aria/pull/1805">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/wai-aria/scripts/aria-utils.js"></script>
+</head>
+<body>
+
+<!--
+  aria-actions takes a token list. Every IDREF that resolves to a
+  direct AX child must be excluded from host name-from-content, not
+  just the first. Targets here carry their own text content so they
+  have valid accnames; coverage for the "target has no name"
+  UA MUST NOT path is a separate test.
+-->
+
+<button class="ex"
+        aria-actions="open-doc close-doc"
+        data-testname="aria-actions: every listed direct target is excluded from host name"
+        data-expectedlabel="File menu">
+  File menu
+  <span id="open-doc">Open</span>
+  <span id="close-doc">Close</span>
+</button>
+
+<script>
+  AriaUtils.verifyLabelsBySelector(".ex");
+</script>
+
+</body>
+</html>

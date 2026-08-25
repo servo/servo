@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<title>SVGLength DOM interface with CSS variables</title>
+<link rel="author" title="Divyansh Mangal" href="mailto:dmangal@microsoft.com">
+<link rel="help" href="https://github.com/w3c/svgwg/issues/1038">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  :root {
+    --length-100px: 100px;
+    --length-50: 50;
+    --length-75percent: 75%;
+    --invalid-length: not-a-length;
+  }
+</style>
+
+<svg id="svg" width="200" height="200">
+  <rect id="rect1-px" width="var(--length-100px)" height="50"/>
+  <rect id="rect2-px" width="var(--length-100px)" height="50"/>
+  <rect id="rect3-px" width="var(--length-100px)" height="50"/>
+  <rect id="rect-number" width="var(--length-50)" height="50"/>
+  <rect id="rect-percent" width="var(--length-75percent)" height="50"/>
+  <rect id="rect-invalid" width="var(--invalid-length)" height="50"/>
+  <rect id="rect-normal" width="100px" height="50"/>
+</svg>
+
+<script>
+test(() => {
+  const rect = document.getElementById('rect1-px');
+  const width = rect.width.baseVal;
+
+  assert_equals(width.value, 0);
+  assert_equals(width.valueInSpecifiedUnits, 0);
+  assert_equals(width.unitType, SVGLength.SVG_LENGTHTYPE_UNKNOWN);
+
+}, 'SVGLength DOM interface with CSS variable containing px unit');
+
+test(() => {
+  const rect = document.getElementById('rect-number');
+  const width = rect.width.baseVal;
+
+  assert_equals(width.value, 0);
+  assert_equals(width.valueInSpecifiedUnits, 0);
+  assert_equals(width.unitType, SVGLength.SVG_LENGTHTYPE_UNKNOWN);
+
+}, 'SVGLength DOM interface with CSS variable containing number');
+
+test(() => {
+  const rect = document.getElementById('rect-percent');
+  const width = rect.width.baseVal;
+
+  assert_equals(width.value, 0);
+  assert_equals(width.valueInSpecifiedUnits, 0);
+  assert_equals(width.unitType, SVGLength.SVG_LENGTHTYPE_UNKNOWN);
+
+}, 'SVGLength DOM interface with CSS variable containing percentage');
+
+test(() => {
+  const rect = document.getElementById('rect-invalid');
+  const width = rect.width.baseVal;
+
+  assert_equals(width.value, 0);
+  assert_equals(width.valueInSpecifiedUnits, 0);
+  assert_equals(width.unitType, SVGLength.SVG_LENGTHTYPE_UNKNOWN);
+
+}, 'SVGLength DOM interface with invalid CSS variable');
+
+test(() => {
+  const rect = document.getElementById('rect1-px');
+  const width = rect.width.baseVal;
+
+  assert_equals(width.valueAsString, 'var(--length-100px)');
+
+  // Setting value should work (converts to user units)
+  width.value = 120;
+  assert_equals(width.value, 120);
+  assert_equals(width.unitType, SVGLength.SVG_LENGTHTYPE_NUMBER);
+  assert_equals(width.valueAsString, '120');
+
+}, 'SVGLength DOM interface methods with CSS variables');
+
+test(() => {
+  const rect = document.getElementById('rect2-px');
+  const width = rect.width.baseVal;
+
+  assert_equals(width.valueAsString, 'var(--length-100px)');
+
+  assert_throws_dom("NotSupportedError", function() { width.convertToSpecifiedUnits(SVGLength.SVG_LENGTHTYPE_CM); });
+
+  assert_equals(width.valueAsString, 'var(--length-100px)');
+  assert_equals(width.unitType, SVGLength.SVG_LENGTHTYPE_UNKNOWN);
+  assert_equals(width.value, 0);
+
+}, 'SVGLength.convertToSpecifiedUnits with CSS variables');
+
+test(() => {
+  const rect = document.getElementById('rect3-px');
+  const width = rect.width.baseVal;
+
+  width.newValueSpecifiedUnits(SVGLength.SVG_LENGTHTYPE_CM, 2.54);
+  assert_equals(width.value, 96);
+  assert_equals(width.unitType, SVGLength.SVG_LENGTHTYPE_CM);
+  assert_equals(width.valueAsString, '2.54cm');
+
+}, 'SVGLength.newValueSpecifiedUnits with CSS variables');
+
+test(() => {
+  const detachedSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  const detachedRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  detachedSvg.appendChild(detachedRect);
+
+  detachedRect.setAttribute('width', 'var(--length-100px)');
+
+  const width = detachedRect.width.baseVal;
+
+  assert_equals(width.value, 0);
+  assert_equals(width.unitType, SVGLength.SVG_LENGTHTYPE_UNKNOWN);
+
+}, 'SVGLength should handle detached elements gracefully for CSS variables');
+
+test(() => {
+  const svg = document.getElementById('svg');
+  const new_length = svg.createSVGLength();
+
+  new_length.valueAsString = 'var(--length-100px)';
+
+  assert_equals(new_length.value, 0);
+  assert_equals(new_length.unitType, SVGLength.SVG_LENGTHTYPE_UNKNOWN);
+
+}, 'SVGLength should handle standalone lengths gracefully for CSS variables');
+</script>

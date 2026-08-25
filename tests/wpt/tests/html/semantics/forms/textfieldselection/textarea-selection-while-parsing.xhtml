@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<textarea>
+a
+<script>document.querySelector('textarea').value = 'ggg';</script>
+b
+</textarea>
+<script>
+test(() => {
+  let ta = document.querySelector('textarea');
+  assert_equals(ta.selectionStart, 3);
+  assert_equals(ta.selectionEnd, 3);
+}, 'Value setter while parsing textarea children should move ' +
+    'selection{Start,End} to the end');
+</script>
+</body>
+</html>

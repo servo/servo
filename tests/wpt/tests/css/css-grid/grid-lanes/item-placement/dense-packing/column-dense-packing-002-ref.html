@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<style>
+.grid {
+    display: grid;
+    background: gray;
+    position: relative;
+    grid-template-columns: repeat(3, 50px);
+    padding: 10px;
+    grid-auto-flow: dense;
+}
+</style>
+<body>
+  <p>Ensure that dense-packing packs items in the start-most track opening. Item 6 should go into the left-most track opening.</p>
+  <div class="grid">
+    <div>
+      <div style="background: lightskyblue; height: 20px;" >
+        1
+      </div>
+      <div style="background: yellow; height: 40px;">
+        6
+      </div>
+    </div>
+    <div style="background: lightcoral; height: 60px;" >
+      2
+    </div>
+    <div style="background: lightgreen; height: 20px;">
+      3
+    </div>
+    <div style="background: brown; height: 10px; grid-column: span 3;">
+      4
+    </div>
+    <div style="background:orchid; height: 10px; grid-column: span 2;">
+      5
+    </div>
+  </div>
+</body>
+</html>

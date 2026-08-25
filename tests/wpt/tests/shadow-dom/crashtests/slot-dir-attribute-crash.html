@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Setting dir attribute on a slot element should not crash</title>
+<link rel="help" href="https://crbug.com/627385">
+<script>
+  let slot = document.createElement("slot");
+  slot.setAttribute("dir", "auto");
+</script>

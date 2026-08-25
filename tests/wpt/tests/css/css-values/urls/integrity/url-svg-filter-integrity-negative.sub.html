@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<title>Request URL Modifiers: integrity() negative test for SVG filter</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#typedef-request-url-modifier-integrity-modifier">
+<link rel="match" href="/css/filter-effects/reference/green-100x100.html">
+<meta name="assert" content="An SVG filter with a non-matching integrity() modifier should not apply.">
+<style>
+.test {
+  width: 100px;
+  height: 100px;
+  background-color: green;
+  filter: url("http://{{hosts[][]}}:{{ports[http][1]}}/css/filter-effects/support/hueRotate.svg?pipe=header(Access-Control-Allow-Origin,*)#MyFilter" cross-origin(anonymous) integrity("sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="));
+}
+</style>
+</head>
+<body>
+<div class="test"></div>
+<script>
+window.addEventListener("load", () => {
+  document.documentElement.classList.remove("reftest-wait");
+});
+</script>
+</body>
+</html>

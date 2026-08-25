@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <head>
+    <title>Animated image active frame update when passing delay time</title>
+    <link rel="match" href="animated-image-update-ref.tentative.html" />
+    <link rel="author" title="Tin Tun Aung" href="mailto:rayguo17@gmail.com" />
+    <script src="/common/reftest-wait.js"></script>
+  </head>
+
+  <body>
+    <img id="image" src="resources/animated.webp" />
+    <script>
+      window.addEventListener("load", go);
+      function go() {
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            takeScreenshot();
+          }, 150);
+        });
+      }
+    </script>
+  </body>
+</html>

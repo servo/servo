@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Reference Test</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+
+  <style>
+  div#outer
+    {
+      background-color: orange;
+      border: blue double 24px;
+      margin: 50px;
+      padding: 8px;
+      width: 216px;
+    }
+
+  div#inner
+    {
+      border: blue solid 8px;
+      height: 100px;
+    }
+  </style>
+
+  <p>Test passes if there is a filled orange rectangle inside 3 blue borders interleaved with 2 orange borders and <strong>no red</strong>.
+
+  <div id="outer">
+    <div id="inner"></div>
+  </div>

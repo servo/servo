@@ -1,0 +1,54 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>DOM Traversal: NodeIterator: Removal of an ancestor of the Reference Node (forwards) (deep check)</title>
+  <script type="text/javascript"> <![CDATA[
+    var errors = 0;
+    var log = '';
+    function doTest() {
+      var iterator = document.createNodeIterator(document.getElementById('root'), NodeFilter.SHOW_ALL, null, false);
+      var root = document.getElementById('root');
+      var A = document.getElementById('A');
+      var B = document.getElementById('B');
+      var BB = document.getElementById('BB');
+      var C = document.getElementById('C');
+      check(iterator.nextNode(), root);
+      check(iterator.nextNode(), A);
+      check(iterator.nextNode(), B);
+      check(iterator.nextNode(), BB);
+      remove(B);
+      var X = addChildTo(A);
+      check(iterator.nextNode(), X);
+      if (errors)
+        document.getElementById('result').firstChild.data = 'FAIL: ' + errors + ' errors:\n' + log;
+      else
+        document.getElementById('result').firstChild.data = 'PASS';
+    }
+    function check(a, b) {
+      if (!a) {
+        errors += 1;
+        log += 'Found null but expected ' + b + ' (' + b.id + ').\n';
+      } else if (a != b) {
+        errors += 1;
+        log += 'Found ' + a + ' (' + a.id + ') but expected ' + b + ' (' + b.id + ').\n';
+      }
+    }
+    function remove(a) {
+      if (!a) {
+        errors += 1;
+        log += 'Tried removing null node.\n';
+      } else
+      a.parentNode.removeChild(a);
+    }
+    function addChildTo(a) {
+      var x = document.createElementNS('http://www.w3.org/1999/xhtml', 'span');
+      x.id = 'X';
+      a.appendChild(x);
+      return x;
+    }
+  ]]></script>
+ </head>
+ <body onload="doTest()">
+  <pre id="result">FAIL: Script did not complete.</pre>
+  <p><span id="root"><span id="A"></span><span id="B"><span id="BB"></span></span><span id="C"></span></span></p>
+ </body>
+</html>

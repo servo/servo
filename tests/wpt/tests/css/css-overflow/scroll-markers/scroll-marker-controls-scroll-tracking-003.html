@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: scroll tracking for ::scroll-marker with direction: rtl</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-container-scroll">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-transitions/support/helper.js"></script>
+<style>
+  #scroller {
+    direction: rtl;
+    overflow: scroll;
+    width: 100px;
+    height: 150px;
+    white-space: nowrap;
+    scroll-marker-group: before;
+  }
+
+  #scroller::scroll-marker-group {
+    border: 3px solid black;
+    display: flex;
+    width: 100px;
+    height: 20px;
+  }
+
+  #scroller div {
+    border: 3px solid black;
+    background-color: blue;
+    display: inline-block;
+    margin: 10px;
+    width: 100px;
+    height: 100px;
+  }
+
+  #scroller div::scroll-marker {
+    content: '';
+    background-color: red;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+
+  #scroller div::scroll-marker:target-current {
+    background-color: green;
+  }
+
+  #target {
+    background-color: purple;
+  }
+</style>
+<div id='scroller'>
+  <div></div>
+  <div id='target'></div>
+</div>
+<script>
+  function assertPseudoElementProperty(originatingElement, pseudoType, backgroundColor) {
+    const pseudoStyle = getComputedStyle(originatingElement, pseudoType);
+    const pseudoBackgroundColor = pseudoStyle.getPropertyValue('background-color');
+    assert_equals(pseudoBackgroundColor, backgroundColor, pseudoType +
+      " background-color should be " + backgroundColor.toString() +
+      " but was " + pseudoBackgroundColor.toString());
+  }
+  promise_test(async () => {
+    await waitForAnimationFrames(2);
+    assertPseudoElementProperty(target, "::scroll-marker", "rgb(255, 0, 0)");
+  }, "::scroll-marker is not activated when its originating element is not scrolled into the view");
+  promise_test(async () => {
+    scroller.scrollLeft = -150;
+    await waitForAnimationFrames(2);
+    assertPseudoElementProperty(target, "::scroll-marker", "rgb(0, 128, 0)");
+  }, "::scroll-marker is activated when its originating element is scrolled into the view");
+</script>

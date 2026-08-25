@@ -1,0 +1,6 @@
+Content-Security-Policy: trusted-types one
+Content-Security-Policy-Report-Only: trusted-types two;
+Content-Security-Policy: connect-src 'none'
+Content-Security-Policy: default-src * 'unsafe-inline'
+Content-Security-Policy: require-trusted-types-for 'script'
+

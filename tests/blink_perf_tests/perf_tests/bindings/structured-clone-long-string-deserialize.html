@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<body>
+<script src="../resources/runner.js"></script>
+<script src="resources/structured-clone-perf-test.js"></script>
+<script>
+// This simulates a long string being sent, such as JSON data as text, or a
+// large data URI.
+const log2Length = 23;
+let str = 'a';
+for (let i = 0; i < log2Length; i++) str += str;
+
+StructuredClonePerfTestRunner.measureTimeAsync({
+  description: "Measures performance of deserializing a long string.",
+  data: str,
+  measure: "deserialize",
+});
+</script>
+</body>

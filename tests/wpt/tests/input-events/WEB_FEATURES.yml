@@ -1,0 +1,5 @@
+rules:
+- input-events-cut-paste.html: [clipboard-events]
+- contenteditable-insertfrompaste-type-inputevent-data.html: [contenteditable]
+- input-events-exec-command.html: [keyboard-events]
+- input-events-typing.html: [keyboard-events]

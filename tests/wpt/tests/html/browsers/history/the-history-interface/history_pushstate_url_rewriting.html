@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>URL rewriting allowed/disallowed for history.pushState()</title>
+<link rel="help" href="https://github.com/whatwg/html/issues/6836">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+"use strict";
+setup({ explicit_done: true });
+
+const baseWithUsernamePassword = new URL(location.href);
+baseWithUsernamePassword.username = "username";
+baseWithUsernamePassword.password = "password";
+
+const blobURL = URL.createObjectURL(new Blob(["foo"], { type: "text/html" }));
+const blobURL2 = URL.createObjectURL(new Blob(["bar"], { type: "text/html" }));
+
+const basicCases = [
+  [new URL("/common/blank.html", location.href), new URL("/common/blank.html#newhash", location.href), true],
+  [new URL("/common/blank.html", location.href), new URL("/common/blank.html?newsearch", location.href), true],
+  [new URL("/common/blank.html", location.href), new URL("/newpath", location.href), true],
+  [new URL("/common/blank.html", location.href), new URL("/common/blank.html", baseWithUsernamePassword), false],
+  [new URL("/common/blank.html", location.href), blobURL, false],
+  [new URL("/common/blank.html", location.href), "about:blank", false],
+  [new URL("/common/blank.html", location.href), "about:srcdoc", false],
+  [blobURL, blobURL, true],
+  [blobURL, blobURL + "#newhash", true],
+  [blobURL, blobURL + "?newsearch", false],
+  [blobURL, "blob:newpath", false],
+  [blobURL, "blob:" + self.origin + "/syntheticblob", false],
+  [blobURL, blobURL2, false],
+
+  // Note: these are cases where we create the iframe pointing at the initial URL,
+  // so its origin will actually be self.origin.
+  ["about:blank", "about:blank", true],
+  ["about:blank", "about:srcdoc", false],
+  ["about:blank", "about:blank?newsearch", false],
+  ["about:blank", "about:blank#newhash", true],
+  ["about:blank", self.origin + "/blank", false],
+
+  // javascript: URL navigation changes the URL to the creator document's URL, so these should all
+  // not work because you can't rewrite a HTTP(S) URL to a javascript: URL.
+  [new URL("/common/blank.html", location.href), "javascript:'foo'", false],
+  ["javascript:'foo'", "javascript:'foo'", false],
+  ["javascript:'foo'", "javascript:'foo'?newsearch", false],
+  ["javascript:'foo'", "javascript:'foo'#newhash", false],
+].map(([from, to, expectedToWork]) => [from.toString(), to.toString(), expectedToWork]);
+
+for (const [from, to, expectedToWork] of basicCases) {
+  // Otherwise the messages are not consistent between runs which breaks some systems.
+  const fromForTitle = from.replaceAll(blobURL, "blob:(a blob URL for this origin)")
+                           .replaceAll(blobURL2, "blob:(another blob URL for this origin)");
+  const toForTitle = to.replaceAll(blobURL, "blob:(a blob URL for this origin)")
+                       .replaceAll(blobURL2, "blob:(another blob URL for this origin)");
+
+  promise_test(async () => {
+    const iframe = document.createElement("iframe");
+    iframe.src = from;
+    const loadPromise = new Promise(r => iframe.onload = r);
+
+    document.body.append(iframe);
+    await loadPromise;
+
+    if (expectedToWork) {
+      iframe.contentWindow.history.pushState(null, "", to);
+      assert_equals(iframe.contentWindow.location.href, to);
+    } else {
+      assert_throws_dom("SecurityError", iframe.contentWindow.DOMException, () => {
+        iframe.contentWindow.history.pushState(null, "", to);
+      });
+    }
+  }, `${fromForTitle} to ${toForTitle} should ${expectedToWork ? "" : "not"} work`);
+}
+
+const srcdocCases = [
+  ["about:srcdoc", true],
+  ["about:srcdoc?newsearch", false],
+  ["about:srcdoc#newhash", true],
+  [self.origin + "/srcdoc", false]
+];
+
+for (const [to, expectedToWork] of srcdocCases) {
+  promise_test(async () => {
+    const iframe = document.createElement("iframe");
+    iframe.srcdoc = "foo";
+    const loadPromise = new Promise(r => iframe.onload = r);
+
+    document.body.append(iframe);
+    await loadPromise;
+
+    if (expectedToWork) {
+      iframe.contentWindow.history.pushState(null, "", to);
+      assert_equals(iframe.contentWindow.location.href, to);
+    } else {
+      assert_throws_dom("SecurityError", iframe.contentWindow.DOMException, () => {
+        iframe.contentWindow.history.pushState(null, "", to);
+      });
+    }
+  }, `about:srcdoc to ${to} should ${expectedToWork ? "" : "not"} work`);
+}
+
+// We need to test these separately since they're cross-origin.
+
+const sandboxedCases = [
+  [new URL("resources/url-rewriting-helper.html", location.href), new URL("resources/url-rewriting-helper.html", location.href), true],
+  [new URL("resources/url-rewriting-helper.html", location.href), new URL("resources/url-rewriting-helper.html#newhash", location.href), true],
+  [new URL("resources/url-rewriting-helper.html", location.href), new URL("resources/url-rewriting-helper.html?newsearch", location.href), true],
+  [new URL("resources/url-rewriting-helper.html", location.href), new URL("/newpath", location.href), true],
+  [new URL("resources/url-rewriting-helper.html", location.href), new URL("resources/url-rewriting-helper.html", baseWithUsernamePassword), false],
+].map(([from, to, expectedToWork]) => [from.toString(), to.toString(), expectedToWork]);
+
+for (const [from, to, expectedToWork] of sandboxedCases) {
+  promise_test(async () => {
+    const iframe = document.createElement("iframe");
+    iframe.src = from;
+    iframe.sandbox = "allow-scripts";
+    const loadPromise = new Promise(r => iframe.onload = r);
+
+    document.body.append(iframe);
+    await loadPromise;
+
+    const messagePromise = new Promise(r => window.addEventListener("message", r, { once: true }));
+    iframe.contentWindow.postMessage(to, "*");
+    const { data } = await messagePromise;
+
+    if (expectedToWork) {
+      assert_equals(data.result, "no exception");
+      assert_equals(data.locationHref, to);
+    } else {
+      assert_equals(data.result, "exception");
+      assert_equals(data.exceptionName, "SecurityError");
+    }
+  }, `sandboxed ${from} to ${to} should ${expectedToWork ? "" : "not"} work`);
+}
+
+fetch("resources/url-rewriting-helper.html").then(r => r.text()).then(htmlInside => {
+  const dataURLStart = "data:text/html;base64," + btoa(htmlInside);
+
+  const dataURLCases = [
+    [dataURLStart, dataURLStart, true],
+    [dataURLStart, dataURLStart + "#newhash", true],
+    [dataURLStart, dataURLStart + "?newsearch", false],
+    [dataURLStart, "data:newpath", false]
+  ];
+
+  for (const [from, to, expectedToWork] of dataURLCases) {
+    // Otherwise the messages are unreadably long.
+    const fromForTitle = from.replaceAll(dataURLStart, "data:(script to run this test)");
+    const toForTitle = to.replaceAll(dataURLStart, "data:(script to run this test)");
+
+    promise_test(async () => {
+      const iframe = document.createElement("iframe");
+      iframe.src = from;
+      const loadPromise = new Promise(r => iframe.onload = r);
+
+      document.body.append(iframe);
+      await loadPromise;
+
+      const messagePromise = new Promise(r => window.addEventListener("message", r, { once: true }));
+      iframe.contentWindow.postMessage(to, "*");
+      const { data } = await messagePromise;
+      if (expectedToWork) {
+        assert_equals(data.result, "no exception");
+        assert_equals(data.locationHref, to);
+      } else {
+        assert_equals(data.result, "exception");
+        assert_equals(data.exceptionName, "SecurityError");
+      }
+    }, `${fromForTitle} to ${toForTitle} should ${expectedToWork ? "" : "not"} work`);
+  }
+
+  done();
+});
+</script>

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>Mixed declarations and rules</title>
+<link rel="author" title="CGQAQ" href="mailto:cgqaq@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-nesting/#nested-declarations-rule">
+<link rel="help" href="https://web.dev/blog/css-nesting-cssnesteddeclarations">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+div {
+  width: 100px;
+  height: 100px;
+  background-color: blue;
+  @media all {
+    background-color: red;
+  }
+  background-color: green;
+}
+</style>
+
+<body>
+  <p>Tests pass if <strong>block is green</strong></p>
+  <div class="test"></div>
+
+  <script>
+    test(() => {
+      const div = document.querySelector(".test");
+      const style = getComputedStyle(div);
+      assert_equals(style.backgroundColor, "rgb(0, 128, 0)");
+    }, "Nested declarations and rules should be handled correctly")
+  </script>
+</body>

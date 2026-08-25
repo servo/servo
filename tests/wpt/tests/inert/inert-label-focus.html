@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>inert with label/for</title>
+    <link rel="author" title="Alice Boxhall" href="aboxhall@chromium.org">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+  </head>
+  <body>
+    <label inert id="for-submit" for="submit">Label for Submit</label>
+    <input id="text" type="text">
+    <input id="submit" type="submit">
+
+    <label id="for-input-in-inert-subtree"
+           for="input-in-inert-subtree">Label for input in inert subtree</label>
+    <div inert>
+      <input id="input-in-inert-subtree"></input>
+    </div>
+
+    <script>
+      test(() => {
+        label = document.querySelector('#for-submit');
+        label.focus();
+        assert_equals(document.activeElement, document.querySelector('#submit'));
+      }, 'Calling focus() on an inert label should still send focus to its target.');
+
+      promise_test(async () => {
+        text = document.querySelector('#text');
+        text.focus();
+        label = document.querySelector('#for-submit');
+        try {
+          await test_driver.click(label);
+          assert_equals(document.activeElement, document.body);
+        } catch (e) {
+          // test driver detects inert elements as unclickable
+          // and throws an error
+        }
+      }, 'Clicking on an inert label should send focus to document.body.');
+
+      test(() => {
+        text = document.querySelector('#text');
+        text.focus();
+
+        label = document.querySelector('#for-input-in-inert-subtree');
+        label.focus();
+        assert_equals(document.activeElement, text);
+      }, 'Calling focus() on a label for a control which is in an inert subtree ' +
+         'should have no effect.');
+</script>
+</html>

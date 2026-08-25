@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset='utf-8'>
+</head>
+<body>
+<script>
+window.onload = function(){
+
+    var script = document.createElement("script");
+    script.setAttribute("attr", "val");
+
+    var start_test = function(targetNode,attr) {
+        var start = performance.now();
+        for( val = 1; val <= 1000; val++) {
+            targetNode.setAttribute(attr, val);
+        }
+        var stop = performance.now();
+        console.log('Time taken:'+ (stop - start)/1000.0);
+    };
+
+    var config = { attributes: true, childList: true };
+    console.log('Mutation Observer Algorithm performance testing...');
+
+    console.log('\nMutation performed without observer ->');
+    start_test(script,"attr");
+
+    console.log('\nMutation performed with observer ->');
+    var callback = function(mutationsList) {
+        for(var mutation of mutationsList) {
+            if (mutation.type == 'childList') {
+                // Uncomment below line to see changes
+                // console.log('A child node has been added or removed.');
+            }
+            else if (mutation.type == 'attributes') {
+                // Uncomment below line to see changes
+                // console.log('The ' + mutation.attributeName + ' attribute was modified.');
+            }
+        }
+    };
+    var observer = new MutationObserver(callback);
+    observer.observe(script, config);
+    start_test(script,"attr");
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+<!DOCTYPE HTML>
+<link rel="author" title="jj" href="mailto:jj@imput.net">
+<link rel="help" href="https://issues.chromium.org/issues/40591804">
+<link rel="match" href="video-controls-stacking-ref.html">
+<style>
+  div { position: fixed; background: green }
+  video { background: red }
+  video, div { width: 100px; height: 100px }
+</style>
+<p>Test passes if there is a filled green square with nothing overlaid on top.</p>
+<div></div>
+<video controls>
+  <source src="/media/white.webm" type="video/webm">
+  <source src="/media/white.mp4" type="video/mp4">
+</video>

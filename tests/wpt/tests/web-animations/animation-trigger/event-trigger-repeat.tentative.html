@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="help" href="https://drafts.csswg.org/web-animations-2#animation-trigger">
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/web-animations/testcommon.js"></script>
+  </head>
+  <body>
+    <div id="event-target">Click me!</div>
+
+    <div id="animation-target">Watch me!</div>
+    <script>
+      promise_test(async (test) => {
+        const eventTarget = document.getElementById("event-target");
+        const animationTarget = document.getElementById("animation-target");
+        const ANIMATION_DURATION_MS = 10000;
+        const animation = new Animation(
+          new KeyframeEffect(
+            animationTarget,
+            [
+              { transform: "translateY(0)" },
+              { transform: "translateY(3rem)" },
+            ],
+            { duration: ANIMATION_DURATION_MS, fill: "both" }
+          ));
+        const trigger = new EventTrigger({
+          eventType: "click",
+          eventTarget: eventTarget
+        });
+        trigger.addAnimation(animation, "replay");
+        await waitForAnimationFrames(1);
+        assert_equals(animation.playState, "idle", "animation is idle");
+        await test_driver.click(eventTarget);
+        await waitForAnimationFrames(3);
+        assert_equals(animation.playState, "running", "animation is running");
+        assert_less_than(0, animation.overallProgress, "Animation has progressed");
+        let progress = animation.overallProgress;
+        await test_driver.click(eventTarget);
+        await waitForAnimationFrames(1);
+        assert_equals(animation.playState, "running", "animation is still running");
+        assert_less_than(animation.overallProgress, progress, "Progress has been reset");
+        animation.finish();
+        await waitForAnimationFrames(1);
+        assert_equals(animation.playState, "finished", "Animation has finished");
+        await test_driver.click(eventTarget);
+        await waitForAnimationFrames(1);
+        assert_equals(animation.playState, "running", "animation is running again");
+        animation.pause();
+        await waitForAnimationFrames(1);
+        assert_equals(animation.playState, "paused", "Animation is paused");
+        await test_driver.click(eventTarget);
+        await waitForAnimationFrames(1);
+        assert_equals(animation.playState, "running", "animation is running after pause");
+      }, "Basic event-based animation-trigger with 'repeat' behavior");
+    </script>
+  </body>
+</html>

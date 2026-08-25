@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+<head>
+<link rel="help" href="https://github.com/servo/servo/issues/46235" />
+<meta charset="utf-8">
+<body>
+<!-- For this test it is important that there are no text nodes in the inner div -->
+<div id="outer" contenteditable="true">
+    <div contenteditable="true"><span></span></div>
+</div>
+
+<script>
+"use strict";
+
+const span = document.querySelector('span');
+document.getElementById('outer').textContent = "Text";
+
+const range = document.createRange();
+getSelection().addRange(range);
+range.setEndBefore(span);
+
+document.execCommand("delete");
+</script>
+</body>
+</html>

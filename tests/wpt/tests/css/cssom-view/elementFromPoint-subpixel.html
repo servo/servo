@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CSSOM View - extensions to the Document interface</title>
+  <link rel="author" title="Xiaocheng Hu" href="mailto:xiaochengh@chromium.org">
+  <link rel="help" href="http://www.w3.org/TR/cssom-view/#extensions-to-the-document-interface">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <style>
+    .container {
+      display: flex;
+      width: 500px;
+      height: 100px;
+    }
+
+    .map {
+      flex: 1 1 auto;
+      position: relative;
+    }
+
+    .box {
+      flex: 0 0 auto;
+    }
+
+    .child {
+      width: 183.66px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="map"></div>
+    <div class="box" id="box">
+      <div class="child"></div>
+    </div>
+  </div>
+
+  <script>
+    const box = document.getElementById('box');
+    const rect = box.getBoundingClientRect();
+
+    test(() => {
+      assert_equals(document.elementFromPoint(rect.x, rect.y), box);
+    }, 'Hit test top left corner of box');
+
+    test(() => {
+      assert_equals(document.elementFromPoint(rect.x + rect.width - 1, rect.y), box);
+    }, 'Hit test top right corner of box');
+
+    test(() => {
+      assert_equals(document.elementFromPoint(rect.x, rect.y + rect.height - 1), box);
+    }, 'Hit test bottom left corner of box');
+
+    test(() => {
+      assert_equals(document.elementFromPoint(rect.x + rect.width - 1, rect.y + rect.height - 1), box);
+    }, 'Hit test lower left corner of box');
+  </script>
+</body>
+</html>

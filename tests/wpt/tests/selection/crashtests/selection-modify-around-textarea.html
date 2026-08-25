@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+"use strict";
+document.addEventListener("DOMContentLoaded", () => {
+  const time = document.querySelector("time");
+  getSelection().setBaseAndExtent(time, 2, time, 3);
+  getSelection().modify("move", "left", "line");
+  getSelection().collapseToStart();
+});
+</script>
+</head>
+<body><time style="user-select:none">
+<h5>
+<pre contenteditable></pre>
+<textarea></textarea>
+</h5>
+<h6></h6>
+<textarea></textarea>
+</body>
+</html>

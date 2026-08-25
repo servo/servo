@@ -1,0 +1,13 @@
+<!doctype html>
+<title>Printing with page height of zero</title>
+<link rel="help" href="https://www.w3.org/TR/css-page-3/">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/8335">
+<link rel="match" href="zero-size-print-ref.html">
+<meta name="assert" content="The used page size is the initial value instead of the authored width of 4in and height of zero." />
+<style>
+html { box-sizing: border-box; height: 100%; border: 2px solid black; }
+@page {
+  size: 4in 0;
+}
+</style>
+<h1>Chapter 1. Loomings</h1>

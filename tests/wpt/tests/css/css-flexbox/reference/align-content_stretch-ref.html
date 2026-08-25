@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Flexible Box Test: align-content_stretch</title>
+<link rel="stylesheet" href="../support/test-style.css">
+<style>
+#test {
+  height: 210px;
+  width: 80px;
+}
+#spacerone {
+  width: 50px;
+  height: 20px;
+}
+#spacertwo {
+  width: 50px;
+  height: 20px;
+}
+</style>
+</head>
+<body>
+<p>Test passes if:<br>
+1. the rectangle 1, 2, 3 show up in a vertical column in a red rectangle.<br>
+2. No gap between the top of red rectangle and the top of rectangle 1, and rectangle 1 , 2, 3 are distributed so that the empty space in the column between 1 , 2 , 3 is the same.
+<div id=test><div id=test01>1</div><div id=spacerone></div><div id=test02>2</div><div id=spacertwo></div><div id=test03>3</div></div>
+</body>
+</html>

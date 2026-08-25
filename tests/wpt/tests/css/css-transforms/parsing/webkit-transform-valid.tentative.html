@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Compatibility: parsing -webkit-transform with valid values</title>
+<link rel="help" href="https://compat.spec.whatwg.org/#propdef--webkit-transform">
+<link rel="help" href="https://github.com/whatwg/compat/issues/100">
+<meta name="assert" content="-webkit-transform additionally supports the function call 'perspective([ <number [0,∞]> ])' in '<transform-list>'">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("-webkit-transform", "initial");
+test_valid_value("-webkit-transform", "inherit");
+test_valid_value("-webkit-transform", "unset");
+test_valid_value("-webkit-transform", "revert");
+test_valid_value("-webkit-transform", "revert-layer");
+
+test_valid_value("-webkit-transform", "perspective(1000)", "perspective(1000px)");
+test_valid_value("-webkit-transform", "perspective(25)", "perspective(25px)");
+test_valid_value("-webkit-transform", "perspective(12px)");
+test_valid_value("-webkit-transform", "perspective(3.5em)");
+</script>
+</body>
+</html>

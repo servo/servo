@@ -1,0 +1,19 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+ <head>
+  <title>CSS Test: CSS Inline Box Model: Baseline alignment of images</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/inline/012.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#line-height"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#inline-formatting"/>
+  <meta name="flags" content="image"/>
+  <style type="text/css">
+   .test { background: red; width: 98px; font-size: 20px; line-height: 1; }
+   span { background: green; }
+  </style>
+ </head>
+ <body>
+  <p>Test passes if there is a cat sitting on a green bar below and no red.</p>
+  <p class="test"><span><img src="support/cat.png" alt="FAIL"/></span></p>
+ </body>
+</html>

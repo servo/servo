@@ -1,0 +1,41 @@
+﻿<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+   <title>WebGL getShaderSource conformance test.</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"> </script>
+</head>
+<body>
+<canvas id="example" width="4" height="4" style="width: 40px; height: 30px;"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script id="vshader" type="x-shader/x-vertex">abc//defＮＯＴＡＳＣＩＩ</script>
+<script>
+"use strict";
+description("Tests that the source that goes into a shader is what comes out.");
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("example");
+var original = document.getElementById("vshader").text;
+var shader = gl.createShader(gl.VERTEX_SHADER);
+gl.shaderSource(shader, original);
+var source = gl.getShaderSource(shader);
+shouldBe("source", "original");
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no errors.");
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>
+
+

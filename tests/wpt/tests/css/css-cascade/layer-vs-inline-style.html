@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-5/#cascade-sort">
+<link rel="author" title="Xiaocheng Hu" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#target, #reference {
+  width: 100px;
+  height: 100px;
+}
+
+#reference {
+  background-color: green;
+}
+</style>
+
+<div id="target"></div>
+<div id="reference"></div>
+
+<script>
+// In all tests, #target should have green background color, same as #reference
+
+const testCases = [
+  {
+    title: 'Normal inline style > normal layered style',
+    style: '@layer { #target { background-color: red; }}',
+    inlineStyle: 'background-color: green'
+  },
+  {
+    title: 'Normal inline style < important layered style',
+    style: '@layer { #target { background-color: green !important; }}',
+    inlineStyle: 'background-color: red'
+  },
+  {
+    title: 'Important inline style > normal layered style',
+    style: '@layer { #target { background-color: red; }}',
+    inlineStyle: 'background-color: green !important'
+  },
+  {
+    title: 'Important inline style > important layered style',
+    style: '@layer { #target { background-color: red !important; }}',
+    inlineStyle: 'background-color: green !important'
+  },
+];
+
+for (let testCase of testCases) {
+  var documentStyle = document.createElement('style');
+  documentStyle.appendChild(document.createTextNode(testCase['style']));
+  document.head.appendChild(documentStyle);
+
+  target.style = testCase['inlineStyle'];
+
+  test(function () {
+    assert_equals(getComputedStyle(target).backgroundColor,
+                  getComputedStyle(reference).backgroundColor);
+  }, testCase['title']);
+
+  documentStyle.remove();
+}
+</script>

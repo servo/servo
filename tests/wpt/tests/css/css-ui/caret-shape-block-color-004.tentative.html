@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>caret-shape block color is the same as what is specified by caret-color property</title>
+<link rel=help href="https://drafts.csswg.org/css-ui/#caret-shape">
+<link rel="match" href="caret-shape-block-color-004-ref.tentative.html">
+<meta name=fuzzy content="maxDifference=1;totalPixels=0-3000">
+<meta name="assert"
+  content="Test checks that the opacity of caret-shape block color doesn't change when caret-color is auto. ">
+<script src="/common/reftest-wait.js"></script>
+<style>
+  div {
+    font-size: 5em;
+  }
+
+  #target {
+    caret-shape: block;
+    caret-animation: manual;
+  }
+
+  #target:focus {
+    outline: none;
+  }
+</style>
+
+<body>
+  <div id="target" contenteditable spellcheck="false">abc</div>
+  <script>
+    target.focus();
+    requestAnimationFrame(() => {
+      target.style.caretShape = "block";
+      requestAnimationFrame(() => {
+        target.style.caretShape = "underscore";
+        requestAnimationFrame(() => {
+          target.style.caretShape = "block";
+          takeScreenshot();
+        });
+      });
+    });
+  </script>
+</body>

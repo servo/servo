@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel="help" href="https://drafts.css-houdini.org/css-layout-api/#interaction-sizing">
+<link rel="match" href="negative-ref.html">
+<meta name="assert" content="This test checks that min-content-size is correctly clamped to zero." />
+
+<style>
+
+.test {
+  background: red;
+  border: solid 2px;
+  height: 100px;
+  width: min-content;
+}
+
+@supports (display: layout(min-content-size-negative)) {
+  .test {
+    display: layout(min-content-size-negative);
+    background: green;
+  }
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+
+<div class="test"></div>
+
+<script id="code" type="text/worklet">
+registerLayout('min-content-size-negative', class {
+  async intrinsicSizes() {
+    return { minContentSize: -100 };
+  }
+  async layout() {}
+});
+</script>
+
+<script>
+importWorkletAndTerminateTestAfterAsyncPaint(CSS.layoutWorklet, document.getElementById('code').textContent);
+</script>
+</html>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>CSS Fonts Test: CSSFontFeatureValuesRule SameObject test</title>
+<link rel="help" href="https://drafts.csswg.org/css-fonts/#om-fontfeaturevalues">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/13953">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style id="style">
+  @font-feature-values TestFont {
+    @annotation { a: 1; }
+    @ornaments { b: 2; }
+    @stylistic { c: 3; }
+    @swash { d: 4; }
+    @character-variant { e: 5; }
+    @styleset { f: 6; }
+  }
+</style>
+<script>
+  test(() => {
+    const style = document.getElementById('style');
+    const rule = style.sheet.cssRules[0];
+    assert_true(rule instanceof CSSFontFeatureValuesRule, "Should be CSSFontFeatureValuesRule");
+
+    const attributes = [
+      'annotation',
+      'ornaments',
+      'stylistic',
+      'swash',
+      'characterVariant',
+      'styleset'
+    ];
+
+    for (const attr of attributes) {
+      const map1 = rule[attr];
+      const map2 = rule[attr];
+      assert_equals(map1, map2, `${attr} should return the same object`);
+    }
+  }, "CSSFontFeatureValuesMap attributes in CSSFontFeatureValuesRule should be [SameObject]");
+
+</script>
+

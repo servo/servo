@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: column and row rules with stacking-axis align-self before a spanner in grid-lanes</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/">
+<link rel="match" href="column-gap-decorations-023-ref.html">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-columns: repeat(3, 86px);
+    gap: 10px;
+    background: #cdd5e0;
+    width: max-content;
+    column-rule: 4px solid blue;
+    row-rule: 4px solid gold;
+  }
+  .lanes > div {
+    background: #5b8def;
+    color: #fff;
+    font: 600 12px/1 sans-serif;
+    text-align: center;
+  }
+  .lanes > div.alt { background: #8a6df0; }
+  .lanes > div.hi { background: #1f9d6b; }
+  .lanes > div.p1 { grid-column: 1 / -1; height: 40px; }
+  .lanes > div.i2 { height: 90px; }
+  .lanes > div.i3 { height: 50px; align-self: center; }
+  .lanes > div.i4 { height: 70px; }
+  .lanes > div.q5 { grid-column: 1 / span 2; height: 40px; }
+</style>
+<div class="lanes">
+  <div class="p1 alt">1 (spanner)</div>
+  <div class="i2">2</div>
+  <div class="i3 hi">3</div>
+  <div class="i4">4</div>
+  <div class="q5 alt">5 (span 2)</div>
+</div>

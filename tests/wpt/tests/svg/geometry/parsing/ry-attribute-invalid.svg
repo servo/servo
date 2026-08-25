@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml"
+     width="800px" height="800px">
+  <title>SVG Geometry Properties: parsing the ry presentation attribute with invalid values</title>
+  <metadata>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/geometry.html#RY"/>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/types.html#presentation-attribute-css-value"/>
+    <h:link rel="help" href="https://github.com/web-platform-tests/wpt/issues/61017"/>
+    <h:meta name="assert" content="the ry presentation attribute rejects negative values and values outside '&lt;length-percentage&gt; | &lt;number&gt; | auto', keeping the initial computed value of auto. A negative value for ry is invalid and must be ignored per SVG2 geometry.html#RY."/>
+  </metadata>
+  <rect id="target"/>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <h:script src="support/attribute-testcommon.js"/>
+  <script><![CDATA[
+
+test_invalid_attribute_value("ry", "-10", 0, "auto");
+test_invalid_attribute_value("ry", "-10px", 0, "auto");
+test_invalid_attribute_value("ry", "-10%", 0, "auto");
+test_invalid_attribute_value("ry", "none", 0, "auto");
+test_invalid_attribute_value("ry", "10px 20px", 0, "auto");
+test_invalid_attribute_value("ry", "garbage", 0, "auto");
+
+  ]]></script>
+</svg>

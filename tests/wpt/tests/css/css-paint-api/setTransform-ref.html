@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<body>
+<canvas id ="canvas" width="200" height="200"></canvas>
+<script>
+var ctx = document.getElementById('canvas').getContext('2d');
+ctx.fillStyle = 'green';
+let m = ctx.getTransform();
+m.a = 2;
+m.d = 2;
+ctx.setTransform(m);
+ctx.fillRect(0, 0, 50, 50);
+</script>
+</body>
+</html>

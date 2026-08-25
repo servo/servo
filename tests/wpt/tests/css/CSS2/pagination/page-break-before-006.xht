@@ -1,0 +1,48 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: page-break-before (invalid syntax)</title>
+<link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+<link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-break-props"/>
+<link rel="help" href="http://www.w3.org/TR/css3-page/#pg-br-before-after"/>
+<meta name="flags" content="paged invalid" />
+<meta name="assert" content="The syntax of the 'page-break-before' property is auto | always | avoid | left | right."/>
+<style type="text/css">
+	p.noBreakAuto {
+		page-break-before: always;
+		page-break-before: auto auto;
+	}
+	p.noBreakLeft {
+		page-break-before: auto;
+		page-break-before: left always;
+	}
+	p.noBreakAlways {
+		page-break-before: true;
+	}
+	p.breakRight {
+		page-break-before: right;
+		page-break-before: 2;
+	}
+	p.breakLeft {
+		page-break-before: left;
+		page-break-before: avoid always;
+	}
+	p.noBreak {
+		page-break-before: avoid;
+		page-break-before: always always;
+	}
+
+</style>
+</head>
+<body>
+	<p>When printed, this test requires 4 pages. Page one contains only this
+    paragraph.</p>
+	<p class="noBreakAuto">This text is at the top of page two.</p>
+	<p class="noBreakLeft">This text is also on page two.</p>
+	<p class="noBreakAlways">And this text is on page two as well.</p>
+
+	<p class="breakRight">This paragraph is on page three. A page break follows.</p>
+	<p class="breakLeft">This text is at the top of page four.</p>
+	<p class="noBreak">This last paragraph is also on page four.</p>
+</body>
+</html>

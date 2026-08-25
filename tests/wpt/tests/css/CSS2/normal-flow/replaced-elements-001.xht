@@ -1,0 +1,48 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: replaced elements - margin</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#block-replaced-width" />
+  <meta name="assert" content="Block-level, replaced elements with 'margin-left: auto' and 'margin-right: auto' should be centered within their respective parent block." />
+
+  <style type="text/css"><![CDATA[
+  div
+  {
+  background-color: green;
+  line-height: 0;
+  margin: 1em;
+  }
+
+  input
+  {
+  background-color: orange;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  width: auto;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is 1 orange stripe horizontally centered within each of 2 wide green bars.</p>
+
+  <div>
+    <input type="button" value="&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" />
+  </div>
+
+  <form action="">
+    <div>
+      <input type="submit" value="&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" />
+    </div>
+  </form>
+
+ </body>
+</html>

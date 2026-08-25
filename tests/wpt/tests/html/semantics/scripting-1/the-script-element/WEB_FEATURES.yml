@@ -1,0 +1,5 @@
+rules:
+- script-charset-03.html: [charset]
+- nomodule-*: [js-modules]
+- data-url.html: [data-urls, script]
+- "*": [script]

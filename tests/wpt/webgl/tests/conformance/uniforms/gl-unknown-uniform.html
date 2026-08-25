@@ -1,0 +1,69 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Unknown Uniform Conformance Test</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas" width="2" height="2"> </canvas>
+<script id="vshader" type="x-shader/x-vertex">
+attribute vec4 vPosition;
+void main()
+{
+    gl_Position = vPosition;
+}
+</script>
+
+<script id="fshader" type="x-shader/x-fragment">
+void main()
+{
+    gl_FragColor = vec4(1.0,0.0,0.0,1.0);
+}
+</script>
+<script>
+"use strict";
+description("Tests that unknown uniforms don't cause errors.");
+
+debug("");
+debug("Canvas.getContext");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("canvas");
+if (!gl) {
+  testFailed("context does not exist");
+} else {
+  testPassed("context exists");
+
+  debug("");
+
+  var program = wtu.setupProgram(gl, ["vshader", "fshader"], ["vPosition"]);
+  // Get the location of an unknown uniform.
+  var loc = gl.getUniformLocation(program, "someUnknownUniform");
+  assertMsg(loc === null, "location of unknown uniform should be null");
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+      "there should be no error from getting an unknown uniform");
+  gl.uniform1f(loc, 1);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+      "there should be no error from trying to set an unknown uniform");
+}
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

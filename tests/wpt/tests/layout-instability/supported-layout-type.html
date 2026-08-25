@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<head>
+<title>PerformanceObserver.supportedEntryTypes contains "layout-shift"</title>
+</head>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(() => {
+  assert_implements(window.LayoutShift, 'Layout Instability is not supported.');
+  assert_implements(typeof PerformanceObserver.supportedEntryTypes !== "undefined",
+      'supportedEntryTypes is not supported.');
+  assert_greater_than(PerformanceObserver.supportedEntryTypes.indexOf("layout-shift"), -1,
+    "There should be an entry 'layout-shift' in PerformanceObserver.supportedEntryTypes");
+}, "supportedEntryTypes contains 'layoutShift'.");
+</script>
+</body>
+</html>

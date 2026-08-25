@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test (Transforms): rotateX(180deg) scaleZ(-1)</title>
+    <link rel="author" title="Matt Woodrow" href="mailto:mwoodrow@mozilla.com">
+    <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-2/#three-d-transform-functions">
+    <meta name="assert" content="This tests that rotateX(180deg) scaleZ(-1) is
+    the same as scaleY(-1).  (The scaleZ(-1) should have no effect here.)">
+    <link rel="match" href="transform3d-scale-007-ref.html">
+    <link rel="mismatch" href="transform3d-scale-001-notref.html">
+  </head>
+  <body>
+    <div style="transform: rotatex(180deg) scaleZ(-1); width: 100px; height: 100px;">
+      <div style="background: blue; width: 50px; height: 50px;"></div>
+      <div style="background: lime; width: 50px; height: 50px; margin-left: 50px;"></div>
+    </div>
+  </body>
+</html>

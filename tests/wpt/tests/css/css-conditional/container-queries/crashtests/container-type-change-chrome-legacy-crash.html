@@ -1,0 +1,16 @@
+<!doctype html>
+<title>CSS Container Queries Test: Changing container-type in Chrome legacy layout</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#size-container">
+<link rel="help" href="https://crbug.com/1286773">
+<p>Pass if there is no crash.</p>
+<span style="column-count: 1"><table></table></span>
+<video id="video"></video>
+<input id="input"></input>
+<script>
+  document.body.offsetTop;
+  video.style.containerType = "inline-size";
+  document.body.offsetLeft;
+  video.style.columnCount = "1";
+  input.setAttribute("type", "button");
+  document.body.offsetTop;
+</script>

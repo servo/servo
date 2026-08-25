@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="../resources/runner.js"></script>
+<style>
+  div { color: grey }
+  .a:has(.b) { color: green }
+</style>
+</head>
+<body>
+<div id=container class=a></div>
+<script>
+
+function addChildren(element, numChildren, idPrefix)
+{
+  for (var i = 0; i < numChildren; i++) {
+    var child = document.createElement("div");
+    let childId = idPrefix + i;
+    if (childId == 'child0' || childId == 'child11111111111')
+      child.id = childId;
+    element.appendChild(child);
+  }
+}
+
+function makeTree(element, depth, fanOut, idPrefix)
+{
+  if (depth <= 0)
+    return;
+  addChildren(element, fanOut, idPrefix);
+  let childIndex = 0;
+  for (var child = element.firstChild; child.nextSibling;
+       child = child.nextSibling) {
+    makeTree(child, depth - 1, fanOut, idPrefix + childIndex);
+    childIndex++;
+  }
+  if (child)
+    makeTree(child, depth - 1, fanOut, idPrefix + childIndex);
+}
+
+makeTree(container, 11, 2, "child");
+container.offsetHeight; // force recalc style
+
+var runFunction = function()
+{
+  child0.classList.toggle("b");
+  container.offsetHeight; // force recalc style
+  child0.classList.toggle("b");
+  container.offsetHeight; // force recalc style
+
+  child11111111111.classList.toggle("b");
+  container.offsetHeight; // force recalc style
+  child11111111111.classList.toggle("b");
+  container.offsetHeight; // force recalc style
+}
+
+PerfTestRunner.measureRunsPerSecond({
+  description: "Measures performance of the '.a:has(.b)' invalidation with a single subject element and a matching :has() rule",
+  run: runFunction
+});
+
+</script>
+</body>
+</html>

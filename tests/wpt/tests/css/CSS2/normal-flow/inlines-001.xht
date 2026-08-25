@@ -1,0 +1,18 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+ <head>
+  <title>CSS Test: CSS Inline Box Model: Layering Model</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/inline/001.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#line-height"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#inline-formatting"/>
+  <style type="text/css">
+   img { border-bottom: 1em solid green; vertical-align: text-bottom; }
+   span { background: red; }
+  </style>
+ </head>
+ <body>
+  <p>Test passes if there is a cat sitting on a green bar below and no red.</p>
+  <p><span><img src="support/cat.png" alt="image"/></span></p>
+ </body>
+</html>

@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!-- Testcase for how a baseline-aligned flex item's position is impacted by
+     cross-axis margins, in a fixed-size flex container.
+  -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Test: Baseline alignment of flex items in fixed-size single-line flex container</title>
+    <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com"/>
+    <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#baseline-participation"/>
+    <link rel="match" href="flexbox-align-self-baseline-horiz-002-ref.xhtml"/>
+    <style>
+      .flexbox {
+        display: flex;
+        align-items: baseline;
+        width: 40px;
+        height: 40px;
+        border: 1px solid gray;
+        margin: 5px; /* just for visual separation */
+        float: left;
+      }
+
+      .flexbox > * {
+        background: yellow;
+        border: 1px solid black;
+        height: 20px;
+        flex: 1;
+      }
+   </style>
+  </head>
+  <body>
+    <!-- ZEROTH ROW: NO MARGINS -->
+    <!-- No margins on flex item: -->
+    <div class="flexbox">
+      <div>a</div>
+    </div>
+
+
+    <!-- FIRST ROW: SETTING MARGIN-TOP: -->
+    <br style="clear: both"/>
+
+    <!-- auto: -->
+    <div class="flexbox">
+      <div style="margin-top: auto">a</div>
+    </div>
+
+    <!-- Negative: -->
+    <div class="flexbox">
+      <div style="margin-top: -4px">a</div>
+    </div>
+
+    <!-- Small: -->
+    <div class="flexbox">
+      <div style="margin-top: 4px">a</div>
+    </div>
+
+    <!-- Large (pushing us out of container): -->
+    <div class="flexbox">
+      <div style="margin-top: 25px">a</div>
+    </div>
+
+
+    <!-- SECOND ROW: SETTING MARGIN-BOTTOM: -->
+    <br style="clear: both"/>
+
+    <!-- auto: -->
+    <div class="flexbox">
+      <div style="margin-bottom: auto">a</div>
+    </div>
+
+    <!-- Negative: -->
+    <div class="flexbox">
+      <div style="margin-bottom: -4px">a</div>
+    </div>
+
+    <!-- Small: -->
+    <div class="flexbox">
+      <div style="margin-bottom: 4px">a</div>
+    </div>
+
+    <!-- Large: -->
+    <div class="flexbox">
+      <div style="margin-bottom: 25px">a</div>
+    </div>
+
+  </body>
+</html>

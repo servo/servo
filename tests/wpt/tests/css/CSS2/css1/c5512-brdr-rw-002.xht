@@ -1,0 +1,21 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: border-right-width</title>
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#border-right-width"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="match" href="../reference/ref-if-there-is-no-red.xht" />
+
+  <style type="text/css"><![CDATA[
+   .five {border-right-width: 25px; color: red;}
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-properties" title="8.5 Border properties"/>
+ </head>
+ <body>
+  <p>Test passes if there is <strong>no red</strong>.</p>
+  <p class="five">
+   &#x00A0;
+  </p>
+ </body>
+</html>

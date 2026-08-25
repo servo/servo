@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<link rel=help href="https://issues.chromium.org/issues/504375661">
+<link rel=help href="https://www.w3.org/TR/css-ui-4/#resize">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<style>
+body {
+  margin: 0;
+}
+
+select {
+  width: 100px;
+  height: 100px;
+  resize: both;
+  overflow: auto;
+}
+</style>
+
+<select id="select" multiple></select>
+
+<script>
+promise_test(async () => {
+  const select = document.getElementById('select');
+  for (let i = 1; i <= 80; ++i) {
+    const option = document.createElement('option');
+    option.textContent = `option ${i}`;
+    select.appendChild(option);
+  }
+
+  select.scrollTop = 0;
+  assert_equals(select.scrollTop, 0,
+    'The listbox should start at the top.');
+  assert_greater_than(select.scrollHeight, select.clientHeight,
+    'The listbox should be scrollable before resizing.');
+
+  const rect = select.getBoundingClientRect();
+  const widthBefore = rect.width;
+  const heightBefore = rect.height;
+  const startX = Math.floor(rect.right - 2);
+  const startY = Math.floor(rect.bottom - 2);
+
+  let actions = new test_driver.Actions()
+    .pointerMove(startX, startY)
+    .pointerDown();
+  for (let i = 1; i <= 60; ++i) {
+    actions = actions.pointerMove(startX + i, startY + i);
+  }
+  await actions.pointerUp().send();
+
+  // If listbox autoscroll was started, give it time to run.
+  for (let i = 0; i < 5; ++i) {
+    await new Promise(requestAnimationFrame);
+  }
+
+  const rectAfter = select.getBoundingClientRect();
+  assert_greater_than(rectAfter.width, widthBefore,
+    'The listbox width should increase when the resize handle is dragged.');
+  assert_greater_than(rectAfter.height, heightBefore,
+    'The listbox height should increase when the resize handle is dragged.');
+  assert_equals(select.scrollTop, 0,
+    'Resizing should not trigger listbox autoscroll.');
+}, 'Resizing <select multiple> should not autoscroll the listbox.');
+</script>

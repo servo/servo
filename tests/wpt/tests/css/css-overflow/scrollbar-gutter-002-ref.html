@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS Overflow Reference: test scrollbar-gutter with horizontal left to right content</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="http://www.mozilla.org/">
+
+  <style>
+  .line {
+    display: flex;
+  }
+
+  .container {
+    writing-mode: horizontal-tb;
+    direction: ltr;
+
+    box-sizing: border-box;
+    block-size: 200px;
+    inline-size: 200px;
+    margin: 10px;
+    background: deepskyblue;
+    resize: both;
+  }
+
+  .content {
+    inline-size: 100%;
+    block-size: 200%;
+    background: lightsalmon;
+  }
+  </style>
+
+  <div class="line">
+    <div class="container" style="overflow-y: auto">
+      <div class="content"></div>
+    </div>
+
+    <div class="container" style="overflow-y: scroll" id="container_scroll_stable">
+      <div class="content" id="content_scroll_stable"></div>
+    </div>
+
+    <div class="container" style="overflow-y: hidden" id="container_hidden_stable">
+      <div class="content"></div>
+    </div>
+  </div>
+
+  <div class="line">
+    <div class="container" style="overflow-y: auto;" id="container_auto_stable_both_edges">
+      <div class="content"></div>
+    </div>
+
+    <div class="container" style="overflow-y: scroll" id="container_scroll_stable_both_edges">
+      <div class="content"></div>
+    </div>
+
+    <div class="container" style="overflow-y: hidden;" id="container_hidden_stable_both_edges">
+      <div class="content"></div>
+    </div>
+  </div>
+
+  <script>
+  let container_scroll_stable = document.getElementById("container_scroll_stable");
+  let content_scroll_stable = document.getElementById("content_scroll_stable");
+  let vScrollbarWidth = (container_scroll_stable.offsetWidth - content_scroll_stable.offsetWidth);
+  let vScrollbarWidthStr = vScrollbarWidth + "px";
+
+  // Simulate scrollbar-gutter via padding on containers.
+  document.getElementById("container_hidden_stable").style.paddingInlineEnd = vScrollbarWidthStr;
+  document.getElementById("container_auto_stable_both_edges").style.paddingInlineStart = vScrollbarWidthStr;
+  document.getElementById("container_scroll_stable_both_edges").style.paddingInlineStart = vScrollbarWidthStr;
+  document.getElementById("container_hidden_stable_both_edges").style.paddingInlineStart = vScrollbarWidthStr;
+  document.getElementById("container_hidden_stable_both_edges").style.paddingInlineEnd = vScrollbarWidthStr;
+  </script>
+</html>

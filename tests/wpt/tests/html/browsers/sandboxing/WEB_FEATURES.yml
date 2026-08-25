@@ -1,0 +1,9 @@
+rules:
+- sandbox-inherited-from-required-csp.html: [csp]
+- window-open-blank-from-different-initiator.html: [csp]
+- popup-from-initial-empty-sandboxed-document.window.js: [iframe-sandbox]
+- sandbox-inherited-from-initiator-response.html: []
+- sandbox-navigation-timing-iframe.tentative.html: []
+- sandbox-navigation-timing.tentative.html: []
+- sandbox-new-execution-context-iframe.html: []
+- sandbox-*: [iframe-sandbox]

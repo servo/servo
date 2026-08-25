@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="match" href="mo-invisibleoperators-ref.html">
+    <link rel="help" href="https://w3c.github.io/mathml-core/#operator-fence-separator-or-accent-mo">
+    <link rel="help" href="This test verifies that invisible operators rendered with the default fonts do not add spacing, foreground or background.">
+    <meta name="assert" content="https://bugzilla.mozilla.org/show_bug.cgi?id=969867">
+    <meta name="assert" content="https://bugzilla.mozilla.org/show_bug.cgi?id=522393">
+  </head>
+  <math>
+    <mrow>
+      <mn>1</mn>
+      <mo>&#x2061;<!-- FUNCTION APPLICATION --></mo>
+      <mn>2</mn>
+      <mo>&#x2062;<!-- INVISIBLE TIMES --></mo>
+      <mn>3</mn>
+      <mo>&#x2063;<!-- INVISIBLE SEPARATOR --></mo>
+      <mn>4</mn>
+      <mo>&#x2064;<!-- INVISIBLE PLUS --></mo>
+      <mn>5</mn>
+      <!-- Hack.  The invisible operators may not belong to the same font as
+           the numbers, so they may have different heights.  The mspace
+           compensates for this by ensuring the height of the mrow does not
+           depend on character height -->
+      <mspace height="2em" width="0.1em"></mspace>
+    </mrow>
+  </math>
+  <p>
+  <!-- Should be invisible -->
+  <math>
+    <mo style="background: red; color: blue;">&ApplyFunction;</mo>
+  </math>
+</html>

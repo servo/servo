@@ -1,0 +1,35 @@
+<!doctype html>
+<meta charset="utf-8">
+<p id="referrer">{{header_or_default(referer, )}}</p>
+<section id="section">My section</section>
+<span id="info">Refreshing to</span>
+<span id=url>{{GET[url]}}</span>
+<script>
+function refresh() {
+  if (url.textContent !== "") {
+    const refresh = document.createElement("meta");
+    refresh.httpEquiv = "refresh";
+    refresh.content = `0; url=${url.textContent}`;
+    document.documentElement.appendChild(refresh);
+  } else {
+    info.textContent = "Not refreshing.";
+  }
+}
+
+function sendData() {
+  const documentReferrer = document.referrer;
+  const data = {referrer: referrer.textContent, documentReferrer, url: location.href};
+  window.parent.postMessage(data, "*");
+}
+
+const sectionHash = "#section";
+if (url.textContent !== sectionHash) {
+  window.addEventListener("hashchange", refresh);
+  location.hash = sectionHash;
+} else if (location.hash !== sectionHash) {
+  window.addEventListener("hashchange", sendData);
+  refresh();
+} else {
+  sendData();
+}
+</script>

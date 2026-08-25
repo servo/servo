@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta name="timeout" content="long">
+<title>SpeechRecognition Phrases</title>
+
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+async function getAudioTrackFromFile(filePath) {
+    const audioContext = new AudioContext();
+    const response = await fetch(filePath);
+    const arrayBuffer = await response.arrayBuffer();
+    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+    const source = audioContext.createBufferSource();
+    source.buffer = audioBuffer;
+
+    const destination = audioContext.createMediaStreamDestination();
+    source.connect(destination);
+    source.start();
+
+    return destination.stream.getAudioTracks()[0];
+}
+
+promise_test(async (t) => {
+    window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    // Install en-US for on-device speech recognition.
+    const installOptions = { langs: ["en-US"], processLocally: true };
+    const installPromise = test_driver.bless(
+        "Install on-device en-US speech recognition",
+        () => SpeechRecognition.install(installOptions)
+    );
+    assert_true(
+        installPromise instanceof Promise,
+        "SpeechRecognition.install() should return a Promise."
+    );
+    const installResult = await installPromise;
+    assert_true(
+        installResult,
+        "SpeechRecognition.install() for en-US should resolve with true."
+    );
+
+    // Verify the audio track for recognition context exists.
+    const audioTrack = await getAudioTrackFromFile("/media/recognition_context.mp3");
+    assert_true(
+        audioTrack instanceof MediaStreamTrack,
+        "Audio track should be a valid MediaStreamTrack"
+    );
+
+    // Create the first speech recognition with a mode that does not support contextual biasing.
+    // Note that this may vary between browsers in the future.
+    const recognition1 = new SpeechRecognition();
+    recognition1.processLocally = false;
+    recognition1.lang = "en-US";
+
+    recognition1.onerror = function(event) {
+        assert_equals(
+            event.error,
+            "phrases-not-supported",
+            "First speech recognition should throw a phrases-not-supported error"
+        );
+    };
+
+    recognition1.phrases.push(new SpeechRecognitionPhrase("test", 1.0));
+
+    // Create the second speech recognition with a mode that supports contextual biasing.
+    const recognition2 = new SpeechRecognition();
+    recognition2.processLocally = true;
+    recognition2.lang = "en-US";
+
+    // On-device speech recognition should not throw an error.
+    recognition2.onerror = t.unreached_func("recognition2 should not error");
+
+    recognition2.phrases = [
+        new SpeechRecognitionPhrase("ASIC", 3.0),
+        new SpeechRecognitionPhrase("FPGA", 3.0)
+    ];
+
+    const recognitionPromise = new Promise((resolve) => {
+        recognition2.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            const words = transcript.toLowerCase().split(' ');
+            // Resolve when the last word is "expectations".
+            if (words.length > 0 && words[words.length - 1] === "expectations") {
+                resolve(transcript);
+            }
+        };
+    });
+    recognition2.start(audioTrack);
+
+    const transcript = await recognitionPromise;
+    assert_equals(
+        transcript.toLowerCase(),
+        "the report confirmed that the asic's throughput and " +
+        "the fpga's latency were both below expectations",
+        "Second speech recognition should correctly recognize the phrases"
+    );
+}, "SpeechRecognition should recognize speech with the given contextual information.");
+</script>
+</html>

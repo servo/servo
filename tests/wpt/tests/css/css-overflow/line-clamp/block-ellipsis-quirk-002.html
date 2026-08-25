@@ -1,0 +1,44 @@
+<!-- doctype intentionally missing -->
+<meta charset="utf-8">
+<title>CSS Overflow: block-ellipsis and the blocks ignore line-height quirk</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#block-ellipsis">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="In quirks mode, the 'blocks ignore line-height quirk' makes inlines not have a strut. When the line-clamp ellipsis displaces a line's entire contents, it is considered to have a strut for the root inline box, which is not removed by this quirk. There are no struts for other open inline boxes.">
+<style>
+p {
+  /* Making sure the margin collapsing quirk doesn't apply:
+   * https://html.spec.whatwg.org/multipage/rendering.html#margin-collapsing-quirks */
+  margin-block: 1em;
+}
+
+#parent {
+  height: 100px;
+  width: 100px;
+  background-color: red;
+}
+#container {
+  width: 100px;
+  background: linear-gradient(green, green) 0 0 / 100px 100px no-repeat, red;
+  font: 25px/25px Ahem;
+  color: transparent;
+  line-clamp: 3;
+}
+.large {
+  font: 50px/50px Ahem;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="parent">
+  <div id="container">
+    XXXX
+    <span class="large">
+      XX
+      XXXX
+      X
+    </span>
+  </div>
+</div>

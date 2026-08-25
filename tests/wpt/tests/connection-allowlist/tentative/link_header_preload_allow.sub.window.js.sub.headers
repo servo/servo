@@ -1,0 +1,2 @@
+Connection-Allowlist: (response-origin "*://*:*/*\\?*&ignore-allowlist=true*")
+Link: <http://{{hosts[][]}}:{{ports[http][0]}}/connection-allowlist/tentative/resources/key-value-store.py?key=6cd381d3-85b5-40ce-8c63-1ffb06154b8b&value=hello>; rel=preload; as=script

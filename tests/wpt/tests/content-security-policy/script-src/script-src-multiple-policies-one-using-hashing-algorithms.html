@@ -1,0 +1,26 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>Multiple policies some using hashes some not using hashes still work.</title>
+  <!-- nonces are here just to let all of our scripts run -->
+  <script nonce="abc" src='/resources/testharness.js'></script>
+  <script nonce="abc" src='/resources/testharnessreport.js'></script>
+</head>
+<body>
+  <script nonce="abc">
+    var t = async_test("Test that script executes if allowed by proper hash values");
+    document.addEventListener("securitypolicyviolation", t.unreached_func("Should not have triggered a security event"));
+    var executed = false;
+  </script>
+
+  <!-- test will fail if this script is not allowed to run -->
+  <script>executed = true;</script>
+
+  <script nonce="abc">
+    t.step(function() {
+      assert_true(executed);
+      t.done();
+    });
+  </script>
+</body>
+</html>

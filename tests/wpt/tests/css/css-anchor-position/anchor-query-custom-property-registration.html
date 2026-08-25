@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<title>Tests using anchor queries in custom property initial value</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/">
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api/#register-a-custom-property">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+setup(() => assert_own_property(CSS, 'registerProperty'));
+
+// Anchor queries are not computationally independent, so they cannot be used
+// in the initial value of any typed custom property.
+
+test(() => assert_throws_dom(
+  'SyntaxError',
+  () => CSS.registerProperty({
+    name: '--x',
+    syntax: '<length>',
+    inherits: false,
+    initialValue: 'anchor(--foo top)',
+  })), 'anchor() cannot be used as <length> initial value');
+
+test(() => assert_throws_dom(
+  'SyntaxError',
+  () => CSS.registerProperty({
+    name: '--x',
+    syntax: '<length>',
+    inherits: false,
+    initialValue: 'anchor-size(--foo width)',
+  })), 'anchor-size() cannot be used as <length> initial value');
+
+test(() => assert_throws_dom(
+  'SyntaxError',
+  () => CSS.registerProperty({
+    name: '--x',
+    syntax: '<length-percentage>',
+    inherits: false,
+    initialValue: 'anchor(--foo top)',
+  })), 'anchor() cannot be used as <length-percentage> initial value');
+
+test(() => assert_throws_dom(
+  'SyntaxError',
+  () => CSS.registerProperty({
+    name: '--x',
+    syntax: '<length-percentage>',
+    inherits: false,
+    initialValue: 'anchor-size(--foo width)',
+  })), 'anchor-size() cannot be used as <length-percentage> initial value');
+</script>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Text Module Test: parsing text-autospace with valid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#propdef-text-autospace">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("text-autospace", "normal");
+test_valid_value("text-autospace", "no-autospace");
+
+test_valid_value("text-autospace", "auto");
+
+test_valid_value("text-autospace", "ideograph-alpha");
+test_valid_value("text-autospace", "ideograph-numeric");
+test_valid_value("text-autospace", "ideograph-alpha ideograph-numeric");
+
+test_valid_value("text-autospace", "punctuation");
+test_valid_value("text-autospace", "punctuation ideograph-alpha", "ideograph-alpha punctuation");
+test_valid_value("text-autospace", "punctuation ideograph-alpha ideograph-numeric", "ideograph-alpha ideograph-numeric punctuation");
+
+test_valid_value("text-autospace", "ideograph-alpha insert");
+test_valid_value("text-autospace", "ideograph-numeric insert");
+test_valid_value("text-autospace", "ideograph-alpha ideograph-numeric insert");
+
+test_valid_value("text-autospace", "punctuation insert");
+test_valid_value("text-autospace", "punctuation ideograph-alpha insert", "ideograph-alpha punctuation insert");
+
+test_valid_value("text-autospace", "insert ideograph-alpha", "ideograph-alpha insert");
+test_valid_value("text-autospace", "insert ideograph-numeric", "ideograph-numeric insert");
+test_valid_value("text-autospace", "insert ideograph-alpha ideograph-numeric", "ideograph-alpha ideograph-numeric insert");
+
+test_valid_value("text-autospace", "insert punctuation", "punctuation insert");
+test_valid_value("text-autospace", "insert punctuation ideograph-alpha", "ideograph-alpha punctuation insert");
+test_valid_value("text-autospace", "insert punctuation ideograph-alpha ideograph-numeric", "ideograph-alpha ideograph-numeric punctuation insert");
+
+test_valid_value("text-autospace", "ideograph-alpha replace");
+test_valid_value("text-autospace", "ideograph-numeric replace");
+test_valid_value("text-autospace", "ideograph-alpha ideograph-numeric replace");
+
+test_valid_value("text-autospace", "punctuation replace");
+test_valid_value("text-autospace", "punctuation ideograph-alpha replace", "ideograph-alpha punctuation replace");
+
+test_valid_value("text-autospace", "replace ideograph-alpha", "ideograph-alpha replace");
+test_valid_value("text-autospace", "replace ideograph-numeric", "ideograph-numeric replace");
+test_valid_value("text-autospace", "replace ideograph-alpha ideograph-numeric", "ideograph-alpha ideograph-numeric replace");
+
+test_valid_value("text-autospace", "replace punctuation", "punctuation replace");
+test_valid_value("text-autospace", "replace punctuation ideograph-alpha", "ideograph-alpha punctuation replace");
+test_valid_value("text-autospace", "replace punctuation ideograph-alpha ideograph-numeric", "ideograph-alpha ideograph-numeric punctuation replace");
+</script>
+</body>
+</html>

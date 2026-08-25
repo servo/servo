@@ -1,0 +1,39 @@
+<!doctype html>
+<title>WebSockets: addEventListener</title>
+<meta name="timeout" content="long">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../../../constants.sub.js></script>
+<meta name="variant" content="?default">
+<meta name="variant" content="?wss">
+<meta name="variant" content="?wpt_flags=h2">
+<div id=log></div>
+<script>
+async_test(function(t) {
+  var ws = new WebSocket(SCHEME_DOMAIN_PORT+'/echo');
+  var count = 0;
+  var checkCount = t.step_func(function (c, e) {
+    count++;
+    assert_equals(count, c);
+  });
+  // no spec requires this order for event listeners but the web does
+  ws.addEventListener('open', t.step_func(function(e) {
+    checkCount(1, e);
+     ws.send('Goodbye');
+  }), false);
+  ws.onopen = t.step_func(function(e) {checkCount(2, e) });
+  ws.addEventListener('open', t.step_func(function(e) {checkCount(3, e); }), false);
+
+  ws.addEventListener('message', t.step_func(function(e) {checkCount(4, e); }), false);
+  ws.onmessage = t.step_func(function(e) {checkCount(5, e) });
+  ws.addEventListener('message', t.step_func(function(e) {checkCount(6, e); }), false);
+
+  ws.addEventListener('close', t.step_func(function(e) {checkCount(7, e); }), false);
+  ws.onclose = t.step_func(function(e) {checkCount(8, e) });
+  ws.addEventListener('close', t.step_func(function(e) {
+    checkCount(9, e);
+    t.done();
+  }), false);
+
+});
+</script>

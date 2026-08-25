@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<svg>
+  <text>
+    <tspan id='container'>
+      <tspan id='element'></tspan>
+    </tspan>
+  </text>
+</svg>
+
+<script>
+var element = document.getElementById('element');
+var container = document.getElementById('container');
+
+test(function() {
+    element.style.fontSize = '10px';
+    var player = element.animate([{baselineShift: '3em'}, {baselineShift: '5em'}], 10);
+    player.pause();
+    player.currentTime = 5;
+    element.style.fontSize = '20px';
+    assert_equals(getComputedStyle(element).baselineShift, '80px');
+}, 'baselineShift responsive to style changes');
+
+test(function() {
+    container.style.baselineShift = 'sub';
+    var player = element.animate([{baselineShift: 'inherit'}, {baselineShift: '20px'}], 4000);
+    player.pause();
+
+    player.currentTime = 1000;
+    assert_equals(getComputedStyle(element).baselineShift, 'sub');
+
+    container.style.baselineShift = 'super';
+    assert_equals(getComputedStyle(element).baselineShift, 'super');
+
+    container.style.baselineShift = '100px';
+    assert_equals(getComputedStyle(element).baselineShift, '80px');
+
+    container.style.baselineShift = 'sub';
+    assert_equals(getComputedStyle(element).baselineShift, 'sub');
+}, 'baselineShift responsive to inherited changes');
+</script>

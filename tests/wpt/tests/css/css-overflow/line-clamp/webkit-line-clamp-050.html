@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#propdef--webkit-line-clamp">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/pull/10816">
+<link rel="match" href="reference/webkit-line-clamp-050-ref.html">
+<style>
+  .clamp {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    padding: 10px;
+    border: solid 3px;
+    width: 100px;
+  }
+  .clamp div {
+    border: medium solid green;
+    padding: 15px;
+  }
+</style>
+<div class="clamp">
+  Line1
+  <div>Line2<br>Line3</div>
+  Line4
+  <div>Line5<br>Line6</div>
+  Line7
+</div>

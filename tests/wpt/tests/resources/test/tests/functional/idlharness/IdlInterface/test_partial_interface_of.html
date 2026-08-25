@@ -1,0 +1,187 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>idlharness: Partial interface</title>
+  <script src="/resources/test/variants.js"></script>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/WebIDLParser.js"></script>
+  <script src="/resources/idlharness.js"></script>
+</head>
+
+<body>
+  <p>Verify the series of sub-tests that are executed for "partial" interface objects.</p>
+  <script>
+    "use strict";
+
+    // No original existence
+    (() => {
+      const idlArray = new IdlArray();
+      idlArray.add_idls('partial interface A {};');
+      idlArray.test();
+    })();
+
+    // Valid exposure (Note: Worker -> {Shared,Dedicated,Service}Worker)
+    (() => {
+      const idlArray = new IdlArray();
+      idlArray.add_untested_idls(`
+        [Exposed=(Worker)]
+        interface B {};
+
+        [Exposed=(DedicatedWorker, ServiceWorker, SharedWorker)]
+        interface C {};`);
+      idlArray.add_idls(`
+        [Exposed=(DedicatedWorker, ServiceWorker, SharedWorker)]
+        partial interface B {};
+
+        [Exposed=(Worker)]
+        partial interface C {};`);
+      idlArray.merge_partials();
+    })();
+
+    // Invalid exposure
+    (() => {
+      const idlArray = new IdlArray();
+      idlArray.add_untested_idls(`
+        [Exposed=(Window, ServiceWorker)]
+        interface D {};`);
+      idlArray.add_idls(`
+        [Exposed=(DedicatedWorker)]
+        partial interface D {};`);
+      idlArray.merge_partials();
+    })();
+
+    // Original is a namespace, not an interface.
+    (() => {
+      const idlArray = new IdlArray();
+      idlArray.add_idls(`
+        partial interface E {};
+        namespace E {};`);
+      idlArray.merge_partials();
+    })();
+
+    (() => {
+      const idlArray = new IdlArray();
+      idlArray.add_idls(`
+        partial interface F {};
+        partial interface mixin G {};
+      `);
+      idlArray.add_dependency_idls(`
+        interface F {};
+        interface mixin G {};
+        interface mixin H {};
+        F includes H;
+        I includes H;
+        J includes G;
+        interface K : J {};
+        interface L : F {};
+      `);
+      test(() => {
+        // Convert idlArray.includes into a Map from name of target interface to
+        // name of included mixin. (This assumes each interface includes at most
+        // one mixin, otherwise later includes would clobber earlier ones.)
+        const includes = new Map(idlArray.includes.map(i => [i.target, i.includes]));
+        // F is tested, so H is a dep.
+        assert_equals(includes.get('F'), 'H', 'F should be picked up');
+        // H is not tested, so I is not a dep.
+        assert_false(includes.has('I'), 'I should be ignored');
+        // G is a dep, so J is a dep.
+        assert_equals(includes.get('J'), 'G', 'J should be picked up');
+        // K isn't a dep because J isn't defined.
+        assert_false('K' in idlArray.members, 'K should be ignored');
+        // L isn't a dep because F is untested.
+        assert_false('L' in idlArray.members, 'L should be ignored');
+      }, 'partial mixin dep implications');
+    })();
+
+    // Name clash (partials)
+    (() => {
+      const idlArray = new IdlArray();
+      idlArray.add_idls(`
+        interface M { attribute any A; };
+        partial interface M { attribute any A; };`);
+      idlArray.merge_partials();
+    })();
+  </script>
+  <script type="text/json" id="expected">
+{
+  "summarized_status": {
+    "status_string": "OK",
+    "message": null
+  },
+  "summarized_tests": [
+    {
+      "name": "Partial interface A: original interface defined",
+      "status_string": "FAIL",
+      "properties": {},
+      "message": "assert_true: Original interface should be defined expected true got false"
+    },
+    {
+      "name": "Partial interface B: original interface defined",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "Partial interface B: valid exposure set",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "Partial interface C: original interface defined",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "Partial interface C: valid exposure set",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "Partial interface D: original interface defined",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "Partial interface D: valid exposure set",
+      "status_string": "FAIL",
+      "properties": {},
+      "message": "Partial D interface is exposed to 'DedicatedWorker', the original interface is not."
+    },
+    {
+      "name": "Partial interface E: original interface defined",
+      "status_string": "FAIL",
+      "properties": {},
+      "message": "assert_true: Original E definition should have type interface expected true got false"
+    },
+    {
+      "name": "partial mixin dep implications",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "Partial interface M: original interface defined",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "Partial interface M: member names are unique",
+      "status_string": "FAIL",
+      "properties": {},
+      "message": "assert_true: member A is unique expected true got false"
+    }
+  ],
+  "type": "complete"
+}
+</script>
+</body>
+
+</html>

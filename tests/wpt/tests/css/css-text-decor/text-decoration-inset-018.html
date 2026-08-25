@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<title>CSS Text Decoration 4: text-decoration-inset</title>
+
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-skip-inset-property">
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+
+<link rel="match" href="reference/text-decoration-inset-018-ref.html">
+
+<style>
+body {
+  background: white;
+  color: black;
+}
+div.outer {
+  display: inline-block;
+  vertical-align: top;
+  font: 10px/2 Ahem;
+  position: relative;
+  width: 12ch;
+  height: 12ch;
+  border: 1px solid gray;
+  margin: 1em;
+}
+div.inner {
+  position: absolute;
+  text-decoration: underline;
+  text-decoration-inset: 2ch -2ch;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 2px;
+  box-decoration-break: clone;
+}
+div.inner > p {
+  margin: 0;
+}
+p:dir(rtl) {
+  unicode-bidi: bidi-override;
+}
+</style>
+
+<p>The text "foo a b c bar" should have an underline that is offset 2ch forward in each case,
+applied separately to each line:</p>
+
+<div class=outer>
+  <div class=inner>
+    <p>foo a b c bar</p>
+  </div>
+</div>
+
+<div class=outer dir=rtl>
+  <div class=inner>
+    <p>foo a b c bar</p>
+  </div>
+</div>
+
+<br>
+
+<div class=outer style="writing-mode: sideways-rl">
+  <div class=inner>
+    <p>foo a b c bar</p>
+  </div>
+</div>
+
+<div class=outer dir=rtl style="writing-mode: sideways-rl">
+  <div class=inner>
+    <p>foo a b c bar</p>
+  </div>
+</div>
+
+<br>
+
+<div class=outer style="writing-mode: sideways-lr">
+  <div class=inner>
+    <p>foo a b c bar</p>
+  </div>
+</div>
+
+<div class=outer dir=rtl style="writing-mode: sideways-lr">
+  <div class=inner>
+    <p>foo a b c bar</p>
+  </div>
+</div>

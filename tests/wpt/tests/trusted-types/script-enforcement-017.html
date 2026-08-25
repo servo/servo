@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/namespaces.js"></script>
+<script src="support/passthroughpolicy.js"></script>
+<script src="support/script-messages.js"></script>
+<link rel="help" href="https://w3c.github.io/trusted-types/dist/spec/#enforcement-in-scripts">
+<!-- This is similar to script-enforcement-016.html, but for SVG script. -->
+<svg>
+  <script type="unknown">;</script>
+</svg>
+<svg id="container"></svg>
+<script>
+  promise_test(async t => {
+    await no_script_message_for(_ => {
+      let script = create_svg_script_with_trusted_source_text(";");
+      script.setAttribute("type", "module");
+      script.appendChild(document.createTextNode(LOG_RUN_MESSAGE));
+      document.head.insertAdjacentHTML("beforeend", `<meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script'">`)
+      container.appendChild(script);
+    });
+  }, "SVG script with type=module is untrusted even if source was set before TrustedTypes got enabled.");
+</script>

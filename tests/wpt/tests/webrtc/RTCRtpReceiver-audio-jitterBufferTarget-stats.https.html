@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>Tests RTCRtpReceiver-jitterBufferTarget verified with stats</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/webrtc/RTCPeerConnection-helper.js"></script>
+<script src="/webrtc/RTCRtpReceiver-jitterBufferTarget-stats-helper.js"></script>
+<body>
+<script>
+'use strict'
+
+promise_test(async t => {
+  await applyJitterBufferTarget(t, "audio", 300);
+}, `measure raising and lowering audio jitterBufferTarget`);
+
+</script>
+</body>

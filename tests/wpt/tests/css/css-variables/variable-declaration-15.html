@@ -1,0 +1,22 @@
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!DOCTYPE html>
+<title>CSS Test: Test declaring a variable that consists of a comma-separated font family list.</title>
+<link rel="author" title="Cameron McCormack" href="mailto:cam@mcc.id.au">
+<link rel="help" href="http://www.w3.org/TR/css-variables-1/#syntax">
+<link rel="match" href="variable-declaration-15-ref.html">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" href="/fonts/ahem.css" type="text/css">
+<style>
+body {
+  font-family: serif;
+}
+p {
+  font-family: monospace;
+  --a: Ahem, sans-serif;
+  font-family: var(--a);
+}
+</style>
+<p>This text must be in Ahem.</p>

@@ -1,0 +1,46 @@
+<!doctype html>
+<title>ResizeObserver test: callback.this</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/resizeTestHelper.js"></script>
+<body>
+<div id="log"></div>
+
+<script>
+'use strict';
+
+function test() {
+  let harnessTest = async_test("callback.this");
+  let resolvePromise;
+  let ro = new ResizeObserver( function(entries, obs) {
+    let callbackThis = this;
+    harnessTest.step(() => {
+      assert_equals(callbackThis, ro, "callback.this is ResizeObserver");
+      assert_equals(obs, ro, "2nd argument is ResizeObserver");
+      ro.disconnect();
+      // every reference to RO must be null before test completes
+      // to avoid triggering test leak-detection
+      ro = null;
+      callbackThis = null;
+      obs = null;
+      harnessTest.step_timeout( _ => {
+        harnessTest.done();
+        resolvePromise();
+      }, 0);
+     });
+    }
+  );
+
+  let t = createAndAppendElement("div");
+  t.style.width = "100px";
+  harnessTest.add_cleanup(() => t.remove());
+
+  ro.observe(t);
+
+  return new Promise( (resolve, reject) => {
+    resolvePromise = resolve;
+  });
+}
+
+(async () => await test())();
+</script>

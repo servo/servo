@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<head>
+</head>
+<body>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/fetch/fetch-later/resources/fetch-later-helper.js"></script>
+  <script>
+    const PARAMS = new URL(location.href).searchParams;
+    const TARGET_URL= decodeURIComponent(PARAMS.get('url')) || '';
+    const BODY_TYPE = PARAMS.get('bodyType');
+    const BODY_SIZE = PARAMS.get('bodySize');
+    const BODY = BODY_TYPE !== null && BODY_SIZE !== null ? makeBeaconData(generatePayload(BODY_SIZE), BODY_TYPE) : null;
+    const REQUEST_INIT = Object.assign({},
+      PARAMS.has('activateAfter') ? {activateAfter: parseInt(PARAMS.get('activateAfter'), 10)} : null,
+      PARAMS.has('method') ? {method: PARAMS.get('method')} : null,
+      PARAMS.has('referrer') ? {referrer: PARAMS.get('referrer')} : null,
+      BODY !== null ? {body: BODY} : null,
+    );
+
+    function postMessageBack(message) {
+      if (window.opener) {
+        window.opener.postMessage(message, '*');
+      } else {
+        parent.postMessage(message, '*');
+      }
+    }
+
+    try {
+      fetchLater(TARGET_URL, REQUEST_INIT);
+      postMessageBack({type: FetchLaterIframeMessageType.DONE});
+    } catch (e) {
+      postMessageBack({
+        type: FetchLaterIframeMessageType.ERROR,
+        // When an error is caught, it might not be cloneable across the boundary.
+        error: {name: e.name, message: e.message}
+      });
+    }
+  </script>
+</body>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>CSS Logical Values: Flow-Relative Values for the 'float' property</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com" />
+<link rel="help" href="https://drafts.csswg.org/css-logical/#float-clear">
+<meta name="assert" content="This test checks that the 'inline-start' and 'inline-end' values of the 'float' and 'clear' properties map to the correct physical value." />
+<link rel="match" href="reference/logical-values-float-clear-reftest-ref.html">
+<style>
+.test {
+  display: block;
+  overflow: hidden;
+  width: 300px;
+}
+.inline {
+  display: inline;
+}
+.float, .clear {
+  display: block;
+  overflow: hidden;
+  height: 3px;
+  width: 100px;
+  background: #f0f;
+}
+.clear {
+  background: #0ff;
+}
+</style>
+<body>
+<script>
+const sides = ["inline-start", "inline-end"];
+const directions = ["ltr", "rtl"];
+for (const floatSide of sides) {
+  for (const clearSide of sides) {
+    for (const containerDirection of directions) {
+      for (const inlineParentDirection of [null, ...directions]) {
+        for (const floatDirection of directions) {
+          for (const clearDirection of directions) {
+            const containerEl = document.createElement("div");
+            containerEl.className = "test";
+            containerEl.style.direction = containerDirection;
+            const floatEl = document.createElement("div");
+            floatEl.className = "float";
+            floatEl.style.direction = floatDirection;
+            floatEl.style.float = floatSide;
+            const clearEl = document.createElement("div");
+            clearEl.className = "clear";
+            clearEl.style.direction = floatDirection;
+            clearEl.style.clear = clearSide;
+            if (inlineParentDirection) {
+              const inlineParent = document.createElement("div");
+              inlineParent.className = "inline";
+              inlineParent.style.direction = inlineParentDirection;
+              inlineParent.appendChild(floatEl);
+              inlineParent.appendChild(clearEl);
+              containerEl.appendChild(inlineParent);
+            } else {
+              containerEl.appendChild(floatEl);
+              containerEl.appendChild(clearEl);
+            }
+            document.body.appendChild(containerEl);
+          }
+        }
+      }
+    }
+  }
+}
+</script>
+</body>

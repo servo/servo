@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Anchor Position: a function-form zero is not a valid anchor()/anchor-size() fallback</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#anchor-size-fn">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#funcdef-anchor">
+<meta name="assert" content="The unitless-zero quirk only accepts a bare '0' as a <length> fallback for anchor()/anchor-size(). A math function that resolves to a unitless zero (calc(0), min(0, 0), ...) is number-typed, not a <length-percentage>, so it is invalid. A bare '0' and a real <length> remain valid fallbacks.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+function assertInvalid(property, value) {
+  test(() => {
+    const div = document.createElement('div');
+    div.style[property] = value;
+    assert_equals(div.style.getPropertyValue(property), "");
+  }, "e.style['" + property + "'] = " + JSON.stringify(value) + " should not set the property value");
+}
+
+function assertValid(property, value) {
+  test(() => {
+    const div = document.createElement('div');
+    div.style[property] = value;
+    assert_not_equals(div.style.getPropertyValue(property), "");
+  }, "e.style['" + property + "'] = " + JSON.stringify(value) + " should set the property value");
+}
+
+// A math function that resolves to a unitless zero has number type, not
+// <length-percentage>, so it is not a valid fallback. (These previously
+// aborted the parser instead of being rejected.)
+assertInvalid('width', 'anchor-size(width, calc(0))');
+assertInvalid('width', 'anchor-size(width, min(0, 0))');
+assertInvalid('height', 'anchor-size(height, max(0))');
+assertInvalid('left', 'anchor(left, calc(0))');
+
+// Controls: a bare unitless 0 and a real length are still valid fallbacks, so
+// the parser is rejecting the function-form zero specifically, not all of them.
+assertValid('width', 'anchor-size(width, 0)');
+assertValid('width', 'anchor-size(width, 10px)');
+</script>

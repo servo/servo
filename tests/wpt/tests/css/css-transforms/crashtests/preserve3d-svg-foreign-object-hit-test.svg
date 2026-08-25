@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
+<g id="testmeta">
+  <title>CSS Test (Transforms): preserve-3d on foreignObject and hit test</title>
+  <html:link rel="help" href="https://drafts.csswg.org/css-transforms-2/#transform-style-property" />
+  <html:link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1277221" />
+  <html:meta name="assert" content="This should not crash." />
+</g>
+
+<style>
+foreignObject {
+  display:table;
+  overflow:auto;
+  transform-style:preserve-3d;
+}
+</style>
+<foreignObject width="200" height="200"></foreignObject>
+<script>
+document.elementFromPoint(100, 100);
+</script>
+</svg>

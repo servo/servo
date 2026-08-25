@@ -1,0 +1,29 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>&lt;img&gt;</title>
+</head>
+<body>
+  <!-- is structured inline -->
+  <p><a href='foo'><img
+      src="url"
+      alt="text"
+      width="42"
+      height="095"
+      ismap="ismap"
+      class="class"
+      xml:lang="en"></img></a></p>
+
+  <!-- is strictly inline -->
+  <p><a href='foo'><dfn><img
+      src="url"
+      alt="text"
+      width="42"
+      height="095"
+      ismap="ismap"
+      class="class"
+      xml:lang="en"></img></dfn></a></p>
+
+  <!-- src and alt are required, others optional -->
+  <p><img src="ur" alt="text"></img></p>
+</body>
+</html>

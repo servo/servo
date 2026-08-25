@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: validates that view-transition-name: unset or initial are ignored</title>
+<link rel="help" href="https://www.w3.org/TR/css-view-transitions-1/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+#first {
+  width: 100px;
+  height: 100px;
+  background: blue;
+  contain: paint;
+  view-transition-name: target;
+}
+#second {
+  width: 100px;
+  height: 100px;
+  background: blue;
+  view-transition-name: unset;
+}
+#third {
+  width: 100px;
+  height: 100px;
+  background: blue;
+  view-transition-name: initial;
+}
+</style>
+
+<div id=first></div>
+<div id=second></div>
+<div id=third></div>
+
+<script>
+promise_test(async t => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
+  return new Promise(async (resolve, reject) => {
+    let transition = document.startViewTransition();
+    await transition.updateCallbackDone;
+
+    // Elements with view-transition-name: initial and unset don't have
+    // containment. Because they are ignored they don't cause the transition to
+    // be skipped.
+    await transition.ready;
+    transition.finished.then(resolve, reject);
+  });
+}, "validates that view-transition-name: unset or initial are ignored");
+</script>

@@ -1,0 +1,54 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border-left-width applied to element with display table-column-group</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-12-06 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#propdef-border-left-width" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-width-properties" />
+        <link rel="match" href="../reference/ref-filled-black-96px-square.xht" />
+
+        <meta name="assert" content="The 'border-left-width' properties applies to elements with a display of table-column-group." />
+        <style type="text/css">
+            #test
+            {
+                border-left-style: solid;
+                border-left-width: 1in;
+                display: table-column-group;
+            }
+            #table
+            {
+                border-collapse: collapse;
+                display: table;
+            }
+            .column
+            {
+            display: table-column;
+            }
+            .row
+            {
+                display: table-row;
+            }
+            .cell
+            {
+                display: table-cell;
+                height: 0.5in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a filled black square.</p>
+
+        <div id="table">
+            <div id="test"><div class="column"></div><div class="column"></div></div>
+                <div class="row">
+                    <div class="cell"></div><div class="cell"></div>
+                </div>
+
+                <div class="row">
+                    <div class="cell"></div><div class="cell"></div>
+                </div>
+        </div>
+
+    </body>
+</html>

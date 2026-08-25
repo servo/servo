@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <style>
+      :root {
+        --sidebar-width: 370px;
+      }
+
+      *,
+      ::after,
+      ::before {
+        box-sizing: inherit;
+      }
+      #sidebar {
+        max-width: var(--sidebar-width);
+      }
+      #codebox pre {
+        white-space: pre-wrap;
+      }
+      #codebox pre .copy-btn-displacement {
+        float: right;
+        height: 40px;
+        width: 40px;
+      }
+      #codebox #codebox-answer li {
+        hyphens: auto;
+      }
+      html {
+        font-size: 20px;
+        box-sizing: border-box;
+      }
+    </style>
+  </head>
+  <body>
+    <aside id="sidebar">
+      <div id="codebox">
+        <div id="codebox-answer">
+          <ol>
+            <li>
+              <pre><code><div class="copy-btn-displacement"></div><span class="token function">add_definitions</span><span class="token punctuation">d</span><span class="token punctuation">.</span><span class="token constant">GCC_COVERAGE_COMPILE_FLAGS</span></code></pre>
+            </li>
+          </ol>
+        </div>
+      </div>
+    </aside>
+  </body>
+</html>

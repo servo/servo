@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<head>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="match" href="pause-rendering-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style>
+
+#scope { view-transition-name: none; }
+::view-transition-group(*),
+::view-transition-old(*),
+::view-transition-new(*) { animation-play-state: paused; }
+#tr { view-transition-name: foo; }
+
+* { box-sizing: border-box; }
+div { position: relative; z-index: 0; contain: strict;
+      display: inline-block; background: green;
+      left: 30px; top: 30px; width: 120px; height: 120px; }
+#scope { background: #eee;
+         left: 40px; top: 40px; width: 490px; height: 190px; }
+#tr { background: orange; left: 60px; }
+p { position: absolute; left: 100px; top: 5px; font-size: 30px; }
+
+#bad { background: red; left: 90px; visibility: hidden; }
+
+</style>
+</head>
+<body>
+<div id=scope>
+  <div></div><div id=tr></div><div id=bad></div>
+</div>
+<p id=outside>OVERLAY</p>
+<script>
+
+const scope = document.querySelector("#scope");
+failIfNot(scope.startViewTransition, "Missing element.startViewTransition");
+
+async function raf() {
+  await new Promise(r => { requestAnimationFrame(r); });
+}
+
+async function runTest() {
+  await waitForCompositorReady();
+  await new Promise(finish => {
+    scope.startViewTransition(async () => {
+      // Scope's rendering should be frozen during callback.
+      // Scope is not self-participating, and contains
+      // (1) a pre-existing non-participant child,
+      // (2) a participant that changes color, and
+      // (3) a non-participant that becomes visible.
+      bad.style.visibility = "visible";
+      tr.style.background = "red";
+      outside.innerText = "TRANSITIONING";
+
+      await raf();
+      takeScreenshot();
+
+      // Finish test, transition never starts.
+      finish();
+      await new Promise(r => {});
+    });
+  })
+}
+onload = () => runTest();
+
+</script>
+</body>
+</html>

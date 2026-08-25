@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1/#scroll-snap-align">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/common.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+<style>
+.scroller {
+  height: 150px;
+  width: 300px;
+  overflow: auto;
+  position: relative;
+  white-space: nowrap;
+  scroll-snap-type: x mandatory;
+}
+.padding {
+  padding: 0 200px;
+}
+.child {
+  scroll-snap-align: center;
+  display: inline-block;
+  width: 201px;
+  height: 100%;
+  margin: 0 200px;
+  background-color: blue;
+}
+</style>
+
+<div class="scroller" id="scroller1">
+  <div class="padding">
+    <div class="child"></div>
+    <div class="child"></div>
+  </div>
+</div>
+
+<div class="scroller" id="scroller2">
+  <div class="padding">
+    <div class="child"></div>
+    <div class="child"></div>
+  </div>
+</div>
+
+<script>
+promise_test(async () => {
+
+  // Scroll to the second child.
+  let scrollEndPromise = waitForScrollEndFallbackToDelayWithoutScrollEvent(scroller2);
+  scroller2.scrollTo(scroller2.scrollWidth, 0);
+  await scrollEndPromise;
+
+  assert_greater_than(scroller2.scrollLeft, scroller1.scrollLeft);
+
+  // Scroll back to the first child.
+  scrollEndPromise = waitForScrollEndFallbackToDelayWithoutScrollEvent(scroller2);
+  await keyPress(scroller2, "ArrowLeft");
+  await scrollEndPromise;
+
+  // After scrolling to snap to the same child, both scrollers should have the
+  // same scroll position.
+  assert_equals(scroller2.scrollLeft, scroller1.scrollLeft);
+}, "initial scroll snap matches scrolling scroll snap position.");
+</script>

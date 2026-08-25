@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square.xht">
+<link rel="help" href="https://crbug.com/968016">
+<script src="/common/reftest-wait.js"></script>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="display: table-cell; background: red; height: 50px;">
+  <div style="width: 100px; height: 100px; background: green; position: relative;">
+    <div id="target" style="position: absolute; width: 10px; height: 10px;"></div>
+  </div>
+</div>
+<script>
+document.body.offsetTop;
+document.getElementById('target').style.top = '10px';
+document.body.offsetTop;
+takeScreenshot();
+</script>

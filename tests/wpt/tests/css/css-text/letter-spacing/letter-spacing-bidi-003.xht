@@ -1,0 +1,42 @@
+﻿<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8"/>
+    <title>CSS Text level 3 Test: letter spacing, justified text and bidi</title>
+    <link rel="author" title="Mike Bremford" href="http://bfo.com" />
+    <link rel="help" href="https://drafts.csswg.org/css-text-3/#letter-spacing-property" />
+    <link rel="help" href="https://drafts.csswg.org/css-writing-modes-4/#bidi-fragmentation" />
+    <link rel="match" href="reference/letter-spacing-bidi-003-ref.xht" />
+    <meta name="assert" content="text-align: justify will stretch the space between words, which should be applied after bidi processing."/>
+    <style>
+      .test, .control {
+          font: 50px/1 monospace;
+          width: 14ch;
+          font-kerning: none;
+          border: 1px solid black;
+      }
+      .control {
+          position: absolute;
+          color: red;
+          z-index: -1;
+          white-space: pre;
+      }
+      .justify {
+          text-align-last: justify;
+          text-justify: inter-word;
+      }
+      .narrow {
+          letter-spacing: 1ch;
+      }
+    </style>
+ </head>
+ <body>
+  <p>Test passes if no red is visible except for anti-aliasing differences.</p>
+  <!-- bet <ls> alef <ls> <space stretched from justification> A <ls> B -->
+  <div class="control">&#x5d0; &#x5d1;<div style="float: right">A B</div></div>
+  <div class="test narrow justify">&#x5d0;&#x5d1; AB</div>
+
+  <!-- A <ls> B <ls> <space stretched from justification> alef <ls> bet -->
+  <div class="control">A B<div style="float: right">&#x5d0; &#x5d1;</div></div>
+  <div dir="rtl" class="test narrow justify">&#x5d0;&#x5d1; AB</div>
+  </body>
+</html>

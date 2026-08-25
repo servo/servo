@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<head>
+  <title>CSS Typed OM: Invalidation on modifying PropertyMap</title>
+  <link rel="help" href="https://drafts.css-houdini.org/css-typed-om/#dom-stylepropertymap-set">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <style>
+    div { color: red; }
+  </style>
+</head>
+<div id="target">This text should be green.</div>
+<script>
+  test(() => {
+    document.body.offsetTop;
+    document.styleSheets[0].cssRules[0].styleMap.set('color', 'green');
+    assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
+  });
+</script>
+

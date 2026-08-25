@@ -1,0 +1,17 @@
+<script src=webxr_util.js></script>
+<script>
+'use strict';
+let definedObjects = [];
+let undefinedObjects = [];
+
+forEachWebxrObject((obj, name) => {
+    if(obj == undefined) {
+        undefinedObjects.push(name);
+    } else {
+        definedObjects.push(name);
+    }
+});
+
+window.parent.postMessage({ undefinedObjects, definedObjects}, '*');
+
+</script>

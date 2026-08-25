@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS Test Reference</title>
+  <style>
+  .line {
+    display: flex;
+  }
+
+  .container {
+    writing-mode: horizontal-tb;
+    direction: ltr;
+
+    block-size: 200px;
+    inline-size: 200px;
+    margin: 10px;
+    background: deepskyblue;
+  }
+
+  .content {
+    inline-size: 100%;
+    block-size: 200%;
+    background: lightsalmon;
+  }
+  </style>
+
+  <div class="line">
+    <div id="auto-auto" class="container" style="overflow-y: auto; scrollbar-gutter: stable both-edges">
+      <div class="content"></div>
+    </div>
+
+    <div id="scroll-auto" class="container" style="overflow-y: scroll; scrollbar-gutter: stable both-edges">
+      <div class="content"></div>
+    </div>
+
+    <div id="hidden-auto" class="container" style="overflow-y: hidden; scrollbar-gutter: stable both-edges">
+      <div class="content"></div>
+    </div>
+  </div>
+
+  <div class="line">
+    <div id="auto-stable" class="container" style="overflow-y: auto; scrollbar-gutter: auto">
+      <div class="content"></div>
+    </div>
+
+    <div id="scroll-stable" class="container" style="overflow-y: scroll; scrollbar-gutter: auto">
+      <div class="content"></div>
+    </div>
+
+    <div id="hidden-stable" class="container" style="overflow-y: hidden; scrollbar-gutter: auto">
+      <div class="content"></div>
+    </div>
+  </div>
+
+  <div class="line">
+    <div id="hidden-stable-both" class="container" style="overflow-y: auto; scrollbar-gutter: stable">
+      <div class="content"></div>
+    </div>
+
+    <div id="hidden-stable-both" class="container" style="overflow-y: scroll; scrollbar-gutter: stable">
+      <div class="content"></div>
+    </div>
+
+    <div id="hidden-stable-both" class="container" style="overflow-y: hidden; scrollbar-gutter: stable">
+      <div class="content"></div>
+    </div>
+  </div>
+</html>

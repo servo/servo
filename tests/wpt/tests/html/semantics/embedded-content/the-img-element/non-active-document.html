@@ -1,0 +1,52 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>img in non-active document should not perform loads</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+
+<!-- Per load the image so that any loads in this test would be cached. -->
+<img src=/images/green-1x1.png>
+
+<!-- tests -->
+<template>
+<img>
+</template>
+
+<script>
+
+onload = function() {
+  async_test(function(t) {
+    var p = new DOMParser();
+    var d = p.parseFromString('<img>', 'text/html');
+    var i = d.querySelector('img');
+    i.onerror = t.unreached_func('got unexpected error event');
+    i.onload = t.unreached_func('got unexpected load event');
+    i.src = '/images/green-1x1.png';
+    // delay to ensure there is no load/error event fired.
+    t.step_timeout(t.step_func_done(), 0);
+  }, "DOMParser");
+
+  async_test(function(t) {
+    var d = document.implementation.createHTMLDocument('');
+    d.body.innerHTML = '<img>';
+    var i = d.querySelector('img');
+    i.onerror = this.unreached_func('got unexpected error event');
+    i.onload = this.unreached_func('got unexpected load event');
+    i.src = '/images/green-1x1.png';
+    // delay to ensure there is no load/error event fired.
+    t.step_timeout(t.step_func_done(), 0);
+  }, "createHTMLDocument");
+
+  async_test(function(t) {
+    var template = document.querySelector('template');
+    var i = template.content.querySelector('img');
+    i.onerror = this.unreached_func('got unexpected error event');
+    i.onload = this.unreached_func('got unexpected load event');
+    i.src = '/images/green-1x1.png';
+    // delay to ensure there is no load/error event fired.
+    t.step_timeout(t.step_func_done(), 0);
+  }, "<template>");
+};
+
+</script>

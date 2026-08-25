@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>Custom document.contentType === 'text/html' when explicitly set to this value and an attempt is made to override this value in an HTML meta header</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+async_test(function() {
+  var iframe = document.createElement('iframe');
+  iframe.addEventListener('load', this.step_func_done(function() {
+    assert_equals(iframe.contentDocument.contentType, "text/html");
+  }), false);
+  iframe.src = "../support/contenttype_setter.py?type=text&subtype=html&mimeHead=text%2Fxml";
+  document.body.appendChild(iframe);
+});
+</script>

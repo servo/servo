@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml">
+  <title>SVG Text CSS Decoration Test: getComputedStyle().textDecorationStroke</title>
+  <metadata>
+    <h:link rel="help" ref="https://drafts.fxtf.org/fill-stroke/#text-decor"/>
+    <h:meta name="assert" content="SVG text-decoration-stroke computed value is as specified."/>
+  </metadata>
+  <g id="target"></g>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <h:script src="/css/support/computed-testcommon.js"/>
+  <script><![CDATA[
+
+test_computed_value("text-decoration-stroke", "none");
+test_computed_value("text-decoration-stroke", "context-fill");
+test_computed_value("text-decoration-stroke", "context-stroke");
+test_computed_value("text-decoration-stroke", "rgb(12, 34, 56)");
+
+test_computed_value("text-decoration-stroke", 'url("https://example.com/")');
+test_computed_value("text-decoration-stroke", 'url("https://example.com/") none');
+test_computed_value("text-decoration-stroke", 'url("https://example.com/") rgb(12, 34, 56)');
+
+  ]]></script>
+</svg>

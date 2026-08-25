@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>Flex container cross size with border-box sizing provides correct size to stretched flex items</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#definite-sizes">
+<link rel="match" href="flex-cross-size-border-box-001-ref.html">
+<style>
+.flex {
+  display: flex;
+  width: 400px;
+  height: 200px;
+  box-sizing: border-box;
+  border: 10px solid transparent;
+}
+
+img {
+  display: block;
+}
+</style>
+<p>Test passes if the two images below are the same size.</p>
+<div class="flex">
+  <img src="../support/1x1-green.png">
+</div>
+<div class="flex" style="box-sizing: content-box; height: 180px;">
+  <img src="../support/1x1-green.png">
+</div>

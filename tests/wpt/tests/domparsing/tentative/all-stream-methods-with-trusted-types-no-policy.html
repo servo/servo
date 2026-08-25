@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+  <head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/trusted-types/support/helper.sub.js"></script>
+
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="require-trusted-types-for 'script';"
+    />
+  </head>
+  <body>
+    <div id="container"></div>
+    <script>
+      const methods = [
+        "streamHTML",
+        "streamHTMLUnsafe",
+        "streamAppendHTML",
+        "streamAppendHTMLUnsafe",
+        "streamPrependHTML",
+        "streamPrependHTMLUnsafe",
+        "streamBeforeHTML",
+        "streamBeforeHTMLUnsafe",
+        "streamAfterHTML",
+        "streamAfterHTMLUnsafe"
+      ];
+
+      for (const method of methods) {
+        const safe = !method.endsWith("Unsafe");
+        test((t) => {
+          let d = document.createElement("div");
+          document.querySelector("#container").appendChild(d);
+          if (safe) {
+            assert_true(d[method]() instanceof WritableStream);
+          } else {
+            assert_throws_js(TypeError, () => d[method]());
+          }
+        }, `${method} with trusted types and no default policy ${safe ? "returns a WritableStream" : "throws"}.`);
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,2 @@
+rules:
+- "**": [wasm-garbage-collection]

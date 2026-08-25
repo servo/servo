@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+  <head>
+    <title>XMLHttpRequest: overrideMimeType() in LOADING state</title>
+    <meta charset="utf-8">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-overridemimetype()-method" data-tested-assertations="/following::ol/li[1]" />
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      var test = async_test();
+      test.step(function() {
+        var client = new XMLHttpRequest();
+        client.onreadystatechange = test.step_func(function() {
+          if (client.readyState === 3){
+            assert_throws_dom("InvalidStateError", function(){
+              client.overrideMimeType('application/xml;charset=Shift-JIS');
+            });
+          }else if(client.readyState===4){
+            assert_equals(client.responseXML, null);
+            test.done();
+          }
+        });
+        client.open("GET", "resources/status.py?type="+encodeURIComponent('text/plain;charset=iso-8859-1')+'&content=%3Cmsg%3E%83%65%83%58%83%67%3C%2Fmsg%3E');
+        client.send();
+      });
+    </script>
+
+  </body>
+</html>

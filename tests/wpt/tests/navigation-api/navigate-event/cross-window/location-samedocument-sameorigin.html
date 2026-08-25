@@ -1,0 +1,26 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<iframe id="i" src="/common/blank.html"></iframe>
+
+<script>
+async_test(t => {
+  i.contentWindow.navigation.onnavigate = t.step_func_done(e => {
+    assert_equals(e.navigationType, "push", "navigationType");
+    assert_true(e.cancelable, "cancelable");
+    assert_true(e.canIntercept, "canIntercept");
+    assert_false(e.userInitiated, "userInitiated");
+    assert_true(e.hashChange, "hashChange");
+    assert_equals(e.formData, null, "formData");
+    assert_equals(e.destination.url, i.src + "#foo", "destination.url");
+    assert_true(e.destination.sameDocument, "destination.sameDocument");
+    assert_equals(e.destination.key, "", "destination.key");
+    assert_equals(e.destination.id, "", "destination.id");
+    assert_equals(e.destination.index, -1, "destination.index");
+  });
+
+  navigation.onnavigate = t.unreached_func("onnavigate must not fire in the source window");
+  window.onload = t.step_func(() => i.contentWindow.location.href = "/common/blank.html#foo");
+}, "using location.href to navigate same-document targeting a same-origin window");
+</script>

@@ -1,0 +1,147 @@
+<!doctype html>
+<html>
+    <head>
+        <title>touch-action: keyboard</title>
+        <meta name="timeout" content="long">
+        <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/resources/testdriver.js"></script>
+        <script src="/resources/testdriver-actions.js"></script>
+        <script src="/resources/testdriver-vendor.js"></script>
+        <script src="pointerevent_support.js"></script>
+        <style>
+            #target0 {
+            width: 700px;
+            height: 430px;
+            touch-action: none;
+            }
+        </style>
+    </head>
+    <body onload="run()">
+        <h1>Pointer Events touch-action attribute support</h1>
+        <h4 id="desc">Test Description: Press DOWN ARROW key, then RIGHT ARROW key. Expected: pan enabled</h4>
+        <p>Note: this test is for keyboard only</p>
+        <div id="target0">
+            <p>
+                Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diem
+                nonummy nibh euismod tincidunt ut lacreet dolore magna aliguam erat volutpat.
+                Ut wisis enim ad minim veniam, quis nostrud exerci tution ullamcorper suscipit
+                lobortis nisl ut aliquip ex ea commodo consequat.
+            </p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>
+                Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diem
+                nonummy nibh euismod tincidunt ut lacreet dolore magna aliguam erat volutpat.
+                Ut wisis enim ad minim veniam, quis nostrud exerci tution ullamcorper suscipit
+                lobortis nisl ut aliquip ex ea commodo consequat.
+            </p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>
+                Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diem
+                nonummy nibh euismod tincidunt ut lacreet dolore magna aliguam erat volutpat.
+                Ut wisis enim ad minim veniam, quis nostrud exerci tution ullamcorper suscipit
+                lobortis nisl ut aliquip ex ea commodo consequat.
+            </p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>
+                Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diem
+                nonummy nibh euismod tincidunt ut lacreet dolore magna aliguam erat volutpat.
+                Ut wisis enim ad minim veniam, quis nostrud exerci tution ullamcorper suscipit
+                lobortis nisl ut aliquip ex ea commodo consequat.
+            </p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+            <p>Lorem ipsum dolor sit amet...</p>
+        </div>
+        <script type='text/javascript'>
+            var x_scroll_baseline, y_scroll_baseline, x_scroll, y_scroll;
+
+            var got_x_scroll = false;
+            var got_y_scroll = false;
+
+            async function send_key_to_target(key_code) {
+                return new test_driver.Actions()
+                    .addKeyboard("keyboard1", "keyboard")
+                    .keyDown(key_code, {origin: target0})
+                    .keyUp(key_code, {origin: target0})
+                    .send();
+            }
+
+            async function run() {
+                var test_touchaction = async_test("touch-action attribute test");
+
+                const target0 = document.getElementById("target0");
+                const x_scroll_baseline = target0.scrollLeft;
+                const y_scroll_baseline = target0.scrollTop;
+
+                // Inject keyboard scroll inputs.
+                const arrow_down = "\uE015";
+                const arrow_right = "\uE014";
+
+                on_event(target0, 'scroll', function(event) {
+                    x_scroll = target0.scrollLeft;
+                    y_scroll = target0.scrollTop;
+                    if (y_scroll > y_scroll_baseline && !got_y_scroll) {
+                        test_touchaction.step(function () {
+                            assert_true(true, "content was scrolled down.");
+                        });
+                        got_y_scroll = true;
+                    }
+                    if (x_scroll > x_scroll_baseline && !got_x_scroll) {
+                        test_touchaction.step(function () {
+                            assert_true(true, "content was scrolled right.");
+                        });
+                        got_x_scroll = true;
+                    }
+                    if (got_x_scroll && got_y_scroll) {
+                        test_touchaction.done();
+                    }
+                });
+
+                document.addEventListener('keyup', async function(e) {
+                    if (e.code == "ArrowDown") {
+                        send_key_to_target(arrow_right);
+                    }
+                });
+
+                await new test_driver.Actions()
+                    .addPointer("mousePointer1", "mouse")
+                    .pointerMove(0, 0, {origin: target0})
+                    .pointerDown()
+                    .pointerUp()
+                    .send();
+
+                await send_key_to_target(arrow_down);
+                await send_key_to_target(arrow_down);
+            }
+        </script>
+        <h1>touch-action: none</h1>
+        <div id="complete-notice">
+        </div>
+        <div id="log"></div>
+    </body>
+</html>

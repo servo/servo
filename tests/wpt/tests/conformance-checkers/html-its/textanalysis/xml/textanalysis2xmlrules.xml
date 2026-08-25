@@ -1,0 +1,9 @@
+<its:rules xmlns:its="http://www.w3.org/2005/11/its" version="2.0">
+      <its:textAnalysisRule selector="/text/body/p/*[@id='dublin']"
+      taClassRefPointer="@classref"
+      taIdentRefPointer="@identref"/>
+    <its:textAnalysisRule selector="/text/body/p/*[@id='capital']"
+      taClassRefPointer="@classref"
+      taSourcePointer="@source"
+      taIdentPointer="@ident"/>
+  </its:rules>

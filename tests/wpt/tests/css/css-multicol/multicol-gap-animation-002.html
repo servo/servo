@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Multi-column Layout Test: column-gap normal test animation</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://www.w3.org/TR/css-multicol-1/#column-gap">
+<link rel="help" href="https://www.w3.org/TR/web-animations-1/#dom-animatable-animate">
+<meta name="assert" content="Test checks that 'normal' value for column-gap property is not interpolable.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  @keyframes column-gap-normal-to-100 {
+    from { column-gap: normal; }
+    to { column-gap: 100px; }
+  }
+
+  #multicol {
+    animation-name: column-gap-normal-to-100;
+    animation-duration: 2s;
+    animation-delay: -1s;
+    animation-play-state: paused;
+  }
+</style>
+<body>
+  <div id="multicol"></div>
+  <div id="log"></div>
+
+  <script>
+    test(
+      function(){
+        var multicol = document.getElementById("multicol");
+        assert_equals(getComputedStyle(multicol).columnGap, "100px");
+      }, "column-gap: normal is not interpolable");
+  </script>
+</body>

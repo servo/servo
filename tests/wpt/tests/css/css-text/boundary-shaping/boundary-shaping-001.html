@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset=utf-8>
+<title>Text shaping must not be broken across inline box boundaries when there is no change in formatting</title>
+<link rel=match href="reference/boundary-shaping-001.ref.html">
+<link rel=help href="https://drafts.csswg.org/css-text/#boundary-shaping">
+<style>
+@font-face {
+  font-family: test;
+  src: url(resources/LinLibertine_Re-4.7.5.woff);
+}
+body {
+  font: 36px test; /* use a font that includes ligatures for "fi" etc */
+}
+.a {
+  /* initial values for these properties should not interrupt shaping */
+  vertical-align: initial;
+  padding: initial;
+  margin: initial;
+  border: initial;
+}
+</style>
+</head>
+<body>
+of<span class=a>f</span>ice
+</body>
+</html>

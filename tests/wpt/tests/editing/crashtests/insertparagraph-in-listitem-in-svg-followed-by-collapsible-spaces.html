@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<script>
+addEventListener("load", () => {
+  document.querySelector("svg").insertAdjacentText("afterend", `\n${" ".repeat(336860180)}`);
+
+  document.designMode = "on";
+  getSelection().selectAllChildren(document.querySelector("input"));
+
+  document.querySelector("li").appendChild(document.querySelector("p"));
+  document.execCommand("outdent");
+  document.execCommand("insertOrderedList");
+  document.execCommand("insertParagraph");
+});
+</script>
+</head>
+<body>
+<svg>
+  <foreignObject>
+    <li></li>
+/&gt;
+  </foreignObject></svg><p>
+  <input>
+</p>
+<title>This test takes long time due to the long white-spaces are required</title>
+</body></html>

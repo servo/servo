@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: page-break-after: always</title>
+<link rel="author" title="Michael Turnwall" href="mailto:mturnwall@revenution.com"/>
+<link rel="author" title="Hewlett-Packard Company" href="http://www.hp.com/"/>
+<link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-break-props"/>
+<meta name="flags" content="paged" />
+<meta name="assert" content="The 'always' value of the 'page-break-after' property forces a page break after the box."/>
+<style type="text/css">
+
+	div.break {
+		page-break-after:always;
+	}
+
+</style>
+</head>
+<body>
+	<div class="break">There must be a page break after this paragraph, followed by another line of content. This test should produce two pages of output.</div>
+	<div>
+		This text should be at the top of the second and final page.
+	</div>
+</body>
+</html>

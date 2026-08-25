@@ -1,0 +1,20 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const element_0 = document.createElement("s");
+  const element_1 = document.createElement("a");
+  const element_2 = document.createElement("l");
+  element_2.setAttribute("contenteditable", "true");
+  element_1.appendChild(element_2);
+  element_0.appendChild(element_1);
+  document.documentElement.appendChild(element_0);
+  document.designMode = "on";
+  document.execCommand("insertLineBreak");
+});
+</script>
+</head>
+<body><!-- COMMENT --></body>
+</html>

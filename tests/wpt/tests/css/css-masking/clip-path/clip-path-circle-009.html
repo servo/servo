@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>CSS Masking: Test clip-path property and circle function with percentage shape-radius</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://www.w3.org/TR/css-masking-1/#clipping-paths">
+<link rel="help" href="https://www.w3.org/TR/css-masking-1/#the-clip-path">
+<link rel="help" href="https://www.w3.org/TR/css-shapes/#direction-agnostic-size">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/14009">
+<link rel="match" href="reference/clip-path-circle-ref.html">
+<meta name="assert" content="The shape-radius argument of circle()
+    should resolve percentages against the 'direction-agnostic size'.
+    In this case, `√(1400 + 200²) / √2 = 1000`, so 10% is 100px.">
+<meta name="fuzzy" content="maxDifference=0-60; totalPixels=0-900">
+<p>The test passes if there is a full green circle.</p>
+<div style="overflow: hidden">
+  <div style="width: 1400px; height: 200px; background: green; clip-path: circle(10% at 100px 100px)"></div>
+</div>

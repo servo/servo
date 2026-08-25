@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>Test for dynamic removal of ruby frames</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-ruby-1/#box-fixup">
+<link rel="match" href="ruby-dynamic-removal-003-ref.html">
+<link rel="stylesheet" href="support/ruby-common.css">
+<script src="support/ruby-dynamic-removal.js"></script>
+<p>'a' and 'b' should be paired with 'x' and 'y' respectively:</p>
+
+<!-- merge -->
+<!--     pseudo ruby -->
+<p><rb>a</rb><span class="remove"></span><rb>b</rb><rt>x</rt><rt>y</rt></p>
+<!--     pseudo ruby base container -->
+<p><rb>a</rb><rt class="remove"></rt><rb>b</rb><rt>x</rt><rt>y</rt></p>
+<!--     pseudo ruby text container -->
+<p><rb>a</rb><rb>b</rb><rt>x</rt><rb class="remove"></rb><rt>y</rt></p>
+
+<!-- white space removal -->
+<!--     inter-base white space -->
+<p><rb class="remove-after">a</rb> <rb>b</rb><rt>x</rt><rt>y</rt></p>
+<!--     inter-annotation white space -->
+<p><rb>a</rb><rb>b</rb><rt class="remove-after">x</rt> <rt>y</rt></p>
+
+<p>'ab' should be paried with 'xy':</p>
+
+<!-- merge -->
+<!--     pseudo ruby base -->
+<p><rbc>a<rb class="remove"></rb>b</rbc><rt>xy</rt></p>
+<!--     pseudo ruby text -->
+<!-- letter-spacing is added here to avoid fuzzy on Windows. See bug 1111891 -->
+<p><rb>ab</rb><rtc style="letter-spacing: 1px">x<rt class="remove"></rt>y</rtc></p>
+
+<p>'a b c' should be paried with 'x y z':</p>
+<!-- merge -->
+<p><ruby>a <rt class="remove">w</rt><span>b</span> <span style="display:block">c</span><rt>x y z</ruby>
+<p><ruby>a <span style="display:block">b</span> <rt class="remove">w</rt><span>c</span><rt>x y z</ruby>
+<p><ruby><span style="display:block">a</span> <rt class="remove">w</rt><span>b</span> <span style="display:block">c</span><rt>x y z</ruby>

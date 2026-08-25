@@ -1,0 +1,34 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+
+<script>
+document.domain = "{{host}}";
+async_test(t => {
+  const url = new URL("resources/document-domain-setter.sub.html", location.href);
+  url.hostname = "{{domains[www1]}}";
+  const iframe = document.createElement("iframe");
+  iframe.src = url;
+  document.body.append(iframe);
+
+  navigation.onnavigate = t.unreached_func("onnavigate must not fire in the source window");
+  window.onload = t.step_func(() => {
+    iframe.contentWindow.navigation.onnavigate = t.step_func_done(e => {
+      assert_equals(e.navigationType, "push", "navigationType");
+      assert_true(e.cancelable, "cancelable");
+      assert_true(e.canIntercept, "canIntercept");
+      assert_false(e.userInitiated, "userInitiated");
+      assert_true(e.hashChange, "hashChange");
+      assert_equals(e.formData, null, "formData");
+      assert_equals(e.destination.url, iframe.src + "#foo", "destination.url");
+      assert_true(e.destination.sameDocument, "destination.sameDocument");
+      assert_equals(e.destination.key, "", "destination.key");
+      assert_equals(e.destination.id, "", "destination.id");
+      assert_equals(e.destination.index, -1, "destination.index");
+    });
+
+    iframe.contentWindow.location.href = url + "#foo";
+  });
+}, "using location.href to navigate same-document targeting a same-origin-domain (but cross-origin) window");
+</script>

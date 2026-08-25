@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Anchor Positioning: scroll compensation with single-axis scroll containers</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#compensate-for-scroll">
+<link rel="author" title="Free Debreuil" href="mailto:freedebreuil@google.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<style>
+body {
+  margin: 0;
+}
+.scroller {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  overflow: scroll;
+}
+.spacer {
+  width: 500px;
+  height: 500px;
+}
+.anchor,
+#popup {
+  width: 10px;
+  height: 10px;
+}
+.anchor {
+  position: absolute;
+  top: 100px;
+  left: 100px;
+}
+#default {
+  anchor-name: --default;
+}
+#target {
+  anchor-name: --target;
+}
+#popup {
+  position: fixed;
+  position-anchor: --default;
+  top: anchor(--target top);
+  left: anchor(--target left);
+}
+</style>
+
+<!--
+  #popup's default anchor is #default, but both insets query #target. Scroll
+  compensation applies in an axis only when both anchors have the same nearest
+  scroll container for that axis.
+-->
+<div id="outer" class="scroller">
+  <div id="inner" class="scroller">
+    <div class="spacer"></div>
+    <div id="default" class="anchor"></div>
+  </div>
+  <div class="spacer"></div>
+  <div id="target" class="anchor"></div>
+</div>
+<div id="popup"></div>
+
+<script>
+const outer = document.getElementById("outer");
+const inner = document.getElementById("inner");
+const popup = document.getElementById("popup");
+
+promise_test(async () => {
+  inner.style.overflowX = "scroll";
+  inner.style.overflowY = "scroll";
+  outer.scrollTo(0, 0);
+  await waitForAtLeastOneFrame();
+  outer.scrollTo(50, 50);
+  await waitForAtLeastOneFrame();
+  const { left, top } = popup.getBoundingClientRect();
+  assert_equals(left, 100, "x scroll is not compensated");
+  assert_equals(top, 100, "y scroll is not compensated");
+}, "inner scrollable in both axes: anchors have different nearest scroll " +
+   "containers; no scroll compensation");
+
+promise_test(async () => {
+  inner.style.overflowX = "clip";
+  inner.style.overflowY = "scroll";
+  outer.scrollTo(0, 0);
+  await waitForAtLeastOneFrame();
+  outer.scrollTo(50, 50);
+  await waitForAtLeastOneFrame();
+  const { left, top } = popup.getBoundingClientRect();
+  assert_equals(left, 50, "x scroll is compensated");
+  assert_equals(top, 100, "y scroll is not compensated");
+}, "inner scrollable in y only: anchors share outer for x; " +
+   "x scroll is compensated");
+
+promise_test(async () => {
+  inner.style.overflowX = "scroll";
+  inner.style.overflowY = "clip";
+  outer.scrollTo(0, 0);
+  await waitForAtLeastOneFrame();
+  outer.scrollTo(50, 50);
+  await waitForAtLeastOneFrame();
+  const { left, top } = popup.getBoundingClientRect();
+  assert_equals(left, 100, "x scroll is not compensated");
+  assert_equals(top, 50, "y scroll is compensated");
+}, "inner scrollable in x only: anchors share outer for y; " +
+   "y scroll is compensated");
+</script>

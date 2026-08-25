@@ -1,0 +1,114 @@
+<html>
+<head>
+<title>This tests the new virtualKeyboard CSS environment variables</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="vk_support.js"></script>
+        <script>
+           setup({explicit_timeout: true, explicit_done: true})
+        </script>
+        <style>
+            .target {
+            margin-top: env(keyboard-inset-top);
+            margin-left: env(keyboard-inset-left);
+            margin-bottom: env(keyboard-inset-bottom);
+            margin-right: env(keyboard-inset-right);
+            }
+        </style>
+</head>
+<body>
+  <h1>VirtualKeyboard: Virtual Keyboard show/hide Fires Event & updates CSS env variables</h1>
+  <h4>
+      Test Description: This test checks that a geometry change event is
+      fired when show/hide APIs are called & also updates the CSS env variables for keyboard insets.
+      VK is only displayed on a touch device with tablet mode on or a mobile device where VK is the default
+      text input mechanism.
+  </h4>
+  <h2 style="color: red">THIS IS A MANUAL TEST</h2>
+  <div id="div1" class='target' contenteditable="true" virtualKeyboardPolicy="manual">Manual policy show here.</div>
+  <div id="div2" contenteditable="false">Read-only region tap here.</div>
+  <p id="skip">
+      <button id="skipbtn" onclick="skipManualTest();">Skip Test</button>
+  </p>
+  <p id="instruction"></p>
+  <button id="continue">Start Test</button>
+  <div id="log"></div>
+  </body>
+  <script>
+      var continueBtn = document.getElementById("continue");
+      var div1 = document.getElementById("div1");
+      var style = window.getComputedStyle(document.getElementsByClassName('target')[0], null);
+
+      function continueTest() {
+        nextStep(function(instructionText) {
+          var instruction = document.getElementById("instruction");
+          continueBtn.innerText = "Continue";
+          instruction.innerText = instructionText;
+        });
+      }
+
+      continueBtn.addEventListener('click', continueTest);
+      div1.addEventListener('onfocusin', function(e) {
+        navigator.virtualKeyboard.overlaysContent = true;
+        navigator.virtualKeyboard.show();
+      });
+
+      var didFireGeometryChange;
+      var cancelable;
+      var bubbles;
+
+      function resetValues() {
+          navigator.virtualKeyboard.overlaysContent = false;
+          didFireGeometryChange = false;
+          cancelable = undefined;
+          bubbles = undefined;
+      }
+
+      addManualTestStep(
+          function() {
+              resetValues();
+              navigator.virtualKeyboard.addEventListener('geometrychange', function(e) {
+                  didFireGeometryChange = true;
+                  cancelable = e.cancelable;
+                  bubbles = e.bubbles;
+              });
+          },
+          null,
+          '1. Tap on the Auto policy tap here. text');
+
+      addManualTestStep(
+          function() {
+              assert_true(didFireGeometryChange);
+              assert_not_equals(style.getPropertyValue('margin-top'), "", "keyboard-inset-top should be updated");
+              assert_not_equals(style.getPropertyValue('margin-left'), "", "keyboard-inset-left should be updated");
+              assert_not_equals(style.getPropertyValue('margin-right'), "", "keyboard-inset-right should be updated");
+              assert_not_equals(style.getPropertyValue('margin-bottom'), "", "keyboard-inset-bottom should be updated");
+              assert_false(cancelable);
+              assert_false(bubbles);
+              resetValues();
+           },
+          'Geometry change event fired at navigator.virtualKeyboard after VK is shown',
+          '2. Hide the VK by tapping on Read-only region tap here. text');
+
+      addManualTestStep(
+          function() {
+            assert_true(didFireGeometryChange);
+              assert_not_equals(style.getPropertyValue('margin-top'), "0px", "keyboard-inset-top should be updated");
+              assert_not_equals(style.getPropertyValue('margin-left'), "0px", "keyboard-inset-left should be updated");
+              assert_not_equals(style.getPropertyValue('margin-right'), "0px", "keyboard-inset-right should be updated");
+              assert_not_equals(style.getPropertyValue('margin-bottom'), "0px", "keyboard-inset-bottom should be updated");
+              assert_false(cancelable);
+              assert_false(bubbles);
+              resetValues();
+          },
+          'Hiding the VK fires the geometry change event',
+          '');
+
+      addManualTestStep(
+          function() { continueBtn.remove(); },
+          null,
+          'Test Complete');
+  </script>
+</html>

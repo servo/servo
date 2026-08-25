@@ -1,0 +1,18 @@
+<!doctype html>
+<html class="reftest-wait">
+<head>
+<meta charset="utf-8">
+<script>
+function onLoadStartOfAudio() {
+  const editingHost = document.querySelector("h1[contenteditable]");
+  getSelection().collapse(editingHost.firstChild, 1); // after "a"
+  document.execCommand("forwardDelete");
+  document.documentElement.removeAttribute("class");
+}
+</script>
+</head>
+<body>
+<h1 contenteditable="true">a<meta>
+<dfn style="white-space: pre-line" tabindex="0" autofocus="autofocus">
+<audio onloadstart="onLoadStartOfAudio()" src="x">
+</audio></dfn></h1></body></html><!-- Don't append white-spaces this line -->

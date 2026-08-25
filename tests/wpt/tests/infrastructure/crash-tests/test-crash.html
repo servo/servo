@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+
+<title>Crash test that ends with -crash.html</title>
+<meta name="assert" content="Test should pass because it does not crash, and its output should not be checked">
+<link rel="author" title="Kiet Ho" href="mailto:kiet.ho@apple.com">
+
+<p>This test passes if it does not crash.</p>
+<p>Your lucky number today is: <span id="random"></span></p>
+
+<script>
+  random.innerText = Math.round(Math.random() * 1000000);
+</script>

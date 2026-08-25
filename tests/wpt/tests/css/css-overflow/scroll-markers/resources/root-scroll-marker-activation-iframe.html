@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: ::scroll-marker with ::scroll-marker-group doesn't propagate scroll from frame</title>
+<style>
+  :root {
+    scroll-marker-group: before;
+  }
+
+  .item {
+    height: 100vh;
+  }
+
+  .item::scroll-marker {
+    content: '';
+    background-color: blue;
+    width: 20px;
+    height: 20px;
+    display: inline-block;
+    margin-left: 10px;
+  }
+</style>
+<div class=item></div>
+<div class=item></div>
+<div class=item></div>
+<div class=item></div>
+<div class=item></div>

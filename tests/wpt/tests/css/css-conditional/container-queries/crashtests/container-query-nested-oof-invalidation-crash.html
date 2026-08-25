@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>Container Queries: Crash when nested OOF is closed during layout</title>
+<link rel="help" href="https://crbug.com/514295228">
+<style>
+#target {
+  appearance: textarea;
+  container-type: size;
+  offset: auto url();
+}
+</style>
+<table>
+  <th id="target">
+    <marquee></marquee>
+    <dialog id="dialog" open="true">
+      <textarea id="textarea"></textarea>
+    </dialog>
+  </th>
+</table>
+<script>
+requestAnimationFrame(() => {
+  const callback = window.requestIdleCallback(() => { });
+  dialog.close();
+  textarea.cols = callback;
+});
+</script>

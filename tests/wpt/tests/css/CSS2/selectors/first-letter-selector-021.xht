@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: First-letter on list-style-position: inside</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#first-letter" />
+        <meta name="flags" content="may" />
+        <meta name="assert" content="User agents may ignore ':first-letter' on list items with 'list-style-position: inside'." />
+        <style type="text/css">
+            li:first-letter
+            {
+                color: green;
+            }
+            .inside
+            {
+                list-style-position: inside;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes regardless if the letter "F" in the "Filler Text" below is green.</p>
+        <ul>
+            <li class="inside">Filler Text</li>
+        </ul>
+    </body>
+</html>

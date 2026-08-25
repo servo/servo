@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/971811">
+<link rel="author" title="Koji Ishii" href="mailto:kojii@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <div id="log"></div>
+<script>
+const strings = [' ', '\t', '\n', '\f', '\r'];
+const whitespace_values = ['normal', 'pre', 'nowrap', 'pre-wrap', 'break-spaces', 'pre-line'];
+const container = document.body;
+for (let whitespace_value of whitespace_values) {
+  for (let string of strings) {
+    test(() => {
+      let div = document.createElement('div');
+      div.style.whiteSpace = whitespace_value;
+      div.textContent = 'test';
+      container.appendChild(div);
+      container.offsetTop;  // Force layout
+      div.appendChild(document.createTextNode(string));
+      container.offsetTop;  // Force layout
+    }, `Append ${toCodePoints(string)} to 'white-space: ${whitespace_value}'`);
+  }
+}
+
+function toCodePoints(string) {
+  let results = [];
+  for (let ch of string) {
+    let hex = ch.codePointAt(0).toString(16).toUpperCase();
+    hex = ('000' + hex).substr(-4)
+    results.push('U+' + hex);
+  }
+  return results.join(' ');
+}
+</script>
+</body>

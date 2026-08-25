@@ -1,0 +1,42 @@
+<!doctype html>
+<html class="reftest-wait">
+  <link rel="match" href="variable-avar2-rvrn-ref.html" />
+  <link rel="mismatch" href="variable-avar2-rvrn-mismatch.html" />
+  <link rel="help" href="https://www.iso.org/standard/87621.html" />
+  <meta charset="utf-8" />
+  <style>
+    @font-face {
+      font-family: avar2test_avar2substitution;
+      src: url(../resources/avar/rvrnTestAvar2[opsz\,wdth\,wght].ttf);
+    }
+
+    body {
+      font-family: avar2test_avar2substitution, sans-serif;
+      font-size: 220px;
+    }
+
+    .variable-alternates {
+      font-variation-settings:
+        "wght" 1000,
+        "wdth" 90;
+    }
+
+    .avar-alternates {
+      font-variation-settings:
+        "wght" 1000,
+        "wdth" 75;
+    }
+  </style>
+  <!-- The rvrnTestAvar2 re-implements the rvrnTestAvar1 font's
+       warping of the design space using an avar2 item variation
+       store and delta sets.
+-->
+  H
+  <span class="variable-alternates">H</span>
+  <span class="avar-alternates">H</span>
+  <script>
+    document.fonts.ready.then(() => {
+      document.documentElement.classList.remove("reftest-wait");
+    });
+  </script>
+</html>

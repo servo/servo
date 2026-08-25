@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Popover is only effective on HTMLElement, not on svg element</title>
+<link rel="author" href="mailto:cathiechen@igalia.com">
+<link rel=help href="https://html.spec.whatwg.org/#the-popover-attribute">
+<link rel="match" href="popover-and-svg-ref.html">
+<style>
+svg {
+  width: 100px;
+  height: 100px;
+  background-color:green;
+}
+[popover] {
+  top: 100px;
+  bottom: auto;
+}
+</style>
+<svg popover></svg>

@@ -1,0 +1,95 @@
+<!doctype html>
+<meta name="timeout" content="long">
+<title>Integrity-Policy: Preloaded scripts with integrity should not generate reports</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/reporting/resources/report-helper.js"></script>
+
+<body>
+<script>
+  // This test verifies that scripts with valid integrity attributes that are
+  // in the initial HTML (and thus may be speculatively preloaded by the HTML
+  // parser's preload scanner) do NOT generate Integrity-Policy violation reports.
+
+  const {ORIGIN} = get_host_info();
+
+  promise_test(async t => {
+    const reporting_uuid = token();
+    const reporting_endpoint = `${ORIGIN}/reporting/resources/report.py`;
+
+    // Build the pipe parameter to add headers to the iframe response
+    // This sets up Integrity-Policy that would block/report scripts without integrity
+    const headers = [
+      `header(Integrity-Policy,blocked-destinations=\\(script\\)\\, endpoints=\\(integrity-endpoint\\))`,
+      `header(Integrity-Policy-Report-Only,blocked-destinations=\\(script\\)\\, endpoints=\\(integrity-endpoint-ro\\))`,
+      `header(Reporting-Endpoints, integrity-endpoint="${reporting_endpoint}?reportID=${reporting_uuid}"\\, integrity-endpoint-ro="${reporting_endpoint}?reportID=${reporting_uuid}-ro")`
+    ].join('|');
+
+    // Load the HTML page that contains the script with integrity directly in the markup
+    const iframe_url = `resources/page-with-integrity-script.html?pipe=${encodeURIComponent(headers)}`;
+
+    const iframe = document.createElement('iframe');
+    t.add_cleanup(() => iframe.remove());
+
+    // Wait for the iframe to load and send us results
+    const resultPromise = new Promise((resolve, reject) => {
+      const timeout = t.step_timeout(() => {
+        reject(new Error('Timeout waiting for iframe to load'));
+      }, 10000);
+
+      window.addEventListener('message', function handler(e) {
+        if (e.data && e.data.loaded !== undefined) {
+          clearTimeout(timeout);
+          window.removeEventListener('message', handler);
+          resolve(e.data);
+        }
+      });
+    });
+
+    iframe.src = iframe_url;
+    document.body.appendChild(iframe);
+
+    const result = await resultPromise;
+
+    // Verify the script ran (integrity check passed)
+    assert_true(result.ran, 'Script with valid integrity should execute');
+
+    // Wait a bit for any reports to be sent
+    await new Promise(r => t.step_timeout(r, 1000));
+
+    // Check that no reports were sent to the reporting endpoint
+    // for the ran.js script (which has valid integrity)
+    let reportsForRanJs = [];
+    try {
+      const allReports = await pollReports(reporting_endpoint, reporting_uuid);
+      reportsForRanJs = allReports.filter(r =>
+        r.body && r.body.blockedURL && r.body.blockedURL.includes('ran.js')
+      );
+    } catch (e) {
+      // If pollReports fails (no reports), that's fine
+    }
+
+    assert_equals(reportsForRanJs.length, 0,
+      'No integrity-violation reports should be sent for scripts with valid integrity in the initial HTML');
+
+    // Also check report-only endpoint
+    let reportsForRanJsRO = [];
+    try {
+      const allReportsRO = await pollReports(reporting_endpoint, reporting_uuid + '-ro');
+      reportsForRanJsRO = allReportsRO.filter(r =>
+        r.body && r.body.blockedURL && r.body.blockedURL.includes('ran.js')
+      );
+    } catch (e) {
+      // If pollReports fails (no reports), that's fine
+    }
+
+    assert_equals(reportsForRanJsRO.length, 0,
+      'No integrity-violation reports should be sent to report-only endpoint for scripts with valid integrity');
+
+  }, 'Script with integrity in initial HTML should not trigger Integrity-Policy reports (tests preload scanner)');
+
+</script>
+</body>
+

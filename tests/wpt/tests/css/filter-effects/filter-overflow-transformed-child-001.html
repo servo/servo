@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>CSS Filters: filter should not clip transformed overflow children</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#FilterProperty">
+<link rel="match" href="reference/filter-overflow-transformed-child-001-ref.html">
+<meta name="assert" content="A child element with a CSS transform that overflows the filtered parent should not be clipped by the filter.">
+<style>
+body { margin: 0; }
+</style>
+<div style="margin: 100px; width: 40px; height: 40px; background-color: green; filter: saturate(50%);">
+  <div>
+    <div style="background-color: rgba(0, 255, 0, 0.5); width: 150px; height: 150px; transform: translate(-50px, -50px);"></div>
+  </div>
+</div>

@@ -1,0 +1,103 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Child-indexed pseudo-classes match correctly while the parent is still being parsed</title>
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#child-index">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#the-last-child-pseudo">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#the-only-child-pseudo">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#the-last-of-type-pseudo">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#the-only-of-type-pseudo">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#the-nth-last-child-pseudo">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#the-nth-last-of-type-pseudo">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+
+<div id="last-child-container">
+<div id="last-child-target">
+<script>
+test(() => {
+  const container = document.getElementById("last-child-container");
+  const target = document.getElementById("last-child-target");
+  assert_true(target.matches(":last-child"), "matches");
+  assert_equals(container.querySelector(":scope > :last-child"), target, "querySelector");
+  assert_array_equals([...container.querySelectorAll(":scope > :last-child")], [target], "querySelectorAll");
+}, ":last-child against an element still being parsed");
+</script>
+</div>
+</div>
+
+<div id="only-child-container">
+<div id="only-child-target">
+<script>
+test(() => {
+  const container = document.getElementById("only-child-container");
+  const target = document.getElementById("only-child-target");
+  assert_true(target.matches(":only-child"), "matches");
+  assert_equals(container.querySelector(":scope > :only-child"), target, "querySelector");
+  assert_array_equals([...container.querySelectorAll(":scope > :only-child")], [target], "querySelectorAll");
+}, ":only-child against an element still being parsed");
+</script>
+</div>
+</div>
+
+<div id="last-of-type-container">
+<p></p>
+<div id="last-of-type-target">
+<script>
+test(() => {
+  const container = document.getElementById("last-of-type-container");
+  const target = document.getElementById("last-of-type-target");
+  assert_true(target.matches(":last-of-type"), "matches");
+  assert_equals(container.querySelector(":scope > div:last-of-type"), target, "querySelector");
+  assert_array_equals([...container.querySelectorAll(":scope > div:last-of-type")], [target], "querySelectorAll");
+}, ":last-of-type against an element still being parsed");
+</script>
+</div>
+</div>
+
+<div id="only-of-type-container">
+<p></p>
+<div id="only-of-type-target">
+<script>
+test(() => {
+  const container = document.getElementById("only-of-type-container");
+  const target = document.getElementById("only-of-type-target");
+  assert_true(target.matches(":only-of-type"), "matches");
+  assert_equals(container.querySelector(":scope > div:only-of-type"), target, "querySelector");
+  assert_array_equals([...container.querySelectorAll(":scope > div:only-of-type")], [target], "querySelectorAll");
+}, ":only-of-type against an element still being parsed");
+</script>
+</div>
+</div>
+
+<div id="nth-last-child-container">
+<div id="nth-last-child-target">
+<script>
+test(() => {
+  const container = document.getElementById("nth-last-child-container");
+  const target = document.getElementById("nth-last-child-target");
+  assert_true(target.matches(":nth-last-child(1)"), "matches");
+  assert_equals(container.querySelector(":scope > :nth-last-child(1)"), target, "querySelector");
+  assert_array_equals([...container.querySelectorAll(":scope > :nth-last-child(1)")], [target], "querySelectorAll");
+}, ":nth-last-child(1) against an element still being parsed");
+</script>
+</div>
+</div>
+
+<div id="nth-last-of-type-container">
+<p></p>
+<div id="nth-last-of-type-target">
+<script>
+test(() => {
+  const container = document.getElementById("nth-last-of-type-container");
+  const target = document.getElementById("nth-last-of-type-target");
+  assert_true(target.matches(":nth-last-of-type(1)"), "matches");
+  assert_equals(container.querySelector(":scope > div:nth-last-of-type(1)"), target, "querySelector");
+  assert_array_equals([...container.querySelectorAll(":scope > div:nth-last-of-type(1)")], [target], "querySelectorAll");
+}, ":nth-last-of-type(1) against an element still being parsed");
+</script>
+</div>
+</div>
+
+</body>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Block-level boxes that split the inline should not be wrapped in that inline's borders</title>
+<link rel="author" title="Psychpsyo" href="mailto:psychpsyo@gmail.com">
+<link rel="help" href="https://www.w3.org/Style/css2-updates/css2/visuren.html#:~:text=When%20an%20inline%20box%20contains%20an%20in-flow%20block-level%20box">
+<link rel="match" href="split-inline-borders-ref.html">
+<meta name="assert" content="Block-level boxes that split the inline should not be wrapped in that inline's borders.">
+<style>
+  span {
+    border: 10px solid magenta;
+    padding: 10px;
+    margin: 10px;
+    line-height: 200px;
+  }
+  div {
+    border: solid cyan;
+    line-height: initial;
+    width: 200px;
+  }
+</style>
+<span>
+  inline before split
+  <div>There should be no magenta around this.</div>
+  inline after split
+</span>

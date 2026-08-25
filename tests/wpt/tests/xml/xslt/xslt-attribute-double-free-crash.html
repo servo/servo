@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>XSLT attribute double-free crash test</title>
+<link rel="help" href="https://crbug.com/503627446">
+<script>
+function runTest() {
+    // The crash only occurs with > 60 characters, as otherwise an optimization is bypassed.
+    const xsl =
+      "<xsl:stylesheet version=\"1.0\" xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\">" +
+      "<xsl:template match=\"/\"><r><xsl:for-each select=\"//*\">" +
+      "<e><xsl:attribute name=\"a\" xml:space=\"preserve\">" + " ".repeat(64) + "</xsl:attribute></e>" +
+      "</xsl:for-each></r></xsl:template></xsl:stylesheet>";
+
+    const p = new DOMParser();
+    const proc = new XSLTProcessor();
+
+    proc.importStylesheet(p.parseFromString(xsl, "text/xml"));
+    proc.transformToDocument(p.parseFromString("<r><a></a><b></b></r>", "text/xml"));
+}
+</script>
+<body onload="runTest()">
+</body>

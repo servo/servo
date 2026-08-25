@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="../resources/runner.js"></script>
+
+<style>
+* {
+  /* Make the text the same size in chrome and firefox. */
+  font-family: "Times New Roman";
+  font-size: 16px;
+}
+</style>
+</head>
+<body>
+
+<div style="display: flex; width: 800px; background: orange;">
+  <div id="neighbor" style="width: 50px;"></div>
+  <!-- 750px lets the text not wrap. -->
+  <div id="test" style="width: 750px;"></div>
+</div>
+
+</body>
+
+<script>
+
+const test = document.querySelector('#test');
+for (let i = 0; i < 60; i++) {
+    test.innerHTML += '<div style="height: 1%">some stuff here blah blah blah blah blah blah blah blah blah blah blah blah blah</div>';
+}
+
+const neighbor = document.querySelector("#neighbor");
+function runTest()
+{
+    // When #neighbor changes height, #test shouldn't have to relayout.
+    // 1200px is higher than #test's intrinsic block size and its pre-stretched
+    // layout size. Performance characteristics change if that's not the case.
+    neighbor.style.height = "1200px";
+    PerfTestRunner.forceLayout();
+    neighbor.style.height = "1300px";
+    PerfTestRunner.forceLayout();
+}
+
+PerfTestRunner.measureRunsPerSecond({
+    description: "Ensures cache hits for stretched flex items in a row flexbox with indefinite height, when the flexbox changes heights.",
+    run: runTest,
+});
+</script>
+</html>

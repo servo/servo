@@ -1,0 +1,29 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Applying the composited result</title>
+<link rel="help"
+  href="https://drafts.csswg.org/web-animations-1/#applying-the-composited-result">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../testcommon.js"></script>
+<div id="log"></div>
+<script>
+'use strict';
+
+promise_test(async t => {
+  const div = createDiv(t);
+  div.style.marginLeft = '10px';
+  const animation = div.animate(
+    { marginLeft: ['100px', '200px'] },
+    100 * MS_PER_SEC
+  );
+  await animation.ready;
+
+  animation.finish();
+
+  const marginLeft = parseFloat(getComputedStyle(div).marginLeft);
+  assert_equals(marginLeft, 10, 'The computed style should be reset');
+}, 'Finishing an animation that does not fill forwards causes its animation'
+   + ' style to be cleared');
+
+</script>

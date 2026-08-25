@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Selectors: ID selectors</title>
+<link rel="help" href="https://drafts.csswg.org/selectors-3/#id-selectors">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+  test_valid_selector('h1#chapter1');
+  test_valid_selector('#chapter1');
+  test_valid_selector('*#z98y',
+      ['*#z98y', '#z98y']);
+</script>

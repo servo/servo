@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<title>CSS Backgrounds Test: table-part backgrounds use the cell border-shape reference boxes</title>
+<link rel="author" title="Jason Leo" href="mailto:cgqaq@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#special-backgrounds">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-4/#background-clip">
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#border-shape">
+<link rel="match" href="clip-border-shape-table-part-background-ref.html">
+<meta name="assert" content="Row and column backgrounds painted into a table cell clip border-shape against the cell's own reference boxes.">
+<meta name="fuzzy" content="maxDifference=0-50; totalPixels=0-500">
+<style>
+  table {
+    display: inline-table;
+    margin: 20px;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  td {
+    width: 160px;
+    height: 120px;
+    padding: 0;
+    box-sizing: border-box;
+    border: 28px solid transparent;
+    border-shape: circle(50%) padding-box;
+  }
+
+  .bg {
+    background: blue;
+  }
+</style>
+
+<table>
+  <tbody>
+    <tr class="bg">
+      <td></td>
+    </tr>
+  </tbody>
+</table>
+<table>
+  <colgroup>
+    <col class="bg">
+  </colgroup>
+  <tbody>
+    <tr>
+      <td></td>
+    </tr>
+  </tbody>
+</table>

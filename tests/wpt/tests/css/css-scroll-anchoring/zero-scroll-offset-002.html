@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<head>
+  <title>Test that scroll anchoring is suppressed when scroll offset is zero in the block axis, even if the inline axis scroll offset isn't.</title>
+  <link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@mozilla.com">
+  <link rel="author" title="Mozilla" href="https://mozilla.org">
+  <link rel="help" href="https://drafts.csswg.org/css-scroll-anchoring/">
+  <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1905426">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<style>
+#header {
+  height: 100px;
+  border: 1px solid black;
+  overflow-anchor: none;
+}
+#content {
+  height: 200vh;
+  width: 200vw;
+}
+</style>
+<div id="header"></div>
+<div id="content">abc</div>
+<script>
+window.addEventListener("scroll", function() {
+  if (document.scrollingElement.scrollTop > 0) {
+    // On the first scroll event, shrink the header. Scroll anchoring anchors to
+    // content, but the header shrinks by more than the scroll offset so the
+    // resulting scroll position is zero.
+    step_timeout(function() {
+      document.querySelector("#header").style.height = "50px";
+    }, 0);
+  } else {
+    // On the second scroll event, grow the header. Since the scroll offset is
+    // zero, scroll anchoring should be suppressed. Otherwise, scroll anchoring
+    // would anchor to content and the resulting scroll position would be 50px.
+    step_timeout(function() {
+      document.querySelector("#header").style.height = "100px";
+    }, 0);
+  }
+});
+
+async_test(function(t) {
+  // Scroll down a bit to trigger the scroll event listener.
+  window.scrollTo(10, 10);
+
+  window.requestAnimationFrame(function() {
+    window.requestAnimationFrame(function() {
+      window.requestAnimationFrame(t.step_func_done(() => {
+          assert_equals(document.scrollingElement.scrollTop, 0);
+      }));
+    });
+  });
+
+}, "Scroll anchoring suppressed when scroll offset is zero.");
+</script>

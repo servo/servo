@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+<head>
+  <title>CSS Reftest Reference</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <style>
+    .flexContainer {
+      background: orange;
+      width: 70px;
+      height: 20px;
+      padding: 2px;
+      margin-bottom: 2px;
+    }
+    .item1 {
+      display: inline-block;
+      background: lightblue;
+      width: 30px;
+      height: 16px;
+      padding: 2px;
+      margin-right: 2px;
+      vertical-align: top;
+    }
+    .item2 {
+      display: inline-block;
+      background: yellow;
+      width: 30px;
+      height: 16px;
+      padding: 2px;
+      vertical-align: top;
+    }
+    .grandchildA {
+      background: purple;
+      width: 80px;
+      height: 6px;
+      position: relative;
+      z-index: 10;
+    }
+    .grandchildB {
+      background: teal;
+      width: 80px;
+      height: 6px;
+      position: relative;
+      z-index: 20;
+    }
+    .grandchildC {
+      background: lime;
+      width: 20px;
+      height: 16px;
+      position: relative;
+      /* This z-index should interleave this content
+         between grandchildA and grandchildB: */
+      z-index: 15;
+    }
+  </style>
+</head>
+<body>
+  <div class="flexContainer"
+    ><div class="item1"
+      ><div class="grandchildA"></div
+      ><div class="grandchildB"></div
+    ></div
+    ><div class="item2"
+      ><div class="grandchildC"></div
+    ></div
+  ></div>
+</body>
+</html>

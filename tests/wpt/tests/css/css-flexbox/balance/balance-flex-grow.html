@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-2/">
+<link rel="match" href="balance-flex-grow-ref.html">
+<meta name="assert" content="Tests a basic balance flexbox with flex-grow specified.">
+<style>
+#flex {
+  display: flex;
+  flex-wrap: balance;
+  width: 100px;
+  height: 100px;
+  gap: 10px;
+}
+
+#flex > div {
+  background: green;
+  flex-grow: 1;
+}
+</style>
+<div id="flex">
+  <div style="width: 30px;"></div>
+  <div style="width: 20px;"></div>
+  <div style="width: 20px;"></div>
+  <div style="width: 30px;"></div>
+</div>

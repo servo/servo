@@ -1,0 +1,92 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Lee Klosterman" status="accepted"
+    version="$Revision: 1.5 $" testname="$RCSfile: linking-uri-03-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/linking.html#LinksIntoSVG">
+      <p>
+        Verify the handling of the allowable xlink attributes on the 'a' element.
+        The initial view of this test contains a single green triangle, labelling text,
+        and the usual template legend and frame.
+      </p>
+      <p>
+        The purpose of the test is to
+        verify that viewers tolerate the presence of xlink attributes on the 'a'
+        element.  The presence of the attributes should not change the behavior of
+        the test in any way.
+      </p>
+      <p>
+        There are two reference images associated with this test case.  The first
+        illustrates the correct "start" or initial state of the rendered SVG file.
+        The second illustrates the correct image after the link is activated
+        (to the linkingToc-t.svg file).  (Note.  This harness does not yet
+        provide access to multiple PNGs; the first, initial-state PNG is shown.)
+      </p>
+      <p>
+        The test uses the 'rect' element, as well as basic fill (solid simple colors),
+        stroke (black and colored wide and 1-pixel lines), font-family (Arial) and font-size properties.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>Click on the center green triangle.</p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        There is a link on the triangle, pointing to an external SVG file, which is
+        local (in the same directory).  The target file contains SVG 'text' elements
+        which comprise a TOC and brief description of all of the BE test files
+        for Linking.  Upon clicking the triangle, the image of the linkingToc-t.svg
+        file should replace the initial view of this test case in the viewer frame.
+      </p>
+      <p>
+        The results of executing the link should be identical
+        to executing the first (topmost) link of linking-a-04-t.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: linking-uri-03-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <text x="75" y="16" font-size="12">Simple exercise of xlink attributes on the 'a' element.</text>
+    <a xlink:type="simple" xlink:show="replace" xlink:actuate="onRequest" xlink:href="../images/linkingToc-t.svg" xlink:role="figure-out-a-role-value-and-associated-xmlns" xlink:title="TOC of Linking BE tests." target="_self">
+      <path d="M 135 122 l 130 0 l -65 130 z" fill="lime" stroke="blue"/>
+    </a>
+    <text x="160" y="116" font-size="12">Click for TOC</text>
+    <text x="25" y="172" font-size="12">Link to local file</text>
+    <text x="25" y="182" font-size="12">linkingToc-t.svg.</text>
+    <rect x="19" y="160" width="100" height="26" fill="none" stroke="black"/>
+    <text x="275" y="144" font-size="10">xlink:type="simple"</text>
+    <text x="275" y="155" font-size="10">xlink:show="replace"</text>
+    <text x="275" y="166" font-size="10">xlink:actuate="onRequest"</text>
+    <text x="275" y="177" font-size="10">xlink:href="linkingToc-t.svg"</text>
+    <text x="275" y="188" font-size="10">xlink:role="figure-out-a-role"</text>
+    <text x="275" y="199" font-size="10">xlink:title="TOC of Linking BE tests."</text>
+    <text x="275" y="210" font-size="10">target="_self"</text>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.5 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

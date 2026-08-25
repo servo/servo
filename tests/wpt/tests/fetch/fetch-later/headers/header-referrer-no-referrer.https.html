@@ -1,0 +1,19 @@
+<!doctype html>
+<html>
+<head>
+<title>FetchLater Referrer Header: No Referrer Policy</title>
+<meta name='referrer' content='no-referrer'>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/fetch/fetch-later/resources/header-referrer-helper.js"></script>
+</head>
+<body>
+<script>
+
+testReferrerHeader(token(), /*host=*/'', /*expectedReferer=*/"");
+
+</script>
+</body>
+</html>

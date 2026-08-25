@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<Res xmlns:its="http://www.w3.org/2005/11/its" its:version="2.0">
+ <body its:locNote="The variable {0} is the name of the host.">
+  <msg id="HostNotFound">
+   <data>Host {0} cannot be found.</data>
+  </msg>
+  <msg id="HostDisconnected">
+   <data>The connection with {0} has been lost.</data>
+  </msg>
+  <msg id="FileNotFound">
+   <data its:locNote="{0} is a filename" its:locNoteType="alert">{0} not found.</data>
+  </msg>
+  <msg id="CannotLog">
+   <data its:locNoteRef="myLocNotes.htm#CannotLog" its:locNoteType="alert">Cannot log with this username.</data>
+  </msg>
+ </body>
+</Res>

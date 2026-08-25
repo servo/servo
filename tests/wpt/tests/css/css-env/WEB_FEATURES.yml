@@ -1,0 +1,2 @@
+rules:
+- env-parsing*: [safe-area-inset]

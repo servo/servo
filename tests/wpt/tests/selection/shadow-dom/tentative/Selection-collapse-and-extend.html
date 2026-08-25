@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<body>
+<meta name="author" title="Ryosuke Niwa" href="mailto:rniwa@webkit.org">
+<meta name="assert" content="Selection's collapse and extend should abort only when the node's root is not connected">
+<link rel="help" href="https://w3c.github.io/selection-api/#dom-selection-collapse">
+<link rel="help" href="https://w3c.github.io/selection-api/#dom-selection-extend">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="container"></div>
+<script>
+
+test(() => {
+    const host = document.createElement('div');
+    container.appendChild(host);
+    const shadowRoot = host.attachShadow({mode: 'closed'});
+    shadowRoot.innerHTML = '<div contenteditable><p>hello, world</p></div>';
+    const textNode = shadowRoot.querySelector('p').firstChild;
+    getSelection().removeAllRanges();
+    getSelection().collapse(textNode, 5);
+    const ranges = getSelection().getComposedRanges({ shadowRoots: [shadowRoot] });
+    assert_equals(ranges.length, 1);
+    assert_equals(ranges[0].startContainer, textNode);
+    assert_equals(ranges[0].startOffset, 5);
+    assert_equals(ranges[0].endContainer, textNode);
+    assert_equals(ranges[0].endOffset, 5);
+    assert_true(ranges[0].collapsed);
+}, 'collapse can set selection to a node inside a shadow tree');
+
+test(() => {
+    const host = document.createElement('div');
+    const shadowRoot = host.attachShadow({mode: 'closed'});
+    shadowRoot.innerHTML = '<div contenteditable><p>hello, world</p></div>';
+    const textNode = shadowRoot.querySelector('p').firstChild;
+    getSelection().removeAllRanges();
+    getSelection().collapse(textNode, 5);
+    const ranges = getSelection().getComposedRanges({ shadowRoots: [shadowRoot] });
+    assert_equals(ranges.length, 0);
+}, 'collapse abort steps when called with a disconnected node inside a shadow tree');
+
+test(() => {
+    const host = document.createElement('div');
+    container.appendChild(host);
+    const shadowRoot = host.attachShadow({mode: 'closed'});
+    shadowRoot.innerHTML = '<div contenteditable><p>hello, world</p></div>';
+    const textNode = shadowRoot.querySelector('p').firstChild;
+    getSelection().removeAllRanges();
+    getSelection().collapse(textNode, 5);
+    let ranges = getSelection().getComposedRanges({ shadowRoots: [shadowRoot] });
+    assert_equals(ranges.length, 1);
+    getSelection().extend(textNode, 11);
+    ranges = getSelection().getComposedRanges({ shadowRoots: [shadowRoot] });
+    assert_equals(ranges.length, 1);
+    assert_equals(ranges[0].startContainer, textNode);
+    assert_equals(ranges[0].startOffset, 5);
+    assert_equals(ranges[0].endContainer, textNode);
+    assert_equals(ranges[0].endOffset, 11);
+    assert_false(ranges[0].collapsed);
+}, 'extend can set selection to a node inside a shadow tree');
+
+test(() => {
+    const host = document.createElement('div');
+    const shadowRoot = host.attachShadow({mode: 'closed'});
+    shadowRoot.innerHTML = '<div contenteditable><p>hello, world</p></div>';
+    const textNode = shadowRoot.querySelector('p').firstChild;
+    getSelection().removeAllRanges();
+    getSelection().collapse(container, 0);
+    getSelection().extend(textNode, 5);
+    const ranges = getSelection().getComposedRanges({ shadowRoots: [shadowRoot] });
+    assert_equals(ranges.length, 1);
+    assert_equals(ranges[0].startContainer, container);
+    assert_equals(ranges[0].startOffset, 0);
+    assert_equals(ranges[0].endContainer, container);
+    assert_equals(ranges[0].endOffset, 0);
+    assert_true(ranges[0].collapsed);
+}, 'extend abort steps when called with a disconnected node inside a shadow tree');
+
+container.remove();
+
+</script>
+</body>
+</html>

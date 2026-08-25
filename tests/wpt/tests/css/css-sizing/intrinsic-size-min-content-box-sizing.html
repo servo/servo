@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Intrinsic size with min-content width and box-sizing</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#min-content">
+<link rel="help" href="https://bugzil.la/2009722">
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.com" title="Mozilla">
+<link rel="match" href="intrinsic-size-min-content-box-sizing-ref.html">
+<style>
+.wrapper {
+  display: inline-block;
+  border: 1px solid;
+}
+.inner {
+  display: inline-block;
+  min-width: 200px;
+  padding: 10px;
+  width: min-content;
+  text-decoration: none;
+  background: green;
+  box-sizing: border-box;
+  vertical-align: top;
+}
+.fixed-size {
+  width: 20px;
+  height: 20px;
+  background-color: blue;
+}
+</style>
+<div class="wrapper">
+  <div class="inner"><div class="fixed-size"></div></div>
+</div>
+<div class="wrapper">
+  <div class="inner" style="min-width: 0"><div class="fixed-size"></div></div>
+</div>

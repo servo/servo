@@ -1,0 +1,19 @@
+<!doctype html>
+<title>SVG in image context with an XSL stylesheet PI in the pre-amble</title>
+<!--
+  SVG document:
+    <?xml-stylesheet type='text/xsl' href='data:text/xsl;base64,<XSL-PAYLOAD>'?>
+    <svg xmlns='http://www.w3.org/2000/svg'>
+      <rect width='100' height='100' fill='blue'/>
+    </svg>
+
+  XSL stylesheet (<XSL-PAYLOAD>):
+    <stylesheet xmlns="http://www.w3.org/1999/XSL/Transform" version="1.0">
+      <template match="/">
+        <svg xmlns='http://www.w3.org/2000/svg'>
+          <rect width='100' height='100' fill='lightblue'/>
+        </svg>
+      </template>
+    </stylesheet>
+-->
+<img src="data:image/svg+xml;base64,PD94bWwtc3R5bGVzaGVldCB0eXBlPSd0ZXh0L3hzbCcgaHJlZj0nZGF0YTp0ZXh0L3hzbDtiYXNlNjQsUEhOMGVXeGxjMmhsWlhRZ2VHMXNibk05SW1oMGRIQTZMeTkzZDNjdWR6TXViM0puTHpFNU9Ua3ZXRk5NTDFSeVlXNXpabTl5YlNJZ2RtVnljMmx2YmowaU1TNHdJajRLSUNBZ0lDQWdJQ0FnSUNBOGRHVnRjR3hoZEdVZ2JXRjBZMmc5SWk4aVBnb2dJQ0FnSUNBZ0lDQWdJQ0FnUEhOMlp5QjRiV3h1Y3owbmFIUjBjRG92TDNkM2R5NTNNeTV2Y21jdk1qQXdNQzl6ZG1jblBnb2dJQ0FnSUNBZ0lDQWdJQ0FnSUNBOGNtVmpkQ0IzYVdSMGFEMG5NVEF3SnlCb1pXbG5hSFE5SnpFd01DY2dabWxzYkQwbmJHbG5hSFJpYkhWbEp5OCtDaUFnSUNBZ0lDQWdJQ0FnSUNBOEwzTjJaejRLSUNBZ0lDQWdJQ0FnSUNBOEwzUmxiWEJzWVhSbFBnb2dJQ0FnSUNBZ0lDQThMM04wZVd4bGMyaGxaWFErJz8+CjxzdmcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJz4KICAgICAgICAgICA8cmVjdCB3aWR0aD0nMTAwJyBoZWlnaHQ9JzEwMCcgZmlsbD0nYmx1ZScvPgogICAgICAgICA8L3N2Zz4=">

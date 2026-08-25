@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Service Worker Tests</title>
+</head>
+<body>
+<p>This page tests the registration and initialization of Service Workers in Servo.</p>
+
+<div id="sw_demo">
+    <iframe id="iframe_sw" width="" height="200"></iframe>
+    <br>
+    <a href="/dashboard-page.html">Go to Dashboard</a>
+    <a href="/profile.html">Go to Profile</a>
+    <br>
+    <button onclick="register_zero()">Register for Root (/)</button>
+    <button onclick="register_one()">Register for Dashboard (/dashboard)</button>
+    <button onclick="register_two()">Register for Profile (/profile)</button>
+    <button onclick="post_message_root()">Msg to Root service worker</button>
+</div>
+    <script>
+        navigator.serviceWorker.register('iframe_sw.js', { 'scope': '/demo_iframe.html' }).then(function(registration) {
+            console.log("From client worker registered: ", navigator.serviceWorker.controller);
+            console.log("Registered script source: iframe_sw.js");
+            document.getElementById('iframe_sw').src = 'demo_iframe.html';
+            post_message('/demo_iframe');
+        }).catch(function(error) {
+            console.log("Error in loading `iframe_sw.js` -->" + error);
+        });
+
+    function register_zero() {
+        navigator.serviceWorker.register('sw.js', { 'scope': './*' }).then(function(registration) {
+            console.log("From client worker registered: ", navigator.serviceWorker.controller);
+            console.log("Registered script source: sw.js");
+        }).catch(function(error) {
+            console.log("Error in loading `sw.js` -->" + error);
+        });
+    }
+
+    function post_message_root() {
+        // Testing repeated calls of postMessage
+        for(var i=0;i<100;i++){
+            navigator.serviceWorker.controller.postMessage({num:'Dummy message count: '+i});
+        }
+    }
+
+    function register_one() {
+        navigator.serviceWorker.register('sw_dashboard.js', { 'scope': '/dashboard' }).then(function(registration) {
+            console.log("From client worker registered: ", navigator.serviceWorker.controller);
+            console.log("Registered script source: sw_dashboard.js");
+            post_message('/dashboard');
+        }).catch(function(error) {
+            console.log("Error in loading `sw_dashboard.js` -->" + error);
+        });
+    }
+
+    function register_two() {
+        navigator.serviceWorker.register('sw_profile.js', { 'scope': '/profile' }).then(function(registration) {
+            console.log("From client worker registered: ", navigator.serviceWorker.controller);
+            console.log("Registered script source: sw_profile.js");
+            post_message('/profile');
+        }).catch(function(error) {
+            console.log("Error in loading `sw_profile.js` --> " + error);
+        });
+    }
+
+    navigator.serviceWorker.addEventListener('controllerchange', function(e) {
+        console.log("navigator.serviceWorker.controller changed");
+    });
+
+    function post_message(worker_id) {
+        navigator.serviceWorker.controller.postMessage({
+        payload:{
+            msg:'Hi there! This is a dummy message for testing of postMessage calls from Service Workers',
+            worker_id:worker_id
+            }
+        });
+    }
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+
+<script>
+let testName = "XRInputSource attributes meet [SameObject] requirement";
+
+let testFunction = function(session, fakeDeviceController, t) {
+  return new Promise((resolve) => {
+    let input_source = fakeDeviceController.simulateInputSourceConnection({
+      handedness: "right",
+      targetRayMode: "tracked-pointer",
+      pointerOrigin: VALID_POINTER_TRANSFORM,
+      gripOrigin: VALID_GRIP_TRANSFORM,
+      profiles: ["foo", "bar"]
+    });
+
+    requestSkipAnimationFrame(session, (time, xrFrame) => {
+      let source = session.inputSources[0];
+      let targetRaySpace = source.targetRaySpace;
+      let gripSpace = source.gripSpace;
+      let profiles = source.profiles;
+
+      t.step(() => {
+        assert_not_equals(targetRaySpace, null,
+          "target ray space must not be null");
+        assert_not_equals(gripSpace, null, "grip space must not be null");
+
+        // Make sure [SameObject] attributes actually have the same object
+        // returned each time they are accessed.
+        assert_equals(targetRaySpace, source.targetRaySpace,
+          "XRInputSource.targetRaySpace returns the same object.");
+        assert_equals(gripSpace, source.gripSpace,
+          "XRInputSource.gripSpace returns the same object.");
+        assert_equals(profiles, source.profiles,
+          "XRInputSource.profiles returns the same object.");
+      });
+
+      session.requestAnimationFrame((time, xrFrame) => {
+        // Make sure the attributes still return the same object on the next
+        // frame when nothing has happened that would cause the input source
+        // to be recreated.
+        t.step(() => {
+          assert_equals(targetRaySpace, source.targetRaySpace,
+            "XRInputSource.targetRaySpace returns the same object each frame.");
+          assert_equals(gripSpace, source.gripSpace,
+            "XRInputSource.gripSpace returns the same object each frame.");
+          assert_equals(profiles, source.profiles,
+            "XRInputSource.profiles returns the same object each frame.");
+        });
+
+        resolve();
+      });
+    });
+  });
+};
+
+xr_session_promise_test(
+  testName, testFunction, TRACKED_IMMERSIVE_DEVICE, 'immersive-vr');
+</script>

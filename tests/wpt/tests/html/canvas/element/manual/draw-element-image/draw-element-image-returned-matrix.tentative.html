@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<title>drawElementImage should return a matrix transforming the element's layout location to the drawn location</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+<canvas id="canvas" style="width: 100px; height: 100px;" width="100" height="100" layoutsubtree>
+  <div id="element" style="width: 10px; height: 10px;">hello</div>
+</canvas>
+<script>
+function runTest() {
+  promise_test(async function() {
+    await waitForCanvasPaint(canvas);
+    let draw_transform = canvas.getContext('2d').drawElementImage(element, 0, 0);
+    let expected = new DOMMatrix();
+    assert_array_equals(draw_transform.toFloat64Array(), expected.toFloat64Array());
+  }, 'Draw transform at the origin should be an identity matrix');
+
+  promise_test(async function() {
+    await waitForCanvasPaint(canvas);
+    let draw_transform = canvas.getContext('2d').drawElementImage(element, 17, -9);
+    let expected = new DOMMatrix().translateSelf(17, -9);
+    assert_array_equals(draw_transform.toFloat64Array(), expected.toFloat64Array());
+  }, 'Draw transform should account for x and y');
+
+  promise_test(async function(t) {
+    t.add_cleanup(() => {
+      element.style.transformOrigin = '';
+    });
+    element.style.transformOrigin = '0 0';
+    await waitForCanvasPaint(canvas);
+    let draw_transform = canvas.getContext('2d').drawElementImage(element, 0, 0, 20, 5);
+    let expected = new DOMMatrix().scaleSelf(2, 0.5);
+    assert_array_equals(draw_transform.toFloat64Array(), expected.toFloat64Array());
+  }, 'Draw transform should account for width and height scale');
+
+  promise_test(async function(t) {
+    t.add_cleanup(() => {
+      element.style.transform = '';
+    });
+    element.style.transform = 'rotate(45deg)';
+    await waitForCanvasPaint(canvas);
+    let draw_transform = canvas.getContext('2d').drawElementImage(element, 0, 0);
+    let expected = new DOMMatrix();
+    assert_array_equals(draw_transform.toFloat64Array(), expected.toFloat64Array());
+  }, 'Draw transform should not include transform on the element');
+
+  promise_test(async function(t) {
+    t.add_cleanup(() => {
+      canvas.getContext('2d').reset();
+    });
+    canvas.getContext('2d').translate(42, 17);
+    await waitForCanvasPaint(canvas);
+    let draw_transform = canvas.getContext('2d').drawElementImage(element, 0, 0);
+    let expected = new DOMMatrix().translateSelf(42, 17);
+    assert_array_equals(draw_transform.toFloat64Array(), expected.toFloat64Array());
+  }, 'Draw transform should account for the current transform matrix with translation');
+
+  promise_test(async function(t) {
+    t.add_cleanup(async () => {
+      canvas.style.zoom = '';
+    });
+    canvas.style.zoom = '1.5';
+    await waitForCanvasPaint(canvas);
+    let draw_transform = canvas.getContext('2d').drawElementImage(element, 10, 10);
+    let expected = new DOMMatrix().translateSelf(10, 10);
+    assert_array_equals(draw_transform.toFloat64Array(), expected.toFloat64Array());
+  }, 'Draw transform should not be affected by zoom on the canvas');
+
+  promise_test(async function(t) {
+    t.add_cleanup(() => {
+      element.style.transformOrigin = '';
+      canvas.getContext('2d').reset();
+    });
+    element.style.transformOrigin = '0 0';
+    await waitForCanvasPaint(canvas);
+    canvas.getContext('2d').rotate(Math.PI / 4);
+    let draw_transform = canvas.getContext('2d').drawElementImage(element, 0, 0);
+    let expected = new DOMMatrix().rotateSelf(45);
+    assert_array_approx_equals(draw_transform.toFloat64Array(), expected.toFloat64Array(), 0.001);
+  }, 'Draw transform should account for the current transform matrix with rotation');
+
+  promise_test(async function(t) {
+    t.add_cleanup(() => {
+      element.style.transformOrigin = '';
+      canvas.getContext('2d').reset();
+    });
+    element.style.transformOrigin = '5px 5px';
+    await waitForCanvasPaint(canvas);
+    canvas.getContext('2d').rotate(Math.PI / 4);
+    let draw_transform = canvas.getContext('2d').drawElementImage(element, 0, 0);
+    let expected = new DOMMatrix()
+      .translateSelf(-5, -5)
+      .rotateSelf(45)
+      .translateSelf(5, 5);
+    assert_array_approx_equals(draw_transform.toFloat64Array(), expected.toFloat64Array(), 0.001);
+  }, 'Draw transform should account for transform-origin');
+
+  promise_test(async function(t) {
+    t.add_cleanup(() => {
+      canvas.width = 100;
+      canvas.height = 100;
+    });
+    canvas.width = 200;
+    canvas.height = 50;
+    await waitForCanvasPaint(canvas);
+    let draw_transform = canvas.getContext('2d').drawElementImage(element, 0, 0);
+    let expected = new DOMMatrix();
+    assert_array_equals(draw_transform.toFloat64Array(), expected.toFloat64Array());
+  }, 'Draw transform should account for canvas pixel scale');
+
+  promise_test(async function(t) {
+    t.add_cleanup(async () => {
+      canvas.width = 100;
+      canvas.height = 100;
+      canvas.style.zoom = '';
+      canvas.getContext('2d').reset();
+      element.style.transformOrigin = '0 0';
+    });
+    canvas.width = 200;
+    canvas.height = 50;
+    canvas.style.zoom = 1.5;
+    canvas.getContext('2d').translate(42, 17);
+    canvas.getContext('2d').rotate(Math.PI / 4);
+    element.style.transformOrigin = '5px 5px';
+    element.style.transformOrigin = '5px 5px';
+    await waitForCanvasPaint(canvas);
+    let draw_transform = canvas.getContext('2d').drawElementImage(element, 13, -9);
+    let expected = new DOMMatrix()
+      .translateSelf(-5, -5)
+      .scaleSelf(0.5, 2)
+      .translateSelf(42, 17)
+      .rotateSelf(45)
+      .translateSelf(13, -9)
+      .scaleSelf(2, 0.5)
+      .translateSelf(5, 5);
+    assert_array_approx_equals(draw_transform.toFloat64Array(), expected.toFloat64Array(), 0.001);
+  }, 'Draw transform should account for canvas pixel scale, zoom, transform-origin, CTM, and x and y');
+}
+
+window.onload = runTest;
+</script>

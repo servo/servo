@@ -1,0 +1,219 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: ::scroll-marker key navigation cycles</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-pseudo">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#attr-tabindex">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  body {
+    margin: 0;
+  }
+
+  #scroller {
+    background: white;
+    overflow: auto;
+    width: 600px;
+    height: 300px;
+    /* use tabs mode so activated markers receive focus and can handle
+       arrow-key events directly */
+    scroll-marker-group: before tabs;
+    white-space: nowrap;
+  }
+
+  #scroller::scroll-marker-group {
+    display: flex;
+    height: 20px;
+    width: 300px;
+  }
+
+  #scroller div {
+    background: blue;
+    display: inline-block;
+    height: 280px;
+    width: 600px;
+  }
+
+  #scroller div::scroll-marker {
+    content: "";
+    background: blue;
+    display: inline-block;
+    width: 30px;
+    height: 20px;
+    opacity: 1;
+  }
+
+  #scroller div::scroll-marker:target-current {
+    background: green;
+  }
+
+  #scroller div::scroll-marker:focus {
+    opacity: 0.5;
+  }
+</style>
+<div id="scroller">
+  <div id="first_item"></div>
+  <div id="middle_item"></div>
+  <div id="last_item"></div>
+</div>
+<script>
+  const kArrowLeft = 'ArrowLeft';
+  const kArrowRight = 'ArrowRight';
+  const kArrowUp = 'ArrowUp';
+  const kArrowDown = 'ArrowDown';
+
+  function getActiveMarker() {
+    if (getComputedStyle(first_item, "::scroll-marker").backgroundColor === "rgb(0, 128, 0)")
+      return 'first';
+    if (getComputedStyle(middle_item, "::scroll-marker").backgroundColor === "rgb(0, 128, 0)")
+      return 'middle';
+    if (getComputedStyle(last_item, "::scroll-marker").backgroundColor === "rgb(0, 128, 0)")
+      return 'last';
+    return null;
+  }
+
+  function markerIsFocused() {
+    return getComputedStyle(first_item, "::scroll-marker").opacity === '0.5';
+  }
+
+  async function waitForFrame() {
+    await new Promise(resolve => requestAnimationFrame(resolve));
+  }
+
+  async function waitForRenderingUpdate() {
+    await waitForFrame();
+    await waitForFrame();
+  }
+
+  async function clickAt(x, y) {
+    await new test_driver.Actions()
+      .pointerMove(x, y)
+      .pointerDown()
+      .pointerUp()
+      .send();
+    await waitForRenderingUpdate();
+  }
+
+  async function sendKey(key) {
+    const webdriverKey = {
+      ArrowLeft: '\uE012',
+      ArrowUp: '\uE013',
+      ArrowRight: '\uE014',
+      ArrowDown: '\uE015',
+    }[key];
+    await new test_driver.Actions()
+      .keyDown(webdriverKey)
+      .keyUp(webdriverKey)
+      .send();
+    await waitForRenderingUpdate();
+  }
+
+  async function resetScrollerStyles() {
+    scroller.style.direction = 'ltr';
+    scroller.style.writingMode = 'horizontal-tb';
+    scroller.scrollTo({ left: 0, top: 0, behavior: 'instant' });
+    await waitForRenderingUpdate();
+  }
+
+  async function focusAndActivateFirstMarker() {
+    await resetScrollerStyles();
+    await clickAt(15, 15);
+    assert_equals(getActiveMarker(), 'first', 'click activates the first ::scroll-marker');
+    assert_true(markerIsFocused(), 'clicking the first ::scroll-marker focuses it');
+  }
+
+  promise_test(async t => {
+    // Basic LTR navigation sanity check.
+    // In horizontal-tb:
+    // Block axis is Top to Bottom.
+    // Inline axis is Left to Right.
+    await focusAndActivateFirstMarker();
+    await sendKey(kArrowRight);
+    assert_equals(getActiveMarker(), 'middle', 'right arrow moves forward in horizontal-tb ltr');
+
+    await focusAndActivateFirstMarker();
+    await sendKey(kArrowLeft);
+    assert_equals(getActiveMarker(), 'last', 'left arrow wraps backward in horizontal-tb ltr');
+
+    await focusAndActivateFirstMarker();
+    await sendKey(kArrowDown);
+    assert_equals(getActiveMarker(), 'middle', 'down arrow moves forward in horizontal-tb ltr');
+
+    await focusAndActivateFirstMarker();
+    await sendKey(kArrowUp);
+    assert_equals(getActiveMarker(), 'last', 'up arrow wraps backward in horizontal-tb ltr');
+
+    // Check that RTL flips the behavior of the horizontal arrows.
+    await focusAndActivateFirstMarker();
+    scroller.style.direction = 'rtl';
+    await waitForRenderingUpdate();
+    assert_true(markerIsFocused(), 'changing to RTL keeps focus on the first ::scroll-marker');
+    await sendKey(kArrowRight);
+    assert_equals(getActiveMarker(), 'last', 'in RTL, right arrow wraps backward');
+
+    // In RTL, left arrow acts like right arrow in LTR, so it moves forward from first to middle
+    await focusAndActivateFirstMarker();
+    scroller.style.direction = 'rtl';
+    await waitForRenderingUpdate();
+    await sendKey(kArrowLeft);
+    assert_equals(getActiveMarker(), 'middle', 'in RTL, left arrow moves forward');
+  }, 'Arrow keys in horizontal-tb');
+
+  promise_test(async t => {
+    // In vertical-lr:
+    // Block axis is Left to Right.
+    // Inline axis is Top to Bottom.
+    await focusAndActivateFirstMarker();
+    scroller.style.writingMode = 'vertical-lr';
+    await waitForRenderingUpdate();
+
+    await sendKey(kArrowDown);
+    assert_equals(getActiveMarker(), 'middle', 'down arrow moves forward in vertical-lr');
+    await sendKey(kArrowUp);
+    assert_equals(getActiveMarker(), 'first', 'up arrow moves backward in vertical-lr');
+    await sendKey(kArrowRight);
+    assert_equals(getActiveMarker(), 'middle', 'right arrow moves forward in vertical-lr');
+    await sendKey(kArrowLeft);
+    assert_equals(getActiveMarker(), 'first', 'left arrow moves backward in vertical-lr');
+  }, 'Arrow keys in vertical-lr');
+
+  promise_test(async t => {
+    // In vertical-rl:
+    // Block axis is Right to Left.
+    // Inline axis is Top to Bottom.
+    await focusAndActivateFirstMarker();
+    scroller.style.writingMode = 'vertical-rl';
+    await waitForRenderingUpdate();
+
+    await sendKey(kArrowDown);
+    assert_equals(getActiveMarker(), 'middle', 'down arrow moves forward in vertical-rl');
+    await sendKey(kArrowUp);
+    assert_equals(getActiveMarker(), 'first', 'up arrow moves backward in vertical-rl');
+    await sendKey(kArrowRight);
+    assert_equals(getActiveMarker(), 'last', 'right arrow wraps backward in vertical-rl');
+    await sendKey(kArrowLeft);
+    assert_equals(getActiveMarker(), 'first', 'left arrow moves forward in vertical-rl');
+  }, 'Arrow keys in vertical-rl');
+
+  promise_test(async t => {
+    // In vertical-rl with rtl direction:
+    // Block axis is Right to Left.
+    // Inline axis is Bottom to Top.
+    await focusAndActivateFirstMarker();
+    scroller.style.writingMode = 'vertical-rl';
+    scroller.style.direction = 'rtl';
+    await waitForRenderingUpdate();
+
+    await sendKey(kArrowDown);
+    assert_equals(getActiveMarker(), 'last', 'down arrow wraps backward in vertical-rl rtl');
+    await sendKey(kArrowUp);
+    assert_equals(getActiveMarker(), 'first', 'up arrow moves forward in vertical-rl rtl');
+    await sendKey(kArrowLeft);
+    assert_equals(getActiveMarker(), 'middle', 'left arrow moves forward in vertical-rl rtl');
+    await sendKey(kArrowRight);
+    assert_equals(getActiveMarker(), 'first', 'right arrow moves backward in vertical-rl rtl');
+  }, 'Arrow keys in vertical-rl rtl');
+</script>

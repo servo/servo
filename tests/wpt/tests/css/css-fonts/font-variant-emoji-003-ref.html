@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="UTF-8" />
+<title>CSS Fonts: font-variant-emoji web font test</title>
+<link rel="stylesheet" type="text/css" href="support/css/variation-sequences.css" />
+<style>
+  div {
+    height: 2em;
+    font: 24px/1.5 serif;
+  }
+
+  .color {
+    font-family: "ColorEmojiFont";
+  }
+
+  .mono {
+    font-family: "MonoEmojiFont";
+  }
+</style>
+
+<p>Emoji Default</p>
+<div>
+  <span class="color">&#x1fae8;</span>
+  <span class="mono">&#x1fae8;&#xfe0e;</span>
+  <span class="color">&#x1fae8;</span>
+</div>
+
+<p>Text Default</p>
+<div>
+  <span class="color">&#x2139;&#xfe0f;</span>
+  <span class="mono">&#x2139;</span>
+  <span class="mono">&#x2139;</span>
+</div>

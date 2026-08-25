@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>ScrollTimeline source lookup with single-axis scroll containers (outer)</title>
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#scroll-timelines-anonymous">
+<link rel="author" title="Free Debreuil" href="mailto:freedebreuil@google.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.inline-scroller,
+#subject {
+  width: 100px;
+  height: 100px;
+}
+.inline-scroller {
+  overflow-block: clip;
+  overflow-inline: scroll;
+}
+.vertical-writing-mode { writing-mode: vertical-rl; }
+.horizontal-writing-mode { writing-mode: horizontal-tb; }
+#subject {
+  animation: noop 1s;
+  animation-timeline: scroll(nearest block);
+}
+@keyframes noop {}
+</style>
+
+<div id="outer" class="horizontal-writing-mode inline-scroller">
+  <div id="inner" class="vertical-writing-mode inline-scroller">
+    <div id="subject" class="horizontal-writing-mode"></div>
+  </div>
+</div>
+
+<script>
+test(() => {
+  const animations = subject.getAnimations();
+  assert_equals(animations.length, 1);
+  assert_equals(animations[0].timeline.source, outer);
+}, 'ScrollTimeline skips non-matching ancestor scroll containers');
+</script>

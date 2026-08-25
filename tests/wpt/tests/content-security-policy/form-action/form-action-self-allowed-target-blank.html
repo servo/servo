@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<meta http-equiv="Content-Security-Policy" content="form-action 'self'">
+</head>
+
+<body>
+  <form action='/content-security-policy/support/postmessage-pass-to-opener.html'
+        id='form_id'
+        target="_blank"
+        rel="opener">
+  </form>
+
+  <p>
+    Test that "form-action 'self'" works correctly when the form uses
+    target="_blank". If this test passes, a new window must open after pressing
+    "submit".
+  </p>
+</body>
+
+<script>
+  async_test(t => {
+    document.addEventListener('securitypolicyviolation', function(e) {
+      t.unreached_func("Form submission was blocked.");
+    });
+
+    window.addEventListener('message', function(event) {
+      t.done();
+    })
+
+    window.addEventListener("load", function() {
+      document.getElementById("form_id").submit();
+    });
+  }, "The form submission should not be blocked by the iframe's CSP.");
+</script>
+
+</html>

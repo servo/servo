@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>Non-atomic inline ::scroll-marker with scroll snapping</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://issues.chromium.org/issues/402910374">
+<style>
+  .carousel {
+    overflow: scroll;
+    scroll-marker-group: after;
+  }
+  .carousel::scroll-marker-group {
+    overflow: scroll;
+    scroll-snap-type: x mandatory;
+  }
+  .carousel > *::scroll-marker {
+    content: "x";
+  }
+</style>
+<div class="carousel">
+  <div></div>
+</div>

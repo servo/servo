@@ -1,0 +1,33 @@
+<!doctype html>
+<title>Selection.isCollapsed tests</title>
+<div id=log></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=common.js></script>
+<script>
+"use strict";
+
+test(function() {
+    selection.removeAllRanges();
+    assert_true(selection.isCollapsed, "isCollapsed must be true if both anchor and focus are null");
+}, "Empty selection");
+
+for (var i = 0; i < testRanges.length; i++) {
+    var endpoints = eval(testRanges[i]);
+    if (!isSelectableNode(endpoints[0]) || !isSelectableNode(endpoints[2]))
+        continue;
+    test(function() {
+        selection.removeAllRanges();
+        var range = ownerDocument(endpoints[0]).createRange();
+        range.setStart(endpoints[0], endpoints[1]);
+        range.setEnd(endpoints[2], endpoints[3]);
+        selection.addRange(range);
+
+        assert_equals(selection.isCollapsed,
+            endpoints[0] === endpoints[2] && endpoints[1] === endpoints[3],
+            "Value of isCollapsed");
+    }, "Range " + i + " " + testRanges[i]);
+}
+
+testDiv.style.display = "none";
+</script>

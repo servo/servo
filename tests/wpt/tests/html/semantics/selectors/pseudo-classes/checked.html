@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Selector: pseudo-classes (:checked)</title>
+<link rel="author" title="Denis Ah-Kang" href="mailto:denis@w3.org" id=link1>
+<link rel=help href="https://html.spec.whatwg.org/multipage/#pseudo-classes" id=link2>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="utils.js"></script>
+<div id="log"></div>
+<select id=select1>
+ <optgroup label="options" id=optgroup1>
+  <option value="option1" id=option1 selected>option1
+  <option value="option2" id=option2>option2
+  <option value="option2" id=option3 checked>option3
+</select>
+<input type=checkbox id=checkbox1 checked>
+<input type=checkbox id=checkbox2>
+<input type=checkbox id=checkbox3 selected>
+<input type=radio id=radio1 checked>
+<input type=radio id=radio2>
+<form>
+  <p><input type=submit contextmenu=formmenu id="submitbutton"></p>
+  <menu type=context id=formmenu>
+    <!-- historical; these should *not* match -->
+    <menuitem type=checkbox checked default id=menuitem1>
+    <menuitem type=checkbox default id=menuitem2>
+    <menuitem type=checkbox id=menuitem3>
+    <menuitem type=radio checked id=menuitem4>
+    <menuitem type=radio id=menuitem5>
+  </menu>
+</form>
+
+<script>
+  testSelectorIdsMatch(":checked", ["option1", "checkbox1", "radio1"], "':checked' matches checked <input>s in checkbox and radio button states, selected <option>s");
+
+  document.getElementById("checkbox1").removeAttribute("type");  // change type of input
+  document.getElementById("radio1").removeAttribute("type");  // change type of input
+  testSelectorIdsMatch(":checked", ["option1"], "':checked' should no longer match <input>s whose type checkbox/radio has been removed");
+
+  document.getElementById("option2").selected = "selected";  // select option2
+  document.getElementById("checkbox2").click();  // check chekbox2
+  document.getElementById("radio2").click();  // check radio2
+  testSelectorIdsMatch(":checked", ["option2", "checkbox2", "radio2"], "':checked' matches clicked checkbox and radio buttons");
+</script>

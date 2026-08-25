@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Accepted versions in XML prolog</title>
+<link rel="help" href="https://www.w3.org/TR/REC-xml/#sec-prolog-dtd">
+<meta name="assert" content="VersionNum production accepts any 1.x version">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  'use strict';
+
+  function string_to_xml_document(s) {
+    let parser = new DOMParser();
+    return parser.parseFromString(s, 'text/xml');
+
+  }
+
+  test(function() {
+    assert_equals(string_to_xml_document(
+                    `<?xml version="1.0"?>
+                     <a></a>`
+                  ).documentElement.tagName,
+                  "a");
+  }, "XML 1.0 is accepted");
+
+  test(function() {
+    assert_equals(string_to_xml_document(
+                    `<?xml version="1.1"?>
+                     <b></b>`
+                  ).documentElement.tagName,
+                  "b");
+  }, "XML 1.1 is accepted");
+
+  test(function() {
+    assert_equals(string_to_xml_document(
+                    `<?xml version="1.2"?>
+                     <c></c>`
+                  ).documentElement.tagName,
+                  "c");
+  }, "XML 1.2 is accepted");
+
+  test(function() {
+    assert_equals(string_to_xml_document(
+                    `<?xml version="1.7"?>
+                     <d></d>`
+                  ).documentElement.tagName,
+                  "d");
+  }, "XML 1.7 is accepted");
+
+  test(function() {
+    assert_equals(string_to_xml_document(
+                    `<?xml version="1.1075"?>
+                     <e></e>`
+                  ).documentElement.tagName,
+                  "e");
+  }, "XML 1.1075 is accepted");
+
+  test(function() {
+    assert_equals(string_to_xml_document(
+                    `<?xml version="1.000"?>
+                     <f></f>`
+                  ).documentElement.tagName,
+                  "f");
+  }, "XML 1.000 is accepted");
+
+  test(function() {
+    assert_not_equals(string_to_xml_document(
+                        `<?xml version="10.0"?>
+                         <x></x>`
+                      ).documentElement.tagName,
+                      "x");
+  }, "XML 10.0 is NOT accepted");
+
+  test(function() {
+    assert_not_equals(string_to_xml_document(
+                        `<?xml version="100"?>
+                         <x></x>`
+                      ).documentElement.tagName,
+                      "x");
+  }, "XML 100 is NOT accepted");
+
+  test(function() {
+    assert_not_equals(string_to_xml_document(
+                        `<?xml version="2.0"?>
+                         <x></x>`
+                      ).documentElement.tagName,
+                      "x");
+  }, "XML 2.0 is NOT accepted");
+
+  test(function() {
+    assert_not_equals(string_to_xml_document(
+                        `<?xml version="17.0"?>
+                         <x></x>`
+                      ).documentElement.tagName,
+                      "x");
+  }, "XML 17.0 is NOT accepted");
+
+</script>

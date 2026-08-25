@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+
+  <style>
+  div
+    {
+      height: 100px;
+      position: relative;
+      width: 100px;
+    }
+
+  div#outer-black
+    {
+      background-color: black;
+      left: 90px;
+      top: 90px;
+    }
+
+  div#middle-orange
+    {
+      background-color: orange;
+      bottom: 30px;
+      right: 30px;
+    }
+
+  div#inner-blue
+    {
+      background-color: blue;
+      bottom: 30px;
+      right: 30px;
+    }
+  </style>
+
+  <p>Test passes if a blue box overlaps an orange box, which overlaps a black box.
+
+  <div id="outer-black">
+
+    <div id="middle-orange">
+
+      <div id="inner-blue"></div>
+
+    </div>
+
+  </div>

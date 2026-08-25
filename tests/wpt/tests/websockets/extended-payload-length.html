@@ -1,0 +1,72 @@
+<!doctype html>
+<title>WebSockets : Boundary-value tests for the 'Extended payload length' field in RFC6455 section5.2 'Base Framing Protocol'</title>
+<meta name=timeout content=long>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=constants.sub.js></script>
+<meta name="variant" content="?default">
+<meta name="variant" content="?wss">
+<meta name="variant" content="?wpt_flags=h2">
+<div id=log></div>
+<script>
+async_test(function(t){
+    var ws = new WebSocket(SCHEME_DOMAIN_PORT+'/echo');
+    var datasize = 125;
+    var data = null;
+    ws.onopen = t.step_func(function(e) {
+        data = new Array(datasize + 1).join('a');
+        ws.send(data);
+    });
+    ws.onmessage = t.step_func(function(e) {
+        assert_equals(e.data, data);
+        t.done();
+    });
+    ws.onclose = t.unreached_func('close event should not fire');
+}, "Application data is 125 byte which means any 'Extended payload length' field isn't used at all.");
+
+async_test(function(t){
+    var ws = new WebSocket(SCHEME_DOMAIN_PORT+'/echo');
+    var datasize = 126;
+    var data = null;
+    ws.onopen = t.step_func(function(e) {
+        data = new Array(datasize + 1).join('a');
+        ws.send(data);
+    });
+    ws.onmessage = t.step_func(function(e) {
+        assert_equals(e.data, data);
+        t.done();
+    });
+    ws.onclose = t.unreached_func('close event should not fire');
+}, "Application data is 126 byte which starts to use the 16 bit 'Extended payload length' field.");
+
+async_test(function(t){
+    var ws = new WebSocket(SCHEME_DOMAIN_PORT+'/echo');
+    var datasize = 0xFFFF;
+    var data = null;
+    ws.onopen = t.step_func(function(e) {
+        data = new Array(datasize + 1).join('a');
+        ws.send(data);
+    });
+    ws.onmessage = t.step_func(function(e) {
+        assert_equals(e.data, data);
+        t.done();
+    });
+    ws.onclose = t.unreached_func('close event should not fire');
+}, "Application data is 0xFFFF byte which means the upper bound of the 16 bit 'Extended payload length' field.");
+
+async_test(function(t){
+    var ws = new WebSocket(SCHEME_DOMAIN_PORT+'/echo');
+    var datasize = 0xFFFF + 1;
+    var data = null;
+    ws.onopen = t.step_func(function(e) {
+        data = new Array(datasize + 1).join('a');
+        ws.send(data);
+    });
+    ws.onmessage = t.step_func(function(e) {
+        assert_equals(e.data, data);
+        t.done();
+    });
+    ws.onclose = t.unreached_func('close event should not fire');
+}, "Application data is (0xFFFF + 1) byte which starts to use the 64 bit 'Extended payload length' field");
+
+</script>

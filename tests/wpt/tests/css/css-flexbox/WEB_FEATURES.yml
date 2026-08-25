@@ -1,0 +1,3 @@
+rules:
+- "*gap*": [flexbox-gap, flexbox]
+- "**": [flexbox]

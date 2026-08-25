@@ -1,0 +1,14 @@
+<!-- Same as iframe_meta.sub.html, but provides multiple CSPs in meta tags -->
+<!DOCTYPE html>
+<html>
+  <meta http-equiv="Content-Security-Policy" content="{{GET[policy1]}}">
+  <meta http-equiv="Content-Security-Policy" content="{{GET[policy2]}}">
+<body>
+    <script nonce='forinlinescript'>
+        window.addEventListener('securitypolicyviolation', function() {
+          top.postMessage('CSP_VIOLATION', '*');
+        });
+    </script>
+    <script src='externalScript.js'></script>
+</body>
+</html>

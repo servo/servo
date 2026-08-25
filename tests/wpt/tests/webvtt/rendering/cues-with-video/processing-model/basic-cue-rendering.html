@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>webvtt-white-space-pre-line</title>
+    <link rel="stylesheet" type="text/css" href="support/reference.css">
+    <script src="/common/reftest-wait.js"></script>
+    <script src="support/webvtt-rendering-test.js"></script>
+    <body>
+        <div>Test rendering a basic <code>VTTCue</code>.</div>
+        <div class="test-diff">
+            <video-reference expected>
+                <cue style="width: 100%; left: 0; bottom: 0px;">
+                    <cue-background style="margin: auto">Test Text</cue-background>
+                </cue>
+            </video-reference>
+            <video muted playsinline>
+                <source src="/media/sound_5.mp3#t=0.05" type="audio/mp3">
+                <source src="/media/sound_5.oga#t=0.05" type="audio/ogg">
+                <track src="support/basic-cue-rendering.webvtt" kind="captions" default>
+            </video>
+        </div>
+    </body>
+</html>

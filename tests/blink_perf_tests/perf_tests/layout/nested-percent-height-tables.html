@@ -1,0 +1,94 @@
+<!DOCTYPE HTML>
+<style>
+.body { margin:0; }
+.maxHeight { width:100%; height:100%; }
+.overflowDiv { overflow:hidden; display:inline-block }
+.overflowAuto { overflow:auto; }
+</style>
+<html id="top">
+  <body class="body" style="height:100%;">
+    <table class="maxHeight">
+      <tr>
+        <td style="height:100%;">
+          <div class="maxHeight">
+            <table class="maxHeight">
+              <tr>
+                <td class="maxHeight">
+                  <table class="maxHeight">
+                    <tr>
+                      <td style="height:100%;">
+                        <div class="maxHeight">
+                          <table id="top" class="maxHeight">
+                            <colgroup>
+                              <col/>
+                              <col />
+                              <col  style="width:100%;"/>
+                            </colgroup>
+                            <tr  style="height:100%;">
+                              <td style="height:100%;">
+                                <div class="overflowAuto maxHeight" style="position:relative;">
+                              </td>
+                              <td rowspan="1">
+                                <div class="overflowDiv" >
+                                </div>
+                              </td>
+                              <td style="height:100%;">
+                                <div class="overflowAuto maxHeight" style="position:relative;">
+                                  <div class="maxHeight">
+                                    <table class="maxHeight">
+                                      <tr>
+                                        <td class="maxHeight">
+                                          <table class="maxHeight">
+                                            <tr>
+                                              <td  style="height:100%;">
+                                                <table  class="maxHeight">
+                                                  <tr>
+                                                    <td colspan="2" class="maxHeight">
+                                                      <div class=" maxHeight">
+                                                        <table class="maxHeight">
+                                                          <tr>
+                                                            <td class="maxHeight">
+                                                              <table class="maxHeight">
+                                                                <tr>
+                                                                  <td  style="height:100%;">
+                                                                    <table class="maxHeight">
+                                                                      <tr>
+                                                                        <td class="maxHeight">
+                                                                          <table class="maxHeight">
+                                                                            <tr>
+                                                                              <td class="maxHeight">
+                                                                                <div class="maxHeight">
+                                                                                  <table class="maxHeight">
+                                                                                    <tr>
+                                                                                      <td class="maxHeight">
+                                                                                        <table class="maxHeight">
+                                                                                          <tr>
+                                                                                            <td  class="maxHeight">
+                                                                                              <table class="maxHeight">
+                                                                                                <tr>
+                                                                                                  <td class="maxHeight">
+                                                                                                    <table class="maxHeight">
+                                                                                                      <tr>
+                                                                                                        <td class="maxHeight">
+                                                                                                          <table class="maxHeight">
+                                                                                                            <tr>
+                                                                                                              <td class="maxHeight">
+                                                                                                                <table class="maxHeight">
+                                                                                                                  <tr>
+                                                                                                                    <td class="maxHeight">
+                                                                                                                      <table class="maxHeight">
+                                                                                                                        <tr>
+                                                                                                                          <td class="maxHeight">
+<script src="../resources/runner.js"></script>
+<script>
+function test() {
+  PerfTestRunner.forceLayout();
+  document.getElementById("top").style.height = "100%";
+  PerfTestRunner.forceLayout();
+  document.getElementById("top").style.height = "auto";
+}
+PerfTestRunner.measureRunsPerSecond({
+  description: "Measures performance of nested tables with percent height.",
+  run: test,
+});
+</script>

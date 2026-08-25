@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<title>Auto-positioned absolutely positioned in static RTL parent, scrollbars on viewport</title>
+<link rel="author" title="Morten Stenshorne" href="mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visudet.html#abs-non-replaced-width" title="10.3.7 Absolutely positioned, non-replaced elements">
+<link rel="match" href="auto-position-rtl-child-viewport-scrollbar-ref.html">
+<style>body { overflow:scroll; }</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="direction:rtl; width:80px; height:80px; border:10px solid green; background:red;">
+  <div style="position:absolute; width:80px; height:80px; background:green;"></div>
+</div>

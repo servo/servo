@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>Container with margin-trim:block-end, some border, and self-collapsing last-child</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-box-4/#margin-trim-block">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width:100px; height:100px; background:red;">
+  <div style="margin-trim:block-end; border:solid green; background:red;">
+    <div style="height:94px; background:green;"></div>
+    <div style="margin-top:222px; outline:solid green;"></div>
+    <div style="margin-top:222px; outline:solid green;"></div>
+  </div>
+</div>

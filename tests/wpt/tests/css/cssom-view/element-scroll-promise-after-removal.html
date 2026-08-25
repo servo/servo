@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<title>Element scroll promises are resolved after scroller removal</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="author" title="Mustaq Ahmed" href="mailto:mustaq@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#scrolling">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+<style>
+  iframe {
+    height: 120px;
+  }
+
+  .filler { height: 1000px }
+
+  .scroller {
+    overflow: scroll;
+    height: 100px;
+  }
+</style>
+<div id="scroller" class="scroller">
+  <div class="filler"></div>
+  <div class="filler"></div>
+  <div id="inner_scroller" class="scroller">
+    <div class="filler"></div>
+    <div class="filler"></div>
+  </div>
+</div>
+<iframe srcdoc='
+  <!DOCTYPE html>
+  <style>
+    .filler { height: 1000px }
+
+    .scroller {
+      overflow: scroll;
+      height: 100px;
+    }
+  </style>
+  <div id="scroller" class="scroller">
+    <div class="filler"></div>
+  </div>
+'></iframe>
+<script>
+  "use strict";
+
+  const scroller = document.getElementById("scroller");
+  const inner_scroller = document.getElementById("inner_scroller");
+  const innertarget_at_1000px = inner_scroller.lastElementChild;
+
+  function resetScrollers() {
+    document.body.appendChild(scroller);
+    scroller.appendChild(inner_scroller);
+    scroller.scrollTop = 0;
+    inner_scroller.scrollTop = 0;
+  }
+
+  async function confirmPromiseSettles(scroll_promise, scrollend_promise) {
+    async function waitForFrames(num) {
+      while (num--) {
+        await new Promise(requestAnimationFrame);
+      }
+    }
+
+    if (scrollend_promise) {
+      await scrollend_promise;
+    }
+
+    // The worst case wait time below is added only to avoid test harness
+    // timeout error which would make it hard to spot the failure point.
+    //
+    // We found the "inner scroller removal" test below to fail ~40% of the time
+    // locally even with a 6 rafs wait, so we made the number a bit high to
+    // avoid flakes. This is still way below the 10sec timeout limit in test
+    // harness (300 rafs = 5sec with a typical 60hz refresh rate display).
+    let val = await Promise.race([scroll_promise, waitForFrames(120)]);
+    // If `scroll_promise` resolves first, `val` will be an object.
+    if (val === undefined) {
+      assert_unreached("unresolved scroll_promise");
+    }
+  }
+
+  promise_setup(async () => {
+    await waitForCompositorReady();
+  });
+
+  promise_test(async () => {
+    resetScrollers();
+    let scroll_promise = scroller.scrollTo({ top: 1000, behavior: "smooth" });
+    scroller.remove();
+    await confirmPromiseSettles(scroll_promise);
+  }, "Element.scrollTo promise after scroller removal");
+
+  promise_test(async () => {
+    resetScrollers();
+    let scroll_promise = scroller.scrollBy({ top: 1000, behavior: "smooth" });
+    scroller.remove();
+    await confirmPromiseSettles(scroll_promise);
+  }, "Element.scrollBy promise after scroller removal");
+
+  promise_test(async () => {
+    resetScrollers();
+    let scroll_promise =
+          innertarget_at_1000px.scrollIntoView({ behavior: "smooth" });
+    scroller.remove();
+    await confirmPromiseSettles(scroll_promise);
+  }, "Element.scrollIntoView promise after outer scroller removal");
+
+  promise_test(async () => {
+    resetScrollers();
+    let scroll_promise =
+          innertarget_at_1000px.scrollIntoView({ behavior: "smooth" });
+    // After removing the inner scroller, we need to wait for the outer scroller
+    // to finish scrolling.
+    let scrollend_promise = new Promise(
+          resolve => scroller.addEventListener("scrollend", resolve));
+    inner_scroller.remove();
+
+    await confirmPromiseSettles(scroll_promise, scrollend_promise);
+  }, "Element.scrollIntoView promise after inner scroller removal");
+
+  promise_test(async () => {
+    const iframe = document.getElementsByTagName("iframe")[0];
+    const scroller = iframe.contentDocument.getElementById("scroller");
+
+    let scroll_promise = scroller.scrollBy({ top: 1000, behavior: "smooth" });
+    iframe.remove();
+    await confirmPromiseSettles(scroll_promise);
+  }, "Element.scrollBy promise after iframe removal");
+</script>

@@ -1,0 +1,24 @@
+<!doctype html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: ::target-text color rendering - overlap targets with hidden: until-found</title>
+<link rel="author" title="Stephen Chenney (Igalia)" href="mailto:schenney@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo/#selectordef-target-text">
+<link rel="match" href="target-text-five-words-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+  div { display: inline; }
+  ::target-text {
+    color: darkgrey;
+    background-color: orange;
+  }
+</style>
+<p>PASS if <div hidden="until-found">"match</div> me and me"</p>
+<p>is rendered dark grey on an orange background.</p>
+<script>
+  window.location.hash = "#:~:text=match,me&text=me%20and%20me";
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    requestAnimationFrame(() => takeScreenshot());
+  }));
+</script>
+</html>

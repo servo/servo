@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<script src="../../resources/runner.js"></script>
+<pre id="log"></pre>
+<div id="target" style="display:none; columns:5;">
+  <script>
+    for (var i = 0; i < 1000; i++)
+      document.write("<div>text</div>\n");
+  </script>
+</div>
+<script>
+  var style = document.getElementById("target").style;
+  function test() {
+    style.display = "block";
+    PerfTestRunner.forceLayout();
+    style.display = "none";
+    PerfTestRunner.forceLayout();
+  }
+
+  PerfTestRunner.measureRunsPerSecond({
+    description: "Multicol layout with lots blocks and column balancing.",
+    run: test
+  });
+</script>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-rhythm/#block-step-size">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<meta name="assert" content="Checks getComputedStyle for block level replaced margins affected by block-step-size and height of their containers">
+<style>
+.container {
+  display: inline flow-root;
+  width: 100px;
+}
+.block-step {
+  display: block;
+  block-step-size: 100px;
+  visibility: hidden;
+}
+
+iframe {
+  border: 0;
+}
+
+</style>
+</head>
+<body onload="checkLayout('.test')">
+
+<div class="container test" data-expected-height="100">
+  <img class="block-step test" src="../../support/60x60-green.png" data-expected-margin-top="20" data-expected-margin-bottom="20"></img>
+</div>
+
+<div class="container test" data-expected-height="100">
+  <canvas width="20" height="20" class="block-step test" data-expected-margin-top="40" data-expected-margin-bottom="40"></canvas>
+</div>
+
+<div class="container test" data-expected-height="100">
+  <svg class="block-step test" viewBox="0 0 100 50" data-expected-margin-top="25" data-expected-margin-bottom="25"></svg>
+</div>
+
+<div class="container test" data-expected-height="100">
+  <embed type="text/xml" width="20" height="20" class="block-step test" data-expected-margin-top="40" data-expected-margin-bottom="40"></embed>
+</div>
+<div class="container test" data-expected-height="100">
+  <iframe src="" width="20" height="20" class="block-step test" data-expected-margin-top="40" data-expected-margin-bottom="40"></iframe>
+</div>
+
+<div class="container test" data-expected-height="100">
+  <object width="20" height="20" class="block-step test" data-expected-margin-top="40" data-expected-margin-bottom="40"></object>
+</div>
+
+<div class="container test" data-expected-height="100">
+  <video width="20" height="20" class="block-step test" data-expected-margin-top="40" data-expected-margin-bottom="40"></video>
+</div>
+
+</body>
+</html>

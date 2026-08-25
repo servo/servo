@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://drafts.csswg.org/css-grid/#min-size-auto">
+<link rel="match" href="min-size-auto-overflow-clip-ref.html">
+<title>overflow: visible and clip behave the same for min-size purposes</title>
+<style>
+  .flex {
+    display: flex;
+    flex-direction: column;
+  }
+  .grid {
+    display: grid;
+    flex-basis: 20px;
+    border: 1px solid;
+  }
+</style>
+<div class="flex">
+  <div class="grid" style="overflow: clip">
+    <div style="height: 50px;"></div>
+  </div>
+</div>

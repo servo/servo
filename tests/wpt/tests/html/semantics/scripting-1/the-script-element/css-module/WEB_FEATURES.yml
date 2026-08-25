@@ -1,0 +1,2 @@
+rules:
+- "**": [css-modules]

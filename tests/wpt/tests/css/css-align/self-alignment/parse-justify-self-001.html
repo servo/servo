@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Self-Alignment: justify-self - setting values via CSS</title>
+<link rel="author" title="Javier Fernandez" href="mailto:jfernandez@igalia.com" />
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#self-alignment" />
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#propdef-justify-self" />
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#typedef-self-position" />
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#typedef-baseline-position" />
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#typedef-overflow-position" />
+<link rel="stylesheet" href="../../support/alignment.css" >
+<meta name="assert" content="Check that the computed value is the specified value and the JS value is empty."/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-align/resources/alignment-parsing-utils.js"></script>
+<div id="log"></div>
+<script>
+    let classes = Object.assign({"Auto":"auto", "Normal":"normal", "Stretch":"stretch", "Left":"left",
+                                 "Right":"right"}, selfPositionClasses, baselineClasses, overflowClasses);
+
+    for (var key in classes) {
+        let specifiedValue = classes[key];
+        element = document.createElement("div");
+        element.className = "justifySelf" + key;
+        document.body.appendChild(element);
+        test(function() {
+            let value = specifiedValue;
+            if (specifiedValue === "first baseline")
+                checkValues(element, "justifySelf", "justify-self", "", "baseline");
+            else
+                checkValues(element, "justifySelf", "justify-self", "", value);
+        }, "Checking justify-self: " + specifiedValue);
+    }
+</script>

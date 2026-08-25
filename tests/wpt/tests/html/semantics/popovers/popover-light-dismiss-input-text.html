@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8" />
+<title>Popover should light dismiss on input text</title>
+<link rel="author" href="mailto:lwarlow@igalia.com">
+<link rel=help href="https://html.spec.whatwg.org/multipage/popover.html">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/popover-utils.js"></script>
+
+<input type="text" id="input" popovertarget="popover1">
+
+<div popover id=popover1>
+  This is a popover
+</div>
+
+<style>
+  #popover1 { top:50px; left: 50px; }
+</style>
+
+<script>
+  promise_test(async t => {
+    assert_equals(popover1.matches(':popover-open'), false);
+    popover1.showPopover();
+    assert_equals(popover1.matches(':popover-open'), true);
+    let actions = new test_driver.Actions();
+    await actions
+        .pointerMove(2,2,{origin: input})
+        .pointerDown({button: actions.ButtonType.LEFT})
+        .pointerMove(2,2,{origin: input})
+        .pointerUp({button: actions.ButtonType.LEFT})
+        .send();
+    await waitForRender();
+    assert_equals(popover1.matches(':popover-open'), false);
+  },'Click text input should light-dismiss popover');
+</script>

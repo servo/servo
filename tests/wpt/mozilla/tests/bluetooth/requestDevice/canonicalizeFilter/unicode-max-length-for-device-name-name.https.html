@@ -1,0 +1,17 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/_mozilla/bluetooth/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+promise_test(t => {
+    // \u2764's UTF-8 respresentation is 3 bytes long.
+    // 83 chars * 3 bytes/char = 249 bytes
+    let unicode_name = '\u2764'.repeat(83);
+    window.testRunner.setBluetoothMockDataSet(adapter_type.unicode_device);
+    return promise_rejects_js(
+        t, TypeError, window.navigator.bluetooth.requestDevice({filters: [{name: unicode_name}]}),
+        'Device name longer than 248 bytes');
+}, 'Unicode string in \'name\' with utf8 representation greater than 248 ' +
+   'bytes must throw TypeError.');
+</script>

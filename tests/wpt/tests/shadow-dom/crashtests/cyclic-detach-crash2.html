@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Cyclic detach with nested shadow trees should not crash</title>
+<link rel="help" href="https://crbug.com/847056">
+<div id="div1"><div id="div2"></div></div>
+<script>
+  const div1 = document.getElementById('div1');
+  const div2 = document.getElementById('div2');
+  // slot1 (#div2 is assigned)
+  div1.attachShadow({mode: 'open'}).innerHTML = '<slot></slot>';
+  // slot2
+  div2.attachShadow({mode: 'open'}).innerHTML = '<slot></slot>';
+
+  document.body.offsetTop;
+  // All shadow roots' assignment recalc flags are clean.
+  div1.remove();
+  const span = document.createElement('span');
+  // #div2's shadow root's assignment recalc flag becomes dirty.
+  div2.appendChild(span);
+  // #div1's shadow root's assignment recalc flag becomes dirty.
+  document.body.appendChild(div2);
+  // slot2's assignment is recalculated.
+  document.body.offsetTop;
+  span.appendChild(div1);
+  // #div1's shadow root's assignment recalc flag is still dirty.
+  span.remove();
+</script>

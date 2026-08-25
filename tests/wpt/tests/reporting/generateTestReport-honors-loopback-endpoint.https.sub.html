@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+<head>
+  <title>Test that Reporting-Endpoints honors a potentially trustworthy loopback endpoint</title>
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src='resources/report-helper.js'></script>
+</head>
+<body>
+  <script>
+    // https://w3c.github.io/reporting/#header requires endpoint URLs to be
+    // potentially trustworthy, which includes loopback origins.
+    const base_url = `${location.protocol}//${location.host}`;
+    const endpoint = `${base_url}/reporting/resources/report.py`;
+    const id = '2c8f6d1e-9a4b-4c7d-8e2f-1a3b5c7d9e0f';
+
+    function checkReportIsValid(reports, type) {
+      for (const report of reports) {
+        if (report.type !== type) continue;
+        if (report.url.endsWith(
+            "reporting/generateTestReport-honors-loopback-endpoint.https.sub.html"))
+          return true;
+      }
+      assert_unreached(`A report of ${type} was not found.`);
+    }
+
+    promise_test(async t => {
+      await test_driver.generate_test_report("Test message.");
+      const reports = await pollReports(endpoint, id);
+      checkReportIsValid(reports, 'test');
+    }, "Reporting-Endpoints loopback target endpoint received the test report.");
+</script>
+</body>
+</html>

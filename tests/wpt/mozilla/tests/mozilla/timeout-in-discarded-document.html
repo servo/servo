@@ -1,0 +1,14 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Timeout in a discarded document doesn't break the browser.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe></iframe>
+<script>
+  async_test(function(t) {
+    var i = document.querySelector('iframe');
+    i.contentWindow.setTimeout(function() {}, 10);
+    i.remove();
+    t.step_timeout(function() { t.done() }, 100);
+  });
+</script>

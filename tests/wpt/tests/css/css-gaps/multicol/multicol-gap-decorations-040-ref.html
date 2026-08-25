@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<style>
+  body {
+    margin: 0;
+  }
+
+  .container {
+    border: 2px solid black;
+    columns: 2;
+    column-fill: auto;
+    width: 60px;
+    height: 60px;
+    background: red;
+    column-gap: 20px;
+    overflow: hidden;
+  }
+
+  .mock-rule {
+    height: 60px;
+    width: 20px;
+    position: absolute;
+    left: 22px;
+    top: 2px;
+    background: gold;
+  }
+</style>
+<div class="mock-rule"></div>
+<div class="container">
+  <div style="height:120px; background:blue;"></div>
+</div>

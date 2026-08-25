@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/testharness-helper.js"></script>
+<meta http-equiv="Content-Security-Policy" content="worker-src 'self'">
+<script>
+  // Note: The analogous logic for dedicated and shared workers is tested in
+  // /workers/modules/dedicated-worker-import-csp.html
+  // /workers/modules/shared-worker-import-csp.html
+
+  const url = `/workers/modules/resources/static-import-remote-origin-script-worker.sub.js`;
+  const importUrl = 'https://{{domains[www1]}}:{{ports[https][0]}}/workers/modules/resources/export-on-load-script.py';
+
+  let cspViolation = new Promise(resolve => {
+    self.addEventListener("securitypolicyviolation", e => {
+      if (e.violatedDirective === "worker-src") resolve(e);
+    });
+  });
+
+  promise_test(async t => {
+    await promise_rejects_js(t, TypeError,
+                             navigator.serviceWorker.register(url, { scope: url, type: 'module' }));
+  }, "Cross-origin service worker static import blocked by worker-src 'self'.");
+
+  promise_test(async t => {
+    let e = await Promise.race([
+      cspViolation,
+      new Promise((resolve, reject) => {
+        t.step_timeout(_ => reject("No CSP violation triggered"), 5000);
+      })
+    ]);
+    assert_equals(e.blockedURI, importUrl);
+    assert_equals(e.effectiveDirective, "worker-src");
+  },  "Cross-origin service worker static import blocked by worker-src 'self' triggers CSP violation.");
+</script>

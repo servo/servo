@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Inlinize block-level boxes recursively inside ruby and rt</title>
+<link rel="help" href="https://drafts.csswg.org/css-ruby/#anon-gen-inlinize">
+<link rel="help" href="https://drafts.csswg.org/css-display-4/#inlinify">
+<link rel="match" href="ruby-inlinize-recursive-simple-ref.html">
+<style>
+li { display: inline flow list-item; list-style-type: none; }
+.bl { display: block; }
+rt { display: ruby-text; }
+</style>
+<body>
+
+<div><ruby><b><span class="bl">first</span><span class="bl">second</span></b><li><span class="bl">first</span><span class="bl">second</span></li></ruby></div>
+<div><rt><b><span class="bl">first</span><span class="bl">second</span></b><li><span class="bl">first</span><span class="bl">second</span></li></rt></div>
+
+</body>

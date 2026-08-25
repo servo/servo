@@ -1,0 +1,122 @@
+Coverage is based on the following editor draft:
+https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
+
+7.  insertDTMF
+
+    [Trivial]
+    - The tones parameter is treated as a series of characters.
+
+    [RTCDTMFSender-insertDTMF]
+    - The characters 0 through 9, A through D, #, and * generate the associated
+      DTMF tones.
+
+    [RTCDTMFSender-insertDTMF]
+    - The characters a to d MUST be normalized to uppercase on entry and are equivalent
+      to A to D.
+
+    [RTCDTMFSender-insertDTMF]
+    - As noted in [RTCWEB-AUDIO] Section 3, support for the characters 0 through 9,
+      A through D, #, and * are required.
+
+    [RTCDTMFSender-insertDTMF]
+    - The character ',' MUST be supported, and indicates a delay of 2 seconds before
+      processing the next character in the tones parameter.
+
+    [RTCDTMFSender-insertDTMF]
+    - All other characters (and only those other characters) MUST
+      be considered unrecognized.
+
+    [Trivial]
+    - The duration parameter indicates the duration in ms to use for each character passed
+      in the tones parameters.
+
+    [RTCDTMFSender-ontonechange]
+    - The duration cannot be more than 6000 ms or less than 40 ms.
+
+    [RTCDTMFSender-ontonechange]
+    - The default duration is 100 ms for each tone.
+
+    [RTCDTMFSender-ontonechange]
+    - The interToneGap parameter indicates the gap between tones in ms. The user agent
+      clamps it to at least 30 ms. The default value is 70 ms.
+
+    [Untestable]
+    - The browser MAY increase the duration and interToneGap times to cause the times
+      that DTMF start and stop to align with the boundaries of RTP packets but it MUST
+      not increase either of them by more than the duration of a single RTP audio packet.
+
+    [Trivial]
+    When the insertDTMF() method is invoked, the user agent MUST run the following steps:
+
+      [Trivial]
+      1.  let sender be the RTCRtpSender used to send DTMF.
+
+      [Trivial]
+      2.  Let transceiver be the RTCRtpTransceiver object associated with sender.
+
+      [RTCDTMFSender-insertDTMF]
+      3.  If transceiver.stopped is true, throw an InvalidStateError.
+
+      [RTCDTMFSender-insertDTMF]
+      4.  If transceiver.currentDirection is recvonly or inactive, throw an
+          InvalidStateError.
+
+      [Trivial]
+      5.  Let tones be the method's first argument.
+
+      [RTCDTMFSender-insertDTMF]
+      6.  If tones contains any unrecognized characters, throw an InvalidCharacterError.
+
+      [RTCDTMFSender-insertDTMF]
+      7.  Set the object's toneBuffer attribute to tones.
+
+      [RTCDTMFSender-ontonechange]
+      8.  If the value of the duration parameter is less than 40, set it to 40.
+
+          [RTCDTMFSender-ontonechange-long]
+          If, on the other hand, the value is greater than 6000, set it to 6000.
+
+      [RTCDTMFSender-ontonechange]
+      9.  If the value of the interToneGap parameter is less than 30, set it to 30.
+
+      [RTCDTMFSender-ontonechange]
+      10. If toneBuffer is an empty string, abort these steps.
+
+      [RTCDTMFSender-ontonechange]
+      11. If a Playout task is scheduled to be run; abort these steps;
+
+          [RTCDTMFSender-ontonechange]
+          otherwise queue a task that runs the following steps (Playout task):
+
+          [RTCDTMFSender-ontonechange]
+          1.  If transceiver.stopped is true, abort these steps.
+
+          [RTCDTMFSender-ontonechange]
+          2.  If transceiver.currentDirection is recvonly or inactive, abort these steps.
+
+          [RTCDTMFSender-ontonechange]
+          3.  If toneBuffer is an empty string, fire an event named tonechange with an
+              empty string at the RTCDTMFSender object and abort these steps.
+
+          [RTCDTMFSender-ontonechange]
+          4.  Remove the first character from toneBuffer and let that character be tone.
+
+          [Untestable]
+          5.  Start playout of tone for duration ms on the associated RTP media stream,
+              using the appropriate codec.
+
+          [RTCDTMFSender-ontonechange]
+          6.  Queue a task to be executed in duration + interToneGap ms from now that
+              runs the steps labelled Playout task.
+
+          [RTCDTMFSender-ontonechange]
+          7.  Fire an event named tonechange with a string consisting of tone at the
+              RTCDTMFSender object.
+
+Coverage Report
+
+  Tested        31
+  Not Tested     0
+  Untestable     1
+
+  Total         32

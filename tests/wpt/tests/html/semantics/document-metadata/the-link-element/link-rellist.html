@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>link.relList: non-string contains</title>
+<link rel="author" title="Ms2ger" href="mailto:ms2ger@gmail.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#the-link-element">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#domtokenlist">
+<link rel="help" href="https://webidl.spec.whatwg.org/#ecmascript-binding">
+<link rel="help" href="http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-262.pdf#page=57">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link id="link" rel="undefined null 0 NaN Infinity">
+<div id="log"></div>
+<script>
+test(function() {
+  var list = document.getElementById("link").relList;
+  assert_equals(list.contains(undefined), true); //"undefined"
+  assert_equals(list.contains(null), true); //"null"
+  assert_equals(list.contains(-0), true); //"0"
+  assert_equals(list.contains(+0), true); //"0"
+  assert_equals(list.contains(NaN), true); //"NaN"
+  assert_equals(list.contains(+Infinity), true); //"Infinity"
+  assert_equals(list.contains(-Infinity), false); //"-Infinity"
+  assert_equals(list.supports("stylesheet"), true);
+  assert_equals(list.supports("nosuchrelvalueever"), false);
+});
+</script>

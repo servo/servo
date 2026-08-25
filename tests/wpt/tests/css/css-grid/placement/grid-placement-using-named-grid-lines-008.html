@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Grid item placement with inherited grid-template-areas</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="http://www.w3.org/TR/css-grid-1/#line-placement">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="Grid placement algorithm is able to select the right line when defined implicitly with an inherited grid-template-areas.">
+<style>
+.wrapper {
+  grid-template-areas: "a b" "a c";
+}
+.grid {
+  display: grid;
+  grid-template-areas: inherit;
+  width: 100px;
+  height: 100px;
+  background: red;
+}
+.item {
+  background: green;
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="wrapper">
+  <div class="grid">
+    <div class="item" style="grid-area: a"></div>
+    <div class="item" style="grid-area: b"></div>
+    <div class="item" style="grid-area: c"></div>
+  </div>
+</div>

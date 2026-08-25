@@ -1,0 +1,152 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/test/tests/unit/helpers.js"></script>
+<title>Assertion functions</title>
+<script>
+'use strict';
+
+test(function() {
+  assert_object_equals({}, {});
+}, 'empty objects');
+
+test(function() {
+  var actual = {};
+  var expected = {};
+  actual.a = actual;
+  expected.a = actual;
+
+  assert_object_equals(actual, expected);
+}, 'tolerates cycles in actual value');
+
+test(function() {
+  var actual = {};
+  var expected = {};
+  actual.a = expected;
+  expected.a = expected;
+
+  assert_object_equals(actual, expected);
+}, 'tolerates cycles in expected value');
+
+test(function() {
+  assert_object_equals({2: 99, 0: 23, 1: 45}, [23, 45, 99]);
+}, 'recognizes equivalence of actual object and expected array');
+
+test(function() {
+  assert_object_equals([23, 45, 99], {2: 99, 0: 23, 1: 45});
+}, 'recognizes equivalence of actual array and expected object');
+
+test(function() {
+  var actual = {};
+  var expected = {};
+  Object.defineProperty(actual, 'a', { value: 1, enumerable: false });
+
+  assert_not_equals(actual.a, expected.a);
+  assert_object_equals(actual, expected);
+}, 'non-enumerable properties in actual value ignored');
+
+test(function() {
+  var actual = {};
+  var expected = {};
+  Object.defineProperty(expected, 'a', { value: 1, enumerable: false });
+
+  assert_not_equals(actual.a, expected.a);
+  assert_object_equals(actual, expected);
+}, 'non-enumerable properties in expected value ignored');
+
+test(function() {
+  assert_object_equals({c: 3, a: 1, b: 2}, {a: 1, b: 2, c: 3});
+}, 'equivalent objects - "flat" object');
+
+test(function() {
+  assert_object_equals(
+    {c: {e: 5, d: 4}, b: 2, a: 1},
+    {a: 1, b: 2, c: {d: 4, e: 5}}
+  );
+}, 'equivalent objects - nested object');
+
+test(function() {
+  assert_object_equals(
+    {c: [4, 5], b: 2, a: 1},
+    {a: 1, b: 2, c: [4, 5]}
+  );
+}, 'equivalent objects - nested array');
+
+test(function() {
+  assert_object_equals({a: NaN}, {a: NaN});
+}, 'equivalent objects - NaN value');
+
+test(function() {
+  assert_object_equals({a: -0}, {a: -0});
+}, 'equivalent objects - negative zero value');
+
+test_failure(function() {
+  assert_object_equals(undefined, {});
+}, 'invalid actual value: undefined');
+
+test_failure(function() {
+  assert_object_equals(null, {});
+}, 'invalid actual value: null');
+
+test_failure(function() {
+  assert_object_equals(34, {});
+}, 'invalid actual value: number');
+
+test_failure(function() {
+  assert_object_equals({c: 3, a: 1, b: 2}, {a: 1, b: 1, c: 3});
+}, 'unequal property value - "flat" object');
+
+test_failure(function() {
+  var actual = Object.create({a: undefined});
+  var expected = {};
+
+  assert_object_equals(actual, expected);
+}, 'non-own properties in actual value verified');
+
+test_failure(function() {
+  var actual = {};
+  var expected = Object.create({a: undefined});
+
+  assert_object_equals(actual, expected);
+}, 'non-own properties in expected value verified');
+
+test_failure(function() {
+  assert_object_equals(
+    {a: 1, b: 2, c: {d: 5, e: 5, f: 6}},
+    {a: 1, b: 2, c: {d: 5, e: 7, f: 6}}
+  );
+}, 'unequal property value - nested object');
+
+test_failure(function() {
+  assert_object_equals(
+    {a: 1, b: 2, c: [4, 5, 6]},
+    {a: 1, b: 2, c: [4, 7, 6]}
+  );
+}, 'unequal property value - nested array');
+
+test_failure(function() {
+  assert_object_equals({a: NaN}, {a: 0});
+}, 'equivalent objects - NaN actual value');
+
+test_failure(function() {
+  assert_object_equals({a: 0}, {a: NaN});
+}, 'equivalent objects - NaN expected value');
+
+test_failure(function() {
+  assert_object_equals({a: -0}, {a: 0});
+}, 'equivalent objects - negative zero actual value');
+
+test_failure(function() {
+  assert_object_equals({a: 0}, {a: -0});
+}, 'equivalent objects - negative zero expected value');
+
+test_failure(function() {
+  assert_object_equals({a: 1}, {});
+}, 'actual contains additional property');
+
+test_failure(function() {
+  assert_object_equals({}, {a: 1});
+}, 'expected contains additional property');
+</script>

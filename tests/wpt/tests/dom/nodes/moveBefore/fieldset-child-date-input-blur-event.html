@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>moveBefore should not fire blur on a focused date input subfield in a disabled fieldset</title>
+<link rel=author href="mailto:ansollan@microsoft.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<fieldset disabled id="fs">
+  <legend id="L1">
+    <input type="date" id="victim">
+  </legend>
+  <legend id="L2"></legend>
+</fieldset>
+<script>
+test(() => {
+  victim.focus();
+  let blurExecuted = false;
+  let focusoutExecuted = false;
+  victim.addEventListener('blur', () => { blurExecuted = true; }, /*capture=*/true);
+  victim.addEventListener('focusout', () => { focusoutExecuted = true; });
+  fs.moveBefore(L1, null);
+  assert_false(blurExecuted, "'blur' event is not fired on host <input type=date> during moveBefore()");
+  assert_false(focusoutExecuted, "'focusout' event is not fired on host <input type=date> during moveBefore()");
+}, "Neither 'blur' nor 'focusout' is fired on a focused <input type=date> child of HTMLFieldSetElement during moveBefore()");
+</script>
+</body>

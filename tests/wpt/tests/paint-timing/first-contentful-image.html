@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<head>
+<title>Performance Paint Timing Test: FCP due to image</title>
+</head>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+<div id="image"></div>
+
+<script>
+setup({"hide_test_state": true});
+async_test(function (t) {
+    assert_implements(window.PerformancePaintTiming, "Paint Timing isn't supported.");
+    const img = document.createElement("IMG");
+    img.src = "resources/circles.png";
+    img.onload = function() {
+        assertPaintTimingEntries(t, 20);
+    };
+    document.getElementById('image').appendChild(img);
+}, "First contentful paint fires due to image render.");
+</script>
+</body>
+</html>

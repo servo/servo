@@ -1,0 +1,7 @@
+rules:
+- Document-importNode.html: [autonomous-custom-elements]
+- Node-cloneNode.html: [autonomous-custom-elements]
+- upgrading-enqueue-reactions.html: [autonomous-custom-elements]
+- upgrading-parser-created-element.html: [autonomous-custom-elements]
+- Document-importNode-customized-builtins.html: [customized-built-in-elements]
+- Node-cloneNode-customized-builtins.html: [customized-built-in-elements]

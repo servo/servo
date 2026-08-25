@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-sizes">
+<meta name="assert" content="Checks that percentage margins resolve to zero for intrinsic sizing in flex containers.">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<p>Test passes if there is a filled green square.</p>
+<div style="display: flex; width: min-content; height: 100px; background: green;">
+  <div style="width: 100px; margin-left: 50%;"></div>
+</div>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+
+    .container {
+        border: 2px solid rgb(96 139 168);
+        width: 200px;
+        height: 130px;
+        column-gap: 10px;
+        display: flex;
+    }
+
+    .items {
+        background: rgb(96 139 168 / 0.2);
+        height: 60px;
+        margin: 0px;
+        width: 60px;
+    }
+
+    .last-item {
+        position: absolute;
+        left: 2px;
+        top: 72px;
+        background: rgb(96 139 168 / 0.2);
+        height: 60px;
+        margin: 0px;
+        width: 60px;
+    }
+
+    /* Row rule (gold) — paints across all three column slots with `around`. */
+    .row-gap {
+        position: absolute;
+        height: 2px;
+        background: gold;
+        top: 66px;
+    }
+
+    /* Column rules (blue). */
+    .column-gap {
+        position: absolute;
+        width: 10px;
+        background: blue;
+    }
+</style>
+
+<div class="container">
+    <div class="items"></div>
+    <div class="items"></div>
+    <div class="items"></div>
+</div>
+<div class="last-item"></div>
+
+<!-- Row 0 column rules (full row height). -->
+<div class="column-gap" style="left:62px; top:2px; height:60px;"></div>
+<div class="column-gap" style="left:132px; top:2px; height:60px;"></div>
+
+<!-- Row 1 column rule between existing col 0 and missing col 1 (kEmptyAfter,
+     paints with `around`). The rule between the two missing slots is omitted. -->
+<div class="column-gap" style="left:62px; top:72px; height:60px;"></div>
+
+<!-- Row rule segments above each column slot. -->
+<div class="row-gap" style="left:2px; width:60px;"></div>
+<div class="row-gap" style="left:72px; width:60px;"></div>
+<div class="row-gap" style="left:142px; width:60px;"></div>

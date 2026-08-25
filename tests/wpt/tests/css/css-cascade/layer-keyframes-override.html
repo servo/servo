@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<title>Resolving @keyframe name conflicts with cascade layers</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-5/#layering">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#target, #reference {
+  width: 100px;
+  height: 100px;
+}
+
+#reference {
+  background-color: green;
+}
+</style>
+
+<div id="target"></div>
+<div id="reference"></div>
+
+<script>
+// In all tests, background color of #target should be green, same as #reference
+
+const testCases = [
+  {
+    title: '@keyframes unlayered overrides layered',
+    style: `
+      #target {
+        animation: anim 1s paused;
+      }
+
+      @keyframes anim {
+        from { background-color: green; }
+      }
+
+      @layer {
+        @keyframes anim {
+          from { background-color: red; }
+        }
+      }
+    `
+  },
+
+  {
+    title: '@keyframes override between layers',
+    style: `
+      @layer base, override;
+
+      #target {
+        animation: anim 1s paused;
+      }
+
+      @layer override {
+        @keyframes anim {
+          from { background-color: green; }
+        }
+      }
+
+      @layer base {
+        @keyframes anim {
+          from { background-color: red; }
+        }
+      }
+    `
+  },
+
+  {
+    title: '@keyframes override update with appended sheet 1',
+    style: `
+      @layer base, override;
+
+      #target {
+        animation: anim 1s paused;
+      }
+
+      @layer override {
+        @keyframes anim {
+          from { background-color: green; }
+        }
+      }
+    `,
+    append: `
+      @layer base {
+        @keyframes anim {
+          from { background-color: red; }
+        }
+      }
+    `
+  },
+
+  {
+    title: '@keyframes override update with appended sheet 2',
+    style: `
+      @layer base, override;
+
+      #target {
+        animation: anim 1s paused;
+      }
+
+      @layer base {
+        @keyframes anim {
+          from { background-color: red; }
+        }
+      }
+    `,
+    append: `
+      @layer override {
+        @keyframes anim {
+          from { background-color: green; }
+        }
+      }
+    `
+  },
+];
+
+for (let testCase of testCases) {
+  var documentStyle = document.createElement('style');
+  documentStyle.appendChild(document.createTextNode(testCase['style']));
+  document.head.appendChild(documentStyle);
+
+  var appendedStyle;
+  if (testCase['append']) {
+    document.body.offsetLeft;  // Force style update
+    appendedStyle = document.createElement('style');
+    appendedStyle.appendChild(document.createTextNode(testCase['append']));
+    document.head.appendChild(appendedStyle);
+  }
+
+  test(function () {
+    assert_equals(getComputedStyle(target).backgroundColor,
+                  getComputedStyle(reference).backgroundColor);
+  }, testCase['title']);
+
+  if (appendedStyle)
+    appendedStyle.remove();
+  documentStyle.remove();
+}
+</script>

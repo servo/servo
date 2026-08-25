@@ -1,0 +1,26 @@
+<!doctype html>
+<title>Origin check in document.open() - Basic usage</title>
+<link rel="author" title="Jochen Eisinger" href="mailto:jochen@chromium.org">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#opening-the-input-stream">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/html/resources/common.js"></script>
+<body>
+<script>
+testInIFrame(undefined, (ctx) => {
+  try {
+    ctx.iframes[0].contentDocument.open();
+  } catch (e) {
+    assert_unreached("Opening a same origin document throws");
+  }
+}, "It should be possible to open same origin documents.");
+
+testInIFrame(undefined, (ctx) => {
+  try {
+    ctx.iframes[0].contentDocument.write("");
+  } catch (e) {
+    assert_unreached("Implicitly opening a same origin document throws");
+  }
+}, "It should be possible to implicitly open same origin documents.");
+</script>
+</body>

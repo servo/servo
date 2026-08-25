@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<title>Fragment navigation target moved into a content-visibility:auto subtree of another document</title>
+<link rel="help" href="https://drafts.csswg.org/css-contain-2/#content-visibility">
+<body>
+<script>
+  function afterFrames(count, callback) {
+    requestAnimationFrame(() => {
+      if (count <= 1) {
+        callback();
+      } else {
+        afterFrames(count - 1, callback);
+      }
+    });
+  }
+
+  const isInner = location.search.includes("inner");
+  if (!isInner) {
+    const boundary = document.createElement("div");
+    boundary.id = "boundary";
+    boundary.style.cssText = "contain:strict;width:200px;height:200px;position:absolute;top:9000px;left:0";
+    const cv = document.createElement("div");
+    cv.id = "cv";
+    cv.style.cssText = "content-visibility:auto";
+    boundary.appendChild(cv);
+    document.body.appendChild(boundary);
+    const ifr = document.createElement("iframe");
+    ifr.style.cssText = "width:400px;height:200px";
+    ifr.src = location.pathname + "?inner#victim";
+    document.body.appendChild(ifr);
+  } else {
+    const victim = document.createElement("div");
+    victim.id = "victim";
+    victim.textContent = "victim";
+    document.body.appendChild(victim);
+    const victim2 = document.createElement("div");
+    victim2.id = "victim2";
+    victim2.textContent = "victim2";
+    document.body.appendChild(victim2);
+
+    addEventListener("load", () => afterFrames(20, step1));
+
+    function step1() {
+      location.hash = "#victim2";
+      afterFrames(6, step2);
+    }
+
+    function step2() {
+      navigation.addEventListener("navigate", e => {
+        e.intercept({
+          handler: async () => {
+            const topDoc = parent.document;
+            // Adopts the anchor this document last scrolled to into
+            // the parent document, under a content-visibility:auto subtree.
+            topDoc.getElementById("cv").appendChild(document.getElementById("victim2"));
+            topDoc.body.offsetHeight;
+            topDoc.getElementById("boundary").style.display = "none";
+            const nope = document.createElement("div");
+            nope.id = "nope";
+            nope.textContent = "nope";
+            document.body.appendChild(nope);
+          }
+        });
+      }, {once: true});
+      location.hash = "#nope";
+      afterFrames(20, () => {
+        parent.document.documentElement.classList.remove("test-wait");
+      });
+    }
+  }
+</script>

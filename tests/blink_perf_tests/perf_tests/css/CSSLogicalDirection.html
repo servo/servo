@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<script src="../resources/runner.js"></script>
+<script src="resources/utils.js"></script>
+<style>
+  body.default_ltr .default { direction: ltr; }
+  body.default_ltr .alternative { direction: rtl; }
+
+  body.default_rtl .default { direction: rtl; }
+  body.default_rtl .alternative { direction: ltr; }
+  div { margin-inline-start: 10px; }
+  /* Give the cascade something to do: */
+  div { border: 0px solid red; }
+  div { border: 0px solid green !important; }
+  div { border: 0px solid black; }
+  div { padding: 0px; }
+</style>
+<body class="default_ltr"></body>
+<script>
+
+  function createTree(node, siblings, depth) {
+    if (!depth)
+      return;
+    for (let i = 0; i < siblings; i++) {
+        var div = document.createElement('div');
+        div.className = (depth % 2 == 0) ? 'default' : 'alternative';
+        node.append(div);
+        createTree(div, siblings, depth - 1);
+    }
+  }
+  createTree(document.body, 4, 6);
+
+  PerfTestRunner.measureTime({
+      description: 'Measure impact of switching direction with css-logical',
+      run: function() {
+        document.body.classList.toggle('default_ltr');
+        document.body.classList.toggle('default_rtl');
+        forceStyleRecalc(document.body);
+      }
+  });
+</script>

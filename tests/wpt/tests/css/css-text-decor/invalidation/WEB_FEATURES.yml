@@ -1,0 +1,3 @@
+rules:
+- selection-pseudo-with-decoration-invalidation-*: [text-decoration-selection]
+- text-decoration-*: [text-decoration]

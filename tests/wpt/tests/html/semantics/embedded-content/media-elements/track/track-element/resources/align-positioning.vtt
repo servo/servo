@@ -1,0 +1,20 @@
+WEBVTT
+Cues should position at different horizontal positions with different alignments.
+
+1
+00:00:00.000 --> 00:00:30.500 position:10% align:start
+Bear is Coming!!!!!
+Positioning on the left bottom, start aligned, and
+first character rendering position is at 10% of width.
+
+2
+00:00:31.000 --> 00:00:45.500 position:20% align:middle
+I said Bear is coming!!!!
+Positioning on the bottom left, middle aligned, and
+middle character rendering position of each line is at 20% of width.
+
+3
+00:01:01.000 --> 00:02:00.500 align:end position:80%
+I said Bear is coming now!!!!
+Positioning on the bottom right, end aligned, and
+last character rendering position of each line is at 80% of width.

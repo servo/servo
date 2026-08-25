@@ -1,0 +1,70 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>RTCPeerConnection getStats test related to outbound-rtp stats</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../webrtc/RTCPeerConnection-helper.js"></script>
+<script>
+function extractOutboundRtpStats(stats) {
+  const wantedStats = [];
+  stats.forEach(report => {
+    if (report.type === 'outbound-rtp') {
+     wantedStats.push(report);
+    }
+  });
+  return wantedStats;
+}
+
+promise_test(async (test) => {
+  const pc1 = new RTCPeerConnection();
+  test.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  test.add_cleanup(() => pc2.close());
+
+  // PSNR is gated on hardware.
+  const stream = await navigator.mediaDevices.getUserMedia({video: true});
+  test.add_cleanup(() => stream.getTracks().forEach(t => t.stop()));
+
+  stream.getTracks().forEach(t => pc1.addTrack(t, stream));
+  exchangeIceCandidates(pc1, pc2);
+  exchangeOfferAnswer(pc1, pc2);
+  const {track} = await new Promise(r => pc2.ontrack = r);
+  await waitForRtpAndRtcpStats(pc1);
+  // Why does ^ not return the stats... and seems unused in general?
+  const outboundStats = await pc1.getStats();
+  const outboundRtp = [...outboundStats.values()]
+    .find(({type}) => type === 'outbound-rtp');
+  assert_not_equals(outboundRtp, undefined);
+  assert_not_equals(outboundRtp.psnrMeasurements, undefined);
+  assert_not_equals(outboundRtp.psnrSum, undefined);
+  assert_not_equals(outboundRtp.psnrSum.y, undefined);
+  assert_not_equals(outboundRtp.psnrSum.u, undefined);
+  assert_not_equals(outboundRtp.psnrSum.v, undefined);
+}, 'video psnr stats are present');
+
+promise_test(async (test) => {
+  const pc1 = new RTCPeerConnection();
+  test.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  test.add_cleanup(() => pc2.close());
+
+  // PSNR is gated on hardware so this will fail.
+  const stream = await getNoiseStream({video: true});
+  test.add_cleanup(() => stream.getTracks().forEach(t => t.stop()));
+
+  stream.getTracks().forEach(t => pc1.addTrack(t, stream));
+  exchangeIceCandidates(pc1, pc2);
+  exchangeOfferAnswer(pc1, pc2);
+  const {track} = await new Promise(r => pc2.ontrack = r);
+  await waitForRtpAndRtcpStats(pc1);
+  // Why does ^ not return the stats... and seems unused in general?
+  const outboundStats = await pc1.getStats();
+  const outboundRtp = [...outboundStats.values()]
+    .find(({type}) => type === 'outbound-rtp');
+  assert_not_equals(outboundRtp, undefined);
+  assert_equals(outboundRtp.psnrMeasurements, undefined);
+  assert_equals(outboundRtp.psnrSum, undefined);
+}, 'video psnr stats are gated on hardware');
+
+</script>

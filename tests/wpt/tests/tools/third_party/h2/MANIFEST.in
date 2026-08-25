@@ -1,0 +1,9 @@
+graft src/h2
+graft docs
+graft test
+graft visualizer
+graft examples
+prune docs/build
+recursive-include examples *.py *.crt *.key *.pem *.csr
+include README.rst LICENSE CHANGELOG.rst tox.ini
+global-exclude *.pyc *.pyo *.swo *.swp *.map *.yml *.DS_Store

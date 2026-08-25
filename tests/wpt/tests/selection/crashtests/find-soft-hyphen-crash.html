@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2054788">
+<div id="t"></div>
+<script>
+const len = 123;
+document.getElementById("t").textContent = "a".repeat(len - 1) + "­" + "x";
+window.find("a".repeat(len - 1) + " ", true, false, false, false, false, false);
+</script>

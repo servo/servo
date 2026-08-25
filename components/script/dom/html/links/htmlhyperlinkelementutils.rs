@@ -1,0 +1,542 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use html5ever::{local_name, ns};
+use js::context::{JSContext, NoGC};
+use net_traits::blob_url_store::UrlWithBlobClaim;
+use script_bindings::cell::DomRefCell;
+
+use crate::dom::bindings::conversions::DerivedFrom;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::element::attributes::storage::AttrRef;
+use crate::dom::element::{AttributeMutation, Element};
+use crate::dom::node::NodeTraits;
+use crate::dom::urlhelper::UrlHelper;
+use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
+
+pub(crate) trait HyperlinkElement {
+    fn get_url(&self) -> &DomRefCell<Option<UrlWithBlobClaim>>;
+}
+
+/// <https://html.spec.whatwg.org/multipage/#htmlhyperlinkelementutils>
+pub(crate) trait HyperlinkElementTraits {
+    fn get_hash(&self, no_gc: &NoGC) -> USVString;
+    fn set_hash(&self, cx: &mut JSContext, value: USVString);
+    fn get_host(&self, no_gc: &NoGC) -> USVString;
+    fn set_host(&self, cx: &mut JSContext, value: USVString);
+    fn get_hostname(&self, no_gc: &NoGC) -> USVString;
+    fn set_hostname(&self, cx: &mut JSContext, value: USVString);
+    fn get_href(&self, no_gc: &NoGC) -> USVString;
+    fn get_origin(&self, no_gc: &NoGC) -> USVString;
+    fn get_password(&self, no_gc: &NoGC) -> USVString;
+    fn set_password(&self, cx: &mut JSContext, value: USVString);
+    fn get_pathname(&self, no_gc: &NoGC) -> USVString;
+    fn set_pathname(&self, cx: &mut JSContext, value: USVString);
+    fn get_port(&self, no_gc: &NoGC) -> USVString;
+    fn set_port(&self, cx: &mut JSContext, value: USVString);
+    fn get_protocol(&self, no_gc: &NoGC) -> USVString;
+    fn set_protocol(&self, cx: &mut JSContext, value: USVString);
+    fn get_search(&self, no_gc: &NoGC) -> USVString;
+    fn set_search(&self, cx: &mut JSContext, value: USVString);
+    fn get_username(&self, no_gc: &NoGC) -> USVString;
+    fn set_url(&self, no_gc: &NoGC);
+    fn set_username(&self, cx: &mut JSContext, value: USVString);
+    fn update_href(&self, cx: &mut JSContext, url: String);
+    fn reinitialize_url(&self, no_gc: &NoGC);
+    fn attribute_mutated_for_hyperlinks(
+        &self,
+        no_gc: &NoGC,
+        attr: AttrRef<'_>,
+        mutation: AttributeMutation,
+    );
+}
+
+impl<T: HyperlinkElement + DerivedFrom<Element> + Castable + NodeTraits> HyperlinkElementTraits
+    for T
+{
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-hash>
+    fn get_hash(&self, no_gc: &NoGC) -> USVString {
+        // Step 1. Reinitialize url.
+        self.reinitialize_url(no_gc);
+
+        // Step 2. Let url be this's url.
+        match *self.get_url().borrow() {
+            // Step 3. If url is null, or url's fragment is either null or the empty string, return
+            // the empty string.
+            None => USVString(String::new()),
+            Some(ref url) if url.fragment().is_none() || url.fragment() == Some("") => {
+                USVString(String::new())
+            },
+            Some(ref url) => {
+                // Step 4. Return "#", followed by url's fragment.
+                UrlHelper::Hash(url)
+            },
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-hash>
+    fn set_hash(&self, cx: &mut JSContext, value: USVString) {
+        // Step 1. Reinitialize url.
+        self.reinitialize_url(cx.no_gc());
+
+        // Step 2. Let url be this's url.
+        // Step 3. If url is null, then return.
+        let url = {
+            let mut url = self.get_url().safe_borrow_mut(cx.no_gc());
+            let Some(url) = url.as_mut() else {
+                return;
+            };
+
+            // Step 4. If the given value is the empty string, set url's fragment to null.
+            // Note this step is taken care of by UrlHelper::SetHash when the value is Some
+            // Steps 5. Otherwise:
+            // Step 5.1. Let input be the given value with a single leading "#" removed, if any.
+            // Step 5.2. Set url's fragment to the empty string.
+            // Note these steps are taken care of by UrlHelper::SetHash
+            // Step 5.4.  Basic URL parse input, with url as url and fragment state as state
+            // override.
+            UrlHelper::SetHash(url, value);
+            url.as_str().to_owned()
+        };
+
+        // Step 6. Update href.
+        self.update_href(cx, url);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-host>
+    fn get_host(&self, no_gc: &NoGC) -> USVString {
+        // Step 1. Reinitialize url.
+        self.reinitialize_url(no_gc);
+
+        // Step 2. Let url be this's url.
+        match *self.get_url().borrow() {
+            // Step 3. If url or url's host is null, return the empty string.
+            None => USVString(String::new()),
+            Some(ref url) => {
+                if url.host().is_none() {
+                    USVString(String::new())
+                } else {
+                    // Step 4. If url's port is null, return url's host, serialized.
+                    // Step 5. Return url's host, serialized, followed by ":" and url's port,
+                    // serialized.
+                    UrlHelper::Host(url)
+                }
+            },
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-host>
+    fn set_host(&self, cx: &mut JSContext, value: USVString) {
+        // Step 1. Reinitialize url.
+        self.reinitialize_url(cx.no_gc());
+
+        // Step 2. Let url be this's url.
+        let url = {
+            let mut url = self.get_url().safe_borrow_mut(cx.no_gc());
+            let url = match url.as_mut() {
+                // Step 3. If url or url's host is null, return the empty string.
+                Some(ref url) if url.cannot_be_a_base() => return,
+                None => return,
+                Some(url) => url,
+            };
+
+            // Step 4. Basic URL parse the given value, with url as url and host state as state
+            // override.
+            UrlHelper::SetHost(url, value);
+            url.as_str().to_owned()
+        };
+
+        // Step 5. Update href.
+        self.update_href(cx, url);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-hostname>
+    fn get_hostname(&self, no_gc: &NoGC) -> USVString {
+        // Step 1. Reinitialize url.
+        self.reinitialize_url(no_gc);
+
+        // Step 2. Let url be this's url.
+        match *self.get_url().borrow() {
+            // Step 3. If url or url's host is null, return the empty string.
+            None => USVString(String::new()),
+            Some(ref url) => {
+                // Step 4. Return url's host, serialized.
+                UrlHelper::Hostname(url)
+            },
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-hostname>
+    fn set_hostname(&self, cx: &mut JSContext, value: USVString) {
+        // Step 1. Reinitialize url.
+        self.reinitialize_url(cx.no_gc());
+
+        // Step 2. Let url be this's url.
+        let url = {
+            let mut url = self.get_url().safe_borrow_mut(cx.no_gc());
+            let url = match url.as_mut() {
+                // Step 3. If url is null or url has an opaque path, then return.
+                None => return,
+                Some(ref url) if url.cannot_be_a_base() => return,
+                Some(url) => url,
+            };
+
+            // Step 4. Basic URL parse the given value, with url as url and hostname state as state
+            // override.
+            UrlHelper::SetHostname(url, value);
+            url.as_str().to_owned()
+        };
+
+        // Step 5. Update href.
+        self.update_href(cx, url);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-href>
+    fn get_href(&self, no_gc: &NoGC) -> USVString {
+        // Step 1. Reinitialize url.
+        self.reinitialize_url(no_gc);
+
+        // Step 2. Let url be this's url.
+        USVString(match *self.get_url().borrow() {
+            None => {
+                // Step 3. If url is null and this has no href content attribute, return the
+                // empty string.
+                // Step 4. Otherwise, if url is null, return this's href content attribute's value.
+                self.upcast::<Element>()
+                    .get_attribute_string_value(&local_name!("href"))
+                    .unwrap_or_default()
+            },
+            // Step 5. Return url, serialized.
+            Some(ref url) => url.as_str().to_owned(),
+        })
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-origin>
+    fn get_origin(&self, no_gc: &NoGC) -> USVString {
+        // Step 1. Reinitialize url.
+        self.reinitialize_url(no_gc);
+
+        USVString(match *self.get_url().borrow() {
+            // Step 2. If this's url is null, return the empty string.
+            None => "".to_owned(),
+            // Step 3. Return the serialization of this's url's origin.
+            Some(ref url) => url.origin().ascii_serialization().into_owned(),
+        })
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-password>
+    fn get_password(&self, no_gc: &NoGC) -> USVString {
+        // Step 1. Reinitialize url.
+        self.reinitialize_url(no_gc);
+
+        // Step 2. Let url be this's url.
+        match *self.get_url().borrow() {
+            // Step 3. If url is null, then return the empty string.
+            None => USVString(String::new()),
+            // Steps 4. Return url's password.
+            Some(ref url) => UrlHelper::Password(url),
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-password>
+    fn set_password(&self, cx: &mut JSContext, value: USVString) {
+        // Step 1. Reinitialize url.
+        self.reinitialize_url(cx.no_gc());
+
+        let url = {
+            // Step 2. Let url be this's url.
+            let mut url = self.get_url().safe_borrow_mut(cx.no_gc());
+            let url = match url.as_mut() {
+                // Step 3. If url is null or url cannot have a username/password/port, then return.
+                None => return,
+                Some(ref url) if url.host().is_none() || url.cannot_be_a_base() => return,
+                Some(url) => url,
+            };
+
+            // Step 4. Set the password, given url and the given value.
+            UrlHelper::SetPassword(url, value);
+            url.as_str().to_owned()
+        };
+
+        // Step 5. Update href.
+        self.update_href(cx, url);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-pathname>
+    fn get_pathname(&self, no_gc: &NoGC) -> USVString {
+        // Step 1. Reinitialize url.
+        self.reinitialize_url(no_gc);
+
+        // Step 2. Let url be this's url.
+        match *self.get_url().borrow() {
+            // Step 3. If url is null, then return the empty string.
+            None => USVString(String::new()),
+            // Steps 4. Return the result of URL path serializing url.
+            Some(ref url) => UrlHelper::Pathname(url),
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-pathname>
+    fn set_pathname(&self, cx: &mut JSContext, value: USVString) {
+        // Step 1. Reinitialize url.
+        self.reinitialize_url(cx.no_gc());
+
+        // Step 2. Let url be this's url.
+        let url = {
+            let mut url = self.get_url().safe_borrow_mut(cx.no_gc());
+            let url = match url.as_mut() {
+                // Step 3. If url is null or url has an opaque path, then return.
+                None => return,
+                Some(ref url) if url.cannot_be_a_base() => return,
+                Some(url) => url,
+            };
+
+            // Step 4. Set url's path to the empty list.
+            // Step 5. Basic URL parse the given value, with url as url and path start state as state override.
+            UrlHelper::SetPathname(url, value);
+            url.as_str().to_owned()
+        };
+
+        // Step 6. Update href.
+        self.update_href(cx, url);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-port>
+    fn get_port(&self, no_gc: &NoGC) -> USVString {
+        // Step 1. Reinitialize url.
+        self.reinitialize_url(no_gc);
+
+        // Step 2. Let url be this's url.
+        match *self.get_url().borrow() {
+            // Step 3. If url or url's port is null, return the empty string.
+            None => USVString(String::new()),
+            // Step 4. Return url's port, serialized.
+            Some(ref url) => UrlHelper::Port(url),
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-port>
+    fn set_port(&self, cx: &mut JSContext, value: USVString) {
+        // Step 1. Reinitialize url.
+        self.reinitialize_url(cx.no_gc());
+
+        // Step 2. Let url be this's url.
+        let url = {
+            let mut url = self.get_url().safe_borrow_mut(cx.no_gc());
+            let url = match url.as_mut() {
+                // Step 3. If url is null or url cannot have a username/password/port, then return.
+                // https://url.spec.whatwg.org/#cannot-have-a-username-password-port
+                // > A URL cannot have a username/password/port if its host is
+                // > null or the empty string, or its scheme is "file".
+                None => return,
+                Some(ref url)
+                    if url.host().is_none() || url.cannot_be_a_base() || url.scheme() == "file" =>
+                {
+                    return;
+                },
+                Some(url) => url,
+            };
+
+            // Step 4. If the given value is the empty string, then set url's port to null.
+            // Step 5. Otherwise, basic URL parse the given value, with url as url and port state as
+            // state override.
+            UrlHelper::SetPort(url, value);
+            url.as_str().to_owned()
+        };
+
+        // Step 6. Update href.
+        self.update_href(cx, url);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-protocol>
+    fn get_protocol(&self, no_gc: &NoGC) -> USVString {
+        // Step 1. Reinitialize url.
+        self.reinitialize_url(no_gc);
+
+        match *self.get_url().borrow() {
+            // Step 2. If this's url is null, return ":".
+            None => USVString(":".to_owned()),
+            // Step 3. Return this's url's scheme, followed by ":".
+            Some(ref url) => UrlHelper::Protocol(url),
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-protocol>
+    fn set_protocol(&self, cx: &mut JSContext, value: USVString) {
+        // Step 1. Reinitialize url.
+        self.reinitialize_url(cx.no_gc());
+
+        let url = {
+            let mut url = self.get_url().safe_borrow_mut(cx.no_gc());
+            let url = match url.as_mut() {
+                // Step 2. If this's url is null, then return.
+                None => return,
+                Some(url) => url,
+            };
+
+            // Step 3. Basic URL parse the given value, followed by ":", with this's url as url and
+            // scheme start state as state override.
+            UrlHelper::SetProtocol(url, value);
+            url.as_str().to_owned()
+        };
+
+        // Step 4. Update href.
+        self.update_href(cx, url);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-search>
+    fn get_search(&self, no_gc: &NoGC) -> USVString {
+        // Step 1. Reinitialize url.
+        self.reinitialize_url(no_gc);
+
+        // Step 2. Let url be this's url.
+        match *self.get_url().borrow() {
+            // Step 3. If url is null, or url's query is either null or the empty string, return the
+            // empty string.
+            // Step 4. Return "?", followed by url's query.
+            // Note: This is handled in UrlHelper::Search
+            None => USVString(String::new()),
+            Some(ref url) => UrlHelper::Search(url),
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-search>
+    fn set_search(&self, cx: &mut JSContext, value: USVString) {
+        // Step 1. Reinitialize url.
+        self.reinitialize_url(cx.no_gc());
+
+        // Step 2. Let url be this's url.
+        let url = {
+            let mut url = self.get_url().safe_borrow_mut(cx.no_gc());
+            let url = match url.as_mut() {
+                // Step 3. If url is null, terminate these steps.
+                None => return,
+                Some(url) => url,
+            };
+
+            // Step 4. If the given value is the empty string, set url's query to null.
+            // Step 5. Otherwise:
+            // Note: Inner steps are handled by UrlHelper::SetSearch
+            UrlHelper::SetSearch(url, value);
+            url.as_str().to_owned()
+        };
+
+        // Step 6. Update href.
+        self.update_href(cx, url);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-username>
+    fn get_username(&self, no_gc: &NoGC) -> USVString {
+        // Step 1. Reinitialize url.
+        self.reinitialize_url(no_gc);
+
+        match *self.get_url().borrow() {
+            // Step 2. If this's url is null, return the empty string.
+            None => USVString(String::new()),
+            // Step 3. Return this's url's username.
+            Some(ref url) => UrlHelper::Username(url),
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#concept-hyperlink-url-set>
+    fn set_url(&self, no_gc: &NoGC) {
+        // Step 1. Set this element's url to null.
+        *self.get_url().safe_borrow_mut(no_gc) = None;
+
+        let attribute = self
+            .upcast::<Element>()
+            .get_attribute_string_value(&local_name!("href"));
+
+        // Step 2. If this element's href content attribute is absent, then return.
+        let Some(attribute) = attribute else {
+            return;
+        };
+
+        let document = self.owner_document();
+        let global = self.owner_global();
+
+        // Step 3. Let url be the result of encoding-parsing a URL given this element's href content
+        // attribute's value, relative to this element's node document.
+        let url = document.encoding_parse_a_url(&attribute);
+
+        // Step 4. If url is not failure, then set this element's url to url.
+        if let Ok(url) = url {
+            *self.get_url().safe_borrow_mut(no_gc) =
+                Some(ensure_blob_referenced_by_url_is_kept_alive(&global, url));
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-username>
+    fn set_username(&self, cx: &mut JSContext, value: USVString) {
+        // Step 1. Reinitialize url.
+        self.reinitialize_url(cx.no_gc());
+
+        // Step 2. Let url be this's url.
+        let url = {
+            let mut url = self.get_url().safe_borrow_mut(cx.no_gc());
+            let url = match url.as_mut() {
+                // Step 3. If url is null or url cannot have a username/password/port, then return.
+                None => return,
+                Some(ref url) if url.host().is_none() || url.cannot_be_a_base() => return,
+                Some(url) => url,
+            };
+
+            // Step 4. Set the username, given url and the given value.
+            UrlHelper::SetUsername(url, value);
+            url.as_str().to_owned()
+        };
+
+        // Step 5. Update href.
+        self.update_href(cx, url);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#api-for-a-and-area-elements:update-href>
+    fn update_href(&self, cx: &mut JSContext, url: String) {
+        // > To update href for an HTMLAnchorElement or HTMLAreaElement element,
+        // > set the element's href content attribute's value to the element's url, serialized.
+        self.upcast::<Element>().set_string_attribute(
+            cx,
+            &local_name!("href"),
+            DOMString::from(url),
+        );
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#reinitialise-url>
+    fn reinitialize_url(&self, no_gc: &NoGC) {
+        // Step 1. If the element's url is non-null, its scheme is "blob", and it has an opaque
+        // path, then terminate these steps.
+        match *self.get_url().borrow() {
+            Some(ref url) if url.scheme() == "blob" && url.cannot_be_a_base() => return,
+            _ => (),
+        }
+
+        // Step 2. Set the url.
+        self.set_url(no_gc);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#api-for-a-and-area-elements:concept-element-attributes-change-ext>
+    fn attribute_mutated_for_hyperlinks(
+        &self,
+        no_gc: &NoGC,
+        attr: AttrRef<'_>,
+        mutation: AttributeMutation,
+    ) {
+        // Step 1. If namespace is not null, then return.
+        if attr.namespace() != &ns!() {
+            return;
+        }
+        // Step 2. If oldValue equals value, then return.
+        if mutation.old_value(attr) == mutation.new_value(attr).map(|value| value.to_string()) {
+            return;
+        }
+        // Step 3. If localName is href, then set the url given element.
+        if attr.local_name() == &local_name!("href") {
+            self.set_url(no_gc);
+        }
+        // Step 4. If localName is href, referrerpolicy, or rel,
+        // then consider speculative loads given element's node document.
+        // TODO
+    }
+}

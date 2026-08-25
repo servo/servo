@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+ <head>
+  <title>CSS Test: Stacking order and overflow</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/overflow/002.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visufx.html#overflow" />
+  <style type="text/css">
+   div { border: solid; margin: 1em; height: 5em; width: 5em; }
+   div p { margin: 0 0 -5em 0; height: 5em; width: 5em; }
+   .a .before { background: maroon; color: white; }
+   .a .scroll { background: red; overflow: scroll; }
+   .a .after { background: lime; }
+   .b .before { background: maroon; }
+   .b .scroll { background: red; color: white; overflow: scroll; }
+   .b .after { background: lime; }
+  </style>
+ </head>
+ <body>
+  <p>There should be two white-on-green squares below, labelled A and B, with black borders. Scrollbars <em>may</em> be visible if they are visible identically in both cases.</p>
+  <div class="a">
+   <p class="before">A</p>
+   <p class="scroll"></p>
+   <p class="after"></p>
+  </div>
+  <div class="b">
+   <p class="before"></p>
+   <p class="scroll">B</p>
+   <p class="after"></p>
+  </div>
+ </body>
+</html>

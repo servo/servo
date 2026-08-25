@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<title>Tests `anchor` function for top/left/bottom/right properties</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#propdef-anchor-name">
+<link rel="author" href="mailto:kojii@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script src="support/test-common.js"></script>
+<style>
+#container {
+  position: relative;
+}
+#a1 {
+  anchor-name: --a1;
+  background: orange;
+  margin-left: 100px;
+  margin-top: 100px;
+  width: 100px;
+  height: 100px;
+}
+#a2 {
+  anchor-name: --a2;
+  background: purple;
+  margin-left: 500px;
+  margin-top: 100px;
+  width: 100px;
+  height: 100px;
+}
+#target {
+  background: green;
+  position: absolute;
+  left: anchor(--a1 right);
+  top: anchor(--a1 bottom);
+  right: anchor(--a2 left);
+  bottom: anchor(--a2 top);
+}
+#ref {
+  background: red;
+  position: absolute;
+  left: 200px;
+  top: 100px;
+  width: 300px;
+  height: 100px;
+}
+</style>
+<body onload="checkLayoutForAnchorPos('#target')">
+  <div id="container">
+    <div id="a1"></div>
+    <div id="a2"></div>
+    <div id="ref"></div>
+    <div id="target"
+        data-offset-x=200 data-offset-y=100
+        data-expected-width=300 data-expected-height=100></div>
+  </div>
+</body>

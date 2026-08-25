@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Animating path with an underlying value involving arc flags should not crash</title>
+<link rel="help" href="https://crbug.com/41284831">
+<div id="target"></div>
+<script>
+  target.style.d = 'path("m0 0a0 0 0 0 0 0 0")';
+  target.animate({d: 'none'}, 1);
+  getComputedStyle(target).d;
+</script>

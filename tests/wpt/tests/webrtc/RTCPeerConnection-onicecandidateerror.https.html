@@ -1,0 +1,80 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>RTCPeerConnection.prototype.onicecandidateerror</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+
+promise_test(async t => {
+  const config = {
+    iceServers: [{urls: "turn:123", username: "123", credential: "123"}]
+  };
+  const pc = new RTCPeerConnection(config);
+  t.add_cleanup(() => pc.close());
+  const onErrorPromise = addEventListenerPromise(t, pc, 'icecandidateerror', event => {
+     assert_true(event instanceof RTCPeerConnectionIceErrorEvent,
+      'Expect event to be instance of RTCPeerConnectionIceErrorEvent');
+    // Do not hardcode any specific errors here. Instead only verify
+    // that all the fields contain something expected.
+    // Testing of event.errorText can be added later once it's content is
+    // specified in spec with more detail.
+    assert_true(event.errorCode >= 300 && event.errorCode <= 799, "errorCode");
+    if (event.port == 0) {
+      assert_equals(event.address, null);
+    } else {
+      assert_true(event.address.includes(".") || event.address.includes(":"));
+    }
+    assert_true(event.url.includes("123"), "url");
+  });
+  const stream = await getNoiseStream({audio:true});
+  t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+  pc.addTrack(stream.getAudioTracks()[0], stream);
+
+  await pc.setLocalDescription(await pc.createOffer());
+  await onErrorPromise;
+}, 'Surfacing onicecandidateerror');
+
+promise_test(async t => {
+  const iceServers = [
+    {urls: "turn:turn1.invalid:3478", username: "u", credential: "p"},
+    {urls: "turn:turn2.invalid:3478?transport=tcp", username: "u", credential: "p"},
+    {urls: "turns:turn3.invalid:5349", username: "u", credential: "p"},
+    {urls: "stun:stun1.invalid:3478"},
+  ];
+  const pc = new RTCPeerConnection({iceServers});
+  t.add_cleanup(() => pc.close());
+
+  const expectedUrls = new Set([
+    "turn:turn1.invalid:3478",
+    "turn:turn2.invalid:3478?transport=tcp",
+    "turns:turn3.invalid:5349?transport=tcp",
+    "stun:stun1.invalid:3478",
+  ]);
+  const remaining = new Set(expectedUrls);
+  const errors = [];
+  const allErrorsReceived = new Promise(resolve => {
+    pc.addEventListener('icecandidateerror', event => {
+      errors.push(event);
+      remaining.delete(event.url);
+      if (remaining.size === 0) resolve();
+    });
+  });
+
+  const stream = await getNoiseStream({audio: true});
+  t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+  pc.addTrack(stream.getAudioTracks()[0], stream);
+
+  await pc.setLocalDescription();
+  await allErrorsReceived;
+
+  for (const event of errors) {
+    assert_true(event instanceof RTCPeerConnectionIceErrorEvent,
+      'Expect event to be instance of RTCPeerConnectionIceErrorEvent');
+    assert_true(expectedUrls.has(event.url), `unexpected url: ${event.url}`);
+    assert_true(event.errorCode >= 300 && event.errorCode <= 799, "errorCode in valid range");
+  }
+}, 'icecandidateerror fires for each failing server');
+
+</script>

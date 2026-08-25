@@ -1,0 +1,33 @@
+<!doctype html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel=help href="https://bugzilla.mozilla.org/show_bug.cgi?id=2025899">
+<title>Remove popover attribute during the popover focusing steps</title>
+<body>
+<div id="popover" popover=auto><input id="input" autofocus></div>
+<script>
+"use strict";
+promise_test(async () => {
+  let hasPopover;
+  let toggleEvents = [];
+  popover.addEventListener("toggle", (e) => {
+    hasPopover = popover.hasAttribute("popover");
+    toggleEvents.push(e);
+  });
+  input.addEventListener("focus", () => {
+    popover.removeAttribute("popover");
+  }, { once: true });
+  popover.showPopover();
+  // wait for events to fire
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  assert_equals(toggleEvents.length, 2, "two toggle events should be dispatched");
+  assert_equals(toggleEvents[0].oldState, "open");
+  assert_equals(toggleEvents[0].newState, "closed");
+  assert_equals(toggleEvents[1].oldState, "closed");
+  assert_equals(toggleEvents[1].newState, "open");
+  assert_false(hasPopover, "toggle events should be dispatched after removeAttribute is called");
+});
+</script>
+</body>
+

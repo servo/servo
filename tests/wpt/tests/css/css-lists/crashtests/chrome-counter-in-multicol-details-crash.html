@@ -1,0 +1,16 @@
+<!doctype html>
+<title>Crash removing element before counter inside multicol details element</title>
+<link rel="help" href="https://crbug.com/1310295">
+<style>
+  #counter { counter-reset:counter; }
+  #counter::after { content: counter(foo); }
+</style>
+<details style="columns:2;" open>
+  <span></span>
+  <div id="removeme"></div>
+  <span id="counter"></span>
+</details>
+<script>
+  document.body.offsetTop;
+  removeme.parentNode.removeChild(removeme);
+</script>

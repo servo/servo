@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Audio Test: audio_muted_overriding_volume</title>
+    <link rel="author" title="Intel" href="http://www.intel.com" />
+    <link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-media-muted" />
+    <meta name="flags" content="" />
+    <meta name="assert" content="Check if the muted attribute is present in the audio element with volume is set to loudest that expecting the user hears no sound" />
+    <script src="/common/media.js"></script>
+  </head>
+  <body>
+    <p>Test passes if the audio is playing without sound output and the text 'The user agent doesn't support media element.' does not appear anywhere on this page</p>
+    <audio id="m" controls muted>The user agent doesn't support media element.</audio>
+    <script type="text/javascript">
+        var media = document.getElementById("m");
+        media.src = getAudioURI("/media/sound_5") + "?" + new Date() + Math.random();
+        media.volume = 1.0;
+        media.play();
+    </script>
+  </body>
+</html>

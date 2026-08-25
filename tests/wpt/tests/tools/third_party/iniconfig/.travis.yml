@@ -1,0 +1,18 @@
+language: python
+python:
+- '2.7'
+- '3.4'
+- '3.5'
+- nightly
+- pypy
+install: pip install setuptools_scm tox
+script: tox -e py
+deploy:
+  provider: pypi
+  user: ronny
+  password:
+    secure: DsRVX99HA6+3JoXOVP/nPXeabJy2P73ws7Ager/e4rx3p3jS74bId09XsBU46bAT9ANmRWPR8y5DRi5Zlq0WQ2uXoR55wmsdu2KUegk6bDIS4Iop8DFxY8Kjou9s8RZbDTP27LfuYXKMO1rDW/xa6EhiotYRodekeZUz3P3MYjIi6rBV2Rz3vwmInpkKOti7AFwAsCGmCCK13irmPJEp5nwl3RgeKu2AGaolw9eypJXeNLUcNDVQ88ZUUXQCkwgq7a1BkK6NMeQLMrWAE1bD3amCbVXHCR9TaVx1ZH1dnha5Jcfj3gEFucTmInWWes5u9rypvsCkSxKtSqdiUA7BMJq7XykV7nGNplGLm2sq4+KSYlf3gZXg4XNXQkNOi4EBtRvathfFziD2SZgdtjiQX2neh0dMjf9czc/uCYkKYCFLeozdw2oQQ+BsxhQfsmU2ILGCFHyFikmDbBqZOWfQE5TN3itQqV3TFK8sOHQ8iy3MDShs+lBk9AUwbCA5YbRh8hJKhgXyEsDpisC417Pj22+TbutTj7v3Rmpe/st4hoL740grWc3PSVUBaypG0RsoafSDZWnYnTC+0aakd6QEb5S9wnMkP94kijYjjF6yUInuT05wdbQv5XcSXqAdGzBqB5jNNdfwgWVCOlwGfjnvzKllhF3PmWPW/nfmQpGOQh4=
+  on:
+    tags: true
+    distributions: sdist bdist_wheel
+    repo: RonnyPfannschmidt/iniconfig

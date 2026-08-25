@@ -1,0 +1,23 @@
+<!doctype html>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1902540">
+<script>
+let fuzz = () => {
+  document.body.appendChild(document.createElement("iframe"))
+  document.getElementById("b").appendChild(document.createElement("plaintext"))
+  document.documentElement.offsetHeight;
+  window.frames[0].document.body.appendChild(document.getElementById("a"))
+  window.frames[0].document.body.appendChild(document.getElementById("c"))
+}
+</script>
+<style>
+:last-child {
+  display: ruby-text-container;
+}
+</style>
+<body onload="fuzz()">
+<fieldset id="a"></fieldset>
+<ruby id="b">
+<ul id="c"></ul>
+</ruby>
+</body>
+

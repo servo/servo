@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>Fenced frame disallowed navigations with potentially-dangling markup</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/fetch/local-network-access/resources/support.sub.js"></script>
+<script src="resources/dangling-markup-helper.js"></script>
+
+<body>
+
+<script>
+// These tests assert that fenced frames cannot be navigated to HTTPs URLs
+// with dangling markup.
+for (const substring of kDanglingMarkupSubstrings) {
+  promise_test(async t => {
+    const key = token();
+    let url_string = generateURL("resources/embeddee.html?blocked", [key]).toString();
+    url_string = url_string.replace("blocked", substring);
+    const fencedframe = attachFencedFrame(url_string);
+    const loaded_promise = nextValueFromServer(key);
+    const result = await Promise.any([loaded_promise, getTimeoutPromise(t)]);
+    assert_equals(result, "NOT LOADED");
+  }, `fenced frame dangling-markup URL with '${substring}'`);
+}
+
+</script>
+
+</body>

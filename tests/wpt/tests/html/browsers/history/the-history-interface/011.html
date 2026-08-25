@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+  <head>
+    <title>history.pushState before onload</title>
+    <script type="text/javascript" src="/resources/testharness.js"></script>
+    <script type="text/javascript" src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+
+    <noscript><p>Enable JavaScript and reload</p></noscript>
+    <div id="log"></div>
+    <script type="text/javascript">
+var newUrl = location.href.replace(/\/[^\/]*$/,'\/011-1.html');
+setup({explicit_done:true});
+test(function () {
+  history.pushState('','','011-1.html');
+}, 'pushState should be able to set the location state');
+test(function () {
+  assert_equals( location.href, newUrl );
+}, 'pushed location should be reflected immediately');
+window.onload = function () {
+  setTimeout(function () {
+    test(function () {
+      assert_equals( location.href, newUrl );
+    }, 'pushed location should be retained after the page has loaded');
+    done();
+  },10);
+};
+    </script>
+
+  </body>
+</html>

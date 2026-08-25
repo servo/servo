@@ -1,0 +1,19 @@
+<!doctype html>
+<title>ResizeObserver test: throw exception when observing non-element</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div id="log"></div>
+
+<script>
+'use strict';
+
+test(() => {
+    assert_throws_js(TypeError, _=> {
+      let ro = new ResizeObserver(() => {});
+      ro.observe({});
+    });
+  },
+  "throw exception when observing non-element"
+);
+</script>

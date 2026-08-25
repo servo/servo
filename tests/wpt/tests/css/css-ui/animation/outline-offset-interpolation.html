@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>outline-offset interpolation</title>
+<link rel="help" href="https://drafts.csswg.org/css-ui-3/#outline-offset">
+<meta name="assert" content="outline-offset supports animation by computed value">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+
+<style>
+.parent {
+  outline: solid 0px;
+  outline-offset: 30px;
+}
+.target {
+  width: 50px;
+  height: 50px;
+  background-color: black;
+  display: inline-block;
+  margin: 40px 0px 0px 40px;
+  outline: 4px solid orange;
+  outline-offset: 10px;
+}
+.expected {
+  background-color: green;
+  margin-right: 18px;
+}
+</style>
+
+<body></body>
+
+<script>
+test_interpolation({
+  property: 'outline-offset',
+  from: neutralKeyframe,
+  to: '20px',
+}, [
+  {at: -0.3, expect: '7px'},
+  {at: 0, expect: '10px'},
+  {at: 0.3, expect: '13px'},
+  {at: 0.6, expect: '16px'},
+  {at: 1, expect: '20px'},
+  {at: 1.5, expect: '25px'},
+]);
+
+test_interpolation({
+  property: 'outline-offset',
+  from: 'initial',
+  to: '20px',
+}, [
+  {at: -0.3, expect: '-6px'},
+  {at: 0, expect: '0px'},
+  {at: 0.3, expect: '6px'},
+  {at: 0.6, expect: '12px'},
+  {at: 1, expect: '20px'},
+  {at: 1.5, expect: '30px'},
+]);
+
+test_interpolation({
+  property: 'outline-offset',
+  from: 'inherit',
+  to: '20px',
+}, [
+  {at: -0.3, expect: '33px'},
+  {at: 0, expect: '30px'},
+  {at: 0.3, expect: '27px'},
+  {at: 0.6, expect: '24px'},
+  {at: 1, expect: '20px'},
+  {at: 1.5, expect: '15px'},
+]);
+
+test_interpolation({
+  property: 'outline-offset',
+  from: 'unset',
+  to: '20px',
+}, [
+  {at: -0.3, expect: '-6px'},
+  {at: 0, expect: '0px'},
+  {at: 0.3, expect: '6px'},
+  {at: 0.6, expect: '12px'},
+  {at: 1, expect: '20px'},
+  {at: 1.5, expect: '30px'},
+]);
+
+test_interpolation({
+  property: 'outline-offset',
+  from: '-5px',
+  to: '5px',
+}, [
+  {at: -0.3, expect: '-8px'},
+  {at: 0, expect: '-5px'},
+  {at: 0.3, expect: '-2px'},
+  {at: 0.6, expect: '1px'},
+  {at: 1, expect: '5px'},
+  {at: 1.5, expect: '10px'},
+]);
+</script>

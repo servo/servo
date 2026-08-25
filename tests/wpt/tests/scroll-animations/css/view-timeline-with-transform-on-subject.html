@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#named-timeline-range">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="support/testcommon.js"></script>
+<title>Animation range and delay</title>
+</head>
+<style type="text/css">
+  @keyframes anim {
+    from { transform: scaleX(0) translateY(0); }
+    to { transform: scaleX(1) translatey(50vh); }
+  }
+  #scroller {
+    border:  10px solid lightgray;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    width: 300px;
+    height: 200px;
+  }
+  .spacer {
+    height: 200px;
+  }
+  #target {
+    height: 50px;
+    background-color: green;
+    animation: anim auto both linear;
+    animation-timeline: view();
+    animation-range-start: contain 0%;
+    animation-range-end: contain 100%;
+  }
+</style>
+<body>
+  <div id=scroller>
+    <div class="spacer"></div>
+    <div id="target"></div>
+    <div class="spacer"></div>
+  </div>
+</body>
+<script type="text/javascript">
+  async function runTest() {
+    function assert_progress_equals(anim, expected, errorMessage) {
+      assert_approx_equals(
+          anim.effect.getComputedTiming().progress,
+          expected, 1e-6, errorMessage);
+    }
+
+    promise_test(async t => {
+      await waitForNextFrame();
+      const anim = document.getAnimations()[0];
+      await anim.ready;
+      await waitForNextFrame();
+
+      // @ contain 0%
+      scroller.scrollTop = 50;
+      await waitForNextFrame();
+      assert_progress_equals(anim, 0, 'progress at contain 0%');
+
+      // @ contain 50%
+      scroller.scrollTop = 125;
+      await waitForNextFrame();
+      assert_progress_equals(anim, 0.5, 'progress at contain 50%');
+
+      // @ contain 100%
+      scroller.scrollTop = 200;
+      await waitForNextFrame();
+      assert_progress_equals(anim, 1, 'progress at contain 100%');
+    }, 'ViewTimeline use untransformed box for range calculations');
+  }
+
+  window.onload = runTest;
+</script>
+</html>

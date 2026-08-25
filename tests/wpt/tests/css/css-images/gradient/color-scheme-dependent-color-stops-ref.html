@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="author" title="Aditya Keerthi" href="https://github.com/pxlcoder">
+<link rel="help" href="https://www.w3.org/TR/css-color-adjust-1/#color-scheme-prop">
+<link rel="help" href="https://www.w3.org/TR/css-color-4/#css-system-colors">
+<link rel="help" href="https://www.w3.org/TR/css-color-5/#light-dark">
+<link rel="help" href="https://www.w3.org/TR/css-color-5/#color-mix">
+<title>Reference: Test changing used color-scheme updates gradient with color-scheme dependent color stops.</title>
+<style>
+
+.box {
+    color-scheme: dark;
+
+    width: 100px;
+    height: 100px;
+}
+
+#system-color {
+    background-image: linear-gradient(CanvasText, CanvasText);
+}
+
+#system-color-in-color-mix {
+    background-image: linear-gradient(color-mix(in lch, Canvas, pink), color-mix(in lch, Canvas, pink));
+}
+
+#light-dark {
+    background-image: linear-gradient(light-dark(red, green), light-dark(red, green));
+}
+
+#light-dark-in-color-mix {
+    background-image: linear-gradient(color-mix(in lch, light-dark(red, green), pink), color-mix(in lch, light-dark(red, green), pink));
+}
+
+</style>
+</head>
+<body>
+<p>Test system color</p>
+<div id="system-color" class="box"></div>
+<p>Test system color in color-mix()</p>
+<div id="system-color-in-color-mix" class="box"></div>
+<p>Test light-dark()</p>
+<div id="light-dark" class="box"></div>
+<p>Test light-dark() in color-mix()</p>
+<div id="light-dark-in-color-mix" class="box"></div>
+</body>
+</html>

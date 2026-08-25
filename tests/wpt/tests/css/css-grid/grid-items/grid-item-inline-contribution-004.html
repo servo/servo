@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#algo-grid-sizing">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/6356#issuecomment-862800005">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1957501">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="Tests the min-content contribution is re-resolved during a 2nd pass.">
+
+<!--
+
+Quoting step 3 of css-grid-2 section 12.1. Grid Sizing Algorithm:
+
+"
+ Then, if the min-content contribution of any grid item has changed based on
+ the row sizes and alignment calculated in step 2, re-resolve the sizes of the
+ grid columns with the new min-content and max-content contributions (once
+ only).
+"
+
+In this testcase initially the row size is indefinite, then resolves to 100px.
+Using this information we re-resolve the columns, resulting in 50px for the
+first column.
+
+-->
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="display: grid; width: 0; grid-template: auto / auto auto;">
+  <div style="background: green; height: 100%;">
+    <canvas width="5" height="10" style="height: 100%;">
+  </div>
+  <div style="background: green">
+    <div style="width: 50px; height: 100px;"></div>
+  </div>
+</div>

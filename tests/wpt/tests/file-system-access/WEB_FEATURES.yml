@@ -1,0 +1,4 @@
+rules:
+- getDirectory.https.any.js: [origin-private-file-system, file-system-access]
+- opaque-origin.https.window.js: [origin-private-file-system, file-system-access]
+- "**": [file-system-access]

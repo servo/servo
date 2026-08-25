@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<title>Prefetched signed exchange and certificate must not be fetched again</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="./resources/sxg-util.js"></script>
+<body>
+<script>
+promise_test(async (t) => {
+  const id = token();
+  const sxgUrl = get_host_info().HTTPS_REMOTE_ORIGIN + '/signed-exchange/resources/prefetch-test-sxg.py?id=' + id;
+
+  await new Promise(resolve => {
+    const link = document.createElement('link');
+    link.rel = 'prefetch';
+    link.href = sxgUrl;
+    link.as = 'document';
+    link.addEventListener('error', t.step_func(() => {
+        assert_unreached('Prefetch should not fail');
+    }));
+    link.addEventListener('load', t.step_func(() => {
+        resolve();
+    }));
+    document.body.appendChild(link);
+  });
+  const message_promise = new Promise((resolve) => {
+    window.addEventListener('message', (event) => {
+      resolve(event.data);
+    }, false);
+  });
+  const win = window.open(sxgUrl, "_blank");
+  const message = await message_promise;
+  win.close();
+  assert_equals(message, 'loaded');
+}, 'Prefetched signed exchange and certificate must not be fetched again.');
+
+</script>
+</body>

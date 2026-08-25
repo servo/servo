@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>Test of Web Share</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/common/utils.js"></script>
+
+<body>
+
+<script>
+promise_test(async t => {
+  const fenced_frame = attachFencedFrameContext();
+
+  // Make sure the fenced frame is alive, then click on it.
+  await fenced_frame.execute(() => {});
+  await multiClick(10, 10, fenced_frame.element);
+
+  await fenced_frame.execute(async () => {
+    try {
+      await navigator.share({text: 'hello world'});
+      assert_unreached("Web share should not succeed in a fenced frame.");
+    } catch(e) {
+      assert_equals(e.name, 'NotAllowedError');
+      // The 'web-share' permission is not allowed to be enabled inside fenced
+      // frames. If that changes, this check will need to be updated.
+      assert_true(e.message.includes(
+          "Failed to execute 'share' on 'Navigator': Permission denied"));
+    }
+  });
+}, 'Web Sharelock in a fenced frame must fail');
+</script>
+
+</body>

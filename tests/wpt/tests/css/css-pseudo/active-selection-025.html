@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Pseudo-Elements Test: active selection and first-letter pseudo-element</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-pseudo-4/#highlight-selectors">
+  <link rel="match" href="reference/active-selection-025-ref.html">
+
+  <meta name="assert" content="In this test, the div::selection selector has no 'color' declaration. The div::selection selector should use the 'color' declaration from the div rule and, for the first letter only, it should use the 'color' declaration from the ::first-letter pseudo-element. Therefore the first letter 'S' should be purple and the rest of the words should be green.">
+
+  <!--
+
+  More info:
+  [css-pseudo-4] Original color of highlight pseudo inside
+  ::first-letter/::first-line
+  https://github.com/w3c/csswg-drafts/issues/4625
+
+  RESOLVED: Whatever highlight being applied uses colors from before
+  even if came from pseudo element like ::first-letter/::first-line
+
+  -->
+
+  <link rel="stylesheet" href="support/highlights.css">
+  <style>
+  div
+    {
+      color: green;
+      font-size: 300%;
+    }
+
+  div::first-letter
+    {
+      color: purple;
+    }
+
+  div::selection
+    {
+      background-color: yellow;
+    }
+  </style>
+
+  <script>
+  function startTest()
+  {
+  var targetRange = document.createRange();
+  /* We first create an empty range */
+  targetRange.selectNodeContents(document.getElementById("test"));
+  /* Then we set the range boundaries to the children of div#test */
+  window.getSelection().addRange(targetRange);
+  /* Finally, we now select such range of content */
+  }
+  </script>
+
+  <body onload="startTest();">
+
+  <p>Test passes if background color of "Selected Text" is yellow, if the "S" glyph is purple and if the other glyphs are green.
+
+  <div id="test" class="highlight_reftest">Selected Text</div>

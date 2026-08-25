@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>CSS Filters: Correct destination rectangle in feComposite</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#FilterProperty">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#feMorphologyElement">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#feFloodElement">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#feCompositeElement">
+<link rel="issue" href="https://bugs.chromium.org/p/chromium/issues/detail?id=391200">
+<link rel="match" href="reference/fecomposite-non-zero-inoffset-001-ref.html">
+<meta name="assert" content="This test ensures that feComposite with 'operator=in' works properly on the correct destination rectangle.">
+<body>
+  <div style="filter: url('#filter'); width: 100px; height: 100px; padding: 1px;">
+    <div style="background-color: red; width: 98px; height: 98px;"></div>
+  </div>
+  <svg width="0" height="0">
+    <filter id="filter">
+      <feFlood result="outlineColor" flood-color="green"/>
+      <feMorphology in="SourceAlpha" operator="dilate" radius="1"/>
+      <feComposite operator="in" in="outlineColor"/>
+    </filter>
+  </svg>
+</body>

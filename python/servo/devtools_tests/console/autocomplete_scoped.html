@@ -1,0 +1,10 @@
+<!doctype html><meta charset="utf-8" />
+<script>
+    function loop() {
+        valOuter += 1;
+        const valInner = "";
+        setTimeout(loop, 200);
+    }
+    let valOuter = 0;
+    loop();
+</script>

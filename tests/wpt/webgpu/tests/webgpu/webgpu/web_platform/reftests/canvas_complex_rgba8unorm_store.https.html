@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <title>WebGPU canvas_complex_rgba8unorm_store</title>
+  <meta charset="utf-8" />
+  <link rel="help" href="https://gpuweb.github.io/gpuweb/" />
+  <meta
+    name="assert"
+    content="WebGPU canvas should have correct orientation, components, scaling, filtering, color space"
+  />
+  <link rel="match" href="./ref/canvas_complex-ref.html" />
+
+  <canvas id="cvs_fragment_texture_store" width="20" height="20" style="width: 20px; height: 20px;"></canvas>
+  <canvas id="cvs_compute_texture_store_1" width="20" height="20" style="width: 20px; height: 20px;"></canvas>
+  <canvas id="cvs_compute_texture_store_2" width="20" height="20" style="width: 20px; height: 20px;"></canvas>
+
+  <script type="module">
+    import { run } from './canvas_complex.html.js';
+    run('rgba8unorm', [
+      { cvs: cvs_fragment_texture_store, writeCanvasMethod: 'FragmentTextureStore' },
+      { cvs: cvs_compute_texture_store_1, writeCanvasMethod: 'ComputeWorkgroup1x1TextureStore' },
+      { cvs: cvs_compute_texture_store_2, writeCanvasMethod: 'ComputeWorkgroup16x16TextureStore' },
+    ]);
+  </script>
+</html>

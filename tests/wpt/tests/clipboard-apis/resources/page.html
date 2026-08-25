@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-action.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="user-activation.js"></script>
+
+<div style="width: 10px; height: 10px"></div>
+<script>
+window.addEventListener("message", async (e) => {
+  if (e.data && e.data[0] == "write") {
+    test_driver.set_test_context(window.parent);
+    await tryGrantReadPermission();
+    await tryGrantWritePermission();
+    await waitForUserActivation();
+    await navigator.clipboard.write([
+      new ClipboardItem({
+        "text/plain":  e.data[1],
+      }),
+    ]).catch(() => {
+      assert_true(false, `should not fail`);
+    });
+    window.parent.postMessage("done", "*");
+  }
+});
+</script>
+</html>

@@ -1,0 +1,52 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+    <title>Test that a 304 response will update the CSP header</title>
+</head>
+<body>
+  <script>
+    var t1 = async_test("Test that the first frame uses nonce abc");
+    var t2 = async_test("Test that the first frame does not use nonce def");
+
+    var t3 = async_test("Test that the second frame uses nonce def");
+    var t4 = async_test("Test that the second frame does not use nonce abc");
+
+    var i1 = document.createElement('iframe');
+    // We add a random parameter to avoid previous tests cached requests.
+    // We want to make sure i1 gets a 200 code and i2 gets a 304 code.
+    i1.src = "support/304-response.py?{{$id:uuid()}}";
+
+    var i2 = document.createElement('iframe');
+    i2.src = "support/304-response.py?{{$id}}";
+
+    var load_second_frame = function() {
+      document.body.appendChild(i2);
+    }
+
+    window.onmessage = function(e) {
+      if (e.source == i1.contentWindow) {
+        if (e.data == "abc_executed") { t1.done(); return; }
+        if (e.data == "script-src 'nonce-abc' 'sha256-IIB78ZS1RMMrAWpsLg/RrDbVPhI14rKm3sFOeKPYulw='") { t2.done(); return; }
+
+        t1.step(function() { assert_unreached("Unexpected message received"); });
+        t2.step(function() { assert_unreached("Unexpected message received"); });
+      }
+
+      if (e.source == i2.contentWindow) {
+        if (e.data == "def_executed") { t3.done(); return; }
+        if (e.data == "script-src 'nonce-def' 'sha256-IIB78ZS1RMMrAWpsLg/RrDbVPhI14rKm3sFOeKPYulw='") { t4.done(); return; }
+
+        t3.step(function() { assert_unreached("Unexpected message received"); });
+        t4.step(function() { assert_unreached("Unexpected message received"); });
+      }
+
+    };
+
+    i1.onload = load_second_frame;
+    document.body.appendChild(i1);
+  </script>
+</body>
+
+</html>

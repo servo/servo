@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="author" title="Myles C. Maxfield" href="mailto:mmaxfield@apple.com"/>
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#standard-font-families"/>
+<link rel="mismatch" href="standard-font-family-8-notref.html"/>
+<meta name="assert" content="ui-serif's bold in @font-face isn't synthetic"/>
+<style>
+@font-face {
+    font-family: "AppleSystemUISerif";
+    src: local("ui-serif");
+}
+</style>
+</head>
+<body>
+<div>
+<div style="display: inline-block; font: bold 72px 'AppleSystemUISerif'; font-synthesis: none;">HeJllo</div>
+</div>
+</body>
+</html>

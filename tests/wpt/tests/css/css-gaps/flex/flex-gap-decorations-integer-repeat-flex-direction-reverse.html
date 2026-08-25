@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>
+    CSS Gap Decorations: a column-rule-color list containing an integer
+    repeat() segment is expanded in placement order, then assigned to gaps in
+    placement order, when flex-direction is row-reverse.
+</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#gap-decorations">
+<link rel="help" href="https://www.w3.org/TR/css-gaps-1/#lists-repeat">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/14156">
+<link rel="match" href="flex-gap-decorations-integer-repeat-flex-direction-reverse-ref.html">
+<style>
+    body {
+        margin: 0px;
+    }
+    .flex {
+        display: flex;
+        flex-direction: row-reverse;
+        gap: 10px;
+        width: 410px;
+    }
+    .flex > * {
+        background: lightgray;
+        width: 50px;
+        height: 50px;
+    }
+    .flex {
+        column-rule-color: red, repeat(2, green, blue), purple;
+        column-rule-style: solid;
+        column-rule-width: 10px;
+    }
+</style>
+<div class="flex">
+    <div></div><div></div><div></div><div></div><div></div><div></div><div></div>
+</div>

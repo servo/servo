@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<meta charset="utf8">
+<title>CSS contain-intrinsic-size: button</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override">
+<link rel="help" href="https://drafts.csswg.org/css-contain-2/#containment-size">
+<style>
+.test {
+  contain: size;
+  padding: 0;
+  border: 5px solid;
+}
+.test::before {
+  content: '';
+  display: block;
+  width: 40px;
+  height: 20px;
+}
+.cis-none {
+  contain-intrinsic-size: none none;
+}
+.cis-height {
+  contain-intrinsic-size: none 50px;
+}
+.cis-width {
+  contain-intrinsic-size: 100px none;
+}
+.cis-both {
+  contain-intrinsic-size: 100px 50px;
+}
+.min-size {
+  min-width: 30px;
+  min-height: 15px;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+
+<body onload="checkLayout('.test')">
+  <div id="log"></div>
+
+  <button class="test cis-none"
+       data-expected-client-width="0" data-expected-client-height="0"></button>
+  <button class="test cis-height"
+       data-expected-client-width="0" data-expected-client-height="50"></button>
+  <button class="test cis-width"
+       data-expected-client-width="100" data-expected-client-height="0"></button>
+  <button class="test cis-both"
+       data-expected-client-width="100" data-expected-client-height="50"></button>
+
+  <button class="test cis-none min-size"
+       data-expected-client-width="20" data-expected-client-height="5"></button>
+  <button class="test cis-height min-size"
+       data-expected-client-width="20" data-expected-client-height="50"></button>
+  <button class="test cis-width min-size"
+       data-expected-client-width="100" data-expected-client-height="5"></button>
+  <button class="test cis-both min-size"
+       data-expected-client-width="100" data-expected-client-height="50"></button>
+</body>

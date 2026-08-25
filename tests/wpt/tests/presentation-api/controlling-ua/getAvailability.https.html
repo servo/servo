@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Getting the presentation displays availability information.</title>
+<meta name="timeout" content="long">
+<link rel="author" title="Marius Wessel" href="http://www.fokus.fraunhofer.de">
+<link rel="author" title="Tomoyuki Shimizu" href="https://github.com/tomoyukilabs">
+<link rel="help" href="http://w3c.github.io/presentation-api/#dfn-presentation-display-availability">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="common.js"></script>
+
+<p>The test passes if a "PASS" result appears.</p>
+
+<script>
+
+    // ---------------------------------------
+    // Presentation Availability Tests - begin
+    // ---------------------------------------
+
+    const catchNotSupported = err => {
+      assert_equals(err.name, 'NotSupportedError', 'getAvailability() rejects a Promise with a NotSupportedError exception, if the browser can find presentation displays only when starting a connection.')
+    };
+
+    promise_test(t => {
+        let availability;
+
+        const request = new PresentationRequest(presentationUrls);
+        assert_true(request instanceof PresentationRequest, 'The request is an instance of PresentationRequest.');
+
+        const promise = request.getAvailability();
+        assert_true(promise instanceof Promise, 'PresentationRequest.getAvailability() returns a Promise.');
+        const newPromise = request.getAvailability();
+        assert_true(newPromise instanceof Promise, 'PresentationRequest.getAvailabilty() returns a Promise.');
+        assert_not_equals(promise, newPromise, 'PresentationRequest.getAvailability() should return a new Promise each time it is called.');
+
+        return promise.then(a => {
+          availability = a;
+          assert_true(availability instanceof PresentationAvailability, 'The promise is resolved with an instance of PresentationAvailability.');
+          assert_equals(typeof availability.value, 'boolean', 'The availability has an boolean value.');
+
+          const request2 = new PresentationRequest('https://example.com');
+          return request2.getAvailability();
+        }).then(a => {
+          assert_not_equals(availability, a, 'A presentation availability object is newly created if the presentation request has a newly added presentation URLs.');
+
+          const newPromise = request.getAvailability();
+          assert_not_equals(promise, newPromise, 'PresentationRequest.getAvailability() should return a new Promise each time it is called.');
+
+          return newPromise.then(newAvailability => {
+            assert_equals(availability, newAvailability, 'Promises from a PresentationRequest\'s getAvailability are resolved with the same PresentationAvailability object.');
+          }, catchNotSupported);
+        }, catchNotSupported);
+    });
+</script>

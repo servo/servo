@@ -1,0 +1,74 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL required buffer clear behaviour test</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"> </script>
+<script src="../../js/tests/compositing-test.js"></script>
+<style type="text/css">
+body {
+    height: 3000px;
+}
+</style>
+</head>
+<body>
+<!-- Important to put the canvas at the top so that it's always visible even in the test suite runner.
+     Otherwise it just doesn't get composited in Firefox. -->
+<div id="description"></div>
+<div id="console"></div>
+<script type="application/javascript">
+"use strict";
+
+description("This test ensures WebGL implementations correctly clear the drawing buffer " +
+            "on composite if preserveDrawingBuffer is false.");
+debug("");
+
+const wtu = WebGLTestUtils;
+
+async function runCompositingTests() {
+    const compositingTestFn = createCompositingTestFn({
+      webglVersion: 1,
+      shadersFn(gl) {
+        const vs = `\
+        attribute vec4 position;
+        void main() {
+          gl_Position = position;
+        }
+        `;
+        const fs = `\
+        precision mediump float;
+        void main() {
+          gl_FragColor = vec4(1, 0, 0, 1);
+        }
+        `;
+        return [vs, fs];
+      },
+    });
+
+    function drawArrays(gl) {
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+    }
+
+    function drawElements(gl) {
+      gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_BYTE, 0);
+    }
+
+    await compositingTestFn(drawArrays);
+    await compositingTestFn(drawElements);
+    finishTest();
+}
+runCompositingTests();
+
+var successfullyParsed = true;
+</script>
+</body>
+</html>

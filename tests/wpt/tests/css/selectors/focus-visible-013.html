@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>CSS Selectors Test: :focus-visible does not match after mouse focus even if previous focused element was matching :focus-visible</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#the-focus-visible-pseudo" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  @supports not selector(:focus-visible) {
+    :focus {
+      outline: red solid 5px;
+    }
+  }
+
+  #initial:focus-visible {
+    outline: green solid 5px;
+  }
+
+  #initial:focus:not(:focus-visible) {
+    outline: red solid 5px;
+  }
+
+  #target:focus-visible {
+    outline: red solid 5px;
+  }
+
+  #target:focus:not(:focus-visible) {
+    outline: green solid 5px;
+  }
+</style>
+
+<p>This test checks that if the active element matches ':focus-visible' and a mouse click causes focus to move elsewhere, the newly focused element should not match <code>:focus-visible</code>.</p>
+<ol id="instructions">
+  <li>If the user-agent does not claim to support the <code>:focus-visible</code> pseudo-class then SKIP this test.</li>
+  <li>Press the TAB key.</li>
+  <li>If the element that says "Initial" has a red outline, then the test rsult is a FAILURE.</li>
+  <li>Use the mouse to focus the element below that says "Target".</li>
+  <li>If the element that says "Target" has a green outline, then the test result is a SUCCESS.</li>
+</ol>
+
+<div id="initial" tabindex="0">Initial</div>
+<div id="target" tabindex="0">Target</div>
+
+<script>
+  setup({ explicit_done: true });
+
+  async_test(function(t) {
+    initial.addEventListener("focus", t.step_func(function() {
+      assert_equals(getComputedStyle(initial).outlineColor, "rgb(0, 128, 0)", `outlineColor for ${initial.tagName}#${initial.id} should be green`);
+      test_driver.click(target).then(() => done());
+    }));
+
+    target.addEventListener("focus", t.step_func_done(function() {
+      assert_equals(getComputedStyle(target).outlineColor, "rgb(0, 128, 0)", `outlineColor for ${target.tagName}#${target.id} should be green`);
+    }));
+
+    const tab_key = '\ue004';
+    test_driver.send_keys(document.body, tab_key);
+  }, ":focus-visible does not match after mouse click even if previous focused element was matching :focus-visible");
+</script>

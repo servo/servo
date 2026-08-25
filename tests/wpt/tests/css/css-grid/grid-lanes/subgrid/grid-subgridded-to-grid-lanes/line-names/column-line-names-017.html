@@ -1,0 +1,36 @@
+<!DOCTYPE HTML>
+<html><head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes Test: auto placed subgrids don't inheirit line names, but further nested subgrid layers can inherit from each other (columns)</title>
+  <link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3">
+  <link rel="match" href="column-line-names-017-ref.html">
+  <style>
+html,body {
+  color:black; background-color:white; font:24px/1 monospace; padding:0; margin:0;
+}
+
+.grid-lanes {
+  display: inline-grid-lanes;
+  grid-template-columns: repeat(10, 10px) repeat(10, [a] 10px) [a];
+  padding: 20px 10px;
+}
+
+.subgrid {
+  display: grid;
+  grid-column: auto / span 10;
+}
+
+  </style>
+</head>
+<body>
+<div class="grid-lanes">
+  <div class="subgrid" style="grid: 50px 50px / subgrid [a] [b] [c] [d] [e] [f];">
+    <div class="subgrid" style="grid: subgrid / subgrid; grid-row: span 2;">
+      <x style="grid-column: span a / a 8; background: grey;"></x>
+      <x style="grid-column: span c / f; background: orange;"></x>
+    </div>
+  </div>
+</div>
+</body>
+</html>

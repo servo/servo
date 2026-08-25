@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>backdrop-filter: The backdrop root concept with clip-path with display: inline</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropRoot">
+<link rel="match" href="backdrop-filter-backdrop-root-clip-path-2-ref.html">
+<style>
+  .grandparent {
+    display: block;
+    background: yellow;
+    padding: 100px;
+  }
+
+  .clipped-container {
+    position: relative;
+    clip-path: inset(-50px);
+    background-color: rgb(255, 0, 255);
+    padding: 100px;
+    display: inline;
+  }
+
+  .backdrop-filtered {
+    backdrop-filter: invert(100%);
+    position: absolute;
+    top: -50px;
+    left: -50px;
+    width: 400px;
+    height: 400px;
+    display: inline;
+  }
+</style>
+
+<!-- The backdrop-filter should sample content from the clipped-container (backdrop root),
+     not from layers outside it (like grandparent). -->
+<div class="grandparent">
+  <div class="clipped-container">
+    <div class="backdrop-filtered"></div>
+  </div>
+</div>

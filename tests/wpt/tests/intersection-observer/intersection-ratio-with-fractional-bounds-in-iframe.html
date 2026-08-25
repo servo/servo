@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+        .iframe-container {
+            width: 100%;
+            border: 0;
+            height: 200px;
+        }
+    </style>
+</head>
+<body>
+<script>
+    const asyncTest = async_test("intersectionRatio in iframe should be 1 for totally visible target with fractional bounds");
+    const onIframeObserved = (event) => {
+        const ratio = event.detail.intersectionRatio;
+        asyncTest.step(() => {
+            assert_equals(ratio, 1);
+        });
+        asyncTest.done();
+    };
+    window.document.addEventListener("iframeObserved", onIframeObserved, false);
+</script>
+<iframe class="iframe-container" src="./resources/intersection-ratio-with-fractional-bounds-in-iframe-content.html"></iframe>
+</body>
+</html>

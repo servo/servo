@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Test 'background-clip: text' on Table Cells</title>
+<style>
+.container {
+  position: relative;
+  top: 2px;
+  margin: 0px;
+  height: 80px;
+}
+
+.gradient-text {
+  display: inline-block;
+  font-size: 40px;
+  font-family: sans-serif;
+  line-height: 40px;
+  background: linear-gradient(to bottom, red 0%, blue 100%);
+  background-size: 100% 40px;
+  background-clip: text;
+  color: transparent;
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="gradient-text">Text</div>
+</div>
+</body>
+</html>

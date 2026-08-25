@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>column-height, column-wrap, spanner</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-multicol-2/#ch">
+<link rel="help" href="https://drafts.csswg.org/css-multicol-2/#cwr">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+  .row_gap_filler {
+    position: absolute;
+    width: 100px;
+    height: 10px;
+    background: green;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="position:relative; width:100px; height:100px; background:red;">
+  <div style="columns:2; column-height:20px; column-wrap:wrap; gap:10px 0;">
+    <div style="background:green;">
+      <div style="height:10px;"></div>
+      <div style="column-span:all; height:5px; background:green;"></div>
+      <div style="height:30px;"></div>
+      <div style="column-span:all; height:15px; background:green;"></div>
+      <div style="column-span:all; height:15px; background:green;"></div>
+      <div style="height:30px;"></div>
+    </div>
+  </div>
+  <div class="row_gap_filler" style="top:20px;"></div>
+  <div class="row_gap_filler" style="top:50px;"></div>
+  <div class="row_gap_filler" style="top:80px;"></div>
+</div>

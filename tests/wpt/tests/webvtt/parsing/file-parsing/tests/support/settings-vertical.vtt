@@ -1,0 +1,25 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:01.000
+text0
+
+00:00:00.000 --> 00:00:01.000 vertical:lr
+text1
+
+00:00:00.000 --> 00:00:01.000 vertical:rl
+text2
+
+00:00:00.000 --> 00:00:01.000 vertical:rl vertical:lr
+text3
+
+00:00:00.000 --> 00:00:01.000 vertical:
+invalid4
+
+00:00:00.000 --> 00:00:01.000 vertical:RL
+invalid5
+
+00:00:00.000 --> 00:00:01.000 vertical: rl
+invalid6
+
+00:00:00.000 --> 00:00:01.000 vertical:vertical-rl
+invalid7

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Box Alignment Level 3: parsing align-content with valid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#propdef-align-content">
+<meta name="assert" content="align-content supports the full grammar 'normal | <baseline-position> | <content-distribution> | <overflow-position>? <content-position>'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("align-content", "normal");
+
+// <baseline-position> = [ first | last ]? baseline
+test_valid_value("align-content", "baseline");
+test_valid_value("align-content", "first baseline", "baseline");
+test_valid_value("align-content", "last baseline");
+
+// <content-distribution> = space-between | space-around | space-evenly | stretch
+test_valid_value("align-content", "space-between");
+test_valid_value("align-content", "space-around");
+test_valid_value("align-content", "space-evenly");
+test_valid_value("align-content", "stretch");
+
+// <overflow-position>? <content-position>
+// <overflow-position> = unsafe | safe
+// <content-position> = center | start | end | flex-start | flex-end
+test_valid_value("align-content", "center");
+test_valid_value("align-content", "start");
+test_valid_value("align-content", "end");
+test_valid_value("align-content", "flex-start");
+test_valid_value("align-content", "flex-end");
+test_valid_value("align-content", "unsafe end");
+test_valid_value("align-content", "safe flex-start");
+</script>
+</body>
+</html>

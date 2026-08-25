@@ -1,0 +1,15 @@
+<!doctype html>
+<title>Removing and re-inserting a container should crash</title>
+<link rel="help" href="https://crbug.com/1342750">
+<style>
+  #container { container-type: inline-size }
+</style>
+<div id="outer">
+  <div id="container"></div>
+</div>
+<script>
+  container.offsetTop;
+  let removed = container;
+  container.remove();
+  outer.appendChild(removed);
+</script>

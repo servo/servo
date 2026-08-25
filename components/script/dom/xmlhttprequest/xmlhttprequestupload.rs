@@ -1,0 +1,27 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use dom_struct::dom_struct;
+use js::context::JSContext;
+use script_bindings::reflector::reflect_dom_object_with_cx;
+
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
+
+#[dom_struct]
+pub(crate) struct XMLHttpRequestUpload {
+    eventtarget: XMLHttpRequestEventTarget,
+}
+
+impl XMLHttpRequestUpload {
+    fn new_inherited() -> XMLHttpRequestUpload {
+        XMLHttpRequestUpload {
+            eventtarget: XMLHttpRequestEventTarget::new_inherited(),
+        }
+    }
+    pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<XMLHttpRequestUpload> {
+        reflect_dom_object_with_cx(Box::new(XMLHttpRequestUpload::new_inherited()), global, cx)
+    }
+}

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.bundle.min.js"></script>
+<select id="graphs"></select>
+<script>
+    function transformData(data, path) {
+        console.log(path);
+        var pathParts = path.split('!');
+        var name = pathParts[pathParts.length - 1];
+        var transformed = [];
+        for (const report of data.map(d => d.report)) {
+            var subData = findData(report, path);
+            transformed.push(subData.amount);
+        }
+        console.log(transformed);
+        return [{
+            label: 'Usage in MiB',
+            data: transformed,
+            fill: false,
+        }];
+    }
+
+    function findData(data, parent) {
+        parent = parent.split('!');
+        parent.reverse();
+        while (parent.length) {
+            var next = parent.pop();
+            console.log(next);
+            if ('children' in data) {
+                data = data.children;
+            }
+            data = data[next];
+        }
+        return data;
+    }
+
+    function makeOptions(data, initial) {
+        var sel = document.querySelector('#graphs');
+        sel.innerHTML = '';
+        // TODO: add support for labels that are not present in initial report.
+        var rootData = data[0].report;
+        console.log(Object.keys(rootData));
+        var remaining = Object.keys(rootData).map(k => [k, rootData[k], k]);
+        remaining.reverse();
+        while (remaining.length) {
+            var next = remaining.pop();
+            var children = Object.keys(next[1].children).map(k => [k, next[1].children[k], next[2] + '!' + k]);
+            children.reverse();
+            remaining.push.apply(remaining, children);
+
+            var opt = sel.appendChild(document.createElement('option'));
+            opt.innerText = '-'.repeat((next[2].match(/!/g) || []).length) + next[0];
+            opt.fullPath = next[2];
+        }
+        sel.onchange = function() {
+            var title = sel.value;
+            while (title[0] == '-') {
+                title = title.slice(1);
+            }
+            makeChart({
+                'labels': data.map(d => d.seconds + 's'),
+                'datasets': transformData(data, sel.selectedOptions[0].fullPath),
+            }, title);
+        };
+        sel.value = initial;
+        sel.onchange();
+    }
+
+    function makeChart(data, title) {
+        var canvas = document.querySelector('#myChart');
+        if (canvas) {
+            canvas.remove();
+        }
+        canvas = document.body.appendChild(document.createElement('canvas'));
+        canvas.id = 'myChart';
+        canvas.width = 800;
+        canvas.height = 600;
+        var ctx = canvas.getContext('2d');
+        var myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: data['labels'],
+                datasets: data['datasets']
+            },
+            options: {
+                title: {
+                    display: true,
+                    text: title,
+                },
+                responsive: false,
+                animation: {
+                    duration: 0
+                },
+                elements: {
+                    line: {
+                        tension: 0
+                    }
+                },
+                scales: {
+                    yAxes: [{
+                        ticks: {
+                            beginAtZero:true
+                        }
+                    }]
+                }
+            }
+        });
+    }
+
+    var data = [/* json data */];
+    var initialGraph = "explicit";
+    makeOptions(data, initialGraph);
+</script>

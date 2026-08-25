@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<title>CSS Borders Test: hit testing border-shape with overflow-clip-margin on the same element</title>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#border-shape">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  body { margin: 100px; }
+  #outer {
+    width: 100px;
+    height: 100px;
+    background: grey;
+    overflow: clip;
+    overflow-clip-margin: 20px;
+    border-shape: circle(50% at 50% 50%);
+    border: 10px solid purple;
+  }
+  #target {
+    width: 200px;
+    height: 200px;
+    background: rgba(0, 255, 0, 0.5);
+    position: relative;
+    left: -50px;
+    top: -50px;
+  }
+</style>
+<div id="outer">
+  <div id="target"></div>
+</div>
+<script>
+  test(() => {
+    const outer = document.getElementById('outer');
+    const target = document.getElementById('target');
+    const rect = outer.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    // border-box = 120x120 (100 content + 2*10 border).
+    // circle(50%) on 120x120 = radius 60px.
+    // overflow-clip-margin: 20px (default ref = padding-box).
+    // padding-box insets 10px from border-box, net expansion = -10 + 20 = 10px.
+    // Expanded rect: 140x140 → expanded radius = 70px.
+
+    // 65px from center: inside expanded shape (65 < 70).
+    assert_equals(document.elementFromPoint(centerX + 65, centerY), target,
+        "Point at 65px from center should hit child (inside expanded " +
+        "circle radius of 70px due to 20px overflow-clip-margin)");
+
+    // 75px from center: outside expanded shape (75 > 70).
+    assert_not_equals(document.elementFromPoint(centerX + 75, centerY), target,
+        "Point at 75px from center should NOT hit child (outside expanded " +
+        "circle radius of 70px)");
+
+    // 50px from center: inside original shape (50 < 60).
+    assert_equals(document.elementFromPoint(centerX + 50, centerY), target,
+        "Point at 50px from center should hit child (inside original " +
+        "circle radius of 60px, sanity check)");
+  }, "Hit testing child with border-shape circle + overflow-clip-margin");
+</script>

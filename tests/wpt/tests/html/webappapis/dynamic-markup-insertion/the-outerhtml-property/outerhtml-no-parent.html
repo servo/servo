@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>outerHTML: element with no parent</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#the-outerhtml-property">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(() => {
+  const el = document.createElement("div");
+  el.textContent = "original";
+  el.outerHTML = "<p>replacement</p>";
+  assert_equals(el.tagName, "DIV");
+  assert_equals(el.textContent, "original");
+}, "Setting outerHTML on element with no parent should be a no-op.");
+</script>

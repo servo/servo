@@ -1,0 +1,44 @@
+<!doctype html>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<link rel='stylesheet' href='./support/base.css' />
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#dimensioning-the-row-column-grid">
+<main>
+
+    <h1>HTML5 Table Formatting algorithm and Fixed Layout (row/column grid computation)</h1>
+    <p>Verifies how browsers deal with implicit tracks from which no cell does originate in fixed mode</p>
+
+    <hr/>
+    <p>This should be a 100px by 50px blue rectangle:</p>
+    <p>The table grid is 1x3, so the table is not empty and follows step 3A of the table layout algorithm</p>
+    <p>The consecutive columns were merged not together because the table-layout is fixed, but consecutive rows were.</p>
+    <p>Each track has a 0px breadth; the table width (respect. height) comes from 4x (respect. 2x) 25px-wide border spacings</p>
+    <x-table style="table-layout: fixed; width: 0; background: blue; border-spacing: 25px">
+        <x-tr><x-td width="0" height="0" colspan="3" rowspan="3" style="padding: 0"></x-td></x-tr>
+    </x-table>
+
+    <hr/>
+
+</main>
+
+<script>
+    while(true) {
+        var xtd = document.querySelector('x-td[rowspan], x-td[colspan]'); if(!xtd) break;
+        var td = document.createElement('td'); for(var i = xtd.attributes.length; i--;) { td.setAttribute(xtd.attributes[i].name,xtd.attributes[i].value) }
+        xtd.parentNode.replaceChild(td,xtd);
+    }
+
+    generate_tests(assert_equals, [
+        [
+            "Redundant columns of fixed-layout tables are not being merged",
+            document.querySelector("x-table:nth-of-type(1)").offsetWidth,
+            100
+        ],
+        [
+            "Redundant rows of fixed-layout tables are not being merged",
+            document.querySelector("x-table:nth-of-type(1)").offsetHeight,
+            50
+        ],
+    ])
+
+</script>

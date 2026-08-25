@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>JavaScript: the Private Token API XHR interface correctly validates its parameters</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  'use strict';
+
+  test(() => {
+    assert_throws_dom("InvalidStateError", () => {
+      let request = new XMLHttpRequest();
+      request.setPrivateToken({
+        version: 1,
+        operation: 'token-request'
+      });
+    });
+  }, 'Setting XHR Private Token parameters requires that the XHR request be open.');
+
+  test(() => {
+    assert_throws_dom("InvalidStateError", () => {
+      let request = new XMLHttpRequest();
+      request.open('GET', 'https://privatetoken.example');
+      request.send();
+      request.setPrivateToken({
+        version: 1,
+        operation: 'token-request'
+      });
+    });
+  }, 'Setting XHR Private Token parameters requires that the XHR request not have been sent.');
+
+  test(() => {
+    assert_throws_js(TypeError, () => {
+      let request = new XMLHttpRequest();
+      request.open('GET', 'https://privatetoken.example');
+      request.setPrivateToken({
+        version: 1,
+        operation: "token-request",
+        refreshPolicy: "not a member of the refreshPolicy enum",
+      });
+    });
+  }, 'Private Token operations require valid `refreshPolicy:` values, if provided.');
+
+  test(() => {
+    assert_throws_js(TypeError, () => {
+      let request = new XMLHttpRequest();
+      request.open('GET', 'https://privatetoken.example');
+      request.setPrivateToken({
+        version: 1,
+        operation: "send-redemption-record",
+        issuers: []
+      });
+    });
+  }, 'Private Token signing operations require at least one issuer URL.');
+
+  test(() => {
+    assert_throws_js(TypeError, () => {
+      let request = new XMLHttpRequest();
+      request.open('GET', 'https://privatetoken.example');
+      request.setPrivateToken({
+        version: 1,
+        operation: "send-redemption-record",
+        issuers: [3]
+      });
+    });
+  }, 'Private Token operations require string issuer URLs, if provided.');
+
+  test(() => {
+    assert_throws_js(TypeError, () => {
+      let request = new XMLHttpRequest();
+      request.open('GET', 'https://privatetoken.example');
+      request.setPrivateToken({
+        version: 1,
+        operation: "send-redemption-record",
+        issuers: ["not a valid URL"]
+      });
+    });
+  }, 'Private Token operations require valid issuer URLs, if provided.');
+
+  test(() => {
+    assert_throws_js(TypeError, () => {
+      let request = new XMLHttpRequest();
+      request.open('GET', 'https://privatetoken.example');
+      request.setPrivateToken({
+        version: 1,
+        operation: "send-redemption-record",
+        issuers: ["http://not-secure.com"]
+      });
+    });
+  }, 'Private Token operations require secure issuer URLs, if provided.');
+
+  test(() => {
+    let request = new XMLHttpRequest();
+    request.open('GET', 'https://privatetoken.example');
+    request.setPrivateToken({
+      version: 1,
+      operation: "send-redemption-record",
+      issuers: ["http://localhost"]
+    });
+  }, 'Since localhost URLs are potentially trustworthy, setting an issuer to localhost should succeed.');
+</script>

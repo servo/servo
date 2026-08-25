@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>View transitions: basic cross-document navigation in an iframe</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<link rel="match" href="root-element-transition-iframe-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="resources/common.js"></script>
+
+<iframe id="inner" src="resources/root-element-transition-iframe.html?blue"></iframe>
+<script>
+async function runTest() {
+  let frame = document.getElementById("inner");
+  frame.contentWindow.postMessage("checkrendering");
+  await waitForMessage("rendered");
+
+  frame.src = "resources/root-element-transition-iframe.html?grey";
+  await waitForMessage("transition");
+
+  takeScreenshot();
+}
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+</html>

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<style>
+  .fakecolumn {
+    float: left;
+    width: 200px;
+    height: 100px;
+    margin-left: 10px;
+  }
+  .fakecolumn:first-child {
+    margin-left: 0;
+  }
+  .part {
+    height: 100px;
+    background: hotpink;
+  }
+</style>
+<p>There should be (from left to right) a hotpink square, a thin hotpink
+  rectangle, then a wider hotpink rectangle.</p>
+<div style="width:620px; height:100px;">
+  <div class="fakecolumn">
+    <div class="part" style="width:100px;"></div>
+  </div>
+  <div class="fakecolumn">
+    <div class="part" style="width:10px;"></div>
+  </div>
+  <div class="fakecolumn">
+    <div class="part" style="width:200px;"></div>
+  </div>
+</div>

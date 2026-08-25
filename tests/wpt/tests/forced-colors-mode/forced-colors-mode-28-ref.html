@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Forced colors mode - background-image.
+</title>
+<style>
+  body {
+    forced-color-adjust: none;
+  }
+  div {
+    height: 20px;
+    width: 10px;
+  }
+  #div2, #div3 {
+    background-image: url("resources/test-image.jpg");
+  }
+</style>
+<body>
+  The background-image should be reverted in Forced Colors Mode unless the value
+  is a url() function.
+  <div id="div1"></div>
+  <div id="div2"></div>
+  <div id="div3"></div>
+  <div id="div4"></div>
+</body>

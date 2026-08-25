@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="author" title="David Shin" href="dshin@mozilla.com">
+<link rel="help" href="bugzilla.mozilla.org/show_bug.cgi?id=1940938">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<p>Test passes if there is a filled green square.</p>
+<div id="dut" style="overflow: hidden; height: 100px; width: 100px; background: red;">
+  <div style="width: 100px; height: 100px; background: green;"></div>
+  <div style="font-size: 200px;"><span>
+  </span></div>
+</div>
+<script>
+onload = function () {
+  dut.scrollTop = 100;
+  document.documentElement.className = "";
+}
+</script>
+</html>

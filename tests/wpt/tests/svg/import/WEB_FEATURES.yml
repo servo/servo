@@ -1,0 +1,7 @@
+rules:
+- filters-*: [svg-filters]
+- painting-fill-05-b-manual.svg: [opacity-svg]
+- painting-stroke-08-t-manual.svg: [opacity-svg]
+- animate-interact-pevents-*: [pointer-events]
+- interact-pevents-*: [pointer-events]
+- "*": [svg]

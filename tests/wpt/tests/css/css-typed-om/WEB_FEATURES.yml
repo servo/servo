@@ -1,0 +1,3 @@
+rules:
+- factory-*: [numeric-factory-functions, css-typed-om]
+- "**": [css-typed-om]

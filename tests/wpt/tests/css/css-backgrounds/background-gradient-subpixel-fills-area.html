@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en-GB" xml:lang="en-GB" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Background Test: Gradient backgrounds should fill the positioning area</title>
+  <link rel="author" title="schenney" href="mailto:schenney@chromium.org">
+  <link rel="help" href="https://www.w3.org/TR/css-backgrounds-3/#the-background-origin">
+  <link rel="match" href="reference/background-gradient-subpixel-fills-area-ref.html">
+  <meta name="fuzzy" content="maxDifference=0-1;totalPixels=0-6800">
+  <style>
+    ul {
+      width: 396.875px;
+      overflow: auto;
+      padding: 0;
+      list-style: none;
+      background-color: red;
+    }
+
+    li {
+      float: left;
+    }
+
+    div {
+      display: block;
+      width: 19.6875px;
+      height: 17px;
+      padding: 20px 10px;
+      background: linear-gradient(to bottom, green 0%, darkgreen 100%) darkgreen;
+    }
+  </style>
+</head>
+<body>
+    <ul>
+      <li><div></div></li>
+      <li><div></div></li>
+      <li><div></div></li>
+      <li><div></div></li>
+      <li><div></div></li>
+      <li><div></div></li>
+      <li><div></div></li>
+      <li><div></div></li>
+      <li><div></div></li>
+      <li><div></div></li>
+    </ul>
+</body>
+</html>

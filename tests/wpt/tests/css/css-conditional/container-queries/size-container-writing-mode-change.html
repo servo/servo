@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>CSS Container Queries Test: size container writing-mode change</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#size-container">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  #container {
+    container-type: size;
+    width: 500px;
+    height: 300px;
+  }
+  #target {
+    @container (inline-size = 300px) {
+      color: green;
+    }
+    @container (inline-size = 500px) {
+      color: red;
+    }
+  }
+</style>
+<div id="container">
+  <div id="target">Should be green</div>
+</div>
+<script>
+  setup(() => assert_implements_size_container_queries());
+
+  test(() => {
+    assert_equals(getComputedStyle(target).color, "rgb(255, 0, 0)");
+  }, "Initial horizontal writing-mode");
+
+  test(() => {
+    container.style.writingMode = "vertical-lr";
+    assert_equals(getComputedStyle(target).color, "rgb(0, 128, 0)");
+  }, "Vertical writing-mode changes logical query evaluation");
+</script>

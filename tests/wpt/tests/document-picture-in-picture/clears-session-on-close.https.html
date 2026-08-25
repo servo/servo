@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>Test that documentPictureInPicture.window
+  is cleared when the PiP window in closed.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+<script>
+async_test((t) => {
+  test_driver.bless('request PiP window').then(t.step_func(_ => {
+    documentPictureInPicture.requestWindow().then( () => {
+      const pipWindow = documentPictureInPicture.window;
+      assert_true(!!pipWindow, "pipWindow should exist with PiP is opened");
+      pipWindow.addEventListener('unload', () => {
+        // `window` is still set until event processing is complete.
+        scheduler.postTask(t.step_func_done( () => {
+          assert_true(!documentPictureInPicture.window,
+                      "window should be cleared when PiP is closed");
+        }))
+      });
+      pipWindow.close();
+    });
+  }));
+});
+</script>
+</body>

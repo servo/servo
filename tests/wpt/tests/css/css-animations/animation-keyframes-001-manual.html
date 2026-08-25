@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Animations Test: @keyframes - from, to, percentage</title>
+<link rel="author" title="Nokia Inc." href="http://www.nokia.com">
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="reviewer" title="Zhiqiang Zhang" href="mailto:zhiqiang.zhang@intel.com"> <!-- 2015-05-06 -->
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#animation-name">
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#animation-duration">
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#keyframes">
+<meta name="flags" content="animated">
+<meta name="assert" content="Check that @keyframes rule accepts 'from' and 'to'
+                             keywords, and percentage values.">
+<style>
+  div {
+    animation-name: sample;
+    animation-duration: 10s;
+
+    background-color: blue;
+    height: 100px;
+    width: 100px;
+  }
+
+  @keyframes sample {
+    from {
+      background-color: blue;
+    }
+    30% {
+      background-color: green;
+    }
+    65% {
+      background-color: yellow;
+    }
+    to {
+      background-color: blue;
+    }
+  }
+</style>
+<body>
+  <p>
+    Test passes if there is a filled blue square with 'Filler Text'
+    initially on page load, and if the color of the square gradully changes
+    in order: BLUE to GREEN to YELLOW and back to BLUE in 10 seconds.
+  </p>
+  <div>Filler Text</div>
+</body>
+

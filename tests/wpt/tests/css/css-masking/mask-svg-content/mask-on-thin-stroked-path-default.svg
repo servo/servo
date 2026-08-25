@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml"
+     width="200" height="100" viewBox="0 0 200 100">
+  <g id="testmeta">
+    <title>CSS Masking: default &lt;mask&gt; (objectBoundingBox) clips stroke on thin-bbox path</title>
+    <html:link rel="help" href="https://drafts.csswg.org/css-masking-1/#MaskElement"/>
+    <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/coords.html#TermObjectBoundingBox"/>
+    <html:link rel="match" href="mask-on-thin-stroked-path-default-ref.svg"/>
+    <html:meta name="assert" content="With a default &lt;mask&gt; reference (maskUnits=objectBoundingBox, x=-10% y=-10% width=120% height=120%) on a stroked path whose geometric bounding box is (50,45,100,10), the mask painting region resolves to (40,44,120,12) and clips the rendered stroke to that rectangle. The visible stroke is a 100x12 green rectangle at (50,44)."/>
+  </g>
+
+  <mask id="default-mask">
+    <rect x="0" y="0" width="200" height="100" fill="white"/>
+  </mask>
+
+  <!-- Path bbox: x=50, y=45, width=100, height=10
+       Default mask region (objectBoundingBox + 10% pad):
+         x = 50 - 0.1*100 = 40
+         y = 45 - 0.1*10  = 44
+         w = 1.2*100       = 120
+         h = 1.2*10        = 12
+       Stroke shape (two horizontal bands, stroke-width=20, butt caps):
+         band 1: x=50..150, y=35..55
+         band 2: x=50..150, y=45..65
+         union:  x=50..150, y=35..65
+       Intersected with mask region:
+         x: [50,150] n [40,160] = [50,150]  -> width 100
+         y: [35,65]  n [44,56]  = [44,56]   -> height 12
+       Result: green rect at (50, 44, 100, 12). Pixel-aligned. -->
+  <path d="M 50 45 L 150 45 M 50 55 L 150 55"
+        stroke="green" stroke-width="20" stroke-linecap="butt"
+        fill="none" mask="url(#default-mask)"/>
+</svg>

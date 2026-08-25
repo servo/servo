@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/utils.js"></script>
+
+<script>
+  setup({"hide_test_state": true});
+
+  const entriesExpectToReceive = [
+    {
+      'entryType': 'paint',
+      'name': 'first-paint'
+    },
+    {
+      'entryType': 'paint',
+      'name': 'first-contentful-paint'
+    }
+  ];
+
+  promise_test(async t => {
+    assert_implements(window.PerformancePaintTiming, "Paint Timing isn't supported.");
+    const childDone = new Promise(resolve => {
+      window.addEventListener('message', e => {
+        for (let i = 0; i < entriesExpectToReceive.length; i++) {
+          if (entriesExpectToReceive[i].entryType == e.data.entryType &&
+            entriesExpectToReceive[i].name == e.data.name) {
+            entriesExpectToReceive.splice(i, 1);
+            break;
+          }
+        }
+        if (entriesExpectToReceive.length == 0) {
+          resolve();
+        }
+      });
+    });
+
+    const iframe = document.createElement('iframe');
+    iframe.id = 'child-iframe';
+    iframe.src = '../resources/subframe-painting.html';
+    document.body.appendChild(iframe);
+
+    // When only child frame paints, expect only first-paint.
+    await childDone;
+    await assertFirstPaint();
+    await assertNoFirstContentfulPaint(t);
+  }, 'Parent frame ignores paint-timing events fired from child image rendering.');
+</script>
+</body>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<link rel="help" href="http://crbug.com/406109047">
+<style type="text/css">
+.c2 {
+  float: right;
+  text-decoration: overline;
+}
+
+.c2::first-letter {
+  vertical-align: super;
+  opacity: 0.1;
+}
+
+.c2::first-line {
+  text-decoration: overline;
+}
+</style>
+<script>
+let element = document.createElement('q');
+element.setAttribute('class', 'c2');
+document.documentElement.appendChild(element);
+let text_node = document.createTextNode('appxgrxebpwykansiejjshzsznwgqyelwkrlpjsmtdhhfnywteevgcricqxp');
+window.requestAnimationFrame(function() {
+  element.appendChild(text_node);
+});
+</script>

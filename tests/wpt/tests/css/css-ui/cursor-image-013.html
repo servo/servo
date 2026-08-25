@@ -1,0 +1,21 @@
+﻿<!DOCTYPE html>
+<title>CSS Basic User Interface Test: Cursor property, gradient image value</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="http://www.w3.org/TR/css3-ui/#cursor">
+<meta name="flags" content="interact image may">
+<meta charset="UTF-8">
+<meta name="assert" content="For cursors, UAs may support gradients, which are part of <image> value type">
+
+<style>
+div.test{
+  background: #D2B48C; border: 2px solid #555;
+  cursor: linear-gradient(blue, green), help;
+  width: 128px; height: 128px;
+}
+</style>
+<body>
+  <p>The test passes if, when moved inside the colored rectangle, the cursor looks like
+  a blue to green gradient.</p>
+  <p>If inside the rectangle the cursor does not change, or looks like a help cursor, the test fails.</p>
+  <div class="test"> </div>
+</body>

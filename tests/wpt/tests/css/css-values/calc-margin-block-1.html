@@ -1,0 +1,23 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>CSS Test: Test of margin-*: calc()</title>
+  <link rel="author" title="L. David Baron" href="https://dbaron.org/">
+  <link rel="help" href="http://www.w3.org/TR/css3-values/#calc-notation">
+  <link rel="match" href="calc-margin-block-1-ref.html">
+<style type="text/css">
+
+div { border: medium solid green; width: 500px }
+p { background: yellow }
+
+</style>
+</head>
+<body>
+
+<div><p style="margin: calc(10px + 1%) 0 0 0">paragraph with margin</p></div>
+<div><p style="margin: 0 calc(10px + 1%) 0 0">paragraph with margin</p></div>
+<div><p style="margin: 0 0 calc(10px + 1%) 0">paragraph with margin</p></div>
+<div><p style="margin: 0 0 0 calc(10px + 1%)">paragraph with margin</p></div>
+<div><p style="margin: calc(30px - 1%)">paragraph with margin</p></div>
+</body>
+</html>

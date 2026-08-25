@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!-- Reference case, using inline-block instead of inline-flex, and with the
+     unaligned children taken out of baseline-alignment with
+     "vertical-align:top".
+-->
+<html>
+<head>
+  <title>CSS Reftest Reference</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <meta charset="utf-8">
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+  <style>
+    body {
+      margin: 0;
+      font: 20px Ahem;
+      line-height: 20px;
+      /* Baseline is 0.8em = 16px from top */
+    }
+    .flexContainer {
+      display: inline-block;
+      background: lightblue;
+    }
+    .hugeAndUnaligned {
+      font-size: 35px;
+      line-height: 35px;
+      vertical-align: top;
+    }
+    .smallFont {
+      font-size: 10px;
+      line-height: 10px;
+      /* Baseline is 0.8em = 8px from top */
+    }
+    * { vertical-align: top }
+  </style>
+</head>
+<body>
+  <div style="display: inline-block; margin-top: 12px">a</div>
+  <div class="flexContainer" style="margin-top: 20px">
+    <div class="smallFont">b</div
+    ><div>c</div
+    ><div class="hugeAndUnaligned">d</div>
+  </div>
+  <div class="flexContainer">
+    <div class="hugeAndUnaligned">e</div
+    ><div>f</div
+    ><div class="smallFont">g</div>
+  </div>
+  <div class="flexContainer">
+    <div class="hugeAndUnaligned">h</div
+    ><div class="smallFont">i</div
+    ><div>j</div>
+  </div>
+</body>
+</html>

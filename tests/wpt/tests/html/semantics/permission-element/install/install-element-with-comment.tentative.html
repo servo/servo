@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<link rel="help" href="https://github.com/WICG/PEPC/blob/main/explainer.md">
+<link rel="match" href="install-element-with-comment-ref.html">
+<meta name=fuzzy content="maxDifference=0-1;totalPixels=0-4">
+
+<install> <!-- Comment 1 --> </install>
+<install> <!-- C1 --> Text <!-- C2 --> </install>
+<div style="display: flex;">
+  <install> <!-- Comment 1 --> </install>
+</div>
+<install>
+  <!-- Comment Before -->
+  <span>
+    <button>Click Me</button>
+    <textarea>Some text</textarea>
+  </span>
+  <!-- Comment After -->
+</install>

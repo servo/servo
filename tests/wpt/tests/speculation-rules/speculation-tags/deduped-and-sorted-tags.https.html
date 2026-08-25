@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<title>Sec-Speculation-Tags request headers</title>
+<meta name="variant" content="?type=prefetch">
+<meta name="variant" content="?type=prerender">
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/html/browsers/browsing-the-web/remote-context-helper/resources/remote-context-helper.js"></script>
+<script src="/speculation-rules/resources/utils.js"></script>
+<script src="resources/speculation-tags-utils.js"></script>
+<script>
+"use strict";
+
+setup(() => assertSpeculationRulesIsSupported());
+
+function constructSpeculationRule(preloadingType, url, rulesetTag, ruleTags) {
+  // Construct rules.
+  const rules = [];
+  for (const tag of ruleTags) {
+    rules.push({tag, source: "list", urls: [url]});
+  }
+
+  // Construct the ruleset.
+  return JSON.stringify({
+      tag: rulesetTag,
+      [preloadingType]: rules
+  });
+}
+
+// Test the case where multiple tags (including duplicate tags, invalid tags,
+// and no tags) specified on both the ruleset level and the rule level. These
+// should be deduped and sorted before sent as the header.
+promise_test(async t => {
+    const params = new URLSearchParams(window.location.search);
+    const preloadingType = params.get('type');
+
+    // Inputs and expectations:
+    // "def" is duplicate. "\x19" is invalid. "undefined" indicates no tag.
+    const rulesetTag = "def";
+    const ruleTags = ["def", "jkl", "def", "null", "\x19", "abc", undefined, "ghi"];
+    // "def" should be deduped.
+    // "\x19" and "undefined" should be ignored (should not send null tag).
+    const expectedTags = '"abc", "def", "ghi", "jkl", "null"';
+
+    const rcHelper = new RemoteContextHelper();
+    const referrerRC = await rcHelper.addWindow(undefined, { features: 'noopener' });
+
+    const extraConfig = {};
+    const preloadedRC = await referrerRC.helper.createContext({
+        executorCreator(url) {
+          const speculationRule = constructSpeculationRule(
+              preloadingType, url, rulesetTag, ruleTags);
+          return referrerRC.executeScript((speculationRule) => {
+              const script = document.createElement("script");
+              script.type = "speculationrules";
+              script.textContent = speculationRule;
+              document.head.append(script);
+          }, [speculationRule]);
+        }, extraConfig
+    });
+
+    // Navigate to the preloaded page.
+    await referrerRC.navigateTo(preloadedRC.url);
+
+    const headers = await preloadedRC.getRequestHeaders();
+    // Make sure the page is preloaded.
+    assert_equals(
+      headers.get("sec-purpose"),
+      preloadingType === "prefetch" ? "prefetch" : "prefetch;prerender");
+    assert_equals(headers.get("sec-speculation-tags"), expectedTags);
+}, "Sec-Speculation-Tags: deduped and sorted tags");
+
+// Test the case where multiple tags (including duplicate tags, invalid tags,
+// and no tags) specified only on the rule level. These should be deduped and
+// sorted before sent as the header. Unlike the previous test, no tag on the
+// rule should result in the null tag.
+promise_test(async t => {
+    const params = new URLSearchParams(window.location.search);
+    const preloadingType = params.get('type');
+
+    // Inputs and expectations:
+    // No ruleset level tag.
+    const rulesetTag = undefined;
+    // "def" is duplicate. "\x19" is invalid. "undefined" indicates no tag.
+    const ruleTags = ["def", "jkl", "def", "null", "\x19", "abc", undefined, "ghi"];
+    // 5 rules are (no ruleset level tag) + (rule level tag) =
+    //     "abc" only, "def" only, "ghi" only, "jkl" only, "null" only.
+    // 1 rule is (no ruleset level tag) + (no rule level tag) = null only.
+    // 2 rule are duplicate or invalid.
+    //
+    // All 6 effective rules, including the null rule, get combined to match
+    // expectedTags.
+    const expectedTags = 'null, "abc", "def", "ghi", "jkl", "null"';
+
+    const rcHelper = new RemoteContextHelper();
+    const referrerRC = await rcHelper.addWindow(undefined, { features: 'noopener' });
+
+    const extraConfig = {};
+    const preloadedRC = await referrerRC.helper.createContext({
+        executorCreator(url) {
+          const speculationRule = constructSpeculationRule(
+              preloadingType, url, rulesetTag, ruleTags);
+          return referrerRC.executeScript((speculationRule) => {
+              const script = document.createElement("script");
+              script.type = "speculationrules";
+              script.textContent = speculationRule;
+              document.head.append(script);
+          }, [speculationRule]);
+        }, extraConfig
+    });
+
+    // Navigate to the preloaded page.
+    await referrerRC.navigateTo(preloadedRC.url);
+
+    const headers = await preloadedRC.getRequestHeaders();
+    // Make sure the page is preloaded.
+    assert_equals(
+      headers.get("sec-purpose"),
+      preloadingType === "prefetch" ? "prefetch" : "prefetch;prerender");
+    assert_equals(headers.get("sec-speculation-tags"), expectedTags);
+}, "Sec-Speculation-Tags: deduped and sorted tags within rules");
+
+// Test the case where multiple tags specified on multiple rulesets. These
+// should be deduped and sorted before sent as the header.
+promise_test(async t => {
+    const params = new URLSearchParams(window.location.search);
+    const preloadingType = params.get('type');
+
+    // Inputs and expectations:
+    // "def" and "jkl" are duplicate.
+    const rulesetTag1 = "def";
+    const ruleTags1 = ["jkl", "abc"];
+    const rulesetTag2 = "jkl";
+    const ruleTags2 = ["def", "ghi"];
+    // "def" and "jkl" should be deduped.
+    const expectedTags = '"abc", "def", "ghi", "jkl"';
+
+    const rcHelper = new RemoteContextHelper();
+    const referrerRC = await rcHelper.addWindow(undefined, { features: 'noopener' });
+
+    const extraConfig = {};
+    const preloadedRC = await referrerRC.helper.createContext({
+        executorCreator(url) {
+          const speculationRules = [
+            constructSpeculationRule(
+              preloadingType, url, rulesetTag1, ruleTags1),
+            constructSpeculationRule(
+              preloadingType, url, rulesetTag2, ruleTags2)
+          ];
+          return referrerRC.executeScript((speculationRules) => {
+              for (const ruleText of speculationRules) {
+                const script = document.createElement("script");
+                script.type = "speculationrules";
+                script.textContent = ruleText;
+                document.head.append(script);
+              }
+          }, [speculationRules]);
+        }, extraConfig
+    });
+
+    // Navigate to the preloaded page.
+    await referrerRC.navigateTo(preloadedRC.url);
+
+    const headers = await preloadedRC.getRequestHeaders();
+    // Make sure the page is preloaded.
+    assert_equals(
+      headers.get("sec-purpose"),
+      preloadingType === "prefetch" ? "prefetch" : "prefetch;prerender");
+    assert_equals(headers.get("sec-speculation-tags"), expectedTags);
+}, "Sec-Speculation-Tags: deduped and sorted tags within multiple rulesets");
+
+// Test the case where multiple "null" tags and no tags specified on multiple
+// rulesets. These should be deduped and sorted before sent as the header.
+promise_test(async t => {
+    const params = new URLSearchParams(window.location.search);
+    const preloadingType = params.get('type');
+
+    // Inputs and expectations:
+    const rulesetTag1 = undefined;
+    const ruleTags1 = [undefined, "null", "abc"];
+    const rulesetTag2 = undefined;
+    const ruleTags2 = ["def", undefined, "null"];
+    // 4 rules are (no ruleset level tag) + (rule level tag) =
+    //     "abc" only, "def" only, "null" only.
+    // 2 rules are (no ruleset level tag) + (no rule level tag) = null only.
+    //
+    // All rules, including the null rules, get combined to match expectedTags.
+    const expectedTags = 'null, "abc", "def", "null"';
+
+    const rcHelper = new RemoteContextHelper();
+    const referrerRC = await rcHelper.addWindow(undefined, { features: 'noopener' });
+
+    const extraConfig = {};
+    const preloadedRC = await referrerRC.helper.createContext({
+        executorCreator(url) {
+          const speculationRules = [
+            constructSpeculationRule(
+              preloadingType, url, rulesetTag1, ruleTags1),
+            constructSpeculationRule(
+              preloadingType, url, rulesetTag2, ruleTags2)
+          ];
+          return referrerRC.executeScript((speculationRules) => {
+              for (const ruleText of speculationRules) {
+                const script = document.createElement("script");
+                script.type = "speculationrules";
+                script.textContent = ruleText;
+                document.head.append(script);
+              }
+          }, [speculationRules]);
+        }, extraConfig
+    });
+
+    // Navigate to the preloaded page.
+    await referrerRC.navigateTo(preloadedRC.url);
+
+    const headers = await preloadedRC.getRequestHeaders();
+    // Make sure the page is preloaded.
+    assert_equals(
+      headers.get("sec-purpose"),
+      preloadingType === "prefetch" ? "prefetch" : "prefetch;prerender");
+    assert_equals(headers.get("sec-speculation-tags"), expectedTags);
+}, "Sec-Speculation-Tags: 'null' tags and no tags within multiple rulesets");
+
+// Test the case where 2 rulesets are added but the first ruleset is immediately
+// removed before they are processed. Only tags specified on the second ruleset
+// should be sent.
+promise_test(async t => {
+    const params = new URLSearchParams(window.location.search);
+    const preloadingType = params.get('type');
+
+    // Inputs and expectations:
+    // Only the first ruleset includes "abc".
+    const rulesetTag1 = "def";
+    const ruleTags1 = ["jkl", "abc"];
+    const rulesetTag2 = "jkl";
+    const ruleTags2 = ["def", "ghi"];
+    // "abc" should not be sent, as the first ruleset is removed. The other
+    // common tags should be sent regardless of the removal.
+    const expectedTags = '"def", "ghi", "jkl"';
+
+    const rcHelper = new RemoteContextHelper();
+    const referrerRC = await rcHelper.addWindow(undefined, { features: 'noopener' });
+
+    const extraConfig = {};
+    const preloadedRC = await referrerRC.helper.createContext({
+        executorCreator(url) {
+          const speculationRules = [
+            constructSpeculationRule(
+              preloadingType, url, rulesetTag1, ruleTags1),
+            constructSpeculationRule(
+              preloadingType, url, rulesetTag2, ruleTags2)
+          ];
+          return referrerRC.executeScript((speculationRules) => {
+              const scripts = [];
+              for (const ruleText of speculationRules) {
+                const script = document.createElement("script");
+                script.type = "speculationrules";
+                script.textContent = ruleText;
+                document.head.append(script);
+                scripts.push(script);
+              }
+              // Remove the first ruleset.
+              scripts[0].remove();
+          }, [speculationRules]);
+        }, extraConfig
+    });
+
+    // Navigate to the preloaded page.
+    await referrerRC.navigateTo(preloadedRC.url);
+
+    const headers = await preloadedRC.getRequestHeaders();
+    // Make sure the page is preloaded.
+    assert_equals(
+      headers.get("sec-purpose"),
+      preloadingType === "prefetch" ? "prefetch" : "prefetch;prerender");
+    assert_equals(headers.get("sec-speculation-tags"), expectedTags);
+}, "Sec-Speculation-Tags: removed ruleset");
+
+</script>

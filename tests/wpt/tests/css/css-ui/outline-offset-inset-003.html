@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#outline-offset">
+<link rel="match" href="outline-offset-inset-003-ref.html">
+<meta name="assert" content="outline-offset: inset renders the same as a negative outline-offset for various outline styles">
+<style>
+  div {
+    display: inline-block;
+    width: 80px;
+    height: 80px;
+    background: lightblue;
+    outline-width: 6px;
+    outline-offset: inset;
+    margin: 20px;
+  }
+  .solid  { outline-style: solid; }
+  .dashed { outline-style: dashed; }
+  .dotted { outline-style: dotted; }
+  .double { outline-style: double; }
+</style>
+<div class="solid"></div>
+<div class="dashed"></div>
+<div class="dotted"></div>
+<div class="double"></div>

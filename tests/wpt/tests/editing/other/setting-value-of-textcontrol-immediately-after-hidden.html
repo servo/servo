@@ -1,0 +1,118 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="variant" content="?editor=input&hide-target=editor">
+<meta name="variant" content="?editor=textarea&hide-target=editor">
+<meta name="variant" content="?editor=input&hide-target=parent">
+<meta name="variant" content="?editor=textarea&hide-target=parent">
+<title>Testing edit action in zombie editor</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<body>
+<script>
+"use strict";
+
+const params = new URLSearchParams(location.search);
+
+/**
+ * The expected results is based on Chrome 93.
+ * The behavior is reasonable because JS API which does not require focus keeps
+ * working even if it's hidden.
+ */
+
+function init() {
+  const div = document.createElement("div");
+  const editor = document.createElement(params.get("editor"));
+  const hideTarget = params.get("hide-target") == "editor" ? editor : div;
+  editor.value = "default value";
+  div.appendChild(editor);
+  document.body.appendChild(div);
+  return [ hideTarget, editor ];
+}
+
+function finalize(editor) {
+  editor.blur();
+  editor.parentNode.remove();
+  document.body.getBoundingClientRect();
+}
+
+promise_test(async () => {
+  await new Promise(resolve => addEventListener("load", resolve, {once: true}));
+}, "Wait for load event");
+
+promise_test(async () => {
+  const [hideTarget, editor] = init();
+  try {
+    hideTarget.style.display = "none";
+    editor.value = "new value";
+    assert_equals(editor.value, "new value", "The value should be set properly");
+  } finally {
+    finalize(editor);
+  }
+}, `<${params.get("editor")}>.value = "new value" (without focus)`);
+
+promise_test(async () => {
+  const [hideTarget, editor] = init();
+  try {
+    editor.focus();
+    hideTarget.style.display = "none";
+    editor.value = "new value";
+    assert_equals(editor.value, "new value", "The value should be set properly");
+  } finally {
+    finalize(editor);
+  }
+}, `<${params.get("editor")}>.value = "new value" (with focus)`);
+
+promise_test(async () => {
+  const [hideTarget, editor] = init();
+  try {
+    editor.focus();
+    editor.blur();
+    hideTarget.style.display = "none";
+    editor.value = "new value";
+    assert_equals(editor.value, "new value", "The value should be set properly");
+  } finally {
+    finalize(editor);
+  }
+}, `<${params.get("editor")}>.value = "new value" (after blur)`);
+
+promise_test(async () => {
+  const [hideTarget, editor] = init();
+  try {
+    hideTarget.style.display = "none";
+    editor.setRangeText("new", 0, "default".length);
+    assert_equals(editor.value, "new value", "The value should be set properly by setRangeText");
+  } finally {
+    finalize(editor);
+  }
+}, `<${params.get("editor")}>.setRangeText("new", 0, "default".length) (without focus)`);
+
+promise_test(async () => {
+  const [hideTarget, editor] = init();
+  try {
+    editor.focus();
+    hideTarget.style.display = "none";
+    editor.setRangeText("new", 0, "default".length);
+    assert_equals(editor.value, "new value", "The value should be set properly by setRangeText");
+  } finally {
+    finalize(editor);
+  }
+}, `<${params.get("editor")}>.setRangeText("new", 0, "default".length) (with focus)`);
+
+promise_test(async () => {
+  const [hideTarget, editor] = init();
+  try {
+    editor.focus();
+    editor.blur();
+    hideTarget.style.display = "none";
+    editor.setRangeText("new", 0, "default".length);
+    assert_equals(editor.value, "new value", "The value should be set properly by setRangeText");
+  } finally {
+    finalize(editor);
+  }
+}, `<${params.get("editor")}>.setRangeText("new", 0, "default".length) (after blur)`);
+
+</script>
+</body>

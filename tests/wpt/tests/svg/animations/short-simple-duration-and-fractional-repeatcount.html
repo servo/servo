@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>Short simple duration and fractional repeatCount does not hang</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg>
+  <rect width="100" height="100" fill="blue">
+    <animate attributeName="fill" from="red" to="orange"
+             begin="-10ms" dur="0.001ms" repeatCount="0.5"/>
+  </rect>
+</svg>
+<script>
+  async_test(t => {
+    onload = t.step_func(() => {
+      requestAnimationFrame(t.step_func(() => {
+        requestAnimationFrame(t.step_func_done(() => {
+          let rect = document.querySelector("rect");
+          assert_equals(getComputedStyle(rect).fill, 'rgb(0, 0, 255)');
+        }));
+      }));
+    });
+  });
+</script>

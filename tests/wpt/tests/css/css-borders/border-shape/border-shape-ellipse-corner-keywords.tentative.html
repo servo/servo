@@ -1,0 +1,19 @@
+<!doctype html>
+<title>CSS Borders: border-shape ellipse() radial-extent *-corner keywords</title>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#border-shape">
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#typedef-radial-size">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/14010">
+<link rel="match" href="border-shape-ellipse-corner-keywords-ref.html">
+<meta name="assert" content="ellipse() per-axis *-corner keywords resolve to the Euclidean distance to the closest/farthest corner. Tentative pending csswg-drafts#14010.">
+<style>
+  .box {
+    width: 300px;
+    height: 400px;
+    margin: 50px;
+    background: green;
+  }
+  #closest-corner { border-shape: ellipse(closest-corner closest-corner at 60px 80px); }
+  #farthest-corner { border-shape: ellipse(farthest-corner farthest-corner at 60px 80px); }
+</style>
+<div id="closest-corner" class="box"></div>
+<div id="farthest-corner" class="box"></div>

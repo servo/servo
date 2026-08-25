@@ -1,0 +1,10 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Closing streamPrependHTML while head is detached</title>
+<script>
+  (async () => {
+    const writer = document.documentElement.streamPrependHTML().getWriter();
+    document.head.remove();
+    await writer.close();
+  })();
+</script>

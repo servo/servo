@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Animating SVG r attribute with pixel units should not crash</title>
+<link rel="help" href="https://crbug.com/40446828">
+<svg><circle id="target"/></svg>
+<script>
+  document.getElementById('target').animate([{'svg-r': '10px'}, {'svg-r': '100px'}], 1000);
+</script>

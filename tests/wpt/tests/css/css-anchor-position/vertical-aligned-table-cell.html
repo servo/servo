@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>Anchor inside table cell with non-top alignment</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-anchor-position-1/#positioning">
+<link rel="help" href="https://www.w3.org/TR/css-inline-3/#transverse-alignment">
+<link rel="help" href="https://issues.chromium.org/issues/406288652">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width:100px; height:100px; position:relative; background:red;">
+  <div style="display:table-cell;">
+    <div id="anchor" style="anchor-name:--a; width:50px; height:100px;"></div>
+  </div>
+  <div style="display:table-cell;">
+    <div style="width:10px; height:200px;"></div>
+  </div>
+  <div style="position:absolute; position-anchor:--a; bottom:anchor(top); width:100px; height:100px; background:green;"></div>
+</div>

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<title>unicode-bidi UA stylesheet rules</title>
+<link rel="author" href="masonf@chromium.org">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#bidi-rendering">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src='../../resources/common.js'></script>
+
+<body>
+<script>
+  function getUnicodeBidi(el) {
+    return window.getComputedStyle(el, "").unicodeBidi;
+  }
+
+  // These elements should have `unicode-bidi: isolate` in the UA stylesheet:
+  const isolateElements = ['address', 'blockquote', 'center', 'div', 'figure',
+      'figcaption', 'footer', 'form', 'header', 'hr', 'legend', 'listing',
+      'main', 'p', 'plaintext', 'pre', 'summary', 'xmp', 'article', 'aside',
+      'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'hgroup', 'nav', 'section', 'search',
+      'table', 'caption', 'colgroup', 'col', 'thead', 'tbody', 'tfoot', 'tr',
+      'td', 'th', 'dir', 'dd', 'dl', 'dt', 'menu', 'ol', 'ul', 'li', 'bdi',
+      'output'];
+  const allButSeparateTests = HTML5_ELEMENTS.filter(el => (!['bdo','input','textarea','pre'].includes(el)));
+  for(let tagname of allButSeparateTests) {
+    test((t) => {
+      const element = document.createElement(tagname);
+      t.add_cleanup(() => element.remove());
+      document.body.appendChild(element);
+      const expectation = isolateElements.includes(tagname) ? 'isolate' : 'normal';
+      assert_equals(getUnicodeBidi(element),expectation);
+
+      element.setAttribute('dir','ltr');
+      assert_equals(getUnicodeBidi(element),'isolate','with dir=ltr');
+      element.setAttribute('dir','LtR');
+      assert_equals(getUnicodeBidi(element),'isolate','with dir=LtR (case insensitive)');
+      element.setAttribute('dir','rtl');
+      assert_equals(getUnicodeBidi(element),'isolate','with dir=rtl');
+      element.setAttribute('dir','auto');
+      assert_equals(getUnicodeBidi(element),'isolate','with dir=auto');
+      element.setAttribute('dir','INVALID');
+      assert_equals(getUnicodeBidi(element),expectation,'invalid dir value goes back to normal defaults');
+    },`UA stylesheet rule for unicode-bidi, for <${tagname}>`);
+  }
+
+  test((t) => {
+    const element = document.createElement('bdo');
+    t.add_cleanup(() => element.remove());
+    document.body.appendChild(element);
+    assert_equals(getUnicodeBidi(element),'isolate-override');
+    element.setAttribute('dir','ltr');
+    assert_equals(getUnicodeBidi(element),'isolate-override','with dir=ltr');
+    element.setAttribute('dir','LtR');
+    assert_equals(getUnicodeBidi(element),'isolate-override','with dir=LtR (case insensitive)');
+    element.setAttribute('dir','rtl');
+    assert_equals(getUnicodeBidi(element),'isolate-override','with dir=rtl');
+    element.setAttribute('dir','auto');
+    assert_equals(getUnicodeBidi(element),'isolate-override','with dir=auto');
+    element.setAttribute('dir','INVALID');
+    assert_equals(getUnicodeBidi(element),'isolate-override','invalid dir value');
+  },`UA stylesheet rule for unicode-bidi, for <bdo>`);
+
+  const shouldBePlaintext = ['search','tel','url','email'];
+  for(let type of HTML5_INPUT_TYPES) {
+    test((t) => {
+      const element = document.createElement('input');
+      t.add_cleanup(() => element.remove());
+      element.type = type;
+      document.body.appendChild(element);
+      const autoExpectation = shouldBePlaintext.includes(type) ? 'plaintext' : 'isolate';
+      assert_equals(getUnicodeBidi(element),'normal');
+      element.setAttribute('dir','ltr');
+      assert_equals(getUnicodeBidi(element),'isolate','with dir=ltr');
+      element.setAttribute('dir','LtR');
+      assert_equals(getUnicodeBidi(element),'isolate','with dir=LtR (case insensitive)');
+      element.setAttribute('dir','rtl');
+      assert_equals(getUnicodeBidi(element),'isolate','with dir=rtl');
+      element.setAttribute('dir','auto');
+      assert_equals(getUnicodeBidi(element),autoExpectation,'with dir=auto');
+      element.setAttribute('dir','AuTo');
+      assert_equals(getUnicodeBidi(element),autoExpectation,'with dir=auto (case insensitive)');
+      element.setAttribute('dir','INVALID');
+      assert_equals(getUnicodeBidi(element),'normal','invalid dir value');
+    },`UA stylesheet rule for unicode-bidi, for <input type=${type}>`);
+  }
+
+  for(let tagname of ['textarea','pre']) {
+    test((t) => {
+      const element = document.createElement(tagname);
+      t.add_cleanup(() => element.remove());
+      document.body.appendChild(element);
+      const expectation = tagname === 'textarea' ? 'normal' : 'isolate';
+      assert_equals(getUnicodeBidi(element),expectation);
+      element.setAttribute('dir','ltr');
+      assert_equals(getUnicodeBidi(element),'isolate','with dir=ltr');
+      element.setAttribute('dir','LtR');
+      assert_equals(getUnicodeBidi(element),'isolate','with dir=LtR (case insensitive)');
+      element.setAttribute('dir','rtl');
+      assert_equals(getUnicodeBidi(element),'isolate','with dir=rtl');
+      element.setAttribute('dir','auto');
+      assert_equals(getUnicodeBidi(element),'plaintext','with dir=auto');
+      element.setAttribute('dir','AuTo');
+      assert_equals(getUnicodeBidi(element),'plaintext','with dir=auto (case insensitive)');
+      element.setAttribute('dir','INVALID');
+      assert_equals(getUnicodeBidi(element),expectation,'invalid dir value');
+    },`UA stylesheet rule for unicode-bidi, for <${tagname}>`);
+  }
+</script>

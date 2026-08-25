@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<link rel="author" title="David Shin" href="mailto:dshin@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#relational">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1793012">
+<link rel="match" href="has-style-sharing-006-ref.html">
+<meta name="assert" content="Ensure that style sharing optimizations do not interfere with :has() selector matching.">
+<style>
+div {
+  background: blue;
+  margin: 1em;
+  padding: 1em;
+}
+
+span {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+}
+
+:has(> .a) .b .c {
+  background: green;
+}
+
+.c {
+  background: purple;
+}
+</style>
+<div><span class="b"><span class="c"></span></span><span></span></div>
+<div><span class="b"><span class="c"></span></span><span class="a"></span></div>

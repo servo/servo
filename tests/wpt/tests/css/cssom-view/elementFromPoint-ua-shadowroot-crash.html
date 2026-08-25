@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<link rel="help" href="https://github.com/servo/servo/issues/45170">
+<style>
+  #container {scale: 1000; }
+  :read-only { width: max-content; }
+</style>
+<div id="container">
+  <input id="user"></input>
+</div>
+<script>
+  container.replaceChild(document.elementFromPoint(0, 0), user);
+</script>
+

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+div {
+  display: inline-grid-lanes;
+  gap: 5px;
+}
+
+.grid-lanes {
+  grid-template-columns: 50px;
+  height: 50px;
+}
+.vlr { writing-mode: vertical-lr }
+.subgrid { background: gray; height: 50px; }
+
+.item {
+  background: orange;
+  height: 20px;
+  width: 20px;
+}
+
+.as { align-self: start }
+.ae { align-self: end }
+.ac { align-self: center }
+.ab { align-self: baseline }
+
+.js { justify-self: start }
+.je { justify-self: end }
+.jc { justify-self: center }
+.jb { justify-self: baseline }
+</style>
+<div id="wrapper"></div>
+
+<template id="grid-lanes">
+  <div class="grid-lanes">
+    <div class="subgrid">
+      <div class="item"></div>
+    </div>
+  </div>
+</template>
+
+<script>
+"use strict";
+
+let align_properties = ["as", "ae", "ac", "ab"];
+let justify_properties = ["js", "je", "jc", "jb"];
+let wrapper = document.getElementById("wrapper");
+
+wrapper.style.gridTemplateColumns = `repeat(${justify_properties.length * 2}, 50px)`;
+
+for (let align_self of align_properties) {
+  // Add a grid lanes for all combinations of `align-self` and `justify-self`.
+  for (let justify_self of justify_properties) {
+    let lanes = document.getElementById("grid-lanes").content.cloneNode(true);
+    lanes.querySelector(".item").classList.add(align_self, justify_self);
+    wrapper.appendChild(lanes);
+  }
+
+  // Add all combinations again, but make the subgrid orthogonal.
+  for (let justify_self of justify_properties) {
+    let lanes = document.getElementById("grid-lanes").content.cloneNode(true);
+    lanes.querySelector(".item").classList.add(align_self, justify_self);
+    lanes.querySelector(".subgrid").classList.add("vlr");
+    wrapper.appendChild(lanes);
+  }
+}
+</script>

@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="helper.js"></script>
+
+<body>
+<script>
+runDelayEventTest('Script elements (parser-blocking)');
+</script>
+
+<script id="to-be-moved" src="../../resources/throw.js?pipe=trickle(d3)"></script>

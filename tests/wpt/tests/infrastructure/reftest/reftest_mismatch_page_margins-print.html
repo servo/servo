@@ -1,0 +1,13 @@
+<title>print-reftest should respect @page margins</title>
+<link rel=mismatch href=reftest_match-print-ref.html>
+<style>
+* {margin: 0; padding:0}
+@page {margin: 0;}
+div {page-break-after: always;}
+</style>
+<div>
+page 1
+</div>
+<div>
+page 2
+</div>

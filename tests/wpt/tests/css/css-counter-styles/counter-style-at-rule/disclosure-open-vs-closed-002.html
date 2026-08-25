@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Counter styles extending disclosure-closed and disclosure-open render differently (vertical-lr)</title>
+<link rel="help" href="https://drafts.csswg.org/css-counter-styles-3/#disclosure-closed">
+<link rel="help" href="https://drafts.csswg.org/css-counter-styles-3/#disclosure-open">
+<link rel="author" title="Ananya Anand" href="mailto:t-anaanand@microsoft.com">
+<link rel="mismatch" href="disclosure-open-vs-closed-002-notref.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<meta name="flags" content="ahem">
+<meta name="assert" content="In vertical-lr, disclosure-closed points toward the inline-end (down) while disclosure-open points toward the block-end (right), so counter styles extending them render differently.">
+<style>
+  @counter-style closed-ext { system: extends disclosure-closed; }
+  .cell {
+    width: 160px; height: 160px;
+    display: flex; align-items: center; justify-content: center;
+    font: 100px/1 Ahem;
+  }
+  .m::before { content: counter(x, closed-ext); }
+</style>
+<div class="cell"><span class="m" style="writing-mode: vertical-lr; direction: ltr"></span></div>

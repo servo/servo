@@ -1,0 +1,276 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Creating and deleting captions</title>
+  <link rel="author" title="Erika Navara" href="mailto:edoyle@microsoft.com">
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/#the-table-element" />
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-table-createcaption" />
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-table-deletecaption" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <div id="log"></div>
+  <table id="table0" style="display:none">
+  </table>
+  <table id="table1" style="display:none">
+    <caption id="caption1">caption</caption>
+    <tr>
+      <td>cell</td>
+      <td>cell</td>
+    </tr>
+  </table>
+  <table id="table2" style="display:none">
+    <foo:caption>caption</foo:caption>
+    <tr>
+      <td>cell</td>
+      <td>cell</td>
+    </tr>
+  </table>
+  <table id="table3" style="display:none">
+    <caption id="caption3">caption 3</caption>
+    <tr>
+      <td>cell</td>
+      <td>cell</td>
+    </tr>
+  </table>
+  <table id="table4" style="display:none">
+  </table>
+  <table id="table5" style="display:none">
+  </table>
+  <table id="table6" style="display:none">
+    <caption id="caption6">caption 6</caption>
+    <tr>
+      <td>cell</td>
+      <td>cell</td>
+    </tr>
+  </table>
+  <table id="table7" style="display:none">
+    <caption id="caption7">caption 7</caption>
+    <tbody id="tbody7">
+    <tr>
+      <td>cell</td>
+      <td>cell</td>
+    </tr>
+    </tbody>
+  </table>
+  <table id="table10" style="display:none">
+    <tbody>
+    <tr>
+      <td>cell</td>
+      <td>cell</td>
+    </tr>
+    </tbody>
+    <caption>caption 10</caption>
+  </table>
+  <table id="table11" style="display:none">
+    <caption id="caption11">caption 11</caption>
+  </table>
+  <table id="table12" style="display:none">
+    <caption>caption 1</caption>
+    <caption>caption 2</caption>
+  </table>
+  <table id="table13" style="display:none">
+  </table>
+  <table id="table14" style="display:none">
+    <tbody>
+    <tr>
+      <td>cell</td>
+      <td>cell</td>
+    </tr>
+    </tbody>
+    <caption id="caption14">caption 14</caption>
+  </table>
+  <script>
+    test(function () {
+      var table0 = document.getElementById('table0');
+      var caption = document.createElementNS("foo", "caption");
+      table0.appendChild(caption);
+      var table0FirstNode = table0.firstChild;
+      var testCaption = table0.createCaption();
+      assert_not_equals(testCaption, table0FirstNode);
+      assert_equals(testCaption, table0.firstChild);
+    }, "createCaption method creates new caption if existing caption is not in html namespace")
+
+    test(function () {
+      var table1 = document.getElementById('table1');
+      var testCaption = table1.createCaption();
+      var table1FirstCaption = table1.caption;
+      assert_equals(testCaption, table1FirstCaption);
+    }, "createCaption method returns the first caption element child of the table")
+
+    test(function () {
+      var table2 = document.getElementById('table2');
+      var test2Caption = table2.createCaption();
+      var table2FirstNode = table2.firstChild;
+      assert_true(test2Caption instanceof HTMLTableCaptionElement);
+      assert_equals(table2FirstNode, test2Caption);
+    }, "createCaption method creates a new caption and inserts it as the first node of the table element")
+
+    test(function () {
+      var table = document.createElement('table');
+      assert_equals(table.createCaption(), table.createCaption());
+    }, "createCaption will not create new caption if one exists")
+
+    test(function () {
+      var table = document.createElementNS("http://www.w3.org/1999/xhtml", "foo:table")
+      var caption = table.createCaption();
+      assert_equals(caption.prefix, null);
+    }, "createCaption will not copy table's prefix")
+
+    test(function () {
+      var table3 = document.getElementById('table3');
+      assert_equals(table3.caption.textContent, "caption 3");
+      table3.deleteCaption();
+      assert_equals(table3.caption, null);
+    }, "deleteCaption method removes the first caption element child of the table element")
+
+    test(function () {
+      var table4 = document.getElementById('table4');
+      var caption = document.createElementNS("foo", "caption");
+      table4.appendChild(caption);
+      table4.deleteCaption();
+      assert_equals(caption.parentNode, table4);
+    }, "deleteCaption method not remove caption that is not in html namespace")
+
+    test(function() {
+      var table5 = document.getElementById('table5');
+      var caption = document.createElement('caption');
+      caption.appendChild(table5)
+
+      // Node cannot be inserted at the specified point in the hierarchy
+      assert_throws_dom("HierarchyRequestError", function() {
+        table5.caption = caption;
+      });
+
+      assert_not_equals(table5.caption, caption);
+    }, "Setting caption rethrows exception");
+
+    test(function() {
+      var table6 = document.getElementById("table6");
+      var caption = document.getElementById("caption6");
+      assert_equals(table6.caption, caption);
+
+      var newCaption = document.createElement("caption");
+      table6.caption = newCaption;
+      assert_equals(newCaption.parentNode, table6);
+      assert_equals(table6.firstChild, newCaption);
+      assert_equals(table6.caption, newCaption);
+    }, "Assigning a caption to table.caption")
+
+    test(function() {
+      var table7 = document.getElementById("table7");
+      var caption = document.getElementById("caption7");
+      assert_equals(table7.caption, caption);
+
+      table7.caption = null;
+      assert_equals(caption.parentNode, null);
+      assert_equals(table7.firstElementChild, document.getElementById("tbody7"));
+      assert_equals(table7.caption, null);
+    }, "Assigning null to table.caption")
+
+    test(function() {
+      var table8 = document.createElement("table");
+      var caption = document.createElement("captİon");
+      assert_throws_js(TypeError, function() {
+        table8.caption = caption;
+      });
+    }, "Assigning a non-caption to table.caption")
+
+    test(function() {
+      var table9 = document.createElement("table");
+      var caption = document.createElementNS("http://www.example.com", "caption");
+      assert_throws_js(TypeError, function() {
+        table9.caption = caption;
+      });
+    }, "Assigning a foreign caption to table.caption")
+
+    test(function() {
+      var table = document.createElement("table");
+      var caption = document.createElement("caption");
+      caption.innerHTML = "new caption";
+      table.caption = caption;
+
+      assert_equals(caption.parentNode, table);
+      assert_equals(table.firstChild, caption);
+      assert_equals(table.caption.innerHTML, "new caption");
+    }, "Set table.caption when the table doesn't already have a caption")
+
+    test(function() {
+      var table10 = document.getElementById("table10");
+      var caption = document.createElement("caption");
+      caption.innerHTML = "new caption";
+      table10.caption = caption;
+
+      assert_equals(caption.parentNode, table10);
+      assert_equals(table10.firstChild, caption);
+      assert_equals(table10.caption.innerHTML, "new caption");
+
+      var captions = table10.getElementsByTagName('caption');
+      assert_equals(captions.length, 1);
+    }, "Set table.caption when the table has a caption child but with other siblings before it")
+
+    test(function() {
+      var table11 = document.getElementById("table11");
+      var caption = document.createElement("caption");
+      caption.innerHTML = "new caption";
+      table11.caption = caption;
+
+      assert_equals(caption.parentNode, table11);
+      assert_equals(table11.firstChild, caption);
+      assert_equals(table11.caption.innerHTML, "new caption");
+
+      var captions = table11.getElementsByTagName('caption');
+      assert_equals(captions.length, 1);
+    }, "Set table.caption when the table has a caption descendant")
+
+    test(function() {
+      var table12 = document.getElementById("table12");
+      var caption = document.createElement("caption");
+      caption.innerHTML = "new caption";
+      table12.caption = caption;
+
+      assert_equals(caption.parentNode, table12);
+      assert_equals(table12.firstChild, caption);
+      assert_equals(table12.caption.innerHTML, "new caption");
+
+      var captions = table12.getElementsByTagName('caption');
+      assert_equals(captions.length, 2);
+      assert_equals(captions[0].innerHTML, "new caption");
+      assert_equals(captions[1].innerHTML, "caption 2");
+    }, "Set table.caption when the table has two caption children")
+
+    promise_test(async t => {
+      var table13 = document.getElementById("table13");
+      var iframe = document.createElement("iframe");
+      iframe.srcdoc = '<table><caption id="caption13">caption 13</caption></table>';
+      document.body.appendChild(iframe);
+
+      var iframeWatcher = new EventWatcher(t, iframe, "load");
+      await iframeWatcher.wait_for("load");
+      var caption = iframe.contentWindow.document.getElementById("caption13");
+      table13.caption = caption;
+
+      assert_equals(caption.parentNode, table13);
+      assert_equals(table13.firstChild, caption);
+      assert_equals(table13.caption.innerHTML, "caption 13");
+
+      var captions = table13.getElementsByTagName('caption');
+      assert_equals(captions.length, 1);
+    }, "Assigning a caption has a different owner document to table.caption")
+
+    test(function() {
+      var table14 = document.getElementById("table14");
+      var caption = document.getElementById("caption14");
+      table14.caption = caption;
+
+      assert_equals(caption.parentNode, table14);
+      assert_equals(table14.firstChild, caption);
+
+      var captions = table14.getElementsByTagName('caption');
+      assert_equals(captions.length, 1);
+    }, "Assigning the caption already in the table to table.caption")
+  </script>
+</body>
+</html>

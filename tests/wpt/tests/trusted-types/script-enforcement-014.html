@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/passthroughpolicy.js"></script>
+<script src="support/script-messages.js"></script>
+<meta id="requireTrustedTypesForScriptMetaTag" http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script';">
+<link rel="help" href="https://w3c.github.io/trusted-types/dist/spec/#enforcement-in-scripts">
+<link rel="help" href="https://www.w3.org/TR/CSP3/#meta-element">
+<!-- This is similar to script-enforcement-001.html, but the meta tag for
+     require-trusted-types-for is removed at the beginning of the test. Per
+     the CSP specification, TrustedTypes should still be enforced. -->
+<div id="container"></div>
+<script>
+  promise_test(async t => {
+    requireTrustedTypesForScriptMetaTag.remove();
+    await no_script_message_for(_ => {
+      let script = create_html_script_with_trusted_source_text(";");
+      script.appendChild(document.createTextNode(LOG_RUN_MESSAGE));
+      container.appendChild(script);
+    });
+  }, "HTML script is untrusted even if meta tag for require-trusted-types-for is removed.");
+</script>

@@ -1,0 +1,76 @@
+<!doctype HTML>
+<html lang="en-US" class="reftest-wait">
+  <meta charset="utf-8">
+  <title>HTML5 Canvas Test:  The lang attribute is respected in offscreen worker canvas</title>
+  <link rel="match" href="canvas.2d.offscreen.worker.lang-ref.html" />
+  <link rel="author" href="mailto:schenney@chromium.org"/>
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/canvas.html#text-styles"/>
+  <meta name="assert" content="An offscreen canvas in a worker respects the lang text attribute." />
+  <script src="/common/reftest-wait.js"></script>
+  <style>
+    #canvas-tr {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+    }
+    #canvas-en {
+      position: absolute;
+      top: 120px;
+      left: 10px;
+    }
+  </style>
+  <script type="text/javascript">
+    function createWorker(language) {
+      const placeholder_canvas = document.createElement('canvas');
+      placeholder_canvas.setAttribute('width', '300');
+      placeholder_canvas.setAttribute('height', '100');
+      const offscreen = placeholder_canvas.transferControlToOffscreen();
+
+      const worker = new Worker('text-lang-worker-' + language + '.js');
+      worker.postMessage({canvas: offscreen}, [offscreen]);
+
+      return placeholder_canvas;
+    }
+
+    function runTest() {
+      const placeholder_canvas_tr = createWorker('tr');
+      const canvas_tr = document.getElementById('canvas-tr');
+      const ctx_tr = canvas_tr.getContext('2d', {willReadFrequently: true});
+      function checkFirstResult() {
+        // Wait until frame propagates.
+        ctx_tr.drawImage(placeholder_canvas_tr, 0, 0);
+        const pixel_tr = ctx_tr.getImageData(0, 0, 1, 1).data;
+
+        if (pixel_tr[3] == 0) {
+          // Results not available, wait longer.
+          requestAnimationFrame(checkFirstResult);
+        } else {
+          const placeholder_canvas_en = createWorker('en');
+          const canvas_en = document.getElementById('canvas-en');
+          const ctx_en = canvas_en.getContext('2d', {willReadFrequently: true});
+          function checkSecondResult() {
+            ctx_en.drawImage(placeholder_canvas_en, 0, 0);
+            const pixel_en = ctx_en.getImageData(0, 0, 1, 1).data;
+
+            if (pixel_en[3] == 0) {
+              // Results not available, wait longer.
+              requestAnimationFrame(checkSecondResult);
+            } else {
+              takeScreenshot();
+            }
+          }
+          requestAnimationFrame(checkSecondResult);
+        }
+      }
+      requestAnimationFrame(checkFirstResult);
+    }
+  </script>
+  <body onload="runTest()">
+    <canvas id="canvas-tr" width="300" height="100">
+      Browser does not support HTML5 Canvas.
+    </canvas>
+    <canvas id="canvas-en" width="300" height="100">
+      Browser does not support HTML5 Canvas.
+    </canvas>
+  </body>
+</html>

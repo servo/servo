@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="author" title="Xianzhu Wang" href="mailto:wangxianzhu@chromium.org">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/urls-and-fetching.html#lazy-loading-attributes">
+<link rel="help" href="https://crbug.com/1308299">
+<link rel="match" href="image-loading-lazy-clip-path-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<img id=target loading="lazy"
+      src="resources/image.png"
+      style="vertical-align: middle; clip-path: polygon(0 0, 110% 0, 110% 110%, 0 110%, 0 0)">
+<script>
+  target.onload = takeScreenshot;
+</script>
+</html>

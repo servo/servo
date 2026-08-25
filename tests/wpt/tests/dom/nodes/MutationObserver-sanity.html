@@ -1,0 +1,120 @@
+<!doctype html>
+<meta charset=utf-8>
+<title></title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+  test(() => {
+      var m = new MutationObserver(() => {});
+      assert_throws_js(TypeError, () => {
+          m.observe(document, {});
+      });
+  }, "Should throw if none of childList, attributes, characterData are true");
+
+  test(() => {
+      var m = new MutationObserver(() => {});
+      m.observe(document, { childList: true });
+      m.disconnect();
+  }, "Should not throw if childList is true");
+
+  test(() => {
+      var m = new MutationObserver(() => {});
+      m.observe(document, { attributes: true });
+      m.disconnect();
+  }, "Should not throw if attributes is true");
+
+  test(() => {
+      var m = new MutationObserver(() => {});
+      m.observe(document, { characterData: true });
+      m.disconnect();
+  }, "Should not throw if characterData is true");
+
+  test(() => {
+      var m = new MutationObserver(() => {});
+      m.observe(document, { attributeOldValue: true });
+      m.disconnect();
+  }, "Should not throw if attributeOldValue is true and attributes is omitted");
+
+  test(() => {
+      var m = new MutationObserver(() => {});
+      m.observe(document, { characterDataOldValue: true });
+      m.disconnect();
+  }, "Should not throw if characterDataOldValue is true and characterData is omitted");
+
+  test(() => {
+      var m = new MutationObserver(() => {});
+      m.observe(document, { attributes: ["abc"] });
+      m.disconnect();
+  }, "Should not throw if attributeFilter is present and attributes is omitted");
+
+  test(() => {
+      var m = new MutationObserver(() => {});
+      assert_throws_js(TypeError, () => {
+          m.observe(document, { childList: true, attributeOldValue: true,
+                                attributes: false });
+      });
+  }, "Should throw if attributeOldValue is true and attributes is false");
+
+  test(() => {
+      var m = new MutationObserver(() => {});
+      m.observe(document, { childList: true, attributeOldValue: true,
+                            attributes: true });
+      m.disconnect();
+  }, "Should not throw if attributeOldValue and attributes are both true");
+
+  test(() => {
+      var m = new MutationObserver(() => {});
+      assert_throws_js(TypeError, () => {
+          m.observe(document, { childList: true, attributeFilter: ["abc"],
+                                attributes: false });
+      });
+  }, "Should throw if attributeFilter is present and attributes is false");
+
+  test(() => {
+      var m = new MutationObserver(() => {});
+      m.observe(document, { childList: true, attributeFilter: ["abc"],
+                            attributes: true });
+      m.disconnect();
+  }, "Should not throw if attributeFilter is present and attributes is true");
+
+  test(() => {
+      var m = new MutationObserver(() => {});
+      assert_throws_js(TypeError, () => {
+          m.observe(document, { childList: true, characterDataOldValue: true,
+                                characterData: false });
+      });
+  }, "Should throw if characterDataOldValue is true and characterData is false");
+
+  test(() => {
+      var m = new MutationObserver(() => {});
+      m.observe(document, { childList: true, characterDataOldValue: true,
+                            characterData: true });
+      m.disconnect();
+  }, "Should not throw if characterDataOldValue is true and characterData is true");
+
+  test(() => {
+      var m = new MutationObserver(() => {});
+      m.observe(document, { attributeOldValue: false });
+      m.disconnect();
+  }, "Should not throw if attributeOldValue is false and attributes is omitted");
+
+  test(() => {
+      var m = new MutationObserver(() => {});
+      m.observe(document, { characterDataOldValue: false });
+      m.disconnect();
+  }, "Should not throw if characterDataOldValue is false and characterData is omitted");
+
+  async_test(t => {
+      var target = document.createElement("div");
+      var m = new MutationObserver(t.step_func_done(records => {
+          assert_equals(records.length, 1);
+          assert_equals(records[0].type, "attributes");
+          assert_equals(records[0].attributeName, "data-x");
+          assert_equals(records[0].oldValue, null);
+          m.disconnect();
+      }));
+      m.observe(target, { attributeOldValue: false });
+      target.setAttribute("data-x", "1");
+  }, "attributeOldValue:false (present) auto-enables attribute observation");
+
+</script>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>@container-dependent elements respond to root metrics size changes</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#size-container">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  :root, body { font-size: 16px; }
+  #container {
+    container-type: size;
+    width: 20px;
+  }
+
+  #target { color: red; }
+  @container (width < 1rem) {
+    #target { color: green; }
+  }
+</style>
+<div id="container">
+  <div id="target"></div>
+</div>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(target).color, "rgb(255, 0, 0)");
+  }, "Initially, 1rem equals 16px, less than the container's width");
+
+  test(() => {
+    document.documentElement.style.fontSize = "30px";
+    assert_equals(getComputedStyle(target).color, "rgb(0, 128, 0)");
+  }, "Changing the :root font-size makes 1rem equal 30px, greater than the container's width");
+</script>

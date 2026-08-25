@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<title>Canvas.drawElementImage: Throw on display: none</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<link rel="author" href="mailto:schenney@chromium.org">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+
+<style>
+div {
+  width: 100px;
+  height: 100px;
+  background: green;
+}
+canvas {
+  background: grey;
+}
+.display-none {
+  display: none;
+}
+</style>
+
+<canvas id="canvas1" width="200" height="200" layoutsubtree>
+  <div id="child1" class="display-none">
+  </div>
+</canvas>
+<canvas id="canvas2" class="display-none" width="200" height="200" layoutsubtree>
+  <div id="child2">
+  </div>
+</canvas>
+
+
+<script>
+onload = () => {
+  promise_test(async (t) => {
+    await waitForCanvasPaint(canvas1);
+    assert_throws_dom(
+      "InvalidStateError",
+      () => canvas1.getContext("2d").drawElementImage(child1, 20, 30),
+      "Can't draw a display: none child.");
+    assert_throws_dom(
+      "InvalidStateError",
+      () => canvas2.getContext("2d").drawElementImage(child2, 20, 30),
+      "Can't draw into a display-none <canvas>.");
+  }, "Canvas drawElementImage() should throw when drawn child is not laid out.");
+};
+</script>

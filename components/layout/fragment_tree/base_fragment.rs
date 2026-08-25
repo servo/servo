@@ -1,0 +1,318 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use std::sync::atomic::{AtomicU8, Ordering};
+
+use app_units::Au;
+use bitflags::bitflags;
+use layout_api::{LayoutElement, LayoutNode, PseudoElementChain, combine_id_with_fragment_type};
+use malloc_size_of::malloc_size_of_is_0;
+use malloc_size_of_derive::MallocSizeOf;
+use num_derive::FromPrimitive;
+use num_traits::FromPrimitive;
+use script::layout_dom::ServoLayoutNode;
+use style::dom::OpaqueNode;
+use style::selector_parser::PseudoElement;
+use stylo_atoms::atom;
+use web_atoms::{local_name, ns};
+
+use crate::dom_traversal::NodeAndStyleInfo;
+use crate::geom::{PhysicalPoint, PhysicalRect, PhysicalSize, SyncPhysicalRectAu};
+
+#[derive(Clone, Debug, Default, FromPrimitive, MallocSizeOf, PartialEq)]
+#[repr(u8)]
+pub(crate) enum FragmentStatus {
+    /// This is a brand new fragment.
+    #[default]
+    New,
+    /// The style of the fragment has changed.
+    StyleChanged,
+    /// The fragment was reused between layouts, some descendant fragment may be different,
+    /// but otherwise nothing has changed on the fragment itself.
+    OnlyDescendantsChanged,
+    /// The fragment hasn't changed.
+    Clean,
+}
+
+/// This data structure stores fields that are common to all non-base
+/// Fragment types and should generally be the first member of all
+/// concrete fragments.
+#[derive(MallocSizeOf)]
+pub(crate) struct BaseFragment {
+    /// A tag which identifies the DOM node and pseudo element of this
+    /// Fragment's content. If this fragment is for an anonymous box,
+    /// the tag will be None.
+    pub tag: Option<Tag>,
+
+    /// Flags which various information about this fragment used during
+    /// layout.
+    pub flags: FragmentFlags,
+
+    /// The content rect of this fragment in the parent fragment's content rectangle. This
+    /// does not include padding, border, or margin -- it only includes content. This is
+    /// relative to the parent containing block.
+    rect: SyncPhysicalRectAu,
+
+    /// A [`FragmentStatus`] used to track fragment reuse when collecting reflow statistics.
+    pub status: AtomicU8,
+}
+
+impl std::fmt::Debug for BaseFragment {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut formatter = f.debug_struct("BaseFragment");
+        let mut formatter = formatter.field("tag", &self.tag);
+        if !self.flags.is_empty() {
+            formatter = formatter.field("flags", &self.flags);
+        }
+        formatter
+            .field("rect", &self.rect())
+            .field("status", &self.status())
+            .finish()
+    }
+}
+
+impl BaseFragment {
+    pub(crate) fn new(base_fragment_info: BaseFragmentInfo, rect: PhysicalRect<Au>) -> Self {
+        Self {
+            tag: base_fragment_info.tag,
+            flags: base_fragment_info.flags,
+            rect: SyncPhysicalRectAu::new(rect),
+            status: AtomicU8::new(FragmentStatus::New as u8),
+        }
+    }
+
+    #[inline]
+    pub(crate) fn rect(&self) -> PhysicalRect<Au> {
+        self.rect.get()
+    }
+
+    #[inline]
+    pub(crate) fn set_rect(&self, new_rect: PhysicalRect<Au>) {
+        self.rect.set(new_rect);
+    }
+
+    #[inline]
+    pub(crate) fn translate_rect(&self, offset: PhysicalSize<Au>) {
+        self.rect.translate(offset)
+    }
+
+    #[inline]
+    pub(crate) fn set_rect_origin(&self, offset: PhysicalPoint<Au>) {
+        self.rect.set_origin(offset)
+    }
+
+    pub(crate) fn is_anonymous(&self) -> bool {
+        self.tag.is_none()
+    }
+
+    pub(crate) fn status(&self) -> FragmentStatus {
+        FragmentStatus::from_u8(self.status.load(Ordering::Relaxed))
+            .expect("Unknown FragmentStatus value")
+    }
+
+    pub(crate) fn set_status(&self, new_status: FragmentStatus) {
+        self.status.store(new_status as u8, Ordering::Relaxed)
+    }
+}
+
+/// Information necessary to construct a new BaseFragment.
+#[derive(Clone, Copy, Debug, MallocSizeOf)]
+pub(crate) struct BaseFragmentInfo {
+    /// The tag to use for the new BaseFragment, if it is not an anonymous Fragment.
+    pub tag: Option<Tag>,
+
+    /// The flags to use for the new BaseFragment.
+    pub flags: FragmentFlags,
+}
+
+impl BaseFragmentInfo {
+    pub(crate) fn anonymous() -> Self {
+        Self {
+            tag: None,
+            flags: FragmentFlags::empty(),
+        }
+    }
+
+    pub(crate) fn new_for_testing(id: usize) -> Self {
+        Self {
+            tag: Some(Tag {
+                node: OpaqueNode(id),
+                pseudo_element_chain: Default::default(),
+            }),
+            flags: FragmentFlags::empty(),
+        }
+    }
+
+    pub(crate) fn is_anonymous(&self) -> bool {
+        self.tag.is_none()
+    }
+}
+
+impl From<&NodeAndStyleInfo<'_>> for BaseFragmentInfo {
+    fn from(info: &NodeAndStyleInfo) -> Self {
+        info.node.into()
+    }
+}
+
+impl From<ServoLayoutNode<'_>> for BaseFragmentInfo {
+    fn from(node: ServoLayoutNode) -> Self {
+        let pseudo_element_chain = node.pseudo_element_chain();
+        let mut flags = FragmentFlags::empty();
+
+        if let Some(innermost_pseudo) = pseudo_element_chain.innermost() {
+            match innermost_pseudo {
+                // Anonymous boxes should not have a tag, because they should not take part in hit testing.
+                //
+                // TODO(mrobinson): It seems that anonymous boxes should take part in hit testing in some
+                // cases, but currently this means that the order of hit test results isn't as expected for
+                // some WPT tests. This needs more investigation.
+                PseudoElement::ServoAnonymousBox |
+                PseudoElement::ServoAnonymousTable |
+                PseudoElement::ServoAnonymousTableCell |
+                PseudoElement::ServoAnonymousTableRow => return Self::anonymous(),
+                // A `<br>` forces a new line using a `::before` pseudo-element. Both of them need to get
+                // this flag.
+                PseudoElement::Before
+                    if node
+                        .as_html_element()
+                        .is_some_and(|element| element.local_name() == &local_name!("br")) =>
+                {
+                    flags.insert(FragmentFlags::IS_BR_ELEMENT);
+                },
+                _ => {},
+            }
+            return Self {
+                tag: Some(node.into()),
+                flags,
+            };
+        }
+
+        if node.as_element().is_some_and(|element| element.is_root()) {
+            flags.insert(FragmentFlags::IS_ROOT_ELEMENT);
+        }
+
+        if let Some(element) = node.as_html_element() {
+            if element.is_body_element_of_html_element_root() {
+                flags.insert(FragmentFlags::IS_BODY_ELEMENT_OF_HTML_ELEMENT_ROOT);
+            }
+            match element.local_name() {
+                &local_name!("br") => {
+                    flags.insert(FragmentFlags::IS_BR_ELEMENT);
+                },
+                &local_name!("table") | &local_name!("th") | &local_name!("td") => {
+                    flags.insert(FragmentFlags::IS_TABLE_TH_OR_TD_ELEMENT);
+                },
+                &local_name!("input") => {
+                    flags.insert(FragmentFlags::IS_INPUT_ELEMENT);
+                    if element
+                        .attribute(&ns!(), &local_name!("type"))
+                        .is_some_and(|attr| {
+                            matches!(
+                                attr.as_atom().to_ascii_lowercase(),
+                                atom!("button") | atom!("color") | atom!("reset") | atom!("submit")
+                            )
+                        })
+                    {
+                        flags.insert(FragmentFlags::IS_BUTTON);
+                    }
+                },
+                &local_name!("button") => {
+                    flags.insert(FragmentFlags::IS_BUTTON);
+                },
+                _ => {},
+            }
+        };
+
+        Self {
+            tag: Some(node.into()),
+            flags,
+        }
+    }
+}
+
+bitflags! {
+    /// Flags used to track various information about a DOM node during layout.
+    #[derive(Clone, Copy, Debug)]
+    pub(crate) struct FragmentFlags: u16 {
+        /// Whether or not the node that created this fragment is a `<body>` element on an HTML document.
+        const IS_BODY_ELEMENT_OF_HTML_ELEMENT_ROOT = 1 << 0;
+        /// Whether or not the node that created this Fragment is a `<br>` element, or a `::before`
+        /// pseudo-element originated by `<br>`.
+        const IS_BR_ELEMENT = 1 << 1;
+        /// Whether or not the node that created this Fragment is a widget. Widgets behave similarly to
+        /// replaced elements, e.g. they are atomic when inline-level, and their automatic inline size
+        /// doesn't stretch when block-level.
+        /// <https://drafts.csswg.org/css-ui/#widget>
+        const IS_WIDGET = 1 << 2;
+        /// Whether or not this Fragment is a flex item or a grid item.
+        const IS_FLEX_OR_GRID_ITEM = 1 << 3;
+        /// Whether or not this Fragment was created to contain a replaced element or is
+        /// a replaced element.
+        const IS_REPLACED = 1 << 4;
+        /// Whether or not the node that created was a `<table>`, `<th>` or
+        /// `<td>` element. Note that this does *not* include elements with
+        /// `display: table` or `display: table-cell`.
+        const IS_TABLE_TH_OR_TD_ELEMENT = 1 << 5;
+        /// Whether or not this Fragment was created to contain a list item marker
+        /// with a used value of `list-style-position: outside`.
+        const IS_OUTSIDE_LIST_ITEM_MARKER = 1 << 6;
+        /// Avoid painting the borders, backgrounds, and drop shadow for this fragment, this is used
+        /// for empty table cells when 'empty-cells' is 'hide' and also table wrappers.  This flag
+        /// doesn't avoid hit-testing nor does it prevent the painting outlines.
+        const DO_NOT_PAINT = 1 << 7;
+        /// Whether or not the size of this fragment depends on the block size of its container
+        /// and the fragment can be a flex item. This flag is used to cache items during flex
+        /// layout.
+        const SIZE_DEPENDS_ON_BLOCK_CONSTRAINTS_AND_CAN_BE_CHILD_OF_FLEX_ITEM = 1 << 8;
+        /// Whether or not the node that created this fragment is the root element.
+        const IS_ROOT_ELEMENT = 1 << 9;
+        /// If element has propagated the overflow value to viewport.
+        const PROPAGATED_OVERFLOW_TO_VIEWPORT = 1 << 10;
+        /// Whether or not this is a table cell that is part of a collapsed row or column.
+        /// In that case it should not be painted.
+        const IS_COLLAPSED = 1 << 11;
+        /// Whether or not the node that created this Fragment is a `<input>` element.
+        const IS_INPUT_ELEMENT = 1 << 12;
+        /// Whether this is a <button> element, or an <input> that uses button layout.
+        const IS_BUTTON = 1 << 13;
+    }
+}
+
+malloc_size_of_is_0!(FragmentFlags);
+
+/// A data structure used to hold DOM and pseudo-element information about
+/// a particular layout object.
+#[derive(Clone, Copy, Eq, MallocSizeOf, PartialEq)]
+pub(crate) struct Tag {
+    pub(crate) node: OpaqueNode,
+    pub(crate) pseudo_element_chain: PseudoElementChain,
+}
+
+impl std::fmt::Debug for Tag {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("Tag({:?}", self.node))?;
+        if let Some(pseudo) = self.pseudo_element_chain.primary {
+            f.write_fmt(format_args!(", PseudoElement::{pseudo:?}"))?;
+        }
+        if let Some(pseudo) = self.pseudo_element_chain.secondary {
+            f.write_fmt(format_args!(", PseudoElement::{pseudo:?}"))?;
+        }
+        f.write_str(")")
+    }
+}
+
+impl Tag {
+    pub(crate) fn to_display_list_fragment_id(self) -> u64 {
+        combine_id_with_fragment_type(self.node.id(), self.pseudo_element_chain.primary.into())
+    }
+}
+
+impl From<ServoLayoutNode<'_>> for Tag {
+    fn from(node: ServoLayoutNode<'_>) -> Self {
+        Self {
+            node: node.opaque(),
+            pseudo_element_chain: node.pseudo_element_chain(),
+        }
+    }
+}

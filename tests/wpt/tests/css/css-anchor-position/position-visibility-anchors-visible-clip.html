@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Anchor Positioning Test: position-visibility: anchors-visible</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#position-visibility">
+<link rel="match" href="position-visibility-anchors-visible-clip-ref.html">
+<style>
+.clip {
+    overflow: hidden;
+    border: 2px solid red;
+}
+.c {
+    position: absolute;
+    top: 50px;
+    width: 100px;
+    height: 100px;
+    border: 2px solid green;
+}
+.anchor {
+    anchor-name: --foo;
+    background: blue;
+}
+.anchored {
+    left: anchor(left);
+    top: anchor(bottom);
+    position: absolute;
+    position-anchor: --foo;
+    background: green;
+}
+</style>
+<div class=clip><div class=c><div class=anchor>anchor</div></div></div>
+<div class=anchored>anchored</div>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: marquee-stop</title>
+<link rel="author" title="Intel" href="http://www.intel.com/">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/multipage/obsolete.html#the-marquee-element">
+<meta name="flags" content="interact">
+<meta name="assert" content="Check the stop operation of HTMLMarqueeElement interface">
+<h2>Steps:</h2>
+<ol>
+  <li>Click the 'Start' button to start the marquee element.</li>
+</ol>
+<h2>Expected result:</h2>
+<ul>
+  <li>The text "Test Marquee" stop moving when the 'Stop' button is clicked.</li>
+</ul>
+<input type="button" id="stop" value="Stop" />
+<marquee id="test">Test Marquee</marquee>
+<script>
+  document.getElementById("stop").addEventListener("click", function(evt) {
+    document.getElementById("test").stop();
+  }, false);
+</script>

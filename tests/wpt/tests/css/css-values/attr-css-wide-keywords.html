@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<title>CSS Values 5: CSS-wide keywords in attr()</title>
+<meta name="assert" content="Test css wide keywords from attr">
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#attr-notations">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+    @property --x {
+        syntax: "<length>";
+        inherits: false;
+        initial-value: 5px;
+    }
+    @property --y {
+        syntax: "<length>";
+        inherits: true;
+        initial-value: 5px;
+    }
+    #parent {
+        color: rgb(0, 0, 255);
+        --x: 4px;
+        --y: 4px;
+    }
+    #test-keyword {
+        --x: 3px;
+    }
+</style>
+<p id="parent">
+    Parent
+    <em id="test-keyword"> Child</em>
+</p>
+
+<script>
+  function test_css_wide_keyword(property, propertyValue, attrValue, expectedValue) {
+    var elem = document.getElementById("test-keyword");
+    elem.setAttribute("data-foo", attrValue);
+    elem.style.setProperty(property, propertyValue);
+
+    test(() => {
+        assert_equals(window.getComputedStyle(elem).getPropertyValue(property), expectedValue);
+    }, `${property}: ${propertyValue} with data-foo="${attrValue}"`);
+
+    elem.removeAttribute("data-foo");
+    elem.style.setProperty(property, null);
+  }
+
+  /* CSS-wide keywords passed by attr. */
+  test_css_wide_keyword('font-style', 'attr(data-foo type(*))', 'inherit', 'normal');
+  test_css_wide_keyword('font-style', 'attr(data-foo type(*))', 'revert', 'italic');
+  test_css_wide_keyword('color', 'attr(data-foo type(*))', 'initial', 'rgb(0, 0, 0)');
+  test_css_wide_keyword('color', 'attr(data-foo type(*))', 'unset', 'rgb(0, 0, 255)');
+
+  test_css_wide_keyword('--x', 'attr(data-foo type(*))', 'inherit', '4px');
+  test_css_wide_keyword('--y', 'attr(data-foo type(*))', 'initial', '5px');
+  test_css_wide_keyword('--y', 'attr(data-foo type(*))', 'unset', '4px');
+
+  /* CSS-wide keywords in attr fallback */
+  test_css_wide_keyword('font-style', 'attr(invalid, inherit)', '', 'normal');
+  test_css_wide_keyword('font-style', 'attr(invalid, revert)', '', 'italic');
+  test_css_wide_keyword('color', 'attr(invalid, initial)', '', 'rgb(0, 0, 0)');
+  test_css_wide_keyword('color', 'attr(invalid, unset)', '', 'rgb(0, 0, 255)');
+
+  test_css_wide_keyword('--x', 'attr(invalid, inherit)', '', '4px');
+  test_css_wide_keyword('--y', 'attr(invalid, initial)', '', '5px');
+  test_css_wide_keyword('--y', 'attr(invalid, unset)', '', '4px');
+
+  test_css_wide_keyword('--z', 'attr(invalid, inherit)', '', '');
+  test_css_wide_keyword('--z', 'attr(invalid, initial)', '', '');
+
+  /* CSS-wide keywords passed through chained substitution */
+  test_css_wide_keyword('font-style', 'attr(data-foo type(*))', 'attr(invalid, inherit)', 'normal');
+  test_css_wide_keyword('--x', 'attr(data-foo type(*))', 'attr(invalid, inherit)', '4px');
+  test_css_wide_keyword('--y', 'attr(data-foo type(*))', 'attr(invalid, initial)', '5px');
+  test_css_wide_keyword('--y', 'attr(data-foo type(*))', 'attr(invalid, unset)', '4px');
+  test_css_wide_keyword('--z', 'attr(data-foo type(*))', 'attr(invalid, inherit)', '');
+</script>

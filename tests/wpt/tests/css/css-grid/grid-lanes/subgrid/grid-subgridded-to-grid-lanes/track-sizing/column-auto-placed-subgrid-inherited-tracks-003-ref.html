@@ -1,0 +1,37 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+.wrapper {
+  width: 150px;
+  height: 100px;
+  background: yellow;
+  position: relative;
+}
+.top-left {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 50px;
+  height: 20px;
+  background: green;
+}
+.right {
+  position: absolute;
+  top: 0;
+  left: 50px;
+  width: 100px;
+  height: 100px;
+  background: green;
+}
+</style>
+</head>
+<body>
+<p>Test passes if the top-left 50x20 area is green, the bottom-left 50x80 area is yellow, and the right 100x100 area is green.</p>
+<div class="wrapper">
+  <div class="top-left"></div>
+  <div class="right"></div>
+</div>
+</body>
+</html>

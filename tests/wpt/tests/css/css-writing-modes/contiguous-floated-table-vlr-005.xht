@@ -1,0 +1,75 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Writing Modes Test: floated non-border-collapsing tables (vertical-lr)</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#vertical-layout" title="7.1 Principles of Layout in Vertical Writing Modes" />
+  <link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+
+  <meta content="This test checks that contiguous floated non-border-collapsing tables in a 'vertical-lr' context do not overlap." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  table
+    {
+      border-collapse: separate;
+      border-left: green solid 25px;
+      border-spacing: 0px;
+      float: left;
+      height: 100px;
+      writing-mode: vertical-lr;
+    }
+
+  td
+    {
+      border-left: green solid 25px;
+      padding: 0px;
+    }
+
+  div#reference-overlapped-red
+    {
+      background-color: red;
+      height: 100px;
+      width: 100px;
+    }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+  <table id="first">
+
+    <tbody>
+
+      <tr>
+        <td></td> <td></td>
+      </tr>
+
+    </tbody>
+
+  </table>
+
+
+  <table id="second">
+
+    <tbody>
+
+      <tr>
+        <td></td> <td></td>
+      </tr>
+
+    </tbody>
+
+  </table>
+
+
+  <div id="reference-overlapped-red"></div>
+
+ </body>
+</html>

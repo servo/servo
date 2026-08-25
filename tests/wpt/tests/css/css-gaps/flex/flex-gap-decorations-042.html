@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<title>
+    CSS Gap Decorations: Flex gaps are painted with different sized gaps per line due to content distribution (via space-evenly).
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-gaps-1/">
+<link rel="match" href="flex-gap-decorations-042-ref.html">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+
+    #flexbox {
+        width: 400px;
+        border: 2px solid #333;
+        background-color: #fff;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-evenly;
+        column-rule: 5px solid gold;
+    }
+
+    .item {
+        width: 70px;
+        height: 50px;
+        background-color: #007bff;
+        color: white;
+        display: flex;
+    }
+</style>
+<div id="flexbox">
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+
+    <div class="item"></div>
+    <div class="item"></div>
+</div>

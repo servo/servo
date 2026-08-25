@@ -1,0 +1,89 @@
+<!doctype html>
+<html>
+<head>
+<title>Check COEP reports are sent to parent worker for 'new Worker()' failure</title>
+</head>
+<body>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+<script>
+const {ORIGIN} = get_host_info();
+const RESOURCES_PATH= new URL("resources", location).pathname;
+const parent_worker_path = "worker-owner.js?pipe=";
+const worker_path = "universal-worker.js?pipe=";
+
+const coep_header= {
+  "coep-none"         : "",
+  "coep-report-only"  :
+    "header(Cross-Origin-Embedder-Policy-Report-Only,require-corp)",
+  "coep-require-corp" : "|header(Cross-Origin-Embedder-Policy,require-corp)",
+};
+
+function checkReport(report, url, blocked_url, disposition) {
+  assert_equals(report.type, "coep");
+  assert_equals(report.url, url);
+  assert_equals(report.body.type, "worker initialization");
+  assert_equals(report.body.blockedURL, blocked_url);
+  assert_equals(report.body.disposition, disposition);
+}
+
+// Test parameters:
+// - `owner_coep` the COEP header of the parent DedicatedWorker's script
+//                response.
+// - `worker_coep` the COEP header of the DedicatedWorker's script response.
+//
+// Test expectations:
+// - `length` the length of reports.
+// - `disposition`  the disposition in a report's body. Empty string if the
+//                  length of reports is expected to be 0.
+function check(
+  // Test parameters:
+  owner_coep,
+  worker_coep,
+  // Test expectations:
+  length,
+  disposition) {
+  promise_test(async (t) => {
+    const worker_url = worker_path + coep_header[worker_coep];
+    const parent_worker_url = parent_worker_path + coep_header[owner_coep];
+    const parent_worker = new Worker('./resources/' + parent_worker_url);
+
+    const worker_response =
+        new Promise(resolve => parent_worker.onmessage = resolve);
+    parent_worker.postMessage(
+        {worker_url: worker_url, wait_for_report: length > 0});
+
+    const {data} = await worker_response;
+    assert_equals(data.length, length);
+    if (data.length > 0) {
+      const blocked_url = `${ORIGIN}${RESOURCES_PATH}/${worker_url}`;
+      const url = `${ORIGIN}${RESOURCES_PATH}/${parent_worker_url}`;
+      checkReport(
+        data[0],
+        url,
+        blocked_url,
+        disposition
+      );
+    }
+  }, `Reporting to ${owner_coep} worker with ${worker_coep} worker`);
+}
+
+// -----------------------------------------------------------------------------
+//    owner_coep          , worker_coep         , length  , disposition
+// -----------------------------------------------------------------------------
+check("coep-none"         , "coep-none"         , 0       , "");
+check("coep-none"         , "coep-report-only"  , 0       , "");
+check("coep-none"         , "coep-require-corp" , 0       , "");
+check("coep-report-only"  , "coep-none"         , 1       , "reporting");
+check("coep-report-only"  , "coep-report-only"  , 1       , "reporting");
+check("coep-report-only"  , "coep-require-corp" , 0       , "");
+check("coep-require-corp" , "coep-none"         , 1       , "enforce");
+check("coep-require-corp" , "coep-report-only"  , 1       , "enforce");
+check("coep-require-corp" , "coep-require-corp" , 0       , "");
+
+</script>
+</body>
+</html>
+

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Backgrounds and Borders Test: 'border-radius' and corner-clipping of content elements</title>
+
+  <link rel="author" title="zhouli" href="mailto:liz@oupeng.com">
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="http://www.w3.org/TR/css3-background/#corner-clipping">
+  <link rel="match" href="../reference/ref-nothing-below.xht">
+
+  <meta content="" name="flag">
+  <meta name="assert" content="When set with 'overflow: hidden', an outer container must clip text of its child element at its corners. In this test, the outer container, which has immense size, has a 'border-radius' declaration which implies that the clipping must occur at its curve.">
+
+  <style>
+  body
+    {
+      overflow: hidden;
+      /*
+      otherwise, horizontal and vertical
+      scroll bars will be generated
+      */
+    }
+
+  div#fail-condition
+    {
+      border-radius: 250em;
+      color: red;
+      font-size: 32px;
+      height: 500em;
+      overflow: hidden;
+      width: 500em;
+    }
+  </style>
+
+  <p>Test passes if there is nothing below.
+
+  <div id="fail-condition">FAIL FAIL FAIL FAIL</div>

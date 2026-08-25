@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>text-box-trim: trim-start works even in the presence of initial-letter</title>
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-trim">
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-edge">
+<link rel="match" href="text-box-trim-initial-letter-start-001-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+.spacer {
+  height: 50px;
+  background: lightgray;
+}
+.target {
+  font: 40px/1 Ahem;
+  text-box-trim: trim-start;
+  text-box-edge: text;
+}
+.target::first-letter {
+  initial-letter: 2 1;
+}
+</style>
+<div class="spacer"></div>
+<div class="target">ApÉx</div>

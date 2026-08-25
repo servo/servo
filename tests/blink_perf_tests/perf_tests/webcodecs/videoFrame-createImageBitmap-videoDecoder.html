@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>Test createImageBitmap() performance with VideoFrame from VideoDecoder</title>
+<script src="../resources/runner.js"></script>
+<script src="videoFrame-utils.js"></script>
+<script src="createImageBitmap-test.js"></script>
+
+<script>
+(async function() {
+  let frame = await createDecodedFrame();
+  if (frame == null) {
+    PerfTestRunner.logFatalError("No frame decoded");
+    return;
+  }
+
+  runCreateImageBitmapTest(
+      frame, "CPU time for createImageBitmap w/ VideoFrame from VideoDecoder");
+})();
+</script>

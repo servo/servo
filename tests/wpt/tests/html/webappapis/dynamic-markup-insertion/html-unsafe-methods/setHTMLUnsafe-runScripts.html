@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<link rel="help" href="https://github.com/whatwg/html/pull/12495" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+  <script>
+    window.did_run = false;
+    for (const containerType of ["Element", "ShadowRoot"]) {
+      const createContainer = (t) => {
+        const element = document.createElement("div");
+        document.body.appendChild(element);
+        window.scope = document;
+        t.add_cleanup(() => {
+          element.remove();
+          delete window.scope;
+        });
+
+        if (containerType === "Element")
+          return element;
+
+        window.scope = element.attachShadow({ mode: "open" });
+        return window.scope;
+      };
+
+      test((t) => {
+        const container = createContainer(t);
+        container.setHTMLUnsafe(
+          "<script>window.did_run = true;</" + "script>",
+          { runScripts: true }
+        );
+        t.add_cleanup(() => {
+          window.did_run = false;
+        });
+
+        assert_true(window.did_run);
+      }, `${containerType}: setHTMLUnsafe with runScripts & no shadowdom.`);
+
+      test((t) => {
+        const container = createContainer(t);
+        container.setHTMLUnsafe(
+          "<script>window.did_run = true;</" + "script>",
+          { runScripts: false }
+        );
+        t.add_cleanup(() => {
+          window.did_run = false;
+        });
+
+        assert_false(window.did_run);
+      }, `${containerType}: setHTMLUnsafe with runScripts=false & no shadowdom.`);
+
+      test((t) => {
+        const container = createContainer(t);
+        container.setHTMLUnsafe(
+          "<script>window.did_run = true;</" + "script>",
+          { runScripts: false }
+        );
+        t.add_cleanup(() => {
+          window.did_run = false;
+        });
+
+        assert_false(window.did_run);
+      }, `${containerType}: setHTMLUnsafe without runScripts & no shadowdom.`);
+
+      test((t) => {
+        const container = createContainer(t);
+        container.setHTMLUnsafe(
+          "<div><template shadowrootmode=open><script>window.did_run = true;</" +
+            "script></template></div>",
+          { runScripts: true }
+        );
+
+        t.add_cleanup(() => {
+          window.did_run = false;
+        });
+        assert_true(window.did_run);
+      }, `${containerType}: setHTMLUnsafe with script inside declarative shadow DOM.`);
+
+      promise_test(async (t) => {
+        const container = createContainer(t);
+        const { resolve, promise } = Promise.withResolvers();
+        window.resolve = resolve;
+        container.setHTMLUnsafe(
+          `<script src="resources/did-run.js" onload="window.resolve()"><` +
+            +`/script>`,
+          { runScripts: true }
+        );
+
+        t.add_cleanup(() => {
+          window.did_run = false;
+          delete window.resolve;
+        });
+
+        await promise;
+        assert_true(window.did_run);
+      }, `${containerType}: setHTMLUnsafe with external script.`);
+
+      promise_test(async (t) => {
+        const container = createContainer(t);
+        const { resolve, promise } = Promise.withResolvers();
+        window.resolve = resolve;
+        container.setHTMLUnsafe(
+          `<script async src="resources/did-run.js" onload="window.resolve()"><` +
+            +`/script>`,
+          { runScripts: true }
+        );
+
+        t.add_cleanup(() => {
+          window.did_run = false;
+          delete window.resolve;
+        });
+
+        await promise;
+        assert_true(window.did_run);
+      }, `${containerType}: setHTMLUnsafe with external async script.`);
+
+      promise_test(async (t) => {
+        const container = createContainer(t);
+        const { resolve, promise } = Promise.withResolvers();
+        window.resolve = resolve;
+        container.setHTMLUnsafe(
+          `<script defer src="resources/did-run.js" onload="window.resolve()"><` +
+            +`/script>`,
+          { runScripts: true }
+        );
+
+        t.add_cleanup(() => {
+          window.did_run = false;
+          delete window.resolve;
+        });
+
+        await promise;
+        assert_true(window.did_run);
+      }, `${containerType}: setHTMLUnsafe with external defer script.`);
+
+      promise_test(async (t) => {
+        const container = createContainer(t);
+        container.innerHTML = "";
+        container.setHTMLUnsafe(
+          `<div><script>
+            window.scope.getElementById("after").textContent = "after";
+            <` + `/script><div id=after></div></div>`,
+          { runScripts: true }
+        );
+
+        assert_equals(container.querySelector("#after").textContent, "after");
+      }, `${containerType}: setHTMLUnsafe script cannot observe intermediate state.`);
+
+      promise_test(async (t) => {
+        const container = createContainer(t);
+        container.innerHTML = "";
+        window.did_run_first_script = false;
+        window.did_run_next_script = false;
+        container.setHTMLUnsafe(
+          `<div>
+            <script>
+            window.scope.getElementById("next-script").remove();
+            window.did_run_first_script = true;
+            <` + `/script>
+            <script id="next-script">window.did_run_next_script = true;</` + `script>
+          </div>`,
+          { runScripts: true }
+        );
+
+        t.add_cleanup(() => {
+          delete window.did_run_first_script;
+          delete window.did_run_next_script;
+        })
+
+        assert_false(window.did_run_next_script);
+      }, `${containerType}: setHTMLUnsafe script can remove subsequent scripts and prevent them from running.`);
+
+      promise_test(async (t) => {
+        const container = createContainer(t);
+        container.innerHTML = "";
+        window.observed_colors = [];
+        container.setHTMLUnsafe(
+          `<div>
+            <span id=target>a</span>
+            <style>span#target {color: rgb(0, 128, 0);}</style>
+            <script>
+            window.observed_colors.push(getComputedStyle(window.scope.getElementById("target")).color);
+            <` + `/script>
+            <style>span#target {color: rgb(0, 0, 128);}</style>
+            <script>
+            window.observed_colors.push(getComputedStyle(window.scope.getElementById("target")).color);
+            <` + `/script>
+          </div>`,
+          { runScripts: true }
+        );
+
+        t.add_cleanup(() => {
+          delete window.observed_colors;
+        })
+
+        assert_array_equals(window.observed_colors, ["rgb(0, 0, 128)", "rgb(0, 0, 128)"]);
+      }, `${containerType}: setHTMLUnsafe script cannot observe intermediate style.`);
+
+      test((t) => {
+        const container = createContainer(t);
+        container.setHTMLUnsafe(
+          "<script>window.did_run = true;</" + "script>",
+          {
+            runScripts: true,
+            sanitizer: {removeElements: ["script"]}
+          }
+        );
+        t.add_cleanup(() => {
+          window.did_run = false;
+        });
+
+        assert_false(window.did_run);
+      }, `${containerType}: sanitizer can remove scripts, which would override runScripts=true.`);
+
+      test((t) => {
+        const container = createContainer(t);
+        container.setHTML(
+          "<script>window.did_run = true;</" + "script>",
+          {
+            get runScripts() { throw new Error("runScripts should not be accessed"); },
+          }
+        );
+        t.add_cleanup(() => {
+          window.did_run = false;
+        });
+
+        assert_false(window.did_run);
+      }, `${containerType}: runScripts is ignored when not "Unsafe" (setHTML).`);
+
+      test((t) => {
+        const container = createContainer(t);
+        const doc = Document.parseHTMLUnsafe(
+          "<script>window.did_run = true;</" + "script>",
+          {
+            get runScripts() { throw new Error("runScripts should not be accessed"); },
+          }
+        );
+        t.add_cleanup(() => {
+          window.did_run = false;
+        });
+        assert_false(window.did_run);
+        container.append(doc.querySelector("script"));
+
+        assert_false(window.did_run);
+      }, `${containerType}: runScripts is ignored for parseHTMLUnsafe.`);
+
+      test((t) => {
+        const container = createContainer(t);
+        const prefix = containerType.toLowerCase();
+        window.operations = [];
+        t.add_cleanup(() => {
+          delete window.operations;
+        });
+        customElements.define(`${prefix}-1`, class E1 extends HTMLElement {
+          constructor() {
+            super();
+            window.operations.push(`${prefix}-1-ctor`);
+          }
+
+          connectedCallback() {
+            window.operations.push(`${prefix}-1-connected`);
+          }
+        });
+        customElements.define(`${prefix}-2`, class E2 extends HTMLElement {
+          constructor() {
+            super();
+            window.operations.push(`${prefix}-2-ctor`);
+          }
+
+          connectedCallback() {
+            window.operations.push(`${prefix}-2-connected`);
+          }
+        });
+        container.setHTMLUnsafe(`
+          <${prefix}-1></${prefix}-1>
+          <script>
+            window.operations.push("run-scripts");
+          </`+`script>
+          <${prefix}-2></${prefix}-2>`, {runScripts: true});
+        assert_array_equals(window.operations, [
+          `run-scripts`,
+          `${prefix}-1-ctor`,
+          `${prefix}-1-connected`,
+          `${prefix}-2-ctor`,
+          `${prefix}-2-connected`,
+        ]);
+      }, `${containerType}: runScripts order of operations with custom element callbacks`);
+    }
+  </script>
+</body>

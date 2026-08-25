@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<title>Non-scaling-stroke with non-uniform scaling via &lt;image&gt; preserveAspectRatio=none</title>
+<link rel="author" title="Divyansh Mangal" href="mailto:dmangal@microsoft.com">
+<link rel="match" href="non-scaling-stroke-non-uniform-scale-ref.html">
+<svg width="200" height="100">
+  <rect width="200" height="100" fill="green"/>
+  <image
+    preserveAspectRatio="none"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' stroke-width='1px' stroke='black' width='50' height='50' viewBox='0 0 50 50'%3E%3Cpolyline vector-effect='non-scaling-stroke' points='50 0 0 50'/%3E%3C/svg%3E%0A"
+    height="100"
+    width="200"/>
+</svg>

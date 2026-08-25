@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1/#overview">
+<link rel="help" href="https://drafts.csswg.org/css-multicol/">
+<meta name="assert" content="Scroll snapping on fragmented block inside nested multicol">
+<div id="scrollable" style="overflow:hidden; margin:13px; width:300px; height:350px;">
+  <div style="columns:2; column-gap:10px; column-fill:auto; width:690px; height:300px; margin:100px;">
+    <div style="height:200px; background:hotpink;"></div>
+    <div style="columns:3; column-gap:20px; column-fill:auto; width:340px; height:200px;">
+      <div style="height:200px; background:blue;"></div>
+      <div id="target" style="height:120px; background:cyan;"></div>
+      <div style="height:200px; background:gray;"></div>
+    </div>
+  </div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  // #target is fragmented across two columns - the third (and last) column of
+  // the first row of the inner multicol container, and the first column of the
+  // second row.
+  //
+  // The left offset of the first fragment of #target (relatively to the scroll
+  // port) is 340px (2 columns of 100px width and gaps of 20px width, which is
+  // 240px, plus the multicol left margin of 100px). The top offset is 300px
+  // (200px hotpink block, plus the multicol top margin of 100px). The fragment
+  // is 100px wide and tall.
+  //
+  // The left offset of the second fragment of #target is 450px (outer column
+  // width of 340px, plus outer column gap of 10px, plus multicol left margin of
+  // 100px). The top offset is 100px (multicol top margin). It is 100px wide and
+  // 20px tall.
+  //
+  // The bounding box of #target thus becomes left:340px, top:100px,
+  // width:210px, height:300px.
+  test(()=> {
+    target.style.scrollSnapAlign = "start";
+    scrollable.style.scrollSnapType = "x mandatory";
+    assert_equals(scrollable.scrollLeft, 340);
+    scrollable.style.scrollSnapType = "y mandatory";
+    assert_equals(scrollable.scrollTop, 100);
+  }, "start");
+
+  test(()=> {
+    target.style.scrollSnapAlign = "end";
+    scrollable.style.scrollSnapType = "x mandatory";
+    assert_equals(scrollable.scrollLeft, 250);
+    scrollable.style.scrollSnapType = "y mandatory";
+    assert_equals(scrollable.scrollTop, 50);
+  }, "end");
+
+  test(()=> {
+    target.style.scrollSnapAlign = "center";
+    scrollable.style.scrollSnapType = "x mandatory";
+    assert_equals(scrollable.scrollLeft, 295);
+    scrollable.style.scrollSnapType = "y mandatory";
+    assert_equals(scrollable.scrollTop, 75);
+  }, "center");
+</script>

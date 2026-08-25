@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<title>Tests anchor positioned scrolling resolving name conflicts</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#scroll">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/test-common.js"></script>
+
+<style>
+body {
+  margin: 0;
+}
+
+.scroller {
+  width: 100px;
+  height: 100px;
+  overflow-y: scroll;
+}
+
+.nonpos-cb {
+  transform: scale(1);
+}
+
+.abspos-cb {
+  position: absolute;
+}
+
+.anchor {
+  background: orange;
+  anchor-name: --a1;
+  position: absolute;
+  width: 50px;
+  height: 50px;
+  top: 50px;
+}
+
+.spacer {
+  height: 200px;
+}
+
+.target {
+  background: lime;
+  position: absolute;
+  width: 50px;
+  height: 50px;
+  top: anchor(top);
+  left: anchor(right);
+  position-anchor: --a1;
+}
+</style>
+
+<div class="abspos-cb" style="width: 300px; height: 400px">
+  <div class="scroller nonpos-cb" id="scroller1">
+    <div class="anchor" id="anchor1"></div>
+    <div class="spacer"></div>
+  </div>
+  <div class="target" id="target1"></div>
+
+  <div class="scroller abspos-cb" style="top: 125px" id="scroller2">
+    <div class="anchor" id="anchor2"></div>
+    <div class="spacer"></div>
+  </div>
+  <div class="target" id="target2"></div>
+
+  <div class="scroller abspos-cb" style="top: 250px" id="scroller3">
+    <div class="anchor" id="anchor3"></div>
+    <div class="spacer"></div>
+  </div>
+  <div class="target" id="target3"></div>
+</div>
+
+<script>
+promise_test(async () => {
+  scroller1.scrollTop = 10;
+  await waitUntilNextAnimationFrame();
+  await waitUntilNextAnimationFrame();
+
+  assert_equals(target1.getBoundingClientRect().top, anchor1.getBoundingClientRect().top);
+  assert_equals(target1.getBoundingClientRect().top, 40);
+}, 'target1 should scroll with anchor1');
+
+promise_test(async () => {
+  scroller2.scrollTop = 20;
+  await waitUntilNextAnimationFrame();
+  await waitUntilNextAnimationFrame();
+
+  assert_equals(target2.getBoundingClientRect().top, anchor2.getBoundingClientRect().top);
+  assert_equals(target2.getBoundingClientRect().top, 155);
+}, 'target2 should scroll with anchor2');
+
+promise_test(async () => {
+  scroller3.scrollTop = 30;
+  await waitUntilNextAnimationFrame();
+  await waitUntilNextAnimationFrame();
+
+  assert_equals(target3.getBoundingClientRect().top, anchor3.getBoundingClientRect().top);
+  assert_equals(target3.getBoundingClientRect().top, 270);
+}, 'target3 should scroll with anchor3');
+</script>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>
+  CSS Gap Decorations: Flex gaps are painted with different sized gaps due to content distribution between lines + a gap property in a column flex (wrap-reverse).
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-gaps-1/">
+<link rel="match" href="flex-gap-decorations-060-ref.html">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+    #flexbox {
+        border: 1px solid;
+        width: 140px;
+        background-color: #fff;
+        display: flex;
+        flex-wrap: wrap-reverse;
+        row-rule: 5px solid gold;
+        height: 200px;
+        align-content: space-evenly;
+        row-gap: 10px;
+    }
+    .item {
+        width: 70px;
+        height: 40px;
+        background-color: #007bff;
+        color: white;
+        display: flex;
+    }
+</style>
+<div id="flexbox">
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+</div>

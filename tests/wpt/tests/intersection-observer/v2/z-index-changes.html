@@ -1,0 +1,57 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Intersection observer visibility should be updated after z-index changes</title>
+<link rel="help" href="https://crbug.com/422531206">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 220px;
+  height: 220px;
+  background-color: blue;
+  z-index: -9999;
+}
+#frame {
+  position: relative;
+  width: 200px;
+  height: 200px;
+}
+</style>
+
+<div id="overlay"></div>
+<iframe id="frame" srcdoc="<!doctype html>hello"></iframe>
+
+<script>
+async_test(function(t) {
+  let observation_count = 0;
+
+  const observer = new IntersectionObserver(t.step_func(function(records) {
+    records.forEach(function(record) {
+      observation_count++;
+      if (observation_count === 1) {
+        assert_equals(record.isVisible, true, 'Initial observation should be visible');
+
+        // Adjust the overlay z-index so that it occludes the frame.
+        overlay.style.zIndex = '9999';
+      } else if (observation_count === 2) {
+        assert_equals(record.isVisible, false, 'Second observation should be obscured');
+
+        // Adjust the overlay z-index so it no longer occludes the frame.
+        overlay.style.zIndex = '-9999';
+      } else if (observation_count === 3) {
+        assert_equals(record.isVisible, true, 'Third observation should be visible');
+
+        observer.disconnect();
+        t.done();
+      }
+    });
+  }), { trackVisibility: true, delay: 100 });
+
+  frame.onload = t.step_func(() => {
+    observer.observe(frame.contentDocument.documentElement);
+  });
+}, 'IntersectionObserver observes visibility changes from z-index');
+</script>

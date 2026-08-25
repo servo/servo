@@ -1,0 +1,55 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name=viewport content="width=device-width,initial-scale=1">
+<title>Test image button coordinates</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/input.html#image-button-state-(type=image)">
+<link rel="help" href="https://xhr.spec.whatwg.org/#dom-formdata">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=282266">
+<link rel="author" title="Zach Hoffman" href="mailto:zach@zrhoffman.net">
+<form id="myForm" onsubmit="return false;">
+  <input id="myImage" name="myImage" type="image" src="/images/100px-green-rect.svg">
+</form>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+promise_test(async t => {
+  await new Promise(r => window.addEventListener("load", r));
+
+  const xCoordinates = [];
+  const yCoordinates = [];
+
+  let formData;
+  myForm.addEventListener("submit", t.step_func(e => {
+    e.preventDefault();
+    formData = new FormData(myForm, myImage);
+    xCoordinates.push(formData.get("myImage.x"));
+    yCoordinates.push(formData.get("myImage.y"));
+  }));
+
+  await test_driver.click(myImage);
+
+  const [clientX, clientY] = getInViewCenterPoint(myImage.getBoundingClientRect());
+  const mouseEvent = new MouseEvent("click", {clientX, clientY});
+  myImage.dispatchEvent(mouseEvent);
+
+  assert_equals(xCoordinates.length, 2, "there should be 2 X coordinates");
+  assert_equals(yCoordinates.length, 2, "there should be 2 Y coordinates");
+  assert_equals(xCoordinates[1], xCoordinates[0], "dispatched event X coordinate should match user intention X coordinate");
+  assert_equals(yCoordinates[1], yCoordinates[0], "dispatched event Y coordinate should match user intention Y coordinate");
+}, "dispatched event coordinates should match user intention coordinates")
+
+// Private function from testdriver.js.
+function getInViewCenterPoint(rect) {
+  var left = Math.max(0, rect.left);
+  var right = Math.min(window.innerWidth, rect.right);
+  var top = Math.max(0, rect.top);
+  var bottom = Math.min(window.innerHeight, rect.bottom);
+
+  var x = 0.5 * (left + right);
+  var y = 0.5 * (top + bottom);
+
+  return [x, y];
+}
+</script>

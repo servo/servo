@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>CSS Cascade: 'revert' in keyframe animations on identical elements</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade/#default">
+<link rel="help" href="https://crbug.com/1065387">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  @keyframes test {
+    from { margin-top: revert; }
+    to { margin-top: 100px; }
+  }
+  .anim {
+    margin-top: 0px;
+    animation: test linear 1s paused;
+  }
+</style>
+<h1 class="anim"></h1>
+<h1 class="anim"></h1>
+<h1 class="anim"></h1>
+<h1 id=ref></h1>
+<script>
+  test(function() {
+    // This querySelectorAll includes #ref, but that's OK.
+    let targets = document.querySelectorAll('h1');
+    for (let t of targets) {
+      let actual = getComputedStyle(t).marginTop;
+      let expected = getComputedStyle(ref).marginTop;
+      // This test assumes that the UA style sheet sets a non-0px value on
+      // <h1> elements:
+      assert_not_equals(expected, '0px');
+      assert_equals(actual, expected);
+    }
+  }, 'A @keyframe animation with revert works when applied to multiple identical elements');
+</script>

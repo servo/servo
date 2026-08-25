@@ -1,0 +1,86 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Element Timing: src change triggers new entry</title>
+
+<body>
+  <style>
+    body {
+      margin: 0;
+    }
+
+  </style>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="resources/element-timing-helpers.js"></script>
+  <img elementtiming='my_image' id='my_id' />
+  <script>
+    setup({"hide_test_state": true});
+
+    const performanceEntryPromise = (pathname) => {
+      return new Promise(resolve => {
+        new PerformanceObserver((entryList, observer) => {
+          assert_equals(entryList.getEntries().length, 1);
+          if (entryList.getEntries()[0].url == pathname) {
+            observer.disconnect();
+            resolve(entryList.getEntries()[0]);
+          }
+        }).observe({ type: 'element' });
+      });
+    }
+
+    promise_test(async (t) => {
+      assert_implements(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
+
+      // Take beforeRender timestamp.
+      const beforeRender1 = performance.now();
+
+      const img = document.getElementById('my_id');
+
+      const url1 = 'resources/square100.png';
+
+      const pathname1 = (new URL(url1, document.location)).href
+
+      // Register performance observer.
+      const promise1 = performanceEntryPromise(pathname1);
+
+      //Load image
+      await new Promise(resolve => {
+        img.addEventListener('load', resolve);
+        img.src = url1;
+      });
+
+      // Get element entry.
+      const entry1 = await promise1;
+
+      // Check entry.
+      checkElement(entry1, pathname1, 'my_image', 'my_id', beforeRender1, img);
+      checkRect(entry1, [0, 100, 0, 100]);
+      checkNaturalSize(entry1, 100, 100);
+
+      // Take beforeRender timestamp before changing image src.
+      const beforeRender2 = performance.now();
+
+      // Set the src to trigger another entry.
+      const url2 = '/images/black-rectangle.png';
+
+      const pathname2 = (new URL(url2, document.location)).href;
+
+      const promise2 = performanceEntryPromise(pathname2);
+
+      //Load image with changed src.
+      await new Promise(resolve => {
+        img.addEventListener('load', resolve);
+        img.src = url2;
+      });
+
+      // Get the corresponding element entry.
+      const entry2 = await promise2;
+
+      // Check entry.
+      checkElement(entry2, pathname2, 'my_image', 'my_id', beforeRender2, img);
+      checkRect(entry2, [0, 100, 0, 50]);
+      checkNaturalSize(entry2, 100, 50);
+    }, 'Element Timing: changing src causes a new entry to be dispatched.')
+  </script>
+
+</body>

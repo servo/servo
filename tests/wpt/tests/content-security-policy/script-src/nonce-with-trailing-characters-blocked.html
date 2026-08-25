@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<!--
+    A nonce-source must match the grammar  "'nonce-" base64-value "'"  in its
+    entirety. A token such as  'nonce-abc'X  has trailing characters after the
+    closing quote, so it is not a valid source expression and must be ignored
+    when parsing the source list. Consequently the nonce "abc" is never
+    registered, and a <script nonce="abc"> must be blocked.
+
+    The valid 'nonce-driver' source is only used to bootstrap testharness.js and
+    the test driver so the test can run (and report) under a policy that would
+    otherwise block all inline script.
+-->
+<meta http-equiv="Content-Security-Policy" content="script-src 'nonce-driver' 'nonce-abc'X">
+<script src="/resources/testharness.js" nonce="driver"></script>
+<script src="/resources/testharnessreport.js" nonce="driver"></script>
+<script nonce="driver">
+    var t = async_test("A nonce-source with trailing characters after the closing quote ('nonce-abc'X) is invalid, so a script carrying that nonce must be blocked.");
+
+    document.addEventListener('securitypolicyviolation', t.step_func(e => {
+        assert_equals(e.blockedURI, "inline", "The inline script should be reported as blocked.");
+        t.done();
+    }));
+</script>
+<script nonce="abc">
+    t.unreached_func("A script whose nonce matches the malformed 'nonce-abc'X source must not execute.")();
+</script>

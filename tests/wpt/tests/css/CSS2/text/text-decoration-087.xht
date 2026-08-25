@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+ <head>
+  <title>CSS Test: text-decoration with inline children</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/text/decoration/007.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#lining-striking-props" />
+  <style type="text/css">
+   div { color: orange; text-decoration: underline; }
+   span { vertical-align: bottom; color: gray; }
+   .super { vertical-align: super; }
+   .up { vertical-align: 0.5em; }
+  </style>
+ </head>
+ <body>
+  <p>There should only be one solid orange line under the following
+  text. If the line is broken at any point, or if there are two
+  underlines anywhere, then the test has failed.</p>
+  <div>
+   <span> Test </span>
+   <span class="super"> test test test </span>
+   <span> test </span>
+   <span class="up"> test test </span>
+   <span> test. </span>
+  </div>
+ </body>
+</html>

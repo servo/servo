@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>CSS Test: font-feature-settings descriptor</title>
+<link rel="author" title="Chris Lilley" href="chris@w3.org">
+<link rel="help" href="https://www.w3.org/TR/css-fonts-3/#font-rend-desc">
+<link rel="help" href="https://www.w3.org/TR/css-fonts-3/#font-feature-settings-prop">
+<link rel="match" href="font-feature-settings-descriptor-01-ref.html">
+<meta name="assert" content="These descriptors define initial settings that apply when the font defined by an @font-face rule is rendered">
+<style>
+  @font-face {
+    font-family: fwf;
+    src: url(support/fonts/FontWithFancyFeatures.otf);
+  }
+  @font-face {
+    font-family: fwf2;
+    src: url(support/fonts/FontWithFancyFeatures.otf);
+    font-feature-settings: "liga" on, "clig" on, "calt" on, "hlig" on, "dlig" on, "onum" on, "smcp" on, "jp90" on;
+  }
+  .test {
+	  font-family: fwf;
+	  font-size: 2.4em;
+	  line-height: 1.1;
+  }
+  .test>p.descriptor {
+      font-family: fwf2;
+  }
+  .property {
+    font-feature-settings: "liga" on, "clig" on, "calt" on, "hlig" on, "dlig" on, "onum" on, "smcp" on, "jp90" on;
+  }
+</style>
+
+<body>
+<p>Test passes if the three lines below are identical, with eight check marks (✓). </p>
+<section class="test">
+    <p class="descriptor">CDGFEJQa</p>
+	<p class="property">CDGFEJQa</p>
+	<p class="ref">AAAAAAAA</p>
+</section>

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>HTML Templates: Node document of the template content attribute must be template contents owner</title>
+<meta name="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<meta name="author" title="Aleksei Yu. Semenov" href="mailto:a.semenov@unipro.ru">
+<meta name="assert" content="Node document of the template content attribute must be template contents owner">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-html-templates-20130214/#template-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src='/html/resources/common.js'></script>
+</head>
+<body>
+<div id="log"></div>
+<script type="text/javascript">
+
+test(function() {
+    var doc = newHTMLDocument();
+    var template = doc.createElement('template');
+    var nestedTemplate = doc.createElement('template');
+    template.appendChild(nestedTemplate);
+
+    assert_equals(nestedTemplate.content.ownerDocument, template.content.ownerDocument,
+            'Wrong node document of the template content attribute');
+
+}, 'Node document of the template content attribute must be template contents owner. ' +
+    'Nested template element created by createElement');
+
+
+test(function() {
+    var doc = newHTMLDocument();
+    doc.body.innerHTML = '<template><template></template></template>';
+    var template = doc.querySelector('template');
+    var nestedTemplate = template.content.querySelector('template');
+
+    assert_equals(nestedTemplate.content.ownerDocument, template.content.ownerDocument,
+            'Wrong node document of the template content attribute');
+
+}, 'Node document of the template content attribute must be template contents owner. ' +
+    'Nested template element created by innerHTML');
+
+testInIFrame('../resources/two-templates.html', function(context) {
+    var doc = context.iframes[0].contentDocument;
+
+    var template1 = doc.querySelector('#template1');
+    var template2 = doc.querySelector('#template2');
+
+    // when there is a browsing context, template contents owner is only accessible via template.content.ownerDocument
+    // because template contents owner is bounded to document
+    // verify that multiple templates share the same instance of template contents owner
+
+    assert_equals(template1.content.ownerDocument, template2.content.ownerDocument,
+            'Wrong node document of the template content attribute');
+}, 'Node document of the template content attribute must be template contents owner. ' +
+    'Load HTML file with multiple template elements');
+
+</script>
+</body>
+</html>

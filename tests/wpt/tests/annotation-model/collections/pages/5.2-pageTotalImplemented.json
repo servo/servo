@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "5.2-pageTotalImplemented.json",
+  "assertionType": "may",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "passAndContinue",
+  "errorMessage": "Annotation Page has no total key (i.e., in description of Collection included using partOf key).",
+  "title": "Implements **Annotation Page _total_ key** (i.e., in description of Collection included using partOf key) with valid value - [model 5.1](https://www.w3.org/TR/annotation-model/#annotation-collection)",
+  "type": "object",
+  "properties":
+  {
+    "partOf":
+    { "$ref": "collections.json#/definitions/totalFound" }
+  },
+  "required": [ "partOf" ]
+}

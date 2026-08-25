@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-multicol-1/#cf">
+<div id="multicol" style="columns:4;">
+  <div style="height:0;">
+    <div style="height:20px;"></div>
+    <div style="break-before:column; height:10px;"></div>
+    <div style="break-before:column; height:10px;"></div>
+    <div style="column-span:all; height:10px;"></div>
+  </div>
+  <div style="height:320px;"></div>
+</div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(()=> {
+    assert_equals(multicol.offsetHeight, 100);
+  }, "Spanner in overflowed parent with forced breaks");
+</script>

@@ -1,0 +1,47 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Inheriting 'top' changes from relpos grandparent</title>
+  <link rel="author" title="Boris Zbarsky" href="mailto:bzbarsky@mit.edu"/>
+  <link rel="reviewer" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html#value-def-inherit"/>
+  <link rel="help" href="http://www.w3.org/TR/css-cascade-3/#inherit"/>
+  <link rel="help" href="http://www.w3.org/TR/css-cascade-4/#inherit"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#position-props"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#propdef-position"/>
+  <link rel="match" href="dynamic-top-change-001-ref.xht" />
+
+  <meta name="flags" content="dom" />
+  <meta name="assert" content="The position of a positioned element which inherits its 'top' value from its relatively positioned grandparent changes when the grandparent's 'top' value is changed."/>
+  <style type="text/css"><![CDATA[
+  p
+  {
+  line-height: 1.25;
+  margin: 1em 0;
+  }
+
+  strong {line-height: 1;}
+
+    .testDiv { position: absolute; width: 100px; height: 100px; }
+    #green { top: 4em; background: green; }
+    #red { top: inherit; background: red; }
+    #parent { top: inherit; position: relative; }
+    #grandparent { position: relative; }
+  ]]></style>
+  <script type="text/javascript"><![CDATA[
+    window.onload = function() {
+      document.body.offsetWidth;
+      document.getElementById("grandparent").style.top = "2em";
+    }
+  ]]></script>
+ </head>
+ <body>
+   <p>Test passes if there is <strong>no red</strong>.</p>
+   <div id="grandparent">
+     <div id="parent">
+       <div id="red" class="testDiv"></div>
+     </div>
+     <div id="green" class="testDiv"></div>
+   </div>
+ </body>
+</html>

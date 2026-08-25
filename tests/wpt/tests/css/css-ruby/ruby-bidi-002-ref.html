@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>Bidi reordering of ruby</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<link rel="stylesheet" href="support/ruby-common.css">
+<style> rb { margin: 0 5px; } </style>
+<p>
+  <ruby>
+    <rb>base1</rb><rb>base2</rb>
+    <rt>text1</rt><rt>text2</rt>
+    <rb>base4</rb><rb>base3</rb>
+    <rt>text4</rt><rt>text3</rt>
+  </ruby>
+  <ruby>
+    <rb>base7</rb><rb>base8</rb>
+    <rt>text7</rt><rt>text8</rt>
+    <rb>base6</rb><rb>base5</rb>
+    <rt>text6</rt><rt>text5</rt>
+  </ruby>
+</p>
+<p style="text-align: right">
+  <ruby>
+    <rb>base5</rb><rb>base6</rb>
+    <rt>text5</rt><rt>text6</rt>
+    <rb>base8</rb><rb>base7</rb>
+    <rt>text8</rt><rt>text7</rt>
+  </ruby>
+  <ruby>
+    <rb>base3</rb><rb>base4</rb>
+    <rt>text3</rt><rt>text4</rt>
+    <rb>base2</rb><rb>base1</rb>
+    <rt>text2</rt><rt>text1</rt>
+  </ruby>
+</p>

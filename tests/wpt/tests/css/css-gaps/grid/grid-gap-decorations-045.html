@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>
+    CSS Gap Decorations: Make sure decorations resize when container/window resizes.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="match" href="grid-gap-decorations-045-ref.html">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+    #container,
+    body {
+        overflow: hidden;
+        margin: 0px;
+    }
+
+    #container {
+        display: grid;
+        grid-template-rows: 4rem 2rem auto;
+        width: 50%;
+        gap: 2px;
+        border: solid 2px black;
+        row-rule: 2px solid hotpink, 1px dashed grey;
+        background-color: teal;
+    }
+
+    #one {
+        height: 100px;
+        width: 100px;
+    }
+</style>
+<div id="container">
+    <div id="one"></div>
+</div>
+<script>
+    window.addEventListener('load', function () {
+        const container = document.getElementById('container');
+        container.style.width = '80%';
+    });
+</script>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Soft navigation with multiple popstate calls.</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script src="resources/soft-navigation-helper.js"></script>
+  </head>
+  <body>
+    <a id="link">Click me!</a>
+    <main id="main">
+    </main>
+    <script>
+      // Push state 4 times, as history.back() calls will trigger popstate
+      // events.
+      history.pushState({}, "", "three.html");
+      history.pushState({}, "", "two.html");
+      history.pushState({}, "", "one.html");
+      history.pushState({}, "", "zero.html");
+
+      testSoftNavigation({
+        testName:
+          "A soft navigation that started from a back() call inside a " +
+          "popstate event is recognized by SoftNavigationHeuristics",
+        eventListenerCb: async () => {
+          history.back();
+          await waitForUrlToEndWith("one.html");
+          history.back();
+          await waitForUrlToEndWith("two.html");
+          history.back();
+          await waitForUrlToEndWith("three.html");
+        },
+        registerRouteChange: (cb) => addEventListener('popstate', (event) => {
+            // Wait for the final back() nav.
+            if (!location.href.endsWith("three.html")) {
+              return;
+            }
+            cb(event);
+          }),
+        pushState: () => { },
+        // Although we will own the pushState, we need to set the expected URL
+        pushUrl: "one.html",
+      });
+    </script>
+  </body>
+</html>

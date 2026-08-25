@@ -1,0 +1,105 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Writing Modes Test: position absolute and 'vertical-rl' - 'left: auto', 'width: auto' and 'right: auto' with 'direction: ltr' in initial containing block</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#vertical-layout" title="7.1 Principles of Layout in Vertical Writing Modes" />
+  <link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+
+  <meta content="This test checks that when the initial containing block's writing-mode is 'horizontal-tb' and its 'direction' is 'ltr', then an absolutely positioned box (with 'left: auto', 'width: auto' and 'right: auto') whose containing block is the initial containing block must set 'left' to the static position. Whether such absolutely positioned box's 'writing-mode' is vertical or not is irrelevant." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  html
+    {
+      direction: ltr;
+    }
+
+  div#green-overlapping-test
+    {
+      border-left: green solid 25px;
+      border-right: green solid 75px;
+      height: 100px;
+      left: auto;
+      position: absolute;
+      right: auto;
+      width: auto;
+      writing-mode: vertical-rl;
+    }
+
+  /*
+  "
+  If all three of 'left', 'width', and 'right' are 'auto': First set any 'auto' values for 'margin-left' and 'margin-right' to 0. Then, if the 'direction' property of the element establishing the static-position containing block is 'ltr' set 'left' to the static position and apply rule number three below; otherwise, set 'right' to the static position and apply rule number one below.
+  (...)
+  3. 'width' and 'right' are 'auto' and 'left' is not 'auto', then the width is shrink-to-fit . Then solve for 'right'
+  "
+  10.3.7 Absolutely positioned, non-replaced elements
+  http://www.w3.org/TR/CSS21/visudet.html#abs-non-replaced-width
+
+  So:
+
+            auto : left
+        +
+            0px : margin-left
+        +
+           25px : border-left-width
+        +
+            0px : padding-left
+        +
+           auto : width
+        +
+            0px : padding-right
+        +
+           75px : border-right-width
+        +
+            0px : margin-right
+        +
+           auto : right
+        ====================
+                : width of containing block (width of Initial Containing Block)
+
+  becomes
+
+            8px : left
+        +
+            0px : margin-left
+        +
+           25px : border-left-width
+        +
+            0px : padding-left
+        +
+            0px : width (shrink-to-fit)
+        +
+            0px : padding-right
+        +
+           75px : border-right-width
+        +
+            0px : margin-right
+        +
+          solve : right
+        ====================
+                : width of containing block (width of Initial Containing Block)
+  */
+
+  div#red-overlapped-reference
+    {
+      background-color: red;
+      height: 100px;
+      width: 100px;
+    }
+  ]]></style>
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+  <div id="green-overlapping-test"></div>
+
+  <div id="red-overlapped-reference"></div>
+
+ </body>
+</html>

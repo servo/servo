@@ -1,0 +1,60 @@
+<meta charset="utf-8">
+<title>CSS Scrollbars: scrollbar-width on the body is not propagated quirks mode</title>
+<link rel="author" title="Luke Warlow" href="mailto:luke@warlow.dev" />
+<link rel="help" href="https://drafts.csswg.org/css-scrollbars-1/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<style>
+  :root {
+    /* CSS scrollbar properties applied to the root element
+       will be propagated to the viewport. */
+    scrollbar-width: thin;
+    overflow: visible;
+  }
+
+  body {
+    /* overflow is propagated as well */
+    overflow: scroll;
+    /* but CSS scrollbar properties applied to the body are not propagated */
+    scrollbar-width: none;
+  }
+
+  :root,
+  body {
+    margin: 0;
+    padding: 0;
+  }
+
+  #content {
+    height: 10vh;
+    width: 100%;
+    background: lightsalmon;
+  }
+
+  #expander {
+    /* force vertical scroll */
+    height: 200vh;
+    width: 300px;
+    background: gray;
+  }
+</style>
+
+<body>
+
+  <div id="content"></div>
+
+  <div id="expander"></div>
+
+  <script>
+    test(function () {
+      let root = document.documentElement;
+      let body = document.body;
+      let content = document.getElementById('content');
+
+      assert_less_than(root.offsetWidth, window.innerWidth, "viewport has a scrollbar");
+      assert_equals(body.offsetWidth, root.offsetWidth, "body matches root");
+      assert_equals(content.offsetWidth, body.offsetWidth, "content matches body");
+    }, "viewport displays a scrollbar");
+  </script>
+</body>

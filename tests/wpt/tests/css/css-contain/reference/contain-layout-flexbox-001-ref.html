@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Containment Test: Reference file</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<style>
+div {
+  display: inline-flex;
+  border: 5px solid green;
+  /* Layout containment creates a stacking context, the following lines simuluate the same in the reference file. */
+  position: relative;
+  z-index: 1;
+}
+</style>
+
+<p>This test passes if it has the same output as the reference. You see the word "before", a 10px green square at the bottom, and then the word "after".</p>
+before<div></div>after

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-multicol-1/#cf">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1372653">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1376486">
+<div id="multicol" style="columns:3;">
+  <div style="float:left; width:100px;">
+    <div style="height:20px;"></div>
+    <div style="break-before:column; height:50px;"></div>
+  </div>
+  <div style="clear:both; height:150px;"></div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(()=> {
+    assert_equals(multicol.offsetHeight, 100);
+  }, "Clearance after float with forced break inside");
+</script>

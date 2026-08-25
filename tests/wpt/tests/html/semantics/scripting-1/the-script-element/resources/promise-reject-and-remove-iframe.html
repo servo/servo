@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<script>
+const promise = Promise.reject();
+
+window.onload = () => {
+  promise.catch(() => parent.document.querySelector('iframe').remove());
+};
+</script>
+
+<!-- Load a slow script to delay window.onload for a while.
+     Without this, crashes are flaky. -->
+<script src="/common/slow.py"></script>

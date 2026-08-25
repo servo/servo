@@ -1,0 +1,13 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Test for #18535: Wrong type arguments to some JS functions abort the execution of the script.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  assert_throws_js(TypeError, function() { window.atob.call("", localStorage); })
+  assert_throws_js(TypeError, function() { window.removeEventListener.call("", ""); })
+  assert_throws_js(TypeError, function() { window.alert.call(""); })
+  assert_throws_js(TypeError, function() { window.moveTo.call(128); })
+})
+</script>

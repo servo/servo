@@ -1,0 +1,49 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Text-indent application on a 'display: table-row' element</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#propdef-text-indent" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#indentation-prop" />
+        <link rel="help" href="https://drafts.csswg.org/css-text-3/#text-indent-property"/>
+        <link rel="match" href="text-indent-applies-to-002-ref.xht" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The 'text-indent' property is applied to 'display: table-row' elements." />
+        <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+        <style type="text/css">
+            div
+            {
+                font: 16px/1em Ahem;
+            }
+            #table
+            {
+                display: table;
+            }
+            #row
+            {
+                display: table-row;
+                text-indent: 10em;
+            }
+            #cell
+            {
+                display: table-cell;
+            }
+            #div1
+            {
+                background: blue;
+                height: 1em;
+                margin-left: 10em;
+                width: 5em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the black box below is directly above the blue box. (Note that the two boxes do not need to be touching.)</p>
+        <div id="table">
+            <div id="row">
+                <div id="cell">XXXXX</div>
+            </div>
+        </div>
+        <div id="div1"></div>
+    </body>
+</html>

@@ -1,0 +1,54 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="timeout" content="long" />
+<title>HTMLUserMediaElement setConstraints() sanitization in Standard Mode</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/pepc-helper.js"></script>
+<body>
+  <script>
+    promise_test(async (t) => {
+      await test_driver.set_permission({ name: "camera" }, "granted");
+      await test_driver.set_permission({ name: "microphone" }, "granted");
+
+      const usermedia = document.createElement("usermedia");
+      document.body.appendChild(usermedia);
+      t.add_cleanup(() => {
+        if (usermedia.parentNode) {
+          document.body.removeChild(usermedia);
+        }
+      });
+
+      const stream_promise = new Promise((resolve) => {
+        usermedia.onstream = resolve;
+      });
+
+      // Pass complex range parameters (exact/ideal) for both video and audio.
+      usermedia.setConstraints({
+        video: { width: 1280, height: 720, frameRate: { exact: 30 } },
+        audio: { sampleSize: 16, echoCancellation: { ideal: true } }
+      });
+
+      await new Promise((r) => t.step_timeout(r, PEPC_CLICK_DELAY));
+
+      await test_driver.click(usermedia);
+      await stream_promise;
+
+      const stream = usermedia.stream;
+      t.add_cleanup(() => {
+        if (stream) {
+          stream.getTracks().forEach((track) => track.stop());
+        }
+      });
+
+      assert_true(stream instanceof MediaStream, "usermedia.stream is instance of MediaStream");
+      assert_equals(stream.getVideoTracks().length, 1, "video track initialized");
+      assert_equals(stream.getAudioTracks().length, 1, "audio track initialized");
+      assert_equals(stream.getVideoTracks()[0].kind, "video", "video track kind check");
+      assert_equals(stream.getAudioTracks()[0].kind, "audio", "audio track kind check");
+    }, "HTMLUserMediaElement setConstraints sanitization handles video and audio constraint dictionaries correctly");
+  </script>
+</body>
+

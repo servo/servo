@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Test string hash collision in bucketing</title>
+    <link rel="help" href="https://crbug.com/488188166">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+ </head>
+ <body>
+   <div id="target"></div>
+   <script>
+      // These strings all collide in Blink's string hashing function (truncated Rapidhash).
+      const S1 = "a2fe00300000000";
+      const S2 = "a53ca1f00000000";
+      const S3 = "aa9a42f00000000";
+      const S4 = "ad7ee3900000000";
+      const S5 = "a97105400000000";
+      const S6 = "a17dd5600000000";
+      const S7 = "a65f15b00000000";
+
+      function forceStyleAndLayout() {
+        void getComputedStyle(document.documentElement).color;
+        void document.body.offsetTop;
+      }
+
+      test(() => {
+        const sheet = new CSSStyleSheet();
+
+        sheet.replaceSync(`
+          div .${S1} { color: red; }
+          div .${S2} { color: green; }
+          div .${S3} { color: blue; }
+          div .${S4} { color: purple; }
+        `);
+
+        document.adoptedStyleSheets = [sheet];
+        target.innerHTML = `
+          <div id="host">
+            <span class="${S1}">x</span>
+            <span class="${S2}">x</span>
+            <span class="${S3}">x</span>
+            <span class="${S4}">x</span>
+          </div>
+        `;
+        forceStyleAndLayout();
+
+        // Old keys: S1,S2,S3,S4
+        // New keys: S4,S5,S6,S7  (7 distinct colliders total across old+new)
+        const rules = sheet.cssRules;
+        rules[0].selectorText = `div .${S4}`;
+        rules[1].selectorText = `div .${S5}`;
+        rules[2].selectorText = `div .${S6}`;
+        rules[3].selectorText = `div .${S7}`;
+        forceStyleAndLayout();
+
+        // The test passes if the browser does not crash.
+      });
+  </script>
+</body>

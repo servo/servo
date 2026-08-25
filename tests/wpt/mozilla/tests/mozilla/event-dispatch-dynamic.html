@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<b><b><b></b></b></b>
+<script>
+test(function() {
+  var sawmiddle = -1;
+  var sawouter = -1;
+  var step = 0;
+  var outerb = document.getElementsByTagName('b')[0];
+  var middleb = outerb.firstChild;
+  var innerb = middleb.firstChild;
+  outerb.addEventListener("x", this.step_func(function() {
+    middleb.addEventListener("x", this.step_func(function() {
+      sawmiddle = step++;
+    }), true);
+    sawouter = step++;
+  }), true);
+  innerb.dispatchEvent(new Event("x"));
+  assert_equals(sawmiddle, 1);
+  assert_equals(sawouter, 0);
+});
+</script>

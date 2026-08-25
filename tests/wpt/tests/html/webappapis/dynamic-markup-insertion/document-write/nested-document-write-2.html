@@ -1,0 +1,7 @@
+<!DOCTYPE html>
+<body>
+You should see the word "worked" in the frame below.<br>
+<iframe></iframe>
+<script>
+var doc = document.getElementsByTagName("iframe")[0].contentDocument;
+doc.open(); doc.write("\u003cscript>document.write(\"\\u003cscript src='nested-document-write-external.js'>\\u003c/script>r\"); document.write(\"k\");\u003c/script>e"); doc.write("d"); doc.close();</script>

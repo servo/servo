@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Backgrounds Test:  background-clip:border-area</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-4/#background-clip">
+<link rel="match" href="clip-border-area-border-on-top-ref.html">
+<meta name="assert" content="A non-transparent border is painted on top of the filled border-area">
+<style>
+    .test {
+        margin: 20px;
+        width: 300px;
+        height: 200px;
+        box-sizing: border-box;
+        border: 50px solid rgba(0, 128, 0, 0.75);
+        background-clip: border-area, border-box;
+        background-color: orange;
+        background-image: url(../resources/green-100.png), none;
+    }
+</style>
+</head>
+<body>
+<div class="test"></div>
+</body>
+</html>

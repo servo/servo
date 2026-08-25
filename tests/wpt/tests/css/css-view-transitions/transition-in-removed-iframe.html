@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>View transitions: startViewTransition in a removed iframe</title>
+  <link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+promise_test(async t => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
+
+  let iframe = document.createElement("iframe");
+  document.body.appendChild(iframe);
+  let doc = iframe.contentDocument;
+
+  // Remove the iframe, detaching the document.
+  iframe.remove();
+
+  // startViewTransition should return a valid ViewTransition object, not null.
+  let transition = doc.startViewTransition(() => {});
+
+  assert_not_equals(transition, null, "startViewTransition should not return null");
+  assert_equals(Object.prototype.toString.call(transition), "[object ViewTransition]", "should return a ViewTransition object");
+
+  assert_not_equals(transition.types, null, "types should not be null");
+  assert_equals(transition.types.size, 0, "types should be empty");
+
+  // ready promise should be a valid promise and reject with AbortError.
+  try {
+    await transition.ready;
+    assert_unreached("ready promise should have rejected");
+  } catch (e) {
+    assert_equals(e.name, "AbortError", "ready promise should reject with AbortError");
+  }
+
+  // finished promise should be a valid promise and resolve successfully.
+  await transition.finished;
+}, "A view transition in a removed iframe should return a skipped transition object and not return null");
+
+promise_test(async t => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
+
+  let iframe = document.createElement("iframe");
+  document.body.appendChild(iframe);
+  let doc = iframe.contentDocument;
+
+  iframe.remove();
+
+  let transition = doc.startViewTransition({
+    update: () => {},
+    types: ["type-a", "type-b"]
+  });
+
+  assert_not_equals(transition, null, "startViewTransition should not return null");
+  assert_not_equals(transition.types, null, "types should not be null");
+  assert_equals(transition.types.size, 2, "types should have 2 items");
+  assert_true(transition.types.has("type-a"), "should have type-a");
+  assert_true(transition.types.has("type-b"), "should have type-b");
+
+  await transition.finished;
+}, "A view transition with types in a removed iframe should preserve those types");
+</script>
+</body>
+</html>

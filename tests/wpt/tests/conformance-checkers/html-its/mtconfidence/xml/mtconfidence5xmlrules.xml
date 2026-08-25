@@ -1,0 +1,4 @@
+  <its:rules xmlns:its="http://www.w3.org/2005/11/its" version="2.0">
+    <its:param name="mtconfidenceParam">ireland</its:param>
+    <its:mtConfidenceRule selector="//span[@id=$mtconfidenceParam]" mtConfidence="0.6982"/>
+  </its:rules>

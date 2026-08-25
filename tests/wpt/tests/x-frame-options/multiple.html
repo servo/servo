@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>X-Frame-Options headers sent multiple times</title>
+
+<!--
+  This test is creating and navigating >90 iframes. This can exceed the
+  "short" timeout".
+-->
+<meta name="timeout" content="long">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/helper.sub.js"></script>
+
+<body>
+<script>
+"use strict";
+
+xfo_simple_tests({
+  headerValue: `SAMEORIGIN`,
+  headerValue2: `SAMEORIGIN`,
+  sameOriginAllowed: true,
+  crossOriginAllowed: false
+});
+
+xfo_simple_tests({
+  headerValue: `SAMEORIGIN`,
+  headerValue2: `sameOrigin`,
+  sameOriginAllowed: true,
+  crossOriginAllowed: false
+});
+
+xfo_simple_tests({
+  headerValue: `SAMEORIGIN`,
+  headerValue2: `DENY`,
+  sameOriginAllowed: false,
+  crossOriginAllowed: false
+});
+
+xfo_simple_tests({
+  headerValue: `SAMEORIGIN`,
+  headerValue2: `INVALID`,
+  sameOriginAllowed: false,
+  crossOriginAllowed: false
+});
+
+xfo_simple_tests({
+  headerValue: `SAMEORIGIN`,
+  headerValue2: `ALLOWALL`, // same as INVALID
+  sameOriginAllowed: false,
+  crossOriginAllowed: false
+});
+
+xfo_simple_tests({
+  headerValue: `SAMEORIGIN`,
+  headerValue2: `"DENY"`, // same as INVALID
+  sameOriginAllowed: false,
+  crossOriginAllowed: false
+});
+
+xfo_simple_tests({
+  headerValue: `SAMEORIGIN`,
+  headerValue2: ``, // same as INVALID
+  sameOriginAllowed: false,
+  crossOriginAllowed: false
+});
+
+xfo_simple_tests({
+  headerValue: `DENY`,
+  headerValue2: `DENY`,
+  sameOriginAllowed: false,
+  crossOriginAllowed: false
+});
+
+xfo_simple_tests({
+  headerValue: `DENY`,
+  headerValue2: `INVALID`,
+  sameOriginAllowed: false,
+  crossOriginAllowed: false
+});
+
+xfo_simple_tests({
+  headerValue: `DENY`,
+  headerValue2: `ALLOWALL`, // same as INVALID
+  sameOriginAllowed: false,
+  crossOriginAllowed: false
+});
+
+xfo_simple_tests({
+  headerValue: `DENY`,
+  headerValue2: `"SAMEORIGIN"`, // same as INVALID
+  sameOriginAllowed: false,
+  crossOriginAllowed: false
+});
+
+xfo_simple_tests({
+  headerValue: `ALLOWALL`,
+  headerValue2: `INVALID`,
+  sameOriginAllowed: false,
+  crossOriginAllowed: false
+});
+
+xfo_simple_tests({
+  headerValue: `ALLOWALL`,
+  headerValue2: ``,
+  sameOriginAllowed: false,
+  crossOriginAllowed: false
+});
+
+xfo_simple_tests({
+  headerValue: `allowAll`,
+  headerValue2: `INVALID`,
+  sameOriginAllowed: false,
+  crossOriginAllowed: false
+});
+
+xfo_simple_tests({
+  headerValue: `INVALID`,
+  headerValue2: `INVALID`,
+  sameOriginAllowed: true,
+  crossOriginAllowed: true
+});
+
+xfo_simple_tests({
+  headerValue: `INVALID`,
+  headerValue2: ``,
+  sameOriginAllowed: true,
+  crossOriginAllowed: true
+});
+
+</script>

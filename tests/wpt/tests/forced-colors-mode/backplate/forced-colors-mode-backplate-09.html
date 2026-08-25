@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>
+  Forced colors mode - backplate.
+  Tests that backplate is not drawn above floats.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-color-adjust-1/#forced">
+<link rel=match href="forced-colors-mode-backplate-09-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<script src="../../common/reftest-wait.js"></script>
+<link rel="preload" as="image" href="../resources/test-image.jpg" onload="takeScreenshot()" />
+<style>
+  body {
+    background-image: url("../resources/test-image.jpg");
+    font-family: Ahem;
+    font-size: 20px;
+    line-height: 20px;
+    text-align: justify;
+    width: 200px;
+  }
+  img {
+    float: left;
+  }
+</style>
+<body>
+  <div>
+    <img src="../resources/float-image.jpg" style="width:50px;height:50px;">
+    In forced colors mode, the backplate for this paragraph should lie below the
+    the floating image.
+  </div>
+</body>
+</html>

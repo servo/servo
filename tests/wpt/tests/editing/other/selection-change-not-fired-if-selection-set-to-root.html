@@ -1,0 +1,24 @@
+<!doctype HTML>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../include/editor-test-utils.js"></script>
+
+<body>
+  <div contenteditable="true" id="target">
+  </div>
+  <script>
+    // Selectionchange event should not get fired if the selection is already set to the beginning of the root
+    promise_test(async () => {
+        let selectionChangeCount = 0;
+        const target = document.getElementById("target");
+        await new test_driver.click(target);
+        await EditorTestUtils.waitForRender();
+        document.addEventListener("selectionchange", () => ++selectionChangeCount);
+        await new test_driver.send_keys(target, "\uE003");
+        await EditorTestUtils.waitForRender();
+        assert_equals(selectionChangeCount, 0, "Selectionchange event should not get fired");
+    }, "Selectionchange event should not get fired when the selection is already set to the beginning of the root ");
+  </script>
+</body>

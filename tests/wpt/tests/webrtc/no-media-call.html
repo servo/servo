@@ -1,0 +1,100 @@
+<!doctype html>
+
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>RTCPeerConnection No-Media Connection Test</title>
+</head>
+<body>
+  <div id="log"></div>
+  <h2>iceConnectionState info</h2>
+  <div id="stateinfo">
+  </div>
+
+  <!-- These files are in place when executing on W3C. -->
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="RTCPeerConnection-helper.js"></script>
+  <script type="text/javascript">
+  let gFirstConnection = null;
+  let gSecondConnection = null;
+
+  function onIceCandidate(otherConnction, event, reject) {
+    try {
+      otherConnction.addIceCandidate(event.candidate);
+    } catch(e) {
+      reject(e);
+    }
+  };
+
+  function onIceConnectionStateChange(done, failed, event) {
+    try {
+      assert_equals(event.type, 'iceconnectionstatechange');
+      assert_not_equals(gFirstConnection.iceConnectionState, "failed",
+                        "iceConnectionState of first connection");
+      assert_not_equals(gSecondConnection.iceConnectionState, "failed",
+                        "iceConnectionState of second connection");
+      const stateinfo = document.getElementById('stateinfo');
+      stateinfo.innerHTML = 'First: ' + gFirstConnection.iceConnectionState
+                          + '<br>Second: ' + gSecondConnection.iceConnectionState;
+      // Note: All these combinations are legal states indicating that the
+      // call has connected. All browsers should end up in completed/completed,
+      // but as of this moment, we've chosen to terminate the test early.
+      // TODO: Revise test to ensure completed/completed is reached.
+      const allowedStates = [ 'connected', 'completed'];
+      if (allowedStates.includes(gFirstConnection.iceConnectionState) &&
+          allowedStates.includes(gSecondConnection.iceConnectionState)) {
+        done();
+      }
+    } catch(e) {
+      failed(e);
+    }
+  };
+
+  // This function starts the test.
+  promise_test((test) => {
+    return new Promise(async (resolve, reject) => {
+      gFirstConnection = new RTCPeerConnection(null);
+      test.add_cleanup(() => gFirstConnection.close());
+      gFirstConnection.onicecandidate =
+          (event) => onIceCandidate(gSecondConnection, event, reject);
+      gFirstConnection.oniceconnectionstatechange =
+          (event) => onIceConnectionStateChange(resolve, reject, event);
+
+      gSecondConnection = new RTCPeerConnection(null);
+      test.add_cleanup(() => gSecondConnection.close());
+      gSecondConnection.onicecandidate =
+          (event) => onIceCandidate(gFirstConnection, event, reject);
+      gSecondConnection.oniceconnectionstatechange =
+          (event) => onIceConnectionStateChange(resolve, reject, event);
+
+      const offer = await generateVideoReceiveOnlyOffer(gFirstConnection);
+
+      await gFirstConnection.setLocalDescription(offer);
+
+      // This would normally go across the application's signaling solution.
+      // In our case, the "signaling" is to call this function.
+
+      await gSecondConnection.setRemoteDescription({ type: 'offer',
+                                                     sdp: offer.sdp });
+
+      const answer = await gSecondConnection.createAnswer();
+
+      await gSecondConnection.setLocalDescription(answer);
+
+      assert_equals(gSecondConnection.getSenders().length, 1);
+      assert_not_equals(gSecondConnection.getSenders()[0], null);
+      assert_not_equals(gSecondConnection.getSenders()[0].transport, null);
+
+      // Similarly, this would go over the application's signaling solution.
+      await gFirstConnection.setRemoteDescription({ type: 'answer',
+                                                    sdp: answer.sdp });
+
+      // The test is terminated by onIceConnectionStateChange() calling resolve
+      // once both connections are connected.
+    })
+  });
+</script>
+
+</body>
+</html>

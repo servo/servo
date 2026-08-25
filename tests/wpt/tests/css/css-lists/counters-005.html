@@ -1,0 +1,38 @@
+﻿<!DOCTYPE html>
+<html>
+ <head>
+  <title>CSS Lists: Implied counter scopes by 'counter-increment'</title>
+  <link rel="author" title="Daniil Sakhapov" href="mailto:sakhapov@chromium.org">
+  <link rel="help" href="https://drafts.csswg.org/css-lists/#propdef-counter-increment">
+  <link rel="match" href="counters-005-ref.html">
+  <style type="text/css">
+    body { white-space: nowrap; }
+    .i { counter-increment: c 1; }
+    .ib:before { counter-increment: c 1; content: "B" }
+    .r { counter-reset: c 0; }
+    .u:before { content: counters(c, ".") " "; }
+  </style>
+ </head>
+ <body>
+
+ <p>The following two lines should be identical:</p>
+
+ <div>
+   <span class="ib">
+     <span class="u"></span>
+     <span class="r">
+       <span class="u"></span>
+     </span>
+   </span>
+   <span class="i">
+     <span class="u"></span>
+     <span class="r">
+       <span class="u"></span>
+     </span>
+   </span>
+ </div>
+
+ <div>B 1 0 1 1.0</div>
+
+ </body>
+</html>

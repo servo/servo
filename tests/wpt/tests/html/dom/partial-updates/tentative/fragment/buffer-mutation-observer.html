@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Declarative Fragment: MutationObserver atomic insertion verification</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div id="container">
+  <span>Before</span>
+  <div id="target" marker="dest-marker">
+    <?start name="dest-marker">Original Content<?end>
+  </div>
+
+  <script>
+    window.callbackCount = 0;
+    window.totalAddedElements = 0;
+
+    const target = document.getElementById('target');
+    const observer = new MutationObserver((mutationsList) => {
+      window.callbackCount++;
+      for (const mutation of mutationsList) {
+        if (mutation.type === 'childList') {
+          for (const node of mutation.addedNodes) {
+            if (node.nodeType === Node.ELEMENT_NODE) {
+              window.totalAddedElements++;
+            }
+          }
+        }
+      }
+    });
+    observer.observe(target, { childList: true, subtree: true });
+  </script>
+
+  <template for="dest-marker" buffer>
+    <span id="child1">Inside 1</span>
+    <span id="child2">Inside 2</span>
+    <span id="child3">Inside 3</span>
+  </template>
+  <span>After</span>
+</div>
+<script>
+// We wait for a microtask cycle to ensure the MutationObserver has run its callback
+promise_test(async () => {
+  await new Promise(resolve => step_timeout(resolve, 0));
+
+  const target = document.getElementById('target');
+
+  // Verify that the children were inserted
+  assert_equals(target.querySelector('#child1').textContent, 'Inside 1');
+  assert_equals(target.querySelector('#child2').textContent, 'Inside 2');
+  assert_equals(target.querySelector('#child3').textContent, 'Inside 3');
+
+  // Verify MutationObserver stats:
+  // - The observer callback should have been invoked exactly once (atomic microtask delivery)
+  assert_equals(window.callbackCount, 1, "The MutationObserver callback should be invoked exactly once");
+  assert_equals(window.totalAddedElements, 3, "Total added elements across mutations should be 3");
+}, "Targeted template with buffer attribute triggers atomic MutationObserver records");
+</script>
+</body>

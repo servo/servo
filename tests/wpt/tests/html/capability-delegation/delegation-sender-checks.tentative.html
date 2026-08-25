@@ -1,0 +1,60 @@
+!DOCTYPE html>
+<!--
+   Tentative due to:
+     https://github.com/WICG/capability-delegation
+-->
+<title>Capability Delegation sender checks</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/utils.js"></script>
+
+<div>
+  Verifies that capability delegation related error checks in <a
+  href="https://wicg.github.io/capability-delegation/spec.html#monkey-patch-to-html-initiating-delegation">HTML
+  postMessage algorithm</a> are enforced correctly.
+</div>
+
+<iframe width="300px" height="50px"></iframe>
+
+<script>
+  const frame = frames[0];
+  const message = "any_message";
+  const activate = false;
+
+  let capability_to_delegate;
+
+  promise_setup(async () => {
+      capability_to_delegate = await findOneCapabilitySupportingDelegation();
+      assert_true(!!capability_to_delegate, "The user agent supports delegating at least one capability");
+  });
+
+  promise_test(async () => {
+      try {
+          await postCapabilityDelegationMessage(frame, message, "/", "blah", activate);
+          assert_unreached();
+      } catch (exception) {
+          assert_equals(exception.name, "NotSupportedError");
+      }
+  }, "Delegating an unsupported capability throws an exception");
+
+  promise_test(async () => {
+      try {
+          await postCapabilityDelegationMessage(frame, message, "*", capability_to_delegate, activate);
+          assert_unreached();
+      } catch (exception) {
+          assert_equals(exception.name, "NotAllowedError");
+      }
+  }, "Delegating to targetOrigin='*' throws an exception");
+
+  promise_test(async () => {
+      try {
+          await postCapabilityDelegationMessage(frame, message, "/", capability_to_delegate, activate);
+          assert_unreached();
+      } catch (exception) {
+          assert_equals(exception.name, "NotAllowedError");
+      }
+  }, "Delegating without user activation throws an exception");
+</script>

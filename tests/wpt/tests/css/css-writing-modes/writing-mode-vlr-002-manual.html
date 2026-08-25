@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>writing mode:vertical-lr, line wrap</title>
+<link rel="author" title="Richard Ishida" href="mailto:ishida@w3.org"/>
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#block-flow"/>
+<meta name="assert" content="writing-mode:vertical-lr will wrap lines from left to right."/>
+<style type="text/css">
+@font-face {
+    font-family: 'webfont';
+    src: url('/fonts/noto/NotoSansMongolian-regular.woff2') format('woff2');
+    font-weight: normal;
+    font-style: normal;
+	}
+.test { font-family: webfont, serif; font-size: 24px; height: 250px; width: 250px; }
+.test span { background-color:orange; color:orange;  }
+.test span#end { background-color:blue; color:blue;  }
+</style>
+<!-- this is the test -->
+<style type="text/css">
+.test { writing-mode: vertical-lr; }
+</style>
+</head>
+<body>
+<p class="instructions" dir="ltr">Test passes if the blue rectangle is on the right-most side.</p>
+<div class="test">
+<span lang="mn">ᠴᠤᠢᠵᠤᠩᠵᠠᠪ ᠪᠠᠭᠰᠢ ᠶᠢᠨ <span id="end">ᠦᠭᠦᠯᠡᠯ</span></span>
+</div>
+</body>
+</html>

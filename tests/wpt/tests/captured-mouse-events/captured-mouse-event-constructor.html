@@ -1,0 +1,68 @@
+<!doctype html>
+<meta charset=utf-8>
+<link rel='help' href='https://screen-share.github.io/captured-mouse-events/#captured-mouse-change-event'>
+<link rel='help' href='https://screen-share.github.io/captured-mouse-events/#captured-mouse-change-event-init'>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  // See https://webidl.spec.whatwg.org/#idl-long
+  const maxLongValue = 2147483647;
+
+  test(() => {
+      assert_throws_js(TypeError, () => new CapturedMouseEvent());
+  }, "type argument is mandatory");
+
+  test(() => {
+      [
+          {surfaceX: -5, surfaceY: -5}, /* X, Y negative */
+          {surfaceX: -5, surfaceY: +5}, /* X negative, Y non-negative */
+          {surfaceX: +5, surfaceY: -5}, /* X non-negative, Y negative */
+          {surfaceX: -1, surfaceY: +5}, /* X equal to -1, Y non-negative */
+          {/* surfaceX: -1, */ surfaceY: +5}, /* Same with implicit surfaceX */
+          {surfaceX: +5, surfaceY: -1}, /* X non-negative, Y equal to -1 */
+          {surfaceX: +5 /*, surfaceY: -1 */}, /* Same with implicit surfaceY */
+          {surfaceX: maxLongValue+1, surfaceY: +5}, /* 'long' overflow for X */
+          {surfaceX: +5, surfaceY: maxLongValue+1}, /* 'long' overflow for Y */
+      ].forEach(init => {
+          assert_throws_js(RangeError, () => new CapturedMouseEvent("", init),
+                          `eventInitDict=${JSON.stringify(init)}`);
+      });
+  }, "Invalid surfaceX/surfaceY options cause a RangeError to be thrown");
+
+  test(() => {
+      [
+          {surfaceX: +5, surfaceY: +7}, /* Two positive values */
+          {surfaceX: -1, surfaceY: -1}, /* Valid case with negative values  */
+          {surfaceX: 0, surfaceY: 0}, /* Minimal non-negative values */
+          {surfaceX: 0, surfaceY: 5}, /* Minimal non-negative X and positive Y */
+          {surfaceX: 5, surfaceY: 0}, /* Positive X and minimal non-negative Y */
+          {surfaceX: maxLongValue, surfaceY: maxLongValue}, /* Maximal values */
+      ].forEach(init => {
+          let event = new CapturedMouseEvent("", init);
+          assert_equals(event.surfaceX, init.surfaceX,
+                        `surfaceX with eventInitDict=${JSON.stringify(init)}`);
+          assert_equals(event.surfaceY, init.surfaceY,
+                        `surfaceY with eventInitDict=${JSON.stringify(init)}`);
+     });
+  }, "Valid surfaceX/surfaceY options are used as initial values");
+
+  test(() => {
+      let event = new CapturedMouseEvent("");
+      assert_equals(event.surfaceX, -1,
+                    `surfaceX with implicit eventInitDict={}`);
+      assert_equals(event.surfaceY, -1,
+                    `surfaceY with implicit eventInitDict={}`);
+
+      [
+          {},
+          {surfaceX: -1},
+          {surfaceY: -1},
+      ].forEach(init => {
+          let event = new CapturedMouseEvent("", init);
+          assert_equals(event.surfaceX, -1,
+                        `surfaceX with eventInitDict=${JSON.stringify(init)}`);
+          assert_equals(event.surfaceY, -1,
+                        `surfaceY with eventInitDict=${JSON.stringify(init)}`);
+      });
+  }, "surfaceX/surfaceY default to -1");
+</script>

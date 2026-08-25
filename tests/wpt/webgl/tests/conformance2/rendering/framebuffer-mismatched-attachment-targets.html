@@ -1,0 +1,164 @@
+<!--
+Copyright (c) 2020 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL2 can render to framebuffer attachments with different targets</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script id="vshader" type="x-shader/x-vertex">#version 300 es
+void main(void) {
+  gl_Position = vec4(-0.5, -0.5, 0, 1);
+  gl_PointSize = 1.0;
+}
+</script>
+<script id="fshader" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+out vec4 outColor;
+void main() {
+  outColor = vec4(0, 1, 0, 1);
+}
+</script>
+</head>
+<body>
+<canvas id="example" width="1", height="1"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+debug("");
+
+description("Test framebuffer attachments with different targets");
+
+const wtu = WebGLTestUtils;
+const gl = wtu.create3DContext("example", undefined, 2);
+
+if (!gl) {
+    testFailed("WebGL context creation failed");
+} else {
+    testPassed("WebGL context creation succeeded");
+    runTest();
+}
+
+function newResource(target, mipLevels, format, size) {
+  let ret;
+  switch (target) {
+    case gl.RENDERBUFFER: {
+      ret = gl.createRenderbuffer();
+      ret.mips = [ ret ];
+      for (let i = 1; i < mipLevels; i++) {
+        ret.mips.push(gl.createRenderbuffer());
+      }
+      for (const i in ret.mips) {
+        const rb = ret.mips[i];
+        gl.bindRenderbuffer(target, rb);
+        gl.renderbufferStorage(target, format, size>>i, size>>i);
+      }
+      ret.attach = (attachEnum, mipLevel) => {
+        const rb = ret.mips[mipLevel];
+        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, attachEnum, gl.RENDERBUFFER, rb);
+      };
+      break;
+    }
+    case gl.TEXTURE_2D:
+    case gl.TEXTURE_CUBE_MAP: {
+      ret = gl.createTexture();
+      gl.bindTexture(target, ret);
+      gl.texStorage2D(target, mipLevels, format, size, size);
+      let imageTarget = target;
+      if (imageTarget == gl.TEXTURE_CUBE_MAP) {
+        imageTarget = gl.TEXTURE_CUBE_MAP_POSITIVE_X+2; // Deliberately don't choose the first image.
+      }
+      ret.attach = (attachEnum, mipLevel) => {
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, attachEnum, imageTarget, ret, mipLevel);
+      };
+      break;
+    }
+    case gl.TEXTURE_3D:
+    case gl.TEXTURE_2D_ARRAY: {
+      ret = gl.createTexture();
+      gl.bindTexture(target, ret);
+      gl.texStorage3D(target, mipLevels, format, size, size, 1);
+      ret.attach = (attachEnum, mipLevel) => {
+        gl.framebufferTextureLayer(gl.FRAMEBUFFER, attachEnum, ret, mipLevel, 0);
+      };
+      break;
+    }
+    default:
+      throw new Error();
+  }
+  ret.target = wtu.glEnumToString(gl, target);
+  ret.format = wtu.glEnumToString(gl, format);
+  return ret;
+}
+
+function runTest() {
+  const MIP_LEVELS = 2;
+  const SIZE = 2;
+
+  gl.clearColor(1, 0, 0, 1);
+
+  const program = wtu.setupProgram(gl, ['vshader','fshader'], [], console.log.bind(console));
+  gl.useProgram(program);
+
+  const colorResList = [
+    newResource(gl.RENDERBUFFER, MIP_LEVELS, gl.RGBA8, SIZE),
+    newResource(gl.TEXTURE_2D, MIP_LEVELS, gl.RGBA8, SIZE),
+    newResource(gl.TEXTURE_CUBE_MAP, MIP_LEVELS, gl.RGBA8, SIZE),
+    newResource(gl.TEXTURE_3D, MIP_LEVELS, gl.RGBA8, SIZE),
+    newResource(gl.TEXTURE_2D_ARRAY, MIP_LEVELS, gl.RGBA8, SIZE),
+  ];
+
+  const depthResList = [
+    newResource(gl.RENDERBUFFER, MIP_LEVELS, gl.DEPTH_COMPONENT16, SIZE),
+    newResource(gl.TEXTURE_2D, MIP_LEVELS, gl.DEPTH_COMPONENT16, SIZE),
+    newResource(gl.TEXTURE_CUBE_MAP, MIP_LEVELS, gl.DEPTH_COMPONENT16, SIZE),
+    //newResource(gl.TEXTURE_3D, MIP_LEVELS, gl.DEPTH_COMPONENT16, SIZE), // Depth formats forbidden for TEXTURE_3D.
+    newResource(gl.TEXTURE_2D_ARRAY, MIP_LEVELS, gl.DEPTH_COMPONENT16, SIZE),
+  ];
+
+  const fb = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+  for (const color of colorResList) {
+    for (const depth of depthResList) {
+      debug(`\ncolor: ${color.target}; depth: ${depth.target}`);
+      for (let mipLevel = 0; mipLevel < MIP_LEVELS; mipLevel++) {
+        debug(`mipLevel: ${mipLevel}`);
+        color.attach(gl.COLOR_ATTACHMENT0, mipLevel);
+        depth.attach(gl.DEPTH_ATTACHMENT, mipLevel);
+        const maybeStatus = wtu.framebufferStatusShouldBe(gl, gl.FRAMEBUFFER, [gl.FRAMEBUFFER_COMPLETE, gl.FRAMEBUFFER_UNSUPPORTED]);
+        if (!maybeStatus || maybeStatus[0] != gl.FRAMEBUFFER_COMPLETE) {
+          continue;
+        }
+
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        wtu.checkCanvas(gl, [255, 0, 0, 255], `framebuffer layer ${mipLevel} should be cleared red`);
+
+        gl.drawArrays(gl.POINTS, 0, 1);
+        wtu.checkCanvas(gl, [0, 255, 0, 255], `framebuffer layer ${mipLevel} should be drawn green`);
+
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, `No errors`);
+      }
+    }
+  }
+
+  // make sure we were not rendering to the canvas.
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+  wtu.checkCanvas(gl, [0, 0, 0, 0], "canvas should be zero");
+}
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

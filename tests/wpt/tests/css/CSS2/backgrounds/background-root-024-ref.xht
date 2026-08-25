@@ -1,0 +1,41 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css">
+  html, body
+  {
+  height: 100%;
+  margin: 0px;
+  }
+
+  div#parent
+  {
+  background: url("support/cat.png") repeat-y 1em 1em;
+  height: 100%;
+  }
+
+  div#child
+  {
+  color: navy;
+  font: bold 2em sans-serif;
+  margin-left: 100px;
+  padding: 4em 3em;
+  }
+  </style>
+
+ </head>
+
+ <body>
+
+  <div id="parent">
+    <div id="child">There should be a column of cats to the left of this page.</div>
+  </div>
+
+ </body>
+</html>

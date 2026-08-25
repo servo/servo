@@ -1,0 +1,26 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>XMLHttpRequest Origin</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+function resolve(path) {
+  let a = document.createElement("a");
+  a.href = path;
+  return a.href;
+}
+
+async_test(function(t) {
+  let href = window.location.href;
+  let request = new XMLHttpRequest();
+  let url = resolve("./test.txt");
+  request.open('GET', url, true);
+  request.send();
+
+  request.onload = t.step_func_done(function() {
+    let entries = window.performance.getEntriesByType("resource");
+    assert_equals(entries.length, 3);
+    assert_equals(entries[0].name, href);
+  });
+}, "Performance entries should contain the URL where the XMLHttpRequest originated");
+</script>

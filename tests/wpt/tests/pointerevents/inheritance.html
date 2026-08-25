@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Inheritance of touch-action</title>
+<link rel="help" href="https://w3c.github.io/pointerevents/#the-touch-action-css-property">
+<meta name="assert" content="touch-action does not inherit.">
+<meta name="assert" content="touch-action initial value is auto.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/inheritance-testcommon.js"></script>
+</head>
+<body>
+<div id="container">
+  <div id="target"></div>
+</div>
+<script>
+assert_not_inherited('touch-action', 'auto', 'none');
+</script>
+</body>
+</html>

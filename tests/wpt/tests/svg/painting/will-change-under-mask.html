@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta name="assert" content="will-change descendants should not affect masking">
+<link rel="match" href="../struct/reftests/reference/green-100x100.html">
+<svg width="200" height="200">
+  <mask id="mask">
+    <rect x="0" y="0" width="100" height="50" fill="white"/>
+    <rect x="0" y="50" width="100" height="50" fill="black"/>
+  </mask>
+  <rect x="0" y="0" width="100" height="50" fill="red" />
+  <rect x="0" y="50" width="100" height="50" fill="green" />
+  <g mask="url('#mask')">
+    <rect style="will-change: transform;" x="0" y="0" width="100" height="50" fill="green" />
+    <rect style="will-change: transform;" x="0" y="50" width="100" height="50" fill="red" />
+  </g>
+</svg>

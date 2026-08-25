@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>Chrome bug 443261872: style attribute invalidation for tree-scoped anchor-name</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position/#name">
+<link rel="help" href="https://crbug.com/443261872">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+</style>
+<div id="host">
+  <template shadowrootmode="open">
+    <style>
+      #anchor {
+        width: 100px;
+        height: 100px;
+      }
+      #anchored {
+        position-anchor: --panel-anchor;
+        position: absolute;
+        inset: anchor(top) anchor(right) anchor(bottom) anchor(left);
+      }
+    </style>
+    <div id="anchor" style="anchor-name:--panel-anchor; color:yellow"></div>
+    <div id="anchored"></div>
+  </template>
+</div>
+<script>
+  test(() => {
+    const anchor = host.shadowRoot.querySelector("#anchor");
+    const anchored = host.shadowRoot.querySelector("#anchored");
+    anchored.offsetTop;
+    anchor.style.color = "pink";
+    assert_equals(anchored.offsetWidth, 100);
+  }, "Changing inline style color does not change tree-scope for anchor-name");
+</script>

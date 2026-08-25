@@ -1,0 +1,93 @@
+<!doctype HTML>
+
+<!--
+This test creates a fieldset with 10,000 non-trivial items. It locks the
+container and adjusts its width continuously. If content-visibility is properly
+optimized, then the width adjustments are very quick (< one frame). Otherwise,
+the layout recalculation leaks into the children element and the width
+adjustments are slow.
+-->
+
+<style>
+#container {
+  content-visibility: hidden;
+
+  width: 500px;
+  height: 500px;
+  border: 1px solid black;
+  background: lightblue;
+  overflow: auto;
+}
+.item {
+  display: inline-block;
+  overflow: auto;
+  background: blue;
+  margin: 1px;
+  width: 10%;
+  height: 10%;
+}
+</style>
+
+<template id="item_template">
+<div class="item">
+  <div style="position: relative; width: 90%;">
+    relpos
+    <div style="position: absolute; top: 1px; left: 1%">
+      abspos
+    </div>
+  </div>
+  <div style="position: absolute; top: 150px; left: 1%">
+    abspos
+  </div>
+  lorem ipsum dolor sit amet
+</div>
+</template>
+
+<fieldset id=container><legend>legend</legend></fieldset>
+
+<script src="../resources/runner.js"></script>
+<script>
+function construct(n) {
+  const specimen = document.importNode(document.getElementById("item_template").content, true).firstElementChild;
+  const container = document.getElementById("container");
+  for (let i = 0; i < n; ++i) {
+    const clone = specimen.cloneNode(true);
+    container.appendChild(clone);
+  }
+}
+
+construct(10000);
+
+let widths = ["400px", "500px"];
+let width_index = 0;
+function changeStyle() {
+  document.getElementById("container").style.width = widths[width_index];
+  width_index = 1 - width_index;
+}
+
+let testDone = false;
+let startTime;
+function runTest() {
+  if (startTime) {
+    PerfTestRunner.measureValueAsync(PerfTestRunner.now() - startTime);
+    PerfTestRunner.addRunTestEndMarker();
+  }
+  if (testDone)
+    return;
+
+  startTime = PerfTestRunner.now();
+  PerfTestRunner.addRunTestEndMarker();
+
+  changeStyle();
+  requestAnimationFrame(runTest);
+}
+
+PerfTestRunner.startMeasureValuesAsync({
+  unit: 'ms',
+  done: () => { testDone = true; },
+  run: runTest,
+  warmUpCount: 3,
+  iterationCount: 5
+});
+
+</script>

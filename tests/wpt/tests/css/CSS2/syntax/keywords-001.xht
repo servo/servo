@@ -1,0 +1,23 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Keywords v. Strings (width)</title>
+  <link rel="author" title="L. David Baron" href="https://dbaron.org/"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#keywords"/>
+  <link rel="match" href="keywords-001-ref.xht"/>
+  <style type="text/css">
+
+  p.one, p.two { width: 10em; border: medium solid; }
+  p.two { width: "auto"; }
+
+  </style>
+ </head>
+ <body>
+
+ <p>The next two paragraphs should look identical:</p>
+
+ <p class="one">Test.</p>
+ <p class="two">Test.</p>
+
+ </body>
+</html>

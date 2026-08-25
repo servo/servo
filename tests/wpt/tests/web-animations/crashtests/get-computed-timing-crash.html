@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<title>GetComputedTiming on an animation without an execution context,
+timeline or playback rate</title>
+<link rel="author" title="Google" href="http://www.google.com/">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1318012">
+<meta name="assert" content="This should not crash.">
+<body>
+  <div id="target"></div>
+  <iframe id="iframe"></iframe>
+</body>
+<script type="text/javascript">
+  const keyframeEffect = new KeyframeEffect(target, { opacity: [1, 1] });
+  const anim = new iframe.contentWindow.Animation(keyframeEffect, null);
+  anim.play();
+  anim.playbackRate = 0;
+  document.body.removeChild(iframe);
+  anim.effect.getComputedTiming();
+</script>
+</html>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<title>@location rules</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-navigation-1/#at-location">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+  test(()=> {
+    const canonical = "@location --loc { }";
+    test_valid_rule(canonical);
+    test_valid_rule("@location  --loc{}", canonical);
+  }, "no descriptors");
+
+  test(()=> {
+    test_valid_rule("@location --ahoi\\(hoi {}", "@location --ahoi\\(hoi { }");
+  }, "escape identifiers");
+
+  test(()=> {
+    const canonical = '@location --loc { pattern: url-pattern("/foo/*"); }';
+    test_valid_rule(canonical);
+    test_valid_rule("@location  --loc { pattern: url-Pattern( '/foo/*' ); }", canonical);
+    test_valid_rule("@location  --loc { PATTERN: url-pattern( '/foo/*' ); }", canonical);
+  }, "pattern descriptor");
+
+  test(()=> {
+    const canonical = '@location --loc { pattern: url-pattern(""); }';
+    test_valid_rule(canonical);
+    test_valid_rule("@location --loc { pattern: url-pattern(''); }", canonical);
+  }, "empty pattern descriptor");
+
+  test(()=> {
+    const canonical = '@location --loc { pattern: url-pattern("https://example.com:8080/books/:id?sort=asc#heading"); }';
+    test_valid_rule(canonical);
+  }, "complex pattern descriptor");
+
+  test(()=> {
+    test_valid_rule("@location --loc { pattern: url-pattern('/\"'); }",
+                    '@location --loc { pattern: url-pattern("/\\\""); }');
+    test_valid_rule("@location --loc { pattern: url-pattern(\"/\\\"\"); }",
+                    '@location --loc { pattern: url-pattern("/\\\""); }');
+  }, "pattern descriptor with quote");
+
+  test(()=> {
+    test_valid_rule("@location --loc { pattern: url-pattern('/\\\\'); }",
+                    '@location --loc { pattern: url-pattern("/\\\\"); }');
+  }, "pattern descriptor with backslash");
+
+  test(()=> {
+    const canonical = '@location --loc { protocol: "https"; hostname: "example.com"; port: "8080"; pathname: "/books/:id"; search: "sort=asc"; hash: "heading"; base-url: "https://example.com/"; }';
+    test_valid_rule(canonical);
+  }, "init descriptors");
+</script>

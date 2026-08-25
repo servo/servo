@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Images Module Level 3: svg image respects orientation and preserveAspectRatio</title>
+<link rel="author" title="Stephen Chenney" href="mailto:schenney@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#propdef-image-orientation">
+<link rel="match" href="reference/svg-image-orientation-aspect-ratio-ref.html">
+<meta name=fuzzy content="0-3;0-1432">
+</head>
+<body style="margin:0">
+    <svg style="width: 600px; height: 600px">
+        <image xlink:href="support/exif-orientation-2-ur.jpg" x="0" y="0" width="150" height="150" preserveAspectRatio="xMinYMin meet"></image>
+        <image xlink:href="support/exif-orientation-8-llo.jpg" x="200" y="0" width="150" height="150" preserveAspectRatio="xMidYMin meet"></image>
+        <image xlink:href="support/exif-orientation-2-ur.jpg" x="400" y="0" width="150" height="150" preserveAspectRatio="xMaxYMin meet"></image>
+        <image xlink:href="support/exif-orientation-8-llo.jpg" x="0" y="150" width="150" height="150" preserveAspectRatio="xMinYMid slice"></image>
+        <image xlink:href="support/exif-orientation-2-ur.jpg" x="200" y="150" width="150" height="150" preserveAspectRatio="xMidYMid slice"></image>
+        <image xlink:href="support/exif-orientation-8-llo.jpg" x="400" y="150" width="150" height="150" preserveAspectRatio="xMaxYMid slice"></image>
+        <image xlink:href="support/exif-orientation-8-llo.jpg" x="0" y="300" width="150" height="150" preserveAspectRatio="xMinYMax meet"></image>
+        <image xlink:href="support/exif-orientation-2-ur.jpg" x="200" y="300" width="150" height="150" preserveAspectRatio="xMidYMax meet"></image>
+        <image xlink:href="support/exif-orientation-8-llo.jpg" x="400" y="300" width="150" height="150" preserveAspectRatio="xMaxYMax meet"></image>
+        <image xlink:href="support/exif-orientation-2-ur.jpg" x="0" y="450" width="150" height="150" preserveAspectRatio="none"></image>
+        <image xlink:href="support/exif-orientation-8-llo.jpg" x="200" y="450" width="150" height="150" preserveAspectRatio="none"></image>
+    </svg>
+</body>
+</html>

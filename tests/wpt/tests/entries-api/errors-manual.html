@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Entries API: Errors manual test</title>
+<link rel=help href="https://wicg.github.io/entries-api">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support.js"></script>
+
+<script>
+entry_test((t, entry) => {
+  entry.getFile(
+    NOT_FOUND_PATHS[0],
+    {},
+    t.unreached_func('getFile should fail'),
+    t.step_func(error => {
+      assert_equals(typeof error.name, 'string', 'Error has name property');
+      assert_equals(typeof error.message, 'string', 'Error has message property');
+      assert_equals(error.name, 'NotFoundError', 'error is NotFoundError');
+      t.done();
+    }));
+}, 'Errors - NotFoundError');
+
+entry_test((t, entry) => {
+  entry.getFile(
+    DIR_PATHS[0],
+    {},
+    t.unreached_func('getFile should fail'),
+    t.step_func(error => {
+      assert_equals(typeof error.name, 'string', 'Error has name property');
+      assert_equals(typeof error.message, 'string', 'Error has message property');
+      assert_equals(error.name, 'TypeMismatchError', 'error is TypeMismatchError');
+      t.done();
+    }));
+}, 'Errors - TypeMismatchError');
+
+entry_test((t, entry) => {
+  entry.getFile(
+    FILE_PATHS[0],
+    {create: true},
+    t.unreached_func('getFile should fail'),
+    t.step_func(error => {
+      assert_equals(typeof error.name, 'string', 'Error has name property');
+      assert_equals(typeof error.message, 'string', 'Error has message property');
+      assert_equals(error.name, 'SecurityError', 'error is SecurityError');
+      t.done();
+    }));
+}, 'Errors - SecurityError');
+
+entry_test((t, entry) => {
+  const reader = entry.createReader();
+  reader.readEntries(() => {}, t.unreached_func('readEntries should succeed'));
+  reader.readEntries(
+    t.unreached_func('readEntries() should fail if already reading'),
+    t.step_func(error => {
+      assert_equals(typeof error.name, 'string', 'Error has name property');
+      assert_equals(typeof error.message, 'string', 'Error has message property');
+      assert_equals(error.name, 'InvalidStateError', 'error is InvalidStateError');
+      t.done();
+    }));
+}, 'Errors - InvalidStateError');
+</script>

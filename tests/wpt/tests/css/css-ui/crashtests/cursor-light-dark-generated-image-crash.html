@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS UI: cursor with a light-dark() generated image must not crash</title>
+<link rel="author" title="Jason Leo" href="mailto:cgqaq@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#cursor">
+<link rel="help" href="https://drafts.csswg.org/css-color-5/#light-dark">
+<link rel="help" href="https://crbug.com/518872187">
+<!-- Regression test for https://crbug.com/518872187: light-dark() used to let a
+     generated image (e.g. a gradient) become a cursor image even though the
+     cursor property forbids them. Gradients are re-instantiated on every style
+     recalc, so the image-observer bookkeeping drifted and tearing down the
+     layout tree hit a SECURITY_CHECK in CSSImageGeneratorValue::RemoveClient.
+     PASS if it does not crash. -->
+<style>
+.gradient-cursor {
+  cursor: light-dark(linear-gradient(red), none) 0 0, pointer;
+}
+</style>
+<script>
+onload = () => {
+  document.body.insertBefore(document.createElement("br"),
+                             document.body.firstChild);
+  document.designMode = "on";
+  document.execCommand("selectAll");
+  document.execCommand("InsertHTML");
+};
+</script>
+<p class="gradient-cursor">crash</p>

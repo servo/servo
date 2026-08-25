@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Adding a child to an empty layer</title>
+<link rel="help" href="https://www.w3.org/TR/css-transforms-2/">
+<link rel="match" href="add-child-in-empty-layer-ref.html">
+<style>
+.empty-layer {
+  transform: rotateY(30deg) rotateX(-30deg);
+  width: 100px;
+  height: 100px;
+}
+.inserted {
+  width: 50px;
+  height: 50px;
+  background-color: red;
+}
+</style>
+<!--
+  Force to create composited layer with empty then inserts a child the layer.
+-->
+<div id="empty-layer" class="empty-layer"></div>
+<script>
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    var div = document.getElementById("empty-layer");
+    div.innerHTML = '<div id="inserted" class="inserted"></div>';
+    requestAnimationFrame(() => {
+      document.documentElement.removeAttribute('class');
+    });
+  });
+});
+</script>

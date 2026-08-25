@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>text-box getComputedStyle() returns correctly resolved values</title>
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#propdef-text-box-trim">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<body>
+<div id="target"></div>
+<script>
+test_computed_value('text-box-trim', 'none');
+test_computed_value('text-box-trim', 'trim-start');
+test_computed_value('text-box-trim', 'trim-end');
+test_computed_value('text-box-trim', 'trim-both');
+</script>
+</body>

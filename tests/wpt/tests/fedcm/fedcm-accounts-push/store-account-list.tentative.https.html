@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>FedCM IDP sign-in status API tests</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script type="module">
+
+promise_test(
+  async t => {
+    assert_equals(await navigator.login.setStatus('logged-in', {
+        accounts: [{
+          id: '1234',
+          email: 'alpha@example.com',
+          name: 'Alpha',
+          picture: 'https://cataas.com/cat?width=128&height=128',
+        }],
+        expiration: 60*1000 // 60 seconds
+      }), undefined, 'A valid setStatus call should resolve with undefined.');
+  },
+  'login.setStatus with valid account list succeeds.'
+);
+
+promise_test(
+  async t => {
+    assert_equals(await navigator.login.setStatus('logged-in', {
+        accounts: [],
+        expiration: 60*1000 // 60 seconds
+      }), undefined, 'A setStatus call with an empty account list should resolve with undefined.');
+  },
+  'login.setStatus with empty account list succeeds.'
+);
+
+promise_test(
+  async t => {
+    assert_equals(await navigator.login.setStatus('logged-in', {
+        expiration: 60*1000 // 60 seconds
+      }), undefined, 'A setStatus with an no account list call resolves with undefined.');
+  },
+  'login.setStatus with no account list succeeds.'
+);
+
+promise_test(
+  async t => {
+    return promise_rejects_js(t, TypeError, navigator.login.setStatus('logged-in', {
+        accounts: [{name: 'Underspecified'}],
+        expiration: 60*1000 // 60 seconds
+      }), 'A setStatus with an invalid account should throw a type error.');
+  },
+  'login.setStatus with an invalid account throws a TypeError.'
+);
+
+
+</script>

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: outline-style - inherit (basic)</title>
+<link rel="author" title="Intel" href="http://www.intel.com/">
+<link rel="author" title="Shiyou Tan" href="mailto:shiyoux.tan@intel.com">
+<link rel="help" title="7.3. 'outline-style' property" href="http://www.w3.org/TR/css3-ui/#outline-style">
+<link rel="help" href="http://www.w3.org/TR/CSS21/box.html#value-def-border-style">
+<link rel="match" href="reference/outline-style-012-ref.html">
+<meta name="assert" content="Test checks that the sub element outline style is same as parent element outline style when outline-style set inherit">
+<style>
+  #parent {
+    height: 110px;
+    margin: 30px;
+    outline-color: blue;
+    outline-style: dotted;
+    outline-width: 4px;
+    padding: 20px;
+    width: 110px;
+  }
+  #child {
+    height: 110px;
+    outline-color: green;
+    outline-style: inherit;
+    outline-width: 4px;
+    width: 110px;
+  }
+</style>
+<body>
+  <p>Test passes if there is a blank square with <strong>a green dotted</strong> border centered inside a blue dotted border.</p>
+  <div id="parent">
+    <div id="child"></div>
+  </div>
+</body>

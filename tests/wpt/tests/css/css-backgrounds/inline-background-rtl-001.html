@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>CSS Backgrounds Test: background to inline boxes in RTL</title>
+<link rel="help" href="https://www.w3.org/TR/css-backgrounds-3/#the-background-color">
+<link rel="help" href="https://crbug.com/1123375">
+<link rel="match" href="reference/inline-background-rtl-001-ref.html">
+<link rel="author" title="Koji Ishii" href="mailto:kojii@chromium.org">
+<style>
+.s { background-color: white; }
+.atomic { display: inline-block; }
+</style>
+<body>
+<div dir="rtl">
+<span>
+<span class="s">Hello<br>World<br></span>
+<span class="atomic"></span>
+</span>
+</div>
+
+<div dir="rtl">
+<span dir="ltr">
+<span class="s">Hello<br>World<br></span>
+<span class="atomic"></span>
+</span>
+</div>
+</body>

@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>CSS aspect-ratio: svg in img with box-sizing:border-box</title>
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<link rel="match" href="replaced-element-037-ref.html">
+
+<style>
+  img {
+    height: auto;
+    box-sizing: border-box;
+    padding-top: 50px;
+  }
+</style>
+<img width="200" height="100" src='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100"><rect fill="red" stroke="black" stroke-width="6" width="200" height="100"/></svg>'/>

@@ -1,0 +1,40 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="viewport" content="width=device-width">
+<link rel="match" href="position-fixed-dynamic-transformed-sibling-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-position/#fixed-pos">
+<link rel="help" href="https://bugzil.la/1797703">
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<style>
+  body {
+    margin: 0;
+  }
+  .spacer {
+    height: 100px;
+  }
+  .transformed {
+    transform: translateX(0);
+  }
+  .fixed {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 50px;
+    background-color: blue;
+  }
+  #target {
+    position: relative;
+  }
+</style>
+<div class="spacer"></div>
+<div id="target" style="display: none">
+  <div class="transformed"></div>
+  <div class="fixed"></div>
+</div>
+<script>
+  let target = document.getElementById("target");
+  document.body.getBoundingClientRect();
+  target.style.display = "";
+</script>

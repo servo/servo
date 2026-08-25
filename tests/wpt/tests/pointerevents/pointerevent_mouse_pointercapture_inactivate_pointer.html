@@ -1,0 +1,82 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<style>
+    iframe {
+      width: 300px;
+      height: 300px;
+      top: 100px;
+      left: 100px;
+      border: 0;
+      position: absolute;
+      background: green;
+    }
+    #outerFrame {
+      width: 500px;
+      height: 500px;
+      background: blue;
+    }
+</style>
+<body onload="run()">
+    <div id='outerFrame'>
+        <iframe id='iframe' src="resources/pointerevent_mouse_pointercapture_inactivate_pointer-iframe.html"></iframe>
+    </div>
+</body>
+
+<script type="text/javascript">
+    function run() {
+    capture_count = 0;
+
+    document.addEventListener("gotpointercapture", function(){
+        capture_count ++;
+    })
+
+    iframe.contentDocument.addEventListener("gotpointercapture", function(){
+        capture_count ++;
+    })
+
+    document.addEventListener("pointerdown", function(event){
+        // Outer frame got pointer down, set capture to inner frame.
+        iframe.contentDocument.getElementById("target").setPointerCapture(event.pointerId);
+    });
+
+
+    iframe.contentDocument.addEventListener("pointerdown", function(event){
+        // Inner frame got pointer down, set capture to outer frame.
+        outerFrame.setPointerCapture(event.pointerId);
+    });
+
+
+    promise_test(async(test) => {
+      let eventWatcher = new EventWatcher(test, document, ["pointerup"]);
+      let donePromise = eventWatcher.wait_for(["pointerup"], { record: 'all' });
+      await injectEvent(50, 50);
+      // wait for pointerUp before running the test
+      await donePromise;
+      assert_equals(capture_count, 0, "Inner frame can not capture when pointer is activate in outer frame")
+    }, "setPointerCapture: pointer active in outer frame, set capture to inner frame");
+
+
+    promise_test(async(test) => {
+      let eventWatcher = new EventWatcher(test, iframe.contentDocument, ["pointerup"]);
+      let donePromise = eventWatcher.wait_for(["pointerup"], { record: 'all' });
+      await injectEvent(250, 250);
+      // wait for pointerUp before running the test
+      await donePromise;
+      assert_equals(capture_count, 0, "Outer frame can not capture when pointer is activate in inner frame")
+    }, "setPointerCapture: pointer active in inner frame, set capture to outer frame");
+
+    function injectEvent(x, y) {
+        return new test_driver.Actions()
+            .pointerMove(x, y)
+            .pointerDown()
+            .pointerMove(x, y)
+            .pointerUp()
+            .send();
+    }
+}
+</script>
+</html>

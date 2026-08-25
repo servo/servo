@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<head>
+  <link rel="icon" href="data:,">
+</head>
+<body>
+<script src="../resources/runner.js"></script>
+<script>
+
+let isDone = false;
+
+PerfTestRunner.startMeasureValuesAsync({
+  description: "Measures the time to fetch 1,000 resources in batches of 100, bypassing the cache.",
+  unit: "ms",
+  run: async function() {
+    while (!isDone) {
+      PerfTestRunner.addRunTestStartMarker();
+      let startTime = PerfTestRunner.now();
+      let fetches = [];
+      let count = 0;
+      // Send 10 batches of 100 fetches each to prevent resource errors.
+      // The net stack will error fetches if too many (~300) are in-flight at a time.
+      for (let runs = 0; runs < 10; runs++) {
+        for (i = 0; i < 100; i++) {
+          count++;
+          fetches.push(fetch("resources/blank.js?" + count, {cache: "no-store"}));
+        }
+        await Promise.all(fetches)
+      }
+      PerfTestRunner.measureValueAsync(PerfTestRunner.now() - startTime);
+      PerfTestRunner.addRunTestEndMarker();
+    }
+  },
+  done: () => {isDone = true;},
+  iterationCount: 7,
+  warmUpCount: 2,
+});
+</script>

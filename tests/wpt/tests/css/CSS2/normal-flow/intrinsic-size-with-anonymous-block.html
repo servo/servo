@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>Intrinsic size of an atomic inline with an anonymous block</title>
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visudet.html#inlineblock-width">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visudet.html#inline-replaced-width">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visuren.html#anonymous-block-level">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="
+  #test contains both inline-level contents (the canvas) and block-level (the <p>).
+  Then the canvas is wrapped inside an anonymous block, but it still resolves its percentage against #test.
+  So the canvas is 100px tall, and thus 100px wide because of its aspect ratio.
+  Therefore #test is 100px wide too.
+">
+<style>
+#test {
+  display: inline-block;
+  height: 100px;
+  background: green;
+}
+#test > canvas {
+  height: 100%;
+  background: red;
+  position: relative;
+  z-index: -1;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="test">
+  <canvas width="10" height="10"></canvas>
+  <p></p>
+</div>

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <title>WebGPU canvas_complex_rgba8unorm_copy</title>
+  <meta charset="utf-8" />
+  <link rel="help" href="https://gpuweb.github.io/gpuweb/" />
+  <meta
+    name="assert"
+    content="WebGPU canvas should have correct orientation, components, scaling, filtering, color space"
+  />
+  <link rel="match" href="./ref/canvas_complex-ref.html" />
+
+  <canvas id="cvs_copy_buffer_to_texture" width="20" height="20" style="width: 20px; height: 20px;"></canvas>
+  <canvas id="cvs_copy_texture_to_texture" width="20" height="20" style="width: 20px; height: 20px;"></canvas>
+  <canvas id="cvs_copy_external_image_to_texture" width="20" height="20" style="width: 20px; height: 20px;"></canvas>
+
+  <script type="module">
+    import { run } from './canvas_complex.html.js';
+    run('rgba8unorm', [
+      { cvs: cvs_copy_buffer_to_texture, writeCanvasMethod: 'copyBufferToTexture' },
+      { cvs: cvs_copy_texture_to_texture, writeCanvasMethod: 'copyTextureToTexture' },
+      { cvs: cvs_copy_external_image_to_texture, writeCanvasMethod: 'copyExternalImageToTexture' },
+    ]);
+  </script>
+</html>

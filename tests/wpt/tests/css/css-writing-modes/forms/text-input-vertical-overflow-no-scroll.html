@@ -1,0 +1,80 @@
+<!doctype html>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://html.spec.whatwg.org/#the-input-element">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-4/#block-flow">
+<title>Test that typing lots of characters inside vertical text inputs doesn't cause scroll position changes</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+    .spacer {
+        height: 100vh;
+    }
+    input {
+        font-family: monospace;
+
+        /* Use an explicit whole-number-of-pixels height, to avoid tripping
+           Mozilla bug 1851066, regarding fractional scroll positions
+           triggering an async 1px adjustment to scrollTop. We can remove this
+           once that bug is fixed.
+           (Without this hack, the input element may end up with a height
+           that's a fractional number of pixels, depending on the font.
+           And then this test's call to 'scrollIntoView' puts us at a
+           fractional scroll-position, to bottom-align the input element. And
+           that's sufficient to trigger bug 1851066 and get an asynchronous 1px
+           adjustment to scrollTop, which this test doesn't expect.
+        */
+        height: 200px;
+    }
+</style>
+
+<div class="spacer"></div>
+<input id="testInput">
+<div class="spacer"></div>
+
+<script>
+for (const inputType of ["text", "password", "search", "number"]) {
+    testInput.type = inputType;
+    for (const writingMode of ["vertical-lr", "vertical-rl", "sideways-lr", "sideways-rl"]) {
+        if (!CSS.supports("writing-mode", writingMode))
+            continue;
+        promise_test(async t => {
+            assert_true(
+                document.documentElement.scrollHeight > document.documentElement.clientHeight,
+                "Page is scrollable"
+            );
+            testInput.style.writingMode = writingMode;
+            document.documentElement.scrollTop = 0;
+            t.add_cleanup(() => {
+                document.documentElement.scrollTop = 0;
+                testInput.value = "";
+            });
+
+            // Align input to the bottom edge
+            testInput.scrollIntoView({block: "end", inline: "nearest"});
+
+            assert_true(
+                document.documentElement.scrollTop > 0,
+                "Successfully scrolled"
+            );
+
+            const oldScrollTop = document.documentElement.scrollTop;
+
+            const numCharsToOverflow = document.documentElement.clientHeight / parseInt(getComputedStyle(testInput).fontSize);
+            const value = "1".repeat(numCharsToOverflow);
+
+            testInput.focus({ preventScroll: true });
+
+            await test_driver.send_keys(testInput, value);
+
+            assert_equals(
+                document.documentElement.scrollTop,
+                oldScrollTop,
+                "Typing lots of characters in input did not cause scrolling"
+            );
+        }, `input[type=${inputType}] in ${writingMode}: typing characters in input should not cause the page to scroll`);
+    }
+}
+</script>

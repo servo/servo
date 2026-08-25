@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS Basic User Interface Test: Block children of a inline parent with "user-select:text" should be selectable even with a user-select: none ancestor</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+  <link rel="help" href="https://drafts.csswg.org/css-ui/#propdef-user-select">
+  <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1743074">
+
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src='/resources/testdriver-vendor.js'></script>
+
+  <style>
+  :root {
+    user-select: none;
+  }
+  </style>
+
+  <span style="user-select: text">
+    <div>Let's select this <b id="target">word</b></div>
+  </span>
+
+  <script>
+  promise_test(async function() {
+    let target = document.getElementById("target");
+    let actions = new test_driver.Actions();
+
+    // Simulate a double click to select a word.
+    await actions.pointerMove(5, 5, {origin: target})
+                 .pointerDown()
+                 .pointerUp()
+                 .pointerDown()
+                 .pointerUp()
+                 .send();
+    assert_equals(window.getSelection().toString(), "word",
+                  "The text 'word' should be selectable.")
+  }, "Select the text 'word'");
+  </script>
+</html>

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: different width container should keep aspect ratio (by default)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<link rel="match" href="intrinsic-aspect-ratio-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+.spacer {
+  height: 10px;
+}
+.box {
+  width: 100px;
+  height: 100px;
+  contain: paint;
+  background: blue;
+}
+#target1 {
+  view-transition-name: target1;
+}
+#target2 {
+  view-transition-name: target2;
+}
+#hidden {
+  view-transition-name: hidden;
+  width: 10px;
+  height: 10px;
+  visibility: hidden;
+  contain: paint;
+}
+
+/* We're verifying what we capture, so just display the new contents for 5 minutes.  */
+html::view-transition-group(*) { animation-duration: 300s; }
+html::view-transition-new(*) { animation: unset; opacity: 1; }
+html::view-transition-old(*) { animation: unset; opacity: 0; }
+
+html::view-transition-group(target1) {
+  animation: unset;
+  width: 50px;
+  border: 2px solid black;
+}
+html::view-transition-group(target2) {
+  animation: unset;
+  width: 200px;
+  border: 2px solid black;
+}
+
+/* hide the root so we show transition background to ensure we're in a transition */
+html::view-transition-group(root) { animation: unset; opacity: 0; }
+html::view-transition { background: lightpink; }
+</style>
+
+<div id=target1 class=box></div>
+<div class=spacer></div>
+<div id=target2 class=box></div>
+<div id=hidden></div>
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+async function runTest() {
+  document.startViewTransition(() => {
+    requestAnimationFrame(() => requestAnimationFrame(takeScreenshot));
+  });
+}
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<title>Canvas text-run edge-case crash tests</title>
+<meta name="assert" content="fillText/measureText do not crash on empty string, single char, or invalid font.">
+<link rel="author" title="Euclid Ye" href="mailto:yezhizhenjiakang@gmail.com">
+
+<canvas id="canvas" width="400" height="200"></canvas>
+
+<script>
+  window.onload = () => {
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    // 1. Empty string
+    ctx.measureText('');
+    ctx.fillText('', 10, 30);
+
+    // 2. Single character (triggers empty previous-run logic)
+    ctx.font = '24px sans-serif';
+    ctx.measureText('A');
+    ctx.fillText('A', 10, 60);
+
+    // 3. Invalid font family (checks missing-font logic)
+    ctx.font = '24px ThisFontDoesNotExist123';
+    ctx.measureText('test');
+    ctx.fillText('test', 10, 180);
+
+    document.documentElement.classList.remove("test-wait");
+  };
+</script>
+</html>

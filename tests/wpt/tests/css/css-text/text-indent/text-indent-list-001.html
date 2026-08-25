@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Test: text-indent on list-item with anonymous block wrapper</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#text-indent-property">
+<link rel="match" href="reference/text-indent-list-001-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+li {
+  font-family: Ahem;
+  font-size: 20px;
+  line-height: 1;
+  list-style-position: outside;
+  text-indent: 2em;
+}
+li::marker {
+  content: "X";
+}
+div {
+  margin: 0;
+}
+</style>
+<ul>
+  <li>
+    AAA
+    <div>BBB</div>
+  </li>
+</ul>

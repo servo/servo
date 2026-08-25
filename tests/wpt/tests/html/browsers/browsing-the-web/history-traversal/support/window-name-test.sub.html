@@ -1,0 +1,23 @@
+<script>
+  function process_test_result(passed, test_name) {
+    if ({{GET[sendmessage]}}) {
+      if (window.opener) {
+        window.opener.postMessage(passed, "*");
+      } else {
+        parent.postMessage(passed, "*");
+      }
+    } else {
+      let host = window.opener || parent;
+      host.test(function(t) {
+        host.assert_equals(passed, true);
+      }, test_name);
+      host.done();
+    }
+  }
+
+  if ({{GET[shouldhavename]}}) {
+    process_test_result(window.name == "test", "Test that window name is present");
+  } else {
+    process_test_result(window.name == "", "Test that window name is not present");
+  }
+</script>

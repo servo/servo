@@ -1,0 +1,36 @@
+<!doctype html>
+<title>WebSockets: when to process set-cookie fields in ws response</title>
+<meta name=timeout content=long>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../constants.sub.js></script>
+<meta name="variant" content="?default">
+<meta name="variant" content="?wss&wpt_flags=https">
+<meta name="variant" content="?wpt_flags=h2">
+<div id=log></div>
+<script>
+var cookie_id = ((new Date())-0) + '.' + Math.random();
+async_test(function(t) {
+  t.add_cleanup(function() {
+    // remove cookie
+    document.cookie = 'ws_test_'+cookie_id+'; Path=/; Expires=Sun, 06 Nov 1994 08:49:37 GMT';
+  });
+  var ws = new WebSocket(SCHEME_DOMAIN_PORT+'/set-cookie?'+cookie_id);
+  ws.onopen = t.step_func(function(e) {
+    ws.close();
+    ws.onclose = null;
+    assert_regexp_match(document.cookie, new RegExp('ws_test_'+cookie_id+'=test'));
+    t.done();
+  });
+  ws.onerror = ws.onclose = t.step_func(function() {assert_unreached()});
+
+  // sleep for 2 seconds with sync xhr
+  var sleep = new XMLHttpRequest();
+  sleep.open('GET', '/common/blank.html?pipe=trickle(d2)', false);
+  sleep.send(null);
+
+  if (new RegExp('ws_test_'+cookie_id+'=test').test(document.cookie)) {
+    assert_unreached('cookie was set during script execution');
+  }
+});
+</script>

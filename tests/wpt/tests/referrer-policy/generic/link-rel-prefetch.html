@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Referrer policies for resources loaded via link rel prefetch</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <!-- Common global functions for referrer-policy tests. -->
+    <script src="/common/security-features/resources/common.sub.js"></script>
+    <meta name="referrer" content="origin">
+    <link rel="prefetch" href="/common/security-features/subresource/image.py">
+  </head>
+  <body>
+    <p>Check that resources loaded via link rel prefetch use the referrer
+    and referrer policy from the document.</p>
+
+    <script>
+      var img_url = "/common/security-features/subresource/image.py";
+      promise_test((t) => timeoutPromise(t, 1000)
+        .then(() => requestViaImage(img_url, null))
+        .then(message => {
+            assert_equals(message.headers.referer, document.location.origin + "/");
+          }),
+        "Prefetched image.");
+    </script>
+
+    <div id="log"></div>
+  </body>
+</html>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>View transitions: group transform preserves subpixel translation</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="github.com/vmpstr">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+body {
+  margin: 0;
+  padding: 0;
+}
+#target {
+  width: 100px;
+  height: 100px;
+  view-transition-name: target;
+  position: fixed;
+  top: 0px;
+  left: 0px;
+  transform: translate(10.5px, 20.7px);
+}
+::view-transition-group(*),
+::view-transition-old(*),
+::view-transition-new(*) {
+  animation-play-state: paused;
+}
+</style>
+</head>
+<body>
+<div id=target></div>
+<script>
+promise_test(async () => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
+
+  let transition = document.startViewTransition();
+  await transition.ready;
+
+  const transform = getComputedStyle(document.documentElement, "::view-transition-group(target)").transform;
+
+  // The transform should be a matrix with fractional translation components.
+  const matrix = new DOMMatrix(transform);
+  assert_approx_equals(matrix.e, 10.5, 0.1, "X translation should preserve subpixel");
+  assert_approx_equals(matrix.f, 20.7, 0.1, "Y translation should preserve subpixel");
+
+  transition.skipTransition();
+}, "Verify that view-transition-group preserves subpixel translation");
+</script>
+</body>
+</html>

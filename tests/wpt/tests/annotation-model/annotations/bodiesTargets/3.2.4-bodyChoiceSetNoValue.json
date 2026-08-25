@@ -1,0 +1,21 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "3.2.4-bodyChoiceSetNoValue.json",
+    "assertionType": "must",
+    "expectedResult": "valid",
+    "onUnexpectedResult" : "failAndContinue",
+    "errorMessage": "A Choice or Set body cannot include a value key. value key is only valid with Embedded Textual Bodies.",
+    "title": "If a **Choice or Set** is a body, it does NOT have a **_value_ key** - [model 3.2.4](https://www.w3.org/TR/annotation-model/#embedded-textual-body)",
+    "description": "True when no Choice or Set bodies or when none of the Choice or Set bodies include the value key. (Section 3.3.4)",
+    "type": "object",
+    "properties":
+    {
+        "body":
+        {
+           "allOf": [
+                      { "not": { "$ref": "choiceSet.json#/definitions/choiceSetWithValue" } },
+                      { "items": { "not": { "$ref": "choiceSet.json#/definitions/choiceSetWithValue" } } }
+                     ]
+         }
+     }
+}

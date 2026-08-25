@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<link rel="help" href="http://crbug.com/374064162">
+<style>
+  #test::before {
+    content: counters(counter0, '');
+  }
+</style>
+<div style="contain:style;">
+  <div style="counter-set:counter0;"></div>
+</div>
+<div id="test" style="contain:style;"></div>
+

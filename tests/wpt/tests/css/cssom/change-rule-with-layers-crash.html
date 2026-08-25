@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>CSSOM Test: Chrome crash when modifying rules with @layer</title>
+<link rel="help" href="https://crbug.com/1499277">
+<link rel="author" title="Steinar H. Gunderson" href="mailto:sesse@chromium.org">
+<style id="s">
+.x {
+  transition: color 0.5s;
+  @layer warning {
+    :first-child { }
+    :last-child { }
+  }
+}
+</style>
+<p>Test passes if it does not crash.</p>
+<script>
+document.body.offsetTop;
+s.sheet.cssRules[0].style.transitionDuration = '1s';
+</script>
+

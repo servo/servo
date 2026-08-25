@@ -1,0 +1,64 @@
+<!doctype html>
+<html>
+<head>
+  <title>Name Comp: Name From Heading</title>
+  <meta charset="utf-8">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/wai-aria/scripts/aria-utils.js"></script>
+</head>
+<body>
+
+<p>Tests the <a href="https://w3c.github.io/accname/#comp_name_from_heading">#comp_name_from_heading</a> portions of the AccName <em>Name Computation</em> algorithm.</p>
+<p>Includes <a href="https://github.com/w3c/aria/pull/1860">tentative "name from heading" diff</a>.</p>
+
+<!-- ARIA roles. -->
+<div role="alertdialog" data-expectedlabel="alertdialog role heading contents" data-testname="alertdialog role, name from heading" class="ex-label">
+  <h2>alertdialog role heading contents</h2>
+  <p>More alertdialog content.</p>
+</div>
+
+<div role="article" data-expectedlabel="article role heading contents" data-testname="article role, name from heading" class="ex-label">
+  <h2>article role heading contents</h2>
+  <p>More article content.</p>
+</div>
+
+<div role="dialog" data-expectedlabel="dialog role heading contents" data-testname="dialog role, name from heading" class="ex-label">
+  <h2>dialog role heading contents</h2>
+  <p>More dialog content.</p>
+</div>
+
+<div role="group" data-expectedlabel="" data-testname="group role, verify name is NOT from heading" class="ex-label">
+  <div role="group">
+    <h3>Not this one</h3>
+  </div>
+  <h2>nor this one</h2>
+  <p>Nor this content.</p>
+</div>
+
+<!-- Native HTML elements. -->
+<dialog open data-expectedlabel="dialog heading contents" data-testname="native dialog element, name from heading" class="ex-label">
+  <h2>dialog heading contents</h2>
+  <p>More dialog content.</p>
+</dialog>
+
+
+<!-- Depth first search (DFS) tests (standard DFS rather than iterative-deepening depth-first search IDDFS/IDS) -->
+<!-- Note: The WG wanted change this from the initially proposed IDS to DFS, but IDS is more performant, so we'll need multiple implementor buy-in for the selection. -->
+<div role="article" data-expectedlabel="article role simple DFS" data-testname="article role, name from DFS heading" class="ex-label">
+  <div role="group">
+    <h3>article role simple DFS</h3>
+  </div>
+  <h2>Not this one</h2>
+  <p>More article content.</p>
+</div>
+
+
+<script>
+AriaUtils.verifyLabelsBySelector(".ex-label");
+</script>
+</body>
+</html>

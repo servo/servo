@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>WebMCP executeTool with Unregistered Cross-Origin Tool</title>
+<link rel="author" href="mailto:dom@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/helpers.js"></script>
+</head>
+<body>
+<script>
+const host_info = get_host_info();
+
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  iframe.src = `${host_info.HTTPS_REMOTE_ORIGIN}/webmcp/imperative/resources/iframe-register-tool.html`;
+  iframe.allow = 'tools *';
+
+  const load_promise = new Promise(resolve => iframe.onload = resolve);
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+  await load_promise;
+
+  const toolStartedPromise = new Promise(resolve => window.addEventListener('message', e => {
+    if (e.data?.action === 'tool_started') {
+      resolve();
+    }
+  }, { once: true }));
+
+  const toolchange_promise = new Promise(resolve => {
+    document.modelContext.addEventListener('toolchange', resolve, { once: true });
+  });
+
+  // 1. Tell the cross-origin iframe to register an endless tool,
+  // exposing it to the parent origin.
+  iframe.contentWindow.postMessage({
+    action: 'register',
+    tool: {
+      name: 'endless_tool',
+      description: 'Endless tool in iframe'
+    },
+    options: { exposedTo: [self.origin] },
+    delayResolutionAndReportAbort: true
+  }, '*');
+
+  await toolchange_promise;
+
+  const tools = await document.modelContext.getTools(
+      {fromOrigins: [host_info.HTTPS_REMOTE_ORIGIN]});
+  const tool = tools.find(t => t.name === 'endless_tool');
+  assert_true(!!tool, 'Tool should be registered and visible to parent');
+
+  // 2. Run the tool, and wait for the iframe to report back that execution has
+  // begun.
+  const executePromise = document.modelContext.executeTool(tool, '{}');
+  await toolStartedPromise;
+
+  // Before we tell the iframe to unregister the tool, set up a handler to
+  // confirm that this does not abort the tool's signal.
+  window.addEventListener('message', e => {
+    if (e.data?.action === 'signal_aborted_result') {
+      assert_unreached('options.signal on tool side should NOT be aborted when tool is unregistered');
+    }
+  }, { once: true });
+
+  const nextToolChangePromise = new Promise(resolve =>
+      document.modelContext.addEventListener('toolchange', resolve, { once: true }));
+
+  // 3. Unregister the tool in the target iframe while execution is pending.
+  iframe.contentWindow.postMessage({
+    action: 'unregister',
+    name: 'endless_tool'
+  }, '*');
+  await nextToolChangePromise;
+
+  const currentTools = await document.modelContext.getTools(
+      {fromOrigins: [host_info.HTTPS_REMOTE_ORIGIN]});
+  assert_array_equals(currentTools, [], 'Unregistered tool should no longer be returned by getTools()');
+
+  // 4. Tell iframe to finish tool execution.
+  iframe.contentWindow.postMessage('finish_tool', '*');
+
+  const result = await executePromise;
+  assert_equals(result, 'delayed_result', 'Pending execution Promise should resolve to tool result even if tool was unregistered mid-execution');
+}, 'Pending executeTool() Promise resolves successfully when the target cross-origin tool is unregistered mid-execution');
+
+promise_test(async t => {
+  const regController = new AbortController();
+  t.add_cleanup(() => regController.abort());
+
+  const { promise: toolStartedPromise, resolve: resolveToolStarted } = Promise.withResolvers();
+  const { promise: finishToolPromise, resolve: resolveFinishTool } = Promise.withResolvers();
+
+  await document.modelContext.registerTool({
+    name: 'same_doc_unregister_tool',
+    description: 'Test unregister during exec in same doc',
+    execute: (input, options) => new Promise(resolve => {
+      options.signal.onabort = t.unreached_func('tool options.signal should NOT be aborted when tool is unregistered');
+      resolveToolStarted();
+      finishToolPromise.then(() => resolve('same_doc_result'));
+    })
+  }, { signal: regController.signal });
+
+  const [tool] = await document.modelContext.getTools();
+  const executePromise = document.modelContext.executeTool(tool, '{}');
+
+  await toolStartedPromise;
+
+  const toolChangePromise = new Promise(resolve =>
+      document.modelContext.addEventListener('toolchange', resolve, { once: true }));
+  regController.abort();
+  await toolChangePromise;
+
+  const tools = await document.modelContext.getTools();
+  assert_array_equals(tools, [], 'Unregistered tool should no longer be returned by getTools()');
+
+  resolveFinishTool();
+
+  const result = await executePromise;
+  assert_equals(result, 'same_doc_result', 'Pending execution Promise should resolve to tool result even if target tool was unregistered mid-execution');
+}, 'Pending executeTool() Promise resolves successfully when target same-document tool is unregistered mid-execution');
+</script>
+</body>
+</html>

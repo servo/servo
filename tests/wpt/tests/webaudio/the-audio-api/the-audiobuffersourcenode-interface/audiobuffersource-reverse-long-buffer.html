@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>audiobuffersource-reverse-long-buffer.html</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <script>
+      // Reverse playback of an AudioBuffer longer than 2^23 frames.
+      //
+      // The playback position of an AudioBufferSourceNode has to carry a
+      // sub-sample fraction. Truncating that position through a
+      // single-precision intermediate loses the fraction once the position
+      // passes 2^23, where the spacing of float reaches 1.0: at that magnitude
+      // a single-precision floor rounds to nearest rather than down, so it can
+      // return a value greater than its argument. The interpolation factor
+      // derived from it then goes negative and the interpolation extrapolates
+      // outside the pair of frames it is meant to be mixing between.
+      //
+      // Playback only depends on position relative to the grain being played,
+      // so a buffer longer than 2^23 frames must render exactly the same output
+      // as a short buffer holding the same samples at the same distance from
+      // the buffer end. Asserting that equivalence keeps the test independent
+      // of which interpolation or resampling filter an implementation uses.
+
+      const sampleRate = 44100;
+
+      // Two render quanta suffice: at a rate of -0.5 the defect first appears
+      // on the 4th output frame.
+      const renderLength = 256;
+
+      // 2^23 is where the spacing of float reaches 1.0. The buffer has to be at
+      // least this long for the read position to reach that magnitude, so the
+      // ~32MB allocation below is inherent to what is being tested.
+      const longLength = Math.pow(2, 23) + 512;
+      const shortLength = 4096;
+
+      // The pattern must not be a linear ramp. Linearly extrapolating a linear
+      // signal happens to land on the correct value, which would hide the
+      // defect entirely. Alternating between two values maximises sensitivity.
+      const patternLength = 256;
+      const patternValue = k => k % 2;
+
+      function renderReverse(length) {
+        const context = new OfflineAudioContext(1, renderLength, sampleRate);
+
+        // The buffer rate matches the context rate so that the playback rate is
+        // exactly -0.5 and no resampling factor is folded into it.
+        const buffer = new AudioBuffer({length, sampleRate});
+
+        // Fill relative to the END of the buffer. Reverse playback starts at
+        // the last frame, so indexing by distance from the end gives both
+        // buffers identical content along the direction they are read.
+        const channel = buffer.getChannelData(0);
+        for (let k = 0; k < patternLength; k++)
+          channel[length - 1 - k] = patternValue(k);
+
+        // playbackRate has to be negative before start() is called, because the
+        // initial read position depends on the playback direction. Passing it
+        // to the constructor guarantees that ordering. -0.5 rather than -1 so
+        // that playback lands on sub-sample positions at all.
+        const source =
+            new AudioBufferSourceNode(context, {buffer, playbackRate: -0.5});
+        source.connect(context.destination);
+
+        // Start from the last frame explicitly rather than relying on a bare
+        // start() to begin at the end of the buffer when the rate is negative,
+        // which is not a behaviour implementations agree on.
+        source.start(0, (length - 1) / sampleRate);
+
+        return context.startRendering().then(
+            rendered => rendered.getChannelData(0));
+      }
+
+      // Guards the comparison below: an implementation that rendered silence,
+      // or that ignored the sub-sample position, would otherwise match
+      // trivially.
+      promise_test(async t => {
+        const output = await renderReverse(shortLength);
+
+        assert_true(
+            Array.prototype.some.call(output, v => v !== output[0]),
+            'reverse playback should not produce a constant signal');
+        assert_true(
+            Array.prototype.some.call(output, v => v > 0 && v < 1),
+            'reverse playback at a rate of -0.5 should produce values between ' +
+                'the source frames, indicating a sub-sample read position');
+      }, 'Reverse playback of a short buffer renders a sub-sample interpolated ' +
+          'signal');
+
+      promise_test(async t => {
+        const [shortOutput, longOutput] =
+            await Promise.all([
+              renderReverse(shortLength), renderReverse(longLength)]);
+
+        assert_equals(
+            longOutput.length, shortOutput.length,
+            'both renders should be the same length');
+
+        let mismatches = 0;
+        let first = -1;
+        for (let i = 0; i < shortOutput.length; i++) {
+          if (Math.abs(longOutput[i] - shortOutput[i]) > 1e-5) {
+            if (first < 0)
+              first = i;
+            mismatches++;
+          }
+        }
+
+        assert_equals(
+            mismatches, 0,
+            first < 0 ? '' :
+                `output differs from the equivalent short buffer at ` +
+                    `${mismatches} of ${shortOutput.length} frames; first at ` +
+                    `index ${first}, where the short buffer rendered ` +
+                    `${shortOutput[first]} and the long buffer rendered ` +
+                    `${longOutput[first]}`);
+      }, 'Reverse playback from a buffer longer than 2^23 frames matches an ' +
+          'equivalent short buffer');
+    </script>
+  </body>
+</html>

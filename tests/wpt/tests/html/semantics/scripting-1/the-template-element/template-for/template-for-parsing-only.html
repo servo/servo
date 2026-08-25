@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML partial updates: mutations using DOM APIs do not trigger update</title>
+<link rel="help" href="https://github.com/WICG/declarative-partial-updates">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="target1"><?start name="target1">Old target 1<?end name="target1"></div>
+<div id="target2"><?start name="target2">Old target 2<?end name="target2"></div>
+<div id="target3"><?start name="target3">Old target 3<?end name="target3"></div>
+<div id="target4"><?start name="target4">Old target 4<?end name="target4"></div>
+
+<script>
+  test(t => {
+    assert_equals(document.getElementById('target1').textContent, "Old target 1");
+
+    const template = document.createElement('template');
+    template.setAttribute('for', 'target1');
+    template.innerHTML = "New target 1";
+    document.body.appendChild(template);
+
+    assert_equals(document.getElementById('target1').textContent, "Old target 1");
+  }, "Creating a template and appending it does not trigger declarative partial update");
+
+  test(t => {
+    assert_equals(document.getElementById('target2').textContent, "Old target 2");
+
+    const template = document.createElement('template');
+    template.innerHTML = "New target 2";
+    document.body.appendChild(template);
+
+    // Set 'for' after insertion
+    template.setAttribute('for', 'target2');
+
+    assert_equals(document.getElementById('target2').textContent, "Old target 2");
+  }, "Setting 'for' dynamically on an existing template does not trigger update");
+
+  test(t => {
+    assert_equals(document.getElementById('target3').textContent, "Old target 3");
+
+    const container = document.createElement('div');
+    container.innerHTML = `<template for="target3" id="tmpl3">New target 3</template>`;
+    const template = container.querySelector('#tmpl3');
+
+    document.body.appendChild(template);
+
+    assert_equals(document.getElementById('target3').textContent, "Old target 3");
+  }, "Inserting an already parsed template for element does not trigger update");
+
+  test(t => {
+    assert_equals(document.getElementById('target4').textContent, "Old target 4");
+
+    const template = document.createElement('template');
+    template.setAttribute('for', 'target4');
+    template.innerHTML = "New target 4";
+    document.body.insertAdjacentElement('beforeend', template);
+
+    assert_equals(document.getElementById('target4').textContent, "Old target 4");
+  }, "Inserting a template element via insertAdjacentElement does not trigger update");
+</script>

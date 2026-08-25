@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!-- Testcase for how we compute the baseline of a vertical flex container
+     with several "order"-reordered flex items, none of which have
+     "align-self:baseline".  The spec says this about this case:
+       ...if the flex container has at least one flex item, and its
+       first flex item has a baseline parallel to the flex
+       container's main axis, the flex container's main-axis
+       baseline is that baseline.
+-->
+<html>
+<head>
+  <title>CSS Test: Testing the baseline of a vertical flex container whose flex items are not baseline-aligned</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#flex-baselines">
+  <link rel="match" href="flexbox-baseline-multi-item-vert-001-ref.html">
+  <meta charset="utf-8">
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+  <style>
+    body {
+      margin: 0;
+      font: 20px Ahem;
+      line-height: 20px;
+      /* Baseline is 0.8em = 16px from top */
+    }
+    .flexContainer {
+      display: inline-flex;
+      flex-direction: column;
+      background: lightblue;
+    }
+    .smallFont {
+      font-size: 10px;
+      line-height: 10px;
+      /* Baseline is 0.8em = 8px from top */
+    }
+    .bigFont {
+      font-size: 20px;
+      line-height: 20px;
+      /* Baseline is 0.8em = 16px from top */
+    }
+    .smallOrder { order: -1 }
+    .bigOrder { order: 30 }
+  </style>
+</head>
+<body>
+  a
+  <div class="flexContainer">
+    <div class="bigFont">c</div
+    ><div class="smallFont smallOrder">b</div>
+  </div>
+  <div class="flexContainer">
+    <div class="smallFont bigOrder">e</div
+    ><div class="bigFont">d</div>
+  </div>
+</body>
+</html>

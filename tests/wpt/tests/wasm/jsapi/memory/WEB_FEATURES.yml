@@ -1,0 +1,5 @@
+rules:
+- constructor-shared.tentative.any.js: [wasm-threads]
+- to-fixed-length-buffer-shared.any.js: [wasm-threads]
+- to-resizable-buffer-shared.any.js: [wasm-threads]
+- "*": [wasm]

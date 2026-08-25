@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="help" href="https://www.w3.org/TR/css-color-4/#interpolation">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CSS animations with relative colors</title>
+</head>
+<style>
+  @keyframes oklch {
+      0% { background: oklch(0% 0 0deg); }
+    100% { background: oklch(from oklch(0% 0 0deg) calc(l + 0.5) c h); }
+  }
+  @keyframes rgb {
+      0% { background: black; }
+    100% { background: rgb(from green r g 255); }
+  }
+  #target {
+    background: oklch(0% 0 0deg);
+    animation-duration: 1s;
+    animation-timing-function: linear;
+    animation-play-state: paused;
+    animation-fill-mode: forwards;
+    height: 100px;
+    width: 100px;
+  }
+  .oklch {
+    animation-name: oklch;
+  }
+  .rgb {
+    animation-name: rgb;
+  }
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="/css/support/color-testcommon.js"></script>
+
+<body>
+  <div id="target"></div>
+  <div id="test"></div>
+</body>
+<script>
+  'use strict';
+
+  async function runAnimationTest(t, name, expected_colors) {
+    const target = document.getElementById('target');
+    target.classList.add(name);
+    t.add_cleanup(() => {
+      target.classList.remove(name);
+    });
+    const anim = document.getAnimations()[0];
+    await anim.ready;
+    expected_colors.forEach(data => {
+      anim.currentTime = 1000 * data.at;
+      const actual = getComputedStyle(target).backgroundColor;
+      const expected = data.value;
+      assert_oklab_color(
+          actual, expected,
+          `Background color at ${100*data.at}% animation progress`);
+    });
+  }
+
+  const oklch = [
+    { at: 0, value: 'oklab(0.0000 0.0000 0.0000)' },
+    { at: 0.25, value: 'oklab(0.125 0 0)' },
+    { at: 0.5, value: 'oklab(0.25 0 0)' },
+    { at: 0.75, value: 'oklab(0.375 0 0)' },
+    { at: 1, value: 'oklab(0.5 0 0)' }
+  ];
+
+  const rgb = [
+    { at: 0, value: 'oklab(0.0000 0.0000 0.0000)' },
+    { at: 0.25, value: 'oklab(0.153779 -0.0126551 -0.0511623)' },
+    { at: 0.5, value: 'oklab(0.307559 -0.0253101 -0.102325)' },
+    { at: 0.75, value: 'oklab(0.461338 -0.0379652 -0.153487)' },
+    { at: 1, value: 'oklab(0.615117 -0.0506203 -0.204649)' }
+  ];
+
+  window.onload = async () => {
+    promise_test(t => {
+      return runAnimationTest(t, 'oklch', oklch);
+    }, 'Animate from absolute oklch to relative oklch');
+
+    promise_test(t => {
+      return runAnimationTest(t, 'rgb', rgb);
+    }, 'Animate from color keyword to relative rgb');
+  };
+
+</script>
+</html>

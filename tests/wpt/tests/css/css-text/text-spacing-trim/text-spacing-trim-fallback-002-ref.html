@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="support/variant-class.js"></script>
+<style>
+@font-face {
+  font-family: halt-font;
+  font-display: block;
+  src: url('/fonts/noto/cjk/NotoSansCJKjp-Regular-subset-halt.otf');
+}
+#container {
+  font-family: Arial, halt-font;
+  font-size: 20px;
+  text-spacing-trim: space-all;
+}
+:root.vrl {
+  writing-mode: vertical-rl;
+}
+halt {
+  font-feature-settings: 'halt' 1, 'vhal' 1;
+}
+</style>
+<div id="container" lang="ja">
+  <div>（1<halt>）</halt>。</div>
+  <div>（?<halt>）</halt>、</div>
+  <div>（1<halt>）</halt>）</div>
+  <div>（1<halt>。</halt>。</div>
+</div>

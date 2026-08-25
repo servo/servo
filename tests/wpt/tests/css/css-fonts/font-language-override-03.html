@@ -1,0 +1,31 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>CSS Test: font-language-override</title>
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com"/>
+<link rel="help" href="https://drafts.csswg.org/css-fonts/#font-language-override-prop"/>
+<link rel="match" href="font-language-override-02-ref.html"/>
+<meta name="assert" content="the specified OpenType language system should be used"/>
+<style>
+@font-face {
+  font-family: Libertine;
+  src: url(support/fonts/LinLibertine_Re-4.7.5.woff);
+}
+body {
+  font-family: sans-serif;
+}
+div {
+  margin: 1em;
+  font: 32px Libertine;
+}
+.test {
+  font-language-override: "trk"; /* NOT the tag for Turkish */
+}
+</style>
+</head>
+<body>
+<p>Test passes if the "fi" below DOES form a ligature:
+<div class=test>fi</div>
+</body>
+</html>

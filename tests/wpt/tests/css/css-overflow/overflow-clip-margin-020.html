@@ -1,0 +1,33 @@
+<!doctype html>
+<html class="reftest">
+<meta charset="utf-8">
+<title>overflow-clip-margin: just a negative length on a scroller</title>
+<link rel="help" href="https://www.w3.org/TR/css-overflow-3/#propdef-overflow-clip-margin">
+<link rel="author" title="Tab Atkins-Bittner" href="mailto:jackalmage@gmail.com">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<style>
+  .clip {
+    width: 100px;
+    height: 100px;
+    padding: 10px;
+    margin: -10px 0 0 -10px;
+    overflow: hidden;
+    overflow-clip-margin: -10px;
+    background: red;
+    background-clip: content-box;
+  }
+  .big {
+    width: 100px;
+    height: 100px;
+    border: 50px solid red;
+    position: relative;
+    top: -50px;
+    left: -50px;
+    z-index: 1;
+    background: green;
+  }
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div class=clip>
+  <div class=big></div>
+</div>

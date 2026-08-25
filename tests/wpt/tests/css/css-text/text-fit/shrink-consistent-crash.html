@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<title>CSS Text: text-fit consistent infinite recursion crash</title>
+<link rel="help" href="https://crbug.com/527217054">
+<link rel="help" href="https://drafts.csswg.org/css-text-5/#text-fit-property">
+<style>
+  .text-fit-consistent {
+    text-fit: shrink consistent;
+  }
+</style>
+<div class="text-fit-consistent">
+  This text should fit and not crash the browser.
+</div>

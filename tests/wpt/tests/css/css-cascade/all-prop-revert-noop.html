@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Cascade: "all: revert"</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://www.w3.org/TR/css-cascade-4/#default">
+<meta name="assert" content="Checks that adding 'all: revert' has no effect on elements with no other author rules.">
+<!-- Split into chunks to avoid timeouts. -->
+<meta name="variant" content="?include=0">
+<meta name="variant" content="?include=1">
+<meta name="variant" content="?include=2">
+<meta name="variant" content="?include=3">
+<meta name="variant" content="?include=4">
+<meta name="variant" content="?include=5">
+<meta name="variant" content="?include=6">
+<meta name="variant" content="?include=7">
+<script>
+  const CHUNKS = 8;
+</script>
+
+<style>
+.revert-all {
+  all: revert;
+}
+</style>
+
+<div id="log"></div>
+<div id="wrapper"></div>
+
+<script src="/common/subset-tests-by-key.js"></script>
+<script src="/html/resources/common.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+function cloneStyle(style) {
+  const clone = Object.create(null);
+  for (let property of style) {
+    clone[property] = style.getPropertyValue(property);
+  }
+  return clone;
+}
+
+function assertSameClones(clone1, clone2, callback) {
+  for (let property in clone1) {
+    const value1 = clone1[property];
+    const value2 = clone2[property];
+    // assert_equals is slow, so only call it if it's going to fail.
+    if (value1 !== value2) {
+      assert_equals(value1, value2, property);
+    }
+  }
+}
+
+const wrapper = document.getElementById("wrapper");
+const elementNames = [...HTML5_ELEMENTS, "math", "svg", "z-custom"].sort();
+for (let i = 0; i < elementNames.length; ++i) {
+  let elementName = elementNames[i];
+  let chunk = i % CHUNKS;
+  subsetTestByKey(chunk.toString(), test, function() {
+    const element = document.createElement(elementName);
+    wrapper.appendChild(element);
+    const style = getComputedStyle(element);
+    const clonedBaseStyle = cloneStyle(style);
+    element.classList.add("revert-all");
+    const clonedRevertedStyle = cloneStyle(style);
+    assertSameClones(clonedRevertedStyle, clonedBaseStyle);
+  }, elementName);
+}
+</script>

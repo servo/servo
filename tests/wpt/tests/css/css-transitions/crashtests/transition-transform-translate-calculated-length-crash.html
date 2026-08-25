@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>translate() with calc() during transition should not crash</title>
+<link rel="help" href="https://crbug.com/41026871">
+<style>
+  div {
+    transition: transform 50ms;
+  }
+  #div2 {
+    transform: translate(calc(10% + 10px));
+  }
+</style>
+<div id="div1"></div>
+<div id="div2"></div>
+<script>
+  document.getElementById("div1").style.transform = "translate(calc(10% + 20px))";
+  document.getElementById("div2").style.transform = "none";
+</script>

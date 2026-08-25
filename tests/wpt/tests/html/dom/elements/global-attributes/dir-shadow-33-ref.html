@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>[dir] and shadow slots: dir=auto on the span (shadow host), text in the shadow tree</title>
+<link rel="author" title="Eric Meyer" href="mailto:emeyer@igalia.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/C#the-dir-attribute">
+<link rel="help" href="https://github.com/whatwg/html/issues/3699">
+<link rel="help" href="https://github.com/whatwg/html/pull/9796">
+<style type="text/css">
+body {width: 600px;}
+div {border: 1px solid gray; margin: 1em; padding: 0.25em;}
+span {border: 1px solid silver;}
+</style>
+</head>
+<body>
+
+<p>`dir=auto` on the span (shadow host), text in the shadow tree</p>
+<span id="host" dir="ltr">اختبر.</span>
+<p id="result">The HTML direction / computed CSS `direction` value for the shadow host is: ltr / ltr.</p>
+
+</body>
+</html>

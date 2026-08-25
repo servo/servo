@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 3 Test: pre-wrap trailing spaces and max-content</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
+<link rel="match" href="reference/pre-wrap-001-ref.html">
+<meta name="assert" content="When white-space is pre-wrap, trailing spaces spaces are taken into account for max-content">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+#red {
+  position: absolute;
+  z-index:-1;
+  width: 40px;
+  height: 40px;
+  background: red;
+}
+#test {
+  margin-left: -1em;
+  font: 40px/1 Ahem;
+  color: white;
+  background: green;
+  width: max-content;
+  white-space: pre-wrap
+}
+</style>
+
+<p>Test passes if there is a <strong>filled green square</strong> and <strong>no red</strong>.</p>
+
+<div id=red></div>
+<div id=test>X&#x0020;</div>

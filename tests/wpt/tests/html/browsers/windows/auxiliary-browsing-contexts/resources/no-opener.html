@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset="utf-8">
+<html>
+<p>This window should have no opener.</p>
+<script src="/common/PrefixedLocalStorage.js"></script>
+<script>
+var prefixedLocalStorage = new PrefixedLocalStorageResource({
+  close_on_cleanup: true
+});
+function checkOpener () {
+  return prefixedLocalStorage.setItem('openerIsNull', window.opener === null);
+}
+</script>
+<body onload="checkOpener()">
+</body>
+</html>

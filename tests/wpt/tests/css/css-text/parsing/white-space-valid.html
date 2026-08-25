@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Text Module Test: parsing white-space with valid values</title>
+<link rel="help" href="https://www.w3.org/TR/css-text-3/#propdef-white-space">
+<meta name="assert" content="white-space supports the full grammar 'normal | pre | nowrap | pre-wrap | break-spaces | pre-line'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("white-space", "normal");
+test_valid_value("white-space", "pre");
+test_valid_value("white-space", "nowrap");
+test_valid_value("white-space", "pre-wrap");
+test_valid_value("white-space", "break-spaces");
+test_valid_value("white-space", "pre-line");
+</script>
+</body>
+</html>

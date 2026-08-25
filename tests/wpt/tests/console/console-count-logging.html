@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Console Count - Automated Test</title>
+<link rel="help" href="https://console.spec.whatwg.org/#count">
+<meta name="assert" content="Console count method default parameter should work">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js?feature=bidi"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script>
+promise_test(async (t) => {
+  const unsubscribe = await test_driver.bidi.log.entry_added.subscribe({contexts: [window]});
+  t.add_cleanup(async () => await unsubscribe());
+
+  const expected = ["default: 1", "default: 2", "default: 3", "default: 4"];
+
+  const entries_promise = new Promise(resolve => {
+    const entries = [];
+    const remove_listener = test_driver.bidi.log.entry_added.on(event => {
+      if (event.type !== "console" || event.method !== "count") return;
+      if (typeof event.text !== "string") return;
+
+      entries.push(event.text);
+      if (entries.length === expected.length) {
+        remove_listener();
+        resolve(entries);
+      }
+    });
+    t.add_cleanup(remove_listener);
+  });
+
+  console.count();
+  console.count(undefined);
+  console.count("default");
+  console.count({toString() { return "default"; }});
+
+  const entries = await entries_promise;
+  assert_array_equals(entries, expected);
+}, "Console count method default parameter should work");
+</script>

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 4 Test: turn on word-space-transform on wbr and inlines</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#word-space-transform">
+<link rel="match" href="reference/word-space-transform-002-ref.html">
+<meta name="assert" content="word-space-transform applies to inlines, including wbr">
+<style>
+div {
+  font-size: 2em;
+}
+wbr, span {
+  word-space-transform: space;
+}
+</style>
+
+<p>Test passes if the two lines below are identical.
+
+<div id=test>a<wbr>b<span>&#x200B;c</span></div>
+<div id=ref>a b c</div>

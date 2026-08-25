@@ -1,0 +1,19 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+ <head>
+  <title>CSS Test: CSS text-indent: Percentages</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/block/text-indent/001.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#indentation-prop" />
+  <link rel="help" href="https://drafts.csswg.org/css-text-3/#text-indent-property"/>
+  <link rel="match" href="text-indent-011-ref.xht" />
+  <style type="text/css">
+    .wide { width: 16em; font: 30px/0 monospace; color: blue; text-indent: 8em; margin: 2em 0; }
+    .narrow { width: 4em; text-indent: 200%; }
+  </style>
+ </head>
+ <body>
+   <p>The word PASS must be written below.</p>
+   <div class="wide">&nbsp;&nbsp;SS<div class="narrow">PA</div></div>
+ </body>
+</html>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<!-- Passes if a black transparent rectangle is painted with 1px borders. -->
+<html style="zoom: 1.5625; overflow:hidden;">
+  <link rel="help" href="https://www.w3.org/TR/css-position-3/#sticky-pos" />
+  <meta name="assert" content="Position sticky pixel-snaps correctly under zoom" />
+  <link rel="match" href="position-sticky-table-td-subpixel-zoom-ref.html" />
+
+  <style>
+    table {
+      border-spacing: 0; width:200px;}
+    tr {
+      top: 0; position: sticky;
+    }
+    td {
+      border: 1px solid black;
+      width: 100px;
+      height: 20px;
+    }
+    div::-webkit-scrollbar {
+      display: none;
+    }
+    div {
+      height:100px;
+      overflow:auto;
+    }
+  </style>
+
+  <div style="">
+    <table>
+      <tr>
+        <td style="";></td>
+      </tr>
+    </table>
+    <div style="height: 1000px;"></div>
+  </div>
+</html>

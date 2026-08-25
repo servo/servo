@@ -1,0 +1,6 @@
+rules:
+- alignment-baseline-*: [alignment-baseline]
+- baseline-shift-*: [baseline-shift]
+- dominant-baseline-*: [dominant-baseline]
+- line-height-*: [line-height]
+- vertical-align-*: [vertical-align]

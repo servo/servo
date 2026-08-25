@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>Test MediaDevice navigator.mediaDevices.setCaptureHandleConfig()</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+promise_test(async () => {
+  const frame = attachFencedFrameContext();
+  await frame.execute(async () => {
+    // If capture handle is set inside the fenced frame, it should fail because
+    // it should not be the top-level browsing context.
+    // https://w3c.github.io/mediacapture-handle/identity/index.html#set-capture-handle-config
+    try {
+      navigator.mediaDevices.setCaptureHandleConfig({
+        handle: 'dummyhandle',
+        permittedOrigins: ["*"],
+      });
+      throw 'The setCaptureHandleConfig request should not succeed.';
+    } catch (e) {
+      assert_equals(e.name, 'InvalidStateError');
+      assert_equals(e.message,
+        "Failed to execute 'setCaptureHandleConfig' on 'MediaDevices': " +
+        'Can only be called from the top-level document.');
+    }
+  });
+}, 'navigator.mediaDevices.setCaptureHandleConfig');
+</script>
+</body>

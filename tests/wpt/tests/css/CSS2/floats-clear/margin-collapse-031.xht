@@ -1,0 +1,48 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: margin collapsing - child has no clearance</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#collapsing-margins" />
+  <link rel="match" href="margin-collapse-031-ref.xht" />
+
+  <meta name="assert" content="The top margin of an in-flow block-level element is adjoining to its first in-flow block-level child's top margin if the element has no top border, no top padding, and the child has no clearance." />
+
+  <style type="text/css"><![CDATA[
+  body
+  {
+  background-color: white;
+  margin: 8px;
+  }
+
+  div#parent-block-container
+  {
+  background-color: red;
+  margin: 0px;
+  width: 100%;
+  }
+
+  div#child-block
+  {
+  background-color: green;
+  color: white;
+  margin: 100px 0px;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <div id="parent-block-container">
+   <div id="child-block">
+    Test passes if there is <strong>no red</strong>.
+   </div>
+  </div>
+
+ </body>
+</html>

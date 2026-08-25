@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://drafts.csswg.org/css-position-4/#overlay">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+
+<body>
+<script>
+const alwaysAuto = [
+  {at: -1, expect: 'auto'},
+  {at: 0, expect: 'auto'},
+  {at: 0.1, expect: 'auto'},
+  {at: 0.9, expect: 'auto'},
+  {at: 1, expect: 'auto'},
+  {at: 1.5, expect: 'auto'},
+];
+const alwaysNone = [
+  {at: -1, expect: 'none'},
+  {at: 0, expect: 'none'},
+  {at: 0.1, expect: 'none'},
+  {at: 0.9, expect: 'none'},
+  {at: 1, expect: 'none'},
+  {at: 1.5, expect: 'none'},
+];
+
+test_interpolation({
+  property: 'overlay',
+  from: 'auto',
+  to: 'none',
+  // transition:all is not supposed to allow overlay to be transitioned.
+  'CSS Transitions with transition: all': alwaysNone,
+}, [
+  {at: -1, expect: 'auto'},
+  {at: 0, expect: 'auto'},
+  {at: 0.1, expect: 'auto'},
+  {at: 0.9, expect: 'auto'},
+  {at: 1, expect: 'none'},
+  {at: 1.5, expect: 'none'},
+]);
+
+test_interpolation({
+  property: 'overlay',
+  from: 'none',
+  to: 'auto',
+  // transition:all is not supposed to allow overlay to be transitioned.
+  'CSS Transitions with transition: all': alwaysAuto,
+}, [
+  {at: -1, expect: 'none'},
+  {at: 0, expect: 'none'},
+  {at: 0.1, expect: 'auto'},
+  {at: 0.9, expect: 'auto'},
+  {at: 1, expect: 'auto'},
+  {at: 1.5, expect: 'auto'},
+]);
+
+test_interpolation({
+  property: 'overlay',
+  from: 'auto',
+  to: 'auto'
+}, [
+  {at: -1, expect: 'auto'},
+  {at: 0, expect: 'auto'},
+  {at: 0.5, expect: 'auto'},
+  {at: 1, expect: 'auto'},
+  {at: 1.5, expect: 'auto'},
+]);
+
+test_interpolation({
+  property: 'overlay',
+  from: 'none',
+  to: 'none'
+}, [
+  {at: -1, expect: 'none'},
+  {at: 0, expect: 'none'},
+  {at: 0.5, expect: 'none'},
+  {at: 1, expect: 'none'},
+  {at: 1.5, expect: 'none'},
+]);
+</script>

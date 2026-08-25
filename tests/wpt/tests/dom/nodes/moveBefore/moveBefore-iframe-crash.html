@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://issues.chromium.org/issues/523756329">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  #num {
+    width: 200px;
+    height: 60px;
+    font-size: 30px;
+  }
+</style>
+
+<fieldset id=fs disabled>
+  <legend id=legend1>
+    <input id=num type=number value=5>
+  </legend>
+  <legend id=legend2>second</legend>
+</fieldset>
+
+<div id=iframe-host>
+  <iframe id=iframe src="about:blank"></iframe>
+</div>
+
+<script>
+window.onload = async () => {
+  const fs = document.getElementById('fs');
+  const legend1 = document.getElementById('legend1');
+  const legend2 = document.getElementById('legend2');
+  const num = document.getElementById('num');
+  const iframe = document.getElementById('iframe');
+
+  await new Promise(requestAnimationFrame);
+  await new Promise(requestAnimationFrame);
+
+  num.addEventListener('change', () => {
+    iframe.remove();
+  });
+
+  // Target the spin button (step-up arrow) which is on the right edge, upper half.
+  // We calculate the offset from the center of the input element.
+  const rect = num.getBoundingClientRect();
+  const offsetX = Math.round(rect.width / 2 - 7);
+  const offsetY = Math.round(-rect.height / 4);
+
+  // Press and hold the spin button
+  await new test_driver.Actions()
+    .pointerMove(offsetX, offsetY, {origin: num})
+    .pointerDown()
+    .send();
+
+  // Wait a frame to ensure the pointer down is processed and value is stepped
+  await new Promise(requestAnimationFrame);
+
+  fs.moveBefore(legend2, legend1);
+  document.body.appendChild(iframe);
+  document.documentElement.classList.remove('test-wait');
+}
+</script>

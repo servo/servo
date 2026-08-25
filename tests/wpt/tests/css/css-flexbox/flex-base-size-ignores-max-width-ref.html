@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Flexbox: a flex item's flex base size ignores its own max-width</title>
+<style>
+.flex {
+    display: flex;
+    width: 300px;
+}
+.item {
+    flex: none;
+    height: 50px;
+}
+.capped {
+    width: 100px;
+    background: green;
+}
+.uncapped {
+    width: 200px;
+    background: blue;
+}
+</style>
+<p>Test passes if the green box is exactly half the width of the adjacent blue box.</p>
+<div class="flex">
+  <div class="item capped"></div>
+  <div class="item uncapped"></div>
+</div>

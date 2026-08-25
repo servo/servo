@@ -1,0 +1,89 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Scrollbars: scrollbar-color on scrollable areas correctly interacts with ::-webkit-scrollbar on container</title>
+<link rel="author" title="Luke Warlow" href="mailto:luke@warlow.dev" />
+<link rel="help" href="https://drafts.csswg.org/css-scrollbars-1/#color-compat" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<style>
+  .container {
+    overflow: auto;
+    height: 200px;
+    width: 200px;
+    margin: 1px;
+    padding: 0px;
+    border: none;
+    background: deepskyblue;
+  }
+
+  .content {
+    height: 300px;
+    width: 100%;
+    background: lightsalmon;
+  }
+
+  .container.auto {
+    scrollbar-color: auto;
+  }
+
+  .container.auto::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* This is so that browsers that don't implement the WebKit prefix still pass the test */
+  @supports not selector(::-webkit-scrollbar) {
+    .container.auto {
+      overflow: hidden;
+    }
+  }
+
+  .container.themed {
+    scrollbar-color: yellow blue;
+  }
+
+  .container.themed::-webkit-scrollbar {
+    display: none;
+  }
+</style>
+<script>
+  function performTest() {
+    setup({ explicit_done: true });
+
+    test(function () {
+      let container = document.getElementById('container_auto');
+      let content = document.getElementById('content_auto');
+      assert_equals(container.scrollWidth, 200, "auto scrollWidth");
+      assert_equals(container.clientWidth, 200, "auto clientWidth");
+      assert_equals(container.offsetLeft, content.offsetLeft, "auto offsetLeft");
+      assert_equals(container.clientWidth, content.clientWidth, "auto clientWidth");
+      assert_equals(container.offsetWidth, content.offsetWidth, "auto offsetWidth");
+    }, "scrollbar-color auto defers to ::-webkit-scrollbar");
+
+    test(function () {
+      let container = document.getElementById('container_themed');
+      let content = document.getElementById('content_themed');
+      assert_less_than(container.scrollWidth, container.offsetWidth, "themed scrollWidth");
+      assert_less_than(container.clientWidth, container.offsetWidth, "themed clientWidth");
+      assert_equals(container.offsetLeft, content.offsetLeft, "themed offsetLeft");
+      assert_equals(container.clientWidth, content.clientWidth, "themed clientWidth");
+      assert_not_equals(container.offsetWidth, content.offsetWidth, "themed offsetWidth");
+    }, "scrollbar-color yellow blue overrides ::-webkit-scrollbar");
+
+    done();
+  }
+</script>
+
+<body onload="performTest()">
+
+  Test scrollbar-color: vertical scrollbar
+
+  <div class="container auto" id="container_auto">
+    <div class="content" id="content_auto">auto</div>
+  </div>
+
+  <div class="container themed" id="container_themed">
+    <div class="content" id="content_themed">themed</div>
+  </div>
+
+</body>

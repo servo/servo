@@ -1,0 +1,8 @@
+{
+  "vello_canvas": {
+     "config": {
+        "binary_args": ["--pref", "dom_canvas_backend=vello"]
+     },
+     "include": ["/html/canvas/element"]
+  }
+}

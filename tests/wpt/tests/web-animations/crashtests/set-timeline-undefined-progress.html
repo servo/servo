@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Set timeline when effect end is infinite.
+  </title>
+  <!-- crbug.com/440368332 -->
+</head>
+<style>
+  #target {
+    background-color: green;
+    width: 200px;
+    height: 200px;
+  }
+</style>
+<script>
+</script>
+<body>
+  <div id="target"></div>
+</body>
+<script>
+  window.onload = async () => {
+    const anim =
+        target.animate(null, { duration: 2000, iterations: Infinity });
+    // Setting an infinite playback rate combined with a future start time, puts
+    // current time infinitely in the past.
+    anim.playbackRate = Number.MAX_VALUE;
+    anim.startTime = performance.now() + 1000;
+    // When setting a new timeline, we compute the current progress on the old
+    // timeline in case we need to match the progress on the new timeline to
+    // avoid a jump. In this case, current progress is:
+    // currentTime / EffectEnd = -infinity / infinity = undefined.
+    anim.timeline = null;
+    requestAnimationFrame(() => {
+      document.documentElement.classList.remove('test-wait');
+    });
+  }
+</script>
+</html>

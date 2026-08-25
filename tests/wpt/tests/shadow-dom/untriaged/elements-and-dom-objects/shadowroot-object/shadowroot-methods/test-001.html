@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Shadow DOM Test: A_10_01_02_01</title>
+<link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-20130514/#shadow-root-methods">
+<meta name="assert" content="ShadowRoot Object: HTMLElement getElementById(DOMString elementId) method">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../../../../html/resources/common.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+test(function () {
+
+    var d = newHTMLDocument();
+
+    var el = d.createElement('div');
+    d.body.appendChild(el);
+
+    var s = el.attachShadow({mode: 'open'});
+
+    var child = d.createElement('span');
+    child.setAttribute('id', 'span_id');
+    s.appendChild(child);
+
+    assert_true(s.getElementById('span_id') != null, 'Point 1: ShadowRoot getElementById() ' +
+            'method should return child element');
+    assert_equals(s.getElementById('span_id').getAttribute('id'), 'span_id', 'Point 2: ' +
+            'ShadowRoot getElementById() method should return child element');
+
+}, 'A_10_01_02_01_T01');
+
+
+
+test(function () {
+
+    var d = newHTMLDocument();
+
+    var el = d.createElement('div');
+    d.body.appendChild(el);
+
+    var s = el.attachShadow({mode: 'open'});
+
+    assert_true(s.getElementById('span_id') == null, ' ShadowRoot getElementById() ' +
+            'method should return null if matching element not found');
+
+}, 'A_10_01_02_01_T02');
+</script>
+</body>
+</html>

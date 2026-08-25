@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="../resources/runner.js"></script>
+    <script src="resources/utils.js"></script>
+</head>
+<body>
+</body>
+    <script>
+        createRegularDOMTree();
+        var allElements = document.body.getElementsByTagName("div");
+        for (var i = 0; i < allElements.length; ++i) {
+            allElements[i].dataset.test = "foo";
+        }
+
+        PerfTestRunner.measureTime({
+            description: "Measures the performance of an unqualified data attribute selector.",
+            run: function() {
+                var rule = applyCSSRule("[data-test] { cursor: crosshair; }");
+                forceStyleRecalc(document.body);
+                rule.remove();
+                forceStyleRecalc(document.body);
+            },
+            tracingCategories: 'blink',
+            traceEventsToMeasure: [
+                'Document::updateStyle',
+                'Document::recalcStyle',
+                'Document::rebuildLayoutTree'
+            ]
+        });
+    </script>
+</html>

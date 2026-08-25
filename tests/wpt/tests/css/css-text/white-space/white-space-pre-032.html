@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Text: wrappable ('pre-wrap') inline inside a 'white-space: pre' block</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-text-3/#white-space-property">
+  <link rel="match" href="reference/white-space-pre-031-ref.html">
+
+  <style>
+  div
+    {
+      border: black solid 2px;
+      font-family: monospace;
+      font-size: 32px;
+      margin-bottom: 0.25em;
+      width: 16ch;
+    }
+
+  div#test
+    {
+      white-space: pre;
+    }
+
+  span
+    {
+      white-space: pre-wrap;
+    }
+
+  div#reference
+    {
+      white-space: normal;
+    }
+  </style>
+
+  <p>Test passes if the characters inside of each black-bordered rectangles are laid out identically.
+
+  <div id="test">Lorem ips<span>um. Dolo</span>r
+   sit&Tab;amet.</div>
+
+  <div id="reference">Lorem ipsum. <br>
+Dolor<br>
+&nbsp;&nbsp;&nbsp;sit&nbsp;&nbsp;amet.</div>
+
+<!--
+
+  <div id="test">Lorem ipsum. Dolor
+                             ^
+                             1
+
+   sit&Tab;amet.</div>
+^^^
+123
+
+
+Since 'tab-size' is by default 8,
+since "sit" uses 3 characters
+and since there are 3 preserved
+white space characters before "sit",
+
+  8
+-
+  3
+-
+  3
+=====
+  2
+
+then the horizontal tabulation will be converted
+into a sequence of 2 preserved white space characters.
+
+
+  &Tab; == Horizontal tabulation == &#x0009; == &#09;
+
+-->

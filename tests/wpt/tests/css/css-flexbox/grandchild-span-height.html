@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta name="flags" content="asis" />
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1601626">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.
+</p>
+
+<div id=reference-overlapped-red></div>
+
+<!-- Firefox 111 gives the green square too much height. 111px on my system. -->
+
+<div style="display: flex;">
+  <div style="background-color: green; line-height: 10px;">
+    <span style="margin-left: 1px">
+      <div style="display:inline-block; width: 99px; height: 100px"></div>
+      <!-- the html comments are necessary to trigger the bug -->
+      <!-- -->
+    </span>
+  </div>
+</div>

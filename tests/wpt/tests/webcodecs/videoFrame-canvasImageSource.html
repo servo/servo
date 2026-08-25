@@ -1,0 +1,160 @@
+<title>Test VideoFrame creation from CanvasImageSource.</title>
+<style>
+button {
+  display: inline-block;
+  min-height: 100px; min-width: 100px;
+  background: no-repeat 5% center url(four-colors.png);
+}
+</style>
+<video preload="auto"></video>
+<img src="four-colors.png"/>
+<canvas id=""></canvas>
+<svg width="320" height="240" xmlns="http://www.w3.org/2000/svg">
+<image href="four-colors.png" height="320" width="240"/>
+</svg>
+<button></button>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/webcodecs/image-decoder-utils.js"></script>
+<script>
+async_test(t => {
+  let video = document.querySelector('video');
+  video.onerror = t.unreached_func();
+  video.requestVideoFrameCallback(t.step_func(_ => {
+    let frame = new VideoFrame(video);
+    assert_true(!!frame);
+    assert_equals(frame.displayWidth, video.videoWidth);
+    assert_equals(frame.displayHeight, video.videoHeight);
+
+    let canvas = new OffscreenCanvas(frame.displayWidth, frame.displayHeight);
+    let ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0);
+    verifyFourColorsImage(video.videoWidth, video.videoHeight, ctx);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(frame, 0, 0);
+    verifyFourColorsImage(frame.displayWidth, frame.displayHeight, ctx);
+
+    let frame_copy = new VideoFrame(frame, {duration: 1234});
+    assert_equals(frame.timestamp, frame_copy.timestamp);
+    assert_equals(frame_copy.duration, 1234);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(frame_copy, 0, 0);
+    verifyFourColorsImage(frame_copy.displayWidth, frame_copy.displayHeight,
+                          ctx);
+    frame_copy.close();
+
+    frame_copy = new VideoFrame(frame, {timestamp: 1234, duration: 456});
+    assert_equals(frame_copy.timestamp, 1234);
+    assert_equals(frame_copy.duration, 456);
+    frame_copy.close();
+
+    frame_copy = new VideoFrame(frame);
+    assert_equals(frame.format, frame_copy.format);
+    assert_equals(frame.timestamp, frame_copy.timestamp);
+    assert_equals(frame.codedWidth, frame_copy.codedWidth);
+    assert_equals(frame.codedHeight, frame_copy.codedHeight);
+    assert_equals(frame.displayWidth, frame_copy.displayWidth);
+    assert_equals(frame.displayHeight, frame_copy.displayHeight);
+    assert_equals(frame.duration, frame_copy.duration);
+    frame_copy.close();
+
+    frame.close();
+    t.done();
+  }));
+
+  const mediaConfig = {
+    type: 'file',
+    video: {
+      contentType: 'video/mp4; codecs="av01.0.04M.08"',
+      width: 320,
+      height: 240,
+      bitrate: 1000000,
+      framerate: '30'
+    }
+  };
+  navigator.mediaCapabilities.decodingInfo(mediaConfig).then(t.step_func(result => {
+    assert_implements_optional(result.supported, "AV.1 file streaming unsupported");
+    video.src = 'four-colors.mp4';
+  }));
+}, '<video> and VideoFrame constructed VideoFrame');
+
+test(t => {
+  let button = document.querySelector('button');
+  let bgImage = button.computedStyleMap().get('background-image');
+  assert_throws_dom('SecurityError', _ => { new VideoFrame(bgImage, {timestamp: 0}); },
+                    'CSSImageValues are currently always tainted');
+}, 'CSSImageValue constructed VideoFrame');
+
+promise_test(() => {
+  return new Promise(resolve => onload = resolve);
+}, "Wait for onload event to get access to image data");
+
+promise_test(async t => {
+  let frame = new VideoFrame(document.querySelector('img'), {timestamp: 0});
+  let canvas = new OffscreenCanvas(frame.displayWidth, frame.displayHeight);
+  let ctx = canvas.getContext('2d');
+  ctx.drawImage(frame, 0, 0);
+  verifyFourColorsImage(frame.displayWidth, frame.displayHeight, ctx);
+  frame.close();
+}, 'Image element constructed VideoFrame');
+
+promise_test(async t => {
+  let frame = new VideoFrame(document.querySelector('image'), {timestamp: 0});
+  let canvas = new OffscreenCanvas(frame.displayWidth, frame.displayHeight);
+  let ctx = canvas.getContext('2d');
+  ctx.drawImage(frame, 0, 0);
+  verifyFourColorsImage(frame.displayWidth, frame.displayHeight, ctx);
+  frame.close();
+}, 'SVGImageElement constructed VideoFrame');
+
+function drawFourColors(canvas) {
+  let ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#FFFF00'; // yellow
+  ctx.fillRect(0, 0, canvas.width / 2, canvas.height / 2);
+  ctx.fillStyle = '#FF0000'; // red
+  ctx.fillRect(canvas.width / 2, 0, canvas.width / 2, canvas.height / 2);
+  ctx.fillStyle = '#0000FF'; // blue
+  ctx.fillRect(0, canvas.height / 2, canvas.width / 2, canvas.height / 2);
+  ctx.fillStyle = '#00FF00'; // green
+  ctx.fillRect(canvas.width / 2, canvas.height / 2, canvas.width / 2,
+               canvas.height / 2);
+}
+
+test(t => {
+  let canvas = document.querySelector('canvas');
+  canvas.width = 320;
+  canvas.height = 240;
+
+  // Draw and verify four colors image.
+  drawFourColors(canvas);
+  let ctx = canvas.getContext('2d');
+  verifyFourColorsImage(canvas.width, canvas.height, ctx);
+
+  let frame = new VideoFrame(canvas, {timestamp: 0});
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(frame, 0, 0);
+  verifyFourColorsImage(canvas.width, canvas.height, ctx);
+  frame.close();
+}, 'Canvas element constructed VideoFrame');
+
+test(t => {
+  let canvas = document.querySelector('canvas');
+  canvas.width = 320;
+  canvas.height = 240;
+
+  // Draw and verify four colors image.
+  drawFourColors(canvas);
+  let ctx = canvas.getContext('2d');
+  verifyFourColorsImage(canvas.width, canvas.height, ctx);
+
+  // Set a different timestamp to try and ensure the same frame isn't reused.
+  let frame = new VideoFrame(canvas, {timestamp: 0});
+  let frame_copy = new VideoFrame(frame, {timestamp: 1});
+  frame.close();
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(frame_copy, 0, 0);
+  verifyFourColorsImage(canvas.width, canvas.height, ctx);
+  frame_copy.close();
+}, 'Copy of canvas element constructed VideoFrame');
+</script>

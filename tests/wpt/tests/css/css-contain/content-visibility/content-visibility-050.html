@@ -1,0 +1,40 @@
+<!doctype HTML>
+<html>
+<meta charset="utf8">
+<title>Content Visibility: focus on new element</title>
+<link rel="author" title="Rakina Zata Amni" href="mailto:rakina@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<meta name="assert" content="focus can target content-visibility: auto subtrees created while hidden">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+.auto {
+  content-visibility: auto;
+}
+.spacer {
+  height: 3000px;
+}
+</style>
+
+<div class=spacer></div>
+<div id=container class=auto></div>
+
+<script>
+async_test((t) => {
+  function runTest() {
+    const focusable = document.createElement("div");
+    focusable.tabIndex = 0;
+    container.appendChild(focusable);
+    focusable.focus();
+    step_timeout(finish, 0);
+  }
+  function finish() {
+    t.step(() => assert_greater_than(document.scrollingElement.scrollTop, 500));
+    t.done();
+  }
+  onload = requestAnimationFrame(() => requestAnimationFrame(runTest));
+}, "Using tabindex to focus an newly constructed element in an auto subtree focuses element");
+</script>
+</html>

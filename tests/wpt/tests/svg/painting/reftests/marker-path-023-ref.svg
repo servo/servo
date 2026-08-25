@@ -1,0 +1,75 @@
+<svg id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <g id="testmeta">
+    <title>Markers on Closed Sub-Path (Arc).</title>
+    <html:link rel="author"
+          title="Tavmjong Bah"
+          href="http://tavmjong.free.fr"/>
+  </g>
+
+  <defs>
+    <marker id="Start"
+            viewBox="0 0 10 10" refX="0" refY="5"
+            markerUnits="strokeWidth"
+            markerWidth="12"
+            markerHeight="9"
+            orient="auto"
+            fill="green">
+      <path d="M 0 0 L 10 5 L 0 10 z"/>
+    </marker>
+    <marker id="Mid"
+            viewBox="0 0 10 10" refX="0" refY="5"
+            markerUnits="strokeWidth"
+            markerWidth="12"
+            markerHeight="9"
+            orient="auto"
+            fill="orange">
+      <path d="M 0 0 L 10 5 L 0 10 z"/>
+    </marker>
+    <marker id="End"
+            viewBox="0 0 10 10" refX="0" refY="5"
+            markerUnits="strokeWidth"
+            markerWidth="12"
+            markerHeight="9"
+            orient="auto"
+            fill="blue">
+      <path d="M 0 0 L 10 5 L 0 10 z"/>
+    </marker>
+  </defs>
+
+  <g id="test-body-reference" style="fill:none;stroke:black;stroke-width:2">
+    <path d="m  120,100  a 40,40 0 0 0 -40,40  a  40,40 0 0 0 40,40 a 40,40 0 0 0 40,-40 a 40,40 0 0 0 -40,-40 z"/>
+    <path d="m  240,100  a 40,40 0 0 0 -40,40  a  40,40 0 0 0 40,40 a 40,40 0 0 0 40,-40 a 40,40 0 0 0 -40,-40 z"/>
+    <path d="m  360,100  a 40,40 0 0 0 -40,40  a  40,40 0 0 0 40,40 a 40,40 0 0 0 40,-40 a 40,40 0 0 0 -40,-40 z"/>
+
+    <path d="m   60,200  a 40,40 0 0 0 -40,40  a  40,40 0 0 0 40,40 a 40,40 0 0 0 40,-40 a 40,40 0 0 0 -40,-40 z m 60,60  a 40,40 0 0 0 -40,40  a  40,40 0 0 0 40,40 a 40,40 0 0 0 40,-40 a 40,40 0 0 0 -40,-40 z"/>
+    <path d="m  200,200  a 40,40 0 0 0 -40,40  a  40,40 0 0 0 40,40 a 40,40 0 0 0 40,-40 a 40,40 0 0 0 -40,-40 z m 60,60  a 40,40 0 0 0 -40,40  a  40,40 0 0 0 40,40 a 40,40 0 0 0 40,-40 a 40,40 0 0 0 -40,-40 z"/>
+    <path d="m  340,200  a 40,40 0 0 0 -40,40  a  40,40 0 0 0 40,40 a 40,40 0 0 0 40,-40 a 40,40 0 0 0 -40,-40 z m 60,60  a 40,40 0 0 0 -40,40  a  40,40 0 0 0 40,40 a 40,40 0 0 0 40,-40 a 40,40 0 0 0 -40,-40 z"/>
+
+    <!-- Arrows -->
+    <path d="m 120,100 -40,  0"   style="stroke:none;marker-start:url(#Start)"/>
+    <path d="m 200,140   0, 40"   style="stroke:none;marker-start:url(#Mid)"/>
+    <path d="m 240,180  40,  0"   style="stroke:none;marker-start:url(#Mid)"/>
+    <path d="m 280,140   0,-40"   style="stroke:none;marker-start:url(#Mid)"/>
+    <path d="m 360,100 -40,  0"   style="stroke:none;marker-start:url(#End)"/>
+
+    <path d="m  60,200 -40,  0"   style="stroke:none;marker-start:url(#Start)"/>
+
+    <path d="m 160,240   0, 40"   style="stroke:none;marker-start:url(#Mid)"/>
+    <path d="m 200,280  40,  0"   style="stroke:none;marker-start:url(#Mid)"/>
+    <path d="m 240,240   0,-40"   style="stroke:none;marker-start:url(#Mid)"/>
+    <path d="m 200,200 -40,  0"   style="stroke:none;marker-start:url(#Mid)"/>
+
+    <path d="m 220,300   0, 40"   style="stroke:none;marker-start:url(#Mid)"/>
+    <path d="m 260,340  40,  0"   style="stroke:none;marker-start:url(#Mid)"/>
+    <path d="m 300,300   0,-40"   style="stroke:none;marker-start:url(#Mid)"/>
+    <path d="m 260,260 -40,  0"   style="stroke:none;marker-start:url(#Mid)"/>
+
+    <path d="m 400,260 -40,  0"   style="stroke:none;marker-start:url(#End)"/>
+
+  </g>
+
+</svg>

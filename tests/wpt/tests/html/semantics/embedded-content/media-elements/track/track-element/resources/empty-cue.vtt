@@ -1,0 +1,11 @@
+WEBVTT
+Empty cues should not be discarded.
+
+1
+00:00:00.000 --> 00:00:30.500 align:start position:20%
+
+2
+00:00:31.000 --> 00:01:00.500 align:start position:20%
+
+3
+00:01:01.000 --> 00:02:00.500 align:start position:20%

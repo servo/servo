@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<body>
+<title>Layout Instability: subframe layout shift score</title>
+<link rel="help" href="https://wicg.github.io/layout-instability/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #i {
+    border: 0;
+    position: absolute;
+    left: 0;
+    top: 0;
+    background-color: pink;
+  }
+</style>
+<iframe id="i" width="400" height="300" src="sub-frame.html"></iframe>
+
+<script>
+const loadPromise = new Promise(resolve => {
+  window.addEventListener("load", () => {
+    resolve(true);
+  });
+});
+
+let iframe = document.getElementById('i');
+const load_promise = new Promise(resolve => {
+  iframe.addEventListener('load', function() {
+    resolve(true);
+  });
+});
+
+checkMainFrameLoad = async () => {
+  await loadPromise;
+  return true;
+};
+
+checkIFrameLoad = async () => {
+  // Wait for the iframe finishing loading
+  await load_promise;
+  return true;
+};
+
+promise_test(async t => {
+  checkMainFrameLoad();
+  // Wait for the iframe finishing loading
+  checkIFrameLoad();
+
+  // Wait for the message sent from the iframe after it receives all the layout
+  // shifts.
+  await new Promise(resolve => {
+    window.addEventListener("message", (event) => {
+      if (event.data.type == "layout shift score") {
+        t.step(() => {
+          assert_equals(event.data.score, event.data.expectedScore);
+        });
+        resolve();
+      }
+    }, false);
+  });
+}, "");
+</script>
+</body>
+</html>

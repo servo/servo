@@ -1,0 +1,30 @@
+<!DOCTYPE HTML>
+<title>IdlInterface.prototype.should_have_interface_object()</title>
+<div id="log"></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+<script src="../../../idl-helper.js"></script>
+<script>
+"use strict";
+test(function() {
+    var i = interfaceFrom("callback interface A { const unsigned short B = 0; };");
+    assert_true(i.should_have_interface_object());
+}, "callback interface with a constant");
+
+test(function() {
+    var i = interfaceFrom("callback interface A { undefined b(); sequence<any> c(); };");
+    assert_false(i.should_have_interface_object());
+}, "callback interface without a constant");
+
+test(function() {
+    var i = interfaceFrom("[LegacyNoInterfaceObject] interface A { };");
+    assert_false(i.should_have_interface_object());
+}, "non-callback interface with [LegacyNoInterfaceObject]");
+
+test(function() {
+    var i = interfaceFrom("interface A { };");
+    assert_true(i.should_have_interface_object());
+}, "non-callback interface without [LegacyNoInterfaceObject]");
+</script>

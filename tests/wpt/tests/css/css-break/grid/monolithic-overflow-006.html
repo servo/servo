@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1425077">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<!-- Check that monolithic overflow in one grid item doesn't mess up the other item. -->
+<div style="columns:4; gap:0; column-fill:auto; width:100px; height:100px; background:green;">
+  <div style="display:grid; grid-template-columns:auto auto;">
+    <div>
+      <div style="contain:size; height:150px;"></div>
+      <div style="contain:size; height:150px;"></div>
+      <div style="contain:size; height:150px;"></div>
+    </div>
+    <div style="background:red;">
+      <div style="height:400px; background:green;"></div>
+    </div>
+  </div>
+</div>

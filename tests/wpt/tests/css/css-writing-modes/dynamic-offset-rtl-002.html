@@ -1,0 +1,51 @@
+<!DOCTYPE HTML>
+<head>
+<meta charset="UTF-8">
+<title>CSS Test: dynamic changes to offset properties</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#vertical-layout">
+<link rel="match" href="dynamic-offset-rtl-001-ref.html">
+<meta name="flags" content="dom">
+<meta name="assert" content="Layout rules for 'right' and 'left' are handled correctly for absolutely positioned elements, in the presence of dynamic changes to 'width' of the containing block.">
+<style>
+
+html {
+  direction: rtl;
+  overflow: hidden;
+}
+
+#container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 200px;
+  height: 100px;
+  background: yellow;
+}
+
+#abspos {
+  position: absolute;
+  top: 10px;
+  right: 20px;
+  left: 10px; /* ignored */
+  width: 10px;
+  height: 10px;
+  background: fuchsia;
+}
+
+</style>
+
+<div id="container">
+  <div id="abspos"></div>
+</div>
+
+<script>
+
+window.addEventListener("load", function(event) {
+  var e = document.getElementById("abspos");
+  e.offsetTop; // flush layout
+  e.parentNode.style.width = "100px";
+});
+
+</script>

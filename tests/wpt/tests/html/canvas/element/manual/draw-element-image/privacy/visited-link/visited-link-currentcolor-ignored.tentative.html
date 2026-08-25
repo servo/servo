@@ -1,0 +1,47 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>drawElementImage does not reveal visited link colors through currentColor</title>
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+  <style>
+    #link {
+      color: green;
+    }
+    #link:visited {
+      color: red;
+    }
+    #target {
+      width: 100px;
+      height: 100px;
+      background-color: currentColor;
+    }
+  </style>
+</head>
+<body>
+  <a id="link" href="">
+    <canvas id="canvas" width="100" height="100" layoutsubtree>
+      <div id="target"></div>
+    </canvas>
+  </a>
+
+  <script>
+    window.onload = () => {
+      promise_test(async function(t) {
+        await waitForCanvasPaint(canvas);
+
+        var context = canvas.getContext("2d");
+
+        // Draw the element image
+        context.drawElementImage(target, 0, 0);
+
+        // The canvas should NOT reflect the visited state (red), it should paint the unvisited state (green).
+        let pixel = context.getImageData(10, 10, 1, 1).data;
+        assert_false(pixel[0] > 0, "The canvas should not reflect the visited state.");
+        assert_true(pixel[1] > 0, "The canvas should not reflect the visited state.");
+      });
+    };
+  </script>
+</body>
+</html>

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+  body {
+    margin: 0px;
+  }
+  .multicol {
+    position: relative;
+    columns: 2;
+    column-fill: auto;
+    width: 280px;
+    height: 80px;
+    background: yellow;
+    column-gap: 0px;
+  }
+  .grid-container {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-template-rows: 20px 10px 20px 10px 20px 10px 10px 10px 10px 10px 10px;
+    background: lightgray;
+    column-gap: 10px;
+  }
+  .subgrid-bg {
+    background: orange;
+    grid-column: 2 / -2;
+    grid-row: 3 / 9;
+  }
+  .item {
+    background: purple;
+  }
+  .spanner {
+    background: purple;
+    opacity: 0.5;
+    grid-column: 2;
+    grid-row: 3 / 9;
+    position: relative;
+    z-index: 1;
+  }
+  .col-gap-group {
+    position: absolute;
+    top: 0px;
+    left: 20px;
+    display: flex;
+    gap: 20px;
+    height: 80px;
+  }
+  .col-gap {
+    width: 10px;
+    background: skyblue;
+  }
+  .row-gap {
+    position: absolute;
+    background: cornflowerblue;
+    height: 10px;
+    left: 0px;
+    width: 140px;
+  }
+</style>
+<div class="multicol">
+  <div class="grid-container">
+    <div class="subgrid-bg"></div>
+
+    <!-- Spanner: col 2, rows 3-8 (all subgrid area), opacity 0.5 over orange -->
+    <div class="spanner"></div>
+
+    <!-- Subgrid row 1 items (ref row 3, cols 3-4) -->
+    <div class="item" style="grid-row:3; grid-column:3;"></div>
+    <div class="item" style="grid-row:3; grid-column:4;"></div>
+
+    <!-- Subgrid row 2 items (ref row 5, cols 3-4) -->
+    <div class="item" style="grid-row:5; grid-column:3;"></div>
+    <div class="item" style="grid-row:5; grid-column:4;"></div>
+
+    <!-- Subgrid row 3 items (ref rows 6-8, cols 3-4) -->
+    <div class="item" style="grid-row:6/9; grid-column:3;"></div>
+    <div class="item" style="grid-row:6/9; grid-column:4;"></div>
+  </div>
+
+  <!-- F1 outer col-gaps (full height) -->
+  <div class="col-gap-group">
+    <div class="col-gap"></div>
+    <div class="col-gap"></div>
+    <div class="col-gap"></div>
+    <div class="col-gap"></div>
+  </div>
+
+  <!-- F1 subgrid col-gaps (y=30-80, 50px) -->
+  <div class="col-gap-group" style="height: 50px; top: 30px; left: 50px;">
+    <div class="col-gap" style="background: white;"></div>
+    <div class="col-gap" style="background: white;"></div>
+  </div>
+
+  <!-- F2 outer col-gaps (60px) -->
+  <div class="col-gap-group" style="left: 160px; height: 60px;">
+    <div class="col-gap"></div>
+    <div class="col-gap"></div>
+    <div class="col-gap"></div>
+    <div class="col-gap"></div>
+  </div>
+
+  <!-- F2 subgrid col-gaps (y=0-30, 30px) -->
+  <div class="col-gap-group" style="height: 30px; top: 0px; left: 190px;">
+    <div class="col-gap" style="background: white;"></div>
+    <div class="col-gap" style="background: white;"></div>
+  </div>
+
+  <!-- F1 gap 1-2 (y=20, full width) -->
+  <div class="row-gap" style="top: 20px;"></div>
+
+  <!-- F1 gap 2-3: outer left cornflowerblue -->
+  <div class="row-gap" style="top: 50px; width: 30px;"></div>
+  <!-- F1 gap 2-3: subgrid col-gap 1 (white, between spanner and items) -->
+  <div class="row-gap" style="top: 50px; left: 50px; width: 10px; background: white;"></div>
+  <!-- F1 gap 2-3: subgrid blue row-rule (col3+gap34+col4 area) -->
+  <div class="row-gap" style="top: 50px; left: 60px; width: 50px; background: blue;"></div>
+  <!-- F1 gap 2-3: outer right cornflowerblue -->
+  <div class="row-gap" style="top: 50px; left: 110px; width: 30px;"></div>
+
+  <!-- F2 gap 4-5 (y=30, full width) -->
+  <div class="row-gap" style="top: 30px; left: 140px;"></div>
+</div>

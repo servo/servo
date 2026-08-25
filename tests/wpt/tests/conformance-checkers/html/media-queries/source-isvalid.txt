@@ -1,0 +1,33 @@
+screen
+  screen
+all
+projection
+not screen
+only screen
+screen and (min-width: 400px)
+screen and (min-width:400px)
+screen and ( min-width: 400px )
+screen and ( min-width : 400px )
+screen and (min-width:    400px)
+screen and (   min-width: 400px)
+screen and (min-width: 400px   )
+screen   and (min-width: 400px)
+screen and   (min-width: 400px)
+screen   and (min-width: 400px)
+screen  and (min-width: 400px)
+screen and (min-width: 400px) and (max-width: 600px)
+screen and (min-width: 400px)   and (max-width: 600px)
+screen and (min-width: 400px) and   (max-width: 600px)
+tv and (scan: progressive)
+tv and (scan: interlace)
+screen and (device-aspect-ratio: 16/9)
+screen and (device-aspect-ratio: -16/-9)
+screen and (color: 1)
+screen and (color: 2)
+screen and (color: 0)
+print and (min-resolution: 100dpi)
+screen and (min-width: 400px), print
+screen and (min-width: 0)
+screen and (min-width: 0.0)
+screen and (min-width: 00)
+screen and (min-width: .0)

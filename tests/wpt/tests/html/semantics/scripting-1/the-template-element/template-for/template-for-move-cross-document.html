@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>HTML partial updates - move target to another document while appending</title>
+<link rel="help" href="https://github.com/WICG/declarative-partial-updates" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="target"><?start name="results">Loading...<?end></div>
+<script>
+  // A script running while the patch is being appended moves the target into a
+  // different document. Per the parser, subsequent content is created in the
+  // element in which the adjusted insertion location finds itself (the moved
+  // target), so it must land in the other document.
+  window.otherDoc = document.implementation.createHTMLDocument("other");
+</script>
+
+<template for="results"
+  >A<script>
+    otherDoc.body.appendChild(document.querySelector("#target"));
+  </script><span id="after">B</span></template>
+
+<script>
+  test(() => {
+    assert_equals(document.getElementById("target"), null,
+      "target was moved out of this document");
+    assert_equals(document.getElementById("after"), null,
+      "content appended after the move is not in this document");
+
+    const target = otherDoc.getElementById("target");
+    assert_not_equals(target, null, "target is in the other document");
+
+    const after = otherDoc.getElementById("after");
+    assert_not_equals(after, null,
+      "content appended after the move is in the other document");
+    assert_equals(after.ownerDocument, otherDoc);
+    assert_equals(after.parentNode, target,
+      "content appended after the move is inserted into the moved target");
+    assert_equals(after.previousSibling.textContent, "A",
+      "content appended before the move remains in the target");
+
+    assert_equals(
+      otherDoc.createTreeWalker(target, NodeFilter.SHOW_PROCESSING_INSTRUCTION)
+        .nextNode(),
+      null, "markers should be removed");
+  }, "Moving the target to another document while appending redirects parser output there");
+</script>

@@ -1,0 +1,47 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Merge Span with style after forward delete having contenteditable</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+</head>
+<body>
+<div contenteditable><h1><span style="background-color:red;" id="back">Back</span></h1>
+<h1><span style="background-color: red;">space</span></h1></div>
+<script>
+"use strict";
+
+const kDeleteKey = "\uE017";
+
+function sendDeleteKey() {
+  return new test_driver.Actions()
+    .keyDown(kDeleteKey)
+    .keyUp(kDeleteKey)
+    .send();
+}
+
+promise_test(async () => {
+  const editableDiv = document.querySelector("div[contenteditable]");
+  const spaceSpan = editableDiv.querySelectorAll('span')[0];
+  await new test_driver.click(document.querySelector('#back'));
+  const range = document.createRange();
+  const selection = window.getSelection();
+  const textNode = spaceSpan.firstChild;
+  range.setStart(textNode, 4);
+  range.setEnd(textNode, 4);
+  selection.removeAllRanges();
+  selection.addRange(range);
+  await sendDeleteKey();
+  assert_equals(
+    editableDiv.innerHTML,
+    "<h1><span style=\"background-color:red;\" id=\"back\">Back</span><span style=\"background-color: red;\">space</span></h1>",
+    "Style is not preserved for the span after pressing backspace in contenteditable"
+  );
+}, "waiting for command to execute");
+</script>
+</body>
+</html>

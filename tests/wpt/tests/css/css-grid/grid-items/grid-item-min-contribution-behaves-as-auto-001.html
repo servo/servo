@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Grid item minimum contribution when preferred size depends on size of containing block.</title>
+<link rel="author" title="Yulun Wu" href="mailto:yulun_wu@apple.com">
+<link rel="help" href="https://www.w3.org/TR/css-grid-2/#algo-single-span-items">
+<meta name="assert" content="A grid item whose preferred size depends on the size of its containing block in the relevant axis should contribute its automatic minimum size, not its min-content contribution.">
+<link rel="stylesheet" href="/css/support/grid.css">
+<style>
+.inline-grid {
+    grid-template-columns: minmax(auto, 50px);
+}
+.content {
+    width: 100px;
+    height: 25px;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+
+<body onload="checkLayout('.inline-grid')">
+<div id="log"></div>
+
+<div class="inline-grid" data-expected-width="50">
+    <div class="item" style="width: stretch;"><div class="content"></div></div>
+</div>
+
+<div class="inline-grid" data-expected-width="50">
+    <div class="item" style="width: auto;"><div class="content"></div></div>
+</div>
+
+</body>

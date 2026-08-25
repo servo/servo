@@ -1,0 +1,165 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use std::sync::Arc;
+
+use atomic_refcell::AtomicRefCell;
+use devtools_traits::{DevtoolScriptControlMsg, FrameInfo, GetEnvironmentRequest};
+use malloc_size_of_derive::MallocSizeOf;
+use serde::Serialize;
+use serde_json::{Map, Value};
+use servo_base::generic_channel::channel;
+
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry, new_actor_name};
+use crate::actors::environment::{EnvironmentActor, EnvironmentActorMsg};
+use crate::actors::source::SourceActor;
+use crate::protocol::{ClientRequest, JsonPacketStream};
+use crate::{StreamId, debugger_value_to_json};
+
+#[derive(Serialize)]
+struct FrameEnvironmentReply {
+    from: String,
+    #[serde(flatten)]
+    environment: EnvironmentActorMsg,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum FrameState {
+    OnStack,
+    Suspended,
+    Dead,
+}
+
+#[derive(Serialize)]
+pub(crate) struct FrameWhere {
+    actor: String,
+    line: u32,
+    column: u32,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct FrameActorMsg {
+    actor: String,
+    #[serde(rename = "type")]
+    type_: String,
+    arguments: Vec<Value>,
+    async_cause: Option<String>,
+    display_name: Option<String>,
+    oldest: bool,
+    state: FrameState,
+    this: Value,
+    #[serde(rename = "where")]
+    where_: FrameWhere,
+}
+
+/// Represents an stack frame. Used by `ThreadActor` when replying to interrupt messages.
+/// <https://searchfox.org/firefox-main/source/devtools/server/actors/frame.js>
+#[derive(MallocSizeOf)]
+pub(crate) struct FrameActor {
+    name: String,
+    source_name: String,
+    frame_result: FrameInfo,
+    current_offset: AtomicRefCell<(u32, u32)>,
+}
+
+impl Actor for FrameActor {
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    // https://searchfox.org/firefox-main/source/devtools/shared/specs/frame.js
+    fn handle_message(
+        &self,
+        mut request: ClientRequest,
+        registry: &ActorRegistry,
+        msg_type: &str,
+        _msg: &Map<String, Value>,
+        _id: StreamId,
+    ) -> Result<(), ActorError> {
+        match msg_type {
+            "getEnvironment" => {
+                let Some((tx, rx)) = channel() else {
+                    return Err(ActorError::Internal);
+                };
+                let source_actor = registry.find::<SourceActor>(&self.source_name);
+                source_actor
+                    .script_sender
+                    .send(DevtoolScriptControlMsg::GetEnvironment(
+                        GetEnvironmentRequest::Frame(self.name().into()),
+                        tx,
+                    ))
+                    .map_err(|_| ActorError::Internal)?;
+                let environment_name = rx.recv().map_err(|_| ActorError::Internal)?;
+
+                let msg = FrameEnvironmentReply {
+                    from: self.name().into(),
+                    environment: registry.encode::<EnvironmentActor, _>(&environment_name),
+                };
+                // This reply has a `type` field but it doesn't need a followup,
+                // unlike most messages. We need to skip the validity check.
+                request.write_json_packet(&msg)?;
+                request.mark_handled();
+            },
+            _ => return Err(ActorError::UnrecognizedPacketType),
+        };
+        Ok(())
+    }
+}
+
+impl FrameActor {
+    pub fn register(
+        registry: &ActorRegistry,
+        source_name: String,
+        frame_result: FrameInfo,
+    ) -> Arc<Self> {
+        let name = new_actor_name::<Self>();
+        let actor = Self {
+            name,
+            source_name,
+            frame_result,
+            current_offset: Default::default(),
+        };
+        registry.register::<Self>(actor)
+    }
+
+    pub(crate) fn set_offset(&self, column: u32, line: u32) {
+        *self.current_offset.borrow_mut() = (column, line);
+    }
+}
+
+impl ActorEncode<FrameActorMsg> for FrameActor {
+    fn encode(&self, registry: &ActorRegistry) -> FrameActorMsg {
+        let state = if self.frame_result.terminated {
+            FrameState::Dead
+        } else if self.frame_result.on_stack {
+            FrameState::OnStack
+        } else {
+            FrameState::Suspended
+        };
+        let async_cause = if let FrameState::OnStack = state {
+            None
+        } else {
+            Some("await".into())
+        };
+        let (column, line) = *self.current_offset.borrow();
+        // <https://searchfox.org/firefox-main/source/devtools/docs/user/debugger-api/debugger.frame/index.rst>
+        FrameActorMsg {
+            actor: self.name().into(),
+            type_: self.frame_result.type_.clone(),
+            arguments: vec![],
+            async_cause,
+            display_name: self.frame_result.display_name.clone(),
+            this: debugger_value_to_json(registry, self.frame_result.this_value.clone()),
+            oldest: self.frame_result.oldest,
+            state,
+            where_: FrameWhere {
+                actor: self.source_name.clone(),
+                line,
+                column,
+            },
+        }
+    }
+}

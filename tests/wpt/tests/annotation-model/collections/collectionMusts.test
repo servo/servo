@@ -1,0 +1,19 @@
+{
+  "@context": "https://www.w3.org/ns/JSONtest-v1.jsonld",
+  "name": "A single Annotation Collection has all required keys and all collection keys used meet required value constraints",
+  "description": "Collections of Web Annotations: <ul> <li>MUST include certain properties (keys)</li> <li>MUST satisfy model constraints on values of required and any optional Annotation keys used</li> </ul> Note: Implementation of optional Annotation Collection keys (features), optional constraints on key values, and optional keys and constraints on Agents involved in an Annotation Collection checked by other tests.<br/><b>Please fill textarea with json-ld serialization of a single Annotation Collection description</b>",
+  "testType": "manual",
+  "ref": "https://www.w3.org/TR/annotation-model/",
+  "assertions": [
+    "collections/5.1-collectionContextValidated.json",
+    "collections/5.1-collectionIdValidated.json",
+    "collections/5.1-collectionTypeValidated.json",
+    "collections/5.1-collectionLabelValidated.json",
+    "collections/5.1-collectionTotalValidated.json",
+    "collections/5.1-collectionFirstValidated.json",
+    "collections/5.1-collectionLastValidated.json",
+    "collections/3.3.1-collectionCreatedValidated.json",
+    "collections/3.3.1-collectionModifiedValidated.json",
+    "collections/3.3.6-collectionRightsValidated.json"
+  ]
+}

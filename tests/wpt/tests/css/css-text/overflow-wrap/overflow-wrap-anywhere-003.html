@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Test: overflow-wrap:anywhere + white-space:break-spaces</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#valdef-overflow-wrap-anywhere">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#valdef-white-space-break-spaces">
+<meta name="flags" content="ahem">
+<link rel="match" href="reference/overflow-wrap-break-word-003-ref.html">
+<meta name="assert" content="anywhere + break-spaces do allow a break
+between the last character of a word and the first space of a sequence of preserved spaces
+if there are no other wrapping opportunities earlier in the line">
+<style>
+div {
+  white-space: break-spaces;
+  overflow-wrap: anywhere;
+  font-family: monospace;
+  width: 4ch;
+  line-height: 1;
+  overflow: hidden;
+  height: 2em;
+}
+</style>
+
+<p>This test passes if the word FAIL does not appear below.
+<div>PASS FAIL<div>

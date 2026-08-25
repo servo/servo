@@ -1,0 +1,4 @@
+rules:
+- scroll-*: [scroll-elements]
+- scrollend-*: [scrollend]
+- wheel-event-transactions-*: [wheel-events]

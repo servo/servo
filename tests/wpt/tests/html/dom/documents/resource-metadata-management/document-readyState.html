@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>document.readyState</title>
+<link rel="author" title="Denis Ah-Kang" href="mailto:denis@w3.org">
+<link rel=help href="https://html.spec.whatwg.org/multipage/#resource-metadata-management">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+  var t1 = async_test("readyState equals 'complete' when the document has loaded"),
+      t2 = async_test("readyState equals 'interactive' when the document is finished parsing"),
+      t3 = async_test("readystatechange event is fired each time document.readyState changes");
+
+  window.onload = t1.step_func_done(function(){
+    assert_equals(document.readyState, "complete");
+  });
+
+  document.addEventListener("DOMContentLoaded", function(event) {
+    t2.step(function() {
+      assert_equals(document.readyState, "interactive")
+    });
+    t2.done();
+  });
+
+  var states = [document.readyState];
+  document.onreadystatechange = t3.step_func(function(){
+    states.push(document.readyState);
+    if (document.readyState === "complete") {
+      assert_array_equals(states, ["loading", "interactive", "complete"]);
+      t3.done();
+    }
+  })
+
+  test(() => {
+    assert_equals(document.implementation.createHTMLDocument().readyState, "complete");
+  }, "readyState equals 'complete' for documents created via createHTMLDocument()");
+
+  test(() => {
+    assert_equals(document.implementation.createDocument("http://www.w3.org/1999/xhtml", "html", null).readyState, "complete");
+  }, "readyState equals 'complete' for XHTML documents created via createDocument()");
+
+  test(() => {
+    assert_equals(document.implementation.createDocument("http://www.w3.org/2000/svg", "svg", null).readyState, "complete");
+  }, "readyState equals 'complete' for SVG documents created via createDocument()");
+
+  test(() => {
+    assert_equals(new DOMParser().parseFromString("<html></html>", "text/xml").readyState, "complete");
+  }, "readyState equals 'complete' for documents created via DOMParser");
+</script>

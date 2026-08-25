@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<link rel="help" href="https://issues.chromium.org/issues/379143305">
+<style>
+.test {
+  width: 200px; overflow: hidden; line-height: 0;
+}
+.float {
+  float: left;
+  width: 100px;
+  height: 100px;
+  background: orange;
+  shape-outside: polygon(0 0, 100% 100%, 0 100%);
+  clip-path: polygon(0 0, 100% 100%, 0 100%);
+}
+span {
+  display: inline-block;
+  width: 90px;
+  background: rebeccapurple;
+}
+</style>
+<div class="test">
+  <div class="float"></div>
+  <span style="height: 20px;"></span><span style="height: 22px;"></span>
+</div>
+

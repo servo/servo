@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSSOM View Module test:CaretPosition</title>
+<link rel="author" title="unbug" href="mailto:tidelgl@gmail.com" />
+<link rel="help" href="https://drafts.csswg.org/cssom-view-1/#dom-document-elementfrompoint">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style type="text/css">
+.box{
+  position: absolute;
+  top : 100px;
+  left : 400px;
+  width: 100px;
+  height: 100px;
+  background-color: #000;
+}
+</style>
+</head>
+<body>
+<div id="box" class="box"></div>
+<div class="box"></div>
+<div class="box"></div>
+<div class="box"></div>
+<div class="box"></div>
+<div class="box"></div>
+<div id="box2" class="box"></div>
+<div id="box3" class="box" style="left: 405px;background:red;"></div>
+<div id="log"></div>
+<script>
+test(function(){
+  assert_equals(document.elementFromPoint(400, 100),
+                document.getElementById('box2'),
+                "Expected value for element id is 'box2'");
+}, 'Element at (400, 100)');
+
+test(function(){
+  assert_equals(document.elementFromPoint(400, 900),
+                null,
+                "Expected value for element id is 'box2'");
+}, 'Element at (400, 900)');
+</script>
+</body>
+</html>

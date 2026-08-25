@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<head>
+<title>Script with "blocking=render" should remain render-blocking when moved</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+    window.operations = [];
+</script>
+<script>
+    requestAnimationFrame(() => window.operations.push("render"));
+</script>
+<script id="target" src="resources/dummy.js?pipe=trickle(d1)" blocking="render" async></script>
+</head>
+<body>
+<div>Some text</div>
+<script>
+    document.head.moveBefore(document.getElementById("target"), null);
+</script>
+<script>
+    promise_test(async () => {
+        await new Promise(resolve => requestAnimationFrame(() => resolve()));
+        await new Promise(resolve => requestAnimationFrame(() => resolve()));
+        assert_array_equals(operations, ["script", "render"]);
+    }, "A moved script should keep its render-blocking state");
+</script>
+</body>

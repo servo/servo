@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Adding text node to a shadow host should not crash</title>
+<link rel="help" href="https://crbug.com/776656">
+<div id="host"></div>
+<script>
+  const host = document.querySelector('#host');
+  const shadowRoot = host.attachShadow({'mode': 'open'});
+  const slot = document.createElement('slot');
+  shadowRoot.appendChild(slot);
+  host.appendChild(document.createElement('div'));
+  document.body.offsetLeft;
+  host.appendChild(document.createTextNode('hello'));
+  document.body.offsetLeft;
+</script>

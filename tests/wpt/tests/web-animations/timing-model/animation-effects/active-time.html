@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Active time</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations/#calculating-the-active-time">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+test(t => {
+  const tests = [ { fill: 'none', progress: null },
+                  { fill: 'backwards', progress: 0 },
+                  { fill: 'forwards', progress: null },
+                  { fill: 'both', progress: 0 } ];
+  for (const test of tests) {
+    const anim = createDiv(t).animate(null, { delay: 1, fill: test.fill });
+    assert_equals(anim.effect.getComputedTiming().progress, test.progress,
+                  `Progress in before phase when using '${test.fill}' fill`);
+  }
+}, 'Active time in before phase');
+
+test(t => {
+  const anim = createDiv(t).animate(null, 1000);
+  anim.currentTime = 500;
+  assert_time_equals_literal(anim.effect.getComputedTiming().progress, 0.5);
+}, 'Active time in active phase and no start delay is the local time');
+
+test(t => {
+  const anim = createDiv(t).animate(null, { duration: 1000, delay: 500 });
+  anim.currentTime = 1000;
+  assert_time_equals_literal(anim.effect.getComputedTiming().progress, 0.5);
+}, 'Active time in active phase and positive start delay is the local time'
+   + ' minus the start delay');
+
+test(t => {
+  const anim = createDiv(t).animate(null, { duration: 1000, delay: -500 });
+  assert_time_equals_literal(anim.effect.getComputedTiming().progress, 0.5);
+}, 'Active time in active phase and negative start delay is the local time'
+   + ' minus the start delay');
+
+test(t => {
+  const anim = createDiv(t).animate(null);
+  assert_equals(anim.effect.getComputedTiming().progress, null);
+}, 'Active time in after phase with no fill is unresolved');
+
+test(t => {
+  const anim = createDiv(t).animate(null, { fill: 'backwards' });
+  assert_equals(anim.effect.getComputedTiming().progress, null);
+}, 'Active time in after phase with backwards-only fill is unresolved');
+
+test(t => {
+  const anim = createDiv(t).animate(null, { duration: 1000,
+                                            iterations: 2.3,
+                                            delay: 500, // Should have no effect
+                                            fill: 'forwards' });
+  anim.finish();
+  assert_equals(anim.effect.getComputedTiming().currentIteration, 2);
+  assert_time_equals_literal(anim.effect.getComputedTiming().progress, 0.3);
+}, 'Active time in after phase with forwards fill is the active duration');
+
+test(t => {
+  const anim = createDiv(t).animate(null, { duration: 0,
+                                            iterations: Infinity,
+                                            fill: 'forwards' });
+  anim.finish();
+  assert_equals(anim.effect.getComputedTiming().currentIteration, Infinity);
+  assert_equals(anim.effect.getComputedTiming().progress, 1);
+}, 'Active time in after phase with forwards fill, zero-duration, and '
+   + ' infinite iteration count is the active duration');
+
+test(t => {
+  const anim = createDiv(t).animate(null, { duration: 1000,
+                                            iterations: 2.3,
+                                            delay: 500,
+                                            endDelay: 4000,
+                                            fill: 'forwards' });
+  anim.finish();
+  assert_equals(anim.effect.getComputedTiming().currentIteration, 2);
+  assert_time_equals_literal(anim.effect.getComputedTiming().progress, 0.3);
+}, 'Active time in after phase with forwards fill and positive end delay'
+   + ' is the active duration');
+
+test(t => {
+  const anim = createDiv(t).animate(null, { duration: 1000,
+                                            iterations: 2.3,
+                                            delay: 500,
+                                            endDelay: -800,
+                                            fill: 'forwards' });
+  anim.finish();
+  assert_equals(anim.effect.getComputedTiming().currentIteration, 1);
+  assert_time_equals_literal(anim.effect.getComputedTiming().progress, 0.5);
+}, 'Active time in after phase with forwards fill and negative end delay'
+   + ' is the active duration + end delay');
+
+test(t => {
+  const anim = createDiv(t).animate(null, { duration: 1000,
+                                            iterations: 2.3,
+                                            delay: 500,
+                                            endDelay: -2500,
+                                            fill: 'forwards' });
+  anim.finish();
+  assert_equals(anim.effect.getComputedTiming().currentIteration, 0);
+  assert_equals(anim.effect.getComputedTiming().progress, 0);
+}, 'Active time in after phase with forwards fill and negative end delay'
+   + ' greater in magnitude than the active duration is zero');
+
+test(t => {
+  const anim = createDiv(t).animate(null, { duration: 1000,
+                                            iterations: 2.3,
+                                            delay: 500,
+                                            endDelay: -4000,
+                                            fill: 'forwards' });
+  anim.finish();
+  assert_equals(anim.effect.getComputedTiming().currentIteration, 0);
+  assert_equals(anim.effect.getComputedTiming().progress, 0);
+}, 'Active time in after phase with forwards fill and negative end delay'
+   + ' greater in magnitude than the sum of the active duration and start delay'
+   + ' is zero');
+
+test(t => {
+  const anim = createDiv(t).animate(null, { duration: 1000,
+                                            iterations: 2.3,
+                                            delay: 500,
+                                            fill: 'both' });
+  anim.finish();
+  assert_equals(anim.effect.getComputedTiming().currentIteration, 2);
+  assert_time_equals_literal(anim.effect.getComputedTiming().progress, 0.3);
+}, 'Active time in after phase with \'both\' fill is the active duration');
+
+test(t => {
+  // Create an effect with a non-zero duration so we ensure we're not just
+  // testing the after-phase behavior.
+  const effect = new KeyframeEffect(null, null, 1);
+  assert_equals(effect.getComputedTiming().progress, null);
+}, 'Active time when the local time is unresolved, is unresolved');
+
+</script>
+</body>

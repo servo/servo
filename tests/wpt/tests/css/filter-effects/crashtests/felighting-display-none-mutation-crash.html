@@ -1,0 +1,20 @@
+<!doctype html>
+<title>
+  Changing 'display' to 'none' on a filter primitive shouldn't crash.
+</title>
+<script src="/common/rendering-utils.js"></script>
+<svg>
+  <filter id="f">
+    <feDiffuseLighting lighting-color="blue" id="target"/>
+  </filter>
+  <rect width="100" height="100" fill="green"/>
+  <rect width="100" height="100" fill="red" filter="url(#f)"/>
+</svg>
+<script>
+  waitForAtLeastOneFrame().then(() => {
+    const lighting = document.getElementById("target");
+    lighting.style.display = "none";
+    document.body.offsetTop;
+    lighting.removeAttribute("lighting-color");
+  });
+</script>

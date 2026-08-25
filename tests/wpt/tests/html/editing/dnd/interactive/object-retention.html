@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<title>drag &amp; drop - variable retention within event handlers</title>
+<style>
+  body > div {
+    height: 200px;
+    width: 200px;
+    background-color: orange;
+  }
+  body > div + div {
+    margin-top: 10px;
+    height: 200px;
+    width: 200px;
+    background-color: blue;
+  }
+</style>
+
+<script>
+window.onload = function() {
+  var orange = document.getElementsByTagName('div')[0], blue = document.getElementsByTagName('div')[1], fails = [], evs = {};
+  orange.ondragstart = function(e) {
+    e.dataTransfer.effectAllowed = 'copy';
+    var foo = {};
+    e.dataTransfer.setData('text', foo);
+    if( e.dataTransfer.getData('text') === foo ) {
+      fails[fails.length] = 'object was not cast to string';
+    }
+    evs[e.type] = {};
+    evs[e.type].dataTransfer = e.dataTransfer;
+    evs[e.type].items = e.dataTransfer.items;
+    evs[e.type].types = e.dataTransfer.types;
+    evs[e.type].files = e.dataTransfer.files;
+    //"The same object must be returned each time."
+    if( evs[e.type].dataTransfer !== e.dataTransfer ) {
+      fails[fails.length] = '.dataTransfer is not returning the same object during '+e.type;
+    }
+    if( !e.dataTransfer.items ) {
+      fails[fails.length] = '.items is not returning anything during '+e.type;
+    } else if( evs[e.type].items !== e.dataTransfer.items ) {
+      fails[fails.length] = '.items is not returning the same object during '+e.type;
+    }
+    if( !e.dataTransfer.types ) {
+      fails[fails.length] = '.types is not returning anything during '+e.type;
+    } else if( evs[e.type].types !== e.dataTransfer.types ) {
+      fails[fails.length] = '.types is not returning the same object during '+e.type;
+    }
+    if( !e.dataTransfer.files ) {
+      fails[fails.length] = '.files is not returning anything during '+e.type;
+    } else if( evs[e.type].files !== e.dataTransfer.files ) {
+      fails[fails.length] = '.files is not returning the same object during '+e.type;
+    }
+  };
+  blue.ondragover = blue.ondragenter = function(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+    if( !evs[e.type] ) { evs[e.type] = {}; }
+    evs[e.type].dataTransfer = e.dataTransfer;
+    evs[e.type].items = e.dataTransfer.items;
+    evs[e.type].types = e.dataTransfer.types;
+    evs[e.type].files = e.dataTransfer.files;
+    if( evs[e.type].dataTransfer != e.dataTransfer ) {
+      fails[fails.length] = '.dataTransfer is not returning the same object during '+e.type;
+    }
+    if( !e.dataTransfer.items ) {
+      fails[fails.length] = '.items is not returning anything during '+e.type;
+    } else if( evs[e.type].items !== e.dataTransfer.items ) {
+      fails[fails.length] = '.items is not returning the same object during '+e.type;
+    }
+    if( !e.dataTransfer.types ) {
+      fails[fails.length] = '.types is not returning anything during '+e.type;
+    } else if( evs[e.type].types !== e.dataTransfer.types ) {
+      fails[fails.length] = '.types is not returning the same object during '+e.type;
+    }
+    if( !e.dataTransfer.files ) {
+      fails[fails.length] = '.files is not returning anything during '+e.type;
+    } else if( evs[e.type].files !== e.dataTransfer.files ) {
+      fails[fails.length] = '.files is not returning the same object during '+e.type;
+    }
+    //http://dev.w3.org/html5/spec/dnd.html#datatransfer
+    //"The * attribute must return a * object associated with the DataTransfer object."
+    //Note that it is associated with the DataTransfer object, *not* the data store
+    //http://dev.w3.org/html5/spec/dnd.html#dragevent
+    //"when a user agent is required to fire a DND event named e at an element, using a particular drag data store...
+    //Let dataTransfer be a newly created DataTransfer object associated with the given drag data store."
+    //A new DataTransfer object therefore means a new set of properties, not the same ones as last event
+    if( evs.dragstart.dataTransfer === e.dataTransfer ) {
+      fails[fails.length] = '.dataTransfer is returning the same object during '+e.type+' as it did during dragstart';
+    }
+    if( e.dataTransfer.items && evs.dragstart.items === e.dataTransfer.items ) {
+      fails[fails.length] = '.items is returning the same object during '+e.type+' as it did during dragstart';
+    }
+    if( e.dataTransfer.types && evs.dragstart.types === e.dataTransfer.types ) {
+      fails[fails.length] = '.types is returning the same object during '+e.type+' as it did during dragstart';
+    }
+    if( e.dataTransfer.files && evs.dragstart.files === e.dataTransfer.files ) {
+      fails[fails.length] = '.files is returning the same object during '+e.type+' as it did during dragstart';
+    }
+  };
+  blue.ondrop = function(e) {
+    e.preventDefault();
+    evs[e.type] = {};
+    evs[e.type].dataTransfer = e.dataTransfer;
+    evs[e.type].items = e.dataTransfer.items;
+    evs[e.type].types = e.dataTransfer.types;
+    evs[e.type].files = e.dataTransfer.files;
+    if( evs[e.type].dataTransfer !== e.dataTransfer ) {
+      fails[fails.length] = '.dataTransfer is not returning the same object during '+e.type;
+    }
+    if( !e.dataTransfer.items ) {
+      fails[fails.length] = '.items is not returning anything during '+e.type;
+    } else if( evs[e.type].items !== e.dataTransfer.items ) {
+      fails[fails.length] = '.items is not returning the same object during '+e.type;
+    }
+    if( !e.dataTransfer.types ) {
+      fails[fails.length] = '.types is not returning anything during '+e.type;
+    } else if( evs[e.type].types !== e.dataTransfer.types ) {
+      fails[fails.length] = '.types is not returning the same object during '+e.type;
+    }
+    if( !e.dataTransfer.files ) {
+      fails[fails.length] = '.files is not returning anything during '+e.type;
+    } else if( evs[e.type].files !== e.dataTransfer.files ) {
+      fails[fails.length] = '.files is not returning the same object during '+e.type;
+    }
+    if( evs.dragstart.dataTransfer === e.dataTransfer ) {
+      fails[fails.length] = '.dataTransfer is returning the same object during '+e.type+' as it did during dragstart';
+    }
+    if( e.dataTransfer.items && evs.dragstart.items === e.dataTransfer.items ) {
+      fails[fails.length] = '.items is returning the same object during '+e.type+' as it did during dragstart';
+    }
+    if( e.dataTransfer.types && evs.dragstart.types === e.dataTransfer.types ) {
+      fails[fails.length] = '.types is returning the same object during '+e.type+' as it did during dragstart';
+    }
+    if( e.dataTransfer.files && evs.dragstart.files === e.dataTransfer.files ) {
+      fails[fails.length] = '.files is returning the same object during '+e.type+' as it did during dragstart';
+    }
+    document.getElementsByTagName('p')[0].innerHTML = fails.length ? ( 'FAIL:<br>' + fails.join('<br>') ) : 'PASS';
+  };
+};
+</script>
+
+<p>Drag the orange square onto the blue square. Fail if this text does not change.</p>
+<div draggable="true"></div>
+<div></div>
+
+<noscript><p>Enable JavaScript and reload</p></noscript>

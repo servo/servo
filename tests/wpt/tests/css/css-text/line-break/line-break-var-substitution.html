@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>CSS Text: Setting line-break:anywhere with variable substitution</title>
+<link rel="help" href="https://www.w3.org/TR/css-text-3/#propdef-line-break">
+<link rel="help" href="https://crbug.com/441536815">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #target {
+    --lb: anywhere;
+    line-break: var(--lb);
+  }
+</style>
+<div id="target"></div>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(target).lineBreak, "anywhere");
+  }, "Test that line-break can be set with a var() substitution");
+</script>

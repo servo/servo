@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Default action is canceled if the click event is canceled.</title>
+    <link rel="help" href="https://w3c.github.io/uievents/#events-clickevent-event-order">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+  </head>
+  <body>
+    <input type="checkbox" id="checkbox">Check me!<br>
+    <button type="button" id="button">Button</button>
+    <script>
+async_test(function(t) {
+  var box_clicked = false;
+
+  var box = document.getElementById("checkbox");
+  box.addEventListener("click", function(event) {
+    box_clicked = true;
+    event.preventDefault();
+  });
+
+  var button = document.getElementById("button");
+  button.addEventListener("click", t.step_func_done(function() {
+    assert_true(box_clicked);
+    assert_false(box.checked);
+  }));
+
+  test_driver.click(box).then(function() {
+    return test_driver.click(button);
+  }).catch(t.unreached_func("click failed"));
+});
+    </script>
+  </body>
+</html>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Test case for text-decoration-thickness</title>
+    <meta name="assert" content="text-decoration-thickness: should affect the underline thickness">
+    <link rel="author" title="Charlie Marlow" href="mailto:cmarlow@mozilla.com">
+    <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+    <link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-width-property">
+    <link rel="mismatch" href="reference/text-decoration-thickness-001-notref.html">
+    <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+    <style>
+        #main {
+            display: flex;
+        }
+        div span {
+            text-decoration: green underline;
+            text-decoration-skip-ink: none;
+            font: 20px/1 Ahem;
+            color: transparent;
+            padding-right: 1em;
+        }
+        #rightbox {
+            text-decoration-thickness: 2em;
+        }
+    </style>
+</head>
+<body>
+    <p>Test passes if the right has a thick green underline</p>
+    <div id="main">
+        <div>left<span>XXXX</span></div>
+        <div><span id="rightbox">XXXX</span>right</div>
+    </div>
+</body>
+</html>

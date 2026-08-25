@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+ <head>
+ <script type="application/its+xml">  
+  <its:rules xmlns:its="http://www.w3.org/2005/11/its" xmlns:h="http://www.w3.org/1999/xhtml" version="2.0">
+   <its:param name="localeParam">Canada</its:param>
+   <its:localeFilterRule selector="//h:div[@id=$localeParam]" localeFilterList="en-CA, fr-CA"/>
+  </its:rules>
+ </script>
+  <meta charset=utf-8> 
+  <title>Locale filter</title>
+ </head>  
+ <body> 
+ <div id="Canada">
+   <p>This legal notice is only for Canadian locales.</p>
+  </div>
+ </body>
+</html>

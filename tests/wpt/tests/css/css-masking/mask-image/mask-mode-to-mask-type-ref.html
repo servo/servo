@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS mask-mode reference</title>
+    <link rel="author" title="Ethan Lin" href="mailto:ethlin@mozilla.com">
+    <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+    <style type="text/css">
+      div {
+        background-color: blue;
+        position: absolute;
+        margin: 0px;
+        padding: 0px;
+        width: 100px;
+        height: 100px;
+        top: 10px;
+      }
+
+      div.match-luminance {
+        left: 10px;
+        background-image: url(support/blue-luminance-100x100.svg);
+      }
+
+      div.match-alpha {
+        left: 120px;
+        background-image: url(support/blue-100x100.svg);
+      }
+
+      div.luminance-luminance {
+        top: 120px;
+        left: 10px;
+        background-image: url(support/blue-luminance-100x100.svg);
+      }
+
+      div.luminance-alpha {
+        top: 120px;
+        left: 120px;
+        background-image: url(support/blue-luminance-100x100.svg);
+      }
+
+      div.alpha-luminance {
+        top: 230px;
+        left: 10px;
+        background-image: url(support/blue-100x100.svg);
+      }
+
+      div.alpha-alpha {
+        top: 230px;
+        left: 120px;
+        background-image: url(support/blue-100x100.svg);
+      }
+    </style>
+
+  </head>
+  <body>
+    <div class="match-luminance"></div>
+    <div class="match-alpha"></div>
+    <div class="luminance-luminance"></div>
+    <div class="luminance-alpha"></div>
+    <div class="alpha-luminance"></div>
+    <div class="alpha-alpha"></div>
+  </body>
+</html>

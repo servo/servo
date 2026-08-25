@@ -1,0 +1,37 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Letter-spacing using centimeters with a nominal value, 2.54cm</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#propdef-letter-spacing" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#spacing-props" />
+        <link rel="help" href="https://drafts.csswg.org/css-text-3/#letter-spacing-property"/>
+        <link rel="match" href="letter-spacing-007-ref.xht" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The 'letter-spacing' property sets a nominal length value in centimeters." />
+        <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+        <style type="text/css">
+            div
+            {
+                font: 20px/1em Ahem;
+            }
+            #span1
+            {
+                margin-left: 2.54cm;
+            }
+            #test
+            {
+                letter-spacing: 2.54cm;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there are only two boxes below (with no jagged edges).</p>
+        <div>
+            <div>
+                <span>x</span><span id="span1">x</span>
+            </div>
+            <div id="test">xx</div>
+        </div>
+    </body>
+</html>

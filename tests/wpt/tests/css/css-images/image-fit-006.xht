@@ -1,0 +1,23 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Object Fit - 'fill', explicit 'height'/'width'</title>
+  <link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+  <link rel="help" href="https://www.w3.org/TR/css-images-3/#the-object-fit"/>
+  <meta name="assert" content="The 'fill' value of the 'object-fit' property does not affect the usual calculation of the used 'height' and 'width."/>
+  <meta name="assert" content="The 'fill' value of the 'image-scaling' property scales the content height and width independently so that the edges of the content just meet the edges of the box established by the used 'height' and 'width'."/>
+  <style type="text/css"><![CDATA[
+   img {
+    border: 5px solid blue;
+    height: 50px;
+    width: 100px;
+    object-fit: fill;
+    background: red;
+   }
+  ]]></style>
+ </head>
+ <body>
+  <div>The image below should fill the blue border with no red between the border and the image.</div>
+  <div><img src="support/intrinsic-size.jpg" alt="Failed: image missing" /></div>
+ </body>
+</html>

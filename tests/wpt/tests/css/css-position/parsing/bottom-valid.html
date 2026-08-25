@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Positioned Layout Module Level 3: parsing bottom with valid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-position/#propdef-bottom">
+<meta name="assert" content="bottom supports the full grammar 'auto | <length-percentage>'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("bottom", "auto");
+
+test_valid_value("bottom", "-10px");
+test_valid_value("bottom", "-20%");
+test_valid_value("bottom", "calc(2em + 3ex)");
+</script>
+</body>
+</html>

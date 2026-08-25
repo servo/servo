@@ -1,0 +1,20 @@
+<!doctype html>
+<head>
+<meta charset="utf-8"/>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/cookies/resources/testharness-helpers.js"></script>
+<title>Test partitioned cookies ancestor chain: cross-site embed</title>
+</head>
+<body>
+<script>
+
+promise_test(async t => {
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+  const partitionedCookie = "ancestor=chain";
+  assert_false(window.location.href.includes(partitionedCookie));
+  assert_false(document.cookie.includes(partitionedCookie));
+}, "Cross-site embed partitioned cookie access");
+
+</script>
+</body>

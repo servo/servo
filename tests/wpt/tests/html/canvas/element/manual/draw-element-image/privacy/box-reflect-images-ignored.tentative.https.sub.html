@@ -1,0 +1,76 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>drawElementImage does not draw cross-origin box-reflect images</title>
+  <link rel="help" href="https://github.com/WICG/html-in-canvas">
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src='/html/canvas/resources/canvas-tests.js'></script>
+  <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+  <style>
+  #child {
+    width: 200px;
+    height: 200px;
+    background: blue;
+    position: relative;
+  }
+  #sameOrigin {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    width: 100px;
+    height: 100px;
+    background:green;
+    -webkit-box-reflect: below 0 url("https://{{location[host]}}/html/canvas/element/manual/draw-element-image/resources/left-half-mask-50.svg");
+  }
+  #crossOrigin {
+    position: absolute;
+    left: 100px;
+    top: 0px;
+    width: 100px;
+    height: 100px;
+    background: green;
+    -webkit-box-reflect: below 0 url("https://{{hosts[alt][www]}}:{{ports[https][0]}}/html/canvas/element/manual/draw-element-image/resources/left-half-mask-50.svg");
+  }
+  </style>
+</head>
+<body>
+  <canvas id="canvas" width="200" height="200" layoutsubtree>
+    <!--
+      #child renders a 200x200 blue rect. The left side #sameOrigin and its
+      reflection. The right side is #crossOrigin and its reflection.
+    -->
+    <div id="child">
+      <div id="sameOrigin"></div>
+      <div id="crossOrigin"></div>
+    </div>
+  </canvas>
+
+  <script>
+    window.onload = () => {
+      promise_test(async function(t) {
+        await waitForCanvasPaint(canvas);
+        const context = canvas.getContext("2d");
+        context.drawElementImage(child, 0, 0);
+
+        // Fetch all pixel data once to avoid multiple slow readbacks.
+        const imgData = context.getImageData(0, 0, canvas.width, canvas.height);
+
+        let pixel = _getPixelFromImageData(imgData, 50, 50);
+        assert_array_equals(pixel, [0, 128, 0, 255], "Same origin div should draw");
+        pixel = _getPixelFromImageData(imgData, 25, 150);
+        assert_array_equals(pixel, [0, 128, 0, 255], "Same origin box-reflect mask should not mask out left side of reflection");
+        pixel = _getPixelFromImageData(imgData, 75, 150);
+        assert_array_equals(pixel, [0, 0, 255, 255], "Same origin box-reflect mask should mask out right side of reflection");
+
+        pixel = _getPixelFromImageData(imgData, 150, 50);
+        assert_array_equals(pixel, [0, 128, 0, 255], "Cross origin div should draw");
+        pixel = _getPixelFromImageData(imgData, 125, 150);
+        assert_array_equals(pixel, [0, 128, 0, 255], "Cross origin box-reflect mask should not mask out left side of reflection");
+        pixel = _getPixelFromImageData(imgData, 175, 150);
+        assert_array_equals(pixel, [0, 128, 0, 255], "Cross origin box-reflect mask should not mask out right side of reflection");
+      });
+    };
+  </script>
+</body>
+</html>

@@ -1,0 +1,75 @@
+<!DOCTYPE html> 
+<html>
+  <head>
+    <title>ARIA 1.0 Test Case 768</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  </head>
+  <body>
+    <h1>ARIA 1.0 Test Case 768</h1>
+    
+    <div role="list">
+      <div role="listitem" aria-level="2">Item 1</div>
+      <div role="listitem" aria-level="2">Item 2</div>
+      <div role="listitem" aria-level="2">Item 3</div>
+      <div role="listitem" aria-level="2">Item 4</div>
+    </div>
+    
+    <h2>Description</h2>
+    <p>A div element with the role='list' with four child div elements with with the role='listitem' with a aria-level='2'.</p>
+
+      <h2>Expected Results</h2>
+      
+      <h3>MSAA + UIA Express</h3>
+      <ul>
+        <li>role="list": ROLE_SYSTEM_LIST + STATE_SYSTEM_READONLY</li>
+        <li>role="listitem": ROLE_SYSTEM_LISTITEM + STATE_SYSTEM_READONLY</li>
+        <li>LegacyIAccessible.Description will be in the form X of Y, 
+          where X is the position in list and Y = 4</li>
+        <li>Expose level=1 in AriaProperites for list items</li> 
+      </ul>
+      
+      <h3>MSAA + IAccessible2</h3>
+      <ul>
+        <li>role="list": ROLE_SYSTEM_LIST + STATE_SYSTEM_READONLY</li>
+        <li>role="listitem": ROLE_SYSTEM_LISTITEM + STATE_SYSTEM_READONLY</li>
+        <li>The structure should be reflected in the accessibility tree as directed by aria-posinset.</li>
+        <li>function groupPosition() should be available and have the following results:
+          <ul>
+            <li>groupLevel: 2</li>
+            <li>similarItemsInGroup: 4</li>
+            <li>positionInGroup: position in list</li>
+          </ul>
+        </li>
+      </ul>
+      
+      <h3>UIA</h3>
+      <ul>
+        <li>role="list": List</li>
+        <li>role="listitem": Listitem</li>
+        <li>LegacyIAccessible.Description will be in the form X of Y, 
+            where X is the position in list and Y = 4</li>
+        <li>Expose level=1 in AriaProperites for list items</li> 
+      </ul>
+    
+      <h3>ATK/AT-SPI</h3>
+      <ul>
+        <li>role="list": ROLE_LIST and STATE_EDITABLE is not exposed</li>
+        <li>role="listitem": ROLE_LISTITEM and STATE_EDITABLE is not exposed</li>
+        <li>setsize: 4</li>
+        <li>posinset: position in list</li>
+        <li>level: 2 </li>
+      </ul>
+      
+      <h3>AXAPI</h3>
+      <ul>
+        <li>role="list": AXList and AXContentList = 'content list'</li>
+        <li>role="listitem": AXGroup = nil</li>
+        <li>AXARIASetSize: 4</li>
+        <li>AXARIAPosInSet: position in list</li>
+        <li>AXDisclosureLevel: 2 </li>
+      </ul>
+          
+  </body>
+</html>
+
+

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>Canvas.drawElementImage: element with shadows on all sides clips to border box rect</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<link rel="author" href="mailto:chrishtr@chromium.org">
+<link rel="match" href="element-shadow-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+<style>
+#child {
+  width: 100px;
+  height: 100px;
+  background: green;
+  box-shadow:
+  10px 5px 5px red,   /* bottom-right */
+  -10px -5px 5px red; /* top-left */
+}
+</style>
+
+<canvas id=canvas width="200" height="200" layoutsubtree>
+  <div id=child></div>
+</canvas>
+
+<script>
+onload = async () => {
+  await waitForCanvasPaint(canvas);
+  canvas.getContext("2d").drawElementImage(child, 10, 10);
+  takeScreenshot();
+};
+</script>
+</html>

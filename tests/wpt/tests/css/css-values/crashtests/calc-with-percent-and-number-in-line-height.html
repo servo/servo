@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>calc() with percent and number in line-height should not crash</title>
+<link rel="help" href="https://crbug.com/40358562">
+<style>
+* {
+  line-height: calc(100% + 30);
+}
+</style>

@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script>
+const params = new URLSearchParams(location.search);
+const uid = params.get('uid');
+
+window.onload = function(e) {
+  const bc = new PrerenderChannel('inner-channel', uid);
+  bc.postMessage('a new page is loaded');
+  bc.close();
+}
+</script>

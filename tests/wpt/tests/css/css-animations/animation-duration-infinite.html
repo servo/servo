@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Setting 'animation-duration' to an infinite value should not hang</title>
+<link rel="author" title="Antoine Quint" href="mailto:graouts@webkit.org">
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=297596">
+<link rel="match" href="animation-duration-infinite-ref.html">
+<meta name="assert" content="Setting 'animation-duration' to an infinite value should not hang">
+<style>
+
+div {
+  width: 100px;
+  height: 100px;
+  background-color: black;
+
+  animation-name: slide;
+  animation-duration: calc(infinity * 1s);
+}
+
+@keyframes slide {
+  to { margin-left: 100px }
+}
+
+</style>
+</head>
+<body>
+<div></div>
+</body>
+</html>

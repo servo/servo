@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>CSS Position Test: ::backdrop inherits from originating element - rendering</title>
+<link rel="help" href="https://drafts.csswg.org/css-position-4/#backdrop">
+<link rel="match" href="backdrop-inherit-rendered-ref.html">
+<style>
+  dialog {
+    --bg: green;
+    inset: 100px;
+  }
+  dialog::backdrop {
+    background-color: var(--bg);
+    inset: inherit;
+  }
+</style>
+<dialog>Green backdrop with 100px inset</dialog>
+<script>
+  document.querySelector("dialog").showModal();
+</script>

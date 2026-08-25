@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>RTL text selection drag and drop from RTL element to textarea</title>
+<style type="text/css">
+textarea
+  {width:300px;
+  height:100px;
+  margin-top:20px;
+  padding:10px;}
+</style>
+</head>
+<body onload="window.getSelection().selectAllChildren(document.querySelector('p'))">
+<p dir="rtl">&#x202E;FAIL|SSAP&#x202C;</p>
+<p>Drag selected text to the textarea. Copy of selection should end up in the textarea once you drop it there. Text direction should be preserved during drag and drop.</p>
+<p dir="rtl"><textarea placeholder="Drop selection here"/></p>
+</body>
+</html>

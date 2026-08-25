@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-sizes">
+<link rel="match" href="aspect-ratio-intrinsic-size-012-ref.html">
+<meta name="assert" content="A min-content sized block must recompute its width when its height changes, applying a non-square aspect-ratio to the new height.">
+<p>Test passes if there is a filled green 200x100 rectangle.</p>
+<div id="target" style="height: 50px; width: min-content; background: green;">
+  <div style="display: flex; height: 100%; background: green;">
+    <div style="aspect-ratio: 2/1;"></div>
+  </div>
+</div>
+<script>
+document.body.offsetTop;
+document.getElementById('target').style.height = '100px';
+</script>

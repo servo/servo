@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+    <head>
+        <title>Constructing a FontFace from an ArrayBuffer should be equivalent to loading the same data from an URL</title>
+        <link rel="help" href="https://drafts.csswg.org/css-font-loading/#font-face-constructor">
+        <link rel="author" title="Simon Wülker" href="simon.wuelker@arcor.de">
+        <link rel=match href=fontface-from-arraybuffer-ref.html>
+        <link rel="help" href="https://github.com/servo/servo/issues/39657">
+        <script src="/common/reftest-wait.js"></script>
+    </head>
+    <body>
+        <canvas id="canvas" width="500px" height="500px"></canvas>
+        <script>
+          fetch("/fonts/Ahem.ttf")
+          .then(res => res.arrayBuffer())
+          .then(arrayBuffer => {
+            const ahem_font = new FontFace(
+              "FontFamily AhemTest",
+              arrayBuffer,
+            );
+            document.fonts.add(ahem_font);
+            ahem_font.load().then(
+              () => {
+                const ctx = canvas.getContext("2d");
+                ctx.font = '36px "FontFamily AhemTest"';
+                ctx.fillText("Ahem font loaded", 20, 50);
+                takeScreenshot();
+              }
+            );
+          });
+        </script>
+    </body>
+</html>

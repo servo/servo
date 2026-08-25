@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!-- In this reference case, we get each container to be sized the same as
+     in the testcase, without any visible baseline alignemnt, by using some
+     hidden flex items.
+-->
+<html>
+<head>
+  <title>CSS Reftest Reference</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <meta charset="utf-8">
+  <style>
+    .flexContainer {
+      display: flex;
+      width: 50px;
+      background: yellow;
+      border: 1px dotted black;
+      margin: 5px;
+      align-items: flex-start;
+    }
+    .hiddenItemForSizing {
+      width: 0;
+      min-width: 0; /* disable default min-width:auto behavior */
+      color: transparent;
+      align-self: baseline;
+    }
+    .largeFont {
+      font-size: 20px;
+      background: lightblue;
+      /* Our flex items get padding on opposite sides (top/bottom) so that they
+         produce a large combined height when baseline-aligned: */
+      padding-top: 5px;
+    }
+    .smallFont {
+      font-size: 10px;
+      background: pink;
+      /* Our flex items get padding on opposite sides (top/bottom) so that they
+         produce a large combined height when baseline-aligned: */
+      padding-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="flexContainer">
+    <div class="largeFont">a</div>
+    <!-- Hidden flex items used to determine container's cross size,
+         based on their baseline-aligned combined cross size: -->
+    <div class="largeFont hiddenItemForSizing">a</div>
+    <div class="smallFont hiddenItemForSizing">b</div>
+  </div>
+
+  <div class="flexContainer">
+    <div class="smallFont">b</div>
+    <!-- Hidden flex items used to determine container's cross size,
+         based on their baseline-aligned combined cross size: -->
+    <div class="largeFont hiddenItemForSizing">a</div>
+    <div class="smallFont hiddenItemForSizing">b</div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Text: 'white-space: break-spaces' and 4 consecutive line feeds</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-text-3/#white-space-property">
+  <link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+
+  <meta content="This test checks that when 'white-space' is set to 'break-spaces', then line feeds (&amp;NewLine; in the code) are preserved, just like with 'white-space: pre' or with 'white-space: pre-wrap'.">
+
+  <style>
+  div
+    {
+      font-family: Ahem;
+      font-size: 25px;
+      line-height: 1;
+      width: 4em;
+    }
+
+  div#overlapped-red-reference
+    {
+      background-color: red;
+      height: 4em;
+    }
+
+  div#overlapping-green-test
+    {
+      background-color: green;
+      bottom: 4em;
+      color: red;
+      position: relative;
+      white-space: break-spaces;
+    }
+  </style>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.
+
+  <div id="overlapped-red-reference"></div>
+
+  <div id="overlapping-green-test">&NewLine;&NewLine;&NewLine;&NewLine;</div>
+
+<!--
+
+  &NewLine; == Line feed == &#x000A; == &#0010;
+
+-->

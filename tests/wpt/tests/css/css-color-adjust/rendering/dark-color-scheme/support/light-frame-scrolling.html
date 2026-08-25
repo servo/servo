@@ -1,0 +1,17 @@
+<!doctype html>
+<style>
+  :root {
+    color-scheme: light;
+  }
+
+  .spacer {
+    height: 300vh;
+
+    /* Hack so WebKit will put this iframe in a layer */
+    will-change: transform;
+  }
+</style>
+
+<p>This iframe should have light background.</p>
+<!-- Spacer to make the iframe scroll -->
+<div class="spacer"></div>

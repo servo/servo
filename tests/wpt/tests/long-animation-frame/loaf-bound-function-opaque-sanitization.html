@@ -1,0 +1,38 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Long Animation Frame Timing: double-bound function from opaque script sanitization</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<h1>Long Animation Frame: double-bound function from opaque script sanitization</h1>
+<div id="log"></div>
+<script>
+const {REMOTE_ORIGIN} = get_host_info();
+
+promise_test(async t => {
+  const scriptURL = new URL("long-animation-frame/resources/double-bound-script.js", REMOTE_ORIGIN);
+  const script = document.createElement("script");
+  script.src = scriptURL.href;
+  document.body.appendChild(script);
+  t.add_cleanup(() => script.remove());
+
+  // Wait for the script to load
+  await new Promise((resolve, reject) => {
+    script.onload = resolve;
+    script.onerror = reject;
+  });
+
+  const [entry, scriptEntry] = await expect_long_frame_with_script((t, busy_wait) => {
+    requestAnimationFrame(window.doubleBound.bind(null, busy_wait));
+  }, script => script.invoker === "FrameRequestCallback", t);
+
+  assert_true(!!entry, "LoAF entry should be observed");
+  assert_true(!!scriptEntry, "Script entry should be observed");
+  assert_equals(scriptEntry.sourceFunctionName, "", "Opaque double-bound function name should be sanitized");
+}, "Opaque cross-origin double-bound function name should be sanitized");
+</script>
+</body>

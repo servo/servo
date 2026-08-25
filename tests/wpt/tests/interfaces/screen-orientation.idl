@@ -1,0 +1,35 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Screen Orientation (https://w3c.github.io/screen-orientation/)
+
+partial interface Screen {
+  [SameObject] readonly attribute ScreenOrientation orientation;
+};
+
+[Exposed=Window]
+interface ScreenOrientation : EventTarget {
+  Promise<undefined> lock(OrientationLockType orientation);
+  undefined unlock();
+  readonly attribute OrientationType type;
+  readonly attribute unsigned short angle;
+  attribute EventHandler onchange;
+};
+
+enum OrientationLockType {
+  "any",
+  "natural",
+  "landscape",
+  "portrait",
+  "portrait-primary",
+  "portrait-secondary",
+  "landscape-primary",
+  "landscape-secondary"
+};
+
+enum OrientationType {
+  "portrait-primary",
+  "portrait-secondary",
+  "landscape-primary",
+  "landscape-secondary"
+};

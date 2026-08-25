@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>CSS Overflow Ref: ::scroll-button on object element</title>
+<style>
+  #target {
+    height: 0;
+    width: 0;
+  }
+
+  #target::scroll-button(block-end) {
+    content: "scroll-button";
+  }
+</style>
+<div id="target"></div>

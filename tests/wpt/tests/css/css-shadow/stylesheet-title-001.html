@@ -1,0 +1,24 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: title attribute in stylesheets not in the document tree is ignored</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://drafts.csswg.org/cssom/#preferred-css-style-sheet-set-name">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#attr-style-title">
+<link rel="help" href="https://github.com/w3c/webcomponents/issues/535">
+<link rel="match" href="reference/green-box.html">
+<p>Test passes if you see a single 100px by 100px green box below.</p>
+<div id="host"></div>
+<script>
+  host.attachShadow({ mode: "open" }).innerHTML = `
+    <style>
+      div { width: 100px; height: 100px; }
+    </style>
+    <style title="Foo">
+      div { background: purple }
+    </style>
+    <style title="Bar">
+      div { background: green }
+    </style>
+    <div></div>
+  `;
+</script>

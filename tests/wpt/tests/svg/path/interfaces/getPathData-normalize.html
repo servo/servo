@@ -1,0 +1,84 @@
+<!doctype html>
+<title>SVGPathElement.getPathData({normalize: true}) reduces to absolute M/L/C/Z</title>
+<link rel="help" href="https://svgwg.org/specs/paths/#InterfaceSVGPathData">
+<link rel="author" title="Virali Purbey" href="mailto:viralipurbey@microsoft.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/getPathData-helpers.js"></script>
+
+<script>
+const cases = [
+  {
+    description: "straight lines",
+    input: "M 0 0 H 100 V 100 H 0 Z",
+    output: [
+      { type: "M", values: [0, 0] },
+      { type: "L", values: [100, 0] },
+      { type: "L", values: [100, 100] },
+      { type: "L", values: [0, 100] },
+      { type: "Z", values: [] }
+    ]
+  },
+  {
+    description: "cubic",
+    input: "M 0 0 C 30,90 25,10 50,10 S 70,90 90,90",
+    output: [
+      { type: "M", values: [0, 0] },
+      { type: "C", values: [30, 90, 25, 10, 50, 10] },
+      { type: "C", values: [75, 10, 70, 90, 90, 90] }
+    ]
+  },
+  {
+    description: "quadratic",
+    input: "M 0 0 Q 30 30 30 60 t 30 0 30 0 30 0 30 0 30 0",
+    output: [
+      { type: "M", values: [0, 0] },
+      { type: "C", values: [20, 20, 30, 40, 30, 60] },
+      { type: "C", values: [30, 80, 40, 80, 60, 60] },
+      { type: "C", values: [80, 40, 90, 40, 90, 60] },
+      { type: "C", values: [90, 80, 100, 80, 120, 60] },
+      { type: "C", values: [140, 40, 150, 40, 150, 60] },
+      { type: "C", values: [150, 80, 160, 80, 180, 60] }
+    ]
+  },
+  {
+    description: "leading lowercase m is treated as absolute moveto",
+    input: "m 10 20 l 30 0",
+    output: [
+      { type: "M", values: [10, 20] },
+      { type: "L", values: [40, 20] }
+    ]
+  },
+  {
+    description: "elliptical arc",
+    input: "M 6 10 A 10 10 10 0 0 15 10",
+    output: [
+      { type: "M", values: [6, 10] },
+      { type: "C", values: [8.8305, 11.4263, 12.1695, 11.4263, 15, 10] }
+    ]
+  }
+];
+
+for (const c of cases) {
+  test(() => {
+    const path = createPath(c.input);
+    assert_path_data_equals(
+        path.getPathData({ normalize: true }), c.output, 0.0005);
+  }, `path.getPathData({normalize: true}) ${c.description}`);
+}
+
+test(() => {
+  // Large arc spanning more than 90deg decomposes into multiple cubics
+  // whose final endpoint is the arc's end position.
+  const path = createPath("M 0 0 A 10 10 0 1 0 20 0");
+  const pathData = path.getPathData({ normalize: true });
+  assert_greater_than(pathData.length, 2);
+  assert_equals(pathData[0].type, "M");
+  for (let i = 1; i < pathData.length; i++) {
+    assert_equals(pathData[i].type, "C", `segment[${i}].type`);
+  }
+  const lastValues = pathData[pathData.length - 1].values;
+  assert_array_approx_equals(
+      lastValues.slice(-2), [20, 0], 0.0005, "arc decomposition end position");
+}, "path.getPathData({normalize: true}) decomposes arcs into cubics");
+</script>

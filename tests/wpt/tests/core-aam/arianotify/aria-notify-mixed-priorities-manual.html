@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ARIA Notify API Test: Mixed Priorities</title>
+  <link rel="help" href="https://github.com/w3c/aria/pull/2577">
+  <link rel="author" title="Jacques Newman" href="mailto:janewman@microsoft.com">
+  <script src="core-aam/arianotify/resources/aria-notify-helpers.js"></script>
+</head>
+<body>
+  <h1>ARIA Notify API Test: Mixed Priorities</h1>
+  <p>This test checks the behavior of the <code>ariaNotify</code> API when a high priority message interrupts a normal
+    priority message.</p>
+
+  <h2>Setup Instructions</h2>
+  <p><strong>Setup:</strong> Use a screen reader (NVDA, JAWS, VoiceOver, etc.) or other assistive technology that
+    supports the ARIA Notify API.</p>
+  <p><strong>Instructions:</strong> Click the "Run Test" button and listen for the announced text from your screen reader.</p>
+  <p><strong>Note:</strong> You may need to slow down your screen reader speech rate so that the second, higher priority
+    notification occurs while the first message is still being spoken.
+  </p>
+
+  <div>
+    <h3>Test: A Normal Priority Message Interrupted by a High Priority Message</h3>
+
+    <p><strong>Expected:</strong> Screen reader should start announcing the long message, then be interrupted after a
+      2 second delay by "This is a high priority notification!" at high priority. This second notification should occur mid-speech if the
+      speech rate is slow enough.
+    </p>
+
+    <button onclick="test()">Run Test</button>
+    <div id="status"></div>
+
+    <script>
+      function test() {
+        // Start the long message first
+        document.getElementById('status').textContent =
+          tryCallAriaNotify(document, 'This is a longer message that tests how well the ariaNotify API handles interruptions, it will repeat once for extra length. This is a longer message that tests how well the ariaNotify API handles interruptions.', { priority: 'normal' });
+
+        setTimeout(() => {
+          document.getElementById('status').textContent += ' ' +
+            tryCallAriaNotify(document, 'This is a high priority notification!', { priority: 'high' });
+        }, 2000);
+      }
+    </script>
+  </div>
+</body>
+
+</html>

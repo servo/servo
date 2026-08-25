@@ -1,0 +1,62 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8">
+<title>HTML partial updates - streamHTMLUnsafe invokes CE reactions</title>
+<link rel="help" href="https://github.com/WICG/declarative-partial-updates" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div id="container"></div>
+<script>
+for (const method of ["streamHTMLUnsafe", "streamAppendHTMLUnsafe"]) {
+  promise_test(async (t) => {
+    const container = document.getElementById("container");
+    const name = "element-for-" + method.toLowerCase();
+    t.add_cleanup(() => container.replaceChildren());
+    customElements.define(
+      name,
+      class extends HTMLElement {
+        constructor() {
+          super();
+          this.append("Defined;");
+        }
+
+        connectedCallback() {
+          this.append("Connected");
+        }
+      },
+    );
+    const writer = container[method]().getWriter();
+    await writer.write(`<${name}></${name}>`);
+    await writer.close();
+    assert_equals(container.textContent, "Defined;Connected");
+  }, `${method} should trigger CE reactions`);
+
+  promise_test(async (t) => {
+    const container = document.getElementById("container");
+    t.add_cleanup(() => container.replaceChildren());
+    const scoped = new CustomElementRegistry();
+    scoped.define(
+      "scoped-element",
+      class extends HTMLElement {
+        constructor() {
+          super();
+          this.append("Scoped;");
+        }
+
+        connectedCallback() {
+          this.append("Connected");
+        }
+      },
+    );
+    const inner = document.createElement("div", {
+      customElementRegistry: scoped,
+    });
+    container.append(inner);
+    const writer = inner[method]().getWriter();
+    await writer.write("<scoped-element></scoped-element>");
+    await writer.close();
+    assert_equals(inner.textContent, "Scoped;Connected");
+  }, `${method} should use scoped custom element registry`);
+}
+</script>
+</body>

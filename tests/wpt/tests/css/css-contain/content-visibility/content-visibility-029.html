@@ -1,0 +1,26 @@
+<!doctype HTML>
+<html>
+<meta charset="utf8">
+<title>Content Visibility: innerText</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<meta name="assert" content="innerText skips content-visibility hidden elements">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+This text should be visible.
+<div id="container" style="content-visibility: hidden">
+  This text should not be visible.
+  <div id="inner">
+    This text is also not visible.
+  </div>
+</div>
+
+<script>
+test(() => {
+  assert_equals(document.body.innerText, "This text should be visible.");
+  assert_equals(document.getElementById("inner").innerText, "");
+}, "innerText on locked element.");
+</script>
+</html>

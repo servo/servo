@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<title>SpeechRecognition MediaStreamTrack</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+async function getAudioTrackFromFile(filePath) {
+    const audioContext = new AudioContext();
+    const response = await fetch(filePath);
+    const arrayBuffer = await response.arrayBuffer();
+    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+    const source = audioContext.createBufferSource();
+    source.buffer = audioBuffer;
+
+    const destination = audioContext.createMediaStreamDestination();
+    source.connect(destination);
+    source.start();
+
+    return destination.stream.getAudioTracks()[0];
+}
+
+promise_test(async (t) => {
+    const lang = "en-US";
+    window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const speechRecognition = new SpeechRecognition();
+    speechRecognition.processLocally = false;
+    speechRecognition.lang = lang;
+    const audioTrack = await getAudioTrackFromFile("/media/speech.wav");
+
+    assert_true(audioTrack instanceof MediaStreamTrack, "Audio track should be a valid MediaStreamTrack");
+
+    const recognitionPromise = new Promise((resolve) => {
+        speechRecognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            resolve(transcript);
+        };
+    });
+
+    speechRecognition.start(audioTrack);
+
+    const transcript = await recognitionPromise;
+    assert_equals(transcript.toLowerCase(), "this is a sentence in a single segment", "Speech recognition should correctly recognize 'hello world'");
+
+    // Start speech recognition without a media stream track on the same instance should fail.
+    try {
+      speechRecognition.start();
+      assert_unreached();
+    } catch (e) {
+      assert_equals(e.name, "InvalidStateError", "Second call to start() should throw an InvalidStateError");
+    }
+}, "SpeechRecognition should recognize speech from an audio file.");
+</script>
+</html>

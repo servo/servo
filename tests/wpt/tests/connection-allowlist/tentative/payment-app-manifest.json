@@ -1,0 +1,15 @@
+{
+  "default_applications": ["payment-app-manifest.json"],
+  "name": "Test Payment App",
+  "icons": [
+    {
+      "src": "/images/rgrg-256x256.png",
+      "sizes": "256x256",
+      "type": "image/png"
+    }
+  ],
+  "serviceworker": {
+    "src": "payment-app-sw.js",
+    "scope": "./"
+  }
+}

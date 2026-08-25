@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/utils.js"></script>
+<title>Test installing a config with empty url to a navigated fenced frame
+  unloads the original document</title>
+
+<body>
+
+<script>
+promise_test(async () => {
+  const fenced_frame_loaded_key = token();
+
+  // Create a fenced frame and install a config constructed with an empty url.
+  const fenced_frame = document.createElement('fencedframe');
+  document.body.append(fenced_frame);
+
+  // Specify the fenced frame's src attribute to an url.
+  const url = generateURL('resources/fenced-frame-loaded.html',
+                          [fenced_frame_loaded_key]);
+  fenced_frame.config = new FencedFrameConfig(url);
+
+  // The fenced frame should navigate to the src url.
+  const load_expected = "fenced frame loaded";
+  const load_actual = await nextValueFromServer(fenced_frame_loaded_key);
+  assert_equals(load_actual, load_expected,
+    "Fenced frame successfully loaded by specifying its src attribute.");
+
+  // Create a config with an empty url.
+  const empty_url_config = new FencedFrameConfig('');
+  fenced_frame.config = empty_url_config;
+
+  // Installing a config with an empty url to the fenced frame should unload the
+  // original document.
+  const server_value = await readValueFromServer(fenced_frame_loaded_key);
+  assert_false(server_value.status);
+
+}, 'Installing a config with empty url to a navigated fenced unloads ',
+  'the original document.');
+</script>
+
+</body>

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>Test gamepad event listener when blocked by Permissions Policy</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+async_test(t => {
+  const iframe = document.createElement('iframe');
+  iframe.allow = "gamepad 'none'";
+  iframe.srcdoc = `
+    <script>
+      window.addEventListener('gamepadconnected', () => {});
+      window.addEventListener('gamepaddisconnected', () => {});
+      window.parent.postMessage('done', '*');
+    <\/script>
+  `;
+  window.addEventListener('message', t.step_func_done(e => {
+    assert_equals(e.data, 'done');
+  }));
+  document.body.appendChild(iframe);
+}, "Adding gamepad event listeners in an iframe with gamepad denied should not crash.");
+</script>
+</body>

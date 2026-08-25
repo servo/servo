@@ -1,0 +1,26 @@
+<!doctype html>
+<title>Removing drop targetted document before the queue is processed</title>
+<style>
+  html, body, div {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    background-color: blue;
+  }
+</style>
+<script type="text/javascript">
+window.onload = function () {
+        var blue = document.getElementsByTagName('div')[0];
+        blue.ondragenter = blue.ondragover = blue.ondrop = function (e) {
+                e.preventDefault();
+        };
+        window.addEventListener('message',function (){
+                var xhr = new XMLHttpRequest();
+                xhr.open('GET','/common/blank.html?pipe=trickle(d5)',false);
+                xhr.send(null); //should not end within the lifetime of this document
+        },false);
+};
+</script>
+<div></div>
+<noscript><p>Enable JavaScript and reload</p></noscript>

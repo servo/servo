@@ -1,0 +1,14 @@
+<html>
+  <head>
+    <title>Test throwing an error inside requestAnimationFrame callback</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <script>
+    async_test(function() {
+      window.requestAnimationFrame(this.step_func_done());
+    });
+    </script>
+  </body>
+</html>

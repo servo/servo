@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="author" title="Ryosuke Niwa" href="mailto:rniwa@webkit.org"/>
+    <link rel="help" href="https://drafts.csswg.org/selectors/#relational"/>
+    <link rel="help" href="https://drafts.csswg.org/selectors/#dir-pseudo"/>
+    <link rel="match" href="../reference/ref-filled-green-100px-square.xht"/>
+</head>
+<body>
+    <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+    <section><div class="ltr"><span></span></div></section>
+    <section><div dir="ltr" class="ltr"><span></span></div></section>
+    <section dir="ltr"><div class="ltr"><span></span></div></section>
+    <section><div dir="rtl" class="rtl"><span></span></div></section>
+    <section dir="rtl"><div class="rtl"><span></span></div></section>
+    <style>
+        div, section { width: 100px; height: 20px; }
+        section { background: red; }
+        .ltr:has(*:dir(ltr)) { background: green; }
+        .ltr:has(*:dir(rtl)) { background: red; }
+        .rtl:has(*:dir(rtl)) { background: green; }
+        .rtl:has(*:dir(ltr)) { background: red; }
+    </style>
+</body>
+</html>

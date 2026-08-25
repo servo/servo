@@ -1,0 +1,34 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: Margins on cleared blocks that contain floats</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/block/margin-collapse/064.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#collapsing-margins"/>
+
+  <style type="text/css">
+   .outer { margin: 1em; background: red; height: 4.5em; }
+   .border { border: solid; width: 10em; }
+   .box { margin: 0; background: yellow; }
+   .float { margin: 0; width: 5em; height: 1.5em; background: orange; float: right; }
+   .clear { margin-top: 3em; height: 1.5em; background: aqua; clear: both; }
+   .control { border: solid; width: 10em; background: yellow; margin: 1em; }
+   .control .a { margin: 0 0 0 auto; width: 5em; height: 1.5em; background: orange; }
+   .control .b { margin-top: 1.5em; height: 1.5em; background: aqua; }
+  </style>
+ </head>
+ <body>
+  <p>The following two boxes should be identical, with no red present.</p>
+  <div class="outer border">
+   <div class="box">
+    <div class="float">TEST</div>
+    <div class="clear">TEST</div>
+   </div>
+  </div>
+  <div class="control">
+   <div class="a">TEST</div>
+   <div class="b">TEST</div>
+  </div>
+
+</body>
+</html>

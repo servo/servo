@@ -1,0 +1,9 @@
+rules:
+- builtin-coverage.html: [customized-built-in-elements]
+- customized-built-in-constructor-exceptions.html: [customized-built-in-elements]
+- Document-createElement-customized-builtins.html: [customized-built-in-elements]
+- Document-createElementNS-customized-builtins.html: [customized-built-in-elements]
+- HTMLElement-constructor-customized-builtins.html: [customized-built-in-elements]
+- pseudo-class-defined-customized-builtins.html: [customized-built-in-elements]
+- CustomElementRegistry*: [scoped-custom-element-registries]
+- "*": [autonomous-custom-elements]

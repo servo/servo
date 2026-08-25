@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<title>CSS Test (Backgrounds): border-radius clipping on overflow:hidden with transforms</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Google" href="http://www.google.com/">
+<style>
+
+#outer {
+  border: 10px solid #000;
+  border-radius: 60px;
+  width: 200px;
+  height: 200px;
+  background: blue;
+  position: absolute;
+  top: 10px;
+  left: 10px;
+}
+
+#coverinner, #coverouter {
+  position: absolute;
+  border: 4px solid fuchsia;
+  filter: grayscale(30%);
+}
+
+#coverinner {
+  width: 196px;
+  height: 196px;
+  top: 18px;
+  left: 18px;
+  border-radius: 52px;
+}
+
+#coverouter {
+  width: 216px;
+  height: 216px;
+  top: 8px;
+  left: 8px;
+  border-radius: 62px;
+}
+
+</style>
+
+<div id="outer">
+</div>
+<div id="coverinner">
+</div>
+<div id="coverouter">
+</div>

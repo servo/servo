@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title> Child window for Web Messaging tests </title>
+</head>
+<body>
+    <script>
+        if (window.opener)
+        {
+            window.onload = function()
+            {
+                try
+                {
+                    window.opener.postMessage("MSG_ONLOAD_FIRED", "*");
+                }
+                catch(ex)
+                {
+                    window.close();
+                }
+            }
+        }
+
+        window.onmessage = function(e)
+        {
+            try
+            {
+                if (typeof(e.data) == "object" && typeof(e.data.test) == "string")
+                {
+                    eval(e.data.test);
+                }
+                else if (e.data == "*" || e.data == "/")
+                {
+                    e.source.postMessage(e.data, e.data);
+                }
+                else
+                {
+                    e.source.postMessage(e.data, e.origin);
+                }
+
+                if (e.data == "ports")
+                {
+                    var total = e.ports.length;
+                    for (var i=0; i<total; i++)
+                    {
+                        e.ports[i].onmessage = function (evt)
+                        {
+                            evt.target.postMessage(evt.data);
+                        }
+                    }
+                }
+            }
+            catch(ex)
+            {
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Color 4: Out Of Gamut Legacy SRGB Color with Transparency</title>
+<link rel="author" title="Aaron Krajeski" href="mailto:aaronhk@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#rgb-functions">
+<link rel="match" href="out-of-gamut-legacy-rgb-ref.html">
+<style>
+  /*  See crbug.com/1483736.
+      Values above 255 were being stored for legacy colors which was causing
+      them to be rendered a if their alphas were greater.
+  */
+  body {
+    background-color: black;
+  }
+  div {
+    height: 100px;
+    background-color: rgba(500, 500, 500, 0.5);
+  }
+</style>
+<body>
+  <div></div>
+</body>

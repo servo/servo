@@ -1,0 +1,36 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: z-index</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-07-03 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/absolute/z-index/008.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#z-index" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/zindex.html#painting-order"/>
+
+  <style type="text/css">
+   div { position: absolute; width: 4em; height: 4em; }
+   .a { top: 1em; left: 1em; width: 12em; height: 12em; background: gray; }
+   .b { top: 1em; left: 4em; background: blue; }
+   .d { top: 4em; left: 7em; background: orange; }
+   .e { top: 3em; left: -3em; background: yellow; z-index: 1; }
+   .c { top: 3em; left: -3em; background: lime; z-index: 2; }
+   .text { top: 14em; width: 30em; }
+  </style>
+ </head>
+ <body>
+  <div class="a">
+   <div class="b">
+    <div class="c">
+    </div>
+   </div>
+   <div class="d">
+    <div class="e">
+    </div>
+   </div>
+  </div>
+  <div class="text">The squares should overlap each other clockwise, so that the
+  top one (blue) is the bottommost and the one to its left (green) is the
+  topmost.</div>
+ </body>
+</html>

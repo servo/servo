@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: hsl() values</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/" />
+<link rel="author" title="Mozilla Corporation" href="http://mozilla.com/" />
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="help" href="http://www.w3.org/TR/css3-color/#hsl-color" />
+<link rel="match" href="t424-hsl-values-b-4-ref.html" />
+<meta name="assert" content="Implementation of algorithm for converting hsl() colors to rgb() colors." />
+<style>
+  table { border-spacing: 0; padding: 0; border: none; }
+  td { border: none; padding: 0; }
+  td { width: 1.2em; height: 1.2em; }
+</style>
+<body>
+  <p>The following two matching (except the checkerboard at both ends to show where the rows are) rows of colors should change in two steps from nearly gray at the left to red at the right.</p>
+  <table>
+    <tr>
+      <td style="background: black">&nbsp;</td>
+      <td style="background: hsl(0, 20%, 50%)">&nbsp;</td>
+      <td style="background: hsl(0, 60%, 50%)">&nbsp;</td>
+      <td style="background: hsl(0, 100%, 50%)">&nbsp;</td>
+      <td style="background: white">&nbsp;</td>
+    </tr>
+    <tr>
+      <td style="background: white">&nbsp;</td>
+      <td style="background: rgb(153, 102, 102)">&nbsp;</td>
+      <td style="background: rgb(204, 51, 51)">&nbsp;</td>
+      <td style="background: rgb(255, 0, 0)">&nbsp;</td>
+      <td style="background: black">&nbsp;</td>
+    </tr>
+  </table>
+</body>

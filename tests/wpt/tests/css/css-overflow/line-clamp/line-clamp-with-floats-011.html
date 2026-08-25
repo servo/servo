@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: line-clamp hidden and clipped floats don't count as scrollable overflow</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp-containers">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="Floats are clipped to the *unshaped* block-end content edge of the line-clamp container">
+<style>
+.red { /* checks that we don't clip horizontally nor apply any shaping to the clipping */
+    width: 100px;
+    height: 100px;
+    background: red;
+    position: absolute;
+    z-index: -1;
+}
+.container {
+    line-clamp: auto;
+    height: 100px;
+    margin-left: 25px;
+    padding-left: 25px;
+    border-radius: 50px;
+    padding-bottom: 20px;
+}
+aside {
+    float: left;
+    margin-left: -50px;
+    width: 100px;
+    background: linear-gradient(to bottom, green 0, green 100px, red 100px); /* checks that we do clip vertically */
+    height: 200px;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.
+
+<div class=red></div>
+
+<div class=container><aside></aside></container>

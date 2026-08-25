@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<body>
+<script src="../resources/runner.js"></script>
+<script src="resources/worker-structured-clone-perf-test.js"></script>
+<script>
+WorkerStructuredClonePerfTestRunner.measureTimeAsync({
+  description: "Measures performance of sending JSON-like data to a worker with deserialization.",
+  data: JSON.parse(PerfTestRunner.loadFile("resources/data/blink-dev.json")),
+  measure: "toWorker",
+});
+</script>
+</body>

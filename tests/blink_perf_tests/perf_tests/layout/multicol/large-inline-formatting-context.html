@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<script src="../../resources/runner.js"></script>
+<pre id="log"></pre>
+<div style="columns:3; column-fill:auto; height:500px; orphans:1; widows:1;">
+  <div id="target" style="display:none;"></div>
+</div>
+<script>
+  var data = "All work and no play makes Jack a dull boy. ";
+  // Repeat text 2^15 times.
+  for (var i = 0; i < 15; i++) {
+    data += data;
+  }
+  target.innerHTML = data;
+</script>
+<script>
+  var target = document.getElementById("target");
+  var style = target.style;
+
+  function test() {
+    // Avoid paint and pre-paint (we just want layout), as that's very slow with
+    // this test. See crbug.com/1473255
+    style.display = "block";
+    document.body.offsetTop;
+    style.display = "none";
+    document.body.offsetTop;
+  }
+
+  PerfTestRunner.measureRunsPerSecond({
+    description: "Fragmented large inline formatting context",
+    run: test
+  });
+</script>

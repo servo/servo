@@ -1,0 +1,27 @@
+<!doctype html>
+<html class="reftest-wait">
+<head>
+  <title>CSS Container Queries Test: Container for pseudo elements</title>
+  <link rel="help" href="https://drafts.csswg.org/css-conditional-5/#container-queries">
+  <link rel="match" href="container-for-cue-ref.html">
+  <script src="/common/reftest-wait.js"></script>
+  <style>
+    video {
+      container-type: size;
+      width: 200px;
+      height: 200px;
+    }
+    @container (width = 200px) {
+      video::cue { background-color: green }
+      video::cue(b) { color: lime }
+    }
+  </style>
+</head>
+<body>
+  <video autoplay onplaying="this.onplaying = null; this.pause(); takeScreenshot();">
+    <source src="/media/white.mp4" type="video/mp4">
+    <source src="/media/white.webm" type="video/webm">
+    <track default src="support/test.vtt">
+  </video>
+</body>
+</html>

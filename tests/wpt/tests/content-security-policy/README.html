@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Introduction to Writing Content Security Policy Tests</title>
+    <link rel="stylesheet" type="text/css" href="README.css">
+    <link rel="stylesheet" type="text/css" href="http://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.1/styles/default.min.css">
+    <script src="http://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.1/highlight.min.js"></script>
+    <script>
+        hljs.initHighlightingOnLoad();
+    </script>
+</head>
+
+<body>
+    <h1>Introduction to Writing Content Security Policy Tests</h1>
+    <p>The CSP test suite uses the standard W3C testharness.js framework, but there are a few additional things you'll need to do because of the unique way CSP works, even if you're already an expert at writing W3C tests. These tests require the use of the
+    <a href="https://github.com/w3c/wptserve">wptserve</a> server (included in the <a href="https://github.com/web-platform-tests/wpt">web-platform-tests repository</a>) to operate correctly.</p>
+
+    <h2>What's different about writing CSP tests?</h2>
+
+    <h3>Headers</h3>
+    <p>Content Security Policy is preferentially set through an HTTP header. This means we can't do our tests just as a simple set of HTML+CSS+JS files. Luckily the wptserver framework provides an easy method to add headers to a file.</p>
+    <p>If my file is named <span class=code>example.html</span> then I can create a file
+        <span class=code>example.html.headers</span> to define the headers that will be served with it. If I need to do template substitutions in the headers, I can instead create a file named <span class=code>example.html.sub.headers</span>.</p>
+
+    <h3>Negative Test Cases and Blocked Script Execution</h3>
+    <p>Another interesting feature of CSP is that it <em>prevents</em> things from happening. It even can and prevent script from running. How do we write tests that detect something didn't happen?</p>
+
+    <h3>Checking Reports</h3>
+    <p>CSP also has a feature to send a report. We ideally want to check that whenever a policy is enforced, a report is sent. This also helps us with the previous problem - if it is difficult to observe something not happening, we can still check that a report fired.</p>
+
+    <h2>Putting it Together</h2>
+    <p>Here's an example of a simple test. (ignore the highlights for now...) This file lives in the
+        <span class=code>/content-security-policy/script-src/</span> directory.</p>
+
+    <p class=codeTitle>script-src-1_1.html</p>
+    <pre><code class="html">&lt;!DOCTYPE HTML&gt;
+&lt;html&gt;
+&lt;head&gt;
+    &lt;script src=&#39;/resources/testharness.js&#39;&gt;&lt;/script&gt;
+    &lt;script src=&#39;/resources/testharnessreport.js&#39;&gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;h1&gt;Inline script should not run without &#39;unsafe-inline&#39; script-src directive.&lt;/h1&gt;
+    &lt;div id=&#39;log&#39;&gt;&lt;/div&gt;
+
+    &lt;script&gt;
+    test(function() {
+        assert_unreached(&#39;Unsafe inline script ran.&#39;)},
+        &#39;Inline script in a script tag should not run without an unsafe-inline directive&#39;
+    );
+    &lt;/script&gt;
+
+    &lt;img src=&#39;doesnotexist.jpg&#39; onerror=&#39;test(function() { assert_false(true, &quot;Unsafe inline event handler ran.&quot;) }, &quot;Inline event handlers should not run without an unsafe-inline directive&quot;);&#39;&gt;
+
+    &lt;script async defer src=&#39;../support/checkReport.sub.js?reportField=violated-directive&amp;reportValue=<span class=highlight1>script-src%20%27self%27</span>&#39;&gt;&lt;/script&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;
+        </code></pre>
+
+
+    <p>This code includes three tests. The first one in the script block will generate a failure if it runs. The second one, in the onerror handler for the img which does not exist should also generate a failure if it runs. But for a successful CSP implementation, neither of these tests does run. The final test is run by the link to <span class=code>../support/checkReport.sub.js</span>. It will load some script in the page (make sure its not blocked by your policy!) which contacts the server asynchronously and sees if the expected report was sent. This should always run an generate a positive or negative result even if the inline tests are blocked as we expect.</p>
+
+    <p>Now, to actually exercise these tests against a policy, we'll need to set headers. In the same directory we'll place this file:</p>
+
+    <p class=codeTitle>script-src-1_1.html.sub.headers</p>
+    <pre><code class="html">
+Expires: Mon, 26 Jul 1997 05:00:00 GMT
+Cache-Control: no-store, no-cache, must-revalidate
+Cache-Control: post-check=0, pre-check=0, false
+Pragma: no-cache
+Set-Cookie: <span class=highlight2>script-src-1_1</span>={{$id:uuid()}}; Path=<span class=highlight2>/content-security-policy/script-src/</span>
+Content-Security-Policy: <span class=highlight1>script-src 'self'</span>; report-uri  <span class=highlight2></span>/reporting/resources/report.py?op=put&reportID={{$id}}
+        </code></pre>
+    <p>This sets some headers to prevent caching (just so we are more likely to see our latest changes if we're actively developing this test) sets a cookie (more on that later) and sets the relevant <span class=code>Content-Security-Policy</span> header for our test case.</p>
+
+    <h4>What about those highlights?</h4>
+    <p>In production code we don't like to repeat ourselves. For this test suite, we'll relax that rule a little bit. Why? It's easier to have many people contributing "safe" files using some template substitutions than require every file to be executable content like Python or PHP which would require much more careful code review. The highlights show where you have to be careful as you repeat yourself in more limited static files.
+    </p>
+
+    <p>The <span class=highlight1>YELLOW</span> highlighted text is information that must be the same between both files for report checking to work correctly. In the html file, we're telling
+        <span class=code>checkReport.sub.js</span> to check the value of the <span class=code>
+        violated-directive</span> key in the report JSON. So it needs to match (after URL encoding) the directive we set in the header.</p>
+
+    <p>The <span class=highlight2>PINK</span> highlighted text is information that must be repeated from the path and filename of your test file into the headers file. The name of the cookie must match the name of the test file without its extension, the path for the cookie must be correct, and the relative path component to the report-uri must also be corrected if you nest your tests more than one directory deep.</p>
+
+    <h2>Check Your Effects!</h2>
+    <p>A good test case should also verify the state of the DOM in addition to checking the report - after all, a browser might send a report without actually blocking the banned content. Note that in a browser without CSP support there will be three failures on the example page as the inline script executes.</p>
+    <p>How exactly you check your effects will depend on the directive, but don't hesitate to use script for testing to see if computed styles are as expected, if layouts changed or if certain elements were added to the DOM. Checking that the report also fired is just the final step of verifing correct behavior.</p>
+
+    <p>Note that avoiding inline script is good style and good habits, but not 100% necessary for every test case. Go ahead and specify 'unsafe-inline' if it makes your life easier.</p>
+
+    <h2>Report Existence Only and Double-Negative Tests</h2>
+    <p>If you want to check that a report exists, or verify that a report <em>wasn't</em> sent for a double-negative test case,
+    you can pass <strong>?reportExists=</strong><em>[true|false]</em> to <span class=code>checkReport.sub.js</span> instead of <strong>reportField</strong> and <strong>reportValue</strong>.</p>
+
+    <h2>How does the magic happen?</h2>
+    <p>Behind the scenes, a few things are going on in the framework.</p>
+    <ol>
+        <li>The {{$id:uuid}} templating marker in the headers file tells the wptserve HTTP server to create a new unique id and assign it to a variable, which we can re-use as {{$id}}.</li>
+        <li>We'll use this UUID in two places:
+            <ol>
+                <li>As a GET parameter to our reporting script, to uniquely identify this instance of the test case so our report can be stored and retrieved.
+                </li>
+                <li>As a cookie value associated with the filename, so script in the page context can learn what UUID the report was sent under.</li>
+            </ol>
+        </li>
+        <li>The report listener is a simple python file that stashes the report value under its UUID and allows it to be retrieved again, exactly once.</li>
+        <li><span class=code>checkReport.sub.js</span> then grabs the current path information and uses that to find the cookie holding the report UUID. It deletes that cookie (otherwise the test suite would overrun the maximum size of a cookie header allowed) then makes an XMLHttpRequest to the report listener to retrieve the report, parse it and verify the contents as per the parameters it was loaded with.</li>
+    </ol>
+
+    <p>Why all these gymnastics? CSP reports are delivered by an <em>anonymous fetch</em>. This means that the browser does not process the response headers, body, or allow any state changes as a result. So we can't pull a trick like just echoing the report contents back in a Set-Cookie header or writing them to local storage.</p>
+
+    <p>Luckily, you shouldn't have to worry about this magic much, as long as you get the incantation correct.</p>
+</body>
+
+</html>

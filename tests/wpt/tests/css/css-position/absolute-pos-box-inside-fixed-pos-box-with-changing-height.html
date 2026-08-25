@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-position/">
+<link rel="match" href="absolute-pos-box-inside-fixed-pos-box-with-changing-height-ref.html">
+<meta name="assert" content="bottom anchored abs pos child moves when fixed pos containing block height changes.">
+<style>
+body {
+  margin: 0px;
+}
+#fixed {
+  left: 0px;
+  width: 100px;
+  height: 200px;
+  position: fixed;
+}
+.box {
+  position: absolute;
+  bottom: 0;
+  width: 50px;
+  height: 50px;
+  background: green;
+}
+.ref {
+  position: absolute;
+  width: 50px;
+  height: 50px;
+  left: 0px;
+  top: 250px;
+  background: red;
+}
+</style>
+<div class=ref></div>
+<div style="position: absolute">
+  <div id=fixed>
+    <div class=box></div>
+  </div>
+</div>
+<script>
+  document.body.offsetTop;
+  fixed.style.height = "300px";
+</script>

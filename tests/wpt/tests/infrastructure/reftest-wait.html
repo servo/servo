@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Test infrastructure should support 'reftest-wait'</title>
+<link rel="match" href="reftest-wait-ref.html">
+<style>
+.marker {
+    margin-bottom: 10px;
+    background: red;
+    height: 50px;
+    width: 50px;
+}
+</style>
+<script>
+setTimeout(function() {
+    document.querySelector(".marker").style.background = 'green';
+    document.documentElement.classList.remove("reftest-wait");
+}, 1000);
+</script>
+<div class="marker"></div>
+<div>The box above should be green.</div>
+</html>

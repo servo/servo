@@ -1,0 +1,42 @@
+<!doctype html>
+<html class="reftest-wait">
+<head>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<script>
+"use strict";
+
+addEventListener("load", async () => {
+  const iframe = document.querySelector("iframe");
+  iframe.focus();
+  const srcdoc = `
+<div contenteditable>
+<span contenteditable="false">
+<span autofocus contenteditable="plaintext-only"></span>
+</span>
+</div>
+<input>`;
+  for (let i = 0; i < 30; i++) {
+    iframe.srcdoc = "";
+    const waitForLoad = new Promise(resolve => {
+      iframe.addEventListener("load", () => {
+        const editingHost = iframe.contentDocument.querySelector("div[contenteditable]");
+        const nonEditableSpan = editingHost.querySelector("span[contenteditable=false]");
+        editingHost.focus();
+        const input = iframe.contentDocument.querySelector("input");
+        input.appendChild(nonEditableSpan);
+
+        resolve();
+      }, {once: true});
+    });
+    iframe.srcdoc = srcdoc;
+    await waitForLoad;
+  }
+  document.documentElement.removeAttribute("class");
+}, {once: true});
+</script>
+</head>
+<body>
+<iframe></iframe>
+</body>
+</html>

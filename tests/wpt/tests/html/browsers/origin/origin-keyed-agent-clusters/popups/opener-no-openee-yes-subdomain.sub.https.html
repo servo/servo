@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Opener is site-keyed, openee is origin-keyed, openee is a subdomain of the opener</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="log"></div>
+
+<script type="module">
+import {
+  openWindow,
+  testOpenedWindowIsInADifferentAgentCluster,
+  testGetter
+} from "../resources/helpers.mjs";
+
+let openee;
+promise_setup(async () => {
+  openee = await openWindow("{{hosts[][www]}}", "?1");
+});
+
+// Since they're different-origin, the openee's origin-keying request is
+// respected, so the opener ends up in the site-keyed agent cluster and the
+// openee in the origin-keyed one.
+testOpenedWindowIsInADifferentAgentCluster(() => openee);
+
+testGetter(self, false, "opener");
+testGetter(() => openee, true, "openee");
+</script>

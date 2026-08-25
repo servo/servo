@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>UA style for form in table elements</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#tables-2">
+<link rel="author" title="Rune Lillesveen" href="mailto:futhark@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .block { display: block !important }
+</style>
+<div id="display">
+  <table><form></form></table>
+  <table><thead><form></form></thead></table>
+  <table><tbody><form></form></tbody></table>
+  <table><tfoot><form></form></tfoot></table>
+  <table><tr><form></form></tr></table>
+</div>
+<div id="important">
+  <table><form class="block"></form></table>
+  <table><thead><form class="block"></form></thead></table>
+  <table><tbody><form class="block"></form></tbody></table>
+  <table><tfoot><form class="block"></form></tfoot></table>
+  <table><tr><form class="block"></form></tr></table>
+</div>
+<script>
+  for (const form of display.querySelectorAll("form")) {
+    test(function() {
+      assert_equals(getComputedStyle(form).display, "none");
+    }, `Computed display of form inside ${form.parentNode.nodeName} should be 'none'`);
+  }
+  for (const form of important.querySelectorAll("form")) {
+    test(function() {
+      assert_equals(getComputedStyle(form).display, "none");
+    }, `Computed display of form inside ${form.parentNode.nodeName} should be 'none' (!important UA style))`);
+  }
+</script>

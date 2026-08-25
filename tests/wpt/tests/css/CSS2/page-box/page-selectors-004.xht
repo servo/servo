@@ -1,0 +1,30 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Page cascade (first trumps right)</title>
+  <link rel="author" title="Melinda Grant" href="mailto:melinda.grant@hp.com" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-selectors" />
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#cascading-and-page-context" />
+  <meta name="flags" content="paged" />
+  <meta name="assert" content="Properties specified in a :first @page context override those specified in :right @page contexts." />
+  <style type="text/css">
+
+  @page :first {
+    margin: 15% 50% 7% 7%;
+  }
+  @page :right {
+    margin-left: 50%
+  }
+
+  div {
+    page-break-after: always;
+  }
+
+  </style>
+ </head>
+ <body>
+   <div>
+   This test produces only this page, containing only this paragraph, which is entirely on the left side of the page.
+   </div>
+ </body>
+</html>

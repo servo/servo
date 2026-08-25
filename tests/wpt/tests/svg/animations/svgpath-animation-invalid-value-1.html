@@ -1,0 +1,30 @@
+<!doctype html>
+<title>Test SVGPath animation with invalid values: Malformed path in by attribute.</title>
+<link rel="help" href="https://www.w3.org/TR/2001/REC-smil-animation-20010904/#ByAttribute">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/animated-path-helpers.js"></script>
+
+<svg id="svg">
+  <path id="path" d="M 40 40 L 60 40 L 60 60 L 40 60 z" fill="green">
+    <animate attributeName="d" by="ERROR" begin="0s" dur="4s" fill="freeze" />
+  </path>
+</svg>
+
+<script>
+
+async_test(t => {
+    const svg = document.getElementById("svg");
+    const path = document.getElementById("path");
+
+    window.addEventListener('load', t.step_func(() => {
+        svg.setCurrentTime(2);
+
+        requestAnimationFrame(t.step_func_done(() => {
+          assert_animated_path_equals(path,
+                               "M 40 40 L 60 40 L 60 60 L 40 60 z");
+        }));
+    }));
+  });
+
+</script>

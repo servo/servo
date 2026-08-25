@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#drawing-cell-backgrounds">
+<link rel="match" href="col-paint-htb-rtl-ref.html">
+<style>
+table { border: solid 2px; border-spacing: 5px; padding: 5px; }
+col { background: linear-gradient(60deg, red 50%, blue 50%); }
+</style>
+<table style="direction: rtl;">
+  <col style="width: 100px;"></col>
+  <col style="width: 50px;"></col>
+  <tr style="height: 100px;">
+    <td></td>
+    <td></td>
+  </tr>
+  <tr style="height: 50px;">
+    <td></td>
+    <td></td>
+  </tr>
+</table>

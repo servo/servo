@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: aborted outbound navigation before reveal still reveals the original document</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#revealing-the-document">
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  promise_test(async t => {
+    const result = await new Promise(resolve => {
+      const channel_name = `abort-nav-reveal-${new Date().valueOf()}`;
+      const bc = new BroadcastChannel(channel_name);
+      bc.addEventListener("message", e => resolve(e.data));
+      const popup = window.open(`resources/abort-before-render.html?channel=${channel_name}`);
+
+      t.add_cleanup(() => popup.close());
+    });
+
+    assert_equals(result, "did reveal original page without transition");
+  }, "an aborted navigation while render-blocked still reveals the original document");
+</script>
+</html>

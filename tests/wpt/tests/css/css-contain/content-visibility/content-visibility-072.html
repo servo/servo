@@ -1,0 +1,86 @@
+<!doctype HTML>
+<html>
+<meta charset="utf8">
+<title>Content Visibility: nested forced layouts</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<meta name="assert" content="nested content-visibility items are all processed when layout is forced">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+body, html {
+  padding: 0;
+  margin: 0;
+}
+.spacer {
+  height: 3000px;
+}
+.target {
+  width: 12px;
+  height: 34px;
+
+  position: relative;
+  left: 5px;
+  top: 7px;
+}
+
+.auto {
+  content-visibility: auto;
+}
+.hidden {
+  content-visibility: hidden;
+}
+</style>
+
+<div class=spacer></div>
+<div class=auto>
+  <div class=auto>
+    <div class=target id=one></div>
+  </div>
+</div>
+
+<div class=auto>
+  <div class=hidden>
+    <div class=target id=two></div>
+  </div>
+</div>
+
+<div class=hidden>
+  <div class=auto>
+    <div class=target id=three></div>
+  </div>
+</div>
+
+<div class=hidden>
+  <div class=hidden>
+    <div class=target id=four></div>
+  </div>
+</div>
+
+<div class=hidden>
+  <div class=hidden>
+    <div class=hidden>
+      <div class=hidden>
+        <div class=hidden>
+          <div class=target id=five></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const ids = ["one", "two", "three", "four", "five"];
+for (let i = 0; i < ids.length; ++i) {
+  test(() => {
+    const r = document.getElementById(ids[i]).getBoundingClientRect();
+    assert_equals(r.x, 5, "x");
+    assert_equals(r.y, 3007, "y");
+    assert_equals(r.width, 12, "width");
+    assert_equals(r.height, 34, "y");
+  }, `${ids[i]}.getBoundingClientRect(): `);
+}
+</script>
+</html>

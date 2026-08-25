@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Clip should be applied after filtering</title>
+<link rel="author" title="Philip Rogers" href="mailto:pdr@chromium.org">
+
+<style>
+  body { margin: 0 }
+  #testcase {
+    position: absolute;
+    left: 10px;
+    width: 200px;
+    height: 200px;
+    background: green;
+    will-change: transform;
+  }
+</style>
+
+<div>
+  <p>Expected: A green box.<br>
+  There should be no red visible.<br>
+  There should be a crisp, clipped edge around the green box (no blurring).</p>
+</div>
+
+<div id="testcase"></div>

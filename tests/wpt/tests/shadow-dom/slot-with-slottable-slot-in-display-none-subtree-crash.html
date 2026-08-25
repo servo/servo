@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<link rel="help" href="https://github.com/servo/servo/issues/45794">
+<script>
+    onload = () => {
+        var shadowRoot = shadowHost.attachShadow({mode: "open"});
+        iframe.srcdoc = "A";
+        slot.style.color = "pink";
+        document.body.clientHeight;
+        shadowRoot.appendChild(noneDiv);
+    };
+</script>
+
+<div id="noneDiv" style="display: none;">
+    <slot style="display: none;" name="innerSlot">
+</div>
+
+<h3 id="shadowHost">
+    <slot id="slot" slot="innerSlot">
+        <iframe id="iframe">
+    </slot>
+</h3>

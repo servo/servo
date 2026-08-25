@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<style>
+#flex {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  width: 140px;
+  height: 100px;
+  border: solid 3px;
+  padding-right: 80px;
+}
+
+#flex > div {
+  height: 60%;
+  aspect-ratio: 1;
+  background: green;
+}
+</style>
+<p>There should be three (3) green squares below, which overflow in the block direction.</p>
+<div id="flex">
+  <div></div>
+  <div></div>
+  <div></div>
+</div>

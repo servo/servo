@@ -1,0 +1,477 @@
+<!--
+Copyright (c) 2022 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL WEBGL_clip_cull_distance Conformance Tests</title>
+<LINK rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas width="32" height="32" id="c"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description("This test verifies the functionality of the WEBGL_clip_cull_distance extension, if it is available.");
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("c", null, 2);
+var ext;
+const w = gl.drawingBufferWidth;
+const h = gl.drawingBufferHeight;
+
+function runTestNoExtension() {
+  debug("");
+  debug("Check parameters and capabilities without the extension");
+
+  shouldBeNull("gl.getParameter(0x0D32 /* MAX_CLIP_DISTANCES_WEBGL */)");
+  wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "parameter unknown without enabling the extension");
+  shouldBeNull("gl.getParameter(0x82F9 /* MAX_CULL_DISTANCES_WEBGL */)");
+  wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "parameter unknown without enabling the extension");
+  shouldBeNull("gl.getParameter(0x82FA /* MAX_COMBINED_CLIP_AND_CULL_DISTANCES_WEBGL */)");
+  wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "parameter unknown without enabling the extension");
+
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+
+  const assertState = (i) => {
+    shouldBeFalse(`gl.isEnabled(${0x3000 + i} /* CLIP_DISTANCE${i}_WEBGL */)`);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "parameter unknown without enabling the extension");
+
+    shouldBeNull(`gl.getParameter(${0x3000 + i} /* CLIP_DISTANCE${i}_WEBGL */)`);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "parameter unknown without enabling the extension");
+  };
+
+  for (let i = 0; i < 8; i++) {
+    assertState(i);
+
+    gl.enable(0x3000 + i /* CLIP_DISTANCEi_WEBGL */);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "capability unknown without enabling the extension");
+
+    assertState(i);
+
+    gl.disable(0x3000 + i /* CLIP_DISTANCEi_WEBGL */);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "capability unknown without enabling the extension");
+
+    assertState(i);
+  }
+
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+  debug("");
+}
+
+function checkEnums() {
+  debug("");
+  debug("Check enums");
+  shouldBe("ext.MAX_CLIP_DISTANCES_WEBGL", "0x0D32");
+  shouldBe("ext.MAX_CULL_DISTANCES_WEBGL", "0x82F9");
+  shouldBe("ext.MAX_COMBINED_CLIP_AND_CULL_DISTANCES_WEBGL", "0x82FA");
+  shouldBe("ext.CLIP_DISTANCE0_WEBGL", "0x3000");
+  shouldBe("ext.CLIP_DISTANCE1_WEBGL", "0x3001");
+  shouldBe("ext.CLIP_DISTANCE2_WEBGL", "0x3002");
+  shouldBe("ext.CLIP_DISTANCE3_WEBGL", "0x3003");
+  shouldBe("ext.CLIP_DISTANCE4_WEBGL", "0x3004");
+  shouldBe("ext.CLIP_DISTANCE5_WEBGL", "0x3005");
+  shouldBe("ext.CLIP_DISTANCE6_WEBGL", "0x3006");
+  shouldBe("ext.CLIP_DISTANCE7_WEBGL", "0x3007");
+}
+
+function checkQueries() {
+  debug("");
+  debug("Check parameters");
+  shouldBeGreaterThanOrEqual('gl.getParameter(ext.MAX_CLIP_DISTANCES_WEBGL)', '8');
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+
+  const maxCullDistances = gl.getParameter(ext.MAX_CULL_DISTANCES_WEBGL);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+
+  if (maxCullDistances == 0) {
+    testPassed("No cull distance support");
+    shouldBe("gl.getParameter(ext.MAX_COMBINED_CLIP_AND_CULL_DISTANCES_WEBGL)", "0");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+  } else if (maxCullDistances >= 8) {
+    testPassed("Optional cull distance support");
+    shouldBeGreaterThanOrEqual("gl.getParameter(ext.MAX_COMBINED_CLIP_AND_CULL_DISTANCES_WEBGL)", "8");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+  } else {
+    testFailed("Invalid number of supported cull distances");
+  }
+
+  debug("");
+  debug("Check clip distance capabilities");
+
+  const assertState = (i, s) => {
+    shouldBe(`gl.isEnabled(${0x3000 + i} /* CLIP_DISTANCE${i}_WEBGL */)`, s ? "true" : "false");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+
+    shouldBe(`gl.getParameter(${0x3000 + i} /* CLIP_DISTANCE${i}_WEBGL */)`, s ? "true" : "false");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+  };
+
+  for (let i = 0; i < 8; i++) {
+    assertState(i, false);
+
+    gl.enable(ext.CLIP_DISTANCE0_WEBGL + i);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+
+    assertState(i, true);
+
+    gl.disable(ext.CLIP_DISTANCE0_WEBGL + i);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+
+    assertState(i, false);
+  }
+}
+
+function checkClipDistance() {
+  debug("");
+  debug("Check clip distance operation");
+
+  const vs = `#version 300 es
+#extension GL_ANGLE_clip_cull_distance : require
+
+uniform vec4 u_plane;
+in vec2 a_position;
+void main()
+{
+    gl_Position = vec4(a_position, 0.0, 1.0);
+    gl_ClipDistance[0] = dot(gl_Position, u_plane);
+}`;
+
+  const program = wtu.setupProgram(gl, [vs, wtu.simpleColorFragmentShaderESSL300]);
+  gl.useProgram(program);
+  gl.uniform4fv(gl.getUniformLocation(program, 'u_color'), [1.0, 0.0, 0.0, 1.0]);
+
+  gl.enable(ext.CLIP_DISTANCE0_WEBGL);
+
+  // Clear to blue
+  gl.clearColor(0, 0, 1, 1);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  wtu.setupUnitQuad(gl);
+
+  // Draw full screen quad with color red
+  gl.uniform4f(gl.getUniformLocation(program, "u_plane"), 1, 0, 0, 0.5);
+  wtu.drawUnitQuad(gl);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+
+  // All pixels on the left of the plane x = -0.5 must be blue
+  let x      = 0;
+  let y      = 0;
+  let width  = w / 4 - 1;
+  let height = h;
+  wtu.checkCanvasRect(gl, x, y, width, height,
+                      [0, 0, 255, 255], "should be blue");
+
+  // All pixels on the right of the plane x = -0.5 must be red
+  x      = w / 4 + 2;
+  y      = 0;
+  width  = w - x;
+  height = h;
+  wtu.checkCanvasRect(gl, x, y, width, height,
+                      [255, 0, 0, 255], "should be red");
+
+  // Clear to green
+  gl.clearColor(0, 1, 0, 1);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  // Draw full screen quad with color red
+  gl.uniform4f(gl.getUniformLocation(program, "u_plane"), -1, 0, 0, -0.5);
+  wtu.drawUnitQuad(gl);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+
+  // All pixels on the left of the plane x = -0.5 must be red
+  x      = 0;
+  y      = 0;
+  width  = w / 4 - 1;
+  height = h;
+  wtu.checkCanvasRect(gl, x, y, width, height,
+                      [255, 0, 0, 255], "should be red");
+
+  // All pixels on the right of the plane x = -0.5 must be green
+  x      = w / 4 + 2;
+  y      = 0;
+  width  = w - x;
+  height = h;
+  wtu.checkCanvasRect(gl, x, y, width, height,
+                      [0, 255, 0, 255], "should be green");
+
+  // Disable CLIP_DISTANCE0 and draw again
+  gl.disable(ext.CLIP_DISTANCE0_WEBGL);
+  wtu.drawUnitQuad(gl);
+
+  // All pixels must be red
+  wtu.checkCanvas(gl, [255, 0, 0, 255], "should be red");
+}
+
+function checkClipDistanceInterpolation() {
+  debug("");
+  debug("Check clip distance interpolation");
+
+  const vs = `#version 300 es
+#extension GL_ANGLE_clip_cull_distance : require
+in vec2 a_position;
+void main()
+{
+  gl_Position = vec4(a_position, 0.0, 1.0);
+  gl_ClipDistance[0] = dot(gl_Position, vec4( 1,  0, 0, 0.5));
+  gl_ClipDistance[1] = dot(gl_Position, vec4(-1,  0, 0, 0.5));
+  gl_ClipDistance[2] = dot(gl_Position, vec4( 0,  1, 0, 0.5));
+  gl_ClipDistance[3] = dot(gl_Position, vec4( 0, -1, 0, 0.5));
+  gl_ClipDistance[4] = gl_ClipDistance[0];
+  gl_ClipDistance[5] = gl_ClipDistance[1];
+  gl_ClipDistance[6] = gl_ClipDistance[2];
+  gl_ClipDistance[7] = gl_ClipDistance[3];
+}`;
+
+  const fs = `#version 300 es
+#extension GL_ANGLE_clip_cull_distance : require
+precision highp float;
+out vec4 my_FragColor;
+void main()
+{
+  float r = gl_ClipDistance[0] + gl_ClipDistance[1];
+  float g = gl_ClipDistance[2] + gl_ClipDistance[3];
+  float b = gl_ClipDistance[4] + gl_ClipDistance[5];
+  float a = gl_ClipDistance[6] + gl_ClipDistance[7];
+  my_FragColor = vec4(r, g, b, a) * 0.5;
+}`;
+
+  const program = wtu.setupProgram(gl, [vs, fs]);
+  gl.useProgram(program);
+
+  gl.enable(ext.CLIP_DISTANCE0_WEBGL);
+  gl.enable(ext.CLIP_DISTANCE1_WEBGL);
+  gl.enable(ext.CLIP_DISTANCE2_WEBGL);
+  gl.enable(ext.CLIP_DISTANCE3_WEBGL);
+  gl.enable(ext.CLIP_DISTANCE4_WEBGL);
+  gl.enable(ext.CLIP_DISTANCE5_WEBGL);
+  gl.enable(ext.CLIP_DISTANCE6_WEBGL);
+  gl.enable(ext.CLIP_DISTANCE7_WEBGL);
+
+  wtu.setupUnitQuad(gl);
+
+  // Clear to blue
+  gl.clearColor(0, 0, 1, 1);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  // Draw full screen quad with color gray
+  wtu.drawUnitQuad(gl);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+
+  const data = new Uint8Array(w * h * 4);
+  gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, data);
+  let passed = true;
+  for (let x = 0; x < w; x++) {
+    for (let y = 0; y < h; y++) {
+      const currentPosition = (y * h + x) * 4;
+      const inside = (x >= w / 4 && x < w * 3 / 4 && y >= h / 4 && y < h * 3 / 4);
+      const expected = inside ? [127, 127, 127, 127] : [0, 0, 255, 255];
+      const actual = data.slice(currentPosition, currentPosition + 4);
+      if (Math.abs(actual[0] - expected[0]) > 1 ||
+          Math.abs(actual[1] - expected[1]) > 1 ||
+          Math.abs(actual[2] - expected[2]) > 1 ||
+          Math.abs(actual[3] - expected[3]) > 1) {
+        passed = false;
+      }
+    }
+  }
+  if (passed) {
+    testPassed("Correct clip distance interpolation");
+  } else {
+    testFailed("Incorrect clip distance interpolation");
+  }
+}
+
+function checkCullDistance() {
+  debug("");
+  debug("Check cull distance operation");
+
+  if (gl.getParameter(ext.MAX_CULL_DISTANCES_WEBGL) == 0) {
+    testPassed("No cull distance support");
+    return;
+  }
+
+  const vs = `#version 300 es
+#extension GL_ANGLE_clip_cull_distance : require
+
+uniform vec4 u_plane;
+in vec2 a_position;
+void main()
+{
+    gl_Position = vec4(a_position, 0.0, 1.0);
+    gl_CullDistance[0] = dot(gl_Position, u_plane);
+}`;
+
+  const program = wtu.setupProgram(gl, [vs, wtu.simpleColorFragmentShaderESSL300]);
+  gl.useProgram(program);
+  gl.uniform4fv(gl.getUniformLocation(program, 'u_color'), [1.0, 0.0, 0.0, 1.0]);
+
+  // Clear to blue
+  gl.clearColor(0, 0, 1, 1);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  wtu.setupUnitQuad(gl);
+
+  // Draw full screen quad with color red
+  gl.uniform4f(gl.getUniformLocation(program, "u_plane"), 1, 0, 0, 0.5);
+  wtu.drawUnitQuad(gl);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+
+  // All pixels must be red
+  wtu.checkCanvas(gl, [255, 0, 0, 255], "should be red");
+
+  // Clear to green
+  gl.clearColor(0, 1, 0, 1);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  // Draw full screen quad with color red
+  gl.uniform4f(gl.getUniformLocation(program, "u_plane"), -1, 1, 0, -0.5);
+  wtu.drawUnitQuad(gl);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+
+  // All pixels above the y > x line must be red
+  const data = new Uint8Array(w * h * 4);
+  gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, data);
+  let passed = true;
+  for (let x = 0; x < w; ++x) {
+    for (let y = 0; y < h; ++y) {
+      if (y <= x + 2 && y >= x - 2) continue; // skip the edge
+      const currentPosition = (y * h + x) * 4;
+      const actual = data.slice(currentPosition, currentPosition + 2);
+      const expected = (y > x) ? [255, 0] : [0, 255];
+      if (actual[0] != expected[0] || actual[1] != expected[1]) {
+        passed = false;
+      }
+    }
+  }
+  if (passed) {
+    testPassed("Correct cull distance operation");
+  } else {
+    testFailed("Incorrect cull distance operation");
+  }
+}
+
+function checkCullDistanceInterpolation() {
+  debug("");
+  debug("Check cull distance interpolation");
+
+  if (gl.getParameter(ext.MAX_CULL_DISTANCES_WEBGL) == 0) {
+    testPassed("No cull distance support");
+    return;
+  }
+
+  const vs = `#version 300 es
+#extension GL_ANGLE_clip_cull_distance : require
+in vec2 a_position;
+void main()
+{
+  gl_Position = vec4(a_position, 0.0, 1.0);
+  gl_CullDistance[0] = dot(gl_Position, vec4( 1,  0, 0, 1));
+  gl_CullDistance[1] = dot(gl_Position, vec4(-1,  0, 0, 1));
+  gl_CullDistance[2] = dot(gl_Position, vec4( 0,  1, 0, 1));
+  gl_CullDistance[3] = dot(gl_Position, vec4( 0, -1, 0, 1));
+  gl_CullDistance[4] = gl_CullDistance[0];
+  gl_CullDistance[5] = gl_CullDistance[1];
+  gl_CullDistance[6] = gl_CullDistance[2];
+  gl_CullDistance[7] = gl_CullDistance[3];
+}`;
+
+  const fs = `#version 300 es
+#extension GL_ANGLE_clip_cull_distance : require
+precision highp float;
+out vec4 my_FragColor;
+void main()
+{
+  float r = gl_CullDistance[0] + gl_CullDistance[1];
+  float g = gl_CullDistance[2] + gl_CullDistance[3];
+  float b = gl_CullDistance[4] + gl_CullDistance[5];
+  float a = gl_CullDistance[6] + gl_CullDistance[7];
+  my_FragColor = vec4(r, g, b, a) * 0.25;
+}`;
+
+  const program = wtu.setupProgram(gl, [vs, fs]);
+  gl.useProgram(program);
+
+  // Clear to blue
+  gl.clearColor(0, 0, 1, 1);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  wtu.setupQuad(gl, {scale: 0.5});
+
+  // Draw a small quad with color gray
+  wtu.drawUnitQuad(gl);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+
+  const data = new Uint8Array(w * h * 4);
+  gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, data);
+  let passed = true;
+  for (let x = 0; x < w; x++) {
+    for (let y = 0; y < h; y++) {
+      const currentPosition = (y * h + x) * 4;
+      const inside = (x >= w / 4 && x < w * 3 / 4 && y >= h / 4 && y < h * 3 / 4);
+      const expected = inside ? [127, 127, 127, 127] : [0, 0, 255, 255];
+      const actual = data.slice(currentPosition, currentPosition + 4);
+      if (Math.abs(actual[0] - expected[0]) > 1 ||
+          Math.abs(actual[1] - expected[1]) > 1 ||
+          Math.abs(actual[2] - expected[2]) > 1 ||
+          Math.abs(actual[3] - expected[3]) > 1) {
+        passed = false;
+      }
+    }
+  }
+  if (passed) {
+    testPassed("Correct cull distance interpolation");
+  } else {
+    testFailed("Incorrect cull distance interpolation");
+  }
+}
+
+function runTestExtension() {
+  checkEnums();
+  checkQueries();
+
+  checkClipDistance();
+  checkClipDistanceInterpolation();
+
+  checkCullDistance();
+  checkCullDistanceInterpolation();
+}
+
+function runTest() {
+  if (!gl) {
+    testFailed("context does not exist");
+  } else {
+    testPassed("context exists");
+
+    runTestNoExtension();
+
+    ext = gl.getExtension("WEBGL_clip_cull_distance");
+
+    wtu.runExtensionSupportedTest(gl, "WEBGL_clip_cull_distance", ext !== null);
+
+    if (ext !== null) {
+      runTestExtension();
+    } else {
+      testPassed("No WEBGL_clip_cull_distance support -- this is legal");
+    }
+  }
+}
+
+runTest();
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

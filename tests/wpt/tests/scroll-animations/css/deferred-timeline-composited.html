@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+  <link rel="help" src="https://github.com/w3c/csswg-drafts/issues/7759">
+  <link rel="match" href="deferred-timeline-composited-ref.html">
+  <script src="/web-animations/testcommon.js"></script>
+  <script src="/common/reftest-wait.js"></script>
+  <style>
+    @keyframes anim {
+      from { translate: 0px; }
+      to { translate: 100px; }
+    }
+    main {
+      timeline-scope: --t1;
+    }
+    .scroller {
+      width: 100px;
+      height: 100px;
+      will-change: translate;
+      background-color: white;
+      /* Prevent scrollers from appearing in the screenshot. */
+      opacity: 0;
+    }
+    .scroller > div {
+      height: 300px;
+      width: 300px;
+    }
+    #target {
+      animation: anim auto linear;
+      animation-timeline: --t1;
+      width: 50px;
+      height: 50px;
+      will-change: translate;
+      background-color: green;
+    }
+    .timeline {
+      scroll-timeline-name: --t1;
+    }
+    #scroller_block {
+      overflow-y: scroll;
+      overflow-x: hidden;
+      scroll-timeline-axis: block;
+    }
+    #scroller_inline {
+      overflow-y: hidden;
+      overflow-x: scroll;
+      scroll-timeline-axis: inline;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div id=target></div>
+    <div id=scroller_block class="scroller timeline">
+      <div></div>
+    </div>
+    <div id=scroller_inline class=scroller>
+      <div></div>
+    </div>
+  </main>
+  <script>
+    (async () => {
+      await waitForCompositorReady();
+      // Switch out the timeline associated with timeline-scope:--t.
+      scroller_block.classList.toggle('timeline');
+      scroller_inline.classList.toggle('timeline');
+      await waitForNextFrame();
+      let scrollPromise = new Promise((resolve) => {
+        scroller_inline.addEventListener('scrollend', resolve);
+      });
+      scroller_inline.scrollTo({left: 100, behavior: "smooth"}); // 50%
+      await scrollPromise;
+      await waitForNextFrame();
+      takeScreenshot();
+    })();
+  </script>
+</body>
+</html>

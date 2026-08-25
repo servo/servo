@@ -1,0 +1,26 @@
+<!doctype HTML>
+<html>
+    <head>
+        <title>HTML5 Canvas Test:  arcTo() adds to subpath if same point</title>
+        <link rel="match" href="canvas_complexshapes_arcto_001-ref.htm">
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com" />
+        <link rel="help" href="http://www.w3.org/TR/2dcontext/#dom-context-2d-arcto" />
+        <meta name="assert" content="If x1,y1 and x2,y2 are the same point, then arcTo must add x1,y1 to the subpath, and connect that point to x0,y0 with a straight line." />
+        <script type="text/javascript">
+            function runTest()
+            {
+                var canvas = document.getElementById("canvas1");
+                var ctx = canvas.getContext("2d");
+                ctx.moveTo(0, 50);
+
+                // Since (x1, y1) and (x2, y2) are the same point, (x1, y1) must be added to the subpath, thus creating a line.
+                ctx.arcTo(100, 50, 100, 50, 10);
+                ctx.stroke();
+            }
+        </script>
+    </head>
+    <body onload="runTest()">
+        <p>Description: If x1,y1 and x2,y2 are the same point, then arcTo must add x1,y1 to the subpath, and connect that point to x0,y0 with a straight line.</p>
+        <canvas id="canvas1" width="300" height="150">Browser does not support HTML5 Canvas.</canvas>
+    </body>
+</html>

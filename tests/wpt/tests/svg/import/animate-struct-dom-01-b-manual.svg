@@ -1,0 +1,93 @@
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.3" reviewer="CL" author="CM" status="accepted"
+    version="$Revision: 1.2 $" testname="$RCSfile: animate-struct-dom-01-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/struct.html#InterfaceSVGSVGElement">
+        <p>
+          This tests that calling SVGSVGElement.getCurrentTime() before the
+          document timeline has begun returns 0, and that
+          calling SVGSVGElement.setCurrentTime() before the document timeline
+          has begun will queue a seek to that time once the timeline
+          does begin.
+          After loading the test, two rectangles will be shown.
+          The left rectangle indicates whether SVGSVGElement.getCurrentTime()
+          correctly returned 0 before the document timeline had begun.
+          The right rectangles indicates whether a call to
+          SVGSVGElement.setCurrentTime() was acted upon once the timeline
+          did begin.  For each rectangle, red indicates that the sub-test
+          failed and green indicates that the sub-test passed.
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test is passed if both rectangles are green.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: animate-struct-dom-01-b.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+
+    <text x='10' y='30'>Test getCurrentTime() and setCurrentTime() before timeline begin</text>
+    <rect id='r' x='10' y='50' width='50' height='50' fill='red'/>
+    <rect x='210' y='50' width='50' height='50' fill='red'>
+      <set attributeName='fill' to='green' begin='36000'/> <!-- 10h -->
+      <set attributeName='fill' to='red' begin='72000'/>   <!-- 20h -->
+    </rect>
+
+    <g font-size='15'>
+      <text x='10' y='120'>getCurrentTime</text>
+      <text x='210' y='120'>setCurrentTime</text>
+    </g>
+
+    <script>
+      try {
+        document.documentElement.setCurrentTime(90000); // 25h
+        document.documentElement.setCurrentTime(54000); // 15h
+      } catch (e) {
+      }
+
+      try {
+        if (document.documentElement.getCurrentTime() == 0) {
+          document.getElementById('r').setAttribute('fill', 'green');
+        }
+      } catch (e) {
+      }
+    </script>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.2 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+<!--
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+-->
+</svg>

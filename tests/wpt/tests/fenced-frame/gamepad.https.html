@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>Gamepad API test</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+promise_test(async () => {
+  const key = token();
+  attachFencedFrame(generateURL('resources/gamepad-inner.html', [key]));
+  const result = await nextValueFromServer(key);
+  assert_equals(
+      result,
+      'SecurityError',
+      'getGamepads should throw an error in a fenced frame');
+}, 'Gamepads information should not be read in the fenced frame.');
+</script>
+</body>

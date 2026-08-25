@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Tests that a flex item with aspect-ratio applies the automatic content-based block-size in fragmented context.</title>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+<link rel="help" herf="https://drafts.csswg.org/css-sizing-4/#aspect-ratio-minimum">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1744363">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width: 100px; height: 100px; columns: 2; column-gap: 0; column-fill: auto; background: red;">
+  <div style="display: flex;">
+    <div style="width: 50px; aspect-ratio: 1/2; background: green;">
+      <div style="height: 200px;"></div>
+    </div>
+  </div>
+</div>

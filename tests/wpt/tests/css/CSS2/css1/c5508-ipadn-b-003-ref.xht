@@ -1,0 +1,73 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  p {margin: 0;}
+
+  td
+  {
+  border: black solid medium;
+  padding: 0;
+  width: 100px;
+  }
+
+  div.blue {border-top: blue solid 20px;}
+
+  div.yellow {border-top: yellow solid 20px;}
+
+  div.aqua {border-top: aqua solid 20px;}
+
+  div.lime {border-top: lime solid 20px;}
+
+  div.fuchsia {border-top: fuchsia solid 20px;}
+
+  div.orange {border-top: orange solid 20px;}
+  ]]>
+  </style>
+
+ </head>
+
+ <body>
+
+  <p>The next two columns should be identical.</p>
+
+  <table>
+   <tr>
+    <td>
+     <div class="blue"></div>
+     <div class="aqua"></div>
+     <div class="yellow"></div>
+     <div class="fuchsia"></div>
+     <div class="lime"></div>
+     <div class="orange"></div>
+     <div class="blue"></div>
+     <div class="yellow"></div>
+     <div class="aqua"></div>
+     <div class="lime"></div>
+    </td>
+
+    <td>
+     <div class="blue"></div>
+     <div class="aqua"></div>
+     <div class="yellow"></div>
+     <div class="fuchsia"></div>
+     <div class="lime"></div>
+     <div class="orange"></div>
+     <div class="blue"></div>
+     <div class="yellow"></div>
+     <div class="aqua"></div>
+     <div class="lime"></div>
+    </td>
+
+   </tr>
+  </table>
+
+ </body>
+</html>

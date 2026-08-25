@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<link rel=help href="https://issues.chromium.org/issues/498834950">
+<button id="b">click</button>
+<div id="p" popover="auto"><input autofocus></div>
+<script>
+document.getElementById('b').focus();
+document.getElementById('p').showPopover();
+document.getElementById('b').addEventListener('focus', () => {
+    document.getElementById('p').removeAttribute('popover');
+});
+document.getElementById('p').hidePopover();
+</script>

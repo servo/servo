@@ -1,0 +1,122 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Long Animation Frame Timing: congested moments in a dedicated worker</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<h1>Long Animation Frame: worker congested moment</h1>
+<div id="log"></div>
+<script>
+// This test exercises the Long Animation Frame extension to Web Workers. A
+// congested moment is an interval during which the worker's task queue stays
+// saturated (tasks run back to back without the queue draining) for at least
+// the congestion threshold; it is surfaced as a "long-animation-frame" entry.
+// The moment ends when the queue finally drains, and it is reported at that
+// point, so each scenario schedules a trailing timer "drainer" that runs after
+// an idle gap.
+// This is covered for four shapes of saturation:
+//   1. a long task that backlogs a trailing task behind it,
+//   2. a flood of short tasks (each under the threshold), all enqueued up
+//      front, that are coalesced into one congested moment,
+//   3. a longer flood that stays saturated well past the threshold, which is
+//      still reported as a single congested-moment entry covering the whole
+//      interval, and
+//   4. two floods separated by a real idle gap, reported as two distinct,
+//      non-overlapping congested moments.
+// It also checks the negative case:
+//   5. a steady async iteration (each task posts the next only after it
+//      finishes) keeps backlog depth at 1 and must NOT be reported, even though
+//      the total work exceeds the threshold.
+// It requires the LongAnimationFrameWorker feature to be enabled, e.g. run with
+// --enable-blink-features=LongAnimationFrameWorker.
+
+function run_scenario(t, scenario) {
+  const worker = new Worker("resources/loaf-congested-moment-worker.js");
+  t.add_cleanup(() => worker.terminate());
+  const message = new Promise((resolve) => {
+    worker.onmessage = (e) => resolve(e.data);
+  });
+  worker.postMessage(scenario);
+  return message;
+}
+
+promise_test(async (t) => {
+  const entry = await run_scenario(t, "long-task");
+
+  assert_equals(entry.entryType, "long-animation-frame");
+  assert_greater_than_equal(entry.duration, 200,
+      "congested moment spans at least the threshold");
+  assert_greater_than_equal(entry.scriptCount, 1,
+      "the backlogged task counts as one entry point");
+}, "A long worker task that backlogs the queue reports a congested-moment LoAF entry");
+
+promise_test(async (t) => {
+  const entry = await run_scenario(t, "flood");
+
+  assert_equals(entry.entryType, "long-animation-frame");
+  assert_greater_than_equal(entry.duration, 200,
+      "congested moment spans at least the threshold");
+
+  // The blocking tasks should be attributed to the worker script.
+  const workerScripts = entry.scripts.filter(
+      (s) => s.sourceURL &&
+          s.sourceURL.includes("loaf-congested-moment-worker.js"));
+  // The worker floods 20 tasks of 15ms each. The whole saturated interval is
+  // folded into one entry, so the entry should attribute most of them. We
+  // assert >= 10 as a conservative lower bound that still proves many tasks
+  // were coalesced, while leaving headroom for busy-wait / task-posting timing
+  // jitter.
+  assert_greater_than_equal(workerScripts.length, 10,
+      "multiple short tasks are coalesced into one congested moment");
+  assert_greater_than_equal(entry.scriptCount, workerScripts.length,
+      "scriptCount counts every coalesced entry point");
+}, "A flood of short worker tasks is coalesced into one congested-moment entry");
+
+promise_test(async (t) => {
+  const result = await run_scenario(t, "flood-long");
+
+  // A long flood that stays saturated well past the threshold is reported as a
+  // single congested-moment entry covering the whole interval, however long it
+  // lasted.
+  assert_equals(result.entries.length, 1,
+      "a long flood is reported as a single congested-moment entry");
+  const entry = result.entries[0];
+  assert_equals(entry.entryType, "long-animation-frame");
+  assert_greater_than_equal(entry.duration, 400,
+      "the single entry spans the whole backlog");
+}, "A long flood is reported as a single congested-moment entry");
+
+promise_test(async (t) => {
+  const result = await run_scenario(t, "two-floods");
+
+  // Two floods separated by a real idle gap (the queue fully drains between
+  // them) must be reported as two distinct congested moments, ordered and
+  // non-overlapping. This locks in the idle-gap boundary: a congested moment
+  // closes only when the worker actually goes idle, and a new congested moment
+  // never reaches back into an already-reported interval.
+  assert_equals(result.entries.length, 2,
+      "two idle-gap-separated floods report two congested-moment entries");
+  const [first, second] = result.entries;
+  assert_greater_than_equal(first.duration, 200,
+      "the first congested moment spans at least the threshold");
+  assert_greater_than_equal(second.duration, 200,
+      "the second congested moment spans at least the threshold");
+  assert_greater_than_equal(second.startTime, first.startTime + first.duration,
+      "the second entry starts after the first ends (no overlap)");
+}, "Two idle-gap-separated floods are reported as two non-overlapping entries");
+
+promise_test(async (t) => {
+  const result = await run_scenario(t, "no-congestion");
+
+  // Steady async iteration (each task posts the next only after finishing)
+  // keeps backlog depth at 1, so there is no queuing delay and it must NOT be
+  // reported as a congested moment, even though the total work exceeds the
+  // 200ms threshold.
+  assert_equals(result.congestedCount, 0,
+      "steady async iteration is not reported as a congested moment");
+}, "Steady async iteration is not reported as a congested moment");
+
+</script>
+</body>

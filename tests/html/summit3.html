@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      html {
+        background-color: #ccc;
+        font-size: 50px;
+      }
+      .frame {
+        text-align: center;
+      }
+      .left {
+        float: left;
+      }
+      .narrow {
+        width: 300px;
+      }
+      .wide {
+        width: 600px;
+      }
+      .short {
+        height: 360px;
+      }
+      .tall {
+        height: 800px;
+      }
+      iframe {
+        width: 300px;
+        border: solid 1px black;
+        display: block;
+        background-color: white;
+      }
+      .wide iframe {
+        width: 600px;
+      }
+      .tall iframe {
+        height: 660px;
+      }
+      .short iframe {
+        height: 300px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="frame tall left wide">
+      <iframe id="frameone" sandbox="allow-scripts" src="summit-one.html">
+      </iframe>
+      frame one
+    </div>
+    <div class="left">
+      <div class="frame short narrow">
+        <iframe id="frametwo" sandbox="allow-scripts" src="summit-two.html">
+        </iframe>
+        frame two
+      </div>
+      <div class="frame short narrow">
+        <iframe id="framethree" sandbox="allow-scripts" src="summit-three.html">
+        </iframe>
+        frame three
+      </div>
+    </div>
+  </body>
+</html>

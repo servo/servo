@@ -1,0 +1,2 @@
+rules:
+- attr-image-fetchpriority.optional.html: [fetch-priority]

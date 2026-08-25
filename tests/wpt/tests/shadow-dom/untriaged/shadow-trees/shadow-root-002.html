@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Shadow DOM Test: Basic distribution</title>
+<link rel="match" href="shadow-root-002-ref.html">
+<link rel="author" title="Anna Ogawa" href="mailto:anna.ogawa.0219@gmail.com">
+<link rel="author" title="Yuta Kitamura" href="mailto:yutak@google.com">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-20130514/#shadow-trees">
+<meta name="assert" content="On distribution, content element is replaced with the shadow host's children.">
+<script src="../../../html/resources/common.js"></script>
+<style>
+p { color: black; }
+.pass { color: green; }
+* { color: red; }
+</style>
+</head>
+<body>
+<p>
+You should see four lines of green text "A", "B", "C" and "D" below,
+in this order.
+</p>
+<div id="host">
+<div class="pass">B</div>
+<div class="pass">C</div>
+</div>
+<script>
+var shadowRoot = window.host.attachShadow({mode: 'open'});
+
+shadowRoot.innerHTML =
+    '<style>\n' +
+    '.shadow-pass { color: green; }\n' +
+    '* { color: red; }\n' +
+    '</style>' +
+    '<div class="shadow-pass">A</div>\n' +
+    '<slot>FAIL</slot>' +
+    '<div class="shadow-pass">D</div>';
+</script>
+</body>
+</html>

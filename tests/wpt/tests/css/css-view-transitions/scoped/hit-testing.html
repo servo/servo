@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title></title>
+</head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style>
+    * {
+      box-sizing: border-box;
+    }
+    .tr {
+      view-transition-name: demo;
+    }
+    ::view-transition {
+      pointer-events: none;
+      outline: 3px solid orange;
+    }
+    ::view-transition-group(demo) {
+      animation: none;
+      transform: translateX(200px) translateY(30px);
+      outline: 3px dashed gray
+    }
+    .box {
+      position: relative;
+      z-index: 0;
+      will-change: transform;
+      contain: strict;
+    }
+    #scope {
+      background: #eee;
+      position: relative;
+      left: 0px;
+      top: 0px;
+      width: 490px;
+      height: 190px;
+      view-transition-name: none;
+      contain: strict;
+    }
+    .part {
+      left: 50px;
+      top: -70px;
+      width: 120px;
+      height: 120px;
+      background: blue;
+    }
+    .part.state2 {
+      background: lavender;
+    }
+    ::view-transition-old(demo),
+    ::view-transition-new(demo) {
+      animation-duration: 5s;
+    }
+    #behind {
+      left: 20px;
+      top: 20px;
+      width: 120px;
+      height: 120px;
+      background: orange;
+    }
+</style>
+<body>
+  <div id=scope class=box>
+  <div id="behind" class="box"></div>
+  <div id="participant" class="part box tr state1"></div>
+</div>
+</body>
+<script>
+  function midpoint(element) {
+    const bounds = element.getBoundingClientRect();
+    return {
+      x: bounds.x + bounds.width / 2,
+      y: bounds.y + bounds.height / 2
+    };
+  }
+
+  function clickPromise(target) {
+    return new Promise(async resolve => {
+      document.addEventListener('click', e => {
+        resolve(e.target.id);
+      }, { once: true });
+      // { origin: target } should suffice, but does not work with the
+      // chrome.gpuBenchmarking implementation of test-driver in this particular
+      // test.
+      const pos = midpoint(target);
+      await new test_driver.Actions()
+        .pointerMove(pos.x, pos.y)
+        .pointerDown()
+        .pointerUp()
+        .send();
+    });
+  }
+
+  promise_test(async t => {
+    await waitForCompositorReady();
+    const vt = scope.startViewTransition(() => {
+      scope.querySelector(".part").classList.toggle("state2");
+    });
+    await Promise.all(document.getAnimations().map(a => a.ready));
+    // The #behind element is initially occluded by the #participant element,
+    // but it moves out of the way once the transition starts.
+    const click_target = await clickPromise(behind);
+    assert_equals(click_target, 'behind');
+  }, 'A view-transition participant is not a valid target for hit testing');
+</script>
+</html>

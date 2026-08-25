@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/reporting/resources/report-helper.js"></script>
+</head>
+<body>
+<script>
+const { HTTPS_REMOTE_ORIGIN } = get_host_info();
+const endpoint = "/reporting/resources/report.py";
+const reportID = 'e9e6f3b0-27c9-460d-8b01-90a880629a43';
+const url = `${HTTPS_REMOTE_ORIGIN}/common/image.png`;
+
+promise_test(async t => {
+  const img = document.createElement('img');
+  const promise = new Promise((resolve, reject) => {
+    img.onload = reject;
+    img.onerror = resolve;
+  });
+  img.src = url;
+  document.body.appendChild(img);
+  await promise;
+
+  await wait(5000);
+  const reports = await pollReports(endpoint, reportID);
+
+  const report = reports.find(r => r.type === 'connection-allowlist' && r.body.connection === url);
+  assert_true(!!report, `A report for ${url} should be present.`);
+  assert_equals(report.body.disposition, 'enforce');
+}, 'Connection-Allowlist report is delivered to the reporting endpoint for a blocked image.');
+</script>
+</body>
+</html>

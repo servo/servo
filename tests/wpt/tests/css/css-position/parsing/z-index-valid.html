@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Positioned Layout Module Level 3: parsing z-index with valid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-position/#propdef-z-index">
+<meta name="assert" content="z-index supports the full grammar 'auto | <integer>'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("z-index", "auto");
+
+test_valid_value("z-index", "-789");
+test_valid_value("z-index", "0");
+test_valid_value("z-index", "123");
+</script>
+</body>
+</html>

@@ -1,0 +1,55 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Test: Relative Positioning - auto bottom = -top</title>
+    <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+    <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-09-25 -->
+    <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#relative-positioning" />
+	<link rel="match" href="relpos-calcs-001-ref.xht" />
+
+    <meta name="assert" content="For a relatively positioned element, if 'bottom'
+      is 'auto', its used value is minus the value of 'top'." />
+    <style type="text/css">
+        div {
+            height: 120px;
+            width: 120px;
+        }
+        .container {
+            margin-top: -60px;
+        }
+        .outer {
+            background: red;
+            position: relative;
+            top: 50%;
+            /*
+            div.outer's used top value is 60px
+            div.outer's used bottom value is -60px
+            div.outer's computed top value is 50%
+            div.outer's computed bottom value is auto and not -50%!
+            */
+
+        }
+        .inner {
+            background: green;
+            position: relative;
+            bottom: inherit; /* using inheritance to test computed vs. used */
+            /* What is inherited is the computed bottom value of
+            its containing block, which is auto!
+            */
+        }
+        .control {
+          background: red;
+          margin-top: -60px;
+        }
+    </style>
+  </head>
+  <body>
+    <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+    <div class="container">
+      <div class="outer">
+        <div class="inner"></div>
+      </div>
+    </div>
+    <div class="control"></div>
+  </body>
+</html>

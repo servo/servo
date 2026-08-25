@@ -1,0 +1,55 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>&lt;t&gt;</title>
+</head>
+<body>
+  <!-- is structured inline -->
+  <p><time datetime='2006-11-20'>text</time></p>
+
+  <!-- is strictly inline -->
+  <p><dfn><time datetime='2006-11-20'>text</time></dfn></p>
+
+  <!-- can be empty -->
+  <p>text <time datetime='2006-11-20'></time></p>
+  <p>text <dfn><time datetime='2006-11-20'></time></dfn></p>
+
+  <!-- can contain interactive -->
+  <p><time datetime='2006-11-20'><a>text</a></time></p>
+  <p><dfn><time datetime='2006-11-20'><a>text</a></time></dfn></p>
+
+  <!-- vague moment of time in attribute -->
+  <p><time datetime='2006-11-20T16:24'>text</time></p>
+  <p><time datetime='2006-11-20T16:24:33'>text</time></p>
+  <p><time datetime='2006-11-20T16:24:33.89'>text</time></p>
+  
+  <p><time datetime='2006-11-20T16:24Z'>text</time></p>
+  <p><time datetime='2006-11-20T16:24:33Z'>text</time></p>
+  <p><time datetime='2006-11-20T16:24:33.89Z'>text</time></p>
+
+  <p><time datetime='2006-11-20T16:24+02:00'>text</time></p>
+  <p><time datetime='2006-11-20T16:24:33+02:00'>text</time></p>
+  <p><time datetime='2006-11-20T16:24:33.89+02:00'>text</time></p>
+
+  <p><time datetime='16:24'>text</time></p>
+  <p><time datetime='16:24:33'>text</time></p>
+  <p><time datetime='16:24:33.89'>text</time></p>
+  
+  <!-- vague moment of time in content -->
+  <p><time>2006-11-20T16:24</time></p>
+  <p><time>2006-11-20T16:24:33</time></p>
+  <p><time>2006-11-20T16:24:33.89</time></p>
+  
+  <p><time>2006-11-20T16:24Z</time></p>
+  <p><time>2006-11-20T16:24:33Z</time></p>
+  <p><time>2006-11-20T16:24:33.89Z</time></p>
+
+  <p><time>2006-11-20T16:24+02:00</time></p>
+  <p><time>2006-11-20T16:24:33+02:00</time></p>
+  <p><time>2006-11-20T16:24:33.89+02:00</time></p>
+
+  <p><time>16:24</time></p>
+  <p><time>16:24:33</time></p>
+  <p><time>16:24:33.89</time></p>
+
+</body>
+</html>

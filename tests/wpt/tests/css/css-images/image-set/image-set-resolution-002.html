@@ -1,0 +1,20 @@
+<!doctype html>
+<title>Image set resolution affects intrinsic size of the image</title>
+<link rel="match" href="image-set-resolution-001-ref.html">
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1705877">
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#image-set-notation">
+<style>
+  body { margin: 0 }
+  div {
+    /* green.png is 100x50, should be 200x100 instead */
+    background-image: -webkit-image-set(url('/images/green.png') 0.5x);
+    background-image: image-set(url('/images/green.png') 0.5x);
+    background-repeat: no-repeat;
+    background-origin: 0 0;
+    width: 100vw;
+    height: 100vh;
+  }
+</style>
+<div></div>

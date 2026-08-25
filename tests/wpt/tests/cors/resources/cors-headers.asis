@@ -1,0 +1,25 @@
+HTTP/1.1 200 OK
+Access-Control-Allow-Origin: *
+Access-Control-Expose-Headers: X-Custom-Header, X-Custom-Header-Empty, X-Custom-Header-Comma, X-Custom-Header-Bytes
+Access-Control-Expose-Headers: X-Second-Expose
+Access-Control-Expose-Headers: Date
+Content-Type: text/plain
+Content-Length: 4
+X-Custom-Header: test
+X-Custom-Header: test
+Set-Cookie: test1=t1;max-age=2
+Set-Cookie2: test2=t2;Max-Age=2
+X-Custom-Header-Empty: 
+X-Custom-Header-Comma: 1
+X-Custom-Header-Comma: 2
+X-Custom-Header-Bytes: …
+X-Nonexposed: unicorn
+X-Second-Expose: flyingpig
+Cache-Control: no-cache
+Content-Language: nn
+Expires: Thu, 01 Dec 1994 16:00:00 GMT
+Last-Modified: Thu, 01 Dec 1994 10:00:00 GMT
+Pragma: no-cache
+Date: Wed, 22 Oct 2013 10:00:00 GMT
+
+TEST

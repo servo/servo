@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>UIEvent.pseudoTarget</title>
+<link rel="help" href="https://w3c.github.io/uievents/#idl-uievent" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(() => {
+    assert_true('pseudoTarget' in UIEvent.prototype,
+      'UIEvent.prototype should expose pseudoTarget');
+    let desc = Object.getOwnPropertyDescriptor(UIEvent.prototype, 'pseudoTarget');
+    assert_not_equals(desc, undefined, 'descriptor must exist on UIEvent');
+    assert_true(typeof desc.get === 'function', 'getter must be defined');
+  }, 'pseudoTarget on UIEvent.prototype');
+
+  test(() => {
+    let desc = Object.getOwnPropertyDescriptor(MouseEvent.prototype, 'pseudoTarget');
+    assert_equals(desc, undefined,
+      'MouseEvent.prototype should not have its own pseudoTarget');
+    assert_true('pseudoTarget' in MouseEvent.prototype,
+      'MouseEvent.prototype should inherit pseudoTarget');
+  }, 'MouseEvent inherits pseudoTarget');
+
+</script>

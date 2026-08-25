@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body></body>
+<script>
+
+const controls = ['input', 'textarea'];
+
+function setupControl(control, value) {
+  document.body.innerHTML = control === 'input' ? '<input type="text" id="test">'
+                                                : '<textarea id="test"></textarea>';
+  const element = document.getElementById('test');
+  element.value = value;
+  element.focus();
+  element.setSelectionRange(0, 0);
+  element.style.fontFamily = 'monospace';
+  element.style.padding = '0';
+  element.style.border = '0';
+  if ('scrollLeft' in element) element.scrollLeft = 0;
+  return element;
+}
+
+function rect(range) {
+  return range.getBoundingClientRect();
+}
+
+test(() => {
+  const el = setupControl('input', 'ABCDE');
+  const range = el.createValueRange(1, 3);
+
+  const leftBeforeInsertion = rect(range).left;
+  el.setRangeText('ZZ', 0, 0);
+  assert_greater_than(rect(range).left, leftBeforeInsertion, 'insert before shifts right');
+
+  const widthBeforeInteriorInsertion = rect(range).width;
+  el.setRangeText('QQ', range.startOffset, range.startOffset);
+  assert_greater_than(rect(range).width, widthBeforeInteriorInsertion, 'insert inside expands width');
+
+  const leftBeforeAppend = rect(range).left;
+  el.setRangeText('TT', el.value.length, el.value.length);
+  assert_approx_equals(rect(range).left, leftBeforeAppend, 0.5, 'append does not shift left edge');
+
+  const leftBeforeDeletion = rect(range).left;
+  el.setRangeText('', 0, 2);
+  assert_less_than(rect(range).left, leftBeforeDeletion, 'delete before shifts left');
+
+  const widthBeforeOverlapDeletion = rect(range).width;
+  el.setRangeText('', range.startOffset - 1, range.startOffset + 1);
+  assert_less_than(rect(range).width, widthBeforeOverlapDeletion, 'overlap delete shrinks width');
+}, 'Input live insertion/deletion adjustments');
+
+test(() => {
+  const el = setupControl('textarea', 'ABCDE');
+  const range = el.createValueRange(1, 4);
+
+  const widthBeforeDeletion = rect(range).width;
+  el.setRangeText('', 2, 3);
+  assert_less_than(rect(range).width, widthBeforeDeletion, 'interior deletion shrinks width');
+
+  const leftBeforeInsertion = rect(range).left;
+  el.setRangeText('ZZ', 0, 0);
+  assert_greater_than(rect(range).left, leftBeforeInsertion, 'insertion before shifts right');
+}, 'Textarea interior deletion & insertion adjustments');
+
+controls.forEach(controlType => {
+  test(() => {
+    const el = setupControl(controlType, 'ABCDE');
+    const range = el.createValueRange(1, 4);
+    const widthBeforeInsertion = rect(range).width;
+    el.setRangeText('ZZ', 2, 2);
+    assert_greater_than(rect(range).width, widthBeforeInsertion, 'insertion inside expands width');
+  }, `Insertion inside expands width (${controlType})`);
+
+  test(() => {
+    const el = setupControl(controlType, 'ABCDE');
+    const range = el.createValueRange(1, 4);
+    assert_greater_than(rect(range).width, 0, 'pre width greater than 0');
+    el.setRangeText('', 1, 4);
+    assert_true(range.collapsed, 'collapsed after deletion');
+    assert_equals(range.getClientRects().length, 0, 'no client rects');
+    assert_approx_equals(rect(range).width, 0, 0.05, 'caret width should be 0');
+  }, `Deletion collapses geometry (${controlType})`);
+
+  test(() => {
+    const el = setupControl(controlType, 'HelloWorld');
+    const range = el.createValueRange(0, el.value.length);
+    el.setRangeText('', 7, 10);
+    const endAfterShrink = range.endOffset;
+    assert_equals(endAfterShrink, el.value.length, 'end clamped after shrink');
+    el.setRangeText('XYZ', 7, 7);
+    assert_equals(range.endOffset, endAfterShrink, 'end remains stable after grow at end');
+  }, `Shrink/grow end offset clamping (${controlType})`);
+
+  test(() => {
+    const el = setupControl(controlType, 'HelloWorld');
+    const range = el.createValueRange(0, el.value.length);
+    el.setRangeText('', 5, 10);
+    assert_equals(el.value, 'Hello', 'value shrunk to Hello');
+    assert_equals(range.endOffset, el.value.length, 'end offset clamped to new value length');
+    assert_greater_than(rect(range).width, 0, 'geometry still non-zero after tail deletion');
+  }, `Tail deletion clamps end offset (${controlType})`);
+});
+
+test(() => {
+  const el = setupControl('input', 'ABCDE');
+  const range = el.createValueRange(1, 4);
+  el.setRangeText('', 1, 4);
+  assert_true(range.collapsed, 'collapsed after deletion');
+  assert_approx_equals(rect(range).width, 0, 0.05, 'width should be 0');
+}, 'Deletion collapses selection (input explicit)');
+
+test(() => {
+  const el = setupControl('textarea', 'ABCDE');
+  const range = el.createValueRange(1, 4);
+  const rectBefore = rect(range);
+  el.setRangeText('\n', 2, 2);
+  const rectAfter = rect(range);
+  assert_greater_than(rectAfter.height, rectBefore.height,
+    'Inserting newline should increase bounding rect height');
+  assert_greater_than(rect(range).width, 0, 'Range still has width after newline insertion');
+}, 'Insert newline via setRangeText expands geometry vertically');
+</script>

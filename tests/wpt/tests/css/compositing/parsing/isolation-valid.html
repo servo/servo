@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Compositing and Blending Level 1: parsing isolation with valid values</title>
+<link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
+<link rel="help" href="https://drafts.fxtf.org/compositing-1/#propdef-isolation">
+<meta name="assert" content="isolation supports the full grammar '<isolation-mode>'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("isolation", "auto");
+test_valid_value("isolation", "isolate");
+</script>
+</body>
+</html>

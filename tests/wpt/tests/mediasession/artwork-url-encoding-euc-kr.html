@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="euc-kr">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  // This file is actually ascii, because otherwise text editors would have hard time.
+
+  test(() => {
+    // "icon" in Korean language
+    const iconKorean = "\uc544\uc774\ucf58";
+    const metadata = new MediaMetadata({ artwork: [{ src: `?icon=${iconKorean}` }] });
+
+    assert_equals(new URL(metadata.artwork[0].src).search, "?icon=%EC%95%84%EC%9D%B4%EC%BD%98", "artwork src encoded with utf-8");
+  });
+</script>

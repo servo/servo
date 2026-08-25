@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <link rel="help" href="https://drafts.csswg.org/css-inline-3/#baseline-shift-property">
+  <link rel="stylesheet" href="/fonts/ahem.css">
+  <meta name="flags" content="ahem" />
+  <meta charset="utf-8">
+</head>
+<body>
+  <svg>
+    <text y="80" style="font: 20px/1 'Ahem';">
+      <tspan id="baseline">X</tspan>
+      <tspan id="sub" baseline-shift="sub">X</tspan>
+      <tspan id="super" baseline-shift="super">X</tspan>
+    </text>
+  </svg>
+  <script>
+    const $baseline = document.getElementById('baseline');
+    const $sub = document.getElementById('sub');
+    const $super = document.getElementById('super');
+
+    test(() => {
+      assert_greater_than(
+        $sub.getBBox().y,
+        $baseline.getBBox().y
+      );
+    }, "baseline-shift: sub is below baseline");
+
+    test(() => {
+      assert_less_than(
+        $super.getBBox().y,
+        $baseline.getBBox().y
+      );
+    }, "baseline-shift: super is above baseline");
+  </script>
+</body>
+</html>

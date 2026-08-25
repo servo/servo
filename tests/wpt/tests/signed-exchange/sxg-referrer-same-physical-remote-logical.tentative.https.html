@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<title>Referrer of SignedHTTPExchange(physical:same origin, logical:remote origin)</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="./resources/sxg-util.js"></script>
+<body>
+<script>
+(() => {
+  const SAME_ORIGIN = get_host_info().HTTPS_ORIGIN;
+  const REMOTE_ORIGIN_SXG = 'sxg-referrer-remote-origin.sxg';
+  const TEST_CASES = [
+    // Physical origin = same origin. Logical origin = remote origin.
+    {
+      origin: SAME_ORIGIN,
+      sxg: REMOTE_ORIGIN_SXG,
+      referrerPolicy: undefined,
+      expectedReferrer: document.location.origin + '/'
+    },
+    {
+      origin: SAME_ORIGIN,
+      sxg: REMOTE_ORIGIN_SXG,
+      referrerPolicy: 'no-referrer',
+      expectedReferrer: ''
+    },
+    {
+      origin: SAME_ORIGIN,
+      sxg: REMOTE_ORIGIN_SXG,
+      referrerPolicy: 'no-referrer-when-downgrade',
+      expectedReferrer: document.location.href
+    },
+    {
+      origin: SAME_ORIGIN,
+      sxg: REMOTE_ORIGIN_SXG,
+      referrerPolicy: 'origin',
+      expectedReferrer: document.location.origin + '/'
+    },
+    {
+      origin: SAME_ORIGIN,
+      sxg: REMOTE_ORIGIN_SXG,
+      referrerPolicy: 'same-origin',
+      expectedReferrer: ''
+    },
+    {
+      origin: SAME_ORIGIN,
+      sxg: REMOTE_ORIGIN_SXG,
+      referrerPolicy: 'strict-origin',
+      expectedReferrer: document.location.origin + '/'
+    },
+    {
+      origin: SAME_ORIGIN,
+      sxg: REMOTE_ORIGIN_SXG,
+      referrerPolicy: 'strict-origin-when-cross-origin',
+      expectedReferrer: document.location.origin + '/'
+    },
+    {
+      origin: SAME_ORIGIN,
+      sxg: REMOTE_ORIGIN_SXG,
+      referrerPolicy: 'unsafe-url',
+      expectedReferrer: document.location.href
+    },
+  ];
+  runReferrerTests(TEST_CASES);
+})();
+</script>
+</body>

@@ -1,0 +1,47 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>getDisplayMedia</title>
+<meta name="timeout" content="long">
+<button id="button">User gesture</button>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<video id="display"></video>
+<script>
+  'use strict';
+
+const stopTracks = stream => stream.getTracks().forEach(track => track.stop());
+
+async function getDisplayMedia(constraints) {
+  const p = new Promise(r => button.onclick = r);
+  await test_driver.click(button);
+  await p;
+  return navigator.mediaDevices.getDisplayMedia(constraints);
+}
+
+promise_test(async t => {
+  const stream = await getDisplayMedia({video: true});
+  const track = stream.getVideoTracks()[0];
+  t.add_cleanup(() => stopTracks(stream));
+
+  const settings = track.getSettings();
+  const capabilities = track.getCapabilities();
+
+  assert_true("deviceId" in settings);
+  assert_equals(capabilities.deviceId, settings.deviceId);
+}, "getDisplayMedia() deviceId setting and capability");
+
+promise_test(async t => {
+  const stream = await getDisplayMedia({video: true});
+  const track = stream.getVideoTracks()[0];
+  t.add_cleanup(() => stopTracks(stream));
+
+  const settings = track.getSettings();
+  const capabilities = track.getCapabilities();
+
+  assert_false("facingMode" in settings);
+  assert_false("facingMode" in capabilities);
+}, "getDisplayMedia() and facingMode");
+
+</script>

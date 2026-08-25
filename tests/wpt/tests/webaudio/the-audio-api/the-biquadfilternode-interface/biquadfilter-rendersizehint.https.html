@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>Test BiquadFilterNode with renderSizeHint</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/webaudio/resources/rendersizehint-robustness-helper.js"></script>
+<script>
+for (const config of ROBUSTNESS_TEST_CONFIGS) {
+  const {sampleRate, renderSizeHint} = config;
+
+  runQuantumRobustnessTest(
+      config,
+      audioContext => new BiquadFilterNode(audioContext),
+      `BiquadFilter robustness at ${sampleRate}Hz & hint ${renderSizeHint}`
+  );
+}
+</script>

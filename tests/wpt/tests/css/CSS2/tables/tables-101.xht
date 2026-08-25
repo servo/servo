@@ -1,0 +1,54 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+ <head>
+  <title>CSS Test: Table layout: checking dynamic percentage margin layouts match initial layouts</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/table/dynamic/001.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#margin-properties" />
+  <meta name="flags" content="dom"/>
+  <style type="text/css">
+   table { font-size: 4em; position: absolute; margin-top: 1em; }
+   td { border: solid; }
+   .control { color: red; }
+   .control div { margin-top: 10%; margin-left: 50%; }
+   .test { color: green; }
+  </style>
+  <script type="text/javascript">
+   function test() {
+     var element = document.getElementById('test');
+     element.offsetHeight; // Force initial layout
+     element.style.marginTop = "10%";
+     element.style.marginLeft = "50%";
+   }
+  </script>
+ </head>
+ <body onload="test();">
+  <p>There should be no red below, only green boxes with snowflakes in them.</p>
+  <table class="control">
+   <tr>
+    <td>
+     &#x2743;
+    </td>
+    <td>
+     <div>&#x2744;</div>
+    </td>
+    <td>
+     &#x2745;
+    </td>
+   </tr>
+  </table>
+  <table class="test">
+   <tr>
+    <td>
+     &#x2743;
+    </td>
+    <td>
+     <div id="test">&#x2744;</div>
+    </td>
+    <td>
+     &#x2745;
+    </td>
+   </tr>
+  </table>
+ </body>
+</html>

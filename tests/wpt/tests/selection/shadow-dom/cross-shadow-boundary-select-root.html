@@ -1,0 +1,24 @@
+<!doctype html>
+<head>
+<link rel=match href="cross-shadow-boundary-select-root-ref.html">
+</head>
+<div id="outerText1">OuterText1</div>
+<div id="host1"></div>
+<div id="outerText2">OuterText2</div>
+<div id="host2"></div>
+<div id="host3"></div>
+<script>
+  const outerText1 = document.getElementById("outerText1");
+  const outerText2 = document.getElementById("outerText2");
+
+  const host1 = document.getElementById("host1");
+  const root1 = host1.attachShadow({mode: "open"});
+  root1.innerHTML = "InnerText1";
+
+  const host2 = document.getElementById("host2");
+  const root2 = host2.attachShadow({mode: "open"});
+  root2.innerHTML = "InnerText2";
+
+  getSelection().setBaseAndExtent(outerText1, 0, root2, root2.childNodes.length);
+</script>
+

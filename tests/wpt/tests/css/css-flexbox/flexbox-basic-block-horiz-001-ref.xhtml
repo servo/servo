@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Reftest Reference</title>
+    <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com"/>
+    <style>
+      div { height: 100px; }
+      div.flexbox {
+        border: 1px dashed blue;
+        width: 200px;
+      }
+      div.a {
+        display: inline-block;
+        background: lightgreen;
+      }
+      div.b {
+        display: inline-block;
+        background: yellow;
+      }
+      div.c {
+        display: inline-block;
+        background: orange;
+      }
+      div.auto   {
+        display: inline-block;
+        background: pink;
+      }
+      div.inflex {
+        display: inline-block;
+        background: gray;
+      }
+      div.spacer {
+        height: 15px;
+        background: purple;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="flexbox">
+      <div class="a" style="width: 80px"/><div class="b" style="width: 120px"/>
+    </div>
+    <div class="flexbox">
+      <div class="a" style="width: 62.5px"/><div class="c" style="width: 137.5px"/>
+    </div>
+    <div class="flexbox">
+      <div class="a" style="width: 185px"/><div class="auto">
+        <div class="spacer" style="width: 15px"/></div>
+    </div>
+    <div class="flexbox">
+      <div class="b" style="width: 76px"/><div class="c" style="width: 124px"/>
+    </div>
+    <div class="flexbox">
+      <div class="b" style="width: 170px"/><div class="auto">
+        <div class="spacer" style="width: 30px"/></div>
+    </div>
+    <div class="flexbox">
+      <div class="a" style="width: 45px"/><div class="b" style="width: 50px"
+      /><div class="inflex" style="width: 20px"/><div class="c" style="width: 85px"/>
+    </div>
+  </body>
+</html>

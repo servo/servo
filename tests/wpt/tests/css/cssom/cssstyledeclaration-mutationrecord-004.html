@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSSOM: CSSStyleDeclaration.removeProperty doesn't queue a mutation record when not actually removed</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-setpropertyvalue">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+  let test = async_test("CSSStyleDeclaration.removeProperty doesn't queue a mutation record when not actually removed");
+  document.documentElement.style.top = "0";
+  let m = new MutationObserver(test.unreached_func("shouldn't queue a mutation record"));
+  m.observe(document.documentElement,  { attributes: true });
+
+  document.documentElement.style.removeProperty("width");
+  requestAnimationFrame(() => test.done());
+</script>

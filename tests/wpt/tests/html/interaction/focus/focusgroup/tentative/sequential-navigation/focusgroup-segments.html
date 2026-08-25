@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Sequential navigation with focusgroup segments</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<!-- Opted-out elements create multiple focusgroup entry points -->
+<div id=before tabindex=0>Before toolbar</div>
+
+<div id=toolbar focusgroup="toolbar inline block wrap" aria-label="Text formatting">
+  <button tabindex=0 id=bold type="button" focusgroupstart>Bold (priority)</button>
+  <button tabindex=0 id=italic type="button">Italic</button>
+  <span id=help-group focusgroup="none" aria-label="Help group">
+    <button tabindex=0 id=help type="button">Help</button>
+    <button tabindex=0 id=shortcuts type="button">Shortcuts</button>
+  </span>
+  <button tabindex=0 id=underline type="button" focusgroupstart>Underline (priority)</button>
+</div>
+
+<div id=after tabindex=0>After toolbar</div>
+
+<!-- Test complex nested opt-out -->
+<div id=before2 tabindex=0>Before complex</div>
+
+<div id=complex-focusgroup focusgroup="toolbar nomemory">
+  <button tabindex=0 id=item1 focusgroupstart>Item 1 (priority)</button>
+  <div id=nested-opt-out focusgroup="none">
+    <button tabindex=0 id=opted-out-1>Opted out 1</button>
+    <div id=deeply-nested focusgroup="none">
+      <button tabindex=0 id=deeply-opted-out>Deeply opted out</button>
+    </div>
+    <button tabindex=0 id=opted-out-2>Opted out 2</button>
+  </div>
+  <button tabindex=0 id=item2 focusgroupstart>Item 2 (priority)</button>
+  <button tabindex=0 id=item3>Item 3</button>
+</div>
+
+<div id=after2 tabindex=0>After complex</div>
+
+<script>
+  promise_test(async t => {
+
+    await focusAndWait(before);
+    await sendTabForward();
+    assert_equals(document.activeElement, bold, "Tab from before should focus Bold (first focusgroup item)");
+
+    await sendTabForward();
+    assert_equals(document.activeElement, help, "Tab from Bold should focus Help (first opted-out element)");
+
+    await sendTabForward();
+    assert_equals(document.activeElement, shortcuts, "Tab from Help should focus Shortcuts (next in opted-out subtree)");
+
+    await sendTabForward();
+    assert_equals(document.activeElement, underline, "Tab from Shortcuts should focus Underline (re-enter focusgroup)");
+
+    await sendTabForward();
+    assert_equals(document.activeElement, after, "Tab from Underline should exit focusgroup");
+  }, "Tab navigation through focusgroup segments - forward direction");
+
+  promise_test(async t => {
+
+    await focusAndWait(help);
+    await navigateFocusBackward();
+    assert_equals(document.activeElement, bold, "Shift+Tab from Help should focus Bold");
+
+    await navigateFocusBackward();
+    assert_equals(document.activeElement, before, "Shift+Tab from Bold should exit focusgroup");
+  }, "Shift+Tab navigation through focusgroup segments - backward direction");
+
+  promise_test(async t => {
+
+    await focusAndWait(bold);
+
+    await focusAndSendDirectionalInput(bold, kRight);
+    assert_equals(document.activeElement, italic, "Right should move from Bold to Italic");
+
+    await focusAndSendDirectionalInput(italic, kRight);
+    assert_equals(document.activeElement, underline, "Right should skip opted-out span and move to Underline");
+
+    await focusAndSendDirectionalInput(underline, kLeft);
+    assert_equals(document.activeElement, italic, "Left should skip opted-out span and move to Italic");
+  }, "Directional input navigation treats opted-out elements as if they don't exist");
+
+  promise_test(async t => {
+
+    var optedOut1 = document.getElementById("opted-out-1");
+    var deeplyOptedOut = document.getElementById("deeply-opted-out");
+    var optedOut2 = document.getElementById("opted-out-2");
+
+    await focusAndWait(before2);
+    await sendTabForward();
+    assert_equals(document.activeElement, item1, "Tab should enter at Item 1");
+
+    await sendTabForward();
+    assert_equals(document.activeElement, optedOut1, "Tab should move to first opted-out element");
+
+    await sendTabForward();
+    assert_equals(document.activeElement, deeplyOptedOut, "Tab should move to deeply nested opted-out element");
+
+    await sendTabForward();
+    assert_equals(document.activeElement, optedOut2, "Tab should move to second opted-out element");
+
+    await sendTabForward();
+    assert_equals(document.activeElement, item2, "Tab should re-enter focusgroup at Item 2");
+
+    await sendTabForward();
+    assert_equals(document.activeElement, after2, "Tab should exit focusgroup");
+  }, "Complex nested opt-out creates proper focusgroup segments");
+
+  promise_test(async t => {
+
+    await focusAndWait(help);
+
+    await focusAndSendDirectionalInput(help, kRight);
+    assert_equals(document.activeElement, help, "Directional input should not work within opted-out section");
+
+    await focusAndSendDirectionalInput(help, kDown);
+    assert_equals(document.activeElement, help, "Vertical directional input should not work within opted-out section");
+  }, "Directional input does not work within opted-out focusgroup sections");
+</script>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <title>ol.start - reflection test</title>
+  <link rel="author" title="Shiki Okasaka" href="http://shiki.esrille.com/">
+  <link rel="author" title="Esrille Inc." href="http://www.esrille.com/">
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/#the-ol-element">
+  <meta name="assert" content="This test checks that the start IDL attribute reflects the respective content attribute of the same name.">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+ </head>
+ <body>
+  <ol id='ol' reversed>
+   <li>Three</li>
+   <li>Two</li>
+   <li>One</li>
+  </ol>
+  <div id='log'></div>
+  <script>
+test(function() {
+    assert_equals(document.getElementById('ol').start, 1);
+})
+  </script>
+ </body>
+</html>

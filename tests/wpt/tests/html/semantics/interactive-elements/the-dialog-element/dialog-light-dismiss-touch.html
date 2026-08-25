@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://issues.chromium.org/issues/425579196">
+<link rel=help href="https://github.com/w3c/pointerevents/issues/542">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<div id=fullscreen></div>
+<dialog closedby=any>
+  dialog
+</dialog>
+
+<style>
+#fullscreen {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+</style>
+
+<script>
+promise_test(async () => {
+  const fullscreen = document.getElementById('fullscreen');
+  const dialog = document.querySelector('dialog');
+
+  let fullscreenClicked = false;
+  fullscreen.addEventListener('click', () => {
+    fullscreenClicked = true;
+  });
+  dialog.showModal();
+
+  await (new test_driver.Actions()
+    .addPointer('finger', 'touch')
+    .pointerMove(1, 1)
+    .pointerDown()
+    .pointerUp())
+    .send();
+
+  assert_false(dialog.open, 'Dialog should be closed by light dismiss.');
+  assert_false(fullscreenClicked, 'Elements outside of the dialog should not receive a click.');
+}, 'Dialog light dismiss should work with touch and not trigger a click event.');
+</script>

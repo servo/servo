@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2053580">
+<div id="t"></div>
+<script>
+const filler = 'a'.repeat(122);
+document.getElementById('t').textContent = filler + ' ‍x';
+window.find(filler + ' ', false, false, false, true, false, false);
+</script>

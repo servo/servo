@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Verify that the resize dimension is outerWidth & outerHeight</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+    promise_test(async (t) => {
+        const popup = window.open("about:blank", "_blank", "width=100,height=100");
+        assert_not_equals(popup, null, "Popup must be successfully opened");
+
+        popup.resizeTo(200, 200);
+        // wait briefly for resize to complete
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        assert_approx_equals(popup.outerWidth, 200, 10, "Popup width should be ~200");
+        assert_approx_equals(popup.outerHeight, 200, 10, "Popup height should be ~200");
+    }, "Correctly resize outerWidth and outerHeight");
+</script>

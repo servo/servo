@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>[[SetPrototypeOf]] on a WindowProxy object should not allow changing its value: same-origin</title>
+<link rel="help" href="http://html.spec.whatwg.org/multipage/#windowproxy-setprototypeof">
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/test-setting-immutable-prototype.js"></script>
+
+<script>
+"use strict";
+
+const origProto = Object.getPrototypeOf(window);
+
+test(() => {
+  assert_not_equals(origProto, null);
+}, "Same-origin prerequisite check: the original prototype is accessible");
+
+testSettingImmutablePrototype("Same-origin", window, origProto, { isSameOriginDomain: true });
+</script>

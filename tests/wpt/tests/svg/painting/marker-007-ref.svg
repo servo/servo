@@ -1,0 +1,4 @@
+<svg width="300" height="300" xmlns="http://www.w3.org/2000/svg">
+    <path d="M 25 25 v100 h100 z" fill="green" />
+    <path d="M 125 25 v100 h100 z" fill="green" />
+</svg>

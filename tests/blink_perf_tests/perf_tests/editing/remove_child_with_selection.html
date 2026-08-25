@@ -1,0 +1,25 @@
+<!doctype html>
+<script src="../resources/runner.js"></script>
+<div id="target">target</div>
+<div id="sample" style="display: none"></div>
+<script>
+var selection = window.getSelection();
+selection.selectAllChildren(document.getElementById('target'));
+var sample = document.getElementById('sample');
+for (var index = 0; index < 1000; ++index) {
+    var span = document.createElement('span');
+    span.textContent = `item ${index}\n`;
+    sample.appendChild(span);
+}
+PerfTestRunner.measureTime({
+    description: 'Measures performance of removeChild() with selection.',
+
+    run: function() {
+        var copy = sample.cloneNode(true);
+        while (sample.firstChild)
+            sample.removeChild(sample.firstChild);
+        while (copy.firstChild)
+            sample.appendChild(copy.firstChild);
+    },
+});
+</script>

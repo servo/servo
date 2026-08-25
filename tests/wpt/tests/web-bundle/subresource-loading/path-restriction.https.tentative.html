@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<title>Path restriction on subresource loading with WebBundles</title>
+<link
+  rel="help"
+  href="https://github.com/WICG/webpackage/blob/main/explainers/subresource-loading.md"
+/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <script type="webbundle">
+    {
+      "source": "../resources/wbn/path-restriction.wbn",
+      "resources": [
+        "/web-bundle/resources/wbn/resource.js",
+        "/web-bundle/resources/wbn/sub/resource.js",
+        "/web-bundle/resources/wbn-resource.js",
+        "/web-bundle/resources/wbn1/resource.js",
+        "/web-bundle/resources/other/resource.js",
+        "/web-bundle/resources/resource.js"
+      ]
+    }
+  </script>
+  <script>
+    setup(() => {
+      assert_true(HTMLScriptElement.supports("webbundle"));
+    });
+
+    promise_test(async () => {
+      const resources = [
+        "/web-bundle/resources/wbn/resource.js",
+        "/web-bundle/resources/wbn/sub/resource.js",
+      ];
+      for (const resource of resources) {
+        const response = await fetch(resource);
+        assert_true(response.ok, resource + " should be loaded");
+      }
+    }, "Subresources should be loaded.");
+
+    promise_test(async () => {
+      const resources = [
+        "/web-bundle/resources/wbn-resource.js",
+        "/web-bundle/resources/wbn1/resource.js",
+        "/web-bundle/resources/other/resource.js",
+        "/web-bundle/resources/resource.js",
+      ];
+      for (const resource of resources) {
+        const response = await fetch(resource);
+        assert_false(response.ok, resource + " should not be loaded");
+      }
+    }, "Subresources should not be loaded due to path restriction.");
+  </script>
+</body>

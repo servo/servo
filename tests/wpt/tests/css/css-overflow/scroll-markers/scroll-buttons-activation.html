@@ -1,0 +1,82 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: ::scroll-button() activation</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-buttons">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+  }
+
+  #scroller {
+    width: 600px;
+    height: 300px;
+    overflow: auto;
+    scroll-marker-group: after;
+    white-space: nowrap;
+  }
+
+  #scroller div {
+    background: green;
+    display: inline-block;
+    width: 600px;
+    height: 270px;
+  }
+
+  #scroller :first-child {
+    background: purple;
+  }
+
+  #scroller::scroll-marker-group {
+    border: 3px solid black;
+    padding: 5px;
+    display: flex;
+    height: 20px;
+    width: 40px;
+  }
+
+  #scroller::scroll-button(inline-end) {
+    content: ">";
+    background: blue;
+    position: absolute;
+    top: 0;
+    display: flex;
+    height: 20px;
+    width: 20px;
+  }
+
+  #scroller div::scroll-marker {
+    content: "";
+    width: 10px;
+    height: 10px;
+    background-color: blue;
+    border-radius: 100%;
+    display: inline-block;
+  }
+</style>
+<div id="scroller">
+  <div></div>
+  <div></div>
+</div>
+<script>
+  /*
+    Double click as recommended scroll amount is 85% of the page, so
+    to make sure all browsers reach the end.
+  */
+  promise_test(async t => {
+    actions_promise = new test_driver.Actions()
+    .pointerMove(5, 5)
+    .pointerDown()
+    .pointerUp()
+    .pointerDown()
+    .pointerUp()
+    .send();
+    await actions_promise;
+    assert_equals(scroller.scrollLeft, 604);
+  });
+</script>

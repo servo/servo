@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Pseudo Test: Dynamic Custom Properties for Highlights</title>
+<link rel="author" title="Stephen Chenney" href="mailto:schenney@igalia.com">
+<head>
+  <style>
+    ::selection {
+      background-color: green;
+    }
+  </style>
+</head>
+<body>Green background when selected</body>
+<script>
+  window.getSelection().selectAllChildren(document.body);
+</script>
+</html>

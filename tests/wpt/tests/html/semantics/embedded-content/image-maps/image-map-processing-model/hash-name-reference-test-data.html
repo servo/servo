@@ -1,0 +1,254 @@
+<!DOCTYPE {{GET[doctype]}}>
+<!-- This file should be polyglot -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <meta charset="utf-8"/>
+  <title>Test data for hash name reference</title>
+  <style>
+   body { margin: 0 }
+   img, object { height: 1px; display:block }
+  </style>
+ </head>
+ <body>
+
+<div data-expect="no match">
+ <img src="/images/threecolors.png" usemap="no-hash-name"/>
+ <object data="/images/threecolors.png" usemap="no-hash-name"></object>
+ <map name="no-hash-name">
+  <area shape="rect" coords="0,0,99,50" href="#area-no-hash-name"/>
+ </map>
+</div>
+
+<div data-expect="no match">
+ <img src="/images/threecolors.png" usemap="no-hash-id"/>
+ <object data="/images/threecolors.png" usemap="no-hash-id"></object>
+ <map id="no-hash-id">
+  <area shape="rect" coords="0,0,99,50" href="#area-no-hash-id"/>
+ </map>
+</div>
+
+<div data-expect="area-hash-name">
+ <img src="/images/threecolors.png" usemap="#hash-name"/>
+ <object data="/images/threecolors.png" usemap="#hash-name"></object>
+ <map name="hash-name">
+  <area shape="rect" coords="0,0,99,50" href="#area-hash-name"/>
+ </map>
+</div>
+
+<div data-expect="area-hash-id">
+ <img src="/images/threecolors.png" usemap="#hash-id"/>
+ <object data="/images/threecolors.png" usemap="#hash-id"></object>
+ <map id="hash-id">
+  <area shape="rect" coords="0,0,99,50" href="#area-hash-id"/>
+ </map>
+</div>
+
+<div data-expect="area-non-map-with-this-name">
+ <img src="/images/threecolors.png" usemap="#non-map-with-this-name" name="non-map-with-this-name"/>
+ <object data="/images/threecolors.png" usemap="#non-map-with-this-name"></object>
+ <map name="non-map-with-this-name">
+  <area shape="rect" coords="0,0,99,50" href="#area-non-map-with-this-name"/>
+ </map>
+</div>
+
+<div data-expect="area-non-map-with-this-id">
+ <img src="/images/threecolors.png" usemap="#non-map-with-this-id" id="non-map-with-this-id"/>
+ <object data="/images/threecolors.png" usemap="#non-map-with-this-id"></object>
+ <map id="non-map-with-this-id">
+  <area shape="rect" coords="0,0,99,50" href="#area-non-map-with-this-id"/>
+ </map>
+</div>
+
+<div data-expect="area-two-maps-with-this-name-1">
+ <img src="/images/threecolors.png" usemap="#two-maps-with-this-name"/>
+ <object data="/images/threecolors.png" usemap="#two-maps-with-this-name"></object>
+ <map name="two-maps-with-this-name">
+  <area shape="rect" coords="0,0,99,50" href="#area-two-maps-with-this-name-1"/>
+ </map>
+ <map name="two-maps-with-this-name">
+  <area shape="rect" coords="0,0,99,50" href="#area-two-maps-with-this-name-2"/>
+ </map>
+</div>
+
+<div data-expect="area-two-maps-with-this-id-1">
+ <img src="/images/threecolors.png" usemap="#two-maps-with-this-id"/>
+ <object data="/images/threecolors.png" usemap="#two-maps-with-this-id"></object>
+ <map id="two-maps-with-this-id">
+  <area shape="rect" coords="0,0,99,50" href="#area-two-maps-with-this-id-1"/>
+ </map>
+ <map id="two-maps-with-this-id">
+  <area shape="rect" coords="0,0,99,50" href="#area-two-maps-with-this-id-2"/>
+ </map>
+</div>
+
+<div data-expect="area-two-maps-with-this-name-or-id-1">
+ <img src="/images/threecolors.png" usemap="#two-maps-with-this-name-or-id"/>
+ <object data="/images/threecolors.png" usemap="#two-maps-with-this-name-or-id"></object>
+ <map name="two-maps-with-this-name-or-id">
+  <area shape="rect" coords="0,0,99,50" href="#area-two-maps-with-this-name-or-id-1"/>
+ </map>
+ <map id="two-maps-with-this-name-or-id">
+  <area shape="rect" coords="0,0,99,50" href="#area-two-maps-with-this-name-or-id-2"/>
+ </map>
+</div>
+
+<div data-expect="area-two-maps-with-this-id-or-name-1">
+ <img src="/images/threecolors.png" usemap="#two-maps-with-this-id-or-name"/>
+ <object data="/images/threecolors.png" usemap="#two-maps-with-this-id-or-name"></object>
+ <map id="two-maps-with-this-id-or-name">
+  <area shape="rect" coords="0,0,99,50" href="#area-two-maps-with-this-id-or-name-1"/>
+ </map>
+ <map name="two-maps-with-this-id-or-name">
+  <area shape="rect" coords="0,0,99,50" href="#area-two-maps-with-this-id-or-name-2"/>
+ </map>
+</div>
+
+<div data-expect="no match">
+ <img src="/images/threecolors.png" usemap="hash-last#"/>
+ <object data="/images/threecolors.png" usemap="hash-last#"></object>
+ <map name="hash-last" id="hash-last">
+  <area shape="rect" coords="0,0,99,50" href="#area-hash-last-no-hash-in-map-name-and-id"/>
+ </map>
+ <map name="hash-last#" id="hash-last#">
+  <area shape="rect" coords="0,0,99,50" href="#area-hash-last-with-hash-in-map-name-and-id"/>
+ </map>
+</div>
+
+<div data-expect="no match">
+ <img src="/images/threecolors.png" usemap=""/>
+ <object data="/images/threecolors.png" usemap=""></object>
+ <map name="" id="">
+  <area shape="rect" coords="0,0,99,50" href="#area-empty-usemap-empty-map-name-and-id"/>
+ </map>
+</div>
+
+<div data-expect="no match">
+ <img src="/images/threecolors.png" usemap="#"/>
+ <object data="/images/threecolors.png" usemap="#"></object>
+ <map name="" id="">
+  <area shape="rect" coords="0,0,99,50" href="#area-hash-usemap-empty-name-and-id"/>
+ </map>
+</div>
+
+<div data-expect="area-hash-space-usemap-space-map-name">
+ <img src="/images/threecolors.png" usemap="# "/>
+ <object data="/images/threecolors.png" usemap="# "></object>
+ <map name=" ">
+  <area shape="rect" coords="0,0,99,50" href="#area-hash-space-usemap-space-map-name"/>
+ </map>
+</div>
+
+<div data-expect="area-hash-LF-usemap-LF-map-id">
+ <img src="/images/threecolors.png" usemap="#&#x0A;"/>
+ <object data="/images/threecolors.png" usemap="#&#x0A;"></object>
+ <map id="&#x0A;">
+  <area shape="rect" coords="0,0,99,50" href="#area-hash-LF-usemap-LF-map-id"/>
+ </map>
+</div>
+
+<div data-expect="no match">
+ <img src="/images/threecolors.png" usemap="#percent-escape-name-%41"/>
+ <object data="/images/threecolors.png" usemap="#percent-escape-name-%41"></object>
+ <map name="percent-escape-name-A">
+  <area shape="rect" coords="0,0,99,50" href="#area-percent-escape-name-A"/>
+ </map>
+</div>
+
+<div data-expect="no match">
+ <img src="/images/threecolors.png" usemap="#percent-escape-id-%41"/>
+ <object data="/images/threecolors.png" usemap="#percent-escape-id-%41"></object>
+ <map id="percent-escape-id-A">
+  <area shape="rect" coords="0,0,99,50" href="#area-percent-escape-id-A"/>
+ </map>
+</div>
+
+<div data-expect="area-percent-escape-name-B">
+ <img src="/images/threecolors.png" usemap="#percent-escape-name-%42"/>
+ <object data="/images/threecolors.png" usemap="#percent-escape-name-%42"></object>
+ <map name="percent-escape-name-%42">
+  <area shape="rect" coords="0,0,99,50" href="#area-percent-escape-name-B"/>
+ </map>
+</div>
+
+<div data-expect="area-percent-escape-id-B">
+ <img src="/images/threecolors.png" usemap="#percent-escape-id-%42"/>
+ <object data="/images/threecolors.png" usemap="#percent-escape-id-%42"></object>
+ <map id="percent-escape-id-%42">
+  <area shape="rect" coords="0,0,99,50" href="#area-percent-escape-id-B"/>
+ </map>
+</div>
+
+<div data-expect="area-hash-space-name">
+ <img src="/images/threecolors.png" usemap="# hash-space-name"/>
+ <object data="/images/threecolors.png" usemap="# hash-space-name"></object>
+ <map name=" hash-space-name">
+  <area shape="rect" coords="0,0,99,50" href="#area-hash-space-name"/>
+ </map>
+</div>
+
+<div data-expect="area-hash-space-id">
+ <img src="/images/threecolors.png" usemap="# hash-space-id"/>
+ <object data="/images/threecolors.png" usemap="# hash-space-id"></object>
+ <map id=" hash-space-id">
+  <area shape="rect" coords="0,0,99,50" href="#area-hash-space-id"/>
+ </map>
+</div>
+
+<div data-expect="area-space-before-hash-name">
+ <img src="/images/threecolors.png" usemap=" #space-before-hash-name"/>
+ <object data="/images/threecolors.png" usemap=" #space-before-hash-name"></object>
+ <map name="space-before-hash-name">
+  <area shape="rect" coords="0,0,99,50" href="#area-space-before-hash-name"/>
+ </map>
+</div>
+
+<div data-expect="area-space-before-hash-id">
+ <img src="/images/threecolors.png" usemap=" #space-before-hash-id"/>
+ <object data="/images/threecolors.png" usemap=" #space-before-hash-id"></object>
+ <map id="space-before-hash-id">
+  <area shape="rect" coords="0,0,99,50" href="#area-space-before-hash-id"/>
+ </map>
+</div>
+
+<div data-expect="area-garbage-before-hash-name">
+ <img src="/images/threecolors.png" usemap="http://example.org/#garbage-before-hash-name"/>
+ <object data="/images/threecolors.png" usemap="http://example.org/#garbage-before-hash-name"></object>
+ <map name="garbage-before-hash-name">
+  <area shape="rect" coords="0,0,99,50" href="#area-garbage-before-hash-name"/>
+ </map>
+</div>
+
+<div data-expect="area-garbage-before-hash-id">
+ <img src="/images/threecolors.png" usemap="http://example.org/#garbage-before-hash-id"/>
+ <object data="/images/threecolors.png" usemap="http://example.org/#garbage-before-hash-id"></object>
+ <map id="garbage-before-hash-id">
+  <area shape="rect" coords="0,0,99,50" href="#area-garbage-before-hash-id"/>
+ </map>
+</div>
+
+<div data-expect="no match">
+ <img src="/images/threecolors.png" usemap="#no-such-map"/>
+ <object data="/images/threecolors.png" usemap="#no-such-map"></object>
+ <map>
+  <area shape="rect" coords="0,0,99,50" href="#area-no-such-map"/>
+ </map>
+</div>
+
+<div data-expect="no match">
+ <img src="/images/threecolors.png" usemap="#different-CASE-name"/>
+ <object data="/images/threecolors.png" usemap="#different-CASE-name"></object>
+ <map name="different-case-name">
+  <area shape="rect" coords="0,0,99,50" href="#area-different-case-name"/>
+ </map>
+</div>
+
+<div data-expect="no match">
+ <img src="/images/threecolors.png" usemap="#different-CASE-id"/>
+ <object data="/images/threecolors.png" usemap="#different-CASE-id"></object>
+ <map id="different-case-id">
+  <area shape="rect" coords="0,0,99,50" href="#area-different-case-id"/>
+ </map>
+</div>
+
+ </body>
+</html>

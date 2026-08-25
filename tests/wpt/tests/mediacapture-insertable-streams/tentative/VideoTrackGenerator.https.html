@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>MediaStream Insertable Streams - VideoTrackGenerator</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/webrtc/RTCPeerConnection-helper.js"></script>
+</head>
+<body>
+  <p class="instructions">If prompted, use the accept button to give permission to use your audio and video devices.</p>
+  <h1 class="instructions">Description</h1>
+  <p class="instructions">This test checks that generating video MediaStreamTracks from VideoTrackGenerator works as expected.</p>
+  <script>
+
+    const pixelColour = [50, 100, 150, 255];
+    const height = 240;
+    const width = 320;
+    function makeVideoFrame(timestamp) {
+      const canvas = new OffscreenCanvas(width, height);
+
+      const ctx = canvas.getContext('2d', {alpha: false});
+      ctx.fillStyle = `rgba(${pixelColour.join()})`;
+      ctx.fillRect(0, 0, width, height);
+
+      return new VideoFrame(canvas, {timestamp, alpha: 'discard'});
+    }
+
+    async function getVideoFrame() {
+      const stream = await getNoiseStream({video: true});
+      const input_track = stream.getTracks()[0];
+      const processor = new MediaStreamTrackProcessor(input_track);
+      const reader = processor.readable.getReader();
+      const result = await reader.read();
+      input_track.stop();
+      return result.value;
+    }
+
+    function assertPixel(t, bytes, expected, epsilon = 5) {
+      for (let i = 0; i < bytes.length; i++) {
+        t.step(() => {
+          assert_less_than(Math.abs(bytes[i] - expected[i]),  epsilon, "Mismatched pixel");
+        });
+      }
+    }
+
+    async function initiateSingleTrackCall(t, track, output) {
+      const caller = new RTCPeerConnection();
+      t.add_cleanup(() => caller.close());
+      const callee = new RTCPeerConnection();
+      t.add_cleanup(() => callee.close());
+      caller.addTrack(track);
+      t.add_cleanup(() => track.stop());
+
+      exchangeIceCandidates(caller, callee);
+      // Wait for the first track.
+      const e = await exchangeOfferAndListenToOntrack(t, caller, callee);
+      output.srcObject = new MediaStream([e.track]);
+      // Exchange answer.
+      await exchangeAnswer(caller, callee);
+      await waitForConnectionStateChange(callee, ['connected']);
+    }
+
+    promise_test(async t => {
+      const videoFrame = await getVideoFrame();
+      const originalWidth = videoFrame.displayWidth;
+      const originalHeight = videoFrame.displayHeight;
+      const originalTimestamp = videoFrame.timestamp;
+      const generator = new VideoTrackGenerator();
+      t.add_cleanup(() => generator.track.stop());
+
+      // Use a MediaStreamTrackProcessor as a sink for |generator| to verify
+      // that |processor| actually forwards the frames written to its writable
+      // field.
+      const processor = new MediaStreamTrackProcessor(generator);
+      const reader = processor.readable.getReader();
+      const readerPromise = new Promise(async resolve => {
+        const result = await reader.read();
+        assert_equals(result.value.displayWidth, originalWidth);
+        assert_equals(result.value.displayHeight, originalHeight);
+        assert_equals(result.value.timestamp, originalTimestamp);
+        resolve();
+      });
+
+      generator.writable.getWriter().write(videoFrame);
+      return readerPromise;
+    }, 'Tests that VideoTrackGenerator forwards frames to sink');
+
+    promise_test(async t => {
+      const videoFrame = makeVideoFrame(1);
+      const originalWidth = videoFrame.displayWidth;
+      const originalHeight = videoFrame.displayHeight;
+      const generator = new VideoTrackGenerator();
+      t.add_cleanup(() => generator.track.stop());
+
+      const video = document.createElement("video");
+      video.autoplay = true;
+      video.width = 320;
+      video.height = 240;
+      video.srcObject = new MediaStream([generator.track]);
+      video.play();
+
+      // Wait for the video element to be connected to the generator and
+      // generate the frame.
+      video.onloadstart = () => generator.writable.getWriter().write(videoFrame);
+
+      return new Promise((resolve)=> {
+        video.ontimeupdate = t.step_func(() => {
+          const canvas = document.createElement("canvas");
+          canvas.width = originalWidth;
+          canvas.height = originalHeight;
+          const context = canvas.getContext('2d');
+          context.drawImage(video, 0, 0);
+          // Pick a pixel in the centre of the video and check that it has the colour of the frame provided.
+          const pixel = context.getImageData(videoFrame.displayWidth/2, videoFrame.displayHeight/2, 1, 1);
+          assertPixel(t, pixel.data, pixelColour);
+          resolve();
+        });
+      });
+    }, 'Tests that frames are actually rendered correctly in a stream used for a video element.');
+
+    promise_test(async t => {
+      const generator = new VideoTrackGenerator();
+      t.add_cleanup(() => generator.track.stop());
+
+      // Write frames for the duration of the test.
+      const writer = generator.writable.getWriter();
+      let timestamp = 0;
+      const intervalId = setInterval(
+          t.step_func(async () => {
+            if (generator.track.readyState === 'live') {
+              timestamp++;
+              await writer.write(makeVideoFrame(timestamp));
+            }
+          }),
+          40);
+      t.add_cleanup(() => clearInterval(intervalId));
+
+      const video = document.createElement('video');
+      video.autoplay = true;
+      video.width = width;
+      video.height = height;
+      video.muted = true;
+
+      await initiateSingleTrackCall(t, generator.track, video);
+
+      return new Promise(resolve => {
+        video.ontimeupdate = t.step_func(() => {
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const context = canvas.getContext('2d');
+          context.drawImage(video, 0, 0);
+          // Pick a pixel in the centre of the video and check that it has the
+          // colour of the frame provided.
+          const pixel = context.getImageData(width / 2, height / 2, 1, 1);
+          // Encoding/decoding can add noise, so increase the threshhold to 8.
+          assertPixel(t, pixel.data, pixelColour, 8);
+          resolve();
+        });
+      });
+    }, 'Tests that frames are actually rendered correctly in a stream sent over a peer connection.');
+
+
+    promise_test(async t => {
+      const generator = new VideoTrackGenerator();
+      t.add_cleanup(() => generator.track.stop());
+
+      const inputCanvas = new OffscreenCanvas(width, height);
+
+      const inputContext = inputCanvas.getContext('2d', {alpha: false});
+      // draw four quadrants
+      const colorUL = [255, 0, 0, 255];
+      inputContext.fillStyle = `rgba(${colorUL.join()})`;
+      inputContext.fillRect(0, 0, width / 2, height / 2);
+      const colorUR = [255, 255, 0, 255];
+      inputContext.fillStyle = `rgba(${colorUR.join()})`;
+      inputContext.fillRect(width / 2, 0, width / 2, height / 2);
+      const colorLL = [0, 255, 0, 255];
+      inputContext.fillStyle = `rgba(${colorLL.join()})`;
+      inputContext.fillRect(0, height / 2, width / 2, height / 2);
+      const colorLR = [0, 255, 255, 255];
+      inputContext.fillStyle = `rgba(${colorLR.join()})`;
+      inputContext.fillRect(width / 2, height / 2, width / 2, height / 2);
+
+      // Write frames for the duration of the test.
+      const writer = generator.writable.getWriter();
+      let timestamp = 0;
+      const intervalId = setInterval(
+          t.step_func(async () => {
+            if (generator.track.readyState === 'live') {
+              timestamp++;
+              await writer.write(new VideoFrame(
+                  inputCanvas, {timestamp: timestamp, alpha: 'discard'}));
+            }
+          }),
+          40);
+      t.add_cleanup(() => clearInterval(intervalId));
+
+      const caller = new RTCPeerConnection();
+      t.add_cleanup(() => caller.close());
+      const callee = new RTCPeerConnection();
+      t.add_cleanup(() => callee.close());
+      const sender = caller.addTrack(generator.track);
+
+      exchangeIceCandidates(caller, callee);
+      // Wait for the first track.
+      const e = await exchangeOfferAndListenToOntrack(t, caller, callee);
+
+      // Exchange answer.
+      await exchangeAnswer(caller, callee);
+      await waitForConnectionStateChange(callee, ['connected']);
+      const params = sender.getParameters();
+      params.encodings.forEach(e => e.scaleResolutionDownBy = 2);
+      sender.setParameters(params);
+
+      const processor = new MediaStreamTrackProcessor(e.track);
+      const reader = processor.readable.getReader();
+
+      // The first frame may not have had scaleResolutionDownBy applied
+      const numTries = 5;
+      for (let i = 1; i <= numTries; i++) {
+        const {value: outputFrame} = await reader.read();
+        if (outputFrame.displayWidth !== width / 2) {
+          assert_less_than(i, numTries, `First ${numTries} frames were the wrong size.`);
+          outputFrame.close();
+          continue;
+        }
+
+        assert_equals(outputFrame.displayWidth, width / 2);
+        assert_equals(outputFrame.displayHeight, height / 2);
+
+        const outputCanvas = new OffscreenCanvas(width / 2, height / 2);
+        const outputContext = outputCanvas.getContext('2d', {alpha: false});
+        outputContext.drawImage(outputFrame, 0, 0);
+        outputFrame.close();
+        // Check the four quadrants
+        const pixelUL = outputContext.getImageData(width / 8, height / 8, 1, 1);
+        assertPixel(t, pixelUL.data, colorUL);
+        const pixelUR =
+            outputContext.getImageData(width * 3 / 8, height / 8, 1, 1);
+        assertPixel(t, pixelUR.data, colorUR);
+        const pixelLL =
+            outputContext.getImageData(width / 8, height * 3 / 8, 1, 1);
+        assertPixel(t, pixelLL.data, colorLL);
+        const pixelLR =
+            outputContext.getImageData(width * 3 / 8, height * 3 / 8, 1, 1);
+        assertPixel(t, pixelLR.data, colorLR);
+        break;
+      }
+    }, 'Tests that frames are sent correctly with RTCRtpEncodingParameters.scaleResolutionDownBy.');
+
+    promise_test(async t => {
+      const generator = new VideoTrackGenerator();
+      t.add_cleanup(() => generator.track.stop());
+
+      const writer = generator.writable.getWriter();
+      const frame = makeVideoFrame(1);
+      await writer.write(frame);
+
+      assert_equals(generator.track.kind, "video");
+      assert_equals(generator.track.readyState, "live");
+    }, "Tests that creating a VideoTrackGenerator works as expected");
+
+    promise_test(async t => {
+      const generator = new VideoTrackGenerator();
+      t.add_cleanup(() => generator.track.stop());
+
+      const writer = generator.writable.getWriter();
+      const frame = makeVideoFrame(1);
+      await writer.write(frame);
+
+      assert_throws_dom("InvalidStateError", () => frame.clone(), "VideoFrame wasn't destroyed on write.");
+    }, "Tests that VideoFrames are destroyed on write.");
+
+    promise_test(async t => {
+      const generator = new VideoTrackGenerator();
+      t.add_cleanup(() => generator.track.stop());
+
+      const writer = generator.writable.getWriter();
+      const frame = makeVideoFrame(1);
+      assert_throws_js(TypeError, writer.write(frame));
+    }, "Mismatched frame and generator kind throws on write.");
+
+  promise_test(async t => {
+      const generator = new VideoTrackGenerator();
+    t.add_cleanup(() => generator.track.stop());
+
+    // Use a MediaStreamTrackProcessor as a sink for |generator| to verify
+    // that |processor| actually forwards the frames written to its writable
+    // field.
+    const processor = new MediaStreamTrackProcessor(generator.track);
+    const reader = processor.readable.getReader();
+    const videoFrame = makeVideoFrame(1);
+
+    const writer = generator.writable.getWriter();
+    const videoFrame1 = makeVideoFrame(1);
+    writer.write(videoFrame1);
+    const result1 = await reader.read();
+    assert_equals(result1.value.timestamp, 1);
+    generator.muted = true;
+
+    // This frame is expected to be discarded.
+    const videoFrame2 = makeVideoFrame(2);
+    writer.write(videoFrame2);
+    generator.muted = false;
+
+    const videoFrame3 = makeVideoFrame(3);
+    writer.write(videoFrame3);
+    const result3 = await reader.read();
+    assert_equals(result3.value.timestamp, 3);
+
+    // Set up a read ahead of time, then mute, enqueue and unmute.
+    const promise5 = reader.read();
+    generator.muted = true;
+    writer.write(makeVideoFrame(4)); // Expected to be discarded.
+    generator.muted = false;
+    writer.write(makeVideoFrame(5));
+    const result5 = await promise5;
+    assert_equals(result5.value.timestamp, 5);
+  }, 'Tests that VideoTrackGenerator forwards frames only when unmuted');
+
+  // Note - tests for mute/unmute events will be added once
+  // https://github.com/w3c/mediacapture-transform/issues/81 is resolved
+
+  </script>
+</body>
+</html>

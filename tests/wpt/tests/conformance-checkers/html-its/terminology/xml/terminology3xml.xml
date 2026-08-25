@@ -1,0 +1,10 @@
+<text>
+ <its:rules version="2.0" xmlns:its="http://www.w3.org/2005/11/its">
+   <its:termRule selector="//term" term="yes"
+    termInfoRefPointer="@target"/>
+ </its:rules>
+ <p>We may define <term target="#TDPV">discoursal point of view</term>
+as <gloss xml:id="TDPV">the relationship, expressed through discourse
+structure, between the implied author or some other addresser,
+and the fiction.</gloss></p>
+</text>

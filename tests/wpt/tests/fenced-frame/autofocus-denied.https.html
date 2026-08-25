@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>Autofocusing is blocked in a fenced frame</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+promise_test(async () => {
+  const frame = attachFencedFrameContext();
+  let autofocusIsFocused = await frame.execute(async () => {
+    let autofocusInput = document.createElement('input');
+    autofocusInput.autofocus = true;
+    document.body.appendChild(autofocusInput);
+    await new Promise(resolve => requestAnimationFrame(resolve));
+    return document.activeElement == autofocusInput;
+  });
+  assert_false(autofocusIsFocused, "<input autofocus> received focus");
+}, "Autofocusing is blocked on an element in a fenced frame as "+
+     "it's treated like a cross-origin subframe.");
+</script>
+</body>
+</html>

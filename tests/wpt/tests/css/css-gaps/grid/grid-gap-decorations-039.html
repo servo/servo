@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<title>
+  CSS Gap Decorations: grid column gaps are painted with solid styling.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="match" href="../agnostic/gap-decorations-006-ref.html">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+  body {
+    margin: 0px;
+  }
+
+  .grid-container {
+    height: 110px;
+    width: 110px;
+
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+
+    column-gap: 10px;
+    row-gap: 10px;
+
+    column-rule-color: pink;
+    column-rule-style: solid;
+    column-rule-width: 10px;
+
+    row-rule-color: green;
+    row-rule-style: solid;
+    row-rule-width: 10px;
+  }
+
+  .grid-item {
+    background: skyblue;
+  }
+</style>
+<script>
+  function setup() {
+    const button = document.getElementById('btn');
+    button.click();
+  }
+
+  function setDecorations() {
+    const container = document.querySelector('.grid-container');
+    if (container) {
+      container.style.columnRuleStyle = 'solid';
+      container.style.columnRuleWidth = '10px';
+      container.style.columnRuleColor = 'pink';
+      container.style.rowRuleStyle = 'solid';
+      container.style.rowRuleWidth = '10px';
+      container.style.rowRuleColor = 'green';
+    }
+  }
+</script>
+
+<body onload="setup()">
+  <div class="grid-container">
+    <div class="grid-item"></div>
+    <div class="grid-item"></div>
+    <div class="grid-item"></div>
+    <div class="grid-item"></div>
+  </div>
+  <button onclick="setDecorations()" id="btn">Set decorations</button>
+</body>

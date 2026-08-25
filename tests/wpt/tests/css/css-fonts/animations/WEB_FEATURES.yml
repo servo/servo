@@ -1,0 +1,11 @@
+rules:
+- font-palette-animation-not-specified-endpoints.html: [font-palette-animation]
+- font-palette-interpolation.html: [font-palette-animation]
+- multiple-elements-font-palette-animation.html: [font-palette-animation]
+- font-size-composition.html: [font-size]
+- font-size-interpolation-*: [font-size]
+- font-size-adjust-*: [font-size-adjust]
+- font-style-interpolation.html: [font-style]
+- font-weight-composition.html: [font-weight]
+- font-variation-settings-*: [font-variation-settings]
+- font-stretch-interpolation.html: [font-stretch]

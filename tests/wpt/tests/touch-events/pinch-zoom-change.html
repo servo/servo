@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>Pinch-zoom immediately followed by touch-up stability</title>
+  <link rel=help href="https://github.com/servo/servo/issues/42320">
+  <link rel="author" title="Euclid Ye" href="mailto:yezhizhenjiakang@gmail.com">
+  <meta name="assert" content="The page should not crash and the visual state should change after a pinch-zoom.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <style>
+    body {
+      height: 200vh;
+      width: 200vw;
+      margin: 0;
+      overflow: hidden;
+    }
+
+    #rect {
+      width: 100px;
+      height: 100px;
+      background: blue;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="rect"></div>
+  <script> promise_test(async () => {
+      const x = 200, y = 200;
+      const initialScale = window.visualViewport.scale;
+      // Perform pinch zoom with 0 pause, to trigger previous crash.
+      await new test_driver.Actions(defaultTickDuration = 0)
+        .addPointer("f1", "touch")
+        .addPointer("f2", "touch")
+        .pointerMove(x, y, { origin: "viewport", sourceName: "f1" })
+        .pointerMove(x + 10, y + 10, { origin: "viewport", sourceName: "f2" })
+        .pointerDown({ sourceName: "f1" })
+        .pointerDown({ sourceName: "f2" })
+        .pointerMove(x - 30, y - 30, { origin: "viewport", sourceName: "f1", duration: 0 })
+        .pointerMove(x + 30, y + 30, { origin: "viewport", sourceName: "f2", duration: 0 })
+        .pointerUp({ sourceName: "f1" })
+        .pointerUp({ sourceName: "f2" }).send();
+      assert_not_equals(window.visualViewport.scale, initialScale, "Scale should have changed");
+    }) </script>
+</body>
+
+</html>

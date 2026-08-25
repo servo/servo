@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script>
+            test(function() {
+                var elem = document.createElement("div");
+                var other = document.createElement("div");
+                assert_equals(elem.isEqualNode(elem), true);
+                assert_equals(elem.isEqualNode(other), true);
+                assert_equals(other.isEqualNode(elem), true);
+                assert_equals(elem.isEqualNode(document), false);
+            }, "simple checks");
+
+            test(function() {
+                var parent_elem = document.createElement("div");
+                var child_elem = document.createElement("div");
+                parent_elem.appendChild(child_elem);
+
+                var other_parent = document.createElement("div");
+                var other_child = document.createElement("div");
+                other_parent.appendChild(other_child);
+
+                assert_equals(parent_elem.isEqualNode(other_parent), true);
+                assert_equals(child_elem.isEqualNode(other_child), true);
+
+                var child_text = document.createTextNode("lorem ipsum");
+                child_elem.appendChild(child_text);
+
+                assert_equals(parent_elem.isEqualNode(other_parent), false);
+                assert_equals(child_elem.isEqualNode(other_child), false);
+            }, "non-element children");
+        </script>
+    </head>
+</html>

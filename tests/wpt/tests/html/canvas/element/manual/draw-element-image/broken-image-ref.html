@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>Canvas.drawElementImage: green rect with broken image (ref)</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<link rel="author" href="mailto:szager@chromium.org">
+<style>
+#child {
+  will-change: transform;
+  width: 100px;
+  height: 100px;
+  background: green;
+
+  position: relative;
+  left: 20px;
+  top: 30px;
+}
+#canvas {
+  width: 200px;
+  height: 200px;
+  background: grey;
+}
+img {
+    width: 100px;
+    height: 100px;
+}
+</style>
+
+<div id=canvas>
+  <div id=child>
+    <img id=image src="non-existent-image.gif"/>
+  </div>
+</div>

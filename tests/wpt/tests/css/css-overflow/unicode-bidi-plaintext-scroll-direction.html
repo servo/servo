@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow Test: unicode-bidi: plaintext doesn't affect the scroll direction of a scroll container, dir=auto does</title>
+<link rel="author" title="Mozilla" href="https://mozilla.com/">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#scrollable">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-4/#unicode-bidi">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/13816">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .scroller {
+    width: 200px;
+    font: 30px sans-serif;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+</style>
+
+<div class="scroller" id="plaintext-div-text" style="unicode-bidi: plaintext">اسماء.شبكة/%20/test/</div>
+<div class="scroller" id="plaintext-div-span" style="unicode-bidi: plaintext"><span>اسماء.شبكة/%20/test/</span></div>
+<textarea class="scroller" id="plaintext-textarea" style="unicode-bidi: plaintext" rows="1">اسماء.شبكة/%20/test/</textarea>
+<input class="scroller" id="plaintext-input" style="unicode-bidi: plaintext" value="اسماء.شبكة/%20/test/">
+
+<div class="scroller" id="auto-div-text" dir="auto">اسماء.شبكة/%20/test/</div>
+<div class="scroller" id="auto-div-span" dir="auto"><span>اسماء.شبكة/%20/test/</span></div>
+<textarea class="scroller" id="auto-textarea" dir="auto" rows="1">اسماء.شبكة/%20/test/</textarea>
+<input class="scroller" id="auto-input" dir="auto" value="اسماء.شبكة/%20/test/">
+
+<script>
+  // unicode-bidi: plaintext doesn't change the scroll container's scroll
+  // direction.
+  for (const id of ["plaintext-div-text", "plaintext-div-span", "plaintext-textarea", "plaintext-input"]) {
+    test(() => {
+      const el = document.getElementById(id);
+      assert_equals(getComputedStyle(el).direction, "ltr");
+      assert_equals(el.scrollWidth, el.clientWidth, "should not be scrollable");
+    }, `unicode-bidi: plaintext content opposite to the container's direction isn't scrollable (#${id})`);
+  }
+
+  // dir=auto affects direction, which affects the scroll direction.
+  for (const id of ["auto-div-text", "auto-div-span", "auto-textarea", "auto-input"]) {
+    test(() => {
+      const el = document.getElementById(id);
+      assert_equals(getComputedStyle(el).direction, "rtl");
+      assert_greater_than(el.scrollWidth, el.clientWidth, "element should overflow");
+
+      el.scrollLeft = 100000;
+      assert_equals(el.scrollLeft, 0, "Should scroll to the left");
+
+      el.scrollLeft = -100000;
+      assert_approx_equals(el.scrollLeft, -(el.scrollWidth - el.clientWidth), 1,
+        "min scroll offset should match a plain rtl scroller");
+    }, `dir=auto makes rtl-dominant content scrollable (#${id})`);
+  }
+</script>

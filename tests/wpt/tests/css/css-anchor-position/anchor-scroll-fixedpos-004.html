@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+
+<title>Tests that scroll compensation transform is applied before other transforms</title>
+
+<link rel="author" href="mailto:kiet.ho@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#default-scroll-shift">
+<link rel="match" href="reference/anchor-scroll-fixedpos-004-ref.html">
+
+<style>
+  body {
+    margin: 0;
+  }
+
+  div {
+    width: 100px;
+    height: 100px;
+  }
+
+  #anchor {
+    anchor-name: --a1;
+    margin-top: 105vh;
+    background: orange;
+  }
+
+  #anchored {
+    position: fixed;
+    position-anchor: --a1;
+    position-area: top right;
+    background: green;
+    color: white;
+
+    transform: scale(2);
+  }
+</style>
+
+<body>
+  <div id="anchor"></div>
+  <div id="anchored"></div>
+
+  <script>
+    const anchor = document.getElementById("anchor");
+    anchor.scrollIntoView(false);
+  </script>
+</body>

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8">
+<title>Animated stroke-dashoffset crossing zero with odd-length stroke-dasharray (reference)</title>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="250">
+    <!-- Row 1: even-length equivalent dasharray="60 60", static offsets -->
+    <path d="M20,20 L580,20" stroke="black" stroke-width="6" fill="none" stroke-dasharray="60 60" stroke-dashoffset="-10"/>
+    <path d="M20,40 L580,40" stroke="black" stroke-width="6" fill="none" stroke-dasharray="60 60" stroke-dashoffset="-5"/>
+    <path d="M20,60 L580,60" stroke="black" stroke-width="6" fill="none" stroke-dasharray="60 60" stroke-dashoffset="0"/>
+    <path d="M20,80 L580,80" stroke="black" stroke-width="6" fill="none" stroke-dasharray="60 60" stroke-dashoffset="5"/>
+    <path d="M20,100 L580,100" stroke="black" stroke-width="6" fill="none" stroke-dasharray="60 60" stroke-dashoffset="10"/>
+
+    <!-- Row 2: even-length equivalent dasharray="40 20 10 40 20 10", static offsets -->
+    <path d="M20,140 L580,140" stroke="black" stroke-width="6" fill="none" stroke-dasharray="40 20 10 40 20 10" stroke-dashoffset="-10"/>
+    <path d="M20,160 L580,160" stroke="black" stroke-width="6" fill="none" stroke-dasharray="40 20 10 40 20 10" stroke-dashoffset="-5"/>
+    <path d="M20,180 L580,180" stroke="black" stroke-width="6" fill="none" stroke-dasharray="40 20 10 40 20 10" stroke-dashoffset="0"/>
+    <path d="M20,200 L580,200" stroke="black" stroke-width="6" fill="none" stroke-dasharray="40 20 10 40 20 10" stroke-dashoffset="5"/>
+    <path d="M20,220 L580,220" stroke="black" stroke-width="6" fill="none" stroke-dasharray="40 20 10 40 20 10" stroke-dashoffset="10"/>
+</svg>
+</body>
+</html>

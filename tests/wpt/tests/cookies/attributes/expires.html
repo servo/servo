@@ -1,0 +1,56 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>Test expires attribute parsing</title>
+    <meta name=help href="https://tools.ietf.org/html/rfc6265#section-5.1.1">
+    <meta name="timeout" content="long">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script src="/cookies/resources/cookie-test.js"></script>
+  </head>
+  <body>
+    <div id=log></div>
+    <script>
+      const expiresTests = [
+        {
+          cookie: "test=1; Expires=Fri, 01 Jan 2038 00:00:00 GMT",
+          expected: "test=1",
+          name: "Set cookie with expires value containing a comma",
+        },
+        {
+          cookie: "test=2; Expires=Fri 01 Jan 2038 00:00:00 GMT, baz=qux",
+          expected: "test=2",
+          name: "Set cookie with expires value followed by comma",
+        },
+        {
+          cookie: "test=3; Expires=Fri, 01 Jan 2038 00:00:00 GMT",
+          expected: "test=3",
+          name: "Set cookie with future expiration",
+        },
+        {
+          cookie: ["test=expired; Expires=Fri, 07 Aug 2007 08:04:19 GMT", "test=4; Expires=Fri, 07 Aug 2027 08:04:19 GMT"],
+          expected: "test=4",
+          name: "Set expired cookie along with valid cookie",
+        },
+        {
+          cookie: "test=5; expires=Thu, 10 Apr 1980 16:33:12 GMT",
+          expected: "",
+          name: "Don't set cookie with expires set to the past",
+        },
+      ];
+
+      // These tests evaluate setting cookies with expiration via HTTP headers.
+      for (const test of expiresTests) {
+        httpCookieTest(test.cookie, test.expected, test.name + " via HTTP headers");
+      }
+
+      // These tests evaluate setting cookies with expiration via document.cookie.
+      for (const test of expiresTests) {
+        domCookieTest(test.cookie, test.expected, test.name + " via document.cookie");
+      }
+    </script>
+  </body>
+</html>

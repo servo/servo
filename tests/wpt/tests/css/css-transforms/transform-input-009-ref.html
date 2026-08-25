@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Reftest Reference</title>
+    <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
+    <link rel="stylesheet" href="/fonts/ahem.css">
+    <style>
+      input {
+        font: 25px/1 Ahem;
+        margin: 10px;
+        position: relative;
+      }
+      p + input + input {
+        left: -10px;
+      }
+      p + input + input + input {
+        left: 10px;
+      }
+      p + input + input + input + input {
+        top: -10px;
+      }
+      p + input + input + input + input + input {
+        top: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <p>type=date</p>
+    <input value="2012-02-01" type="date">
+    <input value="2012-02-01" type="date">
+    <input value="2012-02-01" type="date">
+    <input value="2012-02-01" type="date">
+    <input value="2012-02-01" type="date">
+  </body>
+</html>

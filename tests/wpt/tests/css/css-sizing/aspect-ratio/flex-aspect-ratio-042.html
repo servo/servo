@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1335009">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht" />
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="display: flex;">
+  <div style="background: green;">
+    <div style="height: 50px; width: 100px;"></div>
+    <button id="target" style="all: unset; display: block; height: 90%; line-height: 0; aspect-ratio: 1; min-height: 50px;"></button>
+  </div>
+</div>
+<script>
+document.body.offsetTop;
+document.getElementById('target').style.height = '100%';
+</script>

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://issues.chromium.org/issues/504907360">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<style>
+select, ::picker(select) {
+  appearance: base-select;
+}
+</style>
+
+<select multiple size=1 required>
+  <option class=one>one</option>
+  <option class=two>two</option>
+</select>
+
+<script>
+function click(element) {
+  return (new test_driver.Actions()
+    .pointerMove(0, 0, {origin: element})
+    .pointerDown()
+    .pointerUp())
+    .send();
+}
+
+promise_test(async () => {
+  const select = document.querySelector('select');
+  const optionOne = select.querySelector('.one');
+
+  assert_false(select.matches(':valid'),
+    'Select should not match :valid when no options are selected.');
+  assert_true(select.matches(':invalid'),
+    'Select should match :invalid when no options are selected.');
+  assert_false(select.matches(':user-valid'),
+    'Select should not match :user-valid before user interaction.');
+  assert_false(select.matches(':user-invalid'),
+    'Select should not match :user-invalid before user interaction.');
+
+  await click(select);
+  await click(optionOne);
+
+  assert_true(optionOne.selected,
+    'Option one should be selected after clicking it.');
+  assert_true(select.matches(':valid'),
+    'Select should match :valid after clicking an option.');
+  assert_false(select.matches(':invalid'),
+    'Select should not match :invalid after clicking an option.');
+  assert_true(select.matches(':user-valid'),
+    'Select should match :user-valid after clicking an option.');
+  assert_false(select.matches(':user-invalid'),
+    'Select should not match :user-invalid after clicking an option.');
+
+  await click(optionOne);
+
+  assert_false(optionOne.selected,
+    'Option one should not be selected after clicking it twice.');
+  assert_false(select.matches(':valid'),
+    'Select should not match :valid after deselecting an option.');
+  assert_true(select.matches(':invalid'),
+    'Select should not match :invalid after deselecting an option.');
+  assert_false(select.matches(':user-valid'),
+    'Select should not match :user-valid after deselecting an option.');
+  assert_true(select.matches(':user-invalid'),
+    'Select should match :user-invalid after deselecting an option.');
+});
+</script>

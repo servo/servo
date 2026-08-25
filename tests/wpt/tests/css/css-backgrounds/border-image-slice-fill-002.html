@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Backgrounds Test: border-image-slice with 'fill' keyword and with no slicing (edge case)</title>
+
+  <!--
+
+  Created: February 24th 2023
+
+  Last modified: February 28th 2023
+
+  -->
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="http://www.w3.org/TR/css3-background/#border-image-slice">
+  <link rel="match" href="reference/border-image-slice-fill-002-ref.html">
+
+  <meta content="" name="flags">
+  <meta content="This test checks the rendering process of selecting the middle part of the border-image to be preserved. Since 'border-image-slice' is '0', then the whole border-image is its own middle part. In which case, the horizontal center and the vertical center of the border-image must fill the middle area. The 8 other areas of the border belt in this test are not painted and must become transparent." name="assert">
+  <meta name="fuzzy" content="maxDifference=0-112; totalPixels=0-199" />
+
+  <style>
+  div#test
+    {
+      border: red solid 50px;
+      border-image-repeat: repeat;
+      border-image-slice: 0 fill;
+      border-image-source: url("support/500x500-red-with-green-center.png");
+      height: 100px;
+      width: 100px;
+   }
+
+   /*
+
+   This is how the border-image 500x500-red-with-green-center.png is painted:
+
+
+   (0, 500) (50, 500)                 (200, 500)  (300, 500)                  (450, 500) (500, 500)
+   + - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - +
+   |                                          ^                                          |
+   |         White area                      50                    White area            |
+   |                                          v                                          |
+   |        - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -        | (500, 450)
+   |       | FAIL                             ^                                  |       |
+   |       |                                  .                                  |       |
+   |<-50-> |                                                                     |<-50-> |
+   |       |                                  1                                  |       |
+   |  W    |       Red area                                   Red area           |  W    |
+   |  h    |                                  5                                  |  h    |
+   |  i    |                                                                     |  i    |
+   |  t    |                                  0                                  |  t    |
+   |  e    |                                                                     |  e    |
+   |       |                                  .                                  |       |
+   |  a    |                                  v                                  |  a    |
+   |  r    |                            ------------                             |  r    | (500, 300)
+   |  e    |                           |            |                            |  e    |
+   |  a    |       Red area            |    Green   |         Red area           |  a    |
+   |       |                           |            |                            |       |
+   |       |  <!- . . . 150 . . .  ->  |    area    |  <!- . . .  150  . . . ->  |       |
+   |       |                           |            |                            |       |
+   |       |                            ------------                             |       | (500, 200)
+   |       |                                  ^                                  |       |
+   |       |                                  .                                  |       |
+   |       |                                                                     |       |
+   |       |       Red area                   1               Red area           |       |
+   |       |                                                                     |       |
+   |       |                                  5                                  |       |
+   |       |                                                                     |       |
+   |       |                                  0                                  |       |
+   |       |                                                                     |       |
+   |       |                                  .                                  |       |
+   |       |                                  v                                  |       |
+   |        - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -        | (500, 50)
+   |                                          ^                                          |
+   |         White area                      50                    White area            |
+   |                                          v                                          |
+   + - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - +
+   (0, 0) (50, 0)                     (200, 0)  (300, 0)                        (450, 0) (500, 0)
+
+   */
+
+  div#yellow-under-test
+    {
+      background-color: yellow;
+      bottom: 200px;
+      height: 200px;
+      position: relative;
+      width: 200px;
+      z-index: -1;
+    }
+
+  /*
+     The purpose of this div#yellow-under-test in
+     here is to verify and to make sure that the
+     border belt is indeed painted with the 8
+     transparent areas and not with the white
+     colored areas of the border-image.
+  */
+  </style>
+
+  <p>Test passes if there is a filled green square surrounded by a yellow square and if there is <strong>no red</strong>.
+
+  <div id="test"></div>
+
+  <div id="yellow-under-test"></div>
+

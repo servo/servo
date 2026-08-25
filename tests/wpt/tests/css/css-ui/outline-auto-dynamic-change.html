@@ -1,0 +1,29 @@
+<!doctype html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<link rel="help" href="https://drafts.csswg.org/css-ui/#outline-style">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1759749">
+<link rel="match" href="outline-auto-dynamic-change-ref.html">
+<title>Dynamic change to outline-style: auto works even if effective outline-width is zero</title>
+<style>
+div {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 100px;
+  height: 100px;
+  outline-width: 0;
+  outline-offset: 5px;
+  outline-color: black;
+  outline-style: none;
+}
+</style>
+<div></div>
+<script>
+document.addEventListener("TestRendered", function() {
+  document.querySelector("div").style.outlineStyle = "auto";
+  document.documentElement.className = "";
+});
+</script>

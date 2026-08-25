@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: Parsing check for * ~ :root error handling</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://drafts.csswg.org/selectors-3/#selector-syntax">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="* ~ :root should not match anything">
+<style>
+* ~ :root div {
+  background-color: red;
+}
+div {
+  width: 100px;
+  height: 100px;
+  background-color: green;
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div></div>

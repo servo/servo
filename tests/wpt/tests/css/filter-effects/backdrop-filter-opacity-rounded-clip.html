@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<title>backdrop-filter with opacity:0 under border radius overflow clip should have no effect</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty">
+<link rel="match"  href="backdrop-filter-opacity-rounded-clip-ref.html">
+<div style="width: 300px; height: 200px; border-radius: 80px; overflow: hidden; position: relative">
+  <!-- This should be fully clipped by the outer rounded clip. -->
+  <div style="width: 10px; height: 10px; background: cyan"></div>
+  <!-- This should be fully visible and not affected by the backdrop filter. -->
+  <div style="position: absolute; top: 0; left: 100px; width: 100px; height: 100px; background: green"></div>
+  <div style="position: absolute; top: 0; left: 100px; width: 100px; height: 1000px; opacity: 0; backdrop-filter: blur(3px)"></div>
+</div>
+

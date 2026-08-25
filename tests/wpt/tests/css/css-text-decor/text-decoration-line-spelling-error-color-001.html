@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>CSS Text Decoration Test: text-decoration-line: spelling-error color</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#valdef-text-decoration-line-spelling-error">
+<meta name="assert" content="This test checks that it is not possible to tweak the color of 'text-decoration-line: spelling-error' with 'text-decoration-color' property.">
+<link rel="match" href="text-decoration-line-spelling-error-color-001-ref.html">
+<style>
+  span {
+    text-decoration-line: spelling-error;
+  }
+  .test {
+    text-decoration-color: rgba(200, 225, 50, 0.75);
+  }
+</style>
+
+<p>The test passes if the spelling error marker on both instances of "quikc" have the same color.
+<div>The <span class=test>quikc</span> brown fox.</div>
+<div>The <span>quikc</span> brown fox.</div>

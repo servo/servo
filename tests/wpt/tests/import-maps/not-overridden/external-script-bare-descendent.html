@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script type="importmap">
+{
+  "imports": {
+    "a": "../resources/log.sub.js?name=A",
+    "foo/bar": "../resources/log.sub.js?name=FOOBAR"
+  }
+}
+</script>
+<script type="module" src="../resources/importer.sub.js?name=a"></script>
+<script type="module" src="../resources/importer.sub.js?name=foo/bar"></script>
+<script>
+const log = [];
+
+// Try to redefine the descendent with an import map
+</script>
+<script type="importmap">
+{
+  "imports": {
+    "a": "../resources/log.sub.js?name=B",
+    "foo/bar": "../resources/log.sub.js?name=OtherFoobar",
+    "foo/": "../resources/log.sub.js?name=OtherFoo",
+    "foo": "../resources/log.sub.js?name=foo"
+  }
+}
+</script>
+<script type="module">
+// Testing that the resolution is correct using `resolve`, as you can't import
+// the same module twice.
+test(() => {
+  assert_true(import.meta.resolve("a").endsWith("/resources/log.sub.js?name=A"));
+}, "Resolution after import map should not be redefined");
+
+test(() => {
+  assert_true(import.meta.resolve("foo/bar").endsWith("/resources/log.sub.js?name=FOOBAR"));
+}, "Resolution after import map should not be redefined for bare prefixes or exact matches");
+
+test(() => {
+  assert_true(import.meta.resolve("foo").endsWith("/resources/log.sub.js?name=foo"));
+}, "Resolution after import map should be redefined for non-prefixes");
+</script>
+</body>
+</html>
+
+
+

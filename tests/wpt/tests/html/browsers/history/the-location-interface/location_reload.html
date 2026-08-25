@@ -1,0 +1,43 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <title>location_reload</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body onload="startTest();">
+    <div id="log"></div>
+
+    <iframe></iframe>
+
+    <script>
+    var history_length;
+    async_test(function(t) {
+
+      var url = new URL("./location_reload-iframe.html", window.location).href;
+
+      window._pingCount = 0;
+      window._ping = t.step_func(function(innerURL) {
+          // Some browsers keep 'about:blank' in the session history
+          if (_pingCount == 0) {
+            history_length = history.length;
+          }
+          assert_equals(url, innerURL, "iframe url (" + _pingCount + ")");
+          assert_equals(history_length, history.length, "history length (" + _pingCount + ")");
+          _pingCount++;
+          if (_pingCount == 5) {
+            t.done();
+          }
+      });
+    });
+
+    function startTest() {
+      var url = new URL("./location_reload-iframe.html", window.location).href;
+      var iframe = document.querySelector("iframe");
+      iframe.src = url;
+      history_length = history.length;
+    }
+    </script>
+
+  </body>
+</html>

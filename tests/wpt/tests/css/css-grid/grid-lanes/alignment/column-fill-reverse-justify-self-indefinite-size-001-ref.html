@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    html, body {
+      font: 16px/1 monospace;
+      background: white;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: row;
+      border: 1px solid blue;
+      gap: 4px;
+      width: min-content;
+    }
+
+    .col {
+      display: flex;
+      flex-direction: column-reverse;
+      width: 80px;
+      flex-shrink: 0;
+      gap: 4px;
+    }
+
+    item {
+      display: block;
+      width: min-content;
+      height: min-content;
+      color: white;
+      background: #555;
+      writing-mode: vertical-rl;
+    }
+  </style>
+</head>
+<body>
+  <p>justify-self: baseline / last baseline</p>
+  <div class="container">
+    <div class="col">
+      <item style="align-self: baseline;">item 1 with extra text</item>
+      <item style="align-self: baseline;">item 3 with more text</item>
+      <item style="align-self: baseline;">item 5</item>
+    </div>
+    <div class="col">
+      <item style="align-self: last baseline;">item 2</item>
+      <item style="align-self: last baseline;">item 4</item>
+      <item style="align-self: last baseline;">item 6 with even more text</item>
+    </div>
+  </div>
+</body>
+</html>

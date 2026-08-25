@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Element setAttributeNode</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="test"></div>
+<script>
+    test(function() {
+        var element = document.getElementById("test");
+        var attr = document.createAttribute("id");
+        attr.value = "foo";
+        element.setAttributeNode(attr);
+        var id = element.getAttribute("id");
+        assert_equals(id, "foo", "getAttribute should have value 'foo'");
+    });
+</script>

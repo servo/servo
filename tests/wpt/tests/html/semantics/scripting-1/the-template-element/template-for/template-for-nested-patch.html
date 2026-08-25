@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML partial updates: template for nested inside another template for</title>
+<link rel="help" href="https://github.com/WICG/declarative-partial-updates">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+// A <template for> whose content contains another <template for>. The outer
+// patch streams the inner template's marker into the shared target, so when the
+// inner template is processed its scope is that target and it finds the marker
+// there. Tracing the parser algorithms, the inner patch therefore succeeds and
+// produces "beforePATCHEDafter".
+//
+// NOTE: The spec has a note stating that "nested patching is not supported",
+// which refers to the narrower case where a template's scope resolves to its
+// own (empty) template contents. The arrangement below reaches the shared
+// target instead, so it patches. This expectation is derived from the spec
+// text and is worth confirming with the editors; if nesting is meant to be
+// rejected here, this test's expectation needs to change.
+async function parseToRoot(method, html) {
+  switch (method) {
+    case "iframe": {
+      const iframe = document.createElement("iframe");
+      document.body.appendChild(iframe);
+      iframe.contentDocument.write(html);
+      iframe.contentDocument.close();
+      return iframe.contentDocument.body;
+    }
+    case "innerHTML": {
+      const div = document.createElement("div");
+      div.innerHTML = html;
+      return div;
+    }
+    case "stream": {
+      const div = document.createElement("div");
+      const writer = div.streamAppendHTMLUnsafe().getWriter();
+      await writer.write(html);
+      await writer.close();
+      return div;
+    }
+  }
+}
+
+function processingInstructions(root) {
+  const walker = root.ownerDocument.createTreeWalker(
+    root, NodeFilter.SHOW_PROCESSING_INSTRUCTION);
+  const result = [];
+  while (walker.nextNode()) {
+    result.push(walker.currentNode);
+  }
+  return result;
+}
+
+for (const method of ["iframe", "innerHTML", "stream"]) {
+  promise_test(async () => {
+    const root = await parseToRoot(method,
+      `<div id="host"><?start name="outer">old<?end></div>` +
+      `<template for="outer">before<?marker name="inner">after` +
+      `<template for="inner">PATCHED</template></template>`);
+    const host = root.querySelector("#host");
+
+    assert_equals(processingInstructions(root).length, 0,
+      "both the outer and inner markers should be removed");
+    assert_equals(host.querySelector("template"), null,
+      "the inner template should have patched rather than being inserted");
+    assert_equals(host.textContent, "beforePATCHEDafter");
+  }, `Nested <template for> patches via the shared target (${method})`);
+}
+</script>
+</body>

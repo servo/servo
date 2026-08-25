@@ -1,0 +1,117 @@
+<!DOCTYPE HTML>
+<title>SVGMatrix interface</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+function assert_matrix_approx_equals(actual, expected, epsilon) {
+  assert_approx_equals(actual.a, expected.a, epsilon);
+  assert_approx_equals(actual.b, expected.b, epsilon);
+  assert_approx_equals(actual.c, expected.c, epsilon);
+  assert_approx_equals(actual.d, expected.d, epsilon);
+  assert_approx_equals(actual.e, expected.e, epsilon);
+  assert_approx_equals(actual.f, expected.f, epsilon);
+}
+
+function create_svg_matrix() {
+  let svgElement = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  // createSVGMatrix() returns an SVGMatrix in both SVG 1.1 and SVG 2.
+  // SVG 2 temporarily aliased SVGMatrix to DOMMatrix; that aliasing was
+  // reverted in svgwg#706 (resolution 2019-10, landed in w3c/svgwg#1143).
+  return svgElement.createSVGMatrix();
+}
+
+test(function() {
+  let matrix = create_svg_matrix();
+
+  // Check initial matrix values.
+  assert_matrix_approx_equals(matrix, {a:1, b:0, c:0, d:1, e:0, f:0}, 0);
+
+  matrix.d = 2;
+
+  // Check setting valid arguments.
+  assert_matrix_approx_equals(matrix, {a:1, b:0, c:0, d:2, e:0, f:0}, 0);
+}, "setting value");
+
+test(function() {
+  let matrix = create_svg_matrix();
+
+  // SVGMatrix.multiply() accepts a DOMMatrix2DInit
+  // (DOM*Init types are kept per svgwg#706 res #3, landed in w3c/svgwg#1143).
+  matrix = matrix.multiply({a: 3, d: 2});
+
+  assert_matrix_approx_equals(matrix, {a:3, b:0, c:0, d:2, e:0, f:0}, 0);
+}, "multiply");
+
+test(function() {
+  // a..f are aliases of m11..m42, so both spellings must give the same result.
+  // https://drafts.csswg.org/geometry-1/#dommatrixreadonly
+  let fromAliases = create_svg_matrix().multiply({a: 3, d: 2});
+  let fromElements = create_svg_matrix().multiply({m11: 3, m22: 2});
+
+  assert_matrix_approx_equals(fromElements, {a:3, b:0, c:0, d:2, e:0, f:0}, 0);
+  assert_matrix_approx_equals(fromElements, fromAliases, 0);
+}, "multiply accepts the m11..m42 spelling");
+
+test(function() {
+  let matrix = create_svg_matrix().multiply({m41: 10, m42: 20});
+
+  assert_matrix_approx_equals(matrix, {a:1, b:0, c:0, d:1, e:10, f:20}, 0);
+}, "multiply accepts m41/m42 as the translation components");
+
+test(function() {
+  // Supplying both spellings of a component is allowed when they agree.
+  let matrix = create_svg_matrix().multiply({a: 3, m11: 3, d: 2, m22: 2});
+
+  assert_matrix_approx_equals(matrix, {a:3, b:0, c:0, d:2, e:0, f:0}, 0);
+}, "multiply accepts an alias and its element when they hold the same value");
+
+test(function() {
+  // Step 1 of validate and fixup: an alias and its element that disagree are
+  // a TypeError. https://drafts.csswg.org/geometry-1/#matrix-validate-and-fixup
+  let matrix = create_svg_matrix();
+
+  assert_throws_js(TypeError, function() { matrix.multiply({a: 1, m11: 5}); });
+  assert_throws_js(TypeError, function() { matrix.multiply({b: 1, m12: 5}); });
+  assert_throws_js(TypeError, function() { matrix.multiply({c: 1, m21: 5}); });
+  assert_throws_js(TypeError, function() { matrix.multiply({d: 1, m22: 5}); });
+  assert_throws_js(TypeError, function() { matrix.multiply({e: 1, m41: 5}); });
+  assert_throws_js(TypeError, function() { matrix.multiply({f: 1, m42: 5}); });
+}, "multiply throws TypeError when an alias and its element disagree");
+
+test(function() {
+  // The comparison is SameValueZero, which treats 0 and -0 as the same value,
+  // so this is not a conflict. An implementation using Object.is() would
+  // wrongly throw here.
+  let matrix = create_svg_matrix();
+
+  matrix.multiply({e: 0, m41: -0});
+  matrix.multiply({e: -0, m41: 0});
+}, "multiply compares an alias and its element with SameValueZero");
+
+test(function() {
+  let matrix = create_svg_matrix();
+  matrix.a = 2;
+  matrix.f = 200;
+
+  // secondMatrix is `optional DOMMatrix2DInit secondMatrix = {}`, so calling
+  // multiply() with no argument multiplies by the identity matrix and leaves
+  // the receiver's values unchanged.
+  let result = matrix.multiply();
+
+  assert_matrix_approx_equals(result, {a:2, b:0, c:0, d:1, e:0, f:200}, 0);
+}, "multiply with no argument multiplies by the identity matrix");
+
+test(function() {
+  let matrix = create_svg_matrix();
+  matrix.a = 2;
+  matrix.f = 200;
+
+  // Per WebIDL dictionary conversion, members absent from the passed object
+  // take their default values, so an object carrying none of a..f / m11..m42
+  // is equivalent to {} and multiplies by the identity matrix.
+  let result = matrix.multiply({unrecognized: 1});
+
+  assert_matrix_approx_equals(result, {a:2, b:0, c:0, d:1, e:0, f:200}, 0);
+}, "multiply with an object holding no recognized members multiplies by the identity matrix");
+</script>

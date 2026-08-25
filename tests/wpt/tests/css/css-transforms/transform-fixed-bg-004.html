@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test (Transforms): Fixed Background (with rotation and scrolling)</title>
+    <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
+    <link rel="author" title="L. David Baron" href="https://dbaron.org/">
+    <link rel="author" title="Google" href="http://www.google.com/">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-rendering">
+    <meta name="assert" content='This is the same as transform-fixed-bg-002,
+    except that we also test that a rotation on a non-root element doesn&apos;t
+    affect fixed backgrounds.'>
+    <meta name="flags" content="svg dom">
+    <link rel="match" href="transform-fixed-bg-ref.html">
+    <meta name="fuzzy" content="maxDifference=0-1;totalPixels=0-200">
+    <style>
+      body {
+        margin: 0;
+        height: 5000px;
+        overflow: hidden;
+      }
+      div {
+        background: url(support/transform-triangle-down.svg) fixed;
+        width: 100px;
+        height: 100px;
+        transform: translate(50px, 150px) rotate(90deg);
+      }
+    </style>
+  </head>
+  <body>
+    <div></div>
+    <script>scroll(0, 100)</script>
+  </body>
+</html>

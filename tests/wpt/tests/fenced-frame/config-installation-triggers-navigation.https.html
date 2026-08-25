@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/utils.js"></script>
+<title>Test fenced frame config installation triggers navigation.</title>
+
+<body>
+
+<script>
+promise_test(async () => {
+  const fenced_frame_loaded_key = token();
+
+  const url = generateURL(
+    'resources/fenced-frame-loaded.html', [fenced_frame_loaded_key]);
+  const url_string = url.toString();
+
+  // Create a fenced frame and install an inner config constructed with an url.
+  const fenced_frame = document.createElement('fencedframe');
+  const config = new FencedFrameConfig(url_string);
+  fenced_frame.config = config;
+  document.body.append(fenced_frame);
+
+  // Installing an inner config to the fenced frame triggers navigation.
+  const load_expected = "fenced frame loaded";
+  const load_actual = await nextValueFromServer(fenced_frame_loaded_key);
+  assert_equals(load_actual, load_expected,
+                "Fenced frame successfully loaded.");
+
+}, 'Installing an inner config to a fenced frame triggers navigation.');
+</script>
+
+</body>

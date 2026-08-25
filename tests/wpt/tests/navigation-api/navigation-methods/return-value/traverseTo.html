@@ -1,0 +1,27 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/helpers.js"></script>
+
+<script>
+promise_test(async t => {
+  let start_length = navigation.entries().length;
+  let start_index = navigation.currentEntry.index;
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+
+  const key0 = navigation.currentEntry.key;
+
+  location.href = "#1";
+
+  assert_equals(navigation.entries().length, start_length+1);
+  const [entry0, entry1] = navigation.entries().slice(start_index);
+  assert_equals((new URL(entry0.url)).hash, "");
+  assert_equals((new URL(entry1.url)).hash, "#1");
+
+  const result = navigation.traverseTo(key0);
+  await assertBothFulfill(t, result, entry0);
+  assert_equals(navigation.currentEntry, entry0);
+}, "traverseTo() promises");
+</script>

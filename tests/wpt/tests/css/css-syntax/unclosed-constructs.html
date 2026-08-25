@@ -1,0 +1,36 @@
+<!doctype html>
+<title>Unclosed Constructs Are Valid</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<meta name="author" title="Tab Atkins-Bittner">
+<link rel=help href="https://drafts.csswg.org/css-syntax/#rule-defs">
+
+<!--
+Tests that unclosed constructs are valid and match grammars,
+because grammar-matching only sees the "block",
+not the opening/closing characters themselves.
+-->
+
+<script>
+
+function validSelector(str) {
+    try {
+        document.querySelector(str);
+        return true;
+    } catch(e) {
+        return false;
+    }
+}
+function shouldBeValid(str) {
+    test(()=>{
+        assert_true(validSelector(str));
+    }, `"${str}" is a valid selector`)
+}
+
+shouldBeValid("[foo]");
+shouldBeValid("[foo");
+shouldBeValid(":nth-child(1)");
+shouldBeValid(":nth-child(1");
+
+</script>

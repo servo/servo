@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#algo-content">
+<link rel="author" title="Yulun Wu" href="mailto:yulun_wu@apple.com">
+<meta name="assert" content="Resolving the minimum contribution of a grid item with a fixed inline-size in a fixed-size track does not crash.">
+<style>
+.grid {
+    display: grid;
+    grid-template-columns: auto;
+    grid-template-rows: 100px;
+}
+.item {
+    grid-row: 1 / 2;
+    grid-column: 1 / 2;
+    width: 10px;
+}
+</style>
+<div class="grid"><div class="item"></div></div>
+<script>
+document.body.offsetHeight;
+</script>

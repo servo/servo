@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: Absolute Positioning: Tables with two offsets</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/absolute/008.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#comp-abspos"/>
+  <style type="text/css">
+   body { font: 900 10em "Lucida Console", "Courier New", Courier, monospace; }
+   .description { font: medium serif; margin: 1em 1em 15em; }
+   .test { position: absolute; bottom: 0; left: auto; right: 0; top: auto;
+           background: white; color: green; margin: 0; }
+   .control { position: absolute; bottom: 0; left: auto; right: 0; top: auto;
+              background: red; color: yellow; margin: 0; }
+  </style>
+ </head>
+ <body>
+  <p class="description">The word PASS should appear at the bottom right of this document.</p>
+  <p class="control">FAIL</p>
+  <table class="test"><tbody><tr><td>PASS</td></tr></tbody></table>
+
+ </body>
+</html>

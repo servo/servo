@@ -1,0 +1,1 @@
+Access-Control-Allow-Origin: https://{{host}}:{{ports[https][0]}}

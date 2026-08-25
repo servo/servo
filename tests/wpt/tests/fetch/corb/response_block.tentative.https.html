@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<body>
+<script>
+// A cross-origin response containing JavaScript, labelled as text/csv.
+const probeUrl = get_host_info().HTTPS_REMOTE_ORIGIN +
+    "/fetch/corb/resources/response_block_probe.js";
+
+// Test handling of blocked responses in CORB/ORB for <script> elements.
+function probe_script() {
+  // We will cross-origin load a script resource that should get blocked by all
+  // versions of CORB/ORB. Two things may happen:
+  //
+  // 1, An empty response is injected. (What CORB does.)
+  // 2, An error is injected and script loading aborts. (What ORB does.)
+
+  // Load the probe as a script.
+  const script = document.createElement("script");
+  script.src = probeUrl;
+  document.body.appendChild(script);
+
+  // Return a promise that will return a string description corresponding to the
+  // conditions above.
+  return new Promise((resolve, reject) => {
+    script.onload = _ => resolve("Resource loaded (expected for CORB)");
+    script.onerror = _ => resolve("ORB-style network error");
+  });
+}
+
+// Test handling of blocked responses in CORB/ORB for script-initiated fetches.
+function probe_fetch() {
+  return fetch(probeUrl, {mode: "no-cors"})
+    .then(response => response.text())
+    .then(text => {
+        assert_equals(text, "");
+        return "Resource loaded (expected for CORB)";
+    })
+    .catch(_ => "ORB-style network error");
+}
+
+// These tests check for ORB behaviour.
+promise_test(t => probe_script().then(
+    value => assert_equals(value, "ORB-style network error")),
+    "ORB: Expect error response from <script> fetch.");
+promise_test(t => probe_fetch().then(
+    value => assert_equals(value, "ORB-style network error")),
+    "ORB: Expect error response from fetch().");
+</script>

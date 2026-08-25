@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>CSS Conditional Test: @container anchored query parsing - 'any' position-area</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-2/#anchored-container-queries">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-conditional/container-queries/support/cq-testcommon.js"></script>
+<div style="container-name:name;container-type:anchored">
+  <main id="cq-main"></main>
+</div>
+<script>
+  test_cq_condition_known('anchored(fallback: any)');
+  test_cq_condition_known('anchored(fallback: any any)');
+  test_cq_condition_known('anchored(fallback: any top)');
+  test_cq_condition_known('anchored(fallback: center any)');
+  test_cq_condition_known('anchored(fallback: any self-start)');
+  test_cq_condition_known('anchored(fallback: inline-end any)');
+
+  test_cq_condition_unknown('anchored(fallback: any none)');
+</script>

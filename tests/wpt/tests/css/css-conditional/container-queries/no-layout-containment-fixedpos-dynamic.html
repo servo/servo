@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>Position fixed elements should propagate from a container-type subtree.</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/10544#issuecomment-2248438355">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
+<style>
+@container (width = 100px) {
+  #test {
+    position: fixed;
+    inset: 0;
+    background: green;
+  }
+}
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div id="target" style="contain: layout; width: 200px; height: 100px; background: red;">
+  <div style="container-type: inline-size; height: 0;">
+    <div id="test"></div>
+  </div>
+</div>
+<script>
+document.body.offsetTop;
+document.getElementById('target').style.width = '100px';
+</script>

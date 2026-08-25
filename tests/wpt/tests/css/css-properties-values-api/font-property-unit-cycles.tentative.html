@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api-1/#dependency-cycles-via-relative-units" />
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/8169" />
+<meta name="assert" content="Relative units in calc() used in font-* properties resolve against the parent element to prevent cycles" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+    @property --custom-number {
+        syntax: "<number>";
+        inherits: false;
+        initial-value: 0;
+    }
+    @property --custom-integer {
+        syntax: "<integer>";
+        inherits: false;
+        initial-value: 0;
+    }
+
+    @property --custom-length {
+        syntax: "<length>";
+        inherits: false;
+        initial-value: 0px;
+    }
+
+    @property --custom-angle {
+        syntax: "<angle>";
+        inherits: false;
+        initial-value: 0deg;
+    }
+
+    @property --custom-percentage {
+        syntax: "<percentage>";
+        inherits: false;
+        initial-value: 0%;
+    }
+
+    #container {
+        font-size: 30px;
+    }
+
+    #target {
+        font-size: 10px;
+    }
+</style>
+
+<div id="container">
+    <div id="target"></div>
+</div>
+
+<script>
+    const FONT_UNITS = ['em', 'ex', 'cap', 'ch', 'ic'];
+    const FONT_PROPERTIES = [
+        { name: 'font-size',        type: 'length' },
+        { name: 'font-size-adjust', type: 'number' },
+        { name: 'font-weight',      type: 'number' },
+        { name: 'font-stretch',     type: 'percentage' },
+        {
+            name: 'font-style',
+            type: 'angle',
+            build: value => 'oblique ' + value,
+            parse: value => value.substring('oblique '.length),
+        },
+        {
+            name: 'font-feature-settings',
+            type: 'integer',
+            build: value => '"tnum" ' + value,
+            parse: value => value.substring('"tnum" '.length),
+        },
+        {
+            name: 'font-variation-settings',
+            type: 'number',
+            build: value => '"xhgt" ' + value,
+            parse: value => value.substring('"xhgt" '.length),
+        },
+    ];
+    const NUMERIC_TYPES = {
+        number: {
+            canonicalUnit: '',
+            customPropertyName: '--custom-number',
+        },
+        integer: {
+            canonicalUnit: '',
+            customPropertyName: '--custom-integer',
+            round: true,
+        },
+        length: {
+            canonicalUnit: 'px',
+            customPropertyName: '--custom-length',
+        },
+        angle: {
+            canonicalUnit: 'deg',
+            customPropertyName: '--custom-angle',
+        },
+        percentage: {
+            canonicalUnit: '%',
+            customPropertyName: '--custom-percentage',
+        },
+    };
+
+    function buildLengthCalc(relativeUnit, finalUnit) {
+        return `calc(1${finalUnit} * tan(atan2(1${relativeUnit}, 1px)))`;
+    }
+
+    function computeUnitInPixels(element, unit) {
+        element.style.marginBottom = '1' + unit;
+        return parseFloat(getComputedStyle(element).marginBottom);
+    }
+
+    add_result_callback(function() {
+        target.style = '';
+    });
+
+    for (const property of FONT_PROPERTIES) {
+        for (const relativeUnit of FONT_UNITS) {
+            test(function () {
+                let specified = buildLengthCalc(relativeUnit, NUMERIC_TYPES[property.type].canonicalUnit);
+                if (property.build) {
+                    specified = property.build(specified);
+                }
+                target.style.setProperty(property.name, specified);
+
+                const computed = getComputedStyle(target).getPropertyValue(property.name);
+                const parsed = property.parse
+                    ? parseFloat(property.parse(computed))
+                    : parseFloat(computed);
+
+                const expected = computeUnitInPixels(container, relativeUnit);
+                assert_approx_equals(parsed, expected, 0.1, specified);
+            }, `${property.name} calc() with ${relativeUnit} uses parent ${relativeUnit}`);
+
+
+            test(function () {
+                const numericType = NUMERIC_TYPES[property.type];
+                const customPropertyName = numericType.customPropertyName;
+                const targetPropertyName = property.name;
+
+                const specifiedCustom = buildLengthCalc(relativeUnit, numericType.canonicalUnit);
+                const specifiedTarget = property.build
+                    ? property.build(`var(${customPropertyName})`)
+                    : `var(${customPropertyName})`;
+                target.style.setProperty(customPropertyName, specifiedCustom);
+                target.style.setProperty(targetPropertyName, specifiedTarget);
+
+                const computedCustom = getComputedStyle(target).getPropertyValue(customPropertyName);
+                const computedTarget = getComputedStyle(target).getPropertyValue(targetPropertyName);
+                const parsedCustom = parseFloat(computedCustom);
+                const parsedTarget = property.parse
+                    ? parseFloat(property.parse(computedTarget))
+                    : parseFloat(computedTarget);
+
+                let expected = computeUnitInPixels(container, relativeUnit);
+                if (numericType.round) {
+                    expected = Math.round(expected);
+                }
+                assert_approx_equals(parsedCustom, expected, 0.1, specifiedCustom);
+                assert_approx_equals(parsedTarget, expected, 0.1, specifiedTarget);
+            }, `${property.name} calc() with registered custom property and ${relativeUnit} uses parent ${relativeUnit}`);
+        }
+    }
+
+    // Test that custom properties *not* used in font-* properties compute against the current element
+    for (const [type, numericType] of Object.entries(NUMERIC_TYPES)) {
+        for (const relativeUnit of FONT_UNITS) {
+            test(function () {
+                const specified = buildLengthCalc(relativeUnit, numericType.canonicalUnit);
+                target.style.setProperty(numericType.customPropertyName, specified);
+
+                const computed = getComputedStyle(target).getPropertyValue(numericType.customPropertyName);
+                const parsed = parseFloat(computed);
+                const expected = computeUnitInPixels(target, relativeUnit);
+                assert_approx_equals(parsed, expected, 0.1, specified);
+            }, `<${type}> registered custom property with ${relativeUnit} and no cycle uses element ${relativeUnit}`);
+        }
+    }
+</script>

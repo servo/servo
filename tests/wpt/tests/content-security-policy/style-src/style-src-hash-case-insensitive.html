@@ -1,0 +1,55 @@
+<!doctype html>
+<html>
+<head>
+    <meta http-equiv="Content-Security-Policy" content="style-src
+                'SHA256-7kQ1KhZCpEzWtsa0RSpbIL7FU3kPNhE3IJMaNeTclMU='
+                'SHA384-OliBBQtittDq3qDaEttMlHG1viNf50PLjSlvXirHZHpeKApMClrTJz+7VB5RTWdN'
+                'SHA512-4/SpqCV0WGbb2QZXBViFlnms4M0I+aUGg9/tIhr10twU89nlMSBLOhi3cVli39kyBZbUAlzk9xcVTMy+JDY+VA=='
+                'sHa256-7+4S4EQgq4w2e2BwX1xnE3sW12GIuGqtQRYDLLhOyaE='
+                'shA384-YmZjKJCd/pjU8gq/sFCON/NHfkHLAZqI0a4JxyX67Ark36qJAvPnEWACZrZlhR62'
+                'Sha512-/fwXanQOq033J+QFjepcRHT0DDD6fsQJGvoeBjpEM2PBV9ETzYYGXdkwH+TMqfiRnYsHAa/sPqQd2W4FoYYlOw=='
+                ">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+
+    <script>
+      var t = async_test("All style elements should load because they have proper hashes");
+      document.addEventListener("securitypolicyviolation", t.unreached_func("Should not trigger a security policy violation"));
+    </script>
+
+    <style>#content1 { margin-left: 2px; }</style>
+    <style>#content2 { margin-left: 2px; }</style>
+    <style>#content3 { margin-left: 2px; }</style>
+    <style>#content4 { margin-left: 2px; }</style>
+    <style>#content5 { margin-left: 2px; }</style>
+    <style>#content6 { margin-left: 2px; }</style>
+</head>
+<body>
+    <div id='log'></div>
+
+    <div id="content1">Lorem ipsum</div>
+    <div id="content2">Lorem ipsum</div>
+    <div id="content3">Lorem ipsum</div>
+    <div id="content4">Lorem ipsum</div>
+    <div id="content5">Lorem ipsum</div>
+    <div id="content6">Lorem ipsum</div>
+
+    <script>
+      function make_assert(contentId) {
+        var contentEl = document.getElementById(contentId);
+        var marginLeftVal = getComputedStyle(contentEl).getPropertyValue('margin-left');
+        assert_equals(marginLeftVal, "2px")
+      }
+      t.step(function() {
+        make_assert("content1");
+        make_assert("content2");
+        make_assert("content3");
+        make_assert("content4");
+        make_assert("content5");
+        make_assert("content6");
+        t.done();
+      });
+    </script>
+
+</body>
+</html>

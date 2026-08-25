@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>WebShare Test: Share non-string types (test implicit conversion)</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="resources/manual-helper.js"></script>
+  </head>
+  <body>
+    <script>
+        setup({explicit_timeout: true});
+
+        // Expect that each of the non-string values is converted into a string.
+        setupManualShareTest(
+            {title: 'true', text: 'the object', url: getAbsoluteUrl('384957')});
+
+        const objectWithToString = {toString() { return 'the object'; }};
+        callWhenButtonClicked(() => navigator.share(
+              {title: true, text: objectWithToString, url: 384957}));
+    </script>
+  </body>
+</html>

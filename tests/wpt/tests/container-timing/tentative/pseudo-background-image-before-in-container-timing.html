@@ -1,0 +1,44 @@
+<!DOCTYPE HTML>
+<head>
+<meta charset=utf-8>
+<title>Container Timing: observe a node with a pseudo image before inside a container timing root</title>
+<style>
+body {
+  margin: 0;
+}
+.has_before_pseudo::before {
+  content: '';
+  background: url('/container-timing/resources/square100.png');
+  width: 120px;
+  height: 120px;
+  display: inline-block;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/container-timing/resources/container-timing-helpers.js"></script>
+<script src="/element-timing/resources/element-timing-helpers.js"></script>
+<script>
+  async_test(function (t) {
+    let beforeRender;
+    assert_implements(window.PerformanceContainerTiming, "PerformanceContainerTiming is not implemented");
+    const observer = new PerformanceObserver(
+      t.step_func_done(function(entryList) {
+        assert_equals(entryList.getEntries().length, 1);
+        const entry = entryList.getEntries()[0];
+        checkContainerEntry(entry, 'ct', 'hbp_id', beforeRender);
+        checkRect(entry, [0, 120, 0, 120])
+        checkContainerSize(entry, 14400);
+      })
+    );
+    observer.observe({entryTypes: ['container'], buffered: true});
+
+    beforeRender = performance.now();
+  }, 'Element with a pseudo image before as background inside a container timing that is observed.');
+</script>
+</head>
+<body>
+<div id="ct_id" containertiming="ct">
+  <div class="has_before_pseudo" id="hbp_id"></div>
+</div>
+</body>

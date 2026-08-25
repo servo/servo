@@ -1,0 +1,18 @@
+<!doctype html>
+<title>Import a Wasm module that cannot be encoded in UTF-8</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script type=module>
+setup({ single_test: true });
+
+// Tests that the browser can properly handle Wasm binaries that cannot be
+// encoded as UTF-8 strings.
+import source nonUtf8 from "./resources/non-UTF8.wasm";
+
+assert_true(nonUtf8 instanceof WebAssembly.Module);
+
+assert_array_equals(WebAssembly.Module.exports(nonUtf8).map(({ name }) => name), ["f"]);
+
+done();
+</script>

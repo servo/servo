@@ -1,0 +1,25 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerconnection SDP SCTP format test</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+promise_test(async t => {
+  const caller = new RTCPeerConnection();
+  const callee = new RTCPeerConnection();
+  t.add_cleanup(() => caller.close());
+  t.add_cleanup(() => callee.close());
+  caller.createDataChannel('channel');
+  const offer = await caller.createOffer();
+  const [preamble, media_section, postamble] = offer.sdp.split('\r\nm=');
+  assert_true(typeof(postamble) === 'undefined');
+  assert_greater_than(media_section.search(
+    /^application \d+ UDP\/DTLS\/SCTP webrtc-datachannel\r\n/), -1);
+  assert_greater_than(media_section.search(/\r\na=sctp-port:\d+\r\n/), -1);
+  assert_greater_than(media_section.search(/\r\na=mid:/), -1);
+}, 'Generated Datachannel SDP uses correct SCTP offer syntax');
+
+</script>

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <title>WebGPU canvas_colorspace_rgba8unorm</title>
+  <meta charset="utf-8" />
+  <style>
+    canvas {
+      width: 128px;
+      height: 128px;
+      margin-right: 5px;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+  </style>
+  <link rel="help" href="https://gpuweb.github.io/gpuweb/" />
+  <meta name="assert" content="WebGPU rgba8unorm canvas with colorSpace set should be rendered correctly" />
+  <link rel="match" href="./ref/canvas_colorspace-ref.html" />
+  <meta name=fuzzy content="maxDifference=0-2;totalPixels=0-9999999">
+  <script type="module">
+    import { runColorSpaceTest } from './canvas_colorspace.html.js';
+    runColorSpaceTest('rgba8unorm');
+  </script>
+  <body></body>
+</html>

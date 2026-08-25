@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<head>
+  <link rel="help" href="https://crbug.com/492735384">
+</head>
+<body>
+  <style>
+    /*
+       Evaluation of [style] will add a new attribute to the element,
+       as lazy style gets synchronized. However, the bucketing will be
+       on [a], so we do not synchronize the attributes _before_ iteration.
+     */
+    [style][a] { color: green !important; }
+  </style>
+  <style id="sheet2">
+  </style>
+  <div id="target" a=""></div>
+</body>
+<script>
+  // Having more than 50 rules on the [a] attribute will cause
+  // us to try to check the Aho-Corasick tree, which will read
+  // from the (possibly changed by the previous stylesheet)
+  // attribute list.
+  let css = '';
+  for (let i = 0; i < 55; i++) {
+    css += '[a] {}\n';
+  }
+  document.getElementById('sheet2').textContent = css;
+
+  var elem = document.getElementById('target');
+  elem.style.color = 'red';
+</script>

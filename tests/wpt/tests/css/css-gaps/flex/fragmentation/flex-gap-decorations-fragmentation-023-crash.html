@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>Crash test: gap-rule decorations in a fragmented column-flex container with a skipped line</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://issues.chromium.org/issues/528865563">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+  .multi-column {
+    column-count: 6;
+    column-gap: 1px;
+    width: 700px;
+    height: 60px;
+  }
+
+  #flexbox {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    width: 500px;
+    height: 200px;
+    column-gap: 3px;
+    column-rule: 3px solid green;
+    row-gap: 3px;
+    row-rule: 3px solid gold;
+  }
+
+  #flexbox > div {
+    width: 80px;
+  }
+</style>
+<div class="multi-column">
+  <div id="flexbox">
+    <div style="height: 400px;"></div>
+    <div style="height: 15px;"></div>
+    <div style="height: 15px;"></div>
+    <div style="height: 180px;"></div>
+    <div style="height: 15px;"></div>
+    <div style="height: 90px;"></div>
+    <div style="height: 90px;"></div>
+  </div>
+</div>

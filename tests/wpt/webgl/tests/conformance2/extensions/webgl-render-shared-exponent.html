@@ -1,0 +1,253 @@
+<!--
+Copyright (c) 2023 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL WEBGL_render_shared_exponent Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description("This test verifies the functionality of the WEBGL_render_shared_exponent extension, if it is available.");
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext(null, null, 2);
+var ext;
+const color = [64.0, 32.0, 16.0, 1.0];
+
+function drawTest() {
+    wtu.clearAndDrawUnitQuad(gl);
+
+    wtu.checkCanvasRect(gl, 0, 0, 1, 1, color,
+                        "reading with the RGBA format and FLOAT type", 1,
+                        new Float32Array(4), gl.FLOAT, gl.RGBA);
+
+    const implementationType = gl.getParameter(gl.IMPLEMENTATION_COLOR_READ_TYPE);
+    const implementationFormat = gl.getParameter(gl.IMPLEMENTATION_COLOR_READ_FORMAT);
+    if (implementationFormat == gl.RGB && implementationType == gl.UNSIGNED_INT_5_9_9_9_REV) {
+        // Shared exponent value may be implementation
+        // specific, so compare decoded values.
+        const value = new Uint32Array(1);
+        gl.readPixels(0, 0, 1, 1, gl.RGB, gl.UNSIGNED_INT_5_9_9_9_REV, value);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+
+        let r = (value >>  0) & 0x1FF;
+        let g = (value >>  9) & 0x1FF;
+        let b = (value >> 18) & 0x1FF;
+        let e = (value >> 27) & 0x01F;
+        debug(`Raw value: 0x${value[0].toString(16).toUpperCase()}, ` +
+              `Raw components: R = ${r}, G = ${g}, B = ${b}, E = ${e}`);
+
+        e = Math.pow(2, e - 24);
+        r *= e;
+        g *= e;
+        b *= e;
+        debug(`Decoded color: (${r}, ${g}, ${b})`);
+
+        if (r == color[0] && g == color[1] && b == color[2]) {
+            testPassed("reading with the exact format/type");
+        } else {
+            testFailed("reading with the exact format/type");
+        }
+    }
+}
+
+function renderbufferTest(isSupported) {
+    debug("");
+    debug(`RGB9_E5 renderbuffer: ` +
+          `${!isSupported ? "NOT " : ""}supported`);
+
+    const rbo = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, rbo);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGB9_E5, 1, 1);
+    if (!isSupported) {
+        wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "renderbuffer allocation failed");
+        return;
+    }
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "renderbuffer allocation succeeded");
+
+    const fbo = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, rbo);
+
+    wtu.framebufferStatusShouldBe(gl, gl.FRAMEBUFFER, gl.FRAMEBUFFER_COMPLETE);
+
+    drawTest();
+}
+
+function textureTest(isRenderable) {
+    debug("");
+    debug(`RGB9_E5 texture: ` +
+          `${!isRenderable ? "NOT " : ""}renderable`);
+
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB9_E5, 1, 1, 0, gl.RGB, gl.UNSIGNED_INT_5_9_9_9_REV, null);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texture allocation succeeded");
+
+    const fbo = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+
+    if (!isRenderable) {
+        wtu.framebufferStatusShouldBe(gl, gl.FRAMEBUFFER, gl.FRAMEBUFFER_INCOMPLETE_ATTACHMENT);
+        return;
+    }
+    wtu.framebufferStatusShouldBe(gl, gl.FRAMEBUFFER, gl.FRAMEBUFFER_COMPLETE);
+
+    drawTest();
+}
+
+function formatTest(isEnabled) {
+    const program = wtu.setupProgram(gl, [wtu.simpleVertexShader,
+                                          wtu.simpleColorFragmentShader]);
+    gl.useProgram(program);
+    gl.uniform4fv(gl.getUniformLocation(program, "u_color"), color);
+
+    wtu.setupUnitQuad(gl);
+
+    renderbufferTest(isEnabled);
+    textureTest(isEnabled);
+}
+
+function colorMaskTest() {
+    debug("");
+    debug("Test color write masks with shared exponent color buffers");
+
+    const fs = `#version 300 es
+        precision highp float;
+        layout(location = 0) out vec4 color0;
+        layout(location = 1) out vec4 color1;
+        void main() {
+            color0 = vec4(1.0, 0.0, 0.0, 1.0);
+            color1 = vec4(0.0, 1.0, 0.0, 1.0);
+        }`;
+    const program = wtu.setupProgram(gl, [wtu.simpleVertexShaderESSL300, fs]);
+    gl.useProgram(program);
+
+    const fbo = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+
+    const rb0 = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, rb0);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGB9_E5, 4, 4);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, rb0);
+
+    const rb1 = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, rb1);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA8, 4, 4);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT1, gl.RENDERBUFFER, rb1);
+
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+    wtu.framebufferStatusShouldBe(gl, gl.FRAMEBUFFER, gl.FRAMEBUFFER_COMPLETE);
+
+    const clearValue = new Float32Array(4);
+    const dbiExt = gl.getExtension("OES_draw_buffers_indexed");
+
+    function expectError(enabled, effectiveMask, operation) {
+        if (!enabled ||
+            effectiveMask == 0x0 /* 0000 */ ||
+            effectiveMask == 0x8 /* 000A */ ||
+            effectiveMask == 0x7 /* RGB0 */ ||
+            effectiveMask == 0xF /* RGBA */ ) {
+            wtu.glErrorShouldBe(gl, gl.NO_ERROR, operation);
+        } else {
+            wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, operation);
+        }
+    }
+
+    function runOps(enabled, mask0) {
+        wtu.drawUnitQuad(gl);
+        expectError(enabled, mask0, "draw");
+
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        expectError(enabled, mask0, "clear");
+
+        gl.clearBufferfv(gl.COLOR, 0, clearValue);
+        expectError(enabled, mask0, "clearBufferfv(RGB9_E5)");
+        gl.clearBufferfv(gl.COLOR, 1, clearValue);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "clearBufferfv(RGBA8)");
+    }
+
+    for (let mask = 0; mask < 16; mask++) {
+        for (const enabled of [false, true]) {
+            debug("");
+            debug(`Setting common color mask ` +
+                  `${mask & 1 ? "R" : "0"}` +
+                  `${mask & 2 ? "G" : "0"}` +
+                  `${mask & 4 ? "B" : "0"}` +
+                  `${mask & 8 ? "A" : "0"}` +
+                  " with RGB9_E5 attachment " +
+                  (enabled ? "enabled" : "disabled"));
+            gl.colorMask(mask & 1, mask & 2, mask & 4, mask & 8);
+            gl.drawBuffers([enabled ? gl.COLOR_ATTACHMENT0 : gl.NONE,
+                            gl.COLOR_ATTACHMENT1]);
+
+            runOps(enabled, mask);
+
+            if (dbiExt) {
+                debug("Setting incompatible color mask on unused draw buffer")
+                dbiExt.colorMaskiOES(2, true, false, false, false);
+                runOps(enabled, mask); // common mask remains on draw buffer 0
+
+                debug("Setting incompatible color mask on RGBA8 draw buffer")
+                dbiExt.colorMaskiOES(1, true, false, false, false);
+                runOps(enabled, mask); // common mask remains on draw buffer 0
+
+                debug("Setting incompatible color mask on RGB9_E5 draw buffer")
+                dbiExt.colorMaskiOES(0, true, false, false, false);
+                runOps(enabled, 1); // overridden
+
+                debug("Setting compatible color mask on RGB9_E5 draw buffer")
+                dbiExt.colorMaskiOES(0, true, true, true, false);
+                runOps(enabled, 7); // overridden
+            }
+        }
+    }
+}
+
+function runTest() {
+    if (!gl) {
+        testFailed("context does not exist");
+        return;
+    }
+    testPassed("context exists");
+
+    debug("");
+    debug("Testing shared exponent rendering with extension disabled");
+    formatTest(false);
+
+    ext = gl.getExtension("WEBGL_render_shared_exponent");
+    wtu.runExtensionSupportedTest(gl, "WEBGL_render_shared_exponent", ext !== null);
+
+    if (ext !== null) {
+        debug("");
+        debug("Testing shared exponent rendering with extension enabled");
+        formatTest(true);
+        colorMaskTest();
+    } else {
+        testPassed("No WEBGL_render_shared_exponent support -- this is legal");
+    }
+}
+
+runTest();
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

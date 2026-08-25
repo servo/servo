@@ -1,0 +1,23 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>CSS Test: Test for left:calc() on absolutely positioned elements</title>
+  <link rel="author" title="L. David Baron" href="https://dbaron.org/">
+  <link rel="help" href="http://www.w3.org/TR/css3-values/#calc-notation">
+  <link rel="match" href="calc-offsets-relative-left-1-ref.html">
+<style type="text/css">
+body { margin: 0 100px; width: 200px }
+body > div { height: 3px; position: relative }
+div[style] { background: blue; position: absolute; height: 3px; width: 100px }
+</style>
+</head>
+<body>
+
+<div><div style="left: calc(50px)"></div></div>
+<div><div style="left: calc(-25%)"></div></div>
+<div><div style="left: calc(25px + 25%)"></div></div>
+<div><div style="left: calc(-75% / 2 + 30px)"></div></div>
+<div><div style="left: calc(40px + 5% - 10% / 2)"></div></div>
+<div><div style="left: calc(5% - 40px)"></div></div>
+</body>
+</html>

@@ -1,0 +1,24 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Selectors Invalidation: :nth-last-child(... of class) as ancestor</title>
+<link rel="author" title="Zach Hoffman" href="mailto:zach@zrhoffman.net">
+<link rel="author" title="Steinar H. Gunderson" href="mailto:sesse@chromium.org">
+<link rel="match" href="nth-last-child-of-in-ancestor-ref.html">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#child-index">
+<style>
+  p:nth-last-child(odd of .c) span {
+    color: green;
+  }
+</style>
+<div>
+  <p>Ignored</p>
+  <p class="c">Not <span>ignored</span></p>
+  <p class="c">Not <span>ignored</span></p>
+  <p class="c">Not <span>ignored</span></p>
+  <p class="c" id="toggler">Selectively <span>ignored</span></p>
+  <p class="c">Not <span>ignored</span></p>
+</div>
+<script>
+  document.documentElement.offsetTop;
+  toggler.classList.toggle("c");
+</script>

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1">
+<title>border-box and fit-content should include borders</title>
+<style>
+    .wrapper {
+        border: 1px solid red;
+        width: 540px;
+    }
+    .item {
+        background-color: blue;
+        padding: 10px 20px;
+    }
+    .content {
+        width: 500px;
+        height: 50px;
+        background-color: green;
+    }
+</style>
+<div class="wrapper"><div class="item"><div class="content"></div></div></div>

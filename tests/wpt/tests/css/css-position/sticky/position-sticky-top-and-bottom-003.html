@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Position Test: sticky element with top and bottom offsets specified with percentage unit</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-position-3/#sticky-pos">
+  <link rel="match" href="reference/position-sticky-top-and-bottom-003-ref.html">
+
+  <meta name="flags" content="">
+
+  <style>
+  div.scrolling-container
+    {
+      background-image: url("support/100x100-red.png");
+      background-repeat: no-repeat;
+      display: inline-block;
+      height: 250px;
+      margin-right: 30px;
+      overflow: auto;
+      position: static;
+      width: 150px;
+    }
+
+  div#first-scrolling-container
+    {
+      background-position: left 125px;
+    }
+
+  div#second-scrolling-container
+    {
+      background-position: left 50px;
+    }
+
+  div#third-scrolling-container
+    {
+      background-position: left 25px;
+    }
+
+  div.vertical-spacer
+    {
+      height: 200px;
+    }
+
+  div.sticky
+    {
+      background-color: green;
+      bottom: 10%;
+      height: 100px;
+      position: sticky;
+      top: 10%;
+      width: 100px;
+    }
+  </style>
+
+  <body onload="document.getElementById(&quot;first-scrolling-container&quot;).scrollTop = 50; document.getElementById(&quot;second-scrolling-container&quot;).scrollTop = 150; document.getElementById(&quot;third-scrolling-container&quot;).scrollTop = 250;">
+
+  <p>Test passes if there are 3 filled green squares and <strong>no red</strong>.
+
+  <!--
+  first-scrolling-container: when reaching the first (top) sticking point
+  -->
+
+  <div id="first-scrolling-container" class="scrolling-container">  <!-- 150w x 250h viewport -->
+
+    <div class="vertical-spacer"></div> <!-- 150w x 200h -->
+
+    <div id="first-sticky" class="sticky"></div> <!-- 100w x 100h -->
+
+    <div class="vertical-spacer"></div> <!-- 150w x 200h -->
+
+  </div>
+
+  <!--
+  second-scrolling-container: between both sticking points
+  -->
+
+  <div id="second-scrolling-container" class="scrolling-container">  <!-- 150w x 250h viewport -->
+
+    <div class="vertical-spacer"></div> <!-- 150w x 200h -->
+
+    <div id="second-sticky" class="sticky"></div> <!-- 100w x 100h -->
+
+    <div class="vertical-spacer"></div> <!-- 150w x 200h -->
+
+  </div>
+
+  <!--
+  third-scrolling-container: when reaching the second (bottom) sticking point
+  -->
+
+
+  <div id="third-scrolling-container" class="scrolling-container">  <!-- 150w x 250h viewport -->
+
+    <div class="vertical-spacer"></div> <!-- 150w x 200h -->
+
+    <div id="third-sticky" class="sticky"></div> <!-- 100w x 100h -->
+
+    <div class="vertical-spacer"></div> <!-- 150w x 200h -->
+
+  </div>

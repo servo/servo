@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>CSS Test (Selectors): :focus-visible always matches on texty input elements</title>
+  <meta name="timeout" content="long">
+  <link rel="author" title="Alice Boxhall" href="aboxhall@chromium.org" />
+  <link rel="help" href="https://drafts.csswg.org/selectors-4/#the-focus-visible-pseudo" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <style>
+    @supports not selector(:focus-visible) {
+      :focus {
+        outline: red solid 5px;
+        background-color: red;
+      }
+    }
+
+    :focus-visible {
+      outline: green solid 5px;
+    }
+
+    :focus:not(:focus-visible) {
+      outline: 0;
+      background-color: red;
+    }
+  </style>
+</head>
+<body>
+  This test checks that <code>:focus-visible</code> always matches on <code>&lt;input&gt;</code> elements which take text input, regardless of focus mechanism.
+  <ol id="instructions">
+    <li>If the user-agent does not claim to support the <code>:focus-visible</code> pseudo-class then SKIP this test.</li>
+    <li><strong>Click</strong> each form element below to focus it.</li>
+    <li>If the element has a red background, then the test result is FAILURE. If the element has a green outline, then the test result is SUCCESS.</li>
+  </ol>
+  <br>
+  <div>
+    <input class="check" id="input1" value="Focus me."></input>
+  </div>
+  <div>
+    <input class="check" id="input2" type="text" value="Focus me."></input>
+  </div>
+  <div>
+    <input class="check" id="input3" type="email" value="Focus me."></input>
+  </div>
+   <div>
+    <input class="check" id="input4" type="password" value="Focus me."></input>
+  </div>
+  <div>
+    <input class="check" id="input5" type="search" value="Focus me."></input>
+  </div>
+  <div>
+    <input class="check" id="input6" type="telephone" value="Focus me."></input>
+  </div>
+  <div>
+    <input class="check" id="input7" type="url" value="Focus me."></input>
+  </div>
+  <div>
+    <input class="check" id="input8" type="number" value="10000"></input>
+  </div>
+  <div>
+    <input class="check" id="input9" type="date"></input>
+  </div>
+  <div>
+    <input class="check" id="input10" type="datetime-local"></input>
+  </div>
+  <div>
+    <input class="check" id="input11" type="month"></input>
+  </div>
+  <div>
+    <input class="check" id="input12" type="time"></input>
+  </div>
+  <div>
+    <input class="check" id="input13" type="week"></input>
+  </div>
+  <div>
+    <textarea class="check" id="input14">Focus me.</textarea>
+  </div>
+  <script>
+    setup({ explicit_done: true });
+
+    const elements = document.querySelectorAll(".check");
+    for (let i = 0; i < elements.length; i++) {
+      const target = elements[i];
+      promise_test(() => {
+        return new Promise(resolve => {
+          target.addEventListener("focus", resolve);
+          test_driver.click(target).then(() => {
+            if (i == (elements.length - 1))
+              done();
+          });
+        }).then(() => {
+          assert_equals(getComputedStyle(target).outlineColor, "rgb(0, 128, 0)", `outlineColor for ${target.tagName}#${target.id} should be green`);
+          assert_not_equals(getComputedStyle(target).backgroundColor, "rgb(255, 0, 0)", `backgroundColor for ${target.tagName}#${target.id} should NOT be red`);
+        });
+      }, `Focus element ${target.tagName}#${target.id} via mouse should match :focus-visible as it supports keyboard input`);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,34 @@
+[package]
+name = "servo-media-ohos"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+description.workspace = true
+
+[lib]
+name = "servo_media_ohos"
+path = "lib.rs"
+
+[dependencies]
+crossbeam-channel = { workspace = true }
+libc = { workspace = true }
+log = { workspace = true }
+mime = { workspace = true }
+ohos-media-sys = { workspace = true, features = ["api-21"] }
+ohos-sys-opaque-types = { workspace = true }
+ohos-window-sys = { workspace = true, features = ["api-13"] }
+servo-base = { workspace = true }
+servo-media = { workspace = true }
+servo-media-audio = { workspace = true }
+servo-media-player = { workspace = true }
+servo-media-streams = { workspace = true }
+servo-media-traits = { workspace = true }
+servo-media-webrtc = { workspace = true }
+yuv = { workspace = true }
+
+[build-dependencies]
+serde_json = { workspace = true }

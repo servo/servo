@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML: window.open `features`: non-integer values for legacy feature `screenx`</title>
+<meta name=timeout content=long>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#apis-for-creating-and-navigating-browsing-contexts-by-name">
+
+<!-- user agents are not required to support open features other than `noopener`
+     and on some platforms position and size features don't make sense -->
+<meta name="flags" content="may" />
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/PrefixedPostMessage.js"></script>
+<script>
+var featuresPrefix = `width=401,height=204,top=0,`;
+var windowURL = 'resources/message-opener.html';
+
+// https://html.spec.whatwg.org/multipage/infrastructure.html#rules-for-parsing-integers
+
+setup (() => {
+  // Before running tests, open a window using features that mimic
+  // what would happen if the feature tested here were set to 0
+  // for comparison later.
+  var featureString = `${featuresPrefix}left=0`;
+  var prefixedMessage = new PrefixedMessageTest();
+  prefixedMessage.onMessage((data, e) => {
+    e.source.close();
+    runWindowTests(data);
+  });
+  var win = window.open(prefixedMessage.url(windowURL), '', featureString);
+});
+
+function runWindowTests (baselineDimensions) {
+  // When code point in first position is not an ASCII digit, "+" or "-",
+  // that's an error and the value becomes 0
+  [ 'screenx=/104',
+    'screenx=_104',
+    'screenx=L104'
+  ].forEach(feature => {
+    async_test(t => {
+      var prefixedMessage = new PrefixedMessageTest();
+      var featureString = `${featuresPrefix}${feature}`;
+      prefixedMessage.onMessage(t.step_func_done((data, e) => {
+        e.source.close();
+        assert_equals(data.left, baselineDimensions.left, `"${feature} begins with an invalid character and should be ignored"`);
+      }));
+      var win = window.open(prefixedMessage.url(windowURL) + '&expected_screenX=' + baselineDimensions.left, '', featureString);
+    }, `features "${feature}" should NOT set "screenx=104"`);
+  });
+
+  // Codepoints that are valid ASCII digits should be collected
+  // Non-ASCII digits and subsequent code points are ignored
+  [ 'screenx=105.5',
+    'screenx=105.32',
+    'screenx=105LLl',
+    'screenx=105^4',
+    'screenx=105*3',
+    'screenx=105/5',
+    'screenx=105  ',
+    'screenx=105e1',
+    'screenx=105e-1'
+  ].forEach(feature => {
+    async_test(t => {
+      var prefixedMessage = new PrefixedMessageTest();
+      var featureString = `${featuresPrefix}${feature}`;
+      prefixedMessage.onMessage(t.step_func_done((data, e) => {
+        e.source.close();
+        assert_equals(data.left, 105, `"${featureString} value after first non-digit will be ignored"`);
+      }));
+      var win = window.open(prefixedMessage.url(windowURL) + '&expected_screenX=105', '', featureString);
+    }, `features "${feature}" should set "screenx=105"`);
+  });
+}
+
+</script>

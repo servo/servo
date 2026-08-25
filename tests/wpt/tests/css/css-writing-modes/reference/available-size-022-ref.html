@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Reftest Reference</title>
+<style>
+/* Set up */
+html    { word-break: break-all; font: 15px/1 sans-serif; writing-mode: vertical-lr; }
+article { margin-left: 0.5em; }
+aside   { writing-mode: vertical-rl; width: 2em; overflow: hidden; color: blue;
+          margin: 4em 0; padding: 2em 0; border: solid 4px silver; }
+/* Highlight truncated cases for visual verification */
+.clamp aside, em { border-color: blue; color: blue }
+
+/* References */
+.fixed aside { height: calc(50vh - 12em - 8px); }
+.full  aside { height: calc(100vh - 12em - 8px); }
+.clamp { height: 30vh; overflow: hidden; }
+html { overflow: hidden; /* avoid scrollbar variance */ }
+</style>
+
+<p style="position: absolute; writing-mode: horizontal-tb; word-break: normal">Test passes if the <strong>contents</strong> of the first five boxes are identical, and of the last four boxes are identical,
+except that <em>blue</em> boxes are truncated.
+
+<article class="fixed">
+  <div>
+    <aside>abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde</aside>
+  </div>
+</article>
+
+<article class="fixed">
+  <div>
+    <aside>abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde</aside>
+  </div>
+</article>
+
+<article class="fixed">
+  <div>
+    <aside>abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde</aside>
+  </div>
+</article>
+
+<article class="fixed clamp">
+  <div>
+    <aside>abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde</aside>
+  </div>
+</article>
+
+<article class="fixed">
+  <div>
+    <aside>abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde</aside>
+  </div>
+</article>
+
+<article class="full">
+  <div>
+    <aside>abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde</aside>
+  </div>
+</article>
+
+<article class="full">
+  <div>
+    <aside>abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde</aside>
+  </div>
+</article>
+
+<article class="full clamp">
+  <div>
+    <aside>abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde</aside>
+  </div>
+</article>
+
+
+<article class="full">
+  <div>
+    <aside>abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde</aside>
+  </div>
+</article>

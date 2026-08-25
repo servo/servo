@@ -1,0 +1,19 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>:root with overscroll-behavior:none prevents scroll propagation from child frame</title>
+<style>
+:root {
+  overscroll-behavior-y: none;
+}
+
+body {
+  margin: 0;
+  font-family: sans-serif;
+}
+
+.content {
+  height: 400vh;
+  background: red;
+}
+</style>
+<div class="content"></div>

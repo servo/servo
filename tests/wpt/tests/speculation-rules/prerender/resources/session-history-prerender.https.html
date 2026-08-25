@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<!--
+ "Activation" suffix in these test names communicates to the test harness that
+ this part of the test is run post-activation.
+-->
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script src="session-history-harness.js"></script>
+<script src="session-history-test-util.js"></script>
+<body>
+  <script>
+    function testHistoryPushStateInPrerender() {
+      assert(history.length == 1, "Initial history length");
+      assert(!history.state, "Initial history state");
+
+      history.pushState("teststate", null, null);
+
+      assert(history.length == 1, "History length unchanged");
+      assert(history.state == "teststate", "Update state");
+    }
+
+    function testHistoryReplaceStateInPrerender() {
+      assert(history.length == 1, "Initial history length");
+      assert(!history.state, "Initial history state");
+
+      history.replaceState("teststate", null, null);
+
+      assert(history.length == 1, "History length unchanged");
+      assert(history.state == "teststate", "Update state");
+    }
+
+    function testLocationAssignInPrerender() {
+      assert(history.length == 1, "Initial history length");
+      const initialLocation = location.href;
+      location.assign("#test");
+
+      assert(history.length == 1, "History length unchanged");
+      assert(location.href != initialLocation, "Update location");
+    }
+
+    function testLocationReplaceInPrerender() {
+      assert(history.length == 1, "Initial history length");
+      const initialLocation = location.href;
+      location.replace("#test");
+
+      assert(history.length == 1, "History length unchanged");
+      assert(location.href != initialLocation, "Update location");
+    }
+
+    function testSetLocationHrefInPrerender() {
+      assert(history.length == 1, "Initial history length");
+      const initialLocation = location.href;
+      location.href = "#test";
+
+      assert(history.length == 1, "History length unchanged");
+      assert(location.href != initialLocation, "Update location");
+    }
+
+    function testSyntheticAnchorClickInPrerender() {
+      assert(history.length == 1, "Initial history length");
+      const initialLocation = location.href;
+
+      const anchor = document.createElement("a");
+      anchor.href = "#test";
+      document.body.appendChild(anchor);
+
+      anchor.click();
+
+      assert(history.length == 1, "History length unchanged");
+      assert(location.href != initialLocation, "Update location");
+    }
+
+    function testHistoryLengthInPrerender() {
+      assert(history.length == 1, "Initial history length");
+    }
+
+    function testHistoryLengthInPrerenderActivation() {
+      assert(history.length == 2, "History length after activation");
+
+      // TODO(http://crbug.com/1220992): Test whether calling history.back()
+      // after activation should go back to the initiator page correctly.
+      // We might need a non-trivial refactoring to test this scenario correctly.
+    }
+
+    // This test runs testSubfrarmeNavigationInPrerenderInSubframe() in a
+    // subframe, and waits for a message from a navigated subframe.
+    async function testSubframeNavigationInPrerender() {
+      assert(window.parent == window, "not the top frame");
+      const params = new URLSearchParams(window.location.search);
+      const testName = params.get("testName");
+      const uid = params.get("uid");
+      const resultPromise = waitChannelMessage(
+          `prerender-channel-${testName}InSubframeAfterNavigation`, uid);
+
+      params.set("testName", testName + "InSubframe");
+      const frame = document.createElement("iframe");
+      const url = location.pathname + "?" + params.toString();
+      frame.src = url;
+      document.body.appendChild(frame);
+      const result = await resultPromise;
+      assert(result == "Passed", result);
+    }
+
+    function testSubframeNavigationInPrerenderInSubframe() {
+      assert(window.parent != window, "not in a subframe");
+      assert(window.parent == window.top, "the direct parent isn't the top");
+      assert(history.length == 1, "Initial history length");
+
+      const params = new URLSearchParams(window.location.search);
+      const testName = params.get("testName");
+      params.set("testName", testName + "AfterNavigation");
+      location.href = location.pathname + "?" + params.toString();
+    }
+
+    function testSubframeNavigationInPrerenderInSubframeAfterNavigation() {
+      assert(window.parent != window, "not in a subframe");
+      assert(window.parent == window.top, "the direct parent isn't the top");
+      assert(history.length == 1, "History length after subframe navigation");
+    }
+
+    // This test runs testSubframeReloadInPrerenderInSubframe() in a
+    // subframe, and waits for a message from a navigated subframe.
+    async function testSubframeReloadInPrerender() {
+      assert(window.parent == window, "not the top frame");
+      const params = new URLSearchParams(window.location.search);
+      const testName = params.get("testName");
+      const uid = params.get("uid");
+      const resultPromise = waitChannelMessage(
+          `prerender-channel-${testName}InSubframe`, uid);
+
+      params.set("testName", testName + "InSubframe");
+      const frame = document.createElement("iframe");
+      const url = location.pathname + "?" + params.toString();
+      frame.src = url;
+      document.body.appendChild(frame);
+      const result = await resultPromise;
+      assert(result == "Passed", result);
+      const second_result = await waitChannelMessage(
+          `prerender-channel-${testName}InSubframe`, uid);
+      assert(second_result == "Passed", second_result);
+    }
+
+    function testSubframeReloadInPrerenderInSubframe() {
+      assert(window.parent != window, "not in a subframe");
+      assert(window.parent == window.top, "the direct parent isn't the top");
+      assert(history.length == 1, "Initial history length");
+      window.location.reload();
+    }
+  </script>
+</body>

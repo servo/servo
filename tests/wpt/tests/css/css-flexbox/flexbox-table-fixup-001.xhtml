@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!--
+     Testcase with table parts inside of a flex container, which should *not*
+     trigger table-fixup.  We use justify-content:space-between to stick packing
+     space between flex items, so that we can verify that e.g. a contiguous
+     run of <td>s will each be blockified & form its own flex item (instead of
+     being aggregated into a single table & single flex item).
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Test: Testing that table cells in a flex container get blockified and each form their own flex item</title>
+    <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com"/>
+    <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#flex-items"/>
+    <link rel="match" href="flexbox-table-fixup-001-ref.xhtml"/>
+    <style>
+      div.flexbox {
+        border: 1px dashed blue;
+        width: 200px;
+        display: flex;
+        justify-content: space-around;
+      }
+
+      td {
+        /* Remove any default padding for td elements, so we can compare them
+           easily against blocks in the reference case. */
+        padding: 0px;
+      }
+
+      .a {
+        background: lightgreen;
+        width: 48px;
+      }
+
+      .b {
+        background: yellow;
+        width: 48px;
+      }
+
+      .c {
+        background: pink;
+        width: 48px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- The adjacent table-parts in each example below should *not* be
+         grouped into the same flex item. -->
+    <!-- 2 adjacent table cells -->
+    <div class="flexbox"
+         ><td class="a">cell1</td><td class="b">cell2</td></div>
+
+    <!-- Table cell followed by tbody -->
+    <div class="flexbox"
+         ><td class="a">cell1</td><tbody class="b">t</tbody></div>
+
+    <!-- Empty table cell (ends up occupying 2px of width), followed by
+         nonempty table cell.-->
+    <div class="flexbox"
+         ><td></td><td class="b">cell1</td></div>
+  </body>
+</html>

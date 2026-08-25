@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTMLMicrophoneElement: track attribute and ontrack event listener</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<microphone id="microphone_element"></microphone>
+
+<script>
+test(() => {
+  const mic = document.getElementById("microphone_element");
+  assert_true(mic instanceof HTMLMicrophoneElement);
+  assert_equals(mic.track, null, "track attribute should initially be null");
+  assert_equals(mic.ontrack, null, "ontrack should initially be null");
+
+  let dummy_handler = () => {};
+  mic.ontrack = dummy_handler;
+  assert_equals(mic.ontrack, dummy_handler, "ontrack setter should update listener");
+}, "HTMLMicrophoneElement has track attribute and ontrack event handler");
+</script>
+

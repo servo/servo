@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Scoped View Transition: containment during capture and DOM callback</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  body { margin: 0; }
+  #scope {
+    width: fit-content;
+    height: auto;
+    background: green;
+  }
+  .child {
+    width: 200px;
+    height: 100px;
+  }
+</style>
+</head>
+<body>
+<div id="scope">
+  <div class="child"></div>
+</div>
+<script>
+
+promise_test(async t => {
+  const scope = document.getElementById("scope");
+
+  // Initially, before containment, the size is determined by the child.
+  const initial_w = scope.offsetWidth;
+  const initial_h = scope.offsetHeight;
+
+  let contain_style_during_callback = "";
+  let cis_style_during_callback = "";
+  let w_during_callback1 = 0;
+  let h_during_callback1 = 0;
+  let w_during_callback2 = 0;
+  let h_during_callback2 = 0;
+
+  const transition = scope.startViewTransition(() => {
+    const style = getComputedStyle(scope);
+    contain_style_during_callback = style.contain;
+    cis_style_during_callback = style.containIntrinsicSize;
+
+    w_during_callback1 = scope.offsetWidth;
+    h_during_callback1 = scope.offsetHeight;
+
+    scope.innerHTML = "";
+
+    w_during_callback2 = scope.offsetWidth;
+    h_during_callback2 = scope.offsetHeight;
+  });
+
+  await transition.updateCallbackDone;
+
+  // Verify the values recorded during the DOM callback.
+  assert_false(contain_style_during_callback.includes("size"), "Containment should not include size in computed style");
+  assert_true(contain_style_during_callback.includes("layout"), "Containment should include layout");
+  assert_false(cis_style_during_callback.includes("auto"), "containIntrinsicSize should not include auto in computed style");
+  assert_equals(cis_style_during_callback, "none", "containIntrinsicSize should be none");
+
+  assert_equals(w_during_callback1, initial_w, "offsetWidth at start of callback");
+  assert_equals(h_during_callback1, initial_h, "offsetHeight at start of callback");
+
+  // Deleting the child should not collapse the layout size to 0 because of internal containment.
+  assert_equals(w_during_callback2, initial_w, "offsetWidth after deleting child");
+  assert_equals(h_during_callback2, initial_h, "offsetHeight after deleting child");
+
+  await transition.ready;
+  await transition.finished;
+
+  // After the transition finishes, containment is removed.
+  // Since the child was deleted, the size should now collapse to 0.
+  assert_equals(scope.offsetWidth, 0, "Final offsetWidth (after containment removed)");
+  assert_equals(scope.offsetHeight, 0, "Final offsetHeight (after containment removed)");
+
+  const final_style = getComputedStyle(scope);
+  assert_false(final_style.contain.includes("size"), "Final containment should not include size");
+  assert_false(final_style.containIntrinsicSize.includes("auto"), "Final containIntrinsicSize should not include auto");
+
+}, "Ensure scoped view transition elements apply internal size containment during the capture and DOM callback phases");
+
+</script>
+</body>
+</html>

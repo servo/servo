@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS test reference</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<style>
+div {
+  font-size: 20px;
+  color: transparent;
+}
+
+div:nth-of-type(1) { background: green; }
+div:nth-of-type(2) { background: blue; }
+div:nth-of-type(1),
+div:nth-of-type(2) {
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  height: 5ch;
+  width: 5ch;
+}
+div:nth-of-type(3) {
+  background: orange;
+  height: 5ch;
+  width: 5ch;
+}
+</style>
+<body>
+  <p>Test passes if there is a <strong>green square</strong> below, and if it is the <strong>same size as the blue</strong> one, not the orange one.
+  <p>If any of the 3 colored shapes is not a square, or if the orange and blue squares are the same size, the test fails.
+  <div></div>
+  <div></div>
+  <div></div>
+</body>

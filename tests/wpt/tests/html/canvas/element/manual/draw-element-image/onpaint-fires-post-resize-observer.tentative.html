@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<title>canvas.onpaint should fire after resize observations are delivered</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<link rel="help" href="https://html.spec.whatwg.org/#update-the-rendering">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  canvas {
+    background: blue;
+  }
+  div {
+    width: 50px;
+    height: 100px;
+    background: green;
+  }
+  .size-change {
+    width: 100px;
+  }
+</style>
+
+<canvas id="canvas" width="200" height="200" layoutsubtree>
+  <div id="child"></div>
+</canvas>
+
+<script>
+  'use strict';
+
+  async function waitForOneFrame() {
+    await new Promise(requestAnimationFrame);
+    await new Promise(setTimeout);
+  }
+
+  // This test sets up a resize observer and an onpaint handler, and asserts
+  // that the resize observation occurs before the onpaint event.
+  promise_test(async t => {
+    const canvas = document.getElementById('canvas');
+    const child = document.getElementById('child');
+    const events = [];
+    let inSetup = true;
+
+    canvas.onpaint = t.step_func(() => {
+      if (inSetup) {
+        return;
+      }
+      events.push('onpaint');
+    });
+
+    const resizeObserver = new ResizeObserver(t.step_func(entries => {
+      if (inSetup) {
+        return;
+      }
+      assert_equals(entries.length, 1, 'There should be one resize entry');
+      assert_equals(entries[0].target, child, 'The target should be #child');
+      events.push('resize');
+    }));
+    resizeObserver.observe(child);
+
+    // Wait two frames, then start monitoring events. This avoids counting the
+    // initial resize observation, or any initial onpaint events.
+    await waitForOneFrame();
+    await waitForOneFrame();
+    inSetup = false;
+
+    // Wait a frame and assert that neither resize observer nor onpaint fire
+    // without changes.
+    await waitForOneFrame();
+    assert_array_equals(events, [],
+      'Resize observer and onpaint should not fire without changes.');
+
+    // Make a change that causes a resize observation and onpaint.
+    child.classList.toggle('size-change');
+    assert_array_equals(events, [], 'Events should not fire synchronously.');
+
+    await waitForOneFrame();
+    await waitForOneFrame();
+    assert_array_equals(events, ['resize', 'onpaint'],
+      'Resize observer should fire before onpaint.');
+  }, 'onpaint should fire after resize observer');
+</script>

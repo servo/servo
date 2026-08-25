@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8">
+<title>reference</title>
+<link rel="author" title="Richard Ishida" href="mailto:ishida@w3.org">
+<style type="text/css">
+@font-face {
+    font-family: 'csstest_noto';
+    src: url('/fonts/noto/NotoSansMongolian-regular.woff2') format('woff2');
+    }
+.test, .ref { border: 1px solid #02D7F6;  margin: 20px;  padding: 10px; width: 3em; font-size: 120px; font-family: "csstest_noto"; writing-mode: vertical-lr; float:left; text-orientation: upright;}
+/* the CSS above is not part of the test */
+.styled { font-style:italic; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the three Mongolian characters in each box join, making the two boxes identical.</p>
+<div class="ref" lang="mn" dir="rtl">ᠨ&zwnj;<span class="styled">&zwnj;ᠨ&zwnj;</span>&zwnj;ᠨ</div>
+<div class="ref" lang="mn" dir="rtl">ᠨ&zwnj;<span class="styled">&zwnj;ᠨ&zwnj;</span>&zwnj;ᠨ</div>
+</body>
+</html>

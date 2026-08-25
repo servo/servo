@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-responsetype-attribute" data-tested-assertations="following::ol[1]/li[4]" />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-response-attribute" data-tested-assertations="following::a[contains(@href,'#arraybuffer-response-entity-body')]/.." />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <title>XMLHttpRequest: The response attribute: ArrayBuffer data</title>
+</head>
+
+<body>
+    <div id="log"></div>
+
+    <script type="text/javascript">
+        var test = async_test();
+
+        test.step(function()
+        {
+            var xhr = new XMLHttpRequest();
+
+            xhr.onreadystatechange = function()
+            {
+                if (xhr.readyState == 4)
+                {
+                    test.step(function()
+                    {
+                        assert_equals(xhr.status, 200);
+
+                        var buf = xhr.response;
+                        assert_true(buf instanceof ArrayBuffer);
+
+                        var arr = new Uint8Array(buf);
+                        assert_equals(arr.length, 5);
+                        assert_equals(arr[0], 0x48, "Expect 'H'");
+                        assert_equals(arr[1], 0x65, "Expect 'e'");
+                        assert_equals(arr[2], 0x6c, "Expect 'l'");
+                        assert_equals(arr[3], 0x6c, "Expect 'l'");
+                        assert_equals(arr[4], 0x6f, "Expect 'o'");
+
+                        assert_equals(xhr.response, xhr.response,
+                                      "Response should be cached");
+
+                        test.done();
+                    });
+                }
+            };
+
+            xhr.open("GET", "./resources/content.py?content=Hello", true);
+            xhr.responseType = "arraybuffer";
+            xhr.send();
+        });
+    </script>
+</body>
+</html>

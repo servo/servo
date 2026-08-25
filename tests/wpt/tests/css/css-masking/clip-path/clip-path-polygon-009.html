@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>CSS Masking: Test clip-path and polygon with content-box</title>
+	<link rel="author" title="Dirk Schulze" href="mailto:dschulze@adobe.com">
+	<link rel="help" href="http://www.w3.org/TR/css-masking-1/#clipping-paths">
+	<link rel="help" href="http://www.w3.org/TR/css-masking-1/#propdef-clip-path">
+	<link rel="match" href="reference/clip-path-square-002-ref.html">
+	<meta name="assert" content="The clip-path property allows specifying
+	basic shapes and reference boxes. This test checks the usage of the correct
+	reference box 'content-box' for the polygon() function by mixing percentage
+	and absolute values as coordinates. On sucess you should see a green square
+	and no red.">
+</head>
+<style>
+div {
+	width: 50px;
+	height: 50px;
+	background-color: green;
+	padding: 25px;
+	margin: 25px;
+	border: red solid 25px;
+}
+</style>
+<body>
+	<p>The test passes if there is a green square and no red.</p>
+	<div style="clip-path: polygon(0% 0px, 50px 0%, 100% 50px, 0px 100%) content-box"></div>
+</body>
+</html>

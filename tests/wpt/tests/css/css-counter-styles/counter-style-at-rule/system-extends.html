@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Test: system extends</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org/">
+<link rel="help" href="https://drafts.csswg.org/css-counter-styles-3/#extends-system">
+<link rel="match" href="system-extends-ref.html">
+<link rel="stylesheet" href="support/test-common.css">
+<style type="text/css">
+  @counter-style a {
+    system: extends upper-roman;
+    prefix: "Chapter ";
+    range: 1 5;
+  }
+  @counter-style b {
+    system: extends a;
+    prefix: "Section ";
+    range: 1 6;
+  }
+</style>
+<ol start="-2" style="list-style-type: a">
+  <li><li><li><li><li>
+  <li><li><li><li><li>
+</ol>
+<ol start="-2" style="list-style-type: b">
+  <li><li><li><li><li>
+  <li><li><li><li><li>
+</ol>

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html id="top">
+<head>
+<meta charset="utf-8">
+<title>View timeline with sticky during entry/exit</title>
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#viewtimeline-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="/scroll-animations/scroll-timelines/testcommon.js"></script>
+<script src="/scroll-animations/view-timelines/testcommon.js"></script>
+<style>
+
+#container {
+  height: 500px;
+  overflow: auto;
+}
+.space {
+  height: 550px;
+}
+
+/* target > viewport, bottom-sticky and top-sticky during contain */
+.stickycase7 {
+  background: yellow;
+  position: sticky;
+  top: -100px;
+  bottom: -100px;
+  height: 700px;
+}
+
+#target {
+  position: relative;
+  top: 50px;
+  background: orange;
+  height: 600px;
+}
+
+.space:has(.stickycase6),
+.space:has(.stickycase7) {
+  height: 1050px;
+}
+
+</style>
+</head>
+<body>
+<div id="container">
+  <div class="space"></div>
+  <div class="space">
+    <div style="height: 150px"></div>
+    <div id="sticky" class="stickycase7">
+      <div id="target">Subject</div>
+    </div>
+  </div>
+  <div class="space"></div>
+</div>
+<script type="text/javascript">
+
+// The "cover" range would be [STATIC_START, STATIC_END] if we ignored
+// stickiness (i.e., considered only static position).
+//
+// STATIC_START = scroll distance to second spacer (50px)
+//              + position of sticky element within its container (150px)
+//              + position of target within sticky element (50px)
+// STATIC_END = STATIC_START
+//            + viewport height (500px)
+//            + target height (100px)
+const STATIC_START = 250;
+const BIG_TARGET_STATIC_END = 1350;
+
+// This is how far the sticky element can move upwards when bottom-stuck.
+const ROOM_ABOVE = 150;
+
+// This is how far the sticky element can move downwards when top-stuck.
+const ROOM_BELOW = 200;
+
+const BIG_TARGET_HEIGHT = 600;
+const VIEWPORT_HEIGHT = 500;
+
+promise_test(async t => {
+  sticky.className = "stickycase7";
+  await runTimelineRangeTest(t, {
+    rangeStart: { rangeName: 'cover', offset: CSS.percent(0) } ,
+    rangeEnd: { rangeName: 'cover', offset: CSS.percent(100) },
+    startOffset: STATIC_START - ROOM_ABOVE,
+    endOffset: BIG_TARGET_STATIC_END + ROOM_BELOW,
+    axis: 'block'
+  });
+  await runTimelineRangeTest(t, {
+    rangeStart: { rangeName: 'contain', offset: CSS.percent(0) } ,
+    rangeEnd: { rangeName: 'contain', offset: CSS.percent(100) },
+    startOffset: STATIC_START - ROOM_ABOVE + VIEWPORT_HEIGHT,
+    endOffset: BIG_TARGET_STATIC_END + ROOM_BELOW - VIEWPORT_HEIGHT,
+    axis: 'block'
+  });
+  await runTimelineRangeTest(t, {
+    rangeStart: { rangeName: 'entry', offset: CSS.percent(0) },
+    rangeEnd: { rangeName: 'entry', offset: CSS.percent(100) },
+    startOffset: STATIC_START - ROOM_ABOVE,
+    endOffset: STATIC_START - ROOM_ABOVE + VIEWPORT_HEIGHT,
+    axis: 'block'
+  });
+  await runTimelineRangeTest(t, {
+    rangeStart: { rangeName: 'entry-crossing', offset: CSS.percent(0) },
+    rangeEnd: { rangeName: 'entry-crossing', offset: CSS.percent(100) },
+    startOffset: STATIC_START - ROOM_ABOVE,
+    endOffset: BIG_TARGET_STATIC_END + ROOM_BELOW - VIEWPORT_HEIGHT,
+    axis: 'block'
+  });
+  await runTimelineRangeTest(t, {
+    rangeStart:  { rangeName: 'exit', offset: CSS.percent(0) },
+    rangeEnd: { rangeName: 'exit', offset: CSS.percent(100) },
+    startOffset: BIG_TARGET_STATIC_END + ROOM_BELOW - VIEWPORT_HEIGHT,
+    endOffset: BIG_TARGET_STATIC_END + ROOM_BELOW,
+    axis: 'block'
+  });
+  await runTimelineRangeTest(t, {
+    rangeStart:  { rangeName: 'exit-crossing', offset: CSS.percent(0) },
+    rangeEnd: { rangeName: 'exit-crossing', offset: CSS.percent(100) },
+    startOffset: STATIC_START - ROOM_ABOVE + VIEWPORT_HEIGHT,
+    endOffset: BIG_TARGET_STATIC_END + ROOM_BELOW,
+    axis: 'block'
+  });
+}, 'View timeline target > viewport, ' +
+   'bottom-sticky and top-sticky during contain.');
+
+</script>
+</body>
+</html>

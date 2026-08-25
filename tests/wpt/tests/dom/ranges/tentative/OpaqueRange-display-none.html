@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body></body>
+<script>
+const controls = ['input', 'textarea'];
+
+function setupControl(control, value) {
+  document.body.innerHTML = (control === 'input') ? '<input type="text">' : '<textarea></textarea>';
+  const element = document.body.firstElementChild;
+  element.value = value;
+  return element;
+}
+
+// Verifies that OpaqueRanges remain functional when an element's layout frame
+// is destroyed and re-created via display:none.
+controls.forEach(controlType => {
+  test(() => {
+    const element = setupControl(controlType, 'ABCDE');
+    element.style.display = 'none';
+    const range = element.createValueRange(1, 4);
+    assert_equals(range.startOffset, 1, 'startOffset');
+    assert_equals(range.endOffset, 4, 'endOffset');
+  }, `createValueRange works on display:none element (${controlType})`);
+
+  test(() => {
+    const element = setupControl(controlType, 'ABCDE');
+    const range = element.createValueRange(1, 4);
+
+    element.style.display = 'none';
+    assert_equals(range.startOffset, 1, 'startOffset during display:none');
+    assert_equals(range.endOffset, 4, 'endOffset during display:none');
+
+    element.style.display = '';
+    element.style.display = 'none';
+    element.style.display = '';
+    assert_equals(range.startOffset, 1, 'startOffset after repeated show/hide');
+    assert_equals(range.endOffset, 4, 'endOffset after repeated show/hide');
+  }, `OpaqueRange offsets survive repeated display:none cycles (${controlType})`);
+
+  test(() => {
+    const element = setupControl(controlType, 'ABCDE');
+    const range = element.createValueRange(1, 4);
+    element.style.display = 'none';
+
+    assert_equals(range.startOffset, 1, 'startOffset before value change');
+    assert_equals(range.endOffset, 4, 'endOffset before value change');
+
+    element.value = 'XY';
+    assert_equals(range.startOffset, 0, 'startOffset clamped after value shrink');
+    assert_equals(range.endOffset, 0, 'endOffset clamped after value shrink');
+  }, `element.value replacement updates range during display:none (${controlType})`);
+
+  test(() => {
+    const element = setupControl(controlType, 'ABCDE');
+    const range = element.createValueRange(1, 4);
+    element.style.display = 'none';
+
+    assert_equals(range.startOffset, 1, 'startOffset before setRangeText');
+    assert_equals(range.endOffset, 4, 'endOffset before setRangeText');
+
+    element.setRangeText('XYZ', 2, 3); // Replace 'C' with 'XYZ'
+    assert_equals(range.startOffset, 1, 'startOffset after setRangeText');
+    assert_equals(range.endOffset, 6, 'endOffset after setRangeText (4 + net 2)');
+  }, `setRangeText updates range during display:none (${controlType})`);
+
+  test(() => {
+    const element = setupControl(controlType, 'ABCDE');
+    const range = element.createValueRange(2, 4);
+    element.style.display = 'none';
+
+    element.setRangeText('ZZ', 0, 0);
+    assert_equals(range.startOffset, 4, 'startOffset shifted by insert before');
+    assert_equals(range.endOffset, 6, 'endOffset shifted by insert before');
+  }, `setRangeText insert before range works during display:none (${controlType})`);
+
+  test(() => {
+    const element = setupControl(controlType, 'ABCDE');
+    const range = element.createValueRange(1, 3);
+    element.style.display = 'none';
+
+    element.setRangeText('', 0, 2);
+    assert_equals(element.value, 'CDE', 'value after deletion');
+    assert_equals(range.startOffset, 0, 'startOffset clamped to change offset');
+    assert_equals(range.endOffset, 1, 'endOffset adjusted after overlapping delete');
+  }, `setRangeText overlapping delete works during display:none (${controlType})`);
+
+  test(() => {
+    const element = setupControl(controlType, 'ABCDE');
+    element.style.display = 'none';
+    const range = element.createValueRange(3, 3);
+    assert_true(range.collapsed, 'collapsed range');
+
+    element.setRangeText('XX', 3, 3);
+    assert_equals(range.startOffset, 3, 'collapsed range start stays');
+    assert_equals(range.endOffset, 3, 'collapsed range end stays');
+  }, `Collapsed range insertion during display:none (${controlType})`);
+
+  test(() => {
+    const element = setupControl(controlType, 'ABCDE');
+    element.style.fontFamily = 'monospace';
+    element.style.fontSize = '16px';
+    element.style.padding = '0';
+    element.style.border = '0';
+    element.focus();
+    const range = element.createValueRange(0, 5);
+
+    assert_greater_than(range.getBoundingClientRect().width, 0, 'width before display:none');
+
+    element.style.display = 'none';
+    assert_equals(range.getBoundingClientRect().width, 0, 'width during display:none');
+    assert_equals(range.getClientRects().length, 0, 'no client rects during display:none');
+
+    element.style.display = '';
+    element.focus();
+    assert_greater_than(range.getBoundingClientRect().width, 0, 'width after restoring display');
+  }, `Geometry empty during display:none, restored after (${controlType})`);
+
+  test(() => {
+    const element = setupControl(controlType, 'ABCDE');
+    const range = element.createValueRange(1, 4);
+    element.style.display = 'none';
+
+    range.disconnect();
+    assert_equals(range.startOffset, 0, 'startOffset after disconnect');
+    assert_equals(range.endOffset, 0, 'endOffset after disconnect');
+  }, `disconnect() works during display:none (${controlType})`);
+});
+</script>

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Reference: ::marker pseudo elements styled with 'content' property</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<style>
+ol {
+  list-style-type: "[marker]";
+  text-decoration: underline;
+  padding-left: 100px;
+}
+.inside {
+  list-style-position: inside;
+}
+</style>
+<ol>
+  <li class="outside">outside</li>
+  <li class="inside">inside</li>
+</ol>

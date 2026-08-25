@@ -1,0 +1,34 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Max-Width applied to none</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-12-03 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#min-max-widths" />
+        <link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+
+        <meta name="assert" content="Max-Width can be declared onto 'display: none' elements but since 'display: none' declaration on an element does not generate a CSS box, then it won't have a rendering effect nor a visual formatting repercussion." />
+        <style type="text/css">
+            div
+            {
+                width: 100px;
+                height: 100px;
+                background: green;
+            }
+            span
+            {
+                display: none;
+                width: 1000px;
+                max-width: 100px;
+                height: 100px;
+                background-color: red;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+        <div>
+            <span></span>
+        </div>
+    </body>
+</html>

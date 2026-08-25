@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Grid items with percentage paddings</title>
+<link rel="author" title="Javier Fernandez Garcia-Boente" href="mailto:jfernandez@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#item-margins">
+<meta name="assert" content="Checks grid items percentage paddings are resolved correctly in a 'auto' sized grid area after changing the item's width and forcing a new layout.">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<link rel="stylesheet" href="/css/support/grid.css">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+.container {
+    width: 100px;
+}
+.child {
+    width: 100px;
+    height: 80px;
+    padding: 10px 0px;
+    background: red;
+}
+.ref {
+    position: absolute;
+    z-index: -1;
+    background: none;
+    height: 100px;
+}
+.grid {
+    background: none;
+}
+#item {
+    padding: 10% 0px;
+    background: green;
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="container ref"><div class="child"></div></div>
+<div class="container grid"><div class="child" id="item"></div></div>
+<script>
+    item.offsetLeft;
+    item.style.height = "0px";
+    item.offsetLeft;
+    item.style.height = "80px";
+</script>

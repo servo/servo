@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<title>Test scrollIntoView() inside a fenced frame</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<!-- This spacer is used to ensure that the fenced frame will be out of view
+     unless a scroll is performed. -->
+<div style="height: 2000px;"></div>
+<script>
+promise_test(async(t) => {
+  const fencedframe = await attachFencedFrameContext();
+
+  const start_y_offset = window.pageYOffset;
+
+  await fencedframe.execute(() => {
+    // Ensure that any elements created are out of view until a scroll is
+    // performed.
+    const spacer = document.createElement("div");
+    spacer.style = "height: 2000px;";
+    document.body.appendChild(spacer);
+
+    const start_fenced_y_offset = window.pageYOffset;
+
+    const button = document.createElement("button");
+    document.body.appendChild(button);
+    button.scrollIntoView();
+
+    const end_fenced_y_offset = window.pageYOffset;
+    assert_not_equals(start_fenced_y_offset, end_fenced_y_offset,
+      "The inner page should have scrolled.");
+  }, []);
+
+  const end_y_offset = window.pageYOffset;
+  assert_equals(start_y_offset, end_y_offset,
+      "The outer page should not have scrolled.");
+
+}, 'scrollIntoView() inside a fenced frame should not scroll ancestors');
+
+</script>
+</body>

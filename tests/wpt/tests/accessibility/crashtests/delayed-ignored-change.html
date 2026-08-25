@@ -1,0 +1,19 @@
+<html class="test-wait">
+<style>
+  body { font-size: x-large; }
+  .hidden { visibility: hidden; }
+</style>
+<rb class="hidden">
+  <textarea></textarea>
+</rb>
+<script>
+window.addEventListener('load', () => {
+  window.requestAnimationFrame(() => {
+    window.requestAnimationFrame(() => {
+      document.querySelector('style').remove();
+      document.documentElement.className = '';
+    });
+  });
+});
+</script>
+</html>

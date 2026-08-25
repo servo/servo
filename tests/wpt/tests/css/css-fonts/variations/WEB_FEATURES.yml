@@ -1,0 +1,5 @@
+rules:
+- variable-opsz*: [font-optical-sizing]
+- font-slant-*: [font-style]
+- font-variation-settings-inherit.html: [font-variation-settings]
+- font-stretch.html: [font-stretch]

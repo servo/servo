@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/speculation-rules/speculation-measurement/support/speculation-measurement-utils.js"></script>
+<body>
+<script>
+// This document was served with two 103 Early Hints responses, each
+// preconnecting to a different origin (see multiple-early-hints-preconnects.h2.py).
+// TODO(crbug.com/527144295): It seems like Chromium only honors the first
+// Early Hints response, so only the first origin's preconnect should be recorded.
+const params = new URLSearchParams(location.search);
+const firstOrigin = new URL(params.get('first-preconnect')).origin;
+const secondOrigin = new URL(params.get('second-preconnect')).origin;
+
+test(() => {
+  assert_true(typeof performance.getSpeculations === 'function',
+    "SpeculationMeasurement feature must be enabled");
+  const preconnects = performance.getSpeculations().preconnects;
+
+  const first = findPreconnectsByOrigin(preconnects, firstOrigin);
+  assert_equals(first.length, 1,
+    "the first 103 response's preconnect should be recorded");
+  assert_true(first[0].earlyhint,
+    "earlyhint should be true for an Early Hints preconnect");
+
+  const second = findPreconnectsByOrigin(preconnects, secondOrigin);
+  assert_equals(second.length, 0,
+    "second and subsequent 103 responses are ignored, so their preconnects " +
+    "should not be recorded");
+}, "Only the first of multiple 103 Early Hints responses contributes preconnects");
+</script>
+</body>

@@ -1,0 +1,86 @@
+body {
+  width: 100vw;
+  height: 100vh;
+  padding: 0;
+  margin: 0;
+  color: #000;
+}
+
+.section {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.site-logo {
+  max-width: 300px;
+  margin-bottom: 30px;
+  margin-left: -15px;
+}
+
+.site-header {
+  margin-bottom: 50px;
+}
+
+#content {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+#qr-code {
+  padding: 10px;
+  border: 1px solid rgb(200, 200, 200);
+  border-radius: 3px;
+}
+
+#button-wrapper {
+  display: flex;
+  margin: 20px 0;
+}
+
+#button-wrapper :not(:first-child) {
+  margin-left: 15px;
+}
+
+#token,
+#test-path {
+  font-family: monospace;
+  font-size: 12pt;
+}
+
+#details-wrapper {
+  display: flex;
+  flex-direction: column;
+  max-width: 600px;
+  margin-top: 20px;
+}
+
+.prompt {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 700px;
+}
+
+.detail {
+  margin: 2px 0;
+  display: flex;
+  width: 100%;
+}
+
+.detail :first-child {
+  width: 150px;
+  flex: none;
+  font-weight: bold;
+}
+
+.detail div {
+  flex: 1;
+}
+
+.mb-2 {
+  margin-bottom: 20px;
+}

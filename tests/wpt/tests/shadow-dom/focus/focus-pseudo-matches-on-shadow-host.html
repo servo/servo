@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="author" title="Ryosuke Niwa" href="mailto:rniwa@webkit.org">
+<meta name="assert" content=":focus should match a shadow host which contains the focused element">
+<link rel="help" href="https://html.spec.whatwg.org/#element-has-the-focus">
+<link rel="help=" href="https://bugs.webkit.org/show_bug.cgi?id=202432">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<input id="defaultFocus" autofocus>
+<div id="log"></div>
+<div id="container"></div>
+<script>
+
+let focusedDefault = false;
+function didFocusDefault() { }
+function handleFocus() {
+    if (!focusedDefault) {
+        // Use step_timeout here to avoid nested focusing steps.
+        // For example, <input id="defaultFocus" autofocus> could run scripts
+        // while it's autofocusing which may run the tests, so that the
+        // focus() usage in the tests becomes nested focusing steps.
+        step_timeout(function() {
+          testInMode('open', false);
+          testInMode('open', true);
+          testInMode('closed', false);
+          testInMode('closed', true);
+        }, 0);
+    }
+    focusedDefault = true;
+    didFocusDefault();
+}
+defaultFocus.addEventListener('focus', handleFocus);
+
+function prepare(test)
+{
+    test.add_cleanup(() => {
+        defaultFocus.focus();
+        container.textContent = '';
+    });
+    return new Promise((resolve) => {
+        if (focusedDefault)
+            resolve();
+        else
+            didFocusDefault = resolve;
+    });
+}
+
+function testInMode(mode, delegatesFocus) {
+    const modeString = `{mode:${mode}, delegatesFocus:${delegatesFocus}}`;
+    promise_test(async function () {
+        await prepare(this);
+        const host = document.createElement('div');
+        container.appendChild(host);
+        const shadowRoot = host.attachShadow({mode, delegatesFocus});
+        shadowRoot.innerHTML = '<input>';
+        assert_equals(document.activeElement, defaultFocus);
+        assert_equals(shadowRoot.activeElement, null);
+        assert_false(host.matches(':focus'));
+    }, `:focus must not match a shadow host with ${modeString} shadow root that does not contain the focused element`);
+
+    promise_test(async function () {
+        await prepare(this);
+        const host = document.createElement('div');
+        document.body.appendChild(host);
+        const shadowRoot = host.attachShadow({mode, delegatesFocus});
+        shadowRoot.innerHTML = '<input>';
+        shadowRoot.firstChild.focus();
+        assert_equals(document.activeElement, host);
+        assert_equals(shadowRoot.activeElement, shadowRoot.firstChild);
+        assert_true(host.matches(':focus'));
+    }, `:focus must match a shadow host with ${modeString} shadow root that contains the focused element`);
+
+    promise_test(async function () {
+        await prepare(this);
+        const host = document.createElement('div');
+        container.appendChild(host);
+        const shadowRoot = host.attachShadow({mode, delegatesFocus});
+        shadowRoot.innerHTML = '<slot>';
+        host.innerHTML = '<input>';
+        host.firstChild.focus();
+        assert_equals(document.activeElement, host.firstChild);
+        assert_equals(shadowRoot.activeElement, null);
+        assert_false(host.matches(':focus'));
+    }, `:focus must not match a shadow host with ${modeString} shadow root contains the focused element assigned to a slot`);
+
+    promise_test(async function() {
+        await prepare(this);
+        const host1 = document.body.appendChild(document.createElement('div'));
+        const shadowRoot1 = host1.attachShadow({mode, delegatesFocus});
+        const host2 = shadowRoot1.appendChild(document.createElement('div'));
+        const shadowRoot2 = host2.attachShadow({mode, delegatesFocus});
+        shadowRoot2.innerHTML = '<input>';
+        shadowRoot2.firstChild.focus();
+        assert_equals(document.activeElement, host1);
+        assert_equals(shadowRoot1.activeElement, host2);
+        assert_equals(shadowRoot2.activeElement, shadowRoot2.firstChild);
+        assert_true(host1.matches(':focus'));
+        assert_true(host2.matches(':focus'));
+    }, `:focus must match all shadow hosts which are ancestors of a foccused element; ${modeString}`);
+
+    promise_test(async function() {
+        await prepare(this);
+        const host = document.body.appendChild(document.createElement('div'));
+        const shadowRoot = host.attachShadow({mode, delegatesFocus});
+        shadowRoot.innerHTML = '<input>';
+        const input = shadowRoot.firstChild;
+        const outer = document.body.appendChild(document.createElement('div'));
+
+        assert_false(host.matches(':focus'));
+        input.focus();
+        assert_true(host.matches(':focus'));
+        outer.appendChild(input);
+        assert_false(host.matches(':focus'));
+    }, `:focus behavior on tree structure changes; ${modeString}`);
+}
+
+</script>
+</body>
+</html>

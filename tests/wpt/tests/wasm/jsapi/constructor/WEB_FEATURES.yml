@@ -1,0 +1,3 @@
+rules:
+- multi-value.any.js: [wasm-multi-value]
+- "*": [wasm]

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 3 Test: tatweel and text-shaping, cross font, fallback</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#text-encoding">
+<link rel="help" href="https://www.unicode.org/versions/Unicode11.0.0/ch09.pdf">
+<link rel="help" href="https://www.w3.org/TR/alreq/#h_joining_enforcement">
+<link rel="match" href="reference/shaping-tatweel-002-ref.html">
+<meta name="assert" content="Arabic characters next to a U+0640 ARABIC TATWEEL character must take their correct positional form, even if the tatweel comes from a differnt font via font due to font fallback.">
+<style>
+  table {
+    font-size: 3em;
+    border-spacing: 0 3px;
+  }
+  td {
+    padding: 0 0.5ch;
+    line-height: 1;
+    border: 1px solid;
+  }
+  @font-face {
+    font-family: 'primary';
+    src: url('/fonts/noto/NotoNaskhArabic-regular.woff2') format('woff2');
+    unicode-range: U+20;
+  }
+  @font-face {
+    font-family: 'tatweel';
+    src: url('/fonts/Scheherazade-Regular.woff') format('woff');
+    unicode-range: U+0640;
+  }
+  @font-face {
+    font-family: 'csstest_noto';
+    src: url('/fonts/noto/NotoNaskhArabic-regular.woff2') format('woff2');
+  }
+  table {
+    /*using a primary font with just U+20 (space) to get the baseline right*/
+    font-family: 'primary', 'tatweel', 'csstest_noto';
+  }
+</style>
+
+<p>Test passes if both halves of each of the pairs below are identical:
+
+<table dir=rtl lang=ar>
+<tr><!-- alef, final form as it doesn't have a medial form -->
+  <td>&#x640;&#x0627;&#x640;
+  <td>&#x640;&#xFE8E;&#x640;
+<tr><!-- alef, final form -->
+  <td>&#x640;&#x0627;
+  <td>&#x640;&#xFE8E;
+<tr><!-- beh, initial form -->
+  <td>&#x0628;&#x640;
+  <td>&#xFE91;&#x640;
+<tr><!-- beh, medial form -->
+  <td>&#x640;&#x0628;&#x640;
+  <td>&#x640;&#xFE92;&#x640;
+<tr><!-- beh, final form -->
+  <td>&#x640;&#x0628;
+  <td>&#x640;&#xFE90;
+</table>

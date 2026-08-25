@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="title" content="Scoped VT: border and box shadow root painting (ref)">
+<meta name="author" content="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+
+<style>
+#target {
+  position: relative;
+  top: 30px;
+  left: 30px;
+
+  width: 200px;
+  height: 300px;
+
+  background: blue;
+  border-width: 5px 10px 15px 20px;
+  border-style: solid;
+  border-color: yellow;
+
+  box-shadow: 10px 5px 0px 20px black;
+}
+</style>
+
+<div id=target></div>
+
+<script>
+failIfNot(target.startViewTransition, "Missing element.startViewTransition");
+
+function runTest() {
+  target.startViewTransition(() => {
+    target.classList.add("after");
+  }).ready.then(takeScreenshot);
+}
+
+waitForCompositorReady().then(runTest);
+</script>
+

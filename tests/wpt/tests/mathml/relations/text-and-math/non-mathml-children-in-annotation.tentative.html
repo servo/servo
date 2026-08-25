@@ -1,0 +1,27 @@
+<!DOCTYPE html><!-- webkit-test-runner [ CoreMathMLEnabled=true ] -->
+<html>
+  <head>
+    <title>Non-MathML children of annotation and annotation-xml</title>
+    <meta charset="utf-8"/>
+    <meta name="assert" content="Non-MathML children of annotation and annotation-xml elements are rendered."/>
+    <link rel="help" href="https://w3c.github.io/mathml-core/#dfn-annotation"/>
+    <link rel="match" href="non-mathml-children-in-annotation.tentative-ref.html"/>
+    <style>
+      annotation-xml, annotation { display: initial; }
+    </style>
+  </head>
+  <body>
+    <math>
+      <semantics>
+        <mtext></mtext>
+        <annotation>annotation</annotation>
+      </semantics>
+    </math>
+    <math>
+      <semantics>
+        <mtext></mtext>
+        <annotation-xml encoding="text/html"><span>annotation-xml</span></annotation-xml>
+      </semantics>
+    </math>
+  </body>
+</html>

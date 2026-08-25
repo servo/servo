@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>WebVTT rendering, underline object transition with timestamp, ::cue(u:future) selector</title>
+<link rel="match" href="underline_timestamp_future-ref.html">
+<style>
+html { overflow:hidden }
+body { margin:0 }
+::cue(u:future) {
+    color: #00ff00;
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<video width="320" height="180" autoplay onplaying="this.onplaying = null; this.pause(); this.currentTime = 0.2; takeScreenshotDelayed(1000);">
+    <source src="/media/white.webm" type="video/webm">
+    <source src="/media/white.mp4" type="video/mp4">
+    <track src="../../../support/underline_with_2_timestamps.vtt">
+    <script>
+    document.getElementsByTagName('track')[0].track.mode = 'showing';
+    </script>
+</video>
+</html>

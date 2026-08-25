@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8"/>
+<title>cambodian, 10+</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='http://www.w3.org/TR/css-counter-styles-3/#simple-numeric'>
+<meta name="assert" content="list-style-type: cambodian produces numbers after 9 per the spec.">
+<style type='text/css'>
+ol li { list-style-type: cambodian;  }
+/* the following CSS is not part of the test */
+.test { font-size: 25px; }
+ol { margin: 0; padding-left: 8em; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the two columns are the same, IGNORING the suffix.</p>
+<div class="test">
+<ol start="11"><div><bdi>១១. </bdi>១១</div></ol>
+<ol start="12"><div><bdi>១២. </bdi>១២</div></ol>
+<ol start="43"><div><bdi>៤៣. </bdi>៤៣</div></ol>
+<ol start="77"><div><bdi>៧៧. </bdi>៧៧</div></ol>
+<ol start="80"><div><bdi>៨០. </bdi>៨០</div></ol>
+<ol start="99"><div><bdi>៩៩. </bdi>៩៩</div></ol>
+<ol start="100"><div><bdi>១០០. </bdi>១០០</div></ol>
+<ol start="101"><div><bdi>១០១. </bdi>១០១</div></ol>
+<ol start="222"><div><bdi>២២២. </bdi>២២២</div></ol>
+<ol start="540"><div><bdi>៥៤០. </bdi>៥៤០</div></ol>
+<ol start="999"><div><bdi>៩៩៩. </bdi>៩៩៩</div></ol>
+<ol start="1000"><div><bdi>១០០០. </bdi>១០០០</div></ol>
+<ol start="1005"><div><bdi>១០០៥. </bdi>១០០៥</div></ol>
+<ol start="1060"><div><bdi>១០៦០. </bdi>១០៦០</div></ol>
+<ol start="1065"><div><bdi>១០៦៥. </bdi>១០៦៥</div></ol>
+<ol start="1800"><div><bdi>១៨០០. </bdi>១៨០០</div></ol>
+<ol start="1860"><div><bdi>១៨៦០. </bdi>១៨៦០</div></ol>
+<ol start="5865"><div><bdi>៥៨៦៥. </bdi>៥៨៦៥</div></ol>
+<ol start="7005"><div><bdi>៧០០៥. </bdi>៧០០៥</div></ol>
+<ol start="7800"><div><bdi>៧៨០០. </bdi>៧៨០០</div></ol>
+<ol start="7864"><div><bdi>៧៨៦៤. </bdi>៧៨៦៤</div></ol>
+<ol start="9999"><div><bdi>៩៩៩៩. </bdi>៩៩៩៩</div></ol>
+</div>
+<!--Notes:
+You will need an appropriate font to run this test.
+The test relies on the start attribute working.
+To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
+-->
+</body>
+</html>

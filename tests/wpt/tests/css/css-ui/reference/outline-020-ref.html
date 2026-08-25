@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang=en>
+  <meta charset=utf-8>
+  <title>CSS-UI test: outline block with outline inline reference file</title>
+  <link rel="author" title="Aleks Totic <atotic@chromium.org>">
+  <meta name=assert content="inline child displays outline correctly">
+<style>
+#container {
+  border: 5px solid green;
+  width: 110px;
+  height: 40px;
+  position: relative;
+  top: -5px;
+  left: -5px;
+}
+
+#target {
+  border: 5px solid blue;
+  position: relative;
+  top: 5px;
+}
+</style>
+
+  <p>Test passes if blue outline touches top left of green outline.</p>
+  <div id="container"><span id="target">x</span></div>
+

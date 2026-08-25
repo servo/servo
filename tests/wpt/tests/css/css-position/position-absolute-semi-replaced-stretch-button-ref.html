@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<style>
+.cb {
+  position: relative;
+  border: 3px solid black;
+  height: 100px;
+  width: 150px;
+  display: inline-block;
+  vertical-align: top;
+  margin: 5px;
+}
+.abs {
+  margin: 0;
+  position: absolute;
+  box-sizing: border-box;
+  top: 3px;
+  left: 3px;
+  outline: 2px solid lime;
+  width: calc(100% - 6px);
+  height: calc(100% - 6px);
+}
+</style>
+<div class="cb"><button class="abs">button</button></div>

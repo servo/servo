@@ -1,0 +1,14 @@
+rules:
+- constructor-exceptions.html: [webvtt]
+- getCueAsHTML.html: [webvtt]
+- text.html: [webvtt]
+- align.html: [webvtt-cue-settings]
+- line.html: [webvtt-cue-settings]
+- position.html: [webvtt-cue-settings]
+- size.html: [webvtt-cue-settings]
+- snapToLines.html: [webvtt-cue-settings]
+- vertical.html: [webvtt-cue-settings]
+- lineAlign.html: [webvtt-cue-alignment]
+- positionAlign.html: [webvtt-cue-alignment]
+- region.html: [webvtt-regions]
+# Note: constructor.html spans features and is not mapped.

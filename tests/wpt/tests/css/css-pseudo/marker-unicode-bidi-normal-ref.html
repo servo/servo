@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>CSS Reftest Reference</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com" />
+<link rel="mismatch" href="marker-unicode-bidi-default-ref.html">
+<style>
+ol {
+  float: left;
+  list-style-type: none;
+}
+.rtl {
+  direction: rtl;
+}
+.marker {
+  unicode-bidi: normal;
+  color: blue;
+}
+.text {
+  background: yellow;
+}
+</style>
+<ol class="ltr">
+  <li><span class="marker">&#x627;&#x644;</span><span class="text">0</span></li>
+  <li><span class="marker">&#x61;&#x627;&#x644;</span><span class="text">0</span></li>
+  <li><span class="marker">&#x627;&#x644;&#x62;</span><span class="text">0</span></li>
+  <li><span class="marker">&#x61;&#x627;&#x644;&#x62;</span><span class="text">0</span></li>
+  <li><span class="marker">&#x61;&#x62;&#x627;&#x644;</span><span class="text">0</span></li>
+  <li><span class="marker">&#x627;&#x644;&#x61;&#x62;</span><span class="text">0</span></li>
+  <li><span class="marker">&#x31;&#x627;&#x644;</span><span class="text">0</span></li>
+  <li><span class="marker">&#x627;&#x644;&#x32;</span><span class="text">0</span></li>
+  <li><span class="marker">&#x31;&#x627;&#x644;&#x32;</span><span class="text">0</span></li>
+</ol>
+<ol class="rtl">
+  <li><span class="marker">&#x627;&#x644;</span><span class="text">0</span></li>
+  <li><span class="marker">&#x61;&#x627;&#x644;</span><span class="text">0</span></li>
+  <li><span class="marker">&#x627;&#x644;&#x62;</span><span class="text">0</span></li>
+  <li><span class="marker">&#x61;&#x627;&#x644;&#x62;</span><span class="text">0</span></li>
+  <li><span class="marker">&#x61;&#x62;&#x627;&#x644;</span><span class="text">0</span></li>
+  <li><span class="marker">&#x627;&#x644;&#x61;&#x62;</span><span class="text">0</span></li>
+  <li><span class="marker">&#x31;&#x627;&#x644;</span><span class="text">0</span></li>
+  <li><span class="marker">&#x627;&#x644;&#x32;</span><span class="text">0</span></li>
+  <li><span class="marker">&#x31;&#x627;&#x644;&#x32;</span><span class="text">0</span></li>
+</ol>
+<ol class="ltr">
+  <li><span class="marker">&#x627;&#x644;</span><span class="text">0</span></li>
+  <li><span class="marker">&#x61;&#x627;&#x644;</span><span class="text">0</span></li>
+  <li><span class="marker">&#x627;&#x644;&#x62;</span><span class="text">0</span></li>
+  <li><span class="marker">&#x61;&#x627;&#x644;&#x62;</span><span class="text">0</span></li>
+  <li><span class="marker">&#x61;&#x62;&#x627;&#x644;</span><span class="text">0</span></li>
+  <li><span class="marker">&#x627;&#x644;&#x61;&#x62;</span><span class="text">0</span></li>
+  <li><span class="marker">&#x31;&#x627;&#x644;</span><span class="text">0</span></li>
+  <li><span class="marker">&#x627;&#x644;&#x32;</span><span class="text">0</span></li>
+  <li><span class="marker">&#x31;&#x627;&#x644;&#x32;</span><span class="text">0</span></li>
+</ol>
+<ol class="rtl">
+  <li><span class="marker">&#x627;&#x644;</span><span class="text">0</span></li>
+  <li><span class="marker">&#x61;&#x627;&#x644;</span><span class="text">0</span></li>
+  <li><span class="marker">&#x627;&#x644;&#x62;</span><span class="text">0</span></li>
+  <li><span class="marker">&#x61;&#x627;&#x644;&#x62;</span><span class="text">0</span></li>
+  <li><span class="marker">&#x61;&#x62;&#x627;&#x644;</span><span class="text">0</span></li>
+  <li><span class="marker">&#x627;&#x644;&#x61;&#x62;</span><span class="text">0</span></li>
+  <li><span class="marker">&#x31;&#x627;&#x644;</span><span class="text">0</span></li>
+  <li><span class="marker">&#x627;&#x644;&#x32;</span><span class="text">0</span></li>
+  <li><span class="marker">&#x31;&#x627;&#x644;&#x32;</span><span class="text">0</span></li>
+</ol>

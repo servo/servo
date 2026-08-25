@@ -1,0 +1,15 @@
+<!doctype html>
+<script>
+  (async function() {
+    if (!location.hash) {
+      await new Promise(r => {
+        window.addEventListener("hashchange", r, { once: true });
+        location.hash = "foo";
+      });
+      location.reload(true);
+    } else {
+      location.href = "unlikely-protocol://foo"
+      parent.document.documentElement.classList = "";
+    }
+  })();
+</script>

@@ -1,0 +1,15 @@
+<!doctype html>
+<title>Should not assert or crash</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1649569">
+<script>
+window.onload = () => {
+  var a = document.getElementById("a")
+  var c = document.createElement("m")
+  a.valueAsNumber = 0.165
+  c.insertBefore(b, c.childNodes[0])
+  a.validationMessage
+}
+</script>
+<pre lang="nb">
+<form id="b">
+<input id="a" type="number">

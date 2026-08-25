@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>WebMCP executeTool AbortSignal Cross-Origin routing</title>
+<link rel="author" href="mailto:dom@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/helpers.js"></script>
+</head>
+<body>
+<script>
+const host_info = get_host_info();
+
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  iframe.src = `${host_info.HTTPS_REMOTE_ORIGIN}/webmcp/imperative/resources/iframe-register-tool.html`;
+  iframe.allow = 'tools *';
+
+  const load_promise = new Promise(resolve => iframe.onload = resolve);
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+  await load_promise;
+
+  const toolchange_promise = new Promise(resolve => {
+    document.modelContext.addEventListener('toolchange', resolve, { once: true });
+  });
+
+  iframe.contentWindow.postMessage({
+    action: 'register',
+    tool: {
+      name: 'cross_origin_iframe_tool',
+      description: 'Cross origin tool in iframe'
+    },
+    options: { exposedTo: [self.origin] },
+    hangsForeverAndReportsAbort: true
+  }, '*');
+
+  await toolchange_promise;
+
+  const tools = await document.modelContext.getTools(
+      {fromOrigins: [host_info.HTTPS_REMOTE_ORIGIN]});
+  const tool = tools.find(t => t.name === 'cross_origin_iframe_tool');
+  assert_true(!!tool, 'Tool should be registered and visible to parent');
+
+  let resolve_tool_started;
+  const tool_started = new Promise(r => resolve_tool_started = r);
+
+  let resolve_abort_reported;
+  const abort_reported = new Promise(r => resolve_abort_reported = r);
+
+  const message_handler = e => {
+    if (e.data && e.data.action === 'tool_started') {
+      resolve_tool_started();
+    } else if (e.data && e.data.action === 'signal_aborted_result') {
+      resolve_abort_reported(e.data);
+    }
+  };
+  window.addEventListener('message', message_handler);
+  t.add_cleanup(() => window.removeEventListener('message', message_handler));
+
+  const controller = new AbortController();
+  const execute_promise = document.modelContext.executeTool(tool, '{}', { signal: controller.signal });
+
+  await tool_started;
+  controller.abort('parent cross-origin abort reason');
+
+  await promise_rejects_exactly(t, 'parent cross-origin abort reason', execute_promise);
+  const report = await abort_reported;
+  assert_equals(report.error, undefined, 'signal should have been provided to iframe tool');
+  assert_true(report.reason.includes('AbortError'), 'abort signal should fire in cross-origin iframe tool');
+}, 'caller abort in parent document propagates to options.signal in cross-origin iframe tool');
+
+promise_test(async t => {
+  let parent_signal_aborted = false;
+  let parent_abort_reason = null;
+  let resolve_parent_started;
+  const parent_started = new Promise(r => resolve_parent_started = r);
+
+  await document.modelContext.registerTool({
+    name: 'parent_target_tool',
+    description: 'Parent target tool',
+    execute: (input, options) => new Promise((resolve) => {
+      resolve_parent_started();
+      if (options && options.signal) {
+        options.signal.addEventListener('abort', () => {
+          parent_signal_aborted = true;
+          parent_abort_reason = options.signal.reason;
+          resolve('aborted');
+        });
+      }
+    })
+  }, { exposedTo: [host_info.HTTPS_REMOTE_ORIGIN] });
+
+  const iframe = document.createElement('iframe');
+  iframe.src = `${host_info.HTTPS_REMOTE_ORIGIN}/webmcp/imperative/resources/iframe-caller.html`;
+  iframe.allow = 'tools *';
+
+  const load_promise = new Promise(resolve => iframe.onload = resolve);
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+  await load_promise;
+
+  iframe.contentWindow.postMessage({
+    action: 'invoke_with_abort',
+    name: 'parent_target_tool',
+    options: { fromOrigins: [self.origin] },
+    abortDelayMs: 50,
+    abortReason: 'iframe cross-origin abort reason'
+  }, '*');
+
+  await parent_started;
+
+  // Wait for the abort to propagate from the iframe to the parent tool
+  while (!parent_signal_aborted) {
+    await new Promise(r => t.step_timeout(r, 20));
+  }
+
+  assert_true(parent_signal_aborted, 'parent tool options.signal should be aborted by cross-origin iframe caller');
+  assert_equals(parent_abort_reason.name, 'AbortError', 'abort reason should route from cross-origin iframe caller as AbortError');
+}, 'caller abort in cross-origin iframe propagates to options.signal in parent document tool');
+</script>
+</body>
+</html>

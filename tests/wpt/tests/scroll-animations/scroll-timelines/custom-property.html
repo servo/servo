@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+  <link rel="help" src="https://github.com/w3c/csswg-drafts/issues/7759">
+  <link rel="match" href="custom-property-ref.html">
+  <script src="/web-animations/testcommon.js"></script>
+  <script src="/common/reftest-wait.js"></script>
+  <style>
+    html {
+      overflow:  hidden;
+    }
+    .spacer {
+      height:  300vh;
+    }
+    .box {
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 100px;
+      height: 100px;
+      background: black;
+      border: solid red;
+      animation: move auto linear;
+      animation-timeline: scroll();
+    }
+
+    @keyframes move {
+      to {
+        translate: var(--adjustment);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="box"></div>
+  <div class='spacer'></div>
+</body>
+<script>
+  scroller = document.scrollingElement;
+  scroller.scrollTop
+      = scroller.scrollHeight - scroller.clientHeight;
+  document.documentElement.style.setProperty(
+      '--adjustment', `100px`);
+  waitForCompositorReady().then(takeScreenshot);
+</script>
+</html>

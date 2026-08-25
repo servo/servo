@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Canvas.drawElementImage: compositing op green rect</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<link rel="author" href="mailto:schenney@chromium.org">
+<link rel="match" href="compositing-op-basic-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+<style>
+#child {
+  width: 100px;
+  height: 100px;
+  background: green;
+}
+#canvas {
+  background: grey;
+}
+</style>
+
+<canvas id=canvas width="200" height="200" layoutsubtree>
+  <div id=child></div>
+</canvas>
+
+<script>
+onload = async () => {
+  await waitForCanvasPaint(canvas);
+  var context = canvas.getContext("2d");
+  context.fillStyle = "blue";
+  context.fillRect(70, 80, 110, 100);
+  context.globalCompositeOperation = "source-atop";
+  context.drawElementImage(child, 20, 30);
+  takeScreenshot();
+};
+</script>
+</html>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>Fetch Priority - Script element</title>
+<meta name="author" title="Patrick Meenan" href="mailto:patmeenan@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script id=script1 src="resources/script.js" fetchpriority=high></script>
+<script id=script2 src="resources/script.js" fetchpriority=low></script>
+<script id=script3 src="resources/script.js" fetchpriority=auto></script>
+<script id=script4 src="resources/script.js" fetchpriority=xyz></script>
+<script id=script5 src="resources/script.js"></script>
+
+<script>
+  test(() => {
+    assert_equals(script1.fetchPriority, "high", "high fetchPriority is a valid IDL value on the script element");
+    assert_equals(script2.fetchPriority, "low", "low fetchPriority is a valid IDL value on the script element");
+    assert_equals(script3.fetchPriority, "auto", "auto fetchPriority is a valid IDL value on the script element");
+    assert_equals(script4.fetchPriority, "auto", "invalid fetchPriority reflects as 'auto' IDL attribute on the script element");
+    assert_equals(script5.fetchPriority, "auto", "missing fetchPriority reflects as 'auto' IDL attribute on the script element");
+  }, "fetchpriority attribute on <script> elements should reflect valid IDL values");
+
+  test(() => {
+    const script = document.createElement("script");
+    assert_equals(script.fetchPriority, "auto");
+  }, "default fetchpriority attribute on <script> elements should be 'auto'");
+</script>

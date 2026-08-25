@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/470490808">
+<div style="text-decoration: underline;">
+  <div id="target" style="column-count: 1;">
+    text
+  </div>
+</div>
+<script>
+document.body.offsetTop;
+target.style.float = 'right';
+</script>

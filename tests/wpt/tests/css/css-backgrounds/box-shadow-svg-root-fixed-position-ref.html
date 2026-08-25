@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Reference: box-shadow paints on a position:fixed box</title>
+<style>
+    .shadow-box {
+        width: 100px;
+        height: 100px;
+        box-shadow: 1px 1px 5px 3px #aaaaaa;
+    }
+    .fixed-position {
+        position: fixed;
+        top: 8px;
+        left: 8px;
+    }
+</style>
+<div class="shadow-box fixed-position" style="background: red;"></div>

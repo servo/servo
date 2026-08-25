@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>
+		CSS Values and Units Test:
+		32 nested pairs of parentheses inside calc()
+	</title>
+	<meta name="assert" content="
+		This test checks the support for the minimum required number of 32 nested pairs of parentheses inside a calc() function.
+	" />
+
+  <!--
+  More info:
+  [css-values] Limit nested pairs of parentheses in calc to 32
+  https://github.com/w3c/csswg-drafts/issues/3462
+  -->
+
+	<link
+		rel="author"
+		title="François REMY"
+		href="mailto:fremycompany.developer@yahoo.fr"
+	/ >
+
+	<link rel="help" href="http://www.w3.org/TR/css3-values/#calc-notation"/>
+
+	<link
+		rel="match"
+		href="reference/all-green.html"
+	/>
+
+	<style type="text/css">
+
+			html, body { margin: 0px; padding: 0px; }
+
+			html { background: red; overflow: hidden; }
+			#outer { position: absolute; top: 0px; left: 0px; background: green; width: 100%; }
+			#outer { height: calc((((((((((((((((((((((((((((((((100%)))))))))))))))))))))))))))))))); }
+
+	</style>
+
+</head>
+<body>
+
+	<div id="outer"></div>
+
+</body>
+</html>

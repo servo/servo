@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<link rel="match" href="gradient-infinity-003-ref.html">
+<link rel="author" title="CGQAQ" href="mailto:m.jason.liu@gmail.com">
+<link rel="author" title="一丝" href="mailto:yiorsi@gmail.com">
+<link rel="help" href="https://www.w3.org/TR/css-color-4/#interpolation">
+<title>All boxes should have a lime background.</title>
+<style>
+  div {
+    width: 100px;
+    height: 100px;
+  }
+  .test1 {
+    --size1: calc(Infinity * 1px);
+    background: radial-gradient(circle at 0% var(--size1), lime var(--size1), red 0);
+  }
+  .test2 {
+    --size2: calc(Infinity * 1%);
+    background: radial-gradient(circle at 0% var(--size2), lime var(--size2), red 0);
+  }
+  .test3 {
+    --size3: calc(16777200px * 150);
+    background: radial-gradient(circle at 0% var(--size3), lime var(--size3), red 0);
+  }
+</style>
+<div class="test1">This should be a lime background.</div>
+<div class="test2">This should be a lime background.</div>
+<div class="test3">This should be a lime background.</div>

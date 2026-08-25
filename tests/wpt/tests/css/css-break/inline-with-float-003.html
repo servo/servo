@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1113185">
+<style>
+  .ib {
+    display: inline-block;
+    width: 100%;
+    vertical-align: top;
+  }
+  body { margin: 0; }
+</style>
+<div style="columns:5; gap:0; column-fill:auto; width:100px; height:100px; orphans:1; widows:1;">
+  <div style="height:170px;"></div>
+  <span style="position:relative;">
+    <div id="ib1" class="ib" style="height:30px;"></div>
+    <div id="ib2" class="ib" style="height:20px;"></div>
+    <div id="floater" style="position:relative; float:left; width:100%; height:200px;"></div>
+    <div id="ib3" class="ib" style="height:80px;"></div>
+  </span>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(()=> {
+    assert_equals(document.elementFromPoint(20, 70), ib1);
+  }, "Hit first inline-block");
+  test(()=> {
+    assert_equals(document.elementFromPoint(40, 0), ib2);
+  }, "Hit second inline-block");
+  test(()=> {
+    assert_equals(document.elementFromPoint(40, 20), floater);
+  }, "Hit first float fragment");
+  test(()=> {
+    assert_equals(document.elementFromPoint(60, 0), floater);
+  }, "Hit second float fragment");
+  test(()=> {
+    assert_equals(document.elementFromPoint(80, 0), floater);
+  }, "Hit third float fragment");
+  test(()=> {
+    assert_equals(document.elementFromPoint(80, 20), ib3);
+  }, "Hit third inline-block");
+</script>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>
+  Single-line column flex fragmentation: OOF static position and alignment.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<style>
+  #flex {
+    display: flex;
+    flex-direction: column;
+    height: 200px;
+    position: relative;
+    justify-content: flex-end;
+  }
+  #flex > div {
+    width: 100px;
+    height: 100px;
+    flex: none;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="margin-left: -50px; width: 100px; height: 100px; columns: 2; column-fill: auto; column-gap: 0;">
+    <div id="flex">
+      <div style="position: absolute; background: green;"></div>
+      <div style="background: red;"></div>
+    </div>
+  </div>
+</div>

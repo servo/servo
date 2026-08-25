@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: `line-clamp: auto` accounts for collapsing margins</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-auto-029-ref.html">
+<meta name="assert" content="With `line-clamp: auto`, if a clamp point might fall inside a box, its margins are accounted for correctly, even if they collapse.">
+<style>
+.clamp {
+  line-clamp: auto;
+  max-height: 5lh;
+  font: 16px / 32px serif;
+  white-space: pre;
+  background-color: yellow;
+  margin: 4px;
+}
+.clamp div {
+  margin: 4px;
+}
+</style>
+<div class="clamp"><div><div><div>Line 1
+Line 2
+Line 3
+Line 4
+Line 5
+Line 6</div></div></div></div>

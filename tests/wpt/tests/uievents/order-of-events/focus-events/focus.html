@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Focus-related events should fire in the correct order</title>
+  <link rel="author" title="Chris Rebert" href="http://chrisrebert.com">
+  <link rel="help" href="https://w3c.github.io/uievents/#events-focusevent-event-order">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/uievents/resources/eventrecorder.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+</head>
+
+<body>
+  <ol>
+    <li>Click into the first text input.</li>
+    <li>Click into the second text input.</li>
+    <li>Click the "Done" button.</li>
+  </ol>
+  <input type="text" id="a" value="First">
+  <br>
+  <input type="text" id="b" value="Second">
+  <br>
+  <button type="button" id="done">Done</button>
+</body>
+
+<script>
+setup({explicit_timeout: true});
+function stopPropagation(e) {
+  if (event.type == "focusin" || event.type == "focusout")
+    assert_true(event.bubbles);
+  e.stopPropagation();
+}
+var relevantEvents = [
+  "focus",
+  "blur",
+  "focusin",
+  "focusout"
+];
+window.onload = function () {
+  var a = document.getElementById("a");
+  var b = document.getElementById("b");
+  var button = document.getElementById("done");
+  var inputs = [a, b];
+  var actions_promise;
+  EventRecorder.configure({
+      objectMap: {
+         "a": a,
+         "b": b,
+      }
+    });
+
+  EventRecorder.addEventListenersForNodes(relevantEvents, inputs, stopPropagation);
+  var expected = [
+    {type: "focus", target: "a"},
+    {type: "focusin", target: "a"},
+    {type: "blur", target: "a"},
+    {type: "focusout", target: "a"},
+    {type: "focus", target: "b"},
+    {type: "focusin", target: "b"},
+    {type: "blur", target: "b"},
+    {type: "focusout", target: "b"}
+  ];
+
+  async_test(function(t) {
+    button.addEventListener("click", function () {
+      t.step(function () {
+        assert_true(EventRecorder.checkRecords(expected));
+        // Make sure the test finishes after all the input actions are completed.
+        actions_promise.then( () => {
+          t.done();
+        });
+      });
+    }, false);
+  }, "Focus-related events should fire in the correct order");
+  EventRecorder.start();
+
+  // Inject mouse inputs.
+  actions_promise = new test_driver.Actions()
+    .pointerMove(0, 0, {origin: a})
+    .pointerDown()
+    .pointerUp()
+    .pointerMove(0, 0, {origin: b})
+    .pointerDown()
+    .pointerUp()
+    .pointerMove(0, 0, {origin: button})
+    .pointerDown()
+    .pointerUp()
+    .send();
+};
+</script>
+</html>

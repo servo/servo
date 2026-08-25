@@ -1,0 +1,56 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: highlight painting</title>
+<link rel="author" name="Delan Azabani" href="mailto:dazabani@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#highlight-painting">
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#painting">
+<link rel="help" href="https://www.w3.org/TR/CSS22/zindex.html#painting-order">
+<link rel="match" href="highlight-painting-003-ref.html">
+<meta name="assert" value="::selection overlay background and decorations are independent of those of the originating element, and originating element decorations lose their colour">
+<script src="support/selections.js"></script>
+<link rel="stylesheet" href="support/highlights.css">
+<meta name="fuzzy" content="0-50;0-300">
+<style>
+    /*
+        Topmost last:
+        1.  originating background (grey)
+        2.  unselected text (red)
+        3.  originating line-through on unselected text (yellow)
+        4.  ::selection background (green)
+        5.  ::selection underline on selected text (blue)
+        6.  selected text (purple)
+        7.  originating line-through on selected text (purple!)
+
+        Decoration paints are ordered by text-decoration-line
+        (underline, overline, text, line-through), then by highlight
+        overlay (originating, ::grammar-error, ::spelling-error,
+        ::target-text, ::selection).
+    */
+    *, *::selection {
+        text-decoration-skip-ink: none;
+        text-decoration-skip: none;
+    }
+    main {
+        font-size: 7em;
+        margin: 0.5em;
+        width: min-content;
+        height: 0.25em;
+        background: #707070C0;
+        color: #E03838C0;
+        text-decoration: #C0C000C0 solid line-through;
+    }
+    main::selection {
+        background: #38E038C0;
+        text-decoration: #3838E0C0 solid underline;
+        color: #663399C0;
+    }
+</style>
+<main class="highlight_reftest">quick</main>
+<script>
+    const target = document.querySelector("main");
+    selectRangeWith(range => {
+        range.selectNodeContents(target);
+        range.setStart(target.childNodes[0], 0);
+        range.setEnd(target.childNodes[0], 3);
+    });
+</script>

@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Restyle text control at `beforeinput`</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../include/editor-test-utils.js"></script>
+<script>
+"use strict";
+
+addEventListener("load", () => {
+  for (const selector of ["input", "textarea"]) {
+    promise_test(async () => {
+      const textControl = document.querySelector(selector);
+      textControl.focus();
+      textControl.addEventListener("beforeinput", () => {
+        textControl.style.display = textControl.style.display == "block" ? "inline" : "block";
+        textControl.getBoundingClientRect(); // Flush the restyle before back to the builtin editor
+      });
+      await new test_driver.Actions()
+        .keyDown("a")
+        .keyUp("a")
+        .keyDown("b")
+        .keyUp("b")
+        .send();
+      assert_equals(textControl.value, "ab");
+    }, `${selector} should accept text input even after restyled`);
+  }
+}, {once: true});
+</script>
+</head>
+<body>
+  <input>
+  <textarea></textarea>
+</body>
+</html>

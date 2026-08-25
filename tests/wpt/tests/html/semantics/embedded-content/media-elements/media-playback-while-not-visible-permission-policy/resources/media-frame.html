@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Media element frame</title>
+</head>
+<body>
+<script>
+// This document hosts a single media element (a <video> or an <audio>, chosen
+// via the `media` query parameter) and communicates with its embedder via
+// postMessage. The embedder can query the player status, or ask it to play or
+// pause, and this document notifies the embedder of playback state changes.
+const params = new URLSearchParams(location.search);
+const mediaTag = params.get('media') === 'audio' ? 'audio' : 'video';
+const mediaSrc = mediaTag === 'audio' ? '/media/sound_0.oga' : '/media/A4.webm';
+
+const media = document.createElement(mediaTag);
+media.loop = true;
+document.body.appendChild(media);
+
+// Set once this frame has finished loading. The embedder polls for this via a
+// 'queryIsLoaded' message so it can wait for the frame to be ready without
+// relying on an arbitrary timeout.
+let isLoaded = false;
+window.addEventListener('load', () => {
+  isLoaded = true;
+});
+
+media.addEventListener('play', () => {
+  window.parent.postMessage({type: 'statechange', newState: 'Play'}, '*');
+});
+media.addEventListener('pause', () => {
+  window.parent.postMessage({type: 'statechange', newState: 'Pause'}, '*');
+});
+
+media.src = mediaSrc;
+
+window.addEventListener('message', function(event) {
+  if (event.data.action === 'play') {
+    media.play().then(
+        () => {
+          event.source.postMessage(
+              {type: 'play', status: media.paused ? 'Error' : 'Success'}, '*');
+        },
+        (error) => {
+          event.source.postMessage({type: 'play', status: error.name}, '*');
+        });
+  } else if (event.data.action === 'pause') {
+    media.pause();
+    event.source.postMessage(
+        {type: 'pause', status: media.paused ? 'Success' : 'Error'}, '*');
+  } else if (event.data.action === 'queryPlayerStatus') {
+    event.source.postMessage(
+        {
+          type: 'queryPlayerStatus',
+          status: media.paused ? 'Paused' : 'Playing'
+        },
+        '*');
+  } else if (event.data.action === 'queryIsLoaded') {
+    event.source.postMessage({type: 'queryIsLoaded', isLoaded}, '*');
+  }
+});
+</script>
+</body>
+</html>

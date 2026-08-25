@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<title>CSS Transitions Test: @starting-style inside size @container</title>
+<link rel="help" href="https://drafts.csswg.org/css-transitions-2/#defining-before-change-style-the-starting-style-rule">
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#animated-containers">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-transitions/support/helper.js"></script>
+<body>
+</body>
+<style>
+  #container {
+    container-type: inline-size;
+    width: 100px;
+  }
+  #target {
+    transition-property: background-color;
+    transition-duration: 100s;
+    transition-timing-function: steps(2, start);
+    background-color: lime;
+    display: none;
+  }
+  @container (width > 300px) {
+    @starting-style {
+      #target { background-color: white; }
+    }
+  }
+  @container ((width > 200px) and (width < 300px)) {
+    #target {
+      display: block;
+    }
+    @starting-style {
+      #target { background-color: white; }
+    }
+  }
+  @container (width < 200px) {
+    @starting-style {
+      #target { background-color: red; }
+    }
+  }
+</style>
+<script>
+  function setup(test) {
+    let container = document.createElement("div");
+    container.id = "container";
+    document.body.appendChild(container);
+
+    let target = document.createElement("div");
+    target.id = "target";
+    container.appendChild(target);
+
+    test.add_cleanup(() => {
+      target.remove();
+      container.remove();
+    });
+    return [container, target];
+  }
+
+  promise_test(async t => {
+    let [container, target] = setup(t);
+    await waitForAnimationFrames(2);
+    assert_equals(getComputedStyle(target).backgroundColor, "rgb(0, 255, 0)",
+                  "No transition while display:none");
+    container.style.width = "400px";
+    target.style.display = "block";
+    await waitForAnimationFrames(2);
+    assert_equals(getComputedStyle(target).backgroundColor, "rgb(128, 255, 128)",
+                  "@starting-style based on the size query evaluation from " +
+                  "the same frame");
+  }, "Triggered transition from first style update based on up-to-date " +
+     "container query");
+
+  promise_test(async t => {
+    let [container, target] = setup(t);
+    await waitForAnimationFrames(2);
+    assert_equals(getComputedStyle(target).backgroundColor, "rgb(0, 255, 0)",
+                  "No transition while display:none");
+    container.style.width = "250px";
+    await waitForAnimationFrames(2);
+    assert_equals(getComputedStyle(target).backgroundColor, "rgb(128, 255, 128)",
+                  "@starting-style based on the size query evaluation from " +
+                  "the same frame");
+  }, "Triggered transition from the display change inside the up-to-date " +
+     "container query");
+</script>

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<body>
+  <canvas id="cvs" style="border: 1px solid black"></canvas>
+<script src="../resources/runner.js"></script>
+<script>
+  function clearThruJS(context, mask) {
+    context.clear(mask);
+  }
+  const clearNoJS =
+    Function.prototype.call.bind(WebGLRenderingContext.prototype.clear);
+
+  const imports = {
+    '../clearCalls.js': {
+      'clearThruJS': clearThruJS,
+      'clearNoJS': clearNoJS
+    }
+  };
+  fetch("resources/wasm_webgpu.wasm").then(
+    response => response.arrayBuffer()).then(
+      buffer => {console.log(buffer); return WebAssembly.compile(buffer)}).then(
+    wasmModule => WebAssembly.instantiate(wasmModule, imports)).then(
+    instance => {
+      const testFuncNoJS = instance.exports.clearManyTimesNoJS;
+      const gl = cvs.getContext("webgl");
+      const kClearsPerIteration = 1_000_000;
+
+      PerfTestRunner.measureTime({
+          description: 'Test direct calls from WebAssembly to ' +
+                       'WebGLRenderingContext.prototype.clear, enabled by ' +
+                       'Function.prototype.call.bind',
+          setup: function() {},
+          run: function() {
+            testFuncNoJS(gl, kClearsPerIteration);
+          },
+          iterationCount: 5
+      });
+});
+</script>
+</body>
+</html>

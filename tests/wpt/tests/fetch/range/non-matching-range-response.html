@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+function range_rewrite_test(rewrites, expect, label) {
+    promise_test(async t => {
+        const url = new URL('resources/video-with-range.py', location.href);
+        const params = new URLSearchParams();
+        params.set('rewrites', JSON.stringify(rewrites));
+        url.search = params.toString();
+        const video = document.createElement('video');
+        video.autoplay = true;
+        video.muted = true;
+        video.src = url.toString();
+        const timeout = new Promise(resolve => t.step_timeout(() => resolve('timeout'), 10000));
+        const ok = new Promise(resolve => video.addEventListener('play', () => resolve('ok')));
+        t.add_cleanup(() => video.remove());
+        document.body.appendChild(video);
+        const result = await Promise.any([timeout, ok]);
+        assert_equals(result, 'ok');
+    }, `${label} should ${expect === 'ok' ? 'succeed' : 'fail'}`);
+}
+
+range_rewrite_test([], 'ok', 'Range requests with no rewrites');
+range_rewrite_test(
+    [
+        {request: ['0', '*'], response: [0, 100]},
+        {request: ['100', '*'], response: [50, 2000]}
+    ], 'ok', 'Range response out of range of request');
+range_rewrite_test([{request: ['0', '*'], status: 200}], 'ok', 'Range requests ignored (200 status)');
+</script>
+</body>

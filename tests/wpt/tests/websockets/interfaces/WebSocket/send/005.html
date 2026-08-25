@@ -1,0 +1,19 @@
+<!doctype html>
+<title>WebSockets: send() return value</title>
+<meta name="timeout" content="long">
+
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../../../constants.sub.js></script>
+<meta name="variant" content="?default">
+<meta name="variant" content="?wss">
+<div id=log></div>
+<script>
+async_test(function(t){
+  var ws = new WebSocket(SCHEME_DOMAIN_PORT+'/echo');
+  ws.onopen = t.step_func(function(e) {
+    assert_equals(ws.send('test'), undefined);
+    t.done();
+  });
+});
+</script>

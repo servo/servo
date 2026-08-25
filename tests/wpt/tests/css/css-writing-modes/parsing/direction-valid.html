@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Writing Modes Level 3: parsing direction with valid values</title>
+<link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#propdef-direction">
+<meta name="assert" content="direction supports the full grammar 'ltr | rtl'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("direction", "ltr");
+test_valid_value("direction", "rtl");
+</script>
+</body>
+</html>

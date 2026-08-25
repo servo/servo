@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: font-size: 0</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#font-size-prop">
+<link rel="match" href="../reference/ref-filled-green-200px-square.html">
+<meta name="assert" content="Text with `font-size: 0` has an intrinsic contribution of 0">
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div style="float: left; height: 200px; font-size: 0; background: red">
+  Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do
+  eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad
+  minim veniam, quis nostrud exercitation ullamco laboris nisi ut
+  aliquip ex ea commodo consequat. Duis aute irure dolor in
+  reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla
+  pariatur. Excepteur sint occaecat cupidatat non proident, sunt in
+  culpa qui officia deserunt mollit anim id est laborum.
+</div>
+<div style="width: 200px; height: 200px; background: green"></div>

@@ -1,0 +1,42 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Changing the underlying value of an animated property with implicit keyframes</title>
+<link rel="help" href="https://drafts.csswg.org/css-animations/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/testcommon.js"></script>
+<style>
+
+@keyframes implicit-from {
+  to { margin-left: 100px }
+}
+
+@keyframes implicit-to {
+  from { margin-left: 100px }
+}
+
+</style>
+<div id="log"></div>
+<script>
+'use strict';
+
+const implicit_keyframe_test = (animationName, offset) => {
+    test(t => {
+      const div = addDiv(t);
+
+      // Set up animation to be paused and be at its mid-way point through easing.
+      div.style.animation = `${animationName} 10s paused steps(2, start)`;
+      const animation = div.getAnimations()[0];
+
+      assert_equals(getComputedStyle(div).marginLeft, "50px", "Computed style before changing the underlying style");
+
+      // Change the underlying value.
+      div.style.marginLeft = "200px";
+      assert_equals(getComputedStyle(div).marginLeft, "150px", "Computed style after changing the underlying style");
+    }, `Changing the underlying value of an animated property with an implicit ${offset}% keyframe`);
+};
+
+implicit_keyframe_test("implicit-from", "0");
+implicit_keyframe_test("implicit-to", "100");
+
+</script>

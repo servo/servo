@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>Verify that Compute Pressure API from a fenced frame is blocked</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+promise_test(async () => {
+  const frame = attachFencedFrameContext({
+    headers: [["Permissions-Policy", "compute-pressure=*"]]
+  });
+  const result = await frame.execute(async () => {
+    try {
+      const observer = new PressureObserver(() => {});
+      await observer.observe('cpu');
+      return 'observation succeeded';
+    } catch (e) {
+      if (e.name == 'NotAllowedError' &&
+          e.message.includes(`Access to the feature "compute pressure" is `
+          + "disallowed by permissions policy.")) {
+        return 'observation failed';
+      } else {
+        return `observation failed with unknown error - ${e.name}: ${e.message}`;
+      }
+    }
+  });
+  assert_equals(result, 'observation failed',
+                'PressureObserver.observe() fails in a fenced frame.');
+}, 'PressureObserver.observe() fails in a fenced frame.');
+</script>
+</body>

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html id=root>
+<title>CSS Anchor Positioning: position-area vs initial containing block</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position/#position-area">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  :root {
+    margin: 10px 20px;
+    border: 2px solid;
+    overflow: hidden;
+  }
+  #anchored {
+    position: fixed;
+    inset: 0;
+    border: solid orange;
+  }
+  #sizer {
+    position: absolute;
+    inset: 0;
+    height: 100vh;
+    width: 100vw;
+  }
+
+</style>
+<div id="sizer"></div>
+<div id="container">
+  <div id="anchored"></div>
+</div>
+<script>
+  function check(title, expected_offsets) {
+    test(() => {
+      assert_equals(anchored.offsetLeft, expected_offsets.left, "Check expected offsetLeft");
+      assert_equals(anchored.offsetTop, expected_offsets.top, "Check expected offsetTop");
+      assert_equals(anchored.offsetWidth, expected_offsets.width, "Check expected offsetWidth");
+      assert_equals(anchored.offsetHeight, expected_offsets.height, "Check expected offsetHeight");
+    }, "Offsets for: " + title);
+  }
+
+  vh = sizer.offsetHeight;
+  vw = sizer.offsetWidth;
+
+  check("position-area: none for basic ICB", {left:0, top:0, width:vw, height:vh});
+
+  anchored.positionArea = "span-all";
+  check("position-area: span-all for basic ICB", {left:0, top:0, width:vw, height:vh});
+
+  sizer.style.width = "200vw";
+  sizer.style.height = "200vh";
+  check("position-area: span-all for abspos overflowing ICB", {left:0, top:0, width:vw, height:vh});
+
+  sizer.style.position = "static";
+  check("position-area: span-all for in-flow overflowing ICB", {left:0, top:0, width:vw, height: vh});
+
+  root.style.width = "200vw";
+  check("position-area: span-all for root overflowing ICB", {left:0, top:0, width: vw, height: vh});
+
+  root.style.width = "50%";
+  root.style.height = "50%";
+  check("position-area: span-all for abspos overflowing ICB and reduced root", {left:0, top:0, width:vw, height:vh});
+
+  anchored.style.positionArea = "none";
+  check("position-area: none for in-flow overflowing ICB and reduced root", {left:0, top:0, width:vw, height:vh});
+</script>

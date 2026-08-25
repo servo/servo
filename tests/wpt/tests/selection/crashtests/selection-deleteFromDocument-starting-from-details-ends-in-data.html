@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+"use strict";
+
+addEventListener("DOMContentLoaded", () => {
+  getSelection().setBaseAndExtent(
+    document.querySelector("data"), 1,
+    document.querySelector("details"), 0
+  );
+  getSelection().deleteFromDocument();
+  document.querySelector("details").appendChild(
+    document.querySelector("summary")
+  );
+});
+</script>
+</head>
+<body>
+<details>
+</details>
+<data>a</data>
+<summary>
+</summary></body></html>

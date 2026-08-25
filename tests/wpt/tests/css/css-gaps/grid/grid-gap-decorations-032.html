@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<title>
+  CSS Gap Decorations: Gaps are painted when rows are dynamically added and overflow container.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="match" href="grid-gap-decorations-032-ref.html">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+  body {
+    margin: 0px;
+    overflow: hidden;
+  }
+
+  .grid-container {
+    display: grid;
+    grid-gap: 10px;
+    grid-template-columns: 100px 100px 100px;
+    grid-template-rows: 100px;
+    width: 120px;
+    height: 120px;
+
+    column-rule-color: blue;
+    column-rule-style: solid;
+    column-rule-width: 10px;
+  }
+
+</style>
+
+<body>
+  <div class="grid-container"></div>
+<script>
+  const grid = document.querySelector('.grid-container');
+  grid.style.gridTemplateRows = 'repeat(6, 100px)';
+
+  grid.style.rowRuleColor =  'red';
+  grid.style.rowRuleStyle = 'solid';
+  grid.style.rowRuleWidth = '5px';
+</script>
+</body>

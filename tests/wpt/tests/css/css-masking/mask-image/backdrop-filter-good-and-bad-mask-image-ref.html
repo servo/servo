@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Reference for backdrop-filter with invalid mask-image URL</title>
+
+<style>
+  body {
+    background-color: yellow;
+  }
+
+  /* Reference for backdrop-filter only - should show inverted background */
+  .backdrop-filter {
+    backdrop-filter: invert(1);
+    background-color: rgba(255, 255, 255, 0.5);
+  }
+</style>
+
+<p class="backdrop-filter double-mask">Backdrop-filter with double mask-image</p>

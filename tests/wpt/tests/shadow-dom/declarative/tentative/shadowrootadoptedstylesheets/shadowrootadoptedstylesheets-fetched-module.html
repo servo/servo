@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>Basic shadowrootadoptedstylesheets support on &lt;template&gt;</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel='help' href='https://github.com/whatwg/html/pull/12339'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='./support/helpers.js'></script>
+<body>
+<script type="module">
+  // Import a module so it's in the module map, then create a shadow root
+  // referencing the same specifier. It should resolve synchronously.
+  import("./support/styles.css", { with: { type: "css" } }).then((sheet) => {
+    test(function (t) {
+      const { shadowRoot, testElement } = createStylesheetHost(
+        "./support/styles.css");
+
+      assert_equals(
+        shadowRoot.adoptedStyleSheets.length,
+        1,
+        "adoptedStyleSheets should have one entry.",
+      );
+      assert_equals(
+        shadowRoot.adoptedStyleSheets[0],
+        sheet.default,
+        "The CSSStyleSheet imported imperatively matches the one imported declaratively.",
+      );
+      assert_equals(getComputedStyle(testElement).color, "rgb(0, 0, 255)",
+        "Declarative styles were applied.");
+    }, "Already-fetched module populates adoptedStyleSheets synchronously and applies styles.");
+  });
+</script>
+</body>

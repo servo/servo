@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>CSS Selectors Test: :nth-child(N of S) with ::before</title>
+<link rel="help" href="https://drafts.csswg.org/selectors/#the-nth-child-pseudo">
+<link rel="match" href="/css/reference/pass_if_pass_below.html">
+<style>
+  .pass:nth-child(2 of .item)::before {
+    content: "PASS";
+  }
+</style>
+<p>Test passes if there is the word "PASS" below.</p>
+<div>
+  <span class="item"></span>
+  <span class="item pass"></span>
+</div>

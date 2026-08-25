@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>CSS Borders Reference: outline auto follows border-shape on form elements</title>
+<style>
+body {
+  margin: 0;
+}
+.container {
+  padding: 20px;
+}
+.test {
+  width: 200px;
+  height: 50px;
+  vertical-align: top;
+  border: 10px solid green;
+  background-color: white;
+  outline: auto 2px blue;
+  border-radius: 25px;
+  box-sizing: border-box;
+  margin-right: 10px;
+  resize: none;
+}
+textarea.test {
+  height: 100px;
+}
+</style>
+<div class="container">
+  <input class="test" value="Input">
+</div>

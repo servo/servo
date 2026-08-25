@@ -1,0 +1,25 @@
+<!doctype html>
+<link rel="help" href="https://crbug.com/996085">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>test(()=>{})</script>
+<style>
+  #container {
+    width: 600px;
+    position: relative;
+  }
+  #target {
+    position: absolute;
+    left: 0px;
+    right: 33554000px;
+    width: 10px;
+    margin-left: 33554432px;
+    margin-right: 33554432px;
+    height: 20px;
+  }
+</style>
+<body>
+  <div id="container">
+    <div id="target"></div>
+  </div>
+</body>

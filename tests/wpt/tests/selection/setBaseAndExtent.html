@@ -1,0 +1,130 @@
+<!doctype html>
+<title>Selection.setBaseAndExtent() tests</title>
+<div id=log></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=common.js></script>
+<script>
+"use strict";
+
+for (var i = 0; i < testRanges.length; i++) {
+    test(function() {
+        var data = eval(testRanges[i]);
+        selection.removeAllRanges();
+        selection.setBaseAndExtent(data[0], data[1], data[2], data[3]);
+        if (!document.contains(data[0]) || !document.contains(data[2])) {
+            assert_equals(selection.rangeCount, 0);
+            return;
+        }
+        assert_equals(selection.rangeCount, 1,
+                      "selection.rangeCount must equal 1");
+        assert_equals(selection.anchorNode, data[0],
+                      "anchorNode must equal the requested anchor node");
+        assert_equals(selection.anchorOffset, data[1],
+                      "anchorOffset must equal the requested anchor offset");
+        assert_equals(selection.focusNode, data[2],
+                      "focusNode must equal the requested focus node");
+        assert_equals(selection.focusOffset, data[3],
+                      "focusOffset must equal the requested focus offset");
+    }, "Range " + i + " " + testRanges[i] + " setBaseAndExtent()");
+
+    test(function() {
+        var data = eval(testRanges[i]);
+        selection.removeAllRanges();
+        selection.setBaseAndExtent(data[2], data[3], data[0], data[1]);
+        if (!document.contains(data[0]) || !document.contains(data[2])) {
+            assert_equals(selection.rangeCount, 0);
+            return;
+        }
+        assert_equals(selection.rangeCount, 1,
+                      "selection.rangeCount must equal 1");
+        assert_equals(selection.anchorNode, data[2],
+                      "anchorNode must equal the requested focus node");
+        assert_equals(selection.anchorOffset, data[3],
+                      "anchorOffset must equal the requested focus offset");
+        assert_equals(selection.focusNode, data[0],
+                      "focusNode must equal the requested anchor node");
+        assert_equals(selection.focusOffset, data[1],
+                      "focusOffset must equal the requested anchor offset");
+    }, "Reverse range " + i + " " + testRanges[i] + " setBaseAndExtent()");
+}
+
+test(function() {
+    var title = document.getElementsByTagName('title')[0];
+    try {
+        selection.setBaseAndExtent(title, 0, title, 99);
+        assert_true(false, "focus offset, must throw an IndexSizeError exception")
+    } catch (e) {
+        assert_equals(e.name, "IndexSizeError", "focus offset, got an IndexSizeError exception")
+    }
+    try {
+        selection.setBaseAndExtent(title, 99, title, 0);
+        assert_true(false, "anchor offset, must throw an IndexSizeError exception")
+    } catch (e) {
+        assert_equals(e.name, "IndexSizeError", "anchor offset, got an IndexSizeError exception")
+    }
+}, "setBaseAndExtent() with index larger than length");
+
+test(function() {
+    var title = document.getElementsByTagName('title')[0];
+    try {
+        selection.setBaseAndExtent(title, 0, title, -1);
+        assert_true(false, "focus offset, must throw an IndexSizeError exception")
+    } catch (e) {
+        assert_equals(e.name, "IndexSizeError", "focus offset, got an IndexSizeError exception")
+    }
+    try {
+        selection.setBaseAndExtent(title, -1, title, 0);
+        assert_true(false, "anchor offset, must throw an IndexSizeError exception")
+    } catch (e) {
+        assert_equals(e.name, "IndexSizeError", "anchor offset, got an IndexSizeError exception")
+    }
+}, "setBaseAndExtent() with negative index");
+
+test(function() {
+    var title = document.getElementsByTagName('title')[0];
+    try {
+        selection.setBaseAndExtent(title, 0, null, 0);
+        assert_true(false, "focus node, must throw an TypeError exception")
+    } catch (e) {
+        assert_equals(e.name, "TypeError", "focus node, got an TypeError exception")
+    }
+    try {
+        selection.setBaseAndExtent(null, 0, title, 0);
+        assert_true(false, "anchor node, must throw an TypeError exception")
+    } catch (e) {
+        assert_equals(e.name, "TypeError", "anchor node, got an TypeError exception")
+    }
+    try {
+        selection.setBaseAndExtent(null, 0, null, 0);
+        assert_true(false, "both nodes, must throw an TypeError exception")
+    } catch (e) {
+        assert_equals(e.name, "TypeError", "both nodes, got an TypeError exception")
+    }
+}, "setBaseAndExtent() with null nodes");
+
+test(function() {
+    var title = document.getElementsByTagName('title')[0];
+    try {
+        selection.setBaseAndExtent(title, 0, title);
+        assert_true(false, "focus offset, must throw an TypeError exception")
+    } catch (e) {
+        assert_equals(e.name, "TypeError", "focus offset, got an TypeError exception")
+    }
+    try {
+        selection.setBaseAndExtent(title, 0);
+        assert_true(false, "focus node, must throw an TypeError exception")
+    } catch (e) {
+        assert_equals(e.name, "TypeError", "focus node, got an TypeError exception")
+    }
+    try {
+        selection.setBaseAndExtent(title);
+        assert_true(false, "anchor offset, must throw an TypeError exception")
+    } catch (e) {
+        assert_equals(e.name, "TypeError", "anchor offset, got an TypeError exception")
+    }
+}, "setBaseAndExtent() with too few params");
+
+testDiv.style.display = "none";
+
+</script>

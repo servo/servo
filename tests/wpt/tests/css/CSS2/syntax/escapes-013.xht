@@ -1,0 +1,18 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+ <head>
+  <title>CSS Test: Escaping and spaces with classes</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/parsing/escaping/003.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#rule-sets" />
+  <link rel="match" href="escapes-013-ref.xht"/>
+  <style type="text/css">
+   .css\0031 p { color: yellow; background: red; }
+   .css\0032 p { color: white; background: green; }
+  </style>
+ </head>
+ <body>
+  <div class="css1"><p>This line should be unstyled.</p></div>
+  <p class="css2p">This should have a green background.</p>
+ </body>
+</html>

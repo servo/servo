@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>performance.getSpeculations() - renderer-side preconnects</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/speculation-measurement-utils.js"></script>
+<body>
+<script>
+// Verify the preconnect interface shape before any preconnects are added.
+test(() => {
+  assert_true(isSpeculationMeasurementEnabled(),
+    "SpeculationMeasurement feature must be enabled");
+  assert_true('SpeculationData' in window, "SpeculationData should exist");
+  assert_true('PreconnectData' in window, "PreconnectData should exist");
+
+  const speculations = performance.getSpeculations();
+  assert_true('preconnects' in speculations, "should have preconnects");
+  assert_true(Array.isArray(speculations.preconnects),
+    "preconnects should be an array");
+  assert_array_equals(speculations.preconnects, [],
+    "preconnects should be empty when page has no preconnects");
+}, "performance.getSpeculations() preconnect interface");
+
+// Each crossorigin attribute value is reflected via the crossorigin enum.
+const crossOriginCases = [null, 'anonymous', 'use-credentials'];
+
+for (const crossorigin of crossOriginCases) {
+  const coLabel = crossorigin === null ? 'no crossorigin'
+                                       : `crossorigin=${crossorigin}`;
+  promise_test(async t => {
+    const href = uniquePreconnectUrl();
+    const origin = new URL(href).origin;
+    await addPreconnect({t, href, crossorigin});
+
+    const matches =
+      findPreconnectsByOrigin(performance.getSpeculations().preconnects, origin);
+    assert_equals(matches.length, 1, "exactly one preconnect entry");
+    const entry = matches[0];
+    assert_equals(entry.origin, origin, "origin should be the serialized origin");
+    assert_equals(entry.crossorigin, expectedCrossOriginMode(crossorigin),
+      `crossorigin should be '${expectedCrossOriginMode(crossorigin)}'`);
+    assert_false(entry.earlyhint,
+      "earlyhint should be false for a <link rel=preconnect>");
+  }, `Preconnect: ${coLabel}`);
+}
+
+// The reported url is the origin only; path and query are dropped.
+promise_test(async t => {
+  const href = uniquePreconnectUrl({path: '/some/deep/path?query=1#frag'});
+  const origin = new URL(href).origin;
+  await addPreconnect({t, href});
+
+  const matches =
+    findPreconnectsByOrigin(performance.getSpeculations().preconnects, origin);
+  assert_equals(matches.length, 1, "one entry keyed by origin");
+  assert_equals(matches[0].origin, origin,
+    "origin should be origin only, without path/query/fragment");
+}, "Preconnect reports origin only");
+
+// Two preconnects to the same origin with the same crossorigin value dedup
+// into a single entry.
+promise_test(async t => {
+  const href = uniquePreconnectUrl();
+  const origin = new URL(href).origin;
+  await addPreconnect({t, href});
+  await addPreconnect({t, href});
+
+  const matches =
+    findPreconnectsByOrigin(performance.getSpeculations().preconnects, origin);
+  assert_equals(matches.length, 1,
+    "duplicate same-crossorigin preconnects should dedup to one entry");
+  assert_equals(matches[0].crossorigin, 'none');
+}, "Preconnect dedups identical (origin, crossorigin)");
+
+// Distinct crossorigin values to the same origin are reported as separate
+// entries, including none vs use-credentials (which the network stack treats
+// as the same credentialed socket, but which are distinct attribute values).
+promise_test(async t => {
+  const href = uniquePreconnectUrl();
+  const origin = new URL(href).origin;
+  await addPreconnect({t, href, crossorigin: null});
+  await addPreconnect({t, href, crossorigin: 'use-credentials'});
+
+  const matches =
+    findPreconnectsByOrigin(performance.getSpeculations().preconnects, origin);
+  assert_equals(matches.length, 2,
+    "none and use-credentials are distinct crossorigin values");
+  const modes = matches.map(m => m.crossorigin).sort();
+  assert_array_equals(modes, ['none', 'use-credentials']);
+}, "Preconnect: none and use-credentials are distinct entries");
+
+// All three crossorigin values to the same origin are reported as three
+// distinct entries.
+promise_test(async t => {
+  const href = uniquePreconnectUrl();
+  const origin = new URL(href).origin;
+  await addPreconnect({t, href, crossorigin: null});
+  await addPreconnect({t, href, crossorigin: 'anonymous'});
+  await addPreconnect({t, href, crossorigin: 'use-credentials'});
+
+  const matches =
+    findPreconnectsByOrigin(performance.getSpeculations().preconnects, origin);
+  assert_equals(matches.length, 3,
+    "three distinct crossorigin values are three entries");
+  const modes = matches.map(m => m.crossorigin).sort();
+  assert_array_equals(modes, ['anonymous', 'none', 'use-credentials']);
+}, "Preconnect: distinct crossorigin values are distinct entries");
+</script>
+</body>

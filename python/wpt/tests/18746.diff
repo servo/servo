@@ -1,0 +1,10 @@
+diff --git a/tests/wpt/tests/fetch/api/redirect/redirect-location.html b/tests/wpt/tests/fetch/api/redirect/redirect-location.html
+index ac35dea54c47..135ad21d15ab 100644
+--- a/tests/wpt/tests/fetch/api/redirect/redirect-location.html
++++ b/tests/wpt/tests/fetch/api/redirect/redirect-location.html
+@@ -13,4 +13,5 @@
+     <script src="redirect-location.js"></script>
+   </body>
+ </html>
++test commit
+

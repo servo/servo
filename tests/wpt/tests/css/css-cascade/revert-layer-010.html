@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>CSS Cascade Layers: 'revert-layer' from animation origin to author origin</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-5/#revert-layer">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<link rel="match" href="reference/ref-filled-green-100px-square.xht">
+
+<style>
+#target {
+  width: 150px;
+  height: 100px;
+  background-color: green;
+  animation: anim linear 2s -1s paused;
+}
+
+@keyframes anim {
+  from { width: 50px; }
+  to { width: revert-layer; }
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="target"></div>

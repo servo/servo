@@ -1,0 +1,20 @@
+<!doctype html>
+<title>Link with target=_blank, no rel</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/PrefixedLocalStorage.js"></script>
+<div id="log"></div>
+<a href="resources/report-has-opener.html" target="_blank">Link</a>
+<script>
+var prefixedStorage;
+setup(() => prefixedStorage = new PrefixedLocalStorageTest());
+async_test(t => {
+  t.add_cleanup(() => prefixedStorage.cleanup());
+  prefixedStorage.onSet('hasOpener', t.step_func_done(e => {
+    assert_equals(e.newValue, 'false');
+  }));
+  var a = document.getElementsByTagName('a')[0];
+  a.href = prefixedStorage.url(a.href);
+  a.click();
+}, 'Context created by link targeting "_blank" should not have opener reference');
+</script>

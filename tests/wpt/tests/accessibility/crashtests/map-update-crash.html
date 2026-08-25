@@ -1,0 +1,18 @@
+<!doctype HTML>
+<style>
+    article::after {
+         content: url(data:text/plain,test);}
+</style>
+This test passes if it does not crash.
+<img  usemap="#map2">
+<map id=map name="map2">
+    <command id=command>
+        <article id=article></article>
+    </command>
+</map>
+<script>
+command.appendChild(article);
+requestAnimationFrame(() => requestAnimationFrame(() => {
+    map.style.content = "none";
+}));
+</script>

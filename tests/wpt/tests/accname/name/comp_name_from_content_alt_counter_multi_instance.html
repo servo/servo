@@ -1,0 +1,32 @@
+<!doctype html>
+<title>Name Comp: Alt Counter Content Isolation</title>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/wpt_test_util.js"></script>
+<script src="/wai-aria/scripts/aria-utils.js"></script>
+<style>
+:root {
+  counter-reset: seq 0;
+}
+
+.alt-counter::before {
+  counter-increment: seq;
+  content: "" / counter(seq);
+}
+</style>
+
+<p>Ensures that CSS alt counter text stored in ::before content remains isolated per element even when styles are shared.</p>
+
+<div id="tests">
+  <button data-expectedlabel="1 label" data-testname="first button" class="ex alt-counter">label</button><br>
+  <h3 data-expectedlabel="2 label" data-testname="heading" class="ex alt-counter">label</h3>
+  <a href="#" data-expectedlabel="3 label" data-testname="link" class="ex alt-counter">label</a><br>
+</div>
+
+<script>
+AriaUtils.verifyLabelsBySelector(".ex");
+</script>

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Motion Path: offset-path:url() with border-box</title>
+    <link rel="help" href="https://drafts.fxtf.org/motion/#valdef-offset-path-url">
+    <link rel="match" href="offset-path-url-008-ref.html">
+    <meta name="assert" content="This tests that url() using border-box
+      generates a rotation and translation.">
+    <style>
+      #outer {
+        width: 300px;
+        height: 100px;
+        padding: 50px;
+        border: 50px solid black;
+      }
+      #target {
+        position: relative;
+        /**
+         * offset-path:url() references to the svg element and treats coord-box
+         * as its user coordinate system. And the svg element always gives it
+         * the offset starting position (based on the svg attributes). So the
+         * transformed box should ignore its current position from CSS layout.
+         * Intentionally use left property to make sure we ignore it.
+         */
+        left: 100px;
+        width: 50px;
+        height: 50px;
+        background-color: green;
+        offset-path: url(#svgRect) border-box;
+        offset-distance: 0%;
+        border-radius: 50% 50% 0 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="outer">
+      <div id="target"></div>
+    </div>
+    <svg width="400" height="200" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <rect id="svgRect" width="100" height="100" x="150" y="100"/>
+      </defs>
+    </svg>
+  </body>
+</html>

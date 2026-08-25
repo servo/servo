@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+
+ <html lang="en">
+
+  <meta charset="UTF-8">
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+
+  <link rel="stylesheet" href="../support/highlights.css">
+  <style>
+  #ref
+    {
+      font-size: 60px;
+      position: relative;
+      color: transparent;
+    }
+
+  #ref > div
+    {
+      position: absolute;
+    }
+
+  #spelling-error > span
+    {
+      background-color: yellow;
+    }
+
+  #selection > span
+    {
+      background-color: rgba(0%, 50%, 100%, 0.5);
+      /*
+      a very lite blue color
+      according to
+      https://www.colorhexa.com/7fbfff
+      */
+      color: yellow;
+    }
+  </style>
+
+  <p>PREREQUISITE: User agent needs to have an enabled and capable spelling error module. If it does not, then this test does not apply to such user agent.
+
+  <p>Test passes
+
+  <ul>
+    <li>if each glyph of "Txet sample" is yellow
+    <li>if "Txet" has a desaturated lime green background
+    <li>if " sample" has a very lite blue background and
+    <li>if there is no red.
+  </ul>
+
+  <div id="ref" class="highlight_reftest">
+    <div id="spelling-error"><span>Txet</span> sample</div>
+    <div id="selection"><span>Txet sample</span></div>
+    Txet sample
+  </div>

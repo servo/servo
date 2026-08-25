@@ -1,0 +1,28 @@
+<!DOCTYPE HTML>
+<title>ElementImage width and height should be doubles and support fractional values</title>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+<style>
+#child {
+  width: 100.5px;
+  height: 200.75px;
+  background: green;
+}
+</style>
+<canvas id="canvas" width="300" height="300" layoutsubtree>
+  <div id="child"></div>
+</canvas>
+
+<script>
+'use strict';
+
+promise_test(async t => {
+  const child = document.getElementById('child');
+  await waitForCanvasPaint(canvas);
+
+  let elementImage = canvas.captureElementImage(child);
+  assert_approx_equals(elementImage.width, 100.5, 0.001);
+  assert_approx_equals(elementImage.height, 200.75, 0.001);
+}, 'ElementImage width and height should support fractional values');
+</script>

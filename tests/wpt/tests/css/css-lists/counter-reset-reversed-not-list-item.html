@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Lists: counter-reset reversed(not-list-item)</title>
+<link rel="help" href="https://drafts.csswg.org/css-lists/#counter-reset">
+<link rel="match" href="counter-10-ref.html">
+<style>
+  span { counter-increment: not-list-item -2; }
+  .reset-reversed { counter-reset: reversed(not-list-item) }
+  .result::before { content: counter(not-list-item) }
+</style>
+<p>You should see the number 10 below.</p>
+<div>
+  <span class="reset-reversed"></span>
+  <span></span>
+  <span class="result"></span>
+  <span></span>
+  <span></span>
+  <span></span>
+  <span></span>
+</div>

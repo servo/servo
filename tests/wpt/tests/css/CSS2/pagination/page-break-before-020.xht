@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Paged media - page-break-before on floats</title>
+  <link rel="author" title="Melinda Grant" href="mailto:melinda.grant@hp.com" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-break-props" />
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#pg-br-before-after" />
+  <meta name="flags" content="paged" />
+  <meta name="assert" content="The 'page-break-before' property applies to floated block-level elements in normal flow." />
+  <style type="text/css">
+
+   #floated {
+     float: right;
+     page-break-before: always;
+     width: 50%;
+   }
+
+ </style>
+ </head>
+ <body>
+   <div>
+   <p>This test produces two pages when displayed on paged media.  This paragraph is the only content on page one.</p>
+   <div id="floated">This paragraph is on page two and is entirely on the right side of the page.</div>
+   </div>
+ </body>
+</html>

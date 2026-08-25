@@ -1,0 +1,28 @@
+<html>
+  <head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div id="important" style='outline-color: #111 !important; outline-style: solid !important; outline-width: 1px !important; background-color: #222 !important; color: #FFF'></div>
+    <script>
+    test(function() {
+      var properties = {
+        'outline-color': 'important',
+        'outline-style': 'important',
+        'outline-width': 'important',
+        'outline': 'important',
+        'background-color': 'important',
+        'background': '',
+        'color': '',
+      };
+      var elem = document.getElementById('important')
+      for (var property in Object.keys(properties)) {
+        var name = Object.keys(properties)[property];
+        var value = properties[name];
+        assert_equals(elem.style.getPropertyPriority(name), value, name + ' priority');
+      }
+    });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="help" href="https://drafts.csswg.org/css-inline-3/#dominant-baseline-property">
+  <link rel="match" href="dominant-baseline-auto-ref.html">
+  <link rel="stylesheet" href="/fonts/baseline-diagnostic/baseline-diagnostic-font.css">
+  <script src="support/variant-class.js"></script>
+  <meta name="assert" content="dominant-baseline: 'auto' corresponds to 'alphabetic' or 'central' depending on writing-mode and text-orientation"/>
+  <meta name="flags" content="image" />
+  <meta charset="utf-8">
+  <meta name="variant" content="?class=horizontal-tb,expect-alphabetic">
+  <meta name="variant" content="?class=vertical-rl,text-sideways,expect-alphabetic">
+  <meta name="variant" content="?class=vertical-rl,text-mixed,expect-central">
+  <meta name="variant" content="?class=vertical-rl,text-upright,expect-central">
+  <style>
+    .line {
+      font: 150px/1 BaselineDiagnosticAlphabeticZero;
+    }
+
+    .horizontal-tb  .line { writing-mode: horizontal-tb; }
+    .vertical-rl    .line { writing-mode: vertical-rl; }
+    .text-sideways  .line { text-orientation: sideways; }
+    .text-mixed     .line { text-orientation: mixed; }
+    .text-upright   .line { text-orientation: upright; }
+  </style>
+</head>
+<body>
+  <div class="line">
+    X<span style="font-size: 200px">X</span><span>X</span><img src="/css/support/60x60-gg-rr.png">
+  </div>
+</body>
+</html>

@@ -1,0 +1,17 @@
+<html>
+<head >
+  <title></title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <div name="foo"></div>
+  <script>
+  test(function() {
+    var nameList = document.getElementsByName("foo");
+    assert_true(nameList instanceof NodeList, "Should be NodeList");
+    assert_false(nameList instanceof HTMLCollection, "Should not be HTMLCollection");
+  });
+  </script>
+</body>
+</html>

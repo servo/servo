@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/whatwg/html/issues/12050">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<select class=test
+    data-description='Input tags should parse inside select if there are no options first.'
+        data-expect='<button>button</button><input>'>
+    <button>button</button>
+    <input>
+</select>
+
+<select class=test
+    data-description='Input tags should parse inside select if nested in another tag'
+    data-expect='<div><input></div>'>
+  <div>
+    <input>
+  </div>
+</select>
+
+<select class=test
+        data-description='Input tags should close select when directly inside an <option>'
+        data-expect='<option></option>'>
+  <option>
+    <input>
+  </option>
+</select>
+
+<select class=test
+        data-description='Input tags should close select when placed after an <option>'
+        data-expect='<option></option>'>
+  <option></option>
+  <input>
+</select>
+
+<script>
+function removeWhitespace(t) {
+  return t.replace(/\s/g,'');
+}
+document.querySelectorAll('select.test').forEach(s => {
+  assert_true(!!s.dataset.description.length);
+  test(() => {
+    // The document.body check here and in the other tests is to make sure that a
+    // previous test case didn't leave the HTML parser open on another element.
+    assert_equals(s.parentNode, document.body);
+    assert_equals(removeWhitespace(s.innerHTML),removeWhitespace(s.dataset.expect));
+  },s.dataset.description)
+});
+</script>

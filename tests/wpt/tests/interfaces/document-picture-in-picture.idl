@@ -1,0 +1,35 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Document Picture-in-Picture Specification (https://wicg.github.io/document-picture-in-picture/)
+
+[Exposed=Window]
+partial interface Window {
+  [SameObject, SecureContext] readonly attribute DocumentPictureInPicture
+    documentPictureInPicture;
+};
+
+[Exposed=Window, SecureContext]
+interface DocumentPictureInPicture : EventTarget {
+  [NewObject] Promise<Window> requestWindow(
+    optional DocumentPictureInPictureOptions options = {});
+  readonly attribute Window window;
+  attribute EventHandler onenter;
+};
+
+dictionary DocumentPictureInPictureOptions {
+  [EnforceRange] unsigned long long width = 0;
+  [EnforceRange] unsigned long long height = 0;
+  boolean disallowReturnToOpener = false;
+  boolean preferInitialWindowPlacement = false;
+};
+
+[Exposed=Window, SecureContext]
+interface DocumentPictureInPictureEvent : Event {
+  constructor(DOMString type, DocumentPictureInPictureEventInit eventInitDict);
+  [SameObject] readonly attribute Window window;
+};
+
+dictionary DocumentPictureInPictureEventInit : EventInit {
+  required Window window;
+};

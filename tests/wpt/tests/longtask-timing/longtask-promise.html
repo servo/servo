@@ -1,0 +1,36 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>LongTask Timing: Promise resolvers</title>
+<body>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+
+<h1>Long Task: promise resolvers</h1>
+<script>
+  function test_promise_long_task(name, promise) {
+    promise_test(async t => {
+      assert_implements(window.PerformanceLongTaskTiming, 'Longtasks are not supported.');
+      const longTaskPromise = new Promise(resolve => {
+        const observer = new PerformanceObserver(t.step_func(entryList => {
+          observer.disconnect();
+          resolve(entryList.getEntries());
+        }));
+        observer.observe({entryTypes: ['longtask']});
+      });
+
+      await promise().catch(() => {});
+      busyWait();
+      const entries = await longTaskPromise;
+      assert_greater_than_equal(entries.length, 1);
+    }, `Performance longtask entries after a promise: ${name}`);
+  }
+
+  test_promise_long_task("successful fetch", () => fetch("/common/dummy.xml"));
+  test_promise_long_task("Response.text()", () =>
+    fetch("/common/dummy.xml").then(r => r.text()));
+  test_promise_long_task("rejected fetch", () => fetch("/common/non-existent.xml"));
+  test_promise_long_task("JSON error", () => fetch("/common/dummy.xml").then(r => r.json()));
+</script>
+</body>

@@ -1,0 +1,30 @@
+<!doctype html>
+<title>Nested data URL in SVG image in &lt;feImage></title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#FilterProperty">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#feImageElement">
+<style>
+  #target {
+    width: 100px;
+    height: 100px;
+    background-color: red;
+  }
+</style>
+<div id="target"></div>
+<script>
+  const svg3Content =
+        `<svg xmlns='http://www.w3.org/2000/svg'>
+           <rect width='100%' height='100%' fill='green'/>
+         </svg>`;
+  const svg2Content =
+        `<svg xmlns="http://www.w3.org/2000/svg">
+           <image href="data:image/svg+xml;base64,${btoa(svg3Content)}" width="100%" height="100%"/>
+         </svg>`;
+  const svg1Content =
+        `<svg xmlns="http://www.w3.org/2000/svg">
+           <filter id="f" x="0" y="0" width="1" height="1">
+             <feImage href="data:image/svg+xml;base64,${btoa(svg2Content)}" preserveAspectRatio="none"/>
+           </filter>
+         </svg>`;
+  const filterDataUrl = `data:image/svg+xml;base64,${btoa(svg1Content)}#f`;
+  document.querySelector("#target").style.filter = `url(${filterDataUrl})`;
+</script>

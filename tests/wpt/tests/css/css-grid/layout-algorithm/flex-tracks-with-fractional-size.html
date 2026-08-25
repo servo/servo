@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang=en class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Expand flexible tracks with a fractional size</title>
+<link rel="author" title="Ethan Jimenez" href="mailto:ethavar@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#algo-flex-tracks" title="12.7. Expand Flexible Tracks">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1249750">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="Checks that flexible tracks correctly distribute fractional shares of a grid's available size">
+<style>
+.grid {
+  width: 100px;
+  height: 50px;
+  display: grid;
+  background: red;
+}
+.grid > div {
+  background: green;
+}
+#cols {
+  grid-template-rows: auto 0px;
+  grid-template-columns: repeat(973, 1fr);
+}
+#rows {
+  grid-auto-flow: column;
+  grid-template-columns: auto 0px;
+  grid-template-rows: repeat(973, 1fr);
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="cols" class="grid">
+  <div style="grid-column: 1 / -1"></div>
+</div>
+<div id="rows" class="grid">
+  <div style="grid-row: 1 / -1"></div>
+</div>
+<script>
+var cols_grid = document.getElementById("cols");
+var rows_grid = document.getElementById("rows");
+for (var i = 0; i < 973; ++i) {
+  cols_grid.appendChild(document.createElement("div"));
+  rows_grid.appendChild(document.createElement("div"));
+}
+document.documentElement.classList.remove('reftest-wait');
+</script>
+</html>

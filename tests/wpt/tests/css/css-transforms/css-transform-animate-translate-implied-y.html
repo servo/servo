@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test (Transforms): Animating between translates where one has an implied `y` value</title>
+    <link rel="author" title="Manish Goregaokar" href="mailto:manishearth@gmail.com">
+    <meta name="assert" content='This tests that translate(x) is animated as if it were translate(x, 0px)'>
+    <link rel=match href=css-transform-animate-translate-implied-y-ref.html>
+    <link rel="help" href="https://drafts.csswg.org/css-transforms-1/#funcdef-transform-translate">
+    <style>
+    #box {
+        background:red;
+        width: 200px;
+        height: 200px;
+    }
+    </style>
+  </head>
+  <body>
+    <div id=box></div>
+    <script>
+        let anim = document.getElementById('box').animate([
+            { transform: 'translate(180px)' },
+            { transform: 'translate(20px, 0px)' }
+        ], {
+            duration: 1000,
+        });
+        anim.pause();
+        anim.currentTime = 500;
+    </script>
+  </body>
+</html>

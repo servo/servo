@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS3 Text, text transform: full-size-kana, full-size kanas, hiragana</title>
+<meta name="assert" content="For full-size kanas, text-transform: full-size-kana leaves all kanas unaltered (testing the hiragana subset).">
+<link rel='author' title='Diego Pino Garcia' href='mailto:dpino@igalia.com'>
+<link rel='author' title='Florian Rivoal' href='https://florian.rivoal.net'>
+<link rel='help' href='https://drafts.csswg.org/css-text-3/#text-transform'>
+<link rel="match" href="reference/text-transform-full-size-kana-005-ref.html">
+<style>
+div { font-size: 150%;}
+div > span { margin-right: 1em; white-space: nowrap; }
+/* the CSS above is not part of the test */
+.test { text-transform: full-size-kana; }
+</style>
+
+<p>Test passes if both characters in each pair are the same shape <strong>and size</strong>.<br>
+Any missing glyph should be ignored
+as long as it is missing for both the first and second characters in a pair.
+
+<div>
+  <span><span class=test>&#x30FC;</span> &#x30FC;</span>
+  <span><span class=test>&#x3042;</span> &#x3042;</span>
+  <span><span class=test>&#x3044;</span> &#x3044;</span>
+  <span><span class=test>&#x3046;</span> &#x3046;</span>
+  <span><span class=test>&#x3048;</span> &#x3048;</span>
+  <span><span class=test>&#x304A;</span> &#x304A;</span>
+  <span><span class=test>&#x304B;</span> &#x304B;</span>
+  <span><span class=test>&#x304C;</span> &#x304C;</span>
+  <span><span class=test>&#x304D;</span> &#x304D;</span>
+  <span><span class=test>&#x304E;</span> &#x304E;</span>
+  <span><span class=test>&#x304F;</span> &#x304F;</span>
+  <span><span class=test>&#x3050;</span> &#x3050;</span>
+  <span><span class=test>&#x3051;</span> &#x3051;</span>
+  <span><span class=test>&#x3052;</span> &#x3052;</span>
+  <span><span class=test>&#x3053;</span> &#x3053;</span>
+  <span><span class=test>&#x3054;</span> &#x3054;</span>
+  <span><span class=test>&#x3055;</span> &#x3055;</span>
+  <span><span class=test>&#x3056;</span> &#x3056;</span>
+  <span><span class=test>&#x3057;</span> &#x3057;</span>
+  <span><span class=test>&#x3058;</span> &#x3058;</span>
+  <span><span class=test>&#x3059;</span> &#x3059;</span>
+  <span><span class=test>&#x305A;</span> &#x305A;</span>
+  <span><span class=test>&#x305B;</span> &#x305B;</span>
+  <span><span class=test>&#x305C;</span> &#x305C;</span>
+  <span><span class=test>&#x305D;</span> &#x305D;</span>
+  <span><span class=test>&#x305E;</span> &#x305E;</span>
+  <span><span class=test>&#x305F;</span> &#x305F;</span>
+  <span><span class=test>&#x3060;</span> &#x3060;</span>
+  <span><span class=test>&#x3061;</span> &#x3061;</span>
+  <span><span class=test>&#x3062;</span> &#x3062;</span>
+  <span><span class=test>&#x3064;</span> &#x3064;</span>
+  <span><span class=test>&#x3065;</span> &#x3065;</span>
+  <span><span class=test>&#x3066;</span> &#x3066;</span>
+  <span><span class=test>&#x3067;</span> &#x3067;</span>
+  <span><span class=test>&#x3068;</span> &#x3068;</span>
+  <span><span class=test>&#x3069;</span> &#x3069;</span>
+  <span><span class=test>&#x306A;</span> &#x306A;</span>
+  <span><span class=test>&#x306B;</span> &#x306B;</span>
+  <span><span class=test>&#x306C;</span> &#x306C;</span>
+  <span><span class=test>&#x306D;</span> &#x306D;</span>
+  <span><span class=test>&#x306E;</span> &#x306E;</span>
+  <span><span class=test>&#x306F;</span> &#x306F;</span>
+  <span><span class=test>&#x3070;</span> &#x3070;</span>
+  <span><span class=test>&#x3071;</span> &#x3071;</span>
+  <span><span class=test>&#x3072;</span> &#x3072;</span>
+  <span><span class=test>&#x3073;</span> &#x3073;</span>
+  <span><span class=test>&#x3074;</span> &#x3074;</span>
+  <span><span class=test>&#x3075;</span> &#x3075;</span>
+  <span><span class=test>&#x3076;</span> &#x3076;</span>
+  <span><span class=test>&#x3077;</span> &#x3077;</span>
+  <span><span class=test>&#x3078;</span> &#x3078;</span>
+  <span><span class=test>&#x3079;</span> &#x3079;</span>
+  <span><span class=test>&#x307A;</span> &#x307A;</span>
+  <span><span class=test>&#x307B;</span> &#x307B;</span>
+  <span><span class=test>&#x307C;</span> &#x307C;</span>
+  <span><span class=test>&#x307D;</span> &#x307D;</span>
+  <span><span class=test>&#x307E;</span> &#x307E;</span>
+  <span><span class=test>&#x307F;</span> &#x307F;</span>
+  <span><span class=test>&#x3080;</span> &#x3080;</span>
+  <span><span class=test>&#x3081;</span> &#x3081;</span>
+  <span><span class=test>&#x3082;</span> &#x3082;</span>
+  <span><span class=test>&#x3084;</span> &#x3084;</span>
+  <span><span class=test>&#x3086;</span> &#x3086;</span>
+  <span><span class=test>&#x3088;</span> &#x3088;</span>
+  <span><span class=test>&#x3089;</span> &#x3089;</span>
+  <span><span class=test>&#x308A;</span> &#x308A;</span>
+  <span><span class=test>&#x308B;</span> &#x308B;</span>
+  <span><span class=test>&#x308C;</span> &#x308C;</span>
+  <span><span class=test>&#x308D;</span> &#x308D;</span>
+  <span><span class=test>&#x308F;</span> &#x308F;</span>
+  <span><span class=test>&#x3090;</span> &#x3090;</span>
+  <span><span class=test>&#x3091;</span> &#x3091;</span>
+  <span><span class=test>&#x3092;</span> &#x3092;</span>
+  <span><span class=test>&#x3093;</span> &#x3093;</span>
+</div>

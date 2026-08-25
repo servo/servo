@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>caret-color composition</title>
+<link rel="help" href="https://drafts.csswg.org/css-ui-3/#propdef-caret-color">
+<meta name="assert" content="caret-color supports animation by computed value">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+
+<body>
+<style>
+.target {
+  display: inline-block;
+  font-size: 60pt;
+  color: rgb(50, 50, 50);
+}
+
+.expected {
+  margin-right: 15px;
+}
+</style>
+<body contenteditable>
+<template id="target-template">T</template>
+<script src="../interpolation/resources/interpolation-test.js"></script>
+<script>
+test_composition({
+  property: 'caret-color',
+  underlying: 'rgb(50, 50, 50)',
+  addFrom: 'rgb(100, 100, 100)',
+  addTo: 'rgb(200, 200, 200)',
+}, [
+  {at: -0.3, expect: 'rgb(120, 120, 120)'},
+  {at: 0, expect: 'rgb(150, 150, 150)'},
+  {at: 0.5, expect: 'rgb(200, 200, 200)'},
+  {at: 1, expect: 'rgb(250, 250, 250)'},
+  {at: 1.5, expect: 'rgb(255, 255, 255)'},
+]);
+
+test_composition({
+  property: 'caret-color',
+  underlying: 'auto',
+  addFrom: 'rgb(100, 100, 100)',
+  addTo: 'rgb(200, 200, 200)',
+}, [
+  {at: -0.3, expect: 'rgb(70, 70, 70)'},
+  {at: 0, expect: 'rgb(100, 100, 100)'},
+  {at: 0.5, expect: 'rgb(150, 150, 150)'},
+  {at: 1, expect: 'rgb(200, 200, 200)'},
+  {at: 1.5, expect: 'rgb(250, 250, 250)'},
+]);
+</script>
+</body>

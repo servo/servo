@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="support/frame-ancestors-test.sub.js"></script>
+</head>
+<body>
+  <script>
+    test = async_test("A 'frame-ancestors' CSP directive with a 'self' value " +
+      "should compare the child URL (self) against each parent's origin's URL" +
+      " rather then URL. When the ancestors are sandboxed, they never match.");
+
+    testNestedSandboxedIFrame("'self'", SAME_ORIGIN, SAME_ORIGIN, EXPECT_BLOCK);
+  </script>
+</body>
+</html>

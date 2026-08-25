@@ -1,0 +1,26 @@
+[package]
+name = "servo-devtools-traits"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+description.workspace = true
+
+[lib]
+name = "devtools_traits"
+path = "lib.rs"
+
+[dependencies]
+embedder_traits = { workspace = true }
+http = { workspace = true }
+malloc_size_of = { workspace = true }
+malloc_size_of_derive = { workspace = true }
+net_traits = { workspace = true }
+profile_traits = { workspace = true }
+serde = { workspace = true }
+servo-base = { workspace = true }
+servo-url = { workspace = true }
+uuid = { workspace = true, features = ["serde"] }

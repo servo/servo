@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script>
+addEventListener("load", () => {
+  const object = document.querySelector("object[contenteditable]");
+  const mo = object.querySelector("mo");
+  const range = new Range();
+  document.replaceChildren();
+  range.insertNode(object);
+  object.replaceChild(mo, object.firstChild);
+});
+</script>
+</head>
+<object contenteditable>
+  <mo>
+  </mo>
+</object>
+</html>

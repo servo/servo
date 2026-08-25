@@ -1,0 +1,50 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Vertical-align using points with a positive nominal value, +72pt</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#propdef-vertical-align" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#leading" />
+        <link rel="match" href="vertical-align-007-ref.xht" />
+
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The 'vertical-align' property sets a nominal length value in points." />
+        <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+        <style type="text/css">
+            div
+            {
+                font: 20px/1 Ahem;
+                position: relative;
+            }
+            #div2
+            {
+                color: red;
+            }
+            #div3
+            {
+                position: absolute;
+                top: 0;
+            }
+            #div4
+            {
+                position: absolute;
+                top: 72pt;
+                left: 1em;
+            }
+            #span1
+            {
+                vertical-align: +72pt;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there are 2 small black squares and <strong>no red</strong>.</p>
+        <div id="div1">
+            <div id="div2">
+                <span id="span1">X</span>X
+            </div>
+            <div id="div3">X</div>
+            <div id="div4">X</div>
+        </div>
+    </body>
+</html>

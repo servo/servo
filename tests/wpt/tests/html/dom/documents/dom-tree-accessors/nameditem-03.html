@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Named items: applets</title>
+<link rel="author" title="Ms2ger" href="mailto:ms2ger@gmail.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-document-nameditem">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<applet name=test1></applet>
+<script>
+test(function() {
+  var applet = document.getElementsByTagName("applet")[0];
+  assert_equals(applet.name, undefined);
+
+  assert_false("test1" in document, '"test1" in document should be false');
+  assert_equals(document.test1, undefined);
+}, "applet elements are (mostly) gone");
+</script>

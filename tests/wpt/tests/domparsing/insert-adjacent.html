@@ -1,0 +1,38 @@
+<!doctype html>
+<title>insertAdjacentHTML</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#element {
+  display: none;
+}
+</style>
+
+<div id="element"></div>
+<div id="log"></div>
+
+<script>
+function wrap(text) {
+  return '<h3>' + text + '</h3>';
+}
+
+var possiblePositions = {
+    'beforebegin': 'previousSibling'
+  , 'afterbegin': 'firstChild'
+  , 'beforeend': 'lastChild'
+  , 'afterend': 'nextSibling'
+}
+
+var el = document.querySelector('#element');
+
+Object.keys(possiblePositions).forEach(function(position) {
+  var html = wrap(position);
+  test(function() {
+    el.insertAdjacentHTML(position, html);
+    var heading = document.createElement('h3');
+    heading.innerHTML = position;
+    assert_equals(el[possiblePositions[position]].nodeName, "H3");
+    assert_equals(el[possiblePositions[position]].firstChild.nodeType, Node.TEXT_NODE);
+  }, 'insertAdjacentHTML(' + position + ', ' + html + ' )');
+});
+</script>

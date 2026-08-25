@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Compositing keyword animations should not crash</title>
+<link rel="help" href="https://crbug.com/41241086">
+<div id="target"></div>
+<script>
+  target.animate([{position: 'absolute'}], {fill: 'forwards'});
+  target.animate([{position: 'static', composite: 'add'}], {fill: 'forwards'});
+  getComputedStyle(target).position;
+</script>

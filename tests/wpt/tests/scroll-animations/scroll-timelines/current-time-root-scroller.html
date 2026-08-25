@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>ScrollTimeline current time algorithm - root scroller</title>
+<link rel="help" href="https://wicg.github.io/scroll-animations/#current-time-algorithm">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="./testcommon.js"></script>
+
+<style>
+html {
+  /* Ensure the document is scrollable. */
+  min-height: 100%;
+  min-width: 100%;
+  padding-bottom: 100px;
+  padding-right: 100px;
+}
+</style>
+
+<script>
+promise_test(async t => {
+  const scroller = document.scrollingElement;
+  // Allow layout to finish, otherwise the scroller isn't set up by the time
+  // we check the currentTime of the scroll timeline.
+  await waitForNextFrame();
+
+  const blockScrollTimeline = new ScrollTimeline(
+      { source: scroller, axis: 'block' });
+  const inlineScrollTimeline = new ScrollTimeline(
+      { source: scroller, axis: 'inline' });
+
+  // Wait for new animation frame which allows the timeline to fully initialize
+  await waitForNextFrame();
+
+  // Unscrolled, both timelines should read a currentTime of 0.
+  assert_percents_equal(blockScrollTimeline.currentTime, 0);
+  assert_percents_equal(inlineScrollTimeline.currentTime, 0);
+
+  // Now do some scrolling and make sure that the ScrollTimelines update.
+  scroller.scrollTop = 50;
+  scroller.scrollLeft = 75;
+  // Wait for new animation frame  which allows the timeline to compute new
+  // current time.
+  await waitForNextFrame();
+
+  assert_percents_equal(blockScrollTimeline.currentTime, 50);
+  assert_percents_equal(inlineScrollTimeline.currentTime, 75);
+}, 'currentTime calculates the correct time for a document.scrollingElement source');
+</script>

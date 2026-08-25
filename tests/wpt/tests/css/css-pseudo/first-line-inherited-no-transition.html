@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>CSS Pseudo-Element Test: ::first-line style should not trigger transitions on elements</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#first-line-pseudo">
+<link rel="match" href="first-line-inherited-no-transition-ref.html">
+<style>
+  p::first-line { font-weight: bold; }
+  span {
+    transition-property: font-weight;
+    transition-duration: 100s;
+    transition-delay: -50s;
+  }
+</style>
+<p><span>Should be bold<br>Should not be bold</span></p>

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>math-script-level: auto and math-style (reference)</title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+    <style>
+      .container {
+          /* Ahem font does not have a MATH table so the font-size scale factor
+             is always 0.71^{computed - inherited math script level} */
+          font: 100px/1 Ahem;
+      }
+    </style>
+  </head>
+  <body>
+    <p>Test passes if you see a square of side 100 × 0.71^(0 − 0) = 100px.</p>
+    <div class="container">
+      <div>
+        <div>
+          <div>
+            <div style="font-size: 100px">X</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

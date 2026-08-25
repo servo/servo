@@ -1,0 +1,31 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Magnetometer (https://w3c.github.io/magnetometer/)
+
+[SecureContext,
+  Exposed=Window]
+interface Magnetometer : Sensor {
+  constructor(optional MagnetometerSensorOptions sensorOptions = {});
+  readonly attribute double? x;
+  readonly attribute double? y;
+  readonly attribute double? z;
+};
+
+enum MagnetometerLocalCoordinateSystem { "device", "screen" };
+
+dictionary MagnetometerSensorOptions : SensorOptions {
+  MagnetometerLocalCoordinateSystem referenceFrame = "device";
+};
+
+[SecureContext,
+  Exposed=Window]
+interface UncalibratedMagnetometer : Sensor {
+  constructor(optional MagnetometerSensorOptions sensorOptions = {});
+  readonly attribute double? x;
+  readonly attribute double? y;
+  readonly attribute double? z;
+  readonly attribute double? xBias;
+  readonly attribute double? yBias;
+  readonly attribute double? zBias;
+};

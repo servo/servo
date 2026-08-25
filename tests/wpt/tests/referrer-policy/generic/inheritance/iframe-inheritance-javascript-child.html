@@ -1,0 +1,77 @@
+<!doctype html>
+<title>Referrer Policy: iframes with javascript url reuse referrer policy</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/make-html-script.js"></script>
+<meta name="referrer" content="unsafe-url">
+<div id="log"></div>
+<script>
+[
+  {
+    srcDocPolicy: ``,
+    expected: location.origin + "/custom"
+  },
+  {
+    srcDocPolicy: `<meta name="referrer" content="no-referrer">`,
+    expected: undefined
+  }
+].forEach(({ srcDocPolicy, expected }) => {
+  promise_test(t => {
+    return new Promise(resolve => {
+      window.addEventListener("message", t.step_func(msg => {
+        assert_equals(msg.data.referrer, expected);
+        resolve();
+      }), { once:true });
+
+      const iframe = document.createElement("iframe");
+      t.add_cleanup(() => iframe.remove());
+      iframe.srcdoc = `${srcDocPolicy}<body><h1>Outer iframe</h1></body>`;
+      iframe.onload = t.step_func(() => {
+        iframe.onload = null;
+        const iframeChild =  iframe.contentDocument.createElement("iframe");
+        // We add a custom referrer to the fetch request. Otherwise,
+        // since the frame's URL is "about:blank", the Referer header will
+        // always be empty:
+        // https://w3c.github.io/webappsec-referrer-policy/#strip-url.
+        iframeChild.src = `javascript:'${createScriptString(get_host_info().REMOTE_ORIGIN, location.origin+"/custom")}'`;
+        iframe.contentDocument.body.appendChild(iframeChild);
+      });
+      document.body.appendChild(iframe);
+    });
+  });
+});
+
+[
+  {
+    srcDocPolicy: ``,
+    expected: location.href  // Executing javascript does not change the document url.
+                             // Since the algorithm for computing the referrer in a srcdoc
+                             // iframe defers recursively to the parent, the expected
+                             // referrer should be the full url of the main document.
+  },
+  {
+    srcDocPolicy: `<meta name="referrer" content="no-referrer">`,
+    expected: undefined
+  }
+].forEach(({ srcDocPolicy, expected }) => {
+  promise_test(t => {
+    return new Promise(resolve => {
+      window.addEventListener("message", t.step_func(msg => {
+        assert_equals(msg.data.referrer, expected);
+        resolve();
+      }), { once:true });
+
+      const iframe = document.createElement("iframe");
+      t.add_cleanup(() => iframe.remove());
+      iframe.srcdoc = `${srcDocPolicy}<body><h1>Outer iframe</h1></body>`;
+      iframe.onload = t.step_func(() => {
+        iframe.onload = null;
+        iframe.contentWindow.location = `javascript:'${createScriptString(get_host_info().REMOTE_ORIGIN)}'`;
+      });
+      document.body.appendChild(iframe);
+    });
+  });
+});
+
+</script>

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: :hover on ::after, ::before, and ::marker pseudo-elements</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo/#CSSPseudoElement-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  div::after {
+    content: "after";
+    color: blue;
+  }
+
+  div::after:hover {
+    color: red;
+  }
+
+  div::before {
+    content: "before";
+    color: green;
+  }
+
+  div::before:hover {
+    color: yellow;
+  }
+
+  li::marker {
+    color: purple;
+  }
+
+  li::marker:hover {
+    color: orange;
+  }
+</style>
+<div id="after-target">Test after</div>
+<div id="before-target">Test before</div>
+<ul>
+  <li id="marker-target">Test marker</li>
+</ul>
+<script>
+  const afterTarget = document.getElementById("after-target");
+  const beforeTarget = document.getElementById("before-target");
+  const markerTarget = document.getElementById("marker-target");
+
+  promise_test(async t => {
+    const afterPseudo = afterTarget.pseudo("::after");
+    const beforePseudo = beforeTarget.pseudo("::before");
+    const markerPseudo = markerTarget.pseudo("::marker");
+
+    // Initial colors
+    assert_equals(window.getComputedStyle(afterPseudo.element, afterPseudo.type).color, "rgb(0, 0, 255)", "::after initial color");
+    assert_equals(window.getComputedStyle(beforePseudo.element, beforePseudo.type).color, "rgb(0, 128, 0)", "::before initial color");
+    assert_equals(window.getComputedStyle(markerPseudo.element, markerPseudo.type).color, "rgb(128, 0, 128)", "::marker initial color");
+
+    // Hover over ::after
+    const afterQuads = afterPseudo.getBoxQuads();
+    const afterRect = afterQuads[0].getBounds();
+    const afterX = afterRect.x + afterRect.width / 2;
+    const afterY = afterRect.y + afterRect.height / 2;
+    await new test_driver.Actions()
+      .pointerMove(afterX, afterY)
+      .send();
+    assert_equals(window.getComputedStyle(afterPseudo.element, afterPseudo.type).color, "rgb(255, 0, 0)", "::after hover color");
+
+    // Hover over ::before
+    const beforeQuads = beforePseudo.getBoxQuads();
+    const beforeRect = beforeQuads[0].getBounds();
+    const beforeX = beforeRect.x + beforeRect.width / 2;
+    const beforeY = beforeRect.y + beforeRect.height / 2;
+    await new test_driver.Actions()
+      .pointerMove(beforeX, beforeY)
+      .send();
+    assert_equals(window.getComputedStyle(beforePseudo.element, beforePseudo.type).color, "rgb(255, 255, 0)", "::before hover color");
+
+    // Hover over ::marker
+    const markerQuads = markerPseudo.getBoxQuads();
+    const markerRect = markerQuads[0].getBounds();
+    const markerX = markerRect.x + markerRect.width / 2;
+    const markerY = markerRect.y + markerRect.height / 2;
+    await new test_driver.Actions()
+      .pointerMove(markerX, markerY)
+      .send();
+    assert_equals(window.getComputedStyle(markerPseudo.element, markerPseudo.type).color, "rgb(255, 165, 0)", "::marker hover color");
+
+    // Move away
+    await new test_driver.Actions()
+      .pointerMove(0, 0)
+      .send();
+    assert_equals(window.getComputedStyle(afterPseudo.element, afterPseudo.type).color, "rgb(0, 0, 255)", "::after back to initial");
+    assert_equals(window.getComputedStyle(beforePseudo.element, beforePseudo.type).color, "rgb(0, 128, 0)", "::before back to initial");
+    assert_equals(window.getComputedStyle(markerPseudo.element, markerPseudo.type).color, "rgb(128, 0, 128)", "::marker back to initial");
+  });
+</script>

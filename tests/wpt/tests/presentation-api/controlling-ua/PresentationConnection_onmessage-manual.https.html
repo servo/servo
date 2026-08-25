@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+
+<meta charset="utf-8">
+<title>Receiving a message through PresentationConnection</title>
+<link rel="author" title="Tomoyuki Shimizu" href="https://github.com/tomoyukilabs/">
+<link rel="help" href="http://w3c.github.io/presentation-api/#receiving-a-message-through-presentationconnection">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="common.js"></script>
+<script src="support/stash.js"></script>
+
+<p id="notice">
+  Click the button below and select the available presentation display, to start the manual test. The test passes if a "PASS" result appears.<br>
+  <button id="presentBtn">Start Presentation Test</button>
+</p>
+
+<script>
+    setup({explicit_timeout: true});
+
+    const presentBtn = document.getElementById('presentBtn');
+
+    const message1 = '1st';
+    const message2 = '2nd';
+    const message3 = new Uint8Array([51, 114, 100]);      // "3rd"
+    const message4 = new Uint8Array([52, 116, 104]);      // "4th"
+    const message5 = new Uint8Array([108, 97, 115, 116]); // "last"
+
+    const toUint8Array = buf => {
+        return buf instanceof ArrayBuffer ? new Uint8Array(buf) : buf;
+    }
+
+    // compare two ArrayBuffer or Uint8Array
+    const compare = (a, b) => {
+        const p = toUint8Array(a);
+        const q = toUint8Array(b);
+        return !!p && !!q && p.every((item, index) => { return item === q[index]; });
+    };
+
+    promise_test(t => {
+        const clickWatcher = new EventWatcher(t, presentBtn, 'click');
+        const request = new PresentationRequest(presentationUrls);
+        const stash = new Stash(stashIds.toController, stashIds.toReceiver);
+        let connection, watcher, eventWatcher;
+
+        const checkEvent = event => {
+            assert_true(event.isTrusted, 'a trusted event is fired');
+            assert_true(event instanceof MessageEvent, 'The event uses the MessageEvent interface');
+            assert_false(event.bubbles, 'the event does not bubble');
+            assert_false(event.cancelable, 'the event is not cancelable');
+        };
+
+        const watchEvent = (obj, watcher, type) => {
+            const watchHandler = new Promise(resolve => {
+                obj['on' + type] = evt => { resolve(evt); };
+            });
+            return Promise.all([ watchHandler, watcher.wait_for(type) ]).then(results => {
+                assert_equals(results[0], results[1], 'Both on' + type + ' and addEventListener pass the same event object.');
+                return results[0];
+            });
+        };
+
+        t.add_cleanup(() => {
+            if (connection) {
+                connection.onconnect = () => { connection.terminate(); };
+                if (connection.state === 'closed')
+                    request.reconnect(connection.id);
+                else
+                    connection.terminate();
+            }
+            const notice = document.getElementById('notice');
+            notice.parentNode.removeChild(notice);
+            stash.stop();
+        });
+
+        return Promise.all([
+            clickWatcher.wait_for('click'),
+            stash.init()
+        ]).then(() => {
+            presentBtn.disabled = true;
+            return request.start();
+        }).then(c => {
+            connection = c;
+            assert_equals(connection.state, 'connecting', 'the initial state of the presentation connection is "connecting"');
+            assert_equals(connection.binaryType, 'arraybuffer', 'the default value of binaryType is "arraybuffer"');
+
+            // enable timeout again, cause no user action is needed from here.
+            t.step_timeout(() => {
+                t.force_timeout();
+                t.done();
+            }, 5000);
+
+            watcher = new EventWatcher(t, connection, 'connect');
+            return watcher.wait_for('connect');
+        }).then(() => {
+            return stash.init();
+        }).then(() => {
+            eventWatcher = new EventWatcher(t, connection, 'message');
+            // Tell receiving page to start sending messages, and wait for first message
+            return Promise.all([
+                stash.send('onmessage'),
+                watchEvent(connection, eventWatcher, 'message')
+            ]).then(results => results[1]);
+        }).then(event => {
+            checkEvent(event);
+            assert_equals(event.data, message1, 'receive a string correctly');
+            return watchEvent(connection, eventWatcher, 'message');
+        }).then(event => {
+            checkEvent(event);
+            assert_equals(event.data, message2, 'receive a string correctly');
+            return watchEvent(connection, eventWatcher, 'message');
+        }).then(event => {
+            checkEvent(event);
+            assert_true(event.data instanceof ArrayBuffer, 'receive binary data as ArrayBuffer');
+            assert_true(compare(event.data, message3), 'receive an ArrayBuffer correctly (originally a Blob at a receiving user agent)');
+            return watchEvent(connection, eventWatcher, 'message');
+        }).then(event => {
+            checkEvent(event);
+            assert_true(event.data instanceof ArrayBuffer, 'receive binary data as ArrayBuffer');
+            assert_true(compare(event.data, message4), 'receive an ArrayBuffer correctly (originally an ArrayBuffer at a receiving user agent)');
+            return watchEvent(connection, eventWatcher, 'message');
+        }).then(event => {
+            checkEvent(event);
+            assert_true(event.data instanceof ArrayBuffer, 'receive binary data as ArrayBuffer');
+            assert_true(compare(event.data, message5), 'receive an ArrayBuffer correctly (originally an ArrayBufferView at a receiving user agent)');
+
+            connection.binaryType = 'blob';
+            return Promise.all([
+                stash.send('blob'),
+                watchEvent(connection, eventWatcher, 'message')
+            ]).then(results => results[1]);
+        }).then(event => {
+            assert_true(event.data instanceof Blob, 'receive binary data as Blob');
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = resolve;
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(event.data);
+            });
+        }).then(event => {
+            assert_true(compare(event.target.result, message5), 'receive a Blob correctly');
+            connection.terminate();
+        });
+    });
+</script>

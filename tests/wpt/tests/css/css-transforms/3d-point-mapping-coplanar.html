@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<title>Hit test coplanar elements</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-document-elementfrompoint">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style type="text/css" media="screen">
+  body {
+    margin: 0;
+  }
+
+  .test {
+    display: inline-block;
+    height: 300px;
+    width: 300px;
+    margin: 20px;
+  }
+
+  .container {
+    position: relative;
+    height: 260px;
+    width: 260px;
+    margin: 20px;
+  }
+
+  .box {
+    position: absolute;
+    top: 20px;
+    left: 30px;
+    height: 100px;
+    width: 200px;
+    transform: translateZ(20px);
+  }
+
+  #box1 {
+    background-color: #DDD;
+  }
+
+  #box2 {
+    background-color: #CCC;
+  }
+
+  #box3 {
+    background-color: #BBB;
+    top: 60px;
+  }
+
+  #box4 {
+    background-color: #AAA;
+    top: 100px;
+  }
+</style>
+
+<body>
+  <div class="test">
+    <div class="container" id="box1">
+      <div class="box" id="box2"></div>
+      <div class="box" id="box3"></div>
+      <div class="box" id="box4"></div>
+    </div>
+  </div>
+</body>
+
+<script>
+  class Point {
+    constructor(x, y) {
+      this.x = x;
+      this.y = y;
+    }
+  };
+  const tests = [{
+      expectedElemId: 'box1',
+      points: [
+        new Point(59, 52),
+        new Point(278, 59),
+        new Point(58, 260),
+        new Point(281, 269),
+      ],
+    },
+    {
+      expectedElemId: 'box2',
+      points: [
+        new Point(82, 68),
+        new Point(109, 80),
+        new Point(189, 71),
+        new Point(268, 98)
+      ],
+    },
+    {
+      expectedElemId: 'box3',
+      points: [
+        new Point(73, 101),
+        new Point(128, 136),
+        new Point(206, 102),
+        new Point(268, 138),
+      ]
+    },
+    {
+      expectedElemId: 'box4',
+      points: [
+        new Point(73, 144),
+        new Point(72, 232),
+        new Point(265, 146),
+        new Point(264, 232),
+      ]
+    },
+  ];
+
+  tests.forEach(testcase => {
+    test(t => {
+      const expectedElem = document.getElementById(testcase.expectedElemId);
+      for (const point of testcase.points) {
+        const hitElem = document.elementFromPoint(point.x, point.y);
+        assert_equals(hitElem, expectedElem,
+          `point (${point.x}, ${point.y}) is inside element ${testcase.expectedElemId}`);
+      }
+    }, `${document.title}, hittesting ${testcase.expectedElemId})`);
+  });
+</script>
+
+</html>

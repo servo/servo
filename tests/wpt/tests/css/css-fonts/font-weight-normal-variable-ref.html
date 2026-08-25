@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8"/>
+<title>CSS Test: Variations are applied for font-weight: normal</title>
+<style>
+    @font-face {
+        font-family: "Noto Sans JP";
+        src: url('support/fonts/NotoSansJP.subset.ttf') format('truetype');
+        font-display: swap;
+        font-style: normal;
+    }
+    .normal {
+        font-family: "Noto Sans JP";
+        font-size: 3em;
+        font-variation-settings: "wght" 400;
+    }
+</style>
+
+<p class="normal">test</p>

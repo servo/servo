@@ -1,0 +1,10 @@
+<!doctype html>
+<title>track CORS: Use Credentials, same-origin, no headers, redirects to same-origin, no headers, redirects to not same-origin, no headers</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script src=/common/utils.js></script>
+<script src=support/common.js?pipe=sub></script>
+<script>
+var expected = {event:'error', requests:[{cors:'no', cookie:'yes'}, {cors:'no', cookie:'yes'}, {cors:origin, cookie:'yes'}]};
+</script>

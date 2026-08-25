@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="match" href="button-with-scrollable-descendant-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#scrollbar-sizing">
+<style>
+button {
+  background-color: green;
+  border: none;
+  padding: 0;
+}
+.parent {
+  height: 79px;
+  overflow: auto;
+}
+.content {
+  width: 10px;
+  height: 80px;
+}
+</style>
+</head>
+<body>
+<button>
+  <div class=parent>
+    <div class=content></div>
+  </div>
+</button>
+</body>
+</html>

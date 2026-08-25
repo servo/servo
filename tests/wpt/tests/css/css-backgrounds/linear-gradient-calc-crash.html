@@ -1,0 +1,4 @@
+<!doctype html>
+<title>CSS Backgrounds and Borders Test: Chrome linear-gradient crash test with large percentage calc()</title>
+<link rel="help" href="https://crbug.com/1174046">
+<div style="background-image: linear-gradient(to left, black, red calc(1e39% + 0px), green);">Should not crash</div>

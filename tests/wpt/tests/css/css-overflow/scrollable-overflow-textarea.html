@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS Overflow Test: Test padding in included in the texarea's scrollable overflow area</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+  <link rel="help" href="https://drafts.csswg.org/css-overflow-3/#scrollable">
+  <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1527949">
+  <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1696885">
+  <link rel="stylesheet" href="/fonts/ahem.css">
+
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/check-layout-th.js"></script>
+
+  <style>
+  textarea {
+    width: 100px;
+    height: 50px;
+    padding: 11px 13px 17px 19px;
+    font: 20px/1 Ahem;
+    background: yellow content-box;
+    border: 0;
+    outline: 1px solid blue;
+    overflow: hidden;
+  }
+  </style>
+
+  <body onload="checkLayout('#textarea')">
+    <!-- Expected scroll width 132px =
+           width:100px + padding-left:19px + padding-right:13px.
+         Expected scroll height 128px =
+           5 lines of 20px height + padding-top:11px + padding-bottom:17px -->
+    <textarea id="textarea" data-expected-scroll-width="132" data-expected-scroll-height="128">XXXXX XXXXX XXXXX XXXXX XXXXX</textarea>
+  </body>
+</html>

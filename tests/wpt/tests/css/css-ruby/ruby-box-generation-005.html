@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>Test for pseudo ruby box generation</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-ruby-1/#box-fixup">
+<link rel="stylesheet" href="support/ruby-common.css">
+<link rel="match" href="ruby-box-generation-005-ref.html">
+<body class="large">
+
+  <p>|<ruby>
+      <span>a</span> <span>b</span>
+      <rb>c</rb> <rb>d</rb>
+      <span>e</span> <rt>f</rt>
+      <span>g</span> <rbc><rb>h</rb></rbc>
+      <span>i</span> <rtc><rt>j</rt></rtc>
+      <rb>k</rb> <rtc><rt>l</rt></rtc>
+      <rt>m</rt> <rt>n</rt>
+      <rbc><rb>o</rb></rbc> <rbc><rb>p</rb></rbc>
+      <rt>q</rt> <rb>r</rb>
+      <rbc><rb>s</rb></rbc> <rb>t</rb>
+      <rt>u</rt> <rtc><rt>v</rt></rtc>
+      <rtc><rt>w</rt></rtc> <rbc><rb>x</rb></rbc>
+      <rtc><rt>y</rt></rtc> <span>z</span>
+  </ruby>|</p>
+
+  <p>| <span>a</span> <span>b</span>
+       <rb>c</rb> <rb>d</rb>
+       <span>e</span> <rt>f</rt>
+       <span>g</span> <rbc><rb>h</rb></rbc>
+       <span>i</span> <rtc><rt>j</rt></rtc>
+       <rb>k</rb> <rtc><rt>l</rt></rtc>
+       <rt>m</rt> <rt>n</rt>
+       <rbc><rb>o</rb></rbc> <rbc><rb>p</rb></rbc>
+       <rt>q</rt> <rb>r</rb>
+       <rbc><rb>s</rb></rbc> <rb>t</rb>
+       <rt>u</rt> <rtc><rt>v</rt></rtc>
+       <rtc><rt>w</rt></rtc> <rbc><rb>x</rb></rbc>
+       <rtc><rt>y</rt></rtc> <span>z</span> |</p>
+
+</body>

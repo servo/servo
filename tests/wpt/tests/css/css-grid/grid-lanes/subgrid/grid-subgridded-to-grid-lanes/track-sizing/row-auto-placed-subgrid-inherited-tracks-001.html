@@ -1,0 +1,52 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Grid Lanes Test: Auto-placed subgrid measures its inherited tracks against its resolved position</title>
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+<link rel="match" href="row-auto-placed-subgrid-inherited-tracks-001-ref.html">
+<style>
+.wrapper {
+  width: 100px;
+  height: 150px;
+  background: red;
+  position: relative;
+}
+.lanes {
+  display: grid-lanes;
+  grid-template-rows: 50px 100px;
+  flow-tolerance: 0;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+.child {
+  grid-row: 1;
+  width: 100px;
+  height: 50px;
+  background: green;
+}
+.subgrid {
+  display: grid;
+  grid: subgrid / auto;
+  grid-row: auto / span 1;
+  overflow: hidden;
+}
+.subgrid-child {
+  aspect-ratio: 1;
+  height: 100%;
+  background: green;
+}
+</style>
+</head>
+<body>
+<p>Test passes if there is a filled green rectangle and <strong>no red</strong>.</p>
+<div class="wrapper">
+  <div class="lanes">
+    <div class="child"></div>
+    <div class="subgrid"><div class="subgrid-child"></div></div>
+  </div>
+</div>
+</body>
+</html>

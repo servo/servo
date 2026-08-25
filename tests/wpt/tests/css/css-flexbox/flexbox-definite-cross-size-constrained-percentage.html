@@ -1,0 +1,26 @@
+<html>
+    <meta charset="utf-8">
+    <link rel="match" href="flexbox-definite-cross-size-constrained-percentage-ref.html">
+    <link rel="author" href="mailto:sammy.gill@apple.com" title="Sammy Gill">
+    <link rel="help" href="https://www.w3.org/TR/css-flexbox-1/#min-size-auto">
+    <link rel="help" href="https://www.w3.org/TR/css-flexbox-1/#definite">
+    <link rel="help" href="https://www.w3.org/TR/css-sizing-3/#definite">
+    <title>Flex item cross size set by definite flex container size with percentage height</title>
+    <style>
+        .constraining-container {
+            height: 50px;
+        }
+
+        .flex-container {
+            height: 50%;
+            display: flex;
+        }
+    </style>
+    <body>
+        <div class="constraining-container">
+            <div class="flex-container">
+                <img src="support/60x60-green.png">
+            </div>
+        </div>
+    </body>
+</html>

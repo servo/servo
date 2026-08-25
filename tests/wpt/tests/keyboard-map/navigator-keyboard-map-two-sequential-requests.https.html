@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+'use strict';
+
+promise_test(() => {
+  const p1 = navigator.keyboard.getLayoutMap();
+  return p1.then(() => {
+    const p2 = navigator.keyboard.getLayoutMap();
+    assert_not_equals(p1, p2);
+    return p2;
+  });
+}, '[Keyboard Map] getLayoutMap() returns a new promise for sequential calls');
+
+</script>

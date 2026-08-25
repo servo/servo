@@ -1,0 +1,107 @@
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="ED" author="Microsoft" status="accepted"
+    version="$Revision: 1.3 $" testname="$RCSfile: paths-data-19-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/paths.html#PathDataGeneralInformation">
+      <p>
+        Test that additional parameters to pathdata commands are treated as additional calls to the most recent command.
+      </p>
+      <p>
+        Each of the applicable 'pathdata' commands are used in separate 'path' elements. Each command is repeated in red and
+        overlayed with another 'path' element with identical coordinates specified but without the repeated command in black.
+        Commands that do not render or do not take parameters are omitted.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test is passed if there is no red visible on the page.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: paths-data-19-f.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+
+    <path d="M20 20 H40 H60" stroke-width="3" stroke="red" fill="none" />
+    <path d="M20 20 H40 60" stroke-width="3" stroke="black" fill="none" />
+
+    <path d="M20 40 h20 h20" stroke-width="3" stroke="red" fill="none" />
+    <path d="M20 40 h20 20" stroke-width="3" stroke="black" fill="none" />
+
+    <path d="M120 20 V40 V60" stroke-width="3" stroke="red" fill="none" />
+    <path d="M120 20 V40 60" stroke-width="3" stroke="black" fill="none" />
+
+    <path d="M140 20 v20 v20" stroke-width="3" stroke="red" fill="none" />
+    <path d="M140 20 v20 20" stroke-width="3" stroke="black" fill="none" />
+
+    <path d="M220 20 L 240 20 L260 20" stroke-width="3" stroke="red" fill="none" />
+    <path d="M220 20 L 240 20 260 20 " stroke-width="3" stroke="black" fill="none" />
+
+    <path d="M220 40 l 20 0 l 20 0" stroke-width="3" stroke="red" fill="none" />
+    <path d="M220 40 l 20 0 20 0" stroke-width="3" stroke="black" fill="none" />
+
+    <path d="M50 150 C50 50 200 50 200 150 C200 50 350 50 350 150" stroke-width="3" stroke="red" fill="none" />
+    <path d="M50 150 C50 50 200 50 200 150 200 50 350 50 350 150" stroke-width="3" stroke="black" fill="none" />
+
+    <path d="M50, 200 c0,-100 150,-100 150,0 c0,-100 150,-100 150,0" stroke-width="3" stroke="red" fill="none" />
+    <path d="M50, 200 c0,-100 150,-100 150,0 0,-100 150,-100 150,0" stroke-width="3" stroke="black" fill="none" />
+
+    <path d="M50 250 S125 200 200 250 S275, 200 350 250" stroke-width="3" stroke="red" fill="none" />
+    <path d="M50 250 S125 200 200 250 275, 200 350 250" stroke-width="3" stroke="black" fill="none" />
+
+    <path d="M50 275 s75 -50 150 0 s75, -50 150 0" stroke-width="3" stroke="red" fill="none" />
+    <path d="M50 275 s75 -50 150 0 75, -50 150 0" stroke-width="3" stroke="black" fill="none" />
+
+    <path d="M50 300 Q 125 275 200 300 Q 275 325 350 300" stroke-width="3" stroke="red" fill="none" />
+    <path d="M50 300 Q 125 275 200 300 275 325 350 300" stroke-width="3" stroke="black" fill="none" />
+
+    <path d="M50 325 q 75 -25 150 0 q 75 25 150 0" stroke-width="3" stroke="red" fill="none" />
+    <path d="M50 325 q 75 -25 150 0 75 25 150 0" stroke-width="3" stroke="black" fill="none" />
+
+    <path d="M425 25 T 425 75 T 425 125" stroke-width="3" stroke="red" fill="none" />
+    <path d="M425 25 T 425 75 425 125" stroke-width="3" stroke="black" fill="none" />
+
+    <path d="M450 25 t 0 50 t 0 50" stroke-width="3" stroke="red" fill="none" />
+    <path d="M450 25 t 0 50 0 50" stroke-width="3" stroke="black" fill="none" />
+
+    <path d="M400,200 A25 25 0 0 0 425 150 A25 25 0 0 0 400 200" stroke-width="3" stroke="red" fill="none" />
+    <path d="M400,200 A25 25 0 0 0 425 150 25 25 0 0 0 400 200" stroke-width="3" stroke="black" fill="none" />
+
+    <path d="M400,300 a25 25 0 0 0 25 -50 a25 25 0 0 0 -25 50" stroke-width="3" stroke="red" fill="none" />
+    <path d="M400,300 a25 25 0 0 0 25 -50 25 25 0 0 0 -25 50" stroke-width="3" stroke="black" fill="none" />
+
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.3 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g> -->
+</svg>

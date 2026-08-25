@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<title>tool execution requires a JSON Object input argument; and Arrays are Objects</title>
+<link rel="author" href="mailto:dom@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async t => {
+  let executeReceivedArgs = null;
+  const tool = {
+    name: "test-tool",
+    description: "Tool for testing various JSON primitive inputs",
+    execute: (args) => {
+      executeReceivedArgs = args;
+      return "Success";
+    }
+  };
+
+  await document.modelContext.registerTool(tool);
+  const [registeredTool] = await document.modelContext.getTools();
+
+  // Pass an array. Since arrays are ECMAScript objects, this succeeds.
+  const arrayArgs = `[1, 2, 3]`;
+  const result = await document.modelContext.executeTool(registeredTool, arrayArgs);
+  assert_equals(result, "Success");
+  assert_array_equals(executeReceivedArgs, [1, 2, 3]);
+
+  // Now pass non-Object JSON primitives as the argument, and observe a failure.
+  const stringArgs = `"hello"`;
+  await promise_rejects_dom(t, "UnknownError",
+      document.modelContext.executeTool(registeredTool, stringArgs),
+      "Primitive string should be rejected");
+
+  const numberArgs = `123`;
+  await promise_rejects_dom(t, "UnknownError",
+      document.modelContext.executeTool(registeredTool, numberArgs),
+      "Primitive number should be rejected");
+
+  const booleanArgs = `true`;
+  await promise_rejects_dom(t, "UnknownError",
+      document.modelContext.executeTool(registeredTool, booleanArgs),
+      "Primitive boolean should be rejected");
+
+  const nullArgs = `null`;
+  await promise_rejects_dom(t, "UnknownError",
+      document.modelContext.executeTool(registeredTool, nullArgs),
+      "null should be rejected");
+}, "tool execution requires a JSON Object input argument; and Arrays are Objects");
+</script>

@@ -1,0 +1,151 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: Escape of non-printable characters within declarations, applying to property values</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#rule-sets" title="4.1.7 Rule sets, declaration blocks, and selectors" />
+  <link rel="match" href="../reference/ref-if-there-is-no-red.xht" />
+
+  <meta content="invalid" name="flags" />
+  <meta content="red is a reserved (color name) keyword while red\9 is not a reserved keyword. red\9 is made of red with an escaped horizontal tab. That is why the parsing of the declaration should fail. Same thing with the other 23 tests (see test escapes-016)." name="assert" />
+
+  <!--
+  This test is a much more elaborated version of the test
+  http://test.csswg.org/suites/css2.1/nightly-unstable/html4/escapes-002.htm
+  and
+  http://test.csswg.org/suites/css2.1/nightly-unstable/html4/escapes-014.htm
+  -->
+
+  <style type="text/css"><![CDATA[
+  div
+  {
+  color: white;
+  font-size: 1.25em;
+  line-height: 1.2;
+  }
+
+  /*
+  U+0009 is an horizontal tab
+  U+000A is a line feed
+  U+000B is a vertical tab
+  U+000C is a form feed
+  U+000D is a carriage return
+  U+0020 is a blank white space
+  */
+
+  div#first
+  {
+  color: red \9;
+  }
+
+  div#second
+  {
+  color: red\9;
+  }
+
+  div#third
+  {
+  color: red \A;
+  }
+
+  div#fourth
+  {
+  color: red\A;
+  }
+
+  div#fifth
+  {
+  color: red \B;
+  }
+
+  div#sixth
+  {
+  color: red\B;
+  }
+
+  /*
+  U+0009 is an horizontal tab
+  U+000A is a line feed
+  U+000B is a vertical tab
+  U+000C is a form feed
+  U+000D is a carriage return
+  U+0020 is a blank white space
+  */
+
+  div#seventh
+  {
+  color: red \C;
+  }
+
+  div#eighth
+  {
+  color: red\C;
+  }
+
+  div#ninth
+  {
+  color: red \D;
+  }
+
+  div#tenth
+  {
+  color: red\D;
+  }
+
+  div#eleventh
+  {
+  color: red \20;
+  }
+
+  div#twelfth
+  {
+  color: red\20;
+  }
+
+  /*
+  U+0009 is an horizontal tab
+  U+000A is a line feed
+  U+000B is a vertical tab
+  U+000C is a form feed
+  U+000D is a carriage return
+  U+0020 is a blank white space
+  */
+
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is <strong>no red</strong>.</p>
+
+  <div id="first">1st test FAILED</div>
+
+  <div id="second">2nd test FAILED</div>
+
+  <div id="third">3rd test FAILED</div>
+
+  <div id="fourth">4th test FAILED</div>
+
+  <div id="fifth">5th test FAILED</div>
+
+  <div id="sixth">6th test FAILED</div>
+
+  <div id="seventh">7th test FAILED</div>
+
+  <div id="eighth">8th test FAILED</div>
+
+  <div id="ninth">9th test FAILED</div>
+
+  <div id="tenth">10th test FAILED</div>
+
+  <div id="eleventh">11th test FAILED</div>
+
+  <div id="twelfth">12th test FAILED</div>
+
+ </body>
+</html>

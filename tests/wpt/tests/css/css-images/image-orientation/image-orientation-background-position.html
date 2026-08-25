@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Images Module Level 3: image-orientation with background positions</title>
+<link rel="author" title="Stephen Chenney" href="mailto:schenney@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#propdef-image-orientation">
+<link rel="match" href="reference/image-orientation-background-position-ref.html">
+<meta name="fuzzy" content="0-5;0-50">
+<style>
+    .exif-2 {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        width: 50px;
+        height: 50PX;
+        background-color: grey;
+        background-image: url(support/exif-orientation-2-ur.jpg);
+        background-repeat: no-repeat;
+        background-position: -30px -20px;
+    }
+
+    .exif-6 {
+        position: absolute;
+        top: 10px;
+        left: 70px;
+        width: 50px;
+        height: 50PX;
+        background-color: grey;
+        background-image: url(support/exif-orientation-6-ru.jpg);
+        background-repeat: no-repeat;
+        background-position: -20px -30px;
+    }
+
+</style>
+</head>
+<body>
+    <div class="exif-2">
+    </div>
+    <div class="exif-6">
+    </div>
+</body>
+</html>

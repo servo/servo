@@ -1,0 +1,28 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="author" name="Delan Azabani" href="mailto:dazabani@igalia.com">
+<link rel="stylesheet" href="support/highlights.css">
+<style>
+    :root {
+        writing-mode: vertical-rl;
+    }
+    p {
+        font-size: 7em;
+        text-shadow: 0.1250em 0.1250em #C0C000C0;
+        position: relative;
+        color: transparent;
+    }
+    p > span {
+        color: #E03838C0;
+        text-shadow: none;
+        position: absolute;
+    }
+    p > span > span {
+        color: #707070C0;
+        background: #38E038C0;
+        text-shadow: 0.2500em 0.2500em #3838E0C0;
+        /* force blue to paint over red */
+        position: relative;
+    }
+</style>
+<p class="highlight_reftest"><span>q<span>uic</span>k</span>quick

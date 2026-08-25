@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<title>Invalid @navigation rule declarations, some parsed successfully, thanks to General Enclosed, but they should never match.</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-navigation-1/#at-navigation">
+<style>
+  @location --loc {
+    pattern: url-pattern("/somewhere/");
+  }
+  @navigation incorrect { #canary { height: 1px; } }
+  @navigation (at: --loc) incorrect { #canary { height: 2px; } }
+  @navigation (at: --loc) (at: --loc) { #canary { height: 3px; } }
+  @navigation (at: --loc at: --loc) { #canary { height: 4px; } }
+  @navigation (at: --loc at: --loc) incorrect { #canary { height: 5px; } }
+  @navigation (at: --loc) incorrect { #canary { height: 6px; } }
+  @navigation (at: --loc at: --loc) { #canary { height: 7px; } }
+  @navigation (at: --loc at: --loc) incorrect { #canary { height: 8px; } }
+  @navigation (at: from:) { #canary { height: 9px; } }
+  @navigation (at: from:) incorrect { #canary { height: 10px; } }
+  @navigation (at: from: whatever) { #canary { height: 11px; } }
+  @navigation (at: from: whatever) incorrect { #canary { height: 12px; } }
+  @navigation incorrect (at: --loc) { #canary { height: 13px; } }
+  @navigation incorrect (at: --loc) incorrect { #canary { height: 14px; } }
+  @navigation (over:) incorrect { #canary { height: 15px; } }
+  @navigation (over: rainbow) incorrect { #canary { height: 16px; } }
+  @navigation (over:) { #canary { height: 17px; } }
+  @navigation (over: rainbow) { #canary { height: 18px; } }
+  @navigation incorrect (over: rainbow) incorrect { #canary { height: 19px; } }
+  @navigation (--loc) { #canary { height: 20px; } }
+  @navigation (url-pattern("*")) { #canary { height: 21px; } }
+
+  /* Sanity check. This one should match. */
+  @navigation (at: --loc) {
+    #sanityCheck { color: lime; }
+  }
+</style>
+<div id="canary"></div>
+<div id="sanityCheck"></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  promise_test(async (t) => {
+    await new Promise(r => window.onload = () => t.step_timeout(r, 0));
+    let committed = Promise.withResolvers();
+    navigation.onnavigate = (event) => {
+      event.intercept({
+        async handler() {
+          committed.resolve();
+          await new Promise(resolve => requestAnimationFrame(resolve));
+        }
+      })
+    };
+
+    // Trigger an active navigation, so that any valid "at" rule will match.
+    navigation.navigate("/somewhere/");
+    await committed.promise;
+    assert_equals(canary.offsetHeight, 0, "None of the invalid @navigation rules should match");
+    assert_equals(getComputedStyle(sanityCheck).color, "rgb(0, 255, 0)", "Sanity check");
+  }, "Invalid @navigation rules");
+</script>

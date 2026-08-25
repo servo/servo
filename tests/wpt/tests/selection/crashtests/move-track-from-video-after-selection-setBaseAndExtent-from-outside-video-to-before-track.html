@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+"use strict";
+
+addEventListener("DOMContentLoaded", () => {
+  getSelection().setBaseAndExtent(
+    document.querySelector("br"), 0,
+    document.querySelector("video"), 1
+  );
+  document.querySelector("video").controls = false;
+  document.querySelector("shadow").appendChild(
+    document.querySelector("track")
+  );
+});
+</script>
+</head>
+<body>
+<shadow>
+<video controls>
+<track>%T&quot;CMsa</track>
+</video>
+<br>
+</shadow></body></html>

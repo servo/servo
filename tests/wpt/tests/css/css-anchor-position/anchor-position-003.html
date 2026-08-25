@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#determining">
+<link rel="author" href="mailto:kojii@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script src="support/test-common.js"></script>
+<style>
+.cb {
+  position: relative;
+}
+.not-positioned-cb {
+  transform: translate(0, 0);  /* Make it a containing block. */
+}
+.anchor1 {
+  anchor-name: --a1;
+}
+.size5x7 {
+  width: 5px;
+  height: 7px;
+  background: orange;
+}
+.size9x11 {
+  width: 9px;
+  height: 11px;
+  background: blue;
+}
+.target {
+  position: absolute;
+}
+</style>
+<!--
+  To determine the target anchor element, find the last acceptable anchor
+  element el in tree order.
+  https://drafts.csswg.org/css-anchor-1/#determining
+-->
+<body onload="checkLayoutForAnchorPos('.target')">
+  <div class="cb">
+    <div class="anchor1 size5x7"></div>
+    <div class="anchor1 size9x11"></div>
+    <div class="target" style="left: anchor(--a1 right)" data-offset-x=9></div>
+  </div>
+
+  <div class="cb">
+    <div class="anchor1 size5x7">
+      <div class="anchor1 size9x11"></div>
+      <div class="target" style="left: anchor(--a1 right)" data-offset-x=9></div>
+    </div>
+    <div class="target" style="left: anchor(--a1 right)" data-offset-x=9></div>
+  </div>
+
+  <div class="cb">
+    <div class="anchor1 size5x7 not-positioned-cb">
+      <div class="anchor1 size9x11"></div>
+      <div class="target" style="left: anchor(--a1 right)" data-offset-x=9></div>
+    </div>
+    <div class="target" style="left: anchor(--a1 right)" data-offset-x=9></div>
+  </div>
+</body>

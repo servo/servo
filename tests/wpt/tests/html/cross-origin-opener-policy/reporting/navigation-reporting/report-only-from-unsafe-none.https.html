@@ -1,0 +1,71 @@
+
+<meta name=timeout content=long>
+<title>Report only tests for an opener without any COOP/COOP report only set</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/html/cross-origin-opener-policy/resources/common.js"></script>
+<script src="/html/cross-origin-opener-policy/reporting/resources/reporting-common.js"></script>
+
+<script>
+
+let tests = [
+  // popup origin, popup COOP, popup COEP, popup COOP report-only, popup COEP report-only, expected reports
+
+  // Open a same-origin popup with a same-origin COOP report-only value, which
+  // would cause a browsing context group swap, hence a report is sent.
+  [
+    SAME_ORIGIN,
+    "",
+    "",
+    `same-origin; report-to="${popupReportOnlyEndpoint.name}"`,
+    "",
+    [
+      {
+        "endpoint": popupReportOnlyEndpoint,
+        "report": {
+          "body": {
+            "disposition": "reporting",
+            "effectivePolicy": "same-origin",
+            "previousResponseURL": `${location.href}`, // previous documnent url
+            "referrer": `${location.origin}/`, // referrer (origin, as dictated by the referrer policy)
+            "type": "navigation-to-response"
+          },
+          "url": /uuid=EXECUTOR_UUID$/,
+          "type": "coop"
+        }
+      }
+    ]
+  ],
+  // Open a cross-origin popup with a same-origin COOP report-only value, which
+  // would cause a browsing context group swap, hence a report is sent.
+  [
+    CROSS_ORIGIN,
+    "",
+    "",
+    `same-origin; report-to="${popupReportOnlyEndpoint.name}"`,
+    "",
+    [
+      {
+        "endpoint": popupReportOnlyEndpoint,
+        "report": {
+          "body": {
+            "disposition": "reporting",
+            "effectivePolicy": "same-origin",
+            "previousResponseURL": "",
+            "referrer": `${location.origin}/`, // referrer (origin, as dictated by the referrer policy)
+            "type": "navigation-to-response"
+          },
+          "url": /uuid=EXECUTOR_UUID$/,
+          "type": "coop"
+        }
+      }
+    ]
+  ],
+];
+
+runNavigationReportingTests(document.title, tests);
+
+</script>

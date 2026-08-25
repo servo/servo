@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>font-size: math</title>
+    <meta charset="utf-8">
+    <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/3746">
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#the-math-script-level-property">
+    <meta name="assert" content="Test that a specified font-size: math behaves like 1em when mixed with other keyword and relative sizes.">
+    <link rel="match" href="font-size-math-001.tentative-ref.html">
+    <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+    <style>
+      .container {
+          /* Ahem font does not have a MATH table so the font-size scale factor
+             is always 0.71^{computed - inherited math script level} */
+          font: 100px/1 Ahem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div style="font-size: medium;">
+        <div style="font-size: math;">X</div>
+      </div>
+      <div style="font-size: x-large;">
+        <div style="font-size: 200%">
+          <div style="font-size: 3em">
+            <div style="font-size: smaller">
+              <div style="font-size: math;">
+                <div style="font-size: larger">
+                  <div style="font-size: 4em">
+                    <div style="font-size: 500%">X</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

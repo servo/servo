@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#attr-notation">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+.a {
+   background: red;
+   height: 50px;
+   width: 100px;
+}
+
+.attr {
+  background: attr(foo|bar type(*), green);
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="a attr" bar="red"></div>
+<div class="a attr"></div>

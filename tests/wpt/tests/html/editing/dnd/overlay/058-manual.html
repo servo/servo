@@ -1,0 +1,29 @@
+<!doctype html>
+<title>drag &amp; drop - dragging elements by children that extend out of them</title>
+<style type="text/css">
+div {
+  height: 200px;
+  width: 200px;
+  background: blue;
+  white-space: nowrap;
+}
+span {
+  display: inline-block;
+  width: 210px;
+  height: 100px;
+}
+span + span {
+  background: orange;
+  width: 100px;
+}
+</style>
+<script type="text/javascript">
+window.onload = function () {
+  document.getElementsByTagName('div')[0].ondragstart = function (e) {
+    e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.setData('text','dummy text');
+  };
+};
+</script>
+<div draggable="true"><span></span><span></span></div>
+<p>Drag the orange square sideways. Pass if the drag placeholder shows that both the blue and orange squares are being dragged.</p>

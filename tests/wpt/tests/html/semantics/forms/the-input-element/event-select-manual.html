@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTMLInputElement Test: select event</title>
+<link rel="author" title="Intel" href="www.intel.com/">
+<meta name="flags" content="interact">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#dom-textarea/input-select">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<form id="testForm" name="testForm">
+  <input id="testInput" type="text" value="0123456789"/>
+</form>
+
+<h2>Description</h2>
+<p>
+  This test validates that select characters in input element should fired select event.
+</p>
+
+<h2>Test steps:</h2>
+<ol>
+  <li>
+    Select any numeric characters in the input flag below
+  </li>
+</ol>
+
+<script>
+
+let input = document.getElementById("testInput");
+
+setup({explicit_done : true, explicit_timeout : true});
+
+on_event(input, "select", evt => {
+  test(() => {
+    assert_greater_than(input.value.substring(input.selectionStart, input.selectionEnd).length, 0, "Check if the select event captured when text selected");
+  });
+  done();
+});
+
+</script>

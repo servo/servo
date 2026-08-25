@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="UTF-8">
+<title>drawElementImage does not draw target-text with custom highlights - ref</title>
+<script src="/common/reftest-wait.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+<style>
+  #child {
+    width: 100px;
+    height: 100px;
+    background: green;
+  }
+  #canvas {
+    background: grey;
+  }
+  ::highlight(example-highlight) {
+    background-color: yellow;
+    color: blue;
+  }
+</style>
+<canvas id=canvas width="200" height="200" layoutsubtree>
+  <div id="child">
+    <div>Match with more</div>
+  </div>
+</canvas>
+<script>
+  onload = async () => {
+    let r = new Range();
+    r.setStart(document.body, 0);
+    r.setEnd(document.body, 1);
+    CSS.highlights.set("example-highlight", new Highlight(r));
+
+    await waitForCanvasPaint(canvas);
+    canvas.getContext("2d").drawElementImage(child, 0, 0);
+    takeScreenshot();
+  };
+</script>
+</html>

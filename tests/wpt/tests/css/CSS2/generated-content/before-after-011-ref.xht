@@ -1,0 +1,54 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  div.table
+  {
+  border-spacing: 0;
+  color: green;
+  display: table;
+  }
+
+  div.row {display: table-row;}
+
+  div.cell
+  {
+  background-color: white;
+  border: white solid medium;
+  display: table-cell;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if the word <strong>PASS appear twice</strong> and if there is no red.</p>
+
+  <div class="table">
+
+    <div class="row">
+      <div class="cell">P</div>
+      <div class="cell">A</div>
+      <div class="cell">S</div>
+      <div class="cell">S</div>
+    </div>
+
+    <div class="row">
+      <div class="cell">P</div>
+      <div class="cell">A</div>
+      <div class="cell">S</div>
+      <div class="cell">S</div>
+    </div>
+
+  </div>
+
+ </body>
+</html>

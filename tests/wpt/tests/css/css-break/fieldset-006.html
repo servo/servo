@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<link rel="help" href="https://www.w3.org/TR/css-break-3/#breaking-rules">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#the-fieldset-and-legend-elements">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+  #multicol {
+    columns:2;
+    column-gap:0;
+    column-fill:auto;
+    width:100px;
+    height:100px;
+    margin-left:-50px;
+  }
+  fieldset {
+    border:none;
+    margin:0;
+    padding:0px;
+    width:50px;
+  }
+  legend {
+    padding:0px;
+    margin:0px;
+    width:50px;
+    height:100px;
+    background: green;
+  }
+  #abs {
+    position:absolute;
+    width:100px;
+    height:100px;
+    background:red;
+    z-index:-1;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="abs"></div>
+<div id="multicol">
+  <div style="height:50px;"></div>
+  <fieldset>
+    <legend></legend>
+    <div style="height:100px; background:green;"></div>
+  </fieldset>
+</div>

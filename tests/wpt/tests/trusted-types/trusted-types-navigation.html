@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<head>
+  <meta name="timeout" content="long">
+  <meta name="variant" content="?01-05">
+  <meta name="variant" content="?06-10">
+  <meta name="variant" content="?11-15">
+  <meta name="variant" content="?16-20">
+  <meta name="variant" content="?21-25">
+  <meta name="variant" content="?26-30">
+  <meta name="variant" content="?31-35">
+  <meta name="variant" content="?36-last">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="support/navigation-support.js"></script>
+  <script src="/common/subset-tests.js"></script>
+</head>
+<body>
+<script>
+  "use strict";
+
+  function violationMessage(sample) {
+    return e => {
+      const result = (e.data.effectiveDirective == "require-trusted-types-for" &&
+                         (!sample || e.data.sample.startsWith(sample)));
+      if (result) {
+        assert_true(true, "Expected violation as message: " + sample);
+      }
+
+      return result;
+    };
+  }
+
+  function loadedMessage(searchParams, originAndPathName) {
+    return e => {
+      if (e.data.type != "DOMContentLoaded") {
+        return false;
+      }
+      let url = new URL(e.data.uri);
+      if (!url.pathname.endsWith(originAndPathName)) {
+        return false;
+      }
+      let keys = Object.keys(searchParams);
+      if (url.searchParams.size != keys.length ||
+          !keys.every(key =>
+            url.searchParams.get(key) === searchParams[key].toString())) {
+        return false;
+      }
+
+      assert_true(true, `Expected loaded as message: ${joinToHref(searchParams, originAndPathName)}`);
+      return true;
+    };
+  }
+
+  function openWindowAndWaitMessages(test, uri, expectedMessages) {
+    const win = window.open(uri);
+    let messageSeen = (new Array(expectedMessages.length)).fill(false);
+    return new Promise((resolve, reject) => {
+      function listener(e) {
+        let receivedUnexpectedMessage = true;
+        expectedMessages.forEach((message, index) => {
+          if (message(e)) {
+            receivedUnexpectedMessage = false;
+            if (!messageSeen[index]) {
+              messageSeen[index] = true;
+              if (messageSeen.every(seen => seen)) {
+                resolve();
+              }
+            }
+          }
+        });
+        if (receivedUnexpectedMessage) {
+          reject(`Unexpected message received: ${JSON.stringify(e.data)}`);
+        }
+      }
+      test.add_cleanup(_ => {
+        window.removeEventListener("message", listener);
+        win.close();
+      });
+      window.addEventListener("message", listener);
+    });
+  }
+
+  // When adding more elements, adapt all functions consuming the existing elements.
+  const kNavigationElements =
+  [
+    "anchor",
+    "area",
+    "form-submission",
+  ];
+
+  function maybeAddNavigationElementToSearchParams(navigationElement, searchParams) {
+    if (navigationElement == "anchor") {
+      return searchParams;
+    }
+    let extraParam = {};
+    extraParam[navigationElement] = 1;
+    return Object.assign(extraParam, searchParams);
+  }
+
+  function joinToHref(searchParams, originAndPathName) {
+    let urlSearchParams = new URLSearchParams(searchParams);
+    if (urlSearchParams.size > 0) {
+      return originAndPathName + "?" + urlSearchParams.toString();
+    }
+
+    return originAndPathName;
+  }
+
+  const kNavigationSupport = "navigation-support.html";
+  const kNavigationSupportReportOnly = "navigation-report-only-support.html";
+
+  for (const navigationElement of kNavigationElements) {
+    subsetTest(promise_test, t => {
+      const params = maybeAddNavigationElementToSearchParams(navigationElement, {});
+      return openWindowAndWaitMessages(t, `support/${joinToHref(params, kNavigationSupport)}`, [
+        loadedMessage(params, kNavigationSupport),
+        violationMessage("Location href"),
+      ]);
+    }, `Navigate a window via ${navigationElement} with javascript:-urls in enforcing mode.`);
+
+    subsetTest(promise_test, t => {
+      const params = maybeAddNavigationElementToSearchParams(navigationElement, {defaultpolicy: 'replace'});
+      return openWindowAndWaitMessages(t, `support/${joinToHref(params, kNavigationSupport)}`, [
+        loadedMessage(params, kNavigationSupport),
+        loadedMessage(Object.assign({navigationattempted: 1, defaultpolicywashere: 1}, params), kNavigationSupport),
+      ]);
+    }, `Navigate a window via ${navigationElement} with javascript:-urls w/ default policy in enforcing mode.`);
+
+    subsetTest(promise_test, t => {
+      const params = maybeAddNavigationElementToSearchParams(navigationElement, {});
+      return openWindowAndWaitMessages(t, `support/${joinToHref(params, kNavigationSupportReportOnly)}`, [
+        loadedMessage(params, kNavigationSupportReportOnly),
+        violationMessage("Location href"),
+        loadedMessage(Object.assign({navigationattempted: 1, continue: 1}, params), kNavigationSupport),
+      ]);
+    }, `Navigate a window via ${navigationElement} with javascript:-urls in report-only mode.`);
+
+    subsetTest(promise_test, t => {
+      const params = maybeAddNavigationElementToSearchParams(navigationElement, {defaultpolicy: 'replace'});
+      return openWindowAndWaitMessages(t, `support/${joinToHref(params, kNavigationSupportReportOnly)}`, [
+        loadedMessage(params, kNavigationSupportReportOnly),
+        loadedMessage(Object.assign({navigationattempted: 1, defaultpolicywashere: 1}, params), kNavigationSupport),
+      ]);
+    }, `Navigate a window via ${navigationElement} with javascript:-urls w/ default policy in report-only mode.`);
+
+    subsetTest(promise_test, t => {
+      const params = maybeAddNavigationElementToSearchParams(navigationElement, {frame: 1});
+      return openWindowAndWaitMessages(t, `support/${joinToHref(params, kNavigationSupport)}`, [
+        loadedMessage(params, kNavigationSupport),
+        violationMessage("Location href"),
+      ]);
+    }, `Navigate a frame via ${navigationElement} with javascript:-urls in enforcing mode.`);
+
+    subsetTest(promise_test, t => {
+      const params = maybeAddNavigationElementToSearchParams(navigationElement,
+        {defaultpolicy: 'replace', frame: 1});
+      return openWindowAndWaitMessages(t, `support/${joinToHref(params, kNavigationSupport)}`, [
+        loadedMessage(params, kNavigationSupport),
+        loadedMessage(Object.assign({navigationattempted: 1, defaultpolicywashere: 1}, params), kNavigationSupport),
+      ]);
+    }, `Navigate a frame via ${navigationElement} with javascript:-urls w/ default policy in enforcing mode.`);
+
+    subsetTest(promise_test, t => {
+      const params = maybeAddNavigationElementToSearchParams(navigationElement, {frame: 1})
+      return openWindowAndWaitMessages(t, `support/${joinToHref(params, kNavigationSupportReportOnly)}`, [
+        loadedMessage(params, kNavigationSupportReportOnly),
+        violationMessage("Location href"),
+        loadedMessage(Object.assign({navigationattempted: 1, continue: 1}, params), kNavigationSupport),
+      ]);
+    }, `Navigate a frame via ${navigationElement} with javascript:-urls in report-only mode.`);
+
+    subsetTest(promise_test, t => {
+      const params = maybeAddNavigationElementToSearchParams(navigationElement,
+                                                          {defaultpolicy: 'replace', frame: 1});
+      return openWindowAndWaitMessages(t, `support/${joinToHref(params, kNavigationSupportReportOnly)}`, [
+        loadedMessage(params, kNavigationSupportReportOnly),
+        loadedMessage(Object.assign({navigationattempted: 1, defaultpolicywashere: 1}, params), kNavigationSupport),
+      ]);
+    }, `Navigate a frame via ${navigationElement} with javascript:-urls w/ default policy in report-only mode.`);
+
+    subsetTest(promise_test, t => {
+      // This test navigates to a 'javascript:location.href=...' URL with a CSP
+      // policy in enforcing mode and a default policy throwing an exception.
+      // "require-trusted-types-for Pre-Navigation check" returns "Blocked"
+      // per step 4 of https://w3c.github.io/trusted-types/dist/spec/#require-trusted-types-for-pre-navigation-check
+      // Then a violation is reported and the navigation is blocked per steps 4 and 5 of https://w3c.github.io/webappsec-csp/#should-block-navigation-request
+      const params = maybeAddNavigationElementToSearchParams(navigationElement, {defaultpolicy: 'throw'});
+      return openWindowAndWaitMessages(t, `support/${joinToHref(params, kNavigationSupport)}`, [
+        loadedMessage(params, kNavigationSupport),
+        violationMessage("Location href"),
+      ]);
+    }, `Navigate a window via ${navigationElement} with javascript:-urls w/ a default policy throwing an exception in enforcing mode.`);
+
+    subsetTest(promise_test, t => {
+      // This test navigates to a 'javascript:location.href=...' URL with a CSP
+      // policy in report-only mode and a default policy throwing an exception.
+      // "require-trusted-types-for Pre-Navigation check" returns "Blocked"
+      // per step 4 of https://w3c.github.io/trusted-types/dist/spec/#require-trusted-types-for-pre-navigation-check
+      // Then a violation is reported per step 4 of https://w3c.github.io/webappsec-csp/#should-block-navigation-request
+      // The "location.href=..." is executed, causing a second navigation.
+      const params = maybeAddNavigationElementToSearchParams(navigationElement, {defaultpolicy: 'throw'});
+      return openWindowAndWaitMessages(t, `support/${joinToHref(params, kNavigationSupportReportOnly)}`, [
+        loadedMessage(params, kNavigationSupportReportOnly),
+        violationMessage("Location href"),
+        loadedMessage(Object.assign({navigationattempted: 1, continue: 1}, params), kNavigationSupport),
+      ]);
+    }, `Navigate a window via ${navigationElement} with javascript:-urls w/ a default policy throwing an exception in report-only mode.`);
+
+    subsetTest(promise_test, t => {
+      // This test navigates to a 'javascript:location.href=...' URL with a CSP
+      // policy in enforcing mode and a default policy making the URL invalid.
+      // "require-trusted-types-for Pre-Navigation check" returns "Blocked"
+      // per step 6 of https://w3c.github.io/trusted-types/dist/spec/#require-trusted-types-for-pre-navigation-check
+      // Then a violation is reported and the navigation is blocked per steps 4 and 5 of https://w3c.github.io/webappsec-csp/#should-block-navigation-request
+      const params = maybeAddNavigationElementToSearchParams(navigationElement, {defaultpolicy: 'make-invalid'});
+      return openWindowAndWaitMessages(t, `support/${joinToHref(params, kNavigationSupport)}`, [
+        loadedMessage(params, kNavigationSupport),
+        violationMessage("Location href"),
+      ]);
+    }, `Navigate a window via ${navigationElement} with javascript:-urls w/ a default policy making the URL invalid in enforcing mode.`);
+
+    subsetTest(promise_test, t => {
+      // This test navigates to a 'javascript:location.href=...' URL with a CSP
+      // policy in report-only mode and a default policy making the URL invalid.
+      // "require-trusted-types-for Pre-Navigation check" returns "Blocked"
+      // per step 6 of https://w3c.github.io/trusted-types/dist/spec/#require-trusted-types-for-pre-navigation-check
+      // Then a violation is reported per step 4 of https://w3c.github.io/webappsec-csp/#should-block-navigation-request
+      // The "location.href=..." is executed, causing a second navigation.
+      const params = maybeAddNavigationElementToSearchParams(navigationElement, {defaultpolicy: 'make-invalid'});
+      return openWindowAndWaitMessages(t, `support/${joinToHref(params, kNavigationSupportReportOnly)}`, [
+        loadedMessage(params, kNavigationSupportReportOnly),
+        violationMessage("Location href"),
+        loadedMessage(Object.assign({navigationattempted: 1, continue: 1}, params), kNavigationSupport),
+      ]);
+    }, `Navigate a window via ${navigationElement} with javascript:-urls w/ a default policy making the URL invalid in report-only mode.`);
+  }
+</script>
+</body>

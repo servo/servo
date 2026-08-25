@@ -1,0 +1,46 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<title>CSS Text — line breaking around Break After and Exclamation</title>
+<meta name=assert content="When ‘white-space’ allows wrapping, line breaking behavior defined for IS and QU line-breaking classes in [UAX14] must be honored.">
+<link rel=help href="https://www.w3.org/TR/css-text-3/#line-breaking">
+<link rel=help href="https://bugzilla.mozilla.org/show_bug.cgi?id=1880362">
+<link rel=author title="Makoto Kato" href="mailto:m_kato@ga2.so-net.ne.jp">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.test > div {
+  font-family: monospace;
+  font-size: 25px;
+  width: 1ch;
+  line-height: 30px;
+}
+</style>
+<body>
+
+<div class="test">
+  <div id="nonbreakable1">1.&#x201D;</div>
+  <div id="nonbreakable2">a.&#x201D;</div>
+  <div id="nonbreakable3">1.&#x0022;</div>
+  <div id="nonbreakable4">a.&#x0022;</div>
+</div>
+
+<script>
+test(function() {
+  assert_true(document.getElementById('nonbreakable1').offsetHeight <= 35);
+}, "U+0x0031 (NU), U+0x002E (IS) and U+0x201D (QU)");
+test(function() {
+  assert_true(document.getElementById('nonbreakable2').offsetHeight <= 35);
+}, "U+0x0041 (AL), U+0x002E (IS) and U+0x201D (QU)");
+test(function() {
+  assert_true(document.getElementById('nonbreakable3').offsetHeight <= 35);
+}, "U+0x0031 (NU), U+0x002E (IS) and U+0x0022 (QU)");
+test(function() {
+  assert_true(document.getElementById('nonbreakable4').offsetHeight <= 35);
+}, "U+0x0041 (AL), U+0x002E (IS) and U+0x0022 (QU)");
+</script>
+
+<div id='log'></div>
+
+</body>
+</html>

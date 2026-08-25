@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang=en>
+  <meta charset=utf-8>
+  <title>CSS-UI test: outline & layout</title>
+  <link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net">
+  <meta name=flags content="">
+  <meta name=assert content="Outline does not influence size or position, and has no impact on layout.">
+  <link rel=help href="https://drafts.csswg.org/css-ui-3/#outline-props">
+  <link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+div {
+  background: red;
+  width: 100px;
+  height: 100px;
+}
+span:nth-of-type(1) {
+  float: left;
+  width: 30px;
+  height: 30px;
+  outline: solid 10px green;
+  background: green;
+
+  position: relative;
+  top: 10px;
+  left: 10px;
+}
+span:nth-of-type(2) {
+  float: left;
+  width: 0;
+  height: 0;
+  outline: solid 25px green;
+  background: red;
+
+  position: relative;
+  top: 25px;
+  left: 45px;
+}
+span:nth-of-type(3) {
+  float: left;
+  clear: left;
+  width: 100px;
+  height: 50px;
+  background: green;
+
+  position: relative;
+  top: 20px;
+}
+</style>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+  <div><span></span><span></span><span></span></div>
+

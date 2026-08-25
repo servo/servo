@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>CSS Backgrounds and Borders Test: don't propagate body background when html is display:none dynamic</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds/#special-backgrounds">
+<link rel="match" href="../reference/blank.html">
+<style>
+  body { background: red; }
+</style>
+<script>
+  window.onload = () => {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      document.documentElement.style.display = "none";
+      document.documentElement.classList.remove("reftest-wait");
+    }));
+  };
+</script>
+<body></body>

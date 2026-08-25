@@ -1,0 +1,35 @@
+<!doctype html>
+<title>CSS Containment Test: inline-size of fit-content bfc constrained by floats, not affected by height</title>
+<link rel="help" href="https://drafts.csswg.org/css-contain-3/#containment-inline-size">
+<link rel="match" href="contain-inline-size-bfc-floats-002-ref.html">
+<style>
+  .float { float: left; background-color: blue; }
+  .right { float: right; }
+
+  #outer { width: 400px; }
+  #float1 { width: 200px; height: 100px; }
+  #float2 { width: 250px; height: 100px; }
+  #float3 { width: 300px; height: 100px; }
+
+  #contain {
+    contain: inline-size;
+    display: flow-root;
+    width: fit-content;
+  }
+  #orange {
+    display: inline-block;
+    width: 300px;
+    height: 20px;
+    background: orange;
+    vertical-align: top;
+  }
+</style>
+<p>You should see a wide orange rectangle to the left of the first float, overlapping the float.</p>
+<div id="outer">
+  <div id="float1" class="float right"></div>
+  <div id="float2" class="float left"></div>
+  <div id="float3" class="float right"></div>
+  <div id="contain">
+    <span id="orange"></span>
+  </div>
+</div>

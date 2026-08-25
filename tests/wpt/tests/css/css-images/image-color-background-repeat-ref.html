@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS reftest reference: image(&lt;color&gt;) with background-repeat</title>
+<style>
+  .container {
+    width: 200px;
+    height: 200px;
+    display: inline-block;
+    vertical-align: top;
+    background-color: red;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .green {
+    position: absolute;
+    background-color: green;
+  }
+
+  /* repeat: 2×2 tiles cover the full 200×200 box */
+  .repeat > .green    { inset: 0; }
+
+  /* no-repeat: single 100×100 tile at top-left */
+  .no-repeat > .green { top: 0; left: 0; width: 100px; height: 100px; }
+
+  /* repeat-x: top 100px row */
+  .repeat-x > .green  { top: 0; left: 0; width: 200px; height: 100px; }
+
+  /* repeat-y: left 100px column */
+  .repeat-y > .green  { top: 0; left: 0; width: 100px; height: 200px; }
+</style>
+<p>Four 200×200 squares: fully green (repeat), top-left quadrant green (no-repeat),
+top half green (repeat-x), left half green (repeat-y).</p>
+<div class="container repeat"><div class="green"></div></div>
+<div class="container no-repeat"><div class="green"></div></div>
+<div class="container repeat-x"><div class="green"></div></div>
+<div class="container repeat-y"><div class="green"></div></div>

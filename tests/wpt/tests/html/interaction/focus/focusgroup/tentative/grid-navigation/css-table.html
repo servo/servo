@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Validate that Focusgroup works with CSS tables too.</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<div style="display:table" focusgroup=grid>
+  <div style="display:table-row">
+    <div id=r1c1 style="display:table-cell" tabindex=0>r1c1</div>
+    <div id=r1c2 style="display:table-cell" tabindex=0>r1c2</div>
+  </div>
+  <div style="display:table-row">
+    <div id=r2c1 style="display:table-cell" tabindex=0>r2c1</div>
+    <div id=r2c2 style="display:table-cell" tabindex=0>r2c2</div>
+  </div>
+</div>
+
+<script>
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(r1c1, kRight);
+    assert_equals(document.activeElement, r1c2);
+
+    await focusAndSendDirectionalInput(r1c2, kDown);
+    assert_equals(document.activeElement, r2c2);
+
+    await focusAndSendDirectionalInput(r2c2, kLeft);
+    assert_equals(document.activeElement, r2c1);
+
+    await focusAndSendDirectionalInput(r2c1, kUp);
+    assert_equals(document.activeElement, r1c1);
+  }, "Tests that grid focusgroups also work on CSS tables (i.e.: 'display: table'). The implementation relies on the layout objects, so the other tests that covers HTML tables don't need to be duplicated to test the same cases with CSS tables.");
+
+</script>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>Collapsed borders and box-shadow</title>
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#in-collapsed-borders-mode">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#box-shadow">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<link rel="bookmark" href="https://crbug.com/1006241" />
+<meta name="assert" content="box-shadow size and location on a cell with collapsed borders are calculated correctly" />
+
+<style>
+table {
+  border-collapse: collapse;
+}
+
+/* Make the green box-shadow start at the inner edge of the border to cover up all the red.
+   Chrome's bug made the box-shadow start further toward the center. */
+td {
+  border: 20px solid green;
+  box-shadow: inset 60px 0px green;
+  /* The properties after the blank line aren't the focus of the test. */
+
+  background: red;
+  line-height: 0px;
+  padding: 0px;
+}
+
+td > span {
+  display: inline-block; /* chrome only hits this bug when the td children are inline */
+
+  height: 60px;
+  width: 60px;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<table>
+  <tr>
+    <td><span></span></td>
+  </tr>
+</table>

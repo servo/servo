@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<title>canvas.onpaint should fire after intersection observation steps</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<link rel="help" href="https://html.spec.whatwg.org/#update-the-rendering">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  canvas {
+    background: blue;
+  }
+  div {
+    width: 100px;
+    height: 100px;
+    background: green;
+  }
+</style>
+
+<div id="intersection" style="position: absolute; top: -200px; left: 0;"></div>
+
+<canvas id="canvas" width="200" height="200" layoutsubtree>
+  <div id="child"></div>
+</canvas>
+
+<script>
+  'use strict';
+
+  async function waitForOneFrame() {
+    await new Promise(requestAnimationFrame);
+    await new Promise(setTimeout);
+  }
+
+  // This test sets up an intersection observer and an onpaint handler, and
+  // ensures that intersection observations are calculated before onpaint, but
+  // that intersection observations are delivered after onpaint.
+  promise_test(async t => {
+    const canvas = document.getElementById('canvas');
+    const child = document.getElementById('child');
+    const intersection = document.getElementById('intersection');
+    const events = [];
+    let inSetup = true;
+
+    canvas.onpaint = t.step_func(() => {
+      if (inSetup) {
+        return;
+      }
+      events.push('onpaint');
+      if (events.length === 1) {
+        // Change #intersection so that it is no longer intersecting. Because
+        // an intersection observation has already been calculated, this should
+        // not change the observation.
+        intersection.style.top = '-150px';
+      }
+    });
+
+    const observer = new IntersectionObserver(t.step_func((entries) => {
+      if (inSetup) {
+        return;
+      }
+      events.push('intersection');
+      if (events.length === 2) {
+        assert_equals(intersection.style.top, '-150px');
+        assert_equals(entries[0].isIntersecting, true,
+          'intersection observations should be calculated before onpaint');
+        assert_equals(entries[0].intersectionRatio, 1,
+          'intersection observation ratio should be calculated before onpaint');
+      } else if (events.length === 3) {
+        assert_equals(intersection.style.top, '-150px');
+        assert_equals(entries[0].isIntersecting, false,
+          'updated intersection observations should be calculated after style modifications in onpaint');
+        assert_equals(entries[0].intersectionRatio, 0,
+          'updated intersection observation ratio should be calculated after style modifications in onpaint');
+      }
+    }));
+    observer.observe(intersection);
+
+    // Wait two frames, then start monitoring events. This avoids counting the
+    // initial resize observation, or any initial onpaint events.
+    await waitForOneFrame();
+    await waitForOneFrame();
+    inSetup = false;
+
+    // Change #child so onpaint will fire.
+    child.style.background = 'purple';
+    // Change #intersection so that the intersection observer will calculate a
+    // new observation with ratio of 1.
+    intersection.style.top = '0px';
+
+    await waitForOneFrame();
+    await waitForOneFrame();
+    assert_array_equals(events, ['onpaint', 'intersection'],
+      'onpaint should fire before intersection observations are delivered.');
+
+    await waitForOneFrame();
+    await waitForOneFrame();
+    assert_array_equals(events, ['onpaint', 'intersection', 'intersection'],
+      'The mutations applied by onpaint should be reflected in a subsequent notification.');
+  }, 'intersection observations should be calculated before onpaint, but should be delivered after onpaint');
+</script>

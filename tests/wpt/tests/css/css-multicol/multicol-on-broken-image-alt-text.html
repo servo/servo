@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://issues.chromium.org/issues/40747770">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square.xht">
+<style>
+  img {
+    columns: 5;
+    line-height: 20px;
+    orphans: 1;
+    widows: 1;
+    color: red;
+    background: red;
+  }
+</style>
+<script>
+  // Wait for image loading to fail.
+  document.documentElement.className = "reftest-wait";
+  onload = function() {
+    document.documentElement.classList.remove("reftest-wait");
+  }
+</script>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="position:absolute; z-index:1; width:100px; height:100px; background:green;"></div>
+<div style="width:100px; height:100px;">
+  <img alt="XXXXX XXXXX XXXXX XXXXX XXXXX" src="invalid.jpg" width="300" height="200">
+</div>

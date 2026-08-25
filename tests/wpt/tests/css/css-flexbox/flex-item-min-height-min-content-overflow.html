@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Flexbox: min-height:min-content on scrollable column flex item</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#min-size-auto">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#valdef-width-min-content">
+<link rel="match" href="flex-item-min-height-min-content-overflow-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<meta name="flags" content="ahem">
+<meta name="assert" content="An explicit min-height:min-content on a scrollable
+                             flex item should be honored, not treated as zero.
+                             The overflow check for automatic minimum size only
+                             applies to min-height:auto.">
+<style>
+body {
+    margin: 0;
+}
+</style>
+<p>Test passes if there is a filled green rectangle with no red.</p>
+<div style="background: red; width: 20px; height: 80px;">
+    <div style="display: flex; flex-direction: column; height: 40px;">
+        <div style="overflow: auto; min-height: min-content; background: green; font: 20px/1 Ahem; color: green;">
+            X<br>X<br>X<br>X
+        </div>
+    </div>
+</div>

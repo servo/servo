@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Transforms Test: SVG presentation attribute and scale horizontally -0.5 and vertically -1.25</title>
+    <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#svg-transform">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#two-d-transform-functions">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#funcdef-transform-scale">
+    <link rel="match" href="reference/svg-scale-ref.html">
+    <meta name="flags" content="svg">
+    <meta name="assert" content="Scaling by a negative value should flip the element. The green rect in this test should be flipped downward and rightward into view and scaled down horizontally and up vertically to completely cover the red background.">
+    <style type="text/css">
+        svg {
+            width: 200px;
+            height: 200px;
+            background: red;
+        }
+    </style>
+</head>
+<body>
+    <p>The test passes if you see a green square and no red.</p>
+    <svg>
+        <rect x="-400" y="-160" width="400" height="160" fill="green" transform="scale(-0.5, -1.25)"/>
+    </svg>
+</body>
+</html>

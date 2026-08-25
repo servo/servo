@@ -1,0 +1,20 @@
+<!doctype html>
+<title>Test anonymous layers with stylesheet sharing</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-5/#layering">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1730123">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="match" href="layer-stylesheet-sharing-ref.html">
+<style>
+  target {
+    display: block;
+    width: 100px;
+    height: 100px;
+  }
+</style>
+<link rel=stylesheet href="data:text/css,@layer{target{background-color:green}}">
+<style>
+@layer A { target { background-color: red } }
+</style>
+<link rel=stylesheet href="data:text/css,@layer{target{background-color:green}}">
+<target></target>

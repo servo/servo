@@ -1,0 +1,11 @@
+<!doctype html>
+<title>Attempting to resolve a font-relative (em) SVGLength in a detached document does not crash</title>
+<iframe></iframe>
+<script>
+  const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+  rect.setAttribute("height", "16em");
+  const iframe = document.querySelector('iframe');
+  iframe.contentDocument.documentElement.appendChild(rect);
+  iframe.remove();
+  rect.height.baseVal.value;
+</script>

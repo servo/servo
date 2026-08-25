@@ -1,0 +1,25 @@
+<!doctype html>
+
+<style>
+div {
+  width: 100px;
+  height: 100px;
+  background: green;
+}
+html { height: 50%; }
+::view-transition-group(*) { animation-duration: 500s }
+</style>
+
+<div></div>
+
+<script>
+function run() {
+  document.startViewTransition(() => {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      window.parent.postMessage({}, "*");
+    }));
+  });
+}
+onload = () => requestAnimationFrame(() => requestAnimationFrame(run));
+</script>
+

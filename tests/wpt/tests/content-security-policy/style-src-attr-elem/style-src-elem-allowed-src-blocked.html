@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="Content-Security-Policy" content="style-src-elem 'unsafe-inline';
+    style-src 'none';">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script>
+      var t = async_test("Inline style should be applied");
+      window.addEventListener('securitypolicyviolation', t.unreached_func("Should not have fired a spv event"));
+    </script>
+</head>
+
+<body>
+    <style>
+      body {background: green;}
+    </style>
+    <script>
+      t.step(function() {
+        assert_equals(document.styleSheets.length, 1);
+        t.done();
+      });
+    </script>
+</body>
+
+</html>

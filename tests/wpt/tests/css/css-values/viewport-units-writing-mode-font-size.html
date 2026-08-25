@@ -1,0 +1,35 @@
+<!doctype html>
+<title>font-size depends on writing-mode</title>
+<meta charset="utf-8">
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<link rel="match" href="viewport-units-writing-mode-font-size-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#viewport-relative-lengths">
+<style>
+  .test {
+    width: 1em;
+    height: 1em;
+    background-color: green;
+    display: inline-block;
+  }
+  #t1 {
+    writing-mode: vertical-lr;
+    font-size: 1vi;
+  }
+  #t2 {
+    writing-mode: vertical-lr;
+    font-size: 1vb;
+  }
+  #t3 {
+    font-size: 1vi;
+    writing-mode: vertical-lr;
+  }
+  #t4 {
+    font-size: 1vb;
+    writing-mode: vertical-lr;
+  }
+</style>
+<div class="test" id="t1"></div>
+<div class="test" id="t2"></div>
+<div class="test" id="t3"></div>
+<div class="test" id="t4"></div>

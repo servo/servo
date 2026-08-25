@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+                      "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" dir="ltr">
+ <head>
+  <title>CSS Test: Page Selectors - First Page in LTR</title>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-selectors"/>
+  <meta name="flags" content="paged"/>
+  <meta name="assert" content="The first page of a left-to-right document
+    is a :right page."/>
+  <style type="text/css">
+    @page:first {
+      margin-top: 50%;
+    }
+    @page:right {
+      margin-left: 50%;
+    }
+    @page:left {
+      margin: 0;
+    }
+    html {
+      margin: 0; padding: 0.2em;
+      border: solid blue;
+      border-width: thick thin thin thick;
+    }
+  </style>
+ </head>
+ <body>
+   <p class="import">When printed the top left corner of this box must be in
+     the exact center of this page.</p>
+ </body>
+</html>

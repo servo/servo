@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Entries API: DataTransferItem.webkitGetAsEntry() with script-created DataTransfer</title>
+<link rel=help href="https://wicg.github.io/entries-api/#dom-datatransferitem-webkitgetasentry">
+<link rel="author" title="Euclid Ye" href="mailto:yezhizhenjiakang@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+test(t => {
+  const dt = new DataTransfer();
+  dt.items.add('hello', 'text/plain');
+  const item = dt.items[0];
+  assert_equals(item.kind, 'string');
+  assert_equals(item.webkitGetAsEntry(), null,
+    'webkitGetAsEntry() should return null for non-File items');
+}, 'webkitGetAsEntry() returns null for text items');
+
+test(t => {
+  const file = new File(['hello world'], 'test.txt', { type: 'text/plain' });
+  const dt = new DataTransfer();
+  dt.items.add(file);
+
+  const item = dt.items[0];
+  assert_equals(item.kind, 'file');
+
+  const entry = item.webkitGetAsEntry();
+  assert_not_equals(entry, null);
+  assert_true(entry.isFile);
+  assert_false(entry.isDirectory);
+  assert_equals(entry.name, 'test.txt');
+  assert_equals(entry.fullPath, '/test.txt');
+  assert_true(entry.filesystem instanceof FileSystem);
+  assert_true(entry.filesystem.root.isDirectory);
+}, 'webkitGetAsEntry() returns FileSystemFileEntry with correct attributes');
+
+async_test(t => {
+  const file = new File(['hello world'], 'test.txt', { type: 'text/plain' });
+  const dt = new DataTransfer();
+  dt.items.add(file);
+
+  const entry = dt.items[0].webkitGetAsEntry();
+
+  entry.file(
+    t.step_func_done(f => {
+      assert_class_string(f, 'File');
+      assert_equals(f.name, 'test.txt');
+      assert_equals(f.size, 11);
+    }),
+    t.unreached_func('file() should not invoke the error callback')
+  );
+}, 'FileSystemFileEntry.file() invokes callback with a File');
+</script>

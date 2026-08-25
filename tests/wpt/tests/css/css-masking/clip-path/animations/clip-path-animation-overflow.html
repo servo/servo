@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.csswg.org/css-shapes-1/#basic-shape-interpolation">
+<link rel="match" href="clip-path-animation-overflow-ref.html">
+<meta name=fuzzy content="0-255;0-800">
+<style>
+.container {
+  width: 200px;
+  height: 200px;
+  background-color: green;
+  border: 20px solid black;
+  animation: clippath 20s steps(2, jump-end) -9.999s;
+}
+@keyframes clippath {
+  0%   { clip-path: circle(130px at 130px 130px); }
+  100% { clip-path: circle(110px at 110px 110px); }
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="../../../../web-animations/resources/timing-utils.js"></script>
+<body>
+<div class="container"><div class="container"></div></div>
+
+<script>
+  waitForAnimationTime(document.getAnimations()[0], 1).then(takeScreenshot);
+</script>
+</body>
+</html>

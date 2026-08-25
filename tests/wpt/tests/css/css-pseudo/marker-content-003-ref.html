@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Reference: ::marker pseudo elements styled with 'content' property and display:grid</title>
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<style>
+li {
+  list-style-type: 'X';
+  background: grey;
+}
+li::marker {
+  padding-right: 10px;
+}
+span { font-size: 32pt; }
+</style>
+</head>
+<body>
+<ol><li></li><li>B</li><li><span>C</span></li></ol>
+</body>
+</html>

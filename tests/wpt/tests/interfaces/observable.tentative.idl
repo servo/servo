@@ -1,0 +1,31 @@
+[Exposed=*]
+interface Subscriber {
+  undefined next(any value);
+  undefined error(any error);
+  undefined complete();
+  undefined addTeardown(VoidFunction teardown);
+  readonly attribute boolean active;
+  readonly attribute AbortSignal signal;
+};
+
+
+callback SubscribeCallback = undefined (Subscriber subscriber);
+callback SubscriptionObserverCallback = undefined (any value);
+
+dictionary SubscriptionObserver {
+  SubscriptionObserverCallback next;
+  SubscriptionObserverCallback error;
+  VoidFunction complete;
+};
+
+typedef (SubscriptionObserverCallback or Observer) ObserverUnion;
+
+dictionary SubscribeOptions {
+  AbortSignal signal;
+};
+
+[Exposed=*]
+interface Observable {
+  constructor(SubscribeCallback callback);
+  undefined subscribe(optional ObserverUnion observer = {}, optional SubscribeOptions options = {});
+};

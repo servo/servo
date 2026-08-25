@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Microphone Element: Error Scenarios</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../usermedia/resources/pepc-helper.js"></script>
+<body>
+<script>
+// Scenario 1: User denying microphone permission prompt triggers oncancel with NotAllowedError
+promise_test(async (t) => {
+  const mic = document.createElement('microphone');
+  mic.setConstraints({});
+  document.body.appendChild(mic);
+  t.add_cleanup(() => {
+    if (mic.parentNode) {
+      document.body.removeChild(mic);
+    }
+  });
+
+  let track_fired = false;
+  mic.ontrack = () => { track_fired = true; };
+
+  const cancel_promise = new Promise((resolve) => {
+    mic.oncancel = resolve;
+  });
+
+  await test_driver.set_permission({name: 'microphone'}, 'denied');
+
+  await new Promise(resolve => t.step_timeout(resolve, PEPC_CLICK_DELAY));
+  await test_driver.click(mic);
+
+  await cancel_promise;
+  assert_false(track_fired, "ontrack should not fire when permission is denied");
+  assert_equals(mic.track, null, "track should be null when permission is denied");
+  assert_not_equals(mic.error, null, "error should not be null on prompt cancel");
+  assert_equals(mic.error.name, "NotAllowedError", "error name should be NotAllowedError");
+}, "Denying microphone permission prompt triggers oncancel event and sets NotAllowedError");
+
+// Scenario 2: Untrusted programmatic click on microphone element
+promise_test(async (t) => {
+  const mic = document.createElement('microphone');
+  mic.setConstraints({});
+  document.body.appendChild(mic);
+  t.add_cleanup(() => {
+    if (mic.parentNode) {
+      document.body.removeChild(mic);
+    }
+  });
+
+  const error_promise = new Promise((resolve) => {
+    mic.onerror = resolve;
+  });
+
+  mic.click();
+
+  await error_promise;
+  assert_not_equals(mic.error, null, "error attribute should not be null on untrusted click");
+  assert_equals(mic.error.name, "InvalidStateError", "error name should be InvalidStateError");
+}, "Untrusted click on microphone element fails with InvalidStateError");
+</script>
+</body>
+

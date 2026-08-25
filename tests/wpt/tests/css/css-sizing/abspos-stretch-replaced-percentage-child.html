@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>position:absolute with height:stretch resolves for replaced child with height:100%</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#valdef-width-stretch">
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#abspos-auto-size">
+<link rel="match" href="abspos-stretch-replaced-percentage-child-ref.html">
+<meta name="assert" content="An out-of-flow element with height:stretch resolves against its abs-pos containing block (the initial containing block here, which has a definite height), so a replaced descendant with height:100% resolves to the same height.">
+<style>
+html, body {
+    margin: 0;
+}
+div {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100px;
+    height: stretch;
+    background: green;
+}
+img {
+    display: block;
+    height: 100%;
+}
+</style>
+<p>Test passes if there is a tall green rectangle on the left edge of the viewport.</p>
+<div><img></div>

@@ -1,0 +1,15 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Keyboard Map (https://wicg.github.io/keyboard-map/)
+
+[Exposed=Window]
+interface KeyboardLayoutMap {
+  readonly maplike<DOMString, DOMString>;
+};
+
+partial interface Keyboard {
+  Promise<KeyboardLayoutMap> getLayoutMap();
+
+  attribute EventHandler onlayoutchange;
+};

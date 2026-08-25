@@ -1,0 +1,57 @@
+<!doctype html>
+<title>XMLHttpRequest: overrideMimeType() and responseType = "blob"</title>
+<meta name="timeout" content="long">
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+async_test(t => {
+  const client = new XMLHttpRequest();
+  client.onload = t.step_func_done(() => {
+    assert_equals(client.getResponseHeader("Content-Type"), "");
+    assert_equals(client.response.type, "text/xml");
+  });
+  client.open("GET", "resources/status.py");
+  client.responseType = "blob";
+  client.send();
+}, "Use text/xml as fallback MIME type");
+
+async_test(t => {
+  const client = new XMLHttpRequest();
+  client.onload = t.step_func_done(() => {
+    assert_equals(client.getResponseHeader("Content-Type"), "");
+    assert_equals(client.response.type, "text/xml");
+  })
+  client.open("GET", "resources/status.py?content=thisshouldnotmakeadifferencebutdoes");
+  client.responseType = "blob";
+  client.send();
+}, "Use text/xml as fallback MIME type, 2");
+
+promise_test(() => {
+  // Don't load generated-mime-types.json as sending them all over the network would be prohibitive
+  return fetch("../mimesniff/mime-types/resources/mime-types.json").then(res => res.json()).then(runTests);
+}, "Loading data…");
+
+function runTests(tests) {
+  let index = 0;
+  tests.forEach((val) => {
+    if(typeof val === "string") {
+      return;
+    }
+    index++;
+    async_test(t => {
+      const client = new XMLHttpRequest(),
+            expectedOutput = val.output !== null ? val.output : "application/octet-stream";
+      client.onload = t.step_func_done(() => {
+        assert_equals(client.getResponseHeader("Content-Type"), "");
+        assert_equals(client.response.type, expectedOutput);
+      });
+      client.open("GET", "resources/status.py");
+      client.responseType = "blob";
+      client.overrideMimeType(val.input);
+      client.send();
+    }, index + ") MIME types need to be parsed and serialized: " + val.input);
+  });
+}
+</script>

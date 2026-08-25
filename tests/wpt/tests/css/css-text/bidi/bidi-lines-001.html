@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Test: unicode-bidi: plaintext and paragraphs with strong directionality</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#bidi-linebox">
+<link rel="match" href="reference/bidi-lines-001-ref.html">
+<meta name=assert content="with unicode-bidi: plaintext, lines from bidi paragraphs with strong directionality use that direction">
+<style>
+div {
+    font-size: 2em;
+    width: 10em;
+    white-space: pre;
+    text-align: start;
+    unicode-bidi: plaintext;
+    border: solid; padding: 0 0.5ch;
+}
+
+</style>
+
+<p>This test passes if all instances of “français” are left aligned, and all instances of “فارسی” are right aligned within the box below.
+
+<div>français
+فارسی
+français
+فارسی
+français
+فارسی</div>
+

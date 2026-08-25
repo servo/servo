@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<title>Collapsed borders of large cells</title>
+<link rel="author" title="Aleks Totic" href="atotic@chromium.org" />
+<link rel="help" href="https://www.w3.org/TR/css-tables-3/#drawing-backgrounds-and-borders" />
+<link rel="match" href="collapsed-border-large-cell-ref.html" />
+<meta name="assert" content="Collapsed borders of large cells can collapse a single edge.">
+<style>
+main * {
+  box-sizing: border-box;
+}
+main table {
+  border-collapse: collapse;
+}
+main td {
+  padding:0px;
+  width: 50px;
+  height:50px;
+  border: 2px solid black;
+}
+</style>
+<main>
+  <table>
+    <colgroup style="border:6px solid blue;background:rgba(0,0,255,0.5);"></colgroup>
+    <tr>
+      <td rowspan=4></td>
+      <td></td>
+      <td></td>
+      <td></td>
+    </tr>
+    <tr>
+      <td rowspan=2 colspan=2 style="border:4px solid green; background: rgba(0,255,0, 0.5);"></td>
+      <td style="border: 6px solid yellow;background:rgba(255,255, 0, 0.5)"></td>
+    </tr>
+      <td></td>
+    <tr>
+      <td colspan=3 style="border:6px solid orange;background:rgba(255,165,0,0.5)"></td>
+    </tr>
+  </table>
+</main>

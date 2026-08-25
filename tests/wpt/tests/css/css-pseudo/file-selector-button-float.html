@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>float shouldn't make file control button disappear</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo/#file-selector-button-pseudo">
+<link rel="help" href="https://bugzil.la/1827304">
+<link rel="mismatch" href="/css/reference/blank.html">
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<style>
+input {
+  color: transparent;
+}
+input::file-selector-button {
+  float: left;
+}
+</style>
+<input type=file>

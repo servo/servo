@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<title>CSS Text — line breaking at element boundary with atomic inlines</title>
+<meta name=assert content="For soft wrap opportunities defined by the boundary between two characters or atomic inlines, the white-space property on the nearest common ancestor of the two characters controls breaking">
+<link rel=help href="https://www.w3.org/TR/css-text-3/#line-break-details">
+<link rel=match href="reference/line-breaking-030-ref.html">
+<link rel=author title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+div {
+    color:green;
+    width: 1em;
+    line-height: 1em;
+    font-family: Ahem;
+    white-space: normal;
+    font-size: 60px;
+}
+span{
+    white-space: pre;
+}
+img{
+    vertical-align: bottom;
+}
+.container {
+    position: relative;
+}
+.fail {
+    color: red;
+    position: absolute;
+    left: 0;
+    top: 1em;
+    z-index: -1;
+}
+</style>
+
+<p>Test passes is there is a green rectangle and no red.
+
+<div class=container>
+    <span>X</span><span><img src="../../support/60x60-green.png"></span>
+    <div class=fail>X</div>
+</div>
+

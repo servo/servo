@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "3.3.7-annotationViaValidated.json",
+  "assertionType": "must",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "failAndContinue",
+  "errorMessage": "ERROR: Annotation values for via key are not of format uri.",
+  "title": "If present the Annotation-level **_via_ key** has values that are all **strings of format uri** - [model 3.3.7](https://www.w3.org/TR/annotation-model/#other-identities)",
+  "description": "True when no Annotation via key present or when all values of via key are strings of format uri (Section 3.3.7)",
+  "type": "object",
+  "allOf": [
+  { "$ref": "otherProperties.json#/definitions/viaValidIfPresent" }
+  ]
+}

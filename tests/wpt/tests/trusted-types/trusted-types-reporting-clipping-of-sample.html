@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<script src="/resources/testharness.js" ></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./support/csp-violations.js"></script>
+<meta http-equiv="Content-Security-Policy" content="trusted-types 'none'">
+<meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script'">
+<meta http-equiv="Content-Security-Policy" content="connect-src 'none'">
+<body>
+<script>
+  const clippedSampleLength = 40;
+  [
+    // Strings with ASCII characters.
+    'A'.repeat(clippedSampleLength - 1),
+    'B'.repeat(clippedSampleLength),
+    'C'.repeat(clippedSampleLength + 1),
+
+    // Strings with non-ASCII BMP characters.
+    'Ð'.repeat(clippedSampleLength - 1),
+    'É'.repeat(clippedSampleLength),
+    '℉'.repeat(clippedSampleLength + 1),
+  ].forEach(input => {
+    promise_test(async t => {
+      let violation = await trusted_type_violation_for(TypeError, _ =>
+        window.trustedTypes.createPolicy(input, { createHTML: s => s } )
+      );
+      assert_equals(violation.originalPolicy, "trusted-types 'none'");
+      assert_equals(violation.sample, clipSampleIfNeeded(input));
+    }, `Clipping of violation sample for createPolicy(${input})`);
+
+    promise_test(async t => {
+      let violation = await trusted_type_violation_for(TypeError, _ =>
+        document.createElement("div").innerHTML = input
+      );
+      assert_equals(violation.originalPolicy, "require-trusted-types-for 'script'");
+      assert_equals(violation.sample, `Element innerHTML|${clipSampleIfNeeded(input)}`);
+    }, `Clipping of violation sample for Element.innerHTML = "${input}"`);
+  });
+</script>

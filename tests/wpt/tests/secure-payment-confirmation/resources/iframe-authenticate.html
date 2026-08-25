@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SPC Authentication iframe</title>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../utils.sub.js"></script>
+<script>
+'use strict';
+
+// Setup the listener first, to avoid race conditions.
+window.addEventListener('message', async function handler(evt) {
+  window.removeEventListener('message', handler);
+
+  const credentialId = evt.data[0];
+  const rpId = evt.data[1];
+
+  // Assume that our parent has already created a virtual authenticator device
+  // and set the SPC transaction mode.
+  const challenge = 'server challenge';
+  const payeeOrigin = 'https://merchant.com';
+  const displayName = 'Troycard ***1234';
+
+  try {
+    const request = new PaymentRequest([{
+      supportedMethods: 'secure-payment-confirmation',
+      data: {
+        credentialIds: [credentialId],
+        challenge: Uint8Array.from(challenge, c => c.charCodeAt(0)),
+        payeeOrigin,
+        rpId,
+        timeout: 60000,
+        instrument: {
+          displayName,
+          icon: ICON_URL,
+        },
+      }
+    }], PAYMENT_DETAILS);
+
+    test_driver.set_test_context(window.parent);
+    await test_driver.bless('user activation');
+    const responsePromise = request.show();
+
+    const response = await responsePromise;
+    await response.complete('success');
+
+    const cred = response.details;
+
+    // Let our parent know the results. Some WebAuthn fields cannot be cloned, so
+    // we have to do some teardown ourselves.
+    const clientDataJSON = JSON.parse(arrayBufferToString(cred.response.clientDataJSON))
+    window.parent.postMessage({ type: 'spc_result', id: cred.id, clientDataJSON }, '*');
+  } catch (e) {
+    window.parent.postMessage({ type: 'spc_result', error: e }, '*');
+  }
+});
+
+// Now let our parent know that we are ready to receive the credential ID.
+window.parent.postMessage({ type: 'loaded' }, '*');
+</script>

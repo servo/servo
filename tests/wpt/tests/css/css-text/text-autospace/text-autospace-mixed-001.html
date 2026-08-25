@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-autospace-property">
+<link rel="match" href="text-autospace-mixed-001-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+#container > div {
+  font-family: Ahem;
+  font-size: 40px;
+  text-autospace: normal;
+}
+</style>
+<div id="container">
+  <div>国国&#x5d0;&#x5d1;&#x5d2;国国</div>
+  <div>国国<span>&#x5d0;&#x5d1;</span>&#x5d2;国国</div>
+  <div>国国&#1605;&#1615;&#1585;&#1614;&#1576;&#1614;&#1617;&#1593;&#1618;国国</div>
+</div>

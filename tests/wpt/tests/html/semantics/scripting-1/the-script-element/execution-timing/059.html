@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html><head>
+        <title> scheduler: appending code to initially non-empty SCRIPT tag in DOM after removing its initial child </title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="testlib/testlib.js"></script>
+        <script>/**/</script>
+</head>
+<body>
+
+        <div id="log">FAILED (This TC requires JavaScript enabled)</div>
+
+        <script>log('inline script #1');
+                var script=document.getElementsByTagName('script')[3];
+                script.removeChild(script.firstChild);
+                script.appendChild( document.createTextNode('log("injected script code");') );
+                log('end script #1');
+        </script>
+        <script type="text/javascript">
+        log( 'inline script #2' );
+        var t = async_test()
+
+        function test() {
+                assert_array_equals(eventOrder, ['inline script #1', 'end script #1', 'inline script #2']);
+                t.done();
+        }
+        onload = t.step_func(test);
+        </script>
+
+</body></html>

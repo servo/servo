@@ -1,0 +1,54 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<link rel="help" href="https://drafts.csswg.org/css-viewport/#zoom-property">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1899695">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1916111">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<link rel="match" href="svg-ref.html">
+<style>
+  :root {
+    font-size: 10px;
+    zoom: 2;
+  }
+  body { margin: 0 }
+  .container {
+    font-size: 20px;
+  }
+  .child {
+    zoom: 2;
+  }
+  line {
+    stroke-width: 10px;
+    stroke: lime;
+  }
+  polygon, polyline, text {
+    fill: lime;
+  }
+  text {
+    font: 10px/1 Ahem;
+  }
+  svg {
+    background-color: red;
+  }
+</style>
+<div class="container">
+  <div class="child">
+    <svg width=100 height=100>
+    <defs>
+      <path id="p" d="M80,60H25"/>
+    </defs>
+      <rect width=10rem height=100 fill="blue"/>
+      <line y1=0  y2=0  x1=0 x2=50    />
+      <line y1=10 y2=10 x1=0 x2=2.5em />
+      <line y1=20 y2=20 x1=0 x2=5rem  />
+      <line y1=30 y2=30 x1=0 x2=50%   />
+      <line y1=40 y2=40 x1=0 x2=1vw   />
+      <polygon points="0,50 50,50 50,60 0,60"/>
+      <polyline points="0,60 50,60 50,70 0,70"/>
+      <text x=80 y=60>X</text>
+      <text><textPath href="#p">X</textPath></text>
+    </svg>
+  </div>
+</div>

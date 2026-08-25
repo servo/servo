@@ -1,0 +1,122 @@
+<!-- Adapted from attr-security.html -->
+<!DOCTYPE html>
+<title>CSS Values and Units Test: attr() security limitations using if()</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#attr-security">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  @property --some-string {
+    syntax: "<string>";
+    inherits: false;
+    initial-value: "empty";
+  }
+  div {
+    --condition-val: 3;
+    --str: text;
+    --true: true;
+    --some-string: attr(data-foo);
+  }
+</style>
+
+<html>
+  <body>
+    <div id="attr"></div>
+  </body>
+</html>
+
+<script>
+    function test_attr(property, attrString, attrValue, expectedValue) {
+        var elem = document.getElementById("attr");
+        elem.setAttribute("data-foo", attrValue);
+
+        elem.style.setProperty("--unregistered", attrString);
+        let value = window.getComputedStyle(elem).getPropertyValue("--unregistered");
+
+        test(() => {
+          // Skip tests that include unsupported functions, since they are not violation of attr() security.
+          if (value == "" || CSS.supports(`${property} : ${value}`)) {
+            elem.style.setProperty(property, attrString);
+            assert_equals(window.getComputedStyle(elem).getPropertyValue(property),
+                          expectedValue);
+          }
+        }, `'${property}: ${attrString}' with data-foo="${attrValue}"`);
+
+        elem.style.setProperty(property, null);
+    }
+
+    const url = "https://does-not-exist.test/404.png";
+    const url2 = "https://does-not-exist-2.test/404.png";
+
+    // Test attr-tainting carries through if() function.
+    test_attr('--x',
+              `image-set(if(style(--true): attr(data-foo);))`,
+              url,
+              `image-set("${url}")`);
+    test_attr('background-image',
+              'image-set(if(style(--true): attr(data-foo);))',
+              url,
+              'none');
+    test_attr('background-image',
+              `image-set(
+                if(style(--true): url(${url2});
+                   else: attr(data-foo);))`,
+              url2,
+              `image-set(url("${url2}") 1dppx)`);
+    test_attr('background-image',
+              `image-set(
+                if(style(--some-string): url(${url});))`,
+              url,
+              'none');
+    test_attr('background-image',
+              `image-set(
+                if(style(--condition-val: attr(data-foo type(*))): url(${url});))`,
+              '3',
+              'none');
+    test_attr('background-image',
+              `image-set(
+                if(style(--condition-val: attr(data-foo type(*))): url(${url});
+                   style(--true): url(${url});
+                   else: url(${url});))`,
+              '1',
+              'none');
+    test_attr('background-image',
+              `image-set(if(style(--true): url(${url});
+                            style(--condition-val): url(${url});
+                            else: url(${url});))`,
+              'attr(data-foo type(*))',
+              `image-set(url("${url}") 1dppx)`);
+    test_attr('background-image',
+              `image-set(
+                if(style(--condition-val: if(style(--true): attr(data-foo type(*));)): url(${url});))`,
+              '3',
+              'none');
+    test_attr('--x',
+              `image-set(if(style(--condition-val: if(style(--true): attr(data-foo type(*));)): url(${url});))`,
+              '3',
+              `image-set(url(${url}))`);
+    test_attr('--x',
+              `image-set(if(style(--condition-val >= attr(data-foo type(*))): url(${url});))`,
+              '3',
+              `image-set(url(${url}))`);
+    test_attr('background-image',
+              `image-set(
+                if(style(--condition-val >= attr(data-foo type(*))): url(${url});))`,
+              '3',
+              'none');
+    test_attr('background-image',
+              `image-set(
+                if(style(--condition-val < attr(data-foo type(*))): url(${url});))`,
+              '3',
+              'none');
+    test_attr('background-image',
+              `image-set(
+                if(style(--str < attr(data-foo type(*))): url(${url});))`,
+              '3',
+              'none');
+    test_attr('background-image',
+              `image-set(
+                if(style(--condition-val < attr(data-foo type(*))): url(${url});))`,
+              'text',
+              'none');
+</script>

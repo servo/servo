@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Navigation Timing 2 WPT</title>
+        <link rel="author" title="Google" href="http://www.google.com/" />
+        <link rel="help" href="http://www.w3.org/TR/navigation-timing-2/#sec-PerformanceNavigationTiming"/>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+    </head>
+    <body>
+        <h1>Description</h1>
+        <p>This test validates that PerformanceObserver can observe nav timing 2 instance and that the expected attributes in nav timing 2 instance exist (but does not validate that the values are correct).</p>
+
+        <script>
+        var navTiming2Attributes = [
+            'connectEnd',
+            'connectStart',
+            'decodedBodySize',
+            'domComplete',
+            'domContentLoadedEventEnd',
+            'domContentLoadedEventStart',
+            'domInteractive',
+            'domainLookupEnd',
+            'domainLookupStart',
+            'duration',
+            'encodedBodySize',
+            'entryType',
+            'fetchStart',
+            'initiatorType',
+            'loadEventEnd',
+            'loadEventStart',
+            'name',
+            'nextHopProtocol',
+            'redirectCount',
+            'redirectEnd',
+            'redirectStart',
+            'requestStart',
+            'responseEnd',
+            'responseStart',
+            'secureConnectionStart',
+            'transferSize',
+            'type',
+            'unloadEventEnd',
+            'unloadEventStart',
+            'workerStart'
+        ];
+        async_test(function (t) {
+            var observer = new PerformanceObserver(
+                t.step_func(function (entryList) {
+                    var entries = entryList.getEntries();
+                    assert_equals(entries.length, 1,
+                        "There should be only one navigation timing instance.");
+                    for (var i = 0; i < navTiming2Attributes.length; i++) {
+                        assert_true(navTiming2Attributes[i] in entries[0],
+                            "Expected attribute: " + navTiming2Attributes[i] + ".");
+                    }
+                    observer.disconnect();
+                    t.done();
+                })
+            );
+            observer.observe({entryTypes: ["navigation"]});
+
+        }, "Performance navigation timing entries are observable.");
+        </script>
+    </body>
+</html>

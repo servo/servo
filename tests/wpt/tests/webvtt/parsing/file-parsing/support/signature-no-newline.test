@@ -1,0 +1,7 @@
+signature, no newline
+<link rel="help" href="https://w3c.github.io/webvtt/#webvtt-parser-algorithm">
+
+assert_equals(cues.length, 0);
+
+===
+WEBVTT

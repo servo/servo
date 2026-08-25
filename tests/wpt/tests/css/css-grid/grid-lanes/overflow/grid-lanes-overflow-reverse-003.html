@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes Test: fill-reverse and track-reverse overflow edges in RTL</title>
+  <link rel="author" title="Yanling Wang" href="mailto:yanlingwang@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3">
+  <link rel="help" href="https://drafts.csswg.org/css-overflow-3/#scrollable">
+  <link rel="match" href="grid-lanes-overflow-reverse-003-ref.html">
+  <meta name="assert" content="This test verifies that, under RTL, fill-reverse and track-reverse map to the correct physical overflow edges in grid-lanes scroll containers.">
+  <style>
+  .grid-lanes {
+    display: inline grid-lanes;
+    vertical-align: top;
+    flow-tolerance: 0;
+    width: 100px;
+    height: 100px;
+    overflow: auto;
+    border: 1px solid black;
+    margin-bottom: 20px;
+  }
+  .grid-lanes > div { width: 40px; height: 30px; }
+  .a { background: coral; }
+  .b { background: steelblue; }
+  .c { background: seagreen; }
+  .d { background: goldenrod; }
+  </style>
+</head>
+<body>
+
+<!-- RTL, row fill-reverse: overflows on the right; scroll starts at the left edge. -->
+<div id="row-fill-reverse-rtl" class="grid-lanes" style="direction: rtl; grid-template-rows: 40px 40px; grid-lanes-direction: row fill-reverse;">
+  <div class="a" style="width:60px;">A</div>
+  <div class="b" style="width:60px;">B</div>
+  <div class="c" style="width:60px;">C</div>
+  <div class="d" style="width:60px;">D</div>
+</div>
+
+<!-- RTL, column normal: grid axis overflows on the left; scroll starts at the right edge. -->
+<div id="column-normal-rtl" class="grid-lanes" style="direction: rtl; grid-template-columns: 40px 40px 40px;">
+  <div class="a">A</div>
+  <div class="b">B</div>
+  <div class="c">C</div>
+</div>
+
+<!-- RTL, column track-reverse: grid axis overflows on the right; scroll starts at the left edge. -->
+<div id="column-track-reverse-rtl" class="grid-lanes" style="direction: rtl; grid-template-columns: 40px 40px 40px; grid-lanes-direction: column track-reverse;">
+  <div class="a">A</div>
+  <div class="b">B</div>
+  <div class="c">C</div>
+</div>
+
+</body>
+</html>

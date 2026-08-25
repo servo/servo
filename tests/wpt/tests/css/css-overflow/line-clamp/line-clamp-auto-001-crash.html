@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: `line-clamp: auto` unresolved BFC offset crash</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+
+<style>
+.clamp {
+  line-clamp: auto;
+  max-height: 1.5lh;
+}
+</style>
+
+<div class="clamp">
+  Line 1
+  <div>
+    <div></div>
+  </div>
+  Line 2
+</div>

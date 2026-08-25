@@ -1,0 +1,48 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Largest Contentful Paint: repeated image.</title>
+<style>
+  #image_id {
+    width: 10px;
+    height: 10px;
+  }
+</style>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/largest-contentful-paint-helpers.js"></script>
+<script>
+  setup({"hide_test_state": true});
+  async_test(function (t) {
+    assert_implements(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
+    let beforeLoad = performance.now();
+    let firstCallback = true;
+    const url = window.location.origin + '/images/black-rectangle.png';
+    const observer = new PerformanceObserver(
+      t.step_func(entryList => {
+        assert_equals(entryList.getEntries().length, 1);
+        const entry = entryList.getEntries()[0];
+
+        // First image is shrunk to be 10 x 10. The second image is added at its natural size: 100 x 50.
+        const size = firstCallback ? 10 * 10 : 100 * 50;
+        const id = firstCallback ? 'image_id' : 'second_id';
+        checkImage(entry, url, id, size, beforeLoad);
+        if (firstCallback) {
+          const img = document.createElement('img');
+          img.src = '/images/black-rectangle.png';
+          img.id = 'second_id';
+          beforeLoad = performance.now();
+          document.getElementById('image_div').appendChild(img);
+          firstCallback = false;
+          return;
+        } else {
+          t.done();
+        }
+      })
+    );
+    observer.observe({type: 'largest-contentful-paint', buffered: true});
+  }, 'Repeated image produces different timestamps.');
+</script>
+<img src='/images/black-rectangle.png' id='image_id'/>
+<div id='image_div'></div>
+</body>

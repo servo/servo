@@ -1,0 +1,19 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="author" name="Delan Azabani" href="mailto:dazabani@igalia.com">
+<link rel="stylesheet" href="../support/highlights.css">
+<style>
+    :link, :visited {
+        color: blue;
+    }
+    main {
+        font-size: 7em;
+        margin: 0.5em;
+    }
+    /*
+        UA default highlight colors for ::target-text.
+    */
+</style>
+<p>Test passes if the text below does not appear to be highlighted (<a href="">test again</a>).
+<main class="highlight_reftest">quick</main>
+<script>location.href = "#:~:text=quick";</script>

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-sizes">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1748339">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+
+<style>
+.outer {
+  width: 100px;
+}
+
+.photogallery-wrapper {
+  height: 0px;
+  padding-top: 80%;
+  position: relative;
+  box-sizing: border-box;
+  border: 10px solid green;
+}
+
+.photogallery-swiper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.swiper-slide {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  box-sizing: border-box;
+  border: 10px solid green;
+}
+
+.img-wrapper {
+  height: 100%;
+  border: 10px solid green;
+  box-sizing: border-box;
+}
+
+svg {
+  max-height: 100%;
+  width: 100%;
+  display: block;
+}
+</style>
+
+<p>Test passes if there is a filled green square.</p>
+<div class="outer">
+  <div class="photogallery-wrapper">
+    <div class="photogallery-swiper">
+      <div class="swiper-slide">
+        <div class="img-wrapper">
+          <svg width="400" height="400">
+            <rect height="100%" width="100%" fill="green"></rect>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

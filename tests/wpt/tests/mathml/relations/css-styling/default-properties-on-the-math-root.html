@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Default properties on the &lt;math&gt; root</title>
+<link rel="help" href="https://w3c.github.io/mathml-core/#the-top-level-math-element">
+<link rel="help" href="https://w3c.github.io/mathml-core/#user-agent-stylesheet">
+<meta name="assert" content="Test properties on the math root set by the UA stylesheet.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  math {
+      font-size: 100px;
+  }
+  .styled {
+      direction: rtl;
+      writing-mode: vertical-lr;
+      text-indent: .5em;
+      letter-spacing: .5em;
+      line-height: .5em;
+      word-spacing: .5em;
+      font-style: italic;
+      font-weight: bold;
+  }
+</style>
+
+</head>
+<body>
+  <div id="log"></div>
+  <div class="styled">
+    <math id="ua"></math>
+    <math id="author" class="styled"></math>
+  </div>
+
+  <script>
+    function getProperty(id, property) {
+        return window.getComputedStyle(document.getElementById(id))[property];
+    }
+    [
+        // Property name, value when specified from the UA, from the author.
+        ["direction", "ltr", "rtl"],
+        ["writing-mode", "horizontal-tb", "horizontal-tb"], // MathML Core level 1 only supports horizontal mode.
+        ["text-indent", "0px", "50px"],
+        ["letter-spacing", "normal", "50px"],
+        ["line-height", "normal", "50px"],
+        ["word-spacing", "0px", "50px"],
+        ["font-style", "normal", "italic"],
+        ["font-weight", "400", "700"]
+    ].forEach(([name, ua_value, author_value]) => {
+        test(function () {
+            assert_equals(getProperty("ua", name), ua_value, "when specified from the UA sheet");
+            assert_equals(getProperty("author", name), author_value, "when specified by the author");
+        }, `Value of ${name} on the <math> root`);
+    });
+  </script>
+</body>
+</html>

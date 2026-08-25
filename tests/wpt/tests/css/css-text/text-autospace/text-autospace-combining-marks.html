@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-autospace-property">
+<link rel="author" title="Vitor Roriz" href="https://github.com/vitorroriz">
+<link rel="match" href="text-autospace-combining-marks-ref.html">
+<style>
+.test {
+  font-size: 40px;
+  border: solid 3px salmon;
+  width: fit-content;
+  margin-bottom: 2px;
+}
+.normal {
+  text-autospace: normal;
+}
+</style>
+<div class="test normal">国&#x301;X</div>
+<div class="test normal">国&#x301;国</div>
+<div class="test normal">国&#x301;X&#x301;</div>
+<div class="test normal">国&#x301;国&#x301;</div>
+<br>
+<div class="test normal">X&#x301;X</div>
+<div class="test normal">X&#x301;国</div>
+<div class="test normal">X&#x301;X&#x301;</div>
+<div class="test normal">X&#x301;国&#x301;</div>
+<br>
+<div class="test normal">XX</div>
+<div class="test normal">X国</div>
+<div class="test normal">XX&#x301;</div>
+<div class="test normal">X国&#x301;</div>
+<br>
+<div class="test normal">国X</div>
+<div class="test normal">国国</div>
+<div class="test normal">国X&#x301;</div>
+<div class="test normal">国国&#x301;</div>

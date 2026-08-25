@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <link rel="help" href="https://wicg.github.io/manifest-incubations/#scope_extensions-member">
+  <link rel="manifest" href="resources/scope_extensions-member.sub.webmanifest" />
+  <title>Scope Extensions Web Platform Test</title>
+  <script>
+    const primaryOrigin = "https://{{host}}:{{ports[https][0]}}";
+    const isPrimaryOrigin = location.origin === primaryOrigin;
+    if (!isPrimaryOrigin) {
+      location.replace(new URL(location.pathname, primaryOrigin));
+    }
+
+    async function prepareTest() {
+      const loading = document.querySelector("#loading");
+      if (!("serviceWorker" in navigator)) {
+        loading.textContent =
+          "This user agent does not support service workers, so the app " +
+          "cannot be installed for this test.";
+        return;
+      }
+
+      try {
+        await navigator.serviceWorker.register(
+          "scope_extensions-member-service-worker.js");
+        await navigator.serviceWorker.ready;
+      } catch (error) {
+        loading.textContent =
+          `Service worker registration failed: ${error.message}`;
+        return;
+      }
+
+      loading.hidden = true;
+      document.querySelector("#instructions").hidden = false;
+    }
+
+    if (isPrimaryOrigin) {
+      addEventListener("DOMContentLoaded", prepareTest);
+    }
+  </script>
+  <style>
+    body {
+      margin: 2em;
+    }
+
+    li {
+      margin-block: 1em;
+    }
+  </style>
+</head>
+<body>
+  <h1>Scope Extensions Test</h1>
+  <p>
+    This test compares URLs inside and outside the scope granted by an
+    authorized <code>web-app-origin-association</code> file with an origin that
+    does not authorize this app.
+  </p>
+  <p id="loading" role="status" aria-live="polite">
+    Waiting for service worker to activate&hellip;
+  </p>
+  <section id="instructions" hidden>
+    <h2>Instructions</h2>
+    <p>
+      <strong>Prerequisite:</strong> Configure the browser to accept WPT's
+      loopback certificate for <code>https://127.0.0.1</code>; otherwise, the
+      browser cannot retrieve the origin association. Chromium manual runs
+      should use WPT's SPKI allowlist through
+      <code>--ignore-certificate-errors-spki-list</code> rather than disabling
+      certificate verification globally.
+    </p>
+    <ol>
+      <li>
+        Install this site as an app, then launch the installed app. Complete
+        the remaining steps from its app window.
+      </li>
+      <li>
+        Open the
+        <a href="https://127.0.0.1:{{ports[https][0]}}/appmanifest/scope_extensions-member/resources/scope_extensions-member-target.html">authorized target</a>.
+        It should remain in the app context and should not receive the user
+        agent's normal out-of-scope treatment.
+      </li>
+      <li>
+        Return to this page using Back. If the target opened in a separate tab
+        or window, close it instead.
+      </li>
+      <li>
+        Open the
+        <a href="https://127.0.0.1:{{ports[https][0]}}/appmanifest/scope_extensions-member/scope_extensions-member-outside-association-scope-target.html">target outside the association scope</a>.
+        Its origin authorizes this app, but the URL is outside the path granted
+        by the association file, so it should receive the user agent's normal
+        out-of-scope treatment.
+      </li>
+      <li>
+        Return to this page using Back. If the target opened in a separate tab
+        or window, close it instead.
+      </li>
+      <li>
+        Open the
+        <a href="https://127.0.0.1:{{ports[https][1]}}/appmanifest/scope_extensions-member/resources/scope_extensions-member-no-association-target.html">unauthorized target</a>.
+        It should be treated as outside the app's scope, for example by opening
+        in a browser tab or by showing the user agent's normal out-of-scope UI.
+      </li>
+      <li>
+        The test passes if the authorized target inside the association scope
+        is treated as extended scope, while both other targets are treated as
+        out of scope.
+      </li>
+    </ol>
+  </section>
+</body>
+</html>

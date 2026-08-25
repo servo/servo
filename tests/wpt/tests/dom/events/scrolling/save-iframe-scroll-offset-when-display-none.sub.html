@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<div style="width: 10000px; height: 10000px">
+  <!-- Adding <input> is to reproduce scroll offset reset when display:none -->
+  <input type="text">
+</div>
+<script>
+function postReplyMessage(target, frame_id, command) {
+  target.postMessage({
+    command: command,
+    frame_id: frame_id,
+    scrollX: window.scrollX,
+    scrollY: window.scrollY
+  }, "*");
+}
+
+function handleMessage(event) {
+  switch (event.data.command) {
+    case 'scrollTo':
+      window.scrollTo(event.data.scrollX, event.data.scrollY);
+      break;
+    case 'getScroll':
+      // No-op, just reply with current scroll position.
+      break;
+    default:
+      throw Error(`Unknown command: ${event.data.command}`);
+      break;
+  }
+  requestAnimationFrame(() => {
+    postReplyMessage(event.source, event.data.frame_id, event.data.command);
+  });
+}
+
+window.addEventListener('message', handleMessage);
+</script>

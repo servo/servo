@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title id='desc'> WheelEvent: wheel - MouseEvent.ctrlKey and Zooming </title>
+        <script type="text/javascript">
+            var PassTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "PASS";
+            }
+
+            var FailTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "FAIL";
+            }
+
+            function DisableZooming()
+            {
+                BEFORE = HELPER.getBoundingClientRect().width;
+                DisableZoom = true;
+            }
+
+            function VerifyResult()
+            {
+                AFTER = HELPER.getBoundingClientRect().width;
+
+                if ((true == DisableZoom) && (true == TestResult) && (BEFORE == AFTER))
+                {
+                    PassTest();
+                }
+                else
+                {
+                    FailTest();
+                }
+            }
+
+            function TestEvent(evt)
+            {
+                if ((true == DisableZoom) && (true == evt.ctrlKey) && (EVENT == evt.type))
+                {
+                    evt.preventDefault();
+                    TestResult = evt.defaultPrevented;
+                }
+            }
+
+            var EVENT = "wheel";
+            var TARGET;
+            var HELPER;
+            var BEFORE;
+            var AFTER;
+            var DisableZoom = false;
+            var TestResult = false;
+
+            window.onload = function()
+            {
+                try
+                {
+                    TARGET = document;
+                    HELPER = document.getElementById("helper");
+                    TARGET.addEventListener(EVENT, TestEvent, true);
+                }
+                catch(ex)
+                {
+                    FailTest();
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <h3>DOM Events</h3>
+        <h4>
+            Test Description: The typical default action of the wheel event type, in some cases,  is to
+            zoom the document. If this event is canceled, the implementation must not zoom the document.
+        </h4>
+
+        <div id="helper" style="width:100%"></div>
+
+        <p id="manualsteps">
+            Steps:
+            <ol>
+                <li> Note: an input device with scroll wheel support (e.g., mouse wheel) is required
+                <li> Make sure the page can be zoomed in/out by holding down '{CTRL}' key + scrolling the mouse wheel on the page
+                <li> Now, click the button: <button id="verify" onclick="DisableZooming()">Disable Zooming</button>
+                <li> Press and hold down '{CTRL}' key on the keyboard
+                <li> Move the mouse pointer to the center of the page
+                <li> Scroll down/up the mouse wheel some units
+                <li> Click the button: <button id="verify" onclick="VerifyResult()">VerifyResult</button>
+            </ol>
+        </p>
+        <p>Test passes if the word "PASS" appears below after following the above steps.</p>
+        <div>Test result: </div>
+        <div id='testresult'>FAIL</div>
+    </body>
+</html>

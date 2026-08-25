@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=author href="mailto:falken@chromium.org">
+<link rel=help href="https://html.spec.whatwg.org/multipage/interactive-elements.html#the-dialog-element">
+<link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=253357">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/top-layer.js"></script>
+<script src="/close-watcher/resources/helpers.js"></script>
+
+<!--
+To test manually, hit Escape once to see the topmost dialog turn green
+then once again to close it. Repeat for the remaining dialog.
+-->
+
+<style>
+#bottom {
+  top: 100px;
+  left: 100px;
+  height: 300px;
+  width: 300px;
+  margin: 0;
+  background: cyan;
+}
+
+#top {
+  top: 150px;
+  left: 150px;
+  height: 200px;
+  width: 200px;
+  margin: 0;
+  background: yellow;
+}
+</style>
+
+<dialog id="bottom">
+  <span></span>
+  <div>You can't Escape when this textbox has focus: <input id="swallow-input" type="text"></div>
+  <div>You can Escape even if this textbox has focus: <input id="normal-input" type="text"></div>
+</dialog>
+<dialog id="top">
+  <span></span>
+</dialog>
+
+<script>
+function handleCancel(event) {
+  this.style.background = 'green';
+  this.querySelector('span').textContent = 'I blocked the cancel! Try again to close me.';
+  event.preventDefault();
+  this.removeEventListener('cancel', handleCancel);
+}
+
+promise_test(async () => {
+  bottomDialog = document.getElementById('bottom');
+  bottomDialog.addEventListener('cancel', handleCancel);
+
+  topDialog = document.getElementById('top');
+  topDialog.addEventListener('cancel', handleCancel);
+
+  normalInput = document.getElementById('normal-input');
+  swallowInput = document.getElementById('swallow-input');
+  swallowInput.addEventListener('keydown', function(event) {
+    event.preventDefault();
+  });
+
+  await test_driver.bless();
+  bottomDialog.showModal();
+  await blessTopLayer(bottomDialog);
+  topDialog.showModal();
+
+  await blessTopLayer(topDialog);
+  await sendEscKey();
+  assert_true(topDialog.open, 'Top dialog event listener should prevent closing.');
+  assert_true(bottomDialog.open, 'Top dialog event listener should prevent closing.');
+
+  await blessTopLayer(topDialog);
+  await sendEscKey();
+  assert_false(topDialog.open, 'Top dialog should close.');
+  assert_true(bottomDialog.open, 'Top dialog should close.');
+
+  swallowInput.focus();
+  await sendEscKey();
+  await sendEscKey();
+  await sendEscKey();
+  assert_false(topDialog.open, 'Input should swallow Escape mechanism.');
+  assert_true(bottomDialog.open, 'Input should swallow Escape mechanism.');
+
+  normalInput.focus();
+  await sendEscKey();
+  assert_false(topDialog.open, 'Bottom dialog event listener should prevent closing.');
+  assert_true(bottomDialog.open, 'Bottom dialog event listener should prevent closing.');
+
+  await sendEscKey();
+  assert_false(topDialog.open, 'Bottom dialog should close.');
+  assert_false(bottomDialog.open, 'Bottom dialog should close.');
+
+  await sendEscKey();
+  assert_false(topDialog.open, 'Pressing Escape now should do nothing.');
+  assert_false(bottomDialog.open, 'Pressing Escape now should do nothing.');
+
+  bottomDialog.remove();
+  topDialog.remove();
+}, 'Modal dialogs should close when the escape key is pressed.');
+
+</script>

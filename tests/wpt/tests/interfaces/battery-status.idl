@@ -1,0 +1,21 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Battery Status API (https://w3c.github.io/battery/)
+
+[SecureContext]
+partial interface Navigator {
+  Promise<BatteryManager> getBattery();
+};
+
+[SecureContext, Exposed=Window]
+interface BatteryManager : EventTarget {
+    readonly        attribute boolean             charging;
+    readonly        attribute unrestricted double chargingTime;
+    readonly        attribute unrestricted double dischargingTime;
+    readonly        attribute double              level;
+                    attribute EventHandler        onchargingchange;
+                    attribute EventHandler        onchargingtimechange;
+                    attribute EventHandler        ondischargingtimechange;
+                    attribute EventHandler        onlevelchange;
+};

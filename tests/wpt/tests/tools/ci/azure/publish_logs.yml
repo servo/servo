@@ -1,0 +1,7 @@
+steps:
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish safaridriver logs'
+  inputs:
+    pathtoPublish: /Users/runner/Library/Logs/com.apple.WebDriver/
+    artifactName: safaridriver-logs
+  condition: eq(variables['safaridriver_diagnose'], true)

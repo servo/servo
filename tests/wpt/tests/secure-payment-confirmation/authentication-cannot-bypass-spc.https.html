@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test for the 'secure-payment-confirmation' payment method authentication - cannot authenticate via navigator.credentials.get directly</title>
+<link rel="help" href="https://w3c.github.io/secure-payment-confirmation#client-extension-processing-authentication">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="utils.sub.js"></script>
+<script>
+'use strict';
+
+promise_test(async t => {
+  const authenticator = await window.test_driver.add_virtual_authenticator(
+      AUTHENTICATOR_OPTS);
+  t.add_cleanup(() => {
+    return window.test_driver.remove_virtual_authenticator(authenticator);
+  });
+
+  await window.test_driver.set_spc_transaction_mode("autoAccept");
+  t.add_cleanup(() => {
+    return window.test_driver.set_spc_transaction_mode("none");
+  });
+
+  const credential = await createCredential();
+
+  const challenge = 'server challenge';
+  const payeeOrigin = 'https://merchant.com';
+  const displayName = 'Troycard ***1234';
+  const paymentInputs = {
+    isPayment: true,
+    rp: window.location.hostname,
+    topOrigin: window.location.origin,
+    payeeOrigin,
+    total: PAYMENT_DETAILS['total'],
+    instrument: {
+        displayName,
+        icon: ICON_URL,
+    },
+  };
+  const publicKey = {
+    allowCredentials: [
+      { type: 'public-key', id: credential.rawId, transports: [ 'internal' ] },
+    ],
+    challenge: Uint8Array.from(challenge, c => c.charCodeAt(0)),
+    timeout: 60000,
+    userVerification: 'required',
+    extensions: {
+      payment: paymentInputs,
+    },
+  };
+
+  return promise_rejects_dom(t, 'NotAllowedError',
+      navigator.credentials.get({publicKey}));
+}, 'Cannot bypass SPC authentication UI via navigator.credentials.get');
+</script>

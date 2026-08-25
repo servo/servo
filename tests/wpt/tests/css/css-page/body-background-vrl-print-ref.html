@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<style>
+  :root {
+    print-color-adjust: exact;
+  }
+  body {
+    margin: 0;
+  }
+  @page {
+    size: 800px 600px;
+    margin: 0;
+  }
+</style>
+<p style="position:absolute; left:20px; top:0; width:160px;">
+  There should be a top-right-aligned blue box on the first page, and a
+  top-aligned hotpink box on the second page.
+  The background of the first page is lightgray, and the background of the
+  second page is white.
+</p>
+<div style="height:600px; background:lightgray">
+  <div style="margin-left:auto; width:600px; height:100px; background:blue;"></div>
+</div>
+<div style="width:800px; height:100px; background:hotpink;"></div>

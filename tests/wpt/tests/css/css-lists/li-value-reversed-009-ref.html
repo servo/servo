@@ -1,0 +1,54 @@
+<!doctype html>
+<title></title>
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<style>
+:root {
+  color:black; background-color:white; font:10px/1 monospace;
+}
+ol::before, li::before {
+  content: counters(list-item,".");
+}
+</style>
+<ol start="10">
+ <li style="counter-increment: list-item -2">
+ <li style="counter-increment: list-item -2">
+  <ol start="10">
+   <li style="counter-increment: list-item -3">
+   <li style="counter-increment: list-item -1">
+   <li style="counter-increment: list-item -8">
+  </ol>
+ </li>
+ <li style="counter-increment: list-item -2">
+</ol>
+<ol start="9">
+ <li style="counter-increment: list-item -3">
+ <li style="counter-increment: list-item -1">
+  <ol start="8">
+   <li style="counter-increment: list-item -2">
+   <li style="counter-increment: list-item -2">
+   <li style="counter-increment: list-item -2">
+  </ol>
+ </li>
+ <li style="counter-increment: list-item -8">
+</ol>
+<ol start="2">
+ <li style="counter-increment: list-item 2">
+ <li style="counter-increment: list-item 2">
+ <li style="counter-increment: list-item 2">
+  <ol start="-6">
+   <li style="counter-increment: list-item 3">
+   <li style="counter-increment: list-item 1">
+   <li style="counter-increment: list-item 8">
+  </ol>
+ </li>
+</ol>
+<ol start="-6">
+ <ol start="3">
+  <li style="counter-increment: list-item 3">
+  <li style="counter-increment: list-item 1">
+  <li style="counter-increment: list-item 8">
+ </ol>
+ <li style="counter-increment: list-item 3">
+ <li style="counter-increment: list-item 1">
+ <li style="counter-increment: list-item 8">
+</ol>

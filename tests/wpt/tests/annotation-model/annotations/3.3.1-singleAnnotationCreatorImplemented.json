@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "3.3.1-singleAnnotationCreatorImplemented.json",
+  "assertionType": "should",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "passAndContinue",
+  "errorMessage": "  Annotation should have exactly one creator.",
+  "title": "Annotation implements creator key with single value.",
+  "description": "True when the Annotation implements creator key with single value (Section 3.3.1)",
+  "allOf":
+    [
+    { "$ref": "otherProperties.json#/definitions/singleCreatorPropertyFound"}
+    ]
+}

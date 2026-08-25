@@ -1,0 +1,42 @@
+<!DOCTYPE HTML>
+<html>
+<meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+.grid {
+  display: inline-grid;
+  grid-template-rows: 10px 80px;
+  grid-template-columns: auto auto;
+  border: 1px solid;
+  font:10px/1 Ahem;
+}
+item {
+  width: 40px;
+  background: grey;
+}
+.stretch {
+  align-self: stretch;
+  background: green;
+}
+.subgrid {
+  display: grid;
+  grid: subgrid / auto;
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  border: 0 solid lightblue;
+  border-bottom-width: 80px;
+  background: yellow;
+}
+.subgrid > item {
+  height: 10px;
+  background: lightgrey;
+}
+</style>
+<div class="grid">
+  <item style="height:10px">1</item>
+  <item class="stretch">2</item>
+  <div class="subgrid">
+    <item>a</item>
+  </div>
+</div>
+</html>

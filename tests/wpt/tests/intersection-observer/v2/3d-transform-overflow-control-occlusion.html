@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #scene {
+    transform: translateX(0px);
+    transform-style: preserve-3d;
+  }
+  #target {
+    position: absolute;
+    left: 100px;
+    top: 100px;
+    width: 200px;
+    height: 40px;
+    background: red;
+  }
+  #scroller {
+    position: absolute;
+    left: 50px;
+    top: 10px;
+    width: 155px;
+    height: 115px;
+    overflow: auto;
+    resize: both;
+    transform: translateZ(-1px);
+    background: blue;
+  }
+  #overlay {
+    position: absolute;
+    left: 100px;
+    top: 100px;
+    width: 200px;
+    height: 40px;
+    transform: translateZ(1px);
+    background: purple;
+  }
+</style>
+<div id="scene">
+  <div id="target"></div>
+  <div id="scroller"></div>
+  <div id="overlay"></div>
+</div>
+
+<script>
+  setup({ single_test: true });
+  const target = document.getElementById("target");
+  new IntersectionObserver(entries => {
+    assert_false(entries[0].isVisible);
+    done();
+  }, {trackVisibility: true, delay: 100}).observe(target);
+</script>

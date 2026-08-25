@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src='/common/get-host-info.sub.js'></script>
+  <script src='/webcodecs/utils.js'></script>
+</head>
+<body>
+<script>
+const HELPER = '/webcodecs/videoFrame-serialization.crossAgentCluster.helper.html';
+const CROSSORIGIN_BASE = get_host_info().HTTPS_NOTSAMESITE_ORIGIN;
+const CROSSORIGIN_HELPER = CROSSORIGIN_BASE + HELPER;
+
+promise_test(async (t) => {
+  const target = (await appendIframe(CROSSORIGIN_HELPER)).contentWindow;
+  let frame = createVideoFrame(t, 20);
+  assert_false(await canSerializeVideoFrame(target, frame));
+}, 'Verify frames cannot be passed accross the different agent clusters');
+
+promise_test(async (t) => {
+  const target = (await appendIframe(CROSSORIGIN_HELPER)).contentWindow;
+  let frame = createVideoFrame(t, 80);
+  assert_false(await canTransferVideoFrame(target, frame));
+}, 'Verify frames cannot be transferred accross the different agent clusters');
+
+function appendIframe(src) {
+  const frame = document.createElement('iframe');
+  document.body.appendChild(frame);
+  frame.src = src;
+  return new Promise(resolve => frame.onload = () => resolve(frame));
+};
+
+function createVideoFrame(test, timestamp) {
+  let data = new Uint8Array([
+    1, 2, 3, 4, 5, 6, 7, 8,
+    9, 10, 11, 12, 13, 14, 15, 16,
+  ]);
+  const frame = new VideoFrame(data, {
+    timestamp,
+    codedWidth: 2,
+    codedHeight: 2,
+    format: 'RGBA',
+  });
+  test.add_cleanup(() => frame.close());
+  return frame;
+}
+
+function canSerializeVideoFrame(target, vf) {
+  return canPostVideoFrame(target, vf, false);
+};
+
+function canTransferVideoFrame(target, vf) {
+  return canPostVideoFrame(target, vf, true);
+};
+
+function canPostVideoFrame(target, vf, transfer) {
+  if (transfer) {
+    target.postMessage(vf, '*', [vf]);
+    assert_true(isFrameClosed(vf));
+  } else {
+    target.postMessage(vf, '*');
+  }
+  // vf.timestamp doesn't change after vf is closed, so it's fine to use it.
+  target.postMessage({'id': vf.timestamp}, '*');
+  return new Promise(resolve => window.onmessage = e => {
+    resolve(e.data == 'RECEIVED');
+  });
+};
+</script>
+</body>
+</html>

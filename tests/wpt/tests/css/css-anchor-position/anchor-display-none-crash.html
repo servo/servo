@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://issues.chromium.org/issues/406054648">
+<html class="test-wait">
+  <style>
+    @position-try --pf {
+      position-anchor: --b;
+    }
+  </style>
+  <div id="elm" style="anchor-name:--a;"></div>
+  <div style="anchor-name:--b; width:40%;"></div>
+  <div style="position:absolute; left:anchor(right); width:40%; position-anchor:--a; position-try-fallbacks:--pf;"></div>
+  <script>
+    requestAnimationFrame(()=> {
+      requestAnimationFrame(()=> {
+        elm.style.display = "none";
+        document.documentElement.classList.remove("test-wait");
+      });
+    });
+  </script>
+</html>

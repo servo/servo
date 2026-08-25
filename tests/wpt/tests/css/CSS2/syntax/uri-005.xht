@@ -1,0 +1,21 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: URL function with escaped special chars - single quote</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#uri" />
+        <link rel="match" href="../reference/ref-green-background.xht"/>
+        <meta name="flags" content="image" />
+        <meta name="assert" content="Single quote characters appearing in an unquoted URI need to be escaped with a backslash so that the resulting URI value is a URI token." />
+        <style type="text/css">
+            p
+            {
+                color: white;
+                background: red url(support/\'green\ block.png);
+            }
+        </style>
+    </head>
+    <body>
+        <p>This should have a green background.</p>
+    </body>
+</html>

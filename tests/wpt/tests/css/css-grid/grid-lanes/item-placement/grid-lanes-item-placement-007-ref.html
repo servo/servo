@@ -1,0 +1,120 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>Reference: Grid Lanes item placement (RTL)</title>
+  <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+  <style>
+html,body {
+  color:black; background-color:white; font:15px/1 monospace; padding:0; margin:0;
+}
+
+grid {
+  display: inline-grid;
+  gap: 1px 2px;
+  grid-template-columns: repeat(4,20px);
+  color: #444;
+  border: 1px solid;
+  padding: 2px;
+  direction: rtl;
+  vertical-align: text-top;
+}
+
+flex {
+  gap: 1px;
+  display: flex;
+  flex-direction: column;
+  height: fit-content;
+}
+
+item {
+  background-color: #444;
+  color: #fff;
+}
+</style>
+</head>
+<body>
+
+<grid>
+  <item style="padding-top:30px; grid-column:1/2; grid-row:1/2">1</item>
+  <flex>
+    <item>2</item>
+    <item>5</item>
+  </flex>
+  <flex>
+    <item>3</item>
+    <item>6</item>
+  </flex>
+  <item style="grid-column:4/5; height: fit-content;">4</item>
+</grid>
+
+<grid>
+  <item style="padding-top:30px; grid-column:2/3">2</item>
+  <flex>
+    <item style="grid-column:3/4">3</item>
+    <item style="grid-column:3/4">6</item>
+  </flex>
+  <item style="grid-column:4/5; height: fit-content;">4</item>
+  <div style="grid-row:1/2">
+    <flex>
+      <item>1</item>
+      <item>5</item>
+    </flex>
+  </div>
+</grid>
+
+<grid>
+  <item style="padding-top:30px; grid-column:1/2">1</item>
+  <item style="padding-top:30px; grid-column:2/3">2</item>
+  <flex>
+    <item style="padding-top:10px;">3</item>
+    <item>5</item>
+  </flex>
+  <flex>
+    <item>4</item>
+    <item>6</item>
+  </flex>
+</grid>
+
+<grid>
+  <flex>
+    <item>1</item>
+    <item>5</item>
+  </flex>
+  <flex>
+    <item style="padding-top:30px">2</item>
+    <item>6</item>
+  </flex>
+  <flex>
+    <item style="padding-top:10px; grid-column:3/4">3</item>
+    <item style="width: calc(200% + 2px)">4</item>
+  </flex>
+</grid>
+
+<grid>
+  <item style="grid-column:1/2; height: fit-content;">1</item>
+  <item style="padding-top:30px; height: fit-content;">2</item>
+  <item style="padding-top:10px; height: fit-content;">3</item>
+  <item style="grid-column:1/span 3">4</item>
+  <div style="grid-column:4/5; grid-row:1/2">
+    <flex>
+      <item>5</item>
+      <item>6</item>
+    </flex>
+  </div>
+</grid>
+
+<grid>
+  <item style="grid-column:1/2; height: fit-content;">1</item>
+  <item style="padding-top:30px; grid-column:2/3; height: fit-content;">2</item>
+  <item style="padding-top:10px; grid-column:3/4; height: fit-content;">3</item>
+  <item style="grid-column:1/span 4">4</item>
+  <item style="grid-column:1/2">5</item>
+  <item style="grid-column:2/3">6</item>
+</grid>
+
+</body>
+</html>

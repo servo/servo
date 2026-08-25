@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Animate using sibling iframe's timeline</title>
+</head>
+<body></body>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script type="text/javascript">
+  'use strict';
+
+  function crossSiteUrl(filename) {
+    const url =
+        get_host_info().HTTP_REMOTE_ORIGIN +
+            '/web-animations/timing-model/timelines/resources/' +
+            filename;
+    return url;
+  }
+
+  function loadFrame(name, path, hidden) {
+    return new Promise(resolve => {
+      const frame = document.createElement('iframe');
+      if (hidden)
+        frame.style = 'visibility: hidden;';
+      frame.name = name;
+      document.body.appendChild(frame);
+      frame.onload = () => {
+        resolve();
+      }
+      frame.src = crossSiteUrl(path);
+    });
+  }
+
+ function waitForTestResults() {
+    return new Promise(resolve => {
+      const listener = (evt) => {
+        window.removeEventListener('message', listener);
+        resolve(evt.data);
+      };
+      window.addEventListener('message', listener);
+    });
+  }
+
+  promise_test(async t => {
+    const promise = waitForTestResults().then((data) => {
+      assert_equals(data, 'PASS');
+    });
+    // Animate an element in frame A.
+    await loadFrame('a', 'target-frame.html', false);
+    // Animation's timeline is in hidden frame B.
+    await loadFrame('b', 'timeline-frame.html', true);
+
+   return promise;
+  }, 'animation tied to another frame\'s timeline runs properly');
+</script>
+</html>

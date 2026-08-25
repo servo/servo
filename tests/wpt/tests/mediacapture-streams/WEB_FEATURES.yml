@@ -1,0 +1,6 @@
+rules:
+- BrowserCaptureMediaStreamTrack-restrictTo.https.html: [element-capture]
+- BrowserCaptureMediaStreamTrack-cropTo.https.html: [region-capture]
+- BrowserCaptureMediaStreamTrack-*: []
+- message-enumerateddevices*.js: []
+- "*": [media-capture]

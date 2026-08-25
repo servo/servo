@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="en" xml:lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Namespace identifiers should be case sensitive (bug 416106)</title>
+<link rel="match" href="attr-namespace-case-sensitivity-ref.xhtml"/>
+<link rel="help" href="https://bugzil.la/416106"/>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#typedef-attr-name"/>
+<style>
+  @namespace foo url(http://www.example.com/1);
+  @namespace Foo url(http://www.example.com/2);
+  @namespace fOO url(http://www.example.com/3);
+
+  foo|one { color: green; }
+  Foo|two { color: green; }
+  fOO|three { color: green; }
+
+  Foo|one { color: red; }
+  fOO|one { color: red; }
+  foo|two { color: red; }
+  fOO|two { color: red; }
+  foo|three { color: red; }
+  Foo|three { color: red; }
+
+  div[foo|one] { color: green; }
+  div[Foo|two] { color: green; }
+  div[fOO|three] { color: green; }
+
+  div[Foo|one] { color: red; }
+  div[fOO|one] { color: red; }
+  div[foo|two] { color: red; }
+  div[fOO|two] { color: red; }
+  div[foo|three] { color: red; }
+  div[Foo|three] { color: red; }
+
+  div#gencon { color: black; }
+  div#gencon:before { content: attr(foo|one) attr(Foo|two) attr(fOO|three); }
+</style>
+</head>
+<body xmlns:one="http://www.example.com/1"
+      xmlns:two="http://www.example.com/2"
+      xmlns:three="http://www.example.com/3">
+
+<div><one:one>This should be green.</one:one></div>
+<div><two:two>This should be green.</two:two></div>
+<div><three:three>This should be green.</three:three></div>
+<div one:one="true">This should be green.</div>
+<div two:two="true">This should be green.</div>
+<div three:three="true">This should be green.</div>
+
+<div id="gencon"
+       one:one="pass"   one:two="fail"   one:three="fail"
+       two:one="fail"   two:two="pass"   two:three="fail"
+     three:one="fail" three:two="fail" three:three="pass"></div>
+
+</body>
+</html>

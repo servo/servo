@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CJK characters should remain the same in trusted script evaluation</title>
+    <link rel="match" href="cjk-string-assignment-to-paragraph-ref.html">
+    <meta name="assert" content="CJK characters should remain the same in trusted script evaluation">
+</head>
+<body>
+    <p id="test-chinese">Chinese</p>
+    <p id="test-japanese">Japanese</p>
+    <p id="test-korean">Korean</p>
+
+    <script>
+        const policy = trustedTypes.createPolicy('test', {
+            createScript: script => script
+        });
+        const trustedScript = policy.createScript(`
+            document.getElementById("test-chinese").textContent = "中文";
+            document.getElementById("test-japanese").textContent = "日本語";
+            document.getElementById("test-korean").textContent = "한국어"
+        `);
+        eval(trustedScript);
+    </script>
+</body>
+</html>

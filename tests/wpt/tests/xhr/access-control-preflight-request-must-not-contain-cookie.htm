@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Preflight request must not contain any cookie header</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/get-host-info.sub.js"></script>
+  </head>
+  <body>
+    <script type="text/javascript">
+    async_test((test) => {
+      function setupCookie() {
+        const xhr = new XMLHttpRequest;
+        // Delete all preexisting cookies and set a cookie named "foo"
+        xhr.open("GET", get_host_info().HTTP_REMOTE_ORIGIN +
+            "/xhr/resources/access-control-cookie.py?cookie_name=foo");
+        xhr.withCredentials = true;
+        xhr.send();
+        xhr.onerror = test.unreached_func("Unexpected error.");
+        xhr.onload = test.step_func(() => {
+          assert_equals(xhr.status, 200);
+          sendPreflightedRequest();
+        });
+      }
+
+      function sendPreflightedRequest() {
+        const xhr = new XMLHttpRequest;
+        // Request to server-side file fails if cookie is included in preflight
+        xhr.open("GET", get_host_info().HTTP_REMOTE_ORIGIN +
+          "/xhr/resources/access-control-preflight-request-must-not-contain-cookie.py");
+        xhr.withCredentials = true;
+        xhr.setRequestHeader("X-Proprietary-Header", "foo");
+        xhr.onerror = test.unreached_func("Unexpected error.");
+        xhr.onload = test.step_func(() => {
+          assert_equals(xhr.status, 200);
+          assert_equals(xhr.responseText, "COOKIE");
+          cleanupCookies();
+        });
+        xhr.send();
+      }
+
+      function cleanupCookies() {
+        const xhr = new XMLHttpRequest;
+        // Delete all cookies
+        xhr.open("GET", get_host_info().HTTP_REMOTE_ORIGIN +
+            "/xhr/resources/access-control-cookie.py");
+        xhr.withCredentials = true;
+        xhr.send();
+        xhr.onerror = test.unreached_func("Unexpected error.");
+        xhr.onload = test.step_func_done(() => {});
+      }
+
+      setupCookie();
+    });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,5 @@
+rules:
+- paint-context-*: [context-fill-stroke]
+- paint-order-*: [paint-order]
+- text-shadow-*: [text-shadow]
+- marker-path-*: [svg]

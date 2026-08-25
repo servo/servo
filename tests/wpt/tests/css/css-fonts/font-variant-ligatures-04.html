@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>CSS Test: font-variant-ligatures: no-common-ligatures; low level equivalence</title>
+<link rel="author" title="Chris Lilley" href="chris@w3.org">
+<link rel="help" href="https://www.w3.org/TR/css-fonts-3/#font-variant-ligatures-prop">
+<link rel="help" href="https://www.w3.org/TR/css-fonts-3/#font-feature-settings-prop">
+<link rel="match" href="font-variant-ligatures-04-ref.html">
+<meta name="assert" content="Disables display of common ligatures (OpenType features: liga, clig)">
+<style>
+  @font-face {
+    font-family: fwf;
+    src: url(support/fonts/FontWithFancyFeatures.otf);
+  }
+  .test {
+	  font-family: fwf;
+	  font-size: 3em;
+	  line-height: 1.1;
+  }
+  .high {
+	font-variant-ligatures: no-common-ligatures;
+  }
+  .low {
+	font-feature-settings: "liga" off, "clig" off;
+  }
+</style>
+<body>
+<p>Test passes if the three lines below are identical, with two crosses (✗).</p>
+<section class="test">
+	<p class="high">CD</p>
+	<p class="low">CD</p>
+	<p class="ref">BB</p>
+</section>

@@ -1,0 +1,52 @@
+<!doctype html>
+<head>
+<meta charset=utf-8>
+<title>Modify HTMLScriptElement's text after #prepare-a-script that violates CSP</title>
+<link rel=help href="https://html.spec.whatwg.org/multipage/scripting.html#prepare-a-script">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<meta http-equiv="content-security-policy" content="script-src
+  'nonce-allow'
+  'sha256-2+5xh6b9uuIi4GaJtmHWtgR2nwRXJpBtMY4nVaOBpfc='
+">
+<!-- The hash is that of the original content of `script0`. -->
+
+<script nonce="allow">
+window.t = async_test("Modify inline script element's text " +
+                   "after prepare-a-script before evaluation (CSP)");
+
+const updatedText =
+  't.unreached_func("CSP check was done against the original text but the updated text was evaluated")();';
+
+function changeScriptText() {
+  document.querySelector('#script0').textContent = updatedText;
+}
+
+t.step_timeout(changeScriptText, 500);
+</script>
+
+<!-- This is "a style sheet that is blocking scripts" and thus ... -->
+<link rel="stylesheet" href="/common/slow.py?pipe=trickle(d1)"></link>
+
+<!-- This inline script becomes a parser-blocking script, and thus
+the step_timeout is evaluated after script0 is inserted into DOM,
+prepare-a-script'ed, but before its evaluation. -->
+<script id="script0">
+t.step(() => {
+    // When this is evaluated after the stylesheet is loaded,
+    // script0's textContent is modified by the async script above,
+    // but the evaluated script is still the original script here,
+    // not what is overwritten, because "child text content" is taken in
+    // #prepare-a-script and passed to "creating a classic script".
+    var s = document.getElementById('script0');
+    assert_equals(s.textContent, updatedText,
+                  "<script>'s textContent should be already modified");
+    t.done();
+  });
+</script>
+<script nonce="allow">
+// If this makes the test fail, it indicates `script0` (the original or updated
+// text) was not evaluated, probably blocked by CSP that was checked against the
+// updated text.
+t.unreached_func("CSP check was done against the updated text")();
+</script>

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>A page that uses fencedframe to set the login status to signed in</title>
+
+<fencedframe></fencedframe>
+<script>
+// If this page was opened as a popup, notify the opener when we are done loading.
+if (window.opener) {
+  window.onload = function() {
+    window.opener.postMessage("done_loading", "*");
+  };
+}
+
+// This code is intentionally after the onload listener registration
+// because it can throw if FencedFrameConfig is not defined. In that
+// case, we still want to notify the opener to avoid a test timeout.
+const url = new URL("mark_signedin", location.href);
+document.querySelector("fencedframe").config = new FencedFrameConfig(url);
+
+</script>

@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+<head>
+  <title>Testing focus for display: contents</title>
+  <link rel="help" href="https://drafts.csswg.org/css-display-4/#box-generation">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+</head>
+<body>
+
+  <!-- Dec 2023 notes for "display: contents" testing:
+  - Per CSS spec, setting "display: contents" must not alter an element's semantics (https://www.w3.org/TR/css-display-3/#valdef-display-contents):
+  "As only the box tree is affected, any semantics based on the document tree, such as selector-matching, event handling, and
+  property inheritance, are not affected."
+
+  -->
+
+  <h1>Testing focusability of display: contents</h1>
+
+  <button style="display: contents;" class="ex-focusable" data-testname="button with display: contents is focusable">x</button>
+  <div role="button" tabindex="0" style="display: contents;" class="ex-focusable" data-testname="div with role button, tabindex=0 and display: contents is focusable"></div>
+  <div role="button" tabindex="-1" style="display: contents;" class="ex-focusable" data-testname="div with role button, tabindex=-1 and display: contents is focusable"></div>
+
+  <a href="#" style="display: contents;" class="ex-focusable" data-testname="link with display: contents is focusable">x</a>
+  <span role="link" tabindex="0" style="display: contents;" class="ex-focusable" data-testname="span with role link, tabindex=0 and display: contents is focusable"></span>
+
+<script>
+  verifyElementsAreFocusable();
+
+  function verifyElementsAreFocusable() {
+    const els = document.querySelectorAll(".ex-focusable");
+    if (!els.length) {
+      throw `Selector passed in verifyElementsAreFocusable should match at least one element.`;
+    }
+    for (const el of els) {
+      let testName = el.getAttribute("data-testname");
+      test(() => {
+        el.focus();
+        assert_equals(document.activeElement, el, "Element is focusable with element.focus()");
+      }, `${testName}`);
+    }
+  };
+</script>
+
+</body>
+</html>

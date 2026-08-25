@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>Clear-Site-Data: cache for bfcache</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="support/clear-cache-helper.sub.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/html/browsers/browsing-the-web/back-forward-cache/resources/helper.sub.js"></script>
+<script type="module">
+
+// cross-site: example.com (iframe: example.net) -> example.net (iframe example.net clear) -> in bfcache
+runBfCacheClearTest(
+  {
+    getUrlParams: {
+      clear: "cache",
+      crossSite: true,
+    },
+    targetOrigin: crossSiteOrigin,
+    mode: "iframe",
+    shouldBeCached: true,
+    funcBeforeNavigation: async (url) => {
+      await new Promise(resolve => {
+        const iframe = document.createElement("iframe");
+        iframe.src = url;
+        document.body.appendChild(iframe);
+        iframe.onload = resolve;
+      });
+    },
+    argsBeforeNavigation: [crossSiteOrigin],
+  },
+  "BfCached document not be dropped when containing cross-site iframe and that cross-site received clear-cache header"
+);
+
+// same-site: www.example.com (iframe: www2.example.com) -> www2.example.com (iframe www2.example.com clear) -> bfcache entry gets cleared
+runBfCacheClearTest(
+  {
+    getUrlParams: {
+      clear: "cache",
+      subdomain: true,
+    },
+    targetOrigin: subdomainOrigin,
+    mode: "iframe",
+    shouldBeCached: false,
+    funcBeforeNavigation: async (url) => {
+      await new Promise(resolve => {
+        const iframe = document.createElement("iframe");
+        iframe.src = url;
+        document.body.appendChild(iframe);
+        iframe.onload = resolve;
+      });
+    },
+    argsBeforeNavigation: [subdomainOrigin],
+  },
+  "BfCached document should be dropped when containing same-site iframe and that same-site received clear-cache header"
+);
+
+</script>

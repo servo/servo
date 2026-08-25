@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>:is() combined with pseudo elements</title>
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#matches">
+<link rel="match" href="is-where-pseudo-elements-ref.html">
+<style>
+  :is(#a, #c) + :is(main :is(#b, #d))::before {
+    content: "before ";
+    color: green;
+  }
+  :is(#d + div, #d ~ #h)::after {
+    content: " after";
+    color: green;
+  }
+  :is(main > #a, #b)::first-letter {
+    color: blue;
+  }
+  :is(:where(main > div + #g, #k + #l))::first-line {
+    color: magenta;
+  }
+</style>
+<main id=main>
+  <div id=a>a</div>
+  <div id=b>b</div>
+  <div id=c>c</div>
+  <div id=d>d</div>
+  <div id=e>e</div>
+  <div id=f>f</div>
+  <div id=g>g</div>
+  <div id=h>h</div>
+  <div id=j>j</div>
+  <div id=k>k</div>
+  <div id=l>l<br>l2</div>
+</main>

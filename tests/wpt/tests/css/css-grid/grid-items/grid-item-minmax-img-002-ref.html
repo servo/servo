@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<!-- Any copyright is dedicated to the Public Domain.
+   - https://creativecommons.org/publicdomain/zero/1.0/ -->
+<meta charset="utf-8">
+<title>Reference: Test how images are stretched with different align/justify flags.</title>
+<link rel="author" href="mailto:emcdonough@mozilla.com">
+<style>
+.grid {
+    display: inline-grid;
+    grid-template-columns: 4px;
+    grid-template-rows: 4px;
+    border: 5px solid goldenrod;
+}
+.spacer{
+    height: 10px;
+}
+.img{
+    background-image: url("support/100x100-green.png");
+    width: 100px;
+    height: 100px;
+}
+.img, .empty{
+    border: 2px solid indigo;
+}
+</style>
+<div class="grid">
+  <div class="img"></div>
+</div>
+<div class="spacer"></div>
+<div class="grid">
+  <div class="empty"></div>
+</div>
+<div class="spacer"></div>
+<div class="grid">
+  <div class="img"></div>
+</div>

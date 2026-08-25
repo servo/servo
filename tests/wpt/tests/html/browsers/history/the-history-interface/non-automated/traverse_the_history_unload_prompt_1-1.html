@@ -1,0 +1,18 @@
+<!doctype html>
+<script src="history.js"></script>
+<script>
+  onbeforeunload = function() {opener.beforeunload_ran = true; return "Opt to stay on the page"};
+
+  opener.pages.push(id);
+  if (!opener.started) {
+    onload = function() {
+      setTimeout(function() {
+        opener.started = true;
+        history.back();
+      }, 100);
+    }
+  }
+</script>
+<p>You should see/have seen a prompt asking if you want to leave the page.</p>
+<p>Opt to stay on the page</p>
+<button onclick="onbeforeunload = null; opener.start_test_wait(); document.getElementsByTagName('button')[0].disabled = true;">Click here</button>

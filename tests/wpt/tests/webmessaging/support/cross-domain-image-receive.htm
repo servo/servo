@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <title>Cross-Domain image transfer test</title>
+</head>
+<script type="text/javascript" charset="utf-8">
+
+function receiver(e) {
+    var dstCanvas = document.createElement('canvas');
+    dstCanvas.width = e.data.image.width
+    dstCanvas.height = e.data.image.height
+    var dstCtx = dstCanvas.getContext('2d');
+    dstCtx.drawImage(e.data.image, 0, 0)
+    var imgData = dstCtx.getImageData(0, 0, dstCanvas.height, dstCanvas.width);
+
+    result = JSON.stringify(imgData.data);
+    e.source.postMessage(result, "*");
+}
+
+addEventListener('message', receiver, false);
+</script>
+<body>
+</body>
+</html>

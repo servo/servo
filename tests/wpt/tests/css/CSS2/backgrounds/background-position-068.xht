@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Background-position using inches with a nominal value and a plus sign, +1in</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#propdef-background-position" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background-properties" />
+        <meta name="flags" content="image" />
+        <meta name="assert" content="The 'background-position' property correctly applies a nominal length value in inches with a plus sign." />
+        <style type="text/css">
+            div
+            {
+                background-image: url("support/black20x20.png");
+                background-position: +1in;
+                background-repeat: no-repeat;
+                border: orange solid 3px;
+                height: 96px;
+                width: 116px; /* 96px plus 20px */
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the black square below is vertically centered and on the right inner edge of the orange box.</p>
+        <div></div>
+    </body>
+</html>

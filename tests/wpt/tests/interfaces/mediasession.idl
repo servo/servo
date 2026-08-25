@@ -1,0 +1,112 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Media Session (https://w3c.github.io/mediasession/)
+
+[Exposed=Window]
+partial interface Navigator {
+  [SameObject] readonly attribute MediaSession mediaSession;
+};
+
+enum MediaSessionPlaybackState {
+  "none",
+  "paused",
+  "playing"
+};
+
+enum MediaSessionAction {
+  "play",
+  "pause",
+  "seekbackward",
+  "seekforward",
+  "previoustrack",
+  "nexttrack",
+  "skipad",
+  "stop",
+  "seekto",
+  "togglemicrophone",
+  "togglecamera",
+  "togglescreenshare",
+  "hangup",
+  "previousslide",
+  "nextslide",
+  "enterpictureinpicture",
+  "voiceactivity"
+};
+
+enum MediaSessionEnterPictureInPictureReason {
+  "other",
+  "useraction",
+  "contentoccluded"
+};
+
+callback MediaSessionActionHandler = undefined(MediaSessionActionDetails details);
+
+[Exposed=Window]
+interface MediaSession {
+  attribute MediaMetadata? metadata;
+
+  attribute MediaSessionPlaybackState playbackState;
+
+  undefined setActionHandler(MediaSessionAction action, MediaSessionActionHandler? handler);
+
+  undefined setPositionState(optional MediaPositionState state = {});
+
+  Promise<undefined> setMicrophoneActive(boolean active);
+
+  Promise<undefined> setCameraActive(boolean active);
+
+  Promise<undefined> setScreenshareActive(boolean active);
+};
+
+[Exposed=Window]
+interface MediaMetadata {
+  constructor(optional MediaMetadataInit init = {});
+  attribute DOMString title;
+  attribute DOMString artist;
+  attribute DOMString album;
+  attribute FrozenArray<object> artwork;
+  [SameObject] readonly attribute FrozenArray<ChapterInformation> chapterInfo;
+};
+
+dictionary MediaMetadataInit {
+  DOMString title = "";
+  DOMString artist = "";
+  DOMString album = "";
+  sequence<MediaImage> artwork = [];
+  sequence<ChapterInformationInit> chapterInfo = [];
+};
+
+[Exposed=Window]
+interface ChapterInformation {
+  readonly attribute DOMString title;
+  readonly attribute double startTime;
+  [SameObject] readonly attribute FrozenArray<MediaImage> artwork;
+};
+
+dictionary ChapterInformationInit {
+  DOMString title = "";
+  double startTime = 0;
+  sequence<MediaImage> artwork = [];
+};
+
+dictionary MediaImage {
+  required USVString src;
+  DOMString sizes = "";
+  DOMString type = "";
+};
+
+dictionary MediaPositionState {
+  unrestricted double duration;
+  double playbackRate;
+  double position;
+};
+
+dictionary MediaSessionActionDetails {
+  required MediaSessionAction action;
+  double seekOffset;
+  double seekTime;
+  boolean fastSeek;
+  boolean isActivating;
+  MediaSessionEnterPictureInPictureReason enterPictureInPictureReason;
+};

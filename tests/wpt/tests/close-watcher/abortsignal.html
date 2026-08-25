@@ -1,0 +1,123 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="resources/helpers.js"></script>
+
+<body>
+<script>
+// TODO(domenic): maybe update createRecordingCloseWatcher() to allow passing args and use it?
+
+test(() => {
+  let watcher = new CloseWatcher({ signal: AbortSignal.abort() });
+  let oncancel_called = false;
+  let onclose_called = false;
+  watcher.oncancel = () => oncancel_called = true;
+  watcher.onclose = () => onclose_called = true;
+
+  watcher.requestClose();
+
+  assert_false(oncancel_called);
+  assert_false(onclose_called);
+}, "already-aborted AbortSignal then requestClose() fires no events");
+
+test(() => {
+  let controller = new AbortController();
+  let watcher = new CloseWatcher({ signal: controller.signal });
+  let oncancel_called = false;
+  let onclose_called = false;
+  watcher.oncancel = () => oncancel_called = true;
+  watcher.onclose = () => onclose_called = true;
+
+  controller.abort();
+  watcher.requestClose();
+
+  assert_false(oncancel_called);
+  assert_false(onclose_called);
+}, "abortController.abort() then requestClose() fires no events");
+
+test(() => {
+  let controller = new AbortController();
+  let watcher = new CloseWatcher({ signal: controller.signal });
+  let oncancel_call_count_ = 0;
+  let onclose_call_count_ = 0;
+  watcher.oncancel = () => oncancel_call_count_++;
+  watcher.onclose = () => onclose_call_count_++;
+
+  watcher.requestClose();
+  controller.abort();
+
+  assert_equals(oncancel_call_count_, 1);
+  assert_equals(onclose_call_count_, 1);
+}, "requestClose() then abortController.abort() fires only one close event");
+
+promise_test(async () => {
+  let watcher = new CloseWatcher({ signal: AbortSignal.abort() });
+  let oncancel_called = false;
+  let onclose_called = false;
+  watcher.oncancel = () => oncancel_called = true;
+  watcher.onclose = () => onclose_called = true;
+
+  await sendCloseRequest();
+
+  assert_false(oncancel_called);
+  assert_false(onclose_called);
+}, "already-aborted AbortSignal then Esc key fires no events");
+
+promise_test(async t => {
+  let controller = new AbortController();
+  let watcher = new CloseWatcher({ signal: controller.signal });
+  let oncancel_called = false;
+  let onclose_called = false;
+  watcher.oncancel = () => oncancel_called = true;
+  watcher.onclose = () => onclose_called = true;
+
+  controller.abort();
+  await sendCloseRequest();
+
+  assert_false(oncancel_called);
+  assert_false(onclose_called);
+}, "abortController.abort() then close via Esc key fires no events");
+
+promise_test(async t => {
+  let controller = new AbortController();
+  let watcher = new CloseWatcher({ signal: controller.signal });
+  let oncancel_call_count_ = 0;
+  let onclose_call_count_ = 0;
+  watcher.oncancel = () => oncancel_call_count_++;
+  watcher.onclose = () => onclose_call_count_++;
+
+  await sendCloseRequest();
+  controller.abort();
+
+  assert_equals(oncancel_call_count_, 1);
+  assert_equals(onclose_call_count_, 1);
+}, "Esc key then abortController.abort() fires only one close event");
+
+test(t => {
+  let controller = new AbortController();
+  let watcher = new CloseWatcher({ signal: controller.signal });
+  controller.abort();
+  let watcher2 = new CloseWatcher();
+  t.add_cleanup(() => watcher2.destroy());
+}, "abortController.abort()ing a free CloseWatcher allows a new one to be created without a user activation");
+
+promise_test(async t => {
+  let controller = new AbortController();
+  let watcher = new CloseWatcher({ signal: controller.signal });
+  watcher.oncancel = () => { controller.abort(); }
+  watcher.onclose = t.unreached_func("onclose");
+  await test_driver.bless("give user activation so that cancel will fire", () => {
+    watcher.requestClose();
+  });
+}, "abortController.abort() inside oncancel");
+
+test(t => {
+  let controller = new AbortController();
+  let watcher = new CloseWatcher({ signal: controller.signal });
+  watcher.onclose = () => { controller.abort(); }
+  watcher.requestClose();
+}, "abortController.abort() inside onclose is benign");
+</script>

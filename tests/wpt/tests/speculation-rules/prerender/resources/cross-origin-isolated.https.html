@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="utils.js"></script>
+<body>
+<script>
+window.onmessage = function(e) {
+  assert_equals(e.data.name, 'crossOriginIsolated');
+  assert_true(e.data.value);
+
+  const testChannel = new PrerenderChannel('test-channel');
+  testChannel.postMessage(self.crossOriginIsolated);
+  testChannel.close();
+};
+
+assert_true(document.prerendering);
+const frame = document.createElement('iframe');
+frame.src = './cross-origin-isolated-iframe.https.html';
+document.body.append(frame);
+</script>
+</body>

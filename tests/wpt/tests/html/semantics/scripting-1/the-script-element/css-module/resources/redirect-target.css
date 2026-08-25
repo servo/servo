@@ -1,0 +1,5 @@
+#target {
+    color: rgb(0, 128, 0);
+    /* image.png doesn't exist, but that's irrelevant to the test. */
+    background: url('./image.png');
+}

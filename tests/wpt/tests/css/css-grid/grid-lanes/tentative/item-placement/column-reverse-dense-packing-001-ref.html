@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<style>
+.grid {
+    display: grid;
+    grid-template-columns: repeat(4, 50px) 15px;
+    gap: 10px;
+    grid-auto-flow: dense;
+}
+</style>
+<body>
+<p>Test that grid-lanes items with reverse auto placement and explicit placement are correctly positioned within the grid axis during dense-packing.</p>
+<div class="grid">
+  <div style="background: lavender; height: 60px; grid-column: 3;">
+    1
+  </div>
+  <div style="background: lightgreen; height: 60px; grid-column: 1;">
+    2
+  </div>
+  <div style="background: lightpink; grid-column: 2 / span 4; height: 10px;">
+    3
+  </div>
+  <div style="grid-column: 4;">
+    <div style="background: yellow; height: 20px;">
+      4
+    </div>
+    <div style="background: yellow; height: 10px; margin-top: 10px; grid-column: 4;">
+      5
+    </div>
+  </div>
+  <div style="background: yellow; height: 10px; grid-column: 2;">
+    6
+  </div>
+</div>
+</body>
+</html>

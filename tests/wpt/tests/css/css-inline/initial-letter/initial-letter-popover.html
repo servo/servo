@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>CSS Inline Layout: Opening a popover should not affect rendering in the presence of initial-letter</title>
+<link rel="help" href="https://crbug.com/457241503">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
+<style>
+  #block {
+    background-color: green;
+    color: green;
+    width: 100px;
+    height: 100px;
+    text-indent: 1em; /* Avoid 'X' sticking out of the square */
+  }
+  #block::first-letter {
+    initial-letter: 1;
+  }
+  #pop, #but { visibility: hidden; }
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div id="block">X<br>
+  <button id="but" popoverTarget="pop"></button>
+  <div popover id="pop"></div>
+</div>
+<script>
+  but.click();
+</script>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+    <div contenteditable="true" id="target1">A<div contenteditable="false">can't edit</div></div>
+    <div contenteditable="true" id="target2"><div contenteditable="false">can't edit</div>B<div contenteditable="false">can't edit</div></div>
+    <div contenteditable="true" id="target3"><div contenteditable="false">can't edit</div>C</div>
+</body>
+
+<script>
+    test(() => {
+        let selection = getSelection();
+        let range = document.createRange();
+        let element = document.getElementById("target1");
+        range.selectNode(element.firstChild);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        document.execCommand("delete");
+        const expectedHTML = "<br><div contenteditable=\"false\">can't edit</div>";
+        assert_equals(element.firstChild.tagName, "BR", "First child is a <br> tag");
+        assert_equals(element.innerHTML, expectedHTML, "HTML content matches the expected structure after delete");
+    }, "BR tag is inserted after deleting the text node present before non editable child element");
+
+    test(() => {
+        let selection = getSelection();
+        let range = document.createRange();
+        let element = document.getElementById("target2");
+        let textNode = element.childNodes[1];
+        range.setStartAfter(textNode);
+        range.setEndAfter(textNode);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        document.execCommand("delete");
+        const expectedHTML = "<div contenteditable=\"false\">can't edit</div><br><div contenteditable=\"false\">can\'t edit</div>";
+        assert_equals(element.innerHTML, expectedHTML, "HTML content matches the expected structure after delete");
+    }, "BR tag is inserted after deleting the text node present between two non editable child elements");
+
+    test(() => {
+        let selection = getSelection();
+        let range = document.createRange();
+        let element = document.getElementById("target3");
+        let textNode = element.childNodes[1];
+        range.setStartAfter(textNode);
+        range.setEndAfter(textNode);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        document.execCommand("delete");
+        const expectedHTML = "<div contenteditable=\"false\">can't edit</div><br>";
+        assert_equals(element.innerHTML, expectedHTML, "HTML content matches the expected structure after delete");
+    }, "BR tag is inserted after deleting the text node present after non editable child element");
+</script>

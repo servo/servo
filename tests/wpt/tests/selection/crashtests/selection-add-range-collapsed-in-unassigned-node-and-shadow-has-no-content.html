@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+"use strict";
+
+addEventListener("DOMContentLoaded", () => {
+  getSelection().selectAllChildren(
+    document.querySelector("a")
+  );
+  const range = document.createRange();
+  range.setStartAfter(
+    document.querySelector("legend")
+  );
+  getSelection().addRange(range);
+}, {once: true});
+</script>
+</head>
+<body>
+<form>
+<legend></legend>
+</form>
+<template shadowrootmode="open"></template>
+<a></a>
+</body>
+</html>

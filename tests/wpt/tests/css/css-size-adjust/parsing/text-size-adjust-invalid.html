@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Mobile Text Size Adjustment: parsing text-size-adjust with invalid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-size-adjust/#propdef-text-size-adjust">
+<meta name="assert" content="text-size-adjust supports only the grammar 'auto | none | <percentage>'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("text-size-adjust", 'reverse');
+
+test_invalid_value("text-size-adjust", '0');
+test_invalid_value("text-size-adjust", '10px');
+test_invalid_value("text-size-adjust", '-100%');
+</script>
+</body>
+</html>

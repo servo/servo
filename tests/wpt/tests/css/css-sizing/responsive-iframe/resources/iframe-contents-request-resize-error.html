@@ -1,0 +1,11 @@
+<!doctype html>
+<script>
+try {
+  window.requestResize();
+} catch (e) {
+  window.parent.postMessage({
+    name: e.name,
+    message: e.message,
+  }, '*');
+}
+</script>

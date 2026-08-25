@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>Geometry interfaces: DOMRectList</title>
+<link rel="help" href="https://drafts.fxtf.org/geometry-1/#DOMRectList">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=x>x</div>
+<script>
+setup(() => {
+  window.domRectList = document.getElementById('x').getClientRects();
+});
+
+test(() => {
+  assert_true('DOMRectList' in window);
+}, 'DOMRectList is exposed');
+
+test(() => {
+  assert_false(domRectList instanceof Array);
+}, 'DOMRectList is not [LegacyArrayClass]');
+
+test(() => {
+  assert_equals(domRectList.length, 1);
+}, 'DOMRectList length');
+
+test(() => {
+  assert_equals(domRectList[-1], undefined, 'domRectList[-1]');
+  assert_class_string(domRectList[0], 'DOMRect', 'domRectList[0]');
+  assert_equals(domRectList[1], undefined, 'domRectList[1]');
+}, 'DOMRectList indexed getter');
+
+test(() => {
+  assert_equals(domRectList.item(-1), null, 'domRectList.item(-1)');
+  assert_class_string(domRectList.item(0), 'DOMRect', 'domRectList.item(0)');
+  assert_equals(domRectList.item(1), null, 'domRectList.item(1)');
+  assert_equals(domRectList.item(0), domRectList[0], 'domRectList.item(0) should equal domRectList[0]');
+}, 'DOMRectList item()');
+</script>

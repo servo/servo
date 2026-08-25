@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: new element is modified while offscren and brought onscreen using pseudo (ref)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+
+<style>
+#target {
+  width: 100px;
+  height: 100px;
+  view-transition-name: target;
+  position: fixed;
+  background: blue;
+  left: 0;
+  top: 0;
+}
+</style>
+
+<div id="target" class="target">
+

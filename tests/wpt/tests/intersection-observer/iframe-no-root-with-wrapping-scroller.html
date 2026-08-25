@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/intersection-observer-test-utils.js"></script>
+
+<style>
+pre, #log {
+  position: absolute;
+  top: 0;
+  left: 200px;
+}
+.spacer {
+  height: calc(100vh + 100px);
+}
+iframe {
+  height: 100px;
+  width: 150px;
+}
+</style>
+
+<div class="spacer"></div>
+<div style="overflow: hidden">
+  <iframe id="target-iframe" src="resources/iframe-no-root-subframe.html"></iframe>
+</div>
+<div class="spacer"></div>
+
+<script>
+var vw = document.documentElement.clientWidth;
+var vh = document.documentElement.clientHeight;
+
+var iframe = document.getElementById("target-iframe");
+var target;
+var entries = [];
+
+iframe.onload = function() {
+  runTestCycle(function() {
+    assert_true(!!iframe, "iframe exists");
+
+    target = iframe.contentDocument.getElementById("target");
+    assert_true(!!target, "Target element exists.");
+    var observer = new IntersectionObserver(function(changes) {
+      entries = entries.concat(changes)
+    });
+    observer.observe(target);
+    entries = entries.concat(observer.takeRecords());
+    assert_equals(entries.length, 0, "No initial notifications.");
+    runTestCycle(step0, "First rAF.");
+  }, "Observer with the implicit root; target in a same-origin iframe.");
+};
+
+function step0() {
+  document.scrollingElement.scrollTop = 200;
+  runTestCycle(step1, "document.scrollingElement.scrollTop = 200");
+  checkLastEntry(entries, 0, [8, 108, 208, 308, 0, 0, 0, 0, 0, vw, 0, vh, false]);
+}
+
+function step1() {
+  iframe.contentDocument.scrollingElement.scrollTop = 250;
+  runTestCycle(step2, "iframe.contentDocument.scrollingElement.scrollTop = 250");
+  assert_equals(entries.length, 1, "entries.length == 1");
+}
+
+function step2() {
+  document.scrollingElement.scrollTop = 100;
+  runTestCycle(step3, "document.scrollingElement.scrollTop = 100");
+  checkLastEntry(entries, 1, [8, 108, -42, 58, 8, 108, 0, 58, 0, vw, 0, vh, true]);
+}
+
+function step3() {
+  checkLastEntry(entries, 2, [8, 108, -42, 58, 0, 0, 0, 0, 0, vw, 0, vh, false]);
+  document.scrollingElement.scrollTop = 0;
+}
+</script>

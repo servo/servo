@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<title>CSS Values and Units Test: random-item() in container queries</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#funcdef-random-item">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/10982">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-conditional/container-queries/support/cq-testcommon.js"></script>
+<style>
+  @property --length {
+    syntax: "<length>";
+    inherits: true;
+    initial-value: 30px;
+  }
+  #container { container-type: size; --length: 30px; }
+  #target { --test1: true; --test2: true; --test3: true; }
+
+  /* Every random-item() item is 30px and --length is 30px. So if random-item() were (wrongly)
+     evaluated in the query, it would resolve to 30px and the condition WOULD match — flipping the
+     --testN guard to false, no matter which item is picked. With random-item() correctly rejected
+     (guaranteed-invalid), the condition never matches and --testN stays true. Deterministic in both
+     directions — no dependence on the random selection. */
+  @container style(--length: random-item(--foo, 30px, 30px)) { #target { --test1: false; } }
+  @container style(--length = random-item(--foo, 30px, 30px)) { #target { --test2: false; } }
+  @container style(random-item(--foo, 30px, 30px) = random-item(--foo, 30px, 30px)) { #target { --test3: false; } }
+</style>
+<div style="container-name:name">
+  <main id="cq-main"></main>
+</div>
+<div id="container">
+  <div id="target"></div>
+</div>
+<script>
+  // random functions are disallowed outside an element context, so random-item() in a @container
+  // query is rejected like random(). Whether they should be allowed here is an open question:
+  // https://github.com/w3c/csswg-drafts/issues/10982
+
+  // Size-feature form: random-item() isn't a valid <length> feature value, so the condition is
+  // valid-but-unknown (roll-independent, parse-level).
+  test_cq_condition_unknown("(width: random-item(--foo, 10px, 30px))");
+
+  // style() forms: random-item() is rejected at evaluation, so the condition never matches. Each
+  // guard stays "true" iff random-item() was rejected (see the note in the stylesheet — this is
+  // deterministic regardless of which item random-item() would pick).
+  test(() => {
+    assert_equals(getComputedStyle(target).getPropertyValue("--test1"), "true");
+  }, "random-item() is disallowed in a @container style() query");
+  test(() => {
+    assert_equals(getComputedStyle(target).getPropertyValue("--test2"), "true");
+  }, "random-item() is disallowed in a @container style() range query (custom property = random-item())");
+  test(() => {
+    assert_equals(getComputedStyle(target).getPropertyValue("--test3"), "true");
+  }, "random-item() is disallowed in a @container style() range query (random-item() = random-item())");
+
+  // Note: a custom property that merely *holds* random-item() (e.g.
+  //   #container { --v: random-item(--foo, 30px, 30px); }  @container style(--length: var(--v)) {})
+  // is intentionally not tested. random-item() is an arbitrary substitution function, so it resolves
+  // in the container element's own context (where it is allowed) before the query runs — no
+  // random-item() reaches the query. That is the open element-context question above, not a property
+  // of the @container feature; see https://github.com/w3c/csswg-drafts/issues/10982
+</script>

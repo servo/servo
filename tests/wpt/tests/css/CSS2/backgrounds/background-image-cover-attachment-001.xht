@@ -1,0 +1,28 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Background-image tiling over margin with fixed background-attachment</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-04-21 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background-properties" />
+        <link rel="match" href="background-image-cover-attachment-001-ref.xht" />
+
+        <meta name="fuzzy" content="maxDifference=0-1;totalPixels=0-15" />
+        <meta name="flags" content="image" />
+        <meta name="assert" content="Background-image tiling does not color the margin regardless of background-attachment." />
+        <style type="text/css">
+            div
+            {
+                background-image: url("support/blue15x15.png");
+                background-attachment: fixed;
+                border: solid black;
+                height: 216px;
+                margin: 30px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the big hollow black rectangle is completely filled with a blue background. There is no blue outside the black border.</p>
+        <div></div>
+    </body>
+</html>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>
+  Out-of-flow positioned element in multicol - the relative offset should
+  apply to the OOF descendant after fragmentation.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#abspos-breaking">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+  .multicol {
+    column-count: 2;
+    column-fill: auto;
+    column-gap: 0px;
+    height: 100px;
+    width: 100px;
+    margin-left: -150px;
+    margin-top: -150px;
+  }
+  .rel {
+    position: relative;
+  }
+  .abs {
+    position: absolute;
+    background-color: green;
+    height: 200px;
+    width: 50px;
+    top: 0px;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="multicol">
+  <span class="rel" style="top: 50px; left: 100px;">
+    <div class="rel" style="top: 100px; left: 50px;">
+      <div style="height: 200px; width: 50px; background: red;"></div>
+      <span class="abs"></span>
+    </div>
+  </span>
+</div>

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>CSS Test: Line wrapping after leading floating objects</title>
+<link rel="help" href="https://crbug.com/1014247">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div id="parent" style="width: 100px; text-indent: 40px;">
+  <div style="float: left; width: 60px; height: 10px; background: hotpink;"></div>
+  <div id="lime" style="display: inline-block; width: 60px; height: 20px; background: lime;"></div>
+</div>
+</body>
+<script>
+  test(function(){
+    parent_rect = document.getElementById("parent").getBoundingClientRect();
+    rect = document.getElementById("lime").getBoundingClientRect();
+    assert_equals(rect.left - parent_rect.left, 40);
+  }, "Checks line wrapping after leading floating objects.");
+</script>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>Page navigated to by an _unfencedTop navigation</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+
+<body>
+<script>
+  promise_test(async(t) => {
+    // This page is navigated to from an '_unfencedTop' navigation by
+    // '../automatic-beacon-unfenced-top.https.html'. An automatic beacon will
+    // have been sent as a result of the navigation.
+    const beacon_data = "This is the beacon data!";
+    const beacon_initiator_origin = await nextBeacon(
+        "reserved.top_navigation_commit", beacon_data);
+    assert_equals(beacon_initiator_origin, get_host_info().HTTPS_ORIGIN + "," +
+        get_host_info().HTTPS_REMOTE_ORIGIN + "/");
+  });
+</script>
+</body>

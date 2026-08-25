@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>Removing an empty inline should not cause a space after ::before content to collapse</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo/#generated-content">
+<link rel="help" href="https://drafts.csswg.org/css-text/#white-space-rules">
+<link rel="match" href="../reference/pass_if_two_words.html">
+<style>
+  div::before { content: "two" }
+</style>
+<p>There should be a space between "two" and "words" below.</p>
+<div> <span id="rm"></span><span>words</span></div>
+<script>
+  rm.offsetTop;
+  rm.remove();
+  rm.offsetTop;
+</script>

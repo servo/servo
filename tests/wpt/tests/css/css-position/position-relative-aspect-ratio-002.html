@@ -1,0 +1,49 @@
+<title>CSS Position: relative position percentage top with aspect-ratio in quirks mode</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<link rel="help" href="https://quirks.spec.whatwg.org/#the-percentage-height-calculation-quirk">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+body {
+    margin: 0;
+}
+
+.green {
+    width: 20px;
+    height: 20px;
+    background: green;
+    position: relative;
+}
+</style>
+
+<!-- 1. Explicit width + aspect-ratio, top: 50% in quirks mode -->
+<div id="t1" style="width: 200px; aspect-ratio: 2 / 1;">
+    <div class="green" id="t1-rel" style="top: 50%;"></div>
+</div>
+
+<!-- 2. Auto width block + aspect-ratio, top: 50% in quirks mode -->
+<div style="width: 400px;">
+    <div id="t2" style="aspect-ratio: 2 / 1;">
+        <div class="green" id="t2-rel" style="top: 50%;"></div>
+    </div>
+</div>
+
+<script>
+function offsetFromParent(relId, parentId) {
+    var rel = document.getElementById(relId);
+    var parent = document.getElementById(parentId);
+    return rel.getBoundingClientRect().top - parent.getBoundingClientRect().top;
+}
+
+test(function() {
+    assert_equals(document.compatMode, 'BackCompat');
+}, 'Document is in quirks mode');
+
+test(function() {
+    assert_equals(offsetFromParent('t1-rel', 't1'), 50);
+}, 'Quirks: explicit width + aspect-ratio 2/1, top: 50%');
+
+test(function() {
+    assert_equals(offsetFromParent('t2-rel', 't2'), 100);
+}, 'Quirks: auto width block + aspect-ratio 2/1, top: 50%');
+</script>

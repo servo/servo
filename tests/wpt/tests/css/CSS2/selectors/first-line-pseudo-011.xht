@@ -1,0 +1,46 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+ <head>
+  <title>CSS Test: :first-line and margin collapsing</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/block/first-line/011.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#first-line-pseudo" />
+  <style type="text/css">
+   td { width: 8em; padding: 0; border: solid; }
+   .test { background: orange; }
+   .test .a { margin: 0 0 1em 0; background: teal; height: 1em; }
+   .test .b { margin: 0 0 0 0; background: red; }
+   .test .c { margin: 1em 0 0 0; background: yellow; height: 1em; }
+   .test.fl .b:first-line { color: red; }
+   .control { background: red; }
+   .control .a { border-top: 1em teal solid; }
+   .control .b { border-top: 1em orange solid; }
+   .control .c { border-top: 1em yellow solid; }
+  </style>
+ </head>
+ <body>
+  <p>The next three boxes should look identical. (If the second and
+  third look different, then margin collapsing through empty elements
+  is broken. Go to <a href="../margin-collapse/">these tests</a> for
+  more details.)</p>
+  <table>
+   <tr>
+    <td class="fl test">
+     <div class="a"></div>
+     <div class="b"></div>
+     <div class="c"></div>
+    </td>
+    <td class="test">
+     <div class="a"></div>
+     <div class="b"></div>
+     <div class="c"></div>
+    </td>
+    <td class="control">
+     <div class="a"></div>
+     <div class="b"></div>
+     <div class="c"></div>
+    </td>
+   </tr>
+  </table>
+ </body>
+</html>

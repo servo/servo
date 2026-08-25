@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<doc>
+  <header>
+    <its:rules xmlns:its="http://www.w3.org/2005/11/its" version="2.0">
+      <its:locQualityIssueRule selector="//span[@id='q1']"
+        locQualityIssueComment="Sentence without capitalization"
+        locQualityIssueSeverity="50"/>
+      <its:locQualityIssueRule selector="//span[@id='q2']"
+        locQualityIssueComment="should be 'transport include'"
+	locQualityIssueSeverity="75"/>
+    </its:rules>
+  </header>
+  <para>
+   <span id="q1">transport</span> or transportation is the movement of people, animals and goods from one location to another.
+   Modes of <span id="q2">tranport inc.</span> air, rail, road, water, cable, pipeline, and space.
+</para>
+</doc>
+

@@ -1,0 +1,19 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head>
+<title>CSS Test: Test for z-ordering of inline-table</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/" />
+<link rel="author" title="Mozilla Corporation" href="http://mozilla.com/" />
+<link rel="help" href="http://www.w3.org/TR/CSS21/zindex.html#painting-order" />
+<link rel="match" href="inline-table-zorder-003-ref.xht"/>
+<style type="text/css">
+div { height: 1em; }
+div#test &gt; span { display:inline-table; vertical-align: top; height: 1em; background: red; color: red; }
+div#after { margin-top:-1em; }
+div#after &gt; span { display: inline; vertical-align: top; background: green; color: green; border-bottom: 0.25em solid green; border-top: 0.25em solid green; }
+</style>
+</head>
+<body>
+<div id="test"><span>&#160;x&#160;</span></div>
+<div id="after"><span>&#160;x&#160;</span></div>
+
+
+</body></html>

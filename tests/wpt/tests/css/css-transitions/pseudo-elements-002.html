@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>CSS Transitions Test: Transition pseudo element with ancestor display change</title>
+<link rel="author" title="Rune Lillesveen" href="mailto:futhark@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-transitions/#starting">
+<link rel="help" href="https://drafts.csswg.org/css-transitions/#transition-property-property">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #inner::before {
+    content: "This text should transition from red to green.";
+    height: 100px;
+    transition: height steps(2, start) 1s;
+  }
+  .flex #inner::before {
+    height: 300px;
+  }
+  .flex { display: flex }
+</style>
+<div id="outer">
+  <div id="inner"></div>
+</div>
+<script>
+  test(() => {
+      assert_equals(getComputedStyle(inner, "::before").height, "100px");
+      outer.className = "flex";
+      assert_equals(getComputedStyle(inner, "::before").height, "200px");
+  }, "Check that transitions run on a pseudo element whose ancestor changes display type.");
+</script>

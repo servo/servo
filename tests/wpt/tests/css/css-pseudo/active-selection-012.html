@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Pseudo-Elements Test: active selection and background-color (basic)</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-pseudo-4/#highlight-selectors">
+  <link rel="help" href="https://www.w3.org/TR/css-pseudo-4/#highlight-styling">
+  <link rel="match" href="reference/active-selection-012-ref.html">
+
+
+  <link rel="stylesheet" href="support/highlights.css">
+  <style>
+  div
+    {
+      background-color: red;
+      color: fuchsia;
+      display: inline;
+      font-size: 300%;
+    }
+
+  div::selection
+    {
+      background-color: green;
+      color: aqua;
+    }
+
+  /*
+  Chromium 77.0.3855.0 and above create a background-color #334C00 or
+  rgb(51, 76, 0) and not a green (#008000 or rgb(0, 128, 0)) background
+  color.
+  */
+  </style>
+
+  <script>
+  function startTest()
+  {
+  var targetRange = document.createRange();
+  /* We first create an empty range */
+  targetRange.selectNodeContents(document.getElementById("test"));
+  /* Then we set the range boundaries to the children of div#test */
+  window.getSelection().addRange(targetRange);
+  /* Finally, we now select such range of content */
+  }
+  </script>
+
+  <body onload="startTest();">
+
+  <p>Test passes if the background color of each glyph of "Selected Text" is green and <strong>not red</strong> while each glyph of "Selected Text" is aqua and <strong>not fuchsia</strong>.
+
+  <div id="test" class="highlight_reftest">Selected Text</div>

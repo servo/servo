@@ -1,0 +1,25 @@
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+    async_test(function(t) {
+        var i = new Image();
+        i.src = "2x2.png";
+        i.src = "2x2.png";
+        i.onload = t.step_func(function() {
+            i.onload = this.unreached_func("Load event for aborted request.");
+            t.step_timeout(t.step_func_done(), 100);
+        });
+    }, "Multiple requests for the same URL do not trigger multiple load events.");
+
+    async_test(function(t) {
+        var i = new Image();
+        i.src = "test.png";
+        i.src = "2x2.png";
+        i.onload = t.step_func(function() {
+            i.onload = this.unreached_func("Load event for aborted request.");
+            t.step_timeout(t.step_func_done(), 100);
+        });
+    }, "Multiple requests for different URL do not trigger multiple load events.");
+</script>

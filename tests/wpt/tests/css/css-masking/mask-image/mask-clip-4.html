@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Masking: mask-clip: clip mask image</title>
+    <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+    <link rel="help" href="https://drafts.fxtf.org/css-masking-1/#the-mask-clip">
+    <link rel="match" href="mask-clip-4-ref.html">
+    <meta name="assert" content="content-box, padding-box, border-box, and
+      magrin-box values of mask-clip should clip to the appropriate boxes.">
+    <style type="text/css">
+      svg {
+        position: absolute;
+        top: 10px;
+        border: 1px solid black;
+      }
+
+      rect.mask {
+        fill: blue;
+        mask-origin: fill-box;
+        mask-repeat: no-repeat;
+        mask-image: url(support/50x50-opaque-blue.svg);
+      }
+
+      rect.content {
+        mask-clip: content-box; /* should be the same as fill-box */
+      }
+
+      rect.padding {
+        mask-clip: padding-box; /* should be the same as fill-box */
+      }
+
+      rect.border {
+        mask-clip: border-box; /* should be the same as stroke-box */
+      }
+
+      rect.margin {
+        mask-clip: margin-box; /* should be the same as stroke-box */
+      }
+    </style>
+  </head>
+  <body>
+    <svg width="200" height="200" style="left: 10px;">
+      <rect class="content mask" x="50" y="50" width="150" height="150"/>
+    </svg>
+    <svg width="200" height="200" style="left: 220px;">
+      <rect class="padding mask" x="50" y="50" width="150" height="150"/>
+    </svg>
+    <svg width="200" height="200" style="left: 10px; top: 220px;">
+      <rect class="border mask" x="50" y="50" width="100" height="100" stroke="green" stroke-width="20"/>
+    </svg>
+    <svg width="200" height="200" style="left: 220px; top: 220px;">
+      <rect class="margin mask" x="50" y="50" width="100" height="100" stroke="green" stroke-width="20"/>
+    </svg>
+  </body>
+</html>

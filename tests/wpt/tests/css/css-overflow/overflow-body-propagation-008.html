@@ -1,0 +1,31 @@
+<!doctype html>
+<html><head>
+<meta charset="utf-8">
+<title>CSS Test: overflow-y:clip propagated from BODY</title>
+<link rel="author" title="Mats Palmgren" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1635473">
+<link rel="help" href="https://drafts.csswg.org/css-overflow/#overflow-propagation">
+<link rel="match" href="overflow-body-propagation-008-ref.html">
+<style>
+  body {
+    overflow-y: clip;
+    width: 30px;
+    height: 30px;
+    padding: 10px;
+    margin-left: 100px;
+    margin-top: 100px;
+  }
+
+  div {
+    position: relative;
+    top: -20px;
+    left: -40px;
+    background: blue;
+    height: 10000px;
+    width: 10000px;
+    border-right-width: 20px;
+    border-right-style: solid;
+    border-right-color: red;
+  }
+</style></head>
+<body><div></div></body>
+</html>

@@ -1,0 +1,15 @@
+<!doctype html>
+<title>document.open in beforeunload with link</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+var t = async_test();
+var win;
+
+t.step(function() {
+  win = window.open("support/003-1.html");
+});
+
+add_completion_callback(function() {win.close()});
+</script>

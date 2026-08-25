@@ -1,0 +1,110 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Clicking a button should submit the form</title>
+<meta name="author" title="Keith Cirkel" href="mailto:wpt@keithcirkel.co.uk" />
+<link
+  rel="help"
+  href="https://html.spec.whatwg.org/multipage/#attr-button-type-submit-state"
+/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<form id="form">
+  <button id="button"></button>
+</form>
+
+<script>
+  const form = document.getElementById("form");
+  const button = document.getElementById("button");
+
+  function resetState() {
+    button.removeAttribute("commandfor");
+    button.removeAttribute("command");
+    button.removeAttribute("disabled");
+    button.removeAttribute("form");
+    button.removeAttribute("type");
+  }
+
+  test((t) => {
+    t.add_cleanup(resetState);
+    button.setAttribute("command", "--foo");
+
+    let called = false;
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      called = true;
+    }, { once: true });
+    button.click();
+    assert_false(called, "submit should not have been dispatched");
+  }, "clicking a button (implicit type) should NOT trigger a submit (with command attribute)");
+
+  test((t) => {
+    t.add_cleanup(resetState);
+    button.setAttribute("commandfor", "whatever");
+
+    let called = false;
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      called = true;
+    }, { once: true });
+    button.click();
+    assert_false(called, "submit should not have been dispatched");
+  }, "clicking a button (implicit type) should NOT trigger a submit (with commandfor attribute)");
+
+  test((t) => {
+    t.add_cleanup(resetState);
+    button.setAttribute("command", "--foo");
+    button.setAttribute("commandfor", "whatever");
+
+    let called = false;
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      called = true;
+    }, { once: true });
+    button.click();
+    assert_false(called, "submit should not have been dispatched");
+  }, "clicking a button (implicit type) should NOT trigger a submit (with command and commandfor attribute)");
+
+  test((t) => {
+    t.add_cleanup(resetState);
+    button.setAttribute("command", "--foo");
+    button.setAttribute("type", "submit");
+
+    let called = false;
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      called = true;
+    }, { once: true });
+    button.click();
+    assert_true(called, "submit should have been dispatched");
+  }, "clicking a button (explicit type=submit) SHOULD trigger a submit (with command attribute)");
+
+  test((t) => {
+    t.add_cleanup(resetState);
+    button.setAttribute("commandfor", "whatever");
+    button.setAttribute("type", "submit");
+
+    let called = false;
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      called = true;
+    }, { once: true });
+    button.click();
+    assert_true(called, "submit should have been dispatched");
+  }, "clicking a button (explicit type=submit) SHOULD trigger a submit (with commandfor attribute)");
+
+  test((t) => {
+    t.add_cleanup(resetState);
+    button.setAttribute("command", "--foo");
+    button.setAttribute("commandfor", "whatever");
+    button.setAttribute("type", "submit");
+
+    let called = false;
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      called = true;
+    }, { once: true });
+    button.click();
+    assert_true(called, "submit should have been dispatched");
+  }, "clicking a button (explicit type=submit) SHOULD trigger a submit (with command and commandfor attribute)");
+</script>

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>inert inlines</title>
+    <link rel="author" title="Alice Boxhall" href="aboxhall@chromium.org">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+  </head>
+<body>
+<a inert id="a" href="javascript:void(0)">Click me</a>
+<button inert id="button">Click me</button>
+<div inert id="div" style="background-color: blue; width: 50px; height: 50px">Click me</div>
+<span inert id="span">Click me</span>
+<script>
+function eventFiredOnInertElement(e) {
+    e.target.style.background = 'red';
+    inertElementFiredOn = true;
+}
+
+inertElements = ['a', 'button', 'div', 'span']
+inertElements.forEach(function(id) {
+    element = document.getElementById(id);
+    element.addEventListener('click', eventFiredOnInertElement);
+    element.addEventListener('mousemove', eventFiredOnInertElement);
+});
+
+document.addEventListener('click', function(e) {
+    document.firedOn = true;
+});
+
+promise_test(async () => {
+    for (let id of inertElements) {
+        var element = document.getElementById(id);
+        inertElementFiredOn = false;
+        document.firedOn = false;
+        try {
+          await test_driver.click(element);
+          assert_false(inertElementFiredOn, 'no event should be fired on ' + id);
+          assert_true(document.firedOn, 'event should be fired on document instead of ' + id);
+        } catch (e) {
+          // test driver detects inert elements as unclickable
+          // and throws an error
+          assert_false(inertElementFiredOn, 'no event should be fired on ' + id);
+        }
+    }
+}, 'Tests that inert inlines do not receive mouse events. ' +
+   'To test manually, click on all the "Click me"s. The test ' +
+   'fails if you see red.');
+
+</script>
+</body>
+</html>

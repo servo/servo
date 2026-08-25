@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<link rel="help" href="https://github.com/servo/servo/issues/45792">
+
+<button form="duplicate"></button>
+<div id="container">
+  <span id="duplicate"></span>
+  <span id="duplicate"></span>
+</div>
+<script>
+  container.remove();
+</script>

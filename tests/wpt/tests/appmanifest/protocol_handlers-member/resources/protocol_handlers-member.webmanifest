@@ -1,0 +1,18 @@
+{
+  "name": "Protocol_handlers test",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "144x144"
+    }
+  ],
+  "start_url": "../protocol_handlers-member-manual.tentative.html",
+  "display": "standalone",
+  "scope": "../../protocol_handlers-member/",
+  "protocol_handlers": [
+    {
+      "protocol": "web+testing",
+      "url": "protocol_handlers_entry.html?value=%s"
+    }
+  ]
+}

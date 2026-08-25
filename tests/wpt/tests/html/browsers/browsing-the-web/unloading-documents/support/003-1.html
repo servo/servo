@@ -1,0 +1,23 @@
+<!DOCTYPE HTML>
+<script>
+ var t = opener.t;
+ var do_test = t.step_func(function() {
+   localStorage.test6564729 += '1';
+   var d = document;
+   var e = document.open(); // has no effect (ignore-opens-during-unload > 0 because we're in beforeunload)
+   localStorage.test6564729 += (e == d) ? '2' : 'A [' + e + '] ';
+   document.write('FAIL - document.write executed and blocked navigation!'); // has no effect (ignore-opens-during-unload > 0)
+   localStorage.test6564729 += document.body.textContent.match('FAIL') ? 'B' : '3';
+   document.close(); // has no effect (no script-created parser)
+   localStorage.test6564729 += '4';
+ })
+
+ onload=t.step_func(function() {localStorage.test6564729 = '0'; setTimeout(t.step_func(function() {document.links[0].click()}), 100)})
+
+</script>
+<body
+      onbeforeunload="do_test()"
+      onpagehide="localStorage.test6564729 += '6'"
+      onunload="localStorage.test6564729 += '7'">
+<p><a href="003a.html">Follow this link to run the test.</a>
+<p><iframe src="003b.html"></iframe>

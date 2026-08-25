@@ -1,0 +1,43 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Solving for width of block-level non-replaced elements in normal flow when 'width' is 'auto'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#blockwidth" />
+        <meta name="assert" content="When width is auto and the combination of border widths, padding widths, scrollbar widths, width, and non 'auto' margin widths are larger than the width of the containing block, the margin widths are treated as 0." />
+        <style type="text/css">
+            #div1
+            {
+                margin-top: 15px;
+                width: 100px;
+            }
+            div div
+            {
+                background-color: orange;
+                border-left: 10px solid orange;
+                border-right: 10px solid orange;
+                height: 30px;
+                margin-left: auto;
+                padding-left: 10px;
+                padding-right: 10px;
+                width: 110px;
+            }
+            #div2
+            {
+                background-color: blue;
+                height: 30px;
+                position: absolute;
+                top: 82px;
+                width: 150px;
+            }
+        </style>
+        <link rel="match" href="block-non-replaced-width-001-ref.xht" />
+    </head>
+    <body>
+        <p>Test passes if the orange and blue rectangles have the <strong>same width</strong>.</p>
+        <div id="div1">
+            <div></div>
+        </div>
+        <div id="div2"></div>
+    </body>
+</html>

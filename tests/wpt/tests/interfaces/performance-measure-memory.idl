@@ -1,0 +1,30 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Measure Memory API (https://wicg.github.io/performance-measure-memory/)
+
+dictionary MemoryMeasurement {
+  unsigned long long bytes;
+  sequence<MemoryBreakdownEntry> breakdown;
+};
+
+dictionary MemoryBreakdownEntry {
+  unsigned long long bytes;
+  sequence<MemoryAttribution> attribution;
+  sequence<DOMString> types;
+};
+
+dictionary MemoryAttribution {
+  USVString url;
+  MemoryAttributionContainer container;
+  DOMString scope;
+};
+
+dictionary MemoryAttributionContainer {
+  DOMString id;
+  USVString src;
+};
+
+partial interface Performance {
+  [Exposed=(Window,ServiceWorker,SharedWorker), CrossOriginIsolated] Promise<MemoryMeasurement> measureUserAgentSpecificMemory();
+};

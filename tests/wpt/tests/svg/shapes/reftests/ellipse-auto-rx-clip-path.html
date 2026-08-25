@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<title>SVG ellipse with auto rx/ry inside &lt;clipPath&gt; resolves per SVG 2</title>
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/shapes.html#EllipseElement">
+<link rel="match" href="ellipse-auto-rx-clip-path-ref.html">
+<meta name="assert" content="An ellipse with auto rx (or auto ry) used as the geometry of a <clipPath> must clip identically to an ellipse with the resolved explicit value, per SVG 2 §10.4.">
+<svg width="320" height="160">
+  <defs>
+    <clipPath id="auto-rx"><ellipse cx="80" cy="80" rx="auto" ry="50"/></clipPath>
+    <clipPath id="auto-ry"><ellipse cx="240" cy="80" rx="50" ry="auto"/></clipPath>
+  </defs>
+  <rect x="0" y="0" width="160" height="160" fill="green" clip-path="url(#auto-rx)"/>
+  <rect x="160" y="0" width="160" height="160" fill="green" clip-path="url(#auto-ry)"/>
+</svg>
+</html>

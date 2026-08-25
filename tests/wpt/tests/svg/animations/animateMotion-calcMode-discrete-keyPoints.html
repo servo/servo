@@ -1,0 +1,57 @@
+<!doctype html>
+<title>Test animateMotion with calcMode="discrete", path, keyPoints, and keyTimes</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+
+<svg xmlns="http://www.w3.org/2000/svg">
+  <rect width="10" height="10">
+    <animateMotion id="anim" calcMode="discrete" dur="4s" fill="freeze"
+      path="M0,0 L200,0"
+      keyPoints="1;0.25;0"
+      keyTimes="0;0.5;1" />
+  </rect>
+</svg>
+
+<script>
+// Path goes from (0,0) to (200,0), length=200.
+// keyPoints="1;0.25;0" maps to path fractions: end, quarter, start.
+// keyTimes="0;0.5;1" with dur=4s:
+//   keyframe 0 (t=0..2s): keyPoint=1 => path fraction 1.0 => (200,0)
+//   keyframe 1 (t=2..4s): keyPoint=0.25 => path fraction 0.25 => (50,0)
+//   at t=4s (fill=freeze): keyPoint=0 => path fraction 0.0 => (0,0)
+//
+// With discrete calcMode, the value jumps at keyTime boundaries.
+// keyPoints differ from keyTimes to verify keyPoints are actually applied.
+
+const rootSVGElement = document.querySelector("svg");
+const rect = document.querySelector("rect");
+
+function sample1() {
+    // First keyframe, path fraction 1.0 => (200, 0)
+    assert_equals(rect.getCTM().e, 200, "x (end of path)");
+    assert_equals(rect.getCTM().f, 0, "y (end of path)");
+}
+function sample2() {
+    // Second keyframe, path fraction 0.25 => (50, 0)
+    assert_equals(rect.getCTM().e, 50, "x (quarter of path)");
+    assert_equals(rect.getCTM().f, 0, "y (quarter of path)");
+}
+function sample3() {
+    // Freeze at last keyframe, path fraction 0 => (0, 0)
+    assert_equals(rect.getCTM().e, 0, "x (start of path)");
+    assert_equals(rect.getCTM().f, 0, "y (start of path)");
+}
+
+smil_async_test((t) => {
+    const expectedValues = [
+        ["anim", 0.0,   sample1],
+        ["anim", 1.0,   sample1],
+        ["anim", 2.0,   sample2],
+        ["anim", 3.0,   sample2],
+        ["anim", 4.0,   sample3],
+    ];
+    runAnimationTest(t, expectedValues);
+});
+</script>
+</html>

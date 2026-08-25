@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>Tests rendering of table cell's background-image with local attachment.</title>
+<link rel="help" href="https://www.w3.org/TR/css-backgrounds-3/#ref-for-valdef-background-attachment-local">
+<link rel="help" href="https://www.w3.org/TR/css-overflow-3/#valdef-overflow-hidden">
+<link rel="help" href="https://www.w3.org/TR/CSS2/visuren.html#block-formatting">
+<link rel="match" href="table-cell-background-local-ref.html">
+<meta name="assert" content="The local attachment background image of a table cell with overflow:hidden should be positioned in the scrolling area and clipped">
+Passes if there is a brown square.
+<table style="border-spacing: 0">
+  <tr>
+    <td id="target"
+        style="overflow: hidden; padding: 0;
+               background: linear-gradient(to bottom right, green, red);
+               background-attachment: local">
+      <div style="width: 100px; height: 100px">
+        <div style="width: 3000px; height: 3000px"></div>
+      </div>
+    </div>
+  </tr>
+</table>
+<script>
+target.scrollTop = 1500;
+target.scrollLeft = 1500;
+</script>

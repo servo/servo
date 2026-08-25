@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<link rel="help" href="https://github.com/WICG/PEPC/blob/main/explainer.md#locking-the-pepc-style">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/pepc-helper.js"></script>
+<body>
+<!-- The usermedia element should not be focusable by script.
+-->
+<usermedia tabindex="0" id="valid_usermedia_element"></usermedia>
+
+<span tabindex="0" id="focusable_span">This is some text</span>
+
+<script>
+  promise_test(async(t) => {
+    await new Promise((r) => t.step_timeout(r, PEPC_CLICK_DELAY));
+    focusable_span.focus();
+    valid_usermedia_element.focus();
+    assert_equals(document.activeElement, focusable_span,
+      "UserMedia element should not be focused.");
+
+    focusable_span.focus();
+    await test_driver.bless('Focus with user activation', () => {
+      valid_usermedia_element.focus();
+    });
+    assert_equals(document.activeElement, valid_usermedia_element,
+      "Focus is allowed with user activation");
+
+    focusable_span.focus();
+    actions = new test_driver.Actions()
+       .pointerMove(1, 1, {origin: valid_usermedia_element})
+       .pointerDown()
+       .addTick();
+    await actions.send();
+    assert_equals(document.activeElement, valid_usermedia_element,
+      "Users can focus the element");
+
+    focusable_span.focus();
+    assert_equals(document.activeElement, focusable_span,
+        "Other element should be focused");
+}, "UserMedia element is not focusable by script without user activation");
+</script>
+</body>

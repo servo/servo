@@ -1,0 +1,14 @@
+<body>
+    Child.
+    <iframe id="grandchild" src="change_grandchild.html"></iframe>
+</body>
+<script>
+    var timer = window.setInterval(poll, 100);
+    function poll() {
+        if (document.body.getAttribute("data-contains-grandchild")) {
+            var grandchild = document.getElementById("grandchild");
+            window.frameElement.parentNode.appendChild(grandchild);
+            window.clearTimeout(timer);
+        }
+    }
+</script>

@@ -1,0 +1,76 @@
+<!doctype html>
+<meta charset=utf-8>
+<title></title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+
+async function test() {
+
+  let testElement1 = async_test("Setting Element.textContent");
+  let el = document.createElement("div");
+  let m = new MutationObserver((records) => testElement1.step(()=> {
+    assert_equals(records.length, 1, "Should have one record");
+    assert_equals(records[0].addedNodes[0].nodeType, Node.TEXT_NODE, "Should have gotten a text node as a child.");
+    assert_equals(records[0].addedNodes[0].data, "foo");
+    m.disconnect();
+    testElement1.done();
+  }));
+  m.observe(el, { childList: true });
+  el.textContent = "foo";
+
+  await Promise.resolve(); // Run microtasks
+
+  let testElement2 = async_test("Setting Element.textContent to the same value");
+  m = new MutationObserver((records) => testElement2.step(()=> {
+    assert_equals(records.length, 1, "Should have one record");
+    assert_equals(records[0].removedNodes[0].nodeType, Node.TEXT_NODE, "Should have removed a text node.");
+    assert_equals(records[0].removedNodes[0].data, "foo");
+    assert_equals(records[0].addedNodes[0].nodeType, Node.TEXT_NODE, "Should have gotten a text node as a child.");
+    assert_equals(records[0].addedNodes[0].data, "foo");
+    m.disconnect();
+    testElement2.done();
+  }));
+  m.observe(el, { childList: true });
+  testElement2.step(() => { assert_equals(el.textContent, "foo"); });
+  el.textContent = "foo";
+
+  await Promise.resolve(); // Run microtasks
+
+  let testElement3 = async_test("Setting Element.textContent to a different value");
+  m = new MutationObserver((records) => testElement3.step(()=> {
+    assert_equals(records.length, 1, "Should have one record");
+    assert_equals(records[0].removedNodes[0].nodeType, Node.TEXT_NODE, "Should have removed a text node.");
+    assert_equals(records[0].removedNodes[0].data, "foo");
+    assert_equals(records[0].addedNodes[0].nodeType, Node.TEXT_NODE, "Should have gotten a text node as a child.");
+    assert_equals(records[0].addedNodes[0].data, "bar");
+    m.disconnect();
+    testElement3.done();
+  }));
+  m.observe(el, { childList: true });
+  testElement3.step(() => { assert_equals(el.textContent, "foo"); });
+  el.textContent = "bar";
+
+  await Promise.resolve(); // Run microtasks
+
+  let testElement4 = async_test("Setting Element.textContent to the same value when the old node is a CDATASection");
+  let xml = new DOMParser().parseFromString("<root></root>", "text/xml");
+  el = xml.createElement("somelement");
+  el.appendChild(xml.createCDATASection("foo"));
+  m = new MutationObserver((records) => testElement4.step(()=> {
+    assert_equals(records.length, 1, "Should have one record");
+    assert_equals(records[0].removedNodes[0].nodeType, Node.CDATA_SECTION_NODE, "Should have removed a cdata node.");
+    assert_equals(records[0].removedNodes[0].data, "foo");
+    assert_equals(records[0].addedNodes[0].nodeType, Node.TEXT_NODE, "Should have gotten a text node as a child.");
+    assert_equals(records[0].addedNodes[0].data, "foo");
+    m.disconnect();
+    testElement4.done();
+  }));
+  m.observe(el, { childList: true });
+  testElement4.step(() => { assert_equals(el.textContent, "foo"); });
+  el.textContent = "foo";
+
+}
+test();
+
+</script>

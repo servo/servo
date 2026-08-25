@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<title>User activation propagation across a cross-origin redirection</title>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+  <p>Non-zero-sized body to allow clicks.</p>
+</body>
+
+<script>
+  'use strict';
+
+  let uuid1 = token();
+  let uuid2 = token();
+
+  let origin = get_host_info().HTTP_ORIGIN;
+  let remote_origin = get_host_info().HTTP_REMOTE_ORIGIN;
+  let clicked_link =
+        `${remote_origin}/common/redirect.py?location=` +
+        `${origin}/common/dispatcher/remote-executor.html?uuid=${uuid2}`;
+
+  const getUserActivationState = () =>
+    [navigator.userActivation.isActive, navigator.userActivation.hasBeenActive];
+
+  function assertUserActivationState(list,
+        expected_transient_bit, expected_sticky_bit, msg) {
+    assert_equals(list[0], expected_transient_bit, "Transient bit " + msg);
+    assert_equals(list[1], expected_sticky_bit, "Sticky bit " + msg);
+  }
+
+  promise_test(async test => {
+    // Open a new window that we will navigate away and observe.
+    let w;
+    document.body.onclick = () => {
+      w = window.open(`/common/dispatcher/remote-executor.html?uuid=${uuid1}`);
+    };
+
+    await test_driver.click(document.body);
+    assert_true(!!w, "A window is opened");
+
+    // Populate the window: add two elements (a non-link and a link) to allow
+    // the following clicks.
+    {
+      const context = new RemoteContext(uuid1);
+      await context.execute_script(link => {
+        // Not sure why the first click below fails w/o this line!
+        document.body.textContent = "";
+
+        let elem1 = document.createElement("div");
+        elem1.textContent = "Dummy text to make it clickable";
+        document.body.appendChild(elem1);
+
+        let elem2 = document.createElement("a");
+        elem2.textContent = "Dummy text to make it clickable";
+        elem2.href = link;
+
+        document.body.appendChild(elem2);
+      }, [clicked_link]);
+    }
+
+    // Check that the new window does not have user activation initially.
+    {
+      const context = new RemoteContext(uuid1);
+      const result = await context.execute_script(getUserActivationState);
+      assertUserActivationState(result, false, false, "after window opened");
+    }
+
+    // Confirm that the new window gets user activation after a click.
+    await test_driver.click(w.document.body.firstElementChild);
+    {
+      const context = new RemoteContext(uuid1);
+      const result = await context.execute_script(getUserActivationState);
+      assertUserActivationState(result, true, true, "after window clicked");
+    }
+
+    // Click on the link to navigate away.
+    await test_driver.click(w.document.body.lastElementChild);
+
+    // Confirm that the new window does not have user activation.
+    {
+      const context = new RemoteContext(uuid2);
+      const result = await context.execute_script(getUserActivationState);
+      assertUserActivationState(result, false, false,
+            "after window nagivated and redirected");
+    }
+}, "User activation propagation across a same-origin navigation");
+</script>

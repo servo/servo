@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://issues.chromium.org/issues/393500003">
+<link rel=help href="https://chromium-review.googlesource.com/c/chromium/src/+/7032708/comment/aa4b509b_fec51624/">
+<link rel=match href="select-appearance-mixing-ref.html">
+
+<style>
+.custom, .custom::picker(select) {
+  appearance: base-select;
+}
+</style>
+
+<select multiple>
+  <option>normal</option>
+  <div style="appearance:base-select">
+    <option style="appearance:base-select">
+      <div>div</div>
+      <span>span</span>
+      text
+    </option>
+  </div>
+</select>
+
+<select multiple class=custom>
+  <option>normal</option>
+  <option style="appearance:base-select">base-select</option>
+</select>

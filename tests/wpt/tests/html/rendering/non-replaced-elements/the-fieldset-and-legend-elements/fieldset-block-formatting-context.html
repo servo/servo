@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>The fieldset element: block formatting context</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<style>
+* {
+  margin: 0;
+  padding: 0;
+}
+fieldset { border: none; }
+.float {
+  float: left;
+  width: 50px;
+  height: 50px;
+  background-color: orange;
+}
+</style>
+
+<div class=float></div>
+<fieldset><div class=float></div></fieldset>
+
+<script>
+test(() => {
+  const fieldset = document.querySelector('fieldset');
+  assert_equals(fieldset.offsetTop, 0, 'fieldset.offsetTop');
+  assert_equals(fieldset.offsetLeft, 50, 'fieldset.offsetLeft');
+  assert_equals(fieldset.clientHeight, 50, 'fieldset.clientHeight');
+});
+</script>

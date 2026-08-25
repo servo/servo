@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>mspace percentages</title>
+    <link rel="help" href="https://w3c.github.io/mathml-core/#space-mspace">
+    <meta name="assert" content="Verify that percentage values for mspace do not use refer to the containing block">
+    <link rel="match" href="mspace-percentage-001-ref.html">
+    <style>
+      .red {
+          background: red;
+      }
+    </style>
+  </head>
+  <body>
+    <p>This test passes if there is a green square with no red.</p>
+    <math display="block"
+          style="width: 200px; height: 200px; background: green">
+      <mspace width="5%" height="10px" class="red"></mspace>
+      <mspace width=" 5%" height="10px" class="red"></mspace>
+      <mspace width="5% " height="10px" class="red"></mspace>
+      <mspace width="10px" height="5%" class="red"></mspace>
+      <mspace width="10px" height=" 5%" class="red"></mspace>
+      <mspace width="10px" height="5% " class="red"></mspace>
+      <mspace width="10px" depth="5%" class="red"></mspace>
+      <mspace width="10px" depth=" 5%" class="red"></mspace>
+      <mspace width="10px" depth="5% " class="red"></mspace>
+      <mspace width="10px" height="5%" depth="5%" class="red"></mspace>
+      <mspace width="10px" height=" 5%" depth=" 5%" class="red"></mspace>
+      <mspace width="10px" height="5% " depth="5% " class="red"></mspace>
+    </math>
+  </body>
+</html>

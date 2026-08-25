@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+    <script src='/resources/testdriver.js'></script>
+    <script src='/resources/testdriver-vendor.js'></script>
+    <script src='../../mediacapture-streams/permission-helper.js'></script>
+    <script src='/reporting/resources/report-helper.js'></script>
+  </head>
+  <body>
+    <script>
+  const base_url = `${location.protocol}//${location.host}`;
+  const endpoint = `${base_url}/reporting/resources/report.py`;
+  const id = 'c3841a1a-e750-4801-a50b-c4222d386515';
+
+  promise_test(async t => {
+    await setMediaPermission("granted", ["camera","microphone"]);
+    // This should not throw, as the enforcing policy does not block it.
+    await navigator.mediaDevices.getUserMedia({video: true});
+    while(true) {
+      await wait(100);
+      const reports = await pollReports(endpoint, id);
+      if (reports.length) {
+        checkReportExists(reports, 'permissions-policy-violation', location.href);
+        break;
+      }
+    }
+  }, "Reporting-Endpoints defined endpoint received reports in report-only mode.");
+    </script>
+  </body>
+</html>

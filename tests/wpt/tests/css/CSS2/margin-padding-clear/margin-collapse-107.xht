@@ -1,0 +1,53 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: Margin Collapsing: in flow (used height)</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/block/margin-collapse/007.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#collapsing-margins"/>
+  <meta name="assert" content="This tests that emptiness is based on the
+    computed values of height."/>
+  <style type="text/css">
+   table { border-spacing: 0; font-size: 50px; border: solid white; background: red; }
+   td { padding: 0; }
+
+   /* colors */
+   .test, .control { background: lime; }
+   .a { background: aqua; color: aqua; }
+   .b { background: yellow; color: yellow; }
+
+   /* test */
+   .test .a { margin: 0 0 1em 0; }
+   .test .c { margin: 1em 0 1em 0;
+              height: 0.04px; }
+   .test .b { margin: 1em 0 0 0; }
+
+   /* control */
+   .control .a { margin: 0 0 2em; }
+   .control .c { height: 0.04px; }
+  </style>
+ </head>
+ <body>
+  <p>The pattern below should be a stack of three perfect rectangles with no red.</p>
+  <table>
+   <tr>
+    <td>
+     <div class="test">
+      <div class="a">A</div>
+      <div class="c"></div>
+      <div class="b">B</div>
+     </div>
+    </td>
+    <td>
+     <div class="control">
+      <div class="a">A</div>
+      <div class="c"></div>
+      <div class="b">B</div>
+     </div>
+    </td>
+   </tr>
+  </table>
+
+</body>
+</html>

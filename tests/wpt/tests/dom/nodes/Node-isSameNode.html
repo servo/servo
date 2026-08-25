@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Node.prototype.isSameNode</title>
+<link rel=help href="https://dom.spec.whatwg.org/#dom-node-issamenode">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+
+test(function() {
+
+  var doctype1 = document.implementation.createDocumentType("qualifiedName", "publicId", "systemId");
+  var doctype2 = document.implementation.createDocumentType("qualifiedName", "publicId", "systemId");
+
+  assert_true(doctype1.isSameNode(doctype1), "self-comparison");
+  assert_false(doctype1.isSameNode(doctype2), "same properties");
+  assert_false(doctype1.isSameNode(null), "with null other node");
+}, "doctypes should be compared on reference");
+
+test(function() {
+
+  var element1 = document.createElementNS("namespace", "prefix:localName");
+  var element2 = document.createElementNS("namespace", "prefix:localName");
+
+  assert_true(element1.isSameNode(element1), "self-comparison");
+  assert_false(element1.isSameNode(element2), "same properties");
+  assert_false(element1.isSameNode(null), "with null other node");
+
+}, "elements should be compared on reference (namespaced element)");
+
+test(function() {
+
+  var element1 = document.createElement("element");
+  element1.setAttributeNS("namespace", "prefix:localName", "value");
+
+  var element2 = document.createElement("element");
+  element2.setAttributeNS("namespace", "prefix:localName", "value");
+
+  assert_true(element1.isSameNode(element1), "self-comparison");
+  assert_false(element1.isSameNode(element2), "same properties");
+  assert_false(element1.isSameNode(null), "with null other node");
+
+}, "elements should be compared on reference (namespaced attribute)");
+
+test(function() {
+
+  var pi1 = document.createProcessingInstruction("target", "data");
+  var pi2 = document.createProcessingInstruction("target", "data");
+
+  assert_true(pi1.isSameNode(pi1), "self-comparison");
+  assert_false(pi1.isSameNode(pi2), "different target");
+  assert_false(pi1.isSameNode(null), "with null other node");
+
+}, "processing instructions should be compared on reference");
+
+test(function() {
+
+  var text1 = document.createTextNode("data");
+  var text2 = document.createTextNode("data");
+
+  assert_true(text1.isSameNode(text1), "self-comparison");
+  assert_false(text1.isSameNode(text2), "same properties");
+  assert_false(text1.isSameNode(null), "with null other node");
+
+}, "text nodes should be compared on reference");
+
+test(function() {
+
+  var comment1 = document.createComment("data");
+  var comment2 = document.createComment("data");
+
+  assert_true(comment1.isSameNode(comment1), "self-comparison");
+  assert_false(comment1.isSameNode(comment2), "same properties");
+  assert_false(comment1.isSameNode(null), "with null other node");
+
+}, "comments should be compared on reference");
+
+test(function() {
+
+  var documentFragment1 = document.createDocumentFragment();
+  var documentFragment2 = document.createDocumentFragment();
+
+  assert_true(documentFragment1.isSameNode(documentFragment1), "self-comparison");
+  assert_false(documentFragment1.isSameNode(documentFragment2), "same properties");
+  assert_false(documentFragment1.isSameNode(null), "with null other node");
+
+}, "document fragments should be compared on reference");
+
+test(function() {
+
+  var document1 = document.implementation.createDocument("", "");
+  var document2 = document.implementation.createDocument("", "");
+
+  assert_true(document1.isSameNode(document1), "self-comparison");
+  assert_false(document1.isSameNode(document2), "another empty XML document");
+  assert_false(document1.isSameNode(null), "with null other node");
+
+}, "documents should be compared on reference");
+
+test(function() {
+
+  var attr1 = document.createAttribute('href');
+  var attr2 = document.createAttribute('href');
+
+  assert_true(attr1.isSameNode(attr1), "self-comparison");
+  assert_false(attr1.isSameNode(attr2), "same name");
+  assert_false(attr1.isSameNode(null), "with null other node");
+
+}, "attributes should be compared on reference");
+
+</script>

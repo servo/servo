@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long"/>
+<link rel="help" href="https://github.com/whatwg/html/pull/11620">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/semantics.html#create-link-options-from-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/compression-dictionary-util.sub.js"></script>
+<script>
+compression_dictionary_promise_test(async t => {
+  // Try and trigger dictionary fetch via a link element and a baseURL.
+  let base = document.createElement("base");
+  base.href = "./resources/";
+  document.head.appendChild(base);
+  await (new Promise((resolve, reject) => {
+    const link = document.createElement('link');
+    t.add_cleanup(_ => link.remove());
+    link.rel = 'compression-dictionary';
+    link.href = "./register-dictionary.py";
+    link.addEventListener("load", resolve);
+    link.addEventListener("error", reject);
+    document.head.appendChild(link);
+  })).finally(() => base.remove());
+
+  // Wait a bit to make sure dictionary is available.
+  await waitUntilAvailableDictionaryHeader(t, {});
+
+  // Check if the data compressed using Brotli with the dictionary can be
+  // decompressed.
+  const data_url = `./resources/compressed-data.py?content_encoding=dcb`;
+  assert_equals(await (await fetch(data_url)).text(), kExpectedCompressedData);
+}, '<link rel=compression-dictionary> uses the base URL to trigger a fetch.');
+</script>

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<head>
+<title>load/error events for JSON modules</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/load-error-events-helpers.js"></script>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#execute-the-script-block">
+</head>
+<script>
+  "use strict";
+
+  var test1_load = event_test('inline, 200, parser-inserted', false, false);
+  var test1_error = event_test('inline, 404, parser-inserted', false, true);
+
+  var test2_load = event_test('src, 200, parser-inserted', true, false);
+  var test2_error = event_test('src, 404, parser-inserted', false, true);
+
+  var test3_dynamic_load = event_test('src, 200, not parser-inserted', true, false);
+  var test3_dynamic_error = event_test('src, 404, not parser-inserted', false, true);
+
+  var test4_dynamic_load = event_test('inline, 200, not parser-inserted', false, false);
+  var test4_dynamic_error = event_test('inline, 404, not parser-inserted', false, true);
+
+  var script3_dynamic_load = document.createElement('script');
+  script3_dynamic_load.setAttribute('type', 'module');
+  script3_dynamic_load.onload = () => onLoad(test3_dynamic_load);
+  script3_dynamic_load.onerror = () => onError(test3_dynamic_load);
+  script3_dynamic_load.src = "./load-error-events.py?test=test3_dynamic_load";
+  document.head.appendChild(script3_dynamic_load);
+
+  var script3_dynamic_error = document.createElement('script');
+  script3_dynamic_error.setAttribute('type', 'module');
+  script3_dynamic_error.onload = () => onLoad(test3_dynamic_error);
+  script3_dynamic_error.onerror = () => onError(test3_dynamic_error);
+  script3_dynamic_error.src = "./load-error-events.py?test=test3_dynamic_error";
+  document.head.appendChild(script3_dynamic_error);
+
+  var script4_dynamic_load = document.createElement('script');
+  script4_dynamic_load.setAttribute('type', 'module');
+  script4_dynamic_load.onload = () => onLoad(test4_dynamic_load);
+  script4_dynamic_load.onerror = () => onError(test4_dynamic_load);
+  script4_dynamic_load.async = true;
+  script4_dynamic_load.appendChild(document.createTextNode(`
+    import "./module.json" with { type: "json" };
+    onExecute(test4_dynamic_load);`
+  ));
+  document.head.appendChild(script4_dynamic_load);
+
+  var script4_dynamic_error = document.createElement('script');
+  script4_dynamic_error.setAttribute('type', 'module');
+  script4_dynamic_error.onload = () => onLoad(test4_dynamic_error);
+  script4_dynamic_error.onerror = () => onError(test4_dynamic_error);
+  script4_dynamic_error.async = true;
+  script4_dynamic_error.appendChild(document.createTextNode(`import "./not_found.json" with { type: "json" };`));
+  document.head.appendChild(script4_dynamic_error);
+</script>
+<script onload="onLoad(test1_load);" onerror="onError(test1_load);" type="module">
+  import "./module.json" with { type: "json"};
+  onExecute(test1_load);
+</script>
+<script onload="onLoad(test1_error);" onerror="onError(test1_error);" type="module">
+    import "./not_found.json" with { type: "json"};
+    onExecute(test1_error);
+</script>
+<script src="./load-error-events.py?test=test2_load" onload="onLoad(test2_load);" onerror="onError(test2_load);" type="module"></script>
+<script src="./load-error-events.py?test=test2_error" onload="onLoad(test2_error);" onerror="onError(test2_error);" type="module"></script>

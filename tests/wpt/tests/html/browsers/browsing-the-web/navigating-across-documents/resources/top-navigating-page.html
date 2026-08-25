@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Page that navigates its top</title>
+<script src=/common/get-host-info.sub.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script>
+addEventListener("load", async ()=> {
+  test_driver.set_test_context(top.opener);
+  const urlParams = new URLSearchParams(location.search);
+
+  const userGesture = urlParams.get('user_gesture') === 'true';
+  if (userGesture)
+    await test_driver.bless("Giving child frame user activation");
+
+  let path = new URL("page-that-post-message-to-opener.html", window.location).pathname;
+  let fullUrl = get_host_info().HTTP_NOTSAMESITE_ORIGIN + path;
+  try {
+    top.location = fullUrl;
+  } catch {
+    top.opener.postMessage('Denied', '*');
+  }
+})
+
+</script>

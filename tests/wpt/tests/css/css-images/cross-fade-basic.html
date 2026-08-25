@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Basic cross-fade() tests</title>
+    <link rel="author" title="Steinar H. Gunderson" href="mailto:sesse@chromium.org">
+    <link rel="help" href="https://drafts.csswg.org/css-images-4/#cross-fade-function">
+    <link rel="match" href="cross-fade-basic-ref.html">
+    <meta name="fuzzy" content="0-1;0-10000">
+    <style>
+      div {
+        margin: 2px;
+        width: 50px;
+        height: 50px;
+      }
+      .div1 {
+        background-image: cross-fade(50% #f00, 50% #00f);
+      }
+      .div2 {
+        background-image: cross-fade(50% #f00, #00f);
+      }
+      .div3 {
+        background-image: cross-fade(100% #f00, 100% #00f);
+      }
+      .div4 {
+        width: 200px;
+        height: 200px;
+        background: cross-fade(
+          75% url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200' style='background: black'><rect fill='red' width='150' height='150'/></svg>"),
+          25% url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200' style='background: black'><rect fill='blue' x='50' y='50' width='150' height='150'/></svg>")
+        );
+      }
+    </style>
+  </head>
+  <p>These three should all look the same; a dark purple.</p>
+  <div class="div1"></div>
+  <div class="div2"></div>
+  <div class="div3"></div>
+  <p>This should show red and blue translucent squares on a black background, with the red being clearer.</p>
+  <div class="div4"></div>
+</html>

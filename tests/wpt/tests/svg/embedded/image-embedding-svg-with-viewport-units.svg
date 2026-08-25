@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:xlink="http://www.w3.org/1999/xlink"
+     xmlns:h="http://www.w3.org/1999/xhtml">
+  <metadata>
+    <title>&lt;image&gt; embedding SVG image with viewport units</title>
+    <h:link rel="match" href="reference/green-rect-100x100.svg"/>
+  </metadata>
+  <image xlink:href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg'&gt;&lt;rect width='50vw' height='50vh' fill='green'/&gt;&lt;/svg&gt;"
+         width="200" height="200"/>
+</svg>

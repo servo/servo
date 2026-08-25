@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<title>Modifying attributes of a VTTCue</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<video>
+    <track id="captions" src="resources/captions.vtt" kind="captions" default>
+    <script>
+        async_test(function(t) {
+            var track = document.querySelector("track");
+
+            track.onload = t.step_func_done(function() {
+                var cues = track.track.cues;
+
+                // Test initial values.
+                textCue = cues.getCueById("1");
+
+                assert_equals(textCue.startTime, 0);
+                assert_equals(textCue.endTime, 1.0);
+                assert_equals(textCue.pauseOnExit, false);
+                assert_equals(textCue.vertical, "");
+                assert_equals(textCue.snapToLines, true);
+                assert_equals(textCue.line, "auto");
+                assert_equals(textCue.position, "auto");
+                assert_equals(textCue.size, 100);
+                assert_equals(textCue.align, "center");
+
+                // Modify cue values.
+                textCue.startTime = 1.1;
+                assert_equals(textCue.startTime, 1.1);
+
+                textCue.endTime = 3.9;
+                assert_equals(textCue.endTime, 3.9);
+
+                textCue.pauseOnExit = true;
+                assert_equals(textCue.pauseOnExit, true);
+
+                // http://dev.w3.org/html5/webvtt/#dfn-dom-vttcue-vertical
+                // On setting, the text track cue writing direction must be
+                // set to the value given in the first cell of the row in
+                // the table above whose second cell is a case-sensitive
+                // match for the new value.
+                textCue.vertical = "RL";
+                assert_equals(textCue.vertical, "");
+                textCue.vertical = "rl";
+                assert_equals(textCue.vertical, "rl");
+
+                textCue.snapToLines = false;
+                assert_equals(textCue.snapToLines, false);
+
+                // http://dev.w3.org/html5/webvtt/#dfn-vttcue-line
+                // On setting, the text track cue line position must be set
+                // to the new value; if the new value is the string "auto",
+                // then it must be interpreted as the special value auto.
+                assert_equals(textCue.line, "auto");
+                assert_throws_js(TypeError, function() { textCue.line = "gazonk"; });
+                assert_equals(textCue.line, "auto");
+                textCue.line = 42;
+                assert_equals(textCue.line, 42);
+                textCue.line = -2;
+                assert_equals(textCue.line, -2);
+                textCue.line = 102;
+                assert_equals(textCue.line, 102);
+                textCue.snapToLines = true;
+                textCue.line = -2;
+                assert_equals(textCue.line, -2);
+                textCue.line = 102;
+                assert_equals(textCue.line, 102);
+
+                // http://www.whatwg.org/specs/web-apps/current-work/multipage/the-video-element.html#dom-texttrackcue-line
+                // On setting, if the new value is negative or greater than 100,
+                // then throw an IndexSizeError exception.
+                // Otherwise, set the text track cue text position to the new value.
+                assert_throws_dom("IndexSizeError", function() { textCue.position = -200; });
+                assert_throws_dom("IndexSizeError", function() { textCue.position = 110; });
+                textCue.position = 11;
+                assert_equals(textCue.position, 11);
+
+                // http://www.whatwg.org/specs/web-apps/current-work/multipage/the-video-element.html#dom-texttrackcue-size
+                // On setting, if the new value is negative or greater than 100,
+                // then throw an IndexSizeError exception.
+                // Otherwise, set the text track cue size to the new value.
+                assert_throws_dom("IndexSizeError", function() { textCue.size = -200 });
+                assert_throws_dom("IndexSizeError", function() { textCue.size = 110 });
+                textCue.size = 57;
+                assert_equals(textCue.size, 57);
+
+                // http://dev.w3.org/html5/webvtt/#dfn-dom-vttcue-align
+                // On setting, the text track cue text alignment must be
+                // set to the value given in the first cell of the row
+                // in the table above whose second cell is a case-sensitive
+                // match for the new value.
+                textCue.align = "End";
+                assert_equals(textCue.align, "center");
+                textCue.align = "end";
+                assert_equals(textCue.align, "end");
+            });
+        });
+    </script>
+</video>

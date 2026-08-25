@@ -1,0 +1,42 @@
+<!doctype html>
+<head>
+  <meta charset=utf-8>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Test calling focus() in "focus" event listener when focus has moved away</title>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+</head>
+<body>
+  <input id="input1" placeholder="input1"/>
+  <input id="input2" placeholder="input2"/>
+</body>
+<script>
+// This test tests calling focus() in the "focus" event
+// listener on the element again when the focus has
+// moved away.
+
+// This is for https://github.com/whatwg/html/pull/11182
+async_test((t) => {
+  let previouslyCalled = false;
+  let counter = 0;
+
+  input1.addEventListener("focus", function(e) {
+    counter++;
+    if (!previouslyCalled) {
+      input2.focus();
+      previouslyCalled = true;
+    }
+
+    input1.focus();
+
+    if (counter !== 2) {
+      // If `lock-for-focus` is implemented, the above input1.focus()
+      // shouldn't work, so the counter should never be 2.
+      assert_unreached();
+    }
+    t.done();
+  });
+
+  input1.focus();
+}, "Element.focus() in focus listener when focus has moved away");
+</script>

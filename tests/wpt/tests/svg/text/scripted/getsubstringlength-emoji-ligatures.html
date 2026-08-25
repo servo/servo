@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>SVGTextContentElement.getSubStringLength on Emoji with ligatures</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg>
+  <g font-size="50" text-rendering="geometricPrecision">
+    <text y="50">👦</text>
+    <text y="100">👨‍👩‍👧‍👦</text>
+    <text y="50" x="100">👨‍</text>
+    <text y="100" x="100">👩🏽‍🌾</text>
+    <text y="50" x="150">👨‍👦</text>
+    <text y="100" x="150">👱🏽‍♂️</text>
+    <text y="50" x="200">🎅🏽</text>
+  </g>
+</svg>
+<script>
+test(function() {
+  for (const element of Array.from(document.getElementsByTagName('text'))) {
+    const subStringLength = element.getSubStringLength(0, element.getNumberOfChars());
+    const bboxWidth = element.getBBox().width;
+    // Expect the value computed by getSubStringLength() to roughly
+    // match the value computed for the bbox.
+    assert_approx_equals(subStringLength, bboxWidth, 1);
+  }
+});
+</script>

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSSOM View - Simultaneous scrollIntoViews</title>
+    <link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-scrollintoview">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/dom/events/scrolling/scroll_support.js"></script>
+    <script src="/css/css-scroll-snap/support/common.js"></script>
+    <script src="resources/simultaneousScrollIntoViews.js"></script>
+  </head>
+  <body>
+    <style>
+      .scroller {
+        overflow-y: scroll;
+        height: 200px;
+        width: 200px;
+        background-color: teal;
+        border: solid 1px black;
+        position: relative;
+        display: inline-block;
+      }
+      .space {
+        height: 200vh;
+        width: 200vw;
+      }
+      .box {
+        height: 50px;
+        width: 50px;
+        background-color: purple;
+      }
+      .target {
+        position: absolute;
+        top: 150%;
+      }
+    </style>
+    <div id="scroller1" class="scroller">
+      <div class="space"></div>
+      <div class="box target" id="target1"></div>
+    </div>
+    <div id="scroller2" class="scroller">
+      <div class="space"></div>
+      <div class="box target" id="target2"></div>
+    </div>
+    <script>
+      const scroller1 = document.getElementById("scroller1");
+      const scroller2 = document.getElementById("scroller2");
+      const target1 = document.getElementById("target1");
+      const target2 = document.getElementById("target2");
+
+      const targets = [target1, target2];
+      const scrollers = [scroller1, scroller2];
+      const target_offsets = [target1.offsetTop, target2.offsetTop];
+
+      promise_test(async (t) => {
+        await simultaneousScrollIntoViewsTest(t,
+                                    ["smooth", "smooth"],
+                                    targets,
+                                    scrollers,
+                                    target_offsets);
+      }, "Simultaneous smooth scrollIntoViews run to completion");
+
+      promise_test(async (t) => {
+        await simultaneousScrollIntoViewsTest(t,
+                                    ["smooth", "instant"],
+                                    targets,
+                                    scrollers,
+                                    target_offsets);
+      }, "Simultaneous smooth,instant scrollIntoViews run to completion");
+
+      promise_test(async (t) => {
+        await simultaneousScrollIntoViewsTest(t,
+                                    ["instant", "smooth"],
+                                    targets,
+                                    scrollers,
+                                    target_offsets);
+      }, "Simultaneous instant,smooth scrollIntoViews run to completion");
+
+      promise_test(async (t) => {
+        await simultaneousScrollIntoViewsTest(t,
+                                    ["instant", "instant"],
+                                    targets,
+                                    scrollers,
+                                    target_offsets);
+      }, "Simultaneous instant scrollIntoViews run to completion");
+    </script>
+  </body>
+</html>

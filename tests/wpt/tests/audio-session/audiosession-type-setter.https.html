@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>AudioSession.type setter</title>
+<link rel="help" href="https://w3c.github.io/audio-session/#audio-session-types">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const validTypes = [
+  "auto",
+  "playback",
+  "transient",
+  "transient-solo",
+  "ambient",
+  "play-and-record",
+];
+
+for (const value of validTypes) {
+  test(() => {
+    assert_implements("audioSession" in navigator,
+                      "navigator.audioSession is not supported");
+    navigator.audioSession.type = value;
+    assert_equals(navigator.audioSession.type, value);
+  }, `AudioSession.type round-trips for "${value}"`);
+}
+</script>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <div class="empty"></div>
+  <div class="empty"><!-- hello world --></div>
+  <div><span></span></div>
+  <div> </div>
+  <div>foo</div>
+
+  <script>
+  test(function() {
+    var testCount = 0;
+    for (var elem of document.getElementsByTagName("div")) {
+      var actual = elem.matches(":empty");
+      var expected = elem.className === "empty";
+      var testName = "test-matches-empty-" + testCount;
+      assert_equals(actual, expected, testName);
+    }
+  });
+  </script>
+</body>
+</html>

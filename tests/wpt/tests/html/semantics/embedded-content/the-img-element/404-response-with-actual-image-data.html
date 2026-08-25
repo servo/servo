@@ -1,0 +1,18 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8">
+<title>404 response with actual image data should be rendered and load event is fired</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<img id="img">
+
+<script>
+  async_test(t => {
+    var img = document.getElementById("img");
+    img.onload = t.step_func_done(e => {
+      assert_equals(e.type, "load", "image.onload() called");
+    });
+    img.onerror = t.unreached_func("image.onerror() was not supposed to be called");
+    img.src = "404-response-with-actual-image-data.py";
+  }, "404 response with actual image data should be rendered and load event is fired");
+</script>

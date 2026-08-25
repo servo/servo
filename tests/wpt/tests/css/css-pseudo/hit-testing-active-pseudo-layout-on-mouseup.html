@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Pseudo-elements: hit-testing a:active::after with layout on mouseup</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#selectordef-after">
+<link rel="help" href="https://w3c.github.io/uievents/#event-type-mouseup">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  #target {
+    width: 100px;
+    height: 100px;
+    background: blue;
+    position: relative;
+    display: block;
+    user-select: none;
+  }
+  #target:active::after {
+    content: " ";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100px;
+    height: 100px;
+    background: red;
+  }
+</style>
+<a id="target" href="javascript:void(0)"></a>
+<script>
+  promise_test(async t => {
+    const target = document.getElementById('target');
+    let clicked = 0;
+    target.addEventListener('click', (e) => {
+      clicked++;
+      assert_equals(e.target, target, "Event target should be the anchor element");
+      assert_equals(e.pseudoTarget, null, "pseudoTarget should be null since the pseudo-element was removed before click dispatch");
+    });
+
+    let mouseupTarget = null;
+    let mouseupPseudoTarget = null;
+    target.addEventListener('mouseup', (e) => {
+      mouseupTarget = e.target;
+      mouseupPseudoTarget = e.pseudoTarget;
+    });
+
+    target.addEventListener('pointerup', () => {
+      target.getBoundingClientRect();
+    });
+
+    for (let i = 0; i < 5; i++) {
+      await new test_driver.Actions()
+          .pointerMove(0, 0, { origin: target })
+          .pointerDown()
+          .pointerUp()
+          .send();
+    }
+
+    assert_equals(clicked, 5, "Target should be clicked 5 times");
+    assert_equals(mouseupTarget, target, "mouseup target should be the element");
+    assert_equals(mouseupPseudoTarget, null, "mouseup pseudoTarget should be null since the layout triggered on pointerup destroyed it before mouseup");
+  }, "Multiple clicks should all trigger");
+</script>

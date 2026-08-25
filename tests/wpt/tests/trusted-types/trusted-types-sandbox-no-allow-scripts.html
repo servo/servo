@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js" ></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://github.com/w3c/trusted-types/issues/513">
+<script>
+  let scriptExecutedInSubFrame = false;
+  window.addEventListener("message", _ => {
+    scriptExecutedInSubFrame = true
+  });
+</script>
+<iframe id="sandboxedFrame"
+        src="support/trusted-types-sandbox-no-allow-scripts.html"></iframe>
+<script>
+  promise_test(async () => {
+    await new Promise(resolve => window.addEventListener("load", resolve));
+    assert_equals(scriptExecutedInSubFrame, false);
+  }, "Trusted Types CSP directives don't affect the behavior of sandboxed page without allow-scripts.");
+</script>

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS filters: Creating containing block for fixed positioned elements</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Mozilla" href="http://www.mozilla.org/">
+<link rel="help" href="https://drafts.fxtf.org/filters-1/#FilterProperty">
+<link rel="help" href="http://www.w3.org/2015/02/10-fx-minutes.html#action02">
+<link rel="match" href="filter-cb-dynamic-1-ref.html">
+<meta name="flags" content="dom">
+<style>
+  html, body { margin: 0; padding: 0 }
+  #changefilter {
+    position: absolute;
+    top: 100px;
+    left: 100px;
+  }
+
+  #abscovered {
+    position: absolute;
+    top: 50px;
+    left: 50px;
+    background: red;
+    height: 100px;
+    width: 100px;
+  }
+
+  #fixedmoves {
+    position: fixed;
+    top: 50px;
+    left: 50px;
+    background: green;
+    height: 100px;
+    width: 100px;
+  }
+</style>
+<body>
+  <div id="changefilter">
+    <div id="abscovered"></div>
+    <div id="fixedmoves"></div>
+  </div>
+  <script>
+    var changefilter = document.getElementById("changefilter");
+    var fixedmoves = document.getElementById("fixedmoves");
+    var causeFlush = fixedmoves.offsetTop;
+    changefilter.style.filter = "blur(0px)";
+  </script>
+</body>

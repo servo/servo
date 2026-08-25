@@ -1,0 +1,7 @@
+diff --git a/tests/wpt/tests/non-utf8-file.txt b/tests/wpt/tests/non-utf8-file.txt
+new file mode 100644
+index 0000000..5a992e0
+--- /dev/null
++++ b/tests/wpt/tests/non-utf8-file.txt
+@@ -0,0 +1 @@
++foo bér � "

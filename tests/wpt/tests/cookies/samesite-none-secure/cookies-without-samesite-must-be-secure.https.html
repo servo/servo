@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/cookies/resources/cookie-helper.sub.js"></script>
+<script>
+promise_test(t => {
+  var value = "" + Math.random();
+  return resetSameSiteNoneCookies(SECURE_ORIGIN, value)
+    .then(_ => {
+      return credFetch(SECURE_ORIGIN + "/cookies/resources/list.py")
+        .then(r => r.json())
+        .then(cookies => {
+          assert_not_equals(cookies["samesite_none_insecure"], value, "Non-Secure SameSite=None cookie is rejected.");
+          assert_equals(cookies["samesite_none_secure"], value, "Secure SameSite=None cookie is set.");
+        })
+    });
+}, "SameSite=None cookies are rejected unless the Secure attribute is set.");
+</script>

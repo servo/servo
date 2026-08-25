@@ -1,0 +1,2 @@
+rules:
+- opt-out*: [overflow-anchor]

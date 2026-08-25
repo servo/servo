@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS integration - styling SVG from inline style</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/utils.js"></script>
+    <!-- Common global functions for referrer-policy tests. -->
+    <script src="/common/security-features/resources/common.sub.js"></script>
+    <!-- Helper functions for referrer-policy css tests. -->
+    <script src="/referrer-policy/css-integration/css-test-helper.js"></script>
+    <meta name="referrer" content="origin">
+  </head>
+  <body>
+    <p>Check that resources from inline styles are loaded with
+    the referrer and referrer policy from the document.</p>
+    <script>
+      function setInlineStyle(test)
+      {
+        test.expected = location.origin + "/";
+        let svg = createSvg();
+        document.body.appendChild(svg);
+        let element = svg.getElementsByTagName('path')[0];
+        element.style = test.property + ": url(" + url_prefix + "svg.py?id=" +
+                        test.id + "#invalidFragment);";
+      }
+
+      runSvgTests(svg_test_properties,
+                  "Styling SVG from inline styles",
+                  setInlineStyle);
+    </script>
+
+    <div id="log"></div>
+  </body>
+</html>

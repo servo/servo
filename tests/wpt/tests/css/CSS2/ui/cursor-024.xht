@@ -1,0 +1,16 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+ <head>
+  <title>CSS Test: animated GIF cursor</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/ui/cursor/003.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/ui.html#cursor-props" />
+  <meta name="flags" content="image interact animated may" />
+  <style type="text/css">
+   html { color: blue; font-size: 2em; cursor: url(support/animated.gif), crosshair; }
+  </style>
+ </head>
+ <body>
+  <p>Hover over this page. The cursor should change into an animated logo like this one: <img src="support/animated.gif" alt="FAIL"/>.</p>
+ </body>
+</html>

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Test the 'connect-src' directive on dedicated workers in report-only mode
+-->
+<script>
+  let reportCookieName = location.pathname.split('/')[
+    location.pathname.split('/').length - 1].split('.')[0];
+  let reportID = document.cookie.split('; ')
+      .find(cookie => cookie.startsWith(reportCookieName + '='))
+      .split('=')[1].trim();
+
+  fetch_tests_from_worker(new Worker(
+    `./support/connect-src-self-report-only.sub.js?id=${reportID}`));
+</script>

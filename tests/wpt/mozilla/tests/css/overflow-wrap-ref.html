@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+<!-- Tests that `overflow-wrap: break-word` breaks words if it needs to, but only when
+     necessary. -->
+<style>
+section, nav {
+    background: purple;
+    position: absolute;
+    left: 0;
+}
+section {
+    width: 100px;
+    top: 0;
+    height: 100px;
+}
+nav {
+    top: 100px;
+    width: 300px;
+    height: 200px;
+}
+</style>
+</head>
+<body>
+<section></section><nav></nav>
+</body>
+</html>
+

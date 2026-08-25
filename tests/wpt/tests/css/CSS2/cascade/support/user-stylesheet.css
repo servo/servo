@@ -1,0 +1,83 @@
+﻿#user-stylesheet-indication
+{
+    /* Used by the harness to display and indication there is a user-stylesheet applied */
+    display: block!important;
+}
+#user-stylesheet
+{
+    /* Used by the test to hide the prerequsite */
+    display: none;
+}
+/* Style rules separated to eliminate grouping issues */
+#user-stylesheet-001
+{
+    color: green;
+}
+#user-stylesheet-002
+{
+    color: green;
+}
+#user-stylesheet-003
+{
+    color: red;
+}
+#user-stylesheet-004
+{
+    color: red;
+}
+#user-stylesheet-005 span
+{
+    color: green;
+}
+#user-stylesheet-006 > span
+{
+    color: green;
+}
+#user-stylesheet-007 + p
+{
+    color: green;
+}
+*[class=user-stylesheet-008]
+{
+    color: green;
+}
+#user-stylesheet-009
+{
+    color: green;
+}
+#user-stylesheet-010 > *:first-child
+{
+    color: green;
+}
+#user-stylesheet-011:first-line
+{
+    color: green;
+}
+#user-stylesheet-012:link
+{
+    color: green;
+}
+#user-stylesheet-013:visited
+{
+    color: green;
+}
+#user-stylesheet-014:hover
+{
+    color: green;
+}
+#user-stylesheet-015:active
+{
+    color: green;
+}
+#user-stylesheet-016:first-letter
+{
+    color: green;
+}
+#user-stylesheet-017:before
+{
+    content: "PASS PASS";
+}
+#user-stylesheet-018:after
+{
+    content: "PASS PASS";
+}

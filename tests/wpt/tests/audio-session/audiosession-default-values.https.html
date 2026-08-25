@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>AudioSession default values</title>
+<link rel="help" href="https://w3c.github.io/audio-session/#navigatoraudiosession-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(() => {
+  assert_implements("audioSession" in navigator,
+                    "navigator.audioSession is not supported");
+  assert_true(navigator.audioSession instanceof AudioSession,
+              "navigator.audioSession is an AudioSession");
+}, "navigator.audioSession exposes an AudioSession instance");
+
+test(() => {
+  assert_implements("audioSession" in navigator,
+                    "navigator.audioSession is not supported");
+  assert_equals(navigator.audioSession.type, "auto",
+                "default type is 'auto'");
+}, "AudioSession.type defaults to 'auto'");
+
+test(() => {
+  assert_implements("audioSession" in navigator,
+                    "navigator.audioSession is not supported");
+  assert_equals(navigator.audioSession.state, "inactive",
+                "default state is 'inactive'");
+}, "AudioSession.state defaults to 'inactive'");
+
+test(() => {
+  assert_implements("audioSession" in navigator,
+                    "navigator.audioSession is not supported");
+  assert_equals(navigator.audioSession, navigator.audioSession,
+                "navigator.audioSession returns the same object on each access");
+}, "navigator.audioSession is [SameObject]");
+</script>

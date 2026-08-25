@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<title>CSS Transitions Test: trigger transitions on inherited after-change styles for anchored element using fallback</title>
+<link rel="help" href="https://drafts.csswg.org/css-transitions-1/#after-change-style">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  body { margin: 0; }
+  #outer, #inner {
+    transition: 2s steps(2, start);
+    transition-property: color, width;
+  }
+  #outer {
+    anchor-name: --anchor;
+    width: 100px;
+    height: 100px;
+    background-color: orange;
+  }
+  #inner.wide {
+    width: 300px !important;
+  }
+  #inner {
+    width: 100px;
+    height: 100px;
+    position: absolute;
+    position-anchor: --anchor;
+    position-area: left center;
+    position-try-fallbacks: --fallback;
+    background-color: teal;
+  }
+  @position-try --fallback {
+    position-area: right center;
+    width: 200px;
+  }
+
+  #outer { color: red; }
+  #inner { color: black; }
+  #outer.green { color: lime; }
+  #outer.green #inner { color: unset; }
+</style>
+<div id="outer">
+  <div>
+    <div id="inner" class="wide"></div>
+  </div>
+</div>
+<script>
+  test(() => {
+    outer.offsetTop;
+    assert_equals(inner.offsetLeft, 100, "Initially using fallback position");
+    assert_equals(inner.offsetWidth, 300, "Initially using important #inner.wide");
+    assert_equals(getComputedStyle(inner).color, "rgb(0, 0, 0)", "#inner initially black");
+    outer.className = "green";
+    inner.className = "";
+    assert_equals(inner.offsetLeft, 100, "Still using fallback position");
+    assert_equals(inner.offsetWidth, 250, "Transitioning from !important width to fallback width");
+    assert_equals(getComputedStyle(inner).color, "rgb(0, 128, 0)", "#inner halfway between black and lime");
+  }, "Position fallback correctly applied to after-change style");
+</script>

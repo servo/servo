@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Borders and Box Decorations 4 Test: Parsing 'corner-top' with valid values</title>
+<link rel="author" title="Chromium" href="https://chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#corner-shorthand">
+<meta name="assert" content="This test checks that 'corner-top' supports valid pair-corner values.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script src="/css/support/shorthand-testcommon.js"></script>
+
+<script>
+test_valid_value("corner-top", "10px bevel");
+test_valid_value("corner-top", "round 10% / 2rem squircle", "10% round / 2rem squircle");
+test_valid_value("corner-top", "normal");
+test_valid_value("corner-top", "4px 2% round / bevel 1em", "4px 2% round / 1em bevel");
+
+test_shorthand_value("corner-top", "10px bevel", {
+  "border-top-left-radius": "10px",
+  "corner-top-left-shape": "bevel",
+  "border-top-right-radius": "10px",
+  "corner-top-right-shape": "bevel",
+});
+test_shorthand_value("corner-top", "4px 2% round / 1em bevel", {
+  "border-top-left-radius": "4px 2%",
+  "corner-top-left-shape": "round",
+  "border-top-right-radius": "1em",
+  "corner-top-right-shape": "bevel",
+});
+</script>

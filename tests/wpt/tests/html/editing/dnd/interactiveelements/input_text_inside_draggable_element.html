@@ -1,0 +1,85 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Text input inside draggable element</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script src="/resources/testdriver-actions.js"></script>
+    <style type="text/css">
+#inner { border: 1px solid orange; border-top-width: 20px; }
+    </style>
+  </head>
+  <body>
+
+    <p>Press your mouse button down on the orange block and drag downwards. It should focus the dummy text. Use your mouse to select part of the dummy text. It should <strong>not</strong> drag the block or text in either case.</p>
+    <div draggable="true" id="element">
+      <input value="Dummy text" id="inner">
+    </div>
+
+    <script>
+    const element = document.getElementById("element");
+    const inner = document.getElementById("inner");
+
+    promise_test(t => {
+      return new Promise((resolve, reject) => {
+        let didReceiveDragStart = false;
+
+        const dragStartListener = ev => {
+          ev.preventDefault();
+          didReceiveDragStart = true;
+        };
+        element.addEventListener("dragstart", dragStartListener, { once: true });
+        t.add_cleanup(() => element.removeEventListener("dragstart", dragStartListener));
+
+        element.addEventListener("mouseup", () => {
+          resolve(didReceiveDragStart);
+        }, { once: true });
+
+        const centerH = inner.getBoundingClientRect().height / 2;
+        new test_driver.Actions()
+          // Move pointer to the start of the text.
+          .pointerMove(0, 10 - centerH, { origin: inner })
+          .pointerDown()
+          // Move pointer to the center of the input.
+          .pointerMove(0, 0, { origin: inner })
+          .pointerUp()
+          .send();
+      }).then(didReceiveDragStart => {
+        assert_false(didReceiveDragStart, "dragstart should not fire");
+      });
+    }, "Input text inside draggable element should not be draggable border");
+
+    promise_test(t => {
+      return new Promise((resolve, reject) => {
+        let didReceiveDragStart = false;
+
+        const dragStartListener = ev => {
+          ev.preventDefault();
+          didReceiveDragStart = true;
+        };
+        element.addEventListener("dragstart", dragStartListener, { once: true });
+        t.add_cleanup(() => element.removeEventListener("dragstart", dragStartListener));
+
+        element.addEventListener("mouseup", () => {
+          resolve(didReceiveDragStart);
+        }, { once: true });
+
+        const centerW = inner.getBoundingClientRect().width / 2;
+        new test_driver.Actions()
+          // Move pointer to the start of the text.
+          .pointerMove(5 - centerW, 10, { origin: inner })
+          .pointerDown()
+          // Move pointer to the center of the input body.
+          .pointerMove(0, 10, { origin: inner })
+          .pointerUp()
+          .send();
+      }).then(didReceiveDragStart => {
+        assert_false(didReceiveDragStart, "dragstart should not fire");
+      });
+    }, "Draggable input text should not be draggable while attempting to select text");
+    </script>
+
+  </body>
+</html>

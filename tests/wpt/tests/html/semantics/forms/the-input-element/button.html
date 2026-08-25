@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>input type button</title>
+<link rel="author" title="Denis Ah-Kang" href="mailto:denis@w3.org">
+<link rel=help href="https://html.spec.whatwg.org/multipage/#button-state-(type=button)">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<form id=f1>
+  <input type=button id=b1 name=b1>
+</form>
+<form>
+  <input id=i1 value="foo">
+  <input type=button id=b2 name=b2>
+</form>
+<form>
+  <input type=radio id=i2 checked name=b3>
+  <input type=button id=b3 name=b3>
+</form>
+<form>
+  <input type=checkbox id=i3>
+  <input type=button id=b4 name=b4>
+</form>
+
+<script>
+  var t = async_test("clicking on button should not submit a form"),
+      b1 = document.getElementById('b1'),
+      b2 = document.getElementById('b2'),
+      b3 = document.getElementById('b3'),
+      b4 = document.getElementById('b4'),
+      i1 = document.getElementById('i1'),
+      i2 = document.getElementById('i2'),
+      i3 = document.getElementById('i3');
+
+  test(function(){
+    assert_false(b1.willValidate);
+  }, "the element is barred from constraint validation");
+
+  document.getElementById('f1').onsubmit = t.step_func(function(e) {
+    e.preventDefault();
+    assert_unreached("form has been submitted");
+  });
+
+  t.step(function() {
+    b1.click();
+  });
+  t.done();
+
+  test(function(){
+    i1.value = "bar";
+    b2.click();
+    assert_equals(i1.value, "bar");
+  }, "clicking on button should not reset other form fields");
+
+  test(function(){
+    assert_true(i2.checked);
+    b3.click();
+    assert_true(i2.checked);
+  }, "clicking on button should not unchecked radio buttons");
+
+  test(function(){
+    assert_false(i3.indeterminate);
+    b4.click();
+    assert_false(i3.indeterminate);
+  }, "clicking on button should not change its indeterminate IDL attribute");
+</script>

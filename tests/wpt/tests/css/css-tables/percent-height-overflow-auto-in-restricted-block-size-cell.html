@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#row-layout">
+<style>
+  .table { display:table; height:100px; background:pink; }
+  .cell { overflow:auto; width:100px; height:100%; background:blue; }
+</style>
+<p>There should be a 100px tall pink block below, with a scrollable box inside.</p>
+<div id="container" class="table" data-expected-height="100">
+  <div class="cell" data-expected-height="100" data-expected-scroll-height="500">
+    <div style="width:100px; height:500px;"></div>
+  </div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script>
+  checkLayout("#container");
+</script>

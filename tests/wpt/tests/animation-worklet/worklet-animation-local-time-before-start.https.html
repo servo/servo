@@ -1,0 +1,41 @@
+<html class="reftest-wait">
+<title>Animation Worklet local time set before start</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-animationworklet/">
+<meta name="assert" content="The local time should be trimmed by the duration, e.g. this is equivalent to effect.localTime = 0">
+<link rel="match" href="references/translated-box-ref.html">
+
+<script src="/web-animations/testcommon.js"></script>
+<script src="/common/reftest-wait.js"></script>
+<script src="common.js"></script>
+
+<style>
+  #box {
+    width: 100px;
+    height: 100px;
+    background-color: green;
+  }
+</style>
+
+<div id="box"></div>
+
+<script>
+  registerConstantLocalTimeAnimator(-500).then(() => {
+    const box = document.getElementById('box');
+    const effect = new KeyframeEffect(box,
+      [
+      { transform: 'translateY(100px)' },
+      { transform: 'translateY(0px)' }
+      ], {
+        duration: 1000,
+        fill: 'backwards'
+      }
+    );
+
+    const animation = new WorkletAnimation('constant_time', effect);
+    animation.play();
+
+    waitForAsyncAnimationFrames(1).then(_ => {
+      takeScreenshot();
+    });
+  });
+</script>

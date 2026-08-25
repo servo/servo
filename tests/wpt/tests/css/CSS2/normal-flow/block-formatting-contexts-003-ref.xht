@@ -1,0 +1,60 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  table
+  {
+  border-collapse: collapse;
+  width: 100%;
+  }
+
+  tbody
+  {
+  border-bottom: black solid 1px;
+  border-top: black solid 1px;
+  }
+
+  thead {border-bottom: black solid 1px;}
+  /*
+  Necessary otherwise ( 0 + 1 ) divided by 2 may give unpredictable
+  measurements affecting vertical alignment
+  */
+
+  tfoot {border-top: black solid 1px;}
+  /*
+  Necessary otherwise ( 0 + 1 ) divided by 2 may give unpredictable
+  measurements affecting vertical alignment
+  */
+
+  /*
+  "
+  User agents must find a consistent rule for rounding off in the
+  case of an odd number of discrete units (screen pixels, printer dots).
+  "
+  http://www.w3.org/TR/CSS21/tables.html#collapsing-borders
+  */
+
+  td {padding: 0px;}
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there are 3 lines of "Filler Text" separated by 2 thin black lines.</p>
+
+  <table>
+    <thead> <tr><td>Filler Text</td></tr> </thead>
+    <tfoot> <tr><td>Filler Text</td></tr> </tfoot>
+    <tbody> <tr><td>Filler Text</td></tr> </tbody>
+  </table>
+
+ </body>
+</html>

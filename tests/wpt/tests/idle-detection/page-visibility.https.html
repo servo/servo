@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<link rel="help" href="https://github.com/samuelgoto/idle-detection">
+<title>Tests the Idle Detection API</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/test-only-api.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/page-visibility/resources/window_state_context.js"></script>
+<script src="resources/idle-detection-helper.js"></script>
+<script>
+'use strict';
+
+promise_setup(async t => {
+  await test_driver.set_permission({ name: 'idle-detection' }, 'granted');
+  if (isChromiumBased) {
+    await loadChromiumResources();
+  }
+})
+
+promise_test(async t => {
+  let monitor;
+
+  expect(addMonitor).andReturn(async (monitorPtr) => {
+      monitor = monitorPtr;
+      return {
+        error: IdleDetectorError.SUCCESS,
+        state: {
+          idleTime: null,
+          screenLocked: false
+        }
+      };
+    });
+
+  const controller = new AbortController();
+  t.add_cleanup(() => {
+    controller.abort();
+  });
+  const detector = new IdleDetector();
+  const watcher = new EventWatcher(t, detector, ["change"]);
+  const initial_state = watcher.wait_for("change");
+
+  await detector.start({threshold: 60000, signal: controller.signal});
+  await initial_state;
+
+  assert_equals(detector.userState, "active");
+  assert_false(document.hidden);
+
+  const {minimize, restore} = window_state_context(t);
+
+  await minimize();
+  monitor.update(
+          {
+            idleTime: { milliseconds: 0 },
+            screenLocked: false
+          },
+          /*is_overridden_by_devtools=*/true
+        );
+
+  // Assert that the detector works while the page is not visible.
+  await watcher.wait_for("change");
+  assert_equals(detector.userState, "idle");
+  assert_true(document.hidden);
+
+  await restore();
+  monitor.update(
+          {
+            idleTime: null,
+            screenLocked: false
+          },
+          /*is_overridden_by_devtools=*/true
+        );
+
+  await watcher.wait_for("change");
+  assert_equals(detector.userState, "active");
+  assert_false(document.hidden);
+}, 'Page visibility.');
+
+</script>

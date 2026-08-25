@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<style>
+    #container {
+        position: relative;
+        width: 400px;
+        height: 400px;
+    }
+    #container > div {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+    }
+    #background {
+        background-image: repeating-conic-gradient(red, red 5%, black 5%, black 10%);
+        filter: invert(1);
+    }
+    #foreground {
+        color: purple;
+    }
+</style>
+<div id="container">
+    <div id="background"></div>
+    <div id="foreground">This text should be purple on a background with a striped blue gradient.</div>
+</div>
+</html>

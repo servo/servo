@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVG flood filter using visited link color should taint the canvas</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  a {
+    color: green;
+  }
+  a:visited {
+    color: red;
+  }
+</style>
+<a id="L_visited" href="">
+  <svg width="100" height="100">
+    <filter id="F_visited">
+      <feFlood flood-color="color-mix(in srgb, currentColor 99%, transparent)"/>
+    </filter>
+  </svg>
+</a>
+<canvas id=canvas width=100 height=100>
+<script>
+test(function() {
+  context = canvas.getContext("2d");
+  context.filter = "url(#F_visited)";
+  context.fillRect(0, 0, 100, 100);
+
+  // The canvas should be tainted, so the following should throw.
+  assert_throws_dom("SecurityError",
+    function () { canvas.toDataURL() },
+    'canvas.toDataURL should throw SecurityError for SVG using visited color.'
+  );
+}, "Tainting check for visited link in SVG flood filter");
+</script>

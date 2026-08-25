@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>
+    CSS Gap Decorations: Multicolumn gap decorations painted with more columns in bottom row and rule-break: none.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="match" href="multicol-gap-decorations-026-ref.html">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+  body {
+    margin: 0;
+    font: Ahem;
+  }
+
+  .col {
+      height: 100px;
+      column-count: auto;
+      column-rule: 5px solid gold;
+      border: 2px solid red;
+      column-width: 50px;
+      gap: 5px;
+      rule-break: none;
+      rule-visibility-items: all;
+  }
+</style>
+<body>
+<div class="col">
+  Hello<br>
+  Hello<br>
+  <div style="column-span: all; background: cyan; height: 20px; opacity: 0.5;"></div>
+  Hello<br>
+  Hello<br>
+  Hello<br>
+  Hello<br>
+  Hello<br>
+  Hello<br>
+</div>

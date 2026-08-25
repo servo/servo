@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+    <title>Finishing a View Transition on a scrolled page should properly reset state</title>
+    <link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+    <link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+    <link rel="match" href="reset-state-after-scrolled-view-transition-ref.html">
+    <style>
+        html {
+            background: lightblue;
+        }
+        body {
+            background-color: lightgreen;
+        }
+        ::view-transition-group(*) {
+            animation-duration: 2s;
+        }
+    </style>
+</head>
+<body>
+    <p>Start</p>
+    <div id="block" style="height: 150vh"></div>
+    <p>End</p>
+
+    <script>
+        function scrollBy(y) {
+            return new Promise(resolve => {
+                addEventListener("scroll", () => {
+                    requestAnimationFrame(() => {
+                        requestAnimationFrame(resolve);
+                    });
+                }, { once: true, capture: true });
+                document.documentElement.scrollBy({
+                    top: y,
+                    behavior: "instant"
+                });
+            });
+        }
+        addEventListener("load", async () => {
+            await scrollBy(document.documentElement.scrollHeight / 2);
+            const transition = document.startViewTransition(() => { block.style.height = '200vh' });
+            await transition.ready;
+            scrollBy(document.documentElement.scrollHeight / 2);
+            await transition.finished;
+            document.documentElement.classList.remove("reftest-wait");
+        });
+    </script>
+</body>
+</html>

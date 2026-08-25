@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>String value of list-style-type with bidi text in multicol</title>
+  <link rel="author" title="Oriol Brufau" href="mailto:obrufau@gmail.com">
+  <link rel="help" href="https://drafts.csswg.org/css-lists-3/#valdef-list-style-type-string">
+  <link rel="match" href="list-style-type-string-005-ref.html">
+  <meta name="assert" content="This test checks that the bidi algorithm runs for markers in multicol.">
+  <style>
+    body { column-count: 2 }
+    .list {
+      padding-inline-start: 14ch;
+      margin: 0;
+      line-height: 1.6;
+    }
+    .rtl { direction: rtl }
+    .list > :nth-child(1) { list-style-type: "\627 \644 " }
+    .list > :nth-child(2) { list-style-type: "\61 \627 \644 " }
+    .list > :nth-child(3) { list-style-type: "\627 \644 \62 " }
+    .list > :nth-child(4) { list-style-type: "\61 \627 \644 \62 " }
+    .list > :nth-child(5) { list-style-type: "\61 \62 \627 \644 " }
+    .list > :nth-child(6) { list-style-type: "\627 \644 \61 \62 " }
+    .list > :nth-child(7) { list-style-type: "\31 \627 \644 " }
+    .list > :nth-child(8) { list-style-type: "\627 \644 \32 " }
+    .list > :nth-child(9) { list-style-type: "\31 \627 \644 \32 " }
+    .list > :nth-child(10) { list-style-type: "\31 \32 \627 \644 " }
+    .list > :nth-child(11) { list-style-type: "\627 \644 \31 \32 " }
+  </style>
+</head>
+<body>
+  <ol class="list ltr">
+    <li>item 1</li>
+    <li>item 2</li>
+    <li>item 3</li>
+    <li>item 4</li>
+    <li>item 5</li>
+    <li>item 6</li>
+    <li>item 7</li>
+    <li>item 8</li>
+    <li>item 9</li>
+    <li>item 10</li>
+    <li>item 11</li>
+  </ol>
+  <ul class="list rtl">
+    <li>item 1</li>
+    <li>item 2</li>
+    <li>item 3</li>
+    <li>item 4</li>
+    <li>item 5</li>
+    <li>item 6</li>
+    <li>item 7</li>
+    <li>item 8</li>
+    <li>item 9</li>
+    <li>item 10</li>
+    <li>item 11</li>
+  </ul>
+</body>
+</html>

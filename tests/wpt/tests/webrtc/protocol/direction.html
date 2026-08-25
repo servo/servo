@@ -1,0 +1,42 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerconnection direction handling</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  pc1.addTransceiver('audio').direction = 'recvonly';
+  await pc1.setLocalDescription();
+  await pc2.setRemoteDescription(pc1.localDescription);
+  await pc2.setLocalDescription();
+  return promise_rejects_dom(t, 'InvalidAccessError',
+        pc1.setRemoteDescription({
+            type: 'answer',
+            // Since pc2 had no track to send the m-line will be inactive.
+            sdp: pc2.localDescription.sdp.replace('inactive', 'recvonly')
+        }));
+}, 'Rejects invalid modification of send direction');
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  pc1.addTransceiver('audio').direction = 'sendonly';
+  await pc1.setLocalDescription();
+  await pc2.setRemoteDescription(pc1.localDescription);
+  await pc2.setLocalDescription();
+  return promise_rejects_dom(t, 'InvalidAccessError',
+        pc1.setRemoteDescription({
+            type: 'answer',
+            sdp: pc2.localDescription.sdp.replace('recvonly', 'sendrecv')
+        }));
+}, 'Rejects invalid modification of receive direction');
+</script>

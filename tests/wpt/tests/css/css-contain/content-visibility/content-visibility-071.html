@@ -1,0 +1,185 @@
+<!doctype HTML>
+<html>
+<meta charset="utf8">
+<title>Content Visibility: off-screen selection</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<meta name="assert" content="content-visibility auto element remains non-skipped when elements in its subtree have selection.">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+body, html {
+  padding: 0;
+  margin: 0;
+}
+
+.spacer {
+  height: 3000px;
+}
+.container {
+  width: 10px;
+  contain-intrinsic-size: 10px 20px;
+  content-visibility: auto;
+}
+.child {
+  width: 10px;
+  height: 10px;
+}
+</style>
+
+<div class=spacer></div>
+<div id=container_1 class=container><div id=child_1 class=child>hello</div></div>
+<div id=container_2 class=container><div id=child_2 class=child>hello</div></div>
+<div id=container_3 class=container><div id=child_3 class=child>hello</div></div>
+<div id=container_4 class=container><div id=child_4 class=child>hello</div></div>
+<div id=container_5 class=container><div id=child_5 class=child>hello</div></div>
+
+<script>
+function isLocked(container) {
+  const height = container.getBoundingClientRect().height;
+  assert_true(height == 20 || height == 10);
+  return container.getBoundingClientRect().height == 20;
+}
+
+const selection = window.getSelection();
+function resetSelection() {
+  selection.removeAllRanges();
+  assert_true(isLocked(container_1));
+  assert_true(isLocked(container_2));
+  assert_true(isLocked(container_3));
+  assert_true(isLocked(container_4));
+  assert_true(isLocked(container_5));
+}
+
+test(() => {
+  resetSelection();
+  const range = document.createRange();
+  range.selectNodeContents(child_2);
+  selection.addRange(range);
+
+  assert_true(isLocked(container_1), "1");
+  assert_false(isLocked(container_2), "2");
+  assert_true(isLocked(container_3), "3");
+  assert_true(isLocked(container_4), "4");
+  assert_true(isLocked(container_5), "5");
+}, "One elements selected: ");
+
+test(() => {
+  resetSelection();
+  const range = document.createRange();
+  range.selectNodeContents(child_2);
+  selection.addRange(range);
+
+  assert_true(isLocked(container_1), "1");
+  assert_false(isLocked(container_2), "2");
+  assert_true(isLocked(container_3), "3");
+  assert_true(isLocked(container_4), "4");
+  assert_true(isLocked(container_5), "5");
+
+  selection.extend(child_4, 0);
+
+  assert_true(isLocked(container_1), "1");
+  assert_false(isLocked(container_2), "2");
+  assert_false(isLocked(container_3), "3");
+  assert_false(isLocked(container_4), "4");
+  assert_true(isLocked(container_5), "5");
+}, "Range extended to cover more elements: ");
+
+test(() => {
+  resetSelection();
+  const range = document.createRange();
+  range.setStart(child_2, 0);
+  range.setEnd(child_4, 0);
+  selection.addRange(range);
+
+  assert_true(isLocked(container_1), "1");
+  assert_false(isLocked(container_2), "2");
+  assert_false(isLocked(container_3), "3");
+  assert_false(isLocked(container_4), "4");
+  assert_true(isLocked(container_5), "5");
+
+  selection.extend(child_2, 1);
+
+  assert_true(isLocked(container_1), "1");
+  assert_false(isLocked(container_2), "2");
+  assert_true(isLocked(container_3), "3");
+  assert_true(isLocked(container_4), "4");
+  assert_true(isLocked(container_5), "5");
+}, "Range shrunk to cover fewer elements: ");
+
+test(() => {
+  resetSelection();
+  const range = document.createRange();
+  range.setStart(child_3, 0);
+  range.setEnd(child_3, 0);
+  selection.addRange(range);
+  selection.extend(child_2, 0);
+
+  assert_true(isLocked(container_1), "1");
+  assert_false(isLocked(container_2), "2");
+  assert_false(isLocked(container_3), "3");
+  assert_true(isLocked(container_4), "4");
+  assert_true(isLocked(container_5), "5");
+
+  selection.extend(child_4, 0);
+
+  assert_true(isLocked(container_1), "1");
+  assert_true(isLocked(container_2), "2");
+  assert_false(isLocked(container_3), "3");
+  assert_false(isLocked(container_4), "4");
+  assert_true(isLocked(container_5), "5");
+}, "Range flipped from back to front: ");
+
+test(() => {
+  resetSelection();
+  const range = document.createRange();
+  range.setStart(child_3, 0);
+  range.setEnd(child_4, 0);
+  selection.addRange(range);
+
+  assert_true(isLocked(container_1), "1");
+  assert_true(isLocked(container_2), "2");
+  assert_false(isLocked(container_3), "3");
+  assert_false(isLocked(container_4), "4");
+  assert_true(isLocked(container_5), "5");
+
+  selection.extend(child_2, 0);
+
+  assert_true(isLocked(container_1), "1");
+  assert_false(isLocked(container_2), "2");
+  assert_false(isLocked(container_3), "3");
+  assert_true(isLocked(container_4), "4");
+  assert_true(isLocked(container_5), "5");
+}, "Range flipped from front to back: ");
+
+test(() => {
+  resetSelection();
+  const range = document.createRange();
+  range.setStart(child_1, 0);
+  range.setEnd(child_1, 0);
+  selection.addRange(range);
+
+  let state = 0;
+  const states = [2, 4, 3, 5, 1];
+  for (let i = 0; i < 10; ++i) {
+    const id = states[state];
+    selection.extend(document.getElementById(`child_${id}`), 1);
+
+    for (let check_id = 1; check_id <= 5; ++check_id) {
+      if (check_id <= id) {
+        assert_false(
+          isLocked(document.getElementById(`container_${check_id}`)),
+          `test_${i}, container_${check_id}`);
+      } else {
+        assert_true(
+          isLocked(document.getElementById(`container_${check_id}`)),
+          `test_${i}, container_${check_id}`);
+      }
+    }
+    state = (state + 1) % states.length;
+  }
+}, "Range goes back and forth: ");
+</script>
+</html>

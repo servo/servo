@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Selecting internal node</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+  details {
+    font: 16px/1 Ahem;
+  }
+</style>
+<details id="details"></details>
+<script>
+promise_test(async () => {
+  await new test_driver.Actions()
+    .pointerMove(5, 5, {origin: details})
+    .pointerDown()
+    .pointerMove(50, 50)
+    .pointerUp()
+    .send();
+  const selection = getSelection();
+
+  if (selection.anchorNode === null) {
+    // <details> is not selectable, which is acceptable
+    return;
+  }
+
+  // Gecko throws when accessing any property from DOM-invisible node
+  // so check we can access something
+  assert_equals(selection.anchorNode.constructor.name, "HTMLDetailsElement");
+  assert_equals(selection.anchorOffset, 0);
+  // Gecko limits the selection inside <details> while Blink does not
+  // so check something general
+  assert_equals(selection.focusNode.nodeType, Node.ELEMENT_NODE);
+  assert_equals(selection.focusOffset, 0);
+}, "Selecting the default summary of <details> should report a DOM-visible ancestor");
+</script>

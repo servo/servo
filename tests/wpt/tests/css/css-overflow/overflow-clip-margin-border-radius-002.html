@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: overflow-clip-margin with border-radius</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#overflow-clip-margin">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#shadow-shape">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#border-radius">
+<link rel="help" href="https://github.com/servo/servo/issues/41907">
+<link rel="match" href="overflow-clip-margin-border-radius-002-ref.html">
+<meta name="fuzzy" content="maxDifference=0-1;totalPixels=0-7">
+<style>
+div {
+  display: inline-block;
+  font-size: 10px;
+  width: 2em;
+  height: 2em;
+  padding: 2em;
+  border: 2em solid transparent;
+  margin: 1em;
+  border-radius: 4em;
+  overflow: clip;
+  vertical-align: middle;
+}
+div::before {
+  content: "";
+  display: block;
+  height: 18em;
+  width: 18em;
+  margin: -8em 0 0 -8em;
+  background: black;
+}
+</style>
+<div style="overflow-clip-margin: content-box 0em"></div>
+<div style="overflow-clip-margin: content-box 1em"></div>
+<div style="overflow-clip-margin: padding-box 0em"></div>
+<div style="overflow-clip-margin: padding-box 1em"></div>
+<div style="overflow-clip-margin:  border-box 0em"></div>

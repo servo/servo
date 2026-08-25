@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script src="session-storage-utils.js"></script>
+<script>
+const params = new URLSearchParams(location.search);
+const uid = params.get('uid');
+
+RunSessionStorageTest(async (isPrerendering, url, prerenderChannel, done) => {
+  if (!isPrerendering) {
+    sessionStorage.setItem('set by initiator page', '1');
+    startPrerendering(url);
+  } else {
+    assert_equals(
+        getSessionStorageKeys(),
+        'set by initiator page',
+        'The session storage item set by the initiator page must be carried' +
+        ' over to the prerendering page.');
+    done();
+  }
+}, uid);
+</script>

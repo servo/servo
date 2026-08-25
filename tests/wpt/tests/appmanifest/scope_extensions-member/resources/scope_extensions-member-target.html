@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Scope Extensions - Authorized Target</title>
+  <script>
+    function reportDisplayMode() {
+      const displayMode = matchMedia("(display-mode: standalone)").matches ?
+        "standalone" : "browser";
+      document.querySelector("#display-mode").textContent =
+        `Reported display mode: ${displayMode}. Display mode alone does not ` +
+        "determine whether this URL is in extended scope.";
+    }
+
+    addEventListener("DOMContentLoaded", reportDisplayMode);
+  </script>
+</head>
+<body>
+  <h1>Authorized Scope Extension Target</h1>
+  <p>
+    This origin serves a <code>web-app-origin-association</code> entry for the
+    installed app's exact manifest ID.
+  </p>
+  <p>
+    <strong>Expected:</strong> This URL is treated as extended app scope. The
+    navigation remains in the app context and does not receive the user agent's
+    normal out-of-scope treatment.
+  </p>
+  <p id="display-mode"></p>
+  <button type="button" onclick="history.back()">Return to the test page</button>
+</body>
+</html>

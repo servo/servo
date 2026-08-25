@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<script>
+(async () => {
+  const W = 255, H = 255;
+  const maskRowSize = Math.floor((W + 31) / 32) * 4;
+  const maskBytes = maskRowSize * H;
+  const bytesInRes = 40 + 12 + maskBytes;
+
+  function buildChunk1() {
+    const c = new Uint8Array(62);
+    c.set([0,0, 1,0, 1,0], 0);
+    c[6] = W; c[7] = H;
+    c[10] = 1; c[12] = 32;
+    c[14] = bytesInRes & 0xff;
+    c[15] = (bytesInRes >> 8) & 0xff;
+    c[16] = (bytesInRes >> 16) & 0xff;
+    c[17] = (bytesInRes >> 24) & 0xff;
+    c[18] = 22;
+    const bih = new DataView(c.buffer, 22, 40);
+    bih.setUint32(0, 40, true);
+    bih.setInt32(4, W, true);
+    bih.setInt32(8, H * 2, true);
+    bih.setUint16(12, 1, true);
+    bih.setUint16(14, 32, true);
+    bih.setUint32(16, 3, true);
+    bih.setUint32(20, 0, true);
+    return c;
+  }
+
+  function buildChunk2() {
+    const c = new Uint8Array(12 + maskBytes);
+    const bf = new DataView(c.buffer, 0, 12);
+    bf.setUint32(0, 0x00FF0000, true);
+    bf.setUint32(4, 0x0000FF00, true);
+    bf.setUint32(8, 0x000000FF, true);
+    return c;
+  }
+
+  let deliver2;
+  const stream = new ReadableStream({
+    async start(controller) {
+      controller.enqueue(buildChunk1());
+      await new Promise(r => { deliver2 = r; });
+      controller.enqueue(buildChunk2());
+      controller.close();
+    }
+  });
+
+  const decoder = new ImageDecoder({
+    type: 'image/x-icon',
+    data: stream,
+    desiredWidth: 16,
+    desiredHeight: 16,
+  });
+
+  await decoder.tracks.ready;
+  const decodePromise = decoder.decode();
+  await new Promise(r => step_timeout(r, 500));
+  deliver2();
+  try { await decodePromise; } catch(e) {}
+  await new Promise(r => step_timeout(r, 2000));
+})();
+</script>

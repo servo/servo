@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+<head>
+<title>Optional constraint recognized as optional in getUserMedia</title>
+<link rel="author" title="Dominique Hazael-Massieux" href="mailto:dom@w3.org"/>
+<link rel="help" href="http://dev.w3.org/2011/webrtc/editor/getusermedia.html#widl-NavigatorUserMedia-getUserMedia-void-MediaStreamConstraints-constraints-NavigatorUserMediaSuccessCallback-successCallback-NavigatorUserMediaErrorCallback-errorCallback">
+</head>
+<body>
+<p class="instructions">When prompted, accept to share your video stream.</p>
+<h1 class="instructions">Description</h1>
+<p class="instructions">This test checks that setting an optional constraint in
+getUserMedia is handled as optional</p>
+
+<div id='log'></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=permission-helper.js></script>
+<script>
+promise_test(async () => {
+  await setMediaPermission("granted", ["camera"]);
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({video: {advanced: [{width: {min:1024, max: 800}}]}});
+    assert_equals(stream.getVideoTracks().length, 1, "the media stream has exactly one video track");
+  } catch (error) {
+    assert_unreached("an optional constraint can't stop us from obtaining a video stream");
+  }
+}, "Tests that setting an optional constraint in getUserMedia is handled as optional");
+</script>
+</body>
+</html>

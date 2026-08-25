@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<title>Serializing CDATA in an HTML document</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/parsing.html#serialising-html-fragments">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(t => {
+  const doc = new DOMParser().parseFromString('<svg xmlns="http://www.w3.org/2000/svg"><![CDATA[<img>]]></svg>', 'application/xml');
+  const el = document.adoptNode(doc.documentElement);
+  assert_equals(el.outerHTML, '<svg xmlns="http://www.w3.org/2000/svg">&lt;img&gt;</svg>');
+});
+</script>

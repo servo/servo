@@ -1,0 +1,114 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>getFramebufferAttachmentParameter input type check (issue #20593)</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+    var gl = document.createElement("canvas").getContext("webgl");
+
+    // Error if no buffer is bound
+    gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER,
+                                         gl.COLOR_ATTACHMENT0,
+                                         gl.FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE);
+    assert_equals(gl.INVALID_OPERATION, gl.getError());
+
+    // Bind a framebuffer
+    var framebuffer = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+
+    // 'target' parameter checks
+    gl.getFramebufferAttachmentParameter(gl.READ_FRAMEBUFFER,
+                                         gl.COLOR_ATTACHMENT0,
+                                         gl.FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE);
+    assert_equals(gl.INVALID_ENUM, gl.getError());
+    gl.getFramebufferAttachmentParameter(gl.DRAW_FRAMEBUFFER,
+                                         gl.COLOR_ATTACHMENT0,
+                                         gl.FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE);
+    assert_equals(gl.INVALID_ENUM, gl.getError());
+    gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER,
+                                         gl.COLOR_ATTACHMENT0,
+                                         gl.FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE);
+    assert_equals(gl.NO_ERROR, gl.getError());
+
+    // 'attachment' parameter checks
+    gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER,
+                                         gl.DEPTH_STENCIL_ATTACHMENT,
+                                         gl.FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE);
+    assert_equals(gl.NO_ERROR, gl.getError());
+    gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER,
+                                         gl.COLOR_ATTACHMENT0,
+                                         gl.FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE);
+    assert_equals(gl.NO_ERROR, gl.getError());
+    gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER,
+                                         gl.DEPTH_ATTACHMENT,
+                                         gl.FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE);
+    assert_equals(gl.NO_ERROR, gl.getError());
+    gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER,
+                                         gl.STENCIL_ATTACHMENT,
+                                         gl.FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE);
+    assert_equals(gl.NO_ERROR, gl.getError());
+
+    // 'pname' parameter checks: invalid values
+    gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER,
+                                         gl.STENCIL_ATTACHMENT,
+                                         gl.FRAMEBUFFER_ATTACHMENT_ALPHA_SIZE);
+    assert_equals(gl.INVALID_ENUM, gl.getError());
+    gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER,
+                                         gl.STENCIL_ATTACHMENT,
+                                         gl.FRAMEBUFFER_ATTACHMENT_STENCIL_SIZE);
+    assert_equals(gl.INVALID_ENUM, gl.getError());
+
+    // 'pname' parameter checks: no attached object at the named attachment point
+    gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER,
+                                         gl.STENCIL_ATTACHMENT,
+                                         gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME);
+    assert_equals(gl.INVALID_ENUM, gl.getError());
+    gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER,
+                                         gl.STENCIL_ATTACHMENT,
+                                         gl.FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE);
+    assert_equals(gl.NO_ERROR, gl.getError());
+
+    // 'pname' parameter checks: the attached object at the named attachment point is GL_RENDERBUFFER
+    var renderbuffer = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, renderbuffer);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, renderbuffer);
+    gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER,
+                                         gl.COLOR_ATTACHMENT0,
+                                         gl.FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL);
+    assert_equals(gl.INVALID_ENUM, gl.getError());
+    gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER,
+                                         gl.COLOR_ATTACHMENT0,
+                                         gl.FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE);
+    assert_equals(gl.INVALID_ENUM, gl.getError());
+    gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER,
+                                         gl.COLOR_ATTACHMENT0,
+                                         gl.FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE);
+    assert_equals(gl.NO_ERROR, gl.getError());
+    gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER,
+                                         gl.COLOR_ATTACHMENT0,
+                                         gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME);
+    assert_equals(gl.NO_ERROR, gl.getError());
+
+    // 'pname' parameter checks: the attached object at the named attachment point is GL_TEXTURE
+    var texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+    gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER,
+                                         gl.COLOR_ATTACHMENT0,
+                                         gl.FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL);
+    assert_equals(gl.NO_ERROR, gl.getError());
+    gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER,
+                                         gl.COLOR_ATTACHMENT0,
+                                         gl.FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE);
+    assert_equals(gl.NO_ERROR, gl.getError());
+    gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER,
+                                         gl.COLOR_ATTACHMENT0,
+                                         gl.FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE);
+    assert_equals(gl.NO_ERROR, gl.getError());
+    gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER,
+                                         gl.COLOR_ATTACHMENT0,
+                                         gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME);
+    assert_equals(gl.NO_ERROR, gl.getError());
+});
+</script>

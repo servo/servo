@@ -1,0 +1,70 @@
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <script>
+      var ITERATIONS = 100000;
+
+      var tests = {
+        testGetLabelString: function() {
+          var label = document.getElementById("lb");
+          for (var i=0; i<ITERATIONS; ++i) {
+            var str = label.textContent;
+          }
+        },
+
+        testGetLabelNumber: function() {
+          var label = document.getElementById("lb");
+          for (var i=0; i<ITERATIONS; ++i) {
+            var str = label.nodeType;
+          }
+        },
+
+        testSetLabel: function() {
+          var label = document.getElementById("lb");
+          for (var i=0; i<ITERATIONS; ++i) {
+            label.innerHTML = "Test string new";
+          }
+        },
+
+        testCallSimpleMethod: function() {
+          var label = document.getElementById("lb");
+          for (var i=0; i<ITERATIONS; ++i) {
+             label.blur();
+          }
+        },
+
+        testCallMethodReturnValue: function() {
+          var label = document.getElementById("lb");
+          for (var i=0; i<ITERATIONS; ++i) {
+            document.adoptNode(label);
+          }
+        },
+
+        testEventObjectCreation: function() {
+          for (var i=0; i<ITERATIONS; ++i) {
+            var event = new Event('build');
+          }
+        }
+      };
+
+      function runTests() {
+        var res = document.getElementById("results");
+        res.innerHTML = '';
+        for (t in tests) {
+          var beginTime = performance.now();
+          tests[t]();
+          var endTime = performance.now();
+          var diff = ((endTime - beginTime) / ITERATIONS * 1000000).toFixed(0);
+          res.innerHTML = res.innerHTML  + t + ": " + diff + " ns<br>";
+        }
+      }
+
+    </script>
+  </head>
+
+  <body onload="runTests()">
+    <label id="lb">Test string</label> <br>
+    <h1>Results:</h1>
+    <div id="results">Processing...</div>
+  </body>
+</html>

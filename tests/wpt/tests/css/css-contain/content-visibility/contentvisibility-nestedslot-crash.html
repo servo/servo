@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<link rel="author" title="Joey Arhar" href="mailto:jarhar@chromium.org">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1208573">
+
+<div style="content-visibility:hidden">hidden</div>
+
+<div id=host>
+  <template shadowrootmode=open>
+    <div>nested slots:</div>
+    <slot name=parent>
+      <slot name=child></slot>
+    </slot>
+  </template>
+  <div slot=parent>lightdom slot=parent</div>
+  <div slot=child>lightdom slot=child</div>
+</div>
+
+<script>
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const div = document.createElement('div');
+      div.textContent = 'new lightdom child';
+      host.appendChild(div);
+
+      requestAnimationFrame(() => {
+        document.documentElement.classList.remove('test-wait');
+      });
+    });
+  });
+</script>

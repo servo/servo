@@ -1,0 +1,51 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  div
+  {
+  background-color: blue;
+  margin-left: 16px;
+  margin-bottom: 5px;
+  }
+
+  div.first-pair-blue-squares
+  {
+  height: 15px;
+  width: 15px;
+  }
+
+  div.second-pair-blue-squares
+  {
+  height: 60px;
+  width: 60px;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>There should be <strong>no red</strong> anywhere.</p>
+
+  <p>There should be <strong>2 identical squares</strong> after this line:</p>
+
+  <div class="first-pair-blue-squares"></div>
+
+  <div class="first-pair-blue-squares"></div>
+
+  <p>There should be <strong>2 identical squares</strong> after this line:</p>
+
+  <div class="second-pair-blue-squares"></div>
+
+  <div class="second-pair-blue-squares"></div>
+
+ </body>
+</html>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<title>Canvas.drawElementImage: green rect (ref)</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<link rel="author" href="mailto:schenney@chromium.org">
+<style>
+.child-div {
+  width: 100px;
+  height: 100px;
+
+  position: relative;
+  left: 20px;
+  top: 30px;
+}
+#child1 {
+  background: green;
+}
+#child2 {
+  background: blue;
+}
+.canvas-div {
+  width: 200px;
+  height: 200px;
+  background: grey;
+}
+#canvas1 {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+}
+#canvas2 {
+  position: absolute;
+  top: 8px;
+  left: 212px;
+}
+</style>
+
+<div class=canvas-div id=canvas1>
+  <div class=child-div id=child1></div>
+</div>
+
+<div class=canvas-div id=canvas2>
+  <div class=child-div id=child2></div>
+</div>

@@ -1,0 +1,5 @@
+rules:
+- class-specificity.html: [view-transition-class, view-transitions]
+- pseudo-with-classes-*: [view-transition-class, view-transitions]
+- active-view-transition-*: [active-view-transition, view-transitions]
+- "**": [view-transitions]

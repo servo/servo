@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-page-3/#margin-dimension">
+<meta name="assert" content="Test auto margins. Auto margins not adjacent to a page edge are treated as 0.">
+<link rel="match" href="auto-margins-001-print-ref.html">
+<style>
+  @page {
+    margin: 100px;
+    size: 500px 400px;
+    border: solid;
+    @top-left-corner {
+      border: solid;
+      width: 25px;
+      height: 25px;
+      margin: auto;
+      content: "";
+    }
+    @top-left {
+      border: solid;
+      width: 25px;
+      height: 25px;
+      margin: auto;
+      content: "";
+    }
+    @top-center {
+      border: solid;
+      height: 25px;
+      margin: auto;
+      content: "";
+    }
+    @top-right {
+      border: solid;
+      width: 25px;
+      height: 25px;
+      margin: auto;
+      content: "";
+    }
+    @top-right-corner {
+      border: solid;
+      width: 25px;
+      height: 25px;
+      margin: auto;
+      content: "";
+    }
+    @right-top {
+      border: solid;
+      width: 25px;
+      height: 25px;
+      margin: auto;
+      content: "";
+    }
+    @right-middle {
+      border: solid;
+      width: 25px;
+      margin: auto;
+      content: "";
+    }
+    @right-bottom {
+      border: solid;
+      width: 25px;
+      height: 25px;
+      margin: auto;
+      content: "";
+    }
+    @bottom-right-corner {
+      border: solid;
+      width: 25px;
+      height: 25px;
+      margin: auto;
+      content: "";
+    }
+    @bottom-right {
+      border: solid;
+      width: 25px;
+      height: 25px;
+      margin: auto;
+      content: "";
+    }
+    @bottom-center {
+      border: solid;
+      width: 25px;
+      height: 25px;
+      margin: auto;
+      content: "";
+    }
+    @bottom-left {
+      border: solid;
+      width: 25px;
+      height: 25px;
+      margin: auto;
+      content: "";
+    }
+    @bottom-left-corner {
+      border: solid;
+      width: 25px;
+      height: 25px;
+      margin: auto;
+      content: "";
+    }
+    @left-bottom {
+      border: solid;
+      width: 25px;
+      height: 25px;
+      margin: auto;
+      content: "";
+    }
+    @left-middle {
+      border: solid;
+      width: 25px;
+      height: 25px;
+      margin: auto;
+      content: "";
+    }
+    @left-top {
+      border: solid;
+      width: 25px;
+      height: 25px;
+      margin: auto;
+      content: "";
+    }
+  }
+</style>
+
+There should be 16 margin boxes around this page area. They should all be
+squares, except for the center box at the top and the middle box on the right
+hand side, which should take up all available main-axis space. All 16 boxes
+should all be centered within their available cross-axis space.

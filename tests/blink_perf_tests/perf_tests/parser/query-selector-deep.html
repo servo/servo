@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script src="../resources/runner.js"></script>
+<script>
+var parentDiv = document.body;
+for (var i = 0; i < 100; i++) {
+    var div = document.createElement("div");
+    div.id = "foo" + i;
+    div.className = "bar" + i;
+    parentDiv.appendChild(div);
+    parentDiv = div;
+}
+
+var h1 = document.createElement("h1");
+h1.id = "id";
+h1.className = "class";
+parentDiv.appendChild(h1);
+
+PerfTestRunner.measureRunsPerSecond({
+    description: "This benchmark tests querySelector() for an element that appears in the depths in the document",
+    run: function() {
+        for (var i = 0; i < 100; i++) {
+            document.querySelector("h1");
+            document.querySelector("#id");
+            document.querySelector(".class");
+        }
+    }});
+</script>
+</body>
+</html>

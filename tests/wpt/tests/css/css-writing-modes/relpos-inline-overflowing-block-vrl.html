@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<title>vertical-rl, relatively positioned inline in block that overflows smaller parent</title>
+<link rel="author" title="Morten Stenshorne" href="mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-writing-modes-3/#vertical-layout" title="7.1. Principles of Layout in Vertical Writing Modes">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="position:relative; writing-mode:vertical-rl; width:100px; height:100px; background:green;">
+  <div style="position:absolute; right:0; top:0; width:0.5em; height:1em; background:red;"></div>
+  <div style="width:200px;">
+    <span style="position:relative; color:green; background:green; display: inline-block">XXX</span>
+  </div>
+</div>

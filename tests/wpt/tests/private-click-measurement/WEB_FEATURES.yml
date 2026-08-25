@@ -1,0 +1,2 @@
+rules:
+- "**": [private-click-measurement]

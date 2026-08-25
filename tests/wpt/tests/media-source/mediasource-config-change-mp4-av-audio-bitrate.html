@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<!-- Copyright © 2016 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<html>
+    <head>
+        <title>MP4 muxed audio &amp; video with an audio bitrate change.</title>
+        <meta name="timeout" content="long">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="mediasource-util.js"></script>
+        <script src="mediasource-config-changes.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script>
+            mediaSourceConfigChangeTest("mp4", "av-384k-44100Hz-1ch-640x480-30fps-10kfr", "av-448k-44100Hz-1ch-640x480-30fps-10kfr", "Tests mp4 audio bitrate changes in multiplexed content.");
+        </script>
+    </body>
+</html>

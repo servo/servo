@@ -1,0 +1,206 @@
+# WARNING: This file is auto-generated. Do NOT modify it manually, but rather
+# modify the generating script file. Otherwise changes will be lost!
+# See split-conversions.js
+
+group scalar_to_matrix "Scalar to Matrix Conversions"
+
+	case float_to_mat4
+		values
+		{
+			input float in0 = [ 0.0 | 1.0 | 2.0 | 3.5 | -0.5 | -8.25 | -20.125 | 36.8125 ];
+			output mat4 out0 = [ mat4(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0) | mat4(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0) | mat4(2.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 2.0) | mat4(3.5, 0.0, 0.0, 0.0, 0.0, 3.5, 0.0, 0.0, 0.0, 0.0, 3.5, 0.0, 0.0, 0.0, 0.0, 3.5) | mat4(-0.5, 0.0, 0.0, 0.0, 0.0, -0.5, 0.0, 0.0, 0.0, 0.0, -0.5, 0.0, 0.0, 0.0, 0.0, -0.5) | mat4(-8.25, 0.0, 0.0, 0.0, 0.0, -8.25, 0.0, 0.0, 0.0, 0.0, -8.25, 0.0, 0.0, 0.0, 0.0, -8.25) | mat4(-20.125, 0.0, 0.0, 0.0, 0.0, -20.125, 0.0, 0.0, 0.0, 0.0, -20.125, 0.0, 0.0, 0.0, 0.0, -20.125) | mat4(36.8125, 0.0, 0.0, 0.0, 0.0, 36.8125, 0.0, 0.0, 0.0, 0.0, 36.8125, 0.0, 0.0, 0.0, 0.0, 36.8125) ];
+		}
+
+		both ""
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_to_mat3
+		values
+		{
+			input float in0 = [ 0.0 | 1.0 | 2.0 | 3.5 | -0.5 | -8.25 | -20.125 | 36.8125 ];
+			output mat3 out0 = [ mat3(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0) | mat3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0) | mat3(2.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 2.0) | mat3(3.5, 0.0, 0.0, 0.0, 3.5, 0.0, 0.0, 0.0, 3.5) | mat3(-0.5, 0.0, 0.0, 0.0, -0.5, 0.0, 0.0, 0.0, -0.5) | mat3(-8.25, 0.0, 0.0, 0.0, -8.25, 0.0, 0.0, 0.0, -8.25) | mat3(-20.125, 0.0, 0.0, 0.0, -20.125, 0.0, 0.0, 0.0, -20.125) | mat3(36.8125, 0.0, 0.0, 0.0, 36.8125, 0.0, 0.0, 0.0, 36.8125) ];
+		}
+
+		both ""
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat3(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case float_to_mat2
+		values
+		{
+			input float in0 = [ 0.0 | 1.0 | 2.0 | 3.5 | -0.5 | -8.25 | -20.125 | 36.8125 ];
+			output mat2 out0 = [ mat2(0.0, 0.0, 0.0, 0.0) | mat2(1.0, 0.0, 0.0, 1.0) | mat2(2.0, 0.0, 0.0, 2.0) | mat2(3.5, 0.0, 0.0, 3.5) | mat2(-0.5, 0.0, 0.0, -0.5) | mat2(-8.25, 0.0, 0.0, -8.25) | mat2(-20.125, 0.0, 0.0, -20.125) | mat2(36.8125, 0.0, 0.0, 36.8125) ];
+		}
+
+		both ""
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat2(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_to_mat4
+		values
+		{
+			input int in0 = [ 0 | 1 | 2 | 5 | 8 | 11 | -12 | -66 | -192 | 255 ];
+			output mat4 out0 = [ mat4(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0) | mat4(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0) | mat4(2.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 2.0) | mat4(5.0, 0.0, 0.0, 0.0, 0.0, 5.0, 0.0, 0.0, 0.0, 0.0, 5.0, 0.0, 0.0, 0.0, 0.0, 5.0) | mat4(8.0, 0.0, 0.0, 0.0, 0.0, 8.0, 0.0, 0.0, 0.0, 0.0, 8.0, 0.0, 0.0, 0.0, 0.0, 8.0) | mat4(11.0, 0.0, 0.0, 0.0, 0.0, 11.0, 0.0, 0.0, 0.0, 0.0, 11.0, 0.0, 0.0, 0.0, 0.0, 11.0) | mat4(-12.0, 0.0, 0.0, 0.0, 0.0, -12.0, 0.0, 0.0, 0.0, 0.0, -12.0, 0.0, 0.0, 0.0, 0.0, -12.0) | mat4(-66.0, 0.0, 0.0, 0.0, 0.0, -66.0, 0.0, 0.0, 0.0, 0.0, -66.0, 0.0, 0.0, 0.0, 0.0, -66.0) | mat4(-192.0, 0.0, 0.0, 0.0, 0.0, -192.0, 0.0, 0.0, 0.0, 0.0, -192.0, 0.0, 0.0, 0.0, 0.0, -192.0) | mat4(255.0, 0.0, 0.0, 0.0, 0.0, 255.0, 0.0, 0.0, 0.0, 0.0, 255.0, 0.0, 0.0, 0.0, 0.0, 255.0) ];
+		}
+
+		both ""
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_to_mat3
+		values
+		{
+			input int in0 = [ 0 | 1 | 2 | 5 | 8 | 11 | -12 | -66 | -192 | 255 ];
+			output mat3 out0 = [ mat3(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0) | mat3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0) | mat3(2.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 2.0) | mat3(5.0, 0.0, 0.0, 0.0, 5.0, 0.0, 0.0, 0.0, 5.0) | mat3(8.0, 0.0, 0.0, 0.0, 8.0, 0.0, 0.0, 0.0, 8.0) | mat3(11.0, 0.0, 0.0, 0.0, 11.0, 0.0, 0.0, 0.0, 11.0) | mat3(-12.0, 0.0, 0.0, 0.0, -12.0, 0.0, 0.0, 0.0, -12.0) | mat3(-66.0, 0.0, 0.0, 0.0, -66.0, 0.0, 0.0, 0.0, -66.0) | mat3(-192.0, 0.0, 0.0, 0.0, -192.0, 0.0, 0.0, 0.0, -192.0) | mat3(255.0, 0.0, 0.0, 0.0, 255.0, 0.0, 0.0, 0.0, 255.0) ];
+		}
+
+		both ""
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat3(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case int_to_mat2
+		values
+		{
+			input int in0 = [ 0 | 1 | 2 | 5 | 8 | 11 | -12 | -66 | -192 | 255 ];
+			output mat2 out0 = [ mat2(0.0, 0.0, 0.0, 0.0) | mat2(1.0, 0.0, 0.0, 1.0) | mat2(2.0, 0.0, 0.0, 2.0) | mat2(5.0, 0.0, 0.0, 5.0) | mat2(8.0, 0.0, 0.0, 8.0) | mat2(11.0, 0.0, 0.0, 11.0) | mat2(-12.0, 0.0, 0.0, -12.0) | mat2(-66.0, 0.0, 0.0, -66.0) | mat2(-192.0, 0.0, 0.0, -192.0) | mat2(255.0, 0.0, 0.0, 255.0) ];
+		}
+
+		both ""
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat2(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_to_mat4
+		values
+		{
+			input bool in0 = [ true | false ];
+			output mat4 out0 = [ mat4(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0) | mat4(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0) ];
+		}
+
+		both ""
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_to_mat3
+		values
+		{
+			input bool in0 = [ true | false ];
+			output mat3 out0 = [ mat3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0) | mat3(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0) ];
+		}
+
+		both ""
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat3(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bool_to_mat2
+		values
+		{
+			input bool in0 = [ true | false ];
+			output mat2 out0 = [ mat2(1.0, 0.0, 0.0, 1.0) | mat2(0.0, 0.0, 0.0, 0.0) ];
+		}
+
+		both ""
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat2(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+
+end # scalar_to_matrix

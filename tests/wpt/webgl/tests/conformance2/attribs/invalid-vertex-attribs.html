@@ -1,0 +1,75 @@
+<!--
+Copyright (c) 2022 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL2 draw functions have expected behavior with invalid vertex attribs</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"> </script>
+<script src="../../js/tests/invalid-vertex-attrib-test.js"></script>
+<style>
+body {
+    height: 3000px;
+}
+</style>
+</head>
+<body>
+<!-- Important to put the canvas at the top so that it's always visible even in the test suite runner.
+     Otherwise it just doesn't get composited in Firefox. -->
+<div id="description"></div>
+<canvas id="canvas" width="16" height="16"> </canvas>
+<div id="console"></div>
+<script>
+"use strict";
+
+description(`\
+This test ensures WebGL implementations correctly generate INVALID_OPERATION
+when an attribute is enabled but no buffer is bound`);
+debug("");
+
+const wtu = WebGLTestUtils;
+const gl = wtu.create3DContext('canvas', undefined, 2);
+
+async function runInvalidAttribTests() {
+    const invalidAttribTestFn = createInvalidAttribTestFn(gl);
+
+    function drawArrays(gl) {
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+    }
+
+    function drawElements(gl) {
+      gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_BYTE, 0);
+    }
+
+    function drawArraysInstanced(gl) {
+      gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, 1);
+    }
+
+    function drawElementsInstanced(gl) {
+      gl.drawElementsInstanced(gl.TRIANGLES, 6, gl.UNSIGNED_BYTE, 0, 1);
+    }
+
+    function drawRangeElements(gl) {
+      gl.drawRangeElements(gl.TRIANGLES, 0, 5, 6, gl.UNSIGNED_BYTE, 0);
+    }
+
+    await invalidAttribTestFn(drawArrays);
+    await invalidAttribTestFn(drawElements);
+    await invalidAttribTestFn(drawArraysInstanced);
+    await invalidAttribTestFn(drawElementsInstanced);
+    await invalidAttribTestFn(drawRangeElements);
+    finishTest();
+}
+runInvalidAttribTests();
+
+var successfullyParsed = true;
+</script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
+<g id="testmeta">
+	<title>CSS Masking: clip-rule property - nonzero nested clip</title>
+	<html:link rel="author" title="Dirk Schulze" href="mailto:dschulze@adobe.com"/>
+	<html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#svg-clipping-paths"/>
+	<html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#ClipPathElement"/>
+	<html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#the-clip-rule"/>
+	<html:link rel="match" href="reference/clip-path-square-001-ref.svg" />
+	<metadata class="flags">svg</metadata>
+	<desc class="assert">Check that clip-rule 'nonzero' applies to
+	clipPath element and a second clipPath element can be applied to
+	the first one. A green square should be visible.</desc>
+</g>
+<clipPath id="clip2">
+	<rect x="25" y="25" width="150" height="150"/>
+</clipPath>
+<clipPath id="clip1" clip-path="url(#clip2)">
+	<polygon points="0 0, 200 0, 200 200, 0 200, 0 50, 150 50, 150 150, 50 150, 50 50, 0 50" clip-rule="nonzero" />
+</clipPath>
+<rect width="200" height="200" fill="green" clip-path="url(#clip1)"/>
+</svg>

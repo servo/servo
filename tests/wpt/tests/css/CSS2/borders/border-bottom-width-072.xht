@@ -1,0 +1,40 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border-bottom-width using 'em' units with a nominal value, 6em</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-05-22 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#propdef-border-bottom-width" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-width-properties" />
+        <link rel="match" href="border-bottom-width-072-ref.xht" />
+
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The 'border-bottom-width' property supports a nominal length value in 'em' units that sets the width of the bottom border." />
+        <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+        <style type="text/css">
+            div
+            {
+                display: inline-block;
+                font: 20px/1 Ahem;
+                width: 1in;
+            }
+            #reference
+            {
+                background-color: black;
+                height: 120px;
+                margin-left: 5px;
+            }
+            #test
+            {
+                border-bottom-style: solid;
+                border-bottom-width: 6em;
+                height: 0;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the 2 filled black rectangles have the <strong>same height</strong>.</p>
+        <div id="test"></div>
+        <div id="reference"></div>
+    </body>
+</html>

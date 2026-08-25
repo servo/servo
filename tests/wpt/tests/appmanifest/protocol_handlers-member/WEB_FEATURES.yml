@@ -1,0 +1,2 @@
+rules:
+- "**": [app-protocol-handlers]

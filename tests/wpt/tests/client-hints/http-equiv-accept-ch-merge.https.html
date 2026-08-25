@@ -1,0 +1,50 @@
+<html>
+<head>
+<meta http-equiv="Accept-CH" content="sec-ch-viewport-width, viewport-width, rtt">
+<meta http-equiv="Accept-CH" content="downlink, ect, sec-ch-prefers-color-scheme">
+<meta http-equiv="Accept-CH" content="sec-ch-prefers-reduced-motion, sec-ch-prefers-reduced-transparency">
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script>
+
+// Test of merge of http-equiv headers on top of accept-ch provided ones.
+//
+// resources/echo-client-hints-received.py sets the response headers depending on the set
+// of client hints it receives in the request headers.
+
+promise_test(t => {
+  return fetch(get_host_info()["HTTPS_ORIGIN"] + "/client-hints/resources/echo-client-hints-received.py").then(r => {
+    assert_equals(r.status, 200)
+    // Verify that the browser includes client hints in the headers.
+    assert_true(r.headers.has("device-memory-received"), "device-memory-received");
+    assert_true(r.headers.has("device-memory-deprecated-received"), "device-memory-deprecated-received");
+    assert_true(r.headers.has("dpr-received"), "dpr-received");
+    assert_true(r.headers.has("dpr-deprecated-received"), "dpr-deprecated-received");
+    assert_true(r.headers.has("viewport-width-received"), "viewport-width-received");
+    assert_true(r.headers.has("viewport-width-deprecated-received"), "viewport-width-deprecated-received");
+
+    assert_true(r.headers.has("rtt-received"), "rtt-received");
+    var rtt = parseInt(r.headers.get("rtt-received"));
+    assert_greater_than_equal(rtt, 0);
+    assert_less_than_equal(rtt, 3000);
+    assert_equals(rtt % 50, 0, 'rtt must be a multiple of 50 msec');
+
+    assert_true(r.headers.has("downlink-received"), "downlink-received");
+    var downlinkKbps  = r.headers.get("downlink-received") * 1000;
+    assert_greater_than_equal(downlinkKbps, 0);
+    assert_less_than_equal(downlinkKbps, 10000);
+
+    assert_in_array(r.headers.get("ect-received"), ["slow-2g", "2g",
+          "3g", "4g"], 'ect-received is unexpected');
+    assert_true(r.headers.has("prefers-color-scheme-received"), "prefers-color-scheme-received");
+    assert_true(r.headers.has("prefers-reduced-motion-received"), "prefers-reduced-motion-received");
+    assert_true(r.headers.has("prefers-reduced-transparency-received"), "prefers-reduced-transparency-received");
+  });
+}, "Accept-CH header test");
+
+</script>
+
+</body>
+</html>

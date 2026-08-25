@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Canvas Transform: Element.getCanvasTransform() and Element.setCanvasTransform()</title>
+  <link rel="help" href="https://github.com/WICG/html-in-canvas">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <div id="outside-canvas" style="width: 100px; height: 100px;"></div>
+  <canvas id="canvas" width="100" height="100" layoutsubtree>
+    <div id="inside-canvas" style="width: 10px; height: 10px;"></div>
+  </canvas>
+  <svg id="svg-root" width="100" height="100">
+    <rect id="svg-rect" width="50" height="50"></rect>
+  </svg>
+
+  <script>
+    'use strict';
+
+    test(() => {
+      const el = document.createElement('div');
+      const m = el.getCanvasTransform();
+      assert_true(m instanceof DOMMatrix);
+      assert_true(m.is2D);
+      assert_true(m.isIdentity);
+      assert_array_equals(m.toFloat64Array(), new DOMMatrix().toFloat64Array());
+    }, 'getCanvasTransform() defaults to identity DOMMatrix');
+
+    test(() => {
+      const el = document.createElement('div');
+      const m1 = el.getCanvasTransform();
+      const m2 = el.getCanvasTransform();
+      assert_not_equals(m1, m2);
+    }, 'getCanvasTransform() returns a new DOMMatrix object each time');
+
+    test(() => {
+      const el = document.createElement('div');
+      const expected = new DOMMatrix().translate(10, 20).scale(2, 3);
+      el.setCanvasTransform(expected);
+      assert_true(el.getCanvasTransform().is2D);
+      assert_array_equals(el.getCanvasTransform().toFloat64Array(), expected.toFloat64Array());
+    }, 'setCanvasTransform() with 2D DOMMatrix and reading back');
+
+    test(() => {
+      const el = document.createElement('div');
+      const expected = new DOMMatrix().translate(5, 6, 7).scale3d(2, 3, 4);
+      el.setCanvasTransform(expected);
+      assert_false(el.getCanvasTransform().is2D);
+      assert_array_equals(el.getCanvasTransform().toFloat64Array(), expected.toFloat64Array());
+    }, 'setCanvasTransform() with 3D DOMMatrix and reading back');
+
+    test(() => {
+      const el = document.createElement('div');
+      el.setCanvasTransform(new DOMMatrix().scale(2, 3));
+      assert_false(el.getCanvasTransform().isIdentity);
+      // Reset with empty dictionary or default
+      el.setCanvasTransform({});
+      assert_true(el.getCanvasTransform().isIdentity);
+      el.setCanvasTransform(new DOMMatrix().scale(5, 5));
+      assert_false(el.getCanvasTransform().isIdentity);
+      el.setCanvasTransform();
+      assert_true(el.getCanvasTransform().isIdentity);
+    }, 'setCanvasTransform() with empty or omitted argument resets matrix to identity');
+
+    test(() => {
+      const el = document.createElement('div');
+      assert_throws_js(TypeError, () => {
+        el.setCanvasTransform({a: 1, m11: 2});
+      });
+      assert_throws_js(TypeError, () => {
+        el.setCanvasTransform({b: 1, m12: 2});
+      });
+      assert_throws_js(TypeError, () => {
+        el.setCanvasTransform({is2D: true, m33: 2});
+      });
+      assert_throws_js(TypeError, () => {
+        el.setCanvasTransform({is2D: true, m13: 2});
+      });
+    }, 'setCanvasTransform() with invalid DOMMatrixInit throws TypeError');
+
+    test(() => {
+      const disconnected = document.createElement('span');
+      assert_true(disconnected.getCanvasTransform().isIdentity);
+      const expected = new DOMMatrix().translate(10, 0).scale(2, 4);
+      disconnected.setCanvasTransform(expected);
+      assert_array_equals(disconnected.getCanvasTransform().toFloat64Array(), expected.toFloat64Array());
+    }, 'getCanvasTransform() and setCanvasTransform() on disconnected elements');
+
+    test(() => {
+      const outside = document.getElementById('outside-canvas');
+      assert_true(outside.getCanvasTransform().isIdentity);
+      const expected = new DOMMatrix().translate(0, 15).scale(3, 6);
+      outside.setCanvasTransform(expected);
+      assert_array_equals(outside.getCanvasTransform().toFloat64Array(), expected.toFloat64Array());
+    }, 'getCanvasTransform() and setCanvasTransform() on elements outside <canvas>');
+
+    test(() => {
+      const inside = document.getElementById('inside-canvas');
+      assert_true(inside.getCanvasTransform().isIdentity);
+      const expected = new DOMMatrix().translate(20, 30).scale(4, 8);
+      inside.setCanvasTransform(expected);
+      assert_array_equals(inside.getCanvasTransform().toFloat64Array(), expected.toFloat64Array());
+    }, 'getCanvasTransform() and setCanvasTransform() on elements inside <canvas layoutsubtree>');
+
+    test(() => {
+      const svgRect = document.getElementById('svg-rect');
+      assert_true(svgRect.getCanvasTransform().isIdentity);
+      const expected = new DOMMatrix().translate(25, 35).scale(5, 10);
+      svgRect.setCanvasTransform(expected);
+      assert_array_equals(svgRect.getCanvasTransform().toFloat64Array(), expected.toFloat64Array());
+    }, 'getCanvasTransform() and setCanvasTransform() on SVG element');
+  </script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: the ellipsis can be placed in the last line of an inline formatting context</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#block-ellipsis">
+<link rel="match" href="reference/block-ellipsis-012-ref.html">
+<meta name="assert" content="block-ellipsis will insert an ellipsis immediately before a region break, and there can be no region break after the last line of the line-clamp container. However, there can be one after the last line in an IFC, if there is content after it.">
+<style>
+.clamp {
+  line-clamp: 1;
+  width: 38.1ch;
+  border: 1px solid black;
+  font-family: monospace;
+}
+p {
+  margin: 0;
+}
+</style>
+<div class="clamp">
+  <p>This line should have an ellipsis here</p>
+  <p>After all, it is not the last line in the line-clamp container</p>
+</div>

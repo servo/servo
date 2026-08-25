@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Forced colors mode - atomic inline.
+  Ensures that background images are not overridden for atomic inlines.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-color-adjust-1/#forced-colors-properties">
+<link rel=match href="forced-colors-mode-25-ref.html">
+<style>
+  div {
+    background-image: url("resources/test-image.jpg");
+    height: 150px;
+    width: 150px;
+  }
+</style>
+<body>
+  <p>Four images should appear below with forced colors mode enabled and disabled.</p>
+  <div style="display: inline-block;"></div>
+  <div style="display: inline-flex;"></div>
+  <div style="display: inline-grid;"></div>
+  <div style="display: inline-table;"></div>
+</body>

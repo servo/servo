@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta name="assert" content="Block-in-inline: float in an inline box that has a layer">
+<link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#anonymous-block-level" />
+<link rel="match" href="block-in-inline-float-in-layer-001-ref.html"/>
+<link rel="author" title="Koji Ishii" href="mailto:kojii@chromium.org" />
+<style>
+.layer {
+  filter: blur(1px);
+}
+.float {
+  float: left;
+}
+</style>
+<body>
+  <span class="layer">
+    <div>
+      <div class="float">float</div>
+   </div>
+  </span>
+</body>

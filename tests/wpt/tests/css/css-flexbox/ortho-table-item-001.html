@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>ortho table is flex item</title>
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#used-min-width-of-table">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#ref-for-hypothetical-main-size">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="Table's specially-defined used min width is honored when the table is an ortho flex item.">
+
+<p>Test passes if there is a filled green square.</p>
+<div style="display: flex; width: 0px;">
+  <div style="display: table; writing-mode: vertical-rl; min-width: 0px; width: 100px; height: 100px; background: green;">
+    <div style="display: table-cell">
+      <div style="width: 100px"></div>
+    </div>
+  </div>
+</div>

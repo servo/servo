@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+<head>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/input-onmessage.js"></script>
+<script src="../resources/pending-input-utils.js"></script>
+<style>
+iframe {
+  pointer-events: none;
+}
+</style>
+</head>
+<body>
+  <iframe src="http://{{hosts[][www1]}}:{{ports[http][0]}}/is-input-pending/resources/blank.html"></iframe>
+  <p>Ensure that a subframe cannot detect events if it has `pointer-events: none`.</p>
+  <script>
+    window.addEventListener('load', () => {
+      PendingInputUtils.testCannotAccessPendingInputAt(frames[0], 10, 10, 'iframe cannot detect events with pointer-events: none');
+    });
+  </script>
+</body>
+</html>

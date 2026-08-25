@@ -1,0 +1,2 @@
+rules:
+- file-webkitRelativePath-manual.html: [input-file-webkitdirectory]

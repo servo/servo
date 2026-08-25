@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/1215254">
+<style>
+  html, body, span {
+    column-count: 2;
+  }
+  span {
+    display: table;
+    border-collapse: collapse;
+    border: 1px solid black;
+  }
+  a {
+    vertical-align: 10000000000000000em;
+  }
+</style>
+<span>
+  <a>foo</a>
+</span>

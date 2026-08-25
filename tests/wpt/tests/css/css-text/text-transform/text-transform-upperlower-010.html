@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>CSS3 Text, text transform: Latin Extended-C, lowercase</title>
+<meta name="assert" content="For the Latin Extended-C Unicode block, text-transform: lowercase puts all letters in lowercase .">
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='https://drafts.csswg.org/css-text-3/#text-transform'>
+<link rel="match" href="reference/text-transform-upperlower-010-ref.html">
+<style type='text/css'>
+@font-face {
+	font-family: 'webfont';
+	src: url('/fonts/DoulosSIL-R.woff') format('woff');
+	font-weight: normal;
+	font-style: normal;
+	}
+.test, .ref { font-size: 125%; line-height: 1.5em; font-family: 'Doulos SIL', 'Noto Sans', webfont, sans-serif; }
+.test span, .ref span { margin-right: 1em; white-space: nowrap; }
+/* the CSS above is not part of the test */
+.test { text-transform: lowercase; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if both characters in each pair match. If you are missing a font glyph for a character, ignore that pair, but report which characters were ignored.</p>
+<div class="test"><span title="U+2C60">&#x2C60; &#x2C61;</span> <span title="U+2C62">&#x2C62; &#x026B;</span> <span title="U+2C63">&#x2C63; &#x1D7D;</span> <span title="U+2C64">&#x2C64; &#x027D;</span> <span title="U+2C67">&#x2C67; &#x2C68;</span> <span title="U+2C69">&#x2C69; &#x2C6A;</span> <span title="U+2C6B">&#x2C6B; &#x2C6C;</span> <span title="U+2C6D">&#x2C6D; &#x0251;</span> <span title="U+2C6E">&#x2C6E; &#x0271;</span> <span title="U+2C6F">&#x2C6F; &#x0250;</span> <span title="U+2C70">&#x2C70; &#x0252;</span> <span title="U+2C72">&#x2C72; &#x2C73;</span> <span title="U+2C75">&#x2C75; &#x2C76;</span> <span title="U+2C7E">&#x2C7E; &#x023F;</span> <span title="U+2C7F">&#x2C7F; &#x0240;</span></div>
+<!--Notes:
+Characters from this block that do not have case equivalents:  &#x2C71; &#x2C74; &#x2C77; &#x2C78; &#x2C79; &#x2C7A; &#x2C7B; &#x2C7C; &#x2C7D;
+-->
+</html>

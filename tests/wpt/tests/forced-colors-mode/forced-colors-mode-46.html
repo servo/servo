@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Forced colors mode - lighting-color, flood-color, stop-color.</title>
+<link rel="help" href="https://www.w3.org/TR/css-color-adjust-1/#forced-colors-properties">
+<link rel=match href="forced-colors-mode-46-ref.html">
+<style>
+  /* SVG elements are set to 'forced-color-adjust: none' by default. Set this to
+     auto instead in order to test that lighting-color, flood-color, stop-color
+     are properly overridden in forced colors mode. */
+  svg {
+    forced-color-adjust: auto;
+    height: 100px;
+    width: 500px;
+  }
+</style>
+<svg xmlns="http://www.w3.org/2000/svg">
+  <!-- stop-color in forced colors mode -->
+  <linearGradient id="stop">
+    <stop offset="25%" stop-color="orange"/>
+    <stop offset="75%" stop-color="red"/>
+  </linearGradient>
+  <rect x="0" y="0" width="100" height="100" fill="url('#stop')"/>
+
+  <!-- lighting-color in forced colors mode -->
+  <filter id="lighting" x="0" y="0" width="100%" height="100%">
+    <feDiffuseLighting in="SourceGraphic" lighting-color="red">
+      <fePointLight x="250" y="50" z="10"/>
+    </feDiffuseLighting>
+  </filter>
+  <rect x="200" y="0" width="100" height="100" style="filter: url(#lighting);"/>
+
+  <!-- flood-color in forced colors mode -->
+  <filter id="flood" x="0" y="0" width="100%" height="100%">
+    <feFlood flood-color="red"/>
+  </filter>
+  <rect x="400" y="0" width="100" height="100" style="filter: url(#flood);"/>
+</svg>

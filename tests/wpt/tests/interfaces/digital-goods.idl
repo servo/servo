@@ -1,0 +1,44 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Digital Goods API (https://wicg.github.io/digital-goods/)
+
+partial interface Window {
+  [SecureContext] Promise<DigitalGoodsService> getDigitalGoodsService(
+      DOMString serviceProvider);
+};
+
+[Exposed=Window, SecureContext] interface DigitalGoodsService {
+
+  Promise<sequence<ItemDetails>> getDetails(sequence<DOMString> itemIds);
+
+  Promise<sequence<PurchaseDetails>> listPurchases();
+
+  Promise<sequence<PurchaseDetails>> listPurchaseHistory();
+
+  Promise<undefined> consume(DOMString purchaseToken);
+};
+
+dictionary ItemDetails {
+  required DOMString itemId;
+  required DOMString title;
+  required PaymentCurrencyAmount price;
+  ItemType type;
+  DOMString description;
+  sequence<DOMString> iconURLs;
+  DOMString subscriptionPeriod;
+  DOMString freeTrialPeriod;
+  PaymentCurrencyAmount introductoryPrice;
+  DOMString introductoryPricePeriod;
+  [EnforceRange] unsigned long long introductoryPriceCycles;
+};
+
+enum ItemType {
+  "product",
+  "subscription",
+};
+
+dictionary PurchaseDetails {
+  required DOMString itemId;
+  required DOMString purchaseToken;
+};

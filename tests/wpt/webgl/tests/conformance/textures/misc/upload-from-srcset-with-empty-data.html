@@ -1,0 +1,46 @@
+<!--
+Copyright (c) 2020 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<title>Upload From Srcset With Empty Data</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<img srcset="data:,a 1x, data:,b 1w" id="i">
+<script>
+"use strict";
+var wtu = WebGLTestUtils;
+
+var successfullyParsed;
+
+description("This test ensures WebGL implementations handle srcsets with empty data.");
+debug("Regression test for <a href='http://crbug.com/1085044'>http://crbug.com/1085044</a>");
+
+let gl = wtu.create3DContext();
+
+// Note we run this test synchronously, rather than running it in an async
+// function called after "wtu.awaitOrTimeout(img.decode());". This reproduces
+// the bug more reliably.
+let img = document.getElementById("i");
+let tex = gl.createTexture();
+gl.bindTexture(gl.TEXTURE_2D, tex);
+// Implementations can decide how to respond to these kinds of bad
+// inputs, as long as they don't crash.
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+
+finishTest();
+</script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../resources/orientation-event-helpers.js"></script>
+<script>
+'use strict';
+
+async function test_denied_orientation_data(eventType) {
+  promise_test(async t => {
+    const helper = new SensorTestHelper(t, eventType);
+
+    // 1. Explicitly deny permissions via test_driver.
+    await test_driver.set_permission({name: 'accelerometer'}, 'denied');
+    await test_driver.set_permission({name: 'gyroscope'}, 'denied');
+    if (eventType === 'deviceorientationabsolute') {
+      await test_driver.set_permission({name: 'magnetometer'}, 'denied');
+    }
+
+    // 2. Initialize virtual sensors.
+    await helper.initializeSensors();
+
+    // 3. Define expected null data.
+    const expectedData = generateOrientationData(
+        null, null, null,
+        /*absolute=*/ eventType === 'deviceorientationabsolute');
+    const expectedEvent = eventType === 'deviceorientationabsolute'
+                              ? getExpectedAbsoluteOrientationEvent
+                              : getExpectedOrientationEvent;
+
+    // 4. Wait for the one-time null event.
+    await waitForEvent(expectedEvent(expectedData));
+  }, `${eventType}: fires once with null values when user permission is denied`);
+}
+
+test_denied_orientation_data('deviceorientation');
+test_denied_orientation_data('deviceorientationabsolute');
+</script>

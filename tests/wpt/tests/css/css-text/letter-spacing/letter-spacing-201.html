@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<meta charset="utf-8">
+<title>letter-spacing at line endings (spaces)</title>
+<link rel='author' title='Elika J. Etemad' href='http://fantasai.inkedblade.net/contact'>
+<link rel='help' href='https://www.w3.org/TR/css-text-3/#letter-spacing'>
+<link rel='match' href='reference/letter-spacing-201-ref.html'>
+<meta name="assert" content="Letter spacing is not applied at the start/end of a line even on spaces.">
+<style type='text/css'>
+  @import "/fonts/ahem.css";
+  .contain {
+    /* Setup Boxes */
+    font: 20px/1 Ahem;
+    width: 5em;
+    border: solid blue;
+    margin: 1em;
+    float: left;
+  }
+  span, .test {
+    letter-spacing: 1em;
+  }
+  p {
+    white-space: pre-wrap;
+    margin: 0;
+  }
+</style>
+
+<div id='instructions'>Test passes if the pattern is identical in all four blue boxes.</div>
+
+<!-- Letter-spacing on Containing Block -->
+<div class="contain">
+  <!-- single line block test -->
+  <p class="test"> x </p>
+  <!-- start/end line wrap test -->
+  <p class="test">xx &#x200B; x &#x200B; xx</p>
+  <!-- start/end forced line breaks test -->
+  <p class="test">xx <br> x <br> xx</p>
+  <p class="test">xx &#x0A; x &#x0A; xx</p>
+</div>
+
+<!-- Line Endings Coinciding with Inline Element Boundary (Internal Break) -->
+<div class="contain">
+  <!-- single line block test -->
+  <p><span> x </span></p>
+  <!-- start/end line wrap test -->
+  <p>x x &#x200B;<span> x </span>&#x200B;  x x</p>
+  <!-- start/end forced line breaks test -->
+  <p>x x  <span><br> x <br></span>  x x</p>
+  <p>x x  <span>&#x0A; x &#x0A;</span>  x x</p>
+</div>
+
+<!-- Line Endings Coinciding with Inline Element Boundary (External Break) -->
+<div class="contain">
+  <!-- duplicate single line block test -->
+  <p><span> x </span></p>
+  <!-- start/end line wrap test -->
+  <p>x x  <span>&#x200B; x &#x200B;</span> x x</p>
+  <!-- start/end forced line breaks test -->
+  <p>x x  <br><span> x </span><br>  x x</p>
+  <p>x x  &#x0A;<span> x </span>&#x0A;  x x</p>
+</div>
+
+<!-- Control -->
+<div class="contain">
+  <p>  x  </p>
+  <p>x x  <br>  x  <br>  x x</p>
+  <p>x x  <br>  x  <br>  x x</p>
+  <p>x x  <br>  x  <br>  x x</p>
+</div>

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<script src="utils.js"></script>
+<title>history-length-outer-page-navigation-not-reflected-in-fenced-inner</title>
+
+<body>
+<script>
+(async () => {
+  // This is a helper file that will servec as the document loaded inside
+  // a fenced frame b 'history-length-outer-page-navigation-not-reflected-in-
+  // fenced' Once loaded, it reports to the observed value of history.length to
+  // the server so that the outer document can assert the value is 1.
+
+  const [fenced_history_length_key, outer_page_ready_for_next_navigation_key,
+         embed_scope, embed_scope_reporting] =
+      parseKeylist();
+
+  const url = new URL(location.href);
+
+  if (embed_scope == "outer_page::iframe"){
+    ////////////// BEGIN NAVIGATIONS
+    // This block performs a sequence of 'kNavigationLimit' navigations in:
+    // -- the iframe
+    const kNavigationLimit = 5
+
+    const url = new URL(location.href);
+
+    // First, perform some real navigations as well as history.pushState to
+    // this same page. Normally this would increase `history.length`.
+    if (url.searchParams.get("navigationCount") == null)
+      url.searchParams.append("navigationCount", 1);
+
+    let navigationCount = parseInt(url.searchParams.get("navigationCount"));
+
+    if (navigationCount <= kNavigationLimit) {
+      url.searchParams.set('navigationCount', ++navigationCount);
+      location.href = url;
+      history.pushState({} , "");
+      return;
+    }
+    ////////////// END
+    writeValueToServer(outer_page_ready_for_next_navigation_key, "READY");
+    return
+  }
+
+  if (embed_scope == embed_scope_reporting) {
+    // Observe 'history.length' from within the 'embed_scope_reporting',
+    // and report the results back to the outer page.
+    if (history.length == 1) {
+      writeValueToServer(fenced_history_length_key,
+        "PASS > " + " history.length: " + history.length);
+    } else {
+      writeValueToServer(fenced_history_length_key,
+        "FAIL > " + " history.length: " + history.length);
+    }
+    return
+  }
+
+  if (embed_scope_reporting == "outer_page::fenced_frame::iframe") {
+    // Append an iframe to the 'outer_page::fenced_frame' to report
+    // history.length to the outer_page from within the iframe
+    const iframe = document.createElement('iframe');
+    const embed_scope = "outer_page::fenced_frame::iframe";
+    iframe.src = generateURL(
+      "history-length-outer-page-navigation-not-reflected-in-fenced-inner.html",
+      [fenced_history_length_key, outer_page_ready_for_next_navigation_key,
+      embed_scope, embed_scope_reporting]);
+    document.body.append(iframe);
+    return
+  }
+})();
+</script>
+</body>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://open-ui.org/components/interest-invokers.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/html/semantics/interestfor/resources/invoker-utils.js"></script>
+
+<button id="invoker" interestfor="hint1">Hover me</button>
+<div id="hint1" popover="hint">
+  Parent hint
+  <div id="hint2" popover="hint">Child hint</div>
+</div>
+
+<style>
+  #invoker {
+    interest-delay: 0s 1000s;
+  }
+</style>
+
+<script>
+  promise_test(async (t) => {
+    hint1.addEventListener('loseinterest', () => {
+      try {
+        hint2.showPopover();
+      } catch (e) {}
+    });
+    invoker.focus();
+    await waitForRender();
+    assert_true(hint1.matches(':popover-open'), 'hint1 should be open via interest');
+    hint1.hidePopover();
+    assert_false(hint1.matches(':popover-open'), 'hint1 should be closed');
+    // Should not crash here.
+  }, 'Showing a child hint popover in loseinterest should function');
+</script>
+

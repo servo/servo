@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+<link rel="help" href="https://crbug.com/1081086" />
+<meta name="assert" content="Tests that certain dynamic changes don't lead to an incorrectly sized flex-item." />
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="target" style="display: flex; min-height: 200px;">
+  <div style="width: 100px; min-height: 100px; background: green;"></div>
+</div>
+<script>
+document.body.offsetTop;
+document.getElementById('target').style.alignItems = 'flex-start';
+</script>

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1982701">
+<style>
+  .wrapper::first-line { background: cyan }
+</style>
+<div class="wrapper">
+  WrapperFirstLine<br>
+  WrapperSecondLine<br>
+  <dialog id="a" open>
+    <details>
+      <summary>This is the summary</summary>
+      These are the details
+    </details>
+  </dialog>
+</div>

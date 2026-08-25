@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+
+<html>
+
+ <head>
+
+  <meta charset="utf-8">
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+
+  <style type="text/css">
+  table
+  {
+  border: black solid 8px;
+  border-spacing: 0px;
+  height: 376px; /* 360px tall plus 2 mult 8px borders == 376px */
+  table-layout: fixed;
+  width: 452px; /* 436px wide plus 2 mult 8px borders == 452px */
+  }
+
+  col#first-column {width: 89px;} /* (25% of 436px) - (40px / 2) */
+
+  col#second-column {width: 40px;}
+
+  /*
+
+  Complete quotation of the SVG object code:
+
+  <svg xmlns="http://www.w3.org/2000/svg">
+  <title>Vector image without intrinsic dimensions with percentage stroke-width (proportional to the diagonal)</title>
+  <rect y="0" width="100%" height="50%" fill="lime"/>
+  <rect y="50%" width="100%" height="50%" fill="aqua"/>
+  <!--
+    A percent stroke-width is resolved with respect to:
+
+      d = sqrt(vh**2 + vw**2) / sqrt(2)
+
+    where vh/vw are the image viewport width/height.  Because this image has no
+    intrinsic dimensions or ratio, it expands to fill the entire background
+    positioning area, so its width is 100px and its height is 700px.  For those
+    carefully-chosen dimensions, d = 500px, so 10% of that creates a 50px-wide
+    rectangle, vertically centered and horizontally left-aligned in the image.
+  -->
+  <line x1="25%" y1="25%" x2="25%" y2="75%" stroke="fuchsia" stroke-width="10%"/>
+</svg>
+
+  So:
+
+  d = sqrt(vh**2 + vw**2) / sqrt(2)
+
+  With width: 436px; (instead of 100px) and height: 360px; (instead of 700px):
+
+  d == sqrt ((436 mult 436) + (360 mult 360)) / sqrt(2)
+
+  d == sqrt ((190096) + (129600)) / sqrt(2)
+
+  d == sqrt ((319696)) / sqrt(2)
+
+  d == 565.416660526px / 1.41421356237
+
+  d == 399.809954854px
+
+  and so 10% of 399.809954854px == 39.9809954854px =~ 40px
+
+  */
+
+  td
+  {
+  height: 90px;
+  padding: 0px;
+  }
+
+  td.lime {background-color: lime;}
+
+  td.fuchsia {background-color: fuchsia;}
+
+  td.aqua {background-color: aqua;}
+  </style>
+
+ </head>
+
+ <body>
+
+  <table>
+
+  <col id="first-column"><col id="second-column"><col>
+
+      <tr><td class="lime"></td><td class="lime"></td><td class="lime"></td></tr>
+
+      <tr><td class="lime"></td><td class="fuchsia"></td><td class="lime"></td></tr>
+
+      <tr><td class="aqua"></td><td class="fuchsia"></td><td class="aqua"></td></tr>
+
+      <tr><td class="aqua"></td><td class="aqua"></td><td class="aqua"></td></tr>
+
+  </table>
+
+ </body>
+</html>

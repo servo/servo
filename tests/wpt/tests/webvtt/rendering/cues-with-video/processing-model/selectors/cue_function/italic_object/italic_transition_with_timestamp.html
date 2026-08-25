@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>WebVTT rendering, italic object transition with timestamp, ::cue(i:past) selector</title>
+<link rel="match" href="italic_transition_with_timestamp-ref.html">
+<style>
+html { overflow:hidden }
+body { margin:0 }
+::cue(i) {
+    -o-transition: color 9s steps(2, start);
+    transition: color 9s steps(2, start);
+}
+::cue(i:past) {
+    color: #00ff00;
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<video width="320" height="180" autoplay onplaying="this.onplaying = null; this.pause(); this.currentTime = 0.2; takeScreenshotDelayed(1000);">
+    <source src="/media/white.webm" type="video/webm">
+    <source src="/media/white.mp4" type="video/mp4">
+    <track src="../../../support/italic_with_timestamp.vtt">
+    <script>
+    document.getElementsByTagName('track')[0].track.mode = 'showing';
+    </script>
+</video>
+</html>

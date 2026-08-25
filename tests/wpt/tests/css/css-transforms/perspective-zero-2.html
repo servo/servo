@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>CSS transforms: perspective: 0px</title>
+<link rel="author" title="Miko Mynttinen" href="mailto:mmynttinen@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Google" href="http://www.google.com/">
+<link rel="help" href="https://drafts.csswg.org/css-transforms-2/#propdef-perspective">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/413">
+<meta name="assert" content="Test checks that perspective: 0px behaves like transform: perspective(0) on parent container">
+<link rel="match" href="perspective-zero-2-ref.html">
+<style type="text/css">
+.parent {
+  perspective: 0px;
+  perspective-origin: top left;
+}
+.parent > div {
+  position: absolute;
+}
+.child-2d {
+  background: red;
+  width: 200px;
+  height: 200px;
+}
+.child-3d {
+  width: 100px;
+  height: 100px;
+  background: green;
+  transform: translateZ(0.5px);
+}
+</style>
+</head>
+<body>
+<p>Test passes if there is only green below.</p>
+<div class="parent">
+  <div class="child-2d"></div>
+  <div class="child-3d"></div>
+</div>
+</body>
+</html>

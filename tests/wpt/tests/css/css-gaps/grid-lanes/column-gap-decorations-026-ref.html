@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-columns: repeat(2, 60px);
+    gap: 10px;
+    align-content: start;
+    height: 220px;
+    width: max-content;
+    background: #cdd5e0;
+  }
+  .lanes > div {
+    height: 40px;
+    background: #5b8def;
+    color: #fff;
+    font: 600 12px/1 sans-serif;
+  }
+  .col-rule { position: absolute; width: 0; border-left: 4px solid blue; }
+  .row-rule { position: absolute; height: 0; border-top: 4px solid gold; }
+</style>
+<div class="lanes">
+  <div>1</div>
+  <div>2</div>
+  <div>3</div>
+  <div>4</div>
+  <div>5</div>
+  <div>6</div>
+</div>
+<div class="col-rule" style="left: 63px; top: 0; height: 140px;"></div>
+<div class="row-rule" style="top: 43px; left: 0; width: 60px;"></div>
+<div class="row-rule" style="top: 93px; left: 0; width: 60px;"></div>
+<div class="row-rule" style="top: 43px; left: 70px; width: 60px;"></div>
+<div class="row-rule" style="top: 93px; left: 70px; width: 60px;"></div>

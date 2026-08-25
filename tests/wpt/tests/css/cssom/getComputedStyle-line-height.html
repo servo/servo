@@ -1,0 +1,23 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: line-height resolved value</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#resolved-values">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/3749">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  div { font-size: 16px; }
+</style>
+<div style="line-height: normal" data-expected="normal"></div>
+<div style="line-height: 1" data-expected="16px"></div>
+<div style="line-height: 10px" data-expected="10px"></div>
+<div style="line-height: 10%" data-expected="1.6px"></div>
+<script>
+for (const e of document.querySelectorAll("div")) {
+  const specified = e.style.lineHeight;
+  test(function() {
+    const expected = e.getAttribute("data-expected");
+    assert_equals(getComputedStyle(e).lineHeight, expected, specified + " should compute to " + expected);
+  }, "line-height: " + specified);
+}
+</script>

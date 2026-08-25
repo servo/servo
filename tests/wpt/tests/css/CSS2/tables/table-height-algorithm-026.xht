@@ -1,0 +1,43 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Finding the baseline of a cell when no in-flow lines or rows</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#height-layout" />
+        <meta name="assert" content="The baseline of a cell is determined by the bottom content edge of a cell when in-flow line boxes and table rows are not present." />
+        <style type="text/css">
+            table
+            {
+                border-collapse: collapse;
+                border-spacing: 0;
+                height: 200px;
+            }
+            td
+            {
+                padding: 0;
+                vertical-align: baseline;
+            }
+            div, button
+            {
+                background: white;
+                border: none;
+                font: 64px serif;
+                padding: 0;
+                margin: 0;
+            }
+            div
+            {
+                margin-left: -10px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a single continuous, unbroken line below.</p>
+        <table>
+            <tr>
+                <td><button>__________</button></td>
+                <td><div>__________</div></td>
+            </tr>
+        </table>
+    </body>
+</html>

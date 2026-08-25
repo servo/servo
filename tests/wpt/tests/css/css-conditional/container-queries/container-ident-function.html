@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>CSS Conditional: The ident() function in @container/container-name</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#ident">
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#container-rule">
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#container-name">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<div id=target></div>
+<script>
+  let actual_ident = 'ident("--myident" calc(42 * sign(1em - 1px)))';
+  let expected_ident = '--myident42';
+
+  // https://drafts.csswg.org/css-conditional-5/#container-name
+  test_computed_value('container-name', actual_ident, expected_ident);
+  test_computed_value('container-name', `--c ${actual_ident}`,
+    `--c ${expected_ident}`);
+
+  // https://drafts.csswg.org/css-conditional-5/#container-shorthand
+  test_computed_value('container', actual_ident, expected_ident);
+  test_computed_value('container', `--c ${actual_ident} / size`,
+    `--c ${expected_ident} / size`);
+
+</script>

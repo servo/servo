@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="resources/webxr_util.js"></script>
+  <script src="resources/webxr_test_constants.js"></script>
+
+  <script>
+    let immersiveTestName = "XRSession requestAnimationFrame calls the " +
+      "provided callback for an immersive session";
+    let nonImmersiveTestName = "XRSession requestAnimationFrame calls the " +
+      "provided callback a non-immersive session";
+
+    let fakeDeviceInitParams = TRACKED_IMMERSIVE_DEVICE;
+
+    let testFunction = (testSession) => new Promise((resolve) => {
+      function onFrame(time, xrFrame) {
+        assert_true(xrFrame instanceof XRFrame);
+        // Test does not complete until the returned promise resolves.
+        resolve();
+      }
+
+      testSession.requestAnimationFrame(onFrame);
+    });
+
+    xr_session_promise_test(immersiveTestName, testFunction,
+      fakeDeviceInitParams, 'immersive-vr');
+    xr_session_promise_test(nonImmersiveTestName, testFunction,
+      fakeDeviceInitParams, 'inline');
+
+  </script>
+</body>

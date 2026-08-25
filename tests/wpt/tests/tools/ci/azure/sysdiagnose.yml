@@ -1,0 +1,12 @@
+steps:
+- script: |
+    mkdir -p /Users/runner/sysdiagnose
+    sudo sysdiagnose -ub -f /Users/runner/sysdiagnose -A sysdiagnose_$(System.PhaseName)-attempt-$(System.JobAttempt)-chunk-$(System.JobPositionInPhase)
+  displayName: 'Collect sysdiagnose'
+  condition: and(succeededOrFailed(), eq(variables['Agent.OS'], 'Darwin'))
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish sysdiagnose'
+  inputs:
+    pathtoPublish: /Users/runner/sysdiagnose/
+    artifactName: sysdiagnose
+  condition: and(succeededOrFailed(), eq(variables['Agent.OS'], 'Darwin'))

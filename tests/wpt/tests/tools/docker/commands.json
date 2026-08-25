@@ -1,0 +1,25 @@
+{
+  "docker-run": {
+    "path": "frontend.py",
+    "script": "run",
+    "parser": "parser_run",
+    "help": "Run wpt docker image",
+    "virtualenv": false
+  },
+  "docker-build": {
+    "path": "frontend.py",
+    "script": "build",
+    "help": "Build wpt docker image",
+    "virtualenv": false
+  },
+  "docker-push": {
+    "path": "frontend.py",
+    "script": "push",
+    "parser": "parser_push",
+    "help": "Build and push wpt docker image",
+    "virtualenv": true,
+    "requirements": [
+      "requirements.txt"
+    ]
+  }
+}

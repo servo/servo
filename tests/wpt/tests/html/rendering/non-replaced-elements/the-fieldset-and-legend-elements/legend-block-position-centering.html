@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<link rel="help" href="https://html.spec.whatwg.org/C/#the-fieldset-and-legend-elements">
+<!-- A test for the following paragraph:
+The element is expected to be positioned in the block-flow direction such that
+its border box is centered over the border on the block-start side of the
+fieldset element.
+-->
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+fieldset {
+  margin: 0;
+  padding: 0;
+  border: 100px solid black;
+}
+legend {
+  height: 0px;
+  border-color: yellow;
+  border-style: solid;
+}
+</style>
+<fieldset>
+<legend style="border-width:50px"></legend>
+<br>
+</fieldset>
+<br>
+
+<fieldset>
+<legend style="border-width:25px 50px"></legend>
+<br>
+</fieldset>
+<br>
+
+<fieldset>
+<legend style="border-width:10px 50px 40px 50px"></legend>
+<br>
+</fieldset>
+<br>
+
+<fieldset>
+<legend style="border-width:40px 50px 10px 50px"></legend>
+<br>
+</fieldset>
+
+<script>
+function legendBlockOffset(fieldset) {
+  let legend = fieldset.querySelector('legend');
+  return legend.getBoundingClientRect().y - fieldset.getBoundingClientRect().y;
+}
+
+test(() => {
+  let fieldsets = document.querySelectorAll('fieldset');
+  assert_equals(legendBlockOffset(fieldsets[0]), 0);
+  assert_equals(legendBlockOffset(fieldsets[1]), 25);
+  assert_equals(legendBlockOffset(fieldsets[2]), 25);
+  assert_equals(legendBlockOffset(fieldsets[3]), 25);
+}, 'Legend\'s border-box should be centere on the fieldset border');
+</script>

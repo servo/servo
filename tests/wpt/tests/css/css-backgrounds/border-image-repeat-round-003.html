@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Backgrounds Test: border-image-repeat: round</title>
+
+  <!--
+
+  Created: June 21st 2023
+
+  Last modified: August 23rd 2023
+
+  -->
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-backgrounds-3/#border-image-repeat">
+  <link rel="help" href="https://www.w3.org/TR/css-backgrounds-3/#border-image-process">
+  <link rel="match" href="reference/border-image-repeat-round-003-ref.html">
+
+  <meta content="" name="flags">
+  <meta content="This test checks that the process of repeating the tile when 'border-image-repeat' is 'round'. In this test, we check with a specially crafted rectangular border-image how the sliced border-image is, in the first-subtest, rescaled down in the 4 sides, is, in the second-subtest, rescaled up in the 4 sides and, finally, is, in the third-subtest, rescaled up in the left and right sides while being rescaled down in the top and bottom sides." name="assert">
+
+  <!--
+
+  'round'
+  The image is tiled (repeated) to fill the area. If it does not
+  fill the area with a whole number of tiles, the image is rescaled
+  so that it does.
+
+  https://www.w3.org/TR/css-backgrounds-3/#valdef-border-image-repeat-round
+
+  -->
+
+  <style>
+  div
+    {
+      border: red solid 64px;
+      border-image-repeat: round; /* this is the same as 'round round' since
+      "
+      If the second keyword is absent, it is assumed to be the same as the first.
+      https://www.w3.org/TR/css-backgrounds-3/#border-image-repeat
+      "
+      */
+      border-image-slice: 64 fill; /* the center will be black */
+      border-image-source: url("support/4bicolor-squares.png");
+      display: inline-block;
+      image-rendering: pixelated; /* attempt to overcome antialias fuzziness */
+      margin-right: 1em;
+      vertical-align: bottom;
+   }
+
+  div#first-subtest
+    {
+      height: 96px;
+      width: 96px;
+      /*
+      96px divided by 64px == 1.5 which is rounded up to 2.
+      So, each image should be 96px divided by 2 == 48px
+      wide or tall. That means that the top and bottom
+      bicolor (yellow and purple) images should be 48px wide
+      and the left and right bicolor (orange and blue)
+      images should be 48px tall.
+      So, in this first-subtest, the 4 side border-image is
+      rescaled down, from sliced 64px to 48px.
+      */
+    }
+
+  div#second-subtest
+    {
+      height: 80px;
+      width: 80px;
+      /*
+      80px divided by 64px == 1.25 which is rounded down to 1.
+      So, each image should be 80px divided by 1 == 80px
+      wide or tall. That means that the top and bottom
+      bicolor (yellow and purple) images should be 80px wide
+      and the left and right bicolor (orange and blue)
+      images should be 80px tall.
+      So, in this second-subtest, the 4 side border-image are
+      rescaled up, from sliced 64px to 80px.
+      */
+    }
+
+  div#third-subtest
+    {
+      margin-top: 1em;
+
+      height: 144px;
+      width: 168px;
+      /*
+      168px divided by 64px == 2.625 which is rounded up to 3.
+      So, each image should be 168px divided by 3 == 56px
+      wide. That means that the top and bottom
+      bicolor (yellow and purple) images should be 56px wide.
+      144px divided by 64px == 2.25 which is rounded down to 2.
+      So, each image should be 144px divided by 2 == 72px
+      tall. That means that the left and right
+      bicolor (orange and blue) images should be 72px tall.
+      So, in this third-subtest, the 2 top and bottom sides
+      border-image are rescaled down, from sliced 64px to
+      56px while the 2 left and right sides border-image are
+      rescaled up, from sliced 64px to 72px.
+      */
+    }
+  </style>
+
+  <div id="first-subtest"></div>
+
+  <div id="second-subtest"></div><br>
+
+  <div id="third-subtest"></div>

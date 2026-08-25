@@ -1,0 +1,17 @@
+<!DOCTYPE HTML>
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-3/#text-shadow-property">
+<link rel="match" href="overflow-not-scrollable-2-ref.html">
+<style>
+div {
+  height: 200px; width: 200px; overflow: auto;
+  text-shadow: 100px 100px 30px black;
+  font-size: 50px;
+  font-weight: bold;
+}
+
+/* work around potential font overflow */
+span { margin-left: 5px }
+</style>
+<div>
+<span>text</span>
+</div>

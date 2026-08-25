@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "5.2-pageTypeValidated.json",
+  "assertionType": "must",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "failAndContinue",
+  "errorMessage": "ERROR: Annotation Page is missing type key or 'AnnotationPage' is not a value of type.",
+  "title": "Implements **Annotation Page _type_ key** such that '**AnnotationPage**' is **a value of _type_** - [model 5.2](https://www.w3.org/TR/annotation-model/#annotation-page)",
+  "oneOf": [
+      { "$ref": "collections.json#/definitions/annotationPageTypeValueFound" },
+      { "type": "object",
+        "properties":
+         {"first":
+           { "$ref": "collections.json#/definitions/annotationPageTypeValueFound" }
+         },
+        "required": [ "first" ]
+      }
+  ]
+}

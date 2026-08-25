@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>Multicol under vertical-rl scrolling container</title>
+<p>Passes if there are two green squares</p>
+<div id="scroller" style="width: 200px; height: 200px; overflow: scroll; border: 1px solid black">
+  <div style="width: 580px; height: 500px; position: relative">
+    <div style="position: absolute; right: 0">
+      <div style="width: 80px; height: 80px; background: green"></div>
+      <div style="height: 20px"></div>
+      <div style="width: 80px; height: 80px; background: green"></div>
+    </div>
+  </div>
+</div>
+<script>
+// Scroll all the way to the right.
+scroller.scrollLeft = 800;
+</script>

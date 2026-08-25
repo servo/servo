@@ -1,0 +1,11 @@
+<!doctype html>
+<title>Rendering of summary element with text-decoration</title>
+<link rel="match" href="summary-text-decoration-ref.html">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#the-details-and-summary-elements">
+<meta name="assert" content="Checks that text-decoration applies to rendered summary element.">
+<style>
+  summary { text-decoration: underline; }
+</style>
+<details>
+  <summary>This text should be underlined.</summary>
+</details>

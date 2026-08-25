@@ -1,0 +1,18 @@
+<!doctype html>
+<title>disabled works properly for number inputs</title>
+<link rel="help" href="https://html.spec.whatwg.org/#enabling-and-disabling-form-controls:-the-disabled-attribute">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1461706">
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<input type="number" disabled>
+<input type="number" disabled style="-moz-appearance: textfield; -webkit-appearance: textfield">
+<script>
+  test(function() {
+    for (const element of Array.from(document.querySelectorAll('input'))) {
+      element.focus();
+      assert_true(element.disabled);
+      assert_equals(document.activeElement, document.body);
+    }
+  }, "disabled works on number input regardless of appearance");
+</script>

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    .container {
+      display: flex;
+      align-items: baseline;
+      gap: 20px;
+      border: 2px solid darkblue;
+      padding: 10px;
+      font: 16px/1 monospace;
+      width: 600px;
+      text-decoration: underline;
+    }
+
+    .multicolumn {
+      column-count: 2;
+      column-width: 100px;
+      column-gap: 10px;
+      border: 1px solid red;
+      background: #f0f0f0;
+      display: inline-block;
+    }
+
+    .multicolumn-item {
+      border: 1px solid navy;
+      font-size: 14px;
+      display: flex;
+      align-items: flex-end;
+      break-inside: avoid;
+      margin-bottom: 10px;
+    }
+
+    .multicolumn-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .top {
+      align-items: flex-start;
+    }
+
+    .text-reference {
+      background: yellow;
+      padding: 8px;
+    }
+
+    .multicolumn-item:nth-child(1) {
+      height: 30px;
+      background: lightcoral;
+      padding: 4px;
+    }
+
+    .multicolumn-item:nth-child(2) {
+      height: 50px;
+      background: lightblue;
+      padding: 4px;
+    }
+
+    .multicolumn-item:nth-child(3) {
+      height: 80px;
+      background: lightgreen;
+      padding: 4px;
+    }
+
+    .multicolumn-item:nth-child(4) {
+      height: 90px;
+      background: lightpink;
+      padding: 4px;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="text-reference">Reference Text</div>
+  <div class="multicolumn">
+    <div class="multicolumn-item"></div>
+    <div class="multicolumn-item top">Medium</div>
+    <div class="multicolumn-item">Tall</div>
+    <div class="multicolumn-item">Tallest</div>
+  </div>
+  <div class="text-reference">Reference Text</div>
+</div>
+<div class="container">
+  <div class="text-reference">Reference Text</div>
+  <div class="multicolumn">
+    <div class="multicolumn-item"></div>
+    <div class="multicolumn-item">Medium</div>
+    <div class="multicolumn-item"></div>
+    <div class="multicolumn-item">Tallest</div>
+  </div>
+  <div class="text-reference">Reference Text</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes Test: column fill-reverse justify-content aligns the entire set of tracks within the larger container with indefinite size</title>
+  <link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+  <link rel="match" href="column-fill-reverse-justify-content-indefinite-size-001-ref.html">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3/#alignment">
+  <style>
+    html, body {
+      font: 16px/1 monospace;
+      background: white;
+    }
+
+    .grid-lanes {
+      display: grid-lanes;
+      grid-lanes-direction: column fill-reverse;
+      grid-template-columns: 80px;
+      gap: 4px;
+      width: 200px;
+      border: 1px solid;
+    }
+
+    item {
+      display: block;
+      width: min-content;
+      height: 28px;
+      color: white;
+      background: #555;
+    }
+  </style>
+</head>
+<body>
+  <!-- Container alignment -->
+  <p>justify-content: start</p>
+  <div class="grid-lanes" style="justify-content: start;">
+    <item>start</item>
+    <item>center</item>
+    <item>end</item>
+  </div>
+
+  <!-- Container alignment -->
+  <p>justify-content: center</p>
+  <div class="grid-lanes" style="justify-content: center;">
+    <item>start</item>
+    <item>center</item>
+    <item>end</item>
+  </div>
+
+  <!-- Container alignment -->
+  <p>justify-content: end</p>
+  <div class="grid-lanes" style="justify-content: end;">
+    <item>start</item>
+    <item>center</item>
+    <item>end</item>
+  </div>
+</body>
+</html>

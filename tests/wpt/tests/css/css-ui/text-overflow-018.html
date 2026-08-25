@@ -1,0 +1,30 @@
+﻿<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: selecting the ellipsis</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="http://www.w3.org/TR/css3-ui/#ellipsis-interaction">
+<meta name="flags" content="interact should">
+<meta name="assert" content="Selecting the ellipsis should select the ellipsed text">
+<style>
+div{
+  font-size: 25px;
+  font-family: monospace;
+  width: 2.1ch;
+  white-space: pre;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border: solid blue;
+  padding-right: 0.9ch;
+}
+textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: solid orange;
+}
+</style>
+
+<p>Select the elipsis character (“…”) in the blue box below, copy it to the clipboard, and paste the result into the orange box.
+<p>This test passes if the pasted text is “This test passes”. If only part of that text is pasted, the test fails.
+<div>&nbsp;This test passes</div>
+<textarea></textarea>

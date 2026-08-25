@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  fifth.appendChild(third);
+
+  document.documentElement.setAttribute("aria-owns", "third");
+  third.setAttribute("aria-owns", "fourth");
+  fourth.setAttribute("aria-owns", "fifth");
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      document.documentElement.style.display = "none";
+      document.documentElement.offsetHeight;
+      document.documentElement.className = "";
+    });
+  });
+});
+</script>
+<div id="third"></div>
+<div id="fourth"></div>
+<div id="fifth"></div>
+</html>

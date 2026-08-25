@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/reporting/resources/report-helper.js"></script>
+</head>
+<body>
+<script>
+const { HTTPS_REMOTE_ORIGIN, HTTPS_NOTSAMESITE_ORIGIN } = get_host_info();
+const endpoint = "/reporting/resources/report.py";
+const reportID = '03e8717b-03c3-4c91-9e8a-2be5f31920e8';
+const url1 = `${HTTPS_REMOTE_ORIGIN}/common/blank-with-cors.html?1`;
+const url2 = `${HTTPS_NOTSAMESITE_ORIGIN}/common/blank-with-cors.html?2`;
+
+promise_test(async t => {
+  await promise_rejects_js(t, TypeError, fetch(url1));
+  await promise_rejects_js(t, TypeError, fetch(url2));
+
+  await wait(5000);
+  const reports = await pollReports(endpoint, reportID);
+
+  const report1 = reports.find(r => r.type === 'connection-allowlist' && r.body.connection === url1);
+  const report2 = reports.find(r => r.type === 'connection-allowlist' && r.body.connection === url2);
+  assert_true(!!report1, `A report for ${url1} should be present.`);
+  assert_true(!!report2, `A report for ${url2} should be present.`);
+}, 'Multiple Connection-Allowlist reports are delivered to the reporting endpoint.');
+</script>
+</body>
+</html>

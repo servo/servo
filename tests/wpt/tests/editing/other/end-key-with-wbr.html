@@ -1,0 +1,55 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>End and Home keys with leading/trailing wbr elements</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+.code {
+  display: inline-flex;
+}
+</style>
+<div id="editable" contenteditable><wbr><wbr><span class="code" contenteditable="false">1</span><wbr><wbr><span class="code" contenteditable="false">2</span><wbr><wbr></div>
+<script>
+const editable = document.getElementById('editable');
+const spans = editable.querySelectorAll('span');
+const firstText = spans[0].firstChild;
+const lastText = spans[spans.length - 1].firstChild;
+
+function selectionDescription() {
+  const sel = getSelection();
+  return `${sel.focusNode.nodeName}@${sel.focusOffset}`;
+}
+
+promise_test(async () => {
+  editable.focus();
+  getSelection().collapse(editable, 0);
+
+  await test_driver.send_keys(editable, '\uE010');
+
+  const sel = getSelection();
+  const atLineEnd =
+      (sel.focusNode === editable &&
+       sel.focusOffset === editable.childNodes.length) ||
+      (sel.focusNode === lastText && sel.focusOffset === lastText.length);
+  assert_true(atLineEnd,
+              `caret should be at the end of the line, got ${
+                  selectionDescription()}`);
+}, 'End key moves from before a leading wbr to the end of the line');
+
+promise_test(async () => {
+  editable.focus();
+  getSelection().collapse(editable, editable.childNodes.length);
+
+  await test_driver.send_keys(editable, '\uE011');
+
+  const sel = getSelection();
+  const atLineStart =
+      (sel.focusNode === editable && sel.focusOffset === 0) ||
+      (sel.focusNode === firstText && sel.focusOffset === 0);
+  assert_true(atLineStart,
+              `caret should be at the start of the line, got ${
+                  selectionDescription()}`);
+}, 'Home key moves from after a trailing wbr to the start of the line');
+</script>

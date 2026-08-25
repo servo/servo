@@ -1,0 +1,38 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Background-color applied to elements with 'display' set to 'inline-block'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-11-27 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#propdef-background" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background-properties" />
+        <link rel="match" href="../reference/ref-filled-black-96px-square.xht" />
+
+        <meta name="assert" content="The 'background-color' property applies to elements with 'display' set to 'inline-block'." />
+        <style type="text/css">
+            span#inline-block
+            {
+                background-color: black;
+                display: inline-block;
+                width: 1in;
+            }
+
+            span.block-descendant
+            {
+                display: block;
+                height: 0.5in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a filled black square.</p>
+
+        <div>
+            <span id="inline-block">
+				        <span class="block-descendant">a</span>
+				        <span class="block-descendant">b</span>
+        	  </span>
+        </div>
+
+    </body>
+</html>

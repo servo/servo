@@ -1,0 +1,16 @@
+<!doctype html>
+<title>A negative limiting cone angle is the same as a positive one</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#FilterProperty">
+<link rel="help" href="https://www.w3.org/TR/filter-effects-1/#element-attrdef-fespotlight-limitingconeangle">
+<link rel="match" href="reference/limiting-cone-angle-ref.html">
+<svg width="450" height="250" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="spot">
+      <feDiffuseLighting lighting-color="white">
+        <feSpotLight x="350" y="100" z="30" limitingConeAngle="-45"
+                     pointsAtX="350" pointsAtY="150" pointsAtZ="0"/>
+      </feDiffuseLighting>
+    </filter>
+  </defs>
+  <rect x="300" y="100" width="100" height="100" filter="url(#spot)" />
+</svg>

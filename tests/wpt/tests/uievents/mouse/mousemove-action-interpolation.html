@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Mousemove should transition smoothly over specified duration</title>
+<link rel=help href="https://github.com/servo/servo/issues/42950">
+<link rel="author" title="Euclid Ye" href="mailto:yezhizhenjiakang@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<div id="dot" style="position:fixed; width:10px; height:10px; background:red; border-radius:50%; pointer-events:none;">
+</div>
+
+<script>
+    promise_test(async t => {
+        const dot = document.getElementById('dot');
+        const mouse_move_coordinates = [];
+        const handler = (event) => {
+            mouse_move_coordinates.push({ x: event.clientX, y: event.clientY });
+            dot.style.transform = `translate(${event.clientX}px, ${event.clientY}px)`;
+        };
+        document.addEventListener('mousemove', handler);
+        t.add_cleanup(() => {
+            document.removeEventListener('mousemove', handler);
+            dot.remove();
+        });
+
+        await new test_driver.Actions()
+            .pointerMove(10, 10)
+            .pointerMove(250, 250, { duration: 500 })
+            .send();
+
+        assert_greater_than(mouse_move_coordinates.length, 10,
+            "Should have more than 10 mousemove events over 500ms");
+
+        const uniqueX = new Set(mouse_move_coordinates.map(coordinates => coordinates.x));
+        const uniqueY = new Set(mouse_move_coordinates.map(coordinates => coordinates.y));
+
+        assert_equals(uniqueX.size, mouse_move_coordinates.length, "Every X-coordinate must be unique");
+        assert_equals(uniqueY.size, mouse_move_coordinates.length, "Every Y-coordinate must be unique");
+    }, "Mousemove should transition smoothly over specified duration");
+</script>

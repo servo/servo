@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<script src="../resources/runner.js"></script>
+
+<div id="div" hidden></div>
+<p id="container" contenteditable>foo</p>
+
+<script>
+const kElements = 20000;
+div.innerHTML = '<div>test</div>'.repeat(kElements);
+container.focus();
+container.hidden = true;
+
+var div2 = document.createElement('div');
+PerfTestRunner.measureTime({
+  description: `Measures performance of WebViewImpl::handleInputEvent when selection null and has ${kElements} hidden elements`,
+  setup: () => {
+    eventSender.mouseMoveTo(0, 0);
+    document.body.appendChild(div2);
+  },
+  run: () => {
+    eventSender.mouseMoveTo(100, 100);
+  },
+  done: () => {
+    document.body.removeChild(div2);
+  }
+});
+</script>

@@ -1,0 +1,154 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Effect composition</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations/#effect-composition">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../testcommon.js"></script>
+<div id="log"></div>
+<script>
+'use strict';
+
+for (const composite of ['accumulate', 'add']) {
+  test(t => {
+    const div = createDiv(t);
+    div.style.marginLeft = '10px';
+    const anim =
+      div.animate({ marginLeft: ['0px', '10px'], composite }, 100);
+
+    anim.currentTime = 50;
+    assert_equals(getComputedStyle(div).marginLeft, '15px',
+      'Animated margin-left style at 50%');
+  }, `${composite} onto the base value`);
+
+  test(t => {
+    const div = createDiv(t);
+    div.style.marginLeft = '10px';
+    const anim =
+      div.animate([{ marginLeft: '20px', offset: 0.25 }, { marginLeft: '30px', offset: 0.75 }],
+                  { duration: 100, composite });
+
+    anim.currentTime = 50;
+    assert_equals(getComputedStyle(div).marginLeft, '35px',
+      'Animated margin-left style at 50%');
+  }, `${composite} onto the base value when the interval does not include the 0 or 1 keyframe`);
+
+  test(t => {
+    const div = createDiv(t);
+    const anims = [];
+    anims.push(div.animate({ marginLeft: ['10px', '20px'],
+                             composite: 'replace' },
+                           100));
+    anims.push(div.animate({ marginLeft: ['0px', '10px'],
+                             composite },
+                           100));
+
+    for (const anim of anims) {
+      anim.currentTime = 50;
+    }
+
+    assert_equals(getComputedStyle(div).marginLeft, '20px',
+      'Animated style at 50%');
+  }, `${composite} onto an underlying animation value`);
+
+  test(t => {
+    const div = createDiv(t);
+    const anims = [];
+    anims.push(div.animate({ transform: 'translateX(100px)' }, { duration: 100, composite: 'replace' }));
+    anims.push(div.animate({ transform: 'translateY(100px)' }, { duration: 100, composite }));
+
+    for (const anim of anims) {
+      anim.currentTime = 50;
+    }
+
+    assert_equals(getComputedStyle(div).transform, 'matrix(1, 0, 0, 1, 50, 50)',
+      'Animated style at 50%');
+  }, `${composite} onto an underlying animation value with implicit from values`);
+
+  test(t => {
+    const div = createDiv(t);
+    const anims = [];
+    anims.push(div.animate([{ offset: 1, transform: 'translateX(100px)' }], { duration: 100, composite: 'replace' }));
+    anims.push(div.animate([{ offset: 1, transform: 'translateY(100px)' }], { duration: 100, composite }));
+
+    for (const anim of anims) {
+      anim.currentTime = 50;
+    }
+
+    assert_equals(getComputedStyle(div).transform, 'matrix(1, 0, 0, 1, 50, 50)',
+      'Animated style at 50%');
+  }, `${composite} onto an underlying animation value with implicit to values`);
+
+  test(t => {
+    const div = createDiv(t);
+    div.style.marginLeft = '10px';
+    const anim =
+      div.animate([{ marginLeft: '10px', composite },
+                   { marginLeft: '30px', composite: 'replace' }],
+                  100);
+
+    anim.currentTime = 50;
+    assert_equals(getComputedStyle(div).marginLeft, '25px',
+      'Animated style at 50%');
+  }, `Composite when mixing ${composite} and replace`);
+
+  test(t => {
+    const div = createDiv(t);
+    div.style.marginLeft = '10px';
+    const anim =
+      div.animate([{ marginLeft: '10px', composite: 'replace' },
+                   { marginLeft: '20px' }],
+                  { duration: 100 , composite });
+
+    anim.currentTime = 50;
+    assert_equals(getComputedStyle(div).marginLeft, '20px',
+      'Animated style at 50%');
+  }, `${composite} specified on a keyframe overrides the composite mode of`
+     + ' the effect');
+
+  test(t => {
+    const div = createDiv(t);
+    div.style.marginLeft = '10px';
+    const anim =
+      div.animate([{ marginLeft: '10px', composite: 'replace' },
+                   { marginLeft: '20px' }],
+                  100);
+
+    anim.effect.composite = composite;
+    anim.currentTime = 50;                       // (10 + (10 + 20)) * 0.5
+    assert_equals(getComputedStyle(div).marginLeft, '20px',
+      'Animated style at 50%');
+  }, 'unspecified composite mode on a keyframe is overriden by setting'
+      + ` ${composite} of the effect`);
+}
+
+test(t => {
+  const div = createDiv(t);
+  const anims = [];
+  anims.push(div.animate({ marginLeft: ['10px', '20px'],
+                           composite: 'replace' },
+                         100));
+  anims.push(div.animate({ marginLeft: ['0px', '10px'],
+                           composite: 'add' },
+                         100));
+  // This should fully replace the previous effects.
+  anims.push(div.animate({ marginLeft: ['20px', '30px'],
+                           composite: 'replace' },
+                         100));
+  anims.push(div.animate({ marginLeft: ['30px', '40px'],
+                           composite: 'add' },
+                         100));
+
+  for (const anim of anims) {
+    anim.currentTime = 50;
+  }
+
+  // The result of applying the above effect stack is:
+  //  underlying = 0.5 * 20 + 0.5 * 30 = 25
+  //  result = 0.5 * (underlying + 30px) + 0.5 * (underlying + 40px)
+  //         = 60
+  assert_equals(getComputedStyle(div).marginLeft, '60px',
+    'Animated style at 50%');
+}, 'Composite replace fully replaces the underlying animation value');
+
+</script>

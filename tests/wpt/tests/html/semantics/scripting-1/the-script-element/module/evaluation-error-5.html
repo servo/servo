@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>Handling of evaluation errors, 5</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+    setup({allow_uncaught_exception: true});
+    const test_load = async_test("Test for the inline module script error that reports wrong line\n");
+    window.addEventListener("error", test_load.step_func_done(ev => {
+
+        const expectedLine = 16;
+        assert_equals(ev.lineno, expectedLine);
+
+    }));
+</script>
+<script type="module">a</script>

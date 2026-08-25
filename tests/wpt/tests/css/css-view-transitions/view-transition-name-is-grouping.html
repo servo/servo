@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: view-transition-name non-none value is a grouping value</title>
+<link rel="help" href="https://www.w3.org/TR/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<link rel="match" href="view-transition-name-is-grouping-ref.html">
+
+<style>
+.parent {
+  top: 0;
+  width: 100px;
+  height: 100px;
+  position: absolute;
+  background: red;
+  transform-style: preserve-3d;
+  view-transition-name: target;
+}
+
+.child {
+  background: green;
+  width: 100px;
+  height: 100px;
+  top: 0;
+  left: 0;
+  position: absolute;
+  transform: translateZ(-500px);
+}
+
+body {
+  perspective: 1000px;
+  height: 500px;
+}
+</style>
+
+<div class=parent><div class=child></div></div>

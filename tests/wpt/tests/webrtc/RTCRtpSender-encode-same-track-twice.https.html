@@ -1,0 +1,66 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title></title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+  'use strict';
+
+  // A generous testing duration that will not time out on bots.
+  const kEncodeDurationMs = 10000;
+
+  // The crash this test aims to repro was easy to reproduce using a normal
+  // getUserMedia() track when running the browser normally, e.g. by navigating
+  // to https://jsfiddle.net/henbos/fc7gk3ve/11/. But for some reason, the fake
+  // tracks returned by getUserMedia() when inside this testing environment had
+  // a much harder time with reproducibility.
+  //
+  // By creating a high FPS canvas capture track we are able to repro reliably
+  // in this WPT environment as well.
+  function whiteNoise(width, height) {
+    const canvas =
+        Object.assign(document.createElement('canvas'), {width, height});
+    const ctx = canvas.getContext('2d');
+    ctx.fillRect(0, 0, width, height);
+    const p = ctx.getImageData(0, 0, width, height);
+    requestAnimationFrame(function draw () {
+      for (let i = 0; i < p.data.length; i++) {
+        const color = Math.random() * 255;
+        p.data[i++] = color;
+        p.data[i++] = color;
+        p.data[i++] = color;
+      }
+      ctx.putImageData(p, 0, 0);
+      requestAnimationFrame(draw);
+    });
+    return canvas.captureStream();
+  }
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    const stream = whiteNoise(640, 480);
+    const [track] = stream.getTracks();
+    const t1 = pc1.addTransceiver("video", {direction:"sendonly"});
+    const t2 = pc1.addTransceiver("video", {direction:"sendonly"});
+    await t1.sender.replaceTrack(track);
+    await t2.sender.replaceTrack(track);
+
+    exchangeIceCandidates(pc1, pc2);
+    await pc1.setLocalDescription();
+    await pc2.setRemoteDescription(pc1.localDescription);
+    await pc2.setLocalDescription();
+    await pc1.setRemoteDescription(pc2.localDescription);
+
+    // In Chromium, each sender instantiates a VideoStreamEncoder during
+    // negotiation. This test reproduces https://crbug.com/webrtc/11485 where a
+    // race causes a crash when multiple VideoStreamEncoders are encoding the
+    // same MediaStreamTrack.
+    await new Promise(resolve => t.step_timeout(resolve, kEncodeDurationMs));
+  }, "Two RTCRtpSenders encoding the same track");
+</script>

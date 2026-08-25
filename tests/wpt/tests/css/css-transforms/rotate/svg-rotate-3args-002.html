@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Transforms Test: SVG rotate with three arguments without units on rotate or translate values</title>
+    <link rel="author" title="David Alcala" href="mailto:dalcala@adobe.com">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#svg-transform">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#svg-transform-functions">
+    <link rel="match" href="reference/svg-rotate-3args-ref.html">
+    <meta name="flags" content="svg">
+    <meta name="assert" content="The rotate transform function must support three arguments without units on angle arguments or translation-value arguments. The green rect in this test should be rotated 90 degrees clockwise after the transform origin is translated by 20 pixels in the vertical and horizontal direction to completely cover the red rect.">
+    <style type="text/css">
+    svg {
+        width: 200px;
+        height: 200px;
+    }
+    </style>
+</head>
+<body>
+    <p>The test passes if there is a green square and no red.</p>
+    <svg>
+        <rect x="1" y="1" width="78" height="78" fill="red"/>
+        <rect x="0" y="-40" width="80" height="80" fill="green" transform="rotate(90,20,20)"/>
+    </svg>
+</body>
+</html>

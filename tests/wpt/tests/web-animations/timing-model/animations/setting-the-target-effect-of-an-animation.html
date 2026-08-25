@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Setting the target effect of an animation</title>
+<link rel='help' href='https://drafts.csswg.org/web-animations/#setting-the-target-effect'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='../../testcommon.js'></script>
+<body>
+<div id='log'></div>
+<script>
+'use strict';
+
+promise_test(t => {
+  const anim = createDiv(t).animate({ marginLeft: [ '0px', '100px' ] },
+                                    100 * MS_PER_SEC);
+  assert_true(anim.pending);
+
+  const originalReadyPromise = anim.ready.catch(err => {
+    assert_unreached('Original ready promise should not be rejected');
+  });
+
+  anim.effect = null;
+  assert_equals(anim.playState, 'finished');
+  assert_true(anim.pending);
+
+  return originalReadyPromise;
+}, 'If new effect is null and old effect is not null the animation becomes'
+   + ' finish-pending');
+
+promise_test(async t => {
+  const anim = new Animation();
+  anim.pause();
+  assert_true(anim.pending);
+
+  anim.effect = new KeyframeEffect(createDiv(t),
+                                   { marginLeft: [ '0px', '100px' ] },
+                                   100 * MS_PER_SEC);
+  assert_true(anim.pending);
+  await anim.ready;
+
+  assert_false(anim.pending);
+  assert_equals(anim.playState, 'paused');
+}, 'If animation has a pending pause task, reschedule that task to run ' +
+   'as soon as animation is ready.');
+
+promise_test(async t => {
+  const anim = new Animation();
+  anim.play();
+  assert_true(anim.pending);
+
+  anim.effect = new KeyframeEffect(createDiv(t),
+                                   { marginLeft: [ '0px', '100px' ] },
+                                   100 * MS_PER_SEC);
+  assert_true(anim.pending);
+  await anim.ready;
+
+  assert_false(anim.pending);
+  assert_equals(anim.playState, 'running');
+}, 'If animation has a pending play task, reschedule that task to run ' +
+   'as soon as animation is ready to play new effect.');
+
+promise_test(async t => {
+  const anim = createDiv(t).animate({ marginLeft: [ '0px', '100px' ] },
+                                    100 * MS_PER_SEC);
+  assert_equals(anim.playState, 'running');
+  assert_true(anim.pending);
+
+  const originalEffect = anim.effect;
+  const originalReadyPromise = anim.ready;
+
+  anim.effect = null;
+  assert_equals(anim.playState, 'finished');
+  assert_true(anim.pending);
+
+  anim.effect = originalEffect;
+  assert_equals(anim.playState, 'running');
+  assert_true(anim.pending);
+
+  await originalReadyPromise;
+
+  assert_equals(anim.playState, 'running');
+  assert_false(anim.pending);
+}, 'The pending play task should be rescheduled even after temporarily setting'
+   + ' the effect to null');
+
+promise_test(async t => {
+  const animA = createDiv(t).animate({ marginLeft: [ '0px', '100px' ] },
+                                     100 * MS_PER_SEC);
+  const animB = new Animation();
+
+  await animA.ready;
+
+  animB.effect = animA.effect;
+  assert_equals(animA.effect, null);
+  assert_equals(animA.playState, 'finished');
+}, 'When setting the effect of an animation to the effect of an existing ' +
+   'animation, the existing animation\'s target effect should be set to null.');
+
+test(t => {
+  const animA = createDiv(t).animate({ marginLeft: [ '0px', '100px' ] },
+                                     100 * MS_PER_SEC);
+  const animB = new Animation();
+  const effect = animA.effect;
+  animA.currentTime = 50 * MS_PER_SEC;
+  animB.currentTime = 20 * MS_PER_SEC;
+  assert_equals(effect.getComputedTiming().progress, 0.5,
+                'Original timing comes from first animation');
+  animB.effect = effect;
+  assert_equals(effect.getComputedTiming().progress, 0.2,
+                'After setting the effect on a different animation, ' +
+                'it uses the new animation\'s timing');
+}, 'After setting the target effect of animation to the target effect of an ' +
+   'existing animation, the target effect\'s timing is updated to reflect ' +
+   'the current time of the new animation.');
+
+promise_test(async t => {
+  const anim = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  anim.updatePlaybackRate(2);
+  assert_equals(anim.playbackRate, 1);
+
+  anim.effect = null;
+  await anim.ready;
+
+  assert_equals(anim.playbackRate, 2);
+}, 'Setting the target effect to null causes a pending playback rate to be'
+   + ' applied');
+
+</script>
+</body>

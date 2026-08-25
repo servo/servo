@@ -1,0 +1,25 @@
+<!doctype html>
+<title>Properties of SpeechSynthesisEvent</title>
+<link rel="help" href="https://wicg.github.io/speech-api/#utterance-events">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+<script>
+// Written for https://github.com/WICG/speech-api/issues/103
+promise_test(async (t) => {
+  const utterance = new SpeechSynthesisUtterance('test');
+  const eventWatcher = new EventWatcher(t, utterance, ['start', 'end', 'error']);
+  await test_driver.bless('speechSynthesis.speak',
+      () => { speechSynthesis.speak(utterance) });
+  const events = await eventWatcher.wait_for(['start', 'end'], { record: 'all' });
+  assert_equals(events.length, 2, 'number of events');
+  for (const event of events) {
+    assert_true(event instanceof SpeechSynthesisEvent, 'is SpeechSynthesisEvent');
+    assert_false(event.bubbles, 'bubbles');
+    assert_false(event.cancelable, 'cancelable');
+    assert_equals(event.utterance, utterance, 'utterance');
+  }
+});
+</script>

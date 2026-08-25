@@ -1,0 +1,13 @@
+rules:
+- layer-*: [cascade-layers]
+- at-scope-*: [scope]
+- scope-*: [scope]
+- revert-val-*: [revert-value]
+- all-prop-unset-color.html: [unset-value, all]
+- all-prop-unset-visited.html: [unset-value, all]
+- all-prop-*: [all]
+- unset-val-*: [unset-value]
+- unset-value-storage.html: [unset-value]
+- inherit-initial.html: [inherit-value]
+- initial-background-color.html: [initial-value]
+- initial-color-background-001.html: [initial-value]

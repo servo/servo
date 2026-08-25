@@ -1,0 +1,36 @@
+﻿<!DOCTYPE html>
+<title>
+  Nested out-of-flow positioned element in multicol with inline containing block.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#abspos-breaking">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  .multicol {
+    column-count: 2;
+    column-fill: auto;
+    column-gap: 0px;
+    height: 100px;
+    width: 100px;
+    font: 20px/1 Ahem;
+    color: red;
+  }
+  .fixed {
+    position: fixed;
+    background-color: green;
+    width: 100px;
+    height: 100px;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="multicol">
+  <div style="height: 200px; width: 50px; background-color: red;">
+    <span style="position: relative;">
+      <span style="position: absolute;">
+        <div class="fixed"></div>
+        AA AA AA AA A
+        AA AA A AA A
+      </span>
+    </span>
+  </div>
+</div>

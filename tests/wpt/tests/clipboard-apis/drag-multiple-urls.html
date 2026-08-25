@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Drag and Drop: text/uri-list with multiple URLs</title>
+  <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+  <link rel="help" href="https://www.rfc-editor.org/rfc/rfc2483#section-5">
+</head>
+<body>
+  <div draggable="true" id="drag">Drag Me</div>
+  <div id="drop">Drop Here</div>
+  <div id="result"></div>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script>
+    promise_test(async t => {
+      const drag = document.getElementById('drag');
+      const drop = document.getElementById('drop');
+      const expected = [
+        'https://www.example.com/',
+        'https://foo.com/'
+      ];
+
+      // Set up drop handler
+      let dropPromise = new Promise(resolve => {
+        drop.ondrop = t.step_func(event => {
+          event.preventDefault();
+          const data = event.dataTransfer.getData('text/uri-list');
+          const urls =  data.split(/\r?\n/).filter(Boolean);
+          assert_array_equals(urls, expected, 'Should parse multiple URLs');
+          resolve();
+        });
+        drop.ondragover = e => e.preventDefault();
+        drop.ondragenter = e => e.preventDefault();
+      });
+
+      // Set up dragstart handler
+      drag.ondragstart = event => {
+        event.dataTransfer.setData('text/uri-list',
+          "https://www.example.com/\r\nhttps://foo.com/\r\n");
+      };
+
+      // Simulate drag and drop
+      let dragStartEvent = new DragEvent('dragstart', {bubbles: true, cancelable: true, dataTransfer: new DataTransfer()});
+      drag.dispatchEvent(dragStartEvent);
+
+      let dataTransfer = dragStartEvent.dataTransfer;
+      let dropEvent = new DragEvent('drop', {bubbles: true, cancelable: true, dataTransfer});
+      drop.dispatchEvent(dropEvent);
+
+      await dropPromise;
+    }, "text/uri-list with multiple URLs should be parsed correctly");
+  </script>
+</body>
+</html>

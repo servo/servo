@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <link rel="author" title="Boris Zbarsky" href="mailto:bzbarsky@mit.edu"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#anonymous-boxes"/>
+  <link rel="match" href="reference/table-anonymous-border-spacing-ref.xht"/>
+  <meta name="flags" content='dom'/>
+    <script type="text/javascript"><![CDATA[
+      function doTest() {
+        var t = document.getElementById("target");
+        t.style.borderSpacing = '20px';
+      }
+      ]]></script>
+    <style><![CDATA[
+    #target { border-spacing: 0; }
+    #target > * { display: table-cell; border: 1px solid black; }
+    ]]></style>
+  </head>
+<body onload="doTest()">
+  <p>There should be 20px border-spacing in the table below.</p>
+  <div id="target">
+    <div>First cell</div>
+    <div>Second cell</div>
+  </div>
+</body>
+</html>

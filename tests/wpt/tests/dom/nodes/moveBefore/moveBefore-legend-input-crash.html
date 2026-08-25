@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://issues.chromium.org/issues/523756329">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  #num {
+    width: 200px;
+    height: 60px;
+    font-size: 30px;
+  }
+</style>
+
+<fieldset id=fieldset disabled>
+  <legend id=legend>
+    <input id=num type=number value=5>
+  </legend>
+  <span id=pad></span>
+</fieldset>
+
+<div id=iframe-host>
+  <iframe id=iframe srcdoc="<h1>iframe</h1>"></iframe>
+</div>
+
+<script>
+window.onload = async () => {
+  const fieldset = document.getElementById('fieldset');
+  const legend = document.getElementById('legend');
+  const num = document.getElementById('num');
+  const iframe = document.getElementById('iframe');
+
+  await new Promise(requestAnimationFrame);
+  await new Promise(requestAnimationFrame);
+
+  num.addEventListener('change', () => {
+    iframe.remove();
+  });
+
+  // Target the spin button (step-up arrow) which is on the right edge, upper half.
+  const rect = num.getBoundingClientRect();
+  const offsetX = Math.round(rect.width / 2 - 7);
+  const offsetY = Math.round(-rect.height / 4);
+
+  // Press and hold the spin button to get capture
+  await new test_driver.Actions()
+    .pointerMove(offsetX, offsetY, {origin: num})
+    .pointerDown()
+    .send();
+  await new Promise(requestAnimationFrame);
+
+  fieldset.moveBefore(legend, null);
+  document.body.appendChild(iframe);
+  await new Promise(requestAnimationFrame);
+  document.documentElement.classList.remove('test-wait');
+}
+</script>

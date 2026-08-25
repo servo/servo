@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<doc xmlns:its="http://www.w3.org/2005/11/its" its:version="2.0">
+  <file>
+    <header>
+      <its:rules version="2.0">
+        <its:locQualityIssueRule selector="//mrk[@type='x-itslq']"
+          locQualityIssuesRefPointer="@ref"/>
+      </its:rules>
+    </header>
+    <unit id="1">
+      <segment>
+        <source>This is the content</source>
+        <target><mrk type="x-itslq" ref="#lq1">c'es</mrk> le contenu</target>
+      </segment>
+      <its:locQualityIssues xml:id="lq1">
+        <its:locQualityIssue
+        locQualityIssueComment="'c'es' is unknown. Could be 'c'est'"
+	locQualityIssueSeverity="75"
+	locQualityIssueProfileRef="http://example.org/qaMovel/v1"
+	locQualityIssueEnabled="yes"/>
+      </its:locQualityIssues>
+    </unit>
+  </file>
+</doc>

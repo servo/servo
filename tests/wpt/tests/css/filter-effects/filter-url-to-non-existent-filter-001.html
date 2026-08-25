@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>CSS Filters: url() with non-existent filter reference</title>
+<link rel="author" title="Justin Novosad" href="mailto:junov@chromium.org">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#FilterProperty">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#local-urls">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=419429">
+<link rel="match" href="reference/filter-url-to-non-existent-filter-001-ref.html">
+<meta name="assert" content="Tests that a non-existent filter reference is gracefully ignored."/>
+
+<marquee>
+  <li style="filter: url(#foo); color: white"></li>
+</marquee>
+<!-- Test passes by not crashing -->
+<p>PASS</p>

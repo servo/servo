@@ -1,0 +1,62 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Path animation where coordinate modes of start and end differ (C-c and S-s)</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+<script src="support/animated-path-helpers.js"></script>
+<svg></svg>
+<script>
+var rootSVGElement = document.querySelector("svg");
+
+// Setup test document
+var path = createSVGElement("path");
+path.setAttribute("id", "path");
+path.setAttribute("d", "M -20 -20 C 20 -20 20 -20 20 20 S 20 40 -20 20 Z");
+path.setAttribute("fill", "green");
+path.setAttribute("transform", "translate(50, 50)");
+
+var animate = createSVGElement("animate");
+animate.setAttribute("id", "animation");
+animate.setAttribute("attributeName", "d");
+animate.setAttribute("from", "M -20 -20 C 20 -20 20 -20 20 20 S 20 40 -20 20 Z");
+animate.setAttribute("to", "M -20 -20 c 0 40 0 40 40 40 s 40 0 0 -40 z");
+animate.setAttribute("begin", "0s");
+animate.setAttribute("dur", "4s");
+path.appendChild(animate);
+rootSVGElement.appendChild(path);
+
+// Setup animation test
+function sample1() {
+  // Check initial/end conditions
+  assert_animated_path_equals(
+    path, "M -20 -20 C 20 -20 20 -20 20 20 S 20 40 -20 20 Z");
+}
+
+function sample2() {
+  assert_animated_path_equals(
+    path, "M -20 -20 c 30 10 30 10 40 40 s 10 15 -30 -10 Z");
+}
+
+function sample3() {
+  assert_animated_path_equals(
+    path, "M -20 -20 c 10 30 10 30 40 40 s 30 5 -10 -30 Z");
+}
+
+function sample4() {
+  assert_animated_path_equals(
+    path, "M -20 -20 c 0.00999832 39.99 0.00999832 39.99 40 40 s 39.99 0.00499916 -0.00999832 -39.99 Z");
+}
+
+smil_async_test(t => {
+  const expectedValues = [
+    // [animationId, time, sampleCallback]
+    ["animation", 0.0,   sample1],
+    ["animation", 1.0,   sample2],
+    ["animation", 3.0,   sample3],
+    ["animation", 3.999, sample4],
+    ["animation", 4.001, sample1]
+  ];
+  runAnimationTest(t, expectedValues);
+});
+</script>

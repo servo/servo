@@ -1,0 +1,76 @@
+<!DOCTYPE HTML>
+<title>Use of SVGAnimatedEnumeration within SVGGradientElement</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  // This test checks the use of SVGAnimatedEnumeration within SVGGradientElement.
+
+  var gradientElement = document.createElementNS("http://www.w3.org/2000/svg", "linearGradient");
+  gradientElement.setAttribute("gradientUnits", "userSpaceOnUse");
+  gradientElement.setAttribute("spreadMethod", "pad");
+
+  // gradientUnits
+  // Check initial 'gradientUnits' value.
+  assert_true(gradientElement.gradientUnits instanceof SVGAnimatedEnumeration);
+  assert_equals(typeof(gradientElement.gradientUnits.baseVal), "number");
+  assert_equals(gradientElement.gradientUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_USERSPACEONUSE);
+
+  // Switch to 'objectBoundingBox'.
+  gradientElement.gradientUnits.baseVal = SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX;
+  assert_equals(gradientElement.gradientUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
+  assert_equals(gradientElement.getAttribute('gradientUnits'), "objectBoundingBox");
+
+  // Try setting invalid values.
+  assert_throws_js(TypeError, function() { gradientElement.gradientUnits.baseVal = 3; });
+  assert_equals(gradientElement.gradientUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
+  assert_equals(gradientElement.getAttribute('gradientUnits'), "objectBoundingBox");
+
+  assert_throws_js(TypeError, function() { gradientElement.gradientUnits.baseVal = -1; });
+  assert_equals(gradientElement.gradientUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
+  assert_equals(gradientElement.getAttribute('gradientUnits'), "objectBoundingBox");
+
+  assert_throws_js(TypeError, function() { gradientElement.gradientUnits.baseVal = 0; });
+  assert_equals(gradientElement.gradientUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
+  assert_equals(gradientElement.getAttribute('gradientUnits'), "objectBoundingBox");
+
+  // Switch to 'userSpaceOnUse'.
+  gradientElement.gradientUnits.baseVal = SVGUnitTypes.SVG_UNIT_TYPE_USERSPACEONUSE;
+  assert_equals(gradientElement.gradientUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_USERSPACEONUSE);
+  assert_equals(gradientElement.getAttribute('gradientUnits'), "userSpaceOnUse");
+
+  // spreadMethod
+  // Check initial 'spreadMethod' value.
+  assert_true(gradientElement.spreadMethod instanceof SVGAnimatedEnumeration);
+  assert_equals(typeof(gradientElement.spreadMethod.baseVal), "number");
+  assert_equals(gradientElement.spreadMethod.baseVal, SVGGradientElement.SVG_SPREADMETHOD_PAD);
+
+  // Switch to 'reflect' value.
+  gradientElement.spreadMethod.baseVal = SVGGradientElement.SVG_SPREADMETHOD_REFLECT;
+  assert_equals(gradientElement.spreadMethod.baseVal, SVGGradientElement.SVG_SPREADMETHOD_REFLECT);
+  assert_equals(gradientElement.getAttribute('spreadMethod'), "reflect");
+
+  // Switch to 'repeat' value.
+  gradientElement.spreadMethod.baseVal = SVGGradientElement.SVG_SPREADMETHOD_REPEAT;
+  assert_equals(gradientElement.spreadMethod.baseVal, SVGGradientElement.SVG_SPREADMETHOD_REPEAT);
+  assert_equals(gradientElement.getAttribute('spreadMethod'), "repeat");
+
+  // Try setting invalid values.
+  assert_throws_js(TypeError, function() { gradientElement.spreadMethod.baseVal = 4; });
+  assert_equals(gradientElement.spreadMethod.baseVal, SVGGradientElement.SVG_SPREADMETHOD_REPEAT);
+  assert_equals(gradientElement.getAttribute('spreadMethod'), "repeat");
+
+  assert_throws_js(TypeError, function() { gradientElement.spreadMethod.baseVal = -1; });
+  assert_equals(gradientElement.spreadMethod.baseVal, SVGGradientElement.SVG_SPREADMETHOD_REPEAT);
+  assert_equals(gradientElement.getAttribute('spreadMethod'), "repeat");
+
+  assert_throws_js(TypeError, function() { gradientElement.spreadMethod.baseVal = 0; });
+  assert_equals(gradientElement.spreadMethod.baseVal, SVGGradientElement.SVG_SPREADMETHOD_REPEAT);
+  assert_equals(gradientElement.getAttribute('spreadMethod'), "repeat");
+
+  // Switch to 'pad'.
+  gradientElement.spreadMethod.baseVal = SVGGradientElement.SVG_SPREADMETHOD_PAD;
+  assert_equals(gradientElement.spreadMethod.baseVal, SVGGradientElement.SVG_SPREADMETHOD_PAD);
+  assert_equals(gradientElement.getAttribute('spreadMethod'), "pad");
+});
+</script>

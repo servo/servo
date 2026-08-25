@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html dir="rtl">
+  <head>
+    <meta charset="UTF-8">
+    <title>CSS Test: :dir() selector</title>
+    <link rel="author" title="Astley Chen" href="mailto:aschen@mozilla.com">
+    <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+    <link rel="help" href="https://drafts.csswg.org/selectors-4/#the-dir-pseudo">
+    <meta name="assert" content="Test checks :dir() basic functions when default document directionality is rtl.">
+    <link rel="match" href="dir-style-02-ref.html">
+    <style>
+      div { text-align: left; }
+      :dir(ltr) { color: blue }
+      :dir(rtl) { color: lime }
+      :dir(foopy) { color: red }
+    </style>
+  </head>
+  <body>
+    <div>This element has default direction.</div>
+    <div dir="ltr">This element is ltr.</div>
+    <div dir="rtl">This element is rtl.</div>
+    <div dir="ltr">
+      <div>This element should inherit ltr.</div>
+      <div dir="ltr">This element is ltr.</div>
+      <div dir="rtl">This element is rtl.</div>
+    </div>
+    <div dir="rtl">
+      <div>This element should inherit rtl.</div>
+      <div dir="ltr">This element is ltr.</div>
+      <div dir="rtl">This element is rtl.</div>
+    </div>
+    <div dir="foopy">This element has an invalid dir attribute and
+      should have default direction.</div>
+  </body>
+</html>

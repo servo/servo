@@ -1,0 +1,174 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>AnimationEffect.updateTiming() for CSS animations</title>
+<!-- TODO: Add a more specific link for this once it is specified. -->
+<link rel="help" href="https://drafts.csswg.org/css-animations-2/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/testcommon.js"></script>
+<style>
+@keyframes anim-empty { }
+</style>
+<body>
+<div id="log"></div>
+<script>
+"use strict";
+
+test(t => {
+  const div = addDiv(t);
+  div.style.animation = 'anim-empty 100s';
+
+  const animation = div.getAnimations()[0];
+  animation.effect.updateTiming({ duration: 2 * MS_PER_SEC });
+
+  div.style.animationDuration = '4s';
+  div.style.animationDelay = '6s';
+
+  assert_equals(
+    animation.effect.getTiming().duration,
+    2 * MS_PER_SEC,
+    'Duration should be the value set by the API'
+  );
+  assert_equals(
+    animation.effect.getTiming().delay,
+    6 * MS_PER_SEC,
+    'Delay should be the value set by style'
+  );
+}, 'AnimationEffect.updateTiming({ duration }) causes changes to the'
+   + ' animation-duration to be ignored');
+
+// The above test covers duration (with delay as a control). The remaining
+// properties are:
+//
+//   iterations - animation-iteration-count
+//   direction - animation-direction
+//   delay - animation-delay
+//   fill - animation-fill-mode
+//
+// Which we test in two batches, overriding two properties each time and using
+// the remaining two properties as control values to check they are NOT
+// overridden.
+
+test(t => {
+  const div = addDiv(t);
+  div.style.animation = 'anim-empty 100s';
+
+  const animation = div.getAnimations()[0];
+  animation.effect.updateTiming({ iterations: 2, direction: 'reverse' });
+
+  div.style.animationIterationCount = '4';
+  div.style.animationDirection = 'alternate';
+  div.style.animationDelay = '6s';
+  div.style.animationFillMode = 'both';
+
+  assert_equals(
+    animation.effect.getTiming().iterations,
+    2,
+    'Iterations should be the value set by the API'
+  );
+  assert_equals(
+    animation.effect.getTiming().direction,
+    'reverse',
+    'Direction should be the value set by the API'
+  );
+  assert_equals(
+    animation.effect.getTiming().delay,
+    6 * MS_PER_SEC,
+    'Delay should be the value set by style'
+  );
+  assert_equals(
+    animation.effect.getTiming().fill,
+    'both',
+    'Fill should be the value set by style'
+  );
+}, 'AnimationEffect.updateTiming({ iterations, direction }) causes changes to'
+   + ' the animation-iteration-count and animation-direction to be ignored');
+
+test(t => {
+  const div = addDiv(t);
+  div.style.animation = 'anim-empty 100s';
+
+  const animation = div.getAnimations()[0];
+  animation.effect.updateTiming({ delay: 2 * MS_PER_SEC, fill: 'both' });
+
+  div.style.animationDelay = '4s';
+  div.style.animationFillMode = 'forwards';
+  div.style.animationIterationCount = '6';
+  div.style.animationDirection = 'reverse';
+
+  assert_equals(
+    animation.effect.getTiming().delay,
+    2 * MS_PER_SEC,
+    'Delay should be the value set by the API'
+  );
+  assert_equals(
+    animation.effect.getTiming().fill,
+    'both',
+    'Fill should be the value set by the API'
+  );
+  assert_equals(
+    animation.effect.getTiming().iterations,
+    6,
+    'Iterations should be the value set by style'
+  );
+  assert_equals(
+    animation.effect.getTiming().direction,
+    'reverse',
+    'Direction should be the value set by style'
+  );
+}, 'AnimationEffect.updateTiming({ delay, fill }) causes changes to'
+   + ' the animation-delay and animation-fill-mode to be ignored');
+
+test(t => {
+  const div = addDiv(t);
+  div.style.animation = 'anim-empty 100s';
+
+  const animation = div.getAnimations()[0];
+  assert_throws_js(TypeError, () => {
+    animation.effect.updateTiming({ duration: 2 * MS_PER_SEC, iterations: -1 });
+  }, 'Negative iteration count should cause an error to be thrown');
+
+  div.style.animationDuration = '4s';
+
+  assert_equals(
+    animation.effect.getTiming().duration,
+    4 * MS_PER_SEC,
+    'Duration should be the value set by style'
+  );
+}, 'AnimationEffect.updateTiming() does override to changes from animation-*'
+   + ' properties if there is an error');
+
+test(t => {
+  const div = addDiv(t);
+  div.style.animation = 'anim-empty 100s';
+
+  const animation = div.getAnimations()[0];
+  animation.effect.updateTiming({
+    easing: 'steps(4)',
+    endDelay: 2 * MS_PER_SEC,
+    iterationStart: 4,
+  });
+
+  div.style.animationDuration = '6s';
+  div.style.animationTimingFunction = 'ease-in';
+
+  assert_equals(
+    animation.effect.getTiming().easing,
+    'steps(4)',
+    'endDelay should be the value set by the API'
+  );
+  assert_equals(
+    animation.effect.getTiming().endDelay,
+    2 * MS_PER_SEC,
+    'endDelay should be the value set by the API'
+  );
+  assert_equals(
+    animation.effect.getTiming().iterationStart,
+    4,
+    'iterationStart should be the value set by style'
+  );
+}, 'AnimationEffect properties that do not map to animation-* properties'
+   + ' should not be changed when animation-* style is updated');
+
+</script>
+</body>

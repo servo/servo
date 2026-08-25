@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+
+promise_test(async t => {
+    const url = new URL('resources/video-with-aged-proxy-cache.py', location.href);
+    const response_1 = await fetch(url.toString());
+    assert_equals(response_1.status, 200, 'Initial fetch should succeed with 200');
+    const response_1_blob = await response_1.blob();
+    assert_equals(response_1_blob.size, 80666, 'Initial fetch should get full content');
+    const response_2 = await fetch(url.toString(), {
+        headers: {'Range': 'bytes=0-99'}
+    });
+    const response_2_blob = await response_2.blob();
+    assert_equals(response_2.status, 206, 'Range fetch after cache revalidation should succeed with 206');
+    assert_equals(response_2_blob.size, 100, 'Range fetch after cache revalidation should get partial content');
+}, `Range request after cache revalidation with 200 OK response should succeed`);
+
+</script>
+</body>

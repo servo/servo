@@ -1,0 +1,35 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: 'Border-radius' property with three values</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css3-background/#border-radius" />
+        <meta name="assert" content="If bottom-left radius is omitted in the 'border-radius' property then the bottom-left radius is the same as the top-right radius." />
+        <style type="text/css">
+            div
+            {
+                width: 2in;
+                height: 2in;
+                border: 0.2in solid red;
+            }
+            #reference
+            {
+                border-top-left-radius : 10px;
+                border-top-right-radius : 50px;
+                border-bottom-right-radius : 30px;
+                border-bottom-left-radius : 50px;
+            }
+            #test
+            {
+                border-radius: 10px 50px 30px;
+                border-color: green;
+                margin-top: -2.4in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the box has rounded corners and there is no red visible on the page.</p>
+        <div id="reference"></div>
+        <div id="test"></div>
+    </body>
+</html>

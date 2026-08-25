@@ -1,0 +1,58 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: paged media abspos containing block</title>
+  <link rel="author" title="Melinda Grant" href="mailto:melinda.grant@hp.com" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-box" />
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#page-box-page-rule" />
+  <meta name="flags" content="paged" />
+  <meta name="assert" content="For a single-page document, the containing box for positioned content with no positioned ancestor is the page area." />
+  <style type="text/css">
+
+@page
+{
+  margin: .5in;
+}
+body
+{
+	padding: 8px;
+}
+div
+{
+  position: absolute;
+  width: 40%;
+}
+.topleft
+{
+  top: 0;
+  left: 0;
+  background: blue;
+}
+.bottomright
+{
+	bottom: 0;
+	right: 0;
+	background: fuchsia;
+}
+.centered
+{
+	height: 20%;
+	width: 30%;
+	top: 40%;
+	left: 35%;
+	background: yellow;
+}
+p
+{
+	margin-left: 55%;
+}
+
+  </style>
+ </head>
+ <body>
+  <p>There must be three boxes containing descriptive text on this page.</p>
+  <div class="topleft">This blue box must be in the upper-left corner of the page, one half inch below the top of the page and one half inch from the left edge of the page.</div>
+  <div class="bottomright">This fuchsia box must be in the lower right corner, one half inch from the right and bottom edges of the page.</div>
+  <div class="centered">This yellow box must be centered on the page.</div>
+ </body>
+</html>

@@ -1,0 +1,35 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>No crash for mixed-unit typed arithmetic in length-percentage values</title>
+<link rel="help" href="https://www.w3.org/TR/css-values-4/#calc-type-checking">
+<div id="target"></div>
+<script>
+const expressions = [
+  "calc(10px * 1% * 1s / 1% / 1s)",
+  "calc((1px + 1%) * 2s / 1ms)",
+  "calc(((1px + 1%) / 2s) * 1ms)",
+  "calc((1px + 1%) * 5kHz / 10kHz)",
+  "calc(((1px + 1%) / 5kHz) * 10kHz)",
+  "calc((1px + 1%) * 10dpi / 2dpi)",
+  "calc(((1px + 1%) / 10dpi) * 2dpi)",
+  "calc(max(1px, 1%) * 5s / 1s)",
+  "calc((max(1px, 1%) / 5s) * 1s)",
+  "calc(max(1px, 1%) * 1kHz / 10kHz)",
+  "calc((max(1px, 1%) / 1kHz) * 10kHz)",
+  "calc(max(1px, 1%) * 2dpi / 3dpi)",
+  "calc((max(1px, 1%) / 2dpi) * 3dpi)",
+  "calc((((1px + 1%) * 10% / 2%) * 20s / 50ms))",
+  "calc((((((1px + 1%) / 10%) * 2%) / 20s) * 50ms))",
+  "calc((((1px + 1%) * 5s / 50s) * 30grad / 10rad))",
+  "calc((((((1px + 1%) / 5s) * 50s) / 30grad) * 10rad))",
+  "calc(((((10px * (3 / 0.5)) / (2dppx / 2dpcm)) * (5% / 50%)) * (20kHz / 20kHz)))",
+];
+
+const target = document.getElementById("target");
+for (const expression of expressions) {
+  target.style.width = "initial";
+  target.style.width = expression;
+  // Trigger style resolution/conversion on each value.
+  getComputedStyle(target).width;
+}
+</script>

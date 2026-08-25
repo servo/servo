@@ -1,0 +1,191 @@
+{
+  "importMapBaseURL": "https://base.example/path1/path2/path3",
+  "tests": {
+    "Relative URL scope keys should work with no prefix": {
+      "importMap": {
+        "scopes": {
+          "foo": {}
+        }
+      },
+      "expectedParsedImportMap": {
+        "imports": {},
+        "scopes": {
+          "https://base.example/path1/path2/foo": {}
+        }
+      }
+    },
+    "Relative URL scope keys should work with ./, ../, and / prefixes": {
+      "importMap": {
+        "scopes": {
+          "./foo": {},
+          "../foo": {},
+          "/foo": {}
+        }
+      },
+      "expectedParsedImportMap": {
+        "imports": {},
+        "scopes": {
+          "https://base.example/path1/path2/foo": {},
+          "https://base.example/path1/foo": {},
+          "https://base.example/foo": {}
+        }
+      }
+    },
+    "Absolute URL scope keys should ignore relative URL scope keys when the base URL is a data: URL": {
+      "importMap": {
+        "scopes": {
+          "./foo": {},
+          "../foo": {},
+          "/foo": {}
+        }
+      },
+      "importMapBaseURL": "data:text/html,test",
+      "expectedParsedImportMap": {
+        "imports": {},
+        "scopes": {}
+      }
+    },
+    "Relative URL scope keys should work with ./, ../, or / with no suffix": {
+      "importMap": {
+        "scopes": {
+          "./": {},
+          "../": {},
+          "/": {}
+        }
+      },
+      "expectedParsedImportMap": {
+        "imports": {},
+        "scopes": {
+          "https://base.example/path1/path2/": {},
+          "https://base.example/path1/": {},
+          "https://base.example/": {}
+        }
+      }
+    },
+    "Relative URL scope keys should work with /s, ?s, and #s": {
+      "importMap": {
+        "scopes": {
+          "foo/bar?baz#qux": {}
+        }
+      },
+      "expectedParsedImportMap": {
+        "imports": {},
+        "scopes": {
+          "https://base.example/path1/path2/foo/bar?baz#qux": {}
+        }
+      }
+    },
+    "Relative URL scope keys should work with an empty string scope key": {
+      "importMap": {
+        "scopes": {
+          "": {}
+        }
+      },
+      "expectedParsedImportMap": {
+        "imports": {},
+        "scopes": {
+          "https://base.example/path1/path2/path3": {}
+        }
+      }
+    },
+    "Relative URL scope keys should work with / suffixes": {
+      "importMap": {
+        "scopes": {
+          "foo/": {},
+          "./foo/": {},
+          "../foo/": {},
+          "/foo/": {},
+          "/foo//": {}
+        }
+      },
+      "expectedParsedImportMap": {
+        "imports": {},
+        "scopes": {
+          "https://base.example/path1/path2/foo/": {},
+          "https://base.example/path1/foo/": {},
+          "https://base.example/foo/": {},
+          "https://base.example/foo//": {}
+        }
+      }
+    },
+    "Relative URL scope keys should deduplicate based on URL parsing rules": {
+      "importMap": {
+        "scopes": {
+          "foo/\\": {
+            "1": "./a"
+          },
+          "foo//": {
+            "2": "./b"
+          },
+          "foo\\\\": {
+            "3": "./c"
+          }
+        }
+      },
+      "expectedParsedImportMap": {
+        "imports": {},
+        "scopes": {
+          "https://base.example/path1/path2/foo//": {
+            "3": "https://base.example/path1/path2/c"
+          }
+        }
+      }
+    },
+    "Absolute URL scope keys should accept all absolute URL scope keys, with or without fetch schemes": {
+      "importMap": {
+        "scopes": {
+          "about:good": {},
+          "blob:good": {},
+          "data:good": {},
+          "file:///good": {},
+          "filesystem:http://example.com/good/": {},
+          "http://good/": {},
+          "https://good/": {},
+          "ftp://good/": {},
+          "import:bad": {},
+          "mailto:bad": {},
+          "javascript:bad": {},
+          "wss:ba": {}
+        }
+      },
+      "expectedParsedImportMap": {
+        "imports": {},
+        "scopes": {
+          "about:good": {},
+          "blob:good": {},
+          "data:good": {},
+          "file:///good": {},
+          "filesystem:http://example.com/good/": {},
+          "http://good/": {},
+          "https://good/": {},
+          "ftp://good/": {},
+          "import:bad": {},
+          "mailto:bad": {},
+          "javascript:bad": {},
+          "wss://ba/": {}
+        }
+      }
+    },
+    "Absolute URL scope keys should parse absolute URL scope keys, ignoring unparseable ones": {
+      "importMap": {
+        "scopes": {
+          "https://example.com:demo": {},
+          "http://[www.example.com]/": {},
+          "https:example.org": {},
+          "https://///example.com///": {},
+          "https://example.net": {},
+          "https://ex%41mple.com/foo/": {}
+        }
+      },
+      "expectedParsedImportMap": {
+        "imports": {},
+        "scopes": {
+          "https://base.example/path1/path2/example.org": {},
+          "https://example.com///": {},
+          "https://example.net/": {},
+          "https://example.com/foo/": {}
+        }
+      }
+    }
+  }
+}

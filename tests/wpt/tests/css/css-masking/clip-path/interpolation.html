@@ -1,0 +1,60 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="assert"
+      content="This test checks if the inerpolation on clip-path is correct" />
+<title>Tests for the output of the interpolation of clip-path</title>
+<link rel="help" href="https://drafts.fxtf.org/css-masking-1/#the-clip-path">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div id='log'></div>
+<script type='text/javascript'>
+'use strict';
+
+function createDiv(test) {
+  var element = document.createElement('div');
+  document.body.appendChild(element);
+  test.add_cleanup(function() {
+    element.remove();
+  });
+  return element;
+}
+
+test(function(t) {
+  var div = createDiv(t);
+  div.style.clipPath = 'circle(25px)';
+  // The radius becomes negative between 60%~61%, so we set the delay to -61s.
+  div.style.transition = 'all 100s cubic-bezier(0, 0, 1, -60) -61s';
+  getComputedStyle(div).clipPath;
+
+  div.style.clipPath = 'circle(26px)';
+  assert_equals(getComputedStyle(div).clipPath, 'circle(0px)',
+                'The radius of circle is clamped to zero at 61%');
+}, 'Test circle with negative easing on clip-path');
+
+test(function(t) {
+  var div = createDiv(t);
+  div.style.clipPath = 'ellipse(25px 25px)';
+  // The radius becomes negative between 60%~61%, so we set the delay to -61s.
+  div.style.transition = 'all 100s cubic-bezier(0, 0, 1, -60) -61s';
+  getComputedStyle(div).clipPath;
+
+  div.style.clipPath = 'ellipse(26px 26px)';
+  assert_equals(getComputedStyle(div).clipPath, 'ellipse(0px 0px)',
+                'The radius of ellipse is clamped to zero at 61%');
+}, 'Test ellipse with negative easing on clip-path');
+
+test(function(t) {
+  var div = createDiv(t);
+  div.style.clipPath = 'inset(10% round 25px)';
+  // The radius becomes negative between 60%~61%, so we set the delay to -61s.
+  div.style.transition = 'all 100s cubic-bezier(0, 0, 1, -60) -61s';
+  getComputedStyle(div).clipPath;
+
+  div.style.clipPath = 'inset(10% round 26px)';
+  assert_equals(getComputedStyle(div).clipPath, 'inset(10%)',
+                'The radius of inset is clamped to zero at 61%');
+}, 'Test inset with negative easing on clip-path');
+
+</script>
+</html>

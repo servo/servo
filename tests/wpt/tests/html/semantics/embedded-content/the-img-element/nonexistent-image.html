@@ -1,0 +1,21 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8">
+<title>Loading an nonexisting image should fail; triggering appropriate events</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<img>
+
+<script>
+  async_test(function(t) {
+    var img = document.querySelector("img");
+    img.onload = this.step_func_done(function() {
+      assert_unreached("image.onload() was not supposed to be called");
+    });
+    img.onerror = this.step_func_done(function(e) {
+      assert_equals(e.type, "error", "image.onerror() called");
+      t.done();
+    });
+    img.src = "404";
+  });
+</script>

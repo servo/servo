@@ -1,0 +1,40 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use dom_struct::dom_struct;
+use js::context::{JSContext, NoGC};
+use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
+use script_bindings::codegen::GenericBindings::HTMLDocumentBinding::HTMLDocumentMethods;
+use script_bindings::root::DomRoot;
+use script_bindings::str::DOMString;
+
+use crate::dom::bindings::codegen::Bindings::DocumentBinding::NamedPropertyValue;
+use crate::dom::types::{Document, Location};
+
+/// <https://html.spec.whatwg.org/multipage/#htmldocument>
+#[dom_struct]
+pub(crate) struct HTMLDocument {
+    document: Document,
+}
+
+impl HTMLDocumentMethods<crate::DomTypeHolder> for HTMLDocument {
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-location>
+    fn GetLocation(&self, cx: &mut JSContext) -> Option<DomRoot<Location>> {
+        self.document.GetLocation(cx)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names>
+    fn SupportedPropertyNames(&self, no_gc: &NoGC) -> Vec<DOMString> {
+        self.document.SupportedPropertyNames(no_gc)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter>
+    fn NamedGetter(
+        &self,
+        cx: &mut js::context::JSContext,
+        name: DOMString,
+    ) -> Option<NamedPropertyValue> {
+        self.document.NamedGetter(cx, name)
+    }
+}

@@ -1,0 +1,45 @@
+// The list of plugin libraries themselves, used for both MacOS and Windows.
+// The format of this file is intended to be directly `include!()` able as a [&'static str] in Rust,
+// and a valid python list[str] after stripping the `//` comments at the beginning of lines (from gstreamer.py).
+[
+// gstreamer
+"gstcoreelements",
+"gstnice",
+// gst-plugins-base
+"gstapp",
+"gstaudioconvert",
+"gstaudioresample",
+"gstgio",
+"gstogg",
+"gstopengl",
+"gstopus",
+"gstplayback",
+"gsttheora",
+"gsttypefindfunctions",
+"gstvideoconvertscale",
+"gstvolume",
+"gstvorbis",
+// gst-plugins-good
+"gstaudiofx",
+"gstaudioparsers",
+"gstautodetect",
+"gstdeinterlace",
+"gstid3demux",
+"gstinterleave",
+"gstisomp4",
+"gstmatroska",
+"gstrtp",
+"gstrtpmanager",
+"gstvideofilter",
+"gstvpx",
+"gstwavparse",
+// gst-plugins-bad
+"gstaudiobuffersplit",
+"gstdtls",
+"gstid3tag",
+"gstproxy",
+"gstvideoparsersbad",
+"gstwebrtc",
+// gst-libav
+"gstlibav",
+]

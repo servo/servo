@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>backdrop-filter: Correctly apply backdrop-filter with an SVG filter</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty">
+<link rel="match"  href="reference/backdrop-filter-svg-ref.html">
+
+<div class="fuchsiabox"></div>
+<div class="filter"></div>
+
+<svg>
+  <filter id="invert" color-interpolation-filters="sRGB">
+    <feComponentTransfer>
+        <feFuncR type="table" tableValues="1 0"/>
+        <feFuncG type="table" tableValues="1 0"/>
+        <feFuncB type="table" tableValues="1 0"/>
+    </feComponentTransfer>
+  </filter>
+</svg>
+
+<style>
+.fuchsiabox {
+  position: absolute;
+  background: fuchsia;
+  width: 100px;
+  height: 100px;
+  top: 100px;
+  left: 60px;
+}
+.filter {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  top: 100px;
+  left: 60px;
+  backdrop-filter: url(#invert);
+}
+</style>

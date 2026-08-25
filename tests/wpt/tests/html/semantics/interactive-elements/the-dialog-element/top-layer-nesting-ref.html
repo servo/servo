@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+.pseudodialog {
+    height: 150px;
+    width: 150px;
+    position: absolute;
+    top: 0; right: 0; bottom: 0; left: 0;
+    margin: auto;
+    border: solid;
+    padding: 1em;
+    background: white;
+    color: black;
+}
+</style>
+</head>
+<body>
+This tests that top layer elements are stacked correctly even if nested in the DOM tree.
+The test passes if you see no red rectangles and see 3 rectangles stacked in the following order (from bottom to top): yellow, blue, green.
+
+<div class="pseudodialog" style="top: 100px; background-color: yellow"></div>
+<div class="pseudodialog" style="top: 150px; left: 50px; background-color: blue"></div>
+<div class="pseudodialog" style="top: 200px; left: 100px; background-color: green"></div>
+</body>
+</html>

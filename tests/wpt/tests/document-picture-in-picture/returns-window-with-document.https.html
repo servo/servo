@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<title>Test that documentPictureInPicture.requestWindow()
+  returns a Window object</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+  <div id="div"></div>
+<script>
+
+function waitForEnter() {
+  return new Promise(resolve =>
+    documentPictureInPicture.addEventListener("enter", resolve, { once: true })
+  );
+}
+
+promise_test(async (t) => {
+  const enter = waitForEnter();
+
+  await test_driver.bless('request PiP window');
+  const pipWindow = await documentPictureInPicture.requestWindow();
+
+  assert_true(!!pipWindow.document,
+          'Window should contain a document');
+  assert_true(documentPictureInPicture.window === pipWindow,
+      'DocumentPictureInPicture.window should match the current window');
+
+  await enter;  // avoid issues in the next subtest
+}, 'requestWindow resolves with the PiP window');
+
+promise_test(async (t) => {
+  const enter = waitForEnter();
+
+  await test_driver.bless('request PiP window');
+  const pipWindow = await documentPictureInPicture.requestWindow();
+  const div = document.getElementById('div');
+
+  // We should be able to move an element to that document.
+  assert_true(document.body.contains(div),
+      'The original document should start with the div');
+  assert_false(pipWindow.document.body.contains(div),
+      'The PiP document should not start with the div');
+  pipWindow.document.body.append(div);
+  assert_false(document.body.contains(div),
+      'The div should have moved away from the original document');
+  assert_true(pipWindow.document.body.contains(div),
+      'The div should have moved to the PiP document');
+
+  await enter;  // avoid issues in the next subtest
+}, 'Elements can be moved from opener to PiP document');
+
+promise_test(async (t) => {
+  const enter = waitForEnter();
+
+  await test_driver.bless('request PiP window');
+  const pipWindow = await documentPictureInPicture.requestWindow();
+  assert_equals(pipWindow.document.readyState, "complete", "PiP document ready state is complete");
+
+  await enter;  // avoid issues in the next subtest
+}, 'PiP document is fully loaded');
+
+promise_test(async (t) => {
+  let events = [];
+
+  const enter = new Promise(resolve => {
+    documentPictureInPicture.onenter = () => {
+      events.push("enter");
+      resolve();
+    }
+  });
+
+  await test_driver.bless('request PiP window');
+  const request = documentPictureInPicture.requestWindow()
+    .then(() => {
+      events.push("requestWindow");
+    });
+
+    // Microtask to resolve request should already be queued
+  const microtask = Promise.resolve().then(() => events.push("microtask"));
+
+  assert_true(!!documentPictureInPicture.window, "window property should be set synchronous");
+
+  await Promise.all([enter, request, microtask]);
+
+  assert_equals(
+    events.join(),
+    "requestWindow,microtask,enter",
+    "Got the expected order of actions"
+  );
+
+}, "requestWindow timing");
+</script>
+</body>

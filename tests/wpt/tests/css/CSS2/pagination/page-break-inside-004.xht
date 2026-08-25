@@ -1,0 +1,49 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: @page page-break-inside:auto</title>
+<link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+<link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-break-props"/>
+<link rel="help" href="http://www.w3.org/TR/css3-page/#pg-br-before-after" />
+<meta name="flags" content="paged" />
+<meta name="assert" content="The initial value of the 'page-break-inside' property is 'auto'."/>
+<style type="text/css">
+	* {
+		margin: 0;
+		padding: 0;
+		orphans: 1;
+		widows: 1;
+	}
+	html, body {
+		height:100%;
+		line-height: 1;
+		font-size: 20px;
+	}
+	div.spacers {
+		height: 50%;
+	}
+	div#takeTwo {page-break-before: always}
+	div.backUp {margin-top: -4em;}
+	div#break2 {
+		page-break-inside: avoid;
+		page-break-inside: auto;
+	}
+	.breaker {
+		width: 0;
+		font-weight: bold;
+		color: blue;
+	}
+</style>
+</head>
+<body>
+	<div class="spacers">
+	  <p>This test produces four pages of output. The blue numbers must correspond to the page number they appear on.</p>
+	</div>
+	<div class="spacers backUp"></div>
+	<div class="breaker" id="break1">1 1 1 1 2 2 2 2</div>
+
+	<div class="spacers backup" id="takeTwo"></div>
+	<div class="spacers backUp"></div>
+	<div class="breaker" id="break2">3 3 3 3 4 4 4 4</div>
+</body>
+</html>

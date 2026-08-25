@@ -1,0 +1,45 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>Test that reports from different origins are not sent together</title>
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src='resources/report-helper.js'></script>
+</head>
+<body>
+  <script>
+    const base_url = `${location.protocol}//${location.host}`;
+    const endpoint = `${base_url}/reporting/resources/report.py`;
+    const id = 'd0d517bf-891b-457a-b970-8b2b2c81a0bf';
+
+    promise_test(async t => {
+
+      // Attach a cross-origin iframe which should post back here immediately
+      // before generating a CSP error. That error should be reported to the
+      // same endpoint that this frame reports to.
+      await new Promise(resolve => {
+        const iframe = document.createElement('iframe');
+        iframe.src = "https://{{domains[www]}}:{{ports[https][0]}}/reporting/resources/csp-error.https.sub.html";
+        addEventListener('message', resolve);
+        document.body.appendChild(iframe);
+      });
+
+      // Trigger a CSP error and report in this frame as well.
+      await new Promise(resolve => {
+        const img = document.createElement('img');
+        img.src = "/reporting/resources/fail.png";
+        img.addEventListener('error', resolve);
+        document.body.appendChild(img);
+      });
+
+      // Wait for 2 reports to be received.
+      const reports = await pollReports(endpoint, id, 2);
+      assert_equals(reports.length, 2);
+
+      // Validate that reports were sent in separate requests.
+      const request_count = await pollNumResults(endpoint, id);
+      assert_equals(request_count, 2);
+    }, "Reports were sent in two requests.");
+  </script>
+</body>
+</html>

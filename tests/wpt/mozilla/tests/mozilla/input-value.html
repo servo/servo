@@ -1,0 +1,25 @@
+<!doctype html>
+<head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+    <input id="0" type="url" value="">
+    <input id="1" type="url" value="  黑aaab">
+    <input id="2" type="url" value="三体!  ">
+    <input id="3" type="url" value="#β">
+    <input id="4" type="url" value="  #β ">
+    <script>
+        // Testing that unicode values are correctly handled in
+        // DOMString::strip_leading_and_trailing_ascii_whitespace
+        test(function() {
+            var expected = ["", "黑aaab", "三体!", "#β", "#β"];
+            for (var i = 0; i < expected.length; i++) {
+                var input = window.document.getElementById(i.toString());
+                assert_equals(input.value, expected[i]);
+            }
+        });
+    </script>
+</body>

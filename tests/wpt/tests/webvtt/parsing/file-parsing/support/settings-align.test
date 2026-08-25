@@ -1,0 +1,64 @@
+settings, align
+<link rel="help" href="https://w3c.github.io/webvtt/#collect-webvtt-cue-timings-and-settings">
+
+assert_equals(cues.length, 13);
+
+[
+    'center',
+    'start',
+    'center',
+    'end',
+    'left',
+    'right',
+    'end',
+    'end',
+    'end',
+    'end',
+    'end',
+    'end',
+    'center',
+].forEach(function(valid, index) {
+    assert_equals(cues[index].align, valid, 'Failed with cue ' + index);
+});
+
+===
+WEBVTT
+
+00:00:00.000 --> 00:00:01.000
+text0
+
+00:00:00.000 --> 00:00:01.000 align:start
+text1
+
+00:00:00.000 --> 00:00:01.000 align:center
+text2
+
+00:00:00.000 --> 00:00:01.000 align:end
+text3
+
+00:00:00.000 --> 00:00:01.000 align:left
+text4
+
+00:00:00.000 --> 00:00:01.000 align:right
+text5
+
+00:00:00.000 --> 00:00:01.000 align:start align:end
+text6
+
+00:00:00.000 --> 00:00:01.000 align:end align:CENTER
+text7
+
+00:00:00.000 --> 00:00:01.000 align:end align: center
+text8
+
+00:00:00.000 --> 00:00:01.000 align:end align:
+text9
+
+00:00:00.000 --> 00:00:01.000 align:end align:middle
+text10
+
+00:00:00.000 --> 00:00:01.000 align:end align
+text11
+
+00:00:00.000 --> 00:00:01.000 align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:end align:center
+text12

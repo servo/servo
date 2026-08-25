@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: Percentage widths on INPUT elements with borders</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-10-06 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/block/016.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#the-width-property"/>
+  <link rel="match" href="blocks-026-ref.xht" />
+
+  <style type="text/css">
+   div, div p, div input { margin: 0; border: 0; padding: 0; }
+   div { height: 0; }
+   div p, div input { width: 50%; height: 300px; }
+   div p { background: red; }
+   div input { border: 100px solid green; background: green; display: block; }
+   /* input should be at LEAST 50% wide, it may even be 50% + 200px if
+      the browser doesn't assume box-sizing: border-box. However,
+      there is no way the input can be narrower than the p. */
+  </style>
+ </head>
+ <body>
+  <p>Test passes if there is a big filled green square and <strong>no red</strong>.</p>
+  <div><p></p></div>
+  <div><input /></div>
+
+
+</body>
+</html>

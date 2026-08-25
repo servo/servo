@@ -1,0 +1,6811 @@
+# WARNING: This file is auto-generated. Do NOT modify it manually, but rather
+# modify the generating script file. Otherwise changes will be lost!
+
+group vector_swizzles "Vector Swizzles"
+
+  case mediump_vec2_x
+  	values
+  	{
+  		input vec2 in0 = [ vec2(0.0, 0.5) | vec2(1.0, 1.25) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(-0.75, -0.0322580645161) ];
+  		output float out0 = [ 0.0 | 1.0 | -0.5 | -32.0 | -0.75 ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.x;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec2_xx
+  	values
+  	{
+  		input vec2 in0 = [ vec2(0.0, 0.5) | vec2(1.0, 1.25) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(-0.75, -0.0322580645161) ];
+  		output vec2 out0 = [ vec2(0.0, 0.0) | vec2(1.0, 1.0) | vec2(-0.5, -0.5) | vec2(-32.0, -32.0) | vec2(-0.75, -0.75) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.xx;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec2_xy
+  	values
+  	{
+  		input vec2 in0 = [ vec2(0.0, 0.5) | vec2(1.0, 1.25) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(-0.75, -0.0322580645161) ];
+  		output vec2 out0 = [ vec2(0.0, 0.5) | vec2(1.0, 1.25) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(-0.75, -0.0322580645161) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.xy;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec2_yx
+  	values
+  	{
+  		input vec2 in0 = [ vec2(0.0, 0.5) | vec2(1.0, 1.25) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(-0.75, -0.0322580645161) ];
+  		output vec2 out0 = [ vec2(0.5, 0.0) | vec2(1.25, 1.0) | vec2(-2.25, -0.5) | vec2(64.0, -32.0) | vec2(-0.0322580645161, -0.75) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.yx;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec2_yxy
+  	values
+  	{
+  		input vec2 in0 = [ vec2(0.0, 0.5) | vec2(1.0, 1.25) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(-0.75, -0.0322580645161) ];
+  		output vec3 out0 = [ vec3(0.5, 0.0, 0.5) | vec3(1.25, 1.0, 1.25) | vec3(-2.25, -0.5, -2.25) | vec3(64.0, -32.0, 64.0) | vec3(-0.0322580645161, -0.75, -0.0322580645161) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.yxy;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec2_xyxx
+  	values
+  	{
+  		input vec2 in0 = [ vec2(0.0, 0.5) | vec2(1.0, 1.25) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(-0.75, -0.0322580645161) ];
+  		output vec4 out0 = [ vec4(0.0, 0.5, 0.0, 0.0) | vec4(1.0, 1.25, 1.0, 1.0) | vec4(-0.5, -2.25, -0.5, -0.5) | vec4(-32.0, 64.0, -32.0, -32.0) | vec4(-0.75, -0.0322580645161, -0.75, -0.75) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.xyxx;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec2_yyyy
+  	values
+  	{
+  		input vec2 in0 = [ vec2(0.0, 0.5) | vec2(1.0, 1.25) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(-0.75, -0.0322580645161) ];
+  		output vec4 out0 = [ vec4(0.5, 0.5, 0.5, 0.5) | vec4(1.25, 1.25, 1.25, 1.25) | vec4(-2.25, -2.25, -2.25, -2.25) | vec4(64.0, 64.0, 64.0, 64.0) | vec4(-0.0322580645161, -0.0322580645161, -0.0322580645161, -0.0322580645161) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.yyyy;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec2_s
+  	values
+  	{
+  		input vec2 in0 = [ vec2(0.0, 0.5) | vec2(1.0, 1.25) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(-0.75, -0.0322580645161) ];
+  		output float out0 = [ 0.0 | 1.0 | -0.5 | -32.0 | -0.75 ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.s;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec2_ss
+  	values
+  	{
+  		input vec2 in0 = [ vec2(0.0, 0.5) | vec2(1.0, 1.25) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(-0.75, -0.0322580645161) ];
+  		output vec2 out0 = [ vec2(0.0, 0.0) | vec2(1.0, 1.0) | vec2(-0.5, -0.5) | vec2(-32.0, -32.0) | vec2(-0.75, -0.75) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.ss;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec2_st
+  	values
+  	{
+  		input vec2 in0 = [ vec2(0.0, 0.5) | vec2(1.0, 1.25) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(-0.75, -0.0322580645161) ];
+  		output vec2 out0 = [ vec2(0.0, 0.5) | vec2(1.0, 1.25) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(-0.75, -0.0322580645161) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.st;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec2_ts
+  	values
+  	{
+  		input vec2 in0 = [ vec2(0.0, 0.5) | vec2(1.0, 1.25) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(-0.75, -0.0322580645161) ];
+  		output vec2 out0 = [ vec2(0.5, 0.0) | vec2(1.25, 1.0) | vec2(-2.25, -0.5) | vec2(64.0, -32.0) | vec2(-0.0322580645161, -0.75) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.ts;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec2_tst
+  	values
+  	{
+  		input vec2 in0 = [ vec2(0.0, 0.5) | vec2(1.0, 1.25) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(-0.75, -0.0322580645161) ];
+  		output vec3 out0 = [ vec3(0.5, 0.0, 0.5) | vec3(1.25, 1.0, 1.25) | vec3(-2.25, -0.5, -2.25) | vec3(64.0, -32.0, 64.0) | vec3(-0.0322580645161, -0.75, -0.0322580645161) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.tst;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec2_stss
+  	values
+  	{
+  		input vec2 in0 = [ vec2(0.0, 0.5) | vec2(1.0, 1.25) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(-0.75, -0.0322580645161) ];
+  		output vec4 out0 = [ vec4(0.0, 0.5, 0.0, 0.0) | vec4(1.0, 1.25, 1.0, 1.0) | vec4(-0.5, -2.25, -0.5, -0.5) | vec4(-32.0, 64.0, -32.0, -32.0) | vec4(-0.75, -0.0322580645161, -0.75, -0.75) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.stss;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec2_tttt
+  	values
+  	{
+  		input vec2 in0 = [ vec2(0.0, 0.5) | vec2(1.0, 1.25) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(-0.75, -0.0322580645161) ];
+  		output vec4 out0 = [ vec4(0.5, 0.5, 0.5, 0.5) | vec4(1.25, 1.25, 1.25, 1.25) | vec4(-2.25, -2.25, -2.25, -2.25) | vec4(64.0, 64.0, 64.0, 64.0) | vec4(-0.0322580645161, -0.0322580645161, -0.0322580645161, -0.0322580645161) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.tttt;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec2_r
+  	values
+  	{
+  		input vec2 in0 = [ vec2(0.0, 0.5) | vec2(1.0, 1.25) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(-0.75, -0.0322580645161) ];
+  		output float out0 = [ 0.0 | 1.0 | -0.5 | -32.0 | -0.75 ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.r;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec2_rr
+  	values
+  	{
+  		input vec2 in0 = [ vec2(0.0, 0.5) | vec2(1.0, 1.25) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(-0.75, -0.0322580645161) ];
+  		output vec2 out0 = [ vec2(0.0, 0.0) | vec2(1.0, 1.0) | vec2(-0.5, -0.5) | vec2(-32.0, -32.0) | vec2(-0.75, -0.75) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.rr;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec2_rg
+  	values
+  	{
+  		input vec2 in0 = [ vec2(0.0, 0.5) | vec2(1.0, 1.25) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(-0.75, -0.0322580645161) ];
+  		output vec2 out0 = [ vec2(0.0, 0.5) | vec2(1.0, 1.25) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(-0.75, -0.0322580645161) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.rg;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec2_gr
+  	values
+  	{
+  		input vec2 in0 = [ vec2(0.0, 0.5) | vec2(1.0, 1.25) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(-0.75, -0.0322580645161) ];
+  		output vec2 out0 = [ vec2(0.5, 0.0) | vec2(1.25, 1.0) | vec2(-2.25, -0.5) | vec2(64.0, -32.0) | vec2(-0.0322580645161, -0.75) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.gr;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec2_grg
+  	values
+  	{
+  		input vec2 in0 = [ vec2(0.0, 0.5) | vec2(1.0, 1.25) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(-0.75, -0.0322580645161) ];
+  		output vec3 out0 = [ vec3(0.5, 0.0, 0.5) | vec3(1.25, 1.0, 1.25) | vec3(-2.25, -0.5, -2.25) | vec3(64.0, -32.0, 64.0) | vec3(-0.0322580645161, -0.75, -0.0322580645161) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.grg;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec2_rgrr
+  	values
+  	{
+  		input vec2 in0 = [ vec2(0.0, 0.5) | vec2(1.0, 1.25) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(-0.75, -0.0322580645161) ];
+  		output vec4 out0 = [ vec4(0.0, 0.5, 0.0, 0.0) | vec4(1.0, 1.25, 1.0, 1.0) | vec4(-0.5, -2.25, -0.5, -0.5) | vec4(-32.0, 64.0, -32.0, -32.0) | vec4(-0.75, -0.0322580645161, -0.75, -0.75) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.rgrr;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec2_gggg
+  	values
+  	{
+  		input vec2 in0 = [ vec2(0.0, 0.5) | vec2(1.0, 1.25) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(-0.75, -0.0322580645161) ];
+  		output vec4 out0 = [ vec4(0.5, 0.5, 0.5, 0.5) | vec4(1.25, 1.25, 1.25, 1.25) | vec4(-2.25, -2.25, -2.25, -2.25) | vec4(64.0, 64.0, 64.0, 64.0) | vec4(-0.0322580645161, -0.0322580645161, -0.0322580645161, -0.0322580645161) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.gggg;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec3_x
+  	values
+  	{
+  		input vec3 in0 = [ vec3(0.0, 0.5, 0.75) | vec3(1.0, 1.25, 1.125) | vec3(-0.5, -2.25, -4.875) | vec3(-32.0, 64.0, -51.0) | vec3(-0.75, -0.0322580645161, 0.0526315789474) ];
+  		output float out0 = [ 0.0 | 1.0 | -0.5 | -32.0 | -0.75 ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.x;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec3_z
+  	values
+  	{
+  		input vec3 in0 = [ vec3(0.0, 0.5, 0.75) | vec3(1.0, 1.25, 1.125) | vec3(-0.5, -2.25, -4.875) | vec3(-32.0, 64.0, -51.0) | vec3(-0.75, -0.0322580645161, 0.0526315789474) ];
+  		output float out0 = [ 0.75 | 1.125 | -4.875 | -51.0 | 0.0526315789474 ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.z;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec3_xz
+  	values
+  	{
+  		input vec3 in0 = [ vec3(0.0, 0.5, 0.75) | vec3(1.0, 1.25, 1.125) | vec3(-0.5, -2.25, -4.875) | vec3(-32.0, 64.0, -51.0) | vec3(-0.75, -0.0322580645161, 0.0526315789474) ];
+  		output vec2 out0 = [ vec2(0.0, 0.75) | vec2(1.0, 1.125) | vec2(-0.5, -4.875) | vec2(-32.0, -51.0) | vec2(-0.75, 0.0526315789474) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.xz;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec3_zz
+  	values
+  	{
+  		input vec3 in0 = [ vec3(0.0, 0.5, 0.75) | vec3(1.0, 1.25, 1.125) | vec3(-0.5, -2.25, -4.875) | vec3(-32.0, 64.0, -51.0) | vec3(-0.75, -0.0322580645161, 0.0526315789474) ];
+  		output vec2 out0 = [ vec2(0.75, 0.75) | vec2(1.125, 1.125) | vec2(-4.875, -4.875) | vec2(-51.0, -51.0) | vec2(0.0526315789474, 0.0526315789474) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.zz;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec3_xyz
+  	values
+  	{
+  		input vec3 in0 = [ vec3(0.0, 0.5, 0.75) | vec3(1.0, 1.25, 1.125) | vec3(-0.5, -2.25, -4.875) | vec3(-32.0, 64.0, -51.0) | vec3(-0.75, -0.0322580645161, 0.0526315789474) ];
+  		output vec3 out0 = [ vec3(0.0, 0.5, 0.75) | vec3(1.0, 1.25, 1.125) | vec3(-0.5, -2.25, -4.875) | vec3(-32.0, 64.0, -51.0) | vec3(-0.75, -0.0322580645161, 0.0526315789474) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.xyz;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec3_zyx
+  	values
+  	{
+  		input vec3 in0 = [ vec3(0.0, 0.5, 0.75) | vec3(1.0, 1.25, 1.125) | vec3(-0.5, -2.25, -4.875) | vec3(-32.0, 64.0, -51.0) | vec3(-0.75, -0.0322580645161, 0.0526315789474) ];
+  		output vec3 out0 = [ vec3(0.75, 0.5, 0.0) | vec3(1.125, 1.25, 1.0) | vec3(-4.875, -2.25, -0.5) | vec3(-51.0, 64.0, -32.0) | vec3(0.0526315789474, -0.0322580645161, -0.75) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.zyx;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec3_xxx
+  	values
+  	{
+  		input vec3 in0 = [ vec3(0.0, 0.5, 0.75) | vec3(1.0, 1.25, 1.125) | vec3(-0.5, -2.25, -4.875) | vec3(-32.0, 64.0, -51.0) | vec3(-0.75, -0.0322580645161, 0.0526315789474) ];
+  		output vec3 out0 = [ vec3(0.0, 0.0, 0.0) | vec3(1.0, 1.0, 1.0) | vec3(-0.5, -0.5, -0.5) | vec3(-32.0, -32.0, -32.0) | vec3(-0.75, -0.75, -0.75) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.xxx;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec3_zzz
+  	values
+  	{
+  		input vec3 in0 = [ vec3(0.0, 0.5, 0.75) | vec3(1.0, 1.25, 1.125) | vec3(-0.5, -2.25, -4.875) | vec3(-32.0, 64.0, -51.0) | vec3(-0.75, -0.0322580645161, 0.0526315789474) ];
+  		output vec3 out0 = [ vec3(0.75, 0.75, 0.75) | vec3(1.125, 1.125, 1.125) | vec3(-4.875, -4.875, -4.875) | vec3(-51.0, -51.0, -51.0) | vec3(0.0526315789474, 0.0526315789474, 0.0526315789474) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.zzz;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec3_zzy
+  	values
+  	{
+  		input vec3 in0 = [ vec3(0.0, 0.5, 0.75) | vec3(1.0, 1.25, 1.125) | vec3(-0.5, -2.25, -4.875) | vec3(-32.0, 64.0, -51.0) | vec3(-0.75, -0.0322580645161, 0.0526315789474) ];
+  		output vec3 out0 = [ vec3(0.75, 0.75, 0.5) | vec3(1.125, 1.125, 1.25) | vec3(-4.875, -4.875, -2.25) | vec3(-51.0, -51.0, 64.0) | vec3(0.0526315789474, 0.0526315789474, -0.0322580645161) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.zzy;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec3_yxy
+  	values
+  	{
+  		input vec3 in0 = [ vec3(0.0, 0.5, 0.75) | vec3(1.0, 1.25, 1.125) | vec3(-0.5, -2.25, -4.875) | vec3(-32.0, 64.0, -51.0) | vec3(-0.75, -0.0322580645161, 0.0526315789474) ];
+  		output vec3 out0 = [ vec3(0.5, 0.0, 0.5) | vec3(1.25, 1.0, 1.25) | vec3(-2.25, -0.5, -2.25) | vec3(64.0, -32.0, 64.0) | vec3(-0.0322580645161, -0.75, -0.0322580645161) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.yxy;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec3_xzx
+  	values
+  	{
+  		input vec3 in0 = [ vec3(0.0, 0.5, 0.75) | vec3(1.0, 1.25, 1.125) | vec3(-0.5, -2.25, -4.875) | vec3(-32.0, 64.0, -51.0) | vec3(-0.75, -0.0322580645161, 0.0526315789474) ];
+  		output vec3 out0 = [ vec3(0.0, 0.75, 0.0) | vec3(1.0, 1.125, 1.0) | vec3(-0.5, -4.875, -0.5) | vec3(-32.0, -51.0, -32.0) | vec3(-0.75, 0.0526315789474, -0.75) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.xzx;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec3_xyyx
+  	values
+  	{
+  		input vec3 in0 = [ vec3(0.0, 0.5, 0.75) | vec3(1.0, 1.25, 1.125) | vec3(-0.5, -2.25, -4.875) | vec3(-32.0, 64.0, -51.0) | vec3(-0.75, -0.0322580645161, 0.0526315789474) ];
+  		output vec4 out0 = [ vec4(0.0, 0.5, 0.5, 0.0) | vec4(1.0, 1.25, 1.25, 1.0) | vec4(-0.5, -2.25, -2.25, -0.5) | vec4(-32.0, 64.0, 64.0, -32.0) | vec4(-0.75, -0.0322580645161, -0.0322580645161, -0.75) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.xyyx;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec3_zzzz
+  	values
+  	{
+  		input vec3 in0 = [ vec3(0.0, 0.5, 0.75) | vec3(1.0, 1.25, 1.125) | vec3(-0.5, -2.25, -4.875) | vec3(-32.0, 64.0, -51.0) | vec3(-0.75, -0.0322580645161, 0.0526315789474) ];
+  		output vec4 out0 = [ vec4(0.75, 0.75, 0.75, 0.75) | vec4(1.125, 1.125, 1.125, 1.125) | vec4(-4.875, -4.875, -4.875, -4.875) | vec4(-51.0, -51.0, -51.0, -51.0) | vec4(0.0526315789474, 0.0526315789474, 0.0526315789474, 0.0526315789474) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.zzzz;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec3_s
+  	values
+  	{
+  		input vec3 in0 = [ vec3(0.0, 0.5, 0.75) | vec3(1.0, 1.25, 1.125) | vec3(-0.5, -2.25, -4.875) | vec3(-32.0, 64.0, -51.0) | vec3(-0.75, -0.0322580645161, 0.0526315789474) ];
+  		output float out0 = [ 0.0 | 1.0 | -0.5 | -32.0 | -0.75 ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.s;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec3_p
+  	values
+  	{
+  		input vec3 in0 = [ vec3(0.0, 0.5, 0.75) | vec3(1.0, 1.25, 1.125) | vec3(-0.5, -2.25, -4.875) | vec3(-32.0, 64.0, -51.0) | vec3(-0.75, -0.0322580645161, 0.0526315789474) ];
+  		output float out0 = [ 0.75 | 1.125 | -4.875 | -51.0 | 0.0526315789474 ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.p;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec3_sp
+  	values
+  	{
+  		input vec3 in0 = [ vec3(0.0, 0.5, 0.75) | vec3(1.0, 1.25, 1.125) | vec3(-0.5, -2.25, -4.875) | vec3(-32.0, 64.0, -51.0) | vec3(-0.75, -0.0322580645161, 0.0526315789474) ];
+  		output vec2 out0 = [ vec2(0.0, 0.75) | vec2(1.0, 1.125) | vec2(-0.5, -4.875) | vec2(-32.0, -51.0) | vec2(-0.75, 0.0526315789474) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.sp;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec3_pp
+  	values
+  	{
+  		input vec3 in0 = [ vec3(0.0, 0.5, 0.75) | vec3(1.0, 1.25, 1.125) | vec3(-0.5, -2.25, -4.875) | vec3(-32.0, 64.0, -51.0) | vec3(-0.75, -0.0322580645161, 0.0526315789474) ];
+  		output vec2 out0 = [ vec2(0.75, 0.75) | vec2(1.125, 1.125) | vec2(-4.875, -4.875) | vec2(-51.0, -51.0) | vec2(0.0526315789474, 0.0526315789474) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.pp;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec3_stp
+  	values
+  	{
+  		input vec3 in0 = [ vec3(0.0, 0.5, 0.75) | vec3(1.0, 1.25, 1.125) | vec3(-0.5, -2.25, -4.875) | vec3(-32.0, 64.0, -51.0) | vec3(-0.75, -0.0322580645161, 0.0526315789474) ];
+  		output vec3 out0 = [ vec3(0.0, 0.5, 0.75) | vec3(1.0, 1.25, 1.125) | vec3(-0.5, -2.25, -4.875) | vec3(-32.0, 64.0, -51.0) | vec3(-0.75, -0.0322580645161, 0.0526315789474) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.stp;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec3_pts
+  	values
+  	{
+  		input vec3 in0 = [ vec3(0.0, 0.5, 0.75) | vec3(1.0, 1.25, 1.125) | vec3(-0.5, -2.25, -4.875) | vec3(-32.0, 64.0, -51.0) | vec3(-0.75, -0.0322580645161, 0.0526315789474) ];
+  		output vec3 out0 = [ vec3(0.75, 0.5, 0.0) | vec3(1.125, 1.25, 1.0) | vec3(-4.875, -2.25, -0.5) | vec3(-51.0, 64.0, -32.0) | vec3(0.0526315789474, -0.0322580645161, -0.75) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.pts;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec3_sss
+  	values
+  	{
+  		input vec3 in0 = [ vec3(0.0, 0.5, 0.75) | vec3(1.0, 1.25, 1.125) | vec3(-0.5, -2.25, -4.875) | vec3(-32.0, 64.0, -51.0) | vec3(-0.75, -0.0322580645161, 0.0526315789474) ];
+  		output vec3 out0 = [ vec3(0.0, 0.0, 0.0) | vec3(1.0, 1.0, 1.0) | vec3(-0.5, -0.5, -0.5) | vec3(-32.0, -32.0, -32.0) | vec3(-0.75, -0.75, -0.75) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.sss;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec3_ppp
+  	values
+  	{
+  		input vec3 in0 = [ vec3(0.0, 0.5, 0.75) | vec3(1.0, 1.25, 1.125) | vec3(-0.5, -2.25, -4.875) | vec3(-32.0, 64.0, -51.0) | vec3(-0.75, -0.0322580645161, 0.0526315789474) ];
+  		output vec3 out0 = [ vec3(0.75, 0.75, 0.75) | vec3(1.125, 1.125, 1.125) | vec3(-4.875, -4.875, -4.875) | vec3(-51.0, -51.0, -51.0) | vec3(0.0526315789474, 0.0526315789474, 0.0526315789474) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.ppp;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec3_ppt
+  	values
+  	{
+  		input vec3 in0 = [ vec3(0.0, 0.5, 0.75) | vec3(1.0, 1.25, 1.125) | vec3(-0.5, -2.25, -4.875) | vec3(-32.0, 64.0, -51.0) | vec3(-0.75, -0.0322580645161, 0.0526315789474) ];
+  		output vec3 out0 = [ vec3(0.75, 0.75, 0.5) | vec3(1.125, 1.125, 1.25) | vec3(-4.875, -4.875, -2.25) | vec3(-51.0, -51.0, 64.0) | vec3(0.0526315789474, 0.0526315789474, -0.0322580645161) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.ppt;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec3_tst
+  	values
+  	{
+  		input vec3 in0 = [ vec3(0.0, 0.5, 0.75) | vec3(1.0, 1.25, 1.125) | vec3(-0.5, -2.25, -4.875) | vec3(-32.0, 64.0, -51.0) | vec3(-0.75, -0.0322580645161, 0.0526315789474) ];
+  		output vec3 out0 = [ vec3(0.5, 0.0, 0.5) | vec3(1.25, 1.0, 1.25) | vec3(-2.25, -0.5, -2.25) | vec3(64.0, -32.0, 64.0) | vec3(-0.0322580645161, -0.75, -0.0322580645161) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.tst;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec3_sps
+  	values
+  	{
+  		input vec3 in0 = [ vec3(0.0, 0.5, 0.75) | vec3(1.0, 1.25, 1.125) | vec3(-0.5, -2.25, -4.875) | vec3(-32.0, 64.0, -51.0) | vec3(-0.75, -0.0322580645161, 0.0526315789474) ];
+  		output vec3 out0 = [ vec3(0.0, 0.75, 0.0) | vec3(1.0, 1.125, 1.0) | vec3(-0.5, -4.875, -0.5) | vec3(-32.0, -51.0, -32.0) | vec3(-0.75, 0.0526315789474, -0.75) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.sps;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec3_stts
+  	values
+  	{
+  		input vec3 in0 = [ vec3(0.0, 0.5, 0.75) | vec3(1.0, 1.25, 1.125) | vec3(-0.5, -2.25, -4.875) | vec3(-32.0, 64.0, -51.0) | vec3(-0.75, -0.0322580645161, 0.0526315789474) ];
+  		output vec4 out0 = [ vec4(0.0, 0.5, 0.5, 0.0) | vec4(1.0, 1.25, 1.25, 1.0) | vec4(-0.5, -2.25, -2.25, -0.5) | vec4(-32.0, 64.0, 64.0, -32.0) | vec4(-0.75, -0.0322580645161, -0.0322580645161, -0.75) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.stts;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec3_pppp
+  	values
+  	{
+  		input vec3 in0 = [ vec3(0.0, 0.5, 0.75) | vec3(1.0, 1.25, 1.125) | vec3(-0.5, -2.25, -4.875) | vec3(-32.0, 64.0, -51.0) | vec3(-0.75, -0.0322580645161, 0.0526315789474) ];
+  		output vec4 out0 = [ vec4(0.75, 0.75, 0.75, 0.75) | vec4(1.125, 1.125, 1.125, 1.125) | vec4(-4.875, -4.875, -4.875, -4.875) | vec4(-51.0, -51.0, -51.0, -51.0) | vec4(0.0526315789474, 0.0526315789474, 0.0526315789474, 0.0526315789474) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.pppp;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec3_r
+  	values
+  	{
+  		input vec3 in0 = [ vec3(0.0, 0.5, 0.75) | vec3(1.0, 1.25, 1.125) | vec3(-0.5, -2.25, -4.875) | vec3(-32.0, 64.0, -51.0) | vec3(-0.75, -0.0322580645161, 0.0526315789474) ];
+  		output float out0 = [ 0.0 | 1.0 | -0.5 | -32.0 | -0.75 ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.r;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec3_b
+  	values
+  	{
+  		input vec3 in0 = [ vec3(0.0, 0.5, 0.75) | vec3(1.0, 1.25, 1.125) | vec3(-0.5, -2.25, -4.875) | vec3(-32.0, 64.0, -51.0) | vec3(-0.75, -0.0322580645161, 0.0526315789474) ];
+  		output float out0 = [ 0.75 | 1.125 | -4.875 | -51.0 | 0.0526315789474 ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.b;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec3_rb
+  	values
+  	{
+  		input vec3 in0 = [ vec3(0.0, 0.5, 0.75) | vec3(1.0, 1.25, 1.125) | vec3(-0.5, -2.25, -4.875) | vec3(-32.0, 64.0, -51.0) | vec3(-0.75, -0.0322580645161, 0.0526315789474) ];
+  		output vec2 out0 = [ vec2(0.0, 0.75) | vec2(1.0, 1.125) | vec2(-0.5, -4.875) | vec2(-32.0, -51.0) | vec2(-0.75, 0.0526315789474) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.rb;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec3_bb
+  	values
+  	{
+  		input vec3 in0 = [ vec3(0.0, 0.5, 0.75) | vec3(1.0, 1.25, 1.125) | vec3(-0.5, -2.25, -4.875) | vec3(-32.0, 64.0, -51.0) | vec3(-0.75, -0.0322580645161, 0.0526315789474) ];
+  		output vec2 out0 = [ vec2(0.75, 0.75) | vec2(1.125, 1.125) | vec2(-4.875, -4.875) | vec2(-51.0, -51.0) | vec2(0.0526315789474, 0.0526315789474) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.bb;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec3_rgb
+  	values
+  	{
+  		input vec3 in0 = [ vec3(0.0, 0.5, 0.75) | vec3(1.0, 1.25, 1.125) | vec3(-0.5, -2.25, -4.875) | vec3(-32.0, 64.0, -51.0) | vec3(-0.75, -0.0322580645161, 0.0526315789474) ];
+  		output vec3 out0 = [ vec3(0.0, 0.5, 0.75) | vec3(1.0, 1.25, 1.125) | vec3(-0.5, -2.25, -4.875) | vec3(-32.0, 64.0, -51.0) | vec3(-0.75, -0.0322580645161, 0.0526315789474) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.rgb;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec3_bgr
+  	values
+  	{
+  		input vec3 in0 = [ vec3(0.0, 0.5, 0.75) | vec3(1.0, 1.25, 1.125) | vec3(-0.5, -2.25, -4.875) | vec3(-32.0, 64.0, -51.0) | vec3(-0.75, -0.0322580645161, 0.0526315789474) ];
+  		output vec3 out0 = [ vec3(0.75, 0.5, 0.0) | vec3(1.125, 1.25, 1.0) | vec3(-4.875, -2.25, -0.5) | vec3(-51.0, 64.0, -32.0) | vec3(0.0526315789474, -0.0322580645161, -0.75) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.bgr;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec3_rrr
+  	values
+  	{
+  		input vec3 in0 = [ vec3(0.0, 0.5, 0.75) | vec3(1.0, 1.25, 1.125) | vec3(-0.5, -2.25, -4.875) | vec3(-32.0, 64.0, -51.0) | vec3(-0.75, -0.0322580645161, 0.0526315789474) ];
+  		output vec3 out0 = [ vec3(0.0, 0.0, 0.0) | vec3(1.0, 1.0, 1.0) | vec3(-0.5, -0.5, -0.5) | vec3(-32.0, -32.0, -32.0) | vec3(-0.75, -0.75, -0.75) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.rrr;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec3_bbb
+  	values
+  	{
+  		input vec3 in0 = [ vec3(0.0, 0.5, 0.75) | vec3(1.0, 1.25, 1.125) | vec3(-0.5, -2.25, -4.875) | vec3(-32.0, 64.0, -51.0) | vec3(-0.75, -0.0322580645161, 0.0526315789474) ];
+  		output vec3 out0 = [ vec3(0.75, 0.75, 0.75) | vec3(1.125, 1.125, 1.125) | vec3(-4.875, -4.875, -4.875) | vec3(-51.0, -51.0, -51.0) | vec3(0.0526315789474, 0.0526315789474, 0.0526315789474) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.bbb;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec3_bbg
+  	values
+  	{
+  		input vec3 in0 = [ vec3(0.0, 0.5, 0.75) | vec3(1.0, 1.25, 1.125) | vec3(-0.5, -2.25, -4.875) | vec3(-32.0, 64.0, -51.0) | vec3(-0.75, -0.0322580645161, 0.0526315789474) ];
+  		output vec3 out0 = [ vec3(0.75, 0.75, 0.5) | vec3(1.125, 1.125, 1.25) | vec3(-4.875, -4.875, -2.25) | vec3(-51.0, -51.0, 64.0) | vec3(0.0526315789474, 0.0526315789474, -0.0322580645161) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.bbg;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec3_grg
+  	values
+  	{
+  		input vec3 in0 = [ vec3(0.0, 0.5, 0.75) | vec3(1.0, 1.25, 1.125) | vec3(-0.5, -2.25, -4.875) | vec3(-32.0, 64.0, -51.0) | vec3(-0.75, -0.0322580645161, 0.0526315789474) ];
+  		output vec3 out0 = [ vec3(0.5, 0.0, 0.5) | vec3(1.25, 1.0, 1.25) | vec3(-2.25, -0.5, -2.25) | vec3(64.0, -32.0, 64.0) | vec3(-0.0322580645161, -0.75, -0.0322580645161) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.grg;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec3_rbr
+  	values
+  	{
+  		input vec3 in0 = [ vec3(0.0, 0.5, 0.75) | vec3(1.0, 1.25, 1.125) | vec3(-0.5, -2.25, -4.875) | vec3(-32.0, 64.0, -51.0) | vec3(-0.75, -0.0322580645161, 0.0526315789474) ];
+  		output vec3 out0 = [ vec3(0.0, 0.75, 0.0) | vec3(1.0, 1.125, 1.0) | vec3(-0.5, -4.875, -0.5) | vec3(-32.0, -51.0, -32.0) | vec3(-0.75, 0.0526315789474, -0.75) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.rbr;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec3_rggr
+  	values
+  	{
+  		input vec3 in0 = [ vec3(0.0, 0.5, 0.75) | vec3(1.0, 1.25, 1.125) | vec3(-0.5, -2.25, -4.875) | vec3(-32.0, 64.0, -51.0) | vec3(-0.75, -0.0322580645161, 0.0526315789474) ];
+  		output vec4 out0 = [ vec4(0.0, 0.5, 0.5, 0.0) | vec4(1.0, 1.25, 1.25, 1.0) | vec4(-0.5, -2.25, -2.25, -0.5) | vec4(-32.0, 64.0, 64.0, -32.0) | vec4(-0.75, -0.0322580645161, -0.0322580645161, -0.75) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.rggr;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec3_bbbb
+  	values
+  	{
+  		input vec3 in0 = [ vec3(0.0, 0.5, 0.75) | vec3(1.0, 1.25, 1.125) | vec3(-0.5, -2.25, -4.875) | vec3(-32.0, 64.0, -51.0) | vec3(-0.75, -0.0322580645161, 0.0526315789474) ];
+  		output vec4 out0 = [ vec4(0.75, 0.75, 0.75, 0.75) | vec4(1.125, 1.125, 1.125, 1.125) | vec4(-4.875, -4.875, -4.875, -4.875) | vec4(-51.0, -51.0, -51.0, -51.0) | vec4(0.0526315789474, 0.0526315789474, 0.0526315789474, 0.0526315789474) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.bbbb;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec4_x
+  	values
+  	{
+  		input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  		output float out0 = [ 0.0 | 1.0 | -0.5 | -32.0 | -0.75 ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.x;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec4_w
+  	values
+  	{
+  		input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  		output float out0 = [ 0.825 | 1.75 | 9.0 | 24.0 | 0.25 ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.w;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec4_wx
+  	values
+  	{
+  		input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  		output vec2 out0 = [ vec2(0.825, 0.0) | vec2(1.75, 1.0) | vec2(9.0, -0.5) | vec2(24.0, -32.0) | vec2(0.25, -0.75) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.wx;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec4_wz
+  	values
+  	{
+  		input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  		output vec2 out0 = [ vec2(0.825, 0.75) | vec2(1.75, 1.125) | vec2(9.0, -4.875) | vec2(24.0, -51.0) | vec2(0.25, 0.0526315789474) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.wz;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec4_www
+  	values
+  	{
+  		input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  		output vec3 out0 = [ vec3(0.825, 0.825, 0.825) | vec3(1.75, 1.75, 1.75) | vec3(9.0, 9.0, 9.0) | vec3(24.0, 24.0, 24.0) | vec3(0.25, 0.25, 0.25) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.www;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec4_yyw
+  	values
+  	{
+  		input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  		output vec3 out0 = [ vec3(0.5, 0.5, 0.825) | vec3(1.25, 1.25, 1.75) | vec3(-2.25, -2.25, 9.0) | vec3(64.0, 64.0, 24.0) | vec3(-0.0322580645161, -0.0322580645161, 0.25) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.yyw;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec4_wzy
+  	values
+  	{
+  		input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  		output vec3 out0 = [ vec3(0.825, 0.75, 0.5) | vec3(1.75, 1.125, 1.25) | vec3(9.0, -4.875, -2.25) | vec3(24.0, -51.0, 64.0) | vec3(0.25, 0.0526315789474, -0.0322580645161) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.wzy;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec4_xyzw
+  	values
+  	{
+  		input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  		output vec4 out0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.xyzw;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec4_wzyx
+  	values
+  	{
+  		input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  		output vec4 out0 = [ vec4(0.825, 0.75, 0.5, 0.0) | vec4(1.75, 1.125, 1.25, 1.0) | vec4(9.0, -4.875, -2.25, -0.5) | vec4(24.0, -51.0, 64.0, -32.0) | vec4(0.25, 0.0526315789474, -0.0322580645161, -0.75) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.wzyx;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec4_xxxx
+  	values
+  	{
+  		input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  		output vec4 out0 = [ vec4(0.0, 0.0, 0.0, 0.0) | vec4(1.0, 1.0, 1.0, 1.0) | vec4(-0.5, -0.5, -0.5, -0.5) | vec4(-32.0, -32.0, -32.0, -32.0) | vec4(-0.75, -0.75, -0.75, -0.75) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.xxxx;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec4_yyyy
+  	values
+  	{
+  		input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  		output vec4 out0 = [ vec4(0.5, 0.5, 0.5, 0.5) | vec4(1.25, 1.25, 1.25, 1.25) | vec4(-2.25, -2.25, -2.25, -2.25) | vec4(64.0, 64.0, 64.0, 64.0) | vec4(-0.0322580645161, -0.0322580645161, -0.0322580645161, -0.0322580645161) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.yyyy;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec4_wwww
+  	values
+  	{
+  		input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  		output vec4 out0 = [ vec4(0.825, 0.825, 0.825, 0.825) | vec4(1.75, 1.75, 1.75, 1.75) | vec4(9.0, 9.0, 9.0, 9.0) | vec4(24.0, 24.0, 24.0, 24.0) | vec4(0.25, 0.25, 0.25, 0.25) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.wwww;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec4_wzzw
+  	values
+  	{
+  		input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  		output vec4 out0 = [ vec4(0.825, 0.75, 0.75, 0.825) | vec4(1.75, 1.125, 1.125, 1.75) | vec4(9.0, -4.875, -4.875, 9.0) | vec4(24.0, -51.0, -51.0, 24.0) | vec4(0.25, 0.0526315789474, 0.0526315789474, 0.25) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.wzzw;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec4_wwwy
+  	values
+  	{
+  		input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  		output vec4 out0 = [ vec4(0.825, 0.825, 0.825, 0.5) | vec4(1.75, 1.75, 1.75, 1.25) | vec4(9.0, 9.0, 9.0, -2.25) | vec4(24.0, 24.0, 24.0, 64.0) | vec4(0.25, 0.25, 0.25, -0.0322580645161) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.wwwy;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec4_xyxx
+  	values
+  	{
+  		input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  		output vec4 out0 = [ vec4(0.0, 0.5, 0.0, 0.0) | vec4(1.0, 1.25, 1.0, 1.0) | vec4(-0.5, -2.25, -0.5, -0.5) | vec4(-32.0, 64.0, -32.0, -32.0) | vec4(-0.75, -0.0322580645161, -0.75, -0.75) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.xyxx;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec4_zzwz
+  	values
+  	{
+  		input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  		output vec4 out0 = [ vec4(0.75, 0.75, 0.825, 0.75) | vec4(1.125, 1.125, 1.75, 1.125) | vec4(-4.875, -4.875, 9.0, -4.875) | vec4(-51.0, -51.0, 24.0, -51.0) | vec4(0.0526315789474, 0.0526315789474, 0.25, 0.0526315789474) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.zzwz;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec4_s
+  	values
+  	{
+  		input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  		output float out0 = [ 0.0 | 1.0 | -0.5 | -32.0 | -0.75 ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.s;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec4_q
+  	values
+  	{
+  		input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  		output float out0 = [ 0.825 | 1.75 | 9.0 | 24.0 | 0.25 ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.q;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec4_qs
+  	values
+  	{
+  		input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  		output vec2 out0 = [ vec2(0.825, 0.0) | vec2(1.75, 1.0) | vec2(9.0, -0.5) | vec2(24.0, -32.0) | vec2(0.25, -0.75) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.qs;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec4_qp
+  	values
+  	{
+  		input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  		output vec2 out0 = [ vec2(0.825, 0.75) | vec2(1.75, 1.125) | vec2(9.0, -4.875) | vec2(24.0, -51.0) | vec2(0.25, 0.0526315789474) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.qp;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec4_qqq
+  	values
+  	{
+  		input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  		output vec3 out0 = [ vec3(0.825, 0.825, 0.825) | vec3(1.75, 1.75, 1.75) | vec3(9.0, 9.0, 9.0) | vec3(24.0, 24.0, 24.0) | vec3(0.25, 0.25, 0.25) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.qqq;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec4_ttq
+  	values
+  	{
+  		input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  		output vec3 out0 = [ vec3(0.5, 0.5, 0.825) | vec3(1.25, 1.25, 1.75) | vec3(-2.25, -2.25, 9.0) | vec3(64.0, 64.0, 24.0) | vec3(-0.0322580645161, -0.0322580645161, 0.25) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.ttq;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec4_qpt
+  	values
+  	{
+  		input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  		output vec3 out0 = [ vec3(0.825, 0.75, 0.5) | vec3(1.75, 1.125, 1.25) | vec3(9.0, -4.875, -2.25) | vec3(24.0, -51.0, 64.0) | vec3(0.25, 0.0526315789474, -0.0322580645161) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.qpt;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec4_stpq
+  	values
+  	{
+  		input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  		output vec4 out0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.stpq;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec4_qpts
+  	values
+  	{
+  		input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  		output vec4 out0 = [ vec4(0.825, 0.75, 0.5, 0.0) | vec4(1.75, 1.125, 1.25, 1.0) | vec4(9.0, -4.875, -2.25, -0.5) | vec4(24.0, -51.0, 64.0, -32.0) | vec4(0.25, 0.0526315789474, -0.0322580645161, -0.75) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.qpts;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec4_ssss
+  	values
+  	{
+  		input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  		output vec4 out0 = [ vec4(0.0, 0.0, 0.0, 0.0) | vec4(1.0, 1.0, 1.0, 1.0) | vec4(-0.5, -0.5, -0.5, -0.5) | vec4(-32.0, -32.0, -32.0, -32.0) | vec4(-0.75, -0.75, -0.75, -0.75) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.ssss;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec4_tttt
+  	values
+  	{
+  		input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  		output vec4 out0 = [ vec4(0.5, 0.5, 0.5, 0.5) | vec4(1.25, 1.25, 1.25, 1.25) | vec4(-2.25, -2.25, -2.25, -2.25) | vec4(64.0, 64.0, 64.0, 64.0) | vec4(-0.0322580645161, -0.0322580645161, -0.0322580645161, -0.0322580645161) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.tttt;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec4_qqqq
+  	values
+  	{
+  		input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  		output vec4 out0 = [ vec4(0.825, 0.825, 0.825, 0.825) | vec4(1.75, 1.75, 1.75, 1.75) | vec4(9.0, 9.0, 9.0, 9.0) | vec4(24.0, 24.0, 24.0, 24.0) | vec4(0.25, 0.25, 0.25, 0.25) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.qqqq;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec4_qppq
+  	values
+  	{
+  		input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  		output vec4 out0 = [ vec4(0.825, 0.75, 0.75, 0.825) | vec4(1.75, 1.125, 1.125, 1.75) | vec4(9.0, -4.875, -4.875, 9.0) | vec4(24.0, -51.0, -51.0, 24.0) | vec4(0.25, 0.0526315789474, 0.0526315789474, 0.25) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.qppq;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec4_qqqt
+  	values
+  	{
+  		input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  		output vec4 out0 = [ vec4(0.825, 0.825, 0.825, 0.5) | vec4(1.75, 1.75, 1.75, 1.25) | vec4(9.0, 9.0, 9.0, -2.25) | vec4(24.0, 24.0, 24.0, 64.0) | vec4(0.25, 0.25, 0.25, -0.0322580645161) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.qqqt;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec4_stss
+  	values
+  	{
+  		input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  		output vec4 out0 = [ vec4(0.0, 0.5, 0.0, 0.0) | vec4(1.0, 1.25, 1.0, 1.0) | vec4(-0.5, -2.25, -0.5, -0.5) | vec4(-32.0, 64.0, -32.0, -32.0) | vec4(-0.75, -0.0322580645161, -0.75, -0.75) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.stss;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec4_ppqp
+  	values
+  	{
+  		input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  		output vec4 out0 = [ vec4(0.75, 0.75, 0.825, 0.75) | vec4(1.125, 1.125, 1.75, 1.125) | vec4(-4.875, -4.875, 9.0, -4.875) | vec4(-51.0, -51.0, 24.0, -51.0) | vec4(0.0526315789474, 0.0526315789474, 0.25, 0.0526315789474) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.ppqp;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec4_r
+  	values
+  	{
+  		input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  		output float out0 = [ 0.0 | 1.0 | -0.5 | -32.0 | -0.75 ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.r;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec4_a
+  	values
+  	{
+  		input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  		output float out0 = [ 0.825 | 1.75 | 9.0 | 24.0 | 0.25 ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.a;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec4_ar
+  	values
+  	{
+  		input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  		output vec2 out0 = [ vec2(0.825, 0.0) | vec2(1.75, 1.0) | vec2(9.0, -0.5) | vec2(24.0, -32.0) | vec2(0.25, -0.75) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.ar;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec4_ab
+  	values
+  	{
+  		input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  		output vec2 out0 = [ vec2(0.825, 0.75) | vec2(1.75, 1.125) | vec2(9.0, -4.875) | vec2(24.0, -51.0) | vec2(0.25, 0.0526315789474) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.ab;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec4_aaa
+  	values
+  	{
+  		input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  		output vec3 out0 = [ vec3(0.825, 0.825, 0.825) | vec3(1.75, 1.75, 1.75) | vec3(9.0, 9.0, 9.0) | vec3(24.0, 24.0, 24.0) | vec3(0.25, 0.25, 0.25) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.aaa;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec4_gga
+  	values
+  	{
+  		input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  		output vec3 out0 = [ vec3(0.5, 0.5, 0.825) | vec3(1.25, 1.25, 1.75) | vec3(-2.25, -2.25, 9.0) | vec3(64.0, 64.0, 24.0) | vec3(-0.0322580645161, -0.0322580645161, 0.25) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.gga;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec4_abg
+  	values
+  	{
+  		input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  		output vec3 out0 = [ vec3(0.825, 0.75, 0.5) | vec3(1.75, 1.125, 1.25) | vec3(9.0, -4.875, -2.25) | vec3(24.0, -51.0, 64.0) | vec3(0.25, 0.0526315789474, -0.0322580645161) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.abg;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec4_rgba
+  	values
+  	{
+  		input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  		output vec4 out0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.rgba;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec4_abgr
+  	values
+  	{
+  		input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  		output vec4 out0 = [ vec4(0.825, 0.75, 0.5, 0.0) | vec4(1.75, 1.125, 1.25, 1.0) | vec4(9.0, -4.875, -2.25, -0.5) | vec4(24.0, -51.0, 64.0, -32.0) | vec4(0.25, 0.0526315789474, -0.0322580645161, -0.75) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.abgr;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec4_rrrr
+  	values
+  	{
+  		input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  		output vec4 out0 = [ vec4(0.0, 0.0, 0.0, 0.0) | vec4(1.0, 1.0, 1.0, 1.0) | vec4(-0.5, -0.5, -0.5, -0.5) | vec4(-32.0, -32.0, -32.0, -32.0) | vec4(-0.75, -0.75, -0.75, -0.75) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.rrrr;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec4_gggg
+  	values
+  	{
+  		input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  		output vec4 out0 = [ vec4(0.5, 0.5, 0.5, 0.5) | vec4(1.25, 1.25, 1.25, 1.25) | vec4(-2.25, -2.25, -2.25, -2.25) | vec4(64.0, 64.0, 64.0, 64.0) | vec4(-0.0322580645161, -0.0322580645161, -0.0322580645161, -0.0322580645161) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.gggg;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec4_aaaa
+  	values
+  	{
+  		input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  		output vec4 out0 = [ vec4(0.825, 0.825, 0.825, 0.825) | vec4(1.75, 1.75, 1.75, 1.75) | vec4(9.0, 9.0, 9.0, 9.0) | vec4(24.0, 24.0, 24.0, 24.0) | vec4(0.25, 0.25, 0.25, 0.25) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.aaaa;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec4_abba
+  	values
+  	{
+  		input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  		output vec4 out0 = [ vec4(0.825, 0.75, 0.75, 0.825) | vec4(1.75, 1.125, 1.125, 1.75) | vec4(9.0, -4.875, -4.875, 9.0) | vec4(24.0, -51.0, -51.0, 24.0) | vec4(0.25, 0.0526315789474, 0.0526315789474, 0.25) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.abba;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec4_aaag
+  	values
+  	{
+  		input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  		output vec4 out0 = [ vec4(0.825, 0.825, 0.825, 0.5) | vec4(1.75, 1.75, 1.75, 1.25) | vec4(9.0, 9.0, 9.0, -2.25) | vec4(24.0, 24.0, 24.0, 64.0) | vec4(0.25, 0.25, 0.25, -0.0322580645161) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.aaag;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec4_rgrr
+  	values
+  	{
+  		input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  		output vec4 out0 = [ vec4(0.0, 0.5, 0.0, 0.0) | vec4(1.0, 1.25, 1.0, 1.0) | vec4(-0.5, -2.25, -0.5, -0.5) | vec4(-32.0, 64.0, -32.0, -32.0) | vec4(-0.75, -0.0322580645161, -0.75, -0.75) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.rgrr;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_vec4_bbab
+  	values
+  	{
+  		input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+  		output vec4 out0 = [ vec4(0.75, 0.75, 0.825, 0.75) | vec4(1.125, 1.125, 1.75, 1.125) | vec4(-4.875, -4.875, 9.0, -4.875) | vec4(-51.0, -51.0, 24.0, -51.0) | vec4(0.0526315789474, 0.0526315789474, 0.25, 0.0526315789474) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.bbab;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec2_x
+  	values
+  	{
+  		input ivec2 in0 = [ ivec2(0, 0) | ivec2(1, 1) | ivec2(0, -2) | ivec2(-32, 64) | ivec2(0, 0) ];
+  		output int out0 = [ 0 | 1 | 0 | -32 | 0 ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.x;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec2_xx
+  	values
+  	{
+  		input ivec2 in0 = [ ivec2(0, 0) | ivec2(1, 1) | ivec2(0, -2) | ivec2(-32, 64) | ivec2(0, 0) ];
+  		output ivec2 out0 = [ ivec2(0, 0) | ivec2(1, 1) | ivec2(0, 0) | ivec2(-32, -32) | ivec2(0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.xx;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec2_xy
+  	values
+  	{
+  		input ivec2 in0 = [ ivec2(0, 0) | ivec2(1, 1) | ivec2(0, -2) | ivec2(-32, 64) | ivec2(0, 0) ];
+  		output ivec2 out0 = [ ivec2(0, 0) | ivec2(1, 1) | ivec2(0, -2) | ivec2(-32, 64) | ivec2(0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.xy;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec2_yx
+  	values
+  	{
+  		input ivec2 in0 = [ ivec2(0, 0) | ivec2(1, 1) | ivec2(0, -2) | ivec2(-32, 64) | ivec2(0, 0) ];
+  		output ivec2 out0 = [ ivec2(0, 0) | ivec2(1, 1) | ivec2(-2, 0) | ivec2(64, -32) | ivec2(0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.yx;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec2_yxy
+  	values
+  	{
+  		input ivec2 in0 = [ ivec2(0, 0) | ivec2(1, 1) | ivec2(0, -2) | ivec2(-32, 64) | ivec2(0, 0) ];
+  		output ivec3 out0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(-2, 0, -2) | ivec3(64, -32, 64) | ivec3(0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.yxy;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec2_xyxx
+  	values
+  	{
+  		input ivec2 in0 = [ ivec2(0, 0) | ivec2(1, 1) | ivec2(0, -2) | ivec2(-32, 64) | ivec2(0, 0) ];
+  		output ivec4 out0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, 0, 0) | ivec4(-32, 64, -32, -32) | ivec4(0, 0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.xyxx;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec2_yyyy
+  	values
+  	{
+  		input ivec2 in0 = [ ivec2(0, 0) | ivec2(1, 1) | ivec2(0, -2) | ivec2(-32, 64) | ivec2(0, 0) ];
+  		output ivec4 out0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(-2, -2, -2, -2) | ivec4(64, 64, 64, 64) | ivec4(0, 0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.yyyy;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec2_s
+  	values
+  	{
+  		input ivec2 in0 = [ ivec2(0, 0) | ivec2(1, 1) | ivec2(0, -2) | ivec2(-32, 64) | ivec2(0, 0) ];
+  		output int out0 = [ 0 | 1 | 0 | -32 | 0 ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.s;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec2_ss
+  	values
+  	{
+  		input ivec2 in0 = [ ivec2(0, 0) | ivec2(1, 1) | ivec2(0, -2) | ivec2(-32, 64) | ivec2(0, 0) ];
+  		output ivec2 out0 = [ ivec2(0, 0) | ivec2(1, 1) | ivec2(0, 0) | ivec2(-32, -32) | ivec2(0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.ss;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec2_st
+  	values
+  	{
+  		input ivec2 in0 = [ ivec2(0, 0) | ivec2(1, 1) | ivec2(0, -2) | ivec2(-32, 64) | ivec2(0, 0) ];
+  		output ivec2 out0 = [ ivec2(0, 0) | ivec2(1, 1) | ivec2(0, -2) | ivec2(-32, 64) | ivec2(0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.st;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec2_ts
+  	values
+  	{
+  		input ivec2 in0 = [ ivec2(0, 0) | ivec2(1, 1) | ivec2(0, -2) | ivec2(-32, 64) | ivec2(0, 0) ];
+  		output ivec2 out0 = [ ivec2(0, 0) | ivec2(1, 1) | ivec2(-2, 0) | ivec2(64, -32) | ivec2(0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.ts;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec2_tst
+  	values
+  	{
+  		input ivec2 in0 = [ ivec2(0, 0) | ivec2(1, 1) | ivec2(0, -2) | ivec2(-32, 64) | ivec2(0, 0) ];
+  		output ivec3 out0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(-2, 0, -2) | ivec3(64, -32, 64) | ivec3(0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.tst;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec2_stss
+  	values
+  	{
+  		input ivec2 in0 = [ ivec2(0, 0) | ivec2(1, 1) | ivec2(0, -2) | ivec2(-32, 64) | ivec2(0, 0) ];
+  		output ivec4 out0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, 0, 0) | ivec4(-32, 64, -32, -32) | ivec4(0, 0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.stss;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec2_tttt
+  	values
+  	{
+  		input ivec2 in0 = [ ivec2(0, 0) | ivec2(1, 1) | ivec2(0, -2) | ivec2(-32, 64) | ivec2(0, 0) ];
+  		output ivec4 out0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(-2, -2, -2, -2) | ivec4(64, 64, 64, 64) | ivec4(0, 0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.tttt;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec2_r
+  	values
+  	{
+  		input ivec2 in0 = [ ivec2(0, 0) | ivec2(1, 1) | ivec2(0, -2) | ivec2(-32, 64) | ivec2(0, 0) ];
+  		output int out0 = [ 0 | 1 | 0 | -32 | 0 ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.r;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec2_rr
+  	values
+  	{
+  		input ivec2 in0 = [ ivec2(0, 0) | ivec2(1, 1) | ivec2(0, -2) | ivec2(-32, 64) | ivec2(0, 0) ];
+  		output ivec2 out0 = [ ivec2(0, 0) | ivec2(1, 1) | ivec2(0, 0) | ivec2(-32, -32) | ivec2(0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.rr;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec2_rg
+  	values
+  	{
+  		input ivec2 in0 = [ ivec2(0, 0) | ivec2(1, 1) | ivec2(0, -2) | ivec2(-32, 64) | ivec2(0, 0) ];
+  		output ivec2 out0 = [ ivec2(0, 0) | ivec2(1, 1) | ivec2(0, -2) | ivec2(-32, 64) | ivec2(0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.rg;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec2_gr
+  	values
+  	{
+  		input ivec2 in0 = [ ivec2(0, 0) | ivec2(1, 1) | ivec2(0, -2) | ivec2(-32, 64) | ivec2(0, 0) ];
+  		output ivec2 out0 = [ ivec2(0, 0) | ivec2(1, 1) | ivec2(-2, 0) | ivec2(64, -32) | ivec2(0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.gr;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec2_grg
+  	values
+  	{
+  		input ivec2 in0 = [ ivec2(0, 0) | ivec2(1, 1) | ivec2(0, -2) | ivec2(-32, 64) | ivec2(0, 0) ];
+  		output ivec3 out0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(-2, 0, -2) | ivec3(64, -32, 64) | ivec3(0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.grg;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec2_rgrr
+  	values
+  	{
+  		input ivec2 in0 = [ ivec2(0, 0) | ivec2(1, 1) | ivec2(0, -2) | ivec2(-32, 64) | ivec2(0, 0) ];
+  		output ivec4 out0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, 0, 0) | ivec4(-32, 64, -32, -32) | ivec4(0, 0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.rgrr;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec2_gggg
+  	values
+  	{
+  		input ivec2 in0 = [ ivec2(0, 0) | ivec2(1, 1) | ivec2(0, -2) | ivec2(-32, 64) | ivec2(0, 0) ];
+  		output ivec4 out0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(-2, -2, -2, -2) | ivec4(64, 64, 64, 64) | ivec4(0, 0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.gggg;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec3_x
+  	values
+  	{
+  		input ivec3 in0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(0, -2, -4) | ivec3(-32, 64, -51) | ivec3(0, 0, 0) ];
+  		output int out0 = [ 0 | 1 | 0 | -32 | 0 ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.x;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec3_z
+  	values
+  	{
+  		input ivec3 in0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(0, -2, -4) | ivec3(-32, 64, -51) | ivec3(0, 0, 0) ];
+  		output int out0 = [ 0 | 1 | -4 | -51 | 0 ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.z;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec3_xz
+  	values
+  	{
+  		input ivec3 in0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(0, -2, -4) | ivec3(-32, 64, -51) | ivec3(0, 0, 0) ];
+  		output ivec2 out0 = [ ivec2(0, 0) | ivec2(1, 1) | ivec2(0, -4) | ivec2(-32, -51) | ivec2(0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.xz;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec3_zz
+  	values
+  	{
+  		input ivec3 in0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(0, -2, -4) | ivec3(-32, 64, -51) | ivec3(0, 0, 0) ];
+  		output ivec2 out0 = [ ivec2(0, 0) | ivec2(1, 1) | ivec2(-4, -4) | ivec2(-51, -51) | ivec2(0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.zz;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec3_xyz
+  	values
+  	{
+  		input ivec3 in0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(0, -2, -4) | ivec3(-32, 64, -51) | ivec3(0, 0, 0) ];
+  		output ivec3 out0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(0, -2, -4) | ivec3(-32, 64, -51) | ivec3(0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.xyz;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec3_zyx
+  	values
+  	{
+  		input ivec3 in0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(0, -2, -4) | ivec3(-32, 64, -51) | ivec3(0, 0, 0) ];
+  		output ivec3 out0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(-4, -2, 0) | ivec3(-51, 64, -32) | ivec3(0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.zyx;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec3_xxx
+  	values
+  	{
+  		input ivec3 in0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(0, -2, -4) | ivec3(-32, 64, -51) | ivec3(0, 0, 0) ];
+  		output ivec3 out0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(0, 0, 0) | ivec3(-32, -32, -32) | ivec3(0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.xxx;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec3_zzz
+  	values
+  	{
+  		input ivec3 in0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(0, -2, -4) | ivec3(-32, 64, -51) | ivec3(0, 0, 0) ];
+  		output ivec3 out0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(-4, -4, -4) | ivec3(-51, -51, -51) | ivec3(0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.zzz;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec3_zzy
+  	values
+  	{
+  		input ivec3 in0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(0, -2, -4) | ivec3(-32, 64, -51) | ivec3(0, 0, 0) ];
+  		output ivec3 out0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(-4, -4, -2) | ivec3(-51, -51, 64) | ivec3(0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.zzy;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec3_yxy
+  	values
+  	{
+  		input ivec3 in0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(0, -2, -4) | ivec3(-32, 64, -51) | ivec3(0, 0, 0) ];
+  		output ivec3 out0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(-2, 0, -2) | ivec3(64, -32, 64) | ivec3(0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.yxy;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec3_xzx
+  	values
+  	{
+  		input ivec3 in0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(0, -2, -4) | ivec3(-32, 64, -51) | ivec3(0, 0, 0) ];
+  		output ivec3 out0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(0, -4, 0) | ivec3(-32, -51, -32) | ivec3(0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.xzx;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec3_xyyx
+  	values
+  	{
+  		input ivec3 in0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(0, -2, -4) | ivec3(-32, 64, -51) | ivec3(0, 0, 0) ];
+  		output ivec4 out0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -2, 0) | ivec4(-32, 64, 64, -32) | ivec4(0, 0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.xyyx;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec3_zzzz
+  	values
+  	{
+  		input ivec3 in0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(0, -2, -4) | ivec3(-32, 64, -51) | ivec3(0, 0, 0) ];
+  		output ivec4 out0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(-4, -4, -4, -4) | ivec4(-51, -51, -51, -51) | ivec4(0, 0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.zzzz;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec3_s
+  	values
+  	{
+  		input ivec3 in0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(0, -2, -4) | ivec3(-32, 64, -51) | ivec3(0, 0, 0) ];
+  		output int out0 = [ 0 | 1 | 0 | -32 | 0 ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.s;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec3_p
+  	values
+  	{
+  		input ivec3 in0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(0, -2, -4) | ivec3(-32, 64, -51) | ivec3(0, 0, 0) ];
+  		output int out0 = [ 0 | 1 | -4 | -51 | 0 ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.p;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec3_sp
+  	values
+  	{
+  		input ivec3 in0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(0, -2, -4) | ivec3(-32, 64, -51) | ivec3(0, 0, 0) ];
+  		output ivec2 out0 = [ ivec2(0, 0) | ivec2(1, 1) | ivec2(0, -4) | ivec2(-32, -51) | ivec2(0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.sp;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec3_pp
+  	values
+  	{
+  		input ivec3 in0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(0, -2, -4) | ivec3(-32, 64, -51) | ivec3(0, 0, 0) ];
+  		output ivec2 out0 = [ ivec2(0, 0) | ivec2(1, 1) | ivec2(-4, -4) | ivec2(-51, -51) | ivec2(0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.pp;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec3_stp
+  	values
+  	{
+  		input ivec3 in0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(0, -2, -4) | ivec3(-32, 64, -51) | ivec3(0, 0, 0) ];
+  		output ivec3 out0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(0, -2, -4) | ivec3(-32, 64, -51) | ivec3(0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.stp;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec3_pts
+  	values
+  	{
+  		input ivec3 in0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(0, -2, -4) | ivec3(-32, 64, -51) | ivec3(0, 0, 0) ];
+  		output ivec3 out0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(-4, -2, 0) | ivec3(-51, 64, -32) | ivec3(0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.pts;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec3_sss
+  	values
+  	{
+  		input ivec3 in0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(0, -2, -4) | ivec3(-32, 64, -51) | ivec3(0, 0, 0) ];
+  		output ivec3 out0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(0, 0, 0) | ivec3(-32, -32, -32) | ivec3(0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.sss;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec3_ppp
+  	values
+  	{
+  		input ivec3 in0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(0, -2, -4) | ivec3(-32, 64, -51) | ivec3(0, 0, 0) ];
+  		output ivec3 out0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(-4, -4, -4) | ivec3(-51, -51, -51) | ivec3(0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.ppp;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec3_ppt
+  	values
+  	{
+  		input ivec3 in0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(0, -2, -4) | ivec3(-32, 64, -51) | ivec3(0, 0, 0) ];
+  		output ivec3 out0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(-4, -4, -2) | ivec3(-51, -51, 64) | ivec3(0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.ppt;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec3_tst
+  	values
+  	{
+  		input ivec3 in0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(0, -2, -4) | ivec3(-32, 64, -51) | ivec3(0, 0, 0) ];
+  		output ivec3 out0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(-2, 0, -2) | ivec3(64, -32, 64) | ivec3(0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.tst;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec3_sps
+  	values
+  	{
+  		input ivec3 in0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(0, -2, -4) | ivec3(-32, 64, -51) | ivec3(0, 0, 0) ];
+  		output ivec3 out0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(0, -4, 0) | ivec3(-32, -51, -32) | ivec3(0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.sps;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec3_stts
+  	values
+  	{
+  		input ivec3 in0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(0, -2, -4) | ivec3(-32, 64, -51) | ivec3(0, 0, 0) ];
+  		output ivec4 out0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -2, 0) | ivec4(-32, 64, 64, -32) | ivec4(0, 0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.stts;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec3_pppp
+  	values
+  	{
+  		input ivec3 in0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(0, -2, -4) | ivec3(-32, 64, -51) | ivec3(0, 0, 0) ];
+  		output ivec4 out0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(-4, -4, -4, -4) | ivec4(-51, -51, -51, -51) | ivec4(0, 0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.pppp;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec3_r
+  	values
+  	{
+  		input ivec3 in0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(0, -2, -4) | ivec3(-32, 64, -51) | ivec3(0, 0, 0) ];
+  		output int out0 = [ 0 | 1 | 0 | -32 | 0 ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.r;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec3_b
+  	values
+  	{
+  		input ivec3 in0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(0, -2, -4) | ivec3(-32, 64, -51) | ivec3(0, 0, 0) ];
+  		output int out0 = [ 0 | 1 | -4 | -51 | 0 ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.b;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec3_rb
+  	values
+  	{
+  		input ivec3 in0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(0, -2, -4) | ivec3(-32, 64, -51) | ivec3(0, 0, 0) ];
+  		output ivec2 out0 = [ ivec2(0, 0) | ivec2(1, 1) | ivec2(0, -4) | ivec2(-32, -51) | ivec2(0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.rb;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec3_bb
+  	values
+  	{
+  		input ivec3 in0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(0, -2, -4) | ivec3(-32, 64, -51) | ivec3(0, 0, 0) ];
+  		output ivec2 out0 = [ ivec2(0, 0) | ivec2(1, 1) | ivec2(-4, -4) | ivec2(-51, -51) | ivec2(0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.bb;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec3_rgb
+  	values
+  	{
+  		input ivec3 in0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(0, -2, -4) | ivec3(-32, 64, -51) | ivec3(0, 0, 0) ];
+  		output ivec3 out0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(0, -2, -4) | ivec3(-32, 64, -51) | ivec3(0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.rgb;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec3_bgr
+  	values
+  	{
+  		input ivec3 in0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(0, -2, -4) | ivec3(-32, 64, -51) | ivec3(0, 0, 0) ];
+  		output ivec3 out0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(-4, -2, 0) | ivec3(-51, 64, -32) | ivec3(0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.bgr;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec3_rrr
+  	values
+  	{
+  		input ivec3 in0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(0, -2, -4) | ivec3(-32, 64, -51) | ivec3(0, 0, 0) ];
+  		output ivec3 out0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(0, 0, 0) | ivec3(-32, -32, -32) | ivec3(0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.rrr;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec3_bbb
+  	values
+  	{
+  		input ivec3 in0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(0, -2, -4) | ivec3(-32, 64, -51) | ivec3(0, 0, 0) ];
+  		output ivec3 out0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(-4, -4, -4) | ivec3(-51, -51, -51) | ivec3(0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.bbb;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec3_bbg
+  	values
+  	{
+  		input ivec3 in0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(0, -2, -4) | ivec3(-32, 64, -51) | ivec3(0, 0, 0) ];
+  		output ivec3 out0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(-4, -4, -2) | ivec3(-51, -51, 64) | ivec3(0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.bbg;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec3_grg
+  	values
+  	{
+  		input ivec3 in0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(0, -2, -4) | ivec3(-32, 64, -51) | ivec3(0, 0, 0) ];
+  		output ivec3 out0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(-2, 0, -2) | ivec3(64, -32, 64) | ivec3(0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.grg;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec3_rbr
+  	values
+  	{
+  		input ivec3 in0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(0, -2, -4) | ivec3(-32, 64, -51) | ivec3(0, 0, 0) ];
+  		output ivec3 out0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(0, -4, 0) | ivec3(-32, -51, -32) | ivec3(0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.rbr;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec3_rggr
+  	values
+  	{
+  		input ivec3 in0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(0, -2, -4) | ivec3(-32, 64, -51) | ivec3(0, 0, 0) ];
+  		output ivec4 out0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -2, 0) | ivec4(-32, 64, 64, -32) | ivec4(0, 0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.rggr;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec3_bbbb
+  	values
+  	{
+  		input ivec3 in0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(0, -2, -4) | ivec3(-32, 64, -51) | ivec3(0, 0, 0) ];
+  		output ivec4 out0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(-4, -4, -4, -4) | ivec4(-51, -51, -51, -51) | ivec4(0, 0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.bbbb;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec4_x
+  	values
+  	{
+  		input ivec4 in0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  		output int out0 = [ 0 | 1 | 0 | -32 | 0 ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.x;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec4_w
+  	values
+  	{
+  		input ivec4 in0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  		output int out0 = [ 0 | 1 | 9 | 24 | 0 ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.w;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec4_wx
+  	values
+  	{
+  		input ivec4 in0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  		output ivec2 out0 = [ ivec2(0, 0) | ivec2(1, 1) | ivec2(9, 0) | ivec2(24, -32) | ivec2(0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.wx;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec4_wz
+  	values
+  	{
+  		input ivec4 in0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  		output ivec2 out0 = [ ivec2(0, 0) | ivec2(1, 1) | ivec2(9, -4) | ivec2(24, -51) | ivec2(0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.wz;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec4_www
+  	values
+  	{
+  		input ivec4 in0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  		output ivec3 out0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(9, 9, 9) | ivec3(24, 24, 24) | ivec3(0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.www;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec4_yyw
+  	values
+  	{
+  		input ivec4 in0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  		output ivec3 out0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(-2, -2, 9) | ivec3(64, 64, 24) | ivec3(0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.yyw;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec4_wzy
+  	values
+  	{
+  		input ivec4 in0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  		output ivec3 out0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(9, -4, -2) | ivec3(24, -51, 64) | ivec3(0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.wzy;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec4_xyzw
+  	values
+  	{
+  		input ivec4 in0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  		output ivec4 out0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.xyzw;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec4_wzyx
+  	values
+  	{
+  		input ivec4 in0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  		output ivec4 out0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(9, -4, -2, 0) | ivec4(24, -51, 64, -32) | ivec4(0, 0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.wzyx;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec4_xxxx
+  	values
+  	{
+  		input ivec4 in0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  		output ivec4 out0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, 0, 0, 0) | ivec4(-32, -32, -32, -32) | ivec4(0, 0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.xxxx;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec4_yyyy
+  	values
+  	{
+  		input ivec4 in0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  		output ivec4 out0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(-2, -2, -2, -2) | ivec4(64, 64, 64, 64) | ivec4(0, 0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.yyyy;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec4_wwww
+  	values
+  	{
+  		input ivec4 in0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  		output ivec4 out0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(9, 9, 9, 9) | ivec4(24, 24, 24, 24) | ivec4(0, 0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.wwww;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec4_wzzw
+  	values
+  	{
+  		input ivec4 in0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  		output ivec4 out0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(9, -4, -4, 9) | ivec4(24, -51, -51, 24) | ivec4(0, 0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.wzzw;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec4_wwwy
+  	values
+  	{
+  		input ivec4 in0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  		output ivec4 out0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(9, 9, 9, -2) | ivec4(24, 24, 24, 64) | ivec4(0, 0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.wwwy;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec4_xyxx
+  	values
+  	{
+  		input ivec4 in0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  		output ivec4 out0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, 0, 0) | ivec4(-32, 64, -32, -32) | ivec4(0, 0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.xyxx;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec4_zzwz
+  	values
+  	{
+  		input ivec4 in0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  		output ivec4 out0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(-4, -4, 9, -4) | ivec4(-51, -51, 24, -51) | ivec4(0, 0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.zzwz;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec4_s
+  	values
+  	{
+  		input ivec4 in0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  		output int out0 = [ 0 | 1 | 0 | -32 | 0 ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.s;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec4_q
+  	values
+  	{
+  		input ivec4 in0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  		output int out0 = [ 0 | 1 | 9 | 24 | 0 ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.q;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec4_qs
+  	values
+  	{
+  		input ivec4 in0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  		output ivec2 out0 = [ ivec2(0, 0) | ivec2(1, 1) | ivec2(9, 0) | ivec2(24, -32) | ivec2(0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.qs;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec4_qp
+  	values
+  	{
+  		input ivec4 in0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  		output ivec2 out0 = [ ivec2(0, 0) | ivec2(1, 1) | ivec2(9, -4) | ivec2(24, -51) | ivec2(0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.qp;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec4_qqq
+  	values
+  	{
+  		input ivec4 in0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  		output ivec3 out0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(9, 9, 9) | ivec3(24, 24, 24) | ivec3(0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.qqq;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec4_ttq
+  	values
+  	{
+  		input ivec4 in0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  		output ivec3 out0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(-2, -2, 9) | ivec3(64, 64, 24) | ivec3(0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.ttq;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec4_qpt
+  	values
+  	{
+  		input ivec4 in0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  		output ivec3 out0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(9, -4, -2) | ivec3(24, -51, 64) | ivec3(0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.qpt;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec4_stpq
+  	values
+  	{
+  		input ivec4 in0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  		output ivec4 out0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.stpq;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec4_qpts
+  	values
+  	{
+  		input ivec4 in0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  		output ivec4 out0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(9, -4, -2, 0) | ivec4(24, -51, 64, -32) | ivec4(0, 0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.qpts;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec4_ssss
+  	values
+  	{
+  		input ivec4 in0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  		output ivec4 out0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, 0, 0, 0) | ivec4(-32, -32, -32, -32) | ivec4(0, 0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.ssss;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec4_tttt
+  	values
+  	{
+  		input ivec4 in0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  		output ivec4 out0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(-2, -2, -2, -2) | ivec4(64, 64, 64, 64) | ivec4(0, 0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.tttt;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec4_qqqq
+  	values
+  	{
+  		input ivec4 in0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  		output ivec4 out0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(9, 9, 9, 9) | ivec4(24, 24, 24, 24) | ivec4(0, 0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.qqqq;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec4_qppq
+  	values
+  	{
+  		input ivec4 in0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  		output ivec4 out0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(9, -4, -4, 9) | ivec4(24, -51, -51, 24) | ivec4(0, 0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.qppq;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec4_qqqt
+  	values
+  	{
+  		input ivec4 in0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  		output ivec4 out0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(9, 9, 9, -2) | ivec4(24, 24, 24, 64) | ivec4(0, 0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.qqqt;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec4_stss
+  	values
+  	{
+  		input ivec4 in0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  		output ivec4 out0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, 0, 0) | ivec4(-32, 64, -32, -32) | ivec4(0, 0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.stss;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec4_ppqp
+  	values
+  	{
+  		input ivec4 in0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  		output ivec4 out0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(-4, -4, 9, -4) | ivec4(-51, -51, 24, -51) | ivec4(0, 0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.ppqp;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec4_r
+  	values
+  	{
+  		input ivec4 in0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  		output int out0 = [ 0 | 1 | 0 | -32 | 0 ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.r;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec4_a
+  	values
+  	{
+  		input ivec4 in0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  		output int out0 = [ 0 | 1 | 9 | 24 | 0 ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.a;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec4_ar
+  	values
+  	{
+  		input ivec4 in0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  		output ivec2 out0 = [ ivec2(0, 0) | ivec2(1, 1) | ivec2(9, 0) | ivec2(24, -32) | ivec2(0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.ar;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec4_ab
+  	values
+  	{
+  		input ivec4 in0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  		output ivec2 out0 = [ ivec2(0, 0) | ivec2(1, 1) | ivec2(9, -4) | ivec2(24, -51) | ivec2(0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.ab;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec4_aaa
+  	values
+  	{
+  		input ivec4 in0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  		output ivec3 out0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(9, 9, 9) | ivec3(24, 24, 24) | ivec3(0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.aaa;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec4_gga
+  	values
+  	{
+  		input ivec4 in0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  		output ivec3 out0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(-2, -2, 9) | ivec3(64, 64, 24) | ivec3(0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.gga;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec4_abg
+  	values
+  	{
+  		input ivec4 in0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  		output ivec3 out0 = [ ivec3(0, 0, 0) | ivec3(1, 1, 1) | ivec3(9, -4, -2) | ivec3(24, -51, 64) | ivec3(0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.abg;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec4_rgba
+  	values
+  	{
+  		input ivec4 in0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  		output ivec4 out0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.rgba;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec4_abgr
+  	values
+  	{
+  		input ivec4 in0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  		output ivec4 out0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(9, -4, -2, 0) | ivec4(24, -51, 64, -32) | ivec4(0, 0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.abgr;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec4_rrrr
+  	values
+  	{
+  		input ivec4 in0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  		output ivec4 out0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, 0, 0, 0) | ivec4(-32, -32, -32, -32) | ivec4(0, 0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.rrrr;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec4_gggg
+  	values
+  	{
+  		input ivec4 in0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  		output ivec4 out0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(-2, -2, -2, -2) | ivec4(64, 64, 64, 64) | ivec4(0, 0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.gggg;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec4_aaaa
+  	values
+  	{
+  		input ivec4 in0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  		output ivec4 out0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(9, 9, 9, 9) | ivec4(24, 24, 24, 24) | ivec4(0, 0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.aaaa;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec4_abba
+  	values
+  	{
+  		input ivec4 in0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  		output ivec4 out0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(9, -4, -4, 9) | ivec4(24, -51, -51, 24) | ivec4(0, 0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.abba;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec4_aaag
+  	values
+  	{
+  		input ivec4 in0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  		output ivec4 out0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(9, 9, 9, -2) | ivec4(24, 24, 24, 64) | ivec4(0, 0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.aaag;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec4_rgrr
+  	values
+  	{
+  		input ivec4 in0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  		output ivec4 out0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, 0, 0) | ivec4(-32, 64, -32, -32) | ivec4(0, 0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.rgrr;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_ivec4_bbab
+  	values
+  	{
+  		input ivec4 in0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(0, -2, -4, 9) | ivec4(-32, 64, -51, 24) | ivec4(0, 0, 0, 0) ];
+  		output ivec4 out0 = [ ivec4(0, 0, 0, 0) | ivec4(1, 1, 1, 1) | ivec4(-4, -4, 9, -4) | ivec4(-51, -51, 24, -51) | ivec4(0, 0, 0, 0) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.bbab;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec2_x
+  	values
+  	{
+  		input bvec2 in0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+  		output bool out0 = [ true | false | false | true | false ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.x;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec2_xx
+  	values
+  	{
+  		input bvec2 in0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+  		output bvec2 out0 = [ bvec2(true, true) | bvec2(false, false) | bvec2(false, false) | bvec2(true, true) | bvec2(false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.xx;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec2_xy
+  	values
+  	{
+  		input bvec2 in0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+  		output bvec2 out0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.xy;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec2_yx
+  	values
+  	{
+  		input bvec2 in0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+  		output bvec2 out0 = [ bvec2(false, true) | bvec2(false, false) | bvec2(true, false) | bvec2(true, true) | bvec2(false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.yx;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec2_yxy
+  	values
+  	{
+  		input bvec2 in0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+  		output bvec3 out0 = [ bvec3(false, true, false) | bvec3(false, false, false) | bvec3(true, false, true) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.yxy;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec2_xyxx
+  	values
+  	{
+  		input bvec2 in0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+  		output bvec4 out0 = [ bvec4(true, false, true, true) | bvec4(false, false, false, false) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.xyxx;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec2_yyyy
+  	values
+  	{
+  		input bvec2 in0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+  		output bvec4 out0 = [ bvec4(false, false, false, false) | bvec4(false, false, false, false) | bvec4(true, true, true, true) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.yyyy;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec2_s
+  	values
+  	{
+  		input bvec2 in0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+  		output bool out0 = [ true | false | false | true | false ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.s;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec2_ss
+  	values
+  	{
+  		input bvec2 in0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+  		output bvec2 out0 = [ bvec2(true, true) | bvec2(false, false) | bvec2(false, false) | bvec2(true, true) | bvec2(false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.ss;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec2_st
+  	values
+  	{
+  		input bvec2 in0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+  		output bvec2 out0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.st;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec2_ts
+  	values
+  	{
+  		input bvec2 in0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+  		output bvec2 out0 = [ bvec2(false, true) | bvec2(false, false) | bvec2(true, false) | bvec2(true, true) | bvec2(false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.ts;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec2_tst
+  	values
+  	{
+  		input bvec2 in0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+  		output bvec3 out0 = [ bvec3(false, true, false) | bvec3(false, false, false) | bvec3(true, false, true) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.tst;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec2_stss
+  	values
+  	{
+  		input bvec2 in0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+  		output bvec4 out0 = [ bvec4(true, false, true, true) | bvec4(false, false, false, false) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.stss;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec2_tttt
+  	values
+  	{
+  		input bvec2 in0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+  		output bvec4 out0 = [ bvec4(false, false, false, false) | bvec4(false, false, false, false) | bvec4(true, true, true, true) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.tttt;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec2_r
+  	values
+  	{
+  		input bvec2 in0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+  		output bool out0 = [ true | false | false | true | false ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.r;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec2_rr
+  	values
+  	{
+  		input bvec2 in0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+  		output bvec2 out0 = [ bvec2(true, true) | bvec2(false, false) | bvec2(false, false) | bvec2(true, true) | bvec2(false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.rr;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec2_rg
+  	values
+  	{
+  		input bvec2 in0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+  		output bvec2 out0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.rg;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec2_gr
+  	values
+  	{
+  		input bvec2 in0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+  		output bvec2 out0 = [ bvec2(false, true) | bvec2(false, false) | bvec2(true, false) | bvec2(true, true) | bvec2(false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.gr;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec2_grg
+  	values
+  	{
+  		input bvec2 in0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+  		output bvec3 out0 = [ bvec3(false, true, false) | bvec3(false, false, false) | bvec3(true, false, true) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.grg;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec2_rgrr
+  	values
+  	{
+  		input bvec2 in0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+  		output bvec4 out0 = [ bvec4(true, false, true, true) | bvec4(false, false, false, false) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.rgrr;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec2_gggg
+  	values
+  	{
+  		input bvec2 in0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, true) | bvec2(true, true) | bvec2(false, false) ];
+  		output bvec4 out0 = [ bvec4(false, false, false, false) | bvec4(false, false, false, false) | bvec4(true, true, true, true) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.gggg;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec3_x
+  	values
+  	{
+  		input bvec3 in0 = [ bvec3(true, false, false) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  		output bool out0 = [ true | false | false | true | false ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.x;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec3_z
+  	values
+  	{
+  		input bvec3 in0 = [ bvec3(true, false, false) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  		output bool out0 = [ false | false | false | true | false ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.z;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec3_xz
+  	values
+  	{
+  		input bvec3 in0 = [ bvec3(true, false, false) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  		output bvec2 out0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, false) | bvec2(true, true) | bvec2(false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.xz;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec3_zz
+  	values
+  	{
+  		input bvec3 in0 = [ bvec3(true, false, false) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  		output bvec2 out0 = [ bvec2(false, false) | bvec2(false, false) | bvec2(false, false) | bvec2(true, true) | bvec2(false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.zz;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec3_xyz
+  	values
+  	{
+  		input bvec3 in0 = [ bvec3(true, false, false) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  		output bvec3 out0 = [ bvec3(true, false, false) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.xyz;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec3_zyx
+  	values
+  	{
+  		input bvec3 in0 = [ bvec3(true, false, false) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  		output bvec3 out0 = [ bvec3(false, false, true) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.zyx;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec3_xxx
+  	values
+  	{
+  		input bvec3 in0 = [ bvec3(true, false, false) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  		output bvec3 out0 = [ bvec3(true, true, true) | bvec3(false, false, false) | bvec3(false, false, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.xxx;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec3_zzz
+  	values
+  	{
+  		input bvec3 in0 = [ bvec3(true, false, false) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  		output bvec3 out0 = [ bvec3(false, false, false) | bvec3(false, false, false) | bvec3(false, false, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.zzz;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec3_zzy
+  	values
+  	{
+  		input bvec3 in0 = [ bvec3(true, false, false) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  		output bvec3 out0 = [ bvec3(false, false, false) | bvec3(false, false, false) | bvec3(false, false, true) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.zzy;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec3_yxy
+  	values
+  	{
+  		input bvec3 in0 = [ bvec3(true, false, false) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  		output bvec3 out0 = [ bvec3(false, true, false) | bvec3(false, false, false) | bvec3(true, false, true) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.yxy;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec3_xzx
+  	values
+  	{
+  		input bvec3 in0 = [ bvec3(true, false, false) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  		output bvec3 out0 = [ bvec3(true, false, true) | bvec3(false, false, false) | bvec3(false, false, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.xzx;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec3_xyyx
+  	values
+  	{
+  		input bvec3 in0 = [ bvec3(true, false, false) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  		output bvec4 out0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, false) | bvec4(false, true, true, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.xyyx;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec3_zzzz
+  	values
+  	{
+  		input bvec3 in0 = [ bvec3(true, false, false) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  		output bvec4 out0 = [ bvec4(false, false, false, false) | bvec4(false, false, false, false) | bvec4(false, false, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.zzzz;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec3_s
+  	values
+  	{
+  		input bvec3 in0 = [ bvec3(true, false, false) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  		output bool out0 = [ true | false | false | true | false ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.s;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec3_p
+  	values
+  	{
+  		input bvec3 in0 = [ bvec3(true, false, false) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  		output bool out0 = [ false | false | false | true | false ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.p;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec3_sp
+  	values
+  	{
+  		input bvec3 in0 = [ bvec3(true, false, false) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  		output bvec2 out0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, false) | bvec2(true, true) | bvec2(false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.sp;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec3_pp
+  	values
+  	{
+  		input bvec3 in0 = [ bvec3(true, false, false) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  		output bvec2 out0 = [ bvec2(false, false) | bvec2(false, false) | bvec2(false, false) | bvec2(true, true) | bvec2(false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.pp;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec3_stp
+  	values
+  	{
+  		input bvec3 in0 = [ bvec3(true, false, false) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  		output bvec3 out0 = [ bvec3(true, false, false) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.stp;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec3_pts
+  	values
+  	{
+  		input bvec3 in0 = [ bvec3(true, false, false) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  		output bvec3 out0 = [ bvec3(false, false, true) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.pts;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec3_sss
+  	values
+  	{
+  		input bvec3 in0 = [ bvec3(true, false, false) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  		output bvec3 out0 = [ bvec3(true, true, true) | bvec3(false, false, false) | bvec3(false, false, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.sss;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec3_ppp
+  	values
+  	{
+  		input bvec3 in0 = [ bvec3(true, false, false) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  		output bvec3 out0 = [ bvec3(false, false, false) | bvec3(false, false, false) | bvec3(false, false, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.ppp;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec3_ppt
+  	values
+  	{
+  		input bvec3 in0 = [ bvec3(true, false, false) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  		output bvec3 out0 = [ bvec3(false, false, false) | bvec3(false, false, false) | bvec3(false, false, true) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.ppt;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec3_tst
+  	values
+  	{
+  		input bvec3 in0 = [ bvec3(true, false, false) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  		output bvec3 out0 = [ bvec3(false, true, false) | bvec3(false, false, false) | bvec3(true, false, true) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.tst;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec3_sps
+  	values
+  	{
+  		input bvec3 in0 = [ bvec3(true, false, false) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  		output bvec3 out0 = [ bvec3(true, false, true) | bvec3(false, false, false) | bvec3(false, false, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.sps;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec3_stts
+  	values
+  	{
+  		input bvec3 in0 = [ bvec3(true, false, false) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  		output bvec4 out0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, false) | bvec4(false, true, true, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.stts;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec3_pppp
+  	values
+  	{
+  		input bvec3 in0 = [ bvec3(true, false, false) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  		output bvec4 out0 = [ bvec4(false, false, false, false) | bvec4(false, false, false, false) | bvec4(false, false, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.pppp;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec3_r
+  	values
+  	{
+  		input bvec3 in0 = [ bvec3(true, false, false) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  		output bool out0 = [ true | false | false | true | false ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.r;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec3_b
+  	values
+  	{
+  		input bvec3 in0 = [ bvec3(true, false, false) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  		output bool out0 = [ false | false | false | true | false ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.b;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec3_rb
+  	values
+  	{
+  		input bvec3 in0 = [ bvec3(true, false, false) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  		output bvec2 out0 = [ bvec2(true, false) | bvec2(false, false) | bvec2(false, false) | bvec2(true, true) | bvec2(false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.rb;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec3_bb
+  	values
+  	{
+  		input bvec3 in0 = [ bvec3(true, false, false) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  		output bvec2 out0 = [ bvec2(false, false) | bvec2(false, false) | bvec2(false, false) | bvec2(true, true) | bvec2(false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.bb;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec3_rgb
+  	values
+  	{
+  		input bvec3 in0 = [ bvec3(true, false, false) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  		output bvec3 out0 = [ bvec3(true, false, false) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.rgb;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec3_bgr
+  	values
+  	{
+  		input bvec3 in0 = [ bvec3(true, false, false) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  		output bvec3 out0 = [ bvec3(false, false, true) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.bgr;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec3_rrr
+  	values
+  	{
+  		input bvec3 in0 = [ bvec3(true, false, false) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  		output bvec3 out0 = [ bvec3(true, true, true) | bvec3(false, false, false) | bvec3(false, false, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.rrr;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec3_bbb
+  	values
+  	{
+  		input bvec3 in0 = [ bvec3(true, false, false) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  		output bvec3 out0 = [ bvec3(false, false, false) | bvec3(false, false, false) | bvec3(false, false, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.bbb;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec3_bbg
+  	values
+  	{
+  		input bvec3 in0 = [ bvec3(true, false, false) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  		output bvec3 out0 = [ bvec3(false, false, false) | bvec3(false, false, false) | bvec3(false, false, true) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.bbg;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec3_grg
+  	values
+  	{
+  		input bvec3 in0 = [ bvec3(true, false, false) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  		output bvec3 out0 = [ bvec3(false, true, false) | bvec3(false, false, false) | bvec3(true, false, true) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.grg;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec3_rbr
+  	values
+  	{
+  		input bvec3 in0 = [ bvec3(true, false, false) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  		output bvec3 out0 = [ bvec3(true, false, true) | bvec3(false, false, false) | bvec3(false, false, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.rbr;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec3_rggr
+  	values
+  	{
+  		input bvec3 in0 = [ bvec3(true, false, false) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  		output bvec4 out0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, false) | bvec4(false, true, true, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.rggr;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec3_bbbb
+  	values
+  	{
+  		input bvec3 in0 = [ bvec3(true, false, false) | bvec3(false, false, false) | bvec3(false, true, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  		output bvec4 out0 = [ bvec4(false, false, false, false) | bvec4(false, false, false, false) | bvec4(false, false, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.bbbb;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec4_x
+  	values
+  	{
+  		input bvec4 in0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  		output bool out0 = [ true | false | false | true | false ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.x;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec4_w
+  	values
+  	{
+  		input bvec4 in0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  		output bool out0 = [ true | true | false | true | false ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.w;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec4_wx
+  	values
+  	{
+  		input bvec4 in0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  		output bvec2 out0 = [ bvec2(true, true) | bvec2(true, false) | bvec2(false, false) | bvec2(true, true) | bvec2(false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.wx;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec4_wz
+  	values
+  	{
+  		input bvec4 in0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  		output bvec2 out0 = [ bvec2(true, false) | bvec2(true, false) | bvec2(false, false) | bvec2(true, true) | bvec2(false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.wz;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec4_www
+  	values
+  	{
+  		input bvec4 in0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  		output bvec3 out0 = [ bvec3(true, true, true) | bvec3(true, true, true) | bvec3(false, false, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.www;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec4_yyw
+  	values
+  	{
+  		input bvec4 in0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  		output bvec3 out0 = [ bvec3(false, false, true) | bvec3(false, false, true) | bvec3(true, true, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.yyw;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec4_wzy
+  	values
+  	{
+  		input bvec4 in0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  		output bvec3 out0 = [ bvec3(true, false, false) | bvec3(true, false, false) | bvec3(false, false, true) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.wzy;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec4_xyzw
+  	values
+  	{
+  		input bvec4 in0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  		output bvec4 out0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.xyzw;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec4_wzyx
+  	values
+  	{
+  		input bvec4 in0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  		output bvec4 out0 = [ bvec4(true, false, false, true) | bvec4(true, false, false, false) | bvec4(false, false, true, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.wzyx;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec4_xxxx
+  	values
+  	{
+  		input bvec4 in0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  		output bvec4 out0 = [ bvec4(true, true, true, true) | bvec4(false, false, false, false) | bvec4(false, false, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.xxxx;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec4_yyyy
+  	values
+  	{
+  		input bvec4 in0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  		output bvec4 out0 = [ bvec4(false, false, false, false) | bvec4(false, false, false, false) | bvec4(true, true, true, true) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.yyyy;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec4_wwww
+  	values
+  	{
+  		input bvec4 in0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  		output bvec4 out0 = [ bvec4(true, true, true, true) | bvec4(true, true, true, true) | bvec4(false, false, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.wwww;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec4_wzzw
+  	values
+  	{
+  		input bvec4 in0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  		output bvec4 out0 = [ bvec4(true, false, false, true) | bvec4(true, false, false, true) | bvec4(false, false, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.wzzw;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec4_wwwy
+  	values
+  	{
+  		input bvec4 in0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  		output bvec4 out0 = [ bvec4(true, true, true, false) | bvec4(true, true, true, false) | bvec4(false, false, false, true) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.wwwy;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec4_xyxx
+  	values
+  	{
+  		input bvec4 in0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  		output bvec4 out0 = [ bvec4(true, false, true, true) | bvec4(false, false, false, false) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.xyxx;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec4_zzwz
+  	values
+  	{
+  		input bvec4 in0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  		output bvec4 out0 = [ bvec4(false, false, true, false) | bvec4(false, false, true, false) | bvec4(false, false, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.zzwz;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec4_s
+  	values
+  	{
+  		input bvec4 in0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  		output bool out0 = [ true | false | false | true | false ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.s;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec4_q
+  	values
+  	{
+  		input bvec4 in0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  		output bool out0 = [ true | true | false | true | false ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.q;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec4_qs
+  	values
+  	{
+  		input bvec4 in0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  		output bvec2 out0 = [ bvec2(true, true) | bvec2(true, false) | bvec2(false, false) | bvec2(true, true) | bvec2(false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.qs;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec4_qp
+  	values
+  	{
+  		input bvec4 in0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  		output bvec2 out0 = [ bvec2(true, false) | bvec2(true, false) | bvec2(false, false) | bvec2(true, true) | bvec2(false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.qp;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec4_qqq
+  	values
+  	{
+  		input bvec4 in0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  		output bvec3 out0 = [ bvec3(true, true, true) | bvec3(true, true, true) | bvec3(false, false, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.qqq;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec4_ttq
+  	values
+  	{
+  		input bvec4 in0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  		output bvec3 out0 = [ bvec3(false, false, true) | bvec3(false, false, true) | bvec3(true, true, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.ttq;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec4_qpt
+  	values
+  	{
+  		input bvec4 in0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  		output bvec3 out0 = [ bvec3(true, false, false) | bvec3(true, false, false) | bvec3(false, false, true) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.qpt;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec4_stpq
+  	values
+  	{
+  		input bvec4 in0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  		output bvec4 out0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.stpq;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec4_qpts
+  	values
+  	{
+  		input bvec4 in0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  		output bvec4 out0 = [ bvec4(true, false, false, true) | bvec4(true, false, false, false) | bvec4(false, false, true, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.qpts;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec4_ssss
+  	values
+  	{
+  		input bvec4 in0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  		output bvec4 out0 = [ bvec4(true, true, true, true) | bvec4(false, false, false, false) | bvec4(false, false, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.ssss;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec4_tttt
+  	values
+  	{
+  		input bvec4 in0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  		output bvec4 out0 = [ bvec4(false, false, false, false) | bvec4(false, false, false, false) | bvec4(true, true, true, true) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.tttt;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec4_qqqq
+  	values
+  	{
+  		input bvec4 in0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  		output bvec4 out0 = [ bvec4(true, true, true, true) | bvec4(true, true, true, true) | bvec4(false, false, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.qqqq;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec4_qppq
+  	values
+  	{
+  		input bvec4 in0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  		output bvec4 out0 = [ bvec4(true, false, false, true) | bvec4(true, false, false, true) | bvec4(false, false, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.qppq;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec4_qqqt
+  	values
+  	{
+  		input bvec4 in0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  		output bvec4 out0 = [ bvec4(true, true, true, false) | bvec4(true, true, true, false) | bvec4(false, false, false, true) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.qqqt;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec4_stss
+  	values
+  	{
+  		input bvec4 in0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  		output bvec4 out0 = [ bvec4(true, false, true, true) | bvec4(false, false, false, false) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.stss;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec4_ppqp
+  	values
+  	{
+  		input bvec4 in0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  		output bvec4 out0 = [ bvec4(false, false, true, false) | bvec4(false, false, true, false) | bvec4(false, false, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.ppqp;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec4_r
+  	values
+  	{
+  		input bvec4 in0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  		output bool out0 = [ true | false | false | true | false ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.r;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec4_a
+  	values
+  	{
+  		input bvec4 in0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  		output bool out0 = [ true | true | false | true | false ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.a;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec4_ar
+  	values
+  	{
+  		input bvec4 in0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  		output bvec2 out0 = [ bvec2(true, true) | bvec2(true, false) | bvec2(false, false) | bvec2(true, true) | bvec2(false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.ar;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec4_ab
+  	values
+  	{
+  		input bvec4 in0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  		output bvec2 out0 = [ bvec2(true, false) | bvec2(true, false) | bvec2(false, false) | bvec2(true, true) | bvec2(false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.ab;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec4_aaa
+  	values
+  	{
+  		input bvec4 in0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  		output bvec3 out0 = [ bvec3(true, true, true) | bvec3(true, true, true) | bvec3(false, false, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.aaa;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec4_gga
+  	values
+  	{
+  		input bvec4 in0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  		output bvec3 out0 = [ bvec3(false, false, true) | bvec3(false, false, true) | bvec3(true, true, false) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.gga;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec4_abg
+  	values
+  	{
+  		input bvec4 in0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  		output bvec3 out0 = [ bvec3(true, false, false) | bvec3(true, false, false) | bvec3(false, false, true) | bvec3(true, true, true) | bvec3(false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.abg;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec4_rgba
+  	values
+  	{
+  		input bvec4 in0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  		output bvec4 out0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.rgba;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec4_abgr
+  	values
+  	{
+  		input bvec4 in0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  		output bvec4 out0 = [ bvec4(true, false, false, true) | bvec4(true, false, false, false) | bvec4(false, false, true, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.abgr;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec4_rrrr
+  	values
+  	{
+  		input bvec4 in0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  		output bvec4 out0 = [ bvec4(true, true, true, true) | bvec4(false, false, false, false) | bvec4(false, false, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.rrrr;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec4_gggg
+  	values
+  	{
+  		input bvec4 in0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  		output bvec4 out0 = [ bvec4(false, false, false, false) | bvec4(false, false, false, false) | bvec4(true, true, true, true) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.gggg;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec4_aaaa
+  	values
+  	{
+  		input bvec4 in0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  		output bvec4 out0 = [ bvec4(true, true, true, true) | bvec4(true, true, true, true) | bvec4(false, false, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.aaaa;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec4_abba
+  	values
+  	{
+  		input bvec4 in0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  		output bvec4 out0 = [ bvec4(true, false, false, true) | bvec4(true, false, false, true) | bvec4(false, false, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.abba;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec4_aaag
+  	values
+  	{
+  		input bvec4 in0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  		output bvec4 out0 = [ bvec4(true, true, true, false) | bvec4(true, true, true, false) | bvec4(false, false, false, true) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.aaag;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec4_rgrr
+  	values
+  	{
+  		input bvec4 in0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  		output bvec4 out0 = [ bvec4(true, false, true, true) | bvec4(false, false, false, false) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.rgrr;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+  case mediump_bvec4_bbab
+  	values
+  	{
+  		input bvec4 in0 = [ bvec4(true, false, false, true) | bvec4(false, false, false, true) | bvec4(false, true, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  		output bvec4 out0 = [ bvec4(false, false, true, false) | bvec4(false, false, true, false) | bvec4(false, false, false, false) | bvec4(true, true, true, true) | bvec4(false, false, false, false) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.bbab;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+
+end # vector_swizzles

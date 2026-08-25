@@ -1,0 +1,67 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Soft Navigation Detection: The Basics.</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script>
+      // The click handler is triggered by user interaction; it modifies
+      // the DOM, causing a paint, and also changes the URL.
+      // This constitutes a soft navigation.
+      function clickHandler() {
+        const greeting = document.createElement("div");
+        greeting.textContent = "Hello, World.";
+        document.body.appendChild(greeting);
+        history.pushState({}, "", "/greeting.html");
+      }
+    </script>
+  </head>
+  <body>
+    <div id="click-target" onclick="clickHandler()">Click here!</div>
+
+    <script>
+      test(() => {
+        const observer = new PerformanceObserver(() => {});
+        observer.observe({ type: "soft-navigation", buffered: true });
+        const records = observer.takeRecords();
+        observer.disconnect();
+        assert_equals(records.length, 0, "Expecting empty list.");
+      }, "No soft navigation detection without user interaction.");
+
+      promise_test(async (t) => {
+        const test_origin = new URL(location.href).origin;
+
+        let entries;
+        new PerformanceObserver((list, observer) => {
+          entries = list.getEntries();
+          observer.disconnect();
+        }).observe({ type: "soft-navigation" });
+
+        // Initiate the user interaction to trigger the soft navigation.
+        if (test_driver) {
+          test_driver.click(document.getElementById("click-target"));
+        }
+
+        await t.step_wait(
+          () => entries !== undefined,
+          "Waiting for entries from PerformanceObserver.",
+        );
+
+        // Now check there's one entry, and it's fields.
+        // The SoftNavigationEntry instance is spec'd in
+        // https://github.com/WICG/soft-navigations/
+        assert_equals(entries.length, 1, "Expecting one soft navigation entry.");
+
+        const expected_url = new URL("/greeting.html", test_origin);
+        assert_equals(
+          entries[0].name,
+          expected_url.toString(),
+          "Soft navigation should record destination URL as its name.",
+        );
+      }, "Detect soft navigation after a click.");
+    </script>
+  </body>
+</html>

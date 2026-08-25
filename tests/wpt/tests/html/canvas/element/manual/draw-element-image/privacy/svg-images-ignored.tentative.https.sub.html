@@ -1,0 +1,38 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>drawElementImage does not draw cross-origin SVG images</title>
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src='/html/canvas/resources/canvas-tests.js'></script>
+  <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+</head>
+<body>
+  <canvas id=canvas width="100" height="200" layoutsubtree>
+    <svg id=child width=100 height=200>
+      <rect fill="green" x=0 y=0 width=100 height=200 />
+      <image id="sameOrigin" href="https://{{location[host]}}/images/red-100x100.png" x=10 y=10 height=100 width=100 />
+      <image id="crossOrigin" href="https://{{hosts[alt][www]}}:{{ports[https][0]}}/images/red-100x100.png" x=0 y=100 height=100 width=100 />
+    </svg>
+  </canvas>
+
+  <script>
+    window.onload = function() {
+      promise_test(async function(t) {
+        await waitForCanvasPaint(canvas);
+        const context = canvas.getContext("2d");
+        context.drawElementImage(child, 0, 0);
+
+        // Fetch all pixel data once to avoid multiple slow readbacks.
+        const imgData = context.getImageData(0, 0, canvas.width, canvas.height);
+
+        let pixel = _getPixelFromImageData(imgData, 50, 50);
+        assert_array_equals(pixel, [255, 0, 0, 255], "Same origin should draw");
+
+        pixel = _getPixelFromImageData(imgData, 50, 150);
+        assert_array_equals(pixel, [0, 128, 0, 255], "Cross origin should not draw");
+      });
+    };
+  </script>
+</body>
+</html>

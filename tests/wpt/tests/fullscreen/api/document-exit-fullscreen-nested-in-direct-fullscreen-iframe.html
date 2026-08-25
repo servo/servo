@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<title>Document#exitFullscreen() for nested fullscreen inside a directly-fullscreened iframe</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../trusted-click.js"></script>
+<iframe allowfullscreen></iframe>
+<script>
+    promise_test(async (t) => {
+        const iframe = document.querySelector("iframe");
+        await new Promise((resolve) => {
+            iframe.onload = resolve;
+            iframe.srcdoc = "<div id='inner'></div>";
+        });
+
+        const iframeDoc = iframe.contentDocument;
+        const inner = iframeDoc.getElementById("inner");
+
+        // 1. Iframe enters fullscreen directly; only parentDoc fires change.
+        await Promise.all([
+            fullScreenChange(document),
+            trusted_request(iframe)
+        ]);
+        assert_equals(document.fullscreenElement, iframe);
+        assert_equals(iframeDoc.fullscreenElement, null);
+
+        // 2. Inner div goes fullscreen inside the iframe.
+        await Promise.all([
+            fullScreenChange(iframeDoc),
+            trusted_request(inner)
+        ]);
+        assert_equals(iframeDoc.fullscreenElement, inner);
+        assert_equals(document.fullscreenElement, iframe);
+
+        // 3. exitFullscreen() in iframe stops at the iframe boundary.
+        await Promise.all([
+            fullScreenChange(iframeDoc),
+            iframeDoc.exitFullscreen()
+        ]);
+        assert_equals(iframeDoc.fullscreenElement, null);
+        assert_equals(document.fullscreenElement, iframe);
+    }, "Exit fullscreen for nested element inside a directly-fullscreened iframe");
+</script>

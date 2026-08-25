@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<script src="utils.js"></script>
+<body>
+<script>
+
+function getFrameType(service_worker, url) {
+  return new Promise((resolve, reject) => {
+    const channel = new MessageChannel();
+    channel.port1.onmessage = e => {
+      resolve(e.data);
+    };
+    service_worker.postMessage({port:channel.port2, url:url},
+                               [channel.port2]);
+  });
+}
+
+(async function() {
+  await navigator.serviceWorker.register('serviceWorker-frameType.js');
+  const registration = await navigator.serviceWorker.ready;
+  const service_worker = registration.active;
+
+  const [frame_type_key, frame_type_ack_key] = parseKeylist();
+
+  const frame_type = await getFrameType(service_worker, location.href);
+  writeValueToServer(frame_type_key, frame_type);
+
+  // Wait for ACK, so we know that the outer page has read the last value from
+  // the `serviceWorker.frameType` stash and we can write to it again.
+  await nextValueFromServer(frame_type_ack_key);
+
+  const iframe = document.createElement('iframe');
+  iframe.src = generateURL("serviceWorker-frameType-nested.html",
+      [frame_type_key]);
+  document.body.append(iframe);
+})();
+</script>
+</body>

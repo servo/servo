@@ -1,0 +1,21 @@
+<!doctype html>
+<link rel="help" href="https://www.w3.org/TR/css-text-decor-3/#text-decoration-style-property">
+<link rel="match" href="reference/text-decoration-style-multiple-ref.html">
+<style>
+    div {
+        color: #aaa;
+        font-size: 50px;
+        position: relative;
+        display: inline-block;
+        width: 200px;
+        height: 200px;
+    }
+
+    div > span { position: absolute; }
+
+    div > span:nth-child(3) { text-decoration: underline solid coral; }
+    div > span:nth-child(3) > span { text-decoration: overline dashed skyblue; }
+    div > span:nth-child(3) > span  > span { text-decoration: line-through wavy green; }
+
+</style>
+<div><span>AAAA</span><span>AAAA</span><span><span><span>AAAA</span></span></span></div>

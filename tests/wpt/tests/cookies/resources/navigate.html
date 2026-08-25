@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script>
+  // Navigates the window to a location specified via URL query param.
+  const params = new URLSearchParams(window.location.search);
+  const loc = params.get('location');
+  window.location = loc;
+</script>

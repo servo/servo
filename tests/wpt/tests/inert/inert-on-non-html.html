@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>'inert' is an HTML attribute and has no effect when used on other elements</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<style>
+#tests {
+  line-height: 1.5em;
+}
+#tests svg {
+  height: 1.5em;
+  vertical-align: middle;
+}
+#tests svg > text {
+  transform: translateY(50%);
+  dominant-baseline: central;
+}
+#tests foreignObject {
+  height: 100%;
+  width: 100%;
+}
+</style>
+<div id="log"></div>
+<ul id="tests">
+  <!-- The 'inert' attribute only works on HTML elements -->
+  <li>
+    <span>non-inert</span>
+  </li>
+  <li>
+    <span inert>inert</span>
+  </li>
+  <li>
+    <foo>non-inert</foo>
+  </li>
+  <li>
+    <foo inert>inert</foo>
+  </li>
+  <li>
+    <foo-bar>non-inert</foo-bar>
+  </li>
+  <li>
+    <foo-bar inert>inert</foo-bar>
+  </li>
+  <li>
+    <math><mi>non-inert</mi></math>
+  </li>
+  <li>
+    <math inert><mi>non-inert</mi></math>
+  </li>
+  <li>
+    <math><mi inert>non-inert</mi></math>
+  </li>
+  <li>
+    <svg><text>non-inert</text></svg>
+  </li>
+  <li>
+    <svg inert><text>non-inert</text></svg>
+  </li>
+  <li>
+    <svg><text inert>non-inert</text></svg>
+  </li>
+
+  <!-- But non-HTML are inert if an HTML ancestor has the attribute -->
+  <li>
+    <span inert><span>inert</span></span>
+  </li>
+  <li>
+    <span inert><foo>inert</foo></span>
+  </li>
+  <li>
+    <span inert><foo-bar>inert</foo-bar></span>
+  </li>
+  <li>
+    <span inert><math><mi>inert</mi></math></span>
+  </li>
+  <li>
+    <span inert><svg><text>inert</text></svg></span>
+  </li>
+
+  <!-- HTML elements are not inert if an non-HTML ancestor has the attribute -->
+  <li>
+    <span data-move>non-inert</span>
+    <math inert><mi data-destination></mi></math>
+  </li>
+  <li>
+    <span data-move>non-inert</span>
+    <math><mi inert data-destination></mi></math>
+  </li>
+  <li>
+    <svg inert><foreignObject><span>non-inert</span></foreignObject></svg>
+  </li>
+  <li>
+    <svg><foreignObject inert><span>non-inert</span></foreignObject></svg>
+  </li>
+
+  <!-- HTML elements with non-HTML ancestors are inert if they have the attribute themselves -->
+  <li>
+    <span inert data-move>inert</span>
+    <math><mi data-destination></mi></math>
+  </li>
+  <li>
+    <foo inert data-move>inert</foo>
+    <math><mi data-destination></mi></math>
+  </li>
+  <li>
+    <foo-bar inert data-move>inert</foo-bar>
+    <math><mi data-destination></mi></math>
+  </li>
+  <li>
+    <svg><foreignObject><span inert>inert</span></foreignObject></svg>
+  </li>
+  <li>
+    <svg><foreignObject><foo inert>inert</foo></foreignObject></svg>
+  </li>
+  <li>
+    <svg><foreignObject><foo-bar inert>inert</foo-bar></foreignObject></svg>
+  </li>
+</ul>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+for (let li of document.querySelectorAll("#tests > li")) {
+  // The HTML parser would mess certain trees, fixup here.
+  const move = li.querySelector("[data-move]");
+  if (move) {
+    const destination = li.querySelector("[data-destination]");
+    destination.append(move);
+    move.removeAttribute("data-move");
+    destination.removeAttribute("data-destination");
+  }
+  test(() => {
+    assert_equals(li.childElementCount, 1);
+    const element = li.firstElementChild;
+    const selection = getSelection();
+    selection.selectAllChildren(element);
+    const selectionText = selection.toString().trim();
+    const textContent = element.textContent.trim();
+    if (textContent === "inert") {
+      assert_equals(selectionText, "");
+    } else {
+      assert_equals(selectionText, "non-inert");
+    }
+  }, li.innerHTML.trim());
+}
+</script>

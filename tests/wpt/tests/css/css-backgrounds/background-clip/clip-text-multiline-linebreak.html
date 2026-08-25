@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>background-clip:text on an inline with forced linebreak</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-4/#valdef-background-clip-text">
+<link rel="match" href="clip-text-multiline-linebreak-ref.html">
+<style>
+.container {
+  line-height: 1;
+}
+.textclip {
+  font-size: 100px;
+  background-color: lime;
+  background-clip: text;
+  color: transparent;
+}
+</style>
+<div class="container">
+  <span class="textclip">
+    XX<br>
+    <span>YY</span>
+  </span>
+</div>

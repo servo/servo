@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>text-box-trim ignores ruby annotations over</title>
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-trim">
+<link rel="help" href="https://www.w3.org/TR/css-ruby/">
+<link rel="match" href="text-box-trim-ruby-start-001-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+.spacer {
+  height: 40px;
+  background: lightgray;
+}
+.target {
+  font: 40px/1 Ahem;
+  text-box-trim: trim-start;
+  text-box-edge: text;
+}
+rt {
+  /* The Ruby annotation positioning is UA-dependent. In order to ref-test the
+     trimming of parts above the ascent, hide the Ruby annotation. */
+  color: transparent;
+}
+</style>
+<div class="spacer"></div>
+<div class="target">A <ruby>BASE<rt style="ruby-position: over">RUBY</rt></ruby> <ruby>BASE<rt style="ruby-position: under">RUBY</rt></ruby> B</div>
+<div class="spacer"></div>

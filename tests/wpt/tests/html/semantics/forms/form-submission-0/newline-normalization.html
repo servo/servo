@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>
+      Constructing the entry list shouldn't perform newline normalization
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <script>
+      function createForm(testCase, name, value) {
+        const form = document.createElement("form");
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = name;
+        input.value = value;
+        form.appendChild(input);
+        document.body.appendChild(form);
+        testCase.add_cleanup(() => {
+          document.body.removeChild(form);
+        });
+        return form;
+      }
+
+      function createFormWithFile(testCase, name, filename) {
+        const form = document.createElement("form");
+        const input = document.createElement("input");
+        input.type = "file";
+        input.name = name;
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(new File([], filename, { type: "text/plain" }));
+        input.files = dataTransfer.files;
+        form.appendChild(input);
+        document.body.appendChild(form);
+        testCase.add_cleanup(() => {
+          document.body.removeChild(form);
+        });
+        return form;
+      }
+
+      test((testCase) => {
+        const formData = new FormData(createForm(testCase, "a", "b\nc"));
+        assert_equals(formData.get("a"), "b\nc");
+      }, document.title + ": \\n in the value");
+
+      test((testCase) => {
+        const formData = new FormData(createForm(testCase, "a", "b\rc"));
+        assert_equals(formData.get("a"), "b\rc");
+      }, document.title + ": \\r in the value");
+
+      test((testCase) => {
+        const formData = new FormData(createForm(testCase, "a", "b\r\nc"));
+        assert_equals(formData.get("a"), "b\r\nc");
+      }, document.title + ": \\r\\n in the value");
+
+      test((testCase) => {
+        const formData = new FormData(createForm(testCase, "a", "b\n\rc"));
+        assert_equals(formData.get("a"), "b\n\rc");
+      }, document.title + ": \\n\\r in the value");
+
+      test((testCase) => {
+        const formData = new FormData(createForm(testCase, "a\nb", "c"));
+        assert_equals([...formData][0][0], "a\nb");
+      }, document.title + ": \\n in the name");
+
+      test((testCase) => {
+        const formData = new FormData(createForm(testCase, "a\rb", "c"));
+        assert_equals([...formData][0][0], "a\rb");
+      }, document.title + ": \\r in the name");
+
+      test((testCase) => {
+        const formData = new FormData(createForm(testCase, "a\r\nb", "c"));
+        assert_equals([...formData][0][0], "a\r\nb");
+      }, document.title + ": \\r\\n in the name");
+
+      test((testCase) => {
+        const formData = new FormData(createForm(testCase, "a\n\rb", "c"));
+        assert_equals([...formData][0][0], "a\n\rb");
+      }, document.title + ": \\n\\r in the name");
+
+      test((testCase) => {
+        const formData = new FormData(
+          createFormWithFile(testCase, "a", "b\nc")
+        );
+        assert_equals(formData.get("a").name, "b\nc");
+      }, document.title + ": \\n in the filename");
+
+      test((testCase) => {
+        const formData = new FormData(
+          createFormWithFile(testCase, "a", "b\rc")
+        );
+        assert_equals(formData.get("a").name, "b\rc");
+      }, document.title + ": \\r in the filename");
+
+      test((testCase) => {
+        const formData = new FormData(
+          createFormWithFile(testCase, "a", "b\r\nc")
+        );
+        assert_equals(formData.get("a").name, "b\r\nc");
+      }, document.title + ": \\r\\n in the filename");
+
+      test((testCase) => {
+        const formData = new FormData(
+          createFormWithFile(testCase, "a", "b\n\rc")
+        );
+        assert_equals(formData.get("a").name, "b\n\rc");
+      }, document.title + ": \\n\\r in the filename");
+    </script>
+  </body>
+</html>

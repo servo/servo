@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<link rel="match" href="class-names-across-iframes-ref.html" />
+<html>
+<title>Verifies matching of class names across iframes with/without quirks</title>
+<body>
+<template><p class="Testing">text that should be green</p></template>
+
+<script>
+  /*
+    This test is a regression test for a bug in chrome. See
+    https://crbug.com/1474382. It triggers quirks mode in the iframe
+    and then exits quirks mode.
+    */
+  const iframe = document.createElement('iframe');
+  document.body.append(iframe);
+
+  const doc = iframe.contentWindow.document;
+
+  const data = document.querySelector('template').innerHTML;
+  const body = doc.createElement('body');
+  body.innerHTML = data;
+
+  doc.open();
+  doc.write(`<!DOCTYPE html><html><head><style>p.Testing{color:green;}</style></head><body>${data}</body></html>`);
+  doc.close();
+</script>
+</body>
+</html>

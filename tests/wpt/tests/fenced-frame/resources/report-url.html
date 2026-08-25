@@ -1,0 +1,7 @@
+<!DOCTYPE html>
+<script src="utils.js"></script>
+<title>A page embedded as a fenced frame that reports the document URL</title>
+<script>
+const [uuid] = parseKeylist();
+writeValueToServer(uuid, location.href);
+</script>

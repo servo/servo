@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>CSS Fonts: override-colors with relative color crashing Chrome</title>
+<link rel="help" href="https://crbug.com/417172068">
+<style>
+  @font-face {
+    font-family: Foo;
+    src: url(notfound.ttf);
+  }
+  @font-palette-values --foo {
+    font-family: Foo;
+    override-colors: 0 lch(from blue calc(0.5 * l) c h);
+  }
+  #target {
+    font-family: Foo;
+    font-palette: --foo;
+  }
+</style>
+<div id="target">Foo</div>

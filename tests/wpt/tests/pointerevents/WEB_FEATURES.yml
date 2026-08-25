@@ -1,0 +1,4 @@
+rules:
+- "*touch-action*": [touch-action]
+- inheritance.html: [touch-action]
+- "*": [pointer-events-api]

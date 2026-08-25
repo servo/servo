@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>ol element</title>
+    <link rel="author" title="dzenana" href="mailto:dzenana.trenutak@gmail.com">
+    <link rel="help" href="https://html.spec.whatwg.org/multipage/#the-ol-element">
+    <meta name="assert" content="OL's type attribute defaults to decimal state." />
+    <style type="text/css">
+        span p {display:list-item; margin-left: 0; margin-top: 0; margin-bottom: 0; padding-left: 0; padding-top: 0; padding-bottom: 0;}
+        span span p {margin-left: 0; margin-top: 0; margin-bottom: 0; padding-left: 5em; padding-top: 0; padding-bottom: 0; font-family: monospace;}
+    </style>
+</head>
+<body>
+    <p>This test continues to validate the ol element. This reftest is necessary because the values of the ol's li children as calculated and displayed by the user agent are NOT systematically available programatically. Only explicitly-set values are available programatically. Therefore, we need to check actual rendering against expected rendering.</p>
+
+    <p><strong>This reftest passes if each list's items are labelled identically to the horizontal sequence immediately above those list items:</strong></p>
+    <p>(Note: each list item has no content; only the sequencing should appear.)</p>
+
+    <span>
+        <p>1, 2, 3 (default value for unspecified type attribute is 'decimal')</p>
+        <span>
+            <p>1.</p>
+            <p>2.</p>
+            <p>3.</p>
+        </span>
+
+        <p>1, 2, 3 (default value for type attribute not listed in spec table is 'decimal' (type = "!"))</p>
+        <span>
+            <p>1.</p>
+            <p>2.</p>
+            <p>3.</p>
+        </span>
+
+        <p>1, 2, 3 (default value for type attribute not listed in spec table is 'decimal' (type = "2"))</p>
+        <span>
+            <p>1.</p>
+            <p>2.</p>
+            <p>3.</p>
+        </span>
+
+        <p>1, 2, 3 (default value for type attribute not listed in spec table is 'decimal' (type = "b"))</p>
+        <span>
+            <p>1.</p>
+            <p>2.</p>
+            <p>3.</p>
+        </span>
+
+    </span>
+
+</body>
+</html>

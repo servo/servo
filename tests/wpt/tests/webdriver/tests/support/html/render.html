@@ -1,0 +1,68 @@
+<!doctype html>
+<canvas></canvas>
+<script>
+async function render(ctx, imgBase64, width, height) {
+  ctx.clearRect(0, 0, width, height);
+  const img = new Image();
+  const loaded = new Promise(resolve => img.addEventListener("load" , resolve, false));
+  img.src = `data:image/png;base64,${imgBase64}`;
+  await loaded;
+  ctx.drawImage(img, 0, 0);
+  return ctx.getImageData(0, 0, width, height);
+}
+
+function compareImgData(img1, img2) {
+  if (img1.width !== img2.width) {
+    throw new Error(`Image widths don't match; got ${img1.width} and ${img2.width}`)
+  }
+  if (img1.height !== img2.height) {
+    throw new Error(`Image heights don't match; got ${img1.height} and ${img2.height}`)
+  }
+
+  const result = {totalPixels: 0, maxDifference: 0};
+
+  const img1Data = img1.data;
+  const img2Data = img2.data;
+
+  let idx = 0;
+  while (idx < img1Data.length) {
+    let maxDifference = 0;
+    for (let channel = 0; channel < 4; channel++) {
+      const difference = Math.abs(img1Data[idx + channel] - img2Data[idx + channel]);
+      if (difference > maxDifference) {
+        maxDifference = difference
+      }
+    }
+    if (maxDifference > 0) {
+      result.totalPixels += 1;
+      if (maxDifference > result.maxDifference) {
+        result.maxDifference = maxDifference;
+      }
+    }
+    idx += 4;
+  }
+  return result;
+}
+
+/**
+ * Compare two images for equality.
+ *
+ * @param {string} img1 - base64-encoded string of image 1
+ * @param {string} img2 - base64-encoded string of image 2
+ * @param {number} width - Image width in pixels
+ * @param {number} height - Image height in pixels
+ * @returns {Promise<Object>} - A promise that resolves to an object containing `totalPixels`; the
+ *                              number of pixels different between the images, and `maxDifference`
+ *                              the maximum difference in any color channel.
+ */
+async function compare(img1, img2, width, height) {
+  const canvas = document.getElementsByTagName("canvas")[0];
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+
+  let img1Data = await render(ctx, img1, width, height);
+  let img2Data = await render(ctx, img2, width, height);
+  return compareImgData(img1Data, img2Data, width, height);
+}
+</script>

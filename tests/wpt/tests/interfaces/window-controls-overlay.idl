@@ -1,0 +1,28 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Window Controls Overlay (https://wicg.github.io/window-controls-overlay/)
+
+[SecureContext, Exposed=(Window)]
+partial interface Navigator {
+  [SameObject] readonly attribute WindowControlsOverlay windowControlsOverlay;
+};
+
+[Exposed=Window]
+interface WindowControlsOverlay : EventTarget {
+  readonly attribute boolean visible;
+  DOMRect getTitlebarAreaRect();
+  attribute EventHandler ongeometrychange;
+};
+
+[Exposed=Window]
+interface WindowControlsOverlayGeometryChangeEvent : Event {
+  constructor(DOMString type, WindowControlsOverlayGeometryChangeEventInit eventInitDict);
+  [SameObject] readonly attribute DOMRect titlebarAreaRect;
+  readonly attribute boolean visible;
+};
+
+dictionary WindowControlsOverlayGeometryChangeEventInit : EventInit {
+  required DOMRect titlebarAreaRect;
+  boolean visible = false;
+};

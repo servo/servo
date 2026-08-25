@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HTML5 Sandbox: Nested iframes cannot have less sandbox restrictions than their most restrictive ancestor iframe.</title>
+    <meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+    <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+    <link rel="help" href="http://dev.w3.org/html5/spec/Overview.html#attr-iframe-sandbox" />
+    <meta name="assert" content="Nested iframes cannot have less sandbox restrictions than their most restrictive ancestor iframe." />
+    <script src="support/sandbox_helper.js" type="text/javascript"></script>
+</head>
+<body>
+    <pre>Description: Nested iframes cannot have less sandbox restrictions than their most restrictive ancestor iframe.</pre>
+    <div>This test is to verify script is allowed inside nested iframes if any of the conditions below are true</div>
+    <div>1. both parent sandbox and child sandbox have 'allow-scripts' token.</div>
+    <div>2. parent sandbox has 'allow-scripts' token and nested child iframe has no sandbox attribute.</div>
+    <div>3. parent iframe has no sandbox attribute and child iframe has sandbox='allow-scripts' token.</div>
+    <div>4. both parent and child iframes have no sandbox attribute.</div>
+    <br />
+    <table id='testtable' border='1'>
+        <tr>
+            <td>Test Result</td>
+            <td>Test Assertion</td>
+        </tr>
+        <tr>
+            <td id='test_0_result'>Manual</td>
+            <td id='test_0_assertion'>Test passes if there is no red on the page.</td>
+        </tr>
+    </table>
+    <br />
+    <div id="testframe">
+        <div style="float: left; border: 1px solid; padding: 5px;">
+            <div style="font-weight: bold">Top-most iframe with sandbox="allow-scripts"</div>
+            <iframe id="iframe1" src="support/iframe_sandbox_021.htm" sandbox="allow-scripts" style="height: 330px; width: 400px;"></iframe>
+        </div>
+        <div style="float: left; border: 1px solid; padding: 5px; margin-left: 20px;">
+            <div style="font-weight: bold">Top-most iframe without sandbox attribute</div>
+            <iframe id="iframe2" src="support/iframe_sandbox_021.htm" style="height: 330px; width: 400px;"></iframe>
+        </div>
+    </div>
+    <script type="text/javascript">
+        DisableTestForNonSupportingBrowsers();
+    </script>
+</body>
+</html>

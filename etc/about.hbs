@@ -1,0 +1,83 @@
+<html>
+
+<head>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            body {
+                background: #333;
+                color: white;
+            }
+            a {
+                color: skyblue;
+            }
+        }
+        .container {
+            font-family: sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .intro {
+            text-align: center;
+        }
+        .licenses-list {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+        }
+        .license-used-by {
+            margin-top: -10px;
+        }
+        .license-text {
+            max-height: 200px;
+            overflow-y: scroll;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+
+<body>
+    <main class="container">
+        <div class="intro">
+            <h1>Third Party Licenses</h1>
+            <p>
+                This binary has been made available by the <a href="https://servo.org/">Servo Project</a>
+                under the terms of the <a href="https://www.mozilla.org/en-US/MPL/2.0/">Mozilla Public License Version 2.0 (MPL)</a>.
+                The source code of the Servo Project is licensed under MPL. The remaining third party components
+                are licensed by one or more of the enumerated free software licenses.
+            </p>
+        </div>
+    
+        <ul class="licenses-overview">
+            {{#each overview}}
+            <li><a href="#{{id}}">{{name}}</a></li>
+            {{/each}}
+        </ul>
+
+        <h2>All license text:</h2>
+        <ul class="licenses-list">
+            {{#each licenses}}
+            <li class="license">
+                <h3 id="{{id}}">{{name}}</h3>
+                {{#if used_by.[1]}}
+                    <h4>Used by:</h4>
+                    <ul class="license-used-by">
+                        {{#each used_by}}
+                        <li><a href="{{#if crate.repository}} {{crate.repository}} {{else}} https://crates.io/crates/{{crate.name}} {{/if}}">{{crate.name}} {{crate.version}}</a></li>
+                        {{/each}}
+                    </ul>
+                {{else}}
+                    <p>
+                        Used by
+                        {{#each used_by}}
+                            <a href="{{#if crate.repository}} {{crate.repository}} {{else}} https://crates.io/crates/{{crate.name}} {{/if}}">{{crate.name}} {{crate.version}}</a>
+                        {{/each}}
+                    </p>
+                {{/if}}
+                <pre class="license-text">{{text}}</pre>
+            </li>
+            {{/each}}
+        </ul>
+    </main>
+</body>
+
+</html>

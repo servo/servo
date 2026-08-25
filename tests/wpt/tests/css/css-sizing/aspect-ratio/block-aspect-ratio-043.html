@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>CSS aspect-ratio: The transferred maximum width does not clamp the automatic content-based minimum width</title>
+<link rel="author" title="Cathie Chen" href="mailto:cchen@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio-size-transfers">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/6071#issuecomment-2243986313">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert" content="The transferred maximum width does not clamp the automatic content-based minimum width.">
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div style="background: green; height: 200px; aspect-ratio: 1 / 2; max-height: 100px;">
+    <div style="width:100px;"></div>
+</div>

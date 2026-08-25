@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>DisplayOperatorMinHeight with default font</title>
+    <link
+      rel="help"
+      href="https://w3c.github.io/mathml-core/#layout-of-operators"
+    >
+    <meta
+      name="assert"
+      content="Operators using largeop should be bigger"
+    >
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/mathml/support/feature-detection.js"></script>
+    <script src="/mathml/support/fonts.js"></script>
+
+    <style>
+      math {
+        font-size: 16px;
+      }
+    </style>
+
+    <script>
+      // Small factor to ensure that the largeop version is bigger
+      const delta = 1.2;
+
+      var t = async_test("Operators using largeop should be bigger");
+      window.addEventListener("load", () => {
+        loadAllFonts().then(
+          t.step_func_done(function () {
+            document.querySelectorAll("math").forEach(
+              (math, i) => {
+                children = math.children;
+                regular = children[0].getBoundingClientRect();
+                largeop = children[1].getBoundingClientRect();
+                assert_greater_than(
+                  largeop.height,
+                  regular.height * delta,
+                  `Test ${children[0].textContent}`,
+                );
+              },
+            );
+          }),
+        );
+      });
+    </script>
+  </head>
+
+  <body>
+    <div id="log"></div>
+    <math displaystyle="true">
+      <mo largeop="false">&#x222B;</mo>
+      <mo largeop="true">&#x222B;</mo>
+    </math>
+    <math displaystyle="true">
+      <mo largeop="false">&#x2211;</mo>
+      <mo largeop="true">&#x2211;</mo>
+    </math>
+    <math displaystyle="true">
+      <mo largeop="false">&#x22C1;</mo>
+      <mo largeop="true">&#x22C1;</mo>
+    </math>
+  </body>
+</html>

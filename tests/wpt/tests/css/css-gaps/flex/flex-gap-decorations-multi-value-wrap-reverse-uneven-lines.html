@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<title>
+    CSS Gap Decorations: Flex gap decoration colors with multiple values are
+    assigned in placement order across uneven flex lines (unequal item
+    counts per line) when flex-wrap is wrap-reverse and flex-direction is
+    row-reverse.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#gap-decorations">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/14156">
+<link rel="match" href="flex-gap-decorations-multi-value-wrap-reverse-uneven-lines-ref.html">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+    .flex {
+        display: flex;
+        flex-direction: row-reverse;
+        flex-wrap: wrap-reverse;
+        gap: 10px;
+        width: 250px;
+        height: 230px;
+        column-rule-style: solid;
+        column-rule-width: 6px;
+        column-rule-color: red, orange, gold, green, blue, purple;
+    }
+    .flex > * {
+        background: lightgray;
+        height: 50px;
+    }
+</style>
+<div class="flex">
+    <div style="width: 60px;"></div>
+    <div style="width: 60px;"></div>
+    <div style="width: 60px;"></div>
+    <div style="width: 110px;"></div>
+    <div style="width: 100px;"></div>
+    <div style="width: 60px;"></div>
+    <div style="width: 60px;"></div>
+    <div style="width: 60px;"></div>
+    <div style="width: 110px;"></div>
+    <div style="width: 100px;"></div>
+</div>

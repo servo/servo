@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>Canvas.drawElementImage: do not throw on empty elements</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<canvas id="canvas" width="100" height="100">
+  <div id="child"></div>
+</canvas>
+
+<script>
+  'use strict';
+
+  promise_test(async t => {
+    // Add `layoutsubtree` and assert that `drawElementImage` throws when used
+    // prior to `onpaint` firing.
+    canvas.setAttribute('layoutsubtree', 'true');
+    let ctx = canvas.getContext('2d');
+    assert_throws_dom(
+      'InvalidStateError',
+      () => ctx.drawElementImage(child, 0, 0),
+      'drawElementImage should throw prior to onpaint.');
+
+    // Wait for `onpaint` and verify that `drawElementImage` does not throw,
+    // even though #child is an empty div.
+    await new Promise(r => canvas.onpaint = r);
+    ctx.drawElementImage(child, 0, 0);
+  }, 'canvas drawElementImage should not throw on empty elements.');
+</script>

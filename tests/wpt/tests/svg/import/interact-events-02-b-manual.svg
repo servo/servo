@@ -1,0 +1,77 @@
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink" onload='f(evt)'>
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.3" reviewer="ED" author="CM" status="accepted"
+    version="$Revision: 1.7 $" testname="$RCSfile: interact-events-02-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/interact.html#SVGEvents">
+        <p>
+          This tests that the SVGLoad event does not bubble.
+        </p>
+      <p>
+        After loading the tests, two rectangles are displayed.
+        The left rectangle indicates whether the SVGLoad event
+        dispatched to the root 'svg' element did not bubble
+        and the right rectangle indicates whether the SVGLoad
+        event dispatched to an 'image' element did not bubble.
+        Each rectangle is red if the sub-test failed or green
+        if it passed.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>Run the test. No interaction required.</p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test is passed if both rectangles are green
+        once the document has loaded.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: interact-events-02-b.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+
+    <text x='10' y='30'>Testing that SVGLoad does not bubble</text>
+
+    <rect id='r1' x='10' y='50' width='50' height='50' fill='red'/>
+    <rect id='r2' x='210' y='50' width='50' height='50' fill='red'/>
+    <g font-size='14'>
+      <text x='10' y='130'>On root &lt;svg></text>
+      <text x='210' y='130'>On an &lt;image></text>
+    </g>
+
+    <script><![CDATA[
+      function f(evt) { if (!evt.bubbles && evt.target == document.getElementById("svg-root")) document.getElementById('r1').setAttribute('fill', 'green'); }
+      function g(evt) { if (!evt.bubbles && evt.target == document.getElementById("image")) document.getElementById('r2').setAttribute('fill', 'green'); }
+    ]]></script>
+
+    <image id="image" xlink:href='../images/20x20.png' width='20' height='20' visibility='hidden' onload='g(evt)'/>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.7 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved --><!--
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5>" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

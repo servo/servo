@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Reftest Reference</title>
+    <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com"/>
+    <style>
+      div.flexbox {
+        width: 200px;
+        background: lightgreen;
+        margin-bottom: 5px;
+        line-height: 8px;
+      }
+      video {
+        width: 10px;
+        height: 20px;
+        border: 1px dotted green;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="flexbox">
+      <video/>
+    </div>
+
+    <div class="flexbox" style="height: 22px">
+      some words
+      <video style="float:right"/>
+    </div>
+
+    <div class="flexbox">
+      <video style="width: 122.5px"
+    /><video style="width: 73.5px"/>
+    </div>
+
+    <div class="flexbox">
+      <video style="width: 93px"
+    /><video style="width: 103px"/>
+    </div>
+
+    <div class="flexbox">
+      <video style="width: 114px"
+    /><video style="width: 82px"/>
+    </div>
+
+    <div class="flexbox">
+      <video style="width: 106px"
+    /><video style="width: 90px"/>
+    </div>
+
+    <div class="flexbox">
+      <video style="width: 46px"
+    /><video style="width: 150px"/>
+    </div>
+
+  </body>
+</html>

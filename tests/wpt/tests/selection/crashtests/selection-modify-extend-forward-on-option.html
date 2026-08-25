@@ -1,0 +1,22 @@
+<!doctype html>
+<title>Extending selection forward on option should not crash</title>
+<style>
+* {
+  display: inherit;
+}
+</style>
+
+<!--
+This test passes if it does not crash.
+-->
+
+<select style="display: table-cell;" name="test" multiple>
+  <option style="display: contents;">Test</option>
+</select>
+
+<script>
+window.addEventListener('load', () => {
+  document.execCommand('selectall');
+  window.getSelection().modify('extend', 'forward', 'line');
+});
+</script>

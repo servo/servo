@@ -1,0 +1,37 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Inline-block non-replaced elements with 'margin-left' and 'margin-right' set to 'auto'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-06-26 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#inlineblock-width" />
+		<link rel="match" href="inline-block-non-replaced-width-002-ref.xht" />
+
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="When 'margin-left' and 'margin-right' are set to 'auto' the used value becomes '0'." />
+        <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+        <style type="text/css">
+            #div1
+            {
+                border: solid black;
+                height: 200px;
+                width: 200px;
+            }
+            div div
+            {
+                background-color: red;
+                color: blue;
+                display: inline-block;
+                font: 100px/1 Ahem;
+                margin-left: auto;
+                margin-right: auto;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if a filled blue square is in the <strong>upper-left corner</strong> of an hollow black square and there is <strong>no red</strong>.</p>
+        <div id="div1">
+            <div>X</div>
+        </div>
+    </body>
+</html>

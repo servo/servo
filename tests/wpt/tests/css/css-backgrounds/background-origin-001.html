@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Backgrounds and Borders Test: background-origin - initial and supported values</title>
+    <link rel="author" title="Intel" href="http://www.intel.com" />
+    <link rel="help" href="http://www.w3.org/TR/css3-background/#the-background-origin" />
+    <meta name="flags" content="dom" />
+    <meta name="assert" content="Check if background-origin initial value is padding-box and supports values border-box, padding-box and content-box" />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <div id="test"></div>
+    <script>
+        test(function() {
+            assert_equals(getComputedStyle(document.getElementById("test"), null).getPropertyValue("background-origin"),
+                "padding-box", "background-origin initial value");
+        }, "background-origin_initial");
+
+        document.getElementById("test").style.backgroundOrigin = "border-box";
+        test(function() {
+            assert_equals(getComputedStyle(document.getElementById("test"), null).getPropertyValue("background-origin"),
+                "border-box", "background-origin supporting value");
+        }, "background-origin_border-box");
+
+        document.getElementById("test").style.backgroundOrigin = "padding-box";
+        test(function() {
+            assert_equals(getComputedStyle(document.getElementById("test"), null).getPropertyValue("background-origin"),
+                "padding-box", "background-origin supporting value");
+        }, "background-origin_padding-box");
+
+        document.getElementById("test").style.backgroundOrigin = "content-box";
+        test(function() {
+            assert_equals(getComputedStyle(document.getElementById("test"), null).getPropertyValue("background-origin"),
+                "content-box", "background-origin supporting value");
+        }, "background-origin_content-box");
+    </script>
+  </body>
+</html>

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<script src="../resources/runner.js"></script>
+<script src="resources/paint.js"></script>
+<div id="container" style="columns:10; column-gap:0; width:1px; column-fill:auto; height:100px;">
+  <div id="child" style="height:1000000px;"></div>
+</div>
+<script>
+  // Measure performance of painting a fragmented block with a background
+  // gradient.
+
+  var yellowfirst = false;
+
+measurePaint({
+  run: function() {
+    child.style.background = yellowfirst ? "linear-gradient(yellow, hotpink)" : "linear-gradient(hotpink, yellow)";
+    yellowfirst = !yellowfirst;
+  },
+});
+</script>

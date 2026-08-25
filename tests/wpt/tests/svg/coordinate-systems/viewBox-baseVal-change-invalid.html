@@ -1,0 +1,14 @@
+<!doctype HTML>
+<title>viewBox.baseVal dynamically changes to invalid value</title>
+<link rel="help" href="https://www.w3.org/TR/SVG/coords.html#ViewBoxAttribute">
+<link rel="match" href="../struct/reftests/reference/green-100x100.html">
+<svg id="svg" style="height: 200px; width: 200px;" viewBox="0 0 100 100">
+  <rect width="100" height="100" fill="green"></rect>
+</svg>
+<script>
+onload = () => {
+  // After this, viewBox should be ignored, and the green rect should be 100x100.
+  svg.viewBox.baseVal.width = -100;
+};
+</script>
+

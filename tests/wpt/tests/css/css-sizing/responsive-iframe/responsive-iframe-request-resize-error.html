@@ -1,0 +1,22 @@
+<!doctype HTML>
+<title>Test that calling `window.requestResize()` throws DOM NotAllowedError.</title>
+<link rel="author" href="mailto:kojii@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+test(t => {
+  assert_throws_dom('NotAllowedError', () => window.requestResize());
+}, "`window.requestResize()` from the parent frame throws DOM NotAllowedError");
+
+async_test(t => {
+  window.addEventListener('message', t.step_func_done(e => {
+    assert_equals(e.data.name, 'NotAllowedError');
+  }, {once: true}));
+  const iframe = document.createElement('iframe');
+  iframe.src = 'resources/iframe-contents-request-resize-error.html';
+  document.body.appendChild(iframe);
+}, "`window.requestResize()` from iframe without `responsive-embedded-sizing` meta tag throws DOM NotAllowedError");
+</script>
+</body>

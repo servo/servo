@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+  <title>
+    Test that watchAvailability() runs the callback with false when there is no device for the user to select
+  </title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/common/media.js"></script>
+  <script>
+    setup({ explicit_timeout: true });
+  </script>
+  <body>
+    <div id="prep">
+      <p>Please make sure <b>no device is available</b> for remote playback.</p>
+      <button id="prompt-button-prep">Show devices</button>
+      <button id="start-button">Start test</button>
+    </div>
+    <div id="pick-device" style="display: none">
+      <p>
+        Click the button below to prompt for a remote playback device and
+        cancel!
+      </p>
+      <button id="prompt-button">Pick device</button>
+    </div>
+  </body>
+  <script src="./prepare-device.js"></script>
+  <script>
+    let v = document.createElement("video");
+    v.src = getVideoURI("/media/movie_5");
+
+    async_test(t => {
+      let deviceAvailable = false;
+      let button = document.getElementById("prompt-button");
+      button.onclick = function () {
+        v.remote
+          .watchAvailability(t.step_func(avail => (deviceAvailable = avail)))
+          .then(
+            t.step_func(() => {
+              assert_false(deviceAvailable);
+              promise_rejects_dom(t, 'NotFoundError', v.remote.prompt())
+              .then(() => {
+                t.done();
+              });
+            }),
+            t.unreached_func()
+          );
+      };
+    }, "Test that watchAvailability() runs the callback with false when there is no device for the user to select.");
+  </script>
+</html>

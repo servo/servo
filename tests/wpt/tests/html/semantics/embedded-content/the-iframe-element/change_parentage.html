@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Change the frame heriarchy</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <iframe src="change_child.html"></iframe>
+</body>
+<script>
+    async_test(function(t) {
+        var timer = window.setInterval(t.step_func(poll), 100);
+        function poll() {
+            // We wait for the grandchild's script to set the custom attribtue.
+            // Note that if this test passes, the grandchild's script must have been run twice,
+            // once to trigger the move from the child to here, and once to pass this test.
+            if (document.body.getAttribute("data-contains-grandchild")) {
+                window.clearTimeout(timer);
+                t.done();
+            }
+        }
+    });
+</script>

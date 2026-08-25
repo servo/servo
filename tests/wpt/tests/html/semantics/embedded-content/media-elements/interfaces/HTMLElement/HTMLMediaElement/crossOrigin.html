@@ -1,0 +1,60 @@
+<!doctype html>
+<title>HTMLMediaElement.crossOrigin</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+test(function(){
+    var video = document.createElement('video');
+    assert_true('crossOrigin' in video);
+});
+test(function(){
+    var video = document.createElement('video');
+    assert_equals(video.crossOrigin, null);
+}, document.title+', content attribute missing');
+test(function(){
+    var video = document.createElement('video');
+    video.setAttribute('crossorigin', 'foo');
+    assert_equals(video.crossOrigin, 'anonymous');
+}, document.title+', content attribute invalid value');
+test(function(){
+    var video = document.createElement('video');
+    video.setAttribute('crossorigin', '');
+    assert_equals(video.crossOrigin, 'anonymous');
+}, document.title+', content attribute empty string');
+test(function(){
+    var video = document.createElement('video');
+    video.setAttribute('crossorigin', 'ANONYMOUS');
+    assert_equals(video.crossOrigin, 'anonymous');
+}, document.title+', content attribute uppercase ANONYMOUS');
+test(function(){
+    var video = document.createElement('video');
+    video.setAttribute('crossorigin', 'use-credentials');
+    assert_equals(video.crossOrigin, 'use-credentials');
+}, document.title+', content attribute use-credentials');
+test(function(){
+    var video = document.createElement('video');
+    video.crossOrigin = '';
+    assert_equals(video.getAttribute('crossorigin'), '');
+}, document.title+', setting to empty string');
+test(function(){
+    var video = document.createElement('video');
+    video.crossOrigin = null;
+    assert_false(video.hasAttribute('crossorigin'));
+}, document.title+', setting to null');
+test(function(){
+    var video = document.createElement('video');
+    video.crossOrigin = 'foo';
+    assert_equals(video.getAttribute('crossorigin'), 'foo');
+}, document.title+', setting to invalid value');
+test(function(){
+    var video = document.createElement('video');
+    video.crossOrigin = 'ANONYMOUS';
+    assert_equals(video.getAttribute('crossorigin'), 'ANONYMOUS');
+}, document.title+', setting to uppercase ANONYMOUS');
+test(function(){
+    var video = document.createElement('video');
+    video.crossOrigin = 'use-credentials';
+    assert_equals(video.getAttribute('crossorigin'), 'use-credentials');
+}, document.title+', setting to use-credentials');
+</script>

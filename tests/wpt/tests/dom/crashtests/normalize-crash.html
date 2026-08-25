@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Node.normalize() with contenteditable selection should not crash</title>
+<link rel="help" href="https://crbug.com/40336597">
+<div id="sample" contenteditable="true"></div>
+<script>
+  var text1 = document.createTextNode('abc');
+  var text2 = document.createTextNode(' defg');
+  var sample = document.getElementById('sample');
+  sample.appendChild(text1);
+  sample.appendChild(text2);
+  var selection = window.getSelection();
+  selection.collapse(sample, 0);
+  selection.extend(sample, 2);
+  sample.normalize();
+</script>

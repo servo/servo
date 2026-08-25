@@ -1,0 +1,10 @@
+<script>
+'use strict';
+
+let worker = new Worker('permissions-policy-serial-worker.js');
+
+worker.onmessage = event => {
+  window.parent.postMessage(event.data, '*');
+};
+worker.postMessage({ type: 'ready' });
+</script>

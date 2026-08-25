@@ -1,0 +1,39 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  div {font-size: 10px;}
+
+  div.top-and-bottom-stripes
+  {
+  background-color: green;
+  height: 1em;
+  width: 11.6em;
+  }
+
+  img {vertical-align: top;}
+
+  img + img {padding-left: 9.6em;}
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a hollow green square.</p>
+
+  <div class="top-and-bottom-stripes"></div>
+
+  <div><img src="support/swatch-green.png" width="10" height="96" alt="Image download support must be enabled" /><img src="support/swatch-green.png" width="10" height="96" alt="Image download support must be enabled" /></div>
+
+  <div class="top-and-bottom-stripes"></div>
+
+ </body>
+</html>

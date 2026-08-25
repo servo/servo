@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Text Decoration Test: Invalidation of text decorations in css-pseudo ::selection - reference</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/">
+<link rel="author" title="Stephen Chenney" href="mailto:schenney@chromium.org">
+<style>
+    div {
+        display: block;
+        margin-top: 30px;
+        margin-bottom: 30px;
+        will-change: transform;
+    }
+
+    ::selection {
+        background: yellow;
+        color: currentColor;
+    }
+
+    .decorated {
+        text-decoration-line: underline overline;
+        text-decoration-style: wavy;
+        text-decoration-color: green;
+        text-decoration-thickness: 5px;
+    }
+</style>
+</head>
+<body>
+<div>
+There should be no sign of decorations when the test completes.
+</div>
+<div id="bottom-decorated-div" class="decorated">
+There should be decorations when the test completes.
+</div>
+</body>
+<script>
+function selectByID(id) {
+  const selection = window.getSelection();
+  const node = document.getElementById(id);
+  const range = document.createRange();
+  range.selectNodeContents(node);
+  selection.addRange(range);
+}
+
+selectByID("bottom-decorated-div");
+</script>
+</html>

@@ -1,0 +1,3 @@
+rules:
+- cookie-enabled-noncookie-frame.html: [cookie-enabled]
+- "*": [cookies]

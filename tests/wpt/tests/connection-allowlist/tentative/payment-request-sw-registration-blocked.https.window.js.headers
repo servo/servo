@@ -1,0 +1,1 @@
+Connection-Allowlist: ("*://*:*/connection-allowlist/tentative/payment-app-manifest.json" "*://*:*/images/rgrg-256x256.png" "*://*:*/connection-allowlist/tentative/payment-request-sw-registration-blocked.https.window.js" "*://*:*/resources/testharness.js" "*://*:*/resources/testharnessreport.js" "*://*:*/resources/testdriver.js" "*://*:*/resources/testdriver-vendor.js")

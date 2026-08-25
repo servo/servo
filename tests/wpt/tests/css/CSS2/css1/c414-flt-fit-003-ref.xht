@@ -1,0 +1,67 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  div#wrapper
+  {
+  margin-left: 1.25em;
+  margin-top: 1.25em;
+  }
+
+  div#wrapper > div {display: inline-block;}
+
+  div#left {margin-right: 0.5em;}
+
+  div#wrapper > div > div
+  {
+  background-color: navy;
+  border: blue solid medium;
+  color: white;
+  margin-bottom: 0.5em;
+  padding: 0.25em;
+  text-align: right;
+  width: 7em;
+  }
+
+  div#A1, div#A9
+  {
+  margin-left: 3.25em;
+  text-align: left;
+  }
+
+  div#A3, div#A5, div#A7 {text-align: left !important;}
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>The blue rectangles should be in numeric order and form a backwards "D". (Boxes labelled "A" should be in the first column; boxes labelled "B" should be in the second; arrows indicate the correct alignment.)</p>
+
+  <div id="wrapper">
+
+    <div id="left">
+      <div id="A1">A 1 &#x21E8;</div>
+      <div id="A3">&#x21E6; A 3</div>
+      <div id="A5">&#x21E6; A 5</div>
+      <div id="A7">&#x21E6; A 7</div>
+      <div id="A9">A 9 &#x21E8;</div>
+    </div><div>
+      <div>B 2 &#x21E8;</div>
+      <div>B 4 &#x21E8;</div>
+      <div>B 6 &#x21E8;</div>
+      <div>B 8 &#x21E8;</div>
+      <div>B 10 &#x21E8;</div>
+    </div>
+
+  </div>
+
+ </body>
+</html>

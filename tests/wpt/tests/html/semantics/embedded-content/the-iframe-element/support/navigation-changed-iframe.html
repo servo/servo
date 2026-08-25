@@ -1,0 +1,15 @@
+<html>
+<head>
+    <script>
+        function fireSentinel()
+        {
+            document.getElementsByTagName('h4')[0].innerHTML = document.domain;
+            opener.postMessage("NAVIGATED", "*");
+        }
+    </script>
+</head>
+<body onload="fireSentinel();">
+    <h4>DOMAIN</h4>
+    <p>PASSED: Navigation succeeded.</p>
+</body>
+</html>

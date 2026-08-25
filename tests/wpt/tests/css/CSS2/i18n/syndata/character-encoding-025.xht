@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding='utf-8'?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xml:lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title>CSS Test: blank spaces before @charset</title>
+<link rel='author' title='Richard Ishida' href='http://rishida.net' />
+<!-- placeholdercomment -->
+<link rel='help' href='http://www.w3.org/TR/CSS21/syndata.html#charset' />
+<link rel='alternate' href='http://www.w3.org/International/tests/tests-html-css/tests-character-encoding/generate?test=42' />
+<meta name='flags' content='http' />
+<meta name="assert" content="If a @charset declaration does not start at the beginning of the first line of the file (when there is no BOM), the encoding declaration will not be recognised." />
+<style type='text/css'>
+/* the CSS below is not part of the test */
+.test { font-size: 40px; }
+.test img { vertical-align: middle;  }
+.test td { padding-right: 60px; }
+</style>
+<link rel="stylesheet" type="text/css" href="support/charset15-beforespaces.css" />
+</head>
+<body>
+<p class='instructions'>Test passes if there is a green rectangle below.</p><p class='instructionNote'>This test is only valid if the user agent recognises the @charset rule.  </p>
+
+
+<div class="test"><span style="background-color: #0000FF; color: #0000FF;"><span class="ÃœÃ€Ãš">text</span></span></div>
+
+
+<!--p class="notes">Notes: <br />The HTML page is served as UTF-8. The CSS stylesheet is in ISO 8859-15.  For the test to be successful, the stylesheet has to be read as ISO 8859-15.  The @charset rule is not correctly formed, so should be ignored, but the stylesheet should still be used.</p><p class='notes'>If the box is blue, the stylesheet hasn't been read at all.</p-->
+</body>
+</html>

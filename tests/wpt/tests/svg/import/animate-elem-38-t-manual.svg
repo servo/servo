@@ -1,0 +1,90 @@
+<svg version="1.1" baseProfile="tiny" preserveAspectRatio="none" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="VH, ED" author="OA" status="accepted"
+    version="$Revision: 1.6 $" testname="$RCSfile: animate-elem-38-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/animate.html#Animation">
+      <p>
+        The purpose of this test is to test animation of the viewBox attribute.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The viewBox changes position and size
+        several times. At each new setting, a green indicator frame will flash a couple of times.
+        This frame must only appear at the edges of the SVG element.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: animate-elem-38-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <g id="elk" fill="rgb(246,255,129)" stroke="rgb(0,0,0)" transform="translate(40 5) scale(0.9 0.9)">
+      <path fill="rgb(191,48,0)" d="M39.4 149.4 C31 156.2 21.3 167 29.3 177.9 C39.6 191.8 60.5 190.6 70.3 176.5 C75.8                168.6 70.3 138.5 87.6 140.7 C101.1 142.4 97 174.9 96.6 184.7 C96.3 193.7 95.4                200.4 91.4 208.7 C88.2 215.2 82.2 221.7 81.6 228.7 C79.7 249.7 104.5 239.8                105.6 222.7 C106.7 205.9 101.8 190.2 103.6 173.7 C104.6 164.8 111 154.2 117.4                166.7 C121.5 174.8 117.1 183 115.6 190.7 C113.6 201 109 229.3 120.9 236.5                C134.1 244.5 141.3 215.2 139.7 205.7 C138.4 197.5 133.7 189.6 131.6 181.7                C130.7 178.3 126.2 161.8 128.8 158.9 C135.5 151.7 145.6 168.2 147.4 172.7 C150.5                180.4 150.3 189 147.8 196.7 C144.2 207.8 130.8 231.9 145.4 241.8 C166.7                256.2 164.8 218.6 163.4 208.7 C162.1 199.9 160.3 190.6 159.6 181.7 C158.7 169.5                163.8 167.6 175.4 167.7 C203.6 167.8 180.5 199.7 179.6 214.7 C179 224.2                183.4 236.6 194.7 237.7 C208.4 239 208.6 220.8 208.7 210.9 C208.9 189.8 197                171.5 198.9 150.8 C210.5 146.1 196.6 133.6 191.7 130.4 C182.6 124.5 172.3 122.1                161.7 120.6 C146.9 118.6 132 120.5 117.1 121 C110.5 121.2 104 121.4 97.5                120.1 C92.3 119 86.5 117.7 81.2 119.2 C77.7 120.2 71.6 122.5 68.6 124.6 C65.9                126.6 64.8 130.2 62.6 132.8 C56.4 140.2 46.8 143.3 39.5 149.3 z"/>
+      <path d="M165.2 86.7 C184 67.3 201.2 47.5 188.2 19.7 C182.1 6.5 153.5 -12.8 154.5 13.9 C154.9                24.4 160.7 29.8 165.5 37.7 C168.8 43.2 172 60.8 158.7 57.6 C150.8 55.7 152.3                40.9 139.5 47.8 C130.2 52.8 133.8 60.1 138.3 66.8 C142.2 72.8 149.3 79.3                141.5 86 C134.6 91.9 126.9 84 127.3 75.9 C111 72.5 123.3 89.9 124.3 95.8 C114.3                103.2 117.2 93.4 111.2 90 C103.8 85.6 97 92.4 97.2 98 C97.4 105.8 105.2                105.2 96.7 113 C94 115.4 90.6 116.8 87.2 117.7 C85.5 118.2 83.8 118.6 82.1                119 C81.6 119.1 77.9 119.7 79.4 120.6 C80.9 121.4 82.8 120.7 84.4 120.7 C86                120.6 87.6 120.5 89.2 120.3 C92.5 120 95.9 119.5 99.2 118.9 C106.1 117.6 113                115.9 119.6 113.6 C126.4 111.3 133 108.5 139.3 105.3 C145.4 102.2 151.3 98.5                156.7 94.3 C159.7 92 162.5 89.5 165.1 86.8 z"/>
+      <path d="M56.8 120.4 C57 120.6 57.3 120.8 57.5 121 C59.3 122.4 61.8 122.9 64.1 123.1 C65.3                123.3 66.6 123.3 67.8 123.4 C68.3 123.4 68.9 123.5 69.4 123.5 C69.7 123.5 70.5                123.3 70.8 123.6 C71.2 124.1 70.4 124.4 70.1 124.5 C68.8 125.1 67.3 124.7                66 124.9 C65.1 125 64.1 125.1 63.2 125.2 C59.5 125.5 55.8 125.8 52.1 126 C48.2                126.2 44.2 126.3 40.3 126.2 C36.4 126.1 32.5 125.8 28.6 125.3 C25 124.8                21.4 123.9 18 122.7 C14.9 121.5 11.8 120 9.2 117.9 C6.7 115.9 4.6 113.3 3.1                110.4 C1.5 107.1 0.7 103.3 0.6 99.6 C-0.1 81.8 22.3 81 17.9 99.6 C16.6 105.2                10.2 115 18.6 117.6 C28.6 120.7 26.5 109.2 24.8 104.7 C27.7 104.2 31.6 104.2                34.5 104.7 C34.3 109.3 33.6 117.7 40.6 117.6 C47.8 117.5 41.5 109.7 49.6                109.6 C57.6 109.5 53.3 116.4 56.9 120.3 z"/>
+      <path fill="rgb(255,255,255)" d="M71.5 129.8 C72.3 131.6 75.3 131.5 75.4 129.3 C75.5 126.5 70.2 126.8 71.5 129.8"/>
+      <path fill="rgb(255,255,255)" d="M80.1 130 C82.9 127.7 78.6 125 77.6 126.4 C76.6 127.9 77.6 132.1 80.1 130"/>
+    </g>
+    <g stroke-width="5" fill="none" stroke="none">
+      <rect fill="none" x="0" y="0" width="300" height="300">
+        <animateColor attributeName="stroke" values="green; white" begin="1" dur="0.2" repeatCount="5"/>
+      </rect>
+      <rect fill="none" x="100" y="100" width="100" height="100">
+        <animateColor attributeName="stroke" values="green; white" begin="3" dur="0.2" repeatCount="5"/>
+      </rect>
+      <rect fill="none" x="0" y="100" width="100" height="100">
+        <animateColor attributeName="stroke" values="green; white" begin="5" dur="0.2" repeatCount="5"/>
+      </rect>
+      <rect fill="none" x="200" y="0" width="100" height="100">
+        <animateColor attributeName="stroke" values="green; white" begin="7" dur="0.2" repeatCount="5"/>
+      </rect>
+      <rect fill="none" x="100" y="0" width="200" height="200">
+        <animateColor attributeName="stroke" values="green; white" begin="9" dur="0.2" repeatCount="5"/>
+      </rect>
+      <rect fill="none" x="0" y="100" width="200" height="200">
+        <animateColor attributeName="stroke" values="green; white" begin="11" dur="0.2" repeatCount="5"/>
+      </rect>
+      <rect fill="none" x="0" y="100" width="300" height="200">
+        <animateColor attributeName="stroke" values="green; white" begin="13" dur="0.2" repeatCount="5"/>
+      </rect>
+      <rect fill="none" x="0" y="0" width="300" height="300">
+        <animateColor attributeName="stroke" values="green; white" begin="15" dur="0.2" repeatCount="5"/>
+      </rect>
+    </g>
+    <animate attributeName="viewBox" xlink:href="#svg-root" values="0 0 300 300; 0 0 300 300; 100 100 100 100; 100 100 100 100; 0 100 100 100; 0 100 100 100; 200 0 100 100; 200 0 100 100; 100 0 200 200; 100 0 200 200; 0 100 200 200; 0 100 200 200; 0 100 300 200; 0 100 300 200; 0 0 300 300; 0 0 300 300" keyTimes="0; 0.1; 0.15; 0.2; 0.25; 0.3; 0.35; 0.4; 0.45; 0.5; 0.55; 0.6; 0.65; 0.7; 0.75; 1" begin="0" dur="20" fill="freeze"/>
+    <text x="5" y="240" font-size="14">Animation on: 'viewBox'. Flashing frame should</text>
+    <text x="5" y="260" font-size="14">only appear at the edges of the SVG element.</text>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="298" height="298" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="298" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="'Arial Black', Arial, sans-serif" font-weight="bold" font-size="20" x="150" text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

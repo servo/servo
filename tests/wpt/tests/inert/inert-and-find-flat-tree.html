@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://html.spec.whatwg.org/#inert-subtrees">
+<link rel=help href="https://issues.chromium.org/issues/336832613">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id=host>
+  <template shadowrootmode=open>
+    <dialog>
+      <div>inside shadowroot</div>
+      <slot></slot>
+    </dialog>
+  </template>
+  <div>slotted</div>
+</div>
+
+<script>
+document.getElementById('host').shadowRoot.querySelector('dialog').showModal();
+
+test(() => {
+  assert_true(window.find('inside shadowroot'));
+}, 'Text inside a dialog inside a shadowroot should be findable.');
+
+test(() => {
+  assert_true(window.find('slotted'));
+}, 'Text slotted into a dialog which is inside a shadowroot should be findable.');
+</script>

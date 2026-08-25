@@ -1,0 +1,3 @@
+rules:
+- broadcastchannel-*: [broadcast-channel]
+- messageport-*: [channel-messaging]

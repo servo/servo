@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8"/>
+<title>korean-hangul-formal, 10-9999</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='http://www.w3.org/TR/css-counter-styles-3/#complex-cjk'>
+<link rel="reviewer" title="Chris Lilley" href="mailto:chris@w3.org" />
+<meta name="assert" content="Setting list-style-type to korean-hangul-formal will produce list numbering after 9 as described in the CSS3 Counter Styles module.">
+<style type='text/css'>
+.test { font-size: 25px; }
+ol { margin: 0; padding-left: 8em; }
+ol li { list-style-type: korean-hangul-formal;  }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the two columns are the same, ignoring the suffix.</p>
+
+
+<div class="test"><ol start='10'><div><bdi>일십, </bdi>일십,</div></ol>
+<ol start='11'><div><bdi>일십일, </bdi>일십일,</div></ol>
+<ol start='12'><div><bdi>일십이, </bdi>일십이,</div></ol>
+<ol start='43'><div><bdi>사십삼, </bdi>사십삼,</div></ol>
+<ol start='77'><div><bdi>칠십칠, </bdi>칠십칠,</div></ol>
+<ol start='80'><div><bdi>팔십, </bdi>팔십,</div></ol>
+<ol start='99'><div><bdi>구십구, </bdi>구십구,</div></ol>
+<ol start='100'><div><bdi>일백, </bdi>일백,</div></ol>
+<ol start='101'><div><bdi>일백일, </bdi>일백일,</div></ol>
+<ol start='222'><div><bdi>이백이십이, </bdi>이백이십이,</div></ol>
+<ol start='540'><div><bdi>오백사십, </bdi>오백사십,</div></ol>
+<ol start='999'><div><bdi>구백구십구, </bdi>구백구십구,</div></ol>
+<ol start='1000'><div><bdi>일천, </bdi>일천,</div></ol>
+<ol start='1005'><div><bdi>일천오, </bdi>일천오,</div></ol>
+<ol start='1060'><div><bdi>일천육십, </bdi>일천육십,</div></ol>
+<ol start='1065'><div><bdi>일천육십오, </bdi>일천육십오,</div></ol>
+<ol start='1800'><div><bdi>일천팔백, </bdi>일천팔백,</div></ol>
+<ol start='1860'><div><bdi>일천팔백육십, </bdi>일천팔백육십,</div></ol>
+<ol start='1865'><div><bdi>일천팔백육십오, </bdi>일천팔백육십오,</div></ol>
+<ol start='5865'><div><bdi>오천팔백육십오, </bdi>오천팔백육십오,</div></ol>
+<ol start='7005'><div><bdi>칠천오, </bdi>칠천오,</div></ol>
+<ol start='7800'><div><bdi>칠천팔백, </bdi>칠천팔백,</div></ol>
+<ol start='7865'><div><bdi>칠천팔백육십오, </bdi>칠천팔백육십오,</div></ol>
+<ol start='9999'><div><bdi>구천구백구십구, </bdi>구천구백구십구,</div></ol>
+</div>
+
+
+<!--Notes:
+You will need an appropriate font to run this test.
+
+To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
+-->
+
+
+</body>
+</html>

@@ -1,0 +1,4 @@
+rules:
+- idbindex_getAllRecords.any.js: [getallrecords]
+- idbobjectstore_getAllRecords.any.js: [getallrecords]
+- "*": [indexeddb]

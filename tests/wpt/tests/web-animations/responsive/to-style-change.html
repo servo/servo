@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id='container'>
+<div id='element'></div>
+</div>
+
+<script>
+var element = document.getElementById('element');
+var container = document.getElementById('container');
+
+test(function() {
+    element.style.fontSize = '10px';
+    container.style.width = '1000px';
+    var player = element.animate([{left: 'calc(100px + 80%)'}, {left: '10em'}], 10);
+    player.pause();
+    player.currentTime = 5;
+    assert_equals(getComputedStyle(element).left, 'calc(40% + 100px)');
+    element.style.fontSize = '20px';
+    assert_equals(getComputedStyle(element).left, 'calc(40% + 150px)');
+    container.style.width = '500px';
+    assert_equals(getComputedStyle(element).left, 'calc(40% + 150px)');
+}, 'Lengths responsive to style changes');
+
+test(function() {
+    container.style.width = '1000px';
+    var player = element.animate([{paddingTop: '30%'}, {paddingTop: '50%'}], 10);
+    player.pause();
+    player.currentTime = 5;
+    container.style.width = '700px';
+    assert_equals(getComputedStyle(element).paddingTop, '280px');
+}, 'Percentages responsive to width style changes');
+
+test(function() {
+    element.style.fontSize = '1px';
+    var player = element.animate([{lineHeight: '9'}, {lineHeight: '13'}], 10);
+    player.pause();
+    player.currentTime = 2.5;
+    element.style.fontSize = '7px';
+    assert_equals(getComputedStyle(element).lineHeight, '70px');
+}, 'Numbers responsive to style changes');
+
+</script>

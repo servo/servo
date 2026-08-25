@@ -1,0 +1,39 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v3.4.0
+    hooks:
+      - id: check-toml
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v0.812
+    hooks:
+      - id: mypy
+        exclude: '^(docs|tasks|tests)|setup\.py'
+        args: []
+
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v2.29.0
+    hooks:
+      - id: pyupgrade
+        args: [--py36-plus]
+
+  - repo: https://github.com/psf/black
+    rev: 20.8b1
+    hooks:
+      - id: black
+
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.8.0
+    hooks:
+      - id: isort
+
+  - repo: https://gitlab.com/PyCQA/flake8
+    rev: "3.9.0"
+    hooks:
+      - id: flake8
+        additional_dependencies: ["pep8-naming"]
+        # Ignore all format-related checks as Black takes care of those.
+        args: ["--ignore", "E2,W5", "--select", "E,W,F,N"]

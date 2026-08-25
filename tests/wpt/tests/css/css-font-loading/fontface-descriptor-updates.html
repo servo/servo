@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<meta charset=utf-8>
+<title>CSS Font Loading test: modification of descriptors</title>
+<link rel="author" title="Jonathan Kew" href="jkew@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-font-loading/#fontface-interface">
+<meta name="assert" content="If descriptors of a FontFace are modified, the new values should take effect">
+<link rel="match" href="fontface-descriptor-updates-ref.html">
+<style>
+body { font-family: sans-serif; }
+#test1 { font-family: test1, sans-serif; }
+#test2 { font-family: test2, monospace; }
+#test3 { font-family: test3, sans-serif; }
+#test4 { font-family: test4, monospace; }
+</style>
+<script>
+function run() {
+  let f1 = new FontFace("test1", "url(resources/GenR102.woff2)");
+  document.fonts.add(f1);
+  let f2 = new FontFace("to_be_updated", "url(resources/GenR102.woff2)");
+  document.fonts.add(f2);
+  let f3 = new FontFace("test3", "url(resources/GenR102.woff2)", { weight: 700 });
+  document.fonts.add(f3);
+  let f4 = new FontFace("test3", "url(resources/GenI102.woff2)");
+  document.fonts.add(f4);
+  let f5 = new FontFace("test4", "url(resources/GenR102.woff2)", { unicodeRange: "U+002?" });
+  document.fonts.add(f5);
+  let f6 = new FontFace("test4", "url(resources/GenI102.woff2)", { unicodeRange: "U+00??" });
+  document.fonts.add(f6);
+
+  // Change family name to make f2 match #test2
+  f2.family = "test2";
+
+  // Swap weight descriptors so that f3 is regular and f4 (italic face) is regarded as bold
+  f3.weight = 400;
+  f4.weight = 700;
+
+  // Update unicode-range so that f5 will be used for all characters in #test4
+  f5.unicodeRange = "U+00??";
+  f6.unicodeRange = "U+0000";
+
+  document.fonts.ready.then(function() {
+    document.documentElement.classList.remove("reftest-wait");
+  })
+}
+</script>
+<body onload="run()">
+<div>
+All lines below should use the same serif font, with the word "weight" in italics:
+<p id=test1>Using original family name of a FontFace</p>
+<p id=test2>Using updated family name of a FontFace</p>
+<p id=test3>Using updated <b>weight</b> descriptors</p>
+<p id=test4>Using updated unicode-range descriptors</p>
+</div>
+</body>
+</html>

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+
+<title>CSS Anchor Positioning: tests that anchor() works with CSS zoom property</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#anchor-pos">
+<link rel="help" href="https://drafts.csswg.org/css-viewport/#zoom-property">
+<link rel="author" href="mailto:kiet.ho@apple.com">
+<link rel="match" href="reference/anchor-css-zoom-ref.html">
+
+<style>
+    .containing-block {
+        position: relative;
+        width: 150px;
+        height: 150px;
+
+        zoom: 2;
+    }
+
+    .cell {
+        width: 50px;
+        height: 50px;
+    }
+
+    #anchor-cell {
+        position: absolute;
+        top: 50px;
+        left: 50px;
+
+        anchor-name: --anchor;
+
+        background: green;
+    }
+
+    .anchor-positioned-cell {
+        position: absolute;
+        position-anchor: --anchor;
+    }
+
+    #top-left {
+        top: 0;
+        right: anchor(left);
+
+        background: cyan;
+    }
+
+    #top-right {
+        top: 0;
+        left: anchor(right);
+
+        background: magenta;
+    }
+
+    #bottom-left {
+        bottom: 0;
+        right: anchor(left);
+
+        background: yellow;
+    }
+
+    #bottom-right {
+        bottom: 0;
+        left: anchor(right);
+
+        background: black;
+    }
+</style>
+
+<body>
+    <!--
+        The boxes below are arranged like this:
+        (the outside box is .containing-block)
+
+        -------------
+        | 1 |   | 2 |
+        |---|---|---|
+        |   | A |   |
+        |---|---|---|
+        | 3 |   | 4 |
+        -------------
+    -->
+
+    <div class="containing-block">
+        <!-- Box A -->
+        <div class="cell" id="anchor-cell"></div>
+
+        <!-- Box 1 -->
+        <div class="cell anchor-positioned-cell" id="top-left"></div>
+
+        <!-- Box 2 -->
+        <div class="cell anchor-positioned-cell" id="top-right"></div>
+
+        <!-- Box 3 -->
+        <div class="cell anchor-positioned-cell" id="bottom-left"></div>
+
+        <!-- Box 4 -->
+        <div class="cell anchor-positioned-cell" id="bottom-right"></div>
+    </div>
+</body>

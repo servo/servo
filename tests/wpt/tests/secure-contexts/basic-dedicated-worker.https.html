@@ -1,0 +1,104 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>Test WorkerGlobalScope.isSecureContext for HTTPS creator</title>
+    <meta name="help" href="https://w3c.github.io/webappsec-secure-contexts/#monkey-patching-global-object">
+    <script src=/resources/testharness.js></script>
+    <script src=/resources/testharnessreport.js></script>
+    <script src="server-locations.sub.js"></script>
+  </head>
+  <body>
+    <script>
+      var t1 = async_test("HTTP worker");
+      var t2 = async_test("HTTPS worker");
+      var t3 = async_test("HTTP nested worker");
+      var t4 = async_test("HTTPS nested worker");
+      var t5 = async_test("HTTP worker from HTTPS subframe");
+      var t6 = async_test("HTTPS worker from HTTPS subframe");
+      var t7 = async_test("Worker from data URL");
+
+      try {
+        var w1 = new Worker(http_dir + "support/dedicated-worker-script.js");
+        w1.onmessage = t1.step_func_done(function(e) {
+          assert_unreached("cross-origin workers should not be loaded");
+        });
+        w1.onerror = t1.step_func_done(function(e) {
+          e.preventDefault();
+        });
+      } catch (e) {
+        // Some browsers throw for cross-origin URLs. This violates the Worker spec,
+        // but isn't actually relevant to what we're testing here.
+        t1.done();
+      }
+
+      var w2 = new Worker(https_dir + "support/dedicated-worker-script.js");
+      w2.onmessage = t2.step_func_done(function(e) {
+        assert_true(e.data);
+      });
+      w2.onerror = t2.step_func_done(function(e) {
+        assert_unreached("isSecureContext should be supported");
+      });
+
+      try {
+        var w3 = new Worker(http_dir + "support/parent-dedicated-worker-script.js");
+        w3.onmessage = t3.step_func_done(function(e) {
+          assert_unreached("cross-origin workers should not be loaded");
+        });
+        w3.onerror = t3.step_func_done(function(e) {
+          e.preventDefault();
+        });
+      } catch (e) {
+        // Some browsers throw for cross-origin URLs. This violates the Worker spec,
+        // but isn't actually relevant to what we're testing here.
+        t3.done();
+      }
+
+      var w4 = new Worker(https_dir + "support/parent-dedicated-worker-script.js");
+      w4.onmessage = t4.step_func_done(function(e) {
+        assert_true(e.data);
+      });
+      w4.onerror = t4.step_func_done(function(e) {
+        assert_unreached("isSecureContext should be supported");
+      });
+
+      onmessage = function(e) {
+        var data = e.data;
+        if (data.type == "http") {
+          t5.step(function() {
+            assert_true(data.error);
+          });
+          t5.done();
+        } else if (data.type == "https") {
+          t6.step(function() {
+            assert_false(data.error);
+            assert_true(data.isSecureContext);
+          });
+          t6.done();
+        } else {
+          t5.step(function() {
+            assert_unreached("Unknown message");
+          });
+          t5.done();
+          t6.step(function() {
+            assert_unreached("Unknown message");
+          });
+          t6.done();
+        }
+      }
+
+      var ifr = document.createElement("iframe");
+      ifr.src = https_dir + "support/https-subframe-dedicated.html";
+      document.body.appendChild(ifr);
+
+      var w7 = new Worker("data:text/javascript,postMessage(isSecureContext);");
+      w7.onmessage = t7.step_func_done(function(e) {
+        assert_true(e.data);
+      });
+      w7.onerror = t7.step_func_done(function(e) {
+        assert_unreached("isSecureContext should be supported");
+      });
+    </script>
+  </body>
+</html>
+

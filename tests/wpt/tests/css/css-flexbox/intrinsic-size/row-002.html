@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#intrinsic-sizes">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<meta name="assert"
+  content="the flex container's max-content size is big enough to contain the item's flex-basis when the item can't shrink. The old algorithm gives the container a min-content of zero." />
+
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id=reference-overlapped-red></div>
+
+<div style="display: flex; background: green; height: 100px; float: left;">
+  <div style="flex: 1 0 100px;"></div>
+</div>

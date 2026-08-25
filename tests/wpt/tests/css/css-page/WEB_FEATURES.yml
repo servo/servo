@@ -1,0 +1,10 @@
+rules:
+- forced-page-breaks-002.xht: [page-setup]
+- page-borders-000.xht: [page-setup]
+- page-box-*: [page-setup]
+- page-left-right-*: [page-setup, page-selectors]
+- page-margin-*: [page-setup]
+- page-rule-*: [page-setup]
+- page-size-*: [page-setup]
+- page-orientation*: [page-orientation]
+- pseudo-first-*: [page-selectors]

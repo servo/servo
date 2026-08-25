@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://html.spec.whatwg.org/#ancestor-revealing-algorithm">
+<link rel=help href="https://github.com/whatwg/html/issues/11436">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id=h1 hidden=until-found>
+  <div id=h1child>hidden 1</div>
+</div>
+<div id=h2 hidden=until-found>hidden 2</div>
+
+<script>
+test(() => {
+  let beforematchFired1 = false;
+  let beforematchFired2 = false;
+  h1.addEventListener('beforematch', () => {
+    beforematchFired1 = true;
+    h2.appendChild(h1);
+  });
+  h2.addEventListener('beforematch', () => {
+    beforematchFired2 = true;
+  });
+
+  window.location.hash = '#h1child';
+  assert_true(beforematchFired1, 'beforematch should have been fired on h1.');
+  assert_false(beforematchFired2, 'beforematch should not have been fired on h2.');
+  assert_false(h1.hasAttribute('hidden'), 'h1 should not be hidden.');
+  assert_true(h2.hasAttribute('hidden'), 'h2 should be hidden.');
+}, 'hidden=until-found revealing algorithm should collect elements to reveal before revealing them.');
+</script>

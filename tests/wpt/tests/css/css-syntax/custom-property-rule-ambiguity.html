@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<title>CSS Syntax: Rules that look like custom properties</title>
+<link rel="help" href="https://drafts.csswg.org/css-syntax/#consume-qualified-rule">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style id=stylesheet1>
+  .a { }
+  --x:hover { } /* Ambiguous "rule" */
+  .b { }
+</style>
+<script>
+  test(() => {
+    let rules = stylesheet1.sheet.rules;
+    assert_equals(rules.length, 2);
+    assert_equals(rules[0].selectorText, '.a');
+    assert_equals(rules[1].selectorText, '.b');
+  }, 'Rule that looks like a custom property declaration is ignored');
+</script>
+
+<!-- https://github.com/w3c/csswg-drafts/issues/9336 -->
+<style id=stylesheet2>
+  .a { }
+  --x:hover { ] } /* Ambiguous "rule" */
+  .b { }
+</style>
+<script>
+  test(() => {
+    let rules = stylesheet2.sheet.rules;
+    assert_equals(rules.length, 2);
+    assert_equals(rules[0].selectorText, '.a');
+    assert_equals(rules[1].selectorText, '.b');
+  }, 'Rule that looks like an invalid custom property declaration is ignored');
+</script>
+
+<style id=stylesheet3>
+  div {
+    .a { }
+    --x:hover { }
+    .b { }
+  }
+</style>
+<script>
+  test(() => {
+    let rules = stylesheet3.sheet.rules;
+    assert_equals(rules.length, 1);
+    assert_equals(rules[0].selectorText, 'div');
+    let div = rules[0];
+    let childRules = div.cssRules;
+    assert_equals(childRules.length, 2);
+    assert_equals(childRules[0].selectorText, '& .a');
+    assert_true(childRules[1] instanceof CSSNestedDeclarations)
+    let x = childRules[1].style.getPropertyValue('--x');
+    assert_equals(x.trim(), 'hover { }\n    .b { }');
+  }, 'Nested rule that looks like a custom property declaration');
+</script>
+
+<!-- https://github.com/w3c/csswg-drafts/issues/9336 -->
+
+<style id=stylesheet4>
+  div {
+    .a { }
+    --x:hover { ] }
+    .b { }
+  }
+</style>
+<script>
+  test(() => {
+    let rules = stylesheet4.sheet.rules;
+    assert_equals(rules.length, 1);
+    assert_equals(rules[0].selectorText, 'div');
+    let div = rules[0];
+    // There is no valid --x declaration, because mismatched ] is not allowed
+    // in custom properties.
+    let x = div.style.getPropertyValue('--x');
+    assert_equals(x, '');
+    // We should also not have restarted parsing as a nested style rule,
+    // and instead we should have "consumed the remnants of a bad declaration",
+    // which skips to the next semicolon (or end-of-block).
+    // So in other words, there should be no nested '.b.' child rule here.
+    let childRules = div.cssRules;
+    assert_equals(childRules.length, 1);
+    assert_equals(childRules[0].selectorText, '& .a');
+  }, 'Nested rule that looks like an invalid custom property declaration');
+</script>

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<meta charset="utf-8" >
+<meta name="author" title="Di Zhang" href="mailto:dizhangg@chromium.org">
+<meta name="assert" content="Modify slot fallback contents, when dynamically created.">
+<title>Shadow DOM: Slots and fallback contents</title>
+<link rel="match" href="slot-fallback-content-003-ref.html">
+
+<p>Test passes if there are two lines of text "SLOT1", "A" below.</p>
+
+<div id="host1"><slot id="slot1">SLOT1</slot></div>
+
+<p>Test passes if there is one line of text "C" below.</p>
+
+<div id="host2"><slot id="slot2">
+  <div id="B">FAIL</div>
+  <div id="C">C</div>
+</slot></div>
+
+<p>Test passes if empty.</p>
+
+<div id="host3">
+  <slot id="slot3">
+    <div id="D">FAIL</div>
+  </slot>
+</div>
+
+<script>
+// Content added to existing fallback content will be rendered
+const shadowRoot1 = host1.attachShadow({ mode: "open" });
+shadowRoot1.appendChild(slot1);
+const A = document.createElement('div');
+A.innerText = 'A';
+shadowRoot1.getElementById('slot1').appendChild(A);
+
+// Remove some content from existing slot fallback will render the leftover fallback
+const shadowRoot2 = host2.attachShadow({ mode: "open" });
+shadowRoot2.appendChild(slot2);
+const B = shadowRoot2.getElementById('B');
+B.remove();
+
+// // Remove all content from existing slot fallback will render no fallback
+const shadowRoot3 = host3.attachShadow({ mode: "open" });
+shadowRoot3.appendChild(slot3);
+const D = shadowRoot3.getElementById('D');
+D.remove();
+
+</script>

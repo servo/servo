@@ -1,0 +1,24 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title></title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+'use strict';
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const signalingStates = [];
+  pc.onsignalingstatechange = ev => signalingStates.push(pc.signalingState);
+  pc.addTransceiver('audio', {direction:'recvonly'});
+  const offer = await pc.createOffer();
+  const sldPromise = pc.setLocalDescription(offer);
+  const srdPromise = pc.setRemoteDescription(offer);
+  await Promise.all([sldPromise, srdPromise]);
+  assert_array_equals(signalingStates,
+                      ['have-local-offer','stable','have-remote-offer']);
+}, 'setLocalDescription and setRemoteDescription are not racy');
+
+</script>

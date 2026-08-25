@@ -1,0 +1,100 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Scroll event should behave correctly for Element.offsetTop and Element.offsetLeft</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="scroll_support.js"></script>
+<link rel="author" title="Jo Steven Novaryo" href="mailto:jo.steven.novaryo@huawei.com">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#extensions-to-the-htmlelement-interface">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#scrolling-events">
+<div id=log></div>
+<div id="container">
+</div>
+<script>
+
+function setupTarget() {
+  var container = document.getElementById("container");
+  container.innerHTML = "";
+
+  var target = document.createElement("div");
+  var overflowing_child = document.createElement("div");
+
+  target.style = "overflow:scroll; height: 100px; width: 100px; scrollbar-width: none";
+  overflowing_child.style = "height: 200px; width: 200px;";
+  target.appendChild(overflowing_child);
+  container.appendChild(target);
+  return target;
+}
+
+promise_test(async (t) => {
+  var target = setupTarget();
+
+  assert_equals(target.scrollTop, 0);
+  var promiseForScrollTop = waitForEvent("scroll", t, target);
+  target.scrollTop = 10;
+  await promiseForScrollTop;
+  assert_equals(target.scrollTop, 10);
+
+  assert_equals(target.scrollLeft, 0);
+  var promiseForScrollLeft = waitForEvent("scroll", t, target);
+  target.scrollLeft = 10;
+  await promiseForScrollLeft;
+  assert_equals(target.scrollLeft, 10);
+
+}, "scrollTop and scrollLeft should fire scroll event.");
+
+promise_test(async (t) => {
+  var target = setupTarget();
+
+  target.addEventListener("scroll", () => assert_unreached("Any scroll event should not be observed"));
+
+  assert_equals(target.scrollTop, 0);
+  target.scrollTop = 0;
+
+  assert_equals(target.scrollLeft, 0);
+  target.scrollLeft = 0;
+
+  // Ensure all scroll event is flushed
+  await waitForNextFrame();
+  await waitForNextFrame();
+}, "scrollTop and scrollLeft being set with the same value.");
+
+promise_test(async (t) => {
+  var target = setupTarget();
+
+  target.addEventListener("scroll", () => assert_unreached("Any scroll event should not be observed"));
+
+  target.scrollTop = -100;
+  target.scrollLeft = -100;
+
+  // Ensure all scroll event is flushed
+  await waitForNextFrame();
+  await waitForNextFrame();
+}, "scrollTop and scrollLeft being set with invalid scroll offset.");
+
+promise_test(async (t) => {
+  var target = setupTarget();
+
+  assert_equals(target.scrollTop, 0);
+  var promiseForScrollTop = waitForEvent("scroll", t, target);
+  target.scrollTop = 1000;
+  await promiseForScrollTop;
+  assert_equals(target.scrollTop, 100);
+
+  assert_equals(target.scrollLeft, 0);
+  var promiseForScrollLeft = waitForEvent("scroll", t, target);
+  target.scrollLeft = 1000;
+  await promiseForScrollLeft;
+  assert_equals(target.scrollLeft, 100);
+
+  target.addEventListener("scroll", () => assert_unreached("Any scroll event should not be observed"));
+
+  target.scrollTop = 1000;
+  target.scrollLeft = 1000;
+
+  // Ensure all scroll event is flushed
+  await waitForNextFrame();
+  await waitForNextFrame();
+}, "scrollTop and scrollLeft when scrolling above maximum offset.");
+
+</script>

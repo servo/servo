@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>Fetch Priority - SVG Image element</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<svg>
+<image id=image1 fetchpriority="high"/>
+<image id=image2 fetchpriority="low"/>
+<image id=image3 fetchpriority="auto"/>
+<image id=image4 fetchpriority="xyz"/>
+<image id=image5 />
+</svg>
+
+<script>
+  test(() => {
+    assert_equals(image1.fetchPriority, "high", "high fetchPriority is a valid IDL value on the image element");
+    assert_equals(image2.fetchPriority, "low", "low fetchPriority is a valid IDL value on the image element");
+    assert_equals(image3.fetchPriority, "auto", "auto fetchPriority is a valid IDL value on the image element");
+    assert_equals(image4.fetchPriority, "auto", "invalid fetchPriority reflects as 'auto' IDL attribute on the image element");
+    assert_equals(image5.fetchPriority, "auto", "missing fetchPriority reflects as 'auto' IDL attribute on the image element");
+  }, "fetchpriority attribute on <image> elements should reflect valid IDL values");
+
+  test(() => {
+    const image = document.createElementNS("http://www.w3.org/2000/svg", "image");
+    assert_equals(image.fetchPriority, "auto");
+  }, "default fetchpriority attribute on <image> elements should be 'auto'");
+</script>

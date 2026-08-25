@@ -1,0 +1,14 @@
+<!doctype html>
+<title>Historical style element features should not be supported</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+function t(property) {
+  test(function() {
+    assert_false(property in document.createElement('style'));
+  }, 'style.' + property + ' should not be supported');
+}
+// added in https://github.com/whatwg/html/commit/29cf39d2163cfc85b67409f4e10390619ffb2b40
+// removed in https://github.com/whatwg/html/commit/c2a3b2a2e3db49c14b486a5e99acf7d10cfe8443
+t('scoped');
+</script>

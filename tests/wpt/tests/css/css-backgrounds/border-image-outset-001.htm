@@ -1,0 +1,37 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: The 'border-image-outset' property set to four number values</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css3-background/#the-border-image-outset" />
+        <meta name="flags" content="image" />
+        <meta name="assert" content="This test checks that the four values of the 'border-image-outset' property specify the amount by which the border image area extends beyond the border box. They set the outsets on the top, right, bottom and left sides in that order. A 'number' represents a multiple of the corresponding border-width." />
+        <style type="text/css">
+            #test
+            {
+                background-color: blue;
+                border: 10px double red;
+                border-image-outset: 1 6 11 1;
+                border-image-slice: 10;
+                border-image-source: url("support/green_color.png");
+                border-image-width: 1;
+                height: 90px;
+                margin: 70px;
+                width: 40px;
+            }
+            #reference
+            {
+                background-color: orange;
+                height: 100px;
+                margin: 100px 50px;
+                width: 50px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if orange rectangle touches green border by 2 sides and it's top left corner touches the bottom right corner of the blue rectangle.</p>
+        <div id="test">
+            <div id="reference"></div>
+        </div>
+    </body>
+</html>

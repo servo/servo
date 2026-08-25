@@ -1,0 +1,150 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="VH" author="OA" status="issue"
+    version="$Revision: 1.8 $" testname="$RCSfile: animate-elem-35-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/animate.html#Animation">
+      <p>
+        The purpose of this test is to test animation of attributes stroke-dasharray,
+        stroke-dashoffset, stroke-miterlimit, stroke-linecap and stroke-linjoin.
+      </p>
+      <!-- this test is way too complicated and requires the tester to keep an eye on many things simultaneously. It has no well-defined pass criteria. The test should be split into several subtests.
+      -->
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+
+      <p>
+        This file contains four tests, testing animation of five attributes.
+        The first test animates the stroke-dashoffset. There are seven reference polylines, all with
+        the same stroke-dasharray but with different values on their stroke-dashoffset. A red polyline
+        with the same stroke-dash array has an animation on its stroke-dasharray. The red polyline is
+        animated so that it stops by the reference polyline that has the right stroke-dashoffset at
+        that perticular time.
+        The second test animates stroke-linecap and stroke-linejoin. There are three reference
+        polylines. Comparsion is done in the same manner as in the previous test.
+        The third test animates the stroke-miterlimit. There are two sets offilled reference paths
+        (black) and two outlined paths (red) with animated stroke-miterlimit. The paths are shaped like
+        a capital A. In the upper test the animated path is drawn on top of the reference polygons and
+        in the lower test the reference path is drawn on top of the animated path. As the
+        stroke-miterlimit is animated to different values, different reference paths are used. To pass
+        the test, there should never be any part of the underlying geometry visible (black in the upper
+        or red in the lower).
+        The fourth test animates the stroke-dasharray. The initial stroke-dasharray gives a
+        short-dashed line. This pattern is animated into a pattern that on this short path gives a
+        solid line at 2 seconds.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        [[Describe the pass criteria of the test here. The pass criteria is what
+        should be displayed when the test is run.]]
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: animate-elem-35-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <g transform="translate(0,0) scale(0.9)">
+      <g>
+        <g fill="none" stroke="gray" stroke-width="15">
+          <g stroke="black">
+            <polyline id="poly" stroke-dasharray="90,20,5,15" points="240,20,300,20,240,80,300,80">
+              <animate begin="0" dur="10" attributeName="stroke-linecap" values="butt; round; square; square" keyTimes="0; 0.33; 0.66; 1" fill="freeze"/>
+              <animate begin="0" dur="10" attributeName="stroke-linejoin" values="miter; round; bevel; bevel" keyTimes="0; 0.33; 0.66; 1" fill="freeze"/>
+            </polyline>
+            <use x="0" y="0" stroke="red" stroke-width="1" xlink:href="#poly"/>
+            <animateTransform type="translate" begin="0" dur="10" values="0 0; 0 0; 0 95; 0 95; 0 190; 0 190" keyTimes="0; 0.3; 0.35; 0.65; 0.7; 1" attributeName="transform" fill="freeze"/>
+          </g>
+          <polyline id="poly1" stroke-linecap="butt" stroke-linejoin="miter" stroke-dasharray="90,20,5,15" points="140,20,200,20,140,80,200,80"/>
+          <polyline id="poly2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="90,20,5,15" points="140,115,200,115,140,175,200,175"/>
+          <polyline id="poly3" stroke-linecap="square" stroke-linejoin="bevel" stroke-dasharray="90,20,5,15" points="140,210,200,210,140,270,200,270"/>
+          <use x="0" y="0" stroke="red" stroke-width="1" xlink:href="#poly1"/>
+          <use x="0" y="0" stroke="red" stroke-width="1" xlink:href="#poly2"/>
+          <use x="0" y="0" stroke="red" stroke-width="1" xlink:href="#poly3"/>
+        </g>
+        <g>
+          <polyline fill="none" stroke="gray" stroke-dashoffset="-50" stroke-dasharray="5,5,20" stroke-width="5" points="10,10,50,10,10,40,50,40"/>
+          <polyline fill="none" stroke="gray" stroke-dashoffset="-30" stroke-dasharray="5,5,20" stroke-width="5" points="10,50,50,50,10,80,50,80"/>
+          <polyline fill="none" stroke="gray" stroke-dashoffset="-10" stroke-dasharray="5,5,20" stroke-width="5" points="10,90,50,90,10,120,50,120"/>
+          <polyline fill="none" stroke="gray" stroke-dashoffset="0" stroke-dasharray="5,5,20" stroke-width="5" points="10,130,50,130,10,160,50,160"/>
+          <polyline fill="none" stroke="gray" stroke-dashoffset="10" stroke-dasharray="5,5,20" stroke-width="5" points="10,170,50,170,10,200,50,200"/>
+          <polyline fill="none" stroke="gray" stroke-dashoffset="30" stroke-dasharray="5,5,20" stroke-width="5" points="10,210,50,210,10,240,50,240"/>
+          <polyline fill="none" stroke="gray" stroke-dashoffset="50" stroke-dasharray="5,5,20" stroke-width="5" points="10,250,50,250,10,280,50,280"/>
+        </g>
+        <g>
+          <polyline fill="none" stroke="red" stroke-dasharray="5,5,20" stroke-width="5" points="60,10,100,10,60,40,100,40">
+            <animate attributeName="stroke-dashoffset" begin="0" dur="10" values="-50; -50; -30; -30; -10; -10; 0; 0; 10; 10; 30; 30; 50; 50" keyTimes="0; 0.05; 0.1; 0.15; 0.2; 0.25; 0.3; 0.35; 0.4; 0.45; 0.5; 0.55; 0.6; 1" fill="freeze"/>
+          </polyline>
+          <animateTransform type="translate" begin="0" dur="10" values="0 0; 0 0; 0 40; 0 40; 0 80; 0 80; 0 120; 0 120; 0 160; 0 160; 0 200; 0 200; 0 240; 0 240" keyTimes="0; 0.05; 0.1; 0.15; 0.2; 0.25; 0.3; 0.35; 0.4; 0.45; 0.5; 0.55; 0.6; 1" attributeName="transform" fill="freeze"/>
+        </g>
+      </g>
+      <g id="miterLimit" visibility="hidden" transform="scale(2.5) translate(130 2)">
+        <g id="reference">
+          <g>
+            <path d="M16,51.1c0.8-2.9,2.5-9.2,3-11c2.1,0,8.9,0,11,0c0.5,1.7,2.5,8.2,3.3,11.1l1.9,1.4H47l1.9-2.6L33.8,1.4L31.9,0H17.5                      l-1.9,1.4L0.8,49.9l1.9,2.6h11.4L16,51.1z M15.5,37.5c-0.8,2.9-2.5,9.2-3,11c-1.7,0-4.6,0-7.1,0C6.8,44,18.2,6.5,19,4                      c2.1,0,9.3,0,11.4,0c0.8,2.5,12.5,40,13.9,44.5c-2.7,0-5.9,0-7.6,0c-0.5-1.7-2.5-8.2-3.3-11l-1.9-1.4H17.4L15.5,37.5z"/>
+            <path d="M22.3,9.8l-2.3,9.3l-2.9,10.2l1.9,2.6h10.7l1.9-2.6l-3-10.3c0,0-2.5-9.3-2.5-9.3L22.3,9.8z M23.9,20.1                      c0,0,0.2-0.8,0.4-1.8c0.1,0.5,0.5,1.8,0.5,1.8s1.4,4.9,2.3,7.8c-2,0-3.4,0-5.4,0C22.5,25,23.9,20.1,23.9,20.1z"/>
+            <set attributeName="visibility" begin="0" dur="2" to="visible"/>
+          </g>
+          <g>
+            <path d="M31.9,0H16.1L0.8,49.9l1.9,2.6h12.9c0,0,2.8-10.2,3.4-12.5c2.1,0,8.9,0,11,0c0.7,2.2,3.7,12.5,3.7,12.5H47l1.9-2.6                      L33.3,0H31.9z M30.4,4c0.8,2.5,12.5,40,13.9,44.5c-2.7,0-5.9,0-7.6,0c-0.7-2.2-3.7-12.5-3.7-12.5h-17c0,0-2.8,10.2-3.4,12.5                      c-1.7,0-4.6,0-7.1,0C6.8,44,18.2,6.5,19,4C21.1,4,28.3,4,30.4,4z"/>
+            <path d="M22.3,9.8l-2.3,9.3l-2.9,10.2l1.9,2.6h10.7l1.9-2.6l-3-10.3c0,0-2.5-9.3-2.5-9.3L22.3,9.8z M23.9,20.1                      c0,0,0.2-0.8,0.4-1.8c0.1,0.5,0.5,1.8,0.5,1.8s1.4,4.9,2.3,7.8c-2,0-3.4,0-5.4,0C22.5,25,23.9,20.1,23.9,20.1z"/>
+            <set attributeName="visibility" begin="2.5" dur="2" to="visible"/>
+          </g>
+          <g>
+            <path d="M31.9,0H16.1L0,52.5h15.6c0,0,2.8-10.2,3.4-12.5c2.1,0,8.9,0,11,0c0.7,2.2,3.7,12.5,3.7,12.5h16L33.3,0H31.9z M30.4,4                      c0.8,2.5,12.5,40,13.9,44.5c-2.7,0-5.9,0-7.6,0c-0.7-2.2-3.7-12.5-3.7-12.5h-17c0,0-2.8,10.2-3.4,12.5c-1.7,0-4.6,0-7.1,0                      C6.8,44,18.2,6.5,19,4C21.1,4,28.3,4,30.4,4z"/>
+            <path d="M22.3,9.8l-2.3,9.3l-3.7,12.8h16.1L28.7,19c0,0-2.5-9.3-2.5-9.3L22.3,9.8z M23.9,20.1c0,0,0.2-0.8,0.4-1.8                      c0.1,0.5,0.5,1.8,0.5,1.8s1.4,4.9,2.3,7.8c-2,0-3.4,0-5.4,0C22.5,25,23.9,20.1,23.9,20.1z"/>
+            <set attributeName="visibility" begin="5" dur="2" to="visible"/>
+          </g>
+          <g>
+            <path d="M31.9,0H16.1L0,52.5h15.6c0,0,2.8-10.2,3.4-12.5c2.1,0,8.9,0,11,0c0.7,2.2,3.7,12.5,3.7,12.5h16L33.3,0H31.9z M30.4,4                      c0.8,2.5,12.5,40,13.9,44.5c-2.7,0-5.9,0-7.6,0c-0.7-2.2-3.7-12.5-3.7-12.5h-17c0,0-2.8,10.2-3.4,12.5c-1.7,0-4.6,0-7.1,0                      C6.8,44,18.2,6.5,19,4C21.1,4,28.3,4,30.4,4z"/>
+            <path d="M22.3,9.8l-2.3,9.3l-3.7,12.8h16.1L28.7,19c0,0-2.5-9.3-2.5-9.3l-2-7.6L22.3,9.8z M23.9,20.1c0,0,0.2-0.8,0.4-1.8                      c0.1,0.5,0.5,1.8,0.5,1.8s1.4,4.9,2.3,7.8c-2,0-3.4,0-5.4,0C22.5,25,23.9,20.1,23.9,20.1z"/>
+            <set attributeName="visibility" begin="7.5" to="visible"/>
+          </g>
+        </g>
+        <g id="animated">
+          <path fill="none" stroke="#FF0000" stroke-width="4" stroke-miterlimit="1" d="M17.5,38.1l-3.4,12.5H2.7L17.5,2h14.3L47,50.5                   H35.2l-3.7-12.5H17.5z M29.8,29.9l-3-10.3C26,16.7,25,13,24.3,10.2c-0.6,2.9-1.5,6.6-2.3,9.4l-3,10.3H29.8z">
+            <animate attributeName="stroke-miterlimit" attributeType="CSS" begin="0" dur="10" keyTimes="0; 0.2; 0.25; 0.45; 0.5; 0.7; 0.75; 1" fill="freeze" values="1; 1; 1.5; 1.5; 2; 2; 5; 5"/>
+          </path>
+          <set attributeName="visibility" begin="0" dur="2" to="visible"/>
+          <set attributeName="visibility" begin="2.5" dur="2" to="visible"/>
+          <set attributeName="visibility" begin="5" dur="2" to="visible"/>
+          <set attributeName="visibility" begin="7.5" to="visible"/>
+        </g>
+        <use x="0" y="60" xlink:href="#animated"/>
+        <use x="0" y="60" xlink:href="#reference"/>
+      </g>
+      <path fill="none" stroke="blue" stroke-width="10" stroke-dasharray="5" transform="translate(520 20) scale(1 2) rotate(90)" d="M15.2,5.4C5.5,10.1,1.1,18.8,2,31.7c14.8,32.1,138.9-59,127.8-19.7C112.1,75.3,42.2-8.8,15.2,5.4">
+        <animate begin="1" dur="1" attributeName="stroke-dasharray" values="5; 500" keyTimes="0; 1" fill="freeze"/>
+        <animate begin="0" dur="10" attributeName="stroke-dashoffset" from="0" to="100"/>
+      </path>
+    </g>
+    <text x="5" y="280" font-size="18">Animation on: 'stroke-dasharray', 'stroke-dashoffset',</text>
+    <text x="5" y="305" font-size="18">'stroke-miterlimit', 'stroke-linecap' and 'stroke-linejoin'.</text>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.8 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+</svg>

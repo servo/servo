@@ -1,0 +1,19 @@
+<!doctype html>
+<title>Test that no edge lighting highlights appear</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#FilterProperty">
+<link rel="help" href="https://www.w3.org/TR/filter-effects-1/#FilterEffectsRegion">
+<link rel="match" href="reference/lighting-region-ref.html">
+<meta name="fuzzy" content="maxDifference=0-1; totalPixels=0-8012" />
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="250">
+  <defs>
+    <filter id="restrictedDiffuse" x="25%" y="25%" width="50%" height="50%">
+      <feDiffuseLighting>
+        <feDistantLight elevation="30" />
+      </feDiffuseLighting>
+    </filter>
+  </defs>
+
+  <rect x="100" y="100" width="100" height="100" fill="lightgreen" />
+  <rect x="100" y="100" width="100" height="100"
+        filter="url(#restrictedDiffuse)" />
+</svg>

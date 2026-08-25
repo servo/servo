@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>
+  Multi-line row flex fragmentation: Item overflow and stretching w/ vertical
+  writing-mode.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<style>
+  #flex {
+    display: flex;
+    flex-wrap: wrap;
+  }
+  #flex > div {
+    background: green;
+    inline-size: 50%;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="writing-mode: vertical-lr;">
+  <div style="inline-size: 100px; block-size: 100px; columns: 5; column-gap: 0; column-fill: auto; position: relative; background: red;">
+    <div id="flex">
+      <div style="block-size: 100px;">
+        <div style="block-size: 200px;"></div>
+      </div>
+      <div></div>
+      <div style="block-size: 400px;"></div>
+      <div></div>
+    </div>
+  </div>
+</div>

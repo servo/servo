@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Forced colors mode - grid column and row color with sys colors.</title>
+<style>
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    height: 320px;
+    width: 320px;
+    forced-color-adjust: none;
+    row-rule-color: LinkText;
+    row-rule-style: dotted;
+    column-rule-color: LinkText;
+    column-rule-style: solid;
+  }
+
+  .grid-item {
+    width: 100px;
+    height: 100px;
+  }
+</style>
+<p>
+  The grid's column-rule-color and row-rule-color should be LinkText when
+  forced colors mode is enabled.
+</p>
+<div class="grid">
+  <div class="grid-item"></div>
+  <div class="grid-item"></div>
+  <div class="grid-item"></div>
+  <div class="grid-item"></div>
+  <div class="grid-item"></div>
+</div>

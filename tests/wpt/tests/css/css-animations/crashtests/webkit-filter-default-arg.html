@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<meta charset="utf-8">
+<title>Animating -webkit-filter functions with default arguments should not crash</title>
+<link rel="help" href="https://crbug.com/41242445">
+<style>
+@keyframes anim-blur {
+  from { -webkit-filter: blur(); }
+  to { -webkit-filter: blur(1px); }
+}
+@keyframes anim-brightness {
+  from { -webkit-filter: brightness(); }
+  to { -webkit-filter: brightness(1); }
+}
+@keyframes anim-contrast {
+  from { -webkit-filter: contrast(); }
+  to { -webkit-filter: contrast(1); }
+}
+@keyframes anim-drop-shadow {
+  from { -webkit-filter: drop-shadow(); }
+  to { -webkit-filter: drop-shadow(1px 1px); }
+}
+@keyframes anim-grayscale {
+  from { -webkit-filter: grayscale(); }
+  to { -webkit-filter: grayscale(1); }
+}
+@keyframes anim-hue-rotate {
+  from { -webkit-filter: hue-rotate(); }
+  to { -webkit-filter: hue-rotate(1deg); }
+}
+@keyframes anim-invert {
+  from { -webkit-filter: invert(); }
+  to { -webkit-filter: invert(1); }
+}
+@keyframes anim-opacity {
+  from { -webkit-filter: opacity(); }
+  to { -webkit-filter: opacity(1); }
+}
+@keyframes anim-sepia {
+  from { -webkit-filter: sepia(); }
+  to { -webkit-filter: sepia(1); }
+}
+@keyframes anim-saturate {
+  from { -webkit-filter: saturate(); }
+  to { -webkit-filter: saturate(1); }
+}
+</style>
+<div style="animation: anim-blur 1s"></div>
+<div style="animation: anim-brightness 1s"></div>
+<div style="animation: anim-contrast 1s"></div>
+<div style="animation: anim-drop-shadow 1s"></div>
+<div style="animation: anim-grayscale 1s"></div>
+<div style="animation: anim-hue-rotate 1s"></div>
+<div style="animation: anim-invert 1s"></div>
+<div style="animation: anim-opacity 1s"></div>
+<div style="animation: anim-sepia 1s"></div>
+<div style="animation: anim-saturate 1s"></div>
+<script>
+  requestAnimationFrame(() => {
+    document.documentElement.classList.remove('test-wait');
+  });
+</script>
+</html>

@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Invalidation of scroll animation with with scroll()</title>
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#scroll-notation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="testcommon.js"></script>
+
+<main id=main></main>
+
+<script>
+const epsilon = 1e-5;
+
+function assert_opacity_equals(element, expected) {
+  assert_approx_equals(parseFloat(getComputedStyle(element).opacity), expected, epsilon);
+}
+</script>
+
+<template id=test_self_basic>
+  <style>
+    #target {
+      width: 100px;
+      height: 100px;
+      background: blue;
+      animation: a linear;
+      animation-timeline: scroll(self);
+      margin-left: 100px;
+    }
+    .content {
+      width: 100%;
+      height: 200px;
+    }
+    .scroller {
+      overflow: scroll;
+    }
+    @keyframes a {
+      from { margin-left: 200px; }
+      to { margin-left: 300px; }
+    }
+  </style>
+  <div id=target><div class=content></div></div>
+</template>
+<script>
+promise_test(async (t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_self_basic.content.cloneNode(true));
+  // Not scroller, animation is inactive
+  assert_equals(getComputedStyle(target).marginLeft, '100px');
+  // Make it a scroller
+  target.classList.add('scroller');
+  target.scrollTop = 0;
+  await waitForNextFrame();
+  await waitForNextFrame();
+  assert_equals(getComputedStyle(target).marginLeft, '200px');
+  // Scroll to bottom
+  target.scrollTop = target.scrollHeight;
+  await waitForNextFrame();
+  assert_equals(getComputedStyle(target).marginLeft, '300px');
+  // Make it a non-scroller
+  target.scrollTop = 0;
+  await waitForNextFrame();
+  target.classList.remove('scroller');
+  await waitForNextFrame();
+  assert_equals(getComputedStyle(target).marginLeft, '100px');
+}, 'Basic invalidation for scroll(self)');
+</script>
+
+<template id=test_self_opacity>
+  <style>
+    #target {
+      width: 100px;
+      height: 100px;
+      background: blue;
+      animation: a linear;
+      animation-timeline: scroll(self);
+    }
+    .content {
+      width: 100%;
+      height: 200px;
+    }
+    .scroller {
+      overflow: scroll;
+    }
+    @keyframes a {
+      from { opacity: 0.5; }
+      to { opacity: 0.1; }
+    }
+  </style>
+  <div id=target><div class=content></div></div>
+</template>
+<script>
+promise_test(async (t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_self_opacity.content.cloneNode(true));
+  // Not scroller, animation is inactive
+  assert_opacity_equals(target, 1.0);
+  // Make it a scroller
+  target.classList.add('scroller');
+  target.scrollTop = 0;
+  await waitForNextFrame();
+  await waitForNextFrame();
+  assert_opacity_equals(target, 0.5);
+  // Scroll to bottom
+  target.scrollTop = target.scrollHeight;
+  await waitForNextFrame();
+  assert_opacity_equals(target, 0.1);
+  // Make it a non-scroller
+  target.scrollTop = 0;
+  await waitForNextFrame();
+  target.classList.remove('scroller');
+  await waitForNextFrame();
+  assert_opacity_equals(target, 1.0);
+}, 'Opacity animation invalidation for scroll(self)');
+</script>
+
+<template id=test_self_axis>
+  <style>
+    #target {
+      width: 100px;
+      height: 100px;
+      background: blue;
+      animation: a linear;
+      animation-timeline: scroll(self x);
+      margin-left: 100px;
+    }
+    .content {
+      width: 200px;
+      height: 200px;
+    }
+    .scroller {
+      overflow-y: scroll;
+      /* Becomes `hidden` */
+      overflow-x: visible;
+    }
+    @keyframes a {
+      from { margin-left: 200px; }
+      to { margin-left: 300px; }
+    }
+  </style>
+  <div id=target><div class=content></div></div>
+</template>
+<script>
+promise_test(async (t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_self_axis.content.cloneNode(true));
+  // Not scroller, animation is inactive
+  assert_equals(getComputedStyle(target).marginLeft, '100px');
+  // Make it a scroller
+  target.classList.add('scroller');
+  await waitForNextFrame();
+  assert_equals(getComputedStyle(target).marginLeft, '200px');
+  // Scroll to bottom (Should not be affected)
+  target.scrollTop = target.scrollHeight;
+  await waitForNextFrame();
+  assert_equals(getComputedStyle(target).marginLeft, '200px');
+  // Make it a non-scroller
+  target.scrollTop = 0;
+  await waitForNextFrame();
+  target.classList.remove('scroller');
+  await waitForNextFrame();
+  assert_equals(getComputedStyle(target).marginLeft, '100px');
+}, 'Other axis invalidation for scroll(self)');
+</script>
+
+<template id=test_nearest_basic>
+  <style>
+    div {
+      width: 100px;
+      height: 100px;
+    }
+    #target {
+      background: blue;
+      animation: a linear;
+      animation-timeline: scroll(nearest);
+      margin-left: 100px;
+    }
+    .content {
+      width: 100%;
+      height: 200px;
+    }
+    .scroller {
+      overflow: scroll;
+    }
+    @keyframes a {
+      from { margin-left: 200px; }
+      to { margin-left: 300px; }
+    }
+  </style>
+  <div id=outer class=scroller>
+      <div id=inner>
+        <div id=target></div>
+        <div class=content></div>
+      </div>
+      <div class=content></div>
+    </div>
+  </div>
+</template>
+<script>
+promise_test(async (t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_nearest_basic.content.cloneNode(true));
+  await waitForNextFrame();
+  // Linked to #outer scroller
+  assert_equals(getComputedStyle(target).marginLeft, '200px');
+  // Scroll #outer to the bottom
+  outer.scrollTop = outer.scrollHeight;
+  await waitForNextFrame();
+  assert_equals(getComputedStyle(target).marginLeft, '300px');
+  // Make #inner scroller
+  inner.classList.add('scroller');
+  inner.scrollTop = 0;
+  await waitForNextFrame();
+  await waitForNextFrame();
+  assert_equals(getComputedStyle(target).marginLeft, '200px');
+  // Scroll #inner to the bottom
+  inner.scrollTop = inner.scrollHeight;
+  await waitForNextFrame();
+  assert_equals(getComputedStyle(target).marginLeft, '300px');
+  // Unaffected by #outer scrolling...
+  outer.scrollTop = 0;
+  await waitForNextFrame();
+  assert_equals(getComputedStyle(target).marginLeft, '300px');
+  // ... Until #inner is no longer a scroller
+  inner.classList.remove('scroller');
+  await waitForNextFrame();
+  assert_equals(getComputedStyle(target).marginLeft, '200px');
+}, 'Basic invalidation for scroll(nearest)');
+</script>
+
+<template id=test_nearest_opacity>
+  <style>
+    div {
+      width: 100px;
+      height: 100px;
+    }
+    #target {
+      background: blue;
+      animation: a linear;
+      animation-timeline: scroll(nearest);
+    }
+    .content {
+      width: 100%;
+      height: 200px;
+    }
+    .scroller {
+      overflow: scroll;
+    }
+    @keyframes a {
+      from { opacity: 0.5; }
+      to { opacity: 0.1; }
+    }
+  </style>
+  <div id=outer class=scroller>
+      <div id=inner>
+        <div id=target></div>
+        <div class=content></div>
+      </div>
+      <div class=content></div>
+    </div>
+  </div>
+</template>
+<script>
+promise_test(async (t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_nearest_opacity.content.cloneNode(true));
+  await waitForNextFrame();
+  // Linked to #outer scroller
+  assert_opacity_equals(target, 0.5);
+  // Scroll #outer to the bottom
+  outer.scrollTop = outer.scrollHeight;
+  await waitForNextFrame();
+  assert_opacity_equals(target, 0.1);
+  // Make #inner scroller
+  inner.classList.add('scroller');
+  inner.scrollTop = 0;
+  await waitForNextFrame();
+  await waitForNextFrame();
+  assert_opacity_equals(target, 0.5);
+  // Scroll #inner to the bottom
+  inner.scrollTop = inner.scrollHeight;
+  await waitForNextFrame();
+  assert_opacity_equals(target, 0.1);
+  // Unaffected by #outer scrolling...
+  outer.scrollTop = 0;
+  await waitForNextFrame();
+  assert_opacity_equals(target, 0.1);
+  // ... Until #inner is no longer a scroller
+  inner.classList.remove('scroller');
+  await waitForNextFrame();
+  assert_opacity_equals(target, 0.5);
+}, 'Opacity animation invalidation for scroll(nearest)');
+</script>
+
+<template id=test_nearest_axis>
+  <style>
+    div {
+      width: 100px;
+      height: 100px;
+    }
+    #target {
+      background: blue;
+      animation: a linear;
+      animation-timeline: scroll(nearest y);
+      margin-left: 100px;
+    }
+    .content {
+      width: 100%;
+      height: 200px;
+    }
+    #outer {
+      overflow: scroll;
+    }
+    .scroller {
+      overflow-x: scroll;
+      /* Becomes `hidden` */
+      overflow-y: visible;
+    }
+    @keyframes a {
+      from { margin-left: 200px; }
+      to { margin-left: 300px; }
+    }
+  </style>
+  <div id=outer class=scroller>
+      <div id=inner>
+        <div id=target></div>
+        <div class=content></div>
+      </div>
+      <div class=content></div>
+    </div>
+  </div>
+</template>
+<script>
+promise_test(async (t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_nearest_axis.content.cloneNode(true));
+  await waitForNextFrame();
+  // Linked to #outer scroller
+  assert_equals(getComputedStyle(target).marginLeft, '200px');
+  // Make #inner scroller
+  inner.classList.add('scroller');
+  inner.scrollTop = 0;
+  await waitForNextFrame();
+  await waitForNextFrame();
+  assert_equals(getComputedStyle(target).marginLeft, '200px');
+  // Unaffected by #outer scrolling...
+  outer.scrollTop = outer.scrollHeight;
+  await waitForNextFrame();
+  assert_equals(getComputedStyle(target).marginLeft, '200px');
+  // ... Until #inner is no longer a scroller
+  inner.classList.remove('scroller');
+  await waitForNextFrame();
+  assert_equals(getComputedStyle(target).marginLeft, '300px');
+}, 'Other axis invalidation for scroll(nearest)');
+</script>

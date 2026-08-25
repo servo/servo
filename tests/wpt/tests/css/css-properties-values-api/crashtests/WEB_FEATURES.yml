@@ -1,0 +1,2 @@
+rules:
+- consume-color-contrast-crash.html: [color-contrast]

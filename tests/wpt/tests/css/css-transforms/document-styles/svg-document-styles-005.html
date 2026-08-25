@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Test: Fall back to presentation attribute style of SVG element with invalid document transform style</title>
+    <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#svg-transform">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-attribute-specificity">
+    <link rel="match" href="reference/svg-document-styles-ref.html">
+    <meta name="flags" content="svg">
+    <meta name="assert" content="Invalid document transform styles on SVG elements should fall back to presentation attributes styles on the same element. The rect in the test should be rotated by 90 degrees clockwise.">
+    <style type="text/css">
+        svg {
+            height: 300px;
+            width: 300px;
+        }
+        rect.testRect {
+            transform: scale(invalid);
+        }
+    </style>
+</head>
+<body>
+    <p>The test passes if there is a vertical green stripe to the left of a yellow vertical stripe. You should see no red.</p>
+    <svg>
+        <!-- Fill with Gradient to avoid false positive. -->
+        <defs>
+            <linearGradient id="grad" x2="0%" y2="100%">
+                <stop offset="50%" stop-color="yellow"/>
+                <stop offset="50%" stop-color="green"/>
+            </linearGradient>
+        </defs>
+        <rect x="1" y="1" width="98" height="98" fill="red"/>
+        <rect class="testRect" y="-100" width="100" height="100" fill="url(#grad)" transform="rotate(90)"/>
+    </svg>
+</body>
+</html>

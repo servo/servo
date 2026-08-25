@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/whatwg/html/pull/9462">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/common/top-layer.js"></script>
+<script src="../resources/helpers.js"></script>
+
+<button id=b0>button</button>
+
+<dialog id=dialog>
+  <button id=b1>button</button>
+  <div id=popover popover=auto>popover</div>
+</dialog>
+
+<script>
+promise_test(async t => {
+  const events = [];
+  const closeWatcher = await createBlessedRecordingCloseWatcher(t, events, 'CloseWatcher', 'CloseWatcher');
+  const dialog = await createBlessedRecordingCloseWatcher(t, events, 'dialog', 'dialog');
+  const popover = await createBlessedRecordingCloseWatcher(t, events, 'popover', 'popover', dialog);
+  assert_true(dialog.hasAttribute('open'), 'The dialog should be open.');
+  assert_true(popover.matches(':popover-open'), 'The popover should be open.');
+
+  await sendCloseRequest();
+  await waitForPotentialCloseEvent();
+  assert_false(popover.matches(':popover-open'), 'First close request: The popover should be closed.');
+  assert_true(dialog.hasAttribute('open'), 'First close request: The dialog should be open.');
+  assert_array_equals(events, []);
+
+  await sendCloseRequest();
+  await waitForPotentialCloseEvent();
+  assert_false(popover.matches(':popover-open'), 'Second close request: The popover should be closed.');
+  assert_false(dialog.hasAttribute('open'), 'Second close request: The dialog should be closed.');
+  assert_array_equals(events, ['dialog cancel[cancelable=true]', 'dialog close']);
+
+  await sendCloseRequest();
+  await waitForPotentialCloseEvent();
+  assert_false(popover.matches(':popover-open'), 'Third close request: The popover should be closed.');
+  assert_false(dialog.hasAttribute('open'), 'Third close request: The dialog should be closed.');
+  assert_array_equals(events, ['dialog cancel[cancelable=true]', 'dialog close', 'CloseWatcher cancel[cancelable=true]', 'CloseWatcher close']);
+}, 'Create a CloseWatcher with user activation; create a dialog with user activation; create a popover with user activation');
+</script>

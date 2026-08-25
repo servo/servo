@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>drawElementImage with nested drawable</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<link rel="match" href="nested-drawable-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+<style>
+  #child {
+    width: 100px;
+    height: 200px;
+    background: green;
+  }
+  #grandchilda {
+    width: 50px;
+    height: 50px;
+    background: blue;
+  }
+  #grandchildb {
+    width: 50px;
+    height: 50px;
+    background: yellow;
+  }
+  #grandchildc {
+    width: 50px;
+    height: 50px;
+    background: purple;
+  }
+  #canvas {
+    background: #ccc;
+  }
+</style>
+
+<canvas id="canvas" width="300" height="200" layoutsubtree>
+  <div id="child" drawable>
+    <div id="grandchilda" drawable></div>
+    <div id="grandchildb"></div>
+    <div id="grandchildc" drawable></div>
+  </div>
+</canvas>
+
+<script>
+  onload = async () => {
+    await waitForCanvasPaint(canvas);
+    // Draw the 100x200 green #child at the origin. This should not include the
+    // drawable grandchildren, but should include #grandchildb.
+    canvas.getContext('2d').drawElementImage(child, 0, 0);
+    // Draw the 50x50 blue #grandchilda at 100,0.
+    canvas.getContext('2d').drawElementImage(grandchilda, 100, 0);
+    // Draw the 50x50 purple #grandchildc at 200,0.
+    canvas.getContext('2d').drawElementImage(grandchildc, 200, 0);
+    takeScreenshot();
+  };
+</script>
+</html>

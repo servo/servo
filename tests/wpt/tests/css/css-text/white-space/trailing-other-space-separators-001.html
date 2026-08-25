@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 3 Test: sequence of spaces and other space separators at the end of line must hang</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
+<link rel="match" href="reference/trailing-other-space-separators-001-ref.html">
+<meta name="assert" content="An sequence of regular spaces and other space separators at the end of the line must hang.">
+<style>
+div {
+  position: absolute;
+  width: max-content;
+  line-height: 1;
+  color: transparent;
+}
+.red { background: red; }
+.green { background: green; }
+#pre { white-space:pre; }
+</style>
+<p>Test passes if the shape below is green and if there is no red.
+
+<div class=red id=pre>xx&#x1680;&#x2000; &#x2001;&#x2002;&#x2003; &#x2004;&#x2005;&#x2006; &#x2007;&#x2008;&#x2009;&#x200A; &#x202F;&#x205F; &#x3000;</div>
+<div class=red>xx<span class=green>&#x1680;&#x2000; &#x2001;&#x2002;&#x2003; &#x2004;&#x2005;&#x2006; &#x2007;&#x2008;&#x2009;&#x200A;  &#x202F;&#x205F; &#x3000;</span><br>xx</div>
+<div class=red>xx<span class=green>&#x1680;</span><br>xx</div>
+<div class=red>xx<span class=green>&#x2000;</span><br>xx</div>
+<div class=red>xx<span class=green>&#x2001;</span><br>xx</div>
+<div class=red>xx<span class=green>&#x2002;</span><br>xx</div>
+<div class=red>xx<span class=green>&#x2003;</span><br>xx</div>
+<div class=red>xx<span class=green>&#x2004;</span><br>xx</div>
+<div class=red>xx<span class=green>&#x2005;</span><br>xx</div>
+<div class=red>xx<span class=green>&#x2006;</span><br>xx</div>
+<div class=red>xx<span class=green>&#x2007;</span><br>xx</div>
+<div class=red>xx<span class=green>&#x2008;</span><br>xx</div>
+<div class=red>xx<span class=green>&#x2009;</span><br>xx</div>
+<div class=red>xx<span class=green>&#x200A;</span><br>xx</div>
+<div class=red>xx<span class=green>&#x202F;</span><br>xx</div>
+<div class=red>xx<span class=green>&#x205F;</span><br>xx</div>
+<div class=red>xx<span class=green>&#x3000;</span><br>xx</div>
+<div class=green>xx<br>xx</div>
+<!-- the trailing sequence of spaces must not be removed,
+  so it should hide all of the first (red) div.
+  However, it should hang and therefore not extend the width of its parent div,
+  which would be visible as red on the second line if it were expanded.
+  The extra red divs with one character each are for ease of debugging:
+  if the first one is fine, they will all be fine,
+  but if it is not, they should help find which one is wrong.
+-->

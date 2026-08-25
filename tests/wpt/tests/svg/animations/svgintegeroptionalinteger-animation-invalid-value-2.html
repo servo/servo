@@ -1,0 +1,38 @@
+<!doctype html>
+<title>Test SVGIntegerOptionalInteger animation with invalid value: String value in by attribute.</title>
+<link rel="help" href="https://www.w3.org/TR/2001/REC-smil-animation-20010904/#ByAttribute">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<svg id="svg">
+  <defs>
+    <filter id="effect">
+      <feConvolveMatrix id="matrix" order="3 3" kernelMatrix="0 0 0 0 1 0 0 0 0">
+        <animate attributeName="order" begin="0s" dur="4s" by="A B" />
+      </feConvolveMatrix>
+    </filter>
+  </defs>
+  <rect x="10" y="10" width="80" height="80" fill="blue" filter="url(#effect)" />
+</svg>
+
+<script>
+
+async_test(t => {
+    const svg = document.getElementById("svg");
+    const matrix = document.getElementById("matrix")
+
+    window.addEventListener('load', t.step_func(() => {
+        // Pause before seeking so the timeline can't advance past 2s.
+        svg.pauseAnimations();
+        svg.setCurrentTime(2);
+
+        requestAnimationFrame(t.step_func_done(() => {
+          assert_equals(matrix.orderX.baseVal, 3);
+          assert_equals(matrix.orderY.baseVal, 3);
+          assert_equals(matrix.orderX.animVal, matrix.orderX.baseVal);
+          assert_equals(matrix.orderY.animVal, matrix.orderY.baseVal);
+        }));
+    }));
+  });
+
+</script>

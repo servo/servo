@@ -1,0 +1,169 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>Test cookie name parsing</title>
+    <meta name=help href="https://tools.ietf.org/html/rfc6265#section-5.2">
+    <meta name="timeout" content="long">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script src="/cookies/resources/cookie-test.js"></script>
+  </head>
+  <body>
+    <div id=log></div>
+    <script>
+      const nameTests = [
+        {
+          cookie: "test1=;  path = /",
+          expected: "test1=",
+          name: "Set valueless cookie to its name with empty value",
+          defaultPath: false,
+        },
+        {
+          cookie: "=test=2",
+          expected: "test=2",
+          name: "Set a nameless cookie (that has an = in its value)",
+        },
+        {
+          cookie: "===test=2b",
+          expected: "==test=2b",
+          name: "Set a nameless cookie (that has multiple ='s in its value)",
+        },
+        {
+          cookie: "=test2c",
+          expected: "test2c",
+          name: "Set a nameless cookie",
+        },
+        {
+          cookie: "test =3",
+          expected: "test=3",
+          name: "Remove trailing WSP characters from the name string",
+        },
+        {
+          cookie: "   test=4",
+          expected: "test=4",
+          name: "Remove leading WSP characters from the name string",
+        },
+        {
+          cookie: ['"test=5"=test', '"test=5'],
+          expected: '"test=5',
+          name: "Only return the new cookie (with the same name)",
+        },
+        {
+          cookie: "test6;cool=dude",
+          expected: "test6",
+          name: "Ignore invalid attributes after nameless cookie",
+        },
+        {
+          cookie: "$Version=1; test=7",
+          expected: "$Version=1",
+          name: "Ignore invalid attributes after valid name (that looks like Cookie2 Version attribute)",
+        },
+        {
+          cookie: "test test=8",
+          expected: "test test=8",
+          name: "Set a cookie that has whitespace in its name",
+        },
+        {
+          cookie: '"test9;test"=9',
+          expected: '"test9',
+          name: "Set a nameless cookie ignoring characters after first ;",
+        },
+        {
+          cookie: '"test\"10;baz"=qux',
+          expected: '"test\"10',
+          name: "Set a nameless cookie ignoring characters after first ; (2)",
+        },
+        {
+          cookie: ["=test=11", "test11"],
+          expected: "test11",
+          name: "Return the most recent nameless cookie",
+        },
+        {
+          cookie: ["test11", "test11a"],
+          expected: "test11a",
+          name: "Return the most recent nameless cookie, without leading =",
+        },
+        {
+          cookie: ["test11", "test11a", "=test11b"],
+          expected: "test11b",
+          name: "Return the most recent nameless cookie, even if preceded by =",
+        },
+        {
+          cookie: ["test11", "test11a", "=test11b", "test=11c"],
+          expected: "test11b; test=11c",
+          name: "Return the most recent nameless cookie, even if preceded by =, in addition to other valid cookie",
+        },
+        {
+          cookie: ["test12=11", "test12=12"],
+          expected: "test12=12",
+          name: "Use last value for cookies with identical names",
+        },
+        {
+          cookie: ["testA=13", "testB=13"],
+          expected: "testA=13; testB=13",
+          name: "Keep first-in, first-out name order",
+        },
+        {
+          cookie: ["a=test14", "z=test14"],
+          expected: "a=test14; z=test14",
+          name: "Keep first-in, first-out single-char name order",
+        },
+        {
+          cookie: ["z=test15", "a=test15"],
+          expected: "z=test15; a=test15",
+          name: "Keep non-alphabetic first-in, first-out name order",
+        },
+        {
+          cookie: "z=test16, a=test16",
+          expected: "z=test16, a=test16",
+          name: "Keep first-in, first-out order if comma-separated",
+        },
+        {
+          cookie: ["testA=16", "=test16", "testB=16"],
+          expected: "testA=16; test16; testB=16",
+          name: "Set nameless cookie, given `Set-Cookie: =test16`",
+        },
+        {
+          cookie: ["test17a", "test17b"],
+          expected: "test17b",
+          name: "Overwrite nameless cookie",
+        },
+        {
+          cookie: ["=__Secure-abc=123", "=__Host-abc=123", "=__SeCuRe-abc=123", "=__HoSt-abc=123", "__Secure-abc", "__Host-abc", "__SeCuRe-abc", "__HoSt-abc"],
+          expected: "",
+          name: "Ignore nameless cookies that impersonate cookie prefixes",
+        },
+        {
+          cookie: "=",
+          expected: "",
+          name: "Ignore cookie with empty name and empty value",
+        },
+        {
+          cookie: "",
+          expected: "",
+          name: "Ignore cookie with no name or value",
+        },
+        {
+          cookie: "%74%65%73%74=20",
+          expected: "%74%65%73%74=20",
+          name: "URL-encoded cookie name is not decoded",
+        },
+      ];
+
+      for (const test of nameTests) {
+        httpCookieTest(test.cookie, test.expected, test.name);
+      }
+
+      for (const name of ["a", "1", "$", "!a", "@a", "#a", "$a", "%a",
+                          "^a", "&a", "*a", "(a", ")a", "-a", "_a", "+",
+                          '"a', '"a=b"'
+                        ]) {
+        const cookie = `${name}=test`;
+        httpCookieTest(cookie, cookie, `Name is set as expected for ${name}=test`);
+      }
+    </script>
+  </body>
+</html>

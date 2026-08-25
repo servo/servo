@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>WebMCP: Duplicate declarative tool registrations do not crash and only register the first</title>
+<link rel="author" href="mailto:dom@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+promise_test(async t => {
+  const f1 = document.createElement('form');
+  f1.id = 'f1';
+  f1.setAttribute('toolname', 'duplicate_tool');
+  f1.setAttribute('tooldescription', 'First tool description');
+
+  const f2 = document.createElement('form');
+  f2.id = 'f2';
+  f2.setAttribute('toolname', 'duplicate_tool');
+  f2.setAttribute('tooldescription', 'Second tool description');
+
+  t.add_cleanup(async () => {
+    const removalPromise = new Promise(resolve => {
+      document.modelContext.ontoolchange = resolve;
+    });
+    f1.remove();
+    f2.remove();
+    await removalPromise;
+    const remainingTools = await document.modelContext.getTools();
+    assert_equals(remainingTools.length, 0, "No tools should remain after form removal");
+    document.modelContext.ontoolchange = null;
+  });
+
+  const p = new Promise(resolve => {
+    document.modelContext.ontoolchange = () => {
+      document.modelContext.ontoolchange = t.unreached_func("ontoolchange should not be called a second time for the duplicate form");
+      resolve();
+    };
+  });
+
+  document.body.append(f1);
+  document.body.append(f2);
+
+  await p;
+
+  const tools = await document.modelContext.getTools();
+  assert_equals(tools.length, 1, "Exactly one tool should be registered");
+
+  const tool = tools[0];
+  assert_equals(tool.name, "duplicate_tool", "Tool name matches form attribute");
+  assert_equals(tool.description, "First tool description", "Tool description matches the first form");
+}, "Test that duplicate declarative tools with different descriptions do not crash and only the first is registered");
+
+promise_test(async t => {
+  const f1 = document.createElement('form');
+  f1.id = 'f1';
+  f1.setAttribute('toolname', 'duplicate_same_desc');
+  f1.setAttribute('tooldescription', 'Same tool description');
+
+  const f2 = document.createElement('form');
+  f2.id = 'f2';
+  f2.setAttribute('toolname', 'duplicate_same_desc');
+  f2.setAttribute('tooldescription', 'Same tool description');
+
+  t.add_cleanup(async () => {
+    const removalPromise = new Promise(resolve => {
+      document.modelContext.ontoolchange = resolve;
+    });
+    f1.remove();
+    f2.remove();
+    await removalPromise;
+    const remainingTools = await document.modelContext.getTools();
+    assert_equals(remainingTools.length, 0, "No tools should remain after form removal");
+    document.modelContext.ontoolchange = null;
+  });
+
+  const p = new Promise(resolve => {
+    document.modelContext.ontoolchange = () => {
+      document.modelContext.ontoolchange = t.unreached_func("ontoolchange should not be called a second time for duplicate form with identical description");
+      resolve();
+    };
+  });
+
+  document.body.append(f1);
+  document.body.append(f2);
+
+  await p;
+
+  const tools = await document.modelContext.getTools();
+  assert_equals(tools.length, 1, "Exactly one tool should be registered");
+
+  const tool = tools[0];
+  assert_equals(tool.name, "duplicate_same_desc", "Tool name matches form attribute");
+  assert_equals(tool.description, "Same tool description");
+}, "Test that duplicate declarative tools with identical descriptions do not crash and only the first is registered");
+</script>
+</body>

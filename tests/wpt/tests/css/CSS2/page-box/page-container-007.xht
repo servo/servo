@@ -1,0 +1,35 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Fixed content outside the page area</title>
+  <link rel="author" title="Melinda Grant" href="mailto:melinda.grant@hp.com" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#fixed-positioning" />
+  <meta name="flags" content="paged image" />
+  <meta name="assert" content="Any portion of an element with 'position: fixed' which is positioned outside the page area is not printed." />
+  <style type="text/css">
+
+   img {
+      position: fixed;
+      top: -27px;
+      right: -27px;
+    }
+    div {
+      page-break-after: always;
+      padding-top: 75px;
+    }
+
+  </style>
+ </head>
+ <body>
+   <div>
+     <img alt="FAIL: image failed to load" src="support/page-container-007.png"/>
+     <p>When displayed on paged media, this test produces two pages.</p>
+     <p>A cat must appear in the upper right corner of each page and no red
+       must be visible.</p>
+   </div>
+   <div>
+     This text appears on page two. The cat image must be exactly the same
+     as on page 1.
+   </div>
+ </body>
+</html>

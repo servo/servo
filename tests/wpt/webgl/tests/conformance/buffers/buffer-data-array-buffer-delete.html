@@ -1,0 +1,65 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+
+<script>
+"use strict";
+description("Test ARRAY_BUFFER deletion when a vertex attrib array with location != 0 is pointing to it and preserveDrawingBuffer is true.");
+
+var canvas = document.createElement('canvas');
+document.body.appendChild(canvas);
+
+canvas.addEventListener(
+    "webglcontextlost",
+    function(event) {
+        testFailed("Context lost");
+        event.preventDefault();
+    },
+    false);
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext(canvas, {preserveDrawingBuffer: true});
+
+if (!gl) {
+    testFailed("context does not exist");
+    finishTest();
+} else {
+    var array = new Float32Array([0]);
+    var buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, array, gl.STATIC_DRAW);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+
+    var attribLocation = 1;
+    gl.enableVertexAttribArray(attribLocation);
+    gl.vertexAttribPointer(attribLocation, 1, gl.FLOAT, false, 0, 0);
+
+    gl.deleteBuffer(buf);
+
+    setTimeout(function() {
+        // Wait for possible context loss
+        finishTest();
+    }, 2000);
+}
+
+var successfullyParsed = true;
+</script>
+
+</body>
+</html>

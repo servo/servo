@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+  <title>
+    Test that the Promise returned by prompt() is rejected when user cancels device selection
+  </title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/common/media.js"></script>
+  <script>
+    setup({ explicit_timeout: true });
+  </script>
+  <body>
+    <p>
+      Click the button below to prompt for a remote playback device and
+      <b>cancel the selection</b> of a device!
+    </p>
+    <button id="prompt-button">Pick device</button>
+  </body>
+  <script>
+    async_test(t => {
+      let v = document.createElement("video");
+      v.src = getVideoURI("/media/movie_5");
+
+      let button = document.getElementById("prompt-button");
+      button.onclick = t.step_func(() =>
+        v.remote
+          .prompt()
+          .then(t.unreached_func())
+          .catch(
+            t.step_func_done(error =>
+              assert_equals(error.name, "NotAllowedError")
+            )
+          )
+      );
+    }, "Test that the Promise returned by prompt() is rejected when user cancels device selection.");
+  </script>
+</html>

@@ -1,0 +1,25 @@
+<!doctype html>
+<title>Crash with dynamic creation of absolutely positioned element under display: contents in svg:text.</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1611848">
+<style>
+* {
+  position: absolute;
+}
+</style>
+<script>
+  function start () {
+    const text = document.getElementById('text')
+
+    const div = document.createElementNS('http://www.w3.org/1999/xhtml', 'div')
+    div.style.display = "contents";
+
+    const another = document.createElementNS('http://www.w3.org/2000/svg', 'whatevs')
+    text.appendChild(div);
+    document.documentElement.getBoundingClientRect();
+    div.appendChild(another);
+  }
+
+  document.addEventListener('DOMContentLoaded', start)
+</script>
+<svg>
+    <text id='text'>

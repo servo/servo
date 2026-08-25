@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>WPT test: attr() in ::details-content::before/::after pseudo</title>
+
+<link rel="match" href="details-content-pseudo-attr-ref.html">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/12721#issuecomment-3885982946">
+
+<style>
+::details-content::after {
+  color: green;
+  content: attr(attr-a, "FAILED");
+}
+::details-content::before {
+  color: blue;
+  content: attr(attr-b, "FAILED");
+}
+</style>
+
+<details open attr-a=" [after]" attr-b="[before] ">details-content</details>

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: Parsing tree-abiding pseudo-elements</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#treelike">
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<meta name="assert" content="This test checks the validity of various selectors containing tree-abiding pseudo-elements." />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+// Generated content pseudo-elements
+test_valid_selector("::before");
+test_valid_selector("*::before", "::before");
+test_valid_selector("foo.bar[baz]::before");
+test_invalid_selector("::before *");
+
+test_valid_selector("::after");
+test_valid_selector("*::after", "::after");
+test_valid_selector("foo.bar[baz]::after");
+test_invalid_selector("::after *");
+
+// List marker pseudo-element
+test_valid_selector("::marker");
+test_valid_selector("*::marker", "::marker");
+test_valid_selector("foo.bar[baz]::marker");
+test_invalid_selector("::marker *");
+
+// Placeholder input pseudo-element
+test_valid_selector("::placeholder");
+test_valid_selector("*::placeholder", "::placeholder");
+test_valid_selector("foo.bar[baz]::placeholder");
+test_invalid_selector("::placeholder *");
+
+// ::file-selector-button
+test_valid_selector("::file-selector-button");
+test_valid_selector("::file-selector-button:hover");
+test_valid_selector("::file-selector-button:focus");
+test_valid_selector("::file-selector-button:active");
+test_valid_selector("::file-selector-button:is(:hover)");
+
+test_invalid_selector("::file-selector-button::before");
+test_invalid_selector("::file-selector-button#id");
+test_invalid_selector("::file-selector-button#class");
+test_invalid_selector("::file-selector-button:host");
+
+// Combinations of the above
+test_invalid_selector("::before::before");
+test_invalid_selector("::after::before");
+test_invalid_selector("::marker::before");
+test_invalid_selector("::placeholder::before");
+
+test_invalid_selector("::before::after");
+test_invalid_selector("::after::after");
+test_invalid_selector("::marker::after");
+test_invalid_selector("::placeholder::after");
+
+test_valid_selector("::before::marker");
+test_valid_selector("::after::marker");
+test_invalid_selector("::marker::marker");
+test_invalid_selector("::placeholder::marker");
+
+test_invalid_selector("::before::placeholder");
+test_invalid_selector("::after::placeholder");
+test_invalid_selector("::marker::placeholder");
+test_invalid_selector("::placeholder::placeholder");
+</script>

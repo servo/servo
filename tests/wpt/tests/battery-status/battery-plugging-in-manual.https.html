@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Battery Test: battery not full, charger plugging in</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="help" href="https://www.w3.org/TR/battery-status/">
+<meta name="flags" content="interact">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #note {
+    background-color: #fef1b5;
+    border: solid 1px #cdab2d;
+    padding: 5px;
+    margin: 15px;
+    display: block;
+  }
+</style>
+
+<h2>Description</h2>
+<p>
+  This test validates that all of the BatteryManager attributes exist and
+  are set to correct values, with corresponding events fired,
+  when the charger is plugged in.
+</p>
+
+<h2>Preconditions</h2>
+<ol>
+  <li>
+    The device is unplugged from the charger before this test is run.
+  </li>
+  <li>
+    The battery must not be full or reach full capacity before the time the test is run.
+  </li>
+</ol>
+
+<div id="note">
+  <ol>
+    <li>
+      Plug in the charger and wait for all the tests to complete.
+    </li>
+    <li>
+      The tests may take long time since the definition of how
+      often the chargingtimechange, dischargingtimechange, and levelchange
+      events are fired is left to the implementation.
+    </li>
+  </ol>
+</div>
+
+<div id="log"></div>
+
+<script>
+
+(function() {
+
+  setup({ explicit_timeout: true });
+
+  var onchargingchange_test = async_test(
+      'When the device is plugged in and its charging state is updated, ' +
+      'must set the charging attribute\'s value to true and ' +
+      'fire a chargingchange event.');
+  var onchargingtimechange_test = async_test(
+      'When the device is plugged in and its charging time is updated, ' +
+      'must set the chargingTime attribute\'s value and fire ' +
+      'a chargingtimechange event.');
+  var ondischargingtimechange_test = async_test(
+      'When the device is plugged in and its discharging time is updated, ' +
+      'must set the dischargingTime attribute\'s value to Infinity and ' +
+      'fire a dischargingtimechange event.');
+  var onlevelchange_test = async_test(
+      'When the device is plugged in and the battery level is updated, ' +
+      'must set the level attribute\'s value and fire a levelchange event.');
+
+  var batterySuccess = function (battery) {
+    battery.onchargingchange = onchargingchange_test.step_func(function () {
+      assert_true(battery.charging, 'The charging attribute must be set to true.');
+      onchargingchange_test.done();
+    });
+
+    var battery_chargingtime = battery.chargingTime;
+    battery.onchargingtimechange = onchargingtimechange_test.step_func(function () {
+      assert_less_than(battery.chargingTime, battery_chargingtime,
+          'The value of the chargingTime attribute must decrease.');
+      onchargingtimechange_test.done();
+    });
+
+    battery.ondischargingtimechange = ondischargingtimechange_test.step_func(function () {
+      if (battery.charging) {
+        assert_equals(battery.dischargingTime, Infinity,
+            'The value of the dischargingTime attribute must be set to Infinity.');
+        ondischargingtimechange_test.done();
+      }
+    });
+
+    battery.onlevelchange = onlevelchange_test.step_func(function () {
+      assert_greater_than(battery.level, 0);
+      assert_less_than_equal(battery.level, 1.0);
+      onlevelchange_test.done();
+    });
+  };
+
+  var batteryFailure = function (error) {
+    onchargingchange_test.step(function () {
+      assert_unreached(error.message);
+    });
+    onchargingchange_test.done();
+
+    onchargingtimechange_test.step(function () {
+      assert_unreached(error.message);
+    });
+    onchargingtimechange_test.done();
+
+    ondischargingtimechange_test.step(function () {
+      assert_unreached(error.message);
+    });
+    ondischargingtimechange_test.done();
+
+    onlevelchange_test.step(function () {
+      assert_unreached(error.message);
+     });
+    onlevelchange_test.done();
+  };
+
+  navigator.getBattery().then(batterySuccess, batteryFailure);
+
+})();
+
+</script>

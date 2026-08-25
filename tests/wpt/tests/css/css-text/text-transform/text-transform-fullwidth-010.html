@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 3 Test: text-transform:full-width character mapping</title>
+<link rel="author" title="Felipe Erias" href="mailto:felipeerias@igalia.com">
+<link rel="help" href="https://www.w3.org/TR/css-text-3/#text-transform-property">
+<link rel="match" href="reference/text-transform-fullwidth-010-ref.html">
+<meta name="assert" content="text-transform:full-width transforms all narrow characters that have a full-width mapping in Unicode to their wide equivalents.">
+<style>
+div {
+  text-transform: full-width;
+  white-space: pre;
+}
+</style>
+
+<div id="test">&#x0020;&#x0021;&#x0022;&#x0023;&#x0024;&#x0025;&#x0026;&#x0027;&#x0028;&#x0029;
+&#x002A;&#x002B;&#x002C;&#x002D;&#x002E;&#x002F;&#x0030;&#x0031;&#x0032;&#x0033;
+&#x0034;&#x0035;&#x0036;&#x0037;&#x0038;&#x0039;&#x003A;&#x003B;&#x003C;&#x003D;
+&#x003E;&#x003F;&#x0040;&#x0041;&#x0042;&#x0043;&#x0044;&#x0045;&#x0046;&#x0047;
+&#x0048;&#x0049;&#x004A;&#x004B;&#x004C;&#x004D;&#x004E;&#x004F;&#x0050;&#x0051;
+&#x0052;&#x0053;&#x0054;&#x0055;&#x0056;&#x0057;&#x0058;&#x0059;&#x005A;&#x005B;
+&#x005C;&#x005D;&#x005E;&#x005F;&#x0060;&#x0061;&#x0062;&#x0063;&#x0064;&#x0065;
+&#x0066;&#x0067;&#x0068;&#x0069;&#x006A;&#x006B;&#x006C;&#x006D;&#x006E;&#x006F;
+&#x0070;&#x0071;&#x0072;&#x0073;&#x0074;&#x0075;&#x0076;&#x0077;&#x0078;&#x0079;
+&#x007A;&#x007B;&#x007C;&#x007D;&#x007E;&#x2985;&#x2986;&#xFF61;&#xFF62;&#xFF63;
+&#xFF64;&#xFF65;&#xFF66;&#xFF67;&#xFF68;&#xFF69;&#xFF6A;&#xFF6B;&#xFF6C;&#xFF6D;
+&#xFF6E;&#xFF6F;&#xFF70;&#xFF71;&#xFF72;&#xFF73;&#xFF74;&#xFF75;&#xFF76;&#xFF77;
+&#xFF78;&#xFF79;&#xFF7A;&#xFF7B;&#xFF7C;&#xFF7D;&#xFF7E;&#xFF7F;&#xFF80;&#xFF81;
+&#xFF82;&#xFF83;&#xFF84;&#xFF85;&#xFF86;&#xFF87;&#xFF88;&#xFF89;&#xFF8A;&#xFF8B;
+&#xFF8C;&#xFF8D;&#xFF8E;&#xFF8F;&#xFF90;&#xFF91;&#xFF92;&#xFF93;&#xFF94;&#xFF95;
+&#xFF96;&#xFF97;&#xFF98;&#xFF99;&#xFF9A;&#xFF9B;&#xFF9C;&#xFF9D;&#xFF9E;&#xFF9F;
+&#xFFA0;&#xFFA1;&#xFFA2;&#xFFA3;&#xFFA4;&#xFFA5;&#xFFA6;&#xFFA7;&#xFFA8;&#xFFA9;
+&#xFFAA;&#xFFAB;&#xFFAC;&#xFFAD;&#xFFAE;&#xFFAF;&#xFFB0;&#xFFB1;&#xFFB2;&#xFFB3;
+&#xFFB4;&#xFFB5;&#xFFB6;&#xFFB7;&#xFFB8;&#xFFB9;&#xFFBA;&#xFFBB;&#xFFBC;&#xFFBD;
+&#xFFBE;&#xFFC2;&#xFFC3;&#xFFC4;&#xFFC5;&#xFFC6;&#xFFC7;&#xFFCA;&#xFFCB;&#xFFCC;
+&#xFFCD;&#xFFCE;&#xFFCF;&#xFFD2;&#xFFD3;&#xFFD4;&#xFFD5;&#xFFD6;&#xFFD7;&#xFFDA;
+&#xFFDB;&#xFFDC;&#x00A2;&#x00A3;&#x00AC;&#x00AF;&#x00A6;&#x00A5;&#x20A9;&#xFFE8;
+&#xFFE9;&#xFFEA;&#xFFEB;&#xFFEC;&#xFFED;&#xFFEE;</div>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="utils.js"></script>
+<title>Fenced frame content to test window.fence object</title>
+
+<body>
+<script>
+
+  // Get the token for communication with the parent.
+  const [fence_api_token] = parseKeylist();
+
+  // Check that window.fence is visible inside fenced frames.
+  assert_true(window.fence != null,
+              "window.fence should be visible inside fenced frames");
+  assert_true(fence != null,
+              "fence should be visible inside fenced frames");
+
+  // Tell the parent that the test succeeded.
+  writeValueToServer(fence_api_token, "");
+
+</script>
+</body>

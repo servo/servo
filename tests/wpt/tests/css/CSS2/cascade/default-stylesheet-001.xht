@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Overriding the user agent default style sheet</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html#cascade" />
+        <link rel="help" href="http://www.w3.org/TR/css-cascade-3/#cascading" />
+        <link rel="help" href="http://www.w3.org/TR/css-cascade-4/#cascading" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="User agent default style sheet settings can be overridden." />
+        <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+        <style type="text/css">
+            em
+            {
+                font: 1in Ahem;
+                font-style: normal;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the box below is not slanted to one side.</p>
+        <div><em>X</em></div>
+    </body>
+</html>

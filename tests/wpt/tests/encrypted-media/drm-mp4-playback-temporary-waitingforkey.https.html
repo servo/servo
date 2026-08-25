@@ -1,0 +1,53 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <meta name="timeout" content="long">
+    <title>Encrypted Media Extensions: Verify MediaKeySession.keyStatuses with multiple sessions, DRM</title>
+    <link rel="help" href="https://w3c.github.io/encrypted-media/">
+
+    <!-- Web Platform Test Harness scripts -->
+    <script src=/resources/testharness.js></script>
+    <script src=/resources/testharnessreport.js></script>
+
+    <!-- Helper scripts for Encrypted Media Extensions tests  -->
+    <script src=/encrypted-media/util/utils.js></script>
+    <script src=/encrypted-media/util/testmediasource.js></script>
+    <script src=/encrypted-media/util/utf8.js></script>
+
+    <!-- Content metadata -->
+    <script src=/encrypted-media/content/content-metadata.js></script>
+
+    <!-- Message handler for DRM keysystem -->
+    <script src=/encrypted-media/util/drm-messagehandler.js></script>
+
+    <!-- The script for this specific test -->
+    <script src=/encrypted-media/scripts/playback-temporary-waitingforkey.js></script>
+
+  </head>
+  <body>
+    <div id='log'></div>
+
+    <div id='video'>
+      <video id="videoelement" width="200px"></video>
+    </div>
+
+    <script>
+        var contentitem = content['mp4-basic'],
+            keysystem = getSupportedKeySystem(),
+            handler = new MessageHandler( keysystem, contentitem ),
+            config = {  video:              document.getElementById('videoelement'),
+                        keysystem:          keysystem,
+                        messagehandler:     handler.messagehandler,
+                        audioPath:          contentitem.audio.path,
+                        videoPath:          contentitem.video.path,
+                        audioType:          contentitem.audio.type,
+                        videoType:          contentitem.video.type,
+                        initDataType:       contentitem.initDataType,
+                        initData:           getProprietaryInitDatas(contentitem).initDatas.map( base64DecodeToUnit8Array ),
+                    };
+
+        runTest(config);
+    </script>
+  </body>
+</html>

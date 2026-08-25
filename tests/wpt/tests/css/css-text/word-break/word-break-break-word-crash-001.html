@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<title>Test float + nbsp + break-word does not freeze</title>
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=972421">
+<link rel="author" title="Koji Ishii" href="mailto:kojii@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+div {
+  font-size: 10px;
+  width: 10ch;
+  border: 2px solid blue;
+}
+float {
+  float: left;
+}
+.nowrap > div {
+  white-space: nowrap;
+}
+.break-word {
+  word-break: break-word;
+}
+</style>
+<body>
+  <section>
+    <div>123456<float></float>654321</div>
+    <div>123456<float></float>&nbsp;654321</div>
+  </section>
+  <section class="nowrap">
+    <div>123456<float></float>654321</div>
+    <div>123456<float></float>&nbsp;654321</div>
+  </section>
+  <section class="break-word">
+    <div>123456<float></float>654321</div>
+    <div>123456<float></float>&nbsp;654321</div>
+  </section>
+<script>test(() => {
+    document.body.offsetTop;  // layout should not freeze.
+});</script>
+</body>

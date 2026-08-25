@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Shape Margin Valid Values - calc() values</title>
+        <link rel="author" title="Adobe" href="http://html.adobe.com/">
+        <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+        <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shape-margin-property">
+        <meta name="assert" content="shape-margin values may be calc() values">
+        <meta name="flags" content="ahem dom">
+        <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="support/parsing-utils.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script type="text/javascript">
+        var shape_margin_calc_tests = [];
+        ParsingUtils.calcTestValues.forEach(function(value) {
+            testCase = [ value[0], value[1] ];
+            if(Object.prototype.toString.call( value[2] ) === '[object Array]' && value[2].length == 2) {
+                testCase.push([ value[2][0], value[2][1] ]);
+            } else {
+                testCase.push( value[2] );
+            }
+            shape_margin_calc_tests.push(testCase);
+        });
+        generate_tests( ParsingUtils.testShapeMarginInlineStyle,
+                        ParsingUtils.buildCalcTests(shape_margin_calc_tests, "inline"));
+        generate_tests( ParsingUtils.testShapeMarginComputedStyle,
+                        ParsingUtils.buildCalcTests(shape_margin_calc_tests, "computed"));
+        </script>
+    </body>
+</html>

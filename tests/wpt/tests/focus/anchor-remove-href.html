@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://issues.chromium.org/issues/443585794">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<a href="#">anchor tag</a>
+
+<script>
+promise_test(async () => {
+  const anchor = document.querySelector('a');
+  anchor.focus();
+  assert_equals(document.activeElement, anchor,
+    'anchor should be focused at the start of the test.');
+
+  anchor.removeAttribute('href');
+  anchor.setAttribute('tabindex', '0');
+  assert_equals(document.activeElement, anchor,
+    'anchor should be focused after removing href.');
+
+  await new Promise(requestAnimationFrame);
+  await new Promise(requestAnimationFrame);
+
+  assert_equals(document.activeElement, anchor,
+    'anchor should still be focused after a double rAF.');
+}, 'anchor element should remain focused after removing href attribute.');
+</script>

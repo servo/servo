@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>background-clip:text clips background to text area</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-4/#valdef-background-clip-text">
+<link rel="match" href="clip-text-constrain-geometry-ref.html">
+<style>
+div {
+  font-size: 100px;
+  width: 400px;
+  background: red;
+  background-clip: text;
+  color: green;
+}
+</style>
+<!-- There should be no red below. Text should appear green on white. -->
+<div>XXXX</div>

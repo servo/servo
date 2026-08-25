@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Backgrounds and Borders: Repaint gradient on color-interpolation-method change</title>
+<link rel="help" href="https://drafts.csswg.org/css-color/#color-interpolation-method">
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#linear-gradients">
+<link rel="match" href="background-image-gradient-interpolation-repaint-ref.html">
+<div id="square" style="background-image: linear-gradient(in srgb, yellow, blue); width: 100px; height: 100px"></div>
+<script>
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      square.style.backgroundImage = "linear-gradient(in oklch, yellow, blue)";
+      document.documentElement.classList.remove("reftest-wait");
+    });
+  });
+</script>

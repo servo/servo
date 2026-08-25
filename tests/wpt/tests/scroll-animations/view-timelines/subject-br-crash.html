@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<link rel="help" href="https://www.w3.org/TR/scroll-animations-1/#viewtimeline-interface">
+<html>
+<!-- crbug.com/1470522 --->
+<script>
+    function main() {
+        var b = document.createElement("br");
+        document.body.append(b);
+        new ViewTimeline({ subject: b });
+    }
+</script>
+<body onload=main()>
+</body>
+</html>

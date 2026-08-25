@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>CSS aspect-ratio: img block size with box-sizing</title>
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht" />
+<style>
+.border1 {
+  border-left: 10px solid green;
+}
+.border2 {
+  border-left: 15px solid green;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<!--
+  1st: A green rect 50x100.
+       border-left is 10x100 and the content box is 40x100.
+       We use 'aspect-ratio: auto && <ratio>', so the aspect-ratio works with
+       content-box dimensions always. The inline size of the content box is
+       (50px - 10px) = 40px, so the block size is 40px * 5/2 = 100px.
+       (note: width here is the inline size of border-box.)
+
+  2st: A green rect 25x100.
+       border-left is 15x100 and the content box is 10x100.
+       (note: width here is the inline size of content-box.)
+
+  3nd: A green rect 25x100.
+       border-left is 15x100 and the content box is 10x100 because we compute
+       the block size by aspect-ratio which works with border-box and so the
+       block size is 25px * 4 = 100.
+       (note: width here is the inline size of border-box.)
+-->
+<img class="border1" src="support/20x50-green.png" style="width: 50px; aspect-ratio: auto 1/1; box-sizing: border-box;"
+><img class="border2" src="support/20x50-green.png" style="width: 10px; aspect-ratio: 1/10; box-sizing: content-box;"
+><img class="border2" src="support/20x50-green.png" style="width: 25px; aspect-ratio: 1/4; box-sizing: border-box;">

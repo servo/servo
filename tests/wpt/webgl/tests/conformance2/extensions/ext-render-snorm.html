@@ -1,0 +1,203 @@
+<!--
+Copyright (c) 2023 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL EXT_render_snorm Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description("This test verifies the functionality of the EXT_render_snorm extension, if it is available.");
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext(null, null, 2);
+var ext;
+
+function createTypedArray(type) {
+    switch (type) {
+        case gl.BYTE:
+            return new Int8Array(4);
+        case gl.UNSIGNED_BYTE:
+            return new Uint8Array(4);
+        case gl.SHORT:
+            return new Int16Array(4);
+        case gl.UNSIGNED_SHORT:
+            return new Uint16Array(4);
+        default:
+            return null;
+    }
+}
+
+function drawTest(config) {
+    wtu.drawUnitQuad(gl);
+
+    const implementationType = gl.getParameter(gl.IMPLEMENTATION_COLOR_READ_TYPE);
+    const implementationFormat = gl.getParameter(gl.IMPLEMENTATION_COLOR_READ_FORMAT);
+
+    // Support for reading signed data with unsigned read type is not required
+    // but implementations may allow such conversions. Do not expect the error
+    // when the type matches the buffer type or when it's explicitly supported.
+    for (const type of [gl.BYTE, gl.UNSIGNED_BYTE, gl.SHORT, gl.UNSIGNED_SHORT]) {
+        if (type == config.type) continue;
+        if (implementationFormat != gl.RGBA || implementationType != type) {
+            gl.readPixels(0, 0, 1, 1, gl.RGBA, type, createTypedArray(type));
+            wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "reading with unsupported type fails");
+        }
+    }
+
+    const defaultPixel = createTypedArray(config.type);
+    wtu.checkCanvasRect(gl, 0, 0, 1, 1, config.color,
+                        "reading with the RGBA format and matching type", 1,
+                        defaultPixel,
+                        config.type, gl.RGBA);
+
+    if (implementationFormat == config.format && implementationType == config.type) {
+        const implementationPixel = createTypedArray(implementationType);
+        const color = [config.color[0]];
+        if (config.format != gl.RED) color.push(config.color[1]);
+        if (config.format == gl.RGBA) color.push(config.color[2], config.color[3]);
+        wtu.checkCanvasRect(gl, 0, 0, 1, 1, color,
+                            "reading with the exact format/type", 1,
+                            implementationPixel,
+                            implementationType, implementationFormat);
+    }
+}
+
+function renderbufferTest(config, isSupported) {
+    debug("");
+    debug(`${config.name} renderbuffer: ` +
+          `${!isSupported || !config.color ? "NOT " : ""}supported`);
+
+    const rbo = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, rbo);
+    gl.renderbufferStorage(gl.RENDERBUFFER, config.internalFormat, 1, 1);
+    if (!isSupported || !config.color) {
+        wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "renderbuffer allocation failed");
+        return;
+    }
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "renderbuffer allocation succeeded");
+
+    const fbo = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, rbo);
+
+    wtu.framebufferStatusShouldBe(gl, gl.FRAMEBUFFER, gl.FRAMEBUFFER_COMPLETE);
+
+    drawTest(config);
+}
+
+function textureTest(config, isRenderable, isTexturable) {
+    debug("");
+    debug(`${config.name} texture: ` +
+          `${!isRenderable || !config.color ? "NOT " : ""}renderable, ` +
+          `${!isTexturable ? "NOT " : ""}texturable`);
+
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, config.internalFormat, 1, 1, 0, config.format, config.type, null);
+    if (!isTexturable) {
+        wtu.glErrorShouldBe(gl,
+                            [gl.INVALID_ENUM, gl.INVALID_VALUE, gl.INVALID_OPERATION],
+                            "texture allocation failed");
+        return;
+    }
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texture allocation succeeded");
+
+    const fbo = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+
+    if (!isRenderable || !config.color) {
+        wtu.framebufferStatusShouldBe(gl, gl.FRAMEBUFFER, gl.FRAMEBUFFER_INCOMPLETE_ATTACHMENT);
+        return;
+    }
+    wtu.framebufferStatusShouldBe(gl, gl.FRAMEBUFFER, gl.FRAMEBUFFER_COMPLETE);
+
+    drawTest(config);
+}
+
+function formatTest(isSnormEnabled, isNorm16Enabled) {
+    const program = wtu.setupProgram(gl, [wtu.simpleVertexShader,
+                                          wtu.simpleColorFragmentShader]);
+    gl.useProgram(program);
+    gl.uniform4f(gl.getUniformLocation(program, "u_color"), -0.0625, -0.125, -0.25, -0.5);
+
+    wtu.setupUnitQuad(gl);
+
+    const configs8 = [
+        {name: "R8_SNORM",    format: gl.RED,  type: gl.BYTE, internalFormat: gl.R8_SNORM,    color: [-8,   0,   0, 127]},
+        {name: "RG8_SNORM",   format: gl.RG,   type: gl.BYTE, internalFormat: gl.RG8_SNORM,   color: [-8, -16,   0, 127]},
+        {name: "RGB8_SNORM",  format: gl.RGB,  type: gl.BYTE, internalFormat: gl.RGB8_SNORM,  color: null},
+        {name: "RGBA8_SNORM", format: gl.RGBA, type: gl.BYTE, internalFormat: gl.RGBA8_SNORM, color: [-8, -16, -32, -64]}
+    ];
+
+    const configs16 = [
+        {name: "R16_SNORM",    format: gl.RED,  type: gl.SHORT, internalFormat: 0x8F98 /* R16_SNORM_EXT */,    color: [-2048,   0,       0,  32767]},
+        {name: "RG16_SNORM",   format: gl.RG,   type: gl.SHORT, internalFormat: 0x8F99 /* RG16_SNORM_EXT */,   color: [-2048, -4096,     0,  32767]},
+        {name: "RGB16_SNORM",  format: gl.RGB,  type: gl.SHORT, internalFormat: 0x8F9A /* RGB16_SNORM_EXT */,  color: null},
+        {name: "RGBA16_SNORM", format: gl.RGBA, type: gl.SHORT, internalFormat: 0x8F9B /* RGBA16_SNORM_EXT */, color: [-2048, -4096, -8192, -16384]}
+    ];
+
+    for (const config of configs8) {
+        renderbufferTest(config, isSnormEnabled);
+        textureTest(config, isSnormEnabled, true);
+    }
+
+    for (const config of configs16) {
+        renderbufferTest(config, isSnormEnabled && isNorm16Enabled);
+        textureTest(config, isSnormEnabled && isNorm16Enabled, isNorm16Enabled);
+    }
+}
+
+function runTest() {
+    if (!gl) {
+        testFailed("context does not exist");
+        return;
+    }
+
+    testPassed("context exists");
+
+    debug("");
+    debug("Testing signed normalized formats with EXT_render_snorm disabled");
+    formatTest(false, false);
+
+    ext = gl.getExtension("EXT_render_snorm");
+    wtu.runExtensionSupportedTest(gl, "EXT_render_snorm", ext !== null);
+
+    if (ext !== null) {
+        debug("");
+        debug("Testing signed normalized formats with only EXT_render_snorm enabled");
+        formatTest(true, false);
+
+        if (gl.getExtension("EXT_texture_norm16")) {
+            debug("");
+            debug("Testing signed normalized formats with EXT_render_snorm and EXT_texture_norm16 enabled");
+            formatTest(true, true);
+        }
+    } else {
+        testPassed("No EXT_render_snorm support -- this is legal");
+    }
+}
+
+runTest();
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <title>Gradient interpolation</title>
+  <meta name="fuzzy" content="maxDifference=1-2;totalPixels=0-10000">
+  <link rel="author" title="Mike Bremford" href="mailto:mike@bfo.com">
+  <link rel="help" href="https://www.w3.org/TR/css-color-4/#interpolation">
+  <meta name="assert" content="Gradient interpolation takes place in the specified space rather than in the colorspace of the endpoints">
+  <link rel="match" href="gradient-eval-003-ref.html">
+  <style>
+   :root {
+       --start: rgb(34.04% 57.84% 91.39%);      /* lab(60% 0 -50) */
+       --end: rgb(64.07% 56.14% 19.72%);        /* lab(60% 0 50) */
+       --t: 0.5;
+       --big: 131070000px;
+   }
+   .test {
+       width: 100px;
+       height: 100px;
+       background: linear-gradient(in lab, var(--start) calc(var(--big) * (0 - var(--t))), var(--end) calc(var(--big) * (1 - var(--t))));
+   }
+ </style>
+ </head>
+ <body>
+  <div class="test"></div>
+ </body>
+</html>

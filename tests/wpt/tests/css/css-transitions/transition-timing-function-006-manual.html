@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Transitions Test: transition-timing-function - 'linear' equivalent to 'cubic-bezier(0.0, 0.0, 1.0, 1.0)'</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="author" title="Shiyou Tan" href="mailto:shiyoux.tan@intel.com">
+<link rel="help" href="https://www.w3.org/TR/css-transitions-1/#transition-timing-function-property">
+<meta name="assert" content="The 'transition-timing-function' property set 'linear' is equivalent to cubic-bezier(0.0, 0.0, 1.0, 1.0)">
+<style>
+  div {
+    height: 100px;
+    transition: width 2s;
+    width: 100px;
+  }
+  #test1 {
+    background-color: blue;
+    transition-timing-function: linear;
+  }
+  #test2 {
+    background-color: yellow;
+    transition-timing-function: cubic-bezier(0, 0, 1.0, 1.0);
+  }
+</style>
+<body>
+  <p>Click the 'Start' button. Test passes if the width growth of blue square is <strong>equivalent</strong> to the yellow square.</p>
+  <div id="test1"></div>
+  <div id="test2"></div>
+  <button>Start</button>
+  <script>
+    (function() {
+      var button = document.querySelector("button");
+      button.addEventListener("click", function(evt) {
+        var test1 = document.querySelector("#test1"),
+            test2 = document.querySelector("#test2");
+        test1.setAttribute("style", "width: 300px");
+        test2.setAttribute("style", "width: 300px");
+      }, false);
+    })();
+  </script>
+</body>

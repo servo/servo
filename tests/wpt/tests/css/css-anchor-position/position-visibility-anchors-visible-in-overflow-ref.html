@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+  #outer-container {
+    width: 100px;
+    height: 100px;
+    overflow: visible;
+    position: relative;
+  }
+  #inner-container {
+    width: 100px;
+    height: 100px;
+    overflow: visible;
+    position: relative;
+  }
+  #anchor {
+    anchor-name: --anchor;
+    position: relative;
+    margin-left: 200px;
+    width: 100px;
+    height: 100px;
+    background: orange;
+  }
+  #spacer {
+    height: 200px;
+  }
+  #target-a {
+    position-anchor: --anchor;
+    position-visibility: anchors-visible;
+    position-area: top left;
+    width: 50px;
+    height: 50px;
+    background: green;
+    position: absolute;
+    inset: 0;
+  }
+  #target-b {
+    position-anchor: --anchor;
+    position-visibility: anchors-visible;
+    position-area: center left;
+    width: 50px;
+    height: 50px;
+    background: green;
+    position: absolute;
+    inset: 0;
+  }
+  #target-c {
+    position-anchor: --anchor;
+    position-visibility: anchors-visible;
+    position-area: bottom left;
+    width: 50px;
+    height: 50px;
+    background: green;
+    position: absolute;
+    inset: 0;
+  }
+</style>
+
+<div id="spacer"></div>
+<div id="anchor">anchor</div>
+<div id="target-a">target-a</div>
+<div id="target-b">target-b</div>
+<div id="target-c">target-c</div>

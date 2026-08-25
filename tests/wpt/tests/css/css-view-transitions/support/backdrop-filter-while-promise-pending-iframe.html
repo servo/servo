@@ -1,0 +1,31 @@
+<!doctype html>
+<style>
+body {
+  background: green;
+  margin: 0;
+}
+
+.backdrop-filter {
+  width: 100px;
+  height: 100px;
+  border: 1px solid white;
+  backdrop-filter: invert(1);
+  view-transition-name: foo;
+}
+</style>
+
+
+<div class="backdrop-filter"></div>
+
+<script>
+window.addEventListener("message", (e) => {
+  if (e.data === "start") {
+    document.startViewTransition(async () => {
+      window.parent.postMessage("promise_pending", "*");
+      // Don't ever resolve.
+      await new Promise(() => {});
+    });
+  }
+});
+window.parent.postMessage("capture", "*");
+</script>

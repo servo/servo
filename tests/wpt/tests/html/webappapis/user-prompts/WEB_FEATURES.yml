@@ -1,0 +1,4 @@
+rules:
+- print-manual.html: [print-events]
+- print-*: [print]
+- "*": [alerts]

@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS transform animation with layer squashing should not crash</title>
+<link rel="help" href="https://crbug.com/40471510">
+<style>
+@keyframes test {
+  to { transform: rotate(360deg); }
+}
+</style>
+<div id="target" style="animation: test 1s;">
+  <div style="transform: translateZ(0);"></div>
+  <div style="position: relative;"></div>
+</div>

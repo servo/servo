@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://www.w3.org/TR/css-fonts-5/#font-size-adjust-prop">
+<meta name="assert" content="Tests the simultaneous use of font-size-adjust and metrics override descriptorof of @font-face">
+<title>Tests if font metric overrides reflect the adjustment of font-size-adjust.</title>
+<style>
+@font-face {
+  font-family: Ahem;
+  src: local(Ahem), url(/fonts/Ahem.ttf);
+}
+
+.reference {
+  font: 20px Ahem;
+  position: absolute;
+  top: 10px;
+  left: 10px;
+}
+
+.overridden-ascent-ref {
+  display: inline-block;
+  background-color: green;
+  width: 1em;
+  height: 1em; /* Scale a reference block to match the overridden ascent of 100%. */
+}
+
+.character {
+  display: inline-block;
+  background-color: green;
+  width: 2em;  /* Double-size of an 'X' in Ahem */
+  height: 2em; /* Double-size of an 'X' in Ahem */
+  position: absolute;
+  /* Two times of difference between the overridden ascent and the original ascent */
+  top: 0.4em;
+  left: 1em;
+}
+
+.overridden-descent-ref {
+  display: inline-block;
+  background-color: green;
+  width: 1em;
+  height: 0.5em; /* Scale a reference block to match the overridden descen of 50%. */
+  position: absolute;
+  top: 2.5em;
+  left: 3em;
+}
+
+</style>
+<!--
+The three green rectangles below show ascent, character, and descent sizes
+from the left. The ascent and descent are overridden by 100% and 50% of the
+specified font size, respectively. The test applies font-size-adjust and font
+metric overrides simultaneously to text. As we double the text size with
+font-size-adjust, the ascent and descent override should scale accordingly
+to double their size.
+-->
+<div class="reference">
+  <span class="overridden-ascent-ref"></span><span class="character"></span><span class="overridden-descent-ref"></span>
+</div>

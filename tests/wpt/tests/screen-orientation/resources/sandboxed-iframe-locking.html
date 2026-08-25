@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+test_driver.set_test_context(parent);
+
+test_driver.bless("request full screen", async () => {
+  const data = {};
+  try {
+    await document.documentElement.requestFullscreen();
+    await screen.orientation.lock("portrait")
+    data.result = "locked";
+    data.orientation = screen.orientation.type;
+  } catch (error) {
+    data.result = "errored";
+    data.lock_name = error.name;
+  }
+
+  // Common safety check test for unlock().
+  try {
+    screen.orientation.unlock();
+  } catch (error) {
+    data.result = "errored";
+    data.unlock_name = error.name;
+  }
+
+  try {
+    await document.exitFullscreen();
+  } catch (error) {
+    data.result = "errored";
+    data.exit_name = error.name;
+  }
+
+  parent.window.postMessage(data, "*");
+});
+</script>

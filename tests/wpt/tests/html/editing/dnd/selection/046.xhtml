@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Selection drag and drop from textarea to iframe</title>
+<style type="text/css">
+iframe
+  {width:350px;
+  height:150px;
+  border-style:none;}
+</style>
+</head>
+<body onload="var t = document.querySelector('textarea');t.select();t.setSelectionRange(0,7)">
+<p>Drag selected text to the blue box. Copy of selection should end up in the blue box once you drop it there.</p>
+<p><textarea>Drag me</textarea></p>
+<p><iframe src="helper-drop-here-blue-box.xhtml">XHTML document</iframe></p>
+</body>
+</html>

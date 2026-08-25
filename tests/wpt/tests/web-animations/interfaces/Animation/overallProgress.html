@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Animation.overallProgress</title>
+<link rel="help"
+href="https://drafts.csswg.org/web-animations-2/#the-overall-progress-of-an-animation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+
+test(t => {
+  const animation = new Animation(null);
+  animation.startTime = document.timeline.currentTime;
+  assert_time_equals_literal(animation.currentTime, 0, 'currentTime is zero');
+  assert_equals(animation.overallProgress, null,
+    'overallProgress is unresolved');
+}, 'overallProgress of a newly created animation without an effect is ' +
+   'unresolved');
+
+test(t => {
+  // currentTime should be unresolved because the animation has no associated
+  // timeline.
+  const animation = new Animation(new KeyframeEffect(createDiv(t), null), null);
+  assert_equals(animation.currentTime, null, 'currentTime is unresolved');
+  assert_equals(animation.overallProgress, null,
+    'overallProgress is unresolved');
+}, 'overallProgress of an animation whose currentTime is unresolved is ' +
+   'unresolved.');
+
+test(t => {
+  const animation = new Animation(new KeyframeEffect(createDiv(t), null,
+    { duration: 0 }), document.timeline);
+  // Set the startTime to 20 seconds into the future.
+  animation.startTime = document.timeline.currentTime + 20 * MS_PER_SEC;
+  assert_less_than(animation.currentTime, 0, 'currentTime is negative');
+  assert_approx_equals(animation.overallProgress, 0, 0.01, 'overallProgress ' +
+    'is zero');
+}, "overallProgress of an animation whose effect's endTime is zero is zero " +
+   "if its currentTime is negative.");
+
+test(t => {
+  const animation = new Animation(new KeyframeEffect(createDiv(t), null,
+    { duration: 0 }), document.timeline);
+  animation.startTime = document.timeline.currentTime;
+  assert_time_equals_literal(animation.currentTime, 0, 'currentTime is zero');
+  assert_approx_equals(animation.overallProgress, 1, 0.01,
+    'overallProgress is one');
+
+  animation.startTime = document.timeline.currentTime - 20 * MS_PER_SEC;
+  assert_greater_than(animation.currentTime, 0, 'currentTime greater than zero');
+  assert_approx_equals(animation.overallProgress, 1, 0.01,
+    'overallProgress is one');
+}, "overallProgress of an animation whose effect's endTime is zero is one if " +
+   "its currentTime is non-negative.");
+
+test(t => {
+  const animation = new Animation(new KeyframeEffect(createDiv(t), null,
+    { duration: Infinity }), document.timeline);
+
+  animation.startTime = document.timeline.currentTime - 20 * MS_PER_SEC;
+  assert_greater_than(animation.currentTime, 0, 'currentTime is positive');
+  assert_approx_equals(animation.overallProgress, 0, 0.01,
+    'overallProgress is zero');
+}, "overallProgress of an animation whose effect's endTime is infinity is zero.");
+
+test(t => {
+  const animation = new Animation(new KeyframeEffect(createDiv(t), null,
+    200 * MS_PER_SEC), document.timeline);
+  animation.playbackRate = 2;
+
+  animation.startTime = document.timeline.currentTime - 50 * MS_PER_SEC;
+  assert_time_equals_literal(animation.currentTime, 100 * MS_PER_SEC, 'currentTime is 100s');
+  assert_approx_equals(animation.overallProgress, 0.5, 0.01,
+    'overallProgress is zero');
+
+  animation.startTime = document.timeline.currentTime - 100 * MS_PER_SEC;
+  assert_time_equals_literal(animation.currentTime, 200 * MS_PER_SEC, 'currentTime is 200s');
+  assert_approx_equals(animation.overallProgress, 1, 0.01,
+    'overallProgress is one');
+
+  animation.startTime = document.timeline.currentTime - 150 * MS_PER_SEC;
+  assert_time_equals_literal(animation.currentTime, 300 * MS_PER_SEC, 'currentTime is 300s');
+  assert_approx_equals(animation.overallProgress, 1, 0.01,
+    'overallProgress is still one');
+}, "overallProgress of an animation is calculated by " +
+   "currentTime / effect endTime.");
+
+</script>
+</body>

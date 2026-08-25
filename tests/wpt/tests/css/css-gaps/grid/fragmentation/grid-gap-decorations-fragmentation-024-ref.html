@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#break">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+  body {
+    margin: 0px;
+  }
+  .multi-col {
+    position: relative;
+    columns: 2;
+    column-fill: auto;
+    height: 325px;
+    width: 870px;
+    column-gap: 10px;
+  }
+  .grid-container {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+
+    width: 430px;
+    height: 430px;
+  }
+  .grid-item {
+    background-color: gray;
+    opacity: 0.5;
+  }
+  .row-gap1 {
+    position: absolute;
+    height: 0px;
+    display: flex;
+    gap: 10px;
+    top: 102.5px;
+    left: 0px;
+  }
+  .row-gap1a {
+    width: 210px;
+    border-bottom: solid 5px red;
+  }
+  .row-gap2 {
+    position: absolute;
+    height: 0px;
+    display: flex;
+    gap: 10px;
+    top: 212.5px;
+    left: 110px;
+  }
+  .row-gap2a {
+    width: 210px;
+    border-bottom: solid 5px red;
+  }
+  .col-gap1 {
+    position: absolute;
+    width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    top: 110px;
+    left: 102.5px;
+  }
+  .col-gap1a {
+    height: 220px;
+    border-left: solid 5px blue;
+  }
+  .col-gap2 {
+    position: absolute;
+    width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    top: 0px;
+    left: 212.5px;
+  }
+  .col-gap2a {
+    height: 210px;
+    border-left: solid 5px blue;
+  }
+  .col-gap3 {
+    position: absolute;
+    width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    top: 0px;
+    left: 322.5px;
+  }
+  .col-gap3a {
+    height: 330px;
+    border-left: solid 5px blue;
+  }
+  .col-gap3-frag2 {
+    position: absolute;
+    width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    top: 0px;
+    left: 762.5px;
+  }
+  .col-gap3a-frag2 {
+    height: 100px;
+    border-left: solid 5px blue;
+  }
+</style>
+<div class="multi-col">
+  <div class="grid-container">
+    <div class="grid-item" style="grid-column: 1 / 3; grid-row: 1 / 2;"></div>
+    <div class="grid-item" style="grid-column: 3 / 4; grid-row: 1 / 3;"></div>
+    <div class="grid-item" style="grid-row: 2 / 4;"></div>
+    <div class="grid-item" style="grid-column: 2 / 4; grid-row: 3 / 4;"></div>
+    <div class="grid-item" style="grid-column: 2 / 3; grid-row: 2 / 3;"></div>
+    <div class="grid-item" style="grid-column: 4 / 5; grid-row: 1 / 4;"></div>
+    <div class="grid-item" style="grid-column: 1 / 4; grid-row: 4 / 5;"></div>
+    <div class="grid-item" style="grid-column: 4 / 5; grid-row: 4 / 5;"></div>
+  </div>
+</div>
+
+<div class="col-gap1">
+  <div class="col-gap1a"></div>
+</div>
+<div class="col-gap2">
+  <div class="col-gap2a"></div>
+</div>
+<div class="col-gap3">
+  <div class="col-gap3a"></div>
+</div>
+<div class="col-gap3-frag2">
+  <div class="col-gap3a-frag2"></div>
+</div>
+
+<div class="row-gap1">
+  <div class="row-gap1a"></div>
+</div>
+<div class="row-gap2">
+  <div class="row-gap2a"></div>
+</div>

@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<title>CSS Test: White space should not be removed between elements for which a single anonymous table cell is generated</title>
+<link rel="author" title="Cameron McCormack" href="mailto:cam@mcc.id.au">
+<link rel="match" href="anonymous-table-ws-001-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-tables/#fixup-algorithm">
+<style>
+div { display: table; font: 16px monospace; }
+</style>
+<p>Test passes if there is a space between the "a" and "b".</p>
+<div>
+  <span>a</span> <span>b</span>
+</div>

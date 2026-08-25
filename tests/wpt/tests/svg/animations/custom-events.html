@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<title>Custom events with SVG animation event names and their effects on various types of event listeners</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg height="0">
+  <rect width="100" height="100" fill="blue">
+    <animate attributeName="x" begin="0s" from="0" to="100"
+             id="endTargetWithAttributeHandlers"
+             onend="gOnEndHandlerCallCount++"
+             onendEvent="gNonexistentOnEndEventHandlerCallCount++"/>
+    <animate attributeName="y" begin="0s" from="0" to="100"
+             id="endTargetWithIDLListeners"/>
+    <animate attributeName="width" begin="0s" from="100" to="120"
+             id="endTargetWithRegularListeners"/>
+    <animate attributeName="x" begin="0s" from="0" to="100"
+             id="repeatTargetWithAttributeHandlers"
+             onrepeat="gOnRepeatHandlerCallCount++"
+             onrepeatEvent="gNonexistentOnRepeatEventHandlerCallCount++"/>
+    <animate attributeName="y" begin="0s" from="0" to="100"
+             id="repeatTargetWithIDLListeners"/>
+    <animate attributeName="width" begin="0s" from="100" to="120"
+             id="repeatTargetWithRegularListeners"/>
+    <animate attributeName="x" begin="0s" from="0" to="100"
+             id="beginTargetWithAttributeHandlers"
+             onbegin="gOnBeginHandlerCallCount++"
+             onbeginEvent="gNonexistentOnBeginEventHandlerCallCount++"/>
+    <animate attributeName="y" begin="0s" from="0" to="100"
+             id="beginTargetWithIDLListeners"/>
+    <animate attributeName="width" begin="0s" from="100" to="120"
+             id="beginTargetWithRegularListeners"/>
+  </rect>
+</svg>
+<script>
+  // === "end" / "endEvent" tests ===
+  // The SVG spec does not define an event called "end" - the animation event is called "endEvent".
+  // The SVG spec does not define an IDL property called "onendEvent", only one called "onend".
+  // The SVG spec does not define an attribute called "onendEvent", only one called "onend".
+
+  gOnEndHandlerCallCount = 0;
+  gNonexistentOnEndEventHandlerCallCount = 0;
+  gOnEndListenerCallCount = 0;
+  gNonexistentOnEndEventListenerCallCount = 0;
+  gEndEventListenerCallCount = 0;
+  gEndListenerCallCount = 0;
+
+  let endTargetWithAttributeHandlers = document.getElementById("endTargetWithAttributeHandlers");
+  let endTargetWithIDLListeners = document.getElementById("endTargetWithIDLListeners");
+  endTargetWithIDLListeners.onend = () => { gOnEndListenerCallCount++; };
+  endTargetWithIDLListeners.onendEvent = () => { gNonexistentOnEndEventListenerCallCount++; };
+  let endTargetWithRegularListeners = document.getElementById("endTargetWithRegularListeners");
+  endTargetWithRegularListeners.addEventListener("endEvent", () => { gEndEventListenerCallCount++; });
+  endTargetWithRegularListeners.addEventListener("end", () => { gEndListenerCallCount++; });
+
+  test(t => {
+    endTargetWithAttributeHandlers.dispatchEvent(new Event("end"));
+    assert_equals(gOnEndHandlerCallCount, 0);
+    assert_equals(gNonexistentOnEndEventHandlerCallCount, 0);
+    endTargetWithIDLListeners.dispatchEvent(new Event("end"));
+    assert_equals(gOnEndListenerCallCount, 0);
+    assert_equals(gNonexistentOnEndEventListenerCallCount, 0);
+    endTargetWithRegularListeners.dispatchEvent(new Event("end"));
+    assert_equals(gEndEventListenerCallCount, 0);
+    assert_equals(gEndListenerCallCount, 1);
+  }, "custom events with the name 'end' should only call the event listener for the event 'end' and no attribute handlers or IDL listeners");
+
+  test(t => {
+    gOnEndHandlerCallCount = 0;
+    gNonexistentOnEndEventHandlerCallCount = 0;
+    gOnEndListenerCallCount = 0;
+    gNonexistentOnEndEventListenerCallCount = 0;
+    gEndEventListenerCallCount = 0;
+    gEndListenerCallCount = 0;
+    endTargetWithAttributeHandlers.dispatchEvent(new Event("endEvent"));
+    assert_equals(gOnEndHandlerCallCount, 1);
+    assert_equals(gNonexistentOnEndEventHandlerCallCount, 0);
+    endTargetWithIDLListeners.dispatchEvent(new Event("endEvent"));
+    assert_equals(gOnEndListenerCallCount, 1);
+    assert_equals(gNonexistentOnEndEventListenerCallCount, 0);
+    endTargetWithRegularListeners.dispatchEvent(new Event("endEvent"));
+    assert_equals(gEndEventListenerCallCount, 1);
+    assert_equals(gEndListenerCallCount, 0);
+  }, "custom events with the name 'endEvent' should call 'onend' attribute handlers and IDL property listeners, and 'endEvent' listeners");
+
+  // === "repeat" / "repeatEvent" tests ===
+  // The SVG spec does not define an event called "repeat" - the animation event is called "repeatEvent".
+  // The SVG spec does not define an IDL property called "onrepeatEvent", only one called "onrepeat".
+  // The SVG spec does not define an attribute called "onrepeatEvent", only one called "onrepeat".
+
+  gOnRepeatHandlerCallCount = 0;
+  gNonexistentOnRepeatEventHandlerCallCount = 0;
+  gOnRepeatListenerCallCount = 0;
+  gNonexistentOnRepeatEventListenerCallCount = 0;
+  gRepeatEventListenerCallCount = 0;
+  gRepeatListenerCallCount = 0;
+
+  let repeatTargetWithAttributeHandlers = document.getElementById("repeatTargetWithAttributeHandlers");
+  let repeatTargetWithIDLListeners = document.getElementById("repeatTargetWithIDLListeners");
+  repeatTargetWithIDLListeners.onrepeat = () => { gOnRepeatListenerCallCount++; };
+  repeatTargetWithIDLListeners.onrepeatEvent = () => { gNonexistentOnRepeatEventListenerCallCount++; };
+  let repeatTargetWithRegularListeners = document.getElementById("repeatTargetWithRegularListeners");
+  repeatTargetWithRegularListeners.addEventListener("repeatEvent", () => { gRepeatEventListenerCallCount++; });
+  repeatTargetWithRegularListeners.addEventListener("repeat", () => { gRepeatListenerCallCount++; });
+
+  test(t => {
+    repeatTargetWithAttributeHandlers.dispatchEvent(new Event("repeat"));
+    assert_equals(gOnRepeatHandlerCallCount, 0);
+    assert_equals(gNonexistentOnRepeatEventHandlerCallCount, 0);
+    repeatTargetWithIDLListeners.dispatchEvent(new Event("repeat"));
+    assert_equals(gOnRepeatListenerCallCount, 0);
+    assert_equals(gNonexistentOnRepeatEventListenerCallCount, 0);
+    repeatTargetWithRegularListeners.dispatchEvent(new Event("repeat"));
+    assert_equals(gRepeatEventListenerCallCount, 0);
+    assert_equals(gRepeatListenerCallCount, 1);
+  }, "custom events with the name 'repeat' should only call the event listener for the event 'repeat' and no attribute handlers or IDL listeners");
+
+  test(t => {
+    gOnRepeatHandlerCallCount = 0;
+    gNonexistentOnRepeatEventHandlerCallCount = 0;
+    gOnRepeatListenerCallCount = 0;
+    gNonexistentOnRepeatEventListenerCallCount = 0;
+    gRepeatEventListenerCallCount = 0;
+    gRepeatListenerCallCount = 0;
+    repeatTargetWithAttributeHandlers.dispatchEvent(new Event("repeatEvent"));
+    assert_equals(gOnRepeatHandlerCallCount, 1);
+    assert_equals(gNonexistentOnRepeatEventHandlerCallCount, 0);
+    repeatTargetWithIDLListeners.dispatchEvent(new Event("repeatEvent"));
+    assert_equals(gOnRepeatListenerCallCount, 1);
+    assert_equals(gNonexistentOnRepeatEventListenerCallCount, 0);
+    repeatTargetWithRegularListeners.dispatchEvent(new Event("repeatEvent"));
+    assert_equals(gRepeatEventListenerCallCount, 1);
+    assert_equals(gRepeatListenerCallCount, 0);
+  }, "custom events with the name 'repeatEvent' should call 'onrepeat' attribute handlers and IDL property listeners, and 'repeatEvent' listeners");
+
+  // === "begin" / "beginEvent" tests ===
+  // The SVG spec does not define an event called "begin" - the animation event is called "beginEvent".
+  // The SVG spec does not define an IDL property called "onbeginEvent", only one called "onbegin".
+  // The SVG spec does not define an attribute called "onbeginEvent", only one called "onbegin".
+
+  gOnBeginHandlerCallCount = 0;
+  gNonexistentOnBeginEventHandlerCallCount = 0;
+  gOnBeginListenerCallCount = 0;
+  gNonexistentOnBeginEventListenerCallCount = 0;
+  gBeginEventListenerCallCount = 0;
+  gBeginListenerCallCount = 0;
+
+  let beginTargetWithAttributeHandlers = document.getElementById("beginTargetWithAttributeHandlers");
+  let beginTargetWithIDLListeners = document.getElementById("beginTargetWithIDLListeners");
+  beginTargetWithIDLListeners.onbegin = () => { gOnBeginListenerCallCount++; };
+  beginTargetWithIDLListeners.onbeginEvent = () => { gNonexistentOnBeginEventListenerCallCount++; };
+  let beginTargetWithRegularListeners = document.getElementById("beginTargetWithRegularListeners");
+  beginTargetWithRegularListeners.addEventListener("beginEvent", () => { gBeginEventListenerCallCount++; });
+  beginTargetWithRegularListeners.addEventListener("begin", () => { gBeginListenerCallCount++; });
+
+  test(t => {
+    beginTargetWithAttributeHandlers.dispatchEvent(new Event("begin"));
+    assert_equals(gOnBeginHandlerCallCount, 0);
+    assert_equals(gNonexistentOnBeginEventHandlerCallCount, 0);
+    beginTargetWithIDLListeners.dispatchEvent(new Event("begin"));
+    assert_equals(gOnBeginListenerCallCount, 0);
+    assert_equals(gNonexistentOnBeginEventListenerCallCount, 0);
+    beginTargetWithRegularListeners.dispatchEvent(new Event("begin"));
+    assert_equals(gBeginEventListenerCallCount, 0);
+    assert_equals(gBeginListenerCallCount, 1);
+  }, "custom events with the name 'begin' should only call the event listener for the event 'begin' and no attribute handlers or IDL listeners");
+
+  test(t => {
+    gOnBeginHandlerCallCount = 0;
+    gNonexistentOnBeginEventHandlerCallCount = 0;
+    gOnBeginListenerCallCount = 0;
+    gNonexistentOnBeginEventListenerCallCount = 0;
+    gBeginEventListenerCallCount = 0;
+    gBeginListenerCallCount = 0;
+    beginTargetWithAttributeHandlers.dispatchEvent(new Event("beginEvent"));
+    assert_equals(gOnBeginHandlerCallCount, 1);
+    assert_equals(gNonexistentOnBeginEventHandlerCallCount, 0);
+    beginTargetWithIDLListeners.dispatchEvent(new Event("beginEvent"));
+    assert_equals(gOnBeginListenerCallCount, 1);
+    assert_equals(gNonexistentOnBeginEventListenerCallCount, 0);
+    beginTargetWithRegularListeners.dispatchEvent(new Event("beginEvent"));
+    assert_equals(gBeginEventListenerCallCount, 1);
+    assert_equals(gBeginListenerCallCount, 0);
+  }, "custom events with the name 'beginEvent' should call 'onbegin' attribute handlers and IDL property listeners, and 'beginEvent' listeners");
+
+</script>

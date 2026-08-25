@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en" class="reftest-wait">
+<head>
+<meta charset="utf-8">
+<title>CSS Text Reference: text-fit with vertical-align</title>
+<meta name="flags" content="ahem">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.container {
+  font: 20px/1 Ahem; /* Scaled font size */
+  width: 92px;
+  white-space: pre;
+  border: 1px solid blue;
+  margin-bottom: 10px;
+}
+.small {
+  font-size: 0.6em; /* Will be 12px */
+}
+.v-baseline { vertical-align: baseline; }
+.v-sub { vertical-align: sub; }
+.v-super { vertical-align: super; }
+.v-length-px { vertical-align: 2px; } /* Remains 2px if text-fit only scales font-size */
+.v-length-em { vertical-align: 0.1em; }
+.v-percent { vertical-align: 20%; }
+</style>
+</head>
+<body>
+<p>Test passes if the rendering matches the reference file (which uses equivalent font-size instead of text-fit).</p>
+
+<div class="container">AAA<span class="small v-baseline">B</span>C</div>
+<div class="container">AAA<span class="small v-sub">B</span>C</div>
+<div class="container">AAA<span class="small v-super">B</span>C</div>
+<div class="container">AAA<span class="small v-length-px">B</span>C</div>
+<div class="container">AAA<span class="small v-length-em">B</span>C</div>
+<div class="container">AAA<span class="small v-percent">B</span>C</div>
+
+<script>
+document.fonts.ready.then(() => {
+  document.documentElement.classList.remove('reftest-wait');
+});
+</script>
+</body>
+</html>

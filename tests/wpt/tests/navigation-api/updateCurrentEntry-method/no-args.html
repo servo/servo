@@ -1,0 +1,15 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+test(() => {
+  assert_throws_js(TypeError, () => {
+    navigation.updateCurrentEntry();
+  }, "no args");
+
+  assert_throws_js(TypeError, () => {
+    navigation.updateCurrentEntry({});
+  }, "empty dictionary");
+}, "updateCurrentEntry() must throw if state is not given");
+</script>

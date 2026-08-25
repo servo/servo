@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+  <head>
+    <title>ProgressEvent: security consideration</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#security-considerations" data-tested-assertations="/following-sibling::p" />
+    <link rel="help" href="https://fetch.spec.whatwg.org/#http-fetch" data-tested-assertations="/following-sibling::ol[1]/li[3]/ol[1]/li[6]" />
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      async_test(function() {
+        var xhr = new XMLHttpRequest();
+
+        xhr.onprogress = this.unreached_func("MUST NOT dispatch progress event.");
+        xhr.onload = this.unreached_func("MUST NOT dispatch load event.");
+        xhr.onerror = this.step_func(function(pe) {
+          assert_equals(pe.type, "error");
+          assert_equals(pe.loaded, 0, "loaded is zero.");
+          assert_false(pe.lengthComputable, "lengthComputable is false.");
+          assert_equals(pe.total, 0, "total is zero.");
+        });
+        xhr.onloadend = this.step_func(function(pe) {
+          assert_equals(pe.type, "loadend");
+          assert_equals(pe.loaded, 0, "loaded is zero.");
+          assert_false(pe.lengthComputable, "lengthComputable is false.");
+          assert_equals(pe.total, 0, "total is zero.");
+          this.done();
+        });
+        xhr.open("GET", "http://{{host}}:{{ports[http][1]}}/xhr/resources/img.jpg", true);
+        xhr.send(null);
+      })
+    </script>
+  </body>
+</html>

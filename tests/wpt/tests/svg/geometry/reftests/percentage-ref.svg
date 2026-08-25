@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg id="svg-root"
+  width="310" height="170" viewBox="0, 0, 620, 340"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+
+  <style>
+    svg {
+      fill: none;
+      stroke-width: 30px;
+    }
+  </style>
+
+  <circle cx="434" cy="204" r="250" stroke="cyan" />
+  <ellipse cx="248" cy="102" rx="62" ry="68" stroke="green" />
+  <rect x="62" y="68" width="434" height="204" stroke="blue" />
+</svg>

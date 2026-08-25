@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <link rel="help" href="https://www.w3.org/TR/css-position-3/#sticky-pos" />
+  <meta name="assert" content="Position sticky works correctly with column-reverse flex" />
+  <link rel="match" href="position-sticky-column-reverse-flex-ref.html" />
+  <script src="/common/reftest-wait.js"></script>
+
+  <style>
+    #scroller {
+      position: relative;
+      display: flex;
+      flex-direction: column-reverse;
+      overflow-y: scroll;
+      width: 100px;
+      height: 100px;
+      scrollbar-width: none;
+    }
+    #sticky {
+      position: sticky;
+      bottom: 0;
+      width: 50px;
+      min-height: 50px;
+      background: green;
+    }
+  </style>
+
+  <div id=scroller>
+    <div id=sticky ></div>
+    <div style="min-height: 400px;"></div>
+  </div>
+  <script>
+  onload = () => {
+    scroller.scrollTo(0, -400);
+    takeScreenshot();
+  }
+  </script>
+</html>

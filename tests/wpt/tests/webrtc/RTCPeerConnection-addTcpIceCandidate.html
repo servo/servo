@@ -1,0 +1,171 @@
+<!doctype html>
+<title>Test RTCPeerConnection.prototype.addIceCandidate with TCP candidates</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+const sdp = `v=0
+o=- 166855176514521964 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=msid-semantic:WMS *
+m=audio 9 UDP/TLS/RTP/SAVPF 111
+c=IN IP4 0.0.0.0
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:655Y
+a=ice-pwd:somelongpwdwithenoughrandomness
+a=fingerprint:sha-256 00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00
+a=setup:actpass
+a=mid:audio1
+a=sendonly
+a=rtcp-mux
+a=rtcp-rsize
+a=rtpmap:111 opus/48000/2
+a=extmap:1 urn:ietf:params:rtp-hdrext:ssrc-audio-level
+a=ssrc:1001 cname:some
+`;
+
+// DRY: copied from fetch/api/request/request-bad-port.any.js
+const BLOCKED_PORTS_LIST = [
+    1,    // tcpmux
+    7,    // echo
+    9,    // discard
+    11,   // systat
+    13,   // daytime
+    15,   // netstat
+    17,   // qotd
+    19,   // chargen
+    20,   // ftp-data
+    21,   // ftp
+    22,   // ssh
+    23,   // telnet
+    25,   // smtp
+    37,   // time
+    42,   // name
+    43,   // nicname
+    53,   // domain
+    69,   // tftp
+    77,   // priv-rjs
+    79,   // finger
+    87,   // ttylink
+    95,   // supdup
+    101,  // hostriame
+    102,  // iso-tsap
+    103,  // gppitnp
+    104,  // acr-nema
+    109,  // pop2
+    110,  // pop3
+    111,  // sunrpc
+    113,  // auth
+    115,  // sftp
+    117,  // uucp-path
+    119,  // nntp
+    123,  // ntp
+    135,  // loc-srv / epmap
+    137,  // netbios-ns
+    139,  // netbios-ssn
+    143,  // imap2
+    161,  // snmp
+    179,  // bgp
+    389,  // ldap
+    427,  // afp (alternate)
+    465,  // smtp (alternate)
+    512,  // print / exec
+    513,  // login
+    514,  // shell
+    515,  // printer
+    526,  // tempo
+    530,  // courier
+    531,  // chat
+    532,  // netnews
+    540,  // uucp
+    548,  // afp
+    554,  // rtsp
+    556,  // remotefs
+    563,  // nntp+ssl
+    587,  // smtp (outgoing)
+    601,  // syslog-conn
+    636,  // ldap+ssl
+    989,  // ftps-data
+    990,  // ftps
+    993,  // ldap+ssl
+    995,  // pop3+ssl
+    1719, // h323gatestat
+    1720, // h323hostcall
+    1723, // pptp
+    2049, // nfs
+    3659, // apple-sasl
+    4045, // lockd
+    5060, // sip
+    5061, // sips
+    6000, // x11
+    6566, // sane-port
+    6665, // irc (alternate)
+    6666, // irc (alternate)
+    6667, // irc (default)
+    6668, // irc (alternate)
+    6669, // irc (alternate)
+    6697, // irc+tls
+    10080, // amanda
+];
+
+
+function candidateForPort(port) {
+  return `a=candidate:2983561038 1 tcp 1518214911 127.0.0.1 ${port} typ host tcptype passive generation 0 ufrag 655Y network-id 1 network-cost 10`;
+}
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  await pc.setRemoteDescription({type: 'offer', sdp: sdp + candidateForPort(8001) + '\n'})
+  const answer = await pc.createAnswer();
+  await pc.setLocalDescription(answer);
+  await waitForConnectionStateChangeWithTimeout(t, pc,
+      ['failed', 'disconnected'], 1000);
+}, 'TCP candidate aimed at port 8001 accepted');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  await pc.setRemoteDescription({type: 'offer', sdp: sdp})
+  const answer = await pc.createAnswer();
+  await pc.setLocalDescription(answer);
+  await pc.addIceCandidate(new RTCIceCandidate({
+    candidate: candidateForPort(8001),
+    sdpMid: 'audio1'
+  }));
+  await waitForConnectionStateChangeWithTimeout(
+      t, pc, ['failed', 'disconnected'], 1000);
+}, 'TCP addIceCandidate aimed at port 8001 accepted');
+
+for (const port of BLOCKED_PORTS_LIST) {
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    await pc.setRemoteDescription({type: 'offer', sdp: sdp + candidateForPort(port) + '\n'})
+    const answer = await pc.createAnswer();
+
+    await pc.setLocalDescription(answer);
+    pc.oniceconnectionstatechange = t.unreached_func();
+    await new Promise(resolve => t.step_timeout(resolve, 500));
+  }, `TCP candidate aimed at Fetch bad port ${port} ignored`);
+}
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  await pc.setRemoteDescription({type: 'offer', sdp: sdp})
+  const answer = await pc.createAnswer();
+  await pc.setLocalDescription(answer);
+  await pc.addIceCandidate(new RTCIceCandidate({
+    candidate: candidateForPort(2049),
+    sdpMid: 'audio1'
+  }));
+  pc.oniceconnectionstatechange = t.unreached_func();
+  await new Promise(resolve => t.step_timeout(resolve, 500));
+}, `TCP addIceCandidate aimed at Fetch bad port 2049 ignored`);
+
+</script>

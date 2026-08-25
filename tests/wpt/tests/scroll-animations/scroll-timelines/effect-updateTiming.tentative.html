@@ -1,0 +1,44 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Scroll based animation: AnimationEffect.updateTiming</title>
+<!-- Adapted to progressed based scroll animations from "wpt\web-animations\interfaces\AnimationEffect\updateTiming.html" -->
+<link rel="help" href="https://drafts.csswg.org/web-animations-1/#dom-animationeffect-updatetiming">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="testcommon.js"></script>
+<script src="/web-animations/resources/easing-tests.js"></script>
+<script src="/web-animations/resources/timing-tests.js"></script>
+<style>
+  .scroller {
+    overflow: auto;
+    height: 100px;
+    width: 100px;
+    will-change: transform;
+  }
+  .contents {
+    height: 1000px;
+    width: 100%;
+  }
+</style>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+// ------------------------------
+//  startTime
+// ------------------------------
+
+// Split out from the non-'tentative' file while waiting on interop decisions.
+test(t => {
+  const anim = createScrollLinkedAnimationWithTiming(t, {duration: 1000, delay: 200})
+  anim.play();
+  // Without support for group effects, the start time of a top-level effect is
+  // always zero, expressed as 0% on a progress-based timeline.
+  assert_percents_equal(anim.effect.getComputedTiming().startTime, 0,
+                        'getComputedTiming().startTime is 0%');
+}, 'Reflects a zero startTime as a percentage on a progress-based timeline');
+
+</script>
+</body>

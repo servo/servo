@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<its:rules xmlns:its="http://www.w3.org/2005/11/its" version="2.0"
+ xmlns:d="http://my.DocumentURI/">
+ <its:withinTextRule selector="//d:kw|//d:img|//d:em" withinText="yes"/>
+ <its:withinTextRule selector="//d:fnote" withinText="nested"/>
+</its:rules>

@@ -1,0 +1,30 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Linear gradients for non-square elements</title>
+<link rel="help" href="https://drafts.csswg.org/css-images/#linear-gradients">
+<link rel="match" href="reference/linear-gradient-non-square-ref.html">
+<style>
+.a,
+.b,
+.c,
+.d {
+  width: 200px;
+  height: 100px;
+}
+.a {
+  background: linear-gradient(to right bottom, black 50%, lightgray 50%);
+}
+.b {
+  background: linear-gradient(to left bottom, black 50%, lightgray 50%);
+}
+.c {
+  background: linear-gradient(to left top, black 50%, lightgray 50%);
+}
+.d {
+  background: linear-gradient(to right top, black 50%, lightgray 50%);
+}
+</style>
+<div class="a"></div>
+<div class="b"></div>
+<div class="c"></div>
+<div class="d"></div>

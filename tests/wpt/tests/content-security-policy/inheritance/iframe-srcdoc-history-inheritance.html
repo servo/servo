@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+
+<body>
+<iframe></iframe>
+<script>
+promise_test(async t => {
+  // Wait for the page to load + one task so that navigations from here on are
+  // not done in "replace" mode.
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+  const iframe = document.querySelector('iframe');
+
+  iframe.srcdoc = `
+    <h1>This is a dummy page that should not store the inherited policy
+    container in this history entry</h1>
+  `;
+
+  await new Promise(resolve => iframe.onload = () => t.step_timeout(resolve, 0));
+
+  // Navigate the iframe away.
+  iframe.contentWindow.location.href = "/common/blank.html";
+  await new Promise(resolve => iframe.onload = resolve);
+
+  // Tighten the outer page's security policy.
+  const meta = document.createElement("meta");
+  meta.setAttribute("http-equiv", "Content-Security-Policy");
+  meta.setAttribute("content", "img-src 'none'");
+  document.head.append(meta);
+
+  // Navigate the iframe back to the `about:srcdoc` page (this should work
+  // independent of whether the implementation stores the srcdoc contents in the
+  // history entry or reclaims it from the attribute).
+  iframe.contentWindow.history.back();
+  await new Promise(resolve => iframe.onload = resolve);
+
+  const img = iframe.contentDocument.createElement('img');
+
+  const promise = new Promise((resolve, reject) => {
+    img.onload = resolve;
+    // If the img is blocked because of Content Security Policy, a violation
+    // should be reported first, and the test will fail. If for some other
+    // reason the error event is fired without the violation being reported,
+    // something else went wrong, hence the test should fail.
+    img.error = e => {
+      reject(new Error("The srcdoc iframe's img failed to load but not due to " +
+                       "a CSP violation"));
+    };
+    iframe.contentDocument.onsecuritypolicyviolation = e => {
+      reject(new Error("The srcdoc iframe's img has been blocked by the " +
+        "new CSP. It means it was different and wasn't restored from history"));
+    };
+  });
+  // The srcdoc iframe tries to load an image, which should succeed.
+  img.src = "/common/square.png";
+
+  return promise;
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Test: feature value matching for font-variant-alternates</title>
+<link rel="author" title="John Daggett" href="mailto:jdaggett@mozilla.com"/>
+<link rel="help" href="http://www.w3.org/TR/css-fonts-4/#font-variant-alternates-prop"/>
+<link rel="help" href="http://www.w3.org/TR/css-fonts-4/#font-feature-values"/>
+<link rel="match" href="alternates-order-ref.html"/>
+
+<meta name="assert" content="Case and order of font family name or feature name should not affect alternate rendered"/>
+<style type="text/css">
+@font-face {
+  font-family: libertine;
+  src: url(support/fonts/LinLibertine_Re-4.7.5.woff) format("woff");
+}
+
+@font-face {
+  font-family: fontA;
+  src: url(support/fonts/LinLibertine_Re-4.7.5.woff) format("woff");
+  font-feature-settings: "ss05" on;
+}
+
+@font-face {
+  font-family: fontB;
+  src: url(support/fonts/LinLibertine_Re-4.7.5.woff) format("woff");
+  font-feature-settings: "ss05" off;
+}
+
+@font-feature-values libertine {
+  @styleset {
+    crossed-doubleu: 5;
+    somethingElse: 4;
+  }
+}
+
+@font-feature-values fontA {
+  @styleset { aLtW: 5; }
+}
+
+@font-feature-values fontB {
+  @styleset { crossedW: 5; several: 1 3 5; }
+  @styleset { altW: 4; }
+}
+
+@font-feature-values fontB {
+  @styleset {
+    AlTw: 5;
+    defined-for-fontB: 5;
+    scriptJ: 3;
+  }
+}
+
+body {
+  font-family: libertine, sans-serif;
+  font-size: 800%;
+  line-height: 1.2em;
+}
+
+/* -moz-font-feature-settings: "ss05"; crossed W */
+
+div { margin: 0 20px; }
+
+#test1 {
+  font-variant-alternates: styleset(crossed-doubleu);
+}
+
+#test2 {
+  /* testing case-sensitivity of styleset name */
+  font-family: fontB;
+  font-variant-alternates: styleset(altW);
+}
+
+#test3 {
+  /* testing case-sensitivity of styleset name */
+  font-family: fontB;
+  font-variant-alternates: styleset(ALTW);
+}
+
+#test4 {
+  /* testing escapes in styleset name */
+  font-family: fontB;
+  font-variant-alternates: styleset(\41 lTw);
+}
+
+#test5 {
+  /* testing font-specificity of feature value rule */
+  font-family: fontA;
+  font-variant-alternates: styleset(defined-for-fontB);
+}
+
+#test6 {
+  /* testing one feature doesn't affect another */
+  font-variant-alternates: styleset(somethingElse);
+  -moz-font-feature-settings: "ss05" on;
+  font-feature-settings: "ss05" on;
+}
+
+#test7 {
+  /* testing font-specificity of feature value rule */
+  font-family: fontA;
+  font-variant-alternates: styleset(scriptJ);
+  -moz-font-feature-settings: "ss06";
+  font-feature-settings: "ss06";
+}
+
+#test8 {
+  /* testing that an undefined value doesn't affect the results */
+  font-family: fontB;
+  font-variant-alternates: styleset(scriptJ, somethingUndefined, defined-for-fontB);
+}
+
+#test9 {
+  /* testing matching of font name with escape */
+  font-family: font\62 ;
+  font-variant-alternates: styleset(defined-for-fontB);
+}
+
+</style>
+</head>
+<body lang="en">
+<div><span id="test1">W</span> <span id="test2">W</span> <span id="test3">W</span></div>
+<div><span id="test4">W</span> <span id="test5">W</span> <span id="test6">W</span></div>
+<div><span id="test7">W</span> <span id="test8">W</span> <span id="test9">W</span></div>
+</body>
+</html>

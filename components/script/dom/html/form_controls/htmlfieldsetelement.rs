@@ -1,0 +1,287 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use std::default::Default;
+
+use dom_struct::dom_struct;
+use html5ever::{LocalName, Prefix, local_name};
+use js::context::JSContext;
+use js::rust::HandleObject;
+use stylo_dom::ElementState;
+
+use crate::dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding::HTMLFieldSetElementMethods;
+use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::str::DOMString;
+use crate::dom::customelementregistry::CallbackReaction;
+use crate::dom::document::Document;
+use crate::dom::element::attributes::storage::AttrRef;
+use crate::dom::element::{AttributeMutation, Element};
+use crate::dom::html::htmlcollection::HTMLCollection;
+use crate::dom::html::htmlelement::HTMLElement;
+use crate::dom::html::htmlformelement::{FormControl, HTMLFormElement};
+use crate::dom::html::htmllegendelement::HTMLLegendElement;
+use crate::dom::iterators::ShadowIncluding;
+use crate::dom::node::virtualmethods::VirtualMethods;
+use crate::dom::node::{Node, NodeTraits};
+use crate::dom::validation::Validatable;
+use crate::dom::validitystate::ValidityState;
+use crate::event_loop::script_thread::ScriptThread;
+
+#[dom_struct]
+pub(crate) struct HTMLFieldSetElement {
+    htmlelement: HTMLElement,
+    form_owner: MutNullableDom<HTMLFormElement>,
+    validity_state: MutNullableDom<ValidityState>,
+}
+
+impl HTMLFieldSetElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLFieldSetElement {
+        HTMLFieldSetElement {
+            htmlelement: HTMLElement::new_inherited_with_state(
+                ElementState::ENABLED | ElementState::VALID,
+                local_name,
+                prefix,
+                document,
+            ),
+            form_owner: Default::default(),
+            validity_state: Default::default(),
+        }
+    }
+
+    pub(crate) fn new(
+        cx: &mut js::context::JSContext,
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+        proto: Option<HandleObject>,
+    ) -> DomRoot<HTMLFieldSetElement> {
+        Node::reflect_node_with_proto(
+            cx,
+            Box::new(HTMLFieldSetElement::new_inherited(
+                local_name, prefix, document,
+            )),
+            document,
+            proto,
+        )
+    }
+
+    pub(crate) fn update_validity(&self, cx: &mut JSContext) {
+        let has_invalid_child = self
+            .upcast::<Node>()
+            .traverse_preorder(ShadowIncluding::No)
+            .flat_map(DomRoot::downcast::<Element>)
+            .any(|element| element.is_invalid(cx, false));
+
+        self.upcast::<Element>()
+            .set_state(ElementState::VALID, !has_invalid_child);
+        self.upcast::<Element>()
+            .set_state(ElementState::INVALID, has_invalid_child);
+    }
+}
+
+impl HTMLFieldSetElementMethods<crate::DomTypeHolder> for HTMLFieldSetElement {
+    /// <https://html.spec.whatwg.org/multipage/#dom-fieldset-elements>
+    fn Elements(&self, cx: &mut js::context::JSContext) -> DomRoot<HTMLCollection> {
+        HTMLCollection::new_with_filter_fn(cx, &self.owner_window(), self.upcast(), |element, _| {
+            element
+                .downcast::<HTMLElement>()
+                .is_some_and(HTMLElement::is_listed_element)
+        })
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-fieldset-disabled
+    make_bool_getter!(Disabled, "disabled");
+
+    // https://html.spec.whatwg.org/multipage/#dom-fieldset-disabled
+    make_bool_setter!(SetDisabled, "disabled");
+
+    // https://html.spec.whatwg.org/multipage/#dom-fe-name
+    make_atomic_setter!(SetName, "name");
+
+    // https://html.spec.whatwg.org/multipage/#dom-fe-name
+    make_getter!(Name, "name");
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-fae-form>
+    fn GetForm(&self) -> Option<DomRoot<HTMLFormElement>> {
+        self.form_owner()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-cva-willvalidate>
+    fn WillValidate(&self) -> bool {
+        self.is_instance_validatable()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-cva-validity>
+    fn Validity(&self, cx: &mut JSContext) -> DomRoot<ValidityState> {
+        self.validity_state(cx)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-cva-checkvalidity>
+    fn CheckValidity(&self, cx: &mut JSContext) -> bool {
+        self.check_validity(cx)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-cva-reportvalidity>
+    fn ReportValidity(&self, cx: &mut JSContext) -> bool {
+        self.report_validity(cx)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage>
+    fn ValidationMessage(&self, cx: &mut JSContext) -> DOMString {
+        self.validation_message(cx)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-cva-setcustomvalidity>
+    fn SetCustomValidity(&self, cx: &mut JSContext, error: DOMString) {
+        self.validity_state(cx).set_custom_error_message(cx, error);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-fieldset-type>
+    fn Type(&self) -> DOMString {
+        "fieldset".into()
+    }
+}
+
+impl VirtualMethods for HTMLFieldSetElement {
+    fn super_type(&self) -> Option<&dyn VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
+    }
+
+    fn attribute_mutated(
+        &self,
+        cx: &mut js::context::JSContext,
+        attr: AttrRef<'_>,
+        mutation: AttributeMutation,
+    ) {
+        self.super_type()
+            .unwrap()
+            .attribute_mutated(cx, attr, mutation);
+        match *attr.local_name() {
+            local_name!("disabled") => {
+                let disabled_state = match mutation {
+                    AttributeMutation::Set(None, _) => true,
+                    AttributeMutation::Set(Some(_), _) => {
+                        // Fieldset was already disabled before.
+                        return;
+                    },
+                    AttributeMutation::Removed => false,
+                };
+                let node = self.upcast::<Node>();
+                let element = self.upcast::<Element>();
+                element.set_disabled_state(disabled_state);
+                element.set_enabled_state(!disabled_state);
+                let mut found_legend = false;
+                let children = node.children().filter(|node| {
+                    if found_legend {
+                        true
+                    } else if node.is::<HTMLLegendElement>() {
+                        found_legend = true;
+                        false
+                    } else {
+                        true
+                    }
+                });
+                let fields = children.flat_map(|child| {
+                    child
+                        .traverse_preorder(ShadowIncluding::No)
+                        .filter(|descendant| match descendant.type_id() {
+                            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                                HTMLElementTypeId::HTMLButtonElement |
+                                HTMLElementTypeId::HTMLInputElement |
+                                HTMLElementTypeId::HTMLSelectElement |
+                                HTMLElementTypeId::HTMLTextAreaElement,
+                            )) => true,
+                            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                                HTMLElementTypeId::HTMLElement,
+                            )) => descendant
+                                .downcast::<HTMLElement>()
+                                .unwrap()
+                                .is_form_associated_custom_element(),
+                            _ => false,
+                        })
+                });
+                if disabled_state {
+                    for field in fields {
+                        let element = field.downcast::<Element>().unwrap();
+                        if element.enabled_state() {
+                            element.set_disabled_state(true);
+                            element.set_enabled_state(false);
+                            if element
+                                .downcast::<HTMLElement>()
+                                .is_some_and(|h| h.is_form_associated_custom_element())
+                            {
+                                ScriptThread::enqueue_callback_reaction(
+                                    cx,
+                                    element,
+                                    CallbackReaction::FormDisabled(true),
+                                    None,
+                                );
+                            }
+                        }
+                    }
+                } else {
+                    for field in fields {
+                        let element = field.downcast::<Element>().unwrap();
+                        if element.disabled_state() {
+                            element.check_disabled_attribute();
+                            element.check_ancestors_disabled_state_for_form_control();
+                            // Fire callback only if this has actually enabled the custom element
+                            if element.enabled_state() &&
+                                element
+                                    .downcast::<HTMLElement>()
+                                    .is_some_and(|h| h.is_form_associated_custom_element())
+                            {
+                                ScriptThread::enqueue_callback_reaction(
+                                    cx,
+                                    element,
+                                    CallbackReaction::FormDisabled(false),
+                                    None,
+                                );
+                            }
+                        }
+                    }
+                }
+            },
+            local_name!("form") => {
+                self.form_attribute_mutated(cx, mutation);
+            },
+            _ => {},
+        }
+    }
+}
+
+impl FormControl for HTMLFieldSetElement {
+    fn form_owner(&self) -> Option<DomRoot<HTMLFormElement>> {
+        self.form_owner.get()
+    }
+
+    fn set_form_owner(&self, _cx: &mut JSContext, form: Option<&HTMLFormElement>) {
+        self.form_owner.set(form);
+    }
+
+    fn to_html_element(&self) -> &HTMLElement {
+        self.upcast::<HTMLElement>()
+    }
+}
+
+impl Validatable for HTMLFieldSetElement {
+    fn as_element(&self) -> &Element {
+        self.upcast()
+    }
+
+    fn validity_state(&self, cx: &mut JSContext) -> DomRoot<ValidityState> {
+        self.validity_state
+            .or_init(|| ValidityState::new(cx, &self.owner_window(), self.upcast()))
+    }
+
+    fn is_instance_validatable(&self) -> bool {
+        // fieldset is not a submittable element (https://html.spec.whatwg.org/multipage/#category-submit)
+        false
+    }
+}

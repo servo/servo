@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+<meta charset="utf-8">
+<title>test reference</title>
+<link rel="author" title="Javier Fernandez" href="mailto:jfernandez@igalia.com" />
+<style>
+@font-face {
+    font-family: 'ezra_silregular';
+    src: url('/fonts/sileot-webfont.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+}
+div {
+  font-family: ezra_silregular, monospace;
+  font-size: 15px;
+}
+</style>
+
+<p>Test passes if we have a first line with hebrew justified and XXX in the second line (left-edge trailing space if not removed)</p>
+<div style="position: relative; width: 20px;">
+  <div style="display: inline; background: green; position: absolute; right: 0px;">&nbsp;</div>
+</div>
+<div style="position: relative; margin-left: 20px; width: 70px;">
+  <div style="float: right; background: green;">הם</div>
+  <div style="background: green;">דה<br></div>
+</div>
+<div style="position: relative; margin-left: 20px; background: blue; width: 70px; direction: rtl;">
+  <div style="display: inline; background: green; ">XXX</div>
+</div>
+

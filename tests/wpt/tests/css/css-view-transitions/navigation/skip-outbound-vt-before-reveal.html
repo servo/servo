@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: outbound cross-document transition before reveal</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="author" href="mailto:nrosenthal@chromium.org">
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  promise_test(async t => {
+    const result = await new Promise(resolve => {
+      const channel_name = `outbound-vt-after-reveal-${new Date().valueOf()}`;
+      const bc = new BroadcastChannel(channel_name);
+      bc.addEventListener("message", e => {
+        resolve(e.data);
+      });
+      const popup = window.open(`resources/outbound-before-render.html?phase=old&channel=${channel_name}`);
+
+      t.add_cleanup(() => popup.close());
+    });
+
+    assert_equals(result, "did reveal new page without transition");
+  }, "when navigating away before revealing, never start a view transition");
+</script>
+
+</html>

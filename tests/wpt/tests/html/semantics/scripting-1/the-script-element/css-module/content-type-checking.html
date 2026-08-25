@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CSS modules: Content-Type</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+function check(t, styleSheet) {
+  t.step(() => {
+    assert_equals(styleSheet.rules[0].cssText, "#test { background-color: rgb(255, 0, 0); }");
+    t.done();
+  });
+}
+const t1 = async_test("text/css");
+const t2 = async_test("application/css");
+const t3 = async_test("text/html+css");
+const t4 = async_test("text/css;boundary=something");
+const t5 = async_test("text/css;foo=bar");
+</script>
+<script type="module" onerror="t1.unreached_func()()">
+  import styleSheet from "../serve-with-content-type.py?fn=css-module/resources/basic.css&ct=text/css" with { type: "css"};
+  check(t1, styleSheet);
+</script>
+<script type="module" onerror="t2.step_func_done()()">
+  import styleSheet from "../serve-with-content-type.py?fn=css-module/resources/basic.css&ct=application/css" with { type: "css"};
+  t2.unreached_func("Should not have loaded with MIME type application/css")();
+</script>
+<script type="module" onerror="t3.step_func_done()()">
+  import styleSheet from "../serve-with-content-type.py?fn=css-module/resources/basic.css&ct=text/html+css" with { type: "css"};
+  t3.unreached_func("Should not have loaded with MIME type text/html+css")();
+</script>
+<script type="module" onerror="t4.unreached_func()()">
+  import styleSheet from "../serve-with-content-type.py?fn=css-module/resources/basic.css&ct=text/css;boundary=something" with { type: "css"};
+  check(t4, styleSheet);
+</script>
+<script type="module" onerror="t5.unreached_func()()">
+import styleSheet from "../serve-with-content-type.py?fn=css-module/resources/basic.css&ct=text/css;foo=bar" with { type: "css"};
+check(t5, styleSheet);
+</script>

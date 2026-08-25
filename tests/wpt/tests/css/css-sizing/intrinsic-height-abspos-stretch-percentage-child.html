@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<link rel="author" title="Brandon Stewart" href="mailto:brandonstewart@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#abspos-auto-size">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#valdef-width-stretch">
+<link rel="match" href="intrinsic-height-abspos-stretch-percentage-child-ref.html">
+<meta name="assert" content="An out-of-flow positioned element with height: -webkit-fill-available should provide a definite height for percentage resolution of children, since -webkit-fill-available resolves to a definite value from the containing block.">
+<style>
+/*
+  Reproduces the Seesaw app blank screen bug.
+
+  The layout chain:
+    .modal    - position:fixed, height:-webkit-fill-available (resolves to viewport height)
+    .dialog   - height:100% (needs parent to have definite height)
+    .wrapper  - position:relative, height:100%
+    .content  - position:absolute, top:0, bottom:0 (fills wrapper)
+    .inner    - height:100%, the actual visible content
+
+  BUG: If -webkit-fill-available is treated as intrinsic (indefinite) for
+  percentage resolution, .dialog's height:100% cannot resolve. It collapses
+  to 0, .content gets 0px from its insets, and nothing is visible.
+
+  EXPECTED: -webkit-fill-available resolves to the viewport/containing block
+  size (a definite value), so height:100% should resolve through the chain
+  and the green box should be visible.
+*/
+body { margin: 0; }
+
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 200px;
+    height: -webkit-fill-available;
+    height: stretch;
+}
+
+.dialog {
+    height: 100%;
+    width: 200px;
+}
+
+.wrapper {
+    position: relative;
+    height: 100%;
+    width: 200px;
+}
+
+.content {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 200px;
+}
+
+.inner {
+    height: 100%;
+    width: 200px;
+    background: green;
+}
+</style>
+
+<p>Test passes if there is a tall green rectangle covering the left side of the viewport.</p>
+<div class="modal">
+    <div class="dialog">
+        <div class="wrapper">
+            <div class="content">
+                <div class="inner"></div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<title>Bluetooth Permission Test</title>
+<body>
+    <button type="button" onclick="onRequestButtonClick()">request</button>
+    <button type="button" onclick="onQueryButtonClick()">query</button>
+    <pre id="log"></pre>
+    <script>
+    if (window.testRunner)
+        window.testRunner.setBluetoothMockDataSet('HeartRateAdapter');
+
+    function onRequestButtonClick() {
+        clear();
+        window.navigator.permissions.request({
+            name: 'bluetooth',
+            filters: [{
+                services: ['heart_rate'],
+            }],
+        })
+        .then(r => {
+            log("Result is instance of PermissionStatus: " + (r instanceof PermissionStatus));
+            log("Result is instance of BluetoothPermissionResult subclass: " + (r instanceof BluetoothPermissionResult));
+            log("State of result: " + r.state);
+            let device = r.devices()[0];
+            if (device) {
+                log("Result contains device: " + device.name);
+                sessionStorage.lastDevice = device.id;
+                log("Device id stored: " + device.id);
+            } else {
+                log("No device found!");
+            }
+        })
+        .catch(err => log(err));
+    }
+
+    function onQueryButtonClick() {
+        clear();
+        if (!sessionStorage.lastDevice)
+            return log("No stored device id!");
+        window.navigator.permissions.query({
+            name: "bluetooth",
+            deviceId: sessionStorage.lastDevice,
+        })
+        .then(r => {
+            log("Result is instance of PermissionStatus: " + (r instanceof PermissionStatus));
+            log("Result is instance of BluetoothPermissionResult subclass: " + (r instanceof BluetoothPermissionResult));
+            log("State of result: " + r.state);
+            log("Stored Device id: " + sessionStorage.lastDevice);
+            let device = r.devices()[0];
+            if (device) {
+                log("Result contains device: " + device.name);
+                log("Device id: " + device.id);
+            } else {
+                log("No device found!");
+            }
+        })
+        .catch(err => log(err));
+    }
+
+    function log(line) {
+        document.getElementById("log").textContent += line + '\n';
+    }
+
+    function clear() {
+        document.getElementById("log").textContent = "";
+    }
+    </script>
+</body>
+</html>

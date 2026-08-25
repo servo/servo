@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<style>
+body {
+    display: flex;
+    flex-wrap: wrap;
+}
+div {
+    height: 1px;
+    width: 200px;
+    position: relative;
+    background-color: green;
+}
+</style>
+<body>
+<script src="../resources/runner.js"></script>
+<script>
+var count = 5000;
+function setupTest() {
+    for (var i = 0; i < count; ++i)
+        document.body.appendChild(document.createElement("div"));
+}
+
+setupTest();
+
+function test() {
+    for (var i = 0; i < 1000; i++) {
+      var x = 600 * Math.random();
+      var y = 400 * Math.random();
+      var el = document.elementFromPoint(x, y);
+    }
+}
+
+PerfTestRunner.measureRunsPerSecond({
+description: "Measures hit test performance with many layers.",
+run: test
+});
+</script>

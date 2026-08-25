@@ -1,0 +1,349 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use std::cell::RefCell;
+
+use dom_struct::dom_struct;
+use itertools::izip;
+use js::context::JSContext;
+use script_bindings::cell::DomRefCell;
+use script_bindings::inheritance::Castable;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::str::DOMString;
+use servo_arc::Arc;
+use style::shared_lock::{Locked, SharedRwLockReadGuard};
+use style::stylesheets::{
+    AllowImportRules, CssRuleTypes, CssRules, KeyframesRule, RulesMutateError,
+    StylesheetInDocument, StylesheetLoader as StyleStylesheetLoader,
+};
+
+use super::csskeyframerule::CSSKeyframeRule;
+use super::cssrule::CSSRule;
+use super::cssstylesheet::CSSStyleSheet;
+use crate::conversions::Convert;
+use crate::css::stylesheet_loader::ElementStylesheetLoader;
+use crate::dom::bindings::codegen::Bindings::CSSRuleListBinding::CSSRuleListMethods;
+use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
+use crate::dom::bindings::reflector::DomGlobal;
+use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
+use crate::dom::cssgroupingrule::CSSGroupingRule;
+use crate::dom::html::htmlelement::HTMLElement;
+use crate::dom::window::Window;
+
+unsafe_no_jsmanaged_fields!(RulesSource);
+
+impl Convert<Error> for RulesMutateError {
+    fn convert(self) -> Error {
+        match self {
+            RulesMutateError::Syntax => Error::Syntax(None),
+            RulesMutateError::IndexSize => Error::IndexSize(None),
+            RulesMutateError::HierarchyRequest => Error::HierarchyRequest(None),
+            RulesMutateError::InvalidState => Error::InvalidState(None),
+        }
+    }
+}
+
+#[dom_struct]
+pub(crate) struct CSSRuleList {
+    reflector_: Reflector,
+    created_by_rule: Option<Dom<CSSGroupingRule>>,
+    parent_stylesheet: Dom<CSSStyleSheet>,
+    #[ignore_malloc_size_of = "Stylo"]
+    rules: RefCell<RulesSource>,
+    dom_rules: DomRefCell<Vec<MutNullableDom<CSSRule>>>,
+}
+
+pub(crate) enum RulesSource {
+    Rules(Arc<Locked<CssRules>>),
+    Keyframes(Arc<Locked<KeyframesRule>>),
+}
+
+impl CSSRuleList {
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
+    pub(crate) fn new_inherited(
+        created_by_rule: Option<&CSSGroupingRule>,
+        parent_stylesheet: &CSSStyleSheet,
+        rules: RulesSource,
+    ) -> CSSRuleList {
+        let guard = parent_stylesheet.shared_lock().read();
+        let dom_rules = match rules {
+            RulesSource::Rules(ref rules) => rules
+                .read_with(&guard)
+                .0
+                .iter()
+                .map(|_| MutNullableDom::new(None))
+                .collect(),
+            RulesSource::Keyframes(ref rules) => rules
+                .read_with(&guard)
+                .keyframes
+                .iter()
+                .map(|_| MutNullableDom::new(None))
+                .collect(),
+        };
+
+        CSSRuleList {
+            reflector_: Reflector::new(),
+            created_by_rule: created_by_rule.map(Dom::from_ref),
+            parent_stylesheet: Dom::from_ref(parent_stylesheet),
+            rules: RefCell::new(rules),
+            dom_rules: DomRefCell::new(dom_rules),
+        }
+    }
+
+    pub(crate) fn new(
+        cx: &mut JSContext,
+        window: &Window,
+        created_by_rule: Option<&CSSGroupingRule>,
+        parent_stylesheet: &CSSStyleSheet,
+        rules: RulesSource,
+    ) -> DomRoot<CSSRuleList> {
+        reflect_dom_object_with_cx(
+            Box::new(CSSRuleList::new_inherited(
+                created_by_rule,
+                parent_stylesheet,
+                rules,
+            )),
+            window,
+            cx,
+        )
+    }
+
+    /// Should only be called for CssRules-backed rules. Use append_lazy_rule
+    /// for keyframes-backed rules.
+    pub(crate) fn insert_rule(
+        &self,
+        cx: &mut JSContext,
+        rule: &DOMString,
+        idx: u32,
+    ) -> Fallible<u32> {
+        self.parent_stylesheet.will_modify();
+        let css_rules = if let RulesSource::Rules(rules) = &*self.rules.borrow() {
+            rules.clone()
+        } else {
+            panic!("Called insert_rule on non-CssRule-backed CSSRuleList");
+        };
+
+        let global = self.global();
+        let window = global.as_window();
+        let index = idx as usize;
+
+        let parent_stylesheet = self.parent_stylesheet.style_stylesheet();
+        let owner = self
+            .parent_stylesheet
+            .owner_node()
+            .and_then(DomRoot::downcast::<HTMLElement>);
+        let loader = owner
+            .as_ref()
+            .map(|element| ElementStylesheetLoader::new(element));
+        let allow_import_rules = if self.parent_stylesheet.is_constructed() {
+            AllowImportRules::No
+        } else {
+            AllowImportRules::Yes
+        };
+
+        let mut containing_rule_types = CssRuleTypes::default();
+        let mut current_rule = self
+            .created_by_rule
+            .as_ref()
+            .map(|rule| rule.upcast::<CSSRule>())
+            .map(DomRoot::from_ref);
+        while let Some(containing_rule) = current_rule {
+            containing_rule_types.insert(containing_rule.rule_type());
+
+            current_rule = containing_rule
+                .parent_rule()
+                .map(|rule| rule.upcast::<CSSRule>())
+                .map(DomRoot::from_ref);
+        }
+
+        let new_rule = {
+            let guard = parent_stylesheet.shared_lock.read();
+            css_rules
+                .read_with(&guard)
+                .parse_rule_for_insert(
+                    &parent_stylesheet.shared_lock,
+                    &rule.str(),
+                    parent_stylesheet.contents(&guard),
+                    index,
+                    containing_rule_types,
+                    self.created_by_rule
+                        .as_ref()
+                        .map(|rule| rule.upcast::<CSSRule>().rule_type()),
+                    loader.as_ref().map(|l| l as &dyn StyleStylesheetLoader),
+                    allow_import_rules,
+                )
+                .map_err(Convert::convert)?
+        };
+        {
+            let mut guard = parent_stylesheet.shared_lock.write();
+            css_rules
+                .write_with(&mut guard)
+                .0
+                .insert(index, new_rule.clone());
+        }
+
+        let parent_stylesheet = &*self.parent_stylesheet;
+        parent_stylesheet.will_modify();
+
+        let dom_rule = CSSRule::new_specific(
+            cx,
+            window,
+            self.created_by_rule.as_deref(),
+            parent_stylesheet,
+            new_rule,
+        );
+        self.dom_rules
+            .safe_borrow_mut(cx.no_gc())
+            .insert(index, MutNullableDom::new(Some(&*dom_rule)));
+        parent_stylesheet.notify_invalidations(cx.no_gc());
+        Ok(idx)
+    }
+
+    /// In case of a keyframe rule, index must be valid.
+    pub(crate) fn remove_rule(&self, cx: &mut JSContext, index: u32) -> ErrorResult {
+        self.parent_stylesheet.will_modify();
+
+        let index = index as usize;
+        let mut guard = self.parent_stylesheet.shared_lock().write();
+
+        match *self.rules.borrow() {
+            RulesSource::Rules(ref css_rules) => {
+                css_rules
+                    .write_with(&mut guard)
+                    .remove_rule(index)
+                    .map_err(Convert::convert)?;
+                let mut dom_rules = self.dom_rules.safe_borrow_mut(cx.no_gc());
+                if let Some(r) = dom_rules[index].get() {
+                    r.detach()
+                }
+                dom_rules.remove(index);
+                self.parent_stylesheet.notify_invalidations(cx.no_gc());
+                Ok(())
+            },
+            RulesSource::Keyframes(ref kf) => {
+                // https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-deleterule
+                let mut dom_rules = self.dom_rules.safe_borrow_mut(cx.no_gc());
+                if let Some(r) = dom_rules[index].get() {
+                    r.detach()
+                }
+                dom_rules.remove(index);
+                kf.write_with(&mut guard).keyframes.remove(index);
+                self.parent_stylesheet.notify_invalidations(cx.no_gc());
+                Ok(())
+            },
+        }
+    }
+
+    /// Remove parent stylesheets from all children
+    pub(crate) fn deparent_all(&self) {
+        for rule in self.dom_rules.borrow().iter() {
+            if let Some(r) = rule.get() {
+                DomRoot::upcast(r).deparent()
+            }
+        }
+    }
+
+    pub(crate) fn item(&self, cx: &mut JSContext, idx: u32) -> Option<DomRoot<CSSRule>> {
+        self.dom_rules.borrow().get(idx as usize).map(|rule| {
+            rule.or_init(|| {
+                let parent_stylesheet = &self.parent_stylesheet;
+                let lock = parent_stylesheet.shared_lock();
+                match *self.rules.borrow() {
+                    RulesSource::Rules(ref rules) => {
+                        let rule = {
+                            let guard = lock.read();
+                            rules.read_with(&guard).0[idx as usize].clone()
+                        };
+                        CSSRule::new_specific(
+                            cx,
+                            self.global().as_window(),
+                            self.created_by_rule.as_deref(),
+                            parent_stylesheet,
+                            rule,
+                        )
+                    },
+                    RulesSource::Keyframes(ref rules) => {
+                        let rule = {
+                            let guard = lock.read();
+                            rules.read_with(&guard).keyframes[idx as usize].clone()
+                        };
+                        DomRoot::upcast(CSSKeyframeRule::new(
+                            cx,
+                            self.global().as_window(),
+                            self.created_by_rule.as_deref(),
+                            parent_stylesheet,
+                            rule,
+                        ))
+                    },
+                }
+            })
+        })
+    }
+
+    /// Add a rule to the list of DOM rules. This list is lazy,
+    /// so we just append a placeholder.
+    ///
+    /// Should only be called for keyframes-backed rules, use insert_rule
+    /// for CssRules-backed rules
+    pub(crate) fn append_lazy_dom_rule(&self) {
+        if let RulesSource::Rules(..) = &*self.rules.borrow() {
+            panic!("Can only call append_lazy_rule with keyframes-backed CSSRules");
+        }
+        self.dom_rules.borrow_mut().push(MutNullableDom::new(None));
+    }
+
+    pub(super) fn update_rules(&self, rules: RulesSource, guard: &SharedRwLockReadGuard) {
+        let dom_rules = self.dom_rules.borrow();
+        match rules {
+            RulesSource::Rules(ref css_rules) => {
+                if let RulesSource::Keyframes(..) = &*self.rules.borrow() {
+                    panic!("Called update_rules on non-CssRule-backed CSSRuleList with CssRules");
+                }
+
+                let css_rules_iter = css_rules.read_with(guard).0.iter();
+                for (dom_rule, css_rule) in izip!(dom_rules.iter(), css_rules_iter) {
+                    let Some(dom_rule) = dom_rule.get() else {
+                        continue;
+                    };
+                    dom_rule.update_rule(css_rule, guard);
+                }
+            },
+            RulesSource::Keyframes(ref keyframesrule) => {
+                if let RulesSource::Rules(..) = &*self.rules.borrow() {
+                    panic!("Called update_rules on CssRule-backed CSSRuleList with non-CssRules");
+                }
+
+                let keyframerules_iter = keyframesrule.read_with(guard).keyframes.iter();
+                for (dom_rule, keyframerule) in izip!(dom_rules.iter(), keyframerules_iter) {
+                    let Some(dom_rule) = dom_rule.get() else {
+                        continue;
+                    };
+                    let Some(dom_rule) = dom_rule.downcast::<CSSKeyframeRule>() else {
+                        continue;
+                    };
+                    dom_rule.update_rule(keyframerule.clone(), guard);
+                }
+            },
+        }
+
+        *self.rules.borrow_mut() = rules;
+    }
+}
+
+impl CSSRuleListMethods<crate::DomTypeHolder> for CSSRuleList {
+    /// <https://drafts.csswg.org/cssom/#ref-for-dom-cssrulelist-item-1>
+    fn Item(&self, cx: &mut JSContext, idx: u32) -> Option<DomRoot<CSSRule>> {
+        self.item(cx, idx)
+    }
+
+    /// <https://drafts.csswg.org/cssom/#dom-cssrulelist-length>
+    fn Length(&self) -> u32 {
+        self.dom_rules.borrow().len() as u32
+    }
+
+    // check-tidy: no specs after this line
+    fn IndexedGetter(&self, cx: &mut JSContext, index: u32) -> Option<DomRoot<CSSRule>> {
+        self.Item(cx, index)
+    }
+}

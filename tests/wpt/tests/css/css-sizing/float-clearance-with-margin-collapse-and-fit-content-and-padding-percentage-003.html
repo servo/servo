@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#fit-content-size">
+<link rel="help" href="https://drafts.csswg.org/css2/#floats">
+<link rel="help" href="https://drafts.csswg.org/css2/#clearance">
+<link rel="help" href="https://drafts.csswg.org/css2/#collapsing-margins">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="
+  The element with `width: fit-content` becomes 0px wide.
+  Therefore, the padding percentage of its child resolves to 0px.
+  Therefore, the 100px of margin collapse with the top margin of the element with `clear: both`.
+  Therefore, the element with `clear: both` is already past the float and receives no clearance.
+">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="display: inline-block; background: red">
+  <div style="width: 100px; height: 100px; float: left; background: green"></div>
+  <div style="clear: both; width: fit-content">
+    <div style="padding-top: 100%; margin-bottom: 100px;"></div>
+  </div>
+</div>

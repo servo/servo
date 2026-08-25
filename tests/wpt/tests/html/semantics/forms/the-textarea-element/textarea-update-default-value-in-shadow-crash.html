@@ -1,0 +1,17 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+"use strict";
+
+const p = document.createElement("p");
+document.documentElement.appendChild(p);
+const shadowRoot = p.attachShadow({mode: "open"});
+const textarea = document.createElement("textarea");
+shadowRoot.appendChild(textarea);
+textarea.defaultValue = "|";
+</script>
+</head>
+<body></body>
+</html>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>Tests un-fragmentable flex item is pushed to the second column if it cannot fit in the first column.</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+  <link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+  <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1743890">
+  <link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+  <link rel="stylesheet" href="/fonts/ahem.css">
+  <style>
+  .multicol {
+    column-count: 2;
+    column-gap: 0;
+    column-fill: auto;
+    background: red;
+    inline-size: 100px;
+    block-size: 100px;
+  }
+
+  .flexbox {
+    display: flex;
+    flex-direction: column;
+    row-gap: 5px;
+    font: 40px/1 Ahem;
+    background: green;
+    color: green;
+    border: solid green;
+    border-width: 15px 5px;
+  }
+  </style>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+  <div class="multicol">
+    <!-- This div makes the flexbox not at the top of first column. -->
+    <div style="width: 50px; height: 20px; background: green;"></div>
+
+    <div class="flexbox">
+      <div>X</div>
+      <div>X</div> <!-- The second item should be at the top of the second column. -->
+      <div>X</div>
+    </div>
+  </div>
+</html>

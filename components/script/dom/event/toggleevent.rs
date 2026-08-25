@@ -1,0 +1,144 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use dom_struct::dom_struct;
+use js::context::JSContext;
+use js::rust::HandleObject;
+use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
+use script_bindings::inheritance::Castable;
+use script_bindings::reflector::reflect_dom_object_with_proto;
+use stylo_atoms::Atom;
+
+use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
+use crate::dom::bindings::codegen::Bindings::ToggleEventBinding;
+use crate::dom::bindings::codegen::Bindings::ToggleEventBinding::ToggleEventMethods;
+use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::str::DOMString;
+use crate::dom::element::Element;
+use crate::dom::event::{Event, EventBubbles, EventCancelable};
+use crate::dom::eventtarget::EventTarget;
+use crate::dom::node::Node;
+use crate::dom::types::Window;
+
+#[dom_struct]
+pub(crate) struct ToggleEvent {
+    event: Event,
+    /// <https://html.spec.whatwg.org/multipage/#dom-toggleevent-oldstate>
+    old_state: DOMString,
+    /// <https://html.spec.whatwg.org/multipage/#dom-toggleevent-newstate>
+    new_state: DOMString,
+    /// <https://html.spec.whatwg.org/multipage/#dom-toggleevent-source>
+    source: Option<Dom<Element>>,
+}
+
+impl ToggleEvent {
+    pub(crate) fn new_inherited(
+        old_state: DOMString,
+        new_state: DOMString,
+        source: Option<&Element>,
+    ) -> ToggleEvent {
+        ToggleEvent {
+            event: Event::new_inherited(),
+            old_state,
+            new_state,
+            source: source.map(Dom::from_ref),
+        }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn new(
+        cx: &mut JSContext,
+        window: &Window,
+        type_: Atom,
+        bubbles: EventBubbles,
+        cancelable: EventCancelable,
+        old_state: DOMString,
+        new_state: DOMString,
+        source: Option<&Element>,
+    ) -> DomRoot<ToggleEvent> {
+        Self::new_with_proto(
+            cx, window, None, type_, bubbles, cancelable, old_state, new_state, source,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn new_with_proto(
+        cx: &mut JSContext,
+        window: &Window,
+        proto: Option<HandleObject>,
+        type_: Atom,
+        bubbles: EventBubbles,
+        cancelable: EventCancelable,
+        old_state: DOMString,
+        new_state: DOMString,
+        source: Option<&Element>,
+    ) -> DomRoot<ToggleEvent> {
+        let event = Box::new(ToggleEvent::new_inherited(old_state, new_state, source));
+        let event = reflect_dom_object_with_proto(cx, event, window, proto);
+        {
+            let event = event.upcast::<Event>();
+            event.init_event(type_, bool::from(bubbles), bool::from(cancelable));
+        }
+        event
+    }
+}
+
+impl ToggleEventMethods<crate::DomTypeHolder> for ToggleEvent {
+    /// <https://html.spec.whatwg.org/multipage/#toggleevent>
+    fn Constructor(
+        cx: &mut JSContext,
+        window: &Window,
+        proto: Option<HandleObject>,
+
+        type_: DOMString,
+        init: &ToggleEventBinding::ToggleEventInit,
+    ) -> Fallible<DomRoot<ToggleEvent>> {
+        let bubbles = EventBubbles::from(init.parent.bubbles);
+        let cancelable = EventCancelable::from(init.parent.cancelable);
+        Ok(ToggleEvent::new_with_proto(
+            cx,
+            window,
+            proto,
+            Atom::from(type_),
+            bubbles,
+            cancelable,
+            init.oldState.clone(),
+            init.newState.clone(),
+            init.source.as_deref(),
+        ))
+    }
+
+    /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
+    fn IsTrusted(&self) -> bool {
+        self.event.IsTrusted()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-toggleevent-oldstate>
+    fn OldState(&self) -> DOMString {
+        self.old_state.clone()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-toggleevent-newstate>
+    fn NewState(&self) -> DOMString {
+        self.new_state.clone()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-toggleevent-source>
+    fn GetSource(&self) -> Option<DomRoot<Element>> {
+        // The source getter steps are to return the result of retargeting source against this's currentTarget.
+        let source = self.source.as_ref()?;
+
+        if let Some(current_target) = self.event.GetCurrentTarget() {
+            let retargeted = source.upcast::<EventTarget>().retarget(&current_target);
+            return retargeted.downcast::<Element>().map(DomRoot::from_ref);
+        }
+
+        let document = source.upcast::<Node>().GetOwnerDocument().unwrap();
+        let retargeted = source
+            .upcast::<EventTarget>()
+            .retarget(document.upcast::<EventTarget>());
+        retargeted.downcast::<Element>().map(DomRoot::from_ref)
+    }
+}

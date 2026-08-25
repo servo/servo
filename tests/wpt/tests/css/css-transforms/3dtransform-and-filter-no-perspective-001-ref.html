@@ -1,0 +1,37 @@
+<!DOCTYPE HTML>
+<title>CSS Test (Transforms): Filter on a 3d transformed element</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Google" href="http://www.google.com/">
+
+<style>
+
+body {
+  margin: 0;
+}
+
+.cover {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 600px;
+  height: 220px;
+}
+
+</style>
+
+<svg class="cover">
+  <polygon fill="blue"
+           style="transform: translateZ(0)"
+           points="278.470,115.594
+                   553.80005,15.38214
+                   587.9345,109.1657
+                   312.6045,209.3776" />
+</svg>
+
+<svg class="cover">
+  <polygon fill="transparent" stroke="aqua" stroke-width="4"
+           points="278.470,115.594
+                   553.80005,15.38214
+                   587.9345,109.1657
+                   312.6045,209.3776" />
+</svg>

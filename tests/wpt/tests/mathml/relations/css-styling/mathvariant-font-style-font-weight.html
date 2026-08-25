@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>mathvariant attribute and font-style/font-weight</title>
+    <link rel="help" href="https://w3c.github.io/mathml-core/#css-styling">
+    <link rel="help" href="https://w3c.github.io/mathml-core/#the-mathvariant-attribute">
+    <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1788645">
+    <link rel="match" href="mathvariant-font-style-font-weight-ref.html"/>
+    <meta name="assert" content="Verify that a mathvariant attribute does not cancel the effect of font-style/font-weight.">
+    <style>
+      .italic { font-style: italic; }
+      .bold { font-weight: bold; }
+    </style>
+  </head>
+  <body>
+    <p>This test passes if you see six lines of text (italic, italic, bold, bold, bold italic and bold italic) with the corresponding style applied:</p>
+    <p>
+      <math mathvariant="normal">
+        <mtext class="italic">italic</mtext>
+      </math>
+    </p>
+    <p>
+      <math>
+        <mtext mathvariant="normal" class="italic">italic</mtext>
+      </math>
+    </p>
+    <p>
+      <math mathvariant="normal">
+        <mtext class="bold">bold</mtext>
+      </math>
+    </p>
+    <p>
+      <math>
+        <mtext mathvariant="normal" class="bold">bold</mtext>
+      </math>
+    </p>
+    <p>
+      <math mathvariant="normal">
+        <mtext class="bold italic">bold italic</mtext>
+      </math>
+    </p>
+    <p>
+      <math>
+        <mtext mathvariant="normal" class="bold italic">bold italic</mtext>
+      </math>
+    </p>
+  </body>
+</html>

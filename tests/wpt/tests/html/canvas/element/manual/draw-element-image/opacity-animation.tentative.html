@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Canvas.drawElementImage should support drawing content with opacity animations</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<link rel="match" href="opacity-animation-ref.html">
+<meta name="fuzzy" content="maxDifference=0-1;totalPixels=0-10000">
+<script src="/common/reftest-wait.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+<style>
+  @keyframes anim {
+    0%      { opacity: 0; }
+    0.001%  { opacity: 0.5; }
+    100%    { opacity: 0.5; }
+  }
+  #block-child {
+    width: 100px;
+    height: 100px;
+    background: green;
+    animation: anim linear 100s;
+  }
+  #inline-child {
+    font-size: 100px;
+    color: green;
+    animation: anim linear 100s;
+  }
+</style>
+
+<canvas id="canvas" width="200" height="200" layoutsubtree>
+  <div id="target">
+    <div id="block-child"></div>
+    <span id="inline-child">A</span>
+  </div>
+</canvas>
+
+<script>
+  onload = async function() {
+    // Wait for the animation to start and progress at least one frame.
+    await Promise.all(document.getAnimations().map(animation => animation.ready));
+    await waitForCanvasPaint(canvas);
+    canvas.getContext('2d').drawElementImage(target, 100, 0);
+    takeScreenshot();
+  }();
+</script>
+</html>

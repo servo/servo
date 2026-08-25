@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Last remembered size</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#last-remembered">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override">
+<link rel="help" href="https://drafts.csswg.org/css-contain-2/#content-visibility">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/7529">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/7516">
+<meta name="assert" content="Tests that the last remembered size is tracked independently for each axis." />
+
+<style>
+#target {
+  width: max-content;
+  height: max-content;
+  border: 1px solid;
+}
+#target::before {
+  content: "";
+  display: block;
+}
+.content-100-50::before {
+  width: 100px;
+  height: 50px;
+}
+.content-skip {
+  content-visibility: hidden;
+}
+.ciw-auto-2 {
+  contain-intrinsic-width: auto 2px;
+}
+.ciw-auto-20 {
+  contain-intrinsic-width: auto 20px;
+}
+.cih-auto-1 {
+  contain-intrinsic-height: auto 1px;
+}
+.cih-auto-10 {
+  contain-intrinsic-height: auto 10px;
+}
+</style>
+
+<div id="log"></div>
+
+<div id="target"></div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const target = document.getElementById("target");
+
+function checkSize(expectedWidth, expectedHeight, msg) {
+  assert_equals(target.clientWidth, expectedWidth, msg + " - clientWidth");
+  assert_equals(target.clientHeight, expectedHeight, msg + " - clientHeight");
+}
+
+function nextRendering() {
+  return new Promise(resolve => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+  });
+}
+
+promise_test(async function() {
+  target.className = "content-100-50 ciw-auto-20";
+  checkSize(100, 50, "Sizing normally");
+
+  await nextRendering();
+  target.className = "content-skip ciw-auto-2 cih-auto-1";
+  checkSize(100, 1, "Using last remembered inline size");
+}, "Only recording last remembered inline size");
+
+promise_test(async function() {
+  target.className = "content-100-50 cih-auto-10";
+  checkSize(100, 50, "Sizing normally");
+
+  await nextRendering();
+  target.className = "content-skip ciw-auto-2 cih-auto-1";
+  checkSize(2, 50, "Using last remembered block size");
+}, "Only recording last remembered block size");
+</script>

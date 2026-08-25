@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Selection.modify() tests</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+
+<div>Test, these are <strong id="strong"> strong </strong> <em id="em"> italic </em> normal.</div>
+
+<pre id="preLinefeed">
+foo
+bar
+</pre>
+
+<pre id="preBr">
+foo<br>bar
+</pre>
+
+<pre id="preLinefeedBr">
+foo
+<br>
+bar
+</pre>
+
+<script>
+const selection = getSelection();
+test(() => {
+  selection.collapse(strong.childNodes[0], 4);
+  selection.modify("extend", "backward", "word")
+  assert_equals(selection.focusNode, strong.childNodes[0]);
+  assert_equals(selection.focusOffset, 1);
+  selection.collapse(em.childNodes[0], 4);
+  selection.modify("extend", "backward", "word")
+  assert_equals(selection.focusNode, em.childNodes[0]);
+  assert_equals(selection.focusOffset, 1);
+}, "Stop at previous word boundary when whitespaces are trimmed");
+
+test(() => {
+  const preLinefeed = document.getElementById("preLinefeed");
+  const textChild = preLinefeed.childNodes[0];
+  selection.collapse(textChild, 3);
+  selection.modify("move", "forward", "character");
+  assert_equals(selection.focusNode, textChild);
+  assert_equals(selection.focusOffset, 4);
+}, "Jump linefeed forward");
+
+test(() => {
+  const preLinefeed = document.getElementById("preLinefeed");
+  const textChild = preLinefeed.childNodes[0];
+  selection.collapse(textChild, 4);
+  selection.modify("move", "backward", "character");
+  assert_equals(selection.focusNode, textChild);
+  assert_equals(selection.focusOffset, 3);
+}, "Jump linefeed backward");
+
+test(() => {
+  const preBr = document.getElementById("preBr");
+  const [firstTextChild, br, secondTextChild] = preBr.childNodes;
+  selection.collapse(firstTextChild, 3);
+  selection.modify("move", "forward", "character");
+  assert_equals(selection.focusNode, secondTextChild);
+  assert_equals(selection.focusOffset, 0);
+}, "Jump <br> forward");
+
+test(() => {
+  const preBr = document.getElementById("preBr");
+  const [firstTextChild, br, secondTextChild] = preBr.childNodes;
+  selection.collapse(secondTextChild, 0);
+  selection.modify("move", "backward", "character");
+  assert_equals(selection.focusNode, firstTextChild);
+  assert_equals(selection.focusOffset, 3);
+}, "Jump <br> backward");
+
+test(() => {
+  const preLinefeedBr = document.getElementById("preLinefeedBr");
+  selection.collapse(preLinefeedBr, 1);
+  selection.modify("move", "forward", "character");
+  const secondTextChild = preLinefeedBr.childNodes[2];
+  assert_equals(selection.focusNode, secondTextChild);
+  assert_equals(selection.focusOffset, 0);
+}, "Jump <br> forward which follows a linefeed");
+
+test(() => {
+  const preLinefeedBr = document.getElementById("preLinefeedBr");
+  selection.collapse(preLinefeedBr, 2);
+  selection.modify("move", "backward", "character");
+  const textChild = preLinefeedBr.childNodes[0];
+  assert_equals(selection.focusNode, textChild);
+  assert_equals(selection.focusOffset, textChild.textContent.length);
+}, "Jump <br> backward which follows a linefeed");
+</script>

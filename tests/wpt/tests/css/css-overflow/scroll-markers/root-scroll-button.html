@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: ::scroll-button on root element</title>
+<link rel="match" href="root-scroll-button-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-buttons">
+<style>
+  body {
+    margin: 0;
+  }
+
+  :root::scroll-button(block-end) {
+    content: "down";
+    position: absolute;
+    top: 0;
+  }
+
+  div {
+    width: 600px;
+    height: 300px;
+    margin-bottom: 20px;
+    background: green;
+  }
+</style>
+<div></div>
+<div></div>
+<div></div>

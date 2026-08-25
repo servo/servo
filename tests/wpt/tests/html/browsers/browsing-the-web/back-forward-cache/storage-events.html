@@ -1,0 +1,101 @@
+<!DOCTYPE HTML>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/helper.sub.js"></script>
+<script>
+// When localStorage (`key1`) is modified when a page (`pageA`) is in BFCache,
+// storage events should not be fired for the page after becoming active.
+// https://github.com/whatwg/storage/issues/119#issuecomment-1115844532
+promise_test(async t => {
+  const pageA = new RemoteContext(token());
+  const pageB = new RemoteContext(token());
+  const pageC = new RemoteContext(token());
+
+  const urlA = executorPath + pageA.context_id + '&events=pagehide,pageshow,load';
+  const urlB = originCrossSite + executorPath + pageB.context_id;
+  const urlC = executorPath + pageC.context_id + '&events=pagehide,pageshow,load';
+
+  // localStorage key to set while pageA is in BFCache.
+  const key1 = token();
+  // localStorage key to set after pageA is restored from BFCache.
+  const key2 = token();
+
+  const startRecordingStorageEvent = (key1, key2) => {
+    window.key1EventFired = new Promise(resolve => {
+      window.addEventListener('storage', e => {
+        if (e.key === key1) {
+          recordEvent('storage1');
+          resolve();
+        }
+      });
+    });
+    window.key2EventFired = new Promise(resolve => {
+      window.addEventListener('storage', e => {
+        if (e.key === key2) {
+          recordEvent('storage2');
+          resolve();
+        }
+      });
+    });
+  };
+
+  window.open(urlA, '_blank', 'noopener');
+  await pageA.execute_script(waitForPageShow);
+  await pageA.execute_script(startRecordingStorageEvent, [key1, key2]);
+
+  // Window C is an unrelated window kept open without navigation, to confirm
+  // that storage events are fired as expected in non-BFCache-related scenario
+  // and not blocked due to non-BFCache-related reasons.
+  window.open(urlC, '_blank');
+  await pageC.execute_script(waitForPageShow);
+  await pageC.execute_script(startRecordingStorageEvent, [key1, key2]);
+
+  // Navigate A to B.
+  await pageA.execute_script((url) => {
+    prepareNavigation(() => {
+      location.href = url;
+    });
+  }, [urlB]);
+  await pageB.execute_script(waitForPageShow);
+
+  // Update `key1` while pageA is in BFCache.
+  localStorage.setItem(key1, 'value');
+
+  // Wait for a storage event is fired on PageC and a while,
+  // to prevent race conditions between event processing
+  // triggered by `setItem()` and the following operations.
+  await pageC.execute_script(() => window.key1EventFired);
+  await new Promise(resolve => t.step_timeout(resolve, 1000));
+
+  // Back navigate to pageA, to be restored from BFCache.
+  await pageB.execute_script(
+    () => {
+      prepareNavigation(() => { history.back(); });
+    }
+  );
+  await pageA.execute_script(waitForPageShow);
+  await assert_bfcached(pageA);
+
+  // Update `key2` after pageA is restored from BFCache.
+  localStorage.setItem(key2, 'value');
+
+  // Wait for a storage event for `key2` is fired on PageA.
+  await pageA.execute_script(() => window.key2EventFired);
+
+  // Confirm that a storage event for `key1` is not fired on PageA.
+  assert_array_equals(
+    await pageA.execute_script(() => getRecordedEvents()),
+    [
+      'window.load',
+      'window.pageshow',
+      'window.pagehide.persisted',
+      'window.pageshow.persisted',
+      'storage2',
+    ],
+    'pageA should not receive storage events for updates while in BFCache');
+
+}, 'Storage events should not be fired for BFCached pages after becoming active');
+</script>

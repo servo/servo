@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-getboundingclientrect">
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#invisible-line-boxes">
+<link rel="help" href="https://github.com/servo/servo/issues/39648">
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<meta name="assert" content="An inline box in a phantom line box has a size of 0.">
+
+<style>body { margin: 8px }</style>
+<span></span>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+let rect = document.querySelector("span").getBoundingClientRect();
+test(() => assert_equals(rect.x, 8), "x");
+test(() => assert_equals(rect.y, 8), "y");
+test(() => assert_equals(rect.width, 0), "width");
+test(() => assert_equals(rect.height, 0), "height");
+</script>

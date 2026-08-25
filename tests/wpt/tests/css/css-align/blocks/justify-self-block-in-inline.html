@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-align/#justify-self-property">
+<link rel="help" href="https://crbug.com/374034249">
+<meta name="assert"
+  content="block-in-inline width is stretched to its parent width, not sized as 'fit-content'" />
+
+<style>
+  .inline-block {
+    display: inline-block;
+    height: 50px;
+    background: lightblue;
+  }
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+
+
+<div style="justify-self: start; border: 1px solid;">
+  <span class="inline-block" style="width: 200px;">wide inline-block</span>
+  <div style="background: orange; height: 50px;" class="block-in-inline"
+    data-expected-width="200">
+    block-in-inline
+  </div>
+  <span class="inline-block" style="width: 100px;">inline-block</span>
+</div>
+
+<div style="width: 100px; justify-self: left;">
+  <span>
+    <div class="block-in-inline"
+      style="height: 100px; background: green;"
+      data-expected-width="100">
+    </div>
+  </span>
+</div>
+
+<script>checkLayout('.block-in-inline')</script>

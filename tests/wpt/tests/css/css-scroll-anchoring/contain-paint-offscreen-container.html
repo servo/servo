@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta charset="utf8">
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-scroll-anchoring/">
+<meta name="assert" content="ensures that scroll anchoring does not recurse into contained offscreen elements">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+body { height: 10000px; }
+#container { contain: paint; }
+#overflow {
+  position: relative;
+  top: 300px;
+  height: 10px;
+}
+#anchor {
+  width: 10px;
+  height: 50px;
+}
+</style>
+
+<div style="height: 800px"></div>
+<div id="container" style="height: 40px">
+  <div id=overflow></div>
+</div>
+<div id="changer" style="height: 150px"></div>
+<div id=anchor></div>
+
+<script>
+test(() => {
+  // Ensure #anchor is the only thing on screen.
+  // Note that #overflow would be on screen if container
+  // did not have layout and paint containment.
+  document.scrollingElement.scrollTop = 1000;
+
+  // Ensure anchor doesn't move if #changer shrinks.
+  const offset = anchor.getBoundingClientRect().y;
+  document.querySelector("#changer").style.height = "50px";
+  assert_equals(anchor.getBoundingClientRect().y, offset);
+}, "Contain: style paint container offscreen.");
+</script>

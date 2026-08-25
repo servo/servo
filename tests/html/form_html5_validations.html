@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <form>
+      Required: <input type="text" name="name" required><br>
+      Email : <input type="email" name="email"><br>
+      URL : <input type="url" name="email"><br>
+      Number(18-99): <input type="number" size="6" name="age" min="18" max="99"><br>
+      Pattern(MM/DD/YYYY): <input type="text" pattern="\d{1,2}/\d{1,2}/\d{4}"><br>
+      Length(10-20): <input minlength="10" maxlength="20"><br>
+      Length(10-20): <textarea required minlength="10" maxlength="20"></textarea><br>
+      Step(3.11)<input type="number" min="0" step="3.11"><br>
+      Required Select: <select required>
+        <option></option>
+        <option value="0">A</option>
+        <option value="1">B</option>
+        <option value="2">C</option>
+      </select><br>
+      Required Radio: <input type="radio" name="group1" value="1" required>1
+      <input type="radio" name="group1" value="2">2
+      <input type="radio" name="group1" value="3">3<br>
+      Required Checkbox: <input type="checkbox" name="group2" value="1" required>1
+      <input type="checkbox" name="group2" value="2">2
+      <input type="checkbox" name="group2" value="3">3<br>
+      Required File: <input type="file" required><br>
+      <input type="submit">
+    </form>
+  </body>
+</html>

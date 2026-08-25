@@ -1,0 +1,32 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="i" src="/common/blank.html"></iframe>
+<script src="/common/get-host-info.sub.js"></script>
+<script>
+promise_test(async t => {
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+
+  i.contentWindow.location = get_host_info().HTTP_ORIGIN_WITH_DIFFERENT_PORT + "/common/blank.html";
+  await new Promise(resolve => i.onload = () => t.step_timeout(resolve, 0));
+
+  i.contentWindow.location = get_host_info().HTTP_ORIGIN + "/common/blank.html";
+  await new Promise(resolve => i.onload = () => t.step_timeout(resolve, 0));
+
+  // Go back to the first entry in the iframe. Because the navigation API only
+  // exposes same-origin *contiguous* entries, and there's a cross-origin entry
+  // in between, we have to use history.go().
+  history.go(-2);
+  await new Promise(resolve => i.onload = () => t.step_timeout(resolve, 0));
+  assert_equals(i.contentWindow.navigation.entries().length, 1);
+
+  // activation.from will be null because the entry that triggered the traversal
+  // is in a different same-origin contiguous region.
+  assert_equals(i.contentWindow.navigation.activation.entry, i.contentWindow.navigation.currentEntry);
+  assert_equals(i.contentWindow.navigation.activation.entry.index, 0);
+  assert_equals(i.contentWindow.navigation.activation.from, null);
+  assert_equals(i.contentWindow.navigation.activation.navigationType, "traverse");
+}, "navigation.activation - traverse from a non-contiguous same-origin url");
+</script>

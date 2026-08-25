@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Content Visibility: content-visibility with computed values</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<meta name="assert" content="content-visibility supports the full grammar 'visible | auto | hidden'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<div id=target></div>
+<div id=scratch></div>
+<script>
+
+test_computed_value("content-visibility", "visible");
+test_computed_value("content-visibility", "auto");
+test_computed_value("content-visibility", "hidden");
+</script>
+</body>
+</html>

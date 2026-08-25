@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#named-timeline-range">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="support/testcommon.js"></script>
+<script src="/web-animations/resources/keyframe-utils.js"></script>
+<script src="/scroll-animations/scroll-timelines/testcommon.js"></script>
+<title>Animation range updates play state</title>
+</head>
+<style type="text/css">
+  @keyframes anim {
+    from { background-color:  blue; }
+    to { background-color:  white; }
+  }
+  #scroller {
+    border:  10px solid lightgray;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    width: 300px;
+    height: 200px;
+  }
+  #target {
+    margin-top:  800px;
+    margin-bottom: 800px;
+    margin-left:  10px;
+    margin-right:  10px;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+    background-color: green;
+    animation:  anim auto both linear;
+    animation-timeline:  --t1;
+    view-timeline:  --t1;
+  }
+</style>
+<body>
+  <div id="scroller">
+    <div id="target"></div>
+  </div>
+</body>
+<script type="text/javascript">
+  async function runTest() {
+    promise_test(async t => {
+      anim = target.getAnimations()[0];
+      await anim.ready;
+
+      // Cover range = 600px to 900px
+
+      scroller.scrollTop = 750;
+      await waitForNextFrame();
+
+      // Animation is running in the active phase.
+      await runAndWaitForFrameUpdate(() => {
+        anim.rangeStart = 'contain 0%';  // 700px
+        anim.rangeEnd = 'contain 100%';  // 800px
+      });
+      assert_equals(anim.playState, 'running');
+      assert_percents_equal(anim.startTime, 100/3);
+      assert_percents_equal(anim.currentTime, 100/6);
+
+      // Animation in the after phase and switches to the finished state.
+      await runAndWaitForFrameUpdate(() => {
+        anim.rangeStart = 'entry 0%';  // 600px
+        anim.rangeEnd = 'entry 100%';  // 700px
+      });
+      assert_equals(anim.playState, 'finished');
+      assert_percents_equal(anim.startTime, 0);
+      // In the after phase, so current time is clamped.
+      assert_percents_equal(anim.currentTime, 100/3);
+
+      // Animation in the before phase and switches back to the running state.
+      await runAndWaitForFrameUpdate(() => {
+        anim.rangeStart = 'exit 0%';  // 800px
+        anim.rangeEnd = 'exit 100%';  // 900px
+      });
+      assert_equals(anim.playState, 'running');
+      assert_percents_equal(anim.startTime, 200/3);
+      assert_percents_equal(anim.currentTime, -100/6);
+
+    }, 'Changing the animation range updates the play state');
+  }
+
+  window.onload = runTest;
+</script>

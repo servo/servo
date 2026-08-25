@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+
+  <title>CSS Test: Auto-imported from Gecko test 325543-1a.html</title>
+  <link rel="author" title="Boris Zbarsky" href="mailto:bzbarsky@mit.edu"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#anonymous-boxes"/>
+</head>
+<body onload="document.getElementById('t').style.display = 'block'">
+<p>There should be no red below, except for antialiasing issues.</p>
+<div style="position: relative; font-size: 2em;">
+<div style="position: absolute; z-index: 2; top: 0; color: green; padding: 1px;">
+
+    <!-- Lack of space between the two spans is key -->
+    <span style="display: table-cell">First line</span><span style="display: none" id="t">Second line</span>
+  </div>
+<div style="position: relative; z-index: 1; color: red; padding: 1px;">
+
+    <div>First line</div>
+    <div>Second line</div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,37 @@
+<body>
+  <svg style="display:none">>
+    <filter id="base">
+      <feTurbulence baseFrequency="0.03125"/>
+    </filter>
+    <filter id="base2d">
+      <feTurbulence baseFrequency="0.03125, 0.125"/>
+    </filter>
+    <filter id="highFrequency">
+      <feTurbulence baseFrequency="0.0625"/>
+    </filter>
+    <filter id="seed">
+      <feTurbulence baseFrequency="0.03125" seed="100"/>
+    </filter>
+    <filter id="numOctaves">
+      <feTurbulence baseFrequency="0.03125" numOctaves="2"/>
+    </filter>
+    <filter id="empty">
+      <feTurbulence/>
+    </filter>
+    <filter id="fractalNoise">
+      <feTurbulence baseFrequency="0.03125" type="fractalNoise"/>
+    </filter>
+    <filter id="stitchTiles">
+      <feTurbulence baseFrequency="0.03125" stitchTiles="noStitch"/>
+    </filter>
+</body>
+<script>
+  testCases = document.getElementsByTagName("filter");
+  for (tc of testCases) {
+    const canvas = document.createElement("canvas");
+    document.body.appendChild(canvas);
+    const ctx = canvas.getContext("2d");
+    ctx.filter = `url(#${tc.id})`;
+    ctx.fillRect(0, 0, 1, 1);
+  }
+</script>

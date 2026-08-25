@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<title>HTMLFormElement: the disabled attribute</title>
+<link rel="author" title="Eric Casler" href="mailto:ericorange@gmail.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#enabling-and-disabling-form-controls:-the-disabled-attribute">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id="log"></div>
+<div id="root"></div>
+<script>
+// Elements tested for in this file
+var types = ["button", "input", "select", "textarea"];
+// no tests for: optgroup, option, fieldset
+
+var root = document.getElementById("root");
+for (var element_type = 0; element_type < types.length; element_type++) {
+  test(function() {
+    root.innerHTML = "<"+types[element_type]+" + id='elem'></"+types[element_type]+">";
+
+    var elem = document.getElementById("elem");
+    assert_false(elem.disabled);
+  },
+  "Test ["+types[element_type]+"]: default behaviour is NOT disabled");
+
+  test(function() {
+    var formats = ["disabled",
+      "disabled=disabled", "disabled='disabled'",
+      "disabled='true'", "disabled=true",
+      "disabled='false'", "disabled=false"];
+
+    for (var f = 0; f < formats.length; f++) {
+      root.innerHTML = "<"+types[element_type]+" id='elem' " + formats[f] + "></"+types[element_type]+">";
+
+      var elem = document.getElementById("elem");
+      assert_true(elem.disabled);
+    }
+  },
+  "Test ["+types[element_type]+"]: verify disabled acts as boolean attribute");
+
+  test(function() {
+    root.innerHTML = "<"+types[element_type]+" id='elem'></"+types[element_type]+"><input id='other' value='no event dispatched'></input>";
+    var elem = document.getElementById("elem"),
+      other = document.getElementById("other");
+
+    assert_equals(other.value, "no event dispatched");
+
+    elem.disabled = true;
+    assert_true(elem.disabled);
+
+    elem.onclick = function () {
+      // change value of other element, to avoid *.value returning "" for disabled elements
+      document.getElementById("other").value = "event dispatched";
+    };
+
+    // Check if dispatched event executes
+    var evObj = document.createEvent('Events');
+    evObj.initEvent("click", true, false);
+    elem.dispatchEvent(evObj);
+    assert_equals(other.value, "event dispatched");
+  },
+  "Test ["+types[element_type]+"]: synthetic click events should be dispatched");
+
+  test(function() {
+    root.innerHTML = "<"+types[element_type]+" id='elem'></"+types[element_type]+"><input id='other' value='no event dispatched'></input>";
+    var elem = document.getElementById("elem"),
+      other = document.getElementById("other");
+
+    assert_equals(other.value, "no event dispatched");
+
+    elem.disabled = true;
+    assert_true(elem.disabled);
+
+    elem.onclick = function () {
+      // change value of other element, to avoid *.value returning "" for disabled elements
+      document.getElementById("other").value = "event dispatched";
+    };
+
+    // Check that click() on a disabled element doesn't dispatch a click event.
+    elem.click();
+    assert_equals(other.value, "no event dispatched");
+  },
+  "Test ["+types[element_type]+"]: click() should not dispatch a click event");
+}
+root.innerHTML = "";
+</script>

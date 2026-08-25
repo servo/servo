@@ -1,0 +1,132 @@
+// This json file allows comments and is technically a hjson file.
+// Different {} correspond to completely different runs which can have
+// different filters and different arguments
+[
+    {
+        "run_args": {
+            "url": "https://www.google.com", // the url to test
+            "tries": 5, // How many repeated tries we should have, we show the min,max,avg in the output
+            "mitmproxy": true,   // Use mitmproxy in forwarding mode
+            //"trace_buffer": 524288,   // trace_buffer size of hitrace
+            //"sleep": 10,  // how long should we wait for servo to load the page
+            "commands": ["--psn=--ignore-certificate-errors"]
+        },
+        "filters": [
+            // Filters are currently given via the simple serialize of `filters::JsonValueFilter`.
+            // Filters have an arbitrary name that identifies them. This name will be used in bencher output
+            // where we format it with the E2E and the url.
+            // start_fn_partial matches a hitrace _start_ event where the given string is a substring of the function name.
+            // end_fn_partial matches a hitrace _start_ event where the given string is a substring of the function name.
+            // The filter will calculate the difference between these two start events.
+            // We currently do not support trace spans and only support exactly one match for start_fn_partial and end_fn_partial.
+            {
+                "name": "Load",
+                "start_fn_partial": "on_surface_created_cb",
+                "end_fn_partial": "PageLoadEndedPrompt"
+            }
+        ],
+        "point_filters": [
+            {
+                "name": "Explicit",
+                "match_str": "explicit"
+            },
+            {
+                "name": "Resident",
+                "match_str": "resident"
+            },
+            {
+                "name": "LayoutThread",
+                "match_str": "layout-thread"
+            },
+            {
+                "name": "image-cache",
+                "match_str": "image-cache"
+            },
+            {
+                "name": "JS",
+                "match_str": "js"
+            },
+            {
+                "name": "resident-smaps",
+                "match_str": "resident-according-to-smaps",
+                "point_filter_type": "Largest"
+            },
+            {
+                "name": "LargestContentfulPaint",
+                "match_str": "LargestContentfulPaint",
+                "point_filter_type": "Largest"
+            },
+            {
+                "name": "FirstContentfulPaint",
+                "match_str": "FirstContentfulPaint"
+            }
+        ]
+    },
+    {
+        "run_args": {
+            "url": "https://www.servo.org",
+            "tries": 5,
+            "mitmproxy": true,
+            "commands": ["--psn=--ignore-certificate-errors"]
+        },
+        "filters": [
+            {
+                "name": "Load",
+                "start_fn_partial": "on_surface_created_cb",
+                "end_fn_partial": "PageLoadEndedPrompt"
+            }
+        ],
+        "point_filters": [
+            {
+                "name": "Explicit",
+                "match_str": "explicit"
+            },
+            {
+                "name": "Resident",
+                "match_str": "resident"
+            },
+            {
+                "name": "LayoutThread",
+                "match_str": "layout-thread"
+            },
+            {
+                "name": "image-cache",
+                "match_str": "image-cache"
+            },
+            {
+                "name": "JS",
+                "match_str": "js"
+            },
+            {
+                "name": "resident-smaps",
+                "match_str": "resident-according-to-smaps",
+                "point_filter_type": "Largest"
+            },
+            {
+                "name": "LargestContentfulPaint",
+                "match_str": "LargestContentfulPaint",
+                "point_filter_type": "Largest"
+            },
+            {
+                "name": "FirstContentfulPaint",
+                "match_str": "FirstContentfulPaint"
+            }
+        ]
+    },
+    {
+        "run_args": {
+            "url": "file:///parse_from_string.html",
+            "tries": 5
+        },
+        "filters": [
+        ],
+        "point_filters": [
+            {
+                "name": "",
+                "match_str": "parsefromstring",
+                "no_unit_conversion": true,
+                "point_filter_type": "Largest"
+            }
+        ]
+    }
+]

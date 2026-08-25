@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel=stylesheet href="resources/customizable-select-styles.css">
+
+<button class=customizable-select-button popovertarget=popover id=button>
+  <span class=customizable-select-selectedcontent>option</span>
+  <span>::after</span>
+</button>
+<div id=popover popover=auto class=customizable-select-popover>
+  <div class=customizable-select-option>
+    <span>✓</span>
+    <span>::before</span>
+    option
+  </div>
+</div>
+
+<style>
+.customizable-select-option::before {
+  display: none;
+}
+</style>
+
+<script>
+document.getElementById('popover').showPopover({ source: button });
+</script>

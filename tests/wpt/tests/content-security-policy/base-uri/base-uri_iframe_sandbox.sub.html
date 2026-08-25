@@ -1,0 +1,79 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <meta http-equiv="Content-Security-Policy" content="base-uri {{location[scheme]}}://{{domains[]}}:{{ports[http][0]}}/base/">
+
+    <title>base-uri works correctly inside a sandboxed iframe.</title>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+</head>
+
+<body>
+    <h1>base-uri works correctly inside a sandboxed iframe.</h1>
+    <div id='log'></div>
+
+    <script>
+        window.addEventListener('securitypolicyviolation', function(e) {
+            assert_unreached('No CSP violation report should have been fired.');
+        });
+
+        async_test(function(t) {
+            var i = document.createElement('iframe');
+            i.sandbox = 'allow-scripts';
+            i.style.display = 'none';
+            i.srcdoc = `
+              <script>
+                window.addEventListener('securitypolicyviolation', function() {
+                  top.postMessage('FAIL', '*');
+                });
+              </sc` + `ript>
+              <base href="{{location[scheme]}}://{{domains[]}}:{{ports[http][0]}}/base/">
+              <script>
+                top.postMessage(document.baseURI, '*');
+              </sc` + `ript>`;
+
+            window.addEventListener('message', t.step_func(function(e) {
+              if (e.source === i.contentWindow) {
+                assert_equals(e.data, location.origin + '/base/');
+                t.done();
+              }
+            }));
+
+            document.body.appendChild(i);
+        }, 'base-uri \'self\' works with same-origin sandboxed iframes.');
+
+        async_test(function(t) {
+            var i = document.createElement('iframe');
+            i.sandbox = 'allow-scripts';
+            i.style.display = 'none';
+            i.srcdoc = `
+            <script>
+              window.addEventListener('securitypolicyviolation',
+                function(violation) {
+                  if (violation.blockedURI !== '{{location[scheme]}}://{{domains[www2]}}:{{ports[http][0]}}/base/' || violation.effectiveDirective !== 'base-uri') {
+                      top.postMessage('FAIL');
+                      return;
+                  }
+                  top.postMessage(document.baseURI, '*');
+              });
+            </sc` + `ript>
+            <base href="{{location[scheme]}}://{{domains[www2]}}:{{ports[http][0]}}/base/">
+            <script>
+              top.postMessage(document.baseURI, '*');
+            </sc` + `ript>`;
+
+            window.addEventListener('message', t.step_func(function(e) {
+                if (e.source === i.contentWindow) {
+                    assert_equals(e.data, location.href);
+                    t.done();
+                }
+            }));
+
+            document.body.appendChild(i);
+        }, 'base-uri \'self\' blocks foreign-origin sandboxed iframes.');
+    </script>
+
+</body>
+
+</html>

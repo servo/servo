@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Width set to a value of 'auto'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-11-06 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#propdef-width" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#the-width-property" />
+        <link rel="match" href="width-103-ref.xht" />
+
+        <meta name="assert" content="The 'width' property applies a value of 'auto'." />
+        <style type="text/css">
+            div
+            {
+                background: black;
+                height: 1in;
+                width: 0;
+                width: auto;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a wide black rectangle.</p>
+        <div></div>
+    </body>
+</html>

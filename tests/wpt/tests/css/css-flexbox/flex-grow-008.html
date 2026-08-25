@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Flexbox Test: flex-grow - frozen items act as their frozen size</title>
+<link rel="author" title="Tab Atkins-Bittner" href="https://xanthir.com/contact/">
+<link rel="help" title="Section 9.7, steps 4 and 5.e" href="http://www.w3.org/TR/css-flexbox-1/#resolve-flexible-lengths">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="Test checks that items which become frozen due to a max-size violation use that clamped size in later steps to determine free space, so other children can grow to fill the space freed up by fixing the violation.">
+<style>
+  .container {
+    background-color: red;
+    display: flex;
+    height: 100px;
+    width: 100px;
+  }
+  .frozen-child {
+    flex-grow: 1;
+    max-width: 0px;
+    background: red;
+  }
+  .non-frozen-child {
+    flex-grow: 1;
+    background: green;
+  }
+</style>
+<body>
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+  <div class="container">
+    <div class="frozen-child"></div>
+    <div class="non-frozen-child"></div>
+  </div>
+</body>

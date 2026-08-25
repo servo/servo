@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+  <title>CSS Reference Test</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+
+  <style>
+  div
+    {
+      font-size: 40px;
+      line-height: 1;
+    }
+
+  /*
+     https://www.w3.org/TR/css-pseudo-4/#highlight-bounds
+     For text, the corresponding overlay must cover at least
+     the entire em box and may extend further above/below the
+     em box to the line box edges.
+  */
+
+  span
+    {
+      background-color: Highlight;
+      color: HighlightText;
+    }
+
+  </style>
+
+    <div><span>With system-color-highlight</span></div>
+
+    <div><span>With getSelection()</span><br></div>

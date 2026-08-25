@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>Event.path must be removed</title>
+<!-- Note that this duplicates a test in historical.html for the purposes of
+     using in the Interop-2022 metric -->
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+test(() => {
+    const name = "path";
+    assert_false(name in Event.prototype)
+    assert_equals(Event.prototype[name], undefined)
+    assert_false(name in new Event("test"))
+    assert_equals((new Event("test"))[name], undefined)
+  }, "Event.prototype should not have property named 'path'")
+</script>

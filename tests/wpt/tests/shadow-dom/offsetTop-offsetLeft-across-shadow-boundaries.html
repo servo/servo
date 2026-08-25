@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+.box {
+  width: 10px;
+  height: 10px;
+}
+</style>
+
+<div>
+  <template shadowrootmode=open>
+    <style>
+    .box {
+      width: 10px;
+      height: 10px;
+    }
+    </style>
+    <div class=box></div>
+    <div style="position: relative">
+      <div class=box></div>
+      <slot></slot>
+    </div>
+  </template>
+  <div class=box></div>
+  <div id=target1 style="position: absolute" class=box></div>
+</div>
+
+<span>
+  <template shadowrootmode=open>
+    <style>
+    .box {
+      width: 10px;
+      height: 10px;
+    }
+    </style>
+    <span class=box></span>
+    <span style="position: relative">
+      <span class=box></span>
+      <slot></slot>
+    </span>
+  </template>
+  <span class=box></span>
+  <span id=target2 style="position: absolute" class=box></span>
+</span>
+
+<div>
+  <template shadowrootmode=open>
+    <style>
+    .box {
+      width: 10px;
+      height: 10px;
+    }
+    </style>
+    <div class=box></div>
+    <div style="position: relative">
+      <div class=box></div>
+      <div>
+        <template shadowrootmode=open>
+          <style>
+          .box {
+            width: 10px;
+            height: 10px;
+          }
+          </style>
+          <div class=box></div>
+          <div style="position: relative">
+            <div class=box></div>
+            <slot></slot>
+          </div>
+        </template>
+        <slot></slot>
+      </div>
+    </div>
+  </template>
+  <div class=box></div>
+  <div id=target3 style="position: absolute" class=box></div>
+</div>
+
+<script>
+test(() => {
+  assert_equals(target1.offsetTop, 38);
+}, 'Verifies that HTMLElement.offsetTop accounts for shadow boundaries.');
+
+test(() => {
+  assert_equals(target2.offsetLeft, 8);
+}, 'Verifies that HTMLElement.offsetLeft accounts for shadow boundaries.');
+
+test(() => {
+  assert_equals(target3.offsetTop, 88);
+}, 'Verifies that HTMLElement.offsetTop accounts for shadow boundaries when nested in multiple shadow roots.');
+</script>

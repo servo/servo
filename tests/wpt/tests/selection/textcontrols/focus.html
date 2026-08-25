@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Stop selection extension when focus changes</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+#p {
+  font: 16px/1 Ahem;
+}
+</style>
+<p id="p">
+  Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna
+  aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+  Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint
+  occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+</p>
+<textarea id="textarea">Hello</textarea>
+<script>
+  const selection = getSelection();
+  const { p, textarea } = document.all;
+  document.addEventListener("selectionchange", ev => {
+    if (p.contains(selection.focusNode)) {
+      textarea.focus();
+    }
+  });
+
+  promise_test(async () => {
+    await new test_driver.Actions()
+      .pointerMove(5, 5, {origin: p})
+      .pointerDown()
+      .pointerMove(50, 50)
+      .pointerUp()
+      .send();
+    assert_equals(selection.focusNode, document.body);
+    assert_equals(selection.focusOffset, 2);
+    assert_equals(selection.anchorNode, document.body);
+    assert_equals(selection.focusOffset, 2);
+  }, "focus() should cancel selection extension by pointer device");
+</script>

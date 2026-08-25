@@ -1,0 +1,66 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: ::scroll-marker click with active selection</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-pseudo">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+    * {
+      margin: 0;
+      padding: 0;
+    }
+
+    #scroller {
+        width: 600px;
+        height: 300px;
+        overflow: scroll;
+        scroll-marker-group: before;
+    }
+
+    #scroller div {
+        width: 500px;
+        height: 300px;
+        margin-bottom: 20px;
+        background: green;
+    }
+
+    #scroller::scroll-marker-group {
+        border: 3px solid black;
+        padding: 5px;
+        display: block;
+    }
+
+    #scroller div::scroll-marker {
+        content: "";
+        width: 50px;
+        height: 50px;
+        background-color: blue;
+        display: inline-block;
+    }
+
+    #scroller #first::scroll-marker {
+        background-color: purple;
+        margin-right: 4px;
+    }
+</style>
+<div id="scroller" tabindex=0>
+    <div id="first">Hello</div>
+    <div>World</div>
+</div>
+<script>
+  selection = document.getSelection();
+  selection.setBaseAndExtent(first, 0, first, 1);
+
+  promise_test(async t => {
+    actions_promise = new test_driver.Actions()
+    .pointerMove(20, 20)
+    .pointerDown()
+    .pointerUp()
+    .send();
+    await actions_promise;
+    assert_equals(selection.anchorNode, null);
+  });
+</script>

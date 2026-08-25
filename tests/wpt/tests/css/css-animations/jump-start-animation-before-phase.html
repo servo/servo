@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Validates rendering of an animated element with jump-start in the before phase</title>
+<link rel="help" href="https://www.w3.org/TR/css-animations-1">
+<link rel="help" href="https://www.w3.org/TR/web-animations-1/#calculating-the-transformed-progress">
+<link rel="match" href="jump-start-animation-before-phase-ref.html">
+<style type="text/css" media="screen">
+  body {
+    margin: 0;
+  }
+
+  @keyframes slide {
+    from { transform: translateX(100px); }
+    to { transform: translateX(200px); }
+  }
+
+  #target {
+    background-color: green;
+    height: 100px;
+    width: 100px;
+    margin: 0;
+    animation: slide 10000s 5000s steps(1, jump-start) backwards;
+  }
+</style>
+<body>
+  <div id="target"></div>
+</body>
+<script src="/common/reftest-wait.js"></script>
+<script src="support/testcommon.js"></script>
+<script type="text/javascript">
+  window.onload = async () => {
+    await document.getAnimations()[0].ready;
+    await waitForNextFrame();
+    takeScreenshot();
+  }
+</script>

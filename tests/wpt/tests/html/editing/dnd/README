@@ -1,0 +1,23 @@
+This is a test suite for the drag and drop API described in the HTML5
+specification:
+
+  http://dev.w3.org/html5/spec/dnd.html#dnd
+
+Tests in target-origin/ relate to a proposed spec extension and are not covered
+by HTML5 drafts at the time of writing. Contact Opera Sofware for details, and
+mention CT-1656.
+
+Tests in synthetic/ relate to incomplete parts of the HTML5 specification,
+which allows synthetic events to be created. For compatibility with others,
+the dataTransfer parameter allows null, undefined and other objects. Objects
+will create a synthetic dataTransfer. To provide maximum functionality,
+synthetic dataTransfer will have its own synthetic data store, detatched from
+the real data store used by real drag events (actual user interaction). For
+security, real dataTransfer objects will remember the real event's protection
+status inside synthetic events (the spec bases their protection only on the
+event type, and does not consider the difference between real and synthetic
+events).
+
+Tests in platform/plugin are based on assumed "good" behaviour, where the
+appropriate events are passed to the plugin. Platforms should determine if any
+deviations from the expected results are problematic.

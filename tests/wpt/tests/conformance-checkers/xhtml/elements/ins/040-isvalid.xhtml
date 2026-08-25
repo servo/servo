@@ -1,0 +1,25 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>&lt;ins&gt;</title>
+</head>
+<body>
+  <!-- can contain strictly inline while in strictly inline context -->
+  <p><dfn>strictly inline
+    <ins>
+      <em>text</em>
+    </ins>
+  </dfn></p>
+
+  <!-- can contain interactive if ancestor does not forbid it -->
+  <p>paragraph
+    <ins>
+      <a>link</a>
+    </ins>
+  </p>
+  <p><dfn>strictly inline
+    <ins>
+      <a>link</a>
+    </ins>
+  </dfn></p>
+</body>
+</html>

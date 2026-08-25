@@ -1,0 +1,196 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use std::default::Default;
+
+use dom_struct::dom_struct;
+use html5ever::{LocalName, Prefix, local_name};
+use js::context::JSContext;
+use js::rust::HandleObject;
+use pixels::RasterImage;
+use script_bindings::cell::DomRefCell;
+use servo_arc::Arc;
+
+use crate::dom::bindings::codegen::Bindings::HTMLObjectElementBinding::HTMLObjectElementMethods;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::str::DOMString;
+use crate::dom::document::Document;
+use crate::dom::element::attributes::storage::AttrRef;
+use crate::dom::element::{AttributeMutation, Element};
+use crate::dom::html::htmlelement::HTMLElement;
+use crate::dom::html::htmlformelement::{FormControl, HTMLFormElement};
+use crate::dom::node::virtualmethods::VirtualMethods;
+use crate::dom::node::{Node, NodeTraits};
+use crate::dom::validation::Validatable;
+use crate::dom::validitystate::ValidityState;
+
+#[dom_struct]
+pub(crate) struct HTMLObjectElement {
+    htmlelement: HTMLElement,
+    #[ignore_malloc_size_of = "RasterImage"]
+    #[no_trace]
+    image: DomRefCell<Option<Arc<RasterImage>>>,
+    form_owner: MutNullableDom<HTMLFormElement>,
+    validity_state: MutNullableDom<ValidityState>,
+}
+
+impl HTMLObjectElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLObjectElement {
+        HTMLObjectElement {
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
+            image: DomRefCell::new(None),
+            form_owner: Default::default(),
+            validity_state: Default::default(),
+        }
+    }
+
+    pub(crate) fn new(
+        cx: &mut js::context::JSContext,
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+        proto: Option<HandleObject>,
+    ) -> DomRoot<HTMLObjectElement> {
+        Node::reflect_node_with_proto(
+            cx,
+            Box::new(HTMLObjectElement::new_inherited(
+                local_name, prefix, document,
+            )),
+            document,
+            proto,
+        )
+    }
+}
+
+trait ProcessDataURL {
+    fn process_data_url(&self);
+}
+
+impl ProcessDataURL for &HTMLObjectElement {
+    // Makes the local `data` member match the status of the `data` attribute and starts
+    /// prefetching the image. This method must be called after `data` is changed.
+    fn process_data_url(&self) {
+        let element = self.upcast::<Element>();
+
+        // TODO: support other values
+        if let (None, Some(_uri)) = (
+            element.get_attribute_string_value(&local_name!("type")),
+            element.get_attribute_string_value(&local_name!("data")),
+        ) {
+            // TODO(gw): Prefetch the image here.
+        }
+    }
+}
+
+impl HTMLObjectElementMethods<crate::DomTypeHolder> for HTMLObjectElement {
+    // https://html.spec.whatwg.org/multipage/#dom-object-type
+    make_getter!(Type, "type");
+
+    // https://html.spec.whatwg.org/multipage/#dom-object-type
+    make_setter!(SetType, "type");
+
+    // https://html.spec.whatwg.org/multipage/#dom-object-usemap
+    make_getter!(UseMap, "usemap");
+
+    // https://html.spec.whatwg.org/multipage/#dom-object-usemap
+    make_setter!(SetUseMap, "usemap");
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-fae-form>
+    fn GetForm(&self) -> Option<DomRoot<HTMLFormElement>> {
+        self.form_owner()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-cva-willvalidate>
+    fn WillValidate(&self) -> bool {
+        self.is_instance_validatable()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-cva-validity>
+    fn Validity(&self, cx: &mut JSContext) -> DomRoot<ValidityState> {
+        self.validity_state(cx)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-cva-checkvalidity>
+    fn CheckValidity(&self, cx: &mut JSContext) -> bool {
+        self.check_validity(cx)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-cva-reportvalidity>
+    fn ReportValidity(&self, cx: &mut JSContext) -> bool {
+        self.report_validity(cx)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage>
+    fn ValidationMessage(&self, cx: &mut JSContext) -> DOMString {
+        self.validation_message(cx)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-cva-setcustomvalidity>
+    fn SetCustomValidity(&self, cx: &mut JSContext, error: DOMString) {
+        self.validity_state(cx).set_custom_error_message(cx, error);
+    }
+}
+
+impl Validatable for HTMLObjectElement {
+    fn as_element(&self) -> &Element {
+        self.upcast()
+    }
+
+    fn validity_state(&self, cx: &mut JSContext) -> DomRoot<ValidityState> {
+        self.validity_state
+            .or_init(|| ValidityState::new(cx, &self.owner_window(), self.upcast()))
+    }
+
+    fn is_instance_validatable(&self) -> bool {
+        // https://html.spec.whatwg.org/multipage/#the-object-element%3Abarred-from-constraint-validation
+        false
+    }
+}
+
+impl VirtualMethods for HTMLObjectElement {
+    fn super_type(&self) -> Option<&dyn VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
+    }
+
+    fn attribute_mutated(
+        &self,
+        cx: &mut js::context::JSContext,
+        attr: AttrRef<'_>,
+        mutation: AttributeMutation,
+    ) {
+        self.super_type()
+            .unwrap()
+            .attribute_mutated(cx, attr, mutation);
+        match *attr.local_name() {
+            local_name!("data") => {
+                if let AttributeMutation::Set(..) = mutation {
+                    self.process_data_url();
+                }
+            },
+            local_name!("form") => {
+                self.form_attribute_mutated(cx, mutation);
+            },
+            _ => {},
+        }
+    }
+}
+
+impl FormControl for HTMLObjectElement {
+    fn form_owner(&self) -> Option<DomRoot<HTMLFormElement>> {
+        self.form_owner.get()
+    }
+
+    fn set_form_owner(&self, _cx: &mut JSContext, form: Option<&HTMLFormElement>) {
+        self.form_owner.set(form);
+    }
+
+    fn to_html_element(&self) -> &HTMLElement {
+        self.upcast::<HTMLElement>()
+    }
+}

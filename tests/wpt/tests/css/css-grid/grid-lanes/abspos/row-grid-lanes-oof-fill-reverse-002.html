@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes Test: fill-reverse accounts for OOF static positions with explicit grid-row placement in row grid-lanes</title>
+  <link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3/#abspos">
+  <link rel="match" href="row-grid-lanes-oof-fill-reverse-002-ref.html">
+  <style>
+    html, body {
+      font: 16px/1 monospace;
+      background: white;
+    }
+
+    /* Explicit 'grid-row' placement changes the OOF item's static block
+       position, while 'fill-reverse' places its static inline position at
+       inline-end. */
+    .grid-lanes {
+      display: grid-lanes;
+      grid-lanes-direction: row fill-reverse;
+      grid-template-rows: 80px 80px;
+      gap: 10px;
+      height: 200px;
+      outline: 1px solid black;
+      position: relative;
+    }
+
+    item {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      background: lightblue;
+    }
+
+    .oof {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      background: red;
+    }
+  </style>
+</head>
+<body>
+  <!-- 4 items auto-place across 2 rows (2 items per row, 40px each, 10px gap):
+       stacking_axis_size=90px.
+       OOF with grid-row-start:2: block static position at row2 start (90px),
+       inline static position at inline-end (90px) due to fill-reverse -> left=70px. -->
+  <div class="grid-lanes">
+    <item>1</item>
+    <item>2</item>
+    <item>3</item>
+    <item>4</item>
+    <div class="oof" style="grid-row-start: 2;"></div>
+  </div>
+</body>
+</html>

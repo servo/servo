@@ -1,0 +1,48 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Floated elements shifting down below non-floated elements</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats" />
+        <link rel="match" href="floats-007-ref.xht" />
+
+        <meta name="assert" content="Left floated boxes shift down until next to another float and there is room to fit." />
+        <style type="text/css">
+            #div1
+            {
+                background: purple;
+                height: 1in;
+                width: 1.25in;
+            }
+            #div2
+            {
+                background: yellow;
+                height: 0.25in;
+                width: 0.75in;
+            }
+            #div3
+            {
+                background: orange;
+                float: left;
+                height: 1in;
+                width: 1in;
+            }
+            #div4
+            {
+                background: blue;
+                float: left;
+                height: 1.25in;
+                width: 1.25in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the top edges of the orange and blue squares are aligned and both squares are below the purple rectangle and yellow stripe.</p>
+        <div>
+           <div id="div1"></div>
+           <div id="div2"></div>
+           <div id="div3"></div>
+           <div id="div4"></div>
+        </div>
+    </body>
+</html>

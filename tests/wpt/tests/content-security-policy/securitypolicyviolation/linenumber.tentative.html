@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="content-security-policy" content="script-src 'self' 'nonce-abc'">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script nonce="abc">
+  setup({ single_test: true});
+
+  document.addEventListener("securitypolicyviolation", e => {
+    assert_equals(e.lineNumber, 18);
+    done();
+  });
+
+  location.href = "javascript: causeViolation()";
+</script
+</body>
+</html>
+

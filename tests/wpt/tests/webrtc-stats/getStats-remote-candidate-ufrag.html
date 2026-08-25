@@ -1,0 +1,37 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Exposure of remote candidate ufrag on stats</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../webrtc/RTCPeerConnection-helper.js"></script>
+<script>
+promise_test(async (test) => {
+    const localPc = new RTCPeerConnection();
+    test.add_cleanup(() => localPc.close());
+    const remotePc = new RTCPeerConnection();
+    test.add_cleanup(() => remotePc.close());
+
+    const localDataChannel = localPc.createDataChannel('test');
+    localPc.addEventListener('icecandidate', event => {
+        remotePc.addIceCandidate(event.candidate);
+    });
+    await localPc.setLocalDescription();
+    await remotePc.setRemoteDescription(localPc.localDescription);
+    const answer = await remotePc.createAnswer();
+    await remotePc.setLocalDescription(answer);
+
+    await waitForIceStateChange(remotePc, ['connected', 'completed']);
+
+    const remoteCandidateStats = [...(await localPc.getStats()).values()].find(({type}) => type === 'remote-candidate');
+    assert_equals(remoteCandidateStats.candidateType, 'prflx', 'candidateType should be `prflx`');
+    assert_equals(remoteCandidateStats.usernameFragment, undefined, 'usernameFragment should be undefined');
+
+    await localPc.setRemoteDescription(answer);
+    await new Promise(r => test.step_timeout(r, 100));
+
+    const remoteCandidateStats2 = [...(await localPc.getStats()).values()].find(({type}) => type === 'remote-candidate');
+    // candidateType is still prflx since the candidate was not signaled.
+    assert_equals(remoteCandidateStats.candidateType, 'prflx', 'candidateType should be `prflx`');
+    assert_not_equals(remoteCandidateStats2.usernameFragment, undefined, 'usernameFragment should not be undefined after signaling');
+}, 'Do not expose in stats remote ufrags that are not known via signaling');
+</script>

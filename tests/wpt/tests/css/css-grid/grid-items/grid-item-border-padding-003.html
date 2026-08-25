@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/">
+<link rel="match" href="grid-item-border-padding-003-ref.html">
+<style>
+.grid {
+    display: grid;
+    width: 100px;
+    height: 100px;
+    grid-template-columns: 100px;
+    grid-template-rows: 100px;
+    border: 5px solid black;
+    padding: 10px;
+}
+.item {
+    width: 50px;
+    height: 50px;
+    grid-row: 1/2;
+    background-color: green;
+}
+</style>
+<p>Test passes if the green box is inset by border and padding.</p>
+<div class="grid">
+    <div class="item"></div>
+</div>

@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>WebMCP: Declarative tools are not registered when document.domain is enabled</title>
+<link rel="author" href="mailto:dom@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<iframe src="https://{{hosts[][www]}}:{{location[port]}}/webmcp/declarative/resources/document-domain-enabled-iframe.html"></iframe>
+<script>
+fetch_tests_from_window(document.querySelector('iframe').contentWindow);
+</script>
+</body>

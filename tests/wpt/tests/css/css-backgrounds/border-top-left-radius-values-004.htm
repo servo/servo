@@ -1,0 +1,113 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Percentage for the horizontal radius of 'border-top-left-radius' refers to the width of the border box.</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css3-background/#border-radius" />
+        <meta name="assert" content="Percentage for the horizontal radius of 'border-top-left-radius' refers to the width of the border box." />
+        <style type="text/css">
+            div
+            {
+                width: 60px;
+                height: 100px;
+                border: 20px solid;
+            }
+            td
+            {
+                width: 150px;
+                height: 150px;
+            }
+            .red
+            {
+                border-color: red;
+            }
+            .pos
+            {
+                margin-top: -140px;
+            }
+            .reference1
+            {
+                border-top-left-radius: 97px 20px;
+            }
+            .test1
+            {
+                border-top-left-radius: 97% 20px;
+            }
+            .reference2
+            {
+                border-top-left-radius: 51px 20px;
+            }
+            .test2
+            {
+                border-top-left-radius: 51% 20px;
+            }
+            .reference3
+            {
+                border-top-left-radius: 25px 20px;
+            }
+            .test3
+            {
+                border-top-left-radius: 25% 20px;
+            }
+            .reference4
+            {
+                border-top-left-radius: 11px 20px;
+            }
+            .test4
+            {
+                border-top-left-radius: 11% 20px;
+            }
+            .reference5
+            {
+                border-top-left-radius: 7px 20px;
+            }
+            .test5
+            {
+                border-top-left-radius: 7% 20px;
+            }
+            .reference6
+            {
+                border-top-left-radius: 5px 20px;
+            }
+            .test6
+            {
+                border-top-left-radius: 5% 20px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the top left corner of each of the boxes is curved and if there is no red visible on the page.</p>
+        <table>
+            <tr>
+                <td>
+                    <div class="red reference1"></div>
+                    <div class="pos test1"></div>
+                </td>
+                <td>
+                    <div class="red reference2"></div>
+                    <div class="pos test2"></div>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <div class="red reference3"></div>
+                    <div class="pos test3"></div>
+                </td>
+                <td>
+                    <div class="red reference4"></div>
+                    <div class="pos test4"></div>
+                </td>
+            </tr>
+                <tr>
+                <td>
+                    <div class="red reference5"></div>
+                    <div class="pos test5"></div>
+                </td>
+                <td>
+                    <div class="red reference6"></div>
+                    <div class="pos test6"></div>
+                </td>
+            </tr>
+        </table>
+    </body>
+</html>

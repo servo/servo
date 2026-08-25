@@ -1,0 +1,22 @@
+<!doctype html>
+<title>Filter Effects: filter with multiple filter functions on SVG element</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#FilterProperty">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#filter-functions">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#FilterElement">
+<link rel="match" href="reference/green-100x100.html">
+<svg>
+  <filter id="f_left" x="0" y="0" width="1" height="1"
+	  color-interpolation-filters="sRGB">
+    <feFlood flood-color="rgb(71.79%, 28.82%, 0%)" width="50"/>
+  </filter>
+  <filter id="f_right" x="0" y="0" width="1" height="1"
+	  color-interpolation-filters="sRGB">
+    <feFlood flood-color="rgb(71.79%, 28.82%, 0%)" x="50" width="50"/>
+    <feMerge>
+      <feMergeNode in="SourceGraphic"/>
+      <feMergeNode/>
+    </feMerge>
+  </filter>
+  <rect width="100" height="100" fill="red"
+	filter="url(#f_left) url(#f_right) hue-rotate(90deg)"/>
+</svg>

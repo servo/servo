@@ -1,0 +1,3 @@
+rules:
+- mouse_boundary_events_on_image_map.html: [image-maps]
+- "*": [mouse-events]

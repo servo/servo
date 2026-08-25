@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset=utf-8>
+  <title>Unordered List: &lt;ul&gt; &lt;li&gt;</title>
+</head>
+<body>
+  <!-- is block -->
+  <ul class="class" id="id" lang="en">
+    <li class="class" id="id" lang="en">text</li>
+  </ul>
+
+  <!-- is structured inline -->
+  <p>paragraph
+    <ul class="class" id="id" lang="en">
+      <li class="class" id="id" lang="en">text</li>
+    </ul>
+  </p>
+
+  <!-- can be empty -->
+  <ul></ul>
+  <ul>
+    <li></li>
+    <li></li>
+  </ul>
+
+  <!-- cannot contain structured inline -->
+  <ul>
+    <li>some <em>text</em>
+	  <pre>more text</pre>
+    </li>
+  </ul>
+  <p>paragraph
+    <ul>
+      <li>some <em>text</em>
+        <pre>more text</pre>
+      </li>
+    </ul>
+  </p>
+
+  <!-- can contain blocks -->
+  <ul>
+    <li>
+      <p>some</p>
+      <p>text</p>
+    </li>
+  </ul>
+
+  <!-- can contain interactive -->
+  <ul><li><a>text</a></li></ul>
+  <p>paragraph
+    <ul><li><a>text</a></li></ul>
+  </p>
+</body>
+</html>

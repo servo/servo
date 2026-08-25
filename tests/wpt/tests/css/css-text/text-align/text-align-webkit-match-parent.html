@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<title>text-align: -webkit-match-parent should not be supported</title>
+<link rel="help" href="https://drafts.csswg.org/css-text/#valdef-text-align-match-parent">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+test(function() {
+  assert_false(CSS.supports('text-align: -webkit-match-parent'));
+});
+</script>

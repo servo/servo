@@ -1,0 +1,24 @@
+<svg width="300" height="300"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+    <!--
+    A 'marker' element with 'display' set to 'none' on that
+    element or any ancestor is rendered when referenced by another element.
+    -->
+    <html:link rel="help" href="https://www.w3.org/TR/2016/CR-SVG2-20160915/painting.html#Markers"/>
+    <html:link rel="match" href="marker-007-ref.svg"/>
+    <html:meta name="assert" content="Test marker element with 'display' set to 'none' is rendered when referenced."/>
+    <html:meta name="fuzzy" content="maxDifference=0-1; totalPixels=0-10"/>
+    <defs>
+        <marker id="testMarker" markerWidth="100" markerHeight="100" display="none">
+            <path d="M 0 0 L 200 200 L 0 150 z" fill="green" />
+        </marker>
+        <g display="none">
+          <marker id="testMarker2" markerWidth="100" markerHeight="100">
+            <path d="M 0 0 L 200 200 L 0 150 z" fill="green" />
+          </marker>
+        </g>
+    </defs>
+    <path d="M 0 0 L 25 25" marker-end="url(#testMarker)" />
+    <path d="M 100 0 L 125 25" marker-end="url(#testMarker2)" />
+</svg>

@@ -1,0 +1,60 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Chromium regression test for a Promise-related lifecycle crash in about:srcdoc iframes</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+
+<body>
+<script>
+promise_test(async t => {
+  await test_driver.set_permission({ name: 'storage-access' }, 'granted');
+}, "common setup");
+
+// In Chromium, this test would previously crash the renderer process. See
+// documentation below.
+promise_test(async t => {
+  const new_iframe = document.createElement('iframe');
+  // Having this come before `append()` keeps the iframe on the "initial empty
+  // Document" (see [1]) while the about:srcdoc navigation loads asynchronously.
+  //
+  // [1]: https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/renderer/core/dom/document.h;l=2574;drc=69640c83afac0bde8247ceac5fe259f13a5265a7.
+  new_iframe.srcdoc = 'stuff';
+  document.body.append(new_iframe);
+
+  // It is not clear why this is needed, but it appears to reliably slow the
+  // *next*/last `requestStorageAccess()` call down such that the IPC coming
+  // from the browser to resolve its promise comes after the about:srcdoc
+  // navigation commits (and after the initial empty document is detached).
+  //
+  // If for some reason the about:srcdoc navigation commits after this first
+  // call to `requestStorageAccess()` resolves, then the next assert will fail.
+  await new_iframe.contentDocument.requestStorageAccess();
+
+  assert_equals(new_iframe.contentDocument.URL, "about:blank");
+  // Now we're set up to trigger the Chromium bug that this test is exercising.
+  // The series of events that we're relying on, and trying to trigger, is:
+  //  1. Call `requestStorageAccess()` from the initial empty about:blank
+  //     Document, before it gets replaced by a same-origin navigation (to
+  //     about:srcdoc in this case).
+  //  2. While waiting for the Promise to resolve, the Document gets replaced by
+  //     the navigation. This new Document shares a Window with the old
+  //     now-detached initial one (per spec) since it is the first same-origin
+  //     navigation after the initial empty Document, and those "special" in
+  //     that they are done with replacement, and share the same Window.
+  //  3. After the navigation commits and the initial empty about:blank Document
+  //     is replaced, the `requestStorageAccess()` Promise finally resolves. The
+  //     callback runs in the renderer, since the lifetime of the callback is
+  //     tied to the Window.
+  //
+  // In Chromium, this previously put us in a weird state where the callback ran
+  // against a live Window, but was associated with a detached Document, which
+  // bucked some assumptions and crashed the renderer; see
+  // https://crbug.com/40937729. The root cause of this is discussed here:
+  // https://docs.google.com/document/d/1wmvqbNZGtp1QluxW1sntZd_W1o1XsHlQd-ywNqwyu-Y/edit.
+  return new_iframe.contentDocument.requestStorageAccess();
+}, "requestStorageAccess() from about:blank Document before it gets " +
+   "replaced with a srcdoc resource does not crash the host process");
+</script>
+</body>

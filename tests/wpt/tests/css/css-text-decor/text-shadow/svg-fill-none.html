@@ -1,0 +1,10 @@
+<!doctype html>
+<title>CSS Test: 'text-shadow' respects 'fill="none"'</title>
+<link rel="help" href="https://www.w3.org/TR/css-text-decor-3/#text-shadow-property">
+<link rel="match" href="svg-fill-none-ref.html">
+<style>
+svg { font: bold 64px Arial, sans-serif; text-shadow: grey 10px 10px }
+</style>
+<svg width="240" height="80">
+  <text x="30" y="50" fill="none" stroke="black" stroke-width="4">Hello</text>
+</svg>

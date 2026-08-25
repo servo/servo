@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>CSS Overflow: overflow replaced element with borders and negative end margins</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow/#scrollable">
+<meta name="assert" content="Checks that the scrollable overflow of a replaced elements with borders is properly computed even when it has a negative margin-right and margin-bottom.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="checkLayout('#wrapper');">
+  <div id="wrapper" style="width: 200px; height: 100px; overflow: scroll;"
+      data-expected-scroll-width="400" data-expected-scroll-height="300">
+    <img style="border: 50px solid green; width: 300px; height: 200px;
+                margin-right: -100px; margin-bottom: -200px;" />
+  </div>
+</body>

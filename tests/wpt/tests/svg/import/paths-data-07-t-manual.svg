@@ -1,0 +1,82 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Lofton Henderson" status="accepted"
+    version="$Revision: 1.7 $" testname="$RCSfile: paths-data-07-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/paths.html#PathData">
+        <p>
+          Verify the basic capability to handle the 'path' element, and its data attribute (d)
+          in combination with the straight-line path commands.
+          Two pairs of staircase figures are drawn using
+          respectively M,H,V,Z and m,h,v,z. The shapes in each pair are identical, with one stroked and
+          one filled.
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+      Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The rendered picture should match the reference image exactly
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: paths-data-07-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <g transform="scale(1.8) translate(-200, -150)">
+      <!-- ====================================================================== -->
+      <!-- Second Group of Stairs using m, h, v & z commands====================== -->
+      <!-- ====================================================================== -->
+      <text font-size="12" x="288" y="180">m, h, v, h</text>
+      <text font-size="12" x="288" y="194">v, h, v, h</text>
+      <text font-size="12" x="304" y="208">v, z</text>
+      <path id="Stairs_stroke_mhvz" fill="none" stroke="#000000" d="   m  240.00000  190.00000    h   30.00000   v   30.00000    h   30.00000   v   30.00000    h   30.00000   v   30.00000    h  -90.00000   v  -90.00000    z  "/>
+      <rect x="238.00000" y="188.00000" width="4" height="4" fill="#0000FF" stroke="none"/>
+      <rect x="268.00000" y="188.00000" width="4" height="4" fill="#0000FF" stroke="none"/>
+      <rect x="268.00000" y="218.00000" width="4" height="4" fill="#0000FF" stroke="none"/>
+      <rect x="298.00000" y="218.00000" width="4" height="4" fill="#0000FF" stroke="none"/>
+      <rect x="298.00000" y="248.00000" width="4" height="4" fill="#0000FF" stroke="none"/>
+      <rect x="328.00000" y="248.00000" width="4" height="4" fill="#0000FF" stroke="none"/>
+      <rect x="328.00000" y="278.00000" width="4" height="4" fill="#0000FF" stroke="none"/>
+      <rect x="238.00000" y="278.00000" width="4" height="4" fill="#0000FF" stroke="none"/>
+      <path id="Stairs_fill_mhvz" fill="#FFFF00" stroke="none" d="   m  350.00000  190.00000    h   30.00000   v   30.00000    h   30.00000   v   30.00000    h   30.00000   v   30.00000    h  -90.00000   v  -90.00000    z  "/>
+      <rect x="348.00000" y="188.00000" width="4" height="4" fill="#0000FF" stroke="none"/>
+      <rect x="378.00000" y="188.00000" width="4" height="4" fill="#0000FF" stroke="none"/>
+      <rect x="378.00000" y="218.00000" width="4" height="4" fill="#0000FF" stroke="none"/>
+      <rect x="408.00000" y="218.00000" width="4" height="4" fill="#0000FF" stroke="none"/>
+      <rect x="408.00000" y="248.00000" width="4" height="4" fill="#0000FF" stroke="none"/>
+      <rect x="438.00000" y="248.00000" width="4" height="4" fill="#0000FF" stroke="none"/>
+      <rect x="438.00000" y="278.00000" width="4" height="4" fill="#0000FF" stroke="none"/>
+      <rect x="348.00000" y="278.00000" width="4" height="4" fill="#0000FF" stroke="none"/>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.7 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

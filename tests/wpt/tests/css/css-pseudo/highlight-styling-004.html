@@ -1,0 +1,32 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: the light-dark() function in highlight pseudos</title>
+<link rel="author" title="Stephen Chenney" href="mailto:schenney@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#highlight-styling">
+<link rel="match" href="highlight-styling-004-ref.html">
+<meta name="assert" value="This test verifies that ::selection styles make use of the light-dark() function.">
+<script src="support/selections.js"></script>
+<link rel="stylesheet" href="support/highlights.css">
+<style>
+  :root {
+    color-scheme: light dark;
+  }
+
+  .light {
+    color-scheme: light;
+  }
+
+  .dark {
+    color-scheme: dark;
+  }
+
+  p::selection {
+    color: light-dark(green, blue);
+  }
+</style>
+<p>Test passes if Light is green and Dark is blue.</p>
+<main class="highlight_reftest">
+    <p class="light">Light</p>
+    <p class="dark">Dark</p>
+</main>
+<script>selectNodeContents(document.querySelector("main"));</script>

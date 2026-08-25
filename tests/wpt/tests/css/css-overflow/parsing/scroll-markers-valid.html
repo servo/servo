@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Overflow: parsing scroll-marker-group with valid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-group-property">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<div id="target"></div>
+<script>
+  test_valid_value('scroll-marker-group', 'initial');
+  test_valid_value('scroll-marker-group', 'inherit');
+  test_valid_value('scroll-marker-group', 'unset');
+  test_valid_value('scroll-marker-group', 'revert');
+
+  test_valid_value("scroll-marker-group", "none");
+  test_valid_value("scroll-marker-group", "before");
+  test_valid_value("scroll-marker-group", "after");
+</script>

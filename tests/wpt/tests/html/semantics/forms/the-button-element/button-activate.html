@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset="utf-8">
+<title></title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe src="button-activate-frame.html" onload="runTest()"></iframe>
+<script>
+var t = async_test("button activation behaviour submits form");
+function runTest() {
+  var iframe = document.querySelector('iframe');
+  iframe.onload = t.step_func(function() {
+    t.done();
+  });
+  var doc = iframe.contentDocument;
+  doc.querySelector('button').click();
+}
+</script>

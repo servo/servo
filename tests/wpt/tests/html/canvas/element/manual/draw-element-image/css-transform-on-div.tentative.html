@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+  <title>drawElementImage reflects CSS transforms</title>
+  <link rel="help" href="https://github.com/WICG/html-in-canvas">
+  <link rel="match" href="css-transform-on-div-ref.html">
+  <meta name="assert" value="Elements with CSS transforms render with the transforms.">
+  <meta name="fuzzy" content="maxDifference=0-11;totalPixels=0-498">
+  <script src="/common/reftest-wait.js"></script>
+  <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+  <style>
+    canvas {
+      background: #ccc;
+    }
+    div {
+      position: absolute;
+      width: 100px;
+      height: 100px;
+      background-color: green;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="a" width="200" height="200" layoutsubtree>
+    <div style="transform: rotate(45deg);"></div>
+  </canvas>
+  <canvas id="b" width="200" height="200" layoutsubtree>
+    <div style="transform: translateX(50px);"></div>
+  </canvas>
+  <br>
+  <canvas id="c" width="200" height="200" layoutsubtree>
+    <div style="transform: translateX(100px);"></div>
+  </canvas>
+  <canvas id="d" width="200" height="200" layoutsubtree>
+    <div style="transform: rotate(45deg);"></div>
+  </canvas>
+
+  <script>
+    window.onload = async () => {
+      // Draw a 45deg rotated div at 0, 0 with size 100x100. This should render
+      // a rotated green square that is clipped to 100x100, which appears as an
+      // octagon.
+      await waitForCanvasPaint(a);
+      a.getContext('2d').drawElementImage(a.firstElementChild, 0, 0);
+
+      // Draw a div translated by x=50px at 0, 0 with size 100x100. This should
+      // render the left 50x100 of a green square, as the right side is clipped
+      // out.
+      await waitForCanvasPaint(b);
+      b.getContext('2d').drawElementImage(b.firstElementChild, 0, 0);
+
+      // Draw a div translated by x=100px, but with the src rect adjusted so
+      // the rendering starts at the div's origin. The dest rect should be
+      // 50, 50 with size 100x100, so the result is a 100x100 green square at
+      // 50, 50.
+      await waitForCanvasPaint(c);
+      c.getContext('2d').drawElementImage(
+        c.firstElementChild,
+        /* src_x */ 100, /* src_y */ 0,
+        /* src_width */ 100, /* src_height */ 100,
+        /* dest_x */ 50, /* dest_y */ 50,
+        /* dest_width */ 100, /* dest_height */ 100
+      );
+
+      // Draw a 45deg rotated div at 50, 50 with the src and destination rects
+      // rects adjusted so that the rotated div is not clipped.
+      await waitForCanvasPaint(d);
+      // Amount needed to expand each edge of a 100x100 rect so that it can fit
+      // a 45deg rotated 100x100 square (approximately 20.7px).
+      const pad = (100 / 2) * (Math.SQRT2 - 1);
+      d.getContext('2d').drawElementImage(
+        d.firstElementChild,
+        /* src_x */ -pad, /* src_y */ -pad,
+        /* src_width */ 100 + (2 * pad), /* src_height */ 100 + (2 * pad),
+        /* dest_x */ 50 - pad, /* dest_y */ 50 - pad,
+        /* dest_width */ 100 + (2 * pad), /* dest_height */ 100 + (2 * pad)
+      );
+
+      takeScreenshot();
+    };
+  </script>
+</body>
+</html>

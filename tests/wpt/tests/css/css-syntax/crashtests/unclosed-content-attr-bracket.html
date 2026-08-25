@@ -1,0 +1,7 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Unclosed attr() bracket in content property should not crash</title>
+<link rel="help" href="https://crbug.com/355104333">
+<script>
+  document.documentElement.style = 'content: attr(test) / attr(';
+</script>

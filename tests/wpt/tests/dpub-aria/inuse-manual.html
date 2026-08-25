@@ -1,0 +1,141 @@
+<!doctype html>
+<html>
+<head>
+  <title>Check for Dpub Vocabulary Role Usage</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+setup({explicit_timeout: true, explicit_done: true });
+
+var theRoles = [
+  "doc-abstract",
+  "doc-acknowledgments",
+  "doc-afterword",
+  "doc-appendix",
+  "doc-backlink",
+  "doc-biblioentry",
+  "doc-bibliography",
+  "doc-biblioref",
+  "doc-chapter",
+  "doc-colophon",
+  "doc-conclusion",
+  "doc-cover",
+  "doc-credit",
+  "doc-credits",
+  "doc-dedication",
+  "doc-endnote",
+  "doc-endnotes",
+  "doc-epigraph",
+  "doc-epilogue",
+  "doc-errata",
+  "doc-example",
+  "doc-footnote",
+  "doc-foreword",
+  "doc-glossary",
+  "doc-glossref",
+  "doc-index",
+  "doc-introduction",
+  "doc-noteref",
+  "doc-notice",
+  "doc-pagebreak",
+  "doc-pagelist",
+  "doc-part",
+  "doc-preface",
+  "doc-prologue",
+  "doc-pullquote",
+  "doc-qna",
+  "doc-subtitle",
+  "doc-tip",
+  "doc-toc"
+  ];
+
+  /* runTests - run tests against the content
+   *
+   * @param content - a string with the content to test
+   */
+  function runTests(content) {
+    'use strict';
+    // keep track of the test number executed
+    var testCounter = 1;
+    // create a DOM tree for the content
+    var theDOM = document.createElement("body");
+
+    // check the content - if it has a body element, strip up to it and after the
+    // close
+
+    content = content.replace(/\n/g, " ");
+
+    if (content.search(/<body/i) !== -1) {
+      // there is an opening body tag
+      content = content.replace(/^.*<body[^>]*>/i, '');
+      if (content.search(/<\/[^>]*body/i) !== -1) {
+        content = content.replace(/<\/[^>]*body.*$/i, '');
+      }
+    }
+
+    var parseFail = false ;
+    var parseMessage  = "" ;
+
+    if ("" === content || content.search(/^ +$/) !== -1 ) {
+      // there is NO content
+      parseFail = true;
+      parseMessage = "Content is empty";
+    } else {
+      try {
+        // add the content into the created body element
+        theDOM.innerHTML = content;
+      }
+      catch(err) {
+        parseFail = true;
+        parseMessage =  err;
+      }
+    }
+
+    test(function() {
+      assert_false(parseFail, parseMessage);
+    }, testCounter + " Can parse submitted content");
+
+    testCounter += 1;
+
+    // loop over the tree looking for roles with the values in theRoles
+
+    theRoles.forEach(function(role) {
+      var tName = testCounter + " " + "Uses role " + role;
+      testCounter += 1;
+      var nodes = theDOM.querySelectorAll('[role~="'+role+'"]');
+      if (nodes.length) {
+        // there are matching nodes
+        test(function() {
+          assert_true(true, "Found the role");
+        }, tName);
+      }
+    });
+
+    done();
+  };
+
+on_event(document, "DOMContentLoaded", function() {
+  var runButton = document.getElementById('dpub-run') ;
+  var closeButton = document.getElementById('dpub-close') ;
+
+  on_event(runButton, "click", function() {
+    var content = document.getElementById("dpub-input");
+
+    runTests(content.value);
+  });
+});
+</script>
+</head>
+<body>
+  <p>Fill the textarea below with the contents of a <code>body</code> element
+  from HTML markup from that reflects your usage of
+  DPub-ARIA roles.  Then select "Run Test" to evaluate the content.</p>
+  <form name="dpub" id="dpub">
+    <textarea name="dpub-input" id="dpub-input" style="width: 90%; height: 10em" ></textarea>
+    <p><input type="button" id="dpub-run" name="Run Test" value="Run Test">
+    <input style="display: none" type="button" id="dpub-close"
+                                               name="Close" value="Close"></p>
+  </form>
+  <div id="log"></div>
+</body>
+</html>

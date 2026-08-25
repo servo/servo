@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Web Media API Snapshot Test Suite</title>
+    <link rel="stylesheet" href="css/bulma-0.7.5/bulma.min.css" />
+    <link rel="stylesheet" href="css/fontawesome.min.css" />
+    <script src="lib/keycodes.js"></script>
+    <script src="lib/wave-service.js"></script>
+    <script src="lib/davidshimjs/qrcode.js"></script>
+  </head>
+
+  <body>
+    <section class="section">
+      <div class="container">
+        <img
+          style="max-width: 300px; margin-bottom: 30px; margin-left: -15px;"
+          src="res/wavelogo_2016.jpg"
+          alt="WAVE (Web Application Video Ecosystem) Project Logo"
+        />
+
+        <h1 class="title is-spaced">
+          WAVE WMAS Test Suite
+        </h1>
+        <p class="subtitle">
+          <a href="https://github.com/w3c/webmediaapi/">GitHub</a> -
+        </p>
+      </div>
+
+      <div class="container" style="margin-top: 2em;">
+        <h2 class="title is-5">
+          New test session
+        </h2>
+        <div class="columns is-vcentered" style="margin-top: 20px;">
+          <div class="column is-narrow">
+            <div
+              id="qr-code"
+              style="
+                width: 256px;
+                height: 256px;
+                padding: 5px;
+                border: 1px gray solid;
+                border-radius: 3px;
+              "
+            ></div>
+          </div>
+          <div class="column">
+            <table style="margin-bottom: 1.5em;">
+              <tr>
+                <td class="has-text-weight-bold" style="padding-right: 1rem;">
+                  Token:
+                </td>
+                <td id="session-token" class="is-family-monospace"></td>
+              </tr>
+              <tr>
+                <td class="has-text-weight-bold" style="padding-right: 1rem;">
+                  Expires:
+                </td>
+                <td id="expiary-date"></td>
+              </tr>
+              <tr>
+                <td></td>
+                <td>
+                  <p class="is-size-7">(Session start revokes expiration.)</p>
+                </td>
+              </tr>
+            </table>
+
+            <p style="max-width: 32rem; margin-bottom: 1rem;">
+              Configure a new session on a second device by scanning the
+              QR-Code, or click the button:
+            </p>
+            <div
+              class="button"
+              style="margin-bottom: 1rem;"
+              id="configure-button"
+            >
+              <span class="icon"><i class="fas fa-sliders-h"></i></span>
+              <span>Configure Session</span>
+            </div>
+            <p style="max-width: 32rem;">
+              The tests will start running in this window, as soon as the
+              session is started from the configuration view.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="container" style="margin-top: 2em;">
+        <h2 class="title is-5">
+          Resume running session
+        </h2>
+        <article
+          id="unknown_token_error"
+          style="max-width: 30em; display: none;"
+          class="message is-danger"
+        >
+          <div class="message-body">
+            Unknown token
+          </div>
+        </article>
+        <div class="columns is-vcentered">
+          <div id="resume_token" class="column is-narrow"></div>
+          <div class="button-group column">
+            <button
+              id="resume-button"
+              class="button is-success tabbable"
+              type="submit"
+              data-uid="100"
+              autofocus
+            >
+              <span class="icon"><i class="fas fa-redo"></i></span>
+              <span>Resume</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <script>
+      var selectedTabbable = -1;
+
+      function removeClass(element, className) {
+        var elementClass = element.className;
+        var index = elementClass.indexOf(className);
+        if (index !== -1) {
+          element.className = elementClass.replace(className, "");
+        }
+      }
+
+      function addClass(element, className) {
+        element.className += " " + className;
+      }
+
+      function skipFocus(steps) {
+        var tabbables = document.getElementsByClassName("tabbable");
+        if (selectedTabbable === -1) {
+          selectedTabbable = 0;
+        } else {
+          removeClass(tabbables[selectedTabbable], "focused");
+          selectedTabbable += steps;
+        }
+
+        if (selectedTabbable >= tabbables.length) {
+          selectedTabbable = 0;
+        }
+
+        if (selectedTabbable < 0) {
+          selectedTabbable = tabbables.length - 1;
+        }
+
+        tabbables[selectedTabbable].focus();
+        addClass(tabbables[selectedTabbable], "focused");
+      }
+
+      function focusNext() {
+        skipFocus(1);
+      }
+
+      function focusPrevious() {
+        skipFocus(-1);
+      }
+
+      // Resume
+      var resumeToken = "";
+      var cookies = document.cookie.split(";");
+      for (var i = 0; i < cookies.length; i++) {
+        var cookie = cookies[i];
+        if (cookie.split("=")[0].replace(/ /g, "") === "resume_token") {
+          resumeToken = cookie.split("=")[1];
+          break;
+        }
+      }
+      if (!resumeToken) resumeToken = "";
+
+      var resumeButton = document.getElementById("resume-button");
+
+      var tokenText = document.getElementById("resume_token");
+      if (resumeToken) {
+        tokenText.innerText = "Last session: " + resumeToken;
+      } else {
+        tokenText.innerText = "No recent session.";
+        resumeButton.setAttribute("disabled", "");
+      }
+      var unknownTokenError = document.getElementById("unknown_token_error");
+      resumeButton.onclick = function (event) {
+        location.href = WEB_ROOT + "next.html?token=" + resumeToken;
+      };
+
+      resumeButton.onkeydown = function (event) {
+        var charCode =
+          typeof event.which === "number" ? event.which : event.keyCode;
+        if (ACTION_KEYS.indexOf(charCode) === -1) return;
+        location.href = WEB_ROOT + "next.html?token=" + resumeToken;
+      };
+
+      document.onkeydown = function (event) {
+        event = event || window.event;
+        var charCode =
+          typeof event.which === "number" ? event.which : event.keyCode;
+
+        if (ACTION_KEYS.indexOf(charCode) !== -1) {
+          event.preventDefault();
+          var tabbables = document.getElementsByClassName("tabbable");
+          var element = tabbables[selectedTabbable];
+          if (!element) return;
+          if (element.type === "checkbox") {
+            element.checked = !element.checked;
+          } else {
+            element.click();
+          }
+        }
+
+        if (PREV_KEYS.indexOf(charCode) !== -1) {
+          focusPrevious();
+        }
+
+        if (NEXT_KEYS.indexOf(charCode) !== -1) {
+          focusNext();
+        }
+      };
+
+      var lifeTime = 30 * 60 * 1000; // 30min
+      WaveService.createSession(
+        { expirationDate: new Date().getTime() + lifeTime },
+        function (token) {
+          var sessionTokenElement = document.getElementById("session-token");
+          sessionTokenElement.innerText = token;
+
+          WaveService.readSessionStatus(token, function (config) {
+            var expiaryDateElement = document.getElementById("expiary-date");
+            expiaryDateElement.innerText = config.expirationDate.toLocaleString();
+          });
+
+          var configurationUrl =
+            location.origin +
+            WEB_ROOT +
+            "configuration.html?token=" +
+            token +
+            "&resume=" +
+            resumeToken;
+          new QRCode(document.getElementById("qr-code"), configurationUrl);
+          document.getElementById("configure-button").onclick = function () {
+            window.open(configurationUrl, "_blank");
+          };
+
+          WaveService.addSessionEventListener(token, function (message) {
+            if (message.type === "resume") {
+              var resumeToken = message.data;
+              location.href = WEB_ROOT + "next.html?token=" + resumeToken;
+            }
+
+            if (message.type !== "status") return;
+            if (message.data === "pending") return;
+            location.href = WEB_ROOT + "next.html?token=" + token;
+          });
+        }
+      );
+      document.getElementById("resume-button").focus();
+    </script>
+  </body>
+</html>

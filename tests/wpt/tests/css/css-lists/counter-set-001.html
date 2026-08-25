@@ -1,0 +1,40 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>CSS Lists: basic tests for 'counter-set'</title>
+  <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.org">
+  <link rel="help" href="https://drafts.csswg.org/css-lists/#propdef-counter-set">
+  <link rel="match" href="counter-set-001-ref.html">
+  <style>
+html,body {
+  color:black; background-color:white; font:16px/1 monospace; padding:0; margin:0;
+}
+span::before { content: counters(n, '.'); }
+  </style>
+</head>
+<body>
+
+<span style="counter-set: n 7"></span><!-- "7" -->
+<span style="counter-set: n"></span><!-- "0" -->
+<span style="counter-set: n 8 n 7"></span><!-- "7" -->
+<span style="counter-set: n 6; counter-increment: n 2"></span><!-- "6" -->
+<span style="counter-set: n; counter-increment: n 2"></span><!-- "0" -->
+<x style="counter-reset: n 9">
+  <span style="counter-set: n 2"></span><!-- "2" -->
+</x>
+<span style="counter-increment: n"></span><!-- "3" -->
+<x style="counter-reset: n 9">
+  <span style="counter-set: n"></span><!-- "0" -->
+  <span style="counter-set: n 2"></span><!-- "2" -->
+  <x style="counter-reset: n 1">
+    <span style="counter-set: n 5"></span><!-- "2.5" -->
+  </x>
+</x>
+<span style="counter-increment: n"></span><!-- "3" -->
+
+</body>
+</html>

@@ -1,0 +1,12 @@
+<!doctype html>
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#algo-stretch">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="Item stretches to row flexbox's height when the row flexbox has a definite height but is a child of a column flexbox with an indefinite height." />
+<p>Test passes if there is a filled green square.</p>
+
+<div style="display: flex; flex-direction: column;">
+  <div style="height: 100px; display: flex;">
+    <div style="width: 100px; background: green;"></div>
+  </div>
+</div>

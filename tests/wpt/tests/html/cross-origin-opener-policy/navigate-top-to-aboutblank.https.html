@@ -1,0 +1,171 @@
+<title>
+  This tests the inheritance of COOP for navigations of the top document to about:blank.
+</title>
+<meta name=timeout content=long>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/html/cross-origin-opener-policy/resources/common.js"></script>
+
+
+<p>Non-initial empty documents (about:blank) should inherit their
+  cross-origin-opener-policy from the navigation's initiator top level document,
+  if the initiator and its top level document are same-origin, or default (to
+  unsafe-none) otherwise.
+</p>
+
+<ol>
+  <li>Create the opener popup with a given COOP <code>openerCOOP</code>.</li>
+  <li>Add iframe to the opener popup that is either same-origin or
+    cross-origin.
+  </li>
+  <li>Opener opens a new window, to a network document with the same origin and
+    COOP value as opener.</li>
+  <li>Opener's iframe navigates its parent frame (opener) to about:blank.</li>
+  <li>Verify the openee still has access to its opener.</li>
+</ol>
+
+<script>
+const executor_path = "/common/dispatcher/executor.html?pipe=";
+const same_origin = get_host_info().HTTPS_ORIGIN;
+const cross_origin = get_host_info().HTTPS_REMOTE_ORIGIN;
+const coop_same_origin_header =
+  '|header(Cross-Origin-Opener-Policy,same-origin)';
+const coop_same_origin_allow_popups_header =
+  '|header(Cross-Origin-Opener-Policy,same-origin-allow-popups)';
+const coop_unsafe_none_header =
+  '|header(Cross-Origin-Opener-Policy,unsafe-none)';
+
+function navigateToAboutBlankTest(
+  COOP_header,
+  iframe_origin,
+  expect_opener_closed
+){
+  return promise_test(async t => {
+    const this_window_token = token();
+    const opener_token = token();
+    const openee_token = token();
+    const iframe_token = token();
+
+    const opener_url = same_origin + executor_path + COOP_header +
+        `&uuid=${opener_token}`;
+    const openee_url = same_origin + executor_path + COOP_header +
+        `&uuid=${openee_token}`;
+    const iframe_url = iframe_origin + executor_path + `&uuid=${iframe_token}`;
+
+    t.add_cleanup(() => {
+      send(opener_token, "window.close()");
+      send(openee_token, "window.close()");
+    });
+
+    // 1. Create the opener window.
+    let opener_window_proxy = window.open(opener_url, opener_token);
+
+    // 2. Create the iframe.
+    send(opener_token, `
+      iframe = document.createElement('iframe');
+      iframe.src = "${iframe_url}";
+      document.body.appendChild(iframe);
+    `);
+
+    // 3. The opener opens openee window.
+    send(opener_token, `
+      window.openee = window.open(
+          '${openee_url.replace(/,/g, '\\,')}'
+      );
+    `);
+
+    // 4. Ensure the popup is fully loaded.
+    send(openee_token, `send("${this_window_token}", "Ack");`);
+    assert_equals(await receive(this_window_token), "Ack");
+
+    // 5. The iframe navigates its top-level document to about:blank. It needs
+    // to receive a user action as it may be cross-origin and it navigates top
+    // to a cross-origin document.
+    // https://github.com/WICG/interventions/issues/16
+    send(iframe_token, addScriptAndTriggerOnload(
+      "/resources/testdriver.js",
+      `${addScriptAndTriggerOnload("/resources/testdriver-vendor.js",
+        `
+        test_driver.bless('navigate top to about:blank', () => {
+          open("about:blank", "_top");
+        });
+      `)}
+    `));
+
+    // 6. Ensure opener is fully loaded and then retrieve the results.
+    send(openee_token, `
+      (async function() {
+        const timeout = 2000;
+        const retry_delay = 100;
+        for(let i = 0; i * retry_delay < timeout; ++i) {
+          // A try-catch block is used, because of same-origin policy,
+          // which may prevent the access to the opener if its origin changed,
+          // after a navigation to about:blank from the cross origin iframe.
+          try {
+            if (
+                window.opener === null ||
+                window.opener.closed ||
+                window.opener.document.location.href == "about:blank") {
+              send("${this_window_token}", "about:blank loaded");
+              return;
+            }
+          } catch(e) {
+            // The exception is thrown when about:blank is loaded and is
+            // cross-origin with openee.
+            send("${this_window_token}", "about:blank loaded");
+            return;
+          }
+          await new Promise(resolve => setTimeout(resolve, retry_delay));
+        }
+        send("${this_window_token}", "about:blank NOT loaded");
+      })()
+    `);
+    assert_equals(await receive(this_window_token), "about:blank loaded");
+
+    // 7. Retrieve and check the results.
+    send(openee_token, `
+      send(
+        "${this_window_token}",
+        window.opener === null || window.opener.closed);
+    `);
+
+    assert_equals(await receive(this_window_token), `${expect_opener_closed}`);
+  }, `Navigate top to about:blank from iframe with \
+opener COOP: ${COOP_header}, iframe origin: ${iframe_origin}`);
+};
+
+// iframe same-origin with its top-level embedder:
+// initial empty document and about:blank navigations initiated from the
+// same-origin iframe will inherit COOP from the iframe's top-level embedder.
+
+// Opener's navigation to about:blank stays in the same browsing context group.
+navigateToAboutBlankTest(
+  coop_same_origin_header,
+  same_origin,
+  false
+);
+
+// iframe cross-origin with its top-level embedder:
+// initial empty document and about:blank navigations initiated from the
+// cross-origin iframe will default COOP to unsafe-none.
+
+// Opener's navigation to about:blank doesn't inherit COOP, leading to a
+// browsing context group switch.
+navigateToAboutBlankTest(
+  coop_same_origin_header,
+  cross_origin,
+  true
+);
+
+// Same origin allow popups allows the navigation of top to the cross-origin
+// about:blank (origin inherited from the iframe) page, which does not have COOP
+// (initiator is a cross origin iframe).
+navigateToAboutBlankTest(
+  coop_same_origin_allow_popups_header,
+  cross_origin,
+  false
+);
+</script>

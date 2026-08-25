@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-2/#algo-line-break">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="For this purpose, floor the outer hypothetical main size of each flex item at zero.">
+<style>
+#flex {
+  display: flex;
+  flex-wrap: wrap;
+  flex-wrap: balance;
+  width: 100px;
+  height: 100px;
+  background: red;
+  overflow: clip;
+}
+#flex > div {
+  height: 50px;
+  background: green;
+  flex-grow: 1;
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="flex">
+  <div style="width: 150px;"></div>
+  <!-- Without clamping this item would "fit" on the first line, (e.g. see result with just flex-wrap:wrap). -->
+  <div style="width: 0px; margin-left: -50px; margin-right: -50px;"></div>
+</div>

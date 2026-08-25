@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Values and Units Test: computed value of 'background-position' when specified with calc() function</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-values-3/#calc-computed-value">
+
+  <meta content="This test verifies how 6 calc() functions are computed for 'background-position'." name="assert">
+
+  <script src="/resources/testharness.js"></script>
+
+  <script src="/resources/testharnessreport.js"></script>
+
+  <div id="target"></div>
+
+  <script>
+  function startTesting()
+  {
+
+  var targetElement = document.getElementById("target");
+
+    function verifyComputedStyle(property_name, initial_value, specified_value, expected_value)
+    {
+
+    test(function()
+      {
+
+      targetElement.style.setProperty(property_name, initial_value);
+
+      /*
+      The purpose of the initial_value is to act as a fallback
+      value in case the calc() function in the specified value
+      fails or in case it generates an invalid value. Since we
+      are running 6 consecutive tests on the same element,
+      then it is necessary to 'reset' its property to an
+      initial value.
+      */
+
+      targetElement.style.setProperty(property_name, specified_value);
+
+      assert_equals(getComputedStyle(targetElement)[property_name], expected_value);
+
+      }, `testing ${property_name}: ${specified_value}`);
+    }
+
+ /* verifyComputedStyle(property_name, initial_value, specified_value, expected_value) */
+
+    verifyComputedStyle("background-position", "initial", "calc(2px + 3px) calc(4px + 5px)", "5px 9px");
+
+    verifyComputedStyle("background-position", "initial", "calc(18px - 7px) calc(19px - 7px)", "11px 12px");
+
+    verifyComputedStyle("background-position", "initial", "calc(4 * 5px) calc(6px * 4)", "20px 24px");
+
+    verifyComputedStyle("background-position", "initial", "calc(100px / 4) calc(119px / 7)", "25px 17px");
+
+    verifyComputedStyle("background-position", "initial", "calc(6px + 21%) calc(7em + 22%)", "calc(21% + 6px) calc(22% + 112px)");
+
+  /*
+    "
+    (...) background-position has layout-dependent behavior for
+    percentage values, and thus does not resolve percentages
+    until used-value time. Due to this, background-position
+    computation preserves the percentage in a calc(). (...)
+    "
+    https://www.w3.org/TR/css-values-3/#calc-computed-value
+  */
+
+    verifyComputedStyle("background-position", "initial", "calc(-8px + 23%) calc(-9em + 24%)", "calc(23% - 8px) calc(24% - 144px)");
+
+ /* verifyComputedStyle(property_name, initial_value, specified_value, expected_value) */
+  }
+
+  startTesting();
+
+  </script>

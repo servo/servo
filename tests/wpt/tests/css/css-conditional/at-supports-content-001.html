@@ -1,0 +1,51 @@
+<!doctype html>
+<head>
+	<title>CSS Test (Conditional Rules): Invalid rules inside @supports</title>
+	<!-- This test is paired with at-media-content-001.html ; please keep them in sync -->
+	<link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact">
+	<link rel="help" href="https://www.w3.org/TR/css-conditional-3/#contents-of">
+	<link rel="help" href="https://www.w3.org/TR/css-conditional-3/#at-media">
+	<link rel="match" href="at-supports-001-ref.html">
+	<meta name="assert"
+	      content="Test passes if invalid rules within @media do not invalidate the @media rule.">
+	<style>
+		div {
+			background: red;
+			height: 20px;
+			width: 100px;
+		}
+
+		@supports (background: blue) {
+			@import "support/fail.css";
+			.test1 { background: green; }
+		}
+		@supports (background: blue) {
+			@namespace foo "http://www.w3.org/";
+			.test2 { background: green; }
+			.test2:not(foo|div) { background: red; }
+		}
+		@supports (background: blue) {
+			@charset "utf-8";
+			.test3 { background: green; }
+		}
+		@supports (background: blue) {
+			@unknown;
+			.test4 { background: green; }
+		}
+		@supports (background: blue) {
+			.test5 { background: green; }
+			@unknown {
+				.test5 { background: red; }
+			}
+		}
+	</style>
+</head>
+<body>
+	<p>Test passes if there is a <strong>filled green square</strong> and <strong>no red</strong>.</p>
+	<div class="test1"></div>
+	<div class="test2"></div>
+	<div class="test3"></div>
+	<div class="test4"></div>
+	<div class="test5"></div>
+</body>
+</html>

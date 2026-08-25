@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Layout performance tester with 1000 rows containing 10 floats and a normal flow div.</title>
+        <link rel="stylesheet" href="resources/floats.css" TYPE="text/css"></link>
+        <script src="../resources/runner.js"></script>
+        <script src="resources/floats.js"></script>
+    </head>
+    <body>
+        <pre id="log"></pre>
+        <script>
+            PerfTestRunner.measureTime({
+                description: "Measures performance of a float layout with 1000 rows containing 10x1 floats each.",
+                run: createFloatsLayoutTestFunction(10, 1, 0, 1, 1000)
+            });
+        </script>
+    </body>
+</html>

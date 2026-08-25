@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Counter style extending disclosure-closed responds to 'direction' (horizontal-tb)</title>
+<link rel="help" href="https://drafts.csswg.org/css-counter-styles-3/#disclosure-closed">
+<link rel="author" title="Ananya Anand" href="mailto:t-anaanand@microsoft.com">
+<link rel="mismatch" href="disclosure-closed-extends-direction-001-notref.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<meta name="flags" content="ahem">
+<meta name="assert" content="disclosure-closed points toward the inline-end, so a counter style extending it renders differently under direction:ltr than under direction:rtl in horizontal-tb writing mode.">
+<style>
+  @counter-style closed-ext { system: extends disclosure-closed; }
+  .cell {
+    width: 160px; height: 160px;
+    display: flex; align-items: center; justify-content: center;
+    font: 100px/1 Ahem;
+  }
+  .m::before { content: counter(x, closed-ext); }
+</style>
+<div class="cell"><span class="m" style="writing-mode: horizontal-tb; direction: ltr"></span></div>

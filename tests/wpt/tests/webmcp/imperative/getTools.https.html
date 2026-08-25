@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>WebMCP getTools()</title>
+<link rel="author" href="mailto:dom@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+promise_test(async (t) => {
+  const tool_c = { name: 'c', description: 'tool registered first', execute: () => {} };
+  const tool_b = { name: 'b', description: 'tool registered second', execute: () => {} };
+  const tool_a = { name: 'a', description: 'tool registered last', execute: () => {} };
+
+  const controller_b = new AbortController();
+
+  // Register tool_c, tool_b, and tool_a tools in this specific order.
+  await document.modelContext.registerTool(tool_c);
+  await document.modelContext.registerTool(tool_b, { signal: controller_b.signal });
+  await document.modelContext.registerTool(tool_a);
+
+  let tools = await document.modelContext.getTools();
+  assert_equals(tools.length, 3, 'Should find exactly the 3 registered tools');
+  assert_equals(tools[0].name, 'a', 'First tool should be "a"');
+  assert_equals(tools[1].name, 'b', 'Second tool should be "b"');
+  assert_equals(tools[2].name, 'c', 'Third tool should be "c"');
+
+  // Unregistering tool_b should still preserve lexicographical order.
+  controller_b.abort();
+
+  tools = await document.modelContext.getTools();
+  assert_equals(tools.length, 2, 'Should find exactly the 3 registered tools');
+  assert_equals(tools[0].name, 'a', 'First tool should be "a"');
+  assert_equals(tools[1].name, 'c', 'Second tool should be "c"');
+}, 'getTools should return all tools sorted in lexicographical order');
+</script>
+</body>
+</html>

@@ -1,0 +1,2 @@
+rules:
+- break-no-interpolation.html: [column-breaks]

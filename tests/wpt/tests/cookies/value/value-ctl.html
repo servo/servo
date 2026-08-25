@@ -1,0 +1,64 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>Test cookie value parsing with control characters</title>
+    <meta name=help href="https://tools.ietf.org/html/rfc6265#section-5.2">
+    <meta name="timeout" content="long">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script src="/cookies/resources/cookie-test.js"></script>
+  </head>
+  <body>
+    <div id=log></div>
+    <script>
+      // Tests for control characters (CTLs) in a cookie's value.
+      // CTLs are defined by RFC 5234 to be %x00-1F / %x7F.
+      const CTLS = getCtlCharacters();
+
+      // All CTLs, with the exception of %x09 (the tab character), should
+      // cause the cookie to be rejected.
+      for (const ctl of CTLS) {
+        if (ctl.code === 0x09) {
+          domCookieTest(
+            `test=${ctl.code}${ctl.chr}value`,
+            `test=${ctl.code}${ctl.chr}value`,
+            `Cookie with %x${ctl.code.toString(16)} in value is accepted (DOM).`);
+        } else {
+          domCookieTest(
+            `test=${ctl.code}${ctl.chr}value`,
+            '',
+            `Cookie with %x${ctl.code.toString(16)} in value is rejected (DOM).`);
+        }
+      }
+
+      // Note that per RFC 9110, %x00, %x0A, and %x0D characters in the HTTP
+      // header MUST either cause the HTTP message to be rejected or be
+      // replaced with %x20 (space) characters. Both cases will result in a
+      // passing test here. For more info, see:
+      // https://www.rfc-editor.org/rfc/rfc9110.html#section-5.5
+      for (const ctl of CTLS) {
+        if (ctl.code === 0x09) {
+          httpCookieTest(
+            `test=${ctl.code}${ctl.chr}value`,
+            `test=${ctl.code}${ctl.chr}value`,
+            `Cookie with %x${ctl.code.toString(16)} in value is accepted (HTTP).`);
+        } else if (ctl.code === 0x00 || ctl.code === 0x0A || ctl.code === 0x0D) {
+          httpCookieTest(
+            `test${ctl.code}${ctl.chr}name=${ctl.code}`,
+            `test${ctl.code} name=${ctl.code}`,
+            `Cookie with %x${ctl.code.toString(16)} in name is rejected or modified (HTTP).`,
+            /* defaultPath */ true, /* allowFetchFailure */ true);
+        } else {
+          httpCookieTest(
+            `test=${ctl.code}${ctl.chr}value`,
+            '',
+            `Cookie with %x${ctl.code.toString(16)} in value is rejected (HTTP).`);
+        }
+      }
+
+    </script>
+  </body>
+</html>

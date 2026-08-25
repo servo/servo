@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Digital Credentials: non-secure contexts</title>
+<link rel="help" href="https://github.com/w3c-fedid/digital-credentials/pull/426" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(() => {
+    assert_false(isSecureContext, "This test must run in an insecure context.");
+    assert_false("DigitalCredential" in self, "DigitalCredential must not be exposed in non-secure contexts.");
+  }, "When in a non-secure context, there is no access to digital credentials.");
+</script>

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/soft-navigation-heuristics/resources/soft-navigation-test-helper.js"></script>
+
+<button id="navigateButton">Click here!</button>
+<div id="content"></div>
+
+<script>
+  // The resources are relative to the directory of the initial url.
+  const RESOURCE_PATH = document.location.href.substring(
+      0, document.location.href.lastIndexOf('/') + 1);
+
+  async function runTest(t, softNavUrl, styleUrl, mode) {
+    navigateButton.addEventListener('click', async () => {
+      // Eagarly update the URL, but don't update the DOM until the stylesheet
+      // has been loaded.
+      history.pushState({}, '', softNavUrl);
+
+      // Step 3: modify the DOM.
+      const updateUI = () => {
+        content.innerHTML = '<div class="large">Hello World</div>';
+      };
+
+      // Step 2: optionally insert a style link and wait for the load handler.
+      const maybeAddStyleLink = () => {
+        if (mode !== 'style' && mode !== 'both') {
+          updateUI();
+          return;
+        }
+        // Add the style needed for the soft nav.
+        const link = document.createElement('link');
+        link.href = RESOURCE_PATH + styleUrl;
+        link.rel = 'stylesheet';
+        link.type = 'text/css';
+        link.addEventListener('load', updateUI, {once: true});
+        document.head.appendChild(link);
+      };
+
+      // Step 1: optionally preload a style link and wait for the load handler.
+      if (mode === 'preload' || mode === 'both') {
+        const link = document.createElement('link');
+        link.href = RESOURCE_PATH + styleUrl;
+        link.rel = 'preload';
+        link.as = 'style';
+        link.addEventListener('load', maybeAddStyleLink, {once: true});
+        document.head.appendChild(link);
+      } else {
+        maybeAddStyleLink();
+      }
+    }, {once: true});
+
+    const softNavPromise =
+        SoftNavigationTestHelper.getPerformanceEntries('soft-navigation');
+
+    if (test_driver) {
+      test_driver.click(navigateButton);
+    }
+
+    const helper = new SoftNavigationTestHelper(t);
+    const entries = await helper.withTimeoutMessage(
+        softNavPromise, 'Soft navigation entry never arrived.', 3000);
+    assert_equals(entries.length, 1, 'Expected exactly one soft navigation.');
+    assert_true(
+        entries[0].name.endsWith(softNavUrl), 'Unexpected Soft Navigation URL.');
+  }
+
+  promise_test(async t => {
+    const softNavUrl = '/page-2';
+    const styleUrl = 'resources/x-large-text.css';
+    return runTest(t, softNavUrl, styleUrl, /*mode=*/'both');
+  }, 'Soft Navigation Detection supports propagating through both preload and style link load events');
+</script>

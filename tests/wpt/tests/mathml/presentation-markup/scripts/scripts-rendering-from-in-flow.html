@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>scripts rendering from in-flow children</title>
+    <link rel="help" href="https://w3c.github.io/mathml-core/#script-and-limit-schemata">
+    <meta name="assert" content="Verify rendering of scripts and limits is only affected by in-flow children.">
+    <style>
+      .oof1 {
+          position: absolute;
+      }
+      .oof2 {
+          position: fixed;
+      }
+      .nobox {
+          display: none;
+      }
+    </style>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/mathml/support/layout-comparison.js"></script>
+    <script>
+      setup({ explicit_done: true });
+      window.addEventListener("load", runTests);
+
+      function runTests() {
+        let container = document.querySelector("#container");
+        const epsilon = 1;
+
+        for (let math of container.children) {
+          let tagName = math.id;
+          let element = math.firstElementChild;
+          let reference = element.nextElementSibling;
+
+          test(function() {
+            compareLayout(element, reference, epsilon);
+          }, `Rendering of ${tagName} should only be affected by in-flow children`);
+        }
+
+        done();
+      }
+    </script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <div id="container">
+      <math id="mmultiscripts">
+        <mmultiscripts>
+          <mspace width="32px" class="oof1"/>
+          <mspace width="16px" class="oof2"/>
+          <mspace width="8px" class="nobox"/>
+          <mspace width="128px" height="24px" style="background: lightblue"/>
+          <mspace width="32px" class="oof1"/>
+          <mspace width="16px" class="oof2"/>
+          <mspace width="8px" class="nobox"/>
+          <mspace width="64px" height="8px" style="background: lightgreen"/>
+          <mspace width="32px" class="oof1"/>
+          <mspace width="16px" class="oof2"/>
+          <mspace width="8px" class="nobox"/>
+          <mspace width="32px" height="16px" style="background: lightgreen"/>
+          <mspace width="32px" class="oof1"/>
+          <mspace width="16px" class="oof2"/>
+          <mspace width="8px" class="nobox"/>
+          <mspace width="96px" height="48px" style="background: lightgreen"/>
+          <mspace width="32px" class="oof1"/>
+          <mspace width="16px" class="oof2"/>
+          <mspace width="8px" class="nobox"/>
+          <mspace width="48px" height="32px" style="background: lightgreen"/>
+          <mspace width="32px" class="oof1"/>
+          <mspace width="16px" class="oof2"/>
+          <mspace width="8px" class="nobox"/>
+          <mprescripts/>
+          <mspace width="32px" class="oof1"/>
+          <mspace width="16px" class="oof2"/>
+          <mspace width="8px" class="nobox"/>
+          <mspace width="32px" height="16px" style="background: lightsalmon"/>
+          <mspace width="32px" class="oof1"/>
+          <mspace width="16px" class="oof2"/>
+          <mspace width="8px" class="nobox"/>
+          <mspace width="16px" height="48px" style="background: lightsalmon"/>
+          <mspace width="32px" class="oof1"/>
+          <mspace width="16px" class="oof2"/>
+          <mspace width="8px" class="nobox"/>
+        </mmultiscripts>
+
+        <mmultiscripts>
+          <mspace width="128px" height="24px" style="background: lightblue"/>
+          <mspace width="64px" height="8px" style="background: lightgreen"/>
+          <mspace width="32px" height="16px" style="background: lightgreen"/>
+          <mspace width="96px" height="48px" style="background: lightgreen"/>
+          <mspace width="48px" height="32px" style="background: lightgreen"/>
+          <mprescripts/>
+          <mspace width="32px" height="16px" style="background: lightsalmon"/>
+          <mspace width="16px" height="48px" style="background: lightsalmon"/>
+        </mmultiscripts>
+      </math>
+
+      <math id="munder">
+        <munder>
+          <mspace width="32px" class="oof1"/>
+          <mspace width="16px" class="oof2"/>
+          <mspace width="8px" class="nobox"/>
+          <mspace width="128px" height="24px" style="background: lightblue"/>
+          <mspace width="32px" class="oof1"/>
+          <mspace width="16px" class="oof2"/>
+          <mspace width="8px" class="nobox"/>
+          <mspace width="64px" height="8px" style="background: lightgreen"/>
+          <mspace width="32px" class="oof1"/>
+          <mspace width="16px" class="oof2"/>
+          <mspace width="8px" class="nobox"/>
+        </munder>
+
+        <munder>
+          <mspace width="128px" height="24px" style="background: lightblue"/>
+          <mspace width="64px" height="8px" style="background: lightgreen"/>
+        </munder>
+      </math>
+
+      <math id="mover">
+        <mover>
+          <mspace width="32px" class="oof1"/>
+          <mspace width="16px" class="oof2"/>
+          <mspace width="8px" class="nobox"/>
+          <mspace width="128px" height="24px" style="background: lightblue"/>
+          <mspace width="32px" class="oof1"/>
+          <mspace width="16px" class="oof2"/>
+          <mspace width="8px" class="nobox"/>
+          <mspace width="32px" height="16px" style="background: lightsalmon"/>
+          <mspace width="32px" class="oof1"/>
+          <mspace width="16px" class="oof2"/>
+          <mspace width="8px" class="nobox"/>
+        </mover>
+
+        <mover>
+          <mspace width="128px" height="24px" style="background: lightblue"/>
+          <mspace width="32px" height="16px" style="background: lightsalmon"/>
+        </mover>
+      </math>
+
+      <math id="munderover">
+        <munderover>
+          <mspace width="32px" class="oof1"/>
+          <mspace width="16px" class="oof2"/>
+          <mspace width="8px" class="nobox"/>
+          <mspace width="128px" height="24px" style="background: lightblue"/>
+          <mspace width="32px" class="oof1"/>
+          <mspace width="16px" class="oof2"/>
+          <mspace width="8px" class="nobox"/>
+          <mspace width="64px" height="8px" style="background: lightgreen"/>
+          <mspace width="32px" class="oof1"/>
+          <mspace width="16px" class="oof2"/>
+          <mspace width="8px" class="nobox"/>
+          <mspace width="32px" height="16px" style="background: lightsalmon"/>
+          <mspace width="32px" class="oof1"/>
+          <mspace width="16px" class="oof2"/>
+          <mspace width="8px" class="nobox"/>
+        </munderover>
+
+        <munderover>
+          <mspace width="128px" height="24px" style="background: lightblue"/>
+          <mspace width="64px" height="8px" style="background: lightgreen"/>
+          <mspace width="32px" height="16px" style="background: lightsalmon"/>
+        </munderover>
+      </math>
+
+      <math id="msub">
+        <msub>
+          <mspace width="32px" class="oof1"/>
+          <mspace width="16px" class="oof2"/>
+          <mspace width="8px" class="nobox"/>
+          <mspace width="128px" height="24px" style="background: lightblue"/>
+          <mspace width="32px" class="oof1"/>
+          <mspace width="16px" class="oof2"/>
+          <mspace width="8px" class="nobox"/>
+          <mspace width="64px" height="8px" style="background: lightgreen"/>
+          <mspace width="32px" class="oof1"/>
+          <mspace width="16px" class="oof2"/>
+          <mspace width="8px" class="nobox"/>
+        </msub>
+
+        <msub>
+          <mspace width="128px" height="24px" style="background: lightblue"/>
+          <mspace width="64px" height="8px" style="background: lightgreen"/>
+        </msub>
+      </math>
+
+      <math id="msup">
+        <msup>
+          <mspace width="32px" class="oof1"/>
+          <mspace width="16px" class="oof2"/>
+          <mspace width="8px" class="nobox"/>
+          <mspace width="128px" height="24px" style="background: lightblue"/>
+          <mspace width="32px" class="oof1"/>
+          <mspace width="16px" class="oof2"/>
+          <mspace width="8px" class="nobox"/>
+          <mspace width="32px" height="16px" style="background: lightsalmon"/>
+          <mspace width="32px" class="oof1"/>
+          <mspace width="16px" class="oof2"/>
+          <mspace width="8px" class="nobox"/>
+        </msup>
+
+        <msup>
+          <mspace width="128px" height="24px" style="background: lightblue"/>
+          <mspace width="32px" height="16px" style="background: lightsalmon"/>
+        </msup>
+      </math>
+
+      <math id="msubsup">
+        <msubsup>
+          <mspace width="32px" class="oof1"/>
+          <mspace width="16px" class="oof2"/>
+          <mspace width="8px" class="nobox"/>
+          <mspace width="128px" height="24px" style="background: lightblue"/>
+          <mspace width="32px" class="oof1"/>
+          <mspace width="16px" class="oof2"/>
+          <mspace width="8px" class="nobox"/>
+          <mspace width="64px" height="8px" style="background: lightgreen"/>
+          <mspace width="32px" class="oof1"/>
+          <mspace width="16px" class="oof2"/>
+          <mspace width="8px" class="nobox"/>
+          <mspace width="32px" height="16px" style="background: lightsalmon"/>
+          <mspace width="32px" class="oof1"/>
+          <mspace width="16px" class="oof2"/>
+          <mspace width="8px" class="nobox"/>
+        </msubsup>
+
+        <msubsup>
+          <mspace width="128px" height="24px" style="background: lightblue"/>
+          <mspace width="64px" height="8px" style="background: lightgreen"/>
+          <mspace width="32px" height="16px" style="background: lightsalmon"/>
+        </msubsup>
+      </math>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#abspos-breaking">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<!-- Fragmented OOF element with block-size percentage resolution and overflow. -->
+<style>
+  #multicol {
+    /* Set things up so that the absolutely positioned element takes up two
+       columns of 50px each. Start in the second column so offset by negative
+       50px margin. */
+    columns: 5;
+    width: 250px;
+    height: 100px;
+    margin-left: -50px;
+    column-fill: auto;
+    column-gap: 0px;
+  }
+  .rel {
+    position: relative;
+  }
+  .abs {
+    position: absolute;
+    top: 0px;
+    width: 50px;
+    height: 100%;
+    background: green;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="multicol">
+  <div style="height: 100px;"></div>
+  <div class="rel">
+    <div class="abs"></div>
+    <div style="width: 44px; height: 200px;">
+      <div style="width: 33px; height: 400px;"></div>
+    </div>
+  </div>
+</div>

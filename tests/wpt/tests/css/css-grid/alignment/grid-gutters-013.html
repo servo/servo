@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Gutters adjacent to collapsed tracks also collapse</title>
+<link rel="help" href="https://www.w3.org/TR/css-grid-1/#gutters">
+<link rel="help" href="https://www.w3.org/TR/css-align-3/#gap-shorthand">
+<link rel="help" href="https://www.w3.org/TR/css-align-3/#gap-legacy">
+<link rel="help" href="https://www.w3.org/TR/css-grid-1/#repeat-notation">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<meta name="assert" content="This test checks that gutters adjacent to collapsed tracks don't reduce the space available for aligning adjacent grid items." />
+<style>
+    #grid {
+        display: grid;
+        margin-top: -50px;
+        margin-left: -50px;
+        width: 500px;
+        height: 500px;
+        grid-gap: 100px;
+        grid-template-rows: repeat(auto-fit, 200px);
+        grid-template-columns: repeat(auto-fit, 200px);
+        align-items: center;
+        justify-items: center;
+        background: linear-gradient(red, red) no-repeat 50px 50px / 100px 100px;
+    }
+
+    #grid > div {
+        background-color: green;
+        width: 50%;
+        height: 50%;
+    }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="grid">
+    <div></div>
+</div>

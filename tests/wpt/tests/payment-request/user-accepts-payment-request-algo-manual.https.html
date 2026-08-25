@@ -1,0 +1,230 @@
+<!doctype html>
+<meta charset="utf8">
+<link rel="help" href="https://w3c.github.io/payment-request/#user-accepts-the-payment-request-algorithm">
+<title>
+  User accepts the payment request algorithm
+</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+setup({ explicit_done: true, explicit_timeout: true });
+const applePay = Object.freeze({
+  supportedMethods: "https://apple.com/apple-pay",
+  data: {
+    version: 3,
+    merchantIdentifier: "merchant.com.example",
+    countryCode: "US",
+    merchantCapabilities: ["supports3DS"],
+    supportedNetworks: ["visa"],
+  }
+});
+const basicCardMethod = Object.freeze({
+  supportedMethods: "basic-card",
+});
+const validMethod = Object.freeze({
+  supportedMethods: "this-is-just-for-testings-will-never-match",
+});
+const methods = Object.freeze([basicCardMethod, validMethod, applePay]);
+const validAmount = Object.freeze({
+  currency: "USD",
+  value: "5.00",
+});
+const shippingOptions = [
+  Object.freeze({
+    id: "option1",
+    label: "Option 1",
+    amount: validAmount,
+    selected: false,
+  }),
+  Object.freeze({
+    id: "option 2",
+    label: "Option 2",
+    amount: validAmount,
+    selected: true,
+  }),
+];
+
+const detailsNoShippingOptions = Object.freeze({
+  total: {
+    label: "Total due",
+    amount: validAmount,
+  },
+});
+
+const detailsWithShippingOptions = Object.assign({}, detailsNoShippingOptions, {
+  shippingOptions,
+});
+
+const optionsRequestNothing = Object.freeze({
+  requestShipping: false,
+  requestPayerEmail: false,
+  requestPayerName: false,
+  requestPayerPhone: false,
+});
+
+const optionsRequestEverything = Object.freeze({
+  requestShipping: true,
+  requestPayerEmail: true,
+  requestPayerName: true,
+  requestPayerPhone: true,
+});
+
+test(() => {
+  // smoke test
+  try {
+    new PaymentRequest(methods, detailsNoShippingOptions);
+  } catch (err) {
+    done();
+    throw err;
+  }
+}, "Must be able to construct a payment request (smoke test)");
+
+function testAcceptRequestAlgorithm(
+  button,
+  details,
+  options = {},
+  expectedResponse = {}
+) {
+  button.disabled = true;
+  promise_test(async t => {
+    const request = new PaymentRequest(methods, details, options);
+    const response = await request.show();
+    assert_true(
+      response instanceof PaymentResponse,
+      "Expected an instance of PaymentResponse."
+    );
+    // Response [[calledComplete]] is false, so this shouldn't throw
+    await response.complete("success");
+    // For good measure, test that subsequent complete()
+    for (const state of [undefined, "success", "fail", "unknown"]) {
+      await promise_rejects_dom(
+        t,
+        "InvalidStateError",
+        response.complete(state),
+        "Response [[calledComplete]] is true, so InvalidStateError"
+      );
+    }
+    assert_equals(
+      request.id,
+      response.requestId,
+      "Request and response ids must match."
+    );
+    assert_true(response.details instanceof Object, "Expected an object");
+    assert_equals(
+      response.shippingAddress,
+      request.shippingAddress,
+      "Request and response must reference same shippingAddress (or both null)."
+    );
+    assert_equals(
+      response.shippingOption,
+      request.shippingOption,
+      "Request and response must be the same value (or both null)."
+    );
+    if (options.requestShipping === true) {
+      assert_true(
+        response.shippingAddress instanceof ContactAddress,
+        "Expected an instance of ContactAddress."
+      );
+    }
+    const expected = {
+      methodName: "basic-card",
+      payerEmail: options.requestPayerEmail
+        ? expectedResponse.payerEmail
+        : null,
+      payerName: options.requestPayerName ? expectedResponse.payerName : null,
+      payerPhone: options.requestPayerPhone
+        ? expectedResponse.payerPhone
+        : null,
+    };
+    for (const [attr, expectedValue] of Object.entries(expected)) {
+      assert_equals(
+        response[attr],
+        expectedValue,
+        `response.${attr} must be ${expectedValue}`
+      );
+    }
+    await promise_rejects_dom(
+      t,
+      "InvalidStateError",
+      request.show(),
+      "Request [[state]] is closed, so InvalidStateError"
+    );
+  }, button.textContent.trim());
+}
+
+</script>
+
+<section>
+  <h2 id="user-accepts-payment-request">User accepts payment request</h2>
+  <p>
+    Click on each button in sequence from top to bottom without refreshing the page.
+    Each button will bring up the Payment Request UI window.
+  </p>
+  <p>
+    When shown the payment sheet, please input a credit card and select Pay.
+  </p>
+  <ol>
+    <li>
+      <button onclick="
+        const detailsWithId = Object.assign({}, detailsNoShippingOptions, { id: 'pass' });
+        testAcceptRequestAlgorithm(this, detailsWithId, optionsRequestNothing);">
+        User accepts payment request, but not shipping is requested.
+      </button> Use any credit card to pay.
+    </li>
+    <li>
+      <button onclick="
+        const requestShipping = Object.assign({}, optionsRequestNothing, {requestShipping: true});
+        const expectedValues = { shippingOption: 'option 2' };
+        testAcceptRequestAlgorithm(this, detailsWithShippingOptions, requestShipping, expectedValues);">
+        User accepts payment request, merchant requests shipping.
+      </button> Select any shipping option, and use any credit card to pay.
+    </li>
+    <li>
+      <button onclick="
+        const requestPayerEmail = Object.assign({}, optionsRequestNothing, {requestPayerEmail: true});
+        const expectValues = { payerEmail: 'wpt@w3.org' };
+        testAcceptRequestAlgorithm(this, detailsNoShippingOptions, requestPayerEmail, expectValues);">
+        User accepts payment request, merchant requests email.
+      </button>
+      When prompted, please use "wpt@w3.org" as the email.
+    </li>
+    <li>
+      <button onclick="
+        const requestPayerPhone = Object.assign({}, optionsRequestNothing, {requestPayerPhone: true});
+        const expectValues = { payerPhone: '+12345678910' };
+        testAcceptRequestAlgorithm(this, detailsNoShippingOptions, requestPayerPhone, expectValues);">
+        User accepts payment request, merchant requests phone.
+      </button>
+      When prompted, please use "+12345678910" as the phone number.
+    </li>
+    <li>
+      <button onclick="
+        const requestPayerName = Object.assign({}, optionsRequestNothing, {requestPayerName: true});
+        const expectValues = { payerName: 'web platform test' };
+        testAcceptRequestAlgorithm(this, detailsNoShippingOptions, requestPayerName, expectValues);">
+        User accepts payment request, merchant requests payer's name.
+      </button>
+      When prompted, please use "web platform test" as the payer name.
+    </li>
+    <li>
+      <button onclick="
+        const expectValues = {
+          payerEmail: 'wpt@w3.org',
+          payerName: 'web platform test',
+          payerPhone: '+12345678910',
+          shippingOption: 'option 2',
+        };
+        testAcceptRequestAlgorithm(this, detailsWithShippingOptions, optionsRequestEverything, expectValues);">
+        User accepts payment request, merchant requests everything.
+      </button>
+      When prompted, please use: "+12345678910" as the phone number, "web platform test" as the payer name, and "wpt@w3.org" as the email. Then press Pay.
+    </li>
+    <li>
+      <button onclick="done()">Done</button>
+    </li>
+  </ol>
+</section>
+<small>
+  If you find a buggy test, please <a href="https://github.com/web-platform-tests/wpt/issues">file a bug</a>
+  and tag one of the <a href="https://github.com/web-platform-tests/wpt/blob/master/payment-request/META.yml">suggested reviewers</a>.
+</small>

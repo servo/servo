@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html id="top">
+<head>
+<meta charset="utf-8">
+<title>View timeline with sticky</title>
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#viewtimeline-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="/scroll-animations/scroll-timelines/testcommon.js"></script>
+<script src="/scroll-animations/view-timelines/testcommon.js"></script>
+<style>
+
+#container {
+  width: 500px;
+  height: 500px;
+  overflow: auto;
+  white-space: nowrap;
+}
+.space {
+  display: inline-block;
+  width: 500px;
+  height: 400px;
+  white-space: nowrap;
+}
+#target {
+  display: inline-block;
+  background: yellow;
+  position: sticky;
+  left: 0px;
+  right: 0px;
+  width: 50px;
+  height: 400px;
+}
+
+</style>
+</head>
+<body>
+<div id="container"><!--
+  --><div class="space"></div><!--
+  --><div class="space"><!--
+    --><div style="display:inline-block; width:200px"></div><!--
+    --><div id="target"></div><!--
+  --></div><!--
+  --><div class="space"></div><!--
+--></div>
+<script type="text/javascript">
+
+promise_test(async t => {
+  await runTimelineRangeTest(t, {
+    rangeStart: { rangeName: 'cover', offset: CSS.percent(0) } ,
+    rangeEnd: { rangeName: 'cover', offset: CSS.percent(100) },
+    startOffset: 0,
+    endOffset: 1000
+  });
+  await runTimelineRangeTest(t, {
+    rangeStart: { rangeName: 'contain', offset: CSS.percent(0) } ,
+    rangeEnd: { rangeName: 'contain', offset: CSS.percent(100) },
+    startOffset: 50,
+    endOffset: 950
+  });
+  await runTimelineRangeTest(t, {
+    rangeStart: { rangeName: 'entry', offset: CSS.percent(0) },
+    rangeEnd: { rangeName: 'entry', offset: CSS.percent(100) },
+    startOffset: 0,
+    endOffset: 50
+  });
+  await runTimelineRangeTest(t, {
+    rangeStart: { rangeName: 'entry-crossing', offset: CSS.percent(0) },
+    rangeEnd: { rangeName: 'entry-crossing', offset: CSS.percent(100) },
+    startOffset: 0,
+    endOffset: 50
+  });
+  await runTimelineRangeTest(t, {
+    rangeStart:  { rangeName: 'exit', offset: CSS.percent(0) },
+    rangeEnd: { rangeName: 'exit', offset: CSS.percent(100) },
+    startOffset: 950,
+    endOffset: 1000
+  });
+  await runTimelineRangeTest(t, {
+    rangeStart:  { rangeName: 'exit-crossing', offset: CSS.percent(0) },
+    rangeEnd: { rangeName: 'exit-crossing', offset: CSS.percent(100) },
+    startOffset: 950,
+    endOffset: 1000
+  });
+}, 'View timeline with sticky target, block axis.' );
+
+</script>
+</body>
+</html>

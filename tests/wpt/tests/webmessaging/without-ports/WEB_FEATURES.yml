@@ -1,0 +1,5 @@
+rules:
+- 023.html: [channel-messaging]
+- 024.html: [channel-messaging]
+- 025.html: [channel-messaging]
+- "*": [postmessage]

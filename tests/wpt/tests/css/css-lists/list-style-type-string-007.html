@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>String value of list-style-type with Ahem font</title>
+  <link rel="author" title="Oriol Brufau" href="mailto:obrufau@gmail.com">
+  <link rel="help" href="https://drafts.csswg.org/css-lists-3/#valdef-list-style-type-string">
+  <link rel="match" href="list-style-type-string-007-ref.html">
+  <meta name="assert" content="This test checks that list-style-type can set the marker string with the Ahem font.">
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+  <style>
+    main {
+      width: 300px;
+      overflow: auto;
+      padding: 10px 0;
+    }
+    .list {
+      font: 10px/1 Ahem;
+      padding-inline-start: 100px;
+      margin: 0;
+      width: 50px;
+      float: left;
+    }
+    .rtl { direction: rtl; }
+    .list > :nth-child(1) { list-style-type: ""; }
+    .list > :nth-child(2) { list-style-type: "XXX"; }
+    .list > :nth-child(3) { list-style-type: "XXXppp"; }
+    .list > :nth-child(4) { list-style-type: " XXX ppp "; }
+    .list > :nth-child(5) { list-style-type: "XXX   ppp"; }
+    .list > :nth-child(6) { list-style-type: "  XX Xp pp  "; }
+    .list > :nth-child(7) { list-style-type: "X X Xp p p"; }
+    .list > :nth-child(8) { list-style-type: "XXXXpXX XXXpXXX"; }
+    .list > :nth-child(9) { list-style-type: " XXXXpXX XXXpXXX "; }
+  </style>
+</head>
+<body>
+  <main>
+    <ol class="list">
+      <li>É1</li>
+      <li>É2</li>
+      <li>É3</li>
+      <li>É4</li>
+      <li>É5</li>
+      <li>É6</li>
+      <li>É7</li>
+      <li>É8</li>
+      <li>É9</li>
+    </ol>
+    <ul class="list rtl">
+      <li>1É</li>
+      <li>2É</li>
+      <li>3É</li>
+      <li>4É</li>
+      <li>5É</li>
+      <li>6É</li>
+      <li>7É</li>
+      <li>8É</li>
+      <li>9É</li>
+    </ul>
+  </main>
+</body>
+</html>

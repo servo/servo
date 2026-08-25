@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Security-Policy" content="object-src 'self'; connect-src 'none'">
+    <title>Byte-range requests for an object's PDF are governed by object-src, not connect-src</title>
+    <link rel="help" href="https://www.w3.org/TR/CSP3/#directive-object-src">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+    <script>
+      async_test(t => {
+        const violations = [];
+        window.addEventListener("securitypolicyviolation", t.step_func(e => violations.push(e)));
+
+        const object = document.createElement("object");
+        object.type = "application/pdf";
+        object.width = 100;
+        object.height = 100;
+        object.data = "/content-security-policy/support/incremental-pdf.py?chunksize=1024&chunkdelay=16";
+        document.body.appendChild(object);
+
+        window.addEventListener("load", t.step_func(() => {
+          t.step_timeout(t.step_func_done(() => {
+            assert_array_equals(violations.map(e => e.effectiveDirective), [],
+                                "no CSP violation should be reported");
+          }), 100);
+        }));
+      }, "Loads an object element makes for its PDF content are matched against object-src");
+    </script>
+</body>
+</html>

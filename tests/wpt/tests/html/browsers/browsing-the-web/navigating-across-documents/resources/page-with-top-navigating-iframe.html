@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src=/common/get-host-info.sub.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<title>Page that embeds an iframe that navigates its top</title>
+<script>
+addEventListener('load', async () => {
+  test_driver.set_test_context(opener);
+  const urlParams = new URLSearchParams(location.search);
+
+  const parentUserGesture = urlParams.get('parent_user_gesture') === 'true';
+  if (parentUserGesture)
+    await test_driver.bless("Giving parent frame user activation");
+
+  const sameOrigin = urlParams.get('same_origin') === 'true';
+  const { OTHER_ORIGIN, ORIGIN } = get_host_info();
+  const origin = sameOrigin ? ORIGIN : OTHER_ORIGIN;
+
+  const path = new URL("top-navigating-page.html" , window.location).pathname;
+
+  const userGesture = urlParams.get('user_gesture') === 'true';
+  const query = `?user_gesture=${userGesture}`;
+
+  const iframe = document.createElement('iframe');
+  iframe.src = origin + path + query;
+  document.body.appendChild(iframe);
+});
+</script>
+

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>Tests for ruby-overhang: spaces with preserved tabs</title>
+<link rel="help" href="https://drafts.csswg.org/css-ruby-1/#ruby-overhang">
+<link rel="match" href="ruby-overhang-spaces-022-ref.html">
+<meta name=assert content="With 'ruby-overhang: spaces', excess ruby overhangs on top of the blank part of multiple opening/closing fullwidth punctuation, but no further.">
+<style>
+ruby {
+    ruby-overhang: spaces;
+    ruby-align: center;
+}
+div {
+    font-size: 20px;
+    border-left: 5px solid;
+    border-right: 5px solid;
+    width: max-content;
+}
+.space-all {
+    text-spacing-trim: space-all;
+}
+.test { border-color: orange; }
+.measure { border-color: blue; }
+</style>
+<body lang="ja">
+<p>Test passes if orange and blue lines are aligned.
+<div class=test>あ（）<ruby>あ<rt>ああああああああ</ruby>（）あ</div>
+<div class=measure>あ（<span class="space-all">）</span>　あ　<span class="space-all">（</span>）あ</div>
+</body>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HTML5 Sandbox: Block parent content to access sandbox child iframe content when sandbox attribute exists</title>
+    <meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+    <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+    <link rel="help" href="http://dev.w3.org/html5/spec/Overview.html#sandboxed-origin-browsing-context-flag" />
+    <meta name="assert" content="Block parent content to access sandbox child iframe content when sandbox attribute exists" />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+    <script type="text/javascript">
+
+     var t = async_test("Block parent content to access sandbox child iframe content when sandbox attribute exists");
+
+    function callback(event)
+    {
+        t.step(function(){
+            assert_true('sandbox' in document.createElement('iframe'));
+            try { document.getElementById('sandboxIframe').contentDocument.title; assert_true(false);}
+            catch(e) {assert_true(true);}
+        });
+        t.done();
+    }
+    </script>
+    <div id=log></div>
+
+    <iframe id='sandboxIframe' src="support/standalone-iframe-content.htm" sandbox onload="callback()" style="display : none"></iframe>
+</body>
+</html>

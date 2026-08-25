@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Test case for text-decoration shorthands</title>
+        <meta name="assert" content="text-decoration: text-decoration-thickness is parsed as part of the text-decoration shorthand">
+        <link rel="author" title="Charlie Marlow" href="mailto:cmarlow@mozilla.com">
+        <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+        <link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-width-property">
+        <link rel="match" href="reference/text-decoration-shorthands-002-ref.html">
+        <style>
+         /*
+            This test is designed to make sure the underline is rendered
+            the same, regardless of whether or not the thickness is set
+            in the shorthands or the longhands form
+         */
+         div{
+             text-decoration: green underline 100px;
+         }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if a thick green underline is rendered</p>
+        <div>XX XX</div>
+    </body>
+</html>
+

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>Test picture-in-picture display mode</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+<script>
+promise_test(async (t) => {
+  await test_driver.bless('request PiP window');
+  const pipWindow = await documentPictureInPicture.requestWindow();
+
+  await new Promise(requestAnimationFrame);
+  assert_true(
+    !!pipWindow.matchMedia('(display-mode: picture-in-picture)'.matches),
+    'PIP matches display mode'
+  );
+
+  const iframe = pipWindow.document.createElement("iframe");
+  iframe.src = '/common/blank.html';
+  pipWindow.document.body.append(iframe);
+  await new Promise(res => iframe.addEventListener("load", res, { once: true }));
+
+  assert_true(
+    !!iframe.contentWindow.matchMedia('(display-mode: picture-in-picture)'.matches),
+    'iframe in PIP matches display mode'
+  );
+});
+</script>
+</body>

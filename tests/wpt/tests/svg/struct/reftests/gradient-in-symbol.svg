@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <title>&#x3c;symbol&#x3e; with a gradient inside</title>
+  <h:link rel="help" href="https://www.w3.org/TR/SVG2/struct.html#SymbolElement"/>
+  <h:link rel="match" href="reference/green-100x100.svg"/>
+  <rect fill="url(#a)" width="100" height="100"/>
+  <symbol>
+    <linearGradient id="a">
+      <stop offset="5%" stop-color="green" />
+    </linearGradient>
+  </symbol>
+</svg>

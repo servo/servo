@@ -1,0 +1,45 @@
+<!doctype html>
+<title></title>
+<link rel="help" href="https://drafts.csswg.org/css-lists/#instantiating-counters">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/6738">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1706346">
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<link rel="match" href="li-value-reversed-006-ref.html">
+<meta name="assert" content="The last counter-increment value determines the start value.">
+<style>
+:root {
+  color:black; background-color:white; font:10px/1 monospace;
+}
+ol {
+  counter-reset: reversed(foo);
+}
+::marker {
+  content: counter(foo) ". ";
+}
+ol::before, li::before {
+  content: counters(foo,".");
+}
+li {
+  counter-increment: foo -1;
+}
+</style>
+<ol>
+ <li style="counter-increment: foo -2">
+ <li style="counter-increment: foo -2">
+ <li style="counter-increment: foo -2">
+</ol>
+<ol>
+ <li style="counter-increment: foo -3">
+ <li style="counter-increment: foo -1">
+ <li style="counter-increment: foo -8">
+</ol>
+<ol>
+ <li style="counter-increment: foo 2">
+ <li style="counter-increment: foo 2">
+ <li style="counter-increment: foo 2">
+</ol>
+<ol>
+ <li style="counter-increment: foo 3">
+ <li style="counter-increment: foo 1">
+ <li style="counter-increment: foo 8">
+</ol>

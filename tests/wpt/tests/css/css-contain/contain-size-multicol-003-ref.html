@@ -1,0 +1,66 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Reftest Reference</title>
+  <link rel="author" title="Morgan Rae Reschenberg" href="mailto:mreschenberg@berkeley.edu">
+  <style>
+  .basic {
+    border: 1em solid green;
+    column-count: 3;
+  }
+  .innerContents {
+    color: transparent;
+    height: 0;
+    width: 0;
+  }
+  .col-width-ref {
+    column-width: 20px;
+  }
+  .col-gap-ref {
+    column-gap: 5px;
+  }
+  .flexBaselineCheck {
+    display: flex;
+    align-items: baseline;
+  }
+  .min {
+    width: min-content;
+  }
+  .max {
+    width: max-content;
+  }
+  </style>
+</head>
+<body>
+  <div class="flexBaselineCheck">
+    outside before
+    <div class="basic" style="max-height:0px">
+      <div class="innerContents">inner</div>
+    </div>
+    outside after
+  </div>
+  <br>
+
+  <div class="basic min col-width-ref"></div>
+  <br>
+
+  <div class="basic max col-width-ref"></div>
+  <br>
+
+  <div class="basic min col-gap-ref col-width-ref"></div>
+  <br>
+
+  <div class="basic max col-gap-ref col-width-ref"></div>
+  <br>
+
+  <div class="min">
+    <div class="basic"></div>
+  </div>
+  <br>
+
+  <div class="max">
+    <div class="basic"></div>
+  </div>
+</body>
+</html>

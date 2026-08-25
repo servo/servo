@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<meta name="title" content="Test that a clipper clips the view transition">
+<meta name="author" content="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="match" href="clipper-non-containing-block-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style>
+.clipper {
+  overflow: clip;
+  width: 100px;
+  height: 100px;
+}
+#target {
+  width: 200px;
+  height: 300px;
+  background: blue;
+}
+::view-transition-group(*) {
+  animation-play-state: paused;
+}
+::view-transition-old(*) {
+  animation: unset;
+  opacity: 1;
+}
+::view-transition-new(*) {
+  animation: unset;
+  opacity: 0;
+}
+#target.after {
+  background: red;
+}
+</style>
+
+<div class=clipper>
+  <div id=target></div>
+</div>
+
+<script>
+failIfNot(target.startViewTransition, "Missing element.startViewTransition");
+
+function runTest() {
+  target.startViewTransition(() => {
+    target.classList.add("after");
+  }).ready.then(takeScreenshot);
+}
+
+waitForCompositorReady().then(runTest);
+</script>
+

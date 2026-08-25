@@ -1,0 +1,36 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Writing Modes Test: outline layout and non-replaced inline and vertical-rl writing-mode</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" title="7.1. Principles of Layout in Vertical Writing Modes" href="http://www.w3.org/TR/css-writing-modes-3/#vertical-layout" />
+  <link rel="help" title="18.4 Dynamic outlines: the 'outline' property" href="http://www.w3.org/TR/2011/REC-CSS2-20110607/ui.html#dynamic-outlines" />
+
+
+  <style type="text/css"><![CDATA[
+  div
+    {
+      height: 200px;
+      writing-mode: vertical-rl;
+    }
+
+  span
+    {
+      outline: blue solid 2px;
+    }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if a blue border neatly encloses the words "foo bar" which is inside a latin text rotated 90° clockwise.</p>
+
+  <div>Lorem ipsum dolor sit amet, <span>foo bar</span> consecteteur adipiscing elit urna elit.</div>
+
+ </body>
+</html>

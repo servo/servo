@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<style>
+.grid {
+  display: grid;
+  grid-auto-flow: dense;
+  grid-template-rows: repeat(4, 50px);
+  grid-template-columns: repeat(3, min-content);
+}
+</style>
+<body>
+<p>Ensure that dense-packing places multi-spanning item into highest eligible track opening. The yellow item should be placed in track opening.</p>
+<div class="grid">
+  <div style="background: lightskyblue; width: 70px; grid-row: 4;" >
+    1
+  </div>
+  <div style="background: lightblue; width: 15px; grid-row: 1;" >
+    2
+  </div>
+  <div style="background: yellow; width: 10px; grid-row: 2 / span 2;" >
+    4
+  </div>
+  <div style="background: darkblue; width: 20px; grid-row: 1 / span 2; transform: translateX(-55px);">
+    3
+  </div>
+  <div style="background: lightblue; width: 70px; grid-row: 3; transform: translateX(-60px);" >
+    5
+  </div>
+  <div style="background: darkblue; width: 10px; grid-row: 2 / span 3; grid-column: 3; transform: translateX(-60px);">
+    6
+  </div>
+  <div style="background: yellow; width: 10px; grid-row: 1 / span 2; grid-column: 3; transform: translateX(-105px);" >
+    7
+  </div>
+  <div style="background: yellow; width: 10px; grid-row: 2; transform: translateX(-105px);" >
+    8
+  </div>
+</div>
+</body>
+</html>

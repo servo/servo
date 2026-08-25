@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Tests the line-gap-override descriptor of @font-face</title>
+<style>
+.target {
+  position: absolute;
+  font-size: 20px;
+  top: 10px;
+  left: 10px;
+  width: 60px;
+  height: 30px;
+}
+
+.character {
+  display: inline-block;
+  background-color: green;
+  width: 1em;  /* Same as an 'X' in Ahem */
+  height: 1em; /* Same as an 'X' in Ahem */
+  position: absolute;
+}
+
+</style>
+<div class="target">
+  <span class="character" style="top: 0.5em; left: 0"></span>
+  <span class="character" style="top: 2.5em; left: 0"></span>
+</div>

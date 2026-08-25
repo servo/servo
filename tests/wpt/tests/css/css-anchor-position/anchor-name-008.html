@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#target">
+<link rel="author" title="Kiet Ho" mailto="mailto:kiet.ho@apple.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script src="support/test-common.js"></script>
+
+<style>
+  body { margin: 0px; }
+
+  .containing-block {
+    position: fixed;
+    width: 200px;
+    height: 200px;
+  }
+
+  #anchor {
+    left: 100px;
+    width: 100px;
+    height: 100px;
+    background-color: magenta;
+    anchor-name: --anchor;
+    position: absolute;
+  }
+
+  #anchored {
+    width: 100px;
+    height: 100px;
+    background-color: green;
+    position: fixed;
+    left: anchor(--anchor left);
+    top: anchor(--anchor bottom);
+  }
+</style>
+
+<body onload="checkLayoutForAnchorPos('.target')">
+  <div class="containing-block">
+    <div id="anchor"></div>
+    <div id="anchored" class="target" data-offset-x="100" data-offset-y="100"></div>
+  </div>
+</body>

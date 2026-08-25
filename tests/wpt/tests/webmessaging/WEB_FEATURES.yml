@@ -1,0 +1,11 @@
+rules:
+- messageerror.html: [messageerror]
+- postMessage_CryptoKey_insecure.sub.html: [messageerror]
+- Channel_*: [channel-messaging]
+- MessagePort_*: [channel-messaging]
+- event.ports.sub.htm: [channel-messaging, postmessage]
+- MessageEvent*: [postmessage]
+- Transferred_objects_unusable.sub.htm: [postmessage]
+- event.*: [postmessage]
+- postMessage_*: [postmessage]
+- worker_postMessage_*: [postmessage]

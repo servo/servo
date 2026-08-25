@@ -1,0 +1,2 @@
+include LICENSE
+include src/websockets/py.typed

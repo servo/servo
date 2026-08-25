@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+  .scroller {
+    display: inline grid;
+    vertical-align: top;
+    width: 100px;
+    height: 100px;
+    overflow: auto;
+    border: 1px solid black;
+    margin-bottom: 20px;
+  }
+  .scroller > div { width: 30px; height: 30px; }
+  </style>
+</head>
+<body>
+
+<div class="scroller" style="grid-template-columns: 40px 40px 40px;">
+  <div style="background:coral;">A</div>
+  <div style="background:steelblue;">B</div>
+  <div style="background:seagreen;">C</div>
+</div>
+
+<div id="column-track-reverse" class="scroller" style="grid-template-columns: 40px 40px 40px;">
+  <div style="background:seagreen;">C</div>
+  <div style="background:steelblue;">B</div>
+  <div style="background:coral;">A</div>
+</div>
+
+<div class="scroller" style="grid-template-columns: 40px 40px;">
+  <div style="background:steelblue;">B</div>
+  <div style="background:coral;">A</div>
+</div>
+
+<!-- column-track-reverse-one-item: the oversized item's overflow lands on the
+     non-scrollable side, so it is clipped with no scrollbar. -->
+<div class="scroller" style="grid-template-columns: 40px 40px; overflow: hidden;">
+  <div style="background:steelblue;">B</div>
+  <div style="width:80px; background:coral;">A</div>
+</div>
+
+<div class="scroller" style="grid-template-rows: 40px 40px 40px;">
+  <div style="background:coral;">A</div>
+  <div style="background:steelblue;">B</div>
+  <div style="background:seagreen;">C</div>
+</div>
+
+<div id="row-track-reverse" class="scroller" style="grid-template-rows: 40px 40px 40px;">
+  <div style="background:seagreen;">C</div>
+  <div style="background:steelblue;">B</div>
+  <div style="background:coral;">A</div>
+</div>
+
+<div class="scroller" style="grid-template-rows: 40px 40px;">
+  <div style="background:steelblue;">B</div>
+  <div style="background:coral;">A</div>
+</div>
+
+<!-- row-track-reverse-one-item: the oversized item's overflow lands on the
+     non-scrollable side, so it is clipped with no scrollbar. -->
+<div class="scroller" style="grid-template-rows: 40px 40px; overflow: hidden;">
+  <div style="background:steelblue;">B</div>
+  <div style="height:80px; background:coral;">A</div>
+</div>
+
+<div class="scroller" style="width:60px; height:auto; border-width:10px; padding:10px; grid-template-rows:auto;">
+  <div style="width:60px; height:40px; background:coral;">A</div>
+</div>
+
+</body>
+<script>
+  document.getElementById('column-track-reverse').scrollTo(20, 0);
+  document.getElementById('row-track-reverse').scrollTo(0, 20);
+</script>
+</html>

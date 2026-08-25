@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Backgrounds and Borders Test: background-clip: content-box with border-radius</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://www.w3.org/TR/css-backgrounds-3/#the-background-clip">
+<link rel="help" href="https://www.w3.org/TR/css-backgrounds-3/#corner-shaping">
+<link rel="help" href="https://github.com/servo/servo/issues/39540">
+<link rel="match" href="reference/background-clip-content-box-with-border-radius-002-ref.html">
+<meta name="fuzzy" content="maxDifference=0-96; totalPixels=0-400">
+<meta name="assert" content="Backgrounds clipped to the content box should follow the content box curve, which should be equal to the outer border radius minus the corresponding border+padding thickness.">
+
+<div style="
+  width: 50px;
+  height: 50px;
+  border: 25px solid black;
+  border-radius: 100% 0 0 0;
+  background-color: black;
+  background-clip: content-box;
+"></div>

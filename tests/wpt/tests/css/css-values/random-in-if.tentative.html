@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<title>CSS Values and Units Test: random() in if()</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#random">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/13662">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<body>
+</body>
+<style id="style">
+  @property --number {
+    syntax: "<number>";
+    inherits: true;
+    initial-value: 0;
+  }
+  @property --number2 {
+    syntax: "<number>";
+    inherits: true;
+    initial-value: 0;
+  }
+  div {
+    --random1: random(1, 10);
+    --random2: random(11, 30);
+  }
+</style>
+<script>
+// Since actual and expected values are generated randomly, `assert_equals()`
+// does not generate deterministic test failure output. Chrome relies on test
+// failure output to be deterministic and stable for failing test expectations.
+function test_random_equals(actual, expected, message = "Random values should be equal") {
+  assert_true(actual == expected, message);
+}
+function test_random_not_equals(actual, expected, message = "Random values should be equal") {
+  assert_false(actual == expected, message);
+}
+
+function test_value_is_not_initial(value) {
+  assert_false(value == 0);
+}
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+  try {
+    const el = document.createElement('div');
+    el.style.setProperty('--unregistered', 'if(style(random(1, 10) < random(11, 30)): true; else: false;)');
+    holder.appendChild(el);
+
+    const elComputedValue = getComputedStyle(el).getPropertyValue('--unregistered');
+
+    assert_equals(elComputedValue, 'true');
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `random() should be allowed in if() style() condition`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+  try {
+    const el = document.createElement('div');
+    el.style.setProperty('--unregistered', 'if(style(var(--random1) < var(--random2)): true; else: false;)');
+    holder.appendChild(el);
+
+    const elComputedValue = getComputedStyle(el).getPropertyValue('--unregistered');
+
+    assert_equals(elComputedValue, 'true');
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `random() in var() should be allowed in if() style() condition`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+  try {
+    let allSame = true;
+    for(let i = 0; i < 30; i++) {
+      const prop = `--unregistered-${i}`;
+      const el1 = document.createElement('div');
+      el1.style.setProperty(prop, 'if(style(random(0, 1) = random(0, 1)): true; else: false;)');
+      holder.appendChild(el1);
+      const elComputedValue1 = getComputedStyle(el1).getPropertyValue(prop);
+      if (elComputedValue1 == 'false') {
+        allSame = false;
+      }
+    }
+    assert_equals(allSame, false);
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `Sharing random() in same if() condition`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+  try {
+    let allSame = true;
+    for(let i = 0; i < 30; i++) {
+      const prop = `--unregistered-${i}`;
+      const el1 = document.createElement('div');
+      el1.style.setProperty(prop, 'if(style(random(property-scoped, 0, 1) = random(property-scoped, 0, 1)): true; else: false;)');
+      holder.appendChild(el1);
+      const elComputedValue1 = getComputedStyle(el1).getPropertyValue(prop);
+      if (elComputedValue1 == 'false') {
+        allSame = false;
+      }
+    }
+    assert_equals(allSame, true);
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `Sharing property-scoped random() in same if() condition`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+  try {
+    let allSame = true;
+    let allSamePropertyScoped = true;
+    let allSamePropertyIndexScoped = true;
+    for(let i = 0; i < 30; i++) {
+      const prop1 = `--unregistered-${i}`;
+      const prop2 = `--unregistered2-${i}`;
+      const prop3 = `--unregistered3-${i}`;
+      const el = document.createElement('div');
+      el.style.setProperty(prop1, 'if(style(random(element-scoped, 0, 1) > 0.5): true; else: false;) if(style(random(element-scoped, 0, 1) > 0.5): true; else: false;)');
+      el.style.setProperty(prop2, 'if(style(random(property-scoped, 0, 1) > 0.5): true; else: false;) if(style(random(property-scoped, 0, 1) > 0.5): true; else: false;)');
+      el.style.setProperty(prop3, 'if(style(random(property-index-scoped, 0, 1) > 0.5): true; else: false;) if(style(random(property-index-scoped, 0, 1) > 0.5): true; else: false;)');
+      holder.appendChild(el);
+
+      const elComputedValue1 = getComputedStyle(el).getPropertyValue(prop1);
+      let [val11, val12] = elComputedValue1.split(' ');
+      if (val11 != val12) {
+        allSame = false;
+      }
+
+      const elComputedValue2 = getComputedStyle(el).getPropertyValue(prop2);
+      let [val21, val22] = elComputedValue2.split(' ');
+      if (val21 != val22) {
+        allSamePropertyScoped = false;
+      }
+
+      const elComputedValue3 = getComputedStyle(el).getPropertyValue(prop3);
+      let [val31, val32] = elComputedValue3.split(' ');
+      if (val31 != val32) {
+        allSamePropertyIndexScoped = false;
+      }
+    }
+    assert_equals(allSame, true);
+    assert_equals(allSamePropertyScoped, true);
+    assert_equals(allSamePropertyIndexScoped, false);
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `Sharing random() in if() style() condition within same property`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+  try {
+    let allSame = true;
+    for(let i = 0; i < 30; i++) {
+      const prop1 = `--unregistered-${i}`;
+      const prop2 = `--unregistered2-${i}`;
+      const el = document.createElement('div');
+      el.style.setProperty(prop1, 'if(style(random(element-scoped, 0, 1) > 0.5): true; else: false;)');
+      el.style.setProperty(prop2, 'if(style(random(element-scoped, 0, 1) > 0.5): true; else: false;)');
+      holder.appendChild(el);
+      const elComputedValue1 = getComputedStyle(el).getPropertyValue(prop1);
+      const elComputedValue2 = getComputedStyle(el).getPropertyValue(prop2);
+      if (elComputedValue1 != elComputedValue2) {
+        allSame = false;
+      }
+    }
+    assert_equals(allSame, true);
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `Sharing element-scoped random() in if() style() condition across different properties`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+  try {
+    let allSame = true;
+    for(let i = 0; i < 30; i++) {
+      const prop1 = `--unregistered-${i}`;
+      const prop2 = `--unregistered2-${i}`;
+      const el = document.createElement('div');
+      el.style.setProperty(prop1, 'if(style(random(property-index-scoped, 0, 1) > 0.5): true; else: false;)');
+      el.style.setProperty(prop2, 'if(style(random(property-index-scoped, 0, 1) > 0.5): true; else: false;)');
+      holder.appendChild(el);
+      const elComputedValue1 = getComputedStyle(el).getPropertyValue(prop1);
+      const elComputedValue2 = getComputedStyle(el).getPropertyValue(prop2);
+      if (elComputedValue1 != elComputedValue2) {
+        allSame = false;
+      }
+    }
+    assert_equals(allSame, false);
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `Sharing property-index-scoped random() in if() style() condition across different properties`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+  try {
+    let allSame = true;
+    for(let i = 0; i < 30; i++) {
+      const prop = `--unregistered-${i}`;
+      const el1 = document.createElement('div');
+      el1.style.setProperty(prop, 'if(style(random(property-index-scoped, 0, 1) > 0.5): true; else: false;)');
+      const el2 = document.createElement('div');
+      el2.style.setProperty(prop, 'if(style(random(property-index-scoped, 0, 1) > 0.5): true; else: false;)');
+      holder.appendChild(el1);
+      holder.appendChild(el2);
+      const elComputedValue1 = getComputedStyle(el1).getPropertyValue(prop);
+      const elComputedValue2 = getComputedStyle(el2).getPropertyValue(prop);
+      if (elComputedValue1 != elComputedValue2) {
+        allSame = false;
+      }
+    }
+    assert_equals(allSame, true);
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `Sharing property-index-scoped random() in if() style() condition across different elements`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+  try {
+    let allSame = true;
+    for(let i = 0; i < 30; i++) {
+      const prop = `--unregistered-${i}`;
+      const el1 = document.createElement('div');
+      el1.style.setProperty(prop, 'if(style(random(property-scoped, 0, 1) > 0.5): true; else: false;)');
+      const el2 = document.createElement('div');
+      el2.style.setProperty(prop, 'if(style(random(property-scoped, 0, 1) > 0.5): true; else: false;)');
+      holder.appendChild(el1);
+      holder.appendChild(el2);
+      const elComputedValue1 = getComputedStyle(el1).getPropertyValue(prop);
+      const elComputedValue2 = getComputedStyle(el2).getPropertyValue(prop);
+      if (elComputedValue1 != elComputedValue2) {
+        allSame = false;
+      }
+    }
+    assert_equals(allSame, true);
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `Sharing property-scoped random() in if() style() condition across different elements`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+  try {
+    let allSame = true;
+    for(let i = 0; i < 30; i++) {
+      const prop = `--unregistered-${i}`;
+      const el1 = document.createElement('div');
+      el1.style.setProperty(prop, 'if(style(random(element-scoped, 0, 1) > 0.5): true; else: false;)');
+      const el2 = document.createElement('div');
+      el2.style.setProperty(prop, 'if(style(random(element-scoped, 0, 1) > 0.5): true; else: false;)');
+      holder.appendChild(el1);
+      holder.appendChild(el2);
+      const elComputedValue1 = getComputedStyle(el1).getPropertyValue(prop);
+      const elComputedValue2 = getComputedStyle(el2).getPropertyValue(prop);
+      if (elComputedValue1 != elComputedValue2) {
+        allSame = false;
+      }
+    }
+    assert_equals(allSame, false);
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `Sharing element-scoped random() in if() style() condition across different elements`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+
+  try {
+    const el = document.createElement('div');
+    el.style.setProperty('--number', 'if(style(--unknown): ; else: random(1, 100000);)');
+    el.style.setProperty('--number2', 'if(style(--unknown): ; else: random(1, 100000);)');
+    holder.appendChild(el);
+
+    const elComputedValue1 = getComputedStyle(el).getPropertyValue('--number');
+    const elComputedValue2 = getComputedStyle(el).getPropertyValue('--number2');
+
+    test_value_is_not_initial(elComputedValue1);
+    test_value_is_not_initial(elComputedValue2);
+
+    test_random_not_equals(elComputedValue1, elComputedValue2);
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `random() with different property names should not be shared in if() declaration value`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+
+  try {
+    const el1 = document.createElement('div');
+    el1.style.setProperty('--number', 'if(style(--unknown): ; else: random(--foo property-index-scoped, 1, 100000);)');
+    holder.appendChild(el1);
+    const el2 = document.createElement('div');
+    el2.style.setProperty('--number', 'if(style(--unknown): ; else: random(--foo property-index-scoped, 1, 100000);)');
+    holder.appendChild(el2);
+
+    const elComputedValue1 = getComputedStyle(el1).getPropertyValue('--number');
+    const elComputedValue2 = getComputedStyle(el2).getPropertyValue('--number');
+
+    test_value_is_not_initial(elComputedValue1);
+    test_value_is_not_initial(elComputedValue2);
+
+    test_random_equals(elComputedValue1, elComputedValue2);
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `random() with same property name on different elements in if() declaration value should be equal`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+  try {
+    let allSame = true;
+    for(let i = 0; i < 30; i++) {
+      const prop1 = `--unregistered-${i}`;
+      const prop2 = `--unregistered2-${i}`;
+      const el1 = document.createElement('div');
+      el1.style.setProperty(prop1, 'if(style(random(0, 1) > 0.5): true; else: false;)');
+      el1.style.setProperty(prop2, 'if(style(random(property-index-scoped, 0, 1) > 0.5): true; else: false;)');
+
+      const el2 = document.createElement('div');
+      el2.style.setProperty(prop2, 'if(style(random(property-index-scoped, 0, 1) > 0.5): true; else: false;)');
+
+      holder.appendChild(el1);
+      holder.appendChild(el2);
+
+      const elComputedValue1 = getComputedStyle(el1).getPropertyValue(prop2);
+      const elComputedValue2 = getComputedStyle(el2).getPropertyValue(prop2);
+      if (elComputedValue1 != elComputedValue2) {
+        allSame = false;
+      }
+    }
+    assert_equals(allSame, true);
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `Sharing property-index-scoped random() in if() style() condition across different elements with different property counts`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+  try {
+    let allSame = true;
+    for(let i = 0; i < 30; i++) {
+      const prop = `--unregistered-${i}`;
+      const el1 = document.createElement('div');
+      el1.style.setProperty(prop, 'if(style(calc(random(property-index-scoped, 0, 1) + random(property-index-scoped, 0, 1)) > 0.5): true; else: false;) if(style(random(property-index-scoped, 0, 1) > 0.5): true; else: false;)');
+
+      const el2 = document.createElement('div');
+      el2.style.setProperty(prop, 'if(style(random(property-index-scoped, 0, 1) > 0.5): true; else: false;) if(style(random(property-index-scoped, 0, 1) > 0.5): true; else: false;)');
+
+      holder.appendChild(el1);
+      holder.appendChild(el2);
+
+      const elComputedValue1 = getComputedStyle(el1).getPropertyValue(prop);
+      let [, val1_second] = elComputedValue1.split(' ');
+
+      const elComputedValue2 = getComputedStyle(el2).getPropertyValue(prop);
+      let [, val2_second] = elComputedValue2.split(' ');
+
+      if (val1_second != val2_second) {
+        allSame = false;
+      }
+    }
+    assert_equals(allSame, false);
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `Sharing property-index-scoped random() with multiple random() inside calc()`);
+
+</script>

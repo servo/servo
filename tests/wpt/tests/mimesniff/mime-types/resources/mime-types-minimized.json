@@ -1,0 +1,130 @@
+[
+  {
+    "input": "application/ecmascript",
+    "output": "text/javascript"
+  },
+  {
+    "input": "application/javascript",
+    "output": "text/javascript"
+  },
+  {
+    "input": "application/x-ecmascript",
+    "output": "text/javascript"
+  },
+  {
+    "input": "application/x-javascript",
+    "output": "text/javascript"
+  },
+  {
+    "input": "text/ecmascript",
+    "output": "text/javascript"
+  },
+  {
+    "input": "text/javascript",
+    "output": "text/javascript"
+  },
+  {
+    "input": "text/javascript1.0",
+    "output": "text/javascript"
+  },
+  {
+    "input": "text/javascript1.1",
+    "output": "text/javascript"
+  },
+  {
+    "input": "text/javascript1.2",
+    "output": "text/javascript"
+  },
+  {
+    "input": "text/javascript1.3",
+    "output": "text/javascript"
+  },
+  {
+    "input": "text/javascript1.4",
+    "output": "text/javascript"
+  },
+  {
+    "input": "text/javascript1.5",
+    "output": "text/javascript"
+  },
+  {
+    "input": "text/jscript",
+    "output": "text/javascript"
+  },
+  {
+    "input": "text/livescript",
+    "output": "text/javascript"
+  },
+  {
+    "input": "text/x-ecmascript",
+    "output": "text/javascript"
+  },
+  {
+    "input": "text/x-javascript",
+    "output": "text/javascript"
+  },
+  {
+    "input": "application/json",
+    "output": "application/json"
+  },
+  {
+    "input": "text/json",
+    "output": "application/json"
+  },
+  {
+    "input": "application/ld+json",
+    "output": "application/json"
+  },
+  {
+    "input": "image/svg+xml",
+    "output": "image/svg+xml"
+  },
+  {
+    "input": "application/xml",
+    "output": "application/xml"
+  },
+  {
+    "input": "text/xml",
+    "output": "application/xml"
+  },
+  {
+    "input": "application/rss+xml",
+    "output": "application/xml"
+  },
+  {
+    "input": "application/xhtml+xml",
+    "output": "application/xml"
+  },
+  {
+    "input": "application/atom+xml",
+    "output": "application/xml"
+  },
+  {
+    "input": "image/png;7a752164-f10e-11ed-a05b-0242ac120003",
+    "output": "image/png"
+  },
+  {
+    "input": "text/xml;7a758876-f40e-11ee-998b-0242abgh0003",
+    "output": "application/xml"
+  },
+  {
+    "input": "image/png",
+    "output": "image/png"
+  },
+  {
+    "input": "image/jpe",
+    "output": ""
+  },
+  {
+    "input": "application/png",
+    "output": ""
+  },
+  {
+    "input": "random/png",
+    "output": ""
+  },
+  {
+    "input": "application/abcd",
+    "output": ""
+  }
+]

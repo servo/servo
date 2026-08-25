@@ -1,0 +1,19 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:g="http://www.w3.org/2000/svg">
+ <head>
+  <title>document.getElementsByClassName(): compound</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+ </head>
+ <body>
+  <div id="log"/>
+  <div id="tests">
+    <x class="a"/>
+    <g:x class="a"/>
+  </div>
+  <script>test(function() {
+                 assert_array_equals(document.getElementsByClassName("a"),
+                                     document.getElementById("tests").children);
+               })
+  </script>
+ </body>
+</html>

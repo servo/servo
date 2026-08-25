@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#valdef-width-fit-content">
+<link rel="match" href="fit-content-block-size-fixedpos-ref.html">
+<style>
+body {
+  overflow: hidden;
+}
+#container {
+  height: fit-content;
+  position: absolute;
+  top: 50%;
+  background-color: gold;
+  margin: auto;
+  bottom: 0;
+}
+</style>
+<div id="container">
+  <div style="height:90vh;width:50px;outline: 2px dotted red;"></div>
+</div>

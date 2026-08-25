@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Current iteration</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations/#current-iteration">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<script src="../../resources/effect-tests.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+function runTests(tests, description) {
+  for (const currentTest of tests) {
+    let testParams = Object.entries(currentTest.input)
+                           .map(([attr, value]) => `${attr}:${value}`)
+                           .join(' ');
+    if (currentTest.playbackRate !== undefined) {
+      testParams += ` playbackRate:${currentTest.playbackRate}`;
+    }
+
+    test(t => {
+      const div = createDiv(t);
+      const anim = div.animate({}, currentTest.input);
+      if (currentTest.playbackRate !== undefined) {
+        anim.playbackRate = currentTest.playbackRate;
+      }
+
+      assert_computed_timing_for_each_phase(
+        anim,
+        'currentIteration',
+        { before: currentTest.before,
+          activeBoundary: currentTest.active,
+          after: currentTest.after },
+      );
+    }, `${description}: ${testParams}`);
+  }
+}
+
+async_test(t => {
+  const div = createDiv(t);
+  const anim = div.animate({ opacity: [ 0, 1 ] }, { delay: 1 });
+  assert_equals(anim.effect.getComputedTiming().currentIteration, null);
+  anim.finished.then(t.step_func(() => {
+    assert_equals(anim.effect.getComputedTiming().currentIteration, null);
+    t.done();
+  }));
+}, 'Test currentIteration during before and after phase when fill is none');
+
+
+// --------------------------------------------------------------------
+//
+// Zero iteration duration tests
+//
+// --------------------------------------------------------------------
+
+runTests([
+  {
+    input:    { iterations: 0,
+                iterationStart: 0,
+                duration: 0,
+                delay: 1,
+                fill: 'both' },
+    before: 0,
+    after: 0
+  },
+
+  {
+    input:    { iterations: 0,
+                iterationStart: 0,
+                duration: 100,
+                delay: 1,
+                fill: 'both' },
+    before: 0,
+    after: 0
+  },
+
+  {
+    input:    { iterations: 0,
+                iterationStart: 0,
+                duration: Infinity,
+                delay: 1,
+                fill: 'both' },
+    before: 0,
+    after: 0
+  },
+
+  {
+    input:    { iterations: 0,
+                iterationStart: 2.5,
+                duration: 0,
+                delay: 1,
+                fill: 'both' },
+    before: 2,
+    after: 2
+  },
+
+  {
+    input:    { iterations: 0,
+                iterationStart: 2.5,
+                duration: 100,
+                delay: 1,
+                fill: 'both' },
+    before: 2,
+    after: 2
+  },
+
+  {
+    input:    { iterations: 0,
+                iterationStart: 2.5,
+                duration: Infinity,
+                delay: 1,
+                fill: 'both' },
+    before: 2,
+    after: 2
+  },
+
+  {
+    input:    { iterations: 0,
+                iterationStart: 3,
+                duration: 0,
+                delay: 1,
+                fill: 'both' },
+    before: 3,
+    after: 3
+  },
+
+  {
+    input:    { iterations: 0,
+                iterationStart: 3,
+                duration: 100,
+                delay: 1,
+                fill: 'both' },
+    before: 3,
+    after: 3
+  },
+
+  {
+    input:    { iterations: 0,
+                iterationStart: 3,
+                duration: Infinity,
+                delay: 1,
+                fill: 'both' },
+    before: 3,
+    after: 3
+  }
+], 'Test zero iterations');
+
+
+// --------------------------------------------------------------------
+//
+// Tests where the iteration count is an integer
+//
+// --------------------------------------------------------------------
+
+runTests([
+  {
+    input:    { iterations: 3,
+                iterationStart: 0,
+                duration: 0,
+                delay: 1,
+                fill: 'both' },
+    before: 0,
+    after: 2
+  },
+
+  {
+    input:    { iterations: 3,
+                iterationStart: 0,
+                duration: 100,
+                delay: 1,
+                fill: 'both' },
+    before: 0,
+    active: 0,
+    after: 2
+  },
+
+  {
+    input:    { iterations: 3,
+                iterationStart: 0,
+                duration: Infinity,
+                delay: 1,
+                fill: 'both' },
+    before: 0,
+    active: 0
+  },
+
+  {
+    input:    { iterations: 3,
+                iterationStart: 2.5,
+                duration: 0,
+                delay: 1,
+                fill: 'both' },
+    before: 2,
+    after: 5
+  },
+
+  {
+    input:    { iterations: 3,
+                iterationStart: 2.5,
+                duration: 100,
+                delay: 1,
+                fill: 'both' },
+    before: 2,
+    active: 2,
+    after: 5
+  },
+
+  {
+    input:    { iterations: 3,
+                iterationStart: 2.5,
+                duration: Infinity,
+                delay: 1,
+                fill: 'both' },
+    before: 2,
+    active: 2
+  },
+
+  {
+    input:    { iterations: 3,
+                iterationStart: 3,
+                duration: 0,
+                delay: 1,
+                fill: 'both' },
+    before: 3,
+    after: 5
+  },
+
+  {
+    input:    { iterations: 3,
+                iterationStart: 3,
+                duration: 100,
+                delay: 1,
+                fill: 'both' },
+    before: 3,
+    active: 3,
+    after: 5
+  },
+
+  {
+    input:    { iterations: 3,
+                iterationStart: 3,
+                duration: Infinity,
+                delay: 1,
+                fill: 'both' },
+    before: 3,
+    active: 3
+  }
+], 'Test integer iterations');
+
+
+// --------------------------------------------------------------------
+//
+// Tests where the iteration count is a fraction
+//
+// --------------------------------------------------------------------
+
+runTests([
+  {
+    input:    { iterations: 3.5,
+                iterationStart: 0,
+                duration: 0,
+                delay: 1,
+                fill: 'both' },
+    before: 0,
+    after: 3
+  },
+
+  {
+    input:    { iterations: 3.5,
+                iterationStart: 0,
+                duration: 100,
+                delay: 1,
+                fill: 'both' },
+    before: 0,
+    active: 0,
+    after: 3
+  },
+
+  {
+    input:    { iterations: 3.5,
+                iterationStart: 0,
+                duration: Infinity,
+                delay: 1,
+                fill: 'both' },
+    before: 0,
+    active: 0
+  },
+
+  {
+    input:    { iterations: 3.5,
+                iterationStart: 2.5,
+                duration: 0,
+                delay: 1,
+                fill: 'both' },
+    before: 2,
+    after: 5
+  },
+
+  {
+    input:    { iterations: 3.5,
+                iterationStart: 2.5,
+                duration: 100,
+                delay: 1,
+                fill: 'both' },
+    before: 2,
+    active: 2,
+    after: 5
+  },
+
+  {
+    input:    { iterations: 3.5,
+                iterationStart: 2.5,
+                duration: Infinity,
+                delay: 1,
+                fill: 'both' },
+    before: 2,
+    active: 2
+  },
+
+  {
+    input:    { iterations: 3.5,
+                iterationStart: 3,
+                duration: 0,
+                delay: 1,
+                fill: 'both' },
+    before: 3,
+    after: 6
+  },
+
+  {
+    input:    { iterations: 3.5,
+                iterationStart: 3,
+                duration: 100,
+                delay: 1,
+                fill: 'both' },
+    before: 3,
+    active: 3,
+    after: 6
+  },
+
+  {
+    input:    { iterations: 3.5,
+                iterationStart: 3,
+                duration: Infinity,
+                delay: 1,
+                fill: 'both' },
+    before: 3,
+    active: 3
+  }
+], 'Test fractional iterations');
+
+
+// --------------------------------------------------------------------
+//
+// Tests where the iteration count is Infinity
+//
+// --------------------------------------------------------------------
+
+runTests([
+  {
+    input:    { iterations: Infinity,
+                iterationStart: 0,
+                duration: 0,
+                delay: 1,
+                fill: 'both' },
+    before: 0,
+    after: Infinity
+  },
+
+  {
+    input:    { iterations: Infinity,
+                iterationStart: 0,
+                duration: 100,
+                delay: 1,
+                fill: 'both' },
+    before: 0,
+    active: 0
+  },
+
+  {
+    input:    { iterations: Infinity,
+                iterationStart: 0,
+                duration: Infinity,
+                delay: 1,
+                fill: 'both' },
+    before: 0,
+    active: 0
+  },
+
+  {
+    input:    { iterations: Infinity,
+                iterationStart: 2.5,
+                duration: 0,
+                delay: 1,
+                fill: 'both' },
+    before: 2,
+    after: Infinity
+  },
+
+  {
+    input:    { iterations: Infinity,
+                iterationStart: 2.5,
+                duration: 100,
+                delay: 1,
+                fill: 'both' },
+    before: 2,
+    active: 2
+  },
+
+  {
+    input:    { iterations: Infinity,
+                iterationStart: 2.5,
+                duration: Infinity,
+                delay: 1,
+                fill: 'both' },
+    before: 2,
+    active: 2
+  },
+
+  {
+    input:    { iterations: Infinity,
+                iterationStart: 3,
+                duration: 0,
+                delay: 1,
+                fill: 'both' },
+    before: 3,
+    after: Infinity
+  },
+
+  {
+    input:    { iterations: Infinity,
+                iterationStart: 3,
+                duration: 100,
+                delay: 1,
+                fill: 'both' },
+    before: 3,
+    active: 3
+  },
+
+  {
+    input:    { iterations: Infinity,
+                iterationStart: 3,
+                duration: Infinity,
+                delay: 1,
+                fill: 'both' },
+    before: 3,
+    active: 3
+  }
+], 'Test infinity iterations');
+
+
+// --------------------------------------------------------------------
+//
+// End delay tests
+//
+// --------------------------------------------------------------------
+
+runTests([
+  {
+    input:    { duration: 100,
+                delay: 1,
+                fill: 'both',
+                endDelay: 50 },
+    before: 0,
+    active: 0,
+    after: 0
+  },
+
+  {
+    input:    { duration: 100,
+                delay: 1,
+                fill: 'both',
+                endDelay: -50 },
+    before: 0,
+    active: 0,
+    after: 0
+  },
+
+  {
+    input:    { duration: 100,
+                delay: 1,
+                fill: 'both',
+                endDelay: -100 },
+    before: 0,
+    active: 0,
+    after: 0
+  },
+
+  {
+    input:    { duration: 100,
+                delay: 1,
+                fill: 'both',
+                endDelay: -200 },
+    before: 0,
+    active: 0,
+    after: 0
+  },
+
+  {
+    input:    { iterationStart: 0.5,
+                duration: 100,
+                delay: 1,
+                fill: 'both',
+                endDelay: 50 },
+    before: 0,
+    active: 0,
+    after: 1
+  },
+
+  {
+    input:    { iterationStart: 0.5,
+                duration: 100,
+                delay: 1,
+                fill: 'both',
+                endDelay: -50 },
+    before: 0,
+    active: 0,
+    after: 1
+  },
+
+  {
+    input:    { iterationStart: 0.5,
+                duration: 100,
+                delay: 1,
+                fill: 'both',
+                endDelay: -100 },
+    before: 0,
+    active: 0,
+    after: 0
+  },
+
+  {
+    input:    { iterations: 2,
+                duration: 100,
+                delay: 1,
+                fill: 'both',
+                endDelay: -100 },
+    before: 0,
+    active: 0,
+    after: 1
+  },
+
+  {
+    input:    { iterations: 1,
+                iterationStart: 2,
+                duration: 100,
+                delay: 1,
+                fill: 'both',
+                endDelay: -50 },
+    before: 2,
+    active: 2,
+    after: 2
+  },
+
+  {
+    input:    { iterations: 1,
+                iterationStart: 2,
+                duration: 100,
+                delay: 1,
+                fill: 'both',
+                endDelay: -100 },
+    before: 2,
+    active: 2,
+    after: 2
+  },
+], 'Test end delay');
+
+
+// --------------------------------------------------------------------
+//
+// Negative playback rate tests
+//
+// --------------------------------------------------------------------
+
+runTests([
+  {
+    input:    { duration: 1,
+                delay: 1,
+                fill: 'both' },
+    playbackRate: -1,
+    before: 0,
+    active: 0,
+    after: 0
+  },
+
+  {
+    input:    { duration: 1,
+                delay: 1,
+                iterations: 2,
+                fill: 'both' },
+    playbackRate: -1,
+    before: 0,
+    active: 1,
+    after: 1
+  },
+
+  {
+    input:    { duration: 0,
+                delay: 1,
+                fill: 'both' },
+    playbackRate: -1,
+    before: 0,
+    after: 0
+  },
+
+  {
+    input:    { duration: 0,
+                iterations: 0,
+                delay: 1,
+                fill: 'both' },
+    playbackRate: -1,
+    before: 0,
+    after: 0
+  },
+], 'Test negative playback rate');
+
+</script>
+</body>

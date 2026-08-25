@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#abspos-breaking">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<!-- Nested abspos with `height: auto` and positioned with the bottom property.
+     The innermost abspos only is fragmented. -->
+<style>
+  #multicol {
+    column-count: 2;
+    width: 100px;
+    height: 100px;
+    column-fill: auto;
+    column-gap: 0px;
+    background-color: red;
+  }
+  .rel {
+    position: relative;
+    height: 100px;
+    width: 50px;
+  }
+  .abs {
+    position: absolute;
+    width: 50px;
+    background-color: green;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="multicol">
+  <div class="rel">
+    <div class="abs" style="bottom: 0;">
+      <div class="abs" style="bottom: -100px;">
+        <div style="height: 200px;"></div>
+      </div>
+    </div>
+  </div>
+</div>

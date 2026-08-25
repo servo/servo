@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>backdrop-filter: Edge behavior</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+
+<div>
+  <p>Expected: The black box inside the red box should contain some red, despite being outside of the scroller's clip</p>
+</div>
+
+<div id=scroller>
+  <div id=backdrop></div>
+</div>
+<div id=scroller class=second></div>
+
+<style>
+  html {
+    scrollbar-width: none;
+    overflow: hidden;
+  }
+  #scroller {
+    width: 250px;
+    height: 250px;
+    border: 6px solid red;
+  }
+  #backdrop {
+    position: relative;
+    top: -3px;
+    height: 200px;
+    width: 200px;
+    backdrop-filter: blur(10px);
+    border: 1px solid black;
+  }
+  .second {
+    position: relative;
+    top: -262px;
+  }
+</style>
+

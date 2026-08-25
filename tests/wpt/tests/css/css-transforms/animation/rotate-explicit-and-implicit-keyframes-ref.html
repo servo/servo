@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+
+div {
+    width: 100px;
+    height: 100px;
+    margin: 10px;
+    background-color: black;
+    rotate: 90deg;
+}
+
+div:after {
+    position: absolute;
+    content: "";
+    width: 50px;
+    height: 50px;
+    background-color: gray;
+}
+
+#unspecifed-to {
+    rotate: 270deg;
+}
+
+</style>
+</head>
+<body>
+
+<div id="explicit-from-and-to"></div>
+<div id="unspecifed-from"></div>
+<div id="base-value-from"></div>
+<div id="unspecifed-to"></div>
+<div id="base-value-to"></div>
+
+</body>
+</html>

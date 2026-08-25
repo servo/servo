@@ -1,0 +1,24 @@
+<!doctype html>
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#widget-accent">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<style>
+  #outer { accent-color: red; color: black; }
+</style>
+<div id="outer">
+  <div id="target"></div>
+</div>
+<div id=noAccentColor></div>
+<script>
+test_computed_value('accent-color', 'initial', 'auto');
+test_computed_value('accent-color', 'inherit', 'rgb(255, 0, 0)');
+test_computed_value('accent-color', 'red', 'rgb(255, 0, 0)');
+test_computed_value('accent-color', 'blue', 'rgb(0, 0, 255)');
+test_computed_value('accent-color', 'auto', 'auto');
+test_computed_value('accent-color', 'currentcolor', 'rgb(0, 0, 0)');
+test_computed_value('accent-color', '#fff', 'rgb(255, 255, 255)');
+
+// When accent-color isn't specified, it should return 'auto'
+assert_equals(getComputedStyle(noAccentColor).accentColor, 'auto');
+</script>

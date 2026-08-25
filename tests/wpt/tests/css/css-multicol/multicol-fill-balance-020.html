@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1289800">
+<div id="mc" style="overflow-x:scroll; columns:2; width:100px; column-fill:auto; height:20000000px;">
+  <div style="columns:1;">
+    <div style="height:100px;"></div>
+    <div style="height:1234567890px;"></div>
+  </div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(()=> {
+    // There should be two columns, i.e. no overflow.
+    assert_equals(mc.scrollWidth, 100);
+  }, "Nested balanced multicol with very tall content");
+</script>

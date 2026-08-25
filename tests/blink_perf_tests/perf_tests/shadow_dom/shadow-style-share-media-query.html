@@ -1,0 +1,40 @@
+<!doctype html>
+<script src="../resources/runner.js"></script>
+<script>
+  var listSize = 1000;
+  window.onload = function() {
+    PerfTestRunner.measureTime({
+      description: "Measures performance of creating and rendering elements with shadow roots from templates (contains class selector styles and a media query).",
+      run: function() {
+        var list = document.querySelector('#list');
+        var tmpl = document.querySelector("#tmpl");
+        list.innerHTML = '';
+        var start = PerfTestRunner.now();
+        var i = 0;
+        do {
+          var host = document.createElement('div');
+          var root = host.attachShadow({mode:'open'});
+          root.appendChild(tmpl.content.cloneNode(true));
+          var light = document.createElement('div');
+          list.appendChild(host);
+        } while (++i < listSize);
+
+        PerfTestRunner.forceLayout();
+        return PerfTestRunner.now() - start;
+      }
+    });
+  }
+</script>
+<template id="tmpl">
+  <style>
+    @media (max-width: 600px) {
+        div { color: red; }
+    }
+    .foo { color: black; }
+    .bar { color: blue; }
+    .baz { color: green; }
+    .bat { color: orange; }
+  </style>
+  <div>item</div>
+</template>
+<section id="list"></section>

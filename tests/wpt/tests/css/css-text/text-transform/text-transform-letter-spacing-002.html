@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<title>CSS test: text-transform:uppercase + letter-spacing + ligatures</title>
+
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-transform-property">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#letter-spacing-property">
+<link rel="help" href="https://www.unicode.org/Public/UNIDATA/SpecialCasing.txt">
+
+<meta name="assert" content="When ligatures such as ﬁ or ﬃ are decomposed by uppercasing, letter-spacing should apply between the glyphs.">
+<link rel="match" href="text-transform-letter-spacing-002-ref.html">
+
+<style>
+.test1, .test2, .ref {
+  letter-spacing: 1em;
+}
+
+.test1 {
+  text-transform: uppercase;
+}
+
+.test2 {
+  text-transform: capitalize;
+}
+</style>
+
+<p>Both lines in each pair should have the same spacing:</p>
+
+<p class="test1">o&#xfb03;ce &#xfb01;les</p>
+<p class="ref">OFFICE FILES</p>
+<br>
+<p class="test2">&#xfb02;ying &#xfb01;sh</p>
+<p class="ref">Flying Fish</p>

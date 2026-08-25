@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "3.2-targetObjectsRecognized.json",
+  "assertionType": "must",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "failAndContinue",
+  "errorMessage": "ERROR: One or more Targets of the Annotation is not one of a string of format uri, an External Web Resource, a Choice or Set, a Specific Resource.",
+  "title": "Each **_target_** is one of a **string of format uri**, an **External Web Resource**, a **Choice** or **Set**, or a **Specific Resource** - [model 3.2](https://www.w3.org/TR/annotation-model/#bodies-and-targets), [model 4](https://www.w3.org/TR/annotation-model/#specific-resources)",
+  "description": "True when all Target(s) are one of a string of format uri, an External Web Resource, a Choice or Set, a Specific Resource (Sections 3.2, Section 4)",
+  "type": "object",
+  "properties":
+  {
+    "target":
+    {"oneOf": [
+      { "$ref": "bodyTarget.json#/definitions/targetResourcesFound" },
+      { "type" : ["array"],
+        "items": { "$ref": "bodyTarget.json#/definitions/targetResourcesFound" }
+      }
+    ]
+    }
+  },
+  "required": [ "target" ]
+}

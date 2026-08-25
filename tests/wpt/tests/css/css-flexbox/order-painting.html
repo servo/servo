@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<title>CSS Flexbox: painting order.</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#order-property">
+<link rel="match" href="reference/order-painting-ref.html">
+<meta name="assert" content="This test ensures that the 'order' style properly changes the paint order of flex items."/>
+<body>
+<p>This test passes if there is no red showing.</p>
+
+<div style="display: flex; width: 100px;">
+    <div style="order: 2; background-color: green; width: 100px; height: 100px; margin-left: -50px;"></div>
+    <div style="order: 1; background-color: red;   width: 50px;  height: 100px;"></div>
+</div>
+</body>
+</html>

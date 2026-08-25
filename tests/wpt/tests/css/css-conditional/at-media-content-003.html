@@ -1,0 +1,46 @@
+<!doctype html>
+<head>
+	<title>CSS Test (Conditional Rules): @keyframes rules inside @media</title>
+	<!-- This test is paired with at-supports-content-003.html ; please keep them in sync -->
+	<link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact">
+	<link rel="help" href="https://www.w3.org/TR/css-conditional-3/#contents-of">
+	<link rel="help" href="https://www.w3.org/TR/css-conditional-3/#at-media">
+	<link rel="help" href="https://www.w3.org/TR/css-animations-1/">
+	<link rel="match" href="at-supports-001-ref.html">
+	<meta name="assert"
+	      content="Test passes if @keyframes rules within @media are supported.">
+	<style>
+		div {
+			background: red;
+			width: 100px;
+			height: 100px;
+			animation: green 4s both;
+		}
+
+		@media all {
+			@keyframes green {
+				from {
+					background: green;
+				}
+				to {
+					background: green;
+				}
+			}
+		}
+		@media not all {
+			@keyframes green {
+				from {
+					background: red;
+				}
+				to {
+					background: red;
+				}
+			}
+		}
+	</style>
+</head>
+<body>
+	<p>Test passes if there is a <strong>filled green square</strong> and <strong>no red</strong>.</p>
+	<div class="test1"></div>
+</body>
+</html>

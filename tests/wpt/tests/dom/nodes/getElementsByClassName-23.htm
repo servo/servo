@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html><head>
+        <title>getElementsByClassName</title>
+        <meta content="multiple defined classes" name="description">
+    <link href="https://dom.spec.whatwg.org/#dom-document-getelementsbyclassname" rel="help">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+    <body>
+        <div id="log"></div>
+        <div>
+            <div>
+                <a class="text link" href="#foo">test link #foo</a>
+            </div>
+            <b class="text">text</b>
+        </div>
+        <table>
+            <caption class="text caption">text caption</caption>
+            <thead>
+                <tr>
+                    <td class="TEXT head">TEXT head</td>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="td text1">td text1</td>
+                </tr>
+                <tr>
+                    <td class="td text">td text</td>
+                </tr>
+                <tr>
+                    <td class="td te xt">td te xt</td>
+                </tr>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td class="TEXT foot">TEXT foot</td>
+                </tr>
+            </tfoot>
+        </table>
+        <div class="xt te">xt te</div>
+
+        <script type="text/javascript">
+            test(function()
+            {
+                var collection = document.getElementsByClassName("te xt");
+                assert_equals(collection.length, 2);
+                assert_equals(collection[0].parentNode.nodeName, "TR");
+                assert_equals(collection[1].parentNode.nodeName, "BODY");
+            }, "multiple defined classes");
+        </script>
+</body></html>

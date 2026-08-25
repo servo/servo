@@ -1,0 +1,3 @@
+rules:
+- "*-rumble-effect-*": [gamepad-haptics]
+- "*": [gamepad]

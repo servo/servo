@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+    <body>
+        <div id="source"></div>
+        <div id="destination"></div>
+        <script>
+            function createCanvas(parent, width, height) {
+                const canvas = document.createElement("canvas");
+                canvas.width = width;
+                canvas.height = height;
+                parent.append(canvas);
+                return canvas;
+            }
+
+            function fillRects(canvas, color, alpha, diagonal) {
+                const ctx = canvas.getContext("2d");
+                ctx.fillStyle = color;
+                ctx.globalAlpha = alpha;
+                if (diagonal == "left") {
+                    ctx.fillRect(60, 60, 50, 50);
+                    ctx.fillRect(110, 110, 50, 50);
+                } else {
+                    ctx.fillRect(60, 110, 50, 50);
+                    ctx.fillRect(110, 60, 50, 50);
+                }
+            }
+
+            fillRects(createCanvas(source, 200, 200), "#ff0000", 0.5, "left");
+            fillRects(createCanvas(source, 200, 200), "#ff0000", 0.5, "right");
+            fillRects(createCanvas(destination, 200, 200), "#777777", 0.5, "left");
+
+            let canvas = createCanvas(destination, 200, 200);
+            fillRects(canvas, "#777777", 0.5, "left");
+            fillRects(canvas, "#ff0000", 0.5, "right");
+        </script>
+    </body>
+</html>

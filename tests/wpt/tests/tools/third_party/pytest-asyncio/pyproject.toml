@@ -1,0 +1,10 @@
+[build-system]
+requires = [
+  "setuptools>=51.0",
+  "wheel>=0.36",
+  "setuptools_scm[toml]>=6.2"
+]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+write_to = "pytest_asyncio/_version.py"

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel=stylesheet href="resources/customizable-select-styles.css">
+
+<style>
+.highlight {
+  background-color: green;
+  color: white;
+}
+</style>
+
+<button class="customizable-select-button" popovertarget="popover" id="button">
+  <span class="customizable-select-selectedcontent"></span>
+</button>
+<div id="popover" popover="auto" class="customizable-select-popover">
+  <span class="highlight">Hello</span> World
+</div>
+
+<script>
+document.getElementById("popover").showPopover({ source: button });
+</script>

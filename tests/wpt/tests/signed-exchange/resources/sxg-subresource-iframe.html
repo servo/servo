@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<body>
+<script>
+(async () => {
+  const sxg_path = 'sxg/sxg-subresource.sxg';
+  const scipt_sxg_path = 'sxg/sxg-subresource-script.sxg';
+  const scipt_path = 'sxg-subresource-script.js';
+  const wait_for_prefetch = new Promise((resolve) => {
+    new PerformanceObserver((list) => {
+      for (let e of list.getEntries()) {
+        if (e.name.endsWith(scipt_sxg_path)) {
+          resolve();
+        } else if (e.name.endsWith(scipt_path)) {
+          window.parent.postMessage(
+            scipt_path + ' should not be prefetched', '*');
+        }
+      }
+    }).observe({ entryTypes: ['resource'] });
+  });
+
+  const link = document.createElement('link');
+  link.rel = 'prefetch';
+  link.href = sxg_path;
+  document.body.appendChild(link);
+  await wait_for_prefetch;
+  location.href = sxg_path;
+})()
+</script>
+</body>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>Test that the first flex item is pushed to the second column due to insufficient space, and the browser shouldn't create infinite columns.</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+  <link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+  <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1827582">
+  <link rel="match" href="single-line-row-flex-fragmentation-044-ref.html">
+
+  <style>
+  .multicol {
+    column-count: 2;
+    column-gap: 0;
+    column-fill: auto;
+    width: 200px;
+    border: 5px solid gray;
+    height: 0px;
+  }
+  .flexbox {
+    display: flex;
+    width: 100px;
+  }
+  .flexbox > div {
+    width: 50px;
+    contain: size;
+  }
+  </style>
+
+  <div class="multicol">
+    <div class="flexbox">
+      <!-- To reproduce the bug, the first item should have margin-top, and its
+           block-end should be smaller than the second item's block-end. -->
+      <div style="height: 10px; background: pink; margin-top: 5px;"></div>
+      <div style="height: 20px; background: orange"></div>
+    </div>
+  </div>
+</html>

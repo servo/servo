@@ -1,0 +1,21 @@
+<!doctype html>
+<title>MediaStreamAudioDestinationNode after closing AudioContext</title>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async t => {
+  const context = new AudioContext();
+  await context.close();
+  assert_equals(context.state, "closed", "The AudioContext should report a closed state");
+
+  let audioNode;
+  try {
+    audioNode = new MediaStreamAudioDestinationNode(context);
+  } catch (err) {
+    assert_unreached(`Constructing MediaStreamAudioDestinationNode should not throw when the context is closed. Threw: ${err}`);
+  }
+
+  assert_true(audioNode instanceof MediaStreamAudioDestinationNode, "The created node should be a MediaStreamAudioDestinationNode");
+}, "Constructing MediaStreamAudioDestinationNode on a closed AudioContext succeeds");
+</script>

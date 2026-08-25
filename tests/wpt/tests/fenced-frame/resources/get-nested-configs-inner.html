@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<script src="utils.js"></script>
+<title>Send the results of getNestedConfigs() to the embedder</title>
+<script>
+const [key] = parseKeylist();
+const configs = window.fence.getNestedConfigs();
+const data_to_send = [configs.length];
+writeValueToServer(key, data_to_send.join(","));
+</script>
+</html>

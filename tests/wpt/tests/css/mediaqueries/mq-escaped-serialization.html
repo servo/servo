@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>Media Queries Test: Serialization of escaped identifiers</title>
+<link rel="help" href="https://drafts.csswg.org/mediaqueries-4/#mq-syntax">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style id="media_sheet">
+  @media \{screen and (--\(FOO: bar) {}
+</style>
+<script>
+  test(() => {
+    assert_equals(media_sheet.sheet.cssRules[0].conditionText, "\\{screen and (--\\(FOO: bar)")
+  }, "Serialization of media query escapes identifiers when necessary");
+</script>

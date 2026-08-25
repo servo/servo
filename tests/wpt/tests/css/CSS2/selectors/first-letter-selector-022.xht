@@ -1,0 +1,20 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: First-letter in different elements than its punctuation</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#first-letter" />
+        <meta name="flags" content="may" />
+        <meta name="assert" content="If the letters that would form the first-letter are not in the same element the user agent may create a first-letter pseudo-element from one of the elements, both elements, or simply not create a pseudo-element." />
+        <style type="text/css">
+            div:first-letter
+            {
+                color: green;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes regardless if the leading quote, the letter "T" and the following quote are green.</p>
+        <div>"<em>T</em>"</div>
+    </body>
+</html>

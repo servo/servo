@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>CSS aspect-ratio: Wrapping column flexbox line length</title>
+<link rel="author" title="Google LLC" href="https://www.google.com/">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#line-sizing" title="9.2.3.B">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht" />
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div style="display: flex; flex-direction: column; flex-wrap: wrap; width: 100px; aspect-ratio: 1/1;">
+  <div style="background: green; width: 50px; height: 100px;"></div>
+  <div style="background: green; width: 50px; height: 100px;"></div>
+</div>

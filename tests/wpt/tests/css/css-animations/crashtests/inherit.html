@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Keyframes with background-color:inherit should not crash</title>
+<link rel="help" href="https://crbug.com/40345171">
+<style>
+@keyframes test {
+    to { background-color: inherit; }
+}
+body {
+    animation: test 1s;
+}
+</style>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Reference Test</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+
+  <style>
+  div
+    {
+      font-family: monospace;
+      font-size: 60px;
+      line-height: 1.5em; /* computes to 90px */
+    }
+
+  /*
+  We draw the box (perfectly fitted to the content
+  in the block axis, because it has the same content)
+  but not the text.
+  */
+
+  div#box-drawn-under
+    {
+      background-color: lime;
+      border: black solid 3px;
+      color: transparent;
+      position: absolute;
+      width: 240px;
+      z-index: -1;
+    }
+
+  /*
+  We draw the text, but into a wider box so
+  the period will fit, and overlap it with
+  the previously-drawn box.
+  */
+
+  div#text-drawn-over
+    {
+      border: transparent solid 3px;
+      width: 300px;
+    }
+  </style>
+
+  <body lang="ja">
+
+   <div id="box-drawn-under">まだよく<br>ています。</div>
+
+   <div id="text-drawn-over">まだよく<br>ています。<br>しかし特</div>

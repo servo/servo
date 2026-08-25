@@ -1,0 +1,53 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+                      "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: page-break-inside inheritance</title>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#spacing-props"/>
+  <meta name="flags" content="paged"/>
+  <meta name="assert" content="'page-break-inside' does not inherit."/>
+  <style type="text/css">
+    /* Most permissible breaking possible */
+    * { widows: 1; orphans: 1; widows: 0; orphans: 0; }
+
+    /* Leave 2.5 lines at bottom to play with, independent of page size. */
+    html, body {
+      height: 100%;
+      margin: 0;
+      line-height: 1;
+    }
+    .spacer1 {
+      height: 35%;
+    }
+    .spacer2 {
+      height: 15%;
+      margin-top: -2.5em;
+    }
+
+    .avoid {
+      page-break-inside: avoid;
+      height: 200%;
+    }
+    .test div {
+      white-space: pre;
+      /* Make test text more visible */
+      color: blue;
+      font-weight: bold;
+    }
+</style>
+</head>
+<body>
+  <div class="avoid">
+   <div class="spacer1">This test requires 2 pages. Lines A and B must appear
+     on the first page, lines C and D on the second.</div>
+   <div class="spacer2"></div>
+   <div class="test">
+<div>    Page 1 Line A
+    Page 1 Line B
+    Page 2 Line C</div>
+<div>    Page 2 Line D</div>
+   </div>
+  </div>
+</body>
+</html>

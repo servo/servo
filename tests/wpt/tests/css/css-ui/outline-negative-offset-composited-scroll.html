@@ -1,0 +1,24 @@
+<!doctype html>
+<title>CSS-UI test: outline-offset width negative values on scroller</title>
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<link rel=help href="https://drafts.csswg.org/css-ui-3/#outline-props">
+<style>
+#container {
+  width: 100px;
+  height: 100px;
+  background: red;
+  will-change: transform;
+  overflow: scroll;
+  outline: solid 50px green;
+  outline-offset: -50px;
+}
+#child {
+  position: relative;
+  will-change: transform;
+  height: 1000px;
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="container">
+  <div id="child"></div>
+</div>

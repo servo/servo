@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>Request URL Modifiers: cross-origin(anonymous) in image-set()</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#typedef-request-url-modifier-cross-origin-modifier">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="URL modifiers should apply to url() values inside image-set().">
+<style>
+.test {
+  width: 100px;
+  height: 100px;
+  background-color: red;
+  background-image: image-set(url("http://{{hosts[][]}}:{{ports[http][1]}}/css/support/1x1-green.png?pipe=header(Access-Control-Allow-Origin,*)" cross-origin(anonymous)) 1x);
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="test"></div>

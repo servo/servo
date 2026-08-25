@@ -1,0 +1,81 @@
+<!DOCTYPE HTML>
+<html><head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="/fonts/ahem.css">
+  <style>
+html,body {
+  color:black; background-color:white; font:12px/1 Ahem;
+}
+
+.grid {
+  display: grid;
+  grid-template-rows: repeat(5, auto);
+  place-content: start;
+  border: 1px solid;
+}
+
+.subgrid {
+  display: grid;
+  grid-template-rows: subgrid;
+  grid-row: 2 / span 5;
+  min-width:10px;
+  min-height:0;
+  border: 0 solid lightblue;
+  border-bottom-width: 40px;
+  background: yellow;
+  padding: 1px 3px 5px 7px;
+  margin: 3px 11px 7px 5px;
+}
+
+.vlr {
+  writing-mode: vertical-lr;
+  background: blue;
+}
+
+x {
+  min-width:10px;
+  min-height:0px;
+}
+
+x:nth-child(2n+1) { background: silver; }
+x:nth-child(2n+2) { background: grey; }
+x:nth-child(2n+3) { background: pink; }
+x:nth-child(2n+4) { background: black; }
+
+.hl { writing-mode: horizontal-tb; direction:ltr; }
+.hr { writing-mode: horizontal-tb; direction:rtl; }
+.vl { writing-mode: vertical-lr; }
+.vr { writing-mode: vertical-rl; }
+.vlr { writing-mode: vertical-lr; direction:rtl; }
+.vrl { writing-mode: vertical-rl; direction:ltr; }
+
+.subgrid.vlr, .subgrid.vrl, .subgrid.vl, .subgrid.vr {
+  grid-template-columns: subgrid;
+  grid-template-rows: none;
+  grid-row: 2 / span 5;
+}
+
+  </style>
+</head>
+<body>
+<div class="grid vrl">
+<div class="subgrid hl" style="grid-template-columns: subgrid; grid-template-rows: none; grid-row: 2 / span 5;">
+  <x style="grid-column:span 12">A _B</x>
+  <x style="width:100px; height:30px"></x>
+  <x style="background:yellow">C D_</x>
+</div>
+</div>
+
+<div class="grid">
+<div class="subgrid vlr">
+  <x>A _B</x>
+  <x style="width:100px; height:30px"></x>
+  <x>C D_</x>
+</div>
+</div>
+
+<div class="grid">
+<div class="subgrid vlr"></div>
+</div>
+</body>
+</html>

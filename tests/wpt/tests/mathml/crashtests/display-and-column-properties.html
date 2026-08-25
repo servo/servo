@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html class="test-wait">
+  <head>
+    <title>MathML elements with display and column properties</title>
+    <meta charset="utf-8"/>
+    <style>
+      math {
+          column-width: 100px;
+      }
+    </style>
+  </head>
+  <body>
+    <math></math>
+    <math style="display: list-item"></math>
+    <script>
+      window.addEventListener("load", function() {
+          // Force initial layout.
+          document.documentElement.getBoundingClientRect();
+
+          // Change display and reforce layout.
+          let maths = document.getElementsByTagName("math");
+          maths[0].setAttribute("style", "display: list-item");
+          maths[1].removeAttribute("style");
+          document.documentElement.getBoundingClientRect();
+
+          document.documentElement.classList.remove("test-wait");
+      });
+    </script>
+  </body>
+</html>

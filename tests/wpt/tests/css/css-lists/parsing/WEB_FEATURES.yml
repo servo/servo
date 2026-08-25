@@ -1,0 +1,4 @@
+rules:
+- content-invalid.html: [counters]
+- counter-reset-*: [counters, counters]
+- counter-*: [counters]

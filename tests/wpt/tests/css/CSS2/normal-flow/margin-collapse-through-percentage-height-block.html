@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/CSS22/box.html#collapsing-margins" title="8.3.1 Collapsing margins">
+<link rel="help" href="http://crbug.com/962175">
+<link rel="match" href="../../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="A percentage height is unresolvable (i.e. gets treated as auto) if the containing block is auto.">
+<p>Test passes if there is a filled green square.</p>
+<div style="height:200px;">
+  <div style="overflow:hidden; width:100px; background:green;">
+    <div style="margin-bottom:100px;"></div>
+    <div style="height:30%;"></div>
+    <div style="margin-top:100px;"></div>
+  </div>
+</div>

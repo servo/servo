@@ -1,0 +1,223 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Ensure sampling-feedback detection can allow certain immutable texture uses</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+
+const wtu = WebGLTestUtils;
+description();
+
+const gl = wtu.create3DContext(undefined, undefined, 2);
+
+function* range(a, b) {
+    a.required;
+    if (b === undefined) {
+        b = a;
+        a = 0;
+    }
+    for (let i = a; i < b; i += 1) {
+        yield i;
+    }
+}
+
+const VS = `\
+void main() {
+    gl_PointSize = 1.0;
+}
+`;
+
+const FS = `\
+uniform sampler2D u_tex0;
+void main() {
+    gl_FragColor = texture2D(u_tex0, vec2(0));
+}
+`;
+
+const prog = wtu.loadProgram(gl, VS, FS);
+gl.useProgram(prog);
+
+(() => {
+    const MIPS = 3;
+    const SIZE = 10;
+
+    const immutTex = gl.createTexture();
+    immutTex.name = "immutTex";
+    immutTex.immutable = true;
+    gl.bindTexture(gl.TEXTURE_2D, immutTex);
+    gl.texStorage2D(gl.TEXTURE_2D, MIPS, gl.RGBA8, SIZE, SIZE);
+
+    const mutTex = gl.createTexture();
+    mutTex.name = "mutTex";
+    mutTex.immutable = false;
+    gl.bindTexture(gl.TEXTURE_2D, mutTex);
+    for (const mip of range(MIPS)) {
+        const size = SIZE >> mip;
+        gl.texImage2D(gl.TEXTURE_2D, mip, gl.RGBA8, size, size, 0,
+                      gl.RGBA, gl.UNSIGNED_BYTE, null);
+    }
+
+    const MAG_FILTERS = [
+        'LINEAR',
+        'NEAREST',
+    ];
+    const MIN_FILTERS = [
+        ['LINEAR',false],
+        ['LINEAR_MIPMAP_LINEAR',true],
+        ['LINEAR_MIPMAP_NEAREST',true],
+        ['NEAREST',false],
+        ['NEAREST_MIPMAP_LINEAR',true],
+        ['NEAREST_MIPMAP_NEAREST',true],
+    ];
+
+    const fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+
+    debug(`
+        mips: ${MIPS}: [0,${MIPS-1}] (inclusive)
+        size: ${SIZE}`);
+    const texs = [
+        immutTex,
+        mutTex,
+    ];
+    for (const tex of texs) {
+        debug(`\
+
+            immutable: ${tex.immutable}`);
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+
+        for (const level_prime_base of range(MIPS+1)) { // `level_base` in GLES
+            // ES 3.0.6 p150
+            let _level_base = level_prime_base;
+            if (tex.immutable) {
+                _level_base = Math.min(_level_base, MIPS-1);
+            }
+            const level_base = _level_base;
+
+            for (let _level_prime_max of range(level_prime_base-1, MIPS+2)) { // `q` in GLES
+                if (_level_prime_max < 0) continue;
+                if (_level_prime_max == MIPS+1) {
+                    _level_prime_max = 10000; // This is the default, after all!
+                }
+                const level_prime_max = _level_prime_max;
+
+                // ES 3.0.6 p150
+                let _level_max = level_prime_max;
+                if (tex.immutable) {
+                    _level_max = Math.min(Math.max(level_base, level_prime_max), MIPS-1);
+                }
+                const level_max = _level_max;
+
+                const p = Math.floor(Math.log2(SIZE)) + level_base;
+                const q = Math.min(p, level_max);
+
+                debug(`\
+
+                    level_prime_base/max: [${level_prime_base}, ${level_prime_max}] (inclusive)
+                    level_base/max: [${level_base}, ${level_max}] (inclusive)
+                    q: ${q}`);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_BASE_LEVEL,
+                                 level_prime_base);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAX_LEVEL,
+                                 level_prime_max);
+
+                const mipComplete = (q <= MIPS-1);
+
+                for (const [minFilter,useMips] of MIN_FILTERS) {
+                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER,
+                                     gl[minFilter]);
+
+                    // ES3.0 p211
+                    const srcMaxSampledMip = (useMips ? q : level_base);
+
+                    // ES3.0 p160-161
+                    const textureComplete = (srcMaxSampledMip <= MIPS-1) &&
+                                            (level_base <= level_max);
+
+                    for (const magFilter of MAG_FILTERS) {
+                        debug(`\
+
+                            min: ${minFilter}, mag: ${magFilter}`);
+                        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER,
+                                         gl[magFilter]);
+
+                        for (const dstMip of range(0,MIPS+1)) {
+                            debug(`
+                                mip: ${dstMip}`);
+                            gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0,
+                                                    gl.TEXTURE_2D, tex, dstMip);
+
+                            // -
+
+                            // ES3.0 p213-214
+                            let fbComplete = true;
+
+                            // * "The width and height of `image` are non-zero"
+                            fbComplete &= (0 <= dstMip && dstMip <= MIPS-1);
+
+                            if (!tex.immutable) { // "...does not name an immutable-format texture..."
+                                // * "...the value of [level] must be in the range `[level_base, q]`"
+                                fbComplete &= (level_base <= dstMip && dstMip <= q);
+
+                                // * "...the value of [level] is not `level_base`, then the texture must be mipmap complete"
+                                if (dstMip != level_base) {
+                                    fbComplete &= mipComplete;
+                                }
+                            }
+
+                            // -
+
+                            let expectError = 0;
+                            let expectStatus = gl.FRAMEBUFFER_COMPLETE;
+
+                            // ES3.0 p211
+                            let samplingFeedback = (level_base <= dstMip && dstMip <= srcMaxSampledMip);
+                            if (!textureComplete) {
+                                // Incomplete textures are safe
+                                samplingFeedback = false;
+                            }
+                            if (samplingFeedback) {
+                                expectError = gl.INVALID_OPERATION;
+                            }
+                            if (!fbComplete) {
+                                expectStatus = gl.FRAMEBUFFER_INCOMPLETE_ATTACHMENT;
+                                expectError = gl.INVALID_FRAMEBUFFER_OPERATION;
+                            }
+
+                            // -
+
+                            wtu.framebufferStatusShouldBe(gl, gl.FRAMEBUFFER,
+                              expectStatus, `{immutable: ${tex.immutable}, level_prime_base/max: [${level_prime_base}, ${level_prime_max}], minFilter: ${minFilter}, dest: ${dstMip}}`);
+
+                            gl.drawArrays(gl.POINTS, 0, 1);
+                            wtu.glErrorShouldBe(gl, expectError, "after draw with texture");
+                        }
+                    }
+                }
+            }
+        }
+    }
+})();
+
+var successfullyParsed = true;
+</script>
+<script src="../../../js/js-test-post.js"></script>
+
+</body>
+</html>

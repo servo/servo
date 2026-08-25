@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+
+  <script src="resources/profile-utils.js"></script>
+
+  <script id="external-script" src="resources/external-script.js"></script>
+</head>
+<body>
+  <script>
+    promise_test(async t => {
+      const trace = await ProfileUtils.profileFunction(function trampoline(sample) {
+        externalScriptFunction(sample);
+      });
+
+      const scriptUrl = document.querySelector('#external-script').src;
+      assert_true(ProfileUtils.containsResource(trace, scriptUrl),
+                  'external resource is included');
+
+      const expectedTrampolineFrame = {
+        name: 'trampoline',
+        resourceId: trace.resources.indexOf(
+          location.href,
+        ),
+      };
+      const expectedExternalFrame = {
+        name: 'externalScriptFunction',
+        resourceId: trace.resources.indexOf(scriptUrl),
+        line: EXTERNAL_SCRIPT_FUNCTION_LINE,
+        column: EXTERNAL_SCRIPT_FUNCTION_COLUMN,
+      };
+
+      assert_true(ProfileUtils.containsFrame(trace, expectedTrampolineFrame),
+                  'trampoline function included');
+
+      assert_true(ProfileUtils.containsFrame(trace, expectedExternalFrame),
+                  'external script function included');
+
+      assert_true(ProfileUtils.containsSubstack(trace, [
+                    externalScriptFunction,
+                    expectedTrampolineFrame,
+                  ]),
+                  'stack exists with external script function');
+
+    }, 'external script function details');
+  </script>
+</body>
+</html>

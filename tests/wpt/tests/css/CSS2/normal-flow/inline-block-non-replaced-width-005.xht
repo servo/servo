@@ -1,0 +1,63 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: width - non-replaced inline-block with scrollbar and percentage height of inline replaced child</title>
+
+  <!--
+  Credits should go to Erik Brown for discovering and originally reporting a similar test
+  -->
+
+  <link rel="bookmark" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1281713" title="Bug 1281713: intrinsic width of parent with overflow-x:scroll not computing correctly with child image with height:100%" />
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" title="11.1.1 Overflow: the 'overflow' property" href="https://www.w3.org/TR/CSS21/visufx.html#overflow" />
+  <link rel="help" title="10.3.2 Inline, replaced elements" href="https://www.w3.org/TR/CSS21/visudet.html#inline-replaced-width" />
+  <link rel="help" title="10.3.5 Floating, non-replaced elements" href="https://www.w3.org/TR/CSS21/visudet.html#float-width" />
+
+  <meta name="DC.date.created" content="2016-06-23T09:54:03+11:00" scheme="W3CDTF" />
+  <meta name="DC.date.modified" content="2016-07-06T09:54:03+11:00" scheme="W3CDTF" />
+
+  <!--
+  Siblings of this test are:
+  float-non-replaced-width-013
+  absolute-non-replaced-width-028
+  -->
+
+  <meta content="image scroll" name="flags" />
+  <meta content="This test checks interaction of percentage height of an inline replaced element with its parent having scrollbars and with the parent's width determined by 'shrink-to-fit' width algorithm. In this test, the image height should be 100px minus scrollbar height since space taken up by generated scrollbars should be taken out of (subtracted from the dimensions of) the containing block formed by the element with the scrollbars. Then the width of parent should be (used image height == 100px minus scrollbar) * (intrinsic ratio == 5width:1height)." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  div
+    {
+      background-color: red;
+      display: inline-block;  /* or float: left; */  /* or position: absolute; */
+      height: 100px;
+      overflow: scroll;
+    }
+
+  img
+    {
+      height: 100%;
+      vertical-align: bottom;
+      /*
+      This 'vertical-align: bottom' declaration is not part of the test.
+      We 'baseline-align' the image at the bottom of the line box so
+      that the vertical scrollbar remains inactive.
+      */
+    }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>PREREQUISITE: User agent needs to support scrollbars as the scrolling mechanism. If it does not, then this test does not apply to such user agent.</p>
+
+  <p>Test passes if there is a filled green rectangle with inactive scrollbars and <strong>no red</strong>.</p>
+
+  <div><img src="support/green-rectangle-50wideBy10tall.png" alt="Image download support must be enabled" /></div>
+
+ </body>
+</html>

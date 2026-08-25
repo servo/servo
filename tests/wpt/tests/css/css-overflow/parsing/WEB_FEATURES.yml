@@ -1,0 +1,9 @@
+rules:
+- overflow-clip-margin*: [overflow-clip-margin]
+- scroll-markers*: [scroll-markers]
+- scroll-button*: [scroll-buttons]
+- scroll-target-group*: [scroll-target-group]
+- scrollbar-gutter-*: [scrollbar-gutter]
+- line-clamp-*: [line-clamp]
+- webkit-line-clamp-*: [line-clamp]
+- text-overflow-*: [text-overflow]

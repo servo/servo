@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>HTML LI element: implied scope</title>
+  <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.org">
+  <style>
+    body { margin-left: 40px }
+    li { list-style-type: decimal }
+  </style>
+</head>
+<body>
+<li start="1"></li>
+<li start="2"></li>
+<li start="3"></li>
+<li start="4"></li>
+<div><li></li></div>
+<div><div><li></li></div></div>
+</body>
+</html>

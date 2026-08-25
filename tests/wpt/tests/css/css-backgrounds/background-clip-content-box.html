@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+  <head>
+
+    <title>CSS Background and Borders Test:background-clip_content-box</title>
+    <link rel="author" title="anping" href="mailto:zhuanping123@163.com" />
+        <link rel="help" href="http://www.w3.org/TR/css3-background/#the-background-clip" />
+       <meta name="match" content="reference/reference.html" />
+       <meta name="assert" content="Test passes if the background color is limited to the content only and border is blue dotted without red">
+
+    <style>
+      div{
+          position:absolute;
+         }
+
+       #test{
+        background-clip: content-box;
+        border: 5px dotted blue;
+        height: 100px;
+        left: 10px;
+        padding: 10px;
+        top: 10px;
+        width: 100px;
+        background-color:red;
+       }
+    </style>
+  </head>
+ <body>
+  <p>
+   "Test passes if the background color is limited to the content only and border is blue dotted without red."
+  </p>
+  <div id="container">
+   <div id="test"></div>
+  </div>
+ </body>
+
+</html>

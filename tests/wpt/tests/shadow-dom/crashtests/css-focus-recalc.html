@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Style recalculation on shadow host focus should not crash</title>
+<link rel="help" href="https://crbug.com/760405">
+<style>
+  #host:not(:focus)::after {
+    content: 'text';
+  }
+</style>
+<div id="host" tabindex="0"></div>
+<script>
+  host.attachShadow({mode: 'closed'});
+  host.focus();
+</script>

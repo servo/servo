@@ -1,0 +1,31 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <title>location_search</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+    test(function () {
+      window.history.pushState(1, document.title, '?x=1');
+      var search = location.search;
+
+      assert_equals(search, "?x=1", "search");
+
+    }, "location search");
+
+    promise_test(async function() {
+      var iframe = document.createElement("iframe");
+      iframe.src = "about:blank?foo";
+      document.body.appendChild(iframe);
+      assert_equals(iframe.contentWindow.location.search, "?foo");
+
+      iframe.contentWindow.location.search = "?bar";
+      await new Promise(res => iframe.addEventListener("load", res));
+      assert_equals(iframe.contentWindow.location.search, "?bar");
+    }, "location.search on about:blank");
+    </script>
+  </body>
+</html>

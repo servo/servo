@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<!-- Copyright © 2018 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<html>
+    <head>
+        <meta  charset="utf-8">
+        <title>SourceBuffer.changeType() test cases.</title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="mediasource-util.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script>
+mediasource_test(function(test, mediaElement, mediaSource)
+{
+    var sourceBuffer = mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_VIDEO_TYPE);
+
+    assert_throws_js(TypeError, function()
+    {
+        sourceBuffer.changeType("");
+    }, "changeType");
+
+    test.done();
+}, "Test changeType with an empty type.");
+
+mediasource_test(function(test, mediaElement, mediaSource)
+{
+    var sourceBuffer = mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_VIDEO_TYPE);
+
+    mediaSource.removeSourceBuffer(sourceBuffer);
+
+    assert_throws_dom("InvalidStateError", function()
+    {
+        sourceBuffer.changeType(MediaSourceUtil.AUDIO_VIDEO_TYPE);
+    }, "changeType");
+
+    test.done();
+}, "Test changeType after SourceBuffer removed from mediaSource.");
+
+mediasource_test(function(test, mediaElement, mediaSource)
+{
+    var sourceBuffer = mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_VIDEO_TYPE);
+    sourceBuffer.appendBuffer(new Uint8Array(0));
+    assert_true(sourceBuffer.updating, "Updating flag set when a buffer is appended.");
+
+    assert_throws_dom("InvalidStateError", function()
+    {
+        sourceBuffer.changeType(MediaSourceUtil.AUDIO_VIDEO_TYPE);
+    }, "changeType");
+
+    test.done();
+}, "Test changeType while update pending.");
+
+mediasource_test(function(test, mediaElement, mediaSource)
+{
+    var sourceBuffer = mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_VIDEO_TYPE);
+
+    var unsupported_type = null;
+    assert_false(MediaSource.isTypeSupported(unsupported_type), "null MIME type is not expected to be supported.");
+
+    assert_throws_dom("NotSupportedError", function()
+    {
+        sourceBuffer.changeType(unsupported_type);
+    }, "changeType");
+
+    test.done();
+}, "Test changeType with null type.");
+
+mediasource_test(function(test, mediaElement, mediaSource)
+{
+    var sourceBuffer = mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_VIDEO_TYPE);
+
+    var unsupported_type = 'invalidType';
+    assert_false(MediaSource.isTypeSupported(unsupported_type), unsupported_type + " is not expected to be supported.");
+
+    assert_throws_dom("NotSupportedError", function()
+    {
+        sourceBuffer.changeType(unsupported_type);
+    }, "changeType");
+
+    test.done();
+}, "Test changeType with unsupported type.");
+
+mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
+{
+    test.expectEvent(sourceBuffer, "updatestart");
+    test.expectEvent(sourceBuffer, "update");
+    test.expectEvent(sourceBuffer, "updateend");
+    sourceBuffer.appendBuffer(mediaData);
+
+    test.waitForExpectedEvents(function()
+    {
+        mediaSource.endOfStream();
+        assert_equals(mediaSource.readyState, "ended");
+
+        test.expectEvent(mediaSource, "sourceopen");
+        sourceBuffer.changeType(MediaSourceUtil.AUDIO_VIDEO_TYPE);
+        assert_equals(mediaSource.readyState, "open");
+    });
+
+    test.waitForExpectedEvents(function()
+    {
+        test.done();
+    });
+}, "Test changeType transitioning readyState from 'ended' to 'open'.");
+
+mediasource_test(function(test, mediaElement, mediaSource) {
+    var sequenceType = "audio/aac";
+    if (!MediaSource.isTypeSupported(sequenceType)) {
+      sequenceType = "audio/mpeg";
+      assert_true(MediaSource.isTypeSupported(sequenceType),
+                  "No bytestream that generates timestamps is supported, aborting test");
+    }
+
+    assert_not_equals(MediaSourceUtil.AUDIO_ONLY_TYPE, sequenceType,
+                      "This test requires distinct audio-only types");
+
+    var sourceBuffer = mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_ONLY_TYPE);
+    assert_equals(sourceBuffer.mode, "segments",
+                  "None of the audioOnlyTypes in the test util generate timestamps, but mode is incorrectly set");
+
+    sourceBuffer.changeType(sequenceType);
+    assert_equals(sourceBuffer.mode, "sequence",
+                  "Mode is not updated correctly for a bytestream that generates timestamps");
+
+    test.done();
+}, "Test changeType sets mode to sequence for change to type that generates timestamps");
+
+mediasource_test(function(test, mediaElement, mediaSource) {
+    var sourceBuffer = mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_ONLY_TYPE);
+
+    assert_equals(sourceBuffer.mode, "segments",
+                  "None of the audioOnlyTypes in the test util generate timestamps, but mode is incorrectly set");
+    sourceBuffer.changeType(MediaSourceUtil.AUDIO_ONLY_TYPE);
+    assert_equals(sourceBuffer.mode, "segments",
+                  "Previous segments mode is not retained correctly for changeType to one that doesn't generate timestamps");
+
+    sourceBuffer.mode = "sequence";
+    assert_equals(sourceBuffer.mode, "sequence", "mode should be sequence now");
+    sourceBuffer.changeType(MediaSourceUtil.AUDIO_ONLY_TYPE);
+    assert_equals(sourceBuffer.mode, "sequence",
+                  "Previous sequence mode is not retained correctly for changeType to one that doesn't generate timestamps");
+
+    test.done();
+}, "Test changeType retains previous mode when changing to type that doesn't generate timestamps");
+
+        </script>
+    </body>
+</html>

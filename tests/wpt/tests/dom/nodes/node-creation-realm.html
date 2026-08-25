@@ -1,0 +1,111 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Node creation uses the node document's realm, not the running realm</title>
+<link rel=help href="https://dom.spec.whatwg.org/#concept-create-node">
+<link rel=help href="https://github.com/whatwg/dom/issues/977">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<body>
+<iframe></iframe>
+<script>
+// Every node is created in its node document's relevant realm, not in whatever
+// realm is running the creation algorithm. Each subtest forces those two realms
+// apart by invoking a creation method that belongs to an inner (iframe) realm
+// with a "this" (and thus a node document) that belongs to the top-level realm.
+// The created node must be a top-level-realm object.
+
+const inner = document.querySelector("iframe").contentWindow;
+
+function assertTopRealm(node, iface) {
+  assert_true(node instanceof window[iface],
+              `is a top-level-realm ${iface}`);
+}
+
+// Document factory methods invoked cross-realm on the top-level document.
+const FACTORIES = [
+  { name: "createTextNode", iface: "Text", args: ["x"] },
+  { name: "createComment", iface: "Comment", args: ["x"] },
+  { name: "createProcessingInstruction", iface: "ProcessingInstruction", args: ["t", "d"] },
+  { name: "createDocumentFragment", iface: "DocumentFragment", args: [] },
+  { name: "createAttribute", iface: "Attr", args: ["x"] },
+];
+
+for (const { name, iface, args } of FACTORIES) {
+  test(() => {
+    const method = inner.Document.prototype[name];
+    const node = method.apply(document, args);
+    assertTopRealm(node, iface);
+  }, `Document.${name}() creates a node in the target document's realm`);
+}
+
+// createCDATASection requires an XML document.
+test(() => {
+  const xml = document.implementation.createDocument(null, "root", null);
+  const node = inner.Document.prototype.createCDATASection.call(xml, "x");
+  assertTopRealm(node, "CDATASection");
+}, "Document.createCDATASection() creates a node in the target document's realm");
+
+// DOMImplementation.createDocumentType invoked cross-realm.
+test(() => {
+  const doctype = inner.DOMImplementation.prototype.createDocumentType.call(
+    document.implementation, "html", "", "");
+  assertTopRealm(doctype, "DocumentType");
+}, "DOMImplementation.createDocumentType() creates a node in the associated document's realm");
+
+// Document base case: implementation.createDocument / createHTMLDocument create
+// the new document in the DOMImplementation's relevant realm.
+test(() => {
+  const doc = inner.DOMImplementation.prototype.createDocument.call(
+    document.implementation, null, "root", null);
+  assertTopRealm(doc, "XMLDocument");
+}, "DOMImplementation.createDocument() creates the document in the target realm");
+
+test(() => {
+  const doc = inner.DOMImplementation.prototype.createHTMLDocument.call(
+    document.implementation, "title");
+  assert_true(doc instanceof Document, "is a top-level-realm Document");
+  // Its parser-created descendants share the document's realm.
+  assertTopRealm(doc.doctype, "DocumentType");
+  assertTopRealm(doc.documentElement, "HTMLHtmlElement");
+  assertTopRealm(doc.querySelector("title").firstChild, "Text");
+}, "DOMImplementation.createHTMLDocument() creates the document and its contents in the target realm");
+
+// cloneNode: the clone uses the node's node document's realm, regardless of the
+// realm whose cloneNode() is invoked.
+test(() => {
+  const comment = document.createComment("x");
+  const clone = inner.Node.prototype.cloneNode.call(comment);
+  assertTopRealm(clone, "Comment");
+}, "cloneNode() clones into the node's node document realm");
+
+// importNode: the copy uses the target document's realm (the document
+// importNode() is called on), not the realm whose method is invoked.
+test(() => {
+  const source = inner.document.createComment("x");
+  const copy = inner.Document.prototype.importNode.call(document, source);
+  assertTopRealm(copy, "Comment");
+}, "importNode() imports into the target document's realm");
+
+// Range.cloneContents() builds its DocumentFragment in the range's node document
+// realm.
+test(() => {
+  const container = document.createElement("div");
+  container.append(document.createComment("a"), document.createComment("b"));
+  const range = document.createRange();
+  range.selectNodeContents(container);
+  const fragment = inner.Range.prototype.cloneContents.call(range);
+  assertTopRealm(fragment, "DocumentFragment");
+}, "Range.cloneContents() builds the fragment in the range's node document realm");
+
+// innerHTML on a host adopted into the top-level document: the parsed Text and
+// Comment nodes are created in the node document's (top-level) realm. This is
+// the character/comment analogue of the element case in issue #977.
+test(() => {
+  const host = inner.document.createElement("div");
+  document.body.appendChild(host); // adopts into the top-level document
+  const shadow = host.attachShadow({ mode: "open" });
+  shadow.innerHTML = "text<!--comment-->";
+  assertTopRealm(shadow.firstChild, "Text");
+  assertTopRealm(shadow.lastChild, "Comment");
+}, "innerHTML parses Text and Comment nodes in the node document's realm after adoption");
+</script>

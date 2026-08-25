@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api-1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/utils.js"></script>
+<div id="target"></div>
+<script>
+
+transition_test({
+  syntax: "<length-percentage>",
+  from: "100px",
+  to: "100%",
+  expected: "calc(50% + 50px)"
+}, 'A custom property of type <length-percentage> can yield a CSS Transition');
+
+</script>

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: view-transition-names are tree scoped</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<link rel="match" href="names-are-tree-scoped-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+div {
+  width: 100px;
+  height: 100px;
+  background: red;
+}
+
+#one {
+  view-transition-name: light1;
+}
+#two {
+  view-transition-name: light2;
+}
+#three {
+  view-transition-name: light3;
+}
+
+:root { view-transition-name: none; }
+html::view-transition-group(*) { animation-play-state: paused; }
+html::view-transition-old(*) { animation: unset; opacity: 0 }
+html::view-transition-new(*) { animation: unset; opacity: 0 }
+</style>
+
+<custom-component>
+  <template shadowrootmode="open">
+    <style>
+    div {
+      width: 100px;
+      height: 100px;
+      background: green;
+      view-transition-name: shadow;
+    }
+    </style>
+    <div>
+      <slot></slot>
+    </div>
+    <slot></slot>
+  </template>
+  <div id=one></div>
+  <div id=two></div>
+</custom-component>
+
+<div id=three></div>
+
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+function runTest() {
+  document.startViewTransition().ready.then(takeScreenshot);
+}
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+
+</body>

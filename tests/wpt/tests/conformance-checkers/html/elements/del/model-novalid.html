@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset=utf-8>
+  <title>&lt;del&gt;</title>
+</head>
+<body>
+  <!-- can contain inline while in inline context -->
+  <p>paragraph
+    <del>
+      <em>some</em> <ul><li>inline</li></ul> content
+    </del>
+  </p>
+
+  <!-- can contain strictly inline while in strictly inline context -->
+  <p><dfn>strictly inline
+    <del>
+      <em>text</em>
+    </del>
+  </dfn></p>
+
+  <!-- can contain blocks while in block context -->
+  <del>
+    <p>text</p>
+  </del>
+
+  <!-- can contain interactive if ancestor does not forbid it -->
+  <p>paragraph
+    <del>
+      <a>link</a>
+    </del>
+  </p>
+  <p><dfn>strictly inline
+    <del>
+      <a>link</a>
+    </del>
+  </dfn></p>
+  <del>
+    <p><a>link</a></p>
+  </del>
+
+  <span><del><p>foo</p></del></span><!-- with flow content and phrasing parent -->
+
+</body>
+</html>

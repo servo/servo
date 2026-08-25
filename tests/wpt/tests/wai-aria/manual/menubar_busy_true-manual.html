@@ -1,0 +1,130 @@
+<!doctype html>
+<html>
+  <head>
+    <title>menubar busy true</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+    <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/wai-aria/scripts/ATTAcomm.js"></script>
+    <script>
+    setup({explicit_timeout: true, explicit_done: true });
+
+    var theTest = new ATTAcomm(
+    {
+   "steps" : [
+      {
+         "element" : "test",
+         "test" : {
+            "ATK" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_MENU_BAR"
+               ],
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "xml-roles:menubar"
+               ],
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "STATE_BUSY"
+               ]
+            ],
+            "AXAPI" : [
+               [
+                  "property",
+                  "AXRole",
+                  "is",
+                  "AXMenuBar"
+               ],
+               [
+                  "property",
+                  "AXSubrole",
+                  "is",
+                  "<nil>"
+               ],
+               [
+                  "property",
+                  "AXRoleDescription",
+                  "is",
+                  "menu bar"
+               ],
+               [
+                  "property",
+                  "AXElementBusy",
+                  "is",
+                  "true"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "xml-roles:menubar"
+               ]
+            ],
+            "MSAA" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_SYSTEM_MENUBAR"
+               ],
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "STATE_SYSTEM_BUSY"
+               ]
+            ],
+            "UIA" : [
+               [
+                  "property",
+                  "ControlType",
+                  "is",
+                  "MenuBar"
+               ],
+               [
+                  "property",
+                  "interfaces",
+                  "contains",
+                  "selection pattern"
+               ],
+               [
+                  "result",
+                  "AriaProperties.busy",
+                  "is",
+                  "true"
+               ]
+            ]
+         },
+         "title" : "step 1",
+         "type" : "test"
+      }
+   ],
+   "title" : "menubar busy true"
+}
+
+    ) ;
+    </script>
+  </head>
+  <body>
+  <p>This test examines the ARIA properties for menubar busy true.</p>
+    <div role="menubar" aria-busy="true" id="test">
+    <div role="menuitem">File</div>
+    <div role="menuitem">Edit</div>
+    <div role="menuitem">View</div>
+  </div>
+
+  <div id="manualMode"></div>
+  <div id="log"></div>
+  <div id="ATTAmessages"></div>
+  </body>
+</html>

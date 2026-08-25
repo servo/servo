@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    html, body {
+      color: black; background-color: white; font: 16px/1 monospace; padding: 0; margin: 0;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, 80px);
+      grid-template-rows: 40px 20px;
+      padding: 2px;
+      margin: 5px 5px 30px 5px;
+      border: 1px solid;
+    }
+
+    item {
+      display: block;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+<div class="grid">
+  <item style="grid-column: 1; grid-row: 1 / span 2; height: 60px; background: #f4a0a0;">1</item>
+  <item style="grid-column: 2; grid-row: 2; height: 20px; background: #2ca02c;">2</item>
+  <item style="grid-column: 2; grid-row: 1; height: 40px; background: #aad4f5;">3</item>
+</div>
+
+</body>
+</html>

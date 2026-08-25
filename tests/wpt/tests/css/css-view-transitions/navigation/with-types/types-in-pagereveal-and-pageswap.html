@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<title>View transitions: types from rule are reflected in pagereveal and pageswap</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  @view-transition {
+    navigation: auto;
+    types: check;
+  }
+</style>
+<script>
+const params = new URLSearchParams(location.search);
+
+switch (params.get("mode") || "test") {
+case "test":
+  promise_test(async t => {
+    window.did_swap = (e) => {
+      assert_not_equals(e.viewTransition, null);
+      if (!e.viewTransition.types.has("check"))
+        e.viewTransition.skipTransition();
+    };
+
+    const event = await new Promise(resolve => {
+      window.did_reveal = e => { resolve(e) };
+      const popup = window.open("?mode=old");
+      t.add_cleanup(() => popup.close());
+    });
+
+    assert_not_equals(event.viewTransition, null, "ViewTransition must be triggered.");
+    assert_array_equals([...event.viewTransition.types], ["check"]);
+  });
+  break;
+case "old":
+  onpageswap = (e) => { window.opener.did_swap(e) };
+  onload = () => requestAnimationFrame(() => requestAnimationFrame(() => {
+      location.replace('?mode=new');
+  }));
+  break;
+case "new":
+  onpagereveal = e => window.opener.did_reveal(e);
+  break;
+}
+</script>

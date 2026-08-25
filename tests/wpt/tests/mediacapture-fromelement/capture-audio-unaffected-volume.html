@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../webaudio/resources/rms-utils.js"></script>
+</head>
+<body>
+<video loop controls></video>
+<script>
+
+// Verify that captured audio from captureStream is unaffected by mute and
+// volume changes on the source HTMLMediaElement.
+//
+// This validates the spec statement: "Muting the audio on a media element does
+// not cause the capture to produce silence".
+// https://w3c.github.io/mediacapture-fromelement/#dom-htmlmediaelement-capturestream
+
+const testLabel = "captureStream captured audio is independent of source element volume/muted state";
+
+// Test an audio-only file as the media element src
+promise_test(async t => {
+  const filename = "test-a-128k-44100Hz-1ch.webm";
+  const trackCount = 1;
+
+  const video = document.querySelector("video");
+  assert_implements("captureStream" in video, "HTMLMediaElement.captureStream() is not implemented");
+
+  const ac = new AudioContext();
+  video.src = "/media/" + filename;
+  video.onerror = t.unreached_func("<video> error");
+  t.add_cleanup(() => {
+    ac.close();
+    video.src = "";
+    video.removeAttribute("src");
+  });
+
+  await testCapturedAudioUnaffectedByMediaElementVolumeOrMuted(video, ac, trackCount);
+}, `${testLabel} : src-audio-only-file`);
+
+// Test an audio-only MediaStream as the media element srcObject
+promise_test(async t => {
+  const trackCount = 1;
+
+  const video = document.querySelector("video");;
+  assert_implements("captureStream" in video, "HTMLMediaElement.captureStream() is not implemented");
+
+  const ac = new AudioContext();
+  const dest = ac.createMediaStreamDestination();
+  const osc = ac.createOscillator();
+  osc.frequency.value = 440;
+  osc.connect(dest);
+  osc.start();
+  video.srcObject = dest.stream;
+  video.onerror = t.unreached_func("<video> error");
+
+  t.add_cleanup(() => {
+    ac.close();
+    video.srcObject = null;
+  });
+
+  await testCapturedAudioUnaffectedByMediaElementVolumeOrMuted(video, ac, trackCount);
+}, `${testLabel} : src-audio-only-stream`);
+
+// Test an audio+video file as the media element src
+promise_test(async t => {
+  const filename = "test-av-384k-44100Hz-1ch-320x240-30fps-10kfr.webm";
+  const trackCount = 2;
+
+  const video = document.querySelector("video");;
+  assert_implements("captureStream" in video, "HTMLMediaElement.captureStream() is not implemented");
+
+  const ac = new AudioContext();
+  video.src = "/media/" + filename;
+  video.onerror = t.unreached_func("<video> error");
+  t.add_cleanup(() => {
+    ac.close();
+    video.src = "";
+    video.removeAttribute("src");
+  });
+
+  await testCapturedAudioUnaffectedByMediaElementVolumeOrMuted(video, ac, trackCount);
+}, `${testLabel} : src-video-and-audio-file`);
+
+// Test an audio+video MediaStream captured from a video element as the media element srcObject
+promise_test(async t => {
+  const filename = "test-av-384k-44100Hz-1ch-320x240-30fps-10kfr.webm";
+  const trackCount = 2;
+
+  const video = document.querySelector("video");;
+  assert_implements("captureStream" in video, "HTMLMediaElement.captureStream() is not implemented");
+
+  video.src = "/media/" + filename;
+  await video.play();
+
+  const video2 = document.createElement('video');
+  video2.srcObject = video.captureStream();
+  video.onerror = video2.onerror = t.unreached_func("<video> error");
+
+  const ac = new AudioContext();
+  t.add_cleanup(() => {
+    ac.close();
+    video.src = "";
+    video.removeAttribute("src");
+    video2.srcObject = null;
+  });
+
+  await testCapturedAudioUnaffectedByMediaElementVolumeOrMuted(video2, ac, trackCount);
+}, `${testLabel} : src-video-and-audio-stream`);
+
+// Helper functions
+async function testCapturedAudioUnaffectedByMediaElementVolumeOrMuted(media, ac, trackCount) {
+  // Basic stream track-count check.
+  await ac.resume();
+  media.load();
+  await new Promise(r => (media.onloadedmetadata = r));
+  const stream = media.captureStream();
+  assert_false(media.ended, `media should not be ended after play()`);
+  assert_equals(stream.getTracks().length, trackCount, `stream track count is expected`);
+
+  // Check RMS before media starts playing, RMS should be silent
+  const SILENCE_RMS_THRESHOLD = 0;
+  const srcNode = ac.createMediaStreamSource(stream);
+  let curRms = await RMSUtils.waitForRmsEqualToThreshold(ac, srcNode, SILENCE_RMS_THRESHOLD);
+  assert_equals(
+    curRms, SILENCE_RMS_THRESHOLD,
+    "Expected exact silence before media starts"
+  );
+
+  // Establish a baseline RMS for the captured audio and derive a relative
+  // threshold to tolerate minor variance while detecting meaningful changes.
+  await media.play();
+  let tempAudibleThreshold = 0.01; // temporary threshold to consider the input audible
+  const fullRms = await RMSUtils.waitForRmsOverThreshold(ac, srcNode, tempAudibleThreshold);
+  assert_greater_than(fullRms, tempAudibleThreshold, `Expected audible baseline RMS ${fullRms}`);
+  const AUDIBLE_RMS_THRESHOLD = fullRms * 0.7;
+
+  media.muted = true;
+  curRms = await RMSUtils.waitForRmsOverThreshold(ac, srcNode, AUDIBLE_RMS_THRESHOLD);
+  assert_greater_than(
+    curRms, AUDIBLE_RMS_THRESHOLD,
+    `Captured audio level must be unaffected after muting (RMS ${curRms})`
+  );
+
+  media.muted = false;
+  curRms = await RMSUtils.waitForRmsOverThreshold(ac, srcNode, AUDIBLE_RMS_THRESHOLD);
+  assert_greater_than(
+    curRms, AUDIBLE_RMS_THRESHOLD,
+    `Captured audio level must be unaffected after unmuting (RMS ${curRms})`
+  );
+
+  media.volume = 0.0;
+  curRms = await RMSUtils.waitForRmsOverThreshold(ac, srcNode, AUDIBLE_RMS_THRESHOLD);
+  assert_greater_than(
+    curRms, AUDIBLE_RMS_THRESHOLD,
+    `Captured audio level must be unaffected after setting volume ${media.volume} (RMS ${curRms})`
+  );
+
+  media.volume = 1.0;
+  curRms = await RMSUtils.waitForRmsOverThreshold(ac, srcNode, AUDIBLE_RMS_THRESHOLD);
+  assert_greater_than(
+    curRms, AUDIBLE_RMS_THRESHOLD,
+    `Captured audio level must be unaffected after setting volume ${media.volume} (RMS ${curRms})`
+  );
+
+  // Set volume to an arbitrary value between 0.0 and 1.0
+  media.volume = 0.2;
+  curRms = await RMSUtils.waitForRmsOverThreshold(ac, srcNode, AUDIBLE_RMS_THRESHOLD);
+  assert_greater_than(
+    curRms, AUDIBLE_RMS_THRESHOLD,
+    `Captured audio level must be unaffected after setting volume ${media.volume} (RMS ${curRms})`
+  );
+
+  // As source is paused, captured audio should become silent
+  media.pause();
+  curRms = await RMSUtils.waitForRmsEqualToThreshold(ac, srcNode, SILENCE_RMS_THRESHOLD);
+  assert_equals(
+    curRms, SILENCE_RMS_THRESHOLD,
+    "Expected exact silence after the source media stops"
+  );
+}
+
+</script>
+</body>
+</html>

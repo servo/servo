@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>Check handling of header lengths and name</title>
+<script src="track-helpers.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<video>
+    <track src="resources/header-empty-after.vtt">
+    <track src="resources/header-newlines-after.vtt">
+    <track src="resources/header-too-short.vtt">
+    <track src="resources/header-invalid-equal.vtt">
+</video>
+<script>
+async_test(function(t) {
+    var video = document.querySelector("video");
+
+    var trackElements = document.querySelectorAll("track");
+    trackElements[0].onload = t.step_func(trackLoaded);
+    trackElements[1].onload = t.step_func(trackLoaded);
+    trackElements[2].onerror = t.step_func(trackLoaded);
+    trackElements[3].onerror = t.step_func(trackLoaded);
+
+    enableAllTextTracks(video.textTracks);
+
+    var numberOfTracksLoaded = 0;
+    function trackLoaded() {
+        numberOfTracksLoaded++;
+        if (numberOfTracksLoaded != trackElements.length)
+            return;
+
+        for (let i = 0; i < trackElements.length; i++) {
+            assert_cues_equal(video.textTracks[i].cues, []);
+        }
+
+        t.done();
+    }
+});
+</script>

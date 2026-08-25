@@ -1,0 +1,42 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/helpers.js"></script>
+
+<body>
+<script>
+const tests = [
+  ["204s", "/common/blank.html?pipe=status(204)"],
+  ["205s", "/common/blank.html?pipe=status(205)"],
+  ["Content-Disposition: attachment responses", "/common/blank.html?pipe=header(Content-Disposition,attachment)"]
+];
+
+for (const [description, url] of tests) {
+  promise_test(async t => {
+    const i = document.createElement("iframe");
+    i.src = "/common/blank.html";
+    document.body.append(i);
+    await new Promise(resolve => i.onload = resolve);
+
+    // This seems to be important? Without it the (outer) window load event
+    // doesn't fire, and the test harness hangs forever. This is probably a
+    // Chromium bug, but maybe a testharness bug, especially since explicit_done
+    // doesn't seem to help?
+    t.add_cleanup(() => i.remove());
+
+    let navigateCount = 0;
+    i.contentWindow.navigation.onnavigate = () => { ++navigateCount; };
+    i.contentWindow.navigation.onnavigatesuccess = t.unreached_func("onnavigatesuccess should not be called");
+    i.contentWindow.navigation.onnavigateerror = t.unreached_func("onnavigateerror should not be called");
+
+    const result = i.contentWindow.navigation.navigate(url);
+
+    assert_equals(navigateCount, 1);
+    assertNeverSettles(t, result, i.contentWindow);
+
+    await new Promise(resolve => t.step_timeout(resolve, 50));
+    assert_equals(i.contentWindow.location.href, i.src);
+    assert_equals(i.contentWindow.navigation.transition, null);
+  }, `navigate() promises to ${description} never settle`);
+}
+</script>

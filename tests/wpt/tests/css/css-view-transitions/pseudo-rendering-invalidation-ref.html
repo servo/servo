@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: invalidating VT pseudo elements renders correctly (ref)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:bokan@chromium.org">
+
+<style>
+:root {
+  background-color: limegreen;
+}
+
+div {
+  position: absolute;
+  left: 0px;
+  top: 600px;
+  width: 100px;
+  height: 100px;
+
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+
+  background: darkseagreen;
+}
+</style>
+
+<div style="left: 0px; top: 100px;">Group</div>
+<div style="left: 150px; top: 100px;">Image-Pair</div>
+<div style="left: 0px; top: 250px;">Old</div>
+<div style="left: 150px; top: 250px;">New</div>

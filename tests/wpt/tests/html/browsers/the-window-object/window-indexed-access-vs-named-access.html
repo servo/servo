@@ -1,0 +1,58 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Interactions between indexed and named access on the Window object</title>
+<link rel="author" title="Delan Azabani" href="dazabani@igalia.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#accessing-other-browsing-contexts">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#named-access-on-the-window-object">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=0></div>
+<div id=4></div>
+<iframe name=3></iframe>
+<iframe name=2></iframe>
+<iframe name=1></iframe>
+<script>
+const divs = document.querySelectorAll("div");
+const iframes = document.querySelectorAll("iframe");
+const wp = Object.getPrototypeOf(window);
+test(function() {
+    assert_equals(window[0], iframes[0].contentWindow);
+    assert_equals(window["0"], iframes[0].contentWindow);
+}, "WindowProxy: document-tree child navigable with index 0 (indexed access)");
+test(function() {
+    assert_equals(window[1], iframes[1].contentWindow);
+    assert_equals(window["1"], iframes[1].contentWindow);
+}, "WindowProxy: document-tree child navigable with index 1 (indexed access)");
+test(function() {
+    assert_equals(window[2], iframes[2].contentWindow);
+    assert_equals(window["2"], iframes[2].contentWindow);
+}, "WindowProxy: document-tree child navigable with index 2 (indexed access)");
+test(function() {
+    assert_equals(window[3], iframes[0].contentWindow);
+    assert_equals(window["3"], iframes[0].contentWindow);
+}, "WindowProxy: document-tree child navigable with target name 3 (named access)");
+test(function() {
+    assert_equals(window[4], divs[1]);
+    assert_equals(window["4"], divs[1]);
+}, "WindowProxy: element with id 4 (named access)");
+test(function() {
+    assert_equals(wp[0], divs[0]);
+    assert_equals(wp["0"], divs[0]);
+}, "Window prototype: element with id 0 (named access)");
+test(function() {
+    assert_equals(wp[1], iframes[2].contentWindow);
+    assert_equals(wp["1"], iframes[2].contentWindow);
+}, "Window prototype: document-tree child navigable with target name 1 (named access)");
+test(function() {
+    assert_equals(wp[2], iframes[1].contentWindow);
+    assert_equals(wp["2"], iframes[1].contentWindow);
+}, "Window prototype: document-tree child navigable with target name 2 (named access)");
+test(function() {
+    assert_equals(wp[3], iframes[0].contentWindow);
+    assert_equals(wp["3"], iframes[0].contentWindow);
+}, "Window prototype: document-tree child navigable with target name 3 (named access)");
+test(function() {
+    assert_equals(wp[4], divs[1]);
+    assert_equals(wp["4"], divs[1]);
+}, "Window prototype: element with id 4 (named access)");
+</script>

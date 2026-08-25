@@ -1,0 +1,122 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Logical Properties: {max-,min-}inline-size vertical-lr</title>
+<link rel="author" title="Xu Xing" href="mailto:openxu@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-logical-props-1/#logical-dimension-properties">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#logical-to-physical">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+
+<style>
+.block {
+  border: 1px solid #000;
+  writing-mode: vertical-lr;
+}
+#block1 {
+  inline-size: 40px;
+  min-inline-size: 50px;
+  max-inline-size: 100px;
+}
+#block2 {
+  inline-size: 100px;
+  min-inline-size: 50px;
+  max-inline-size: 100px;
+}
+#block3 {
+  inline-size: 120px;
+  min-inline-size: 50px;
+  max-inline-size: 100px;
+}
+
+.override {
+  border: 1px solid #000;
+  writing-mode: vertical-lr;
+}
+#override1 {
+  inline-size: 100px;
+  height: 50px;
+}
+#override2 {
+  height: 50px;
+  inline-size: 100px;
+}
+
+.table {
+  border: 1px solid #000;
+  display: table;
+  writing-mode: vertical-lr;
+}
+.tablecell {
+  display: table-cell;
+}
+#table1_cell {
+  inline-size: 40px;
+  min-inline-size: 50px;
+  max-inline-size: 100px;
+  block-size: 100px;
+  background-color: red;
+}
+#table2_cell {
+  inline-size: 100px;
+  min-inline-size: 50px;
+  max-inline-size: 100px;
+  block-size: 100px;
+  background-color: blue;
+}
+#table3_cell {
+  inline-size: 120px;
+  min-inline-size: 50px;
+  max-inline-size: 100px;
+  block-size: 100px;
+  background-color: green;
+}
+</style>
+
+<div id="log"></div>
+
+<h3>Maximum and minimim inline sizes in blocks with vertical-lr</h3>
+<div>
+  <p><code>inline-size</code> &lt; <code>min-inline-size</code></p>
+  <div class="block" id="block1" data-expected-client-width="0" data-expected-client-height="50"></div>
+
+  <p><code>min-inline-size</code> &lt; <code>inline-size</code> &le; <code>max-inline-size</code></p>
+  <div class="block" id="block2" data-expected-client-width="0" data-expected-client-height="100"></div>
+
+  <p><code>inline-size</code> &gt; <code>max-inline-size</code></p>
+  <div class="block" id="block3" data-expected-client-width="0" data-expected-client-height="100"></div>
+</div>
+
+<h3>Overridance of <code>height</code> and <code>inline-size</code> in vertical-lr</h3>
+<div>
+  <p>Check that <code>height</code> overrides <code>inline-size</code></p>
+  <div class="override" id="override1" data-expected-client-width="0" data-expected-client-height="50"></div>
+
+  <p>Check that <code>inline-size</code> overrides <code>height</code></p>
+  <div class="override" id="override2" data-expected-client-width="0" data-expected-client-height="100"></div>
+</div>
+
+<h3>Maximum and minimim inline sizes in table cells with vertical-lr</h3>
+<div>
+  <p><code>inline-size</code> &lt; <code>min-inline-size</code></p>
+  <div class="table">
+    <div class="tablecell" id="table1_cell" data-expected-client-width="100" data-expected-client-height="50"></div>
+  </div>
+
+  <p><code>min-inline-size</code> &lt; <code>inline-size</code> &le; <code>max-inline-size</code></p>
+  <div class="table">
+    <div class="tablecell" id="table2_cell" data-expected-client-width="100" data-expected-client-height="100"></div>
+  </div>
+
+  <p><code>inline-size</code> &gt; <code>max-inline-size</code></p>
+  <div class="table">
+    <div class="tablecell" id="table3_cell" data-expected-client-width="100" data-expected-client-height="100"></div>
+  </div>
+</div>
+
+<script>
+checkLayout(".block", false);
+checkLayout(".override", false);
+checkLayout(".tablecell", false);
+done();
+</script>

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS Flexbox Test: Test the percentage resolution of a child in a flex item that has an indefinite main size</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+  <link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#definite-sizes">
+  <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1654044">
+  <link rel="match" href="percentage-heights-015-ref.html">
+
+  <style>
+  .container {
+    display: inline-flex;
+    flex-direction: column;
+    width: 100px;
+    max-height: 200px;
+  }
+
+  .item {
+    min-height: 0px;
+    background: red;
+    width: 100px;
+  }
+
+  .child {
+    height: 50%;
+    background: green
+  }
+
+  .tall {
+    height: 250px;
+  }
+  </style>
+
+  <p>You should not see any red (except perhaps as the background of a vertical scrollbar)</p>
+
+  <div class="container">
+    <div class="item" style="overflow:hidden">
+      <div class="child">
+        <div class="tall"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="item" style="overflow:auto">
+      <div class="child">
+        <div class="tall"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="item" style="overflow:scroll">
+      <div class="child">
+        <div class="tall"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="item" style="overflow:visible">
+      <div class="child" >
+        <div class="tall"></div>
+      </div>
+    </div>
+  </div>
+</html>

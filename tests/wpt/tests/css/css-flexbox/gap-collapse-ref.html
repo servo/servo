@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Reftest Reference: gaps adjacent to a collapsed flex item are not counted</title>
+<style>
+  .flex {
+    display: flex;
+    gap: 50px;
+    outline: 1px solid purple;
+  }
+
+  .intrinsic {
+    width: 250px;
+  }
+
+  .flex > div {
+    width: 50px;
+    height: 50px;
+    background: blue;
+  }
+</style>
+
+<div class="flex"><div></div><div></div><div></div></div>
+<div class="flex"><div></div><div></div><div></div></div>
+<div class="flex"><div></div><div></div><div></div></div>
+<div class="flex intrinsic"><div></div><div></div><div></div></div>
+<div class="flex intrinsic"><div></div><div></div><div></div></div>
+<div class="flex intrinsic"><div></div><div></div><div></div></div>

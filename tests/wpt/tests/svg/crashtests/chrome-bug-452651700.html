@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/452651700">
+<svg>
+  <circle id="a" cx="120" cy="120" r="15" style="transition:fill 1s" />
+  <use id="use" style="fill:red;transition:fill 1s" href="#a" x="30" y="0"/>
+</svg>
+<script>
+  document.body.offsetTop;
+  use.style.fill = "green";
+</script>

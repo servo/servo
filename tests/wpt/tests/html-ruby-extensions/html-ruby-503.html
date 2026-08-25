@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en" >
+<meta charset="utf-8">
+<title>Ruby Markup Content Model: some explicit and implicit base units, one implicit rtc as the first level annotation, an explicit rtc with some explicit and implicit annotation units as the second level, and a spanning annotation as the third level.</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel="help" href="https://www.w3.org/TR/html-ruby-extensions/#the-ruby-element">
+<link rel="help" href="https://www.w3.org/TR/html-ruby-extensions/#the-rb-element">
+<link rel="help" href="https://www.w3.org/TR/html-ruby-extensions/#the-rtc-element">
+<link rel="help" href="https://www.w3.org/TR/html-ruby-extensions/#the-rt-element">
+<link rel="help" href="https://www.w3.org/TR/html-ruby-extensions/#ruby-pairing">
+<link rel="mismatch" href="reference/html-ruby-503-a-ref.html">
+<link rel="mismatch" href="reference/html-ruby-503-b-ref.html">
+<link rel="mismatch" href="reference/html-ruby-503-c-ref.html">
+<link rel="mismatch" href="reference/html-ruby-503-d-ref.html">
+<link rel="mismatch" href="reference/html-ruby-503-e-ref.html">
+<link rel="mismatch" href="reference/html-ruby-503-f-ref.html">
+<link rel="mismatch" href="reference/html-ruby-503-y-ref.html">
+<link rel="mismatch" href="reference/html-ruby-503-z-ref.html">
+<style>
+.r1 { color: orange; }
+.r2 { color: blue; }
+.r3 { color: purple; }
+ruby { ruby-merge: separate; } /* Not strictly required, but added just in case some user agent otherwise has a jukugo-like default rendering. */
+</style>
+<body>
+<p>The example below consists of 3 base characters, each annotated twice, and then all jointly annotated once more.
+“<span class=r1>あ</span>” is annotated by “<span class=r1>1</span>” and “<span class=r1>a</span>”.
+“<span class=r2>い</span>” is annotated by “<span class=r2>2</span>” and “<span class=r2>b</span>”.
+“<span class=r3>う</span>” is annotated by “<span class=r3>3</span>” and “<span class=r3>c</span>”.
+The whole is annotated with “altogether”.
+For ease of comparison, it is preceded by some context text: “例文は”.
+This test passes if:
+<ul>
+    <li>each base character is presented inline with and similarly to the context text, as if they are all part of the same sentence, and
+    <li>each annotation is presented as an annotation, and
+    <li>the correct annotation is presented clearly as being associated with the correct base, and
+    <li>the joint annotation is associated with the whole base, not just a part.
+</ul>
+
+<p>Note: The colors are not part of the test,
+they are merely provided as help to the person running the test,
+to make it easier to recognize the various parts of the text.
+
+<p>Note: This is not a layout or rendering test.
+The precise appearance is not specified,
+and implementations may therefore validly vary.
+
+<hr>
+例文は<ruby><rb class=r1>あ</rb><span class=r2>い</span><rb class=r3>う<rtc><span class=r1>a</span><rt class=r2>b</rt><span class=r3>c</rtc><rtc>altogether</rtc><rt class=r1>1<rt class=r2>2<rt class=r3>3</ruby>

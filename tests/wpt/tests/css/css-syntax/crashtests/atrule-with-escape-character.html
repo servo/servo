@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>No crash when at-rule identifier contains unicode escape</title>
+<link rel="help" href="https://crbug.com/40361423">
+<style>
+* {
+  @\aaa
+}
+</style>

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<link rel="help" href="https://github.com/servo/servo/issues/46149">
+<script>
+function main() {
+  option.dir = "rtl";
+  window.pageYOffset;
+  dialog.close();
+  window.pageYOffset;
+  host.attachShadow({mode: "open"});
+}
+</script>
+
+<body onload="main()">
+<dialog id="dialog" open="">
+    <select>
+        <option id="option" style="display: contents">
+            <div id="host">
+        </option>
+    </select>
+</dialog>

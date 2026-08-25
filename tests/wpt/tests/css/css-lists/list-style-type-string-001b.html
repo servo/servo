@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CSS Test: String value of list-style</title>
+  <link rel="author" title="Xidorn Quan" href="mailto:quanxunzhen@gmail.com">
+  <link rel="help" href="https://drafts.csswg.org/css-lists-3/#valdef-list-style-type-string">
+  <link rel="match" href="list-style-type-string-001-ref.html">
+  <style>
+    ol, ul { list-style: inside "# "; }
+  </style>
+</head>
+<body>
+  <ol start="-1">
+    <li>item -1</li>
+    <li>item 0</li>
+    <li>item 1</li>
+    <li>item 2</li>
+  </ol>
+  <ul start="-1">
+    <li>item -1</li>
+    <li>item 0</li>
+    <li>item 1</li>
+    <li>item 2</li>
+  </ul>
+</body>
+</html>

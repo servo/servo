@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://issues.chromium.org/issues/517322978">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+promise_test(async () => {
+  const hostX = document.body.appendChild(document.createElement('div'));
+  const srX = hostX.attachShadow({mode: 'open', slotAssignment: 'manual'});
+  const slotA = srX.appendChild(document.createElement('slot'));
+
+  const hostY = document.body.appendChild(document.createElement('div'));
+  const srY = hostY.attachShadow({mode: 'open', slotAssignment: 'manual'});
+  const slotB = srY.appendChild(document.createElement('slot'));
+
+  let aFired = 0, bFired = 0;
+  slotA.addEventListener('slotchange', () => { aFired++; });
+  slotB.addEventListener('slotchange', () => { bFired++; });
+
+  const nodeN = hostX.appendChild(document.createElement('div'));
+
+  slotA.assign(nodeN);
+  slotA.assignedNodes(); // Force recalc
+  await new Promise(queueMicrotask); // Flush slotchange
+  aFired = 0;
+  bFired = 0;
+
+  // Assign nodeN to slotB. This should remove it from slotA.
+  slotB.assign(nodeN);
+
+  // Force recalc on shadowRootY.
+  slotB.assignedNodes();
+
+  // Wait for slotchange microtasks.
+  await new Promise(queueMicrotask);
+
+  assert_equals(aFired, 1,
+    'slotA slotchange should fire because it lost its assigned node');
+  assert_equals(bFired, 1,
+    'slotB slotchange should fire because it gained its assigned node (even if not rendered)');
+
+  assert_equals(slotA.assignedNodes().length, 0, 'slotA assignedNodes should be empty');
+
+  // nodeN is in hostX, slotB is in hostY. So nodeN is not slotted into slotB.
+  assert_equals(nodeN.assignedSlot, null,
+    'nodeN assignedSlot should be null because it belongs to a different host than slotB');
+}, 'HTMLSlotElement.assign drops DidSlotChange for previous_slot in different shadow root');
+
+promise_test(async () => {
+  const hostX = document.body.appendChild(document.createElement('div'));
+  const srX = hostX.attachShadow({mode: 'open', slotAssignment: 'manual'});
+  const slotA = srX.appendChild(document.createElement('slot'));
+
+  const hostY = document.body.appendChild(document.createElement('div'));
+  const srY = hostY.attachShadow({mode: 'open', slotAssignment: 'manual'});
+  const slotB = srY.appendChild(document.createElement('slot'));
+
+  const nodeN = hostX.appendChild(document.createElement('div'));
+
+  slotA.assign(nodeN);
+  slotA.assignedNodes();
+  await new Promise(queueMicrotask);
+
+  slotB.assign(nodeN);
+
+  const nodeM = hostY.appendChild(document.createElement('div'));
+  slotB.assign(nodeN, nodeM);
+  hostY.appendChild(nodeN);
+  slotB.assignedNodes();
+  document.body.offsetTop;
+  hostX.remove();
+  document.body.appendChild(hostX);
+  document.body.offsetTop;
+
+  // If we reached here without crashing, the test passes.
+}, 'HTMLSlotElement.assign cross shadow root layout should not crash');
+</script>

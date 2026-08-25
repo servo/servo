@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Selectors: The relational pseudo-class (disallow nesting :has() inside :has())</title>
+<link rel="author" title="Byungwoo Lee" href="mailto:blee@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#has-pseudo">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+  test_invalid_selector('.a:has(.b:has(.c))');
+  test(() => {
+    // It's not easy to check that these are invalid because :is() and :where()
+    // use forgiving parsing. Check that they never match instead.
+    assert_false(document.documentElement.matches(":has(:is(:has(*)))"));
+    assert_false(document.documentElement.matches(":has(:where(:has(*)))"));
+    assert_true(document.documentElement.matches(":has(:is(:has(*), script))"));
+    assert_true(document.documentElement.matches(":has(:where(:has(*), script))"));
+  })
+</script>

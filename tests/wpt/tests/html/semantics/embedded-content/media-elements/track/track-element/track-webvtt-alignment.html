@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>Cue alignment from settings</title>
+<script src="track-helpers.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+check_cues_from_track("resources/alignment.vtt", testTrack);
+check_cues_from_track("resources/alignment-ltr.vtt", testTrack);
+
+check_cues_from_track("resources/alignment-bad.vtt", function(track) {
+    var expected = [
+        { align: "center" },
+        { align: "center" },
+        { align: "center" },
+        { align: "center" }
+    ];
+
+    assert_cues_match(track.cues, expected);
+});
+
+function testTrack(track) {
+    var expected = [
+        { align: "start" },
+        { align: "center" },
+        { align: "end" },
+        { align: "center" }
+    ];
+
+    assert_cues_match(track.cues, expected);
+}
+</script>

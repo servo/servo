@@ -1,0 +1,175 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Modifier keys selecting dropEffect with 'copyMove'</title>
+    <style type="text/css">
+div:first-child {
+  height: 100px;
+  width: 100px;
+  background: orange;
+  display: inline-block;
+}
+div:first-child + div {
+  height: 100px;
+  width: 100px;
+  background: blue;
+  display: inline-block;
+}
+div:first-child + div + div {
+  height: 100px;
+  width: 100px;
+  background: fuchsia;
+  display: inline-block;
+}
+table {
+  display: inline-table;
+  margin-right: 1em;
+  border-collapse: collapse;
+}
+table, th, td {
+  border: 1px solid black;
+}
+thead th {
+  background: silver;
+  color: black;
+}
+    </style>
+    <script type="text/javascript">
+window.onload = function () {
+  var countedDrops = 0, bde, bdo, bdo2, fde, fdo, fdr;
+  var orange = document.getElementsByTagName('div')[0];
+  orange.ondragstart = function (e) {
+    e.dataTransfer.setData('text','http://example.com/');
+    e.dataTransfer.effectAllowed = 'copyMove';
+    bde = bdo = bdo2 = fde = fdo = fdr = '';
+  };
+  var blue = document.getElementsByTagName('div')[1];
+  blue.ondragenter = function (e) {
+    e.preventDefault();
+    if( !bde ) { bde = e.dataTransfer.dropEffect; }
+  };
+  blue.ondragover = function (e) {
+    e.preventDefault();
+    if( !bdo ) {
+      bdo = e.dataTransfer.dropEffect;
+    }
+    //bdo2 always collects dropEffect, since it can change multiple times in rapid succession when pressing multiple modifiers
+    //test cares about the last dropEffect that was seen before leaving the blue square, and that will be stored in bdo2
+    bdo2 = e.dataTransfer.dropEffect;
+  };
+  var fuchsia = document.getElementsByTagName('div')[2];
+  fuchsia.ondragenter = function (e) {
+    e.preventDefault();
+    if( !fde ) { fde = e.dataTransfer.dropEffect; }
+  };
+  fuchsia.ondragover = function (e) {
+    e.preventDefault();
+    if( !fdo ) { fdo = e.dataTransfer.dropEffect; }
+  };
+  fuchsia.ondrop = function (e) {
+    e.preventDefault();
+    fdr = e.dataTransfer.dropEffect;
+  };
+  orange.ondragend = function (e) {
+    var ode = e.dataTransfer.dropEffect, temparray;
+    if( bde == bdo && bdo2 == fdr && fde == fdr && fdo == fdr && ode == fdr ) {
+      if( bde == fdr ) {
+        tmparray = [fdr];
+      } else {
+        tmparray = [bde,fdr];
+      }
+    } else if( bde == bdo && bdo2 == fdo && fde == fdo && !fdr ) {
+      tmparray = [bde,fdo,ode];
+    } else {
+      tmparray = [bde,bdo,bdo2,fde,fdo,fdr,ode];
+    }
+    tmparray[ tmparray.length - 1 ] = '<strong>' + tmparray[ tmparray.length - 1 ] + '<\/strong>';
+    document.getElementsByTagName('div')[3].innerHTML = (++countedDrops) + '. ' + tmparray.join('=&gt;');
+  };
+};
+    </script>
+  </head>
+  <body>
+
+    <div draggable="true"></div>
+    <div></div>
+    <div></div>
+    <div><strong>&nbsp;</strong></div>
+    <ol>
+      <li>Drag the orange square over the blue square</li>
+      <li>Press the relevant modifier keys for your platform</li>
+      <li>Continue dragging over the pink square</li>
+      <li>Release the drag, then the keys</li>
+      <li>Check that the correct drop effect is produced in each case. If the mouse cursor can change to indicate the final type of drop effect that will take place, it should change to the relevant type (the one in bold) once the modifier keys are pressed.</li>
+    </ol>
+    <!-- Windows Explorer uses Ctrl for copy, Shift for move, Alt or Ctrl+Shift for link. -->
+    <!-- Anything else invalidates the modifiers, and reverts to default. -->
+    <table>
+      <caption>Windows</caption>
+      <thead>
+        <tr><th>Modifier</th><th>Drop effect</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>None</td><td><strong>copy</strong></td></tr>
+        <tr><td>Ctrl</td><td><strong>copy</strong></td></tr>
+        <tr><td>Shift</td><td>copy=&gt;<strong>move</strong></td></tr>
+        <tr><td>Alt</td><td>copy=&gt;link=&gt;<strong>none</strong></td></tr>
+        <tr><td>Ctrl+Shift</td><td>copy=&gt;link=&gt;<strong>none</strong></td></tr>
+        <tr><td>Ctrl+Alt</td><td><strong>copy</strong></td></tr>
+        <tr><td>Alt+Shift</td><td><strong>copy</strong></td></tr>
+        <tr><td>Ctrl+Alt+Shift</td><td><strong>copy</strong></td></tr>
+      </tbody>
+    </table>
+    <!-- KDE Konqueror uses Ctrl for copy, Shift for move, Ctrl+Shift for link. -->
+    <!-- Anything else is ignored completely, and has no effect on the modifier sequence. -->
+    <!-- Gnome Nautilus uses Ctrl for copy, Shift for move, Ctrl+Shift for link (and Alt to open a context menu). -->
+    <!-- Anything else (including Alt when combined with other modifiers) is ignored completely, and has no effect on the modifier sequence. -->
+    <table>
+      <caption>Unix/Linux</caption>
+      <thead>
+        <tr><th>Modifier</th><th>Drop effect</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>none</td><td><strong>copy</strong></td></tr>
+        <tr><td>Ctrl</td><td><strong>copy</strong></td></tr>
+        <tr><td>Shift</td><td>copy=&gt;<strong>move</strong></td></tr>
+        <tr><td>Alt</td><td><strong>copy</strong></td></tr>
+        <tr><td>Ctrl+Shift</td><td>copy=&gt;link=&gt;<strong>none</strong></td></tr>
+        <tr><td>Ctrl+Alt</td><td><strong>copy</strong></td></tr>
+        <tr><td>Alt+Shift</td><td>copy=&gt;<strong>move</strong></td></tr>
+        <tr><td>Ctrl+Alt+Shift</td><td>copy=&gt;link=&gt;<strong>none</strong></td></tr>
+      </tbody>
+    </table>
+    <!-- Mac Finder uses Option for copy, Command for move, Command+Option for link. -->
+    <!-- Anything else is ignored completely, and has no effect on the modifier sequence. -->
+    <table>
+      <caption>Mac</caption>
+      <thead>
+        <tr><th>Modifier</th><th>Drop effect</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>none</td><td><strong>copy</strong></td></tr>
+        <tr><td>Ctrl</td><td><strong>copy</strong></td></tr>
+        <tr><td>Shift</td><td><strong>copy</strong></td></tr>
+        <tr><td>Option/alt</td><td><strong>copy</strong></td></tr>
+        <tr><td>Command</td><td>copy=&gt;<strong>move</strong></td></tr>
+
+        <tr><td>Ctrl+Shift</td><td><strong>copy</strong></td></tr>
+        <tr><td>Ctrl+Option</td><td><strong>copy</strong></td></tr>
+        <tr><td>Ctrl+Command</td><td>copy=&gt;<strong>move</strong></td></tr>
+        <tr><td>Shift+Option</td><td><strong>copy</strong></td></tr>
+        <tr><td>Shift+Command</td><td>copy=&gt;<strong>move</strong></td></tr>
+        <tr><td>Command+Option</td><td>copy=&gt;link=&gt;<strong>none</strong></td></tr>
+
+        <tr><td>Ctrl+Shift+Option</td><td><strong>copy</strong></td></tr>
+        <tr><td>Ctrl+Shift+Command</td><td>copy=&gt;<strong>move</strong></td></tr>
+        <tr><td>Ctrl+Command+Option</td><td>copy=&gt;link=&gt;<strong>none</strong></td></tr>
+        <tr><td>Shift+Command+Option</td><td>copy=&gt;link=&gt;<strong>none</strong></td></tr>
+
+        <tr><td>Ctrl+Shift+Command+Option</td><td>copy=&gt;link=&gt;<strong>none</strong></td></tr>
+      </tbody>
+    </table>
+    <noscript><p>Enable JavaScript and reload</p></noscript>
+
+  </body>
+</html>

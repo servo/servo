@@ -1,0 +1,278 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Range.cloneContents() should work as in a range in the DOM rather than in the flat tree</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+
+addEventListener("load", () => {
+  function innerHTMLOfDocumentFragment(docFlag) {
+    const div = document.createElement("div");
+    div.appendChild(docFlag.cloneNode(true));
+    return div.innerHTML;
+  }
+  const container = document.getElementById("container");
+  test(t => {
+    container.innerHTML = "<p>abcdef</p><div><span>UnassignedText</span></div>";
+    const p = container.querySelector("p");
+    const host = container.querySelector("div");
+    const shadowRoot = host.attachShadow({mode: "open"});
+    shadowRoot.innerHTML = "<span>InnerText</span>";
+    const range = document.createRange();
+    range.setStart(p.firstChild, "abc".length);
+    range.setEnd(host, 1);
+    let docFlag;
+    try {
+      docFlag = range.cloneContents();
+    } catch (e) {
+      assert_true(
+        false,
+        `${t.name}: range.cloneContents() shouldn't throw exception`
+      );
+    }
+    test(() => {
+      assert_equals(
+        innerHTMLOfDocumentFragment(docFlag),
+        "<p>def</p><div><span>UnassignedText</span></div>"
+      );
+    }, `${t.name}: range.cloneContents() should clone a part of the text and the unassigned <span>`);
+    test(() => {
+      assert_equals(docFlag.querySelector("div").shadowRoot, null);
+    }, `${t.name}: range.cloneContents() shouldn't clone the host with the shadow`);
+  }, 'Range.cloneContents() when "<p>abc[def</p><div><shadow-root><span>InnerText</span></shadow-root><span>UnassignedText</span>}</div>"');
+
+  test(t => {
+    container.innerHTML = "<p>abcdef</p><div><span>UnassignedText</span></div>";
+    const p = container.querySelector("p");
+    const host = container.querySelector("div");
+    const shadowRoot = host.attachShadow({mode: "open"});
+    shadowRoot.innerHTML = "<span>InnerText</span>";
+    const range = document.createRange();
+    range.setStart(p.firstChild, "abc".length);
+    range.setEnd(host.firstChild.firstChild, "Unassigned".length);
+    let docFlag;
+    try {
+      docFlag = range.cloneContents();
+    } catch (e) {
+      assert_true(
+        false,
+        `${t.name}: range.cloneContents() shouldn't throw exception`
+      );
+    }
+    test(() => {
+      assert_equals(
+        innerHTMLOfDocumentFragment(docFlag),
+        "<p>def</p><div><span>Unassigned</span></div>"
+      );
+    }, `${t.name}: range.cloneContents() should clone a part of the text and a part of the unassigned text`);
+    test(() => {
+      assert_equals(docFlag.querySelector("div").shadowRoot, null);
+    }, `${t.name}: range.cloneContents() shouldn't clone the host with the shadow`);
+  }, 'Range.cloneContents() when "<p>abc[def</p><div><shadow-root><span>InnerText</span></shadow-root><span>Unassigned]Text</span></div>"');
+
+  test(t => {
+    container.innerHTML = "<div><span>UnassignedText</span></div>";
+    const p = container.querySelector("p");
+    const host = container.querySelector("div");
+    const shadowRoot = host.attachShadow({mode: "open"});
+    shadowRoot.innerHTML = "<span>InnerText</span>";
+    const range = document.createRange();
+    range.setStart(host.firstChild, 0);
+    range.setEnd(host.firstChild, 1);
+    let docFlag;
+    try {
+      docFlag = range.cloneContents();
+    } catch (e) {
+      assert_true(
+        false,
+        `${t.name}: range.cloneContents() shouldn't throw exception`
+      );
+    }
+    assert_equals(
+      innerHTMLOfDocumentFragment(docFlag),
+      "UnassignedText",
+      `${t.name}: range.cloneContents() should clone the unassigned text`
+    );
+  }, 'Range.cloneContents() when "<div><shadow-root><span>InnerText</span></shadow-root><span>{UnassignedText}</span></div>"');
+
+  test(t => {
+    container.innerHTML = "<div><span>UnassignedText</span></div><p>abcdef</p>";
+    const p = container.querySelector("p");
+    const host = container.querySelector("div");
+    const shadowRoot = host.attachShadow({mode: "open"});
+    shadowRoot.innerHTML = "<span>InnerText</span>";
+    const range = document.createRange();
+    range.setStart(host, 0);
+    range.setEnd(p.firstChild, "abc".length);
+    let docFlag;
+    try {
+      docFlag = range.cloneContents();
+    } catch (e) {
+      assert_true(
+        false,
+        `${t.name}: range.cloneContents() shouldn't throw exception`
+      );
+    }
+    test(() => {
+      assert_equals(
+        innerHTMLOfDocumentFragment(docFlag),
+        "<div><span>UnassignedText</span></div><p>abc</p>"
+      );
+    }, `${t.name}: range.cloneContents() should clone the unassigned <span> and a part of the text`);
+    test(() => {
+      assert_equals(docFlag.querySelector("div").shadowRoot, null);
+    }, `${t.name}: range.cloneContents() shouldn't clone the host with the shadow`);
+  }, 'Range.cloneContents() when "<div><shadow-root><span>InnerText</span></shadow-root>{<span>UnassignedText</span></div><p>abc]def</p>"');
+
+  test(t => {
+    container.innerHTML = "<div><span>UnassignedText</span></div><p>abcdef</p>";
+    const p = container.querySelector("p");
+    const host = container.querySelector("div");
+    const shadowRoot = host.attachShadow({mode: "open"});
+    shadowRoot.innerHTML = "<span>InnerText</span>";
+    const range = document.createRange();
+    range.setStart(host.firstChild.firstChild, "Unassigned".length);
+    range.setEnd(p.firstChild, "abc".length);
+    let docFlag;
+    try {
+      docFlag = range.cloneContents();
+    } catch (e) {
+      assert_true(
+        false,
+        `${t.name}: range.cloneContents() shouldn't throw exception`
+      );
+    }
+    test(() => {
+      assert_equals(
+        innerHTMLOfDocumentFragment(docFlag),
+        "<div><span>Text</span></div><p>abc</p>"
+      );
+    }, `${t.name}: range.cloneContents() should clone a part of unassigned text and a part of the text`);
+    test(() => {
+      assert_equals(docFlag.querySelector("div").shadowRoot, null);
+    }, `${t.name}: range.cloneContents() shouldn't clone the host with the shadow`);
+  }, 'Range.cloneContents() when "<div><shadow-root><span>InnerText</span></shadow-root><span>Unassigned[Text</span></div><p>abc]def</p>"');
+
+  test(t => {
+    container.innerHTML = "<p>abcdef</p><div><span>AssignedText</span></div>";
+    const p = container.querySelector("p");
+    const host = container.querySelector("div");
+    const shadowRoot = host.attachShadow({mode: "open"});
+    shadowRoot.innerHTML = "<slot></slot><span>InnerText</span>";
+    const range = document.createRange();
+    range.setStart(p.firstChild, "abc".length);
+    range.setEnd(host.firstChild.firstChild, "Assigned".length);
+    let docFlag;
+    try {
+      docFlag = range.cloneContents();
+    } catch (e) {
+      assert_true(
+        false,
+        `${t.name}: range.cloneContents() shouldn't throw exception`
+      );
+    }
+    test(() => {
+      assert_equals(
+        innerHTMLOfDocumentFragment(docFlag),
+        "<p>def</p><div><span>Assigned</span></div>"
+      );
+    }, `${t.name}: range.cloneContents() should clone a part of the text and a part of assigned text`);
+    test(() => {
+      assert_equals(docFlag.querySelector("div").shadowRoot, null);
+    }, `${t.name}: range.cloneContents() shouldn't clone the host with the shadow`);
+  }, 'Range.cloneContents() when "<p>abc[def</p><div><shadow-root></slot><span>InnerText</span></shadow-root><slot><span>Assigned]Text</span></div>"');
+
+  test(t => {
+    container.innerHTML = "<p>abcdef</p><div><span>AssignedText</span></div>";
+    const p = container.querySelector("p");
+    const host = container.querySelector("div");
+    const shadowRoot = host.attachShadow({mode: "open"});
+    shadowRoot.innerHTML = "<span>InnerText</span><slot></slot>";
+    const range = document.createRange();
+    range.setStart(p.firstChild, "abc".length);
+    range.setEnd(host.firstChild.firstChild, "Assigned".length);
+    let docFlag;
+    try {
+      docFlag = range.cloneContents();
+    } catch (e) {
+      assert_true(
+        false,
+        `${t.name}: range.cloneContents() shouldn't throw exception`
+      );
+    }
+    test(() => {
+      assert_equals(
+        innerHTMLOfDocumentFragment(docFlag),
+        "<p>def</p><div><span>Assigned</span></div>"
+      );
+    }, `${t.name}: range.cloneContents() should clone a part of the text and a part of assigned text`);
+    test(() => {
+      assert_equals(docFlag.querySelector("div").shadowRoot, null);
+    }, `${t.name}: range.cloneContents() shouldn't clone the host with the shadow`);
+  }, 'Range.cloneContents() when "<p>abc[def</p><div><shadow-root><span>InnerText</span><slot></slot></shadow-root><span>Assigned]Text</span></div>"');
+
+  test(t => {
+    container.innerHTML = `<p>abcdef</p><div><span slot="assigned">AssignedText</span><span>UnassignedText</span></div>`;
+    const p = container.querySelector("p");
+    const host = container.querySelector("div");
+    const shadowRoot = host.attachShadow({mode: "open"});
+    shadowRoot.innerHTML = `<span>InnerText</span><slot name="assigned"></slot>`;
+    const range = document.createRange();
+    range.setStart(p.firstChild, "abc".length);
+    range.setEnd(host.querySelector("span[slot]").firstChild, "Assigned".length);
+    let docFlag;
+    try {
+      docFlag = range.cloneContents();
+    } catch (e) {
+      assert_true(
+        false,
+        `${t.name}: range.cloneContents() shouldn't throw exception`
+      );
+    }
+    test(() => {
+      assert_equals(
+        innerHTMLOfDocumentFragment(docFlag),
+        `<p>def</p><div><span slot="assigned">Assigned</span></div>`
+      );
+    }, `${t.name}: range.cloneContents() should clone a part of the text and a part of assigned text`);
+    test(() => {
+      assert_equals(docFlag.querySelector("div").shadowRoot, null);
+    }, `${t.name}: range.cloneContents() shouldn't clone the host with the shadow`);
+  }, 'Range.cloneContents() when "<p>abc[def</p><div><shadow-root><span>InnerText</span><slot name="assigned"></slot></shadow-root><span>Assigned]Text</span><span>UnassignedText</span></div>"');
+
+  test(t => {
+    container.innerHTML = `<p>abcdef</p><div><span>UnassignedText</span><span slot="assigned">AssignedText</span></div>`;
+    const p = container.querySelector("p");
+    const host = container.querySelector("div");
+    const shadowRoot = host.attachShadow({mode: "open"});
+    shadowRoot.innerHTML = `<span>InnerText</span><slot name="assigned"></slot>`;
+    const range = document.createRange();
+    range.setStart(p.firstChild, "abc".length);
+    range.setEnd(host.querySelector("span[slot]").firstChild, "Assigned".length);
+    let docFlag;
+    try {
+      docFlag = range.cloneContents();
+    } catch (e) {
+      assert_true(
+        false,
+        `${t.name}: range.cloneContents() shouldn't throw exception`
+      );
+    }
+    test(() => {
+      assert_equals(
+        innerHTMLOfDocumentFragment(docFlag),
+        `<p>def</p><div><span>UnassignedText</span><span slot="assigned">Assigned</span></div>`
+      );
+    }, `${t.name}: range.cloneContents() should clone a part of the text, the unassigned <span> and a part of assigned text`);
+    test(() => {
+      assert_equals(docFlag.querySelector("div").shadowRoot, null);
+    }, `${t.name}: range.cloneContents() shouldn't clone the host with the shadow`);
+  }, 'Range.cloneContents() when "<p>abc[def</p><div><shadow-root><span>InnerText</span><slot name="assigned"></slot></shadow-root><span>UnassignedText</span><span>Assigned]Text</span></div>"');
+}, {once: true});
+</script>
+</head>
+<body><div id="container"></div></body>
+</html>

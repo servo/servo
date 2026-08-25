@@ -1,0 +1,25 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Overflow 'scroll' and printing</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visufx.html#overflow" />
+        <meta name="flags" content="may paged" />
+        <meta name="assert" content="The 'overflow' property set to 'scroll' acts like 'visible' when element is printed." />
+        <style type="text/css">
+            #div1
+            {
+                height: 30px;
+                overflow: scroll;
+                width: 45px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>PREREQUISITE: Switch to print preview or a paged media view of the page.</p>
+        <p>Test passes if the words "Filler Text" below are only partially visible or are completely visible.</p>
+        <div id="div1">
+            <div>Filler Text Filler Text</div>
+        </div>
+    </body>
+</html>

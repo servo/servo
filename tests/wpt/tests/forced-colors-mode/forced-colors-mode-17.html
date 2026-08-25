@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Forced colors mode - text decoration and emphasis color.</title>
+<link rel="help" href="https://www.w3.org/TR/css-color-adjust-1/#forced-colors-properties">
+<link rel=match href="forced-colors-mode-17-ref.html">
+<style>
+  p {
+    text-decoration: underline;
+    text-decoration-color: red;
+    text-emphasis: '*' blue;
+    -webkit-text-emphasis: '*' blue;
+  }
+</style>
+<body>
+  <p>
+    The text decoration and emphasis color for this text should have a
+    CanvasText color in forced colors mode.
+  </p>
+</body>

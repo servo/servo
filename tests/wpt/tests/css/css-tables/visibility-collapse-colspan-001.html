@@ -1,0 +1,62 @@
+<!doctype html>
+<meta charset="utf-8">
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<link rel="author" title="Joy Yu" href="mailto:joysyu@mit.edu">
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#computing-the-table-width">
+<style>
+    td {
+        padding: 0;
+    }
+</style>
+<h1>Visibility collapse</h1>
+<a href="https://drafts.csswg.org/css-tables-3/#computing-the-table-width">Spec</a>
+<p>
+Setting a spanning column to visibility:collapse changes table width but
+not height. The middle column has been collapsed.
+</p>
+<table id="test" style="border-spacing: 0;">
+  <col style="background-color:red;">
+  <col style="background-color: blue; visibility: collapse;">
+  <col style="background-color: green;">
+  <tr>
+    <td><div style="width: 10px; height: 10px"></div></td>
+    <td><div style="width: 10px; height: 10px"></div></td>
+    <td><div style="width: 10px; height: 10px"></div></td>
+  </tr>
+  <tr>
+    <td><div style="width: 10px; height: 10px"></div></td>
+    <td><div style="width: 10px; height: 10px"></div></td>
+    <td><div style="width: 10px; height: 10px"></div></td>
+  </tr>
+  <tr>
+    <td><div style="width: 10px; height: 10px"></div></td>
+    <td><div style="width: 10px; height: 10px"></div></td>
+    <td><div style="width: 10px; height: 10px"></div></td>
+  </tr>
+  <tr>
+    <td colspan="3"><div style="width: 30px; height: 10px"></div></td>
+  </tr>
+</table>
+
+<script>
+    tests = [
+        [
+            document.getElementById('test').offsetHeight,
+            40,
+            "col visibility:collapse doesn't change table height",
+        ],
+        [
+            document.getElementById('test').offsetWidth,
+            20,
+            "col visibility:collapse changes table width"
+        ]];
+    for (i = 0; i< tests.length; i++) {
+        test(function()
+            {
+                assert_equals.apply(this, tests[i]);
+            },
+            tests[i][2]);
+    };
+</script>
+</html>

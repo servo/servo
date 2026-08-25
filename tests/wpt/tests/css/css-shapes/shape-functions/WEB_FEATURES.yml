@@ -1,0 +1,7 @@
+rules:
+- path-function-*: [path-shape]
+- shape-function-*: [shape-function]
+- rect-function-*: [rect-xywh]
+- xywh-function-*: [rect-xywh]
+- polygon-function-round-*: []
+- "*": [shapes]

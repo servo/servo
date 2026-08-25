@@ -1,0 +1,98 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script src="resources/soft-navigation-test-helper.js"></script>
+  </head>
+  <body>
+    <div id="main">
+      <div id="almost_soft_nav_div">
+        A click will almost initiate a soft nav, by (1) mutating the DOM by adding an image; (2)
+        causing the image to be painted.
+      </div>
+      <div id="soft_nav_div">
+        A click will initiate a soft nav, by (1) mutating the DOM by adding an image; (2) causing
+        the image to be painted; (3) updating the URL via history.back(), but without causing a hard
+        navigation.
+      </div>
+    </div>
+    <script>
+      promise_test(
+        async (t) => {
+          // Setup a click handler for 'almost_soft_nav_div', which adds a
+          // specific, identifiable image 'almost_soft_nav_img' to the document.
+          document.getElementById("almost_soft_nav_div").addEventListener("click", () => {
+            const img = new Image();
+            img.src = "/images/lcp-133x106.png";
+            img.elementTiming = "almost_soft_nav_img";
+            document.getElementById("main").appendChild(img);
+          });
+
+          // Also set up a click handler for 'soft_nav_div', for adding
+          // another image, but in addition to what we do for the almost soft nav
+          // above, also let the handler change the URL, by invoking
+          // history.back(). We prepare with pushState for the history.back()
+          // invocation, to avoid triggering a hard navigation.
+          const test_origin = new URL(location.href).origin;
+          history.pushState({}, "", "/foo.html"); // We will observe this below.
+          history.pushState({}, "", "/bar.html"); // Prep for history.back().
+          document.getElementById("soft_nav_div").addEventListener("click", async () => {
+            // URL change triggering the soft nav. Since history.back()'s
+            // effect is potentially asynchronous, we wait for it to complete
+            // before we mutate the DOM. This way we ensure that the paints
+            // arrive only after the URL change.
+            history.back();
+            await t.step_wait(() => location.href.endsWith("/foo.html"));
+            const img = new Image();
+            img.src = "/images/lcp-133x106.png";
+            document.getElementById("main").appendChild(img);
+          });
+          const helper = new SoftNavigationTestHelper(t);
+
+          // Now, click almost_soft_nav_div, and observe that time image
+          // was rendered but no soft nav was triggered.
+          {
+            const element_timing_promise =
+                helper.getBufferedPerformanceEntriesWithTimeout("element");
+            if (test_driver) {
+              test_driver.click(almost_soft_nav_div);
+            }
+            // Returns entries of type PerformanceElementTiming, see
+            // https://developer.mozilla.org/en-US/docs/Web/API/PerformanceElementTiming.
+            const entries = await element_timing_promise;
+            assert_equals(entries.length, 1);
+            assert_equals(
+              entries[0].identifier,
+              "almost_soft_nav_img",
+              "Image based on the user interaction was painted.",
+            );
+            assert_equals(performance.getEntriesByType('soft-navigation').length, 0, "No soft navigation detected.");
+          }
+
+          // Now, click soft_nav_div, and observe the detected soft navigation.
+          {
+            const soft_nav_promise =
+                helper.getBufferedPerformanceEntriesWithTimeout("soft-navigation");
+            if (test_driver) {
+              test_driver.click(soft_nav_div);
+            }
+            // Returns entries of type SoftNavigationEntry, see
+            // https://github.com/WICG/soft-navigations/
+            const entries = await soft_nav_promise;
+            assert_equals(performance.getEntriesByType('soft-navigation').length, 1, "Single soft navigation detected");
+            assert_equals(entries.length, 1, "Performance observer got an entry");
+            assert_equals(entries[0].name, test_origin + "/foo.html");
+          }
+        },
+        "Ensure that soft navigation entry emitted through a synchronous " +
+          "event that modified DOM and committed a same document navigation, " +
+          "and that was preceded by a user interaction that resulted in a " +
+          "contentful paint is properly detected.",
+      );
+    </script>
+  </body>
+</html>

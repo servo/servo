@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>text-align: start, dir=rtl</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='https://drafts.csswg.org/css-text-3/#text-align-property'>
+<link rel='match' href='reference/text-align-start-ref-003.html'>
+<meta name="assert" content="text-align:start aligns inline-level content to the start edge of the line box – ie. right when direction is horizontal, rtl.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style type='text/css'>
+.test { text-align: start; }
+/* the CSS below is not part of the test */
+.test, .ref { border: 1px solid orange; margin: 20px; width: 300px; color: orange; font: 25px/1 Ahem; }
+.ref { text-align: right; }
+</style>
+</head>
+<body>
+<div id='instructions'>Test passes if the shading in both orange boxes is identical.</div>
+<div class="test" dir="rtl">TESTI</div>
+<div class="ref">REFER</div>
+</body>
+</html>

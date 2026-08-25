@@ -1,0 +1,28 @@
+<!doctype html>
+<link rel="author" href="mailto:wpt@keithcirkel.co.uk" />
+<link rel="stylesheet" href="resources/customizable-select-styles.css" />
+
+<style>
+  body {
+    font-family: monospace;
+    font-size: 16px;
+  }
+  .customizable-select-button {
+    counter-set: fake-counter-name 1;
+  }
+  .customizable-select-button::after {
+    color: green;
+  }
+</style>
+
+<button class="customizable-select-button" popovertarget="popover" id="button">
+  One
+</button>
+<div id="popover" popover="auto" class="customizable-select-popover">
+  <div class="customizable-select-option selected">One</div>
+  <div class="customizable-select-option">Two</div>
+</div>
+
+<script>
+  document.getElementById("popover").showPopover({ source: button });
+</script>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Composited images correctly display under large scale transform changes</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1">
+<link rel="match" href="image-compositing-large-scale-change-ref.html"/>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#the-img-element">
+<style>
+html { overflow: hidden; }
+#change {
+  will-change:transform;
+  width:1000px;
+  height:1000px;
+  position:absolute;
+  top: calc(50% - 5px);
+  left: calc(50% - 5px);
+}
+</style>
+<img id="change" src="image.png"></img>
+<div id="placeholder" style="position:relative"></div>
+<script>
+window.onload = () => {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      let image = document.querySelector('#change');
+      image.style.transform = 'scale(20)';
+      placeholder.innerText = "div";
+
+      requestAnimationFrame(() => {
+        document.documentElement.classList.remove("reftest-wait");
+      });
+    });
+  });
+}
+</script>
+

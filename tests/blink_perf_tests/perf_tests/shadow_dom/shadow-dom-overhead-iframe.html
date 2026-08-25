@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<body>
+<pre id="log"></pre>
+<script src="../resources/runner.js"></script>
+<script src="resources/declarative.js"></script>
+<script>
+
+/* See third_party/blink/perf_tests/shadow_dom/shadow-dom-overhead.html
+   for methodology here. The only difference here is that this version
+   uses iframe-based measurement, instead of DOMParser-based measurement.
+*/
+
+const depth = 6;
+const copies = 100;
+const shadowHtml = getShadowMarkup(true, depth, copies);
+const lightDomHtml1 = getShadowMarkup(false, depth, copies, /*lightDomDuplicates=*/1);
+const lightDomHtml2 = getShadowMarkup(false, depth, copies, /*lightDomDuplicates=*/2);
+
+async function runSingleTest() {
+  let samples = [];
+  for (let i = 0; i < 100; i++) {
+    const t1 = await measureLoadTimeIframe(lightDomHtml1);
+    const t2 = await measureLoadTimeIframe(shadowHtml);
+    const t3 = await measureLoadTimeIframe(lightDomHtml2);
+    if (t2 > t1 && t3 > t1) {
+      samples.push((t2-t1) / (t3-t1));
+    }
+  }
+  PerfTestRunner.assert_true(samples.length > 3,'Too many skipped measurements');
+  // The result is the total overhead, in *percent*, *per shadow root*.
+  return 100*median(samples);
+}
+
+let isDone = false;
+PerfTestRunner.startMeasureValuesAsync({
+  description: 'This benchmark tests the overhead of declarative Shadow DOM (via iframe)',
+  unit: 'percent',
+  run: async function() {
+    while (!isDone) {
+      PerfTestRunner.addRunTestStartMarker();
+      const test_result = await runSingleTest();
+      PerfTestRunner.measureValueAsync(test_result);
+      PerfTestRunner.addRunTestEndMarker();
+    }
+  },
+  done: () => {isDone = true;},
+  warmUpCount: 2,
+  iterationCount: 30,
+});
+
+</script>

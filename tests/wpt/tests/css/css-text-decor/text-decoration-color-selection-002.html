@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>CSS Test: CSS3 text-decoration-color when |::selection| exists</title>
+        <link rel="help" href="https://www.w3.org/TR/css-text-decor-3/#text-decoration-color-property">
+        <link rel="help" href="https://www.w3.org/TR/css-pseudo-4/#highlight-styling">
+        <style>
+            .first-underline {
+                text-decoration: underline;
+                text-decoration-color: blue;
+            }
+            .second-underline {
+                text-decoration: underline;
+                text-decoration-color: gold;
+            }
+            .third-underline {
+                text-decoration: underline;
+                text-decoration-color: green;
+            }
+            .first-underline::selection {
+                text-decoration: underline;
+                text-decoration-color: pink;
+            }
+            .second-underline::selection {
+                text-decoration: underline;
+                text-decoration-color: violet;
+            }
+            .third-underline::selection {
+                text-decoration: underline;
+                text-decoration-color: skyblue;
+            }
+
+            .blue-underline {
+                text-decoration: underline;
+                text-decoration-color: blue;
+            }
+            .gold-overline {
+                text-decoration: overline;
+                text-decoration-color: gold;
+            }
+            .green-line-through {
+                text-decoration: line-through;
+                text-decoration-color: green;
+            }
+            .blue-underline::selection {
+                text-decoration: underline;
+                text-decoration-color: pink;
+            }
+            .gold-overline::selection {
+                text-decoration: overline;
+                text-decoration-color: violet;
+            }
+            .green-line-through::selection {
+                text-decoration: line-through;
+                text-decoration-color: skyblue;
+            }
+        </style>
+         <script>
+            function startTest() {
+                var targetRange = document.createRange();
+                /* We first create an empty range */
+                targetRange.selectNodeContents(document.getElementById("wrapper"));
+                /* Then we set the range boundaries to the children of div#wrapper */
+                window.getSelection().addRange(targetRange);
+                /* Finally, we now select such range of content */
+            }
+        </script>
+    </head>
+    <body onload="startTest();">
+        <div id="wrapper">
+            <h3>Each line of this test should match its text decoration color description:</h3>
+
+            <!-- Nested same text-decoration-line with different text-decoration-color.
+                 It should be affected by their parent |::selection| -->
+            <div>
+                <span class="first-underline">
+                    First pink underline
+                    <span class="second-underline">
+                        Second violet underline
+                        <span class="third-underline">Third skyblue underline</span>
+                    </span>
+                </span>
+            </div><br/>
+
+            <!-- Mix of underline, overline and line-through with different colors for each.
+                 It should be affected by their parent |::selection| -->
+            <div>
+                <span class="blue-underline">
+                    pink underline
+                    <span class="green-line-through">
+                        blue underline, skyblue line-through
+                        <span class="gold-overline">blue underline, green line-through, violet overline</span>
+                    </span>
+                </span>
+            </div><br/>
+
+            <!-- Test behavior on subscript and superscript text -->
+            <div>
+                <span class="green-line-through">
+                    <sub class="gold-overline">subscript text, violet overline, green line-through</sub>
+                    skyblue line-through
+                    <sup class="blue-underline">superscript text, pink underline, green line-through</sup>
+                </span>
+            </div><br/>
+        </div>
+    </body>
+</html>

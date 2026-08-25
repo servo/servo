@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/soft-navigation-heuristics/resources/soft-navigation-test-helper.js"></script>
+
+<h1 id="ignore">Visible Text LCP Element</h1>
+<div id="target1">Visible Text</div>
+<div id="target2" style="display:none">Hidden Text</div>
+<div><button id="navigateButton">Navigate!</button></div>
+
+<script>
+  // This test toggles back and forth between the two divs to make sure
+  // repainting previously displayed content works.
+  promise_test(async t => {
+    const helper = new SoftNavigationTestHelper(t);
+    let targets = [target1, target2];
+    for (let i = 0; i < 4; i++) {
+      const url = `/toggle${i}`;
+      const modifyDOM = () => {
+        targets[0].style.display = 'none';
+        targets[1].style.display = '';
+        const targetId = targets[1].id;
+        targets = targets.reverse();
+        return targetId;
+      };
+      await helper.clickAndExpectSoftNavigation(navigateButton, url, modifyDOM);
+    }
+  }, 'Soft Navigation Detection supports repatedly changing inline style display via Element.style');
+</script>

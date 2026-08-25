@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="author" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-box-4/#margin-trim-flex">
+<meta name="assert" content="Make sure margins are no longer trimmed when margin-trim is changed to none on the flexbox">
+<style>
+flexbox {
+    display: flex;
+    flex-direction: column;
+    width: min-content;
+    margin-trim: block-start;
+}
+item {
+    display: block;
+    background-color: green;
+    width: 50px;
+    height: 50px;
+    margin-block-start: 10px;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+</head>
+<body>
+<div id="target">
+<flexbox>
+    <item data-expected-margin-top="10" data-offset-y="18"></item>
+    <item data-expected-margin-top="10" data-offset-y="78"></item>
+</flexbox>
+</div>
+<script>
+// Force the first layout to trim margins, set margin-trim to none,
+// force a second layout, and then check to see if the margins were added back
+document.body.offsetHeight;
+document.querySelector("flexbox").style["margin-trim"] = "none";
+document.body.offsetHeight;
+checkLayout("flexbox > item");
+</script>
+</body>
+</html>

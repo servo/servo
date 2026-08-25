@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<body>
+<script src="../resources/runner.js"></script>
+<script src="resources/line-layout-perf-test.js"></script>
+<style>
+#container {
+  width: 120ch;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+</style>
+<pre id="container">A</pre>
+<script>
+const kNumberOfWords = 10;
+const kSampleText = (() => {
+  const words = [];
+  for (let i = 1; i <= kNumberOfWords; ++i) {
+    words.push(TextGenerator.createWord(i % 12 + 3));
+  }
+  return words.join(' ');
+})().repeat(1);
+
+const kCount = 10;
+
+const container = document.getElementById('container');
+const editable = container.firstChild;
+
+PerfTestRunner.measureRunsPerSecond({
+  run: function() {
+    for (let i = 0; i < kCount; ++i) {
+      editable.nodeValue = kSampleText;
+      PerfTestRunner.forceLayout();
+      editable.appendData('XYZ');
+      PerfTestRunner.forceLayout();
+    }
+  },
+});
+</script>

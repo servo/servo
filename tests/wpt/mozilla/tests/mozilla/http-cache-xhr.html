@@ -1,0 +1,56 @@
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/http-cache.js"></script>
+<script>
+  var test = async_test('The response from an aborted XHR request should not be cached');
+  test.step(function() {
+    var client = new XMLHttpRequest();
+    var requests = [
+        {
+          response_status: [200, 'OK'],
+          "response_headers": [
+            ['Expires', http_date(100000)],
+            ['Last-Modified', http_date(0)]
+          ],
+          response_body: '12'
+        },
+        {
+          response_status: [200, 'OK'],
+          "response_headers": [
+            ['Expires', http_date(100000)],
+            ['Last-Modified', http_date(0)]
+          ],
+          response_body: '12'
+        }
+    ];
+    var uuid = token();
+    var url = make_url(uuid, requests, 0);
+    url += '&pipe=trickle(1:d1:r2)';
+    client.onprogress = test.step_func(function() {
+      var client2 = new XMLHttpRequest();
+      client2.onloadend = test.step_func(function(event) {
+        server_state(uuid).then(test.step_func(function(state){
+          // Two server hits for two requests, no caching.
+          assert_equals(state.length, 2);
+          // The empty, aborted response.
+          assert_equals(client.response, "");
+          // The complete, non-aborted, response.
+          assert_equals(client2.response, "12");
+          test.done();
+        }));
+      });
+      client.onabort = test.step_func(function() {
+        client2.open("GET", url);
+        client2.send();
+      });
+      client.abort();
+    });
+    client.open("GET", url);
+    client.send();
+  });
+</script>
+</head>
+</html>

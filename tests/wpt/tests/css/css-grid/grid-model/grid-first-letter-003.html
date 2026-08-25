@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: '::first-letter' works on grid items</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="http://www.w3.org/TR/css-grid-1/#grid-containers" title="3.1 Establishing Grid Containers">
+<link rel="help" href="http://www.w3.org/TR/css3-selectors/#first-letter" title="7.2. The ::first-letter pseudo-element">
+<link rel="match" href="../reference/grid-first-letter-green-margin-no-collapse-ref.html">
+<meta name="assert" content="This test checks that '::first-letter' pseudo-element works as expected if it is applied directly to a grid item.">
+<style>
+  .grid {
+    display: grid;
+  }
+
+  .item::first-letter {
+    color: green;
+  }
+</style>
+<div class="grid">
+  <p class="item">
+    The <strong>first letter</strong> of this paragraph, and only that one, should be <strong>green</strong>.
+    In addition, body and paragraph margins should <strong>not collapse</strong>.
+  </p>
+</div>

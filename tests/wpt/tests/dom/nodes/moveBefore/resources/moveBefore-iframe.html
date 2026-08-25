@@ -1,0 +1,19 @@
+<!-- This document is used to report back to its parent (1) a message indicating
+     initial load, and (2) a message ACKing the result of moveBefore() being
+     called in the parent. It helps the parent test that this subframe was not
+     reloaded after moveBefore() is called on it -->
+<!DOCTYPE html>
+<body>
+<script>
+  window.onload = e => {
+
+    window.onmessage = e => {
+      if (e.data === 'after moveBefore') {
+        window.parent.postMessage('ack after moveBefore', '*');
+      }
+    }
+
+    window.parent.postMessage('loaded', '*');
+  }
+</script>
+</body>

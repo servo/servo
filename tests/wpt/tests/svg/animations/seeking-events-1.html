@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>Seeking forwards does not dispatch events for skipped elements</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg>
+  <rect width="50" height="100" fill="red">
+    <set id="anim1" attributeName="fill" to="green" begin="5s" dur="1s" repeatCount="2" fill="freeze"/>
+  </rect>
+  <rect width="50" height="100" x="50" fill="red">
+    <set id="anim2" attributeName="fill" to="green" begin="9s" dur="11s"/>
+  </rect>
+</svg>
+<script>
+  const SMIL_EVENTS = ['beginEvent', 'repeatEvent', 'endEvent'];
+
+  promise_test(function(t) {
+    let svg = document.querySelector('svg');
+    svg.pauseAnimations();
+    svg.setCurrentTime(10);
+    new EventWatcher(t, document.getElementById('anim1'), SMIL_EVENTS);
+    let anim2_watcher = new EventWatcher(t, document.getElementById('anim2'), SMIL_EVENTS);
+    return anim2_watcher.wait_for('beginEvent');
+  });
+</script>

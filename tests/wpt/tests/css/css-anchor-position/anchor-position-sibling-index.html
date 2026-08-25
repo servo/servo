@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning Test: anchor function with sibling-index()</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#anchor-pos">
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#funcdef-sibling-index">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  body { margin: 0; }
+  #anchor {
+    anchor-name: --a;
+    width: 100px;
+    height: 100px;
+  }
+  #abs {
+    position-anchor: --a;
+    position: absolute;
+    top: anchor(calc(25% * sibling-index()));
+    width: 100px;
+    height: 100px;
+    background: teal;
+  }
+</style>
+<div>
+  <div id="anchor"></div>
+  <div id="abs"></div>
+</div>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(abs).top, "50px", "25% multiplied by 2 (sibling-index()) of 100px")
+  }, "Percentage based anchor() position with sibling-index()");
+</script>

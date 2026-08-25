@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1966450">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<meta name="assert" content="Tests that the inner grid container as a flex item is getting a reflow against its final size.">
+
+<style>
+.inner-grid {
+  display: grid;
+  flex: none; /* Making inner grid container inflexible */
+  width: 100%;
+  height: 100px;
+  min-height: 0; /* Disable automatic minimum size in the main axis */
+  background: red;
+}
+
+.inner-grid-item {
+  font: 50px/1 Ahem;
+  /* Disable automatic minimum size in inline axis. This is essential to
+     reproduce this bug. 'min-width:auto' doesn't reproduce. */
+  min-width: 0;
+  width: 100%;
+  color: transparent;
+  background: green;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="display: grid">
+  <div style="display: flex; flex-direction: column; width: 100px">
+    <div class="inner-grid">
+      <div class="inner-grid-item">XX XX</div>
+    </div>
+  </div>
+</div>

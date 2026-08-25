@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<style>
+  .box {
+      height: 80px;
+      margin-bottom: 10px;
+      border: 10px solid hotpink;
+      background: yellow;
+  }
+  .skip-start {
+      border-right: none;
+  }
+  .skip-end {
+      border-left: none;
+  }
+</style>
+<p>There should be a yellow box that starts in the first column and ends in the
+  third. The block-start border should be in the first column, and the block-end
+  border should be in the third.</p>
+<div class="box skip-end" style="width:90px;"></div>
+<div class="box skip-start skip-end" style="width:100px;"></div>
+<div class="box skip-start" style="margin-left:30px; width:60px;"></div>

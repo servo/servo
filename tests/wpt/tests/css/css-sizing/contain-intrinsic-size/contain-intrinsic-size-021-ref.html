@@ -1,0 +1,41 @@
+<!doctype html>
+<meta charset="utf8">
+<title>CSS contain-intrinsic-size: flex row, flex height based on children</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override">
+
+<style>
+#flex {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  width: 250px;
+}
+.item {
+  border: 1px solid black;
+  box-sizing: content-box;
+}
+#one {
+  background: lightblue;
+  width: 55px;
+  height: 21px;
+}
+#two {
+  background: lightgreen;
+  width: 66px;
+  height: 42px;
+}
+#three {
+  background: lightgrey;
+  align-self: stretch;
+  width: 77px;
+  height: 63px;
+}
+</style>
+
+<div id=flex>
+  <div class=item id=one></div>
+  <div class=item id=two></div>
+  <div class=item id=three></div>
+</div>

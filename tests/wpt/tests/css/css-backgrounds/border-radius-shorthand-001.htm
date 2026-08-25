@@ -1,0 +1,59 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: 'Border-radius' shorthand is used to set all four 'border-[*]-radius' properties.</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css3-background/#border-radius" />
+        <meta name="assert" content="'Border-radius' shorthand sets all four 'border-[*]-radius' properties." />
+        <style type="text/css">
+            div
+            {
+                width: 200px;
+                height: 200px;
+            }
+            #reference1
+            {
+                border: 10px solid red;
+                border-top-left-radius: 40px;
+                border-top-right-radius: 40px;
+                border-bottom-right-radius: 40px;
+                border-bottom-left-radius: 40px;
+            }
+            #test1
+            {
+                margin-top: -220px;
+                border: 10px solid black;
+                border-radius : 40px;
+            }
+            #reference2
+            {
+                border: 10px solid red;
+                border-top-left-radius: 2em 0.5em;
+                border-top-right-radius: 1em 3em;
+                border-bottom-right-radius: 4em 0.5em;
+                border-bottom-left-radius: 1em 3em;
+            }
+            #test2
+            {
+                margin-top: -220px;
+                border: 10px solid black;
+                border-radius: 2em 1em 4em / 0.5em 3em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there are two black boxes with rounded corners and red is not visible on the page.</p>
+        <table>
+            <tr>
+                <td>
+                    <div id="reference1"></div>
+                    <div id="test1"></div>
+                </td>
+                <td>
+                    <div id="reference2"></div>
+                    <div id="test2"></div>
+                </td>
+            </tr>
+        </table>
+    </body>
+</html>

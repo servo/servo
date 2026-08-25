@@ -1,0 +1,46 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Long Animation Frame Timing: UI events and renderStart</title>
+<meta name="timeout" content="long">
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-actions.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<h1>Long Animation Frame: UI events and renderStart</h1>
+<div id="log"></div>
+<script>
+
+promise_test(async t => {
+  const BUSY_DURATION_1 = 150;
+  const BUSY_DURATION_2 = 250;
+  const eventPromise = new Promise(resolve => document.body.addEventListener("pointermove", () => {
+    busy_wait(BUSY_DURATION_1);
+    requestAnimationFrame(() => busy_wait(BUSY_DURATION_2));
+    resolve();
+  }, {passive: true}));
+  const actions = new test_driver.Actions();
+  await actions.pointerMove(10, 10, {origin: document.body})
+    .pointerDown()
+    .pointerMove(3, 3)
+    .pointerUp()
+    .send();
+
+  const scriptPredicate = s => s.invoker === "BODY.onpointermove";
+
+  const loaf = await new Promise(resolve =>
+    new PerformanceObserver(entries => {
+      const entry = entries.getEntries().find(
+        e => e.scripts.some(scriptPredicate));
+      resolve(entry);
+    }).observe({type: "long-animation-frame", buffered: true}));
+
+  const script = loaf.scripts.find(scriptPredicate)
+  assert_greater_than_equal(loaf.renderStart, script.startTime + script.duration);
+  assert_greater_than_equal(loaf.blockingDuration, BUSY_DURATION_1 + BUSY_DURATION_2 - 50);
+}, "UI events should always be before renderStart but still affect blockingDuration")
+</script>
+</body>

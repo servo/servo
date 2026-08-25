@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: capture opacity elements</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<link rel="match" href="web-animations-api-ref.html">
+<meta name="fuzzy" content="maxDifference=0-2; totalPixels=0-500">
+
+<script src="/common/reftest-wait.js"></script>
+<style>
+#first {
+  background: blue;
+  width: 100px;
+  height: 100px;
+  contain:  paint;
+}
+#second {
+  background: green;
+  width: 100px;
+  height: 100px;
+  contain: paint;
+}
+
+/* Unset all animations since the test drives it using WA-API */
+html::view-transition-group(*),
+html::view-transition-image-pair(*),
+html::view-transition-new(*),
+html::view-transition-old(*) {
+  animation: unset;
+}
+
+html::view-transition-group(root){
+  opacity: 0;
+}
+
+</style>
+<div id=first></div>
+<div id=second></div>
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+function setAnimation() {
+  document.documentElement.animate({ transform: ['translate(100px)', 'translate(100px)'] }, { duration: 10000, pseudoElement: '::view-transition-group(first)'});
+  document.documentElement.animate({ transform: ['translate(150px)', 'translate(150px)'] }, { duration: 10000, pseudoElement: '::view-transition-group(second)'});
+  requestAnimationFrame(takeScreenshot);
+}
+
+async function runTest() {
+  first.style.viewTransitionName = "first";
+  document.startViewTransition(() => {
+    first.style.viewTransitionName = "";
+    second.style.viewTransitionName = "second";
+    requestAnimationFrame(setAnimation);
+  });
+}
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/content-security-policy/support/testharness-helper.js"></script>
+<script src="/content-security-policy/support/prefetch-helper.js"></script>
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'; img-src http://{{domains[www2]}}:{{ports[http][0]}}"/>
+
+<script>
+  const { OTHER_ORIGIN, REMOTE_ORIGIN } = get_host_info();
+
+  promise_test(async (t) => {
+    const url = new URL("/common/dummy.xml", location.href);
+    assert_true(await try_to_prefetch(url, t));
+  }, "Prefetch should succeed when restricted by default-src but allowed by " +
+     "other directive");
+
+  promise_test(async (t) => {
+    const url = new URL("/common/dummy.xml", REMOTE_ORIGIN);
+    assert_false(await try_to_prefetch(url, t));
+  }, "Prefetch should fail when restricted by default-src and different " +
+     "origin allowed by other directive");
+
+  promise_test(async (t) => {
+    const url = new URL("/common/dummy.xml", OTHER_ORIGIN);
+    assert_true(await try_to_prefetch(url, t));
+  }, "Prefetch should succeed when restricted by default-src but origin " +
+     "allowed by other directive");
+</script>
+</head>
+<body></body>
+</html>

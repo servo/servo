@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: column and row rules with explicit placement and an empty track in grid-lanes</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/">
+<link rel="match" href="column-gap-decorations-010-ref.html">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-columns: repeat(4, 64px);
+    gap: 10px;
+    background: #cdd5e0;
+    width: max-content;
+    column-rule: 4px solid blue;
+    row-rule: 4px solid gold;
+  }
+  .lanes > div {
+    height: 48px;
+    background: #5b8def;
+    color: #fff;
+    font: 600 12px/1 sans-serif;
+  }
+  .lanes > div.alt { background: #8a6df0; }
+  .col1 { grid-column: 1; }
+  .col2 { grid-column: 2; }
+  .col4 { grid-column: 4; }
+</style>
+<div class="lanes">
+  <div class="col1">1</div>
+  <div class="col2 alt">2</div>
+  <div class="col4">3</div>
+  <div class="col1">4</div>
+  <div class="col2 alt">5</div>
+  <div class="col4">6</div>
+</div>

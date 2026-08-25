@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CSS Reference: String value of list-style-type with outside position</title>
+  <link rel="author" title="Oriol Brufau" href="mailto:obrufau@gmail.com">
+  <style>
+    .list { list-style: none }
+    .list > ::before {
+      content: "";
+      display: inline-block;
+      width: 0px;
+      direction: rtl;
+      white-space: pre;
+    }
+    .list > :nth-child(2)::before { content: "foo" }
+    .list > :nth-child(3)::before { content: "foobar"; }
+    .list > :nth-child(4)::before { content: "some very long text that is not going to fit and will overflow"; }
+  </style>
+</head>
+<body>
+  <ol class="list">
+    <li>item 1</li>
+    <li>item 2</li>
+    <li>item 3</li>
+    <li>item 4</li>
+  </ol>
+  <ul class="list">
+    <li>item 1</li>
+    <li>item 2</li>
+    <li>item 3</li>
+    <li>item 4</li>
+  </ul>
+</body>
+</html>

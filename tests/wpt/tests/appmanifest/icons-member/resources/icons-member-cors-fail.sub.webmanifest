@@ -1,0 +1,10 @@
+{
+    "name": "Icons member (CORS violation) WPT",
+    "icons": [{
+        "src": "https://{{host}}:{{ports[https][1]}}/appmanifest/icons-member/resources/fail.png",
+        "sizes": "256x256",
+        "type": "image/png"
+    }],
+    "start_url": "../icons-member-cors-fail-manual.sub.html",
+    "display": "fullscreen"
+}

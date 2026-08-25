@@ -1,0 +1,17 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+ <head>
+  <title>CSS Test: Basic min-height test (with overflow:scroll)</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-10-30 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/block/height/min-height/003.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#min-max-heights" />
+  <style type="text/css">
+   div { min-height: 2em; background: green; overflow: scroll; }
+  </style>
+ </head>
+ <body>
+  <p>Test passes if there is a wide green bar with scrollbars around it.</p>
+  <div></div>
+ </body>
+</html>

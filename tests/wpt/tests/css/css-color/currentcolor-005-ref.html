@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Others depend on currentcolor should be recomputed when currentcolor changes</title>
+    <link rel="author" title="CGQAQ" href="mailto:m.jason.liu@gmail.com">
+    <style>
+        #column-rule-color-currentcolor {
+          columns: 2;
+          column-rule-style: solid;
+          column-rule-width: 10px;
+          height: 1em;
+          column-rule-color: green;
+          color: green;
+        }
+
+        #column-rule-color-color-mix-currentcolor {
+            columns: 2;
+            column-rule-style: solid;
+            column-rule-width: 10px;
+            height: 1em;
+            column-rule-color: color-mix(in hsl, green 50%, white);
+            color: green;
+        }
+      </style>
+</head>
+
+<body>
+    <div id="column-rule-color-currentcolor">XXX<br>YYY</div>
+    <div id="column-rule-color-color-mix-currentcolor">XXX<br>YYY</div>
+</body>
+</html>

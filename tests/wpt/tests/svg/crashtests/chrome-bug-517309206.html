@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<link rel="help" href="https://crbug.com/517309206">
+<p>This test should not crash.</p>
+<svg>
+  <rect width="100" height="100" fill="url(support/ext.svg#p)"/>
+</svg>
+<script>
+  let n = 0;
+  function bump() {
+    document.body.style.opacity = 1 - (n % 2) * 0.001;
+    if (++n < 60) {
+      requestAnimationFrame(bump);
+    } else {
+      document.documentElement.className = '';
+    }
+  }
+  requestAnimationFrame(bump);
+</script>

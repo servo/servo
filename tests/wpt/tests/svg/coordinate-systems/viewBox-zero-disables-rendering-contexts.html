@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Zero viewBox disables rendering in inline, nested and SVG-as-image contexts</title>
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/coords.html#ViewBoxAttribute">
+<link rel="match" href="viewBox-zero-disables-rendering-contexts-ref.html">
+<meta name="assert" content="A zero-width viewBox disables rendering of the element in every context: an inline outer svg, a nested inner svg, and an svg referenced as an image.">
+<body style="margin:0">
+  <!-- inline outer svg -->
+  <svg width="100" height="100" viewBox="0 0 0 100"><rect width="100" height="100" fill="green"/></svg>
+  <!-- nested inner svg carries the zero viewBox -->
+  <svg width="100" height="100"><svg width="100" height="100" viewBox="0 0 0 100"><rect width="100" height="100" fill="green"/></svg></svg>
+  <!-- svg referenced as an image (secure static mode) -->
+  <img width="100" height="100" src="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='100'%20height='100'%20viewBox='0%200%200%20100'%3E%3Crect%20width='100'%20height='100'%20fill='green'/%3E%3C/svg%3E">
+</body>

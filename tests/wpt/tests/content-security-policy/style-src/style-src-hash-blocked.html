@@ -1,0 +1,48 @@
+<!doctype html>
+<html>
+<head>
+    <meta http-equiv="Content-Security-Policy" content="style-src
+                'sha256-7kQ1KhZCpEzWtsa0RSpbIL7FU3kPNhE3IJMaNeTclMU='">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+
+    <script>
+      var t1 = async_test("Should load the style with a correct hash");
+      var t2 = async_test("Should not load style that does not match hash");
+      var t_spv = async_test("Should fire a securitypolicyviolation event");
+
+      document.addEventListener("securitypolicyviolation", t_spv.step_func_done(function(e) {
+        assert_equals("style-src-elem", e.violatedDirective);
+      }));
+    </script>
+
+    <style>#content1 { margin-left: 2px; }</style>
+    <style>#content2 { margin-left: 2px; }</style>
+</head>
+<body>
+    <div id='log'></div>
+
+    <div id="content1">Lorem ipsum</div>
+    <div id="content2">Lorem ipsum</div>
+
+    <script>
+      function make_assert(contentId, assertTrue) {
+        var contentEl = document.getElementById(contentId);
+        var marginLeftVal = getComputedStyle(contentEl).getPropertyValue('margin-left');
+        if (assertTrue) assert_equals(marginLeftVal, "2px");
+        else assert_not_equals(marginLeftVal, "2px");
+      }
+
+      t1.step(function() {
+        make_assert("content1", true);
+        t1.done();
+      });
+
+      t2.step(function() {
+        make_assert("content2", false);
+        t2.done();
+      });
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Detaching node while iterating slot assigned nodes should not crash</title>
+<link rel="help" href="https://crbug.com/843069">
+<summary><div id="first" style="display: list-item"></div><div id="second"></div></summary>
+<script>
+  const summary = document.querySelector('summary');
+  document.body.offsetLeft;
+  document.querySelector('#second').remove();
+  summary.remove();
+</script>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test (Transforms): Rotated Simple Box</title>
+    <link rel="author" title="Keith Schwarz" href="mailto:keith@keithschwarz.com">
+    <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#two-d-transform-functions">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#funcdef-transform-rotate">
+    <meta name="assert" content="This tests that rotating a simple rectangle by
+    90 degrees produces another rectangle of the appropriate dimensions.">
+    <link rel="match" href="transform-rotate-007-ref.html">
+    <meta name="fuzzy" content="maxDifference=0-64;totalPixels=0-4">
+    <link rel="mismatch" href="transform-rotate-007-notref.html">
+    <style>
+      div {
+        width: 100px;
+        height: 200px;
+        border: 1px solid black;
+        transform: translate(50px, -50px) rotate(-90deg);
+      }
+    </style>
+  </head>
+  <body>
+    <div></div>
+  </body>
+</html>

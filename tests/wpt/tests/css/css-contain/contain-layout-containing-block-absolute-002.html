@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1">
+<link rel="match" href="reference/contain-layout-containing-block-absolute-002-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-contain-1/#containment-layout">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1950303">
+<style>
+body {
+  margin: 0;
+}
+#container {
+  contain: layout;
+}
+
+#abs {
+  position: absolute;
+  width: 400vw;
+  height: 400vh;
+}
+</style>
+<div id="container">
+  <div id="abs">
+    <div style="width: 100px; height: 100px; background-color: green"></div>
+  </div>
+</div>
+<script>
+window.scrollTo(100, 0);
+</script>

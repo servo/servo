@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>WebShare Test: canShare method tests</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <script>
+      test(() => {
+        assert_false(
+          navigator.canShare(),
+          "no arguments (uses default argument value, which is empty dictionary)"
+        );
+
+        assert_false(navigator.canShare({}), "empty dictionary not allowed");
+
+        assert_false(navigator.canShare(undefined), "empty dictionary not allowed");
+
+        assert_false(navigator.canShare(null), "empty dictionary not allowed");
+
+        assert_false(
+          navigator.canShare({ unused: "unexpected field" }),
+          "results in empty dictionary, which is not allowed"
+        );
+      }, "canShare() empty and default dictionary");
+
+      test(() => {
+        assert_true(navigator.canShare({ url: "http://a.b" }), "http URL is ok");
+
+        assert_true(navigator.canShare({ url: "https://a.b" }), "https URL is ok");
+
+        assert_false(
+          navigator.canShare({ url: "http://a.b:65536" }),
+          "URL is invalid"
+        );
+
+        assert_false(
+          navigator.canShare({ url: "data:the url" }),
+          "data URL is not allowed"
+        );
+
+        assert_false(
+          navigator.canShare({ url: "file:///usr/" }),
+          "file URL is not allowed"
+        );
+
+        assert_true(
+          navigator.canShare({
+            url: "https://a.b/path?query#fragment",
+          }),
+          "canShare with URL"
+        );
+
+        assert_true(
+          navigator.canShare({
+            url: {
+              toString() {
+                return "https://a.b/";
+              },
+            },
+          }),
+          "canShare URL as with object with stringifier"
+        );
+
+        assert_true(
+          navigator.canShare(
+            { url: "" },
+            "canShare with empty URL, which resolves as the doc's base URL"
+          )
+        );
+
+        assert_true(
+          navigator.canShare({
+            url: "//a.b/path?query#fragment",
+          }),
+          "canShare with URL having no scheme"
+        );
+
+        assert_true(
+          navigator.canShare({
+            url: "relative",
+          }),
+          "canShare relative URL, resolved against API base URL"
+        );
+      }, "canShare() url member");
+
+      test(() => {
+        assert_false(
+          navigator.canShare({ title: undefined }),
+          "canShare with attribute undefined is equivalent to omitting the attribute"
+        );
+
+        assert_true(navigator.canShare({ title: "subject" }), "canShare with title");
+
+        assert_true(navigator.canShare({ title: null }), "stringified null");
+      }, "canShare() title member");
+
+      test(() => {
+        assert_true(navigator.canShare({ text: "" }), "ok to share empty text");
+
+        assert_true(
+          navigator.canShare({ text: "some text 🤔" }),
+          "ok to share unicode"
+        );
+
+        assert_true(navigator.canShare({ text: 123 }), "number is stringified");
+      }, "canShare() text member");
+
+      test(() => {
+        const file = new File(["hello"], "file", { type: "text/plain" });
+        const file2 = new File([], "file2");
+
+        assert_false(navigator.canShare({ files: [] }), "empty list is not allowed");
+
+        assert_false(
+          navigator.canShare({
+            url: "https://a.b:800000",
+            files: [file, file2],
+          }),
+          "invalid URL invalidates the share"
+        );
+
+        assert_true(
+          navigator.canShare({ files: [file] }),
+          "single file is ok to share"
+        );
+
+        assert_true(
+          navigator.canShare({ files: [file, file2, file] }),
+          "repeated files is ok to share"
+        );
+
+        assert_true(
+          navigator.canShare({
+            files: [file, file2],
+            text: "some texts",
+            url: "https://example.com/",
+          }),
+          "is ok to share files, text, and url together"
+        );
+      }, "canShare() files member");
+
+      test(() => {
+        assert_true(
+          navigator.canShare({
+            title: "subject",
+            text: "body",
+            url: "https://a.b/",
+            files: [new File([], "file")],
+            unused: "unexpected field",
+          }),
+          "canShare with unexpected field"
+        );
+      }, "canShare() multiple members");
+    </script>
+  </body>
+</html>

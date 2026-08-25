@@ -1,0 +1,7 @@
+rules:
+- text-emphasis-*: [text-emphasis]
+- text-underline-offset-*: [text-underline-offset]
+- text-decoration-line-014.xht: [text-decoration-line-blink]
+- text-decoration-color-selection-*: [text-decoration-selection]
+- "*text-decoration-*": [text-decoration]
+- text-underline-position-*: [text-underline-position]

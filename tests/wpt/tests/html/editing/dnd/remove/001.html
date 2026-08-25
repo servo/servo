@@ -1,0 +1,69 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../resources/test-helper.js"></script>
+<head>
+  <title>Removing canvas element during drag and drop</title>
+  <style>
+    div {
+      height: 100px;
+      width: 100px;
+      padding: 20px;
+      background-color: silver;
+    }
+  </style>
+  <script>
+    function sourceDragStart(event) {
+      event.dataTransfer.effectAllowed = 'copy';
+      event.dataTransfer.setData('text/uri-list', document.querySelector(
+        'canvas').toDataURL('image/png'));
+      event.target.remove();
+    }
+
+    function addImage(event) {
+      var c = document.createElement('img');
+      c.setAttribute('src', event.dataTransfer.getData('text/uri-list').replace(
+        /\r\n$/, ''));
+      document.querySelector('div').appendChild(c);
+    }
+  </script>
+</head>
+<body>
+  <p>
+    <canvas width="100" height="100" draggable="true"
+      ondragstart="sourceDragStart(event)">Canvas</canvas>
+  </p>
+  <div ondragenter="event.preventDefault()" ondragover="event.preventDefault()"
+    ondrop="addImage(event)"></div>
+  <script>
+    var canvas = document.querySelector('canvas'),
+      c = canvas.getContext('2d');
+    for (var x = 0; x != 50; x++) {
+      c.fillStyle = (x % 2 == 0) ? 'navy' : 'white';
+      c.beginPath();
+      c.moveTo(x, x);
+      c.lineTo(100 - x, x);
+      c.lineTo(100 - x, 100 - x);
+      c.lineTo(x, 100 - x);
+      c.closePath();
+      c.fill();
+    }
+    async function test() {
+      const canvas = document.querySelector('canvas');
+      const div = document.querySelector('div');
+
+      function onDropCallBack(event) {
+        const img = document.querySelector('img');
+        assert_equals(img.src, canvas.toDataURL('image/png'));
+        return true;
+      }
+      dragDropTestWithLayoutShift(canvas, div, onDropCallBack,
+        'Dragging and dropping an element that gets removed on dragStart should be possible');
+    }
+    test();
+  </script>
+</body>
+</html>

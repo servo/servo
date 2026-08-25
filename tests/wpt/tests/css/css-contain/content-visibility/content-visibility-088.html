@@ -1,0 +1,46 @@
+<!doctype HTML>
+<html>
+<meta charset="utf8">
+<title>Content Visibility: getClientRects measures correctly</title>
+<link rel="author" title="Rob Buis" href="mailto:rbuis@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<meta name="assert" content="getClientRects measures correctly in content-visibility hidden subtree">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+body {
+  margin: 0;
+  padding: 0;
+}
+#outer {
+  width: 100px;
+  background: lightblue;
+
+  content-visibility: hidden;
+}
+#inner {
+  margin: 25px;
+  width: 50px;
+  height: 50px;
+  background: lightgreen;
+}
+</style>
+
+<body>
+<div id="outer"><div id="inner"></div></div>
+</body>
+
+<script>
+test(() => {
+  const outer = document.getElementById("outer");
+  assert_equals(outer.getClientRects()[0].height, 0, "outer height");
+
+  const inner = document.getElementById("inner");
+  assert_equals(inner.getClientRects()[0].width, 50, "inner width");
+  assert_equals(inner.getClientRects()[0].height, 50, "inner height");
+});
+
+</script>
+</html>

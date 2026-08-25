@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>Cues with &lt;timestamps&gt; tags</title>
+<script src="track-helpers.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+check_cues_from_track("resources/timestamp.vtt", function(track) {
+    assert_equals(track.cues.length, 3);
+
+    // TODO(srirama.m): Timestamps are handled as ProcessingInstructions,
+    // but because ProcessingInstructions are used in XML and not HTML,
+    // they are ignored here. This should later be tested with oncuechange events.
+
+    var children = [ { type: "text", value: "This cue is painted on." } ];
+    assert_cue_fragment_as_textcontent(track.cues[0], children);
+
+    children = [ { type: "text", value: "I said Bear is coming!!!!" } ];
+    assert_cue_fragment_as_textcontent(track.cues[1], children);
+
+    children = [ { type: "text", value: "I said Bear is coming now!!!!" } ];
+    assert_cue_fragment_as_textcontent(track.cues[2], children);
+});
+
+check_cues_from_track("resources/timestamp-bad.vtt", function(track) {
+    assert_equals(track.cues.length, 3);
+
+    var children = [ { type: "text", value: "This cue is painted on.\nBut since the last two timestamps are out of order, they are ignored." } ];
+    assert_cue_fragment_as_textcontent(track.cues[0], children);
+
+    children = [ { type: "text", value: "I said Bear is coming!!!!\nAll of these timestamps are before the start of the cue, so get ignored." } ];
+    assert_cue_fragment_as_textcontent(track.cues[1], children);
+
+    children = [ { type: "text", value: "I said Bear is coming now!!!!\nAll of these timestamps are after the end of the cue, so get ignored." } ];
+    assert_cue_fragment_as_textcontent(track.cues[2], children);
+});
+</script>

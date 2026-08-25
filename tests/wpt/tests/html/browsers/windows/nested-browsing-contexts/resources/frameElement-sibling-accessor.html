@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>This page will attempt to access the frameElement of its sibling and report the results on request</title>
+
+<h1>I did get loaded</h1>
+
+<script>
+"use strict";
+
+window.onmessage = e => {
+  const { newDocumentDomain } = e.data;
+  if (newDocumentDomain) {
+    document.domain = newDocumentDomain;
+  }
+
+  const siblingWindow = parent.frames[0];
+
+  try {
+    const { frameElement } = siblingWindow;
+
+    let result = "something wierd happened";
+    if (frameElement === null) {
+      result = "null";
+    } else if (frameElement.constructor) {
+      result = frameElement.constructor.name;
+    }
+
+    parent.postMessage(result, "*");
+  } catch (e) {
+    parent.postMessage(e.name, "*");
+  }
+};
+</script>

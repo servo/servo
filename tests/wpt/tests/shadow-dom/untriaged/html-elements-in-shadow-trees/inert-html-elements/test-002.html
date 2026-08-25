@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Shadow DOM Test: A_08_01_02</title>
+<link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-20130514/#inert-html-elements">
+<meta name="assert" content="HTML Elements in shadow trees: link element must behave as inert not as part of the document tree">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../../../html/resources/common.js"></script>
+<script src="../../../resources/shadow-dom-utils.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+test(unit(function (ctx) {
+
+    var d = newRenderedHTMLDocument(ctx);
+
+    var link = d.createElement('link');
+    link.setAttribute('rel', 'stylesheet');
+
+    //create Shadow root
+    var root = d.createElement('div');
+    d.body.appendChild(root);
+    var s = root.attachShadow({mode: 'open'});
+
+    s.appendChild(link);
+
+    assert_equals(d.styleSheets.length, 0, 'link element must behave as inert not as part of the document tree');
+
+
+}), 'A_08_01_02_T01');
+</script>
+</body>
+</html>

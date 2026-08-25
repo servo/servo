@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#pagination">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<title>Tests that grid-items in subsequent rows get pushed down due to a grid-items fragmenting.</title>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width: 100px; height: 100px; columns: 4; column-gap: 0; orphans: 1; background: red;">
+  <div style="display: grid; grid-template-rows: auto auto 170px;">
+    <div style="line-height: 0; background: green;"> <!-- row size before fragmentation is 110px, after 100px + 30px -->
+      <div style="display: inline-block; width: 25px; height: 80px;"></div>
+      <div style="display: inline-block; width: 25px; height: 30px;"></div>
+    </div>
+    <div style="line-height: 0; background: green;"> <!-- row size before fragmentation is 90px, after 70px + 30px -->
+      <div style="display: inline-block; width: 25px; height: 60px;"></div>
+      <div style="display: inline-block; width: 25px; height: 30px;"></div>
+    </div>
+    <div style="background: green;"></div>
+  </div>
+</div>

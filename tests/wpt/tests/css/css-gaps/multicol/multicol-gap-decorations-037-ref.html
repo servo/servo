@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+  body {
+    margin: 0px;
+  }
+
+  .multicol-container {
+    width: 320px;
+    height: 320px;
+    column-count: 3;
+    column-width: 100px;
+    column-height: 100px;
+    column-gap: 10px;
+    row-gap: 10px;
+    column-wrap: wrap;
+  }
+
+  p {
+    background: gray;
+    opacity: 0.5;
+    height: 100px;
+    margin: 0px;
+  }
+
+  .row-gap {
+    position: absolute;
+    width: 420px;
+    height: 0px;
+    border-bottom: solid 5px red;
+  }
+
+  .row-gap1 {
+    top: 102.5px;
+  }
+
+  .row-gap2 {
+    top: 212.5px;
+  }
+
+  .col-gap {
+    position: absolute;
+    width: 0px;
+    border-left: solid 5px blue;
+  }
+
+  .col-gap-s1 { top: 0px; height: 100px; }
+  .col-gap-s2 { top: 110px; height: 100px; }
+  .col-gap-s3 { top: 220px; height: 200px; }
+
+  .col-gap1 { left: 102.5px; }
+  .col-gap2 { left: 212.5px; }
+</style>
+<div class="multicol-container">
+  <p></p>
+  <p></p>
+  <p></p>
+  <p></p>
+  <p></p>
+  <p></p>
+  <p></p>
+  <p></p>
+  <p></p>
+</div>
+
+<div class="col-gap col-gap1 col-gap-s1"> </div>
+<div class="col-gap col-gap1 col-gap-s2"> </div>
+<div class="col-gap col-gap1 col-gap-s3"> </div>
+<div class="col-gap col-gap2 col-gap-s1"> </div>
+<div class="col-gap col-gap2 col-gap-s2"> </div>
+<div class="col-gap col-gap2 col-gap-s3"> </div>
+
+<div class="row-gap row-gap1"> </div>
+<div class="row-gap row-gap2"> </div>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>HTTPS Upgrades: Upgrade.</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/get-host-info.sub.js"></script>
+
+    <meta name="referrer" content="no-referrer-when-downgrade" />
+
+  </head>
+  <body>
+    <script>
+      setup({ single_test: true });
+      // When the referrer policy is no-referrer-when-downgrade, HTTPS upgrades should not drop
+      // the referrer upon navigating to an HTTP URL if the upgrade is successful.
+
+      // HTTPS upgrades don't change custom ports, so this will load correctly if an HTTPS upgrade is performed,
+      // and will fail to load otherwise (since the port will be wrong for http).
+      var url = new URL("http://{{host}}:{{ports[https][0]}}/https-upgrades/resources/pass-with-referrer.html")
+      window.onmessage = function(event) {
+          if (event.data['pass'] && event.data['referrer'] == document.location.href) {
+              done();
+          }
+      }
+      win = window.open(url)
+    </script>
+  </body>
+</html>

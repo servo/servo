@@ -1,0 +1,5 @@
+WEBVTT
+
+NOTE set line as percentage would make 'snap-to-line' to false
+00:00:00.000 --> 00:00:05.000 align:start position:50%,line-left line:50%,start
+foo

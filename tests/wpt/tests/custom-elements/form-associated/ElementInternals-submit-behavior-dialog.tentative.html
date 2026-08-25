@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTMLSubmitButtonBehavior dialog method support</title>
+<link rel="author" href="mailto:ansollan@microsoft.com">
+<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/PlatformProvidedBehaviors/explainer.md">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<dialog>
+  <form method="dialog">
+    <custom-submit></custom-submit>
+  </form>
+</dialog>
+
+<script>
+class CustomSubmitButton extends HTMLElement {
+  static formAssociated = true;
+  constructor() {
+    super();
+    this.behavior_ = new HTMLSubmitButtonBehavior();
+    this.internals_ = this.attachInternals({ behaviors: [this.behavior_] });
+  }
+  get submitBehavior() { return this.behavior_; }
+}
+customElements.define('custom-submit', CustomSubmitButton);
+
+const dialog = document.querySelector('dialog');
+const form = document.querySelector('form');
+const customSubmit = document.querySelector('custom-submit');
+
+function reset() {
+  if (dialog.open) {
+    dialog.close();
+  }
+  dialog.returnValue = '';
+  form.method = 'dialog';
+  customSubmit.submitBehavior.disabled = false;
+  customSubmit.submitBehavior.formMethod = '';
+  customSubmit.submitBehavior.value = '';
+}
+
+test(t => {
+  t.add_cleanup(reset);
+  customSubmit.submitBehavior.value = 'custom-result';
+  dialog.showModal();
+  customSubmit.click();
+
+  assert_false(dialog.open, 'dialog should be closed after submission');
+  assert_equals(dialog.returnValue, 'custom-result',
+    'dialog.returnValue should be the behavior value');
+}, 'Custom submit button with form method=dialog closes dialog with behavior value');
+
+test(t => {
+  t.add_cleanup(reset);
+  form.method = 'get';
+  customSubmit.submitBehavior.formMethod = 'dialog';
+  customSubmit.submitBehavior.value = 'override-result';
+  dialog.showModal();
+  customSubmit.click();
+
+  assert_false(dialog.open, 'dialog should be closed');
+  assert_equals(dialog.returnValue, 'override-result',
+    'behavior formMethod=dialog should override form method');
+}, 'Behavior formMethod=dialog overrides form method and closes dialog');
+
+test(t => {
+  t.add_cleanup(reset);
+  customSubmit.submitBehavior.value = 'should-not-submit';
+  customSubmit.submitBehavior.disabled = true;
+  dialog.showModal();
+  customSubmit.click();
+
+  assert_true(dialog.open, 'dialog should remain open');
+}, 'Disabled custom submit button does not close dialog');
+</script>

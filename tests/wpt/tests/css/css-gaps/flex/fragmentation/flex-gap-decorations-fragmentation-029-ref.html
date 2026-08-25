@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/pull/13850">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+  body {
+    margin: 0;
+  }
+  .multi-column {
+    position: relative;
+    columns: 2;
+    column-width: 170px;
+    column-gap: 10px;
+    height: 175px;
+    width: 350px;
+    background: lightgray;
+    column-fill: auto;
+  }
+  #flexbox {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    width: 170px;
+    height: 290px;
+    row-gap: 10px;
+    column-gap: 10px;
+  }
+  .items {
+    background-color: cornflowerblue;
+    width: 50px;
+  }
+  .row-rule {
+    position: absolute;
+    width: 50px;
+    height: 10px;
+  }
+  .col-rule {
+    position: absolute;
+    width: 10px;
+    background: purple;
+  }
+</style>
+<div class="multi-column">
+  <!-- Pattern: red, green, blue (repeating). Gap indices are assigned in
+       flex-column-major order; a suppressed gap still consumes a pattern
+       slot. -->
+
+  <div class="row-rule" style="top: 80px; left: 0; background: red;"></div>
+  <div class="row-rule" style="top: 60px; left: 60px; background: blue;"></div>
+  <div class="row-rule" style="top: 130px; left: 60px; background: red;"></div>
+  <div class="row-rule" style="top: 50px; left: 120px; background: blue;"></div>
+  <div class="row-rule" style="top: 100px; left: 120px; background: red;"></div>
+  <div class="col-rule" style="top: 0; left: 50px; height: 175px;"></div>
+  <div class="col-rule" style="top: 0; left: 110px; height: 175px;"></div>
+
+  <div class="row-rule" style="top: 25px; left: 240px; background: green;"></div>
+  <div class="col-rule" style="top: 0; left: 230px; height: 115px;"></div>
+  <div class="col-rule" style="top: 0; left: 290px; height: 115px;"></div>
+
+  <div id="flexbox">
+    <div class="items" style="height: 80px;"></div>
+    <div class="items" style="height: 80px;"></div>
+    <div class="items" style="height: 80px;"></div>
+    <div class="items" style="height: 60px;"></div>
+    <div class="items" style="height: 60px;"></div>
+    <div class="items" style="height: 60px;"></div>
+    <div class="items" style="height: 60px;"></div>
+    <div class="items" style="height: 50px;"></div>
+    <div class="items" style="height: 40px;"></div>
+    <div class="items" style="height: 50px;"></div>
+  </div>
+</div>

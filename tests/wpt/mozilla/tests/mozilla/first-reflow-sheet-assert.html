@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Issue 18631: Assertion failure when double-adding the UA sheets to the page</title>
+<style>
+* { display: none }
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+// Trigger two forced reflows.
+test(function() {
+  document.documentElement.offsetTop;
+  document.documentElement.offsetTop;
+  assert_true(true, "Didn't assert");
+}, "Passes if it doesn't assert");
+</script>

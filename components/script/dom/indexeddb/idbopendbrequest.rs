@@ -1,0 +1,337 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use dom_struct::dom_struct;
+use js::context::JSContext;
+use js::conversions::ToJSValConvertible;
+use js::jsval::UndefinedValue;
+use js::rust::HandleValue;
+use profile_traits::generic_callback::GenericCallback;
+use script_bindings::reflector::reflect_dom_object_with_cx;
+use servo_base::generic_channel::GenericSend;
+use servo_url::origin::ImmutableOrigin;
+use storage_traits::client_storage::StorageProxyMap;
+use storage_traits::indexeddb::{BackendResult, IndexedDBThreadMsg, SyncOperation};
+use stylo_atoms::Atom;
+use uuid::Uuid;
+
+use crate::dom::bindings::codegen::Bindings::IDBDatabaseBinding::IDBTransactionDurability;
+use crate::dom::bindings::codegen::Bindings::IDBOpenDBRequestBinding::IDBOpenDBRequestMethods;
+use crate::dom::bindings::codegen::Bindings::IDBTransactionBinding::IDBTransactionMode;
+use crate::dom::bindings::error::Error;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::refcounted::Trusted;
+use crate::dom::bindings::reflector::DomGlobal;
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::event::{Event, EventBubbles, EventCancelable};
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::indexeddb::idbdatabase::IDBDatabase;
+use crate::dom::indexeddb::idbrequest::IDBRequest;
+use crate::dom::indexeddb::idbtransaction::IDBTransaction;
+use crate::dom::indexeddb::idbversionchangeevent::IDBVersionChangeEvent;
+use crate::dom::indexeddb::key::map_backend_error_to_dom_error;
+use crate::realms::enter_auto_realm;
+
+#[derive(Clone)]
+struct OpenRequestListener {
+    open_request: Trusted<IDBOpenDBRequest>,
+}
+
+impl OpenRequestListener {
+    /// The continuation of the parallel steps of
+    /// <https://www.w3.org/TR/IndexedDB/#dom-idbfactory-deletedatabase>
+    fn handle_delete_db(&self, cx: &mut JSContext, result: BackendResult<u64>) {
+        // Step 4.1: Let result be the result of deleting a database, with storageKey, name, and request.
+        // Note: done with the `result` argument.
+
+        // Step 4.2: Set request’s processed flag to true.
+        // The backend tracks this flag for connection queue processing.
+
+        // Step 3: Queue a database task to run these steps:
+        // Note: we are in the queued task.
+
+        let open_request = self.open_request.root();
+        let global = open_request.global();
+
+        // Note: setting the done flag here as it is done in both branches below.
+        open_request.idbrequest.set_ready_state_done();
+
+        rooted!(&in(cx) let mut rval = UndefinedValue());
+
+        let mut realm = enter_auto_realm(cx, &*open_request);
+        let cx = &mut realm.current_realm();
+
+        match result {
+            Ok(version) => {
+                // Step 4.3.2: Otherwise,
+                // set request’s result to undefined,
+                // set request’s done flag to true,
+                // and fire a version change event named success at request with result and null.
+                open_request.set_result(rval.handle());
+                let _ = IDBVersionChangeEvent::fire_version_change_event(
+                    cx,
+                    &global,
+                    open_request.upcast(),
+                    Atom::from("success"),
+                    version,
+                    None,
+                );
+            },
+            Err(err) => {
+                // Step 4.3.1:
+                // If result is an error,
+                // set request’s error to result,
+                // set request’s done flag to true,
+                // and fire an event named error at request
+                // with its bubbles and cancelable attributes initialized to true.
+                let error = map_backend_error_to_dom_error(err);
+                open_request.set_error(cx, Some(error));
+                let event = Event::new(
+                    cx,
+                    &global,
+                    Atom::from("error"),
+                    EventBubbles::Bubbles,
+                    EventCancelable::Cancelable,
+                );
+                event.fire(cx, open_request.upcast());
+            },
+        }
+    }
+}
+
+#[dom_struct]
+pub struct IDBOpenDBRequest {
+    idbrequest: IDBRequest,
+    pending_connection: MutNullableDom<IDBDatabase>,
+
+    /// The id used both for the request and the related connection.
+    #[no_trace]
+    id: Uuid,
+}
+
+impl IDBOpenDBRequest {
+    pub fn new_inherited() -> IDBOpenDBRequest {
+        IDBOpenDBRequest {
+            idbrequest: IDBRequest::new_inherited(),
+            pending_connection: Default::default(),
+            id: Uuid::new_v4(),
+        }
+    }
+
+    pub fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<IDBOpenDBRequest> {
+        reflect_dom_object_with_cx(Box::new(IDBOpenDBRequest::new_inherited()), global, cx)
+    }
+
+    pub(crate) fn get_id(&self) -> Uuid {
+        self.id
+    }
+
+    pub(crate) fn connection(&self) -> DomRoot<IDBDatabase> {
+        self.pending_connection
+            .get()
+            .expect("A connection should exist for the db.")
+    }
+
+    pub(crate) fn get_or_init_connection(
+        &self,
+        cx: &mut JSContext,
+        global: &GlobalScope,
+        name: String,
+        version: u64,
+        object_store_names: Vec<String>,
+        upgraded: bool,
+    ) -> DomRoot<IDBDatabase> {
+        self.pending_connection.or_init(|| {
+            debug_assert!(!upgraded, "A connection should exist for the upgraded db.");
+            IDBDatabase::new(
+                cx,
+                global,
+                name.into(),
+                self.get_id(),
+                version,
+                object_store_names,
+            )
+        })
+    }
+
+    /// <https://w3c.github.io/IndexedDB/#upgrade-a-database>
+    /// Step 10: Queue a database task to run these steps:
+    /// The below are the steps in the task.
+    pub(crate) fn upgrade_db_version(
+        &self,
+        cx: &mut JSContext,
+        connection: &IDBDatabase,
+        old_version: u64,
+        version: u64,
+        transaction: u64,
+    ) {
+        let global = self.global();
+
+        let scope = connection.object_stores(cx);
+
+        let transaction = IDBTransaction::new_with_serial(
+            cx,
+            &global,
+            connection,
+            IDBTransactionMode::Versionchange,
+            IDBTransactionDurability::Default,
+            &scope,
+            transaction,
+        );
+        transaction.set_versionchange_old_version(old_version);
+        connection.set_transaction(&transaction);
+        // This task runs Step 10.4 later, so keep the transaction inactive until then.
+        transaction.set_active_flag(false);
+
+        rooted!(&in(cx) let mut connection_val = UndefinedValue());
+        connection.safe_to_jsval(cx, connection_val.handle_mut());
+
+        // Step 10.1: Set request’s result to connection.
+        self.idbrequest.set_result(connection_val.handle());
+
+        // Step 10.2: Set request’s transaction to transaction.
+        self.idbrequest.set_transaction(&transaction);
+
+        // Step 10.3: Set request’s done flag to true.
+        self.idbrequest.set_ready_state_done();
+
+        // Step 10.4: Set transaction’s state to active.
+        transaction.set_active_flag(true);
+
+        // Step 10.5: Let didThrow be the result of firing a version change event
+        // named upgradeneeded at request with old version and version.
+        let did_throw = IDBVersionChangeEvent::fire_version_change_event(
+            cx,
+            &global,
+            self.upcast(),
+            Atom::from("upgradeneeded"),
+            old_version,
+            Some(version),
+        );
+
+        // Step 10.6: If transaction’s state is active, then:
+        if transaction.is_active() {
+            // Step 10.6.1: Set transaction’s state to inactive.
+            transaction.set_active_flag(false);
+
+            // Step 10.6.2: If didThrow is true, run abort a transaction with
+            // transaction and a newly created "AbortError" DOMException.
+            if did_throw {
+                transaction.initiate_abort(cx, Error::Abort(None));
+                transaction.request_backend_abort();
+            } else {
+                // The upgrade transaction auto-commits once inactive and quiescent.
+                transaction.maybe_commit(cx);
+            }
+        }
+    }
+
+    pub(crate) fn pending_connection(&self) -> Option<DomRoot<IDBDatabase>> {
+        self.pending_connection.get()
+    }
+
+    pub(crate) fn delete_database(
+        &self,
+        storage_key: ImmutableOrigin,
+        name: String,
+        proxy_map: StorageProxyMap,
+    ) -> Result<(), ()> {
+        let global = self.global();
+
+        let task_source = global
+            .task_manager()
+            .database_access_task_source()
+            .to_sendable();
+        let response_listener = OpenRequestListener {
+            open_request: Trusted::new(self),
+        };
+        let callback = GenericCallback::new(global.time_profiler_chan().clone(), move |message| {
+            let response_listener = response_listener.clone();
+            task_source.queue(task!(request_callback: move |cx| {
+                response_listener.handle_delete_db(cx, message.unwrap());
+            }))
+        })
+        .expect("Could not create delete database callback");
+
+        let delete_operation =
+            SyncOperation::DeleteDatabase(callback, storage_key, name, proxy_map, self.get_id());
+
+        if global
+            .storage_threads()
+            .send(IndexedDBThreadMsg::Sync(delete_operation))
+            .is_err()
+        {
+            return Err(());
+        }
+        Ok(())
+    }
+
+    pub fn set_result(&self, result: HandleValue) {
+        self.idbrequest.set_result(result);
+    }
+
+    pub fn set_ready_state_done(&self) {
+        self.idbrequest.set_ready_state_done();
+    }
+
+    pub fn set_error(&self, cx: &mut JSContext, error: Option<Error>) {
+        self.idbrequest.set_error(cx, error);
+    }
+
+    pub fn clear_transaction(&self) {
+        self.idbrequest.clear_transaction();
+    }
+
+    pub(crate) fn clear_transaction_if_matches(&self, transaction: &IDBTransaction) -> bool {
+        let matches = self
+            .idbrequest
+            .transaction()
+            .is_some_and(|current| &*current == transaction);
+        if matches {
+            self.idbrequest.clear_transaction();
+        }
+        matches
+    }
+
+    pub fn dispatch_success(&self, cx: &mut JSContext, result: &IDBDatabase) {
+        let global = self.global();
+        self.idbrequest.set_ready_state_done();
+
+        let mut realm = enter_auto_realm(cx, result);
+        let cx = &mut realm.current_realm();
+        rooted!(&in(cx) let mut result_val = UndefinedValue());
+        result.safe_to_jsval(cx, result_val.handle_mut());
+        self.set_result(result_val.handle());
+
+        let event = Event::new(
+            cx,
+            &global,
+            Atom::from("success"),
+            EventBubbles::DoesNotBubble,
+            EventCancelable::NotCancelable,
+        );
+        event.fire(cx, self.upcast());
+    }
+
+    /// <https://w3c.github.io/IndexedDB/#eventdef-idbopendbrequest-blocked>
+    pub fn dispatch_blocked(&self, cx: &mut JSContext, old_version: u64, new_version: Option<u64>) {
+        let global = self.global();
+        let _ = IDBVersionChangeEvent::fire_version_change_event(
+            cx,
+            &global,
+            self.upcast(),
+            Atom::from("blocked"),
+            old_version,
+            new_version,
+        );
+    }
+}
+
+impl IDBOpenDBRequestMethods<crate::DomTypeHolder> for IDBOpenDBRequest {
+    // https://www.w3.org/TR/IndexedDB-3/#dom-idbopendbrequest-onblocked
+    event_handler!(blocked, GetOnblocked, SetOnblocked);
+
+    // https://www.w3.org/TR/IndexedDB-3/#dom-idbopendbrequest-onupgradeneeded
+    event_handler!(upgradeneeded, GetOnupgradeneeded, SetOnupgradeneeded);
+}

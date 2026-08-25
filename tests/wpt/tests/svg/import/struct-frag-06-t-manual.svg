@@ -1,0 +1,82 @@
+<svg version="1.1" baseProfile="tiny" zoomAndPan="magnify" preserveAspectRatio="xMidYMid meet" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CL" author="VH" status="accepted"
+    version="$Revision: 1.5 $" testname="$RCSfile: struct-frag-06-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/struct.html#NewDocument">
+      <p>
+        This test adds testing of some basic XML features SVG User Agents
+        should support.
+      </p>
+      <p>
+        First, the test checks support for the default entities amp, lt, gt, apos
+        and quot. This is what the first line shows in gray.
+      </p>
+      <p>
+        Second, the test checks support for hexadecimal and decimal character
+        entities, as shown in the second line, again in gray
+      </p>
+      <p>
+        Finally, the last line shows usage of an entity defined in the
+        document's internal DTD subset. The same geometry (a path) is
+        reused twice, once filled in gray and ones stroked in gray.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>Run the test. No interaction required.</p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>The test passes if the following conditions are met:</p>
+      <ul>
+        <li>The text string <span style="background: #ffa; border: 1px solid gray; padding: 0 2px">&amp;, &lt;, &gt;, ', "</span> is shown in gray.</li>
+        <li>The text string <span style="background: #ffa; border: 1px solid gray; padding: 0 2px">A hexadecimal (&amp;#x41)= A</span> is shown in gray.</li>
+        <li>The text string <span style="background: #ffa; border: 1px solid gray; padding: 0 2px">A decimal (&amp;#65)= A</span> is shown in gray.</li>
+        <li>Two octagons are shown: one gray filled, and one gray stroked &amp; unfilled.</li>
+      </ul>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: struct-frag-06-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <text x="30" y="30">Default entities: amp, lt, gt, apos, quot: </text>
+    <text x="90" y="60" fill="gray">&amp;, &lt;, &gt;, ', "</text>
+    <text x="30" y="100">Character references:</text>
+    <text x="90" y="130" fill="gray">    A hexadecimal (&amp;#x41)= A</text>
+    <text x="90" y="160" fill="gray">    A decimal      (&amp;#65)= A</text>
+    <text x="30" y="200">Entity references:</text>
+    <text x="105" y="228" text-anchor="middle">gray</text>
+    <g transform="translate(90, 235) scale(0.2)" fill="gray">
+      <path d="M60,0 l60,0 l60,60 l0,60 l-60,60 l-60,0 l-60,-60 l0,-60 z"/>
+    </g>
+    <text x="205" y="228" text-anchor="middle">outlined</text>
+    <g transform="translate(190, 235) scale(0.2)" fill="none" stroke="gray" stroke-width="5">
+      <path d="M60,0 l60,0 l60,60 l0,60 l-60,60 l-60,0 l-60,-60 l0,-60 z"/>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.5 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

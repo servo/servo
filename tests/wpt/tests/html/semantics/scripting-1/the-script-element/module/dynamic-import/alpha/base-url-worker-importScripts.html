@@ -1,0 +1,7 @@
+<!DOCTYPE html>
+<title>Base URLs used in resolving specifiers in dynamic imports from importScripts()</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+fetch_tests_from_worker(new Worker("./worker-importScripts.sub.js"));
+</script>

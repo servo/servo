@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#calc-mix">
+<link rel="author" title="sam@webkit.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/serialize-testcommon.js"></script>
+<style>
+  #parent {
+    width: 100px;
+  }
+  #target {
+    font-size: 10px;
+  }
+</style>
+<div id="parent">
+  <div id="target"></div>
+</div>
+<script>
+function test_serialization_number(t,s,c) {
+    test_specified_serialization('scale', t, s);
+    test_computed_serialization('scale', t, c);
+}
+function test_serialization_length_percentage_computed_value_unresolved(t,s,c) {
+    test_specified_serialization('text-indent', t, s);
+    test_computed_serialization('text-indent', t, c);
+}
+function test_serialization_length_percentage_computed_value_resolved(t,s,c) {
+    test_specified_serialization('width', t, s);
+    test_computed_serialization('width', t, c);
+}
+
+// Basic
+
+test_serialization_number(
+    'calc-mix(1 100%)',
+    'calc(1)',
+    '1',
+);
+test_serialization_number(
+    'calc-mix(1 50%, 3 50%)',
+    'calc(2)',
+    '2',
+);
+test_serialization_number(
+    'calc-mix(1 25%, 3 25%, 5 50%)',
+    'calc(3.5)',
+    '3.5',
+);
+test_serialization_number(
+    'calc-mix(1 25%, 3 25%, 7 0%, 5 50%)',
+    'calc(3.5)',
+    '3.5',
+);
+
+// Missing weight percentages
+
+test_serialization_number(
+    'calc-mix(1)',
+    'calc(1)',
+    '1',
+);
+test_serialization_number(
+    'calc-mix(1 50%, 3)',
+    'calc(2)',
+    '2',
+);
+test_serialization_number(
+    'calc-mix(1, 3, 5 50%)',
+    'calc(3.5)',
+    '3.5',
+);
+
+// Weight percentages add up to more than 100%
+
+test_serialization_number(
+    'calc-mix(1 75%, 3 75%)',
+    'calc(2)',
+    '2',
+);
+test_serialization_number(
+    'calc-mix(1 50%, 3 50%, 5 50%)',
+    'calc(3)',
+    '3',
+);
+test_serialization_number(
+    'calc-mix(1 75%, 3 75%, 5, 7)',
+    'calc(2)',
+    '2',
+);
+test_serialization_length_percentage_computed_value_unresolved(
+    'calc-mix(10px 75%, 3em 75%)',
+    'calc-mix(10px 50%, 3em 50%)',
+    '20px',
+);
+test_serialization_length_percentage_computed_value_unresolved(
+    'calc-mix(10px 50%, 3em 50%, 5em 50%, 7em 50%)',
+    'calc-mix(10px 25%, 3em 25%, 5em 25%, 7em 25%)',
+    '40px',
+);
+test_serialization_length_percentage_computed_value_unresolved(
+    'calc-mix(10px 75%, 3em 75%, 5em, 7em)',
+    'calc-mix(10px 50%, 3em 50%)',
+    '20px',
+);
+
+// Weight percentages add up to less than 100%
+
+test_serialization_number(
+    'calc-mix(1 25%, 3 25%)',
+    'calc(1)',
+    '1',
+);
+test_serialization_number(
+    'calc-mix(1 25%, 3 25%, 5, 7)',
+    'calc(4)',
+    '4',
+);
+test_serialization_length_percentage_computed_value_unresolved(
+    'calc-mix(10px 25%, 3em 25%)',
+    'calc-mix(10px 25%, 3em 25%)',
+    '10px',
+);
+test_serialization_length_percentage_computed_value_unresolved(
+    'calc-mix(10px 25%, 3em 25%, 5em, 7em)',
+    'calc-mix(10px 25%, 3em 25%, 5em 25%, 7em 25%)',
+    '40px',
+);
+
+// Weight percentages are all known zero
+
+test_serialization_number(
+    'calc-mix(1 0%)',
+    'calc(0)',
+    '0',
+);
+test_serialization_number(
+    'calc-mix(1 0%, 3 0%, 5 0%)',
+    'calc(0)',
+    '0',
+);
+test_serialization_number(
+    'calc-mix(1 0%, 3 0%, 5 * sibling-index() 0%)',
+    'calc(0)',
+    '0',
+);
+
+test_serialization_length_percentage_computed_value_unresolved(
+    'calc-mix(1px 0%)',
+    'calc(0px)',
+    '0px',
+);
+test_serialization_length_percentage_computed_value_resolved(
+    'calc-mix(1px 0%) ', // Extra-space at end to remove duplicate test name warning
+    'calc(0px)',
+    '0px',
+);
+
+test_serialization_length_percentage_computed_value_unresolved(
+    'calc-mix(1px 0%, 3px 0%, 5px 0%)',
+    'calc(0px)',
+    '0px',
+);
+test_serialization_length_percentage_computed_value_resolved(
+    'calc-mix(1px 0%, 3px 0%, 5px 0%) ', // Extra-space at end to remove duplicate test name warning
+    'calc(0px)',
+    '0px',
+);
+
+test_serialization_length_percentage_computed_value_unresolved(
+    'calc-mix(1px 0%, 3px 0%, 5px * sibling-index() 0%)',
+    'calc(0px)',
+    '0px',
+);
+test_serialization_length_percentage_computed_value_resolved(
+    'calc-mix(1px 0%, 3px 0%, 5px * sibling-index() 0%) ', // Extra-space at end to remove duplicate test name warning
+    'calc(0px)',
+    '0px',
+);
+
+test_serialization_length_percentage_computed_value_unresolved(
+    'calc-mix(1% 0%)',
+    'calc(0%)',
+    '0%',
+);
+test_serialization_length_percentage_computed_value_resolved(
+    'calc-mix(1% 0%) ', // Extra-space at end to remove duplicate test name warning
+    'calc(0%)',
+    '0px',
+);
+
+test_serialization_length_percentage_computed_value_unresolved(
+    'calc-mix(1% 0%, 3% 0%, 5% 0%)',
+    'calc(0%)',
+    '0%',
+);
+test_serialization_length_percentage_computed_value_resolved(
+    'calc-mix(1% 0%, 3% 0%, 5% 0%) ', // Extra-space at end to remove duplicate test name warning
+    'calc(0%)',
+    '0px',
+);
+
+test_serialization_length_percentage_computed_value_unresolved(
+    'calc-mix(1% 0%, 3% 0%, 5% * sibling-index() 0%)',
+    'calc(0%)',
+    '0%',
+);
+test_serialization_length_percentage_computed_value_resolved(
+    'calc-mix(1% 0%, 3% 0%, 5% * sibling-index() 0%) ', // Extra-space at end to remove duplicate test name warning
+    'calc(0%)',
+    '0px',
+);
+
+
+// FIXME: What should happen for the all zero weight percentage case when the items have values of both <percentage> and <length> (allowed in a <length-percentage> property)?
+// NOTE: Currently matches the first item, but that seems arbitrary.
+test_serialization_length_percentage_computed_value_unresolved(
+    'calc-mix(1% 0%, 3px 0%)',
+    'calc(0%)',
+    '0%',
+);
+test_serialization_length_percentage_computed_value_resolved(
+    'calc-mix(1% 0%, 3px 0%) ', // Extra-space at end to remove duplicate test name warning
+    'calc(0%)',
+    '0px',
+);
+test_serialization_length_percentage_computed_value_unresolved(
+    'calc-mix(1px 0%, 3% 0%)',
+    'calc(0px)',
+    '0px',
+);
+test_serialization_length_percentage_computed_value_resolved(
+    'calc-mix(1px 0%, 3% 0%) ', // Extra-space at end to remove duplicate test name warning
+    'calc(0px)',
+    '0px',
+);
+test_serialization_length_percentage_computed_value_unresolved(
+    'calc-mix(1% * sibling-index() 0%, 3px 0%)',
+    'calc(0%)',
+    '0%',
+);
+test_serialization_length_percentage_computed_value_resolved(
+    'calc-mix(1% * sibling-index() 0%, 3px 0%) ', // Extra-space at end to remove duplicate test name warning
+    'calc(0%)',
+    '0px',
+);
+test_serialization_length_percentage_computed_value_unresolved(
+    'calc-mix(1px * sibling-index() 0%, 3% 0%)',
+    'calc(0px)',
+    '0px',
+);
+test_serialization_length_percentage_computed_value_resolved(
+    'calc-mix(1px * sibling-index() 0%, 3% 0%) ', // Extra-space at end to remove duplicate test name warning
+    'calc(0px)',
+    '0px',
+);
+
+test_serialization_length_percentage_computed_value_unresolved(
+    'calc(10px + calc-mix(1% 0%, 3px 0%))',
+    'calc(0% + 10px)',
+    'calc(0% + 10px)',
+);
+test_serialization_length_percentage_computed_value_resolved(
+    'calc(10px + calc-mix(1% 0%, 3px 0%)) ', // Extra-space at end to remove duplicate test name warning
+    'calc(0% + 10px)',
+    '10px',
+);
+
+test_serialization_length_percentage_computed_value_unresolved(
+    'calc(10% + calc-mix(1% 0%, 3px 0%))',
+    'calc(10%)',
+    '10%',
+);
+test_serialization_length_percentage_computed_value_resolved(
+    'calc(10% + calc-mix(1% 0%, 3px 0%)) ', // Extra-space at end to remove duplicate test name warning
+    'calc(10%)',
+    '10px',
+);
+
+test_serialization_length_percentage_computed_value_unresolved(
+    'calc(10px + calc-mix(1px 0%, 3% 0%))',
+    'calc(10px)',
+    '10px',
+);
+test_serialization_length_percentage_computed_value_resolved(
+    'calc(10px + calc-mix(1px 0%, 3% 0%)) ', // Extra-space at end to remove duplicate test name warning
+    'calc(10px)',
+    '10px',
+);
+test_serialization_length_percentage_computed_value_unresolved(
+    'calc(10% + calc-mix(1px 0%, 3% 0%))',
+    'calc(10% + 0px)',
+    '10%',
+);
+test_serialization_length_percentage_computed_value_resolved(
+    'calc(10% + calc-mix(1px 0%, 3% 0%)) ', // Extra-space at end to remove duplicate test name warning
+    'calc(10% + 0px)',
+    '10px',
+);
+
+// Parse-time unresolveable value
+
+test_serialization_number(
+    'calc-mix(1 * sibling-index() 50%, 3 50%)',
+    'calc-mix(1 * sibling-index() 50%, 3 50%)',
+    '2',
+);
+
+test_serialization_number(
+    'calc-mix(1 * sibling-index() 50%, 3 50%, 5, 7)',
+    'calc-mix(1 * sibling-index() 50%, 3 50%)',
+    '2',
+);
+
+test_serialization_number(
+    'calc-mix(1 * sibling-index() 0%, 3 100%)', // Parse-time unresolveable value, but 0% so calc-mix() can still be resolved.
+    'calc(3)',
+    '3',
+);
+
+// Parse-time unresolveable weight percentage
+
+test_serialization_number(
+    'calc-mix(1 calc(50% * sibling-index()), 3 50%)',
+    'calc-mix(1 calc(50% * sibling-index()), 3 50%)',
+    '2',
+);
+
+test_serialization_number(
+    'calc-mix(1 calc(50% * sibling-index()), 3)',
+    'calc-mix(1 calc(50% * sibling-index()), 3)', // Can't fill in missing weight percentages at specified value time if at least one weight percentage is unresolveable
+    '2',
+);
+
+test_serialization_number(
+    'calc-mix(1 calc(50% * sibling-index()), 3 50%, 5, 7)',
+    'calc-mix(1 calc(50% * sibling-index()), 3 50%, 5, 7)',
+    '2',
+);
+
+// Weight percentage value greater than 100%
+
+test_serialization_number(
+    'calc-mix(1 calc(150%), 3 100%)',
+    'calc-mix(1 calc(150%), 3 100%)',
+    '2',
+);
+
+// Weight percentage value less than 0%
+
+test_serialization_number(
+    'calc-mix(1 calc(-50%), 3 100%)',
+    'calc-mix(1 calc(-50%), 3 100%)',
+    '3',
+);
+
+// All values use dimension resolving (due to <length-percentage> property) percentages.
+
+test_serialization_length_percentage_computed_value_unresolved(
+    'calc(10px + calc-mix(10% 50%, 30% 50%))',
+    'calc(20% + 10px)',
+    'calc(20% + 10px)',
+);
+
+test_serialization_length_percentage_computed_value_unresolved(
+    'calc(10px + calc-mix(10% * sibling-index() 50%, 30% 50%))',
+    'calc(10px + calc-mix(10% * sibling-index() 50%, 30% 50%))',
+    'calc(20% + 10px)',
+);
+
+test_serialization_length_percentage_computed_value_resolved(
+    'calc(10px + calc-mix(10% 50%, 30% 50%)) ', // Extra-space at end to remove duplicate test name warning
+    'calc(20% + 10px)',
+    '30px',
+);
+
+test_serialization_length_percentage_computed_value_resolved(
+    'calc(10px + calc-mix(10% * sibling-index() 50%, 30% 50%)) ', // Extra-space at end to remove duplicate test name warning
+    'calc(10px + calc-mix(10% * sibling-index() 50%, 30% 50%))',
+    '30px',
+);
+
+// Computed value time resolving units
+
+test_serialization_length_percentage_computed_value_unresolved(
+    'calc-mix(10em 50%, 30px 50%)',
+    'calc-mix(10em 50%, 30px 50%)',
+    '65px',
+);
+
+test_serialization_length_percentage_computed_value_resolved(
+    'calc-mix(10em 50%, 30px 50% )', // Extra-space at end to remove duplicate test name warning
+    'calc-mix(10em 50%, 30px 50%)',
+    '65px',
+);
+
+// Nested in other math functions
+
+test_serialization_number(
+    'calc(sign(calc-mix(1 50%, 3 50%)) + 10)',
+    'calc(11)',
+    '11',
+);
+
+test_serialization_number(
+    'calc(max(calc-mix(1 50%, 3 50%), 1))',
+    'calc(2)',
+    '2',
+);
+</script>

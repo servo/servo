@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>test for details:open pseudoclass</title>
+<link rel="match" href="details-open-pseudo-003-ref.html">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#open-state">
+
+<style>
+details {
+  color: blue;
+}
+:open {
+  color: green;
+  margin-left: 5em;
+}
+</style>
+
+<script>
+function run() {
+  document.querySelector("details").open = false;
+  document.documentElement.classList.remove("reftest-wait");
+}
+</script>
+
+<body onload="run()">
+
+<p>The details element should be closed and blue:</p>
+
+<details open=true>
+  <summary>Summary</summary>
+  <p>Detailed content</p>
+</details>

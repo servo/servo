@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>displaystyle</title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="/fonts/ahem.css">
+    <style>
+      math {
+          font: 25px Ahem;
+      }
+    </style>
+  </head>
+  <body>
+
+    <!-- Test displaystyle on mstyle -->
+    <math>
+      <mstyle displaystyle="true">
+        <munder><mo>O</mo><mo>O</mo></munder>
+      </mstyle>
+      <mstyle displaystyle="false">
+        <msub><mo>O</mo><mo>O</mo></munder>
+      </mstyle>
+    </math>
+
+    <!-- The mfrac element sets displaystyle to "false", or if it was already
+         false increments scriptlevel by 1, within numerator and denominator.
+      -->
+    <math>
+      <mstyle displaystyle="true">
+        <mfrac>
+          <msub><mo>O</mo><mo>O</mo></msub>
+          <msub><mo>O</mo><mo>O</mo></msub>
+        </mfrac>
+      </mstyle>
+    </math>
+
+    <!--    The mroot element increments scriptlevel by 2, and sets
+            displaystyle to "false", within index, but leaves both attributes
+            unchanged within base.
+            The msqrt element leaves both attributes unchanged within its
+            argument. -->
+    <math>
+      <mstyle displaystyle="true">
+        <mroot>
+          <munder><mo>O</mo><mo>O</mo></munder>
+          <msub><mo>O</mo><mo>O</mo></msub>
+        </mroot>
+        <msqrt>
+          <munder><mo>O</mo><mo>O</mo></munder>
+        </msqrt>
+      </mstyle>
+    </math>
+
+<!--
+    The msub element [...] increments scriptlevel by 1, and sets displaystyle to
+   "false", within subscript, but leaves both attributes unchanged within base.
+
+   The msup element [...] increments scriptlevel by 1, and sets displaystyle to
+   "false", within superscript, but leaves both attributes unchanged within
+   base.
+
+   The msubsup element [...] increments scriptlevel by 1, and sets displaystyle
+   to "false", within subscript and superscript, but leaves both attributes
+   unchanged within base.
+
+   The mmultiscripts element increments scriptlevel by 1, and sets displaystyle
+   to "false", within each of its arguments except base, but leaves both
+   attributes unchanged within base.
+   -->
+    <math>
+      <mstyle displaystyle="true">
+        <msub>
+          <munder><mo>O</mo><mo>O</mo></munder>
+          <msub><mo>O</mo><mo>O</mo></msub>
+        </msub>
+        <msup>
+          <munder><mo>O</mo><mo>O</mo></munder>
+          <msub><mo>O</mo><mo>O</mo></msub>
+        </msup>
+        <msubsup>
+          <munder><mo>O</mo><mo>O</mo></munder>
+          <msub><mo>O</mo><mo>O</mo></msub>
+          <msub><mo>O</mo><mo>O</mo></msub>
+        </msubsup>
+        <mmultiscripts>
+          <munder><mo>O</mo><mo>O</mo></munder>
+          <msub><mo>O</mo><mo>O</mo></msub>
+          <msub><mo>O</mo><mo>O</mo></msub>
+          <mprescripts/>
+          <msub><mo>O</mo><mo>O</mo></msub>
+          <msub><mo>O</mo><mo>O</mo></msub>
+        </mmultiscripts>
+      </mstyle>
+    </math>
+
+<!--
+   The munder element [...] always sets displaystyle to "false" within the
+   underscript, but increments scriptlevel by 1 only when accentunder is
+   "false". Within base, it always leaves both attributes unchanged.
+
+   The mover element [...] always sets displaystyle to "false" within
+   overscript, but increments scriptlevel by 1 only when accent is "false".
+   Within base, it always leaves both attributes unchanged.
+
+   The munderover [..] always sets displaystyle to "false" within underscript
+   and overscript, but increments scriptlevel by 1 only when accentunder or
+   accent, respectively, are "false". Within base, it always leaves both
+   attributes unchanged.
+-->
+    <math>
+      <mstyle displaystyle="true">
+        <munder>
+          <munder><mo>O</mo><mo>O</mo></munder>
+          <msub><mo>O</mo><mo>O</mo></msub>
+        </munder>
+        <mover>
+          <munder><mo>O</mo><mo>O</mo></munder>
+          <msub><mo>O</mo><mo>O</mo></msub>
+        </mover>
+        <munderover>
+          <munder><mo>O</mo><mo>O</mo></munder>
+          <msub><mo>O</mo><mo>O</mo></msub>
+          <msub><mo>O</mo><mo>O</mo></msub>
+        </munderover>
+      </mstyle>
+    </math>
+
+<!--
+   The displaystyle attribute is allowed on the mtable element to set the
+   inherited value of the attribute. If the attribute is not present, the
+   mtable element sets displaystyle to "false" within the table elements.
+-->
+    <math>
+      <mstyle displaystyle="false">
+        <mtable displaystyle="true">
+          <mtr>
+            <mtd>
+              <munder><mo>O</mo><mo>O</mo></munder>
+            </mtd>
+          </mtr>
+        </mtable>
+      </mstyle>
+      <mstyle displaystyle="true">
+        <mtable>
+          <mtr>
+            <mtd>
+              <msub><mo>O</mo><mo>O</mo></msub>
+            </mtd>
+          </mtr>
+        </mtable>
+      </mstyle>
+    </math>
+
+  </body>
+</html>

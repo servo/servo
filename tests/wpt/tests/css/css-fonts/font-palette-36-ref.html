@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+@font-face {
+    font-family: "COLR-test-font";
+    src: url("resources/COLR-palettes-test-font.ttf") format("truetype");
+}
+
+@font-palette-values --MyPalette {
+    font-family: "COLR-test-font";
+    base-palette: 2;
+}
+</style>
+</head>
+<body>
+<div style="font: 48px 'COLR-test-font'; font-palette: --MyPalette">A</div>
+<div style="font: 48px 'COLR-test-font'; font-palette: --MyPalette">A</div>
+<div style="font: 48px 'COLR-test-font'; font-palette: --MyPalette">A</div>
+</body>
+</html>

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Animations Test: huge negative animation-delay</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#animations">
+<link rel="match" href="../reference/ref-filled-green-200px-square.html">
+
+<style>
+@keyframes keyframes {
+  from { background: green }
+  to { background: red }
+}
+#test {
+  animation: 1s -1e16s infinite paused keyframes;
+  height: 200px;
+  width: 200px;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="test"></div>

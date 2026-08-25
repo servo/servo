@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CSS Test: CSSOM MediaList.appendMedium parses as a single media query and suppresses duplicates</title>
+  <link rel="help" href="https://drafts.csswg.org/cssom/#dom-medialist-appendmedium">
+  <meta name="assert" content="appendMedium() parses its argument as a single media query (no-op if more than one query is produced) and does not append a query that is already present.">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <div id="log"></div>
+  <script>
+    function freshMediaList() {
+      var old = document.getElementById('test_style');
+      if (old)
+        old.remove();
+      var style = document.createElement('style');
+      style.id = 'test_style';
+      document.head.appendChild(style);
+      return style.sheet.media;
+    }
+
+    // Step 1 of appendMedium(): "parse a media query" returns null when the
+    // value parses to more than one media query, so the call must be a no-op.
+    test(function() {
+      var mediaList = freshMediaList();
+      mediaList.appendMedium("screen, print");
+      assert_equals(mediaList.length, 0, "comma-separated list must not append anything");
+      assert_equals(mediaList.mediaText, "");
+    }, "appendMedium with a comma-separated list is a no-op");
+
+    // Same rule, starting from a non-empty list: it must be left untouched.
+    test(function() {
+      var mediaList = freshMediaList();
+      mediaList.appendMedium("all");
+      mediaList.appendMedium("screen, print");
+      assert_equals(mediaList.length, 1);
+      assert_equals(mediaList.item(0), "all");
+      assert_equals(mediaList.mediaText, "all");
+    }, "appendMedium with a comma-separated list leaves an existing list unchanged");
+
+    // Step 3 of appendMedium(): if the parsed query already exists, return.
+    test(function() {
+      var mediaList = freshMediaList();
+      mediaList.appendMedium("screen");
+      mediaList.appendMedium("screen");
+      assert_equals(mediaList.length, 1, "duplicate medium must not be appended");
+      assert_equals(mediaList.mediaText, "screen");
+    }, "appendMedium does not append a duplicate medium");
+  </script>
+</body>
+</html>

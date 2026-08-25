@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Mout button event counts the number of clicks indefinintely</title>
+    <link rel="author" title="Martin Robinson" href="mailto:mrobinson@igalia.com" />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-actions.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <style>
+    #target
+    {
+        background-color: green;
+        width: 200px;
+        height: 200px;
+    }
+    </style>
+  </head>
+  <body>
+    <div id="target"></div>
+    <script>
+        promise_test(async (t) => {
+            const target = document.getElementById("target");
+            let clickCount = 0;
+            target.addEventListener("click", (event) => {
+                assert_equals(clickCount + 1, event.detail);
+                clickCount = event.detail;
+            });
+
+            const event_watcher = new EventWatcher(t, target, ["click"]);
+            const actionsPromise = new test_driver.Actions()
+              .pointerMove(0, 0, {origin: target})
+              .pointerDown().pointerUp()
+              .pointerDown().pointerUp()
+              .pointerDown().pointerUp()
+              .pointerDown().pointerUp()
+              .pointerDown().pointerUp()
+              .pointerDown().pointerUp()
+              .send();
+
+            // Make sure the test finishes after all the input actions are completed.
+            t.add_cleanup(() => actionsPromise);
+
+            const event = await event_watcher.wait_for(["click", "click", "click", "click", "click", "click"]);
+            assert_equals(clickCount, 6);
+        }, "'detail' count for click events for left button increases indefinitely");
+
+        promise_test(async (t) => {
+            const target = document.getElementById("target");
+            let clickCount = 0;
+            target.addEventListener("mouseup", (event) => {
+                assert_equals(clickCount + 1, event.detail);
+                clickCount = event.detail;
+            });
+
+            // Also listen for `click` events here to ensure they are not fired for right button events.
+            const event_watcher = new EventWatcher(t, target, ["mouseup", "click"]);
+            const actions = new test_driver.Actions();
+            let options = { button: actions.ButtonType.RIGHT };
+            const actionsPromise = actions
+              .pointerMove(0, 0, {origin: target})
+              .pointerDown(options).pointerUp(options)
+              .pointerDown(options).pointerUp(options)
+              .pointerDown(options).pointerUp(options)
+              .pointerDown(options).pointerUp(options)
+              .pointerDown(options).pointerUp(options)
+              .pointerDown(options).pointerUp(options)
+              .send();
+
+            // Make sure the test finishes after all the input actions are completed.
+            t.add_cleanup(() => actionsPromise);
+
+            const event = await event_watcher.wait_for(["mouseup", "mouseup", "mouseup", "mouseup", "mouseup", "mouseup"]);
+            assert_equals(clickCount, 6);
+        }, "'detail' for mouseup events for right button clicks increase indefinitely");
+
+    </script>
+  </body>
+</html>

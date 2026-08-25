@@ -1,0 +1,28 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>'grid-{row/column}-{start/end}' properties</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#dom-stylepropertymap-get">
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#dom-stylepropertymap-set">
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#property-stle-value-normalization">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../resources/testhelper.js"></script>
+<script src="resources/testsuite.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+for (const orientation of ['row', 'column']) {
+  for (const suffix of ['start', 'end']) {
+    runPropertyTests(`grid-${orientation}-${suffix}`, [
+      { syntax: 'auto' },
+    ]);
+
+    runUnsupportedPropertyTests(`grid-${orientation}-${suffix}`, [
+      '3', 'span 2', '5 somegridarea span'
+    ]);
+  }
+}
+
+</script>

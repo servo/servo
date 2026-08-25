@@ -1,0 +1,2 @@
+rules:
+- domstringmap-supported-property-names.html: [dataset]

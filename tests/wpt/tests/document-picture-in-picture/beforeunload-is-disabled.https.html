@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>Test that onbeforeunload is disabled for document picture in picture</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+  <script>
+    promise_test(async (t) => {
+      await test_driver.bless('request PiP window from top window');
+      const pipWindow = await documentPictureInPicture.requestWindow();
+      var onbeforeunloadDisabled = true;
+      pipWindow.onbeforeunload = () => {
+        onbeforeunloadDisabled = false;
+        return "This is a test";
+      }
+      pipWindow.close();
+      assert_true(onbeforeunloadDisabled, 'onbeforeunload should be disabled for document picture in picture');
+    });
+  </script>
+</body>

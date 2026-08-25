@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/whatwg/html/issues/10762">
+<link rel=help href="https://issues.chromium.org/issues/385300320">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<!-- This test is optional because the click and drag behavior is not
+  explicitly specified. The spec does say that mousedown on the select
+  element opens the picker and mouseup chooses options in order to support
+  this behavior. -->
+
+<style>
+select, ::picker(select) {
+  appearance: base-select;
+}
+
+#s2, #s2 > option {
+  width: 200px;
+  height: 100px;
+  padding: 10px;
+  border: 1px solid black;
+  box-sizing: border-box;
+  border-radius: 0;
+}
+#s2 {
+  position: absolute;
+  top: 300px;
+  left: 300px;
+}
+#s2::picker(select) {
+  border: 0;
+  top: anchor(top);
+}
+</style>
+
+<select id=s1>
+  <option class=one>one</option>
+  <option class=two>two</option>
+</select>
+
+<select id=s2>
+  <option class=one>one</option>
+  <option class=two>two</option>
+</select>
+
+<script>
+function assertAppearance() {
+  const style = getComputedStyle(document.querySelector('select'));
+  assert_equals(style.appearance, 'base-select',
+    'appearance:base-select must be supported in order to run this test.');
+}
+
+promise_test(async () => {
+  assertAppearance();
+  const select = document.getElementById('s1');
+  const optionOne = select.querySelector('.one');
+  const optionTwo = select.querySelector('.two');
+  assert_false(select.matches(':open'),
+    'select should be closed at the start of the test.');
+
+  await (new test_driver.Actions()
+    .pointerMove(2, 2, {origin: select})
+    .pointerDown()
+    .pointerMove(2, 2, {origin: optionOne})
+    .pointerMove(2, 2, {origin: optionTwo})
+    .pointerUp())
+    .send();
+  assert_false(select.matches(':open'),
+    'select should be closed after pointerUp() on second option.');
+  assert_equals(select.value, 'two',
+    'select.value should be changed to two after releasing the pointer on the second option.');
+
+  await (new test_driver.Actions()
+    .pointerMove(2, 2, {origin: select})
+    .pointerDown()
+    .pointerMove(4, 4, {origin: select})
+    .pointerMove(2, 2, {origin: optionOne})
+    .pointerUp())
+    .send();
+  assert_false(select.matches(':open'),
+    'select should be closed after pointerUp() on first option.');
+  assert_equals(select.value, 'one',
+    'select.value should be changed to one after releasing the pointer on the first option.');
+}, 'Clicking the invoker button and dragging to an option should choose that option and close the picker.');
+
+[false, true].forEach(isTouch => {
+  promise_test(async () => {
+    assertAppearance();
+    const select = document.getElementById('s2');
+    const optionOne = select.querySelector('.one');
+    const optionTwo = select.querySelector('.two');
+    assert_false(select.matches(':open'),
+      'select should be closed at the start of the test.');
+
+    let actions = new test_driver.Actions();
+    if (isTouch) {
+      actions.addPointer('finger', 'touch');
+    }
+    await (actions
+      .pointerMove(2, 2, {origin: select})
+      .pointerDown()
+      .pointerUp())
+      .send();
+    assert_true(select.matches(':open'),
+      'select should still be open after pointerUp() without moving the pointer.');
+
+    actions = new test_driver.Actions();
+    if (isTouch) {
+      actions.addPointer('finger', 'touch');
+    }
+    await (actions
+      .pointerMove(2, 2, {origin: optionOne})
+      .pointerDown()
+      .pointerUp())
+      .send();
+    assert_false(select.matches(':open'),
+      'select should close after clicking option on top of the invoker.');
+
+    // Click and drag isn't supported on touch.
+    if (!isTouch) {
+      await (new test_driver.Actions()
+        .pointerMove(2, 2, {origin: select})
+        .pointerDown()
+        .pointerMove(2, 2, {origin: optionOne})
+        .pointerMove(2, 2, {origin: optionTwo})
+        .pointerUp())
+        .send();
+      assert_false(select.matches(':open'),
+        'select should close after clicking and dragging to second option.');
+      assert_equals(select.value, 'two',
+        'select.value should change two after choosing the second option.');
+    }
+  }, `${isTouch ? 'touch' : 'mouse'}: Releasing the pointer on an option positioned on top of the invoker button should not close the picker.`);
+});
+</script>

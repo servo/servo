@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<head>
+    <title>Density corrected size: rendering</title>
+    <link rel="match" href="density-corrected-size-img-ref.html" />
+    <meta name="assert" content="Assert that images with EXIF density-corrected-size are rendered correctly">
+</head>
+<body>
+    <img src="http://{{hosts[alt][]}}:{{ports[http][0]}}/density-size-correction/resources/exif-resolution-none.jpg" />
+    <img src="http://{{hosts[alt][]}}:{{ports[http][0]}}/density-size-correction/resources/exif-resolution-valid-hires.jpg" />
+    <img src="http://{{hosts[alt][]}}:{{ports[http][0]}}/density-size-correction/resources/exif-resolution-valid-lores.jpg" />
+    <img src="http://{{hosts[alt][]}}:{{ports[http][0]}}/density-size-correction/resources/exif-resolution-valid-non-uniform.jpg"  />
+</body>
+</html>

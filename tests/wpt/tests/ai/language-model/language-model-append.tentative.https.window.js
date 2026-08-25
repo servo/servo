@@ -1,0 +1,77 @@
+// META: title=Language Model Append
+// META: script=/resources/testdriver.js
+// META: script=/resources/testdriver-vendor.js
+// META: script=../resources/util.js
+// META: timeout=long
+
+'use strict';
+
+promise_test(async () => {
+  await ensureLanguageModel();
+  const session = await createLanguageModel();
+  const result = await session.append(kTestPrompt);
+  assert_equals(result, undefined);
+}, 'Simple LanguageModel.append() call');
+
+promise_test(async () => {
+  await ensureLanguageModel();
+  const session = await createLanguageModel();
+  assert_equals(session.contextUsage, 0);
+  const promptUsage = await session.measureContextUsage(kTestPrompt);
+  assert_greater_than(promptUsage, 0);
+  await session.append(kTestPrompt);
+  assert_equals(session.contextUsage, promptUsage);
+}, 'Check contextUsage increases from a simple LanguageModel.append() call');
+
+promise_test(async t => {
+  await ensureLanguageModel();
+  const session = await createLanguageModel();
+  const promptString = kTestPrompt.repeat(session.contextWindow);
+  const usage = await session.measureContextUsage(promptString);
+  await promise_rejects_quotaexceedederror(
+      t, session.append(promptString), usage, session.contextWindow);
+}, 'Test that append input exceeding the total context window rejects');
+
+promise_test(async t => {
+  await ensureLanguageModel();
+  const session = await createLanguageModel();
+  const result1 = session.append([
+    {role: 'user', content: 'foo'},
+    {role: 'system', content: 'bar'},
+  ]);
+  await promise_rejects_js(t, TypeError, result1);
+
+  const result2 = session.append([
+    {role: 'system', content: 'foo'},
+    {role: 'system', content: 'bar'},
+  ]);
+  await promise_rejects_js(t, TypeError, result2);
+
+  const result3 = session.append({role: 'system', content: 'foo'});
+  await promise_rejects_js(
+      t, TypeError, session.append([{role: 'system', content: 'bar'}]));
+  await result3;
+}, 'append() should reject system role messages after other messages');
+
+promise_test(async (t) => {
+  await ensureLanguageModel();
+  const model = await createLanguageModel();
+
+  // null, undefined, and objects are coerced to strings.
+  await model.append(null);
+  await model.append(undefined);
+  await model.append({});
+  await model.append('');
+  await model.append([]);
+  await model.append([{ role: 'user', content: [] }]);
+  await model.append([{role: 'user', content: [{type: 'text', value: ''}]}]);
+}, 'LanguageModel.append() allows empty and coerced inputs');
+
+promise_test(async t => {
+  await ensureLanguageModel();
+  const session = await createLanguageModel(
+      {initialPrompts: [{role: 'user', content: 'initial user prompt'}]});
+  await promise_rejects_js(
+      t, TypeError,
+      session.append([{role: 'system', content: 'append system prompt'}]));
+}, 'append() after initializing with user prompt should reject system role');

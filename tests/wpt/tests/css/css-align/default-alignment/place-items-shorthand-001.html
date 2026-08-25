@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>CSS Box Alignment: place-items shorthand - single values specified</title>
+<link rel="author" title="Javier Fernandez" href="mailto:jfernandez@igalia.com" />
+<link rel="help" href="http://www.w3.org/TR/css3-align/#place-items-property" />
+<meta name="assert" content="Check that setting a single value to place-items expands to such value set in both 'align-items' and 'justify-items'." />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-align/resources/alignment-parsing-utils.js"></script>
+<div id="log"></div>
+<script>
+    let classes = Object.assign({"Normal":"normal", "Stretch":"stretch"}, selfPositionClasses, baselineClasses,
+                                overflowClasses);
+    for (var key in classes) {
+        let value = classes[key];
+        test(function() {
+            checkPlaceShorhandLonghands("place-items", "align-items", "justify-items", value);
+        }, "Checking place-items: " + value);
+    }
+</script>

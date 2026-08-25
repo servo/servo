@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Inheritance of CSS Fragmentation properties</title>
+<link rel="help" href="https://drafts.csswg.org/css-break/#property-index">
+<meta name="assert" content="Properties inherit or not according to the spec.">
+<meta name="assert" content="Properties have initial values according to the spec.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/inheritance-testcommon.js"></script>
+</head>
+<body>
+<div id="container">
+  <div id="target"></div>
+</div>
+<script>
+assert_not_inherited('box-decoration-break', 'slice', 'clone');
+assert_not_inherited('break-after', 'auto', 'column');
+assert_not_inherited('break-before', 'auto', 'page');
+assert_not_inherited('break-inside', 'auto', 'avoid');
+assert_inherited('orphans', '2', '3');
+assert_inherited('widows', '2', '3');
+</script>
+</body>
+</html>

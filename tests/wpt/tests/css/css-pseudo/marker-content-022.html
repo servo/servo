@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Test: ::marker pseudo elements styled with 'content' property</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="match" href="marker-content-022-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#marker-pseudo">
+<link rel="help" href="https://drafts.csswg.org/css-lists/#list-style-position-outside">
+<meta name="assert" content="When a list item with an outside marker only has an inline child
+  with a block grandchild, some browsers insert a newline between the marker and the block,
+  and some don't. It's not clear what should happen, but this test checks that the behavior
+  is consistent whether the block is inserted dynamically or was there from the beginning.">
+<style>
+.symbol {
+  list-style-type: disc;
+}
+.decimal {
+  list-style-type: decimal;
+}
+.string {
+  list-style-type: "string";
+}
+.content::marker {
+  content: "content";
+}
+</style>
+<ol>
+  <li class="symbol"><span></span></li>
+  <li class="decimal"><span></span></li>
+  <li class="string"><span></span></li>
+  <li class="content"><span></span></li>
+</ol>
+<script src="/common/reftest-wait.js"></script>
+<script>
+// Use a "load" event listener and requestAnimationFrame to ensure that
+// the markers will have been laid out.
+addEventListener("load", () => requestAnimationFrame(() => {
+  const div = document.createElement("div");
+  div.appendChild(document.createTextNode("foo"));
+  for (let span of document.querySelectorAll("li > span")) {
+    span.appendChild(div.cloneNode(true));
+  }
+  takeScreenshot();
+}), {once: true});
+</script>
+</html>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <script>
+    // A data: URL worker should inherit Document-Policy from the creator
+    // document, allowing profiling when the creator has js-profiling enabled.
+    promise_test(async t => {
+      const workerScript = `
+        try {
+          new Profiler({ sampleInterval: 10, maxBufferSize: Number.MAX_SAFE_INTEGER });
+          self.postMessage({ success: true, message: 'Profiler created' });
+        } catch (e) {
+          self.postMessage({ success: false, error: e.name, message: e.message });
+        }
+      `;
+      const worker = new Worker('data:text/javascript,' + encodeURIComponent(workerScript));
+      const result = await new Promise((resolve, reject) => {
+        worker.onmessage = e => resolve(e.data);
+        worker.onerror = e => reject(new Error(e.message));
+      });
+      assert_true(result.success,
+                  'profiling should succeed in data: dedicated worker with inherited document policy');
+      worker.terminate();
+    }, 'data: dedicated worker should inherit js-profiling policy from creator document');
+  </script>
+</body>
+</html>

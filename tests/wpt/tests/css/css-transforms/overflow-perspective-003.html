@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Test: Perspective with overflow: hidden</title>
+<link rel="author" title="Mozilla" href="https://mozilla.com">
+<link rel="author" title="Yannis Juglaret" href="mailto:yjuglaret@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-transforms-2/#perspective-property">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2023621">
+<link rel="match" href="overflow-perspective-ref.html">
+<style>
+#container {
+  width: 300px;
+  height: 300px;
+  overflow: hidden;
+  perspective: 1000px;
+}
+
+#child {
+  width: 60px;
+  height: 60px;
+  background: lime;
+  transform: translateX(100px) translateY(140px) translateZ(550px);
+  transform-origin: top left;
+}
+</style>
+<div id="container">
+  <div id="child"></div>
+</div>

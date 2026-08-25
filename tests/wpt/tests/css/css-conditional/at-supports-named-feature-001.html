@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<title>CSS Conditional Test: @supports named-feature()</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Google" href="http://www.google.com/">
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#support-definition-named-features">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<style>
+#target {
+  position: relative; /* so z-index works */
+}
+</style>
+<style id="s"></style>
+
+<div id="target"></div>
+
+<script>
+
+let gGlobalCounter = 0;
+
+function test_supports_condition(condition, expected) {
+  test(() => {
+    ++gGlobalCounter;
+    document.getElementById("s").textContent = `
+      @supports ${condition} {
+        #target {
+          z-index: ${gGlobalCounter};
+        }
+      }
+    `;
+    assert_equals(getComputedStyle(document.getElementById("target")).zIndex,
+                  expected ? "" + gGlobalCounter : "auto");
+  }, `@supports ${condition} should be ${expected}`);
+}
+
+let is_anchor_position_follows_transforms_supported;
+
+test(() => {
+  let outer = document.createElement("div");
+  outer.innerHTML = `
+    <style>
+
+    body { margin: 0; }
+    .container { position: absolute; top: 50px; left: 50px; }
+    .transform { transform: translateX(7px); }
+    .anchor { position: absolute; top: 0; left: 11px; anchor-name: --a; }
+    .anchorpos { position: absolute; top: 0; left: 13px; left: anchor(--a left);
+                 height: 10px; width: 10px; background: orange; }
+
+    </style>
+
+    <div class="container">
+      <div class="transform">
+        <div class="anchor"></div>
+      </div>
+      <div class="anchorpos"></div>
+    </div>
+  `;
+  document.body.append(outer);
+  let expected;
+  // left should be:
+  //  * 63 if anchor positioning is not supported
+  //  * 61 if anchor positioning is supported but it doesn't follow transforms
+  //  * 68 if anchor positioning follows stransforms
+  let left = outer.querySelector(".anchorpos").getBoundingClientRect().left;
+  if (left == 61 || left == 63) {
+    is_anchor_position_follows_transforms_supported = false;
+    expected = true;
+  } else if (left == 68) {
+    is_anchor_position_follows_transforms_supported = true;
+    expected = true;
+  } else {
+    expected = false;
+  }
+  outer.remove();
+  assert_true(expected);
+}, "can detect whether anchor position follows transforms");
+
+test_supports_condition("named-feature(anchor-position-follows-transforms)", is_anchor_position_follows_transforms_supported);
+test_supports_condition("named-feature( anchor-position-follows-transforms )", is_anchor_position_follows_transforms_supported);
+
+test_supports_condition("named-feature(  foo   anchor-position-follows-transforms  )", false);
+test_supports_condition("named-feature(  anchor-position-follows-transforms  bar)", false);
+
+// A browser might support all two, but named-feature can only test one at a time.
+test_supports_condition("named-feature(anchor-position-follows-transforms single-axis-scroll-container)", false);
+
+test_supports_condition("named-feature(unknown-feature)", false);
+test_supports_condition("named-feature(named-feature)", false);
+test_supports_condition("named-feature(color)", false);
+
+</script>

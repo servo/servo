@@ -1,0 +1,4 @@
+rules:
+- shape-image-threshold-*: [shape-outside]
+- shape-margin-*: [shape-outside]
+- shape-outside-*: [shape-outside]

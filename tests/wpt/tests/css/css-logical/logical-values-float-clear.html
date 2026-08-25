@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>CSS Logical Values: Flow-Relative Values for the 'float' and 'clear' Properties</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com" />
+<link rel="help" href="https://drafts.csswg.org/css-logical/#float-clear">
+<meta name="assert" content="This test checks the flow-relative values for 'float' and 'clear' in different writing modes." />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="log"></div>
+
+<script type="module">
+import {runTests} from "./resources/test-logical-values.js";
+const values = ["inline-start", "inline-end"];
+runTests("clear", values);
+runTests("float", values);
+</script>

@@ -1,0 +1,25 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>window.onerror listener reports the exception in global object of its callback</title>
+<link rel=help href="https://dom.spec.whatwg.org/#concept-event-listener-inner-invoke">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<iframe></iframe>
+<iframe></iframe>
+<iframe></iframe>
+<script>
+setup({ allow_uncaught_exception: true });
+
+window.onload = () => {
+  test(() => {
+    window.onerrorCalls = [];
+    window.onerror = () => { onerrorCalls.push("top"); };
+    frames[0].onerror = new frames[1].Function(`top.onerrorCalls.push("frame0"); throw new parent.frames[2].Error("PASS");`);
+    frames[1].onerror = () => { onerrorCalls.push("frame1"); };
+    frames[2].onerror = () => { onerrorCalls.push("frame2"); };
+
+    frames[0].dispatchEvent(new ErrorEvent("error", { error: new Error("foo") }));
+    assert_array_equals(onerrorCalls, ["frame0", "frame1"]);
+  });
+};
+</script>

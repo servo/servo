@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<title>CSS Flexbox: percentage top/bottom on relatively positioned elements in flex items</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#definite-sizes">
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#valdef-top-percentage">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+body {
+    margin: 0;
+}
+
+.green {
+    width: 20px;
+    height: 20px;
+    background: green;
+    position: relative;
+}
+</style>
+
+<!-- 1. Row flex, stretched item, top: 50% -->
+<div style="display: flex; height: 200px;">
+    <div id="t1-item">
+        <div class="green" id="t1" style="top: 50%;"></div>
+    </div>
+</div>
+
+<!-- 2. Row flex, align-self: flex-start, top: 50% -->
+<div style="display: flex; height: 200px;">
+    <div id="t2-item" style="align-self: flex-start;">
+        <div class="green" id="t2" style="top: 50%;"></div>
+    </div>
+</div>
+
+<!-- 3. Column flex (200px), flex-grow item, top: 50% -->
+<div style="display: flex; flex-direction: column; height: 200px;">
+    <div style="height: 100px;"></div>
+    <div id="t3-item" style="flex-grow: 1;">
+        <div class="green" id="t3" style="top: 50%;"></div>
+    </div>
+</div>
+
+<!-- 4. Column flex (auto height), top: 50% -->
+<div style="display: flex; flex-direction: column;">
+    <div id="t4-item" style="flex-grow: 1;">
+        <div class="green" id="t4" style="top: 50%;"></div>
+    </div>
+</div>
+
+<!-- 5. Column flex, flex-basis: 100px, top: 50% -->
+<div style="display: flex; flex-direction: column; height: 200px;">
+    <div id="t5-item" style="flex: 0 0 100px;">
+        <div class="green" id="t5" style="top: 50%;"></div>
+    </div>
+</div>
+
+<!-- 6. Nested column flex (3 levels), innermost top: 50% -->
+<div style="display: flex; flex-direction: column; height: 200px;">
+    <div style="flex-grow: 1; display: flex; flex-direction: column;">
+        <div style="flex-grow: 1; display: flex; flex-direction: column;">
+            <div style="height: 100px;"></div>
+            <div id="t6-item" style="flex-grow: 1;">
+                <div class="green" id="t6" style="top: 50%;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 7. Row flex containing column flex, top: 50% -->
+<div style="display: flex; height: 200px;">
+    <div style="display: flex; flex-direction: column; width: 100px;">
+        <div style="height: 100px;"></div>
+        <div id="t7-item" style="flex-grow: 1;">
+            <div class="green" id="t7" style="top: 50%;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- 8. Flex item with height: 50%, top: 50% -->
+<div style="display: flex; flex-direction: column; height: 200px;">
+    <div id="t8-item" style="height: 50%;">
+        <div class="green" id="t8" style="top: 50%;"></div>
+    </div>
+</div>
+
+<!-- 9. Percentage height child inside stretched flex item, top: 50% -->
+<div style="display: flex; height: 200px;">
+    <div>
+        <div id="t9-item" style="height: 50%;">
+            <div class="green" id="t9" style="top: 50%;"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+function offsetFromItem(greenId, itemId) {
+    var green = document.getElementById(greenId);
+    var item = document.getElementById(itemId);
+    return green.getBoundingClientRect().top - item.getBoundingClientRect().top;
+}
+
+test(function() {
+    assert_equals(offsetFromItem('t1', 't1-item'), 100);
+}, 'Row flex, stretched item, top: 50%');
+
+test(function() {
+    assert_equals(offsetFromItem('t2', 't2-item'), 0);
+}, 'Row flex, align-self: flex-start, top: 50%');
+
+test(function() {
+    assert_equals(offsetFromItem('t3', 't3-item'), 50);
+}, 'Column flex, flex-grow item, top: 50%');
+
+test(function() {
+    assert_equals(offsetFromItem('t4', 't4-item'), 0);
+}, 'Column flex, auto height container, top: 50%');
+
+test(function() {
+    assert_equals(offsetFromItem('t5', 't5-item'), 50);
+}, 'Column flex, definite flex-basis, top: 50%');
+
+test(function() {
+    assert_equals(offsetFromItem('t6', 't6-item'), 50);
+}, 'Nested column flex, top: 50%');
+
+test(function() {
+    assert_equals(offsetFromItem('t7', 't7-item'), 50);
+}, 'Row then column nesting, top: 50%');
+
+test(function() {
+    assert_equals(offsetFromItem('t8', 't8-item'), 50);
+}, 'Flex item with percentage height, top: 50%');
+
+test(function() {
+    assert_equals(offsetFromItem('t9', 't9-item'), 50);
+}, 'Percentage height child inside stretched flex item, top: 50%');
+</script>

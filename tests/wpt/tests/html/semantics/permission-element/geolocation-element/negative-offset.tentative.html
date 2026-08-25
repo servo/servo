@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<link rel="help" href="https://github.com/WICG/PEPC/blob/main/explainer.md#locking-the-pepc-style">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<!--The geolocation element should not allow setting negative outline-offset.
+-->
+<style>
+  #id1 {
+    outline-offset: -50px;
+  }
+  #id2 {
+    outline-offset: 50px;
+  }
+
+  /* These various expressions all result in a negative value when calculated */
+  #id3 {
+    outline-offset: min(-50px, 50px);
+  }
+  #id4 {
+    outline-offset: min(10%, -50px);
+  }
+  #id5 {
+    outline-offset: clamp(-100px, 1vw, -50px);
+  }
+  #id6 {
+    outline-offset: 1% - 10000px;
+  }
+  #id7 {
+    outline-offset: max(min(-1em, 10em), -5%);
+  }
+</style>
+
+<geolocation id="id1"></geolocation>
+<geolocation id="id2"></geolocation>
+<geolocation id="id3"></geolocation>
+<geolocation id="id4"></geolocation>
+<geolocation id="id5"></geolocation>
+<geolocation id="id6"></geolocation>
+<geolocation id="id7"></geolocation>
+
+<script>
+  test(function(){
+    var el_with_negatives = document.getElementById("id1");
+    assert_equals(getComputedStyle(el_with_negatives).outlineOffset, "0px", "outline-offset");
+  }, "Negative offset should be changed to 0px");
+
+  test(function(){
+    var el_with_positives = document.getElementById("id2");
+    assert_equals(getComputedStyle(el_with_positives).outlineOffset, "50px", "outline-offset");
+  }, "Positive offset are unaffected");
+
+  test(function(){
+    var el_with_negative_expr = document.getElementById("id3");
+    assert_equals(getComputedStyle(el_with_negative_expr).outlineOffset, "0px", "outline-offset");
+  }, "Expressions offset min(-50px, 50px) should return at least 0px");
+
+  test(function(){
+    var el_with_negative_expr = document.getElementById("id4");
+    assert_equals(getComputedStyle(el_with_negative_expr).outlineOffset, "0px", "outline-offset");
+  }, "Expressions offset outline-offset: min(10%, -50px) should return at least 0px");
+
+  test(function(){
+    var el_with_negative_expr = document.getElementById("id5");
+    assert_equals(getComputedStyle(el_with_negative_expr).outlineOffset, "0px", "outline-offset");
+  }, "Expressions offset clamp(-100px, 1vw, -50px) should return at least 0px");
+
+  test(function(){
+    var el_with_negative_expr = document.getElementById("id6");
+    assert_equals(getComputedStyle(el_with_negative_expr).outlineOffset, "0px", "outline-offset");
+  }, "Expressions offset 1% - 10000px should return at least 0px");
+
+  test(function(){
+    var el_with_negative_expr = document.getElementById("id7");
+    assert_equals(getComputedStyle(el_with_negative_expr).outlineOffset, "0px", "outline-offset");
+  }, "Expressions offset max(min(-1em, 10em), -5%) should return at least 0px");
+</script>
+</body>

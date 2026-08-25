@@ -1,0 +1,19 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../resources/helpers.js"></script>
+
+<body>
+<script>
+promise_test(async t => {
+  let events = [];
+  let watcher = createRecordingCloseWatcher(t, events);
+
+  await sendEscKey();
+
+  assert_array_equals(events, ["cancel[cancelable=false]", "close"]);
+}, "Esc key does not count as user activation, so if it is the sole user interaction, cancel is cancelable=false");
+</script>

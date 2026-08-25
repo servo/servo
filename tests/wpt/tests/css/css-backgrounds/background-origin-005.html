@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Backgrounds and Borders Test: background-origin - content-box keyword value</title>
+    <link rel="author" title="Intel" href="http://www.intel.com">
+    <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/"> <!-- 2012-11-09 -->
+    <link rel="help" href="http://www.w3.org/TR/css3-background/#the-background-origin" title="3.8. Positioning Area: the 'background-origin' property">
+    <link rel="match" href="reference/background-origin-005-ref.html">
+    <meta name="flags" content="image">
+    <meta name="assert" content="Background-origin with 'content-box' implies to position the background relative to the content box.">
+    <style>
+        div {
+            position: absolute;
+        }
+        #ref-overlapped-red {
+            background-color: red;
+            height: 60px;
+            left: 30px;
+            top: 30px;
+            width: 60px;
+        }
+        #test-overlapping-green {
+            background-image: url(support/60x60-green.png);
+            background-origin: content-box;
+            background-repeat: no-repeat;
+            border: transparent dotted 5px;
+            height: 100px;
+            padding: 25px;
+            width: 100px;
+        }
+    </style>
+  </head>
+  <body>
+    <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+    <div id="container">
+      <div id="ref-overlapped-red"></div>
+      <div id="test-overlapping-green"></div>
+    </div>
+  </body>
+</html>

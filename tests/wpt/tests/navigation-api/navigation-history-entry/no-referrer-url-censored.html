@@ -1,0 +1,35 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="i" src="resources/no-referrer.html"></iframe>
+<script>
+promise_test(async (t) => {
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  await new Promise(r => window.onload = () => t.step_timeout(r, 0));
+
+  await i.contentWindow.navigation.navigate("#hash");
+  assert_equals(i.contentWindow.navigation.entries().length, 2);
+
+  // The entries for no-referrer.html should have the url censored.
+  i.contentWindow.navigation.navigate("/common/blank.html");
+  await new Promise(r => i.onload = () => t.step_timeout(r, 0));
+  assert_equals(i.contentWindow.navigation.entries().length, 3);
+  assert_equals(i.contentWindow.navigation.currentEntry.index, 2);
+  assert_equals(i.contentWindow.navigation.entries()[0].url, null);
+  assert_equals(i.contentWindow.navigation.entries()[1].url, null);
+  assert_equals(i.contentWindow.navigation.activation.from.url, null);
+
+  // Navigating back to no-referrer.html should uncensor the urls.
+  i.contentWindow.navigation.back();
+  await new Promise(r => i.onload = () => t.step_timeout(r, 0));
+  assert_equals(i.contentWindow.navigation.entries().length, 3);
+  assert_equals(i.contentWindow.navigation.currentEntry.index, 1);
+  assert_equals(new URL(i.contentWindow.navigation.entries()[0].url).pathname,
+                "/navigation-api/navigation-history-entry/resources/no-referrer.html");
+  assert_equals(new URL(i.contentWindow.navigation.entries()[1].url).pathname,
+                "/navigation-api/navigation-history-entry/resources/no-referrer.html");
+  assert_equals(new URL(i.contentWindow.navigation.activation.entry.url).pathname,
+                "/navigation-api/navigation-history-entry/resources/no-referrer.html");
+}, "The url of a document with no-referrer referrer policy is censored in NavigationHistoryEntry");
+</script>

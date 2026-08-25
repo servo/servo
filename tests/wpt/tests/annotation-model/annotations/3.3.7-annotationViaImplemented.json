@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "3.3.7-annotationViaImplemented.json",
+  "assertionType": "may",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "passAndContinue",
+  "errorMessage": "Annotation-level via key with string(s) of format uri as value(s) not found. Annotation may have via key with one or more values.",
+  "title": "Implements Annotation-level **_via_ key** which has one or more values, each of which is a **string of format uri** - [model 3.3.7](https://www.w3.org/TR/annotation-model/#other-identities)",
+  "description": "True when the Annotation implements via key with with string(s) of format uri as value(s) (Section 3.3.7)",
+  "allOf":
+    [
+    { "$ref": "otherProperties.json#/definitions/viaPropertyFound"}
+    ]
+}

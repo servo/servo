@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<title>getClientRects on monolithic elements and their container</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-getclientrects">
+<link rel="help" href="https://drafts.csswg.org/css-multicol/">
+<style>
+  body {
+    margin: 8px;
+  }
+</style>
+<div style="columns:3; column-fill:auto; gap:10px; width:320px; height:100px; background:yellow;">
+  <div id="container" style="background:gray;">
+    <div id="monolith1" style="contain:size; width:50%; height:250px; background:cyan;"></div>
+    <div id="monolith2" style="contain:size; width:50%; height:50px; background:black;"></div>
+    <div id="monolith3" style="contain:size; width:50%; height:250px; background:hotpink;"></div>
+  </div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(()=> {
+    let rects = monolith1.getClientRects();
+    assert_equals(rects.length, 1);
+    assert_equals(rects[0].left, 8);
+    assert_equals(rects[0].top, 8);
+    assert_equals(rects[0].width, 50);
+    assert_equals(rects[0].height, 250);
+  }, "#monolith1");
+
+  test(()=> {
+    let rects = monolith2.getClientRects();
+    assert_equals(rects.length, 1);
+    assert_equals(rects[0].left, 118);
+    assert_equals(rects[0].top, 8);
+    assert_equals(rects[0].width, 50);
+    assert_equals(rects[0].height, 50);
+  }, "#monolith2");
+
+  test(()=> {
+    let rects = monolith3.getClientRects();
+    assert_equals(rects.length, 1);
+    assert_equals(rects[0].left, 228);
+    assert_equals(rects[0].top, 8);
+    assert_equals(rects[0].width, 50);
+    assert_equals(rects[0].height, 250);
+  }, "#monolith3");
+
+  test(()=> {
+    let rects = container.getClientRects();
+    assert_equals(rects.length, 3);
+
+    assert_equals(rects[0].left, 8);
+    assert_equals(rects[0].top, 8);
+    assert_equals(rects[0].width, 100);
+    assert_equals(rects[0].height, 250);
+
+    assert_equals(rects[1].left, 118);
+    assert_equals(rects[1].top, 8);
+    assert_equals(rects[1].width, 100);
+    assert_equals(rects[1].height, 100);
+
+    assert_equals(rects[2].left, 228);
+    assert_equals(rects[2].top, 8);
+    assert_equals(rects[2].width, 100);
+    assert_equals(rects[2].height, 250);
+  }, "#container");
+</script>

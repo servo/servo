@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="utils.js"></script>
+<script>
+
+function tryRun(func) {
+  try {
+    func();
+  } catch (e) {
+    const testChannel = new PrerenderChannel('test-channel');
+    testChannel.postMessage({status: 'FAIL: ' + e});
+  }
+}
+
+const params = new URLSearchParams(location.search);
+
+// The main test page (restriction-window-resize.html) loads the
+// initiator page, then the initiator page will prerender itself with the
+// `prerendering` parameter.
+const isPrerendering = params.has('prerendering');
+
+if (!isPrerendering) {
+  // Ensure that the primary page can resize this window.
+  tryRun(() => {
+    const expectedRect = {
+      width: window.outerWidth - 1,
+      height: window.outerHeight - 1
+    };
+    window.resizeTo(expectedRect.width, expectedRect.height);
+    assert_equals(window.outerWidth, expectedRect.width, 'width for primary');
+    assert_equals(
+        window.outerHeight, expectedRect.height, 'height for primary');
+  });
+
+  // Start prerendering a page which tries to resize this window.
+  loadInitiatorPage();
+} else {
+  const prevRect = {width: window.outerWidth, height: window.outerHeight};
+  tryRun(() => {
+    // Try to resize this window, and should not succeed.
+    const resizeToOrResizeBy = params.get('resize');
+    switch (resizeToOrResizeBy) {
+      case 'resizeTo':
+        window.resizeTo(prevRect.width + 1, prevRect.height + 1);
+        break;
+      case 'resizeBy':
+        window.resizeBy(1, 1);
+        break;
+      default:
+        assert_unreached(`wrong parameter: ${resizeToOrResizeBy}`);
+    }
+  });
+
+  const bc = new PrerenderChannel('test-channel');
+  bc.postMessage({
+    'status': 'PASS',
+    'prevRect': prevRect,
+    'newRect': {width: window.outerWidth, height: window.outerHeight}
+  });
+  bc.close();
+}
+
+</script>

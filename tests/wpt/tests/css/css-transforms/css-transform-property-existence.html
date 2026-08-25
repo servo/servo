@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Transforms Test: property existence</title>
+    <link rel="author" title="Intel" href="http://www.intel.com">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#propdef-transform">
+    <meta name="flags" content="dom">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div id="test"></div>
+    <div id="log"></div>
+    <script>
+      [
+        'transform',
+        'transform-origin',
+        'transform-style',
+        'perspective',
+        'perspective-origin',
+        'backface-visibility',
+      ].forEach(property => {
+        test(() => {
+          assert_true(
+            property in document.getElementById('test').style,
+            `expect ${property}`,
+          );
+        }, `Check the existence of ${property}.`);
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.grow-consistent {
+  font: 40px/2 Ahem;
+  width: 160px;
+  white-space: pre;
+  border: 1px solid gray;
+  margin-bottom: 8px;
+}
+.shrink-consistent {
+  font: 10px/2 Ahem;
+  width: 80px;
+  white-space: pre;
+  border: 1px solid gray;
+  margin-bottom: 8px;
+}
+.grow-consistent-wrap {
+  font: 40px/1 Ahem;
+  width: 160px;
+  white-space: normal;
+  border: 1px solid gray;
+  margin-bottom: 8px;
+}
+</style>
+
+<div class="grow-consistent-wrap"><span style="display: inline-block; width: 160px; height: 10px; background: blue;"></span>xxxx</div>
+
+<div class="grow-consistent">xxxx
+
+xx</div>
+
+<div class="shrink-consistent">xxxxxxxx
+
+xxxx</div>
+
+<script>
+document.fonts.ready.then(() => {
+  document.documentElement.classList.remove('reftest-wait');
+});
+</script>

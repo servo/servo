@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Pseudo-Elements Test: active selection and inter-character spacing</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-pseudo-4/#highlight-bounds">
+  <link rel="help" href="https://www.w3.org/TR/css-text-3/#letter-spacing-property">
+  <link rel="match" href="reference/selection-intercharacter-011-ref.html">
+
+  <meta content="may" name="flags">
+  <meta name="assert" content="This test verifies that intercharacter spacing may be part of the overlay area. When intercharacter spacing is part of the overlay area, then it belongs to the innermost element which contains both characters and which contains such spacing when both characters are selected. In this test, the 'c' and the 't' characters and the space between these characters belong to the same element. Therefore, the 'c' character, the 't' character and the space between these characters have the same orange background color painting.">
+
+  <link rel="stylesheet" href="support/highlights.css">
+  <style>
+  div
+    {
+      font-size: 48px;
+      letter-spacing: 1em;
+    }
+
+  div::selection
+    {
+      background-color: yellow;
+    }
+
+  span::selection
+    {
+      background-color: orange;
+    }
+  </style>
+
+  <script>
+  function startTest()
+  {
+  var targetRange = document.createRange();
+  /* We first create an empty range */
+  targetRange.selectNodeContents(document.getElementById("test"));
+  /* Then we set the range boundaries to the children of div#test */
+  window.getSelection().addRange(targetRange);
+  /* Finally, we now select such range of content */
+  }
+  </script>
+
+  <body onload="startTest();">
+
+  <p>Test passes if the background of characters "c" and "t" is orange (and only those 2 characters) and if the space between those 2 characters is also orange.
+
+  <div id="test" class="highlight_reftest">Sele<span>ct</span>ed</div>

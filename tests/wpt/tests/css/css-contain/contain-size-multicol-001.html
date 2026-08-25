@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Containment Test: Size containment on a multicol with set column size (and gap)</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-contain-1/#containment-size">
+<meta name=assert content="columns and column-gap do affect the size of a multicol, even with size containment">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+
+<style>
+div {
+  position: absolute;
+}
+#red {
+  background: red;
+  width: 100px;
+  height: 100px;
+}
+#test {
+  background: green;
+
+  contain: size;
+  columns: 2 40px;
+  column-gap: 20px;
+  min-height: 100px;
+
+  color: transparent;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id=red></div>
+<div id=test>
+filler filler filler filler filler filler filler filler
+filler filler filler filler filler filler filler filler
+filler filler filler filler filler filler filler filler
+filler filler filler filler filler filler filler filler
+</div>
+
+<!--
+The filler text, min-height (instead of height) and transparent color
+are to make the test fail in browsers
+that do not implement contain:size at all,
+by making the box non square.
+-->
+
+

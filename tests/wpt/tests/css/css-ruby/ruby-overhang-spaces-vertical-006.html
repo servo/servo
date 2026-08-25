@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>Tests for ruby-overhang: spaces with parentheses</title>
+<link rel="help" href="https://drafts.csswg.org/css-ruby-1/#ruby-overhang">
+<link rel="match" href="ruby-overhang-spaces-vertical-006-ref.html">
+<meta name=assert content="With 'ruby-overhang: spaces' and HALT, excess ruby overhangs on top of the blank part of opening/closing fullwidth punctuation in vertical writing mode.">
+<script src="support/variant-class.js"></script>
+<style>
+@font-face {
+    font-family: halt-font;
+    src: url('/fonts/noto/cjk/NotoSansCJKjp-Regular-subset-halt.otf');
+}
+ruby {
+    ruby-overhang: spaces;
+    ruby-align: center;
+}
+span {
+    /* Use the halt font to match with a reference in Mac. */
+    font-family: halt-font;
+    writing-mode: vertical-lr;
+    font-size: 20px;
+    border-top: 5px solid;
+    border-bottom: 5px solid;
+    width: max-content;
+    text-spacing-trim: space-all;
+}
+halt {
+    font-feature-settings: 'vhal' 1;
+}
+.test { border-color: orange; }
+.measure { border-color: blue; }
+</style>
+<body lang="ja">
+<p>Test passes if orange and blue lines are aligned.
+</br>
+<span class=test>あ<halt>）</halt><ruby>あ<rt>ああああああああ</ruby><halt>（</halt>あ</span>
+<span class=test>あ<halt>」</halt><ruby>あ<rt>ああああああああ</ruby><halt>「</halt>あ</span>
+<span class=test>あ<halt>』</halt><ruby>あ<rt>ああああああああ</ruby><halt>『</halt>あ</span>
+<span class=test>あ<halt>】</halt><ruby>あ<rt>ああああああああ</ruby><halt>【</halt>あ</span>
+<span class=test>あ<halt>〗</halt><ruby>あ<rt>ああああああああ</ruby><halt>〖</halt>あ</span>
+<span class=test>あ<halt>〕</halt><ruby>あ<rt>ああああああああ</ruby><halt>〔</halt>あ</span>
+<span class=test>あ<halt>〉</halt><ruby>あ<rt>ああああああああ</ruby><halt>〈</halt>あ</span>
+<span class=test>あ<halt>》</halt><ruby>あ<rt>ああああああああ</ruby><halt>《</halt>あ</span>
+<span class=test>あ<halt>〙</halt><ruby>あ<rt>ああああああああ</ruby><halt>〘</halt>あ</span>
+<span class=test>あ<halt>〛</halt><ruby>あ<rt>ああああああああ</ruby><halt>〚</halt>あ</span>
+<span class=test>あ<halt>〞</halt><ruby>あ<rt>ああああああああ</ruby><halt>〝</halt>あ</span>
+<span class=test>あ<halt>〟</halt><ruby>あ<rt>ああああああああ</ruby><halt>〝</halt>あ</span>
+<span class=test>あ<halt>］</halt><ruby>あ<rt>ああああああああ</ruby><halt>［</halt>あ</span>
+<span class=test>あ<halt>｝</halt><ruby>あ<rt>ああああああああ</ruby><halt>｛</halt>あ</span>
+<span class=test>あ<halt>｠</halt><ruby>あ<rt>ああああああああ</ruby><halt>｟</halt>あ</span>
+<span class=measure>あ）　あ　（あ</span>
+</body>

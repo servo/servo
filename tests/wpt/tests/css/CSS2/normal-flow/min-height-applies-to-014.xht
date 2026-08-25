@@ -1,0 +1,39 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Min-height applied to elements with 'display' set to 'inline-table'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#propdef-min-height" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#min-max-heights" />
+        <link rel="match" href="../../reference/pass_if_square_96px_black.html" />
+        <meta name="assert" content="The 'min-height' property applies to elements with 'display' set to 'inline-table'." />
+        <style type="text/css">
+            #table
+            {
+                display: inline-table;
+                table-layout: fixed;
+                min-height: 1in;
+            }
+            #row
+            {
+                display: table-row;
+                height: inherit; /* height of the row is based on the computed value for height of the table which is based on the min-height property */
+            }
+            #cell
+            {
+                background: black;
+                display: table-cell;
+                height: inherit; /* height of the cell is based on the computed value for height of the table which is based on the min-height property */
+                width: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a square below.</p>
+        <div id="table">
+            <div id="row">
+                <div id="cell"></div>
+            </div>
+        </div>
+    </body>
+</html>

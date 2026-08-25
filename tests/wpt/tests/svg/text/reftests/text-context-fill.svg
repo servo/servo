@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml" width="150" height="100">
+  <title>text with context-fill</title>
+  <h:link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1969466"/>
+  <h:link rel="match" href="text-context-fill-ref.svg"/>
+  <h:link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+  <style>
+    text {
+      font-family: Ahem;
+      font-size: 9px;
+    }
+  </style>
+  <defs>
+      <marker id="m" viewBox="0 0 25 10" refY="5" markerWidth="125" refX="10" markerHeight="50">
+          <text x="12" y="8" fill="context-stroke">XXX</text>
+      </marker>
+  </defs>
+  <line y2="30" x2="50" stroke="green" marker-end="url(#m)" />
+</svg>

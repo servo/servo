@@ -1,0 +1,30 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Dynamic position change in table cell with abspos child</title>
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#position-property">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1815552">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="match" href="abspos-container-change-dynamic-001-ref.html">
+<table>
+  <tbody>
+    <tr>
+      <td>A</td>
+      <td id="target">B</td>
+  </tbody>
+</table>
+<script>
+  let target = document.getElementById("target");
+  target.getBoundingClientRect();
+  target.style.position = "relative";
+  let abspos = document.createElement("div");
+  abspos.style = `
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100px;
+    height: 100px;
+    background-color: lime;
+  `;
+  target.appendChild(abspos);
+</script>

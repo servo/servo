@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#abspos">
+<link rel="match" href="positioned-grid-descendant-containing-block-010-expected.html">
+<p>Test passes if the green abspos box (blue outline) sits at the top-left of the first grid area (red outline matches the grid item), inset by the grid container's padding (black outline).</p>
+<div style="position: relative; display: grid; width: 400px; height: 400px; padding: 20px; grid-template-columns: 200px 200px; grid-template-rows: 200px 200px; outline: 1px solid black;">
+  <div style="grid-column: 1/2; grid-row: 1/2; outline: 1px solid red;">
+    <div style="position: absolute; grid-column: 1/2; grid-row: 1/2; width: 50%; height: 50%; background: green; outline: 1px solid blue;"></div>
+  </div>
+</div>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>border-collapse with rowspan past rowgroup size</title>
+<style>
+  table {
+    border-collapse: collapse;
+    border: 8px solid cyan;
+  }
+  td, th {
+    border: 1px solid black;
+  }
+</style>
+<table>
+  <thead>
+    <tr>
+      <th>A</th>
+      <th></th>
+      <th>B</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>C</td>
+      <td></td>
+      <td>D</td>
+    </tr>
+  </tbody>
+</table>

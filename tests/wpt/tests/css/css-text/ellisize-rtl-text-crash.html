@@ -1,0 +1,15 @@
+<title>CSS Text Test: Ellipsize overflowing text in RTL cause Chrome to crash</title>
+<link rel="help" href="https://crbug.com/1130153">
+<style>
+    .CLASS2 {
+        text-overflow: ellipsis;
+        overflow: hidden;
+        direction: rtl;
+    }
+    .CLASS13 {
+        font-size: 32768em;
+    }
+</style>
+<div class="CLASS2">
+    <abbr class="CLASS13">x AxBxC </abbr>C
+</div>

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml"
+	 xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="testmeta">
+	<title>CSS Masking: Reftest reference</title>
+	<html:link rel="author" title="Dirk Schulze" href="mailto:dschulze@adobe.com"/>
+</g>
+<defs>
+	<g id="paths">
+	<path d="M10 10 h20 v20 h-20 v-20 m1 1 v18 h18 v-18 h-18"/>
+	<rect x="19" y="19" width="2" height="2" />
+	<rect x="5.51" y="0.51" width="2" height="32.3" fill="white"/>
+	<rect x="35.4" y="0.51" width="2" height="32.3" fill="white"/>
+	</g>
+</defs>
+<use xlink:href="#paths" fill="green"/>
+<use xlink:href="#paths" fill="green" x="30"/>
+<use xlink:href="#paths" fill="green" x="60"/>
+</svg>

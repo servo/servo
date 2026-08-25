@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://open-ui.org/components/interest-invokers.explainer/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/invoker-utils.js"></script>
+
+<button id=invoker interestfor=target>
+  Button content
+  <span id=inner-span tabindex=0>Inner content</span>
+</button>
+<div id=target>Target</div>
+<button id=otherbutton>Other button</button>
+<style>
+  [interestfor] { interest-delay: 0s; }
+  :interest-source { background-color: lightgreen;}
+  :interest-target { background-color: lightblue;}
+</style>
+
+<script>
+const invoker = document.getElementById('invoker');
+const innerSpan = document.getElementById('inner-span');
+const target = document.getElementById('target');
+const otherbutton = document.getElementById('otherbutton');
+
+async function showInterest(el, method) {
+  if (method === 'focus') {
+    await focusOn(el);
+  } else {
+    assert_equals(method,'hover');
+    await hoverOver(el);
+  }
+}
+
+['focus','hover'].forEach(method => {
+  promise_test(async function (t) {
+    t.add_cleanup(() => showInterest(otherbutton, method));
+    const signal = t.get_signal();
+    let interestCount = 0;
+    let loseInterestCount = 0;
+    target.addEventListener('interest',() => (++interestCount),{signal});
+    target.addEventListener('loseinterest',() => (++loseInterestCount),{signal});
+    await showInterest(invoker, method);
+    assert_true(invoker.matches(':interest-source'),'focusing invoker should show interest');
+    assert_equals(interestCount,1,'One interest event');
+    interestCount = 0;
+    assert_equals(loseInterestCount,0,'No loseinterest events');
+    await showInterest(innerSpan, method);
+    assert_true(invoker.matches(':interest-source'),'focusing inner span should keep interest');
+    assert_equals(interestCount,0,'No extra interest events');
+    assert_equals(loseInterestCount,0,'No loseinterest events');
+    await showInterest(invoker, method);
+    assert_true(invoker.matches(':interest-source'),'focusing back to outer button should keep interest');
+    assert_equals(interestCount,0,'No extra interest events');
+    assert_equals(loseInterestCount,0,'No loseinterest events');
+    await showInterest(otherbutton, method);
+    assert_false(invoker.matches(':interest-source'),'focusing outside should lose interest');
+    assert_equals(interestCount,0,'No extra interest events');
+    assert_equals(loseInterestCount,1,'Finally got loseinterest event');
+  },`Moving focus within invoker, ${method}`);
+});
+</script>
+
+<a id=outer href="#" interestfor="middle">Outer</a>
+<div id="middle" popover>
+  <a id="middle-link" href="#" interestfor="inner">Middle</a>
+</div>
+<div id="inner" popover>Inner <button id="inner-button">btn</button></div>
+
+<script>
+const outer = document.getElementById('outer');
+const middle = document.getElementById('middle');
+const middleLink = document.getElementById('middle-link');
+const inner = document.getElementById('inner');
+const innerButton = document.getElementById('inner-button');
+
+['focus','hover'].forEach(method => {
+  promise_test(async function (t) {
+    t.add_cleanup(() => showInterest(otherbutton, method));
+    assert_false(middle.matches(':popover-open'),'middle starts closed');
+    await showInterest(outer, method);
+    assert_true(outer.matches(':interest-source'),'focusing outer should show interest');
+    assert_true(middle.matches(':popover-open'),'outer popover open');
+
+    await showInterest(middleLink, method);
+    assert_true(middleLink.matches(':interest-source'),'focusing middle should show interest');
+    assert_true(outer.matches(':interest-source'),'outer keeps interest');
+    assert_true(middle.matches(':popover-open'),'middle popover stays open');
+    assert_true(inner.matches(':popover-open'),'inner popover opens');
+
+    await showInterest(innerButton, method);
+    assert_true(outer.matches(':interest-source'),'outer keeps interest');
+    assert_true(middleLink.matches(':interest-source'),'middle keeps interest');
+    assert_true(middle.matches(':popover-open'),'middle popover stays open');
+    assert_true(inner.matches(':popover-open'),'inner popover stays open');
+  },`Nested invokers, ${method}`);
+});
+</script>
+
+<a id=outer2-first href="#" interestfor="middle2-inner">Outer first</a>
+<a id=outer2-second href="#" interestfor="middle2-outer">Outer second</a>
+<div id="middle2-outer">Middle outer
+  <div id="middle2-inner">Middle inner
+    <a id="middle2-link" href="#" interestfor="inner2">Middle</a>
+  </div>
+</div>
+<div id="inner2">Inner <button id="inner2-button">btn</button></div>
+
+<script>
+const outer2First = document.getElementById('outer2-first');
+const outer2Second = document.getElementById('outer2-second');
+const middle2Outer = document.getElementById('middle2-outer');
+const middle2Inner = document.getElementById('middle2-inner');
+const middle2Link = document.getElementById('middle2-link');
+const inner2 = document.getElementById('inner2');
+const inner2Button = document.getElementById('inner2-button');
+
+['focus','hover'].forEach(method => {
+  promise_test(async function (t) {
+    t.add_cleanup(() => showInterest(otherbutton, method));
+    const hideDelayMs = 500; // Long enough to focus a few things without elapsing
+    outer2First.style.interestDelayEnd = `${hideDelayMs}ms`;
+
+    const hoverStart = performance.now();
+    await showInterest(outer2First, method);
+    assert_true(outer2First.matches(':interest-source'),'should show interest');
+    assert_false(outer2Second.matches(':interest-source'),'no interest yet in second target');
+    await showInterest(outer2Second, method);
+    assert_true(outer2Second.matches(':interest-source'),'outer2Second should now have interest');
+    await showInterest(middle2Link, method);
+    let firstHasInterest = outer2First.matches(':interest-source');
+    if (performance.now() - hoverStart >= hideDelayMs) {
+      return; // Test is running too slowly
+    }
+    assert_true(firstHasInterest,'outer2First should still have interest (delay)');
+    assert_true(inner2.matches(':interest-target'),'inner2 should be an interest target');
+    assert_true(middle2Outer.matches(':interest-target'),'middle2Outer should still be an interest target');
+    assert_true(outer2Second.matches(':interest-source'),'outer2Second should still have interest');
+
+    // Focusing the inner target should keep both outer invokers alive.
+    await showInterest(inner2Button, method);
+    assert_true(middle2Outer.matches(':interest-target'),'middle2Outer should still be an interest target (after moving to inner button)');
+    assert_true(outer2Second.matches(':interest-source'),'outer2Second should still have interest (after moving to inner button)');
+    assert_true(outer2First.matches(':interest-source'),'outer2First should still have interest');
+
+    // Now let the time elapse and make sure things are still good.
+    const elapsedMs = performance.now() - hoverStart;
+    await new Promise(resolve => step_timeout(resolve,hideDelayMs - elapsedMs + 10));
+    assert_true(inner2.matches(':interest-target'),'inner2 should still be an interest target');
+    assert_true(middle2Outer.matches(':interest-target'),'middle2Outer should still be an interest target');
+    assert_true(outer2Second.matches(':interest-source'),'outer2Second should still have interest');
+    assert_true(outer2First.matches(':interest-source'),'outer2First should still have interest');
+    assert_true(middle2Inner.matches(':interest-target'),'middle2Inner should still be an interest target');
+  },`Nested invokers with intermediate interest target, ${method}`);
+});
+</script>
+
+
+<a id=outer3 href="#" interestfor="middle3-inner">Outer</a>
+<div id="middle3-outer">Middle <button id=middle3-button>outer</button>
+  <div id="middle3-inner">Middle inner
+    <a id="middle3-link" href="#" interestfor="middle3-outer">Middle</a>
+  </div>
+</div>
+
+<script>
+const outer3 = document.getElementById('outer3');
+const middle3Outer = document.getElementById('middle3-outer');
+const middle3Inner = document.getElementById('middle3-inner');
+const middle3Link = document.getElementById('middle3-link');
+const middle3Button = document.getElementById('middle3-button');
+
+['focus','hover'].forEach(method => {
+  promise_test(async function (t) {
+    t.add_cleanup(() => showInterest(otherbutton, method));
+    await showInterest(outer3, method);
+    assert_true(outer3.matches(':interest-source'),'should show interest');
+    assert_true(middle3Inner.matches(':interest-target'),'middle3Inner should now be an interest target');
+    await showInterest(middle3Link, method);
+    assert_true(middle3Link.matches(':interest-source'),'middle3Link should now have interest');
+    assert_true(middle3Outer.matches(':interest-target'),'middle3Outer should now be an interest target');
+    assert_true(outer3.matches(':interest-source'),'outer3 should still have interest');
+    assert_true(middle3Inner.matches(':interest-target'),'middle3Inner should still be an interest target');
+    await showInterest(middle3Button, method);
+    assert_true(middle3Link.matches(':interest-source'),'middle3Link should now have interest (on outer button)');
+    assert_true(middle3Outer.matches(':interest-target'),'middle3Outer should now be an interest target (on outer button)');
+    assert_true(outer3.matches(':interest-source'),'outer3 no longer has interest (on outer button)');
+    assert_true(middle3Inner.matches(':interest-target'),'middle3Inner is no longer an interest target (on outer button)');
+  },`Nested invokers with circular dependencies, ${method}`);
+});
+</script>

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<title>Backspace key should delete text in textual inputs</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+
+<style>
+    .text {
+        width: 100px;
+    }
+</style>
+
+<input class="text" id="input" value="word word">
+<textarea class="text" id="textarea">
+word word
+abc
+word word
+</textarea>
+
+<script>
+const backspaceKey = "\uE003";
+const controlKey = "\uE009";
+const altKey = "\uE00A";
+const isMacOSX = navigator.userAgent.indexOf("Mac") != -1;
+const wordMoveKey = isMacOSX ? altKey : controlKey;
+
+async function pressKeyWithWordMoveModifier(key) {
+     await new test_driver.Actions()
+        .keyDown(wordMoveKey)
+        .keyDown(key)
+        .keyUp(key)
+        .keyUp(wordMoveKey)
+        .send();
+}
+
+promise_test(async test => {
+    input.focus();
+    input.setSelectionRange(9, 9);
+
+    await test_driver.send_keys(input, backspaceKey);
+    await test_driver.send_keys(input, backspaceKey);
+    assert_equals(input.value, "word wo");
+
+    await pressKeyWithWordMoveModifier(backspaceKey);
+    assert_equals(input.value, "word ");
+
+    await pressKeyWithWordMoveModifier(backspaceKey);
+    assert_equals(input.value, "");
+}, 'Backspace key properly deletes text in an input field');
+
+promise_test(async test => {
+    textarea.focus();
+    textarea.setSelectionRange(25, 25)
+
+    await test_driver.send_keys(textarea, backspaceKey);
+    await test_driver.send_keys(textarea, backspaceKey);
+    assert_equals(textarea.value, "word word\nabc\nword wor");
+
+    await pressKeyWithWordMoveModifier(backspaceKey);
+    assert_equals(textarea.value, "word word\nabc\nword ");
+
+    await pressKeyWithWordMoveModifier(backspaceKey);
+    assert_equals(textarea.value, "word word\nabc\n");
+
+    await pressKeyWithWordMoveModifier(backspaceKey);
+    assert_equals(textarea.value, "word word\n");
+
+    await test_driver.send_keys(textarea, backspaceKey);
+    await test_driver.send_keys(textarea, backspaceKey);
+    assert_equals(textarea.value, "word wor");
+}, 'Backspace key properly deletes text in a textarea');
+</script>

@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<title>CSS Filters: filter should not clip transformed overflow children (reference)</title>
+<style>
+body { margin: 0; }
+</style>
+<div style="position: absolute; left: 50px; top: 50px; width: 150px; height: 150px; filter: saturate(50%);">
+  <div style="position: absolute; left: 50px; top: 50px; width: 40px; height: 40px; background-color: green;"></div>
+  <div style="position: absolute; width: 150px; height: 150px; background-color: rgba(0, 255, 0, 0.5);"></div>
+</div>

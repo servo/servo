@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    .container {
+      display: grid;
+      grid-template-rows: repeat(3, 50px);
+      gap: 10px;
+      width: 170px;
+      height: min-content;
+      border: solid blue;
+      writing-mode: vertical-rl;
+    }
+
+    .column {
+      display: flex;
+      flex-direction: row-reverse;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    item {
+      display: block;
+      height: 50px;
+      color: black;
+      font: 16px/1 sans-serif;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <p>Test that row fill-reverse correctly places differently sized items across
+     multiple tracks when the grid-lanes container uses vertical-rl writing
+     mode and has an indefinite size in the stacking axis.</p>
+  <div class="container">
+    <div class="column">
+      <item style="background: lavender; width: 20px;">1</item>
+      <item style="background: lightpink; width: 40px;">4</item>
+      <item style="background: palegreen; width: 20px;">7</item>
+    </div>
+    <div class="column">
+      <item style="background: lightskyblue; width: 35px;">2</item>
+      <item style="background: gold; width: 15px;">5</item>
+      <item style="background: orchid; width: 45px;">8</item>
+    </div>
+    <div class="column">
+      <item style="background: lightgreen; width: 25px;">3</item>
+      <item style="background: coral; width: 30px;">6</item>
+    </div>
+  </div>
+</body>
+</html>

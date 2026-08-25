@@ -1,0 +1,8 @@
+comtypes==1.4.11; sys_platform == 'win32'
+PyGObject==3.50.1; sys_platform == 'linux' and python_version >= '3.9'
+PyGObject==3.48.2; sys_platform == 'linux' and python_version < '3.9'
+pyobjc-framework-Accessibility==11.1; sys_platform == 'darwin' and python_version >= '3.9'
+pyobjc-framework-ApplicationServices==11.1; sys_platform == 'darwin' and python_version >= '3.9'
+pyobjc==10.3.2; sys_platform == 'darwin' and python_version < '3.9'
+pyobjc-framework-Accessibility==10.3.2; sys_platform == 'darwin' and python_version < '3.9'
+pyobjc-framework-ApplicationServices==10.3.2; sys_platform == 'darwin' and python_version < '3.9'

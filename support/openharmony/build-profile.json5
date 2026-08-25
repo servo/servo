@@ -1,0 +1,44 @@
+{
+  "app": {
+    "products": [
+      {
+        "name": "default",
+        "signingConfig": "default",
+        "compileSdkVersion": 20,
+        "compatibleSdkVersion": 20,
+        "targetSdkVersion": 20,
+        "runtimeOS": "OpenHarmony"
+      },
+      {
+        "name": "harmonyos",
+        "signingConfig": "hos",
+        "compatibleSdkVersion": "6.0.0(20)",
+        "targetSdkVersion": "6.0.0(20)",
+        "runtimeOS": "HarmonyOS"
+      }
+    ],
+    "buildModeSet": [
+      {
+        "name": "debug"
+      },
+      {
+        "name": "release"
+      }
+    ]
+  },
+  "modules": [
+    {
+      "name": "servoshell",
+      "srcPath": "./entry",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default",
+            "harmonyos"
+          ]
+        }
+      ]
+    }
+  ]
+}

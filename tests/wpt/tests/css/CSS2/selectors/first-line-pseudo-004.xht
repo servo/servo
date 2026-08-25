@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+ <head>
+  <title>CSS Test: CSS Block Box Model: first-line and anonymous boxes</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/block/first-line/004.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#first-line-pseudo" />
+  <style type="text/css">
+   div { color: red; }
+   :first-line { color: green; }
+   p, p:first-line { color: black; background: white; }
+  </style>
+ </head>
+ <body>
+  <p>The following lines should all be green (assuming none of them wrap onto more than one line).</p>
+  <div>
+   This line should be green.
+   <div> This line should be green. </div>
+   &nbsp;
+   <div> This line should be green. </div>
+   &nbsp;
+   <div> This line should be green. </div>
+   &nbsp;
+  </div>
+ </body>
+</html>

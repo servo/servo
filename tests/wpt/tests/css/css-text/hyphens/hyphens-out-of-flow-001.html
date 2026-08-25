@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Test: manual hyphenation and out-of-flow</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#hyphens-property">
+<link rel="match" href="reference/hyphens-out-of-flow-001-ref.html">
+<meta name="assert" content="the presence of an out of flow element has no effect on manual hyhenation">
+<style>
+span {
+  position: absolute;
+  color: transparent;
+}
+div {
+  border: solid orange;
+  margin: 5px;
+  width: 6ch;
+  hyphens: manual;
+}
+</style>
+
+<p>Test passes if the text in all orange boxes below is identical (including the presence and position of a hyphen).
+
+<div>high&shy;way</div>
+<div><span>abspos</span>high&shy;way</div>
+<div>h<span>abspos</span>igh&shy;way</div>
+<div>high<span>abspos</span>&shy;way</div>
+<div>high&shy;<span>abspos</span>way</div>
+<div>high&shy;wa<span>abspos</span>y</div>
+<div>high&shy;way<span>abspos</span></div>

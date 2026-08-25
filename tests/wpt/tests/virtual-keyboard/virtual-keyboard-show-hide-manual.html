@@ -1,0 +1,128 @@
+<html>
+<head>
+<title>This tests the new virtualKeyboard show/hide APIs</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="vk_support.js"></script>
+        <script>
+           setup({explicit_timeout: true, explicit_done: true})
+        </script>
+</head>
+<body>
+  <h1>VirtualKeyboard: Virtual Keyboard show/hide Fires Event</h1>
+  <h4>
+      Test Description: This test checks that a geometry change event is
+      fired when show/hide APIs are called. VK is only displayed on a touch
+      device with tablet mode on or a mobile device where VK is the default
+      text input mechanism.
+  </h4>
+  <h2 style="color: red">THIS IS A MANUAL TEST</h2>
+  <div id="div1" contenteditable="true" virtualKeyboardPolicy="auto">Auto policy tap here.</div>
+  <div id="div2" contenteditable="true" virtualKeyboardPolicy="manual">Manual policy show here.</div>
+  <div id="div3" contenteditable="true" virtualKeyboardPolicy="manual">Manual policy hide here.</div>
+  <div id="div4" contenteditable="false">Read-only region tap here.</div>
+  <p id="skip">
+      <button id="skipbtn" onclick="skipManualTest();">Skip Test</button>
+  </p>
+  <p id="instruction"></p>
+  <button id="continue">Start Test</button>
+  <div id="log"></div>
+  </body>
+  <script>
+      var continueBtn = document.getElementById("continue");
+      var div1 = document.getElementById("div1");
+      var div2 = document.getElementById("div2");
+      var div3 = document.getElementById("div3");
+
+      function continueTest() {
+        nextStep(function(instructionText) {
+          var instruction = document.getElementById("instruction");
+          continueBtn.innerText = "Continue";
+          instruction.innerText = instructionText;
+        });
+      }
+
+      continueBtn.addEventListener('click', continueTest);
+      div1.addEventListener('onfocusin', function(e) {
+        navigator.virtualKeyboard.overlaysContent = true;
+      });
+      div2.addEventListener('onfocusin', function(e) {
+        navigator.virtualKeyboard.overlaysContent = true;
+        navigator.virtualKeyboard.show();
+      });
+      div3.addEventListener('onfocusin', function(e) {
+        navigator.virtualKeyboard.overlaysContent = true;
+        navigator.virtualKeyboard.hide();
+      });
+
+      var didFireGeometryChange;
+      var cancelable;
+      var bubbles;
+
+      function resetValues() {
+          navigator.virtualKeyboard.overlaysContent = false;
+          didFireGeometryChange = false;
+          cancelable = undefined;
+          bubbles = undefined;
+      }
+
+      addManualTestStep(
+          function() {
+              resetValues();
+              navigator.virtualKeyboard.addEventListener('geometrychange', function(e) {
+                  didFireGeometryChange = true;
+                  cancelable = e.cancelable;
+                  bubbles = e.bubbles;
+              });
+          },
+          null,
+          '1. Tap on the Auto policy tap here. text');
+
+      addManualTestStep(
+          function() {
+              assert_true(didFireGeometryChange);
+              assert_false(cancelable);
+              assert_false(bubbles);
+              resetValues();
+           },
+          'Geometry change event fired at navigator.virtualKeyboard after VK is shown',
+          '2. Hide the VK by tapping on Read-only region tap here. text');
+
+      addManualTestStep(
+          function() {
+              assert_true(didFireGeometryChange);
+              assert_false(cancelable);
+              assert_false(bubbles);
+              resetValues();
+          },
+          'Hiding the VK fires the geometry change event',
+          '3. Tap on the Manual policy show here. text');
+
+      addManualTestStep(
+          function() {
+              assert_true(didFireGeometryChange);
+              assert_false(cancelable);
+              assert_false(bubbles);
+              resetValues();
+          },
+          'Calling show API displays the VK & fires the geometry change event',
+          '4. Hide the VK by tapping on the Manual policy hide here. text');
+
+      addManualTestStep(
+          function() {
+              assert_true(didFireGeometryChange);
+              assert_false(cancelable);
+              assert_false(bubbles);
+              resetValues();
+          },
+          'Calling hide API hides the VK and fires the geometry change event',
+          '');
+
+      addManualTestStep(
+          function() { continueBtn.remove(); },
+          null,
+          'Test Complete');
+  </script>
+</html>

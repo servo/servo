@@ -1,0 +1,3 @@
+rules:
+- text-underline-offset-*: [text-underline-offset]
+- text-decoration-*: [text-decoration]

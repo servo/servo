@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<title>CSSOM View - scrollIntoView does not scroll to zero height item</title>
+<meta charset="UTF-8">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-scrollintoview">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div style="border: 1px solid black; height: 300px; width: 200px; overflow-y: auto;visibility: hidden" id="box">
+    <div>text</div>
+    <div>text</div>
+    <div>text</div>
+    <div>text</div>
+    <div id="text">--- Clicking here should NOT scroll to top ---</div>
+    <div>text</div>
+    <div>text</div>
+    <div>text</div>
+    <div>text</div>
+    <div>text</div>
+    <div>text</div>
+    <div>text</div>
+    <div>text</div>
+    <div>text</div>
+    <div>text</div>
+    <div>text</div>
+    <div>text</div>
+    <div>text</div>
+    <div>text</div>
+    <div>text</div>
+    <div>text</div>
+    <div>text</div>
+    <div>text</div>
+    <div>text</div>
+    <div>text</div>
+</div>
+<script>
+test(() => {
+box.scrollTop = 40;
+
+let div = document.createElement("div");
+div.textContent = "div";
+text.parentNode.insertBefore(div, text);
+
+let span = document.createElement("span");
+span.tabIndex = 0;
+div.append(span);
+
+span.scrollIntoViewIfNeeded();
+
+assert_equals(box.scrollTop, 40, 'box.scrollTop');
+}, `scrollIntoView on zero height item`);
+
+</script>
+</body>

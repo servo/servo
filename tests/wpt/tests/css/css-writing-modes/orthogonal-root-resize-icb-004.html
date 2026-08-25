@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+  <link rel="help" href="https://www.w3.org/TR/css-writing-modes-3/#orthogonal-auto">
+  <link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+  <meta name="assert" content="Available inline-size for the orthogonal writing-mode root inside the iframe is the initial containing block. If we resize the iframe, the orthogonal root may also need to be updated. The orthogonal root has two floats that should fit 'beside' each other after the iframe resize.">
+  <style>
+    #iframe {
+      display: block;
+      width: 100px;
+      height: 50px;
+      border: none;
+      background: red;
+    }
+  </style>
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+  <iframe id="iframe" src="data:text/html,<!DOCTYPE html><body style='margin:0;'><div style='width:10px; height:10px;'><div><div style='display:table;'><div style='writing-mode:vertical-rl; width:100px;'><div style='float:left; width:100px; height:50px; background:green;'></div><div style='float:left; width:100px; height:50px; background:green;'></div>"></iframe>
+  <script>
+    iframe.onload = function() {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          iframe.style.height = "100px";
+          document.documentElement.classList.remove("reftest-wait");
+        });
+      });
+    }
+  </script>
+</html>

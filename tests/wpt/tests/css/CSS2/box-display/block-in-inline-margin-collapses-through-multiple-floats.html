@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>CSS Test: block-in-inline margin collapses through multiple intervening floats</title>
+<link rel="help" href="https://www.w3.org/TR/CSS21/visuren.html#anonymous-block-level">
+<link rel="help" href="https://www.w3.org/TR/CSS21/box.html#collapsing-margins">
+<link rel="help" href="https://www.w3.org/TR/CSS21/visuren.html#floats">
+<link rel="match" href="block-in-inline-margin-collapses-through-multiple-floats-ref.html">
+<meta name="assert" content="Multiple floats between two block-in-inlines do not interfere with the margin collapsing between the two blocks.">
+<style>
+.container { width: 200px; }
+.first { width: 200px; height: 20px; margin-bottom: 40px; background: blue; }
+.float-a { float: left; width: 50px; height: 30px; background: yellow; }
+.float-b { float: right; width: 50px; height: 30px; background: orange; }
+.second { width: 200px; height: 20px; background: blue; }
+</style>
+<p>Two blue rectangles 40px apart; yellow and orange floats sit between them.</p>
+<div class="container">
+    <span><div class="first"></div></span>
+    <div class="float-a"></div>
+    <div class="float-b"></div>
+    <span><div class="second"></div></span>
+</div>

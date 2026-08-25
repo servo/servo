@@ -1,0 +1,71 @@
+<svg version="1.1" baseProfile="full" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="[reviewer]" author="ED" status="empty"
+    version="$Revision: 1.5 $" testname="$RCSfile: struct-use-08-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/struct.html#UseElement">
+        <p>
+          [[Describe which section and what specific assertion is being tested
+          by the test. If the test has a number of sub tests, multiple
+          "testComponent" elements can be specified within the "testDescription"
+          element.]]
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        [[Describe how to use the here. The instructions should specify any
+        steps requied to run the test or any manual operation that need
+        to be performed to run the test.]]
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        [[Describe the pass criteria of the test here. The pass criteria is what
+        should be displayed when the test is run.]]
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: struct-use-08-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <g transform="translate(60,50)">
+      <use id="use-elm-1" width="120" height="120" xlink:href="../images/struct-use-08-b-cycles.svg#svg-root"/>
+      <rect width="120" height="120" fill="none" stroke="black"/>
+      <text x="60" y="140" text-anchor="middle" font-size="14">'use' referencing 'svg' element</text>
+    </g>
+
+    <g transform="translate(300,50)">
+      <use id="use-elm-2" width="120" height="120" xlink:href="../images/struct-use-08-b-cycles.svg#image"/>
+      <rect width="120" height="120" fill="none" stroke="black"/>
+      <text x="60" y="140" text-anchor="middle" font-size="14">'use' referencing 'image' element</text>
+    </g>
+
+    <text x="240" y="260" text-anchor="middle" fill="green">This text should be visible.</text>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.5 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+</svg>

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<title>@scope and :focus</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-6/#scope-atrule">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<main id=main></main>
+
+<template id=test_subject>
+  <div>
+    <style>
+        @scope (.a:focus) {
+          :scope { z-index: 1; }
+        }
+    </style>
+    <div class=a tabindex=0>1</div>
+</template>
+<script>
+promise_test(async (t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_subject.content.cloneNode(true));
+
+  let a = main.querySelector('.a');
+
+  assert_equals(getComputedStyle(a).zIndex, 'auto');
+  await test_driver.bless('focus', () => a.focus());
+  assert_equals(getComputedStyle(a).zIndex, '1');
+}, ':focus via :scope in subject');
+</script>
+
+<template id=test_non_subject>
+  <div>
+    <style>
+        @scope (.a:focus) {
+          :scope .b { z-index: 1; }
+        }
+    </style>
+    <div class=a tabindex=0>
+      <div class=b>2</div>
+    </div>
+</template>
+<script>
+promise_test(async (t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_non_subject.content.cloneNode(true));
+
+  let a = main.querySelector('.a');
+  let b = main.querySelector('.b');
+
+  assert_equals(getComputedStyle(b).zIndex, 'auto');
+  await test_driver.bless('focus', () => a.focus());
+  assert_equals(getComputedStyle(b).zIndex, '1');
+}, ':focus via :scope in non-subject');
+</script>
+
+<template id=test_subject_limit>
+  <div>
+    <style>
+        @scope (.a) to (:scope:focus) {
+          :scope { z-index: 1; }
+        }
+    </style>
+    <div class=a tabindex=0>3</div>
+</template>
+<script>
+promise_test(async (t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_subject_limit.content.cloneNode(true));
+
+  let a = main.querySelector('.a');
+
+  assert_equals(getComputedStyle(a).zIndex, '1');
+  await test_driver.bless('focus', () => a.focus());
+  // After focus(), we're no longer in scope because the limit (to-selector)
+  // kicks in.
+  assert_equals(getComputedStyle(a).zIndex, 'auto');
+}, ':focus in limit, :scope in subject');
+</script>
+
+<template id=test_non_subject_limit>
+  <div>
+    <style>
+        @scope (.a) to (.b:focus) {
+          .b { z-index: 1; }
+        }
+    </style>
+    <div class=a tabindex=0>
+      <div class=b tabindex=1>4</div>
+    </div>
+</template>
+<script>
+promise_test(async (t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_non_subject_limit.content.cloneNode(true));
+
+  let a = main.querySelector('.a');
+  let b = main.querySelector('.b');
+
+  assert_equals(getComputedStyle(b).zIndex, '1');
+  await test_driver.bless('focus', () => b.focus());
+  // After focus(), we're no longer in scope because the limit (to-selector)
+  // kicks in.
+  assert_equals(getComputedStyle(b).zIndex, 'auto');
+}, ':focus in intermediate limit, :scope in subject');
+</script>

@@ -1,0 +1,63 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Table header group and top captions</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#table-display" />
+        <meta name="assert" content="A table-header-group element is placed after any top captions." />
+        <style type="text/css">
+            .table
+            {
+                display: table;
+            }
+            .caption
+            {
+                border: 1px solid black;
+                background: orange;
+                caption-side: top;
+                color: orange;
+                display: table-caption;
+                height: 4em;
+                width: 4em;
+            }
+            #thead
+            {
+                display: table-header-group;
+                background: blue;
+            }
+            #tbody
+            {
+                display: table-row-group;
+                background: orange;
+            }
+            .tr
+            {
+                display: table-row;
+            }
+            .td
+            {
+                display: table-cell;
+                border: 1px solid black;
+                height: 4em;
+                width: 4em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the blue square below is stacked beneath either one or two orange squares and has one orange square underneath it.</p>
+        <div class="table">
+            <div id="tbody">
+                <div class="tr">
+                     <div class="td"></div>
+                </div>
+            </div>
+            <div id="thead">
+                <div class="tr">
+                     <div class="td"></div>
+                </div>
+            </div>
+            <div class="caption"></div>
+            <div class="caption"></div>
+        </div>
+    </body>
+</html>

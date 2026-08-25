@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>table is flex item</title>
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-flexbox-1/#layout-algorithm" title="9. Flex Layout Algorithm">
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#used-min-width-of-table">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="Flex item table's min-width is honored when it is larger than the table's min-content width">
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div style="display: flex; width: 100px;">
+  <div style="display: table; min-width: 100px; background: green;">
+    <div style="display:table-cell;">
+      <div style="width: 50px; height: 100px;"></div>
+    </div>
+  </div>
+  <div style="height: 100px; background: red; flex-basis: 100px; min-width: 0px;"></div>
+</div>

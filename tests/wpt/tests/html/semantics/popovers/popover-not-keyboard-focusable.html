@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Popover keyboard focus behaviors</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel=help href="https://open-ui.org/components/popover.research.explainer">
+<link rel=help href="https://html.spec.whatwg.org/multipage/popover.html">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<button id=firstfocus tabindex="0">Button 1</button>
+<div popover>
+  <p>This is a popover without a focusable element</p>
+</div>
+<button id=secondfocus tabindex="0">Button 2</button>
+
+<script>
+promise_test(async () => {
+  const b1 = document.getElementById('firstfocus');
+  const b2 = document.getElementById('secondfocus');
+  const popover = document.querySelector('[popover]');
+  b1.focus();
+  assert_equals(document.activeElement,b1);
+  popover.showPopover();
+  assert_true(popover.matches(':popover-open'));
+  assert_equals(document.activeElement,b1);
+  // Tab once
+  await new test_driver.send_keys(document.body,'\uE004'); // Tab
+  assert_equals(document.activeElement, b2, 'Keyboard focus should skip the open popover');
+  assert_true(popover.matches(':popover-open'),'changing focus should not close the popover');
+  popover.hidePopover();
+
+  // Add a focusable button to the popover and make sure we can focus that
+  const button = document.createElement('button');
+  button.setAttribute("tabindex", "0");
+  popover.appendChild(button);
+  b1.focus();
+  popover.showPopover();
+  assert_equals(document.activeElement,b1);
+  // Tab once
+  await new test_driver.send_keys(document.body,'\uE004'); // Tab
+  assert_equals(document.activeElement, button, 'Keyboard focus should go to the contained button');
+  assert_true(popover.matches(':popover-open'),'changing focus to the popover should leave it showing');
+  popover.hidePopover();
+  assert_false(popover.matches(':popover-open'));
+}, "Popover should not be keyboard focusable");
+</script>

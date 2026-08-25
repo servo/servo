@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>appendChild between documents should not crash</title>
+<link rel="help" href="https://crbug.com/40573841">
+<span id="e1"></span>
+<span id="e2">
+  <span id="e3"></span>
+</span>
+<script>
+  var e1 = document.getElementById("e1");
+  var e2 = document.getElementById("e2");
+  var e3 = document.getElementById("e3");
+  var doc1 = document.implementation.createDocument("", "", null);
+  doc1.appendChild(e2);
+
+  e2.addEventListener(
+      "DOMSubtreeModified", () => {e1.appendChild(e3)}, {once: true});
+  e2.appendChild(e3);
+</script>

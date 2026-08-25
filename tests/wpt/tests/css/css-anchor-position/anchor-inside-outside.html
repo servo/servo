@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning: anchor(inside/outside)</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#valdef-anchor-inside">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#valdef-anchor-outside">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<style>
+  #cb {
+    position: relative;
+    width: 400px;
+    height: 400px;
+    border: 1px solid black;
+  }
+  #anchor {
+    position: absolute;
+    top: 250px;
+    left: 150px;
+    background-color: skyblue;
+    width: 50px;
+    height: 50px;
+    anchor-name: --a;
+  }
+  .target {
+    position: absolute;
+    position-anchor: --a;
+    background-color: tomato;
+    width: 10px;
+    height: 10px;
+  }
+</style>
+<div id=cb>
+  <div id=anchor></div>
+  <div class=target style="left:anchor(inside)" data-offset-x=150></div>
+  <div class=target style="left:anchor(outside)" data-offset-x=200></div>
+  <div class=target style="right:anchor(inside)" data-offset-x=190></div>
+  <div class=target style="right:anchor(outside)" data-offset-x=140></div>
+  <div class=target style="top:anchor(inside)" data-offset-y=250></div>
+  <div class=target style="top:anchor(outside)" data-offset-y=300></div>
+  <div class=target style="bottom:anchor(inside)" data-offset-y=290></div>
+  <div class=target style="bottom:anchor(outside)" data-offset-y=240></div>
+  <!-- Logical -->
+  <div class=target style="inset-inline-start:anchor(inside)" data-offset-x=150></div>
+  <div class=target style="inset-inline-start:anchor(outside)" data-offset-x=200></div>
+  <div class=target style="inset-inline-end:anchor(inside)" data-offset-x=190></div>
+  <div class=target style="inset-inline-end:anchor(outside)" data-offset-x=140></div>
+  <div class=target style="inset-block-start:anchor(inside)" data-offset-y=250></div>
+  <div class=target style="inset-block-start:anchor(outside)" data-offset-y=300></div>
+  <div class=target style="inset-block-end:anchor(inside)" data-offset-y=290></div>
+  <div class=target style="inset-block-end:anchor(outside)" data-offset-y=240></div>
+</div>
+<script>
+  addEventListener('load', () => checkLayout('.target'));
+</script>

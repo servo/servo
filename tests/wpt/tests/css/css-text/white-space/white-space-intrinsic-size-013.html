@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Text Test: min-content sizing and 'white-space: pre-wrap'</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-text-3/#white-space-property">
+  <link rel="help" href="https://www.w3.org/TR/css-text-3/#white-space-phase-2">
+  <link rel="help" href="https://www.w3.org/TR/css-text-3/#hanging">
+  <link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+
+  <meta content="When 'white-space' is 'pre-wrap', white spaces at the end of the line are preserved. In this test, the overflowing end-of-line white spaces following the 'A', the 'GH', the 'MNO' and the 'WXYZ' conditionally 'hang' while they do not affect the intrinsic min-content size." name="assert">
+
+  <style>
+  div
+    {
+      color: transparent;
+      /*
+      so that background-color can
+      shine through the "A", the "GH",
+      the "MNO" and the "WXYZ" glyphs
+      */
+      font-family: Ahem;
+      font-size: 25px;
+      line-height: 1;
+      width: 0;
+      /*
+      'width: 0' will trigger
+      min-content size
+      for div#min-sized-parent
+      */
+    }
+
+  div#test-overlapped-red
+    {
+      background-color: red;
+      float: left;
+      white-space: pre-wrap;
+      width: auto;
+    }
+
+  div#reference-overlapping-green
+    {
+      background-color: green;
+      position: absolute;
+      width: auto;
+    }
+  </style>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.
+
+  <div id="min-sized-parent">
+
+    <div id="test-overlapped-red">A       &NewLine;GH      &NewLine;MNO     &NewLine;WXYZ    </div>
+
+  </div>
+
+  <!--
+
+  The sequences of white spaces following
+  the "A", the "GH", the "MNO" and the
+  "WXYZ" do not get collapsed. That is by
+  definition of 'white-space: pre-wrap'.
+  They 'hang': they behave like 'ink
+  overflow' while not contributing to
+  min-content sizing.
+
+  The line feeds (&NewLine;) wrap
+  content to the next line box.
+
+  Since div#test-overlapped-red
+  is floated and since its parent in
+  the flow is 0-width, then the float
+  is min-content sized.
+  Since the widest line box
+  is created by the 4th line box
+  (due to "WXYZ" content), then
+  div#test-overlapped-red
+  must not be wider than 100px.
+
+  -->
+
+  <div id="reference-overlapping-green">1234<br>5678<br>90AB<br>CDEF</div>

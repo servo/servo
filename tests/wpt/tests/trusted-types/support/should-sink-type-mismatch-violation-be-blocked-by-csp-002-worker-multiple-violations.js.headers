@@ -1,0 +1,7 @@
+Content-Security-Policy: connect-src 'none'
+Content-Security-Policy: require-trusted-types-for 'script'
+Content-Security-Policy-Report-Only: require-trusted-types-for 'script'
+Content-Security-Policy: require-trusted-types-for 'script' 'invalid'
+Content-Security-Policy-Report-Only: require-trusted-types-for 'script' 'invalid'
+Content-Security-Policy: require-trusted-types-for 'invalid' 'script'
+Content-Security-Policy-Report-Only: require-trusted-types-for 'invalid' 'script'

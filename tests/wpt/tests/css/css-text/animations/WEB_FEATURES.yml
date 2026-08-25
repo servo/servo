@@ -1,0 +1,3 @@
+rules:
+- tab-size-interpolation.html: [tab-size]
+- letter-spacing-*: [letter-spacing]

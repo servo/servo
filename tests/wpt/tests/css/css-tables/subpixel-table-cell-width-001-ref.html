@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<style>
+  div {
+    font-size: 0; /* so I can leave spaces between the child divs */
+    height: 20px;
+  }
+  div > div {
+    display: inline-block;
+  }
+  div > div:first-child {
+    background: blue;
+  }
+  div > div:nth-child(2) {
+    background: lime;
+  }
+</style>
+
+<div>
+  <div style="width:3.6px;"></div>
+  <div style="width:3.6px;"></div>
+</div>
+
+<br><br>
+
+<div>
+  <div style="width:3.3px;"></div>
+  <div style="width:3.3px;"></div>
+</div>

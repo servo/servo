@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Position Test: Test position:sticky element with 100% top in a block container</title>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-position/#sticky-pos">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1748891">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1835705">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="This test verifies that a position:sticky element with 100% top value does not cause the scrollbar to show when shrinking the height of its container.">
+
+<style>
+#scroll {
+  width: 100px;
+  height: 200px;
+  overflow: auto;
+  background: red;
+}
+.sticky {
+  position: sticky;
+  width: 100px;
+  height: 100px;
+  top: 100%;
+  background: green;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="scroll">
+  <div class="sticky"></div>
+</div>
+
+<script>
+window.onload = () => {
+  document.getElementById("scroll").style.height = "100px";
+};
+</script>

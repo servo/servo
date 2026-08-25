@@ -1,0 +1,100 @@
+<!doctype html>
+<title>VTTCue.snapToLines</title>
+<link rel="help" href="https://w3c.github.io/webvtt/#dom-vttcue-snaptolines">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=common.js></script>
+<div id=log></div>
+<script>
+setup(function(){
+    window.video = document.createElement('video');
+    window.t1 = video.addTextTrack('subtitles');
+    document.body.appendChild(video);
+});
+test(function(){
+    var c1 = new VTTCue(0, 1, 'text1');
+    assert_true('snapToLines' in c1, 'snapToLines is not supported');
+    assert_true(c1.snapToLines);
+    c1.line = 101;
+    c1.snapToLines = false;
+    assert_false(c1.snapToLines);
+    c1.snapToLines = true;
+    assert_true(c1.snapToLines);
+    c1.line = -1;
+    c1.snapToLines = false;
+    assert_false(c1.snapToLines);
+    c1.snapToLines = true;
+    assert_true(c1.snapToLines);
+    c1.line = 0;
+    c1.snapToLines = false;
+    assert_false(c1.snapToLines);
+}, document.title+', script-created cue');
+
+var t_parsed = async_test(document.title+', parsed cue');
+t_parsed.step(function(){
+    var t = document.createElement('track');
+    t.onload = this.step_func(function(){
+        var c1 = t.track.cues[0];
+        assert_true(c1.snapToLines);
+        c1.line = 101;
+        c1.snapToLines = false;
+        assert_false(c1.snapToLines);
+        c1.snapToLines = true;
+        assert_true(c1.snapToLines);
+        c1.line = -1;
+        c1.snapToLines = false;
+        assert_false(c1.snapToLines);
+        c1.snapToLines = true;
+        assert_true(c1.snapToLines);
+        c1.line = 0;
+        c1.snapToLines = false;
+        assert_false(c1.snapToLines);
+
+        var c2 = t.track.cues[1];
+        assert_true(c2.snapToLines);
+        c2.line = 101;
+        c2.snapToLines = false;
+        assert_false(c2.snapToLines);
+        c2.snapToLines = true;
+        assert_true(c2.snapToLines);
+        c2.line = -1;
+        c2.snapToLines = false;
+        assert_false(c2.snapToLines);
+        c2.snapToLines = true;
+        assert_true(c2.snapToLines);
+        c2.line = 0;
+        c2.snapToLines = false;
+        assert_false(c2.snapToLines);
+
+        var c3 = t.track.cues[2];
+        assert_false(c3.snapToLines);
+        c3.snapToLines = false;
+        assert_false(c3.snapToLines);
+        c3.snapToLines = true;
+        assert_true(c3.snapToLines);
+        c3.line = 101;
+        c3.snapToLines = false;
+        assert_false(c3.snapToLines);
+        c3.snapToLines = true;
+        assert_true(c3.snapToLines);
+        c3.line = -1;
+        c3.snapToLines = false;
+        assert_false(c3.snapToLines);
+        c3.snapToLines = true;
+        assert_true(c3.snapToLines);
+        c3.line = 0;
+        c3.snapToLines = false;
+        assert_false(c3.snapToLines);
+
+        this.done();
+    });
+    t.onerror = this.step_func(function() {
+      assert_unreached('got error event');
+    });
+    t.src = make_vtt_track('WEBVTT\n\n00:00:00.000 --> 00:00:00.001\ntest\n\n'+
+                           '00:00:00.000 --> 00:00:00.001 line:0\ntest\n\n'+
+                           '00:00:00.000 --> 00:00:00.001 line:0%\ntest', this);
+    t.track.mode = 'showing';
+    video.appendChild(t);
+});
+</script>

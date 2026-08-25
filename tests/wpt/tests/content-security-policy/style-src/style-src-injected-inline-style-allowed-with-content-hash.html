@@ -1,0 +1,46 @@
+<!doctype html>
+<html>
+<head>
+    <meta http-equiv="Content-Security-Policy" content="style-src 'self' 'sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU='; script-src 'self' 'unsafe-inline'">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+
+    <script>
+      var t = async_test("Inline injected style without text content should be allowed");
+      document.addEventListener("securitypolicyviolation", t.unreached_func("Should not trigger a security policy violation"));
+      t.done();
+
+      const style_null_child = document.createElement("style");
+      document.head.appendChild(style_null_child);
+      test(function() {
+        assert_not_equals(style_null_child.sheet, undefined, "style_null_child should have a stylesheet");
+        assert_class_string(style_null_child.sheet, "CSSStyleSheet");
+      }, "Inline style sheet should be created with null child node");
+
+      const style_empty_child = document.createElement("style");
+      style_empty_child.appendChild(document.createTextNode(""));
+      document.head.appendChild(style_empty_child);
+      test(function() {
+        assert_not_equals(style_empty_child.sheet, undefined, "style_empty_child should have a stylesheet");
+        assert_class_string(style_empty_child.sheet, "CSSStyleSheet");
+      }, "Inline style should be created with empty-string child node");
+
+      const { sheet } = style_empty_child;
+      sheet.insertRule("#content { margin-left: 2px; }");
+    </script>
+</head>
+<body>
+    <div id='log'></div>
+
+    <div id="content">Lorem ipsum</div>
+
+    <script>
+      test(function() {
+        var contentEl = document.getElementById("content");
+        var background_color = getComputedStyle(contentEl).getPropertyValue('margin-left');
+        assert_equals(background_color, "2px");
+      }, "Inline style should be applied");
+    </script>
+
+</body>
+</html>

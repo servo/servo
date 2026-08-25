@@ -1,0 +1,13 @@
+-r requirements.txt
+
+# We support a Genshi treewalker that can be used to serialize Genshi
+# streams.
+genshi
+
+# chardet can be used as a fallback in case we are unable to determine
+# the encoding of a document.
+chardet>=2.2
+
+# lxml is supported with its own treebuilder ("lxml") and otherwise
+# uses the standard ElementTree support
+lxml ; platform_python_implementation == 'CPython'

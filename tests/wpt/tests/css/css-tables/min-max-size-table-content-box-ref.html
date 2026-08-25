@@ -1,0 +1,43 @@
+<!doctype html>
+<title>CSS Test Reference</title>
+<meta charset="utf-8">
+<style>
+html,
+body {
+  color: black;
+  background-color: white;
+  font: 16px/0 monospace;
+  padding: 0;
+  margin: 0;
+}
+
+.table {
+  box-sizing: content-box;
+  border: 3px solid black;
+  padding: 5px;
+  background: blue content-box;
+  display: inline-block;
+}
+
+.big {
+  width: 75px;
+  height: 75px;
+}
+
+.td {
+  padding: 1px;
+}
+
+.grid {
+  display: grid;
+  width: 75px;
+  height: 75px;
+}
+</style>
+<div class="table"><div class="td"></div></div><br>
+<div class="table" style="min-height: 50px"><div class="td"></div></div><br>
+<div class="table" style="min-width: 50px"><div class="td"></div></div><br>
+<div class="table"><div class="td"><div class="big"></div></div></div><br>
+<div class="table"><div class="td"><div class="big"></div></div></div><br>
+<div class="grid"><div class="table" style="max-height: 50px"><div class="td"></div></div></div>
+<div class="grid"><div class="table" style="max-width: 50px"><div class="td"></div></div></div>

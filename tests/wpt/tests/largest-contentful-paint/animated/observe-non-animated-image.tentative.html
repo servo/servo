@@ -1,0 +1,27 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset=utf-8>
+  <title>Largest Contentful Paint: observe image.</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="../resources/largest-contentful-paint-helpers.js"></script>
+</head>
+<body>
+  <script>
+    promise_test(async () => {
+      assert_implements(window.LargestContentfulPaint,
+                        "LargestContentfulPaint is not implemented");
+      const beforeLoad = performance.now();
+      // 262 is the size of the animated PNG up until the first frame,
+      // including the chunk that starts the second frame (indicating that
+      //the first frame data is done).
+      const url = window.location.origin + '/images/blue.png';
+      const entry = await load_and_observe(url);
+      // blue.png is 133 by 106.
+      const size = 133 * 106;
+      checkImage(entry, url, 'image_id', size, beforeLoad, ["animated-zero"]);
+    }, "Same origin animated image is observable and has a first frame.");
+  </script>
+</body>
+</html>

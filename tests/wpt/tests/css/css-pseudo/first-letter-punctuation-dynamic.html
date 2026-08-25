@@ -1,0 +1,14 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: ::first-letter modified text node with punctuation</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo/#first-letter-pseudo">
+<link rel="match" href="first-letter-punctuation-dynamic-ref.html">
+<style>
+  #target::first-letter { color: green; }
+</style>
+<p>Only the 'A' below should be green.</p>
+<div id="target"> .<span>B</span></div>
+<script>
+  target.offsetTop;
+  target.firstChild.insertData(0, 'A');
+</script>

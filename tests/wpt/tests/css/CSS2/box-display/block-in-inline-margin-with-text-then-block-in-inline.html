@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>CSS Test: block-in-inline followed by inline text then another block-in-inline</title>
+<link rel="help" href="https://www.w3.org/TR/CSS21/visuren.html#anonymous-block-level">
+<link rel="help" href="https://www.w3.org/TR/CSS21/box.html#collapsing-margins">
+<link rel="match" href="block-in-inline-margin-with-text-then-block-in-inline-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<meta name="assert" content="A block-in-inline, followed by inline text, followed by another block-in-inline, advances the inline text by the first block's margin-bottom and the second block by the inline-line-height.">
+<style>
+.container { width: 100px; font: 20px/1 Ahem; color: green; }
+.first { width: 100px; height: 20px; margin-bottom: 30px; background: blue; }
+.second { width: 100px; height: 20px; background: green; }
+</style>
+<p>Blue rectangle, 30px gap, 'XX', then green rectangle.</p>
+<div class="container">
+    <span><div class="first"></div>XX<div class="second"></div></span>
+</div>

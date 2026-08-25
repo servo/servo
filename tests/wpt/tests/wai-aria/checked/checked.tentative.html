@@ -1,0 +1,16 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/wai-aria/scripts/aria-utils.js"></script>
+
+<div data-testname="checkbox with missing aria-checked" role="checkbox" data-expectedproperties='{ "checked": "false" }' class="ex-props"></div>
+<div data-testname="checkbox with aria-checked true" role="checkbox" aria-checked="true" data-expectedproperties='{ "checked": "true" }' class="ex-props"></div>
+<div data-testname="checkbox with aria-checked false" role="checkbox" aria-checked="false" data-expectedproperties='{ "checked": "false" }' class="ex-props"></div>
+<div data-testname="checkbox with aria-checked mixed" role="checkbox" aria-checked="mixed" data-expectedproperties='{ "checked": "mixed" }' class="ex-props"></div>
+
+<script>
+AriaUtils.verifyPropertiesBySelector(".ex-props");
+</script>

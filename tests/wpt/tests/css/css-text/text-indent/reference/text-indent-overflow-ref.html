@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Test: text-indent causing text to overflow container</title>
+<link rel="author" title="Martin Robinson" href="mailto:mrobinson@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#text-indent-property">
+<style>
+.container {
+  border: solid;
+  width: 200px;
+}
+
+.content {
+  display: inline-block;
+  width: 50px;
+  height: 20px;
+  background: green;
+}
+</style>
+
+<p>Test passes if the green square is positioned just past the content edge of the box.</p>
+
+<div class="container">
+  <span style="margin-left: 200px;"><div class="content"></div></span>
+</div>

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>window.defaultStatus and window.defaultstatus are not supported</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://developer.mozilla.org/en-US/docs/Web/API/Window/defaultStatus">
+<link rel="help" href="https://crbug.com/692835">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+test(() => {
+  assert_false(window.hasOwnProperty('defaultStatus'));
+  assert_false(window.hasOwnProperty('defaultstatus'));
+  assert_equals(window.defaultStatus,undefined);
+  assert_equals(window.defaultstatus,undefined);
+}, "The window.defaultStatus and window.defaultstatus attributes are not supported");
+</script>

@@ -1,0 +1,22 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "3.2-bodyObjectsRecognized.json",
+    "assertionType": "must",
+    "expectedResult": "valid",
+    "onUnexpectedResult" : "failAndContinue",
+    "errorMessage": "ERROR: One or more Bodies of the Annotation is not one of a string of format uri, an External Web Resource, a Choice or Set, a Specific Resource.",
+    "title": "If present, each **_body_** is one of a **string of format uri**, an **External Web Resource**, an **Embedded Textual Body**, a **Choice** or **Set**, or a **Specific Resource** - [model 3.2](https://www.w3.org/TR/annotation-model/#bodies-and-targets), [model 4](https://www.w3.org/TR/annotation-model/#specific-resources)",
+    "description": "True when all Bodies are one of a string of format uri, an External Web Resource, a Choice or Set, a Specific Resource (Sections 3.2, Section 4)",
+    "type": "object",
+    "properties":
+      {
+        "body":
+           {"oneOf": [
+              { "$ref": "bodyTarget.json#/definitions/bodyResourcesFound" },
+              { "type" : ["array"],
+                "items": { "$ref": "bodyTarget.json#/definitions/bodyResourcesFound" }
+             }
+           ]
+        }
+    }
+}

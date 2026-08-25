@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>caret-color second value does not pass to other characters after the caret moves to the end of the text and back</title>
+<link rel="help" href="https://drafts.csswg.org/css-ui/#caret-color">
+<link rel="match" href="caret-color-block-shape-text-color-003-ref.html">
+<meta name="assert" content="When the block caret first moves past the end of the text (no character is overlapped) and then moves back to a position inside the text, only the character under the new caret position is painted with the second caret-color value. Other characters keep their normal color.">
+<script src="/common/reftest-wait.js"></script>
+<style>
+  div {
+    font-size: 5em;
+  }
+  #target {
+    caret-color: black white;
+    caret-shape: block;
+    caret-animation: manual;
+  }
+  #target:focus {
+    outline: none;
+  }
+</style>
+<div id="target" contenteditable spellcheck="false">abc</div>
+<script>
+  target.focus();
+  const sel = getSelection();
+
+  // Force a paint with the caret at the initial position before changing it,
+  // so the next caret move triggers a kCaret-reason repaint that exercises
+  // the cached-text-blob path in the paint controller.
+  requestAnimationFrame(() => {
+    // Move the caret past 'c' (offset 3). No character is overlapped here,
+    // so this paint records no override draw on top of the text fragment.
+    const r1 = document.createRange();
+    r1.setStart(target.firstChild, 3);
+    r1.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(r1);
+
+    requestAnimationFrame(() => {
+      // Move back so the block caret overlaps 'b' (offset 1). With the
+      // previous frame's display item as the cache source, this is where
+      // a buggy override paint would redraw the entire cached text blob
+      // with the second caret-color value, recoloring 'a' and 'c' too.
+      const r2 = document.createRange();
+      r2.setStart(target.firstChild, 1);
+      r2.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(r2);
+
+      requestAnimationFrame(() => requestAnimationFrame(takeScreenshot));
+    });
+  });
+</script>

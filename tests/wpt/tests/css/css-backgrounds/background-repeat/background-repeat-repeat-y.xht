@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Test: background-repeat:repeat-y</title>
+    <link rel="author" title="Jeffrey Carl Faden" href="http://www.jeffreyatw.com/" />
+    <link rel="reviewer" title="Gerard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+    <link rel="match" href="reference/background-repeat-repeat-y.xht"/>
+    <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#propdef-background-repeat" />
+    <link rel="help" href="http://www.w3.org/TR/css3-background/#the-background-repeat" />
+    <meta name="flags" content="image" />
+    <meta name="assert" content="The image is repeated vertically as often as needed to cover the background painting area." />
+    <style type="text/css">
+      <![CDATA[
+      div {
+        background-color: grey;
+        background-image: url("support/rectangle-96x60.png");
+        background-repeat: repeat-y;
+        height: 150px;
+        width: 240px;
+      }
+      ]]>
+    </style>
+  </head>
+  <body>
+    <p><img src="support/rectangle-96x60.png" alt="Image download support must be enabled"/></p>
+    <p>Test passes if the above image repeats vertically in the below rectangle 2&frac12; times exactly. There should be a grey area to the right of the images, but not below them.</p>
+    <div></div>
+  </body>
+</html>

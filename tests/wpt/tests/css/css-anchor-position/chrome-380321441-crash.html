@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>Chrome crash while flipping position-area:start</title>
+<link rel="help" href="https://crbug.com/380321441">
+<style>
+  #anchor {
+    anchor-name: --a;
+  }
+  #anchored {
+    position: absolute;
+    position-anchor: --a;
+    position-area: start;
+    position-try-fallbacks: flip-block;
+    width: 2px;
+    height: 100px;
+    background: teal;
+  }
+</style>
+<div id="anchor">Anchor</div>
+<div id="anchored"></div>

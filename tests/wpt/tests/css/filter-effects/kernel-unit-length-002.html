@@ -1,0 +1,27 @@
+<!doctype html>
+<title>If kernelUnitLength is negative or zero it should default to 1</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#FilterProperty">
+<link rel="help" href="https://www.w3.org/TR/filter-effects-1/#element-attrdef-feconvolvematrix-kernelunitlength">
+<link rel="help" href="https://www.w3.org/TR/filter-effects-1/#element-attrdef-fediffuselighting-kernelunitlength">
+<link rel="match" href="reference/kernel-unit-length-ref.html">
+<svg width="7.5cm" height="5cm" viewBox="0 0 200 120"
+     xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="MyFilter" filterUnits="userSpaceOnUse"
+            x="0" y="0" width="200" height="120">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="4" result="blur"/>
+      <feSpecularLighting in="blur" surfaceScale="5" specularConstant=".75"
+                          specularExponent="20" lighting-color="#bbbbbb"
+                          kernelUnitLength="0 -1">
+        <fePointLight x="-5000" y="-10000" z="20000"/>
+      </feSpecularLighting>
+    </filter>
+  </defs>
+  <rect x="1" y="1" width="198" height="118" fill="#888888"/>
+  <g filter="url(#MyFilter)">
+    <path fill="none" stroke="#D90000" stroke-width="10"
+          d="M50,90 C0,90 0,30 50,30 L150,30 C200,30 200,90 150,90 z"/>
+    <path fill="#D90000"
+          d="M60,80 C30,80 30,40 60,40 L140,40 C170,40 170,80 140,80 z"/>
+  </g>
+</svg>

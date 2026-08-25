@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<span id="escape">{{GET[window_url]}}</span>
+
+<script>
+  var window_url = document.getElementById("escape").textContent;
+  window.open(window_url, "_self");
+</script>

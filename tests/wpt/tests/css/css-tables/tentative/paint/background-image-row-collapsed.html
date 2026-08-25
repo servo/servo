@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<title>Collapsed table row background image geometry</title>
+<link rel="author" title="Aleks Totic" href="atotic@chromium.org" />
+<link rel="help" href="https://www.w3.org/TR/css-tables-3/#drawing-backgrounds-and-borders" />
+<link rel="match" href="background-image-row-collapsed-ref.html" />
+<style>
+  body {
+    --peek: LightGreen;
+    --border: transparent;
+    margin:0;
+  }
+  .bg {
+    background-color: var(--peek);
+    background-image: linear-gradient(45deg, orange 0px, orange 5px, gainsboro 3px, gainsboro 25%, rgba(160,160,160,0.5) 25%, rgba(160,160,160,0.5) 50%, silver 50%, silver 75%, darkgray 75%, darkgray 99%, blue 99%);
+    background-repeat: no-repeat;
+  }
+  main  * {
+    box-sizing: border-box;
+  }
+  main table {
+    border: 10px solid var(--border);
+    border-collapse: collapse;
+  }
+  main td {
+    width: 50px;
+    height: 50px;
+    padding: 0px;
+  }
+</style>
+<body>
+<main>
+  <table>
+    <tr class="bg">
+      <td colspan=4></td>
+    </tr>
+    <tr class="bg">
+      <td></td>
+      <td rowspan=2 colspan=2></td>
+      <td></td>
+    </tr>
+    <tr>
+      <td></td>
+      <td></td>
+    </tr>
+    <tr class="bg">
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+    </tr>
+  </table>
+</main>
+</body>

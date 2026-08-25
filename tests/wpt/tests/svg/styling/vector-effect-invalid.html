@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>vector-effect test: parsing vector-effect with invalid values</title>
+<link rel="help" href="https://www.w3.org/TR/SVG2/coords.html#VectorEffects">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("vector-effect", "none none");
+test_invalid_value("vector-effect", "none non-scaling-stroke");
+test_invalid_value("vector-effect", "non-scaling-stroke viewport screen");
+test_invalid_value("vector-effect", "none viewport");
+test_invalid_value("vector-effect", "none screen");
+test_invalid_value("vector-effect", "viewport");
+test_invalid_value("vector-effect", "screen");
+test_invalid_value("vector-effect", "screen non-scaling-stroke");
+// The following were removed by https://github.com/w3c/svgwg/issues/582
+test_invalid_value("vector-effect", "non-scaling-stroke viewport");
+test_invalid_value("vector-effect", "non-scaling-stroke screen");
+</script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<head>
+  <title>Crash with inline style being changed to revert-rule</title>
+  <link rel="help" href="https://crbug.com/515426873">
+</head>
+<body>
+  <div id="d">Test passes if there is no crash.</div>
+  <script>
+    const d = document.getElementById('d');
+    d.style.color = 'green';
+    d.offsetTop;
+    d.style.color = 'revert-rule';
+  </script>
+</body>

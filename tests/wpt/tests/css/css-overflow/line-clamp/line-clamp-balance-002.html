@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<title>CSS Overflow: `line-clamp` and text-wrap: balance, nested</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-balance-002-ref.html">
+<meta name="assert" content="Checks that balancing happens after clamping, not before, including in nested blocks.">
+<style>
+.clamp {
+  line-clamp: 3;
+  font-family: monospace;
+  width: 8.1ch; /* the extra .1 is just in case the … character isn't perfectly monospaced. */
+}
+.balance {
+    text-wrap: balance;
+}
+</style>
+<p>Test passes if you see numbers up to 8 (and no further) below.
+
+<div class="clamp">
+    0
+    <div class=balance>
+    1 2 3 4 5 6 7 8 9
+    </div>
+    10
+</div>

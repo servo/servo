@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Ruby base ending with trailing whitespace followed by text should not crash</title>
+<link rel="help" href="https://crbug.com/394983447">
+<style>
+body {
+  text-align: justify;
+}
+</style>
+<ruby>
+AxBxC DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
+<input />
+<rt dir="ltr">
+c tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt
+</rt>
+<ins>E F</ins>G HxIxJ
+KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK
+</ruby>

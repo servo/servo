@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Test: CSSOM StyleSheet insertRule with a namespace rule after an existing import rule</title>
+    <link rel="help" href="https://drafts.csswg.org/cssom/#dom-cssstylesheet-insertrule">
+    <meta name="flags" content="dom">
+    <meta name="assert" content="Inserting an @namespace rule at an index following one or more @import rules places it correctly without corrupting the rule list.">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style id="oneImport">
+        @import url("support/a-green.css");
+    </style>
+    <style id="twoImports">
+        @import url("support/a-green.css");
+        @import url("support/b-green.css");
+    </style>
+</head>
+<body>
+<div id="log"></div>
+<script>
+    test(function() {
+        var sheet = document.getElementById("oneImport").sheet;
+        assert_equals(sheet.cssRules.length, 1, "precondition: one @import rule");
+        assert_equals(sheet.cssRules[0].type, CSSRule.IMPORT_RULE);
+
+        // The @namespace rule must be inserted at index 1 (right after the @import).
+        // Internally the engine keeps separate vectors for @import and @namespace rules,
+        // so the global index (1) differs from the namespace-vector-local index (0).
+        var returnedIndex = sheet.insertRule('@namespace foo url("http://example.com/ns");', 1);
+        assert_equals(returnedIndex, 1, "insertRule returns the requested index");
+
+        assert_equals(sheet.cssRules.length, 2, "rule list grew by one");
+        assert_equals(sheet.cssRules[0].type, CSSRule.IMPORT_RULE, "import rule still first");
+
+        var nsRule = sheet.cssRules[1];
+        assert_true(nsRule instanceof CSSNamespaceRule, "inserted rule is a CSSNamespaceRule");
+        assert_equals(nsRule.prefix, "foo", "namespace prefix round-trips");
+        assert_equals(nsRule.namespaceURI, "http://example.com/ns", "namespace URI round-trips");
+    }, "insertRule places an @namespace rule after a single @import rule");
+
+    test(function() {
+        var sheet = document.getElementById("twoImports").sheet;
+        assert_equals(sheet.cssRules.length, 2, "precondition: two @import rules");
+
+        // Insert at index 2, after both imports. The namespace-vector-local index is 0
+        // while the global index is 2, maximizing the gap that triggers the bug.
+        var returnedIndex = sheet.insertRule('@namespace bar url("http://example.com/ns2");', 2);
+        assert_equals(returnedIndex, 2, "insertRule returns the requested index");
+
+        assert_equals(sheet.cssRules.length, 3, "rule list grew by one");
+        assert_equals(sheet.cssRules[0].type, CSSRule.IMPORT_RULE);
+        assert_equals(sheet.cssRules[1].type, CSSRule.IMPORT_RULE);
+
+        var nsRule = sheet.cssRules[2];
+        assert_true(nsRule instanceof CSSNamespaceRule, "inserted rule is a CSSNamespaceRule");
+        assert_equals(nsRule.prefix, "bar", "namespace prefix round-trips");
+        assert_equals(nsRule.namespaceURI, "http://example.com/ns2", "namespace URI round-trips");
+    }, "insertRule places an @namespace rule after two @import rules");
+</script>
+</body>
+</html>

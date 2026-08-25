@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<link rel="help" href="https://github.com/WICG/PEPC/blob/main/explainer.md#locking-the-pepc-style">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<!-- The install element is not a void element. Its children do not render. -->
+
+<!-- This tests for implementations that used to have no end tag for the install element.
+ In those implementations there would be 2 install elements in this div. -->
+<div id="install-element-div">
+  <install>
+  <install>
+</div>
+
+<install id="el1">This is some text</install>
+
+<!-- The install element does not automatically close <p> tags -->
+<p id="paragraph">Foo <install>bar</install> baz</p>
+
+<script>
+  test(function(){
+    assert_equals(document.getElementById("install-element-div").childElementCount, 1);
+    assert_equals(document.getElementById("el1").innerText, '');
+    assert_equals(document.getElementById("el1").textContent, 'This is some text');
+    assert_equals(document.getElementById("el1").innerHTML, 'This is some text');
+    assert_equals(document.body.childElementCount, 4); //div, install, p, script
+    assert_equals(document.getElementById("paragraph").textContent, 'Foo bar baz');
+  }, "The install element should have no end tag or contents");
+</script>
+</body>

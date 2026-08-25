@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Transitions Test: transition-property - color</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="author" title="Shiyou Tan" href="mailto:shiyoux.tan@intel.com">
+<link rel="help" href="https://drafts.csswg.org/web-animations-1/#animation-type">
+<link rel="help" href="https://drafts.csswg.org/css-color/#the-color-property">
+<meta name="assert" content="Test checks that the 'color' property is animatable.">
+<style>
+  #test {
+    color: red;
+    transition-duration: 2s;
+    transition-property: color;
+    transition-timing-function: linear;
+  }
+</style>
+<body>
+  <p>Click the 'FillerText' whose color is red below. Test passes if the color transforms to green gradually not immediately.</p>
+  <div id="test">
+    FillerTextFillerTextFillerTextFillerText
+  </div>
+  <script>
+    (function() {
+      var test = document.querySelector("#test");
+      test.addEventListener("click", function(evt) {
+        test.setAttribute("style", "color: green;");
+      }, false);
+    })();
+  </script>
+</body>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js" nonce="secret"></script>
+<script src="/resources/testharnessreport.js" nonce="secret"></script>
+
+<!-- `Content-Security-Policy: script-src 'nonce-secret'` delivered via headers -->
+
+<body>
+  <style>body[nonce*=secret]{background:url(/security/resources/abe.png);}</style>
+  <body
+  <script nonce="secret" src="https://example.com/good.js"></script>
+  <script nonce="secret">
+    test(t => {
+      const body = document.querySelector('body');
+      var style = getComputedStyle(body);
+      assert_equals(style['background-image'], 'none');
+    }, "Nonces don't leak via CSS side-channels when a dangling body is injected.");
+  </script>
+
+  <style>html[nonce*=secret]{background:url(/security/resources/abe.png);}</style>
+  <html
+  <script nonce="secret" src="https://example.com/good.js"></script>
+  <script nonce="secret">
+    test(t => {
+      const html = document.querySelector('html');
+      var style = getComputedStyle(html);
+      assert_equals(style['background-image'], 'none');
+    }, "Nonces don't leak via CSS side-channels when a dangling html is injected.");
+  </script>
+</body>

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+
+ <html lang="en">
+
+  <meta charset="UTF-8">
+
+  <title>CSS Text: 'word-break: break-all' applied to an inline in latin</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-text-3/#word-break-property">
+  <link rel="match" href="reference/word-break-break-all-062-ref.html">
+
+  <style>
+  div
+    {
+      border: orange solid;
+      font: 24px monospace;
+      margin-bottom: 4px;
+      width: 15ch;
+      /*
+      15 in 15ch is an entirely arbitrary number.
+      The test only aims at checking if a word
+      will break.
+      */
+    }
+
+  div#ws-normal
+    {
+      white-space: normal;
+    }
+
+  div#ws-prewrap
+    {
+      white-space: pre-wrap;
+    }
+
+  div#ws-breakspaces
+    {
+      white-space: break-spaces;
+    }
+
+  div#ws-preline
+    {
+      white-space: pre-line;
+    }
+
+  span.test
+    {
+      word-break: break-all;
+    }
+  </style>
+
+  <p>Test passes if the glyphs in the 5 orange rectangles are laid out <strong>identically</strong>.
+
+  <div id="ws-normal"><span class="test">A simple sentence in english.</span></div>
+  <!--                                   123456789012345             -->
+
+  <div id="ws-prewrap"><span class="test">A simple sentence in english.</span></div>
+  <!--                                    123456789012345             -->
+
+  <div id="ws-breakspaces"><span class="test">A simple sentence in english.</span></div>
+  <!--                                        123456789012345             -->
+
+  <div id="ws-preline"><span class="test">A simple sentence in english.</span></div>
+  <!--                                    123456789012345             -->
+
+  <div id="reference">A simple senten<br>ce in english.</div>

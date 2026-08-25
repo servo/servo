@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>JPEG XL integration: input type=image</title>
+<link rel="help" href="https://github.com/web-platform-tests/interop-jpegxl">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<input id="img-input" type="image" src="resources/3x3_srgb_lossless.jxl" alt="submit" width="30" height="30">
+
+<script>
+promise_test(async () => {
+  const input = document.getElementById('img-input');
+  await new Promise((resolve, reject) => {
+    input.addEventListener('load', resolve, { once: true });
+    input.addEventListener('error', () => reject(new Error('input image failed')), { once: true });
+  });
+  const rect = input.getBoundingClientRect();
+  assert_greater_than(rect.width, 0);
+  assert_greater_than(rect.height, 0);
+}, '<input type=image> can load JPEG XL source');
+</script>

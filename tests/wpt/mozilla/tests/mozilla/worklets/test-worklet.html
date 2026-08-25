@@ -1,0 +1,46 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Test worklet loading</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script>
+var testWorklet = new TestWorklet();
+var host_info = get_host_info();
+
+promise_test(function() {
+  return testWorklet.addModule("test-worklet.js")
+    .then(function () {
+      assert_equals(testWorklet.lookup("hello"), "world");
+    });
+}, "Loading a test worklet.");
+
+promise_test(function(t) {
+   var path = new URL("test_worklet.js", document.location).pathname;
+   var url = new URL(path, host_info.HTTP_REMOTE_ORIGIN);
+   return promise_rejects_dom(t, "AbortError", testWorklet.addModule(url));
+}, "Loading a cross-origin test worklet.");
+
+promise_test(function(t) {
+   return promise_rejects_dom(t, "AbortError", testWorklet.addModule("nonexistent-worklet.js"));
+}, "Loading a nonexistent test worklet.");
+
+promise_test(function(t) {
+   return promise_rejects_dom(t, "AbortError", testWorklet.addModule("syntax-error.js"));
+}, "Loading a syntactically incorrect test worklet.");
+
+promise_test(function(t) {
+  // NOTE: The specification for AddModule does not use the promise returned by "run a module script",
+  // therefore an exception thrown when executing a module will not be propagated.
+  // <https://html.spec.whatwg.org/multipage/#dom-worklet-addmodule
+
+  // 6.4.4. Run a module script given script.
+  // 6.4.5. Queue a global task on the networking task source given workletInstance's relevant
+  // global object to perform the following steps:
+  // 6.4.5.1 If pendingTasks is not −1:
+  // 6.4.5.1.1 Set pendingTasks to pendingTasks − 1.
+  // 6.4.5.1.2 If pendingTasks is 0, then resolve promise.
+
+   return testWorklet.addModule("throw-exception.js");
+}, "Loading an exception-throwing test Worklet should not reject the promise.");
+</script>

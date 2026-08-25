@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html>
+<body>
+<img src="/images/blue.png" width="100" height="50" id="iframe-image">
+<script>
+  const observer = new PerformanceObserver(entryList => {
+    window.parent.triggerTest(entryList.getEntries()[0]);
+  });
+  observer.observe({type: 'largest-contentful-paint', buffered: true});
+</script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Shared WebAssembly.Memory cannot cross agent clusters: dedicated worker spawned by SharedWorker</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+
+async_test(t => {
+  const sw = new SharedWorker("resources/sharedworker-spawn-dedicated.js");
+  const { port1, port2 } = new MessageChannel();
+
+  // Hand port2 to the SharedWorker, which forwards it to a dedicated worker
+  // it spawns in its own agent cluster.
+  sw.port.postMessage(null, [port2]);
+
+  sw.port.onmessage = t.step_func(e => {
+    switch (e.data) {
+      case "ready": {
+        const memory = new WebAssembly.Memory({ shared: true, initial: 1, maximum: 1 });
+        port1.postMessage(memory);
+        break;
+      }
+      case "got-messageerror": {
+        t.done();
+        break;
+      }
+      default: {
+        assert_unreached("Unexpected message from SharedWorker: " + e.data);
+      }
+    }
+  });
+
+  sw.port.onmessageerror = t.unreached_func("messageerror on SharedWorker port");
+  port1.onmessageerror = t.unreached_func("messageerror on the window-side port");
+}, "Shared WebAssembly.Memory sent to a dedicated worker in a SharedWorker's agent cluster fires messageerror");
+</script>

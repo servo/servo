@@ -1,0 +1,17 @@
+WEBVTT
+Invalid vertical direction settings (all settings are ignored).
+
+1
+00:00:00.000 --> 00:00:30.500 vertical:#vertical
+Bear is Coming!!!!!
+Normal rendering - direction setting is ignored.
+
+2
+00:00:31.000 --> 00:01:00.500 vertical:verticallr
+I said Bear is coming!!!!
+Normal rendering - direction setting is ignored.
+
+3
+00:01:01.000 --> 00:02:00.500 vertical:vertical-rl
+I said Bear is coming now!!!!
+Normal rendering - direction setting is ignored.

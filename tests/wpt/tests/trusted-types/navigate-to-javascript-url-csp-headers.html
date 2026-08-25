@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./support/csp-violations.js"></script>
+<script src="./support/navigation-support.js"></script>
+<script>
+  promise_test(async t => {
+    let result = await tryNavigatingToJavaScriptURLInSubframe("");
+    assert_equals(result.exception, null);
+    assert_true(result.javaScriptExecuted, "JavaScript code should have been executed");
+    assert_equals(result.violations.length, 0);
+  }, `no require-trusted-types-for directive: navigation is successful.`);
+
+  promise_test(async t => {
+    let result = await tryNavigatingToJavaScriptURLInSubframe(
+      `header(Content-Security-Policy,require-trusted-types-for 'script',True)`
+    );
+    assert_equals(result.exception, null);
+    assert_false(result.javaScriptExecuted, "JavaScript code shouldn't have been executed");
+    assert_equals(result.violations.length, 1);
+    assert_equals(result.violations[0].disposition, "enforce");
+    assert_equals(result.violations[0].sample,
+                  `Location href|${clipSampleIfNeeded(kJavaScriptURLCode)}`);
+  }, `One enforce require-trusted-types-for 'script' directive: navigation is blocked, violation is reported.`);
+
+  promise_test(async t => {
+    let result = await tryNavigatingToJavaScriptURLInSubframe(
+      `header(Content-Security-Policy-Report-Only,require-trusted-types-for 'script',True)`
+    );
+    assert_equals(result.exception, null);
+    assert_true(result.javaScriptExecuted, "JavaScript code should have been executed");
+    assert_equals(result.violations.length, 1);
+    assert_equals(result.violations[0].disposition, "report");
+    assert_equals(result.violations[0].sample,
+                  `Location href|${clipSampleIfNeeded(kJavaScriptURLCode)}`);
+  }, `One report-only require-trusted-types-for 'script' directive: navigation continues, violation is reported.`);
+
+  promise_test(async t => {
+    let result = await tryNavigatingToJavaScriptURLInSubframe(
+      `\
+header(Content-Security-Policy,require-trusted-types-for 'script',True)|\
+header(Content-Security-Policy,require-trusted-types-for 'script',True)|\
+header(Content-Security-Policy,require-trusted-types-for 'script',True)|\
+header(Content-Security-Policy,require-trusted-types-for 'script',True)|\
+header(Content-Security-Policy,require-trusted-types-for 'invalid',True)|\
+header(Content-Security-Policy,require-trusted-types-for 'script',True)`
+    );
+    assert_equals(result.exception, null);
+    assert_false(result.javaScriptExecuted, "JavaScript code shouldn't have been executed");
+    assert_equals(result.violations.length, 5);
+  }, `Multiple enforce require-trusted-types-for directives: one violation reported for each require-trusted-types-for 'script', invalid sink groups ignored.`);
+
+  promise_test(async t => {
+    let result = await tryNavigatingToJavaScriptURLInSubframe(
+      `\
+header(Content-Security-Policy-Report-Only,require-trusted-types-for 'script',True)|\
+header(Content-Security-Policy-Report-Only,require-trusted-types-for 'script',True)|\
+header(Content-Security-Policy-Report-Only,require-trusted-types-for 'script',True)|\
+header(Content-Security-Policy-Report-Only,require-trusted-types-for 'script',True)|\
+header(Content-Security-Policy-Report-Only,require-trusted-types-for 'invalid',True)|\
+header(Content-Security-Policy-Report-Only,require-trusted-types-for 'script',True)`
+    );
+    assert_equals(result.exception, null);
+    assert_true(result.javaScriptExecuted, "JavaScript code should have been executed");
+    assert_equals(result.violations.length, 5);
+  }, `Multiple report-only require-trusted-types-for directives: one violation reported for each require-trusted-types-for 'script', invalid sink groups ignored.`);
+
+  promise_test(async t => {
+    let result = await tryNavigatingToJavaScriptURLInSubframe(
+      `\
+header(Content-Security-Policy-Report-Only,require-trusted-types-for 'script',True)|\
+header(Content-Security-Policy,require-trusted-types-for 'script',True)|\
+header(Content-Security-Policy,require-trusted-types-for 'script',True)|\
+header(Content-Security-Policy,require-trusted-types-for 'script',True)|\
+header(Content-Security-Policy,require-trusted-types-for 'unknown',True)|\
+header(Content-Security-Policy,require-trusted-types-for 'script',True)`
+    );
+    assert_equals(result.exception, null);
+    assert_false(result.javaScriptExecuted, "JavaScript code shouldn't have been executed");
+    assert_equals(result.violations.length, 5);
+  }, `One violated report-only require-trusted-types-for directive followed by multiple enforce directives: behave like one enforced 'script'`);
+
+  promise_test(async t => {
+    let result = await tryNavigatingToJavaScriptURLInSubframe(
+      `\
+header(Content-Security-Policy,require-trusted-types-for 'script',True)|\
+header(Content-Security-Policy-Report-Only,require-trusted-types-for 'script',True)|\
+header(Content-Security-Policy-Report-Only,require-trusted-types-for 'script',True)|\
+header(Content-Security-Policy-Report-Only,require-trusted-types-for 'script',True)|\
+header(Content-Security-Policy-Report-Only,require-trusted-types-for 'unknown',True)|\
+header(Content-Security-Policy-Report-Only,require-trusted-types-for 'script',True)`
+    );
+    assert_equals(result.exception, null);
+    assert_false(result.javaScriptExecuted, "JavaScript code should't have been executed");
+    assert_equals(result.violations.length, 5);
+  }, `One violated enforce require-trusted-types-for directive followed by multiple report-only directives: behave like one enforced 'script'`);
+
+  promise_test(async t => {
+    let result = await tryNavigatingToJavaScriptURLInSubframe(
+      `\
+header(Content-Security-Policy,require-trusted-types-for 'script',True)|\
+header(Content-Security-Policy-Report-Only,require-trusted-types-for 'script',True)|\
+header(Content-Security-Policy,require-trusted-types-for 'script',True)|\
+header(Content-Security-Policy-Report-Only,require-trusted-types-for 'script',True)|\
+header(Content-Security-Policy,require-trusted-types-for 'script',True)|\
+header(Content-Security-Policy-Report-Only,require-trusted-types-for 'script',True)`
+    );
+    assert_equals(result.exception, null);
+    assert_false(result.javaScriptExecuted, "JavaScript code shouldn't have been executed");
+
+    let violations = result.violations.sort();
+    assert_equals(violations.length, 6);
+    assert_equals(violations[0].disposition, "enforce");
+    assert_equals(violations[0].originalPolicy, "require-trusted-types-for 'script'")
+    assert_equals(violations[1].disposition, "enforce");
+    assert_equals(violations[1].originalPolicy, "require-trusted-types-for 'script'")
+    assert_equals(violations[2].disposition, "enforce");
+    assert_equals(violations[2].originalPolicy, "require-trusted-types-for 'script'")
+    assert_equals(violations[3].disposition, "report");
+    assert_equals(violations[3].originalPolicy, "require-trusted-types-for 'script'")
+    assert_equals(violations[4].disposition, "report");
+    assert_equals(violations[4].originalPolicy, "require-trusted-types-for 'script'")
+    assert_equals(violations[5].disposition, "report");
+    assert_equals(violations[5].originalPolicy, "require-trusted-types-for 'script'")
+  }, `Mixing enforce and report-only require-trusted-types-for directives: behave like one enforced 'script'.`);
+
+  promise_test(async t => {
+    let result = await tryNavigatingToJavaScriptURLInSubframe(
+      "header(Content-Security-Policy,require-trusted-types-for 'script'%09'script'%0A'script'%0C'script'%0D'script'%20'script',True)",
+    );
+    assert_equals(result.exception, null);
+    assert_false(result.javaScriptExecuted, "JavaScript code should't have been executed");
+    assert_equals(result.violations.length, 1);
+  }, `directive "require-trusted-types-for 'script'%09'script'%0A'script'%0C'script'%0D'script'%20'script'" (required-ascii-whitespace properly parsed)`);
+
+  promise_test(async t => {
+    let result = await tryNavigatingToJavaScriptURLInSubframe(
+      "header(Content-Security-Policy,require-trusted-types-for 'script''script',True)",
+    );
+    assert_equals(result.exception, null);
+    assert_true(result.javaScriptExecuted, "JavaScript code should have been executed");
+    assert_equals(result.violations.length, 0);
+  }, `directive "require-trusted-types-for 'script''script'" (invalid since ascii-whitespace is required)`);
+
+  // https://github.com/w3c/trusted-types/issues/580
+  promise_test(async t => {
+    let result = await tryNavigatingToJavaScriptURLInSubframe(
+      "header(Content-Security-Policy,require-trusted-types-for 'script' 'invalid',True)",
+    );
+    assert_equals(result.exception, null);
+    assert_false(result.javaScriptExecuted, "JavaScript code shouldn't have been executed");
+    assert_equals(result.violations.length, 1);
+  }, `directive "require-trusted-types-for 'script' 'invalid'" (unknown sink group is ignored)`);
+
+  promise_test(async t => {
+    let result = await tryNavigatingToJavaScriptURLInSubframe(
+      "header(Content-Security-Policy,require-trusted-types-for 'invalid' 'script',True)",
+    );
+    assert_equals(result.exception, null);
+    assert_false(result.javaScriptExecuted, "JavaScript code shouldn't have been executed");
+    assert_equals(result.violations.length, 1);
+  }, `directive "require-trusted-types-for 'invalid' 'script'" (unknown sink group is ignored)`);
+
+  promise_test(async t => {
+    let result = await tryNavigatingToJavaScriptURLInSubframe(
+      "header(Content-Security-Policy,require-trusted-types-for 'invalid' 'script' 'also-invalid',True)",
+    );
+    assert_equals(result.exception, null);
+    assert_false(result.javaScriptExecuted, "JavaScript code shouldn't have been executed");
+    assert_equals(result.violations.length, 1);
+  }, `directive "require-trusted-types-for 'invalid' 'script' 'also-invalid" (unknown sink groups are ignored)`);
+
+  promise_test(async t => {
+    let result = await tryNavigatingToJavaScriptURLInSubframe(
+      "header(Content-Security-Policy,require-trusted-types-for unquoted-invalid 'script' also-unquoted-invalid,True)",
+    );
+    assert_equals(result.exception, null);
+    assert_false(result.javaScriptExecuted, "JavaScript code shouldn't have been executed");
+    assert_equals(result.violations.length, 1);
+  }, `directive "require-trusted-types-for unquoted-invalid 'script' also-unquoted-invalid (unknown sink groups are ignored)`);
+</script>

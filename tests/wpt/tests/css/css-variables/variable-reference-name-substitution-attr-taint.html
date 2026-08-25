@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>attr()-taint propagates through the var() name argument</title>
+    <link rel="help" href="https://drafts.csswg.org/css-values-5/#attr-security">
+    <link rel="help" href="https://drafts.csswg.org/css-variables-2/#replace-a-var-function">
+    <link rel="author" title="Apple Inc." href="https://apple.com">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style>
+        @property --registered-url {
+            syntax: "<url>";
+            inherits: false;
+            initial-value: url("https://does-not-exist.test/initial.png");
+        }
+    </style>
+</head>
+<body>
+<div id="target" data-image-name="--image" data-length-name="--length" data-not-a-name="10px" data-none="none"></div>
+<script>
+    "use strict";
+
+    // The substitution value of an arbitrary substitution function is attr()-tainted as a whole if any
+    // attr()-tainted values were involved in creating it, and using an attr()-tainted value as or in a
+    // <url> makes a declaration invalid at computed-value time. Resolving a var() name argument from an
+    // attribute therefore taints the substituted value, even though the value itself comes from a
+    // custom property rather than from the attribute.
+
+    const target = document.getElementById("target");
+    const url = "https://does-not-exist.test/404.png";
+    const initialURL = "https://does-not-exist.test/initial.png";
+
+    function computed(declaration, property) {
+        target.setAttribute("style", declaration);
+        const value = getComputedStyle(target).getPropertyValue(property);
+        target.removeAttribute("style");
+        return value;
+    }
+
+    test(() => {
+        assert_equals(computed(`--image: image-set("${url}"); background-image: var(attr(data-image-name type(*)));`,
+                              "background-image"), "none");
+    }, "attr()-tainted name argument makes an image-set() declaration invalid at computed-value time");
+
+    test(() => {
+        assert_equals(computed(`--image: url("${url}"); background-image: var(attr(data-image-name type(*)));`,
+                              "background-image"), "none");
+    }, "attr()-tainted name argument taints a url() value");
+
+    test(() => {
+        assert_equals(computed(`--name: attr(data-image-name type(*)); --image: url("${url}"); background-image: var(var(--name));`,
+                              "background-image"), "none");
+    }, "attr()-taint reaches the name argument through another custom property");
+
+    // The name is tainted and does not parse, so the taint carries into the fallback that gets used.
+    test(() => {
+        assert_equals(computed(`background-image: var(attr(data-not-a-name type(*)), url("${url}"));`,
+                              "background-image"), "none");
+    }, "attr()-tainted name argument taints the fallback");
+
+    // A registered property with <url> syntax resolved from tainted data is invalid at computed-value
+    // time, so it computes to its initial value.
+    test(() => {
+        assert_equals(computed(`--image: url("${url}"); --registered-url: var(attr(data-image-name type(*)));`,
+                              "--registered-url"), `url("${initialURL}")`);
+    }, "attr()-tainted name argument taints a registered <url> property");
+
+    // Taint only matters for URLs.
+    test(() => {
+        assert_equals(computed("--length: 10px; width: var(attr(data-length-name type(*)));", "width"), "10px");
+    }, "attr()-tainted name argument does not invalidate values that are not URLs");
+
+    // Custom properties are not URL contexts, so the tainted value is still observable there.
+    test(() => {
+        assert_equals(computed(`--image: url("${url}"); --result: var(attr(data-image-name type(*)));`, "--result"),
+                      `url("${url}")`);
+    }, "attr()-tainted name argument substitutes normally into a custom property");
+
+    // Taint from the name argument must be detected per var(), not from the state of the value so far.
+    test(() => {
+        assert_equals(computed(`--image: url("${url}"); --name: attr(data-image-name type(*)); --tainted-none: attr(data-none type(*)); background-image: var(--tainted-none), var(var(--name));`,
+                              "background-image"), "none");
+    }, "attr()-tainted name argument taints the value even when an earlier value was already tainted");
+
+    // A name argument with no attr() involved is not tainted.
+    test(() => {
+        assert_equals(computed(`--image: image-set("${url}"); --name: --image; background-image: var(var(--name));`,
+                              "background-image"), `image-set(url("${url}") 1dppx)`);
+    }, "untainted substituted name argument does not taint the value");
+</script>
+</body>
+</html>

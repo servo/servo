@@ -1,0 +1,1 @@
+Connection-Allowlist: (response-origin "https://{{hosts[][]}}:{{ports[https][0]}}/*" "https://{{hosts[alt][]}}:{{ports[https][0]}}/*")

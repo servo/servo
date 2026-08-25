@@ -1,0 +1,15 @@
+<!doctype HTML>
+<html>
+    <head>
+        <title>unclosed canvas tag in body</title>
+        <link rel="match" href="unclosed-canvas-2-expected.htm">
+        <meta name="assert" content="Test what if canvas tag is unclosed in tag div" />
+        <script type="text/javascript"></script>
+    </head>
+    <body>
+        <div><canvas></div>
+        <p>This text should be visible, even though it's preceded by an unclosed canvas tag,
+        because of the &lt;/div&gt; that closes an element opened before the canvas.
+        There's nothing special about div; we get the same results with other types of elements.</p>
+    </body>
+</html>

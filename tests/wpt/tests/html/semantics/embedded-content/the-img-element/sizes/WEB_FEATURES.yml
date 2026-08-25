@@ -1,0 +1,3 @@
+rules:
+- sizes-auto*: [sizes-auto]
+- "*": [srcset]

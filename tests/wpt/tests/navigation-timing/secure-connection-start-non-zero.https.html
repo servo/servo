@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>secureConnectionStart non-zero value test</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+    <h1>Description</h1>
+    <p>The tests that secureConnectionStart has a non-zero value.</p>
+<script>
+    window.onload = () => {
+        test(t => {
+            const entry = performance.getEntriesByType("navigation")[0];
+            assert_greater_than(entry.secureConnectionStart, 0, "secureConnectionStart is non-zero");
+        }, "Test that secureConnectionStart is not zero");
+    };
+
+</script>
+</body>
+</html>

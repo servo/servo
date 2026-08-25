@@ -1,0 +1,41 @@
+<!doctype html>
+
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/cookies/resources/cookie-helper.sub.js"></script>
+  <script src="/common/get-host-info.sub.js"></script>
+
+</head>
+
+<body onload="doTests()">
+  <script>
+    function doTests() {
+      promise_test(async function (t) {
+        const value = String(Math.random());
+        await resetSameSiteCookies(SECURE_ORIGIN, value);
+
+        const child = document.createElement("iframe");
+        child.src = SECURE_ORIGIN + "/cookies/samesite/resources/iframe-subresource-report.html";
+        child.sandbox = "allow-scripts allow-same-site-none-cookies";
+        document.body.appendChild(child);
+        const e = await wait_for_message("COOKIES");
+
+        assert_cookie(SECURE_ORIGIN, e.data, "samesite_lax", value, false);
+        assert_cookie(SECURE_ORIGIN, e.data, "samesite_strict", value, false);
+        assert_cookie(SECURE_ORIGIN, e.data, "samesite_none", value, true);
+      }, "SameSite=None cookies should be allowed in the iframe by the `allow-same-site-none-cookies` value");
+
+      promise_test(async function (t) {
+        await resetSameSiteCookies(SECURE_ORIGIN, Math.random());
+
+        const iframeB = document.createElement("iframe");
+        iframeB.src = SECURE_CROSS_SITE_ORIGIN + "/cookies/samesite/resources/cross-site-frame-with-sandboxed-embed.html";
+        document.body.appendChild(iframeB);
+
+        await fetch_tests_from_window(iframeB.contentWindow);
+
+      }, "SameSite=None cookies are not present in a frame with a cross-site ancestor (A->B->A)");
+    }
+  </script>
+</body>

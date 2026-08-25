@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.css-houdini.org/css-paint-api/">
+<link rel="match" href="two-element-one-custom-property-animation-ref.html">
+<style>
+#footainer1 {
+  width: 200px;
+  height: 200px;
+}
+.fooanimate1 {
+  background-image: paint(foo);
+  /* Use long animations that start at 50% progress where the slope of the
+     selected timing function is zero. By setting up the animations in this way,
+     we accommodate lengthy delays in running the test without a potential drift
+     in the animated properties values. This is important for avoiding flakes,
+     especially on debug builds. The screenshots are taken as soon as the
+     animations are ready, thus the long animation duration has no bearing on
+     the actual duration of the test. */
+  animation: anim1 1000000s cubic-bezier(0,1,1,0);
+  animation-delay: -500000s;
+}
+#footainer2 {
+  width: 200px;
+  height: 200px;
+}
+.fooanimate2 {
+  background-image: paint(foo);
+  animation: anim2 1000000s cubic-bezier(0,1,1,0);
+  animation-delay: -500000s;
+}
+@keyframes anim1 {
+  0% { --foo: rgb(200, 0, 0); }
+  100% { --foo: rgb(0, 0, 200); }
+}
+@keyframes anim2 {
+  0% { --foo: rgb(200, 0, 0); }
+  100% { --foo: rgb(0, 200, 0); }
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+<body>
+<div id="footainer1"></div>
+<div id="footainer2"></div>
+
+<script id="code" type="text/worklet">
+registerPaint('foo', class {
+  static get inputProperties() { return ['--foo']; }
+  paint(ctx, geom, properties) {
+    ctx.fillStyle = properties.get('--foo').toString();
+    ctx.fillRect(0, 0, 200, 200);
+  }
+});
+</script>
+
+<script type="text/javascript">
+CSS.registerProperty({
+  name: '--foo',
+  syntax: '<color>',
+  initialValue: 'rgb(0, 0, 0)',
+  inherits: false
+});
+</script>
+
+<script>
+var code = document.getElementById('code').textContent;
+var blob = new Blob([code], {type: 'text/javascript'});
+CSS.paintWorklet.addModule(URL.createObjectURL(blob)).then(function() {
+  document.getElementById('footainer1').classList.add('fooanimate1');
+  document.getElementById('footainer2').classList.add('fooanimate2');
+  const animations = document.getAnimations();
+  // Wait for all animations to start before completing the test.
+  Promise.all([animations[0].ready, animations[1].ready]).then(() => {
+    takeScreenshot();
+  });
+});
+</script>
+</body>
+</html>

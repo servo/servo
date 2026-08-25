@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Named items: imgs exposed by shared id whether name is set before or after insertion</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-document-nameditem">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+test(function() {
+  let a = document.createElement("img");
+  a.id = "multi";
+  a.name = "x";
+  document.body.appendChild(a);
+
+  let b = document.createElement("img");
+  b.id = "multi";
+  document.body.appendChild(b);
+  b.name = "y";
+
+  assert_equals(document.multi.length, 2, "collection length");
+  assert_in_array(a, [...document.multi], "contains img with name set before insertion");
+  assert_in_array(b, [...document.multi], "contains img with name set after insertion");
+}, "Two imgs sharing an id are both exposed by that id, whether the name is set before or after insertion.");
+</script>

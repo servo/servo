@@ -1,0 +1,1 @@
+<!DOCTYPE html><html><head><title>FAIL</title></head><body><p>FAIL</p><script>parent.notify("empty.txt")</script></body></html>

@@ -1,0 +1,5 @@
+rules:
+- inherit-*: [inherit-value]
+- at-import-*: [import]
+- cascade-007.xht: [import]
+- cascade-012.xht: [import]

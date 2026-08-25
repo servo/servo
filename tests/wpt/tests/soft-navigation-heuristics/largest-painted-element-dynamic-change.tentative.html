@@ -1,0 +1,73 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8">
+<title>SoftNavigationEntry getLargestInteractionContentfulPaint() method: dynamic change after commit.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/soft-navigation-helper.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<main id=main>
+  <a id=link>Click me!</a>
+</main>
+<script>
+  promise_test(async t => {
+    const clickTarget = document.getElementById("link");
+    let smallId;
+    let largeId;
+
+    const { promise: clickEventPause, resolve: resolveClickEventPause } = Promise.withResolvers();
+
+    // Clicking this will trigger a soft-nav with a smaller initial ICP.
+    // Later, a larger element is added to the page, and should update largest ICP.
+    // (A promise is used to help coordinate timing and eliminate races.)
+    clickTarget.addEventListener('click', async () => {
+      // Yield to ensure task tracking is working.
+      await new Promise(r => t.step_timeout(r, 0));
+
+      // First paint (small).
+      const small = await addTextParagraphToMain("Small");
+      smallId = small.id;
+
+      // URL change to trigger soft navigation commit.
+      history.pushState({}, '', `foobar.html?${counter++}`);
+
+      // Suspend execution here to let the soft-navigation entry be emitted
+      // and verified before we proceed to paint the larger element.
+      // This preserves the task chain attribution to the soft navigation context.
+      await clickEventPause;
+
+      // Paint a much larger element.
+      const large = await addTextParagraphToMain("Much larger element that will become the largest interaction contentful paint");
+      largeId = large.id;
+    });
+
+    const softNavPromise = getNextEntry('soft-navigation');
+    await test_driver.click(clickTarget);
+
+    // 1. Wait for the soft navigation entry to be emitted.
+    const softNavEntry = await softNavPromise;
+
+    // 2. Verify the initial largest ICP is the small element.
+    const firstLCPCandidate = softNavEntry.getLargestInteractionContentfulPaint();
+    assert_not_equals(firstLCPCandidate, null, "getLargestInteractionContentfulPaint() is not null initially");
+    assert_equals(firstLCPCandidate.largestContentfulPaint.id, smallId, "Initially, getLargestInteractionContentfulPaint() is the small element");
+
+    // 3. Set up a promise to observe the next ICP entry.
+    const nextIcpPromise = getNextEntry('interaction-contentful-paint');
+
+    // 4. Trigger the large paint in the suspended task chain.
+    resolveClickEventPause();
+
+    // 5. Wait for the new larger ICP to be processed and emitted.
+    const largeICPEntry = await nextIcpPromise;
+
+    // 6. Verify that getLargestInteractionContentfulPaint() has dynamically updated to the new larger element!
+    const secondLCPCandidate = softNavEntry.getLargestInteractionContentfulPaint();
+    assert_not_equals(secondLCPCandidate, null, "getLargestInteractionContentfulPaint() is not null after large paint");
+    assert_equals(secondLCPCandidate.largestContentfulPaint.id, largeId, "getLargestInteractionContentfulPaint() has dynamically changed to return the new larger element");
+    assert_not_equals(secondLCPCandidate, firstLCPCandidate, "The returned ICP entry reference has updated");
+    assert_equals(secondLCPCandidate, largeICPEntry, "getLargestInteractionContentfulPaint() returns the newly emitted ICP entry");
+
+  }, "Test that getLargestInteractionContentfulPaint() dynamically updates its return value as larger elements are painted");
+</script>

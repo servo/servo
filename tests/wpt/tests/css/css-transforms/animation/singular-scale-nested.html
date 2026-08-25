@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Issue 441128445: Nested Scale(0) transforms should not show content</title>
+<link rel="help" href="https://issues.chromium.org/issues/441128445">
+<link rel="match" href="singular-scale-nested-ref.html">
+<script src="../../../common/reftest-wait.js"></script>
+<style>
+  .menu {
+    width: 100px;
+    scale: 0;
+  }
+  @keyframes anim {
+    0% { scale: 0; }
+    0.1% { scale: 1; }
+    100% { scale: 1; }
+  }
+  .trigger > .menu {
+    animation: anim 100s linear 1 forwards;
+  }
+</style>
+</head>
+<body>
+<div>Should not see a red FAIL if success!</div>
+<div id="hover">
+  <div class="menu" style="color: transparent;">
+    <div class="menu">
+      <div style="color:red; font-size: 20px; font-weight: bold;">FAIL</div>
+    </div>
+  </div>
+</div>
+<script>
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    const hoverDiv = document.getElementById('hover');
+    const outerMenu = hoverDiv.querySelector('.menu');
+    hoverDiv.classList.add('trigger');
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        takeScreenshot();
+      });
+    });
+  });
+});
+</script>
+</body>
+</html>

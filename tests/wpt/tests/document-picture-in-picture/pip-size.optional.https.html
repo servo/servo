@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<title>Optional: Test modifying document picture-in-picture window's width and height</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+<script>
+promise_test(async (t) => {
+  await test_driver.bless('request PiP window from top window');
+  let pipWindow = await documentPictureInPicture.requestWindow({
+    preferInitialWindowPlacement: true
+  });
+
+  const iniWidth = pipWindow.innerWidth, iniHeight = pipWindow.innerHeight;
+  assert_true(true, `PIP has default inner width ${iniWidth}, height ${iniHeight}`);
+
+  await test_driver.bless('request PiP window from top window');
+  pipWindow = await documentPictureInPicture.requestWindow({
+    preferInitialWindowPlacement: true, width: iniWidth + 100, height: iniHeight
+  });
+  assert_equals(pipWindow.innerWidth, iniWidth + 100, 'Got the requested width');
+}, 'Requesting PIP with width and height');
+
+// Restricting max size is mandatory, but depends on optional size parameters
+promise_test(async (t) => {
+  const { availWidth, availHeight } = window.screen;
+
+  await test_driver.bless('request PiP window from top window');
+  // We request them as inner size, so the outer size would be even larger
+  // but it only matters that we would cover the screen.
+  const pipWindow = await documentPictureInPicture.requestWindow({
+    preferInitialWindowPlacement: true, width: availWidth, height: availHeight
+  });
+
+  assert_less_than(pipWindow.outerWidth, availWidth, "PIP window width smaller than screen (initial)");
+  assert_less_than(pipWindow.outerHeight, availHeight, "PIP window height smaller than screen");
+
+  // shrink and test resizeTo is restricted
+  await test_driver.bless('resize window');
+  let resized = new Promise(res => pipWindow.addEventListener("resize", res, { once: true }));
+  pipWindow.resizeTo(100, 100);
+  await resized;
+
+  await test_driver.bless('resize window');
+  resized = new Promise(res => pipWindow.addEventListener("resize", res, { once: true }));
+  pipWindow.resizeTo(availWidth, availHeight);
+  await resized;
+
+  assert_less_than(pipWindow.outerWidth, availWidth, "PIP window width smaller than screen (resizeTo)");
+  assert_less_than(pipWindow.outerHeight, availHeight, "PIP window height smaller than screen (resizeTo)");
+
+  // shrink and test resizeBy is restricted
+  await test_driver.bless('resize window');
+  resized = new Promise(res => pipWindow.addEventListener("resize", res, { once: true }));
+  pipWindow.resizeTo(100, 100);
+  await resized;
+
+  await test_driver.bless('resize window');
+  resized = new Promise(res => pipWindow.addEventListener("resize", res, { once: true }));
+  pipWindow.resizeBy(availWidth, availHeight);
+  await resized;
+
+  assert_less_than(pipWindow.outerWidth, availWidth, "PIP window width smaller than screen (resizyBy)");
+  assert_less_than(pipWindow.outerHeight, availHeight, "PIP window height smaller than screen (resizeBy)");
+}, 'Test maximum size is restricted');
+
+promise_test(async (t) => {
+  await test_driver.bless('request PiP window from top window');
+  let pipWindow = await documentPictureInPicture.requestWindow({
+    preferInitialWindowPlacement: true
+  });
+
+  const iniWidth = pipWindow.innerWidth;
+  assert_true(true, `PIP has default inner width ${iniWidth}`);
+
+  // First, test that preferInitialWindowPlacement forces initial non-remembered position
+  await test_driver.bless('resize window');
+  let resized = new Promise(res => pipWindow.addEventListener("resize", res, { once: true }));
+  pipWindow.resizeBy(100, 0);
+  await resized;
+  assert_equals(pipWindow.innerWidth, iniWidth + 100, 'PiP was resized');
+  pipWindow.close();
+
+  await test_driver.bless('request PiP window from top window');
+  pipWindow = await documentPictureInPicture.requestWindow({
+    preferInitialWindowPlacement: true
+  });
+  assert_equals(pipWindow.innerWidth, iniWidth,
+    'preferInitialWindowPlacement causes PiP to open at initial, non-remembered size');
+
+  // Now, test that the API does remember the position when explicitly closing the PiP
+  await test_driver.bless('resize window');
+  resized = new Promise(res => pipWindow.addEventListener("resize", res, { once: true }));
+  pipWindow.resizeBy(100, 0);
+  await resized;
+  assert_equals(pipWindow.innerWidth, iniWidth + 100, 'PiP was resized');
+  pipWindow.close();
+
+  await test_driver.bless('request PiP window from top window');
+  pipWindow = await documentPictureInPicture.requestWindow({
+    preferInitialWindowPlacement: false
+  });
+  assert_equals(pipWindow.innerWidth, iniWidth + 100, 'PiP was restored at previous size');
+
+  // Now, test that the API does remember the position when requesting a PiP while one is still open
+  await test_driver.bless('resize window');
+  resized = new Promise(res => pipWindow.addEventListener("resize", res, { once: true }));
+  pipWindow.resizeBy(-50, 0);
+  await resized;
+  assert_equals(pipWindow.innerWidth, iniWidth + 50, 'PiP was resized');
+
+  await test_driver.bless('request PiP window from top window');
+  pipWindow = await documentPictureInPicture.requestWindow({
+    preferInitialWindowPlacement: false
+  });
+  assert_equals(pipWindow.innerWidth, iniWidth + 50, 'PiP was restored at previous size');
+}, `PiP remembers size`);
+</script>
+</body>

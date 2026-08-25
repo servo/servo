@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      Test AudioBuffer.getChannelData() Returns the Same Object
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/webaudio/resources/audit-util.js"></script>
+    <script src="/webaudio/resources/audit.js"></script>
+    <script src="/webaudio/resources/audioparam-testing.js"></script>
+  </head>
+  <body>
+    <script id="layout-test-code">
+      let sampleRate = 48000;
+      let renderDuration = 0.5;
+
+      let audit = Audit.createTaskRunner();
+
+      audit.define('buffer-eq', (task, should) => {
+        // Verify that successive calls to getChannelData return the same
+        // buffer.
+        let context = new AudioContext();
+        let channelCount = 2;
+        let frameLength = 1000;
+        let buffer =
+            context.createBuffer(channelCount, frameLength, context.sampleRate);
+
+        for (let c = 0; c < channelCount; ++c) {
+          let a = buffer.getChannelData(c);
+          let b = buffer.getChannelData(c);
+
+          let message = 'buffer.getChannelData(' + c + ')';
+          should(a === b, message + ' === ' + message).beEqualTo(true);
+        }
+
+        task.done();
+      });
+
+      audit.define('buffer-not-eq', (task, should) => {
+        let context = new AudioContext();
+        let channelCount = 2;
+        let frameLength = 1000;
+        let buffer1 =
+            context.createBuffer(channelCount, frameLength, context.sampleRate);
+        let buffer2 =
+            context.createBuffer(channelCount, frameLength, context.sampleRate);
+        let success = true;
+
+        for (let c = 0; c < channelCount; ++c) {
+          let a = buffer1.getChannelData(c);
+          let b = buffer2.getChannelData(c);
+
+          let message = 'getChannelData(' + c + ')';
+          should(a === b, 'buffer1.' + message + ' === buffer2.' + message)
+                  .beEqualTo(false) &&
+              success;
+        }
+
+        task.done();
+      });
+
+      audit.run();
+    </script>
+  </body>
+</html>

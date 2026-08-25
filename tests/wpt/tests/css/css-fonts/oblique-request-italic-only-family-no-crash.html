@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<title>CSS Fonts: oblique request with italic-only family does not crash</title>
+
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#font-style-matching">
+<meta name="assert" content="Requesting oblique when the font family has only an italic face must not crash; the italic face is used as a last resort">
+
+<style>
+/* Only face in the family is italic (faceAxis=ital, slope=[14,14]).
+   An oblique request triggers the last-resort penalty path; the fix ensures
+   the italic face still survives the slope filter rather than all candidates
+   being eliminated and causing a crash in FontSelectionAlgorithm::bestValue. */
+@font-face {
+    font-family: "testFont";
+    src: url("resources/markA.ttf");
+    font-style: italic;
+}
+</style>
+
+<div style="font-family: testFont; font-style: oblique 75deg;">
+    This text triggers oblique selection against an italic-only font family.
+</div>

@@ -1,0 +1,2 @@
+rules:
+- "**": [container-anchor-position-queries]

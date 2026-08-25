@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <head>
+    <meta charset="utf-8"/>
+    <title>&lt;mo&gt; dynamic form</title>
+    <link rel="help" href="https://w3c.github.io/mathml-core/#operator-fence-separator-or-accent-mo">
+     <link rel="help" href="https://w3c.github.io/mathml-core/#dom-and-javascript">
+    <meta name="assert" content="This test verifies that the form of the operators (and thus their spacing) is updated when you change the child list.">
+    <link rel="match" href="mo-form-dynamic-ref.html">
+
+    <script>
+      window.addEventListener("load", () => {
+
+        // force initial layout so we're sure what we're testing against
+        document.documentElement.getBoundingClientRect();
+
+        for (var i = 1; i <= 6; i++) {
+          var row = document.getElementById("row" + i);
+          var x = document.getElementById("x" + i);
+
+          x.parentNode.removeChild(x);
+
+          row.insertBefore(x, row.firstElementChild);
+        }
+
+        document.documentElement.classList.remove('reftest-wait');
+      })
+    </script>
+  </head>
+  <body>
+
+    <p>The test should render the same as the static reference.</p>
+
+    _<math><merror id="row1"><mo>+</mo><mi>y</mi></merror></math>_
+    _<math id="row2"><mo>+</mo><mi>y</mi></math>_
+    _<math><mphantom id="row3"><mo>+</mo><mi>y</mi></mphantom></math>_
+    _<math><mrow id="row4"><mo>+</mo><mi>y</mi></mrow></math>_
+    _<math><msqrt id="row5"><mo>+</mo><mi>y</mi></msqrt></math>_
+    _<math><mstyle id="row6"><mo>+</mo><mi>y</mi></mstyle></math>_
+
+    _<math><merror><mi id="x1">x</mi><mo>−</mo><mi>y</mi></merror></math>_
+    _<math><mi id="x2">x</mi><mo>−</mo><mi>y</mi></math>_
+    _<math><mphantom><mi id="x3">x</mi><mo>−</mo><mi>y</mi></mphantom></math>_
+    _<math><mrow><mi id="x4">x</mi><mo>−</mo><mi>y</mi></mrow></math>_
+    _<math><msqrt><mi id="x5">x</mi><mo>−</mo><mi>y</mi></msqrt></math>_
+    _<math><mstyle><mi id="x6">x</mi><mo>−</mo><mi>y</mi></mstyle></math>_
+
+    <script src="/mathml/support/feature-detection.js"></script>
+    <script>MathMLFeatureDetection.ensure_for_match_reftest("has_operator_spacing");</script>
+  </body>
+</html>

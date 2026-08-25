@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<title>Test prerendering</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/common/utils.js"></script>
+
+<body>
+
+<script>
+promise_test(async t => {
+  assert_implements(
+      'supports' in HTMLScriptElement,
+      'HTMLScriptElement.supports is not supported');
+  assert_implements(
+      HTMLScriptElement.supports('speculationrules'),
+      '<script type="speculationrules"> is not supported');
+
+  const prerender_ready_key = token();
+  const prerender_loaded_key = token();
+  const prerender_activated_key = token();
+  const url = generateURL('resources/prerender-inner.html',
+      [prerender_ready_key, prerender_loaded_key, prerender_activated_key]);
+
+  // TODO: This test expects that the browser always triggers prerendering when
+  // SpeculationRules is provided. But SpeculationRules allows browsers not to
+  // trigger the speculative resource loading even if SpeculationRules is
+  // specified. So we have to use a new WebDriver API that deterministically
+  // triggers prerendering.
+  // https://github.com/WICG/nav-speculation/blob/main/speculation-rules-testing.md
+  const script = document.createElement('script');
+  script.type = 'speculationrules';
+  script.text = `{"prerender": [{"source": "list", "urls": ["${url}"] }] }`;
+  document.head.appendChild(script);
+
+  const ready_result = await nextValueFromServer(prerender_ready_key);
+  assert_equals(ready_result, 'ready');
+
+  attachFencedFrame(url);
+
+  const loaded_or_acrivated_result = await Promise.race([
+      nextValueFromServer(prerender_loaded_key),
+      nextValueFromServer(prerender_activated_key)
+    ]);
+  assert_equals(loaded_or_acrivated_result, 'loaded');
+}, 'Fenced Frame must not load prerendered page.');
+</script>
+
+</body>

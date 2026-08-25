@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<style>
+  @page {
+    size: 500px 250px;
+    margin: 0;
+  }
+  body {
+    margin-left: 100px;
+  }
+</style>
+<div style="position:absolute; z-index:-1; top:0; left:0; overflow:clip; contain:size; width:100px; height:500px;">
+  <img src="support/cat.png" style="display:block;">
+  <img src="support/cat.png" style="display:block;">
+  <img src="support/cat.png" style="display:block;">
+  <img src="support/cat.png" style="display:block;">
+  <img src="support/cat.png" style="display:block;">
+  <img src="support/cat.png" style="display:block;">
+</div>
+There should be two and a half cats on this page.
+<div style="break-before:page;">
+  There should be two and a half cats on this page, too (and the ears of another
+  cat barely visible at the bottom). The previous page ends with a cat's head,
+  and this page starts with a cat's body.
+</div>

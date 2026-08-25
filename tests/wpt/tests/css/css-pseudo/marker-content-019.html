@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: ::marker pseudo elements styled with 'content' property</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="match" href="marker-content-019-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#marker-pseudo">
+<link rel="help" href="https://drafts.csswg.org/css-content/#content-property">
+<meta name="assert" content="Checks that the 'content: none' hides the ::marker.">
+<style>
+::marker {
+  content: none
+}
+.inside {
+  list-style-position: inside;
+}
+.symbol {
+  list-style-type: disc;
+}
+.decimal {
+  list-style-type: decimal;
+}
+.string {
+  list-style-type: "string";
+}
+.image {
+  list-style-image: url("/images/green-100x50.png");
+}
+</style>
+<ol class="inside">
+  <li class="symbol">inside symbol</li>
+  <li class="decimal">inside decimal</li>
+  <li class="string">inside string</li>
+  <li class="image">inside image</li>
+</ol>
+<ol class="outside">
+  <li class="symbol">outside symbol</li>
+  <li class="decimal">outside decimal</li>
+  <li class="string">outside string</li>
+  <li class="image">outside image</li>
+</ol>

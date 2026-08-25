@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang=en>
+<meta charset="utf-8">
+<title>Test reference</title>
+<link rel="author" title="Perry Wang" href="mailto:perryuwang@gmail.com">
+<style>
+/*
+ * Reference for text-decoration-skip-spaces-005.html (match test)
+ *
+ * text-decoration-skip-spaces: all trims the trailing letter-spacing (20px)
+ * at line end. We reproduce this by putting the last character F in a separate
+ * span with letter-spacing: 0, so the underline stops at F's glyph right edge,
+ * matching exactly what "all" produces.
+ */
+div {
+    color: orange;
+    font-size: 2em;
+    letter-spacing: 20px;
+    white-space: pre;
+}
+.text {
+    text-decoration: underline;
+    text-decoration-color: blue;
+}
+.last {
+    text-decoration: underline;
+    text-decoration-color: blue;
+    letter-spacing: 0;
+}
+</style>
+
+<p>Test passes if this page renders the same as the reference page (underline stops at F's right edge, no trailing 20px gap).
+
+<div><span class="text">ABCDE</span><span class="last">F</span></div>

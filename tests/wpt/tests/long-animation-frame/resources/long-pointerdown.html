@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<head>
+    <script src="utils.js"></script>
+    <style>
+        body {
+            width: 200px;
+            height: 200px;
+        }
+
+        * {
+            user-select: none;
+        }
+    </style>
+<body>
+    <script>
+        document.body.addEventListener("pointerdown", () => {
+            busy_wait(120)
+        });
+        new PerformanceObserver(entries => {
+            if (entries.getEntries().some(
+                e => e.scripts.some(script => script.invoker === "BODY.onpointerdown"))) {
+                window.parent.postMessage("FRAME", "*");
+            }
+        }).observe({type: "long-animation-frame"});
+    </script>
+</body>

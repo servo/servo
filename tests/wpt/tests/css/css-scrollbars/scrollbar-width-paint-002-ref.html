@@ -1,0 +1,62 @@
+<!doctype html>
+<style>
+  body {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  .container {
+    scrollbar-gutter: stable;
+    overflow: scroll;
+    flex: 0 0;
+    height: 200px;
+    min-width: 200px;
+    margin: 1px;
+    padding: 0px;
+    border: none;
+    background: deepskyblue;
+  }
+
+  .content {
+    height: 100%;
+    width: 100%;
+  }
+
+  .container.auto {
+    scrollbar-width: auto;
+  }
+
+  .container.thin {
+    scrollbar-width: thin;
+  }
+
+  .container.none {
+    scrollbar-width: none;
+  }
+
+  .content.plain {
+    background: red;
+  }
+
+  .content.gradient {
+    background: linear-gradient(135deg, red, blue);
+  }
+</style>
+<div id="one" class="container thin">
+  <div class="content plain"></div>
+</div>
+<div id="two" class="container auto">
+  <div class="content plain"></div>
+</div>
+<div id="three" class="container auto">
+  <div class="content plain"></div>
+</div>
+<div id="four" class="container none">
+  <div class="content gradient"></div>
+</div>
+<div id="five" class="container none">
+  <div class="content gradient"></div>
+</div>
+<div id="six" class="container thin">
+  <div class="content gradient"></div>
+</div>

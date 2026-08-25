@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+  <meta charset="utf-8">
+  <title>CSS Overflow Test: Testing an empty child box and its container's scrollable overflow area</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+  <link rel="help" href="https://drafts.csswg.org/css-overflow-3/#scrollable">
+  <meta name="assert" content="This test verifies that an empty child box shouldn't contribute to its parents scrollable overflow area.">
+
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/check-layout-th.js"></script>
+
+  <style>
+  .container {
+    border: 1px solid black;
+    width: 200px;
+    height: 100px;
+  }
+
+  .empty {
+    position: relative;
+    width: 0px;
+    height: 0px;
+    left: 500px;
+    top: 300px;
+    box-shadow: 0 0 0 10px blue;
+  }
+  </style>
+
+  <body onload="checkLayout('.container')">
+    <p>You should see no scrollbars in these container because an empty child
+    box shouldn't contribute to its parents scrollable overflow area. </p>
+
+    <div class="container" style="overflow: visible"
+         data-expected-scroll-width="200" data-expected-scroll-height="100">
+      <div class="empty"></div>
+    </div>
+
+    <div class="container" style="overflow: auto"
+         data-expected-scroll-width="200" data-expected-scroll-height="100">
+      <div class="empty"></div>
+    </div>
+
+    <div class="container" style="overflow: hidden"
+         data-expected-scroll-width="200" data-expected-scroll-height="100">
+      <div class="empty"></div>
+    </div>
+
+    <div class="container" style="overflow: clip"
+         data-expected-scroll-width="200" data-expected-scroll-height="100">
+      <div class="empty"></div>
+    </div>
+  </body>
+</html>

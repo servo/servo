@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <script>window.__scriptLoaded = false;</script>
+    <script src="iframe-self-pass.js"></script>
+    <script>
+        var msg = window.__scriptLoaded
+            ? "PASS script-src self sandboxed iframe (header-delivered)"
+            : "FAIL script blocked in sandboxed iframe (header-delivered)";
+        window.parent.postMessage(msg, "*");
+    </script>
+</body>
+</html>

@@ -1,0 +1,249 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Two soft navigations racing each other.</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script></script>
+  </head>
+  <body>
+    <div id="first_interaction">Click here!</div>
+    <div id="second_interaction">Click here!</div>
+
+    <script>
+      const FIRST_URL = "first-url";
+      const SECOND_URL = "second-url";
+
+      const button1 = document.getElementById("first_interaction");
+      const button2 = document.getElementById("second_interaction");
+
+      async function updateUI() {
+          const greeting = document.createElement("div");
+          greeting.textContent = "Hello, World.";
+          document.body.appendChild(greeting);
+      }
+
+      function updateUrl(t, url) {
+        t.state.numPushStateCalls++;
+        const actual_url = t.state.urlPrefix + url;
+        history.pushState({}, "", actual_url);
+      }
+
+      async function waitForSoftNavEntry(t, count = 1) {
+        return t.step_wait(() => t.state.softNavEntries.length >= count);
+      }
+
+      async function create_test(urlPrefix, callback) {
+        return promise_test(async (t) => {
+          const currentUrl = location.pathname.replace(/.*\//, "");
+          assert_equals(currentUrl, "racing-soft-navigations.html");
+
+          t.state = {};
+          t.state.urlPrefix = urlPrefix;
+          t.state.numPushStateCalls = 0;
+          t.state.softNavEntries = [];
+          const observer = new PerformanceObserver((list, observer) => {
+            // If we get two soft-navs in one observer callback...
+            // that is a sign that we emitted multiple for a single effect
+            const entries = list.getEntries();
+            assert_equals(entries.length, 1, "Expecting a single soft navigation");
+            t.state.softNavEntries.push(entries[0]);
+          });
+          observer.observe({ type: 'soft-navigation' });
+
+          // We have multiple test cases with side effects, so add some cleanup.
+          t.add_cleanup(async () => {
+            observer.disconnect();
+
+            // Go back to the original URL
+            for (let i = 0; i < t.state.numPushStateCalls; i++) {
+              history.back();
+              await new Promise(resolve => {
+                addEventListener('popstate', resolve, {once: true});
+              });
+            }
+          });
+
+          return callback(t);
+        }, "Racing multiple overlapping interactions and soft navs: " + urlPrefix);
+      }
+
+      async function expectationsMultipleInteractionTest(t, expected = [FIRST_URL, SECOND_URL]) {
+        const count = expected.length;
+        await t.step_wait(() => t.state.softNavEntries.length >= count, `Wait for ${count} soft navigation entries`);
+
+        // Although we await at least `count` (above), we also assert exactly `count` (here)
+        assert_equals(t.state.softNavEntries.length, count, `Expected ${count} soft navigation entries`);
+
+        for (let i = 0; i < count; i++) {
+          const entry = t.state.softNavEntries[i];
+          const actual_expected_url = t.state.urlPrefix + expected[i];
+          assert_equals(
+            entry.name.replace(/.*\//, ""),
+            actual_expected_url,
+            "Expect to observe the first URL change.",
+          );
+        }
+      }
+
+      // The following tests will trigger two interaction back to back, and each
+      // interaction will do a sequence of the following:
+      // - Triggers event listener, which schedules async work
+      // - updates URL
+      // - updates UI
+      // - yield, or timeout of some kind
+      // - Emit a soft nav entry
+      //
+      // Because there are two interactions per test, we manipulate the
+      // sequence of operations in various ways.
+
+      // Baseline, non overlapping interactions.
+      create_test("click1,url1,ui1,sn1,yield,click2,url2,ui2,sn2", async (t) => {
+        button1.addEventListener('click', async () => {
+          updateUrl(t, FIRST_URL);
+          updateUI();
+        }, { once: true });
+
+        button2.addEventListener('click', async () => {
+          updateUrl(t, SECOND_URL);
+          updateUI();
+        }, { once: true });
+
+        if (test_driver) {
+          test_driver.click(button1);
+        }
+
+        await waitForSoftNavEntry(t);
+
+        if(test_driver) {
+          test_driver.click(button2);
+        }
+
+        await expectationsMultipleInteractionTest(t);
+      });
+
+      // Both interactions start and yield (simulate network), then finish all
+      // required effects and emit soft nav without overlap. First interaction
+      // wins the "network" race.
+      create_test("click1,yield,click2,yield,url1,ui1,sn1,yield,url2,ui2,sn2", async (t) => {
+        button1.addEventListener('click', async () => {
+          t.step_timeout(() => {
+            updateUrl(t, FIRST_URL);
+            updateUI();
+          }, 0);
+        }, { once: true });
+
+        button2.addEventListener('click', async () => {
+          await waitForSoftNavEntry(t);
+
+          updateUrl(t, SECOND_URL);
+          updateUI();
+        }, { once: true });
+
+        // Start both soft navigations in rapid succession.
+        if (test_driver) {
+          test_driver.click(button1);
+          test_driver.click(button2);
+        }
+
+        await expectationsMultipleInteractionTest(t);
+
+      });
+
+      // Both interactions start and yield (simulate network), then finish all
+      // required effects and emit soft nav without overlap. Second interaction
+      // wins the "network" race.
+      create_test("click1,yield,click2,yield,url2,ui2,sn2,yield,url1,ui1,sn1", async (t) => {
+        button1.addEventListener('click', async () => {
+          await waitForSoftNavEntry(t);
+          // In this test, the first interaction sets the second URL
+          updateUrl(t, FIRST_URL);
+          updateUI();
+        }, { once: true });
+
+        button2.addEventListener('click', async () => {
+          t.step_timeout(() => {
+            updateUrl(t, SECOND_URL);
+            updateUI();
+          }, 0);
+        }, { once: true });
+
+        // Start both soft navigations in rapid succession.
+        if (test_driver) {
+          test_driver.click(button1);
+          test_driver.click(button2);
+        }
+
+        await expectationsMultipleInteractionTest(t, [SECOND_URL, FIRST_URL]);
+      });
+
+      // Both interactions start, immediately update URL and yield (simulate
+      // navigate interception), then finish all required effects later.
+      // Only the second URL update emits a soft nav entry.
+      create_test("click1,url1,yield,click2,url2,ui1,yield,ui2,sn2", async (t) => {
+        let first_interaction_did_finish_paint = false;
+        let second_interaction_did_run = false;
+
+        button1.addEventListener('click', async () => {
+          updateUrl(t, FIRST_URL);
+
+          await t.step_wait(() => second_interaction_did_run);
+
+          updateUI();
+
+          await new Promise(r => requestAnimationFrame(r));
+          await new Promise(r => t.step_timeout(r, 0));
+          first_interaction_did_finish_paint = true;
+        }, { once: true });
+
+        button2.addEventListener('click', async () => {
+          updateUrl(t, SECOND_URL);
+          second_interaction_did_run = true;
+
+          await t.step_wait(() => first_interaction_did_finish_paint);
+
+          updateUI();
+        }, { once: true });
+
+        // Start both soft navigations in rapid succession.
+        if (test_driver) {
+          test_driver.click(button1);
+          test_driver.click(button2);
+        }
+
+        await expectationsMultipleInteractionTest(t,[SECOND_URL]);
+      });
+
+      // Both interactions start, immediately update URL and yield (simulate
+      // navigate interception), then finish all required effects later.
+      // Only the second URL update emits a soft nav entry.
+      create_test("click1,url1,yield,click2,url2,yield,ui2,sn2,yield,ui1", async (t) => {
+        button1.addEventListener('click', async () => {
+          updateUrl(t, FIRST_URL);
+          await waitForSoftNavEntry(t);
+          updateUI();
+        }, { once: true });
+
+        button2.addEventListener('click', async () => {
+          updateUrl(t, SECOND_URL);
+
+          t.step_timeout(async () => {
+            updateUI();
+          }, 100);
+        }, { once: true });
+
+        // Start both soft navigations in rapid succession.
+        if (test_driver) {
+          test_driver.click(button1);
+          test_driver.click(button2);
+        }
+
+        await expectationsMultipleInteractionTest(t,[SECOND_URL]);
+      });
+
+    </script>
+  </body>
+</html>

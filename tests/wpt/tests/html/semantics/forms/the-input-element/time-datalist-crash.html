@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#the-input-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="newParent"></div>
+<datalist id="suggestions">
+  <option>12:00</option>
+  <input type="time" list="suggestions">
+</datalist>
+<script>
+  test(() => {
+    document.body.offsetTop;
+    newParent.appendChild(suggestions);
+  }, "Moving a datalist enclosing an input type=time using that list should not crash.");
+</script>

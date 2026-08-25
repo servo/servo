@@ -1,0 +1,34 @@
+<!doctype html>
+<meta charset=utf-8>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/test-helpers.js"></script>
+
+<script>
+
+  promise_test(async t => {
+    await new Promise(resolve => {
+      window.addEventListener('DOMContentLoaded', resolve);
+    });
+    // Small delay to give chrome's test automation a chance to actually install
+    // itself.
+    await new Promise(resolve => step_timeout(resolve, 100));
+
+    await window.test_driver.bless(
+      'show a directory picker.<br />Please select file-system-access/resources/data/');
+    const dir = await self.showDirectoryPicker();
+    assert_true(dir instanceof FileSystemHandle);
+    assert_true(dir instanceof FileSystemDirectoryHandle);
+    assert_equals(dir.kind, "directory");
+    assert_equals(dir.name, 'data');
+    assert_array_equals(await getSortedDirectoryEntries(dir), ['testfile.txt']);
+
+    promise_test(async t => {
+      assert_equals(await dir.queryPermission(), 'granted');
+    }, 'showDirectoryPicker returns correct permissions');
+  }, 'showDirectoryPicker works');
+
+</script>

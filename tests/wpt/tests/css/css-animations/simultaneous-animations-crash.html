@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<title>CSS animations test: No crash should occur when an animation ends while other animations continue</title>
+<link rel="author" title="Philip Rogers" href="mailto:pdr@chromium.org">
+<link rel="help" href="https://crbug.com/1213307">
+<style>
+  @keyframes animationKeyframes {
+    from { opacity: 0.1; filter: blur(1px); }
+    to { opacity: 0.9; filter: blur(5px); }
+  }
+</style>
+<div id="longerAnimEl" style="animation: animationKeyframes 64ms;">a</div>
+<div id="shorterAnimEl" style="animation: both animationKeyframes 32ms;">b</div>
+<script>
+  longerAnimEl.addEventListener('animationend', () => {
+    document.documentElement.classList.remove('test-wait');
+  });
+</script>
+</html>

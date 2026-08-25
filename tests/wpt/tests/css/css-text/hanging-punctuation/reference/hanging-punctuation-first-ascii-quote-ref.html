@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Reference</title>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+    body { font-family: 'Ahem'; color:green }
+    .hang { margin:1em }
+</style>
+<div class="hang" id="ref1">"This should hang.</div>
+<div class="hang" id="ref2">'This should hang.</div>
+<script>
+function setIndent(id, char) {
+    const probe = document.createElement('span');
+    probe.textContent = char;
+    probe.style.visibility = 'hidden';
+    document.body.appendChild(probe);
+    const width = probe.getBoundingClientRect().width;
+    document.body.removeChild(probe);
+    document.getElementById(id).style.textIndent = `-${width}px`;
+}
+setIndent('ref1', '"');
+setIndent('ref2', "'");
+</script>

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="resources/webxr_util.js"></script>
+  <script src="resources/webxr_test_constants.js"></script>
+  <script>
+
+    let immersiveTestName =
+      "Immersive XRSession requestReferenceSpace returns expected objects";
+    let nonImmersiveTestName =
+      "Non-immersive XRSession requestReferenceSpace returns expected objects";
+
+    let fakeDeviceInitParams = TRACKED_IMMERSIVE_DEVICE;
+
+    let testFunction = function(session, fakeDeviceController, t) {
+      return promise_rejects_js(t, TypeError, session.requestReferenceSpace('foo'))
+        .then(() => Promise.all([
+        session.requestReferenceSpace('viewer').then( (referenceSpace) => {
+            t.step(() => {
+              assert_true(referenceSpace instanceof XRSpace,
+                "identity reference space is not correct type.");
+              assert_true(referenceSpace instanceof XRReferenceSpace,
+                "identity reference space is not correct type.");
+            });
+          }),
+          session.requestReferenceSpace('local').then( (referenceSpace) => {
+            t.step(() => {
+              assert_true(referenceSpace instanceof XRSpace,
+                "eye-level stationary reference space is not correct type.");
+              assert_true(referenceSpace instanceof XRReferenceSpace,
+                "eye-level stationary reference space is not correct type.");
+            });
+          }),
+          session.requestReferenceSpace('local-floor').then( (referenceSpace) => {
+            t.step(() => {
+              assert_true(referenceSpace instanceof XRSpace,
+                "floor-level stationary reference space is not correct type.");
+              assert_true(referenceSpace instanceof XRReferenceSpace,
+                "floor-level stationary reference space is not correct type.");
+            });
+          })
+        ]))
+        .then(() => {
+          if (session.mode == 'inline') {
+            // Bounded reference spaces are not allowed in inline sessions.
+            return promise_rejects_dom(t, "NotSupportedError", session.requestReferenceSpace('bounded-floor'))
+          }
+        })
+        .then(() => {
+          if (session.mode == 'inline') {
+            // Unbounded reference spaces are not allowed in inline sessions.
+            return promise_rejects_dom(t, "NotSupportedError", session.requestReferenceSpace('unbounded'))
+          }
+        })
+    };
+
+    // Reference spaces that aren't included in the default feature list must
+    // be specified as a required or optional features on session creation.
+    xr_session_promise_test(
+      immersiveTestName, testFunction, fakeDeviceInitParams, 'immersive-vr',
+        {requiredFeatures: ['local-floor'],
+         optionalFeatures: ['bounded-floor', 'unbounded']});
+    xr_session_promise_test(
+      nonImmersiveTestName, testFunction, fakeDeviceInitParams, 'inline',
+        {requiredFeatures: ['local'],
+         optionalFeatures: ['local-floor']});
+
+  </script>
+</body>

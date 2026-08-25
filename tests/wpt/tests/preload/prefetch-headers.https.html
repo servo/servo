@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>Ensures that prefetch sends headers as per-spec</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/prefetch-helper.js"></script>
+<body>
+<script>
+
+promise_test(async t => {
+    const {href} = await prefetch({"type": "image/png", file: "green.png"}, t);
+    const [info] = await get_prefetch_info(href);
+    const {headers} = info;
+    assert_equals(headers["sec-fetch-dest"], "empty");
+    assert_equals(headers["sec-purpose"], "prefetch");
+    assert_false("origin" in headers);
+}, "Prefetch should include Sec-Purpose=prefetch and Sec-Fetch-Dest=empty headers");
+
+promise_test(async t => {
+    const {href} = await prefetch({"type": "image/png", file: "green.png"}, t);
+    const [info] = await get_prefetch_info(href);
+    const {headers} = info;
+    assert_false("purpose" in headers);
+    assert_false("x-moz" in headers);
+}, "Prefetch should not include proprietary headers (X-moz/Purpose)");
+
+promise_test(async t => {
+    const {href} = await prefetch({"type": "image/png", file: "green.png", crossOrigin: "anonymous"}, t);
+    const [info] = await get_prefetch_info(href);
+    const {headers} = info;
+    assert_equals(headers["origin"], document.origin);
+}, "Prefetch should respect CORS mode");
+
+</script>
+</body>

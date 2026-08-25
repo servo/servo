@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>::marker supports 'letter-spacing'</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com" />
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#marker-pseudo">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#letter-spacing-property">
+<!-- It's unclear whether letter-spacing should add trailing spacing (https://github.com/w3c/csswg-drafts/issues/1518).
+     The 1st reference assumes no trailing spacing, the 2nd one does. -->
+<link rel="match" href="marker-letter-spacing-ref-001.html">
+<link rel="match" href="marker-letter-spacing-ref-002.html">
+<meta name="assert" content="Checks that ::marker supports 'letter-spacing', both explicitly set or inherited from an ancestor">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+div {
+  float: left;
+  font: 25px/1 Ahem;
+}
+.inside {
+  list-style-position: inside;
+  width: 250px;
+}
+.outside {
+  list-style-position: outside;
+  width: 100px;
+  margin-left: 150px;
+}
+ol {
+  padding: 0;
+}
+.letter-spacing.explicit ::marker,
+.letter-spacing.inherit {
+  letter-spacing: 25px;
+}
+.marker-disc {
+  list-style-type: disc;
+}
+.marker-decimal {
+  list-style-type: decimal;
+}
+.marker-string {
+  list-style-type: "Xp";
+}
+.marker-content::marker {
+  content: "Xpp";
+}
+</style>
+<div class="inside">
+  <ol class="letter-spacing explicit">
+    <li class="marker-disc">É</li>
+    <li class="marker-decimal">É</li>
+    <li class="marker-string">É</li>
+    <li class="marker-content">É</li>
+  </ol>
+  <ol class="letter-spacing inherit">
+    <li class="marker-disc">É</li>
+    <li class="marker-decimal">É</li>
+    <li class="marker-string">É</li>
+    <li class="marker-content">É</li>
+  </ol>
+</div>
+<div class="outside">
+  <ol class="letter-spacing explicit">
+    <li class="marker-disc">É</li>
+    <li class="marker-decimal">É</li>
+    <li class="marker-string">É</li>
+    <li class="marker-content">É</li>
+  </ol>
+  <ol class="letter-spacing inherit">
+    <li class="marker-disc">É</li>
+    <li class="marker-decimal">É</li>
+    <li class="marker-string">É</li>
+    <li class="marker-content">É</li>
+  </ol>
+</div>

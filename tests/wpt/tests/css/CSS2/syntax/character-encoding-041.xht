@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="us-ascii"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+ <head>
+  <title>CSS Test: Stylesheet encodings UTF with a BOM override</title>
+  <link rel="help" href="http://www.w3.org/TR/CSS22/syndata.html#charset" />
+  <link rel="help" href="http://www.w3.org/TR/CSS22/changes.html#s.4.4" />
+  <link rel="match" href="character-encoding-041-ref.xht" />
+  <meta content="http" name="flags" />
+  <meta name="assert" content='If rule 1 above (an HTTP "charset" parameter or similar) yields a character encoding and it is one of UTF-8, UTF-16 or UTF-32, then a BOM, if any, at the start of the file overrides that character encoding, as follows: [...]'/>
+  <link rel="author" title="Bert Bos" href="mailto:bert@w3.org"/>
+  <style type="text/css">
+   p { color: white; background: red; }
+  </style>
+  <link rel="stylesheet" href="support/character-encoding-041.css"/>
+ </head>
+ <body>
+  <p class="t&#xE9;st">This line should be green.</p>
+ </body>
+</html>

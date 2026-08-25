@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+'use strict';
+
+test(() => {
+  assert_throws_dom("NotAllowedError", () => {
+    new TCPSocket("127.0.0.1", 53);
+  }, "constructor should throw");
+}, "TCPSocket disabled by permissions-policy");
+
+test(() => {
+  assert_throws_dom("NotAllowedError", () => {
+    new UDPSocket({ remoteAddress: "127.0.0.1", remotePort: 53 });
+  }, "constructor should throw");
+}, "UDPSocket disabled by permissions-policy");
+
+test(() => {
+  assert_throws_dom("NotAllowedError", () => {
+    new TCPServerSocket("127.0.0.1");
+  }, "constructor should throw");
+}, "TCPServerSocket disabled by permissions-policy");
+
+</script>

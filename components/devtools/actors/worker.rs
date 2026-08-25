@@ -1,0 +1,219 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use std::sync::Arc;
+
+use atomic_refcell::AtomicRefCell;
+use devtools_traits::DevtoolScriptControlMsg::WantsLiveNotifications;
+use devtools_traits::{DevtoolScriptControlMsg, WorkerId};
+use malloc_size_of_derive::MallocSizeOf;
+use rustc_hash::FxHashSet;
+use serde::Serialize;
+use serde_json::{Map, Value};
+use servo_base::generic_channel::GenericSender;
+use servo_base::id::TEST_PIPELINE_ID;
+use servo_url::ServoUrl;
+
+use crate::StreamId;
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry, new_actor_name};
+use crate::protocol::{ClientRequest, JsonPacketStream};
+use crate::resource::ResourceAvailable;
+
+#[derive(Clone, Copy, MallocSizeOf)]
+#[expect(dead_code)]
+pub enum WorkerType {
+    Dedicated = 0,
+    Shared = 1,
+    Service = 2,
+}
+
+#[derive(MallocSizeOf)]
+pub(crate) struct WorkerTargetActor {
+    pub name: String,
+    pub console_name: String,
+    pub thread_name: String,
+    pub worker_id: WorkerId,
+    pub url: ServoUrl,
+    pub type_: WorkerType,
+    pub script_sender: GenericSender<DevtoolScriptControlMsg>,
+    pub streams: AtomicRefCell<FxHashSet<StreamId>>,
+}
+
+impl ResourceAvailable for WorkerTargetActor {
+    fn actor_name(&self) -> String {
+        self.name.clone()
+    }
+}
+
+impl WorkerTargetActor {
+    pub fn register(
+        registry: &ActorRegistry,
+        console_name: String,
+        thread_name: String,
+        worker_id: WorkerId,
+        url: ServoUrl,
+        worker_type: WorkerType,
+        script_sender: GenericSender<DevtoolScriptControlMsg>,
+    ) -> Arc<Self> {
+        let name = new_actor_name::<Self>();
+        let actor = Self {
+            name,
+            console_name,
+            thread_name,
+            worker_id,
+            url,
+            type_: worker_type,
+            script_sender,
+            streams: Default::default(),
+        };
+        registry.register::<Self>(actor)
+    }
+}
+
+impl Actor for WorkerTargetActor {
+    fn name(&self) -> &str {
+        &self.name
+    }
+    fn handle_message(
+        &self,
+        mut request: ClientRequest,
+        _registry: &ActorRegistry,
+        msg_type: &str,
+        _msg: &Map<String, Value>,
+        stream_id: StreamId,
+    ) -> Result<(), ActorError> {
+        match msg_type {
+            "attach" => {
+                let msg = AttachedReply {
+                    from: self.name().into(),
+                    type_: "attached".to_owned(),
+                    url: self.url.as_str().to_owned(),
+                };
+                // FIXME: we don’t send an actual reply (message without type), which seems to be a bug?
+                request.write_json_packet(&msg)?;
+                self.streams.borrow_mut().insert(stream_id);
+                // FIXME: fix messages to not require forging a pipeline for worker messages
+                self.script_sender
+                    .send(WantsLiveNotifications(TEST_PIPELINE_ID, true))
+                    .unwrap();
+            },
+
+            "connect" => {
+                let msg = ConnectReply {
+                    from: self.name().into(),
+                    type_: "connected".to_owned(),
+                    thread_actor: self.thread_name.clone(),
+                    console_actor: self.console_name.clone(),
+                };
+                // FIXME: we don’t send an actual reply (message without type), which seems to be a bug?
+                request.write_json_packet(&msg)?;
+            },
+
+            "detach" => {
+                let msg = DetachedReply {
+                    from: self.name().into(),
+                    type_: "detached".to_string(),
+                };
+                self.cleanup(stream_id);
+                // FIXME: we don’t send an actual reply (message without type), which seems to be a bug?
+                request.write_json_packet(&msg)?;
+            },
+
+            "getPushSubscription" => {
+                let msg = GetPushSubscriptionReply {
+                    from: self.name().into(),
+                    subscription: None,
+                };
+                request.reply_final(&msg)?
+            },
+
+            _ => return Err(ActorError::UnrecognizedPacketType),
+        };
+        Ok(())
+    }
+
+    fn cleanup(&self, stream_id: StreamId) {
+        self.streams.borrow_mut().remove(&stream_id);
+        if self.streams.borrow().is_empty() {
+            self.script_sender
+                .send(WantsLiveNotifications(TEST_PIPELINE_ID, false))
+                .unwrap();
+        }
+    }
+}
+
+#[derive(Serialize)]
+struct GetPushSubscriptionReply {
+    from: String,
+    subscription: Option<()>,
+}
+
+#[derive(Serialize)]
+struct DetachedReply {
+    from: String,
+    #[serde(rename = "type")]
+    type_: String,
+}
+
+#[derive(Serialize)]
+struct AttachedReply {
+    from: String,
+    #[serde(rename = "type")]
+    type_: String,
+    url: String,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ConnectReply {
+    from: String,
+    #[serde(rename = "type")]
+    type_: String,
+    thread_actor: String,
+    console_actor: String,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct WorkerTraits {
+    is_parent_intercept_enabled: bool,
+    supports_top_level_target_flag: bool,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct WorkerTargetActorMsg {
+    actor: String,
+    console_actor: String,
+    thread_actor: String,
+    id: String,
+    url: String,
+    traits: WorkerTraits,
+    #[serde(rename = "type")]
+    type_: u32,
+    #[serde(rename = "targetType")]
+    target_type: String,
+}
+
+impl ActorEncode<WorkerTargetActorMsg> for WorkerTargetActor {
+    fn encode(&self, _: &ActorRegistry) -> WorkerTargetActorMsg {
+        WorkerTargetActorMsg {
+            actor: self.name().into(),
+            console_actor: self.console_name.clone(),
+            thread_actor: self.thread_name.clone(),
+            id: self.worker_id.0.to_string(),
+            url: self.url.to_string(),
+            traits: WorkerTraits {
+                is_parent_intercept_enabled: false,
+                supports_top_level_target_flag: false,
+            },
+            type_: self.type_ as u32,
+            target_type: match self.type_ {
+                WorkerType::Service => "service_worker",
+                _ => "worker",
+            }
+            .to_string(),
+        }
+    }
+}

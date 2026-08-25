@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Attributes are Nodes but should not be accepted outside of the `attributes` NamedNodeMap</title>
+<link rel=help href="https://dom.spec.whatwg.org/#dom-core-changes">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+
+test(() => {
+
+  const attribute = document.createAttribute("newattribute");
+
+  assert_true(attribute instanceof Node, "attribute instances are instances of Node");
+  assert_true(Attr.prototype instanceof Node, "attribute instances are instances of Node");
+
+}, "Attrs are subclasses of Nodes");
+
+test(() => {
+
+  const parent = document.createElement("p");
+
+  const attribute = document.createAttribute("newattribute");
+  assert_throws_dom("HierarchyRequestError", () => {
+    parent.appendChild(attribute);
+  });
+
+}, "appendChild with an attribute as the child should fail");
+
+test(() => {
+
+  const parent = document.createElement("p");
+  parent.appendChild(document.createElement("span"));
+
+  const attribute = document.createAttribute("newattribute");
+  assert_throws_dom("HierarchyRequestError", () => {
+    parent.replaceChild(attribute, parent.firstChild);
+  });
+
+}, "replaceChild with an attribute as the child should fail");
+
+test(() => {
+
+  const parent = document.createElement("p");
+  parent.appendChild(document.createElement("span"));
+
+  const attribute = document.createAttribute("newattribute");
+  assert_throws_dom("HierarchyRequestError", () => {
+    parent.insertBefore(attribute, parent.firstChild);
+  });
+
+}, "insertBefore with an attribute as the child should fail");
+
+</script>

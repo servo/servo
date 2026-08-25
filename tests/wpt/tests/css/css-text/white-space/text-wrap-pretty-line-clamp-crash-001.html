@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en" >
+<meta charset="utf-8">
+<title>CSS test: line-clamp and text-wrap: pretty will not crash</title>
+<link rel='author' title='Andreu Botella' href='mailto:abotella@igalia.com'>
+<link rel='help' href='https://drafts.csswg.org/css-overflow-4/#line-clamp'>
+<link rel='help' href='https://drafts.csswg.org/css-text-4/#text-wrap-style'>
+<style>
+div {
+    border: solid;
+    font-family: monospace;
+    width: 9.1ch;  /* .1ch to work around browser bugs */
+}
+.test {
+    text-wrap-style: pretty;
+    line-clamp: 1;
+    /* This code is unnecessary in any browser that supports the unprefixed version of line-clamp,
+       but neither does it have any detrimental effect,
+       and it broadens the test to browsers that only support the prefixed version */
+
+    -webkit-line-clamp: 1;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+</style>
+
+<div class=test>
+    1 2 3 4 5
+    6 7 8
+</div>

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="utils.js"></script>
+<title>Fenced frame content to report the value of window.parent</title>
+
+<body>
+<script>
+async function init() { // Needed in order to use top-level await.
+  // This file is meant to run in a <fencedframe>. It reports back to the
+  // outermost page whether or not the value of `window.parent` was correct for:
+  //   1.) Top-level fenced frames
+  //   2.) Nested iframes inside a fenced frame
+  //   3.) Nested fenced frames
+  const url = new URL(location.href);
+
+  const [window_parent_key, window_parent_ack_key, nested] = parseKeylist();
+  const is_nested_fenced_frame = (nested == "nested");
+
+  // Report whether or not `window.parent` was correct.
+  let pass_string = "";
+  if (is_nested_fenced_frame)
+    pass_string = "pass: fenced frame > fenced frame";
+  else
+    pass_string = "pass: fenced frame";
+
+  let result = (window.parent == window) ? pass_string : "fail";
+  writeValueToServer(window_parent_key, result);
+
+  // If this page is a nested fenced frame, all we need to do is report the
+  // top-level value.
+  if (is_nested_fenced_frame)
+    return;
+
+  // Wait for ACK, so we know that the outer page has read the last value from
+  // the `window_parent_key` stash and we can write to it again.
+  await nextValueFromServer(window_parent_ack_key);
+
+  // Now test `window.parent` inside an iframe.
+  const iframe = document.createElement('iframe');
+  iframe.src = "dummy.html";
+  const load_promise = new Promise((resolve, reject) => {
+    iframe.onload = resolve;
+    iframe.onerror = reject;
+  });
+  document.body.append(iframe);
+
+  await load_promise;
+
+  // Report whether or not the subframe's `window.parent` was correct.
+  result = (iframe.contentWindow.parent == window) ?
+      "pass: fenced frame > iframe" : "fail";
+  writeValueToServer(window_parent_key, result);
+
+  // Wait for ACK, so we know that the outer page has read the last value from
+  // the `window_parent_key` stash and we can write to it again.
+  await nextValueFromServer(window_parent_ack_key);
+
+  attachFencedFrame(generateURL("window-parent-inner.html",
+      [window_parent_key, window_parent_ack_key, "nested"]));
+}
+
+init();
+</script>
+</body>

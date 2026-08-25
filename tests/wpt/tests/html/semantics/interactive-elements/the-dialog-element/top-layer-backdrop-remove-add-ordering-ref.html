@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<style>
+#popover1 {
+  top: 100px;
+  left: 100px;
+  width: 100px;
+  height: 100px;
+}
+</style>
+
+<dialog id=dialog1>Dialog1</dialog>
+<div popover=manual id=popover1>Popover1</div>
+<script>
+const popover1 = document.getElementById('popover1');
+const dialog1 = document.getElementById('dialog1');
+
+popover1.showPopover();
+dialog1.showModal();
+</script>

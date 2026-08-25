@@ -1,0 +1,83 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: background-position - percentage values versus left offset and top offset percentages</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" title="14.2.1 Background properties: 'background-color', 'background-image', 'background-repeat', 'background-attachment', 'background-position', and 'background'" href="http://www.w3.org/TR/CSS21/colors.html#background-properties" />
+  <link rel="help" title="9.3.2 Box offsets: 'top', 'right', 'bottom', 'left'" href="http://www.w3.org/TR/CSS21/visuren.html#position-props" />
+  <link rel="match" href="background-position-152-ref.xht" />
+
+  <meta content="image" name="flags" />
+  <meta content="The 'background-position' property, when expressed in percentage values will position the inner point (relative to percentage values) of the background-image itself within the padding box of the element. On the other hand, the 'left' property and 'top' property, for absolute positioning, specifies the left offset and the top of the element applied to its left edge (and not its inner horizontal point) and to its top edge (and not its inner vertical point) within the padding box of its nearest positioned ancestor." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  #nearest-positioned-ancestor
+  {
+  background-color: green; /* padding box will be green */
+  background-image: url("support/100x100-red.png");
+  background-position: 14% 84%;
+  background-attachment: scroll;
+  background-repeat: no-repeat;
+  height: 100px; /* therefore padding box is 300px tall */
+  padding: 100px;
+  position: relative;
+  width: 200px; /* therefore padding box is 400px wide */
+  }
+
+  /*
+
+  In this testcase, the point coordinates of the background-image
+  are (14px, 84px) and such inner point of the background-image will
+  be placed at the point 14% across and 84% down the padding box of
+  div#nearest-positioned-ancestor.
+
+  Calculations of 100x100-red position coordinates within #nearest-positioned-ancestor
+  ====================================================================================
+
+  along the horizontal axis
+  -------------------------
+
+    56px (14% of #nearest-positioned-ancestor's padding box width)
+  - 14px (14% of 100x100-red's width)
+  ------------------
+    42px (overlapping green box's left offset within #nearest-positioned-ancestor)
+
+   42px represents exactly 10.5% of #nearest-positioned-ancestor's padding box
+   width (400px)
+
+  along the vertical axis
+  -----------------------
+
+   252px (84% of #nearest-positioned-ancestor's padding box height)
+  - 84px (84% of 100x100-red's height)
+  ------------------
+   168px (overlapping green box's top offset within #nearest-positioned-ancestor)
+
+   168px represents exactly 56% of #nearest-positioned-ancestor's padding box
+   height (300px)
+  */
+
+  #overlapping-abs-pos-green-box
+  {
+  left: 10.5%; /* == 42px */
+  position: absolute;
+  top: 56%; /* == 168px */
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled green rectangle and <strong>no red</strong>.</p>
+
+  <div id="nearest-positioned-ancestor">
+    <div id="overlapping-abs-pos-green-box"><img src="support/swatch-green.png" width="100" height="100" alt="Image download support must be enabled" /></div>
+  </div>
+
+ </body>
+</html>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>script-url-blocked-and-sends-hash in service worker</title>
+  <script src="/common/get-host-info.sub.js"></script>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+  <script src="support/util.js"></script>
+</head>
+
+<body>
+  <script>
+    const scriptUrl = new URL("./support/externalScript.js", document.location).toString();
+
+    promise_test(async t => {
+      const expectedHash = await sha256ofURL(scriptUrl);
+
+      const SCOPE = './support/does-not-exist.html';
+      const SCRIPT = './support/worker-report-hash.js';
+
+      // Make sure we have a clean state.
+      await service_worker_unregister(t, SCOPE);
+
+      return new Promise((resolve, reject) => {
+        navigator.serviceWorker.addEventListener('message', e => {
+          if (e.data.type === 'violation') {
+            try {
+              assert_equals(e.data.blockedURI, scriptUrl);
+              assert_equals(e.data.urlHash.replace(/=+$/, ''), `url-sha256-${expectedHash}`);
+              assert_equals(e.data.evalHash, "");
+
+              // Clean up
+              service_worker_unregister(t, SCOPE).then(resolve);
+            } catch (err) {
+              reject(err);
+            }
+          }
+        });
+
+        navigator.serviceWorker.register(SCRIPT, { scope: SCOPE }).catch(err => {
+          // An error will be triggered because the worker can't import externalScript.js.
+        });
+      });
+    }, "script-specific violation report contains correct urlHash in service worker");
+  </script>
+</body>
+
+</html>

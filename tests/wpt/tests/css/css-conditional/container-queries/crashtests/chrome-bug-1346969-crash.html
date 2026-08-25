@@ -1,0 +1,14 @@
+<!doctype html>
+<title>Chrome crash bug 1346969</title>
+<link rel="help" href="https://crbug.com/1346969">
+<table id="table"> </table>
+<script>
+  document.body.offsetTop;
+  table.style.containerType = "inline-size";
+  table.style.appearance = "auto";
+  table.style.columnCount = 2;
+  table.createTBody();
+  table.createCaption();
+  document.body.offsetTop;
+  table.style.whiteSpace = "pre-wrap";
+</script>

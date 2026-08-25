@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>performance.getSpeculations() - preconnects from final-response Link headers</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/speculation-measurement-utils.js"></script>
+<body>
+<script>
+// This document is served with `Link: rel=preconnect` headers on the final
+// (200) navigation response -- not via a 103 Early Hints response. See the
+// sibling .headers file:
+//   Link: <https://preconnect-response-header-none.test>; rel=preconnect
+//   Link: <https://preconnect-response-header-anon.test>; rel=preconnect; crossorigin
+// The browser forwards these at commit, so they're recorded with
+// earlyhint=false by the time this runs.
+test(() => {
+  assert_true(isSpeculationMeasurementEnabled(),
+    "SpeculationMeasurement feature must be enabled");
+  const preconnects = performance.getSpeculations().preconnects;
+
+  const none = findPreconnectsByOrigin(
+      preconnects, 'https://preconnect-response-header-none.test');
+  assert_equals(none.length, 1,
+    "preconnect from a response Link header (no crossorigin) should be recorded");
+  assert_equals(none[0].crossorigin, 'none');
+  assert_false(none[0].earlyhint,
+    "a final-response Link header preconnect is not an Early Hints preconnect");
+
+  const anon = findPreconnectsByOrigin(
+      preconnects, 'https://preconnect-response-header-anon.test');
+  assert_equals(anon.length, 1,
+    "preconnect from a response Link header (crossorigin) should be recorded");
+  assert_equals(anon[0].crossorigin, 'anonymous');
+  assert_false(anon[0].earlyhint);
+}, "performance.getSpeculations(): preconnects from final-response Link headers");
+</script>
+</body>

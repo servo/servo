@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>feImage should not be affected by pattern in the referenced node</title>
+<link rel="help" href="https://www.w3.org/TR/filter-effects-1/#feImageElement">
+<link rel="author" href="mailto:ragsharma@microsoft.com">
+<link rel="match" href="reference/green-100x100.html">
+
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
+  <defs>
+    <g id="img">
+      <pattern/>
+      <rect width="100" height="100" fill="green"/>
+    </g>
+    <filter filterUnits="userSpaceOnUse" id="flt" x="0" y="0" width="100" height="100">
+      <feImage href="#img"/>
+    </filter>
+  </defs>
+  <rect filter="url(#flt)" width="100" height="100"/>
+</svg>

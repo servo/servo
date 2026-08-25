@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-page-3/#page-properties">
+<link rel="match" href="page-box-010-print-ref.html">
+<meta name="assert" content="Test @page outline">
+<style>
+  @page {
+    margin: 50px;
+    outline: 10px solid green;
+    outline-offset: 40px;
+  }
+  body {
+    margin: 0;
+  }
+</style>
+There should be a green outline.

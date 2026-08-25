@@ -1,0 +1,68 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Bounce Tracking Mitigations: Stateless Client Bounce</title>
+<body>body for test_driver.bless</body>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=/cookies/resources/cookie-helper.sub.js></script>
+<script src=/storage-access-api/helpers.js></script>
+<script>
+  async function CheckCrossSiteCookieAccess(t) {
+    const altOrigin = "https://{{hosts[alt][]}}:{{ports[https][0]}}";
+    const altPath = "/storage-access-api/resources/script-with-cookie-header.py?script=embedded_responder.js";
+    const url = `${altOrigin}${altPath}`;
+
+    await SetFirstPartyCookie(altOrigin);
+    t.add_cleanup(async () => {
+      await test_driver.delete_all_cookies();
+      await MaybeSetStorageAccess("*", "*", "allowed");
+    });
+
+    const frame = await CreateFrame(url);
+    const hasCookieAccess = await HasUnpartitionedCookie(frame);
+
+    return hasCookieAccess;
+  }
+
+  promise_test(async t => {
+    await MaybeSetStorageAccess("*", "*", "blocked");
+
+    if (await CheckCrossSiteCookieAccess(t)) {
+      // Nothing to test here, as cross-site cookies are not blocked.
+      // See https://github.com/privacycg/storage-access/issues/162.
+      return;
+    }
+
+    let linkInNewPage = null;
+
+    // Open a new tab and retrieve the link to start the test.
+    await test_driver.bless('open page to start test', async () => {
+      const otherTab = window.open(
+        'resources/redirect-chain-start-stateless.sub.https.html');
+
+      await new Promise(resolve => otherTab.addEventListener('load', resolve));
+      linkInNewPage = otherTab.document.getElementById('navigate-link');
+    });
+
+    const redirectEndedPromise = new Promise(resolve => {
+      window.addEventListener('message', resolve, {once: true});
+    });
+
+    // Click the link in the new tab.
+    //
+    // Ideally, we would click this from within the page, but because the page
+    // immediately navigates away, test_driver fails as it expects the page to
+    // not navigate away. Doing this from the main test page avoids the issue.
+    test_driver.click(linkInNewPage);
+
+    await redirectEndedPromise;
+
+    let result = [];
+    while (result.length == 0) {
+      result = await test_driver.run_bounce_tracking_mitigations();
+    }
+    assert_array_equals(result, ['{{hosts[alt][]}}']);
+  }, 'Bounce tracking mitigations catching a stateless bounce tracker');
+</script>

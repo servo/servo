@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: center-aligned -webkit-line-clamp ellipsis</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#propdef--webkit-line-clamp">
+<link rel="match" href="reference/webkit-line-clamp-052-ref.html">
+<meta name="assert" content="If the -webkit-line-clamp ellipsis would be placed in an aligned line, the alignment happens after placing the ellipsis.">
+<style>
+  .clamp {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+
+    width: 10em;
+    border: 2px solid black;
+    text-align: center;
+  }
+</style>
+<div class="clamp">
+  Line 1 <br>
+  Line 2 <br>
+  Line 3
+</div>

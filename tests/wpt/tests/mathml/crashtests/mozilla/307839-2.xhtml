@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1 plus MathML 2.0//EN" "http://www.w3.org/TR/MathML2/dtd/xhtml-math11-f.dtd" [
+  <!ENTITY mathml "http://www.w3.org/1998/Math/MathML">
+]>
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<title>Testcase bug - Evil mrow:hover testcase crashes Mozilla</title>
+<style type="text/css">
+#h:hover{display:block;}
+</style>
+</head>
+<body onload="document.getElementById('mrow').setAttribute('id', 'h');">
+<math mode="display" xmlns="http://www.w3.org/1998/Math/MathML">
+<mover>
+  <mrow id="mrow">hovering over this should not crash Mozilla</mrow>
+  <mover>
+    <mo>10</mo>
+    <mrow>times</mrow>
+  </mover>
+</mover>
+</math>
+</body>
+</html>

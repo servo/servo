@@ -1,0 +1,5 @@
+spec: https://websockets.spec.whatwg.org/
+suggested_reviewers:
+  - jdm
+  - ricea
+  - yutakahirano

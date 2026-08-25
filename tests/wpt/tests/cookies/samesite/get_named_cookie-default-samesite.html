@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>TestDriver get_named_cookie method  w/ default SameSite</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+promise_test(async t => {
+  await test_driver.delete_all_cookies();
+  t.add_cleanup(test_driver.delete_all_cookies);
+  document.cookie = "test0=0";
+  const cookie = await test_driver.get_named_cookie("test0");
+  assert_equals(cookie["name"], "test0");
+  assert_equals(cookie["value"], "0");
+  assert_equals(cookie["sameSite"], "Lax");
+}, "Get Named cookie  w/ default SameSite");
+</script>

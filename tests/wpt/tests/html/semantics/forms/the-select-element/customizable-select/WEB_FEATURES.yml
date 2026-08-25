@@ -1,0 +1,3 @@
+rules:
+- select-pseudo-open.html: [open-pseudo]
+- "*": [customizable-select]

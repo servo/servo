@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>CSS Test: Anonymous table objects</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#anonymous-boxes">
+<link rel="help" href="https://github.com/servo/servo/issues/44549">
+<link rel="match" href="../../reference/ref-filled-green-200px-square.html">
+<meta assert="An anonymous table box parent is generated around the table-cell.
+  This table doesn't include any of the spaces that follow the table-cell.">
+
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+#red {
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  background: red;
+  z-index: -1;
+}
+#test {
+  white-space: pre;
+  font: 200px / 1 Ahem;
+  color: green;
+  margin-left: -4ch;
+}
+#cell {
+  display: table-cell;
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="red"></div>
+<div id="test"><div id="cell"></div></div>
+<script src="/common/reftest-wait.js"></script>
+<script>
+document.getElementById("test").append("   ", " ", "X");
+document.fonts.ready.then(takeScreenshot);
+</script>
+</html>

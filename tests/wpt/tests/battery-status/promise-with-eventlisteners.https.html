@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/test-only-api.js"></script>
+<script src="resources/battery-status-helpers.js"></script>
+</head>
+<body>
+<script>
+function nextEvent(target, name) {
+  return new Promise(
+      resolve => target.addEventListener(name, resolve, {once: true}));
+}
+
+battery_status_test(async (t, mockBatteryMonitor) => {
+  mockBatteryMonitor.setBatteryStatus(false, 10, 20, 0.5);
+  const battery = await navigator.getBattery();
+
+  mockBatteryMonitor.verifyBatteryStatus(battery);
+
+  const events = Promise.all([
+    nextEvent(battery, 'chargingchange'),
+    nextEvent(battery, 'chargingtimechange'),
+    nextEvent(battery, 'dischargingtimechange'),
+    nextEvent(battery, 'levelchange'),
+  ]);
+
+  t.step_timeout(() => mockBatteryMonitor.setBatteryStatus(true, 11, 22, 0.6));
+
+  await events;
+  mockBatteryMonitor.verifyBatteryStatus(battery);
+}, 'event listeners fire as specified');
+</script>
+</body>
+</html>

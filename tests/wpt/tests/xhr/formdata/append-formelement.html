@@ -1,0 +1,52 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>FormData.append (with form element)
+</title>
+<link rel="help" href="https://xhr.spec.whatwg.org/#dom-formdata-append">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<form id="form"></form>
+<script>
+    test(function() {
+        var fd = new FormData(document.getElementById("form"));
+        fd.append('key', 'value1');
+        assert_equals(fd.get('key'), "value1");
+    }, 'testFormDataAppendToForm1');
+    test(function() {
+        var fd = new FormData(document.getElementById("form"));
+        fd.append('key', 'value2');
+        fd.append('key', 'value1');
+        assert_equals(fd.get('key'), "value2");
+    }, 'testFormDataAppendToForm2');
+    test(function() {
+        var fd = new FormData(document.getElementById("form"));
+        fd.append('key', undefined);
+        assert_equals(fd.get('key'), "undefined");
+    }, 'testFormDataAppendToFormUndefined1');
+    test(function() {
+        var fd = new FormData(document.getElementById("form"));
+        fd.append('key', undefined);
+        fd.append('key', 'value1');
+        assert_equals(fd.get('key'), "undefined");
+    }, 'testFormDataAppendToFormUndefined2');
+    test(function() {
+        var fd = new FormData(document.getElementById("form"));
+        fd.append('key', null);
+        assert_equals(fd.get('key'), "null");
+    }, 'testFormDataAppendToFormNull1');
+    test(function() {
+        var fd = new FormData(document.getElementById("form"));
+        fd.append('key', null);
+        fd.append('key', 'value1');
+        assert_equals(fd.get('key'), "null");
+    }, 'testFormDataAppendToFormNull2');
+    test(function() {
+        var fd = new FormData(document.getElementById("form"));
+        assert_throws_js(TypeError, () => {fd.append('name', "string", 'filename')});
+    }, 'testFormDataAppendToFormString');
+    test(function() {
+        var fd = new FormData(document.getElementById("form"));
+        assert_throws_js(TypeError, () => {fd.append('name', new URLSearchParams(), 'filename')});
+    }, 'testFormDataAppendToFormWrongPlatformObject');
+</script>

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Implicit stacking context</title>
+</head>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+<style>
+  main {
+    display: flex;
+    flex-direction: row;
+  }
+  article {
+    flex: 1;
+    max-width: 200px;
+    margin: 30px;
+    font-size: 30px;
+    background: green;
+    border: 2px solid black;
+  }
+  section {
+    flex: 1;
+    overflow: auto;
+    border-radius: 200px 20%;
+    corner-shape: squircle;
+    max-height: 200px;
+    background: grey;
+    padding: 10px;
+  }
+  ul {
+    contain: view-transition;
+  }
+  li {
+    padding: 10px;
+    background: yellow;
+    color: black;
+    border: 1px solid purple;
+    list-style: none;
+  }
+  body {
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    display: flex;
+    justify-content: flex-start;
+  }
+  main > *, li {
+    view-transition-name: match-element;
+  }
+
+  ::view-transition-group(*) {
+    animation-duration: 150ms;
+  }
+</style>
+<!-- crbug.com/426218225 -->
+<body>
+  <main>
+    <article class="shuffle">
+      Lorem, ipsum dolor sit amet consectetur adipisicing elit.
+      Illo alias dolore deleniti quas enim, ullam quidem dolorum, dolor vitae
+      doloribus quam quis consequuntur eum dicta, animi quisquam maiores
+      asperiores perspiciatis?
+    </article>
+    <section class="shuffle">
+      <ul>
+        <li>Item A</li>
+        <li>Item B</li>
+        <li>Item C</li>
+        <li>Item D</li>
+      </ul>
+    </section>
+    </main>
+</body>
+<script>
+  const iteration_count = 2;
+  async function runTest(iteration) {
+    const vt1 = document.startViewTransition(() => {
+      const main = document.querySelector("main");
+      const first = main.querySelector('.shuffle');
+      const last = main.querySelector('.shuffle:last-child');
+      main.insertBefore(last, first);
+    });
+
+    const ul = document.querySelector("ul");
+
+    const vt2 = ul.startViewTransition(() => {
+      const first = ul.querySelector('li');
+      const last = ul.querySelector('li:last-child');
+      ul.insertBefore(last, first);
+    });
+
+    Promise.all([vt1.finished, vt2.finished]).then(() => {
+      if (++iteration == iteration_count) {
+        document.documentElement.classList.remove('test-wait');
+      } else {
+        runTest(iteration);
+      }
+    });
+  }
+
+  window.onload = async () => {
+    await waitForCompositorReady();
+    runTest(0);
+  };
+</script>
+</html>

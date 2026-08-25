@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Resource Timing in dedicated workers</title>
+<link rel="author" title="Google" href="http://www.google.com/" />
+<link rel="help" href="http://www.w3.org/TR/resource-timing/"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webperftestharness.js"></script>
+<script src="resources/webperftestharnessextension.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script>
+
+const mainDocResource = "/images/red.png?noCacheResourceDedicatedWorker";
+// Resources below are requested in the worker thread
+// "resources/worker_with_images.js".
+const workerResources = [
+  "/resource-timing/resources/blue.png",
+  "/resource-timing/resources/resource_timing_test0.png",
+];
+
+const {promise: mainDocPromise, resolve: resolveMainDoc} = Promise.withResolvers();
+const {promise: workerPromise, resolve: resolveWorker} = Promise.withResolvers();
+
+// Load main document resource
+var xhr = new XMLHttpRequest;
+xhr.open('get', mainDocResource, true);
+xhr.onload = function() {
+  resolveMainDoc();
+}
+xhr.send();
+
+const worker = new Worker("resources/worker_with_images.js");
+worker.onmessage = function(event) {
+  resolveWorker();
+}
+
+promise_test(async () => {
+  await Promise.all([
+    mainDocPromise,
+    workerPromise,
+  ]);
+
+  const context = new PerformanceContext(window.performance);
+
+  // The main doc resource appears in the main document.
+  const mainDocResourceUrl = new URL(mainDocResource, get_host_info().HTTP_ORIGIN).href;
+  const mainDocEntries = context.getEntriesByName(mainDocResourceUrl);
+  assert_greater_than(mainDocEntries.length, 0, "main doc resource appears");
+
+  // On the other hand, the worker resources don't.
+  for(resource of workerResources) {
+    let workerResourceUrl = new URL(resource, get_host_info().HTTP_ORIGIN).href;
+    let workerEntries = context.getEntriesByName(workerResourceUrl);
+    assert_equals(workerEntries.length, 0, "worker resources don't appear");
+  }
+}, "Verify that resources requested by dedicated workers don't appear in the main document");
+
+</script>
+</head>
+<body>
+<h1>Description</h1>
+<p>This test validates that resources requested by dedicated workers don't appear in the main document.</p>
+</body>
+</html>

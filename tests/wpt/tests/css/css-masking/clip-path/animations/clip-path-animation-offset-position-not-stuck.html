@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta name=fuzzy content="0-80;0-350">
+<link rel="help" href="https://drafts.csswg.org/css-shapes-1/#basic-shape-interpolation">
+<link rel="match" href="clip-path-animation-ref.html">
+<style>
+.container {
+  width: 100px;
+  height: 100px;
+  background-color: green;
+  animation: clippathwithtf 20s steps(2, jump-end) -9.99s;
+}
+/* without an offset-path, this should do absolutely nothing */
+.offset-position {
+    offset-position: left top;
+}
+@keyframes clippathwithtf {
+  0%   {
+    clip-path: circle(50% at 50% 50%);
+    transform: translate(-10%, -10%);
+  }
+  100% {
+    clip-path: circle(20% at 20% 20%);
+    transform: translate(10%, 10%);
+  }
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="/web-animations/resources/timing-utils.js"></script>
+<body>
+<div id="target" class="container"></div>
+
+<script>
+  async function runTest() {
+    await waitForCompositorReady();
+    await document.getAnimations()[0].ready;
+
+    document.querySelector("#target").classList.add("offset-position");
+
+    waitForAnimationTime(document.getAnimations()[0], 10).then(takeScreenshot);
+  }
+  window.addEventListener('load', runTest);
+</script>
+</body>
+</html>

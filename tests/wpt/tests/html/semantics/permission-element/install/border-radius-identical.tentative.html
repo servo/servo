@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Install Element Border Radius Clamping</title>
+<link rel="help"
+    href="https://github.com/WICG/PEPC/blob/main/explainer.md#locking-the-pepc-style"/>
+<link rel="match" href="border-radius-identical-ref.html">
+<p>This test verifies that a large border-radius on an install element is clamped to half of the element's smallest dimension, resulting in a pill shape.</p>
+<style>
+  install {
+    width: 100px;
+    height: 40px;
+    border-radius: 1000px;
+    background-color: blue;
+    display: inline-block;
+  }
+</style>
+<install></install>

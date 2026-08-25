@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Background and Borders Test: box-shadow and overlapping of adjacent text</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-backgrounds-3/#shadow-layers" >
+  <link rel="match" href="reference/box-shadow-overlapping-003-ref.html">
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+
+  <meta content="Box shadows do not affect layout. Box shadows take up no space. Box shadows do not affect or influence normal flow of boxes. Therefore, box shadows can 'collide' with other boxes and can overlap other boxes (inline box or line box) or be overlapped by other boxes. In this test, the text ('OVLPED') is from a previous line box and is overlapped by a top outer box shadow box that is tall enough to overlap it entirely." name="assert">
+
+  <style>
+  div
+    {
+      float: left;
+      font-family: Ahem;
+      font-size: 100px;
+      line-height: 1;
+    }
+
+  div#previous-line-box
+    {
+      color: red;
+    }
+
+  div#outer-box-shadow
+    {
+      box-shadow: 0em -1em;
+      clear: left;
+      color: green;
+    }
+
+    /*
+
+    omitted colors default to the value of the color property.
+
+    1st <length>
+    Specifies the horizontal offset of the shadow. A positive value
+    draws a shadow that is offset to the right of the box, a negative
+    length to the left.
+
+    2nd <length>
+    Specifies the vertical offset of the shadow. A positive value
+    offsets the shadow down, a negative one up.
+
+    */
+  </style>
+
+  <p>Test passes if there is a filled green rectangle and <strong>no red</strong>.
+
+  <div id="previous-line-box">OVLPED</div>
+
+  <div id="outer-box-shadow">OVLPNG</div>

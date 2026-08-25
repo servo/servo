@@ -1,0 +1,33 @@
+"""Serve the web-app-origin-association for the scope_extensions WPT.
+
+Chromium rejects WPT's reserved .test hosts as scope-extension origins because
+they lack a recognized public suffix. The two standard HTTPS ports on loopback
+therefore provide distinct valid origins. Only the loopback host on the first
+port authorizes the app, with its scope limited to the test's resources
+directory; every other origin returns an empty association.
+"""
+import json
+
+
+SCOPE_EXTENSION_HOST = "127.0.0.1"
+
+
+def main(request, response):
+    response.headers.set(b"Content-Type", b"application/json")
+    config = request.server.config
+    authorized_port = config.ports["https"][0]
+
+    association = {}
+    if (
+        request.url_parts.hostname == SCOPE_EXTENSION_HOST
+        and request.url_parts.port == authorized_port
+    ):
+        app_id = (
+            "https://{0}:{1}/appmanifest/scope_extensions-member/"
+            "scope_extensions-member-manual.sub.tentative.html"
+        ).format(config.browser_host, authorized_port)
+        association[app_id] = {
+            "scope": "/appmanifest/scope_extensions-member/resources/"
+        }
+
+    response.content = json.dumps(association)

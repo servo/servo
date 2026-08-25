@@ -1,0 +1,2 @@
+rules:
+- table-cell-multicol-nested-*: [column-fill]

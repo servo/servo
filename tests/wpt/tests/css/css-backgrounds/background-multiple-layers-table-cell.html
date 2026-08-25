@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Test background layers work fine in table elements</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-4/#background-clip">
+<link rel="match" href="background-multiple-layers-table-cell-ref.html">
+<meta name="fuzzy" content="maxDifference=0-5;totalPixels=0-370">
+<style>
+:root {
+  font-size: 24pt;
+}
+thead {
+  background:
+    linear-gradient(rgba(0, 128, 0, 0.2), rgba(128, 0, 0, 0.2)) border-box,
+    linear-gradient(green, yellow) text;
+  color: transparent;
+}
+table {
+  border-collapse: collapse;
+}
+</style>
+</head>
+<body>
+<table>
+  <thead>
+    <tr>
+      <th>Text</th>
+    </tr>
+  </thead>
+</table>
+</body>
+</html>

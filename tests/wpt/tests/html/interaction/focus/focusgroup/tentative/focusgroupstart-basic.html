@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - focusgroupstart basic sequential navigation</title>
+<meta name="assert" content="Tab and Shift+Tab should enter a focusgroup at the focusgroupstart element.">
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+<script src="resources/focusgroup-utils.js"></script>
+
+<!-- focusgroupstart on a non-first item in a flat focusgroup. -->
+<button id="before">before</button>
+<div focusgroup="toolbar nomemory">
+  <button id="a1">a1</button>
+  <button id="a2" focusgroupstart>a2</button>
+  <button id="a3">a3</button>
+</div>
+<button id="after">after</button>
+
+<script>
+  promise_test(async t => {
+    await assert_focusgroup_tab_navigation([
+      before,
+      a2,
+      after,
+    ]);
+  }, "Tab enters at focusgroupstart and exits the focusgroup");
+
+  promise_test(async t => {
+    await assert_focusgroup_shift_tab_navigation([
+      after,
+      a2,
+      before,
+    ]);
+  }, "Shift+Tab enters at focusgroupstart and exits the focusgroup");
+</script>
+
+<!-- focusgroupstart on a shadow-host item; arrow nav still walks siblings. -->
+<button id="tree_before">tree_before</button>
+<div focusgroup="toolbar nomemory">
+  <tree-item id="t1" tabindex="0">
+    <template shadowrootmode="open"><slot></slot></template>
+    Item 1
+  </tree-item>
+  <tree-item id="t2" tabindex="0" focusgroupstart>
+    <template shadowrootmode="open"><slot></slot></template>
+    Item 2
+  </tree-item>
+  <tree-item id="t3" tabindex="0">
+    <template shadowrootmode="open"><slot></slot></template>
+    Item 3
+  </tree-item>
+</div>
+<button id="tree_after">tree_after</button>
+
+<script>
+  promise_test(async t => {
+    await assert_focusgroup_tab_navigation([
+      tree_before,
+      t2,
+      tree_after,
+    ]);
+  }, "focusgroupstart on shadow host: Tab enters at start element");
+
+  promise_test(async t => {
+    await assert_focusgroup_shift_tab_navigation([
+      tree_after,
+      t2,
+      tree_before,
+    ]);
+  }, "focusgroupstart on shadow host: Shift+Tab enters at start element");
+
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(t2, kRight);
+    assert_equals(document.activeElement.id, "t3",
+      "ArrowRight from t2 should move to t3");
+  }, "focusgroupstart on shadow host: forward arrow navigation works");
+
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(t2, kLeft);
+    assert_equals(document.activeElement.id, "t1",
+      "ArrowLeft from t2 should move to t1");
+  }, "focusgroupstart on shadow host: backward arrow navigation works");
+</script>
+
+<!-- Non-entry shadow host with no focusable content; Tab skips past it to
+     the focusgroupstart entry. -->
+<button id="empty_before">empty_before</button>
+<div focusgroup="toolbar nomemory">
+  <div id="empty_host" tabindex="0">
+    <template shadowrootmode="open">
+      <span>non-focusable text only</span>
+    </template>
+  </div>
+  <button id="empty_fallback" focusgroupstart>fallback</button>
+</div>
+<button id="empty_after">empty_after</button>
+
+<script>
+  promise_test(async t => {
+    await assert_focusgroup_tab_navigation([
+      empty_before,
+      empty_fallback,
+      empty_after,
+    ]);
+  }, "Empty shadow-host item is skipped; Tab enters at focusgroupstart");
+</script>

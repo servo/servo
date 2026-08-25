@@ -1,0 +1,2 @@
+rules:
+- blur-event.window.js: [focus-events]

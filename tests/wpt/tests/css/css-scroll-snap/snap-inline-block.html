@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1/#scroll-snap-type" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+div {
+  position: absolute;
+  margin: 0px;
+}
+#scroller {
+  width: 400px;
+  height: 350px;
+  overflow: scroll;
+  scroll-snap-type: both mandatory;
+}
+#space {
+  width: 1000px;
+  height: 1000px;
+}
+#target {
+  width: 200px;
+  height: 200px;
+  left: 300px;
+  top: 300px;
+}
+</style>
+
+<div id="scroller">
+  <div id="space"></div>
+  <div id="target"></div>
+</div>
+
+<script>
+const scroller_width = scroller.clientWidth;
+const scroller_height = scroller.clientHeight;
+[
+  ["horizontal-tb", 300,                  500 - scroller_height],
+  ["vertical-lr",   500 - scroller_width, 300],
+  ["vertical-rl",   scroller_width - 700, 300]
+].forEach(([writing_mode, left, top]) => {
+  test(() => {
+    const target_left = getComputedStyle(target).left;
+    scroller.style.writingMode = writing_mode;
+    target.style.scrollSnapAlign = "end start";
+    if (writing_mode == "vertical-rl") {
+      target.style.left = (scroller_width - 700) + "px";
+      scroller.scrollTo(-500, 0);
+    } else {
+      scroller.scrollTo(0, 0);
+    }
+    assert_equals(scroller.scrollLeft, left, "aligns correctly on x");
+    assert_equals(scroller.scrollTop, top, "aligns correctly on y");
+    target.style.left = target_left;
+    scroller.style.writingMode = "";
+  }, "Snaps correctly for " + writing_mode +
+     " writing mode with 'scroll-snap-align: end start' alignment");
+});
+
+[
+  ["horizontal-tb", 500 - scroller_width,     300],
+  ["vertical-lr",   300,                      500 - scroller_height],
+  ["vertical-rl",   target.clientWidth - 700, 500 - scroller_height]
+].forEach(([writing_mode, left, top]) => {
+  test(() => {
+    const target_left = getComputedStyle(target).left;
+    scroller.style.writingMode = writing_mode;
+    target.style.scrollSnapAlign = "start end";
+    if (writing_mode == "vertical-rl") {
+      target.style.left = (scroller_width - 700) + "px";
+      scroller.scrollTo(-500, 0);
+    } else {
+      scroller.scrollTo(0, 0);
+    }
+    assert_equals(scroller.scrollLeft, left, "aligns correctly on x");
+    assert_equals(scroller.scrollTop, top, "aligns correctly on y");
+    target.style.left = target_left;
+    scroller.style.writingMode = "";
+  }, "Snaps correctly for " + writing_mode +
+     " writing mode with 'scroll-snap-align: start end' alignment");
+});
+
+test(() => {
+  const target_left = getComputedStyle(target).left;
+  scroller.style.direction = "rtl";
+  target.style.scrollSnapAlign = "end start";
+  target.style.left = (scroller_width - 700) + "px";
+
+  scroller.scrollTo(-500, 0);
+  assert_equals(scroller.scrollLeft, target.clientWidth - 700,
+                "aligns correctly on x");
+  assert_equals(scroller.scrollTop, 500 - scroller_height,
+                "aligns correctly on y");
+
+  target.style.left = target_left;
+  scroller.style.direction = "";
+}, "Snaps correctly for 'direction: rtl' with 'scroll-snap-align: end start' " +
+   "alignment");
+
+test(() => {
+  const target_left = getComputedStyle(target).left;
+  scroller.style.direction = "rtl";
+  target.style.scrollSnapAlign = "start end";
+  target.style.left = (scroller_width - 700) + "px";
+
+  scroller.scrollTo(-500, 0);
+  assert_equals(scroller.scrollLeft, scroller_width - 700,
+                "aligns correctly on x");
+  assert_equals(scroller.scrollTop, 300, "aligns correctly on y");
+
+  target.style.left = target_left;
+  scroller.style.direction = "";
+}, "Snaps correctly for 'direction: rtl' with 'scroll-snap-align: start end' " +
+   "alignment");
+
+</script>

@@ -1,0 +1,5 @@
+rules:
+- fractional-line-height.html: [line-height]
+- line-box-height-*: [line-height]
+- line-height-*: [line-height]
+- vertical-align-*: [vertical-align]

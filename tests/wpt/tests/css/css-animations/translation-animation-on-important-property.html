@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>Translation animation on important property</title>
+<link rel="help" href="https://crbug.com/1324679">
+<link rel="match" href="translation-animation-on-important-property-ref.html">
+<style>
+@keyframes move {
+  0% {transform: translateX(0px);}
+  100% {transform: translateX(100px);}
+}
+#target {
+  width: 100px;
+  height: 100px;
+  background: green;
+  transform:  none !important;
+  animation: move 10000s cubic-bezier(0, 1, 1, 0) -5000s;
+}
+</style>
+<div id="target"></div>

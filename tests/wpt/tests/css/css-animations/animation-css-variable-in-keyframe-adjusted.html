@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Animations: adjust value of CSS variable used in keyframes</title>
+<link rel="help" href="https://drafts.csswg.org/css-animations/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/testcommon.js"></script>
+<style>
+
+@keyframes anim {
+    from { margin-left: var(--margin-left) }
+    to   { margin-left: calc(var(--margin-left) * 2) }
+}
+
+</style>
+<div id="log"></div>
+<script>
+
+test(t => {
+  const div = addDiv(t);
+  div.style.setProperty('--margin-left', '100px');
+
+  div.style.animation = 'anim 1s linear';
+  const animation = div.getAnimations()[0];
+  animation.currentTime = 500;
+
+  assert_equals(
+    getComputedStyle(div).marginLeft,
+    '150px',
+    'Animated value before updating variable'
+  );
+
+  div.style.setProperty('--margin-left', '200px');
+
+  assert_equals(
+    getComputedStyle(div).marginLeft,
+    '300px',
+    'Animated value after updating variable'
+  );
+}, 'Animations reflect changes to variables on element');
+
+test(t => {
+  const parentDiv = addDiv(t);
+  const div = addDiv(t);
+  parentDiv.appendChild(div);
+  parentDiv.style.setProperty('--margin-left', '100px');
+
+  div.style.animation = 'anim 1s linear';
+  const animation = div.getAnimations()[0];
+  animation.currentTime = 500;
+
+  assert_equals(
+    getComputedStyle(div).marginLeft,
+    '150px',
+    'Animated value before updating variable'
+  );
+
+  parentDiv.style.setProperty('--margin-left', '200px');
+
+  assert_equals(
+    getComputedStyle(div).marginLeft,
+    '300px',
+    'Animated value after updating variable'
+  );
+}, 'Animations reflect changes to variables on parent element');
+
+
+</script>

@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Processing a keyframes argument (property access)</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations/#processing-a-keyframes-argument">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<script src="../../resources/keyframe-utils.js"></script>
+<body>
+<div id="log"></div>
+<div id="target"></div>
+<script>
+'use strict';
+
+// This file only tests the KeyframeEffect constructor since it is
+// assumed that the implementation of the KeyframeEffect constructor,
+// Animatable.animate() method, and KeyframeEffect.setKeyframes() method will
+// all share common machinery and it is not necessary to test each method.
+
+// Test that only animatable properties are accessed
+
+const gNonAnimatableProps = [
+  'animation', // Shorthands where all the longhand sub-properties are not
+               // animatable, are also not animatable.
+  'animationDelay',
+  'animationDirection',
+  'animationDuration',
+  'animationFillMode',
+  'animationIterationCount',
+  'animationName',
+  'animationPlayState',
+  'animationTimingFunction',
+  'transition',
+  'transitionDelay',
+  'transitionDuration',
+  'transitionProperty',
+  'transitionTimingFunction',
+  'contain',
+  'direction',
+  'textCombineUpright',
+  'textOrientation',
+  'unicodeBidi',
+  'willChange',
+  'writingMode',
+
+  'unsupportedProperty',
+
+  'float', // We use the string "cssFloat" to represent "float" property, and
+           // so reject "float" in the keyframe-like object.
+  'font-size', // Supported property that uses dashes
+];
+
+function TestKeyframe(testProp) {
+  let _propAccessCount = 0;
+
+  Object.defineProperty(this, testProp, {
+    get: () => { _propAccessCount++; },
+    enumerable: true,
+  });
+
+  Object.defineProperty(this, 'propAccessCount', {
+    get: () => _propAccessCount
+  });
+}
+
+function GetTestKeyframeSequence(testProp) {
+  return [ new TestKeyframe(testProp) ]
+}
+
+for (const prop of gNonAnimatableProps) {
+  test(() => {
+    const testKeyframe = new TestKeyframe(prop);
+
+    new KeyframeEffect(null, testKeyframe);
+
+    assert_equals(testKeyframe.propAccessCount, 0, 'Accessor not called');
+  }, `non-animatable property '${prop}' is not accessed when using`
+     + ' a property-indexed keyframe object');
+}
+
+for (const prop of gNonAnimatableProps) {
+  test(() => {
+    const testKeyframes = GetTestKeyframeSequence(prop);
+
+    new KeyframeEffect(null, testKeyframes);
+
+    assert_equals(testKeyframes[0].propAccessCount, 0, 'Accessor not called');
+  }, `non-animatable property '${prop}' is not accessed when using`
+     + ' a keyframe sequence');
+}
+
+// Test equivalent forms of property-indexed and sequenced keyframe syntax
+
+function assertEquivalentKeyframeSyntax(keyframesA, keyframesB) {
+  const processedKeyframesA =
+    new KeyframeEffect(null, keyframesA).getKeyframes();
+  const processedKeyframesB =
+    new KeyframeEffect(null, keyframesB).getKeyframes();
+  assert_frame_lists_equal(processedKeyframesA, processedKeyframesB);
+}
+
+const gEquivalentSyntaxTests = [
+  {
+    description: 'two properties with one value',
+    indexedKeyframes: {
+      left: '100px',
+      opacity: ['1'],
+    },
+    sequencedKeyframes: [
+      { left: '100px', opacity: '1' },
+    ],
+  },
+  {
+    description: 'two properties with three values',
+    indexedKeyframes: {
+      left: ['10px', '100px', '150px'],
+      opacity: ['1', '0', '1'],
+    },
+    sequencedKeyframes: [
+      { left: '10px', opacity: '1' },
+      { left: '100px', opacity: '0' },
+      { left: '150px', opacity: '1' },
+    ],
+  },
+  {
+    description: 'two properties with different numbers of values',
+    indexedKeyframes: {
+      left: ['0px', '100px', '200px'],
+      opacity: ['0', '1']
+    },
+    sequencedKeyframes: [
+      { left: '0px', opacity: '0' },
+      { left: '100px' },
+      { left: '200px', opacity: '1' },
+    ],
+  },
+  {
+    description: 'same easing applied to all keyframes',
+    indexedKeyframes: {
+      left: ['10px', '100px', '150px'],
+      opacity: ['1', '0', '1'],
+      easing: 'ease',
+    },
+    sequencedKeyframes: [
+      { left: '10px', opacity: '1', easing: 'ease' },
+      { left: '100px', opacity: '0', easing: 'ease' },
+      { left: '150px', opacity: '1', easing: 'ease' },
+    ],
+  },
+  {
+    description: 'same composite applied to all keyframes',
+    indexedKeyframes: {
+      left: ['0px', '100px'],
+      composite: 'add',
+    },
+    sequencedKeyframes: [
+      { left: '0px', composite: 'add' },
+      { left: '100px', composite: 'add' },
+    ],
+  },
+];
+
+for (const {description, indexedKeyframes, sequencedKeyframes} of
+     gEquivalentSyntaxTests) {
+  test(() => {
+    assertEquivalentKeyframeSyntax(indexedKeyframes, sequencedKeyframes);
+  }, `Equivalent property-indexed and sequenced keyframes: ${description}`);
+}
+
+// Test handling of custom iterable objects.
+
+function createIterable(iterations) {
+  return {
+    [Symbol.iterator]() {
+      let i = 0;
+      return {
+        next() {
+          return iterations[i++];
+        },
+      };
+    },
+  };
+}
+
+test(() => {
+  const effect = new KeyframeEffect(null, createIterable([
+    { done: false, value: { left: '100px' } },
+    { done: false, value: { left: '300px' } },
+    { done: false, value: { left: '200px' } },
+    { done: true },
+  ]));
+  assert_frame_lists_equal(effect.getKeyframes(), [
+    {
+      offset: null,
+      computedOffset: 0,
+      easing: 'linear',
+      left: '100px',
+      composite: 'auto',
+    },
+    {
+      offset: null,
+      computedOffset: 0.5,
+      easing: 'linear',
+      left: '300px',
+      composite: 'auto',
+    },
+    {
+      offset: null,
+      computedOffset: 1,
+      easing: 'linear',
+      left: '200px',
+      composite: 'auto',
+    },
+  ]);
+}, 'Keyframes are read from a custom iterator');
+
+test(() => {
+  const keyframes = createIterable([
+    { done: false, value: { left: '100px' } },
+    { done: false, value: { left: '300px' } },
+    { done: false, value: { left: '200px' } },
+    { done: true },
+  ]);
+  keyframes.easing = 'ease-in-out';
+  keyframes.offset = '0.1';
+  const effect = new KeyframeEffect(null, keyframes);
+  assert_frame_lists_equal(effect.getKeyframes(), [
+    {
+      offset: null,
+      computedOffset: 0,
+      easing: 'linear',
+      left: '100px',
+      composite: 'auto',
+    },
+    {
+      offset: null,
+      computedOffset: 0.5,
+      easing: 'linear',
+      left: '300px',
+      composite: 'auto',
+    },
+    {
+      offset: null,
+      computedOffset: 1,
+      easing: 'linear',
+      left: '200px',
+      composite: 'auto',
+    },
+  ]);
+}, '\'easing\' and \'offset\' are ignored on iterable objects');
+
+test(() => {
+  const effect = new KeyframeEffect(null, createIterable([
+    { done: false, value: { left: '100px', top: '200px' } },
+    { done: false, value: { left: '300px' } },
+    { done: false, value: { left: '200px', top: '100px' } },
+    { done: true },
+  ]));
+  assert_frame_lists_equal(effect.getKeyframes(), [
+    {
+      offset: null,
+      computedOffset: 0,
+      easing: 'linear',
+      left: '100px',
+      top: '200px',
+      composite: 'auto',
+    },
+    {
+      offset: null,
+      computedOffset: 0.5,
+      easing: 'linear',
+      left: '300px',
+      composite: 'auto',
+    },
+    {
+      offset: null,
+      computedOffset: 1,
+      easing: 'linear',
+      left: '200px',
+      top: '100px',
+      composite: 'auto',
+    },
+  ]);
+}, 'Keyframes are read from a custom iterator with multiple properties'
+   + ' specified');
+
+test(() => {
+  const effect = new KeyframeEffect(null, createIterable([
+    { done: false, value: { left: '100px' } },
+    { done: false, value: { left: '250px', offset: 0.75 } },
+    { done: false, value: { left: '200px' } },
+    { done: true },
+  ]));
+  assert_frame_lists_equal(effect.getKeyframes(), [
+    {
+      offset: null,
+      computedOffset: 0,
+      easing: 'linear',
+      left: '100px',
+      composite: 'auto',
+    },
+    {
+      offset: 0.75,
+      computedOffset: 0.75,
+      easing: 'linear',
+      left: '250px',
+      composite: 'auto',
+    },
+    {
+      offset: null,
+      computedOffset: 1,
+      easing: 'linear',
+      left: '200px',
+      composite: 'auto',
+    },
+  ]);
+}, 'Keyframes are read from a custom iterator with where an offset is'
+   + ' specified');
+
+test(() => {
+  const test_error = { name: 'test' };
+  const bad_keyframe = { get left() { throw test_error; } };
+  assert_throws_exactly(test_error, () => {
+    new KeyframeEffect(null, createIterable([
+      { done: false, value: { left: '100px' } },
+      { done: false, value: bad_keyframe },
+      { done: false, value: { left: '200px' } },
+      { done: true },
+    ]));
+  });
+}, 'If a keyframe throws for an animatable property, that exception should be'
+    + ' propagated');
+
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new KeyframeEffect(null, createIterable([
+      { done: false, value: { left: '100px' } },
+      { done: false, value: 1234 },
+      { done: false, value: { left: '200px' } },
+      { done: true },
+    ]));
+  });
+}, 'Reading from a custom iterator that returns a non-object keyframe'
+   + ' should throw');
+
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new KeyframeEffect(null, createIterable([
+      { done: false, value: { left: '100px', easing: '' } },
+      { done: false, value: 1234 },
+      { done: false, value: { left: '200px' } },
+      { done: true },
+    ]));
+  });
+}, 'Reading from a custom iterator that returns a non-object keyframe'
+   + ' and an invalid easing should throw');
+
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new KeyframeEffect(null, createIterable([
+      { done: false, value: { left: '100px' } },
+      { done: false, value: { left: '150px', offset: 'o' } },
+      { done: false, value: { left: '200px' } },
+      { done: true },
+    ]));
+  });
+}, 'Reading from a custom iterator that returns a keyframe with a non finite'
+   + ' floating-point offset value should throw');
+
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new KeyframeEffect(null, createIterable([
+      { done: false, value: { left: '100px', easing: '' } },
+      { done: false, value: { left: '150px', offset: 'o' } },
+      { done: false, value: { left: '200px' } },
+      { done: true },
+    ]));
+  });
+}, 'Reading from a custom iterator that returns a keyframe with a non finite'
+   + ' floating-point offset value and an invalid easing should throw');
+
+test(() => {
+  const effect = new KeyframeEffect(null, createIterable([
+    { done: false, value: { left: '100px' } },
+    { done: false },  // No value member; keyframe is undefined.
+    { done: false, value: { left: '200px' } },
+    { done: true },
+  ]));
+  assert_frame_lists_equal(effect.getKeyframes(), [
+    { left: '100px', offset: null, computedOffset: 0, easing: 'linear', composite: 'auto' },
+    { offset: null, computedOffset: 0.5, easing: 'linear', composite: 'auto' },
+    { left: '200px', offset: null, computedOffset: 1, easing: 'linear', composite: 'auto' },
+  ]);
+}, 'An undefined keyframe returned from a custom iterator should be treated as a'
+    + ' default keyframe');
+
+test(() => {
+  const effect = new KeyframeEffect(null, createIterable([
+    { done: false, value: { left: '100px' } },
+    { done: false, value: null },
+    { done: false, value: { left: '200px' } },
+    { done: true },
+  ]));
+  assert_frame_lists_equal(effect.getKeyframes(), [
+    { left: '100px', offset: null, computedOffset: 0, easing: 'linear', composite: 'auto' },
+    { offset: null, computedOffset: 0.5, easing: 'linear', composite: 'auto' },
+    { left: '200px', offset: null, computedOffset: 1, easing: 'linear', composite: 'auto' },
+  ]);
+}, 'A null keyframe returned from a custom iterator should be treated as a'
+    + ' default keyframe');
+
+test(() => {
+  const effect = new KeyframeEffect(null, createIterable([
+    { done: false, value: { left: ['100px', '200px'] } },
+    { done: true },
+  ]));
+  assert_frame_lists_equal(effect.getKeyframes(), [
+    { offset: null, computedOffset: 1, easing: 'linear', composite: 'auto' }
+  ]);
+}, 'A list of values returned from a custom iterator should be ignored');
+
+test(() => {
+  const test_error = { name: 'test' };
+  const keyframe_obj = {
+    [Symbol.iterator]() {
+      return { next() { throw test_error; } };
+    },
+  };
+  assert_throws_exactly(test_error, () => {
+    new KeyframeEffect(null, keyframe_obj);
+  });
+}, 'If a custom iterator throws from next(), the exception should be rethrown');
+
+// Test handling of invalid Symbol.iterator
+
+test(() => {
+  const test_error = { name: 'test' };
+  const keyframe_obj = {
+    [Symbol.iterator]() {
+      throw test_error;
+    },
+  };
+  assert_throws_exactly(test_error, () => {
+    new KeyframeEffect(null, keyframe_obj);
+  });
+}, 'Accessing a Symbol.iterator property that throws should rethrow');
+
+test(() => {
+  const keyframe_obj = {
+    [Symbol.iterator]() {
+      return 42;  // Not an object.
+    },
+  };
+  assert_throws_js(TypeError, () => {
+    new KeyframeEffect(null, keyframe_obj);
+  });
+}, 'A non-object returned from the Symbol.iterator property should cause a'
+    + ' TypeError to be thrown');
+
+test(() => {
+  const keyframe = {};
+  Object.defineProperty(keyframe, 'width', { value: '200px' });
+  Object.defineProperty(keyframe, 'height', {
+    value: '100px',
+    enumerable: true,
+  });
+  assert_equals(keyframe.width, '200px', 'width of keyframe is readable');
+  assert_equals(keyframe.height, '100px', 'height of keyframe is readable');
+
+  const effect = new KeyframeEffect(null, [keyframe, { height: '200px' }]);
+
+  assert_frame_lists_equal(effect.getKeyframes(), [
+    {
+      offset: null,
+      computedOffset: 0,
+      easing: 'linear',
+      height: '100px',
+      composite: 'auto',
+    },
+    {
+      offset: null,
+      computedOffset: 1,
+      easing: 'linear',
+      height: '200px',
+      composite: 'auto',
+    },
+  ]);
+}, 'Only enumerable properties on keyframes are read');
+
+test(() => {
+  const KeyframeParent = function() { this.width = '100px'; };
+  KeyframeParent.prototype = { height: '100px' };
+  const Keyframe = function() { this.top = '100px'; };
+  Keyframe.prototype = Object.create(KeyframeParent.prototype);
+  Object.defineProperty(Keyframe.prototype, 'left', {
+    value: '100px',
+    enumerable: true,
+  });
+  const keyframe = new Keyframe();
+
+  const effect = new KeyframeEffect(null, [keyframe, { top: '200px' }]);
+
+  assert_frame_lists_equal(effect.getKeyframes(), [
+    {
+      offset: null,
+      computedOffset: 0,
+      easing: 'linear',
+      top: '100px',
+      composite: 'auto',
+    },
+    {
+      offset: null,
+      computedOffset: 1,
+      easing: 'linear',
+      top: '200px',
+      composite: 'auto',
+    },
+  ]);
+}, 'Only properties defined directly on keyframes are read');
+
+test(() => {
+  const keyframes = {};
+  Object.defineProperty(keyframes, 'width', ['100px', '200px']);
+  Object.defineProperty(keyframes, 'height', {
+    value: ['100px', '200px'],
+    enumerable: true,
+  });
+
+  const effect = new KeyframeEffect(null, keyframes);
+
+  assert_frame_lists_equal(effect.getKeyframes(), [
+    {
+      offset: null,
+      computedOffset: 0,
+      easing: 'linear',
+      height: '100px',
+      composite: 'auto',
+    },
+    {
+      offset: null,
+      computedOffset: 1,
+      easing: 'linear',
+      height: '200px',
+      composite: 'auto',
+    },
+  ]);
+}, 'Only enumerable properties on property-indexed keyframes are read');
+
+test(() => {
+  const KeyframesParent = function() { this.width = '100px'; };
+  KeyframesParent.prototype = { height: '100px' };
+  const Keyframes = function() { this.top = ['100px', '200px']; };
+  Keyframes.prototype = Object.create(KeyframesParent.prototype);
+  Object.defineProperty(Keyframes.prototype, 'left', {
+    value: ['100px', '200px'],
+    enumerable: true,
+  });
+  const keyframes = new Keyframes();
+
+  const effect = new KeyframeEffect(null, keyframes);
+
+  assert_frame_lists_equal(effect.getKeyframes(), [
+    {
+      offset: null,
+      computedOffset: 0,
+      easing: 'linear',
+      top: '100px',
+      composite: 'auto',
+    },
+    {
+      offset: null,
+      computedOffset: 1,
+      easing: 'linear',
+      top: '200px',
+      composite: 'auto',
+    },
+  ]);
+}, 'Only properties defined directly on property-indexed keyframes are read');
+
+test(() => {
+  const expectedOrder = ['composite', 'easing', 'offset', 'left', 'marginLeft'];
+  const actualOrder = [];
+  const kf1 = {};
+  for (const {prop, value} of [{ prop: 'marginLeft', value: '10px' },
+                               { prop: 'left',       value: '20px' },
+                               { prop: 'offset',     value: '0' },
+                               { prop: 'easing',     value: 'linear' },
+                               { prop: 'composite',  value: 'replace' }]) {
+    Object.defineProperty(kf1, prop, {
+      enumerable: true,
+      get: () => { actualOrder.push(prop); return value; }
+    });
+  }
+  const kf2 = { marginLeft: '10px', left: '20px', offset: 1 };
+
+  new KeyframeEffect(target, [kf1, kf2]);
+
+  assert_array_equals(actualOrder, expectedOrder, 'property access order');
+}, 'Properties are read in ascending order by Unicode codepoint');
+
+</script>

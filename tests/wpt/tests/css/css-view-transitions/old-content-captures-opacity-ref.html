@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>View transitions: capture opacity elements (ref)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<style>
+.box {
+  color: red;
+  background: lightblue;
+  width: 100px;
+  height: 100px;
+  contain: paint;
+  position: absolute;
+  font-size: 30pt;
+  will-change: opacity;
+}
+#e1 { opacity: 0.75; top: 20px; left: 20px; }
+#e2 { opacity: 0.5; top: 160px; left: 20px; }
+#e3 { opacity: 0.25; top: 300px; left: 20px; }
+body { background: lightpink; }
+</style>
+<div id=e1 class=box>one</div>
+<div id=e2 class=box>two</div>
+<div id=e3 class=box>three</div>
+

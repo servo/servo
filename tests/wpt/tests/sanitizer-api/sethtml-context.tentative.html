@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+// Test setHTML / setHTMLUnsafe behaviour with unsafe context.
+// Specifically, test step 1 of:
+// https://wicg.github.io/sanitizer-api/#set-and-filter-html
+test(_ => {
+  let context = document.createElement("div");
+  context.setHTML("abc");
+  assert_equals(context.innerHTML, "abc");
+}, "setHTML with benign context.");
+
+test(_ => {
+  let context = document.createElement("div");
+  context.setHTML("abc");
+  assert_equals(context.innerHTML, "abc");
+}, "setHTMLUnsafe with benign context.");
+
+test(_ => {
+  let context = document.createElement("script");
+  context.setHTML("abc");
+  assert_equals(context.innerHTML, "");
+}, "setHTML with script context.");
+
+test(_ => {
+  let context = document.createElement("script");
+  context.setHTMLUnsafe("abc");
+  assert_equals(context.innerHTML, "abc");
+}, "setHTMLUnsafe with script context.");
+
+test(_ => {
+  let context = document.createElementNS("http://www.w3.org/2000/svg", "script");
+  context.setHTML("abc");
+  assert_equals(context.innerHTML, "");
+}, "setHTML with svg:script context.");
+
+test(_ => {
+  let context = document.createElementNS("http://www.w3.org/2000/svg", "script");
+  context.setHTMLUnsafe("abc");
+  assert_equals(context.innerHTML, "abc");
+}, "setHTMLUnsafe with svg:script context.");
+
+test(_ => {
+  let context = document.createElementNS("http://www.w3.org/1999/xhtml", "x:script");
+  context.setHTML("abc");
+  assert_equals(context.innerHTML, "");
+}, "setHTML with script with prefix context.");
+
+test(_ => {
+  let context = document.createElementNS("http://www.w3.org/1999/xhtml", "x:script");
+  context.setHTMLUnsafe("abc");
+  assert_equals(context.innerHTML, "abc");
+}, "setHTMLUnsafe with script with prefix context.");
+
+test(_ => {
+  let context = document.createElementNS("http://www.w3.org/2000/svg", "x:script");
+  context.setHTML("abc");
+  assert_equals(context.innerHTML, "");
+}, "setHTML with svg:script with prefix context.");
+
+test(_ => {
+  let context = document.createElementNS("http://www.w3.org/2000/svg", "x:script");
+  context.setHTMLUnsafe("abc");
+  assert_equals(context.innerHTML, "abc");
+}, "setHTMLUnsafe with svg:script with prefix context.");
+</script>
+</body>
+</html>

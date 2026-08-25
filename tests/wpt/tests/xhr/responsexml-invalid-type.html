@@ -1,0 +1,21 @@
+<!doctype html>
+<html>
+<head>
+<title>XMLHttpRequest: response with an invalid responseXML document</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+promise_test(async () => {
+  var xhr = new XMLHttpRequest();
+  xhr.responseType = "document";
+  xhr.open("GET", "resources/top.txt");
+  xhr.send();
+  await new Promise(r => xhr.onreadystatechange = () => { if (xhr.readyState == xhr.DONE) r(); });
+  assert_equals(xhr.responseXML, null);
+  assert_equals(xhr.response, null);
+});
+</script>
+</body>
+</html>

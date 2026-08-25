@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Text Test: white-space property applies to text</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-text-3/#white-space-processing">
+  <link rel="help" href="https://www.w3.org/TR/css-display-3/#box-generation">
+  <link rel="match" href="reference/white-space-applies-to-text-001-ref.html">
+
+  <meta content="This test checks that 'white-space', which applies to inlines, also applies to text. In this test, we verify that 'white-space: normal', 'white-space: nowrap', 'white-space: pre', 'white-space: pre-wrap', 'white-space: break-spaces' and 'white-space: pre-line' apply to text." name="assert">
+
+  <style>
+  section
+    {
+      border: black solid 2px;
+      float: left;
+      font-family: monospace;
+      font-size: 14px;
+      line-height: 1; /* computes to 14px */
+      margin-bottom: 10px;
+      width: 16ch;
+    }
+
+  section.applies-to-text
+    {
+      clear: both;
+    }
+
+  section.applies-to-inline
+    {
+      margin-left: 10em;
+    }
+
+  div
+    {
+      display: contents;
+    }
+
+  div.first-subtest
+    {
+      white-space: normal;
+    }
+
+  div.second-subtest
+    {
+      white-space: nowrap;
+    }
+
+  div.third-subtest
+    {
+      white-space: pre;
+    }
+
+  div.fourth-subtest
+    {
+      white-space: pre-wrap;
+    }
+
+  div.fifth-subtest
+    {
+      white-space: break-spaces;
+    }
+
+  div.sixth-subtest
+    {
+      white-space: pre-line;
+    }
+
+  hr
+    {
+      clear: both;
+      margin: 4em auto 1.5em 0em;
+      width: 480px;
+    }
+  </style>
+
+  <p>Test passes if the characters inside of each black bordered rectangles on the lefthand side are laid out identically to their counterparts on the righthand side.
+
+  <section class="applies-to-text">
+    <div class="first-subtest">Lorem ipsum.      Dolor&NewLine;
+   sit.</div>
+  </section>
+
+  <section class="applies-to-inline">
+    <div class="first-subtest"><span>Lorem ipsum.      Dolor&NewLine;
+   sit.</span></div>
+  </section>
+
+  <hr>
+
+  <section class="applies-to-text">
+    <div class="second-subtest">Lorem ipsum.      Dolor&NewLine;
+   sit.</div>
+  </section>
+
+  <section class="applies-to-inline">
+    <div class="second-subtest"><span>Lorem ipsum.      Dolor&NewLine;
+   sit.</span></div>
+  </section>
+
+  <hr>
+
+  <section class="applies-to-text">
+    <div class="third-subtest">Lorem ipsum.      Dolor&NewLine;
+   sit.</div>
+  </section>
+
+  <section class="applies-to-inline">
+    <div class="third-subtest"><span>Lorem ipsum.      Dolor&NewLine;
+   sit.</span></div>
+  </section>
+
+  <hr>
+
+  <section class="applies-to-text">
+    <div class="fourth-subtest">Lorem ipsum.      Dolor&NewLine;
+   sit.</div>
+  </section>
+
+  <section class="applies-to-inline">
+    <div class="fourth-subtest"><span>Lorem ipsum.      Dolor&NewLine;
+   sit.</span></div>
+  </section>
+
+  <hr>
+
+  <section class="applies-to-text">
+    <div class="fifth-subtest">Lorem ipsum.      Dolor&NewLine;
+   sit.</div>
+  </section>
+
+  <section class="applies-to-inline">
+    <div class="fifth-subtest"><span>Lorem ipsum.      Dolor&NewLine;
+   sit.</span></div>
+  </section>
+
+  <hr>
+
+  <section class="applies-to-text">
+    <div class="sixth-subtest">Lorem ipsum.      Dolor&NewLine;
+   sit.</div>
+  </section>
+
+  <section class="applies-to-inline">
+    <div class="sixth-subtest"><span>Lorem ipsum.      Dolor&NewLine;
+   sit.</span></div>
+  </section>

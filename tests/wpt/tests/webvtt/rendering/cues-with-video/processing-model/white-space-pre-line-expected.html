@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>webvtt-white-space-pre-line</title>
+    <link rel="stylesheet" type="text/css" href="support/reference.css">
+    <body>
+        <div>Test rendering of wrapped text when <code>white-space: pre-line</code> is set.</div>
+        <div class="test-diff">
+            <video-reference expected>
+                <cue style="width: 40%; left: 30%; bottom: 0px;">
+                    <cue-background style="margin: auto">Test Text</cue-background>
+                </cue>
+            </video-reference>
+            <video-reference>
+                <cue style="width: 40%; left: 30%; bottom: 0px;">
+                    <cue-background style="margin: auto">Test Text</cue-background>
+                </cue>
+            </video-reference>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>A selector can be used even after using the same name in a font-family</title>
+<link rel="help" href="https://crbug.com/40064810">
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  /* An emoji to force Unicode handling: ❤️ */
+  .foo { font-family: empty; }
+</style>
+<script>
+  test(function() {
+    try {
+      document.querySelector(':empty');
+    } catch (e) {
+      assert_unreached("Should not throw exception");
+    }
+  }, ':empty is a valid selector');
+</script>

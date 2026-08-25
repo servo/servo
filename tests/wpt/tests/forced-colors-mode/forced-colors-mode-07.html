@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Forced colors mode - transparent colors.</title>
+<link rel="help" href="https://www.w3.org/TR/css-color-adjust-1/#forced-colors-properties">
+<link rel=match href="forced-colors-mode-07-ref.html">
+<style>
+  p {
+    color: transparent;
+  }
+</style>
+<body>
+  <div style="background-color: rgb(0, 0, 255);">
+    <p>
+      The text color should be overridden, and the background color of the
+      div element should also be overridden in forced colors mode.
+    </p>
+  </div>
+  <div style="background-color: transparent;">
+    <p>
+      The text color should be overridden, but the background color of the
+      div element should remain transparent in forced colors mode.
+    </p>
+  </div>
+  <div style="background-color: rgba(0, 0, 0, 0);">
+    <p>
+      The text color should be overridden, but the background color of the
+      div element should remain transparent in forced colors mode.
+    </p>
+  </div>
+</body>

@@ -1,0 +1,25 @@
+<html xmlns="http://www.w3.org/1999/xhtml" class="test-wait">
+
+<head>
+
+<script>
+<![CDATA[
+
+function init()
+{
+  var k = document.getElementById("k");
+  k.remove();
+  document.documentElement.removeAttribute("class");
+}
+
+]]>
+</script>
+
+</head>
+
+<body onload="setTimeout(init, 30);">
+
+<mo xmlns='http://www.w3.org/1998/Math/MathML'><mi id="k">z</mi></mo>
+
+</body>
+</html>

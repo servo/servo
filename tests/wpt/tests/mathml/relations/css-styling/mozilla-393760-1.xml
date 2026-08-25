@@ -1,0 +1,31 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:m="http://www.w3.org/1998/Math/MathML">
+  <head>
+    <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=393760"/>
+    <link rel="match" href="mozilla-393760-1-ref.xml"/>
+  </head>
+<body>
+
+<!-- Test that CSS color works on m:math and m:mstyle -->
+<p>
+  <span><m:math style="color: green;"><m:mstyle><m:mi>X</m:mi></m:mstyle></m:math></span>
+  <span><m:math><m:mstyle style="color: green;"><m:mi>X</m:mi></m:mstyle></m:math></span>
+  <span><m:math><m:mstyle><m:mi style="color: green;">X</m:mi></m:mstyle></m:math></span>
+</p>
+
+<!-- Test that mathcolor works on m:mi, m:mstyle and m:math -->
+<p>
+  <span><m:math mathcolor="green"><m:mstyle><m:mi>X</m:mi></m:mstyle></m:math></span>
+  <span><m:math><m:mstyle mathcolor="green"><m:mi>X</m:mi></m:mstyle></m:math></span>
+  <span><m:math><m:mstyle><m:mi mathcolor="green">X</m:mi></m:mstyle></m:math></span>
+</p>
+
+<!-- Test that mathbackground and CSS background work on m:mi -->
+<p><m:math><m:mi mathbackground="lightgreen">Y</m:mi></m:math></p>
+<p><m:math><m:mi style="background: lightgreen">Y</m:mi></m:math></p>
+
+<!-- Test that mathbackground and CSS background work on m:mfenced -->
+<p><m:math><m:mfenced mathbackground="lightgreen"><m:mi>x</m:mi></m:mfenced></m:math></p>
+<p><m:math><m:mfenced style="background: lightgreen;"><m:mi>x</m:mi></m:mfenced></m:math></p>
+
+</body>
+</html>

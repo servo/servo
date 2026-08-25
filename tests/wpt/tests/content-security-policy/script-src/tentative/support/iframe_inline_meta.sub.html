@@ -1,0 +1,20 @@
+<!-- Same as iframe_inline.sub.html, but provides the CSP in a meta tag. -->
+<!DOCTYPE html>
+<html>
+  <meta http-equiv="Content-Security-Policy" content="{{GET[policy]}}">
+<body>
+    <script nonce='forinlinescript'>
+        window.addEventListener('securitypolicyviolation', function() {
+          top.postMessage('CSP_VIOLATION', '*');
+        });
+    </script>
+
+<!-- sha256 of the script below is 'F8UqObF6TSi2W4dDcDzAOAplJkYovBE6JpJjsZJy5HA=' -->
+<script>
+var s = document.createElement('script');
+s.type = 'text/javascript';
+s.src = "externalScript.js";
+document.getElementsByTagName('head')[0].appendChild(s);
+</script>
+</body>
+</html>

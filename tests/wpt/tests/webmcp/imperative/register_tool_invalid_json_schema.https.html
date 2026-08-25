@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>WebMCP registerTool throws on invalid schema</title>
+<link rel="author" href="mailto:dom@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+function test_register_tool_schema_error(inputSchema, expectedError, testName) {
+  promise_test((t) => {
+    return promise_rejects_js(
+      t,
+      TypeError,
+      document.modelContext.registerTool({
+        name: 'empty',
+        description: 'empty',
+        inputSchema,
+        execute: () => {},
+      }),
+      `Should throw ${expectedError.name} for invalid schema`,
+    );
+  }, testName);
+}
+
+test_register_tool_schema_error(
+  { toJSON: () => undefined },
+  'registerTool rejects when inputSchema.toJSON() returns undefined',
+);
+
+test_register_tool_schema_error(
+  (() => {
+    const circular = {};
+    circular.self = circular;
+    return circular;
+  })(),
+  'registerTool rejects when inputSchema contains a circular reference',
+);
+
+test_register_tool_schema_error(
+  BigInt(42),
+  'registerTool rejects when inputSchema contains non-serializable types (BigInt)',
+);
+
+promise_test(t => {
+  // Register with invalid schema AND aborted signal. This asserts that input
+  // schema validation happens before checking the aborted signal.
+  const circularSchema = {};
+  circularSchema.self = circularSchema;
+
+  return promise_rejects_js(
+    t,
+    TypeError,
+    document.modelContext.registerTool(
+      {
+        name: 'aborted_invalid_schema',
+        description: 'empty',
+        inputSchema: {
+          type: "object",
+          properties: {
+            prop1: circularSchema,
+          }
+        },
+        execute: () => {},
+      },
+      { signal: AbortSignal.abort('aborted') }
+    ),
+    'Should reject with TypeError for circular input schema, before checking if the signal is aborted'
+  );
+}, 'registerTool rejects on invalid schema even if an aborted signal was provided');
+</script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: CSS: Selector Parsing and Invalid Pseudo-Elements</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/selectors/parsing/001.xml" type="application/xhtml+xml"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#parsing-errors" />
+  <link rel="match" href="selectors-parsing-001-ref.xht"/>
+  <style type="text/css">
+   p { background: white; color: green; }
+   p:invalidPseudoClass, p.test1 { color: yellow; background: red; }
+   p::invalidPseudoElement, p.test2 { color: yellow; background: red; }
+  </style>
+ </head>
+ <body>
+  <p class="test1">This should be green.</p>
+  <p class="test2">This should be green.</p>
+ </body>
+</html>

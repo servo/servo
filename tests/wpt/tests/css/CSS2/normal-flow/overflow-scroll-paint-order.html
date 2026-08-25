@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<title>Overflow:scroll paint order</title>
+<link rel="help" href="https://www.w3.org/TR/CSS2/zindex.html">
+<link rel="match" href="overflow-scroll-paint-order-ref.html">
+<style>
+  #scroller {
+    background: red;
+    padding: 20px;
+    box-sizing: border-box;
+    width: 100px;
+    height: 100px;
+    overflow: scroll;
+  }
+  #negative-margin {
+    width: 100px;
+    height: 100px;
+    background: green;
+    margin-top: -100px;
+  }
+  #foreground1 {
+    display: inline-block;
+    width: 50px;
+    height: 50px;
+    background: blue;
+  }
+  #foreground2 {
+    display: inline-block;
+    width: 50px;
+    height: 50px;
+    background: magenta;
+  }
+</style>
+<!-- The paint order should be:
+  scroller background (invisible)
+  scroller child background (invisible)
+  negative-margin background (visible)
+  foreground1 (visible)
+  foreground2 (visible)
+-->
+<div id="scroller">
+  <div style="height: 200px; background: yellow">
+    <div id="foreground1"></div>
+  </div>
+</div>
+<div id="negative-margin">
+  <div id="foreground2"></div>
+</div>

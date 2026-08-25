@@ -1,0 +1,15 @@
+<!DOCTYPE HTML>
+<title>CSS Test (Transitions): Transition of large word-spacing value</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Google" href="http://www.google.com/">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1266769">
+<meta name="assert" content="This should not crash.">
+
+<div id="d" style="transition-duration: 1s"></div>
+<script>
+
+let d = document.getElementById("d");
+d.offsetTop;
+d.style.wordSpacing = "100000000000000000000000000000000000000000000000000in";
+
+</script>

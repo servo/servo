@@ -1,0 +1,122 @@
+<!DOCTYPE HTML>
+<html><head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="/fonts/ahem.css">
+  <title>CSS Grid Lanes Test: subgrids with different writing-mode than parent</title>
+  <link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+  <link rel="match" href="column-subgrid-orthogonal-writing-mode-003-ref.html">
+  <style>
+html,body {
+  color:black; background-color:white; font:10px/1 Ahem; padding:0; margin:0;
+}
+
+.grid-lanes {
+  display: grid-lanes;
+  grid-template-columns: 10px repeat(50, auto);
+  place-content: start;
+  border: 1px solid;
+}
+
+.subgrid {
+  display: grid;
+  grid-template-columns: subgrid;
+  background: lightgrey;
+  grid-column: 2 / span 5;
+  min-width:10px;
+  min-height:0;
+  border: solid lightblue;
+  border-width: 1px 5px 3px 7px;
+  padding:      5px 7px 3px 1px;
+  margin:       7px 3px 5px 1px;
+}
+
+item { background: magenta; }
+
+x:nth-child(2n+1) { background: silver; }
+x:nth-child(2n+2) { background: grey; }
+x:nth-child(2n+3) { background: pink; }
+x:nth-child(2n+4) { background: black; }
+x:nth-child(2n+5) { background: blue; }
+x:nth-child(2n+6) { background: cyan; }
+
+.hl { writing-mode: horizontal-tb; direction:ltr; }
+.hr { writing-mode: horizontal-tb; direction:rtl; }
+.vl { writing-mode: vertical-lr; }
+.vr { writing-mode: vertical-rl; }
+.vlr { writing-mode: vertical-lr; direction:rtl; }
+.vrl { writing-mode: vertical-rl; direction:ltr; }
+
+.subgrid.vlr, .subgrid.vrl, .subgrid.vl, .subgrid.vr {
+  grid-template-rows: subgrid;
+  grid-template-columns: none;
+  grid-row: 2 / span 5;
+}
+
+  </style>
+</head>
+<body>
+<div class="grid-lanes">
+  <div class="subgrid vlr" style="grid-row:2/5">
+    <item>X</item><item>&#x00C9;</item>
+  </div>
+</div>
+
+<div class="grid-lanes">
+  <div class="subgrid vlr" style="grid-row:2/5">
+    <item>X</item><item>&#x00C9;</item><item>C</item>
+  </div>
+</div>
+
+<div class="grid-lanes">
+  <div class="subgrid vrl" style="grid-row:5/8">
+    <item>X</item><item>&#x00C9;</item>
+  </div>
+</div>
+
+<div class="grid-lanes">
+  <div class="subgrid vrl" style="grid-row:5/8">
+    <item>X</item><item>&#x00C9;</item><item>C</item>
+  </div>
+</div>
+
+<div class="grid-lanes">
+  <div class="subgrid vlr" style="grid-row:2/5">
+    <item>X</item><item>&#x00C9;</item>
+  </div>
+  <div class="subgrid vlr" style="grid-row:5/8">
+    <item>X</item><item>&#x00C9;</item>
+  </div>
+</div>
+
+<div class="grid-lanes">
+  <div class="subgrid vrl" style="grid-row:2/5">
+    <item>X</item><item>&#x00C9;</item>
+  </div>
+  <div class="subgrid vrl" style="grid-row:5/8">
+    <item>X</item><item>&#x00C9;</item>
+  </div>
+</div>
+
+<div class="grid-lanes">
+  <div class="subgrid vlr" style="grid-row:2/5">
+    <item>X</item><item>&#x00C9;</item>
+  </div>
+  <div class="subgrid vrl" style="grid-row:5/8">
+    <item>X</item><item>&#x00C9;&#x00C9;</item>
+  </div>
+</div>
+
+<div class="grid-lanes">
+  <div class="subgrid vlr" style="grid-row:2/5">
+    <item>X</item><item>&#x00C9;</item>
+  </div>
+  <div class="subgrid vrl" style="grid-row:5/8">
+    <item>X</item><item>&#x00C9;&#x00C9;</item>
+  </div>
+  <div class="subgrid vrl" style="grid-row:8/11">
+    <item>XXX</item><item>&#x00C9;</item>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Reftest Reference</title>
+    <link rel="author" title="Eric Portis" href="mailto:e@ericportis.com">
+    <style type="text/css">
+      .objectOuter {
+        border: 1px dashed gray;
+        padding: 1px;
+        float: left;
+      }
+      .objectOuter > * {
+        background-image: url("support/colors-16x8.png");
+        background-repeat: no-repeat;
+        image-rendering: pixelated;
+        background-position: 0% 0%;
+      }
+      br {
+        clear: both;
+      }
+      .big {
+        width: 32px;
+        height: 48px;
+      }
+      .small {
+        width: 8px;
+        height: 8px;
+      }
+
+      .cover { background-size: cover; }
+      .contain { background-size: contain; }
+      .fill { background-size: 100% 100%; }
+      .none { background-size: auto auto; }
+      .scaledown { background-size: auto auto; }
+      .small.scaledown { background-size: contain; }
+
+    </style>
+  </head>
+  <body>
+    <!-- big: -->
+    <div class="objectOuter"><div class="big cover"></div></div>
+    <div class="objectOuter"><div class="big contain"></div></div>
+    <div class="objectOuter"><div class="big fill"></div></div>
+    <div class="objectOuter"><div class="big none"></div></div>
+    <div class="objectOuter"><div class="big scaledown"></div></div>
+    <br>
+    <!-- small: -->
+    <div class="objectOuter"><div class="small cover"></div></div>
+    <div class="objectOuter"><div class="small contain"></div></div>
+    <div class="objectOuter"><div class="small fill"></div></div>
+    <div class="objectOuter"><div class="small none"></div></div>
+    <div class="objectOuter"><div class="small scaledown"></div></div>
+    <br>
+  </body>
+</html>

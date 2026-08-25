@@ -1,0 +1,23 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<body>
+
+<script>
+async_test(t => {
+  const iframeURL = new URL("resources/cross-origin-iframe-helper.html", location.href);
+  iframeURL.hostname = get_host_info().REMOTE_HOST;
+  const iframe = document.createElement("iframe");
+  iframe.src = iframeURL;
+  document.body.append(iframe);
+
+  window.onmessage = t.step_func_done(e => {
+    // If we hit onnavigate in the target window, we'll get a different message, and fail.
+    assert_equals(e.data, "DONE");
+  });
+
+  navigation.onnavigate = t.unreached_func("onnavigate must not fire in the source window");
+  window.onload = t.step_func(() => iframe.contentWindow.location.href = iframeURL + "?postMessage-top-when-done");
+}, "using location.href to navigate cross-document targeting a cross-origin window");
+</script>

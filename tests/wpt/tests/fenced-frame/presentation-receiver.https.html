@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>Test permission of notification</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/common/utils.js"></script>
+
+<body>
+
+<script>
+promise_test(async t => {
+  const presentation_receiver_key = token();
+
+  attachFencedFrame(generateURL('resources/presentation-receiver-inner.html',
+      [presentation_receiver_key]));
+  const actual_result = await nextValueFromServer(presentation_receiver_key);
+
+  assert_equals(
+      actual_result, 'denied',
+      'presentation receiver should not be allowed on fenced-frames.');
+}, 'presentation receiver should not be allowed');
+</script>
+
+</body>

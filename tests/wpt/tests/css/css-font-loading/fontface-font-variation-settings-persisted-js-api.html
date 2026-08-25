@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Testing that variationSettings is persisted in the FontFace object</title>
+  <link rel="help" href="https://www.w3.org/TR/css-fonts-4/#propdef-font-variation-settings" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+
+<body>
+  <script>
+    const face = new FontFace(
+      "wght",
+      'local("Ahem"), url("/fonts/Ahem.ttf")',
+      { variationSettings: "'wght' 850" }
+    );
+
+    test(() => {
+      assert_equals(face.variationSettings, "\"wght\" 850");
+    }, "Test FontFace variationSettings property");
+  </script>
+</body>
+
+</html>

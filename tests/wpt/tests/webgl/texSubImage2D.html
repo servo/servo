@@ -1,0 +1,20 @@
+<!doctype html>
+<title>texSubImage2D</title>
+<link rel=author href=mailto:Ms2ger@gmail.com title=Ms2ger>
+<link rel=help href=https://www.khronos.org/registry/webgl/specs/latest/#5.14.8>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=common.js></script>
+
+<div id=log></div>
+<script>
+test(function() {
+  var gl = getGl();
+  assert_throws_js(TypeError, function() {
+    gl.texSubImage2D(0, 0, 0, 0, 0, 0, window);
+  });
+  assert_throws_js(TypeError, function() {
+    gl.texSubImage2D(0, 0, 0, 0, 0, 0, { get width() { throw 7 }, get height() { throw 7 }, data: new Uint8ClampedArray(10) });
+  });
+});
+</script>

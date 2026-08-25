@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Background and Borders Test: invalid box-shadow declarations</title>
+
+  <!--
+
+  Created: May 20th 2023
+
+  Last modified: May 20th 2023
+
+  -->
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-backgrounds-3/#box-shadow">
+  <link rel="match" href="reference/ref-filled-green-100px-square.xht">
+
+  <meta content="This test checks that 'box-shadow' accepts either the 'none' value or (exclusive or) a comma-separated list of shadows but not both at the same time." name="assert">
+  <meta content="invalid" name="flags">
+
+  <!--
+
+  <shadow> = <color>? && [<length>{2} <length [0,∞]>? <length>?] && inset?
+
+  The box-shadow property attaches one or more drop-shadows to
+  the box. The property accepts either the none value, which
+  indicates no shadows, or a comma-separated list of shadows,
+  ordered front to back.
+
+  -->
+
+  <style>
+  div
+    {
+      background-color: red;
+      box-shadow: green 100px 100px inset;
+      /*
+      This inset 'box-shadow' declaration will paint and cover
+      the inside of the red square. This way, we verify that
+      the UA actually supports 'box-shadow'.
+      */
+      box-shadow: none, red 0px -100px, red 100px 0px, red 0px 100px, red -100px 0px; /* invalid */
+      box-shadow: red 0px -100px, none, red 100px 0px, red 0px 100px, red -100px 0px; /* invalid */
+      box-shadow: red 0px -100px, red 100px 0px, none, red 0px 100px, red -100px 0px; /* invalid */
+      box-shadow: red 0px -100px, red 100px 0px, red 0px 100px, none, red -100px 0px; /* invalid */
+      box-shadow: red 0px -100px, red 100px 0px, red 0px 100px, red -100px 0px, none; /* invalid */
+      height: 100px;
+      width: 100px;
+   }
+  </style>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.
+
+  <div></div>

@@ -1,0 +1,45 @@
+<!doctype html>
+<title>&lt;animateMotion> from/to animation with rotate=auto</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+<svg>
+  <rect x="-200" width="200" height="100" fill="blue">
+    <animateMotion id="anim" from="0,400" to="0,-100" rotate="auto"
+                   fill="freeze" dur="4s"/>
+  </rect>
+</svg>
+<script>
+const rootSVGElement = document.querySelector('svg');
+
+function assert_bbox_position(element, x, y) {
+  const bbox = element.getBBox();
+  const epsilon = 0.5;
+  assert_approx_equals(bbox.x, x, epsilon, 'bbox x');
+  assert_approx_equals(bbox.y, y, epsilon, 'bbox y');
+}
+
+function sample1() {
+  assert_bbox_position(rootSVGElement, 0, 600);
+}
+
+function sample2() {
+  assert_bbox_position(rootSVGElement, 0, 150);
+}
+
+function sample3() {
+  assert_bbox_position(rootSVGElement, 0, -100);
+}
+
+smil_async_test(t => {
+  const expectedValues = [
+    // [animationId, time, sampleCallback]
+    ['anim', 0.0, sample1],
+    ['anim', 2.0, sample2],
+    ['anim', 4.0, sample3],
+  ];
+  runAnimationTest(t, expectedValues);
+});
+
+window.animationStartsImmediately = true;
+</script>

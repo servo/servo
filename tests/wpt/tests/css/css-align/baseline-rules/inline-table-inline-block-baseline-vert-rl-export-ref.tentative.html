@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<html>
+<title>CSS Box Alignment Test: inline-block and inline-table baseline export</title>
+<link rel="author" title="Sammy Gill" href="sammy.gill@apple.com">
+<link rel="help" href="https://www.w3.org/TR/css-align-3/#baseline-export">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<meta name="flags" content="ahem">
+<style>
+.container {
+    outline: solid 1px black;
+    width: 240px;
+    height: 60px;
+}
+.block {
+    background: black;
+    width: 20px;
+    height: 20px;
+}
+.baseline-first .block {
+    margin-left: 170px;
+}
+.baseline-last .block {
+    margin-left: 50px;
+}
+.table {
+    background: linear-gradient(to left,
+        yellowgreen 0% 25%,
+        deepskyblue 25% 50%,
+        deeppink 50% 75%,
+        darkviolet 75% 100%);
+    width: 160px;
+    height: 40px;
+    margin-left: 40px;
+}
+</style>
+<body>
+<div class="container baseline-first">
+    <div class="block"></div>
+    <div class="table"></div>
+</div>
+<div class="container baseline-last">
+    <div class="table"></div>
+    <div class="block"></div>
+</div>
+</body>
+</html>

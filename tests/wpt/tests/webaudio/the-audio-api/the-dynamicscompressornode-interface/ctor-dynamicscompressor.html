@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>DynamicsCompressorNode Constructor</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <script>
+      let context;
+
+      setup(() => {
+        context = new AudioContext();
+      });
+
+      test(t => {
+        assert_throws_js(
+            TypeError,
+            () => new DynamicsCompressorNode(),
+            'new DynamicsCompressorNode without context must throw TypeError');
+
+        assert_throws_js(
+            TypeError,
+            () => new DynamicsCompressorNode(1),
+            'new DynamicsCompressorNode(1) must throw TypeError');
+
+        assert_throws_js(
+            TypeError,
+            () => new DynamicsCompressorNode(context, 42),
+            'new DynamicsCompressorNode(context, 42) must throw TypeError');
+      }, 'DynamicsCompressorNode: invalid arguments throw TypeError');
+
+      test(t => {
+        const node = new DynamicsCompressorNode(context);
+
+        assert_true(node instanceof DynamicsCompressorNode);
+
+        // Check node structure
+        assert_equals(node.numberOfInputs, 1);
+        assert_equals(node.numberOfOutputs, 1);
+        assert_equals(node.channelCount, 2);
+        assert_equals(node.channelCountMode, 'clamped-max');
+        assert_equals(node.channelInterpretation, 'speakers');
+
+        // Check default attributes
+        assert_equals(node.threshold.value, -24);
+        assert_equals(node.knee.value, 30);
+        assert_equals(node.ratio.value, 12);
+        assert_equals(node.reduction, 0);
+        assert_approx_equals(node.attack.value, 0.003, 1e-6);
+        assert_equals(node.release.value, 0.25);
+      }, 'DynamicsCompressorNode: default constructor and attributes');
+
+      test(t => {
+        // Can't use testAudioNodeOptions because the constraints for this node
+        // are not supported there.
+
+        // Array of test options to be run. Each entry is a dictionary where
+        // |testAttribute| is the name of the attribute to be tested,
+        // |testValue| is the value to be used, and |expectedErrorType| is the
+        // error type if the test is expected to throw an error.
+        // |expectedErrorType| should be set only if the test does throw.
+        const testOptions = [
+          {attr: 'channelCount', value: 1},
+          {attr: 'channelCount', value: 2},
+          {attr: 'channelCount', value: 0, error: 'NotSupportedError'},
+          {attr: 'channelCount', value: 3, error: 'NotSupportedError'},
+          {attr: 'channelCount', value: 99, error: 'NotSupportedError'},
+          {attr: 'channelCountMode', value: 'clamped-max'},
+          {attr: 'channelCountMode', value: 'explicit'},
+          {
+            attr: 'channelCountMode',
+            value: 'max',
+            error: 'NotSupportedError'
+          },
+          {attr: 'channelCountMode', value: 'foobar', error: TypeError},
+          {attr: 'channelInterpretation', value: 'speakers'},
+          {attr: 'channelInterpretation', value: 'discrete'},
+          {
+            attr: 'channelInterpretation',
+            value: 'foobar',
+            error: TypeError
+          }
+        ];
+
+        for (const opt of testOptions) {
+          const options = {[opt.attr]: opt.value};
+          const desc =
+              `new DynamicsCompressorNode(context, { ${opt.attr}: ` +
+              `${JSON.stringify(opt.value)} })`;
+
+          const createNode = () => new DynamicsCompressorNode(context, options);
+
+          if (opt.error) {
+            const shouldThrowDom = typeof opt.error === 'string';
+            if (shouldThrowDom) {
+              assert_throws_dom(opt.error, createNode, desc);
+            } else {
+              assert_throws_js(opt.error, createNode, desc);
+            }
+          } else {
+            const node = createNode();
+            assert_equals(
+                node[opt.attr], opt.value,
+                `node.${opt.attr} == ${opt.value}`);
+          }
+        }
+
+      }, 'DynamicsCompressorNode: constructor with various AudioNodeOptions');
+
+      test(t => {
+        const options = {
+          threshold: -33,
+          knee: 15,
+          ratio: 7,
+          attack: 0.625,
+          release: 0.125
+        };
+
+        const node = new DynamicsCompressorNode(context, options);
+
+        assert_true(node instanceof DynamicsCompressorNode);
+
+        assert_equals(node.threshold.value, options.threshold);
+        assert_equals(node.knee.value, options.knee);
+        assert_equals(node.ratio.value, options.ratio);
+        assert_equals(node.attack.value, options.attack);
+        assert_equals(node.release.value, options.release);
+
+        // Confirm default AudioNodeOptions still applied
+        assert_equals(node.channelCount, 2);
+        assert_equals(node.channelCountMode, 'clamped-max');
+        assert_equals(node.channelInterpretation, 'speakers');
+      }, 'DynamicsCompressorNode: constructor with parameter options');
+    </script>
+  </body>
+</html>

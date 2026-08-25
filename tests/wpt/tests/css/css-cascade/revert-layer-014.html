@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>CSS Cascade Layers: 'revert-layer' in slotted context</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-5/#revert-layer">
+<link rel="match" href="reference/ref-filled-green-100px-square.xht">
+
+<style>
+#target {
+  width: 100px;
+  height: 100px;
+  background-color: revert-layer;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="host"><div id="target"></div></div>
+
+<script>
+host.attachShadow({mode: 'open'}).innerHTML = `
+<style>
+@layer first {
+    ::slotted(*) { background-color: green; }
+}
+@layer second {
+    ::slotted(*) { background-color: revert-layer; }
+}
+</style>
+<slot></slot>
+`;
+</script>

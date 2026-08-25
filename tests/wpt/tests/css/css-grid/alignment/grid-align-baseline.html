@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: grid align baseline</title>
+<link rel="author" title="Rossana Monteriso" href="mailto:rmonteriso@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-4/#intro-baselines">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#baseline-rules">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#baseline-align-self">
+<meta name="assert" content="This test checks that baseline alignment works correctly for align-items and align-self properties">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<link rel="stylesheet" href="/css/support/grid.css">
+<link rel="stylesheet" href="/css/support/alignment.css">
+
+<style>
+
+.grid {
+    width: 600px;
+    grid-auto-columns: 1fr;
+    position: relative;
+    margin-bottom: 20px;
+    font: 20px/1 Ahem;
+}
+
+.grid :nth-child(1) { background-color: blue; }
+.grid :nth-child(2) { background-color: green; }
+.grid :nth-child(3) { background-color: red; }
+.grid :nth-child(4) { background-color: yellow; }
+.grid :nth-child(5) { background-color: purple; }
+.grid :nth-child(6) { background-color: orange; }
+.grid :nth-child(7) { background-color: lime; }
+.grid :nth-child(8) { background-color: lightblue; }
+.grid :nth-child(9) { background-color: darkred; }
+.grid :nth-child(10) { background-color: gold; }
+.grid :nth-child(11) { background-color: salmon; }
+
+.firstRowThirdColumn {
+    grid-row: 1;
+    grid-column: 3;
+}
+.firstRowFourthColumn {
+    grid-row: 1;
+    grid-column: 4;
+}
+.firstRowFifthColumn {
+    grid-row: 1;
+    grid-column: 5;
+}
+</style>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script type="text/javascript"> setup({ explicit_done: true }); </script>
+
+<body onload="document.fonts.ready.then(() => { runTests(); })">
+
+<div class="grid alignItemsBaseline">
+    <div style="margin: 40px 0px;" class="firstRowFirstColumn" data-offset-x="0" data-offset-y="40" data-expected-width="200" data-expected-height="20"><div style="display:inline-block;"></div></div>
+    <div style="margin: auto 0px 0px;" class="firstRowSecondColumn" data-offset-x="200" data-offset-y="80" data-expected-width="200" data-expected-height="20"><div style="display:inline-block;"></div></div>
+    <div style="margin: 20px 0px;" class="firstRowThirdColumn" data-offset-x="400" data-offset-y="40" data-expected-width="200" data-expected-height="20"><div style="display:inline-block;"></div></div>
+</div>
+
+<div class="grid">
+    <div data-expected-height="20" data-offset-y="20" class="firstRowFirstColumn alignSelfBaseline" style="height: 20px;"></div>
+    <div data-expected-height="10" data-offset-y="30" class="firstRowSecondColumn alignSelfBaseline" style="height: 10px; margin: 30px 0 10px;"></div>
+    <div data-expected-height="10" data-offset-y="30" class="firstRowThirdColumn alignSelfBaseline" style="height: 10px; margin: 20px 0 0;"></div>
+    <div data-expected-height="100" data-offset-y="0" class="firstRowFourthColumn" style="height: 100px;"></div>
+</div>
+
+<div class="grid">
+    <div data-expected-height="20" data-offset-y="70" class="firstRowFirstColumn alignSelfLastBaseline" style="height: 20px;"></div>
+    <div data-expected-height="10" data-offset-y="80" class="firstRowSecondColumn alignSelfLastBaseline" style="height: 10px; margin: 30px 0 10px;"></div>
+    <div data-expected-height="10" data-offset-y="80" class="firstRowThirdColumn alignSelfLastBaseline" style="height: 10px; margin: 20px 0 0;"></div>
+    <div data-expected-height="100" data-offset-y="0" class="firstRowFourthColumn" style="height: 100px;"></div>
+</div>
+
+<div class="grid">
+    <div id="baseline1" class="firstRowFirstColumn alignSelfBaseline">ahem</div>
+    <div id="baseline2" data-offset-y="0" class="firstRowSecondColumn alignSelfBaseline"><img src="/css/support/1x1-lime.png" style="height: 50px;"></div>
+    <div data-expected-height="50" data-offset-y="25" class="firstRowThirdColumn alignSelfCenter"><img src="/css/support/1x1-lime.png" style="height: 50px; vertical-align: middle"></div>
+    <div id="baseline3" data-expected-height="50" class="firstRowFourthColumn alignSelfBaseline"><img src="/css/support/1x1-lime.png" style="height: 50px; vertical-align: middle"></div>
+    <div data-expected-height="100" data-offset-y="0" class="firstRowFifthColumn" style="height: 100px;"></div>
+</div>
+
+<div class="grid">
+    <div id="baseline4" class="firstRowFirstColumn alignSelfBaseline">ahem</div>
+    <div id="baseline5" class="firstRowSecondColumn alignSelfBaseline"><br><img src="/css/support/1x1-lime.png" style="height: 50px;"></div>
+    <div data-expected-height="50" data-offset-y="0" class="firstRowThirdColumn alignSelfBaseline"><img src="/css/support/1x1-lime.png" style="height: 50px; vertical-align: middle"></div>
+    <div data-expected-height="100" data-offset-y="0" class="firstRowFourthColumn" style="height: 100px;"></div>
+</div>
+
+<div id="log"></div>
+
+</body>
+
+<script>
+
+    function runTests() {
+      var baseline1 = document.getElementById("baseline1");
+      var baseline2 = document.getElementById("baseline2");
+      var baseline3 = document.getElementById("baseline3");
+      var baseline4 = document.getElementById("baseline4");
+      var baseline5 = document.getElementById("baseline5");
+
+      checkLayout('.grid', false);
+
+      test(() => {assert_equals(baseline1.offsetTop + baseline1.offsetHeight, baseline2.offsetTop + baseline2.offsetHeight, "baseline1 and baseline2 should have the same baseline;")},
+                  "Additional Check 1");
+      test(() => {assert_less_than(baseline3.offsetTop, 25, "baseline3 should be above the center align-selfed item;")}, "Additional Check 2");
+      test(() => {assert_equals(baseline4.offsetTop, baseline5.offsetTop, "baseline4 and baseline5 should be top aligned with each other;")}, "Additional Check 3");
+      test(() => {assert_greater_than(baseline4.offsetTop, 0, "baseline4 and baseline5 should be below the dominant baseline;")}, "Additional Check 4");
+
+      done();
+    };
+
+</script>

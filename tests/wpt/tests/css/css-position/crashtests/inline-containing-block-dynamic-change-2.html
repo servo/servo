@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2052336">
+<style>
+content {
+  filter: hue-rotate(90deg);
+}
+#a {
+  position: fixed;
+}
+</style>
+
+<script>
+function go() {
+  // Remove the filter so that content is no longer the absolute containing
+  // block.
+  document.querySelector("content").style.filter = "none";
+}
+</script>
+
+<body onload="go()">
+  <content>
+    <table style="float:left;">
+      <tbody id="a"></tbody>
+    </table>
+  </content>
+</body>

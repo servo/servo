@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='/resources/check-layout-th.js'></script>
+<link rel="author" title="David Grogan" href="dgrogan@chromium.org">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/3336">
+<meta name="assert" content="Should cell's percent width be ignored when its table is nested in a shrink to fit block?" />
+<p>Edge 44.17763 and Chrome 70 make this 300px wide. FF makes it 150px wide.</p>
+<div id="stf" style="position:absolute; background:blue;" data-expected-width=300>
+    <table cellspacing="0" cellpadding="0">
+        <td style="width:50%;">
+            <div style="width:150px; height:150px;"></div>
+        </td>
+    </table>
+</div>
+<script>
+checkLayout('#stf');
+</script>

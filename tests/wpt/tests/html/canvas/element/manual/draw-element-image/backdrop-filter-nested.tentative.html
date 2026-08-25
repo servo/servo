@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+  <title>drawElementImage: a nested backdrop-filter does not filter the backdrop-filter above it</title>
+  <link rel="help" href="https://github.com/WICG/html-in-canvas">
+  <link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropRoot">
+  <link rel="match" href="backdrop-filter-nested-ref.html">
+  <meta name="assert" value="A backdrop-filter element forms a backdrop root, even inside a canvas.">
+  <meta name="fuzzy" content="0-1;0-400">
+  <script src="/common/reftest-wait.js"></script>
+  <script src="../../../../../html/canvas/resources/wait-for-canvas-paint.js"></script>
+  <style>
+    #wrapper {
+      position: relative;
+      width: 200px;
+      height: 200px;
+      background-color: red;
+    }
+    .bdfilter {
+      width: 100%;
+      height: 100%;
+      backdrop-filter: invert(1);
+    }
+  </style>
+</head>
+<body>
+  <p>To pass, the canvas should display a cyan square with <strong>no red</strong>.</p>
+  <canvas id=canvas width="200" height="200" layoutsubtree>
+    <div id="wrapper">
+      <div class="bdfilter">
+        <div class="bdfilter"></div>
+      </div>
+    </div>
+  </canvas>
+
+  <script>
+    onload = async () => {
+      await waitForCanvasPaint(canvas);
+      canvas.getContext("2d").drawElementImage(wrapper, 0, 0);
+      takeScreenshot();
+    };
+  </script>
+</body>
+</html>

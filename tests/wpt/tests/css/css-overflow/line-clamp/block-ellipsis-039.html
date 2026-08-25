@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: block-ellipsis root-inline strut</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#block-ellipsis">
+<link rel="match" href="reference/block-ellipsis-039-ref.html">
+<meta name="assert" content="The strut inserted by block-ellipsis is online styled after the root inline, not after any other interrupted inline box.">
+<style>
+.test, .ref {
+    width: min-content;
+    float: left;
+    border: solid 1px;
+    margin: 0 1ch;
+}
+.test {
+    line-clamp: 2;
+}
+.tall {
+    font-size: 2em;
+    line-height: 2;
+}
+</style>
+
+<p>This test passes if the two boxes below are identical, including having the same height.
+
+<div class=test>
+    <span class=tall>TEST TEST TEST</span>
+    <span></span>
+</div>
+<div class=ref>
+    <span class=tall>TEST</span>
+    …
+</div>

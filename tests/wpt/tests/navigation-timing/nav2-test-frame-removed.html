@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>Navigation Timing 2 WPT</title>
+        <link rel="author" title="Google" href="http://www.google.com/" />
+        <link rel="help" href="http://www.w3.org/TR/navigation-timing/#sec-navigation-timing-interface"/>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script>
+            function onload_test()
+            {   test(function() {
+                    var pnt = window.frames[0].performance.getEntriesByType("navigation")[0];
+                    document.getElementById("frameContext").remove();
+                    assert_equals(pnt.type, "navigate");
+                });
+            }
+        </script>
+    </head>
+    <body>
+        <h1>
+            Description</h1>
+        <p>
+            This test validates that PerformanceNavigationTiming::type()'s default value is navigate </p>
+        <iframe id="frameContext" onload="onload_test();" src="resources/blank_page_yellow_with_onunload.html" style="width: 250px; height: 250px;"></iframe>
+    </body>
+</html>

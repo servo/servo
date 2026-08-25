@@ -1,0 +1,5 @@
+rules:
+- variable-declaration-56.html: [unset-value, custom-properties]
+- variable-declaration-57.html: [unset-value, custom-properties]
+- variable-declaration-58.html: [unset-value, custom-properties]
+- "**": [custom-properties]

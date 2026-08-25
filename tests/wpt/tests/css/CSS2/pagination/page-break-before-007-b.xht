@@ -1,0 +1,37 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: page-break-before explicit auto test</title>
+<link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+<link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-break-props"/>
+<link rel="help" href="http://www.w3.org/TR/css3-page/#pg-br-before-after"/>
+<meta name="flags" content="paged" />
+<meta name="assert" content="The initial value of the 'page-break-before' property is 'auto'."/>
+<style type="text/css">
+	@page {
+		margin: 7%;
+	}
+	html, body {
+		height:100%;
+		line-height:1;
+	}
+	* {
+		margin:0;
+		padding:0;
+		page-break-before: always;
+		page-break-before: auto;
+	}
+	div#one {height: 20%;}
+	div#two {
+		height: 80%;
+		margin-bottom: -4em;
+	}
+	p {width: 1em;}
+</style>
+</head>
+<body>
+	<div id="one">This test requires two pages.</div>
+	<div id="two">This text must appear on the same page as the line above it. The dummy text below this will flow onto a second page.</div>
+	<p>a b c d e</p>
+</body>
+</html>

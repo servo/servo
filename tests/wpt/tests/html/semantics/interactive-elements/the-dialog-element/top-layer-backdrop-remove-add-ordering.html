@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://issues.chromium.org/issues/360158414">
+<link rel=match href="top-layer-backdrop-remove-add-ordering-ref.html">
+
+<style>
+#popover1 {
+  top: 100px;
+  left: 100px;
+  width: 100px;
+  height: 100px;
+}
+</style>
+
+<dialog id=dialog1>Dialog1</dialog>
+<div popover=manual id=popover1>Popover1</div>
+<script>
+const popover1 = document.getElementById('popover1');
+const dialog1 = document.getElementById('dialog1');
+
+dialog1.showModal();
+popover1.showPopover();
+
+dialog1.close();
+dialog1.showModal();
+</script>

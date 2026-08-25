@@ -1,0 +1,417 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+// Quotes data is obtained from ICU CLDR data file /tmp/cldr-common-46.0.zip.
+
+// TODO(xiaochengh): This file should better be moved to elsewhere and maintained automatically.
+// Or even better, extend the icu create to provide the data directly.
+
+use icu_locid::Locale;
+use phf::phf_map;
+
+#[derive(Clone, Copy, Debug)]
+pub struct QuotePair {
+    pub opening: char,
+    pub closing: char,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct QuotesData {
+    quotes: QuotePair,
+    alternative_quotes: QuotePair,
+}
+
+impl QuotesData {
+    const fn from(open: char, close: char, alt_open: char, alt_close: char) -> Self {
+        QuotesData {
+            quotes: QuotePair {
+                opening: open,
+                closing: close,
+            },
+            alternative_quotes: QuotePair {
+                opening: alt_open,
+                closing: alt_close,
+            },
+        }
+    }
+}
+
+static DEFAULT_QUOTES: QuotesData =
+    QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}');
+
+static QUOTES_MAP: phf::Map<&'static str, QuotesData> = phf_map! {
+        "aa" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "ab" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "af" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "ak" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "an" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "ann" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "apc" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "arn" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "as" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "asa" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "az" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "ba" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "bal" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "bem" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "bew" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "bez" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "bgc" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "bgn" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "bho" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "blt" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "bn" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "bo" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "brx" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "bss" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "byn" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "cad" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "cch" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "ccp" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "ce" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "ceb" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "cgg" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "cho" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "chr" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "cic" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "ckb" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "co" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "csw" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "cu" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "cy" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "da" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "dav" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "dje" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "doi" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "dv" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "dz" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "ebu" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "ee" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "en" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "eo" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "es" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "fil" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "fo" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "frr" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "fur" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "fy" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "ga" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "gaa" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "gd" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "gez" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "gl" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "gn" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "gu" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "guz" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "gv" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "ha" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "haw" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "hi" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "hnj" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "id" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "ig" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "ii" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "io" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "iu" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "jbo" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "jmc" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "jv" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "kaa" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "kaj" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "kam" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "kcg" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "kde" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "kea" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "ken" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "kgp" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "khq" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "ki" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "kl" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "kln" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "km" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "kn" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "ko" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "kok" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "kpe" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "ks" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "ksb" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "ksh" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "ku" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "kw" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "kxv" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "la" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "lg" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "lkt" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "lmo" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "ln" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "lo" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "lrc" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "ltg" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "lu" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "luo" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "lv" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "mai" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "mas" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "mdf" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "mer" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "mfe" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "mgh" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "mgo" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "mhn" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "mi" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "mic" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "ml" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "mn" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "mni" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "moh" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "mr" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "ms" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "mt" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "mus" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "my" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "myv" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "naq" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "nb" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "nd" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "nds" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "ne" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "nn" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "nqo" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "nr" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "nus" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "nv" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "ny" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "nyn" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "oc" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "om" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "or" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "os" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "osa" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "pa" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "pap" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "pcm" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "pis" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "prg" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "ps" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "pt" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "qu" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "quc" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "raj" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "rhg" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "rif" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "rm" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "rof" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "rwk" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "sa" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "saq" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "sat" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "sbp" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "scn" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "sd" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "se" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "seh" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "ses" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "shn" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "si" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "sid" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "skr" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "sma" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "smj" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "smn" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "sms" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "so" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "ss" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "ssy" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "su" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "sw" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "szl" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "ta" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "te" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "teo" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "tg" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "th" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "tig" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "to" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "tok" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "tpi" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "tr" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "trv" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "trw" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "ts" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "tt" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "twq" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "tyv" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "tzm" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "ug" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "vai" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "ve" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "vec" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "vi" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "vmw" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "vo" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "vun" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "wa" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "wae" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "wal" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "wbp" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "wo" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "xh" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "xnr" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "xog" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "yi" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "yo" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "yrl" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "za" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "zh" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "zu" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "agq" => QuotesData::from('\u{201e}', '\u{201d}', '\u{201a}', '\u{2019}'),
+        "ff" => QuotesData::from('\u{201e}', '\u{201d}', '\u{201a}', '\u{2019}'),
+        "am" => QuotesData::from('\u{ab}', '\u{bb}', '\u{2039}', '\u{203a}'),
+        "az-Arab" => QuotesData::from('\u{ab}', '\u{bb}', '\u{2039}', '\u{203a}'),
+        "az-Cyrl" => QuotesData::from('\u{ab}', '\u{bb}', '\u{2039}', '\u{203a}'),
+        "fa" => QuotesData::from('\u{ab}', '\u{bb}', '\u{2039}', '\u{203a}'),
+        "fr-CH" => QuotesData::from('\u{ab}', '\u{bb}', '\u{2039}', '\u{203a}'),
+        "gsw" => QuotesData::from('\u{ab}', '\u{bb}', '\u{2039}', '\u{203a}'),
+        "jgo" => QuotesData::from('\u{ab}', '\u{bb}', '\u{2039}', '\u{203a}'),
+        "kkj" => QuotesData::from('\u{ab}', '\u{bb}', '\u{2039}', '\u{203a}'),
+        "mzn" => QuotesData::from('\u{ab}', '\u{bb}', '\u{2039}', '\u{203a}'),
+        "sdh" => QuotesData::from('\u{ab}', '\u{bb}', '\u{2039}', '\u{203a}'),
+        "ar" => QuotesData::from('\u{201d}', '\u{201c}', '\u{2019}', '\u{2018}'),
+        "lld" => QuotesData::from('\u{201d}', '\u{201c}', '\u{2019}', '\u{2018}'),
+        "ms-Arab" => QuotesData::from('\u{201d}', '\u{201c}', '\u{2019}', '\u{2018}'),
+        "syr" => QuotesData::from('\u{201d}', '\u{201c}', '\u{2019}', '\u{2018}'),
+        "ur" => QuotesData::from('\u{201d}', '\u{201c}', '\u{2019}', '\u{2018}'),
+        "ast" => QuotesData::from('\u{ab}', '\u{bb}', '\u{201c}', '\u{201d}'),
+        "blo" => QuotesData::from('\u{ab}', '\u{bb}', '\u{201c}', '\u{201d}'),
+        "bm" => QuotesData::from('\u{ab}', '\u{bb}', '\u{201c}', '\u{201d}'),
+        "br" => QuotesData::from('\u{ab}', '\u{bb}', '\u{201c}', '\u{201d}'),
+        "ca" => QuotesData::from('\u{ab}', '\u{bb}', '\u{201c}', '\u{201d}'),
+        "dyo" => QuotesData::from('\u{ab}', '\u{bb}', '\u{201c}', '\u{201d}'),
+        "el" => QuotesData::from('\u{ab}', '\u{bb}', '\u{201c}', '\u{201d}'),
+        "es-US" => QuotesData::from('\u{ab}', '\u{bb}', '\u{201c}', '\u{201d}'),
+        "eu" => QuotesData::from('\u{ab}', '\u{bb}', '\u{201c}', '\u{201d}'),
+        "ewo" => QuotesData::from('\u{ab}', '\u{bb}', '\u{201c}', '\u{201d}'),
+        "ie" => QuotesData::from('\u{ab}', '\u{bb}', '\u{201c}', '\u{201d}'),
+        "it" => QuotesData::from('\u{ab}', '\u{bb}', '\u{201c}', '\u{201d}'),
+        "kab" => QuotesData::from('\u{ab}', '\u{bb}', '\u{201c}', '\u{201d}'),
+        "kk" => QuotesData::from('\u{ab}', '\u{bb}', '\u{201c}', '\u{201d}'),
+        "lij" => QuotesData::from('\u{ab}', '\u{bb}', '\u{201c}', '\u{201d}'),
+        "mg" => QuotesData::from('\u{ab}', '\u{bb}', '\u{201c}', '\u{201d}'),
+        "mua" => QuotesData::from('\u{ab}', '\u{bb}', '\u{201c}', '\u{201d}'),
+        "nnh" => QuotesData::from('\u{ab}', '\u{bb}', '\u{201c}', '\u{201d}'),
+        "pt-PT" => QuotesData::from('\u{ab}', '\u{bb}', '\u{201c}', '\u{201d}'),
+        "sc" => QuotesData::from('\u{ab}', '\u{bb}', '\u{201c}', '\u{201d}'),
+        "sg" => QuotesData::from('\u{ab}', '\u{bb}', '\u{201c}', '\u{201d}'),
+        "sq" => QuotesData::from('\u{ab}', '\u{bb}', '\u{201c}', '\u{201d}'),
+        "ti" => QuotesData::from('\u{ab}', '\u{bb}', '\u{201c}', '\u{201d}'),
+        "bas" => QuotesData::from('\u{ab}', '\u{bb}', '\u{201e}', '\u{201c}'),
+        "be" => QuotesData::from('\u{ab}', '\u{bb}', '\u{201e}', '\u{201c}'),
+        "cv" => QuotesData::from('\u{ab}', '\u{bb}', '\u{201e}', '\u{201c}'),
+        "ky" => QuotesData::from('\u{ab}', '\u{bb}', '\u{201e}', '\u{201c}'),
+        "ru" => QuotesData::from('\u{ab}', '\u{bb}', '\u{201e}', '\u{201c}'),
+        "sah" => QuotesData::from('\u{ab}', '\u{bb}', '\u{201e}', '\u{201c}'),
+        "uk" => QuotesData::from('\u{ab}', '\u{bb}', '\u{201e}', '\u{201c}'),
+        "bg" => QuotesData::from('\u{201e}', '\u{201c}', '\u{201e}', '\u{201c}'),
+        "lt" => QuotesData::from('\u{201e}', '\u{201c}', '\u{201e}', '\u{201c}'),
+        "bs-Cyrl" => QuotesData::from('\u{201e}', '\u{201c}', '\u{201a}', '\u{2018}'),
+        "cs" => QuotesData::from('\u{201e}', '\u{201c}', '\u{201a}', '\u{2018}'),
+        "de" => QuotesData::from('\u{201e}', '\u{201c}', '\u{201a}', '\u{2018}'),
+        "dsb" => QuotesData::from('\u{201e}', '\u{201c}', '\u{201a}', '\u{2018}'),
+        "et" => QuotesData::from('\u{201e}', '\u{201c}', '\u{201a}', '\u{2018}'),
+        "hr" => QuotesData::from('\u{201e}', '\u{201c}', '\u{201a}', '\u{2018}'),
+        "hsb" => QuotesData::from('\u{201e}', '\u{201c}', '\u{201a}', '\u{2018}'),
+        "is" => QuotesData::from('\u{201e}', '\u{201c}', '\u{201a}', '\u{2018}'),
+        "lb" => QuotesData::from('\u{201e}', '\u{201c}', '\u{201a}', '\u{2018}'),
+        "luy" => QuotesData::from('\u{201e}', '\u{201c}', '\u{201a}', '\u{2018}'),
+        "mk" => QuotesData::from('\u{201e}', '\u{201c}', '\u{201a}', '\u{2018}'),
+        "sk" => QuotesData::from('\u{201e}', '\u{201c}', '\u{201a}', '\u{2018}'),
+        "sl" => QuotesData::from('\u{201e}', '\u{201c}', '\u{201a}', '\u{2018}'),
+        "bs" => QuotesData::from('\u{201e}', '\u{201d}', '\u{2018}', '\u{2019}'),
+        "dua" => QuotesData::from('\u{ab}', '\u{bb}', '\u{2018}', '\u{2019}'),
+        "el-POLYTON" => QuotesData::from('\u{ab}', '\u{bb}', '\u{2018}', '\u{2019}'),
+        "ksf" => QuotesData::from('\u{ab}', '\u{bb}', '\u{2018}', '\u{2019}'),
+        "no" => QuotesData::from('\u{ab}', '\u{bb}', '\u{2018}', '\u{2019}'),
+        "rw" => QuotesData::from('\u{ab}', '\u{bb}', '\u{2018}', '\u{2019}'),
+        "fi" => QuotesData::from('\u{201d}', '\u{201d}', '\u{2019}', '\u{2019}'),
+        "he" => QuotesData::from('\u{201d}', '\u{201d}', '\u{2019}', '\u{2019}'),
+        "lag" => QuotesData::from('\u{201d}', '\u{201d}', '\u{2019}', '\u{2019}'),
+        "rn" => QuotesData::from('\u{201d}', '\u{201d}', '\u{2019}', '\u{2019}'),
+        "sn" => QuotesData::from('\u{201d}', '\u{201d}', '\u{2019}', '\u{2019}'),
+        "sv" => QuotesData::from('\u{201d}', '\u{201d}', '\u{2019}', '\u{2019}'),
+        "fr-CA" => QuotesData::from('\u{ab}', '\u{bb}', '\u{201d}', '\u{201c}'),
+        "fr" => QuotesData::from('\u{ab}', '\u{bb}', '\u{ab}', '\u{bb}'),
+        "hy" => QuotesData::from('\u{ab}', '\u{bb}', '\u{ab}', '\u{bb}'),
+        "yav" => QuotesData::from('\u{ab}', '\u{bb}', '\u{ab}', '\u{bb}'),
+        "hu" => QuotesData::from('\u{201e}', '\u{201d}', '\u{bb}', '\u{ab}'),
+        "ia" => QuotesData::from('\u{2018}', '\u{2019}', '\u{201c}', '\u{201d}'),
+        "nso" => QuotesData::from('\u{2018}', '\u{2019}', '\u{201c}', '\u{201d}'),
+        "ti-ER" => QuotesData::from('\u{2018}', '\u{2019}', '\u{201c}', '\u{201d}'),
+        "tn" => QuotesData::from('\u{2018}', '\u{2019}', '\u{201c}', '\u{201d}'),
+        "ja" => QuotesData::from('\u{300c}', '\u{300d}', '\u{300e}', '\u{300f}'),
+        "yue" => QuotesData::from('\u{300c}', '\u{300d}', '\u{300e}', '\u{300f}'),
+        "zh-Hant" => QuotesData::from('\u{300c}', '\u{300d}', '\u{300e}', '\u{300f}'),
+        "ka" => QuotesData::from('\u{201e}', '\u{201c}', '\u{ab}', '\u{bb}'),
+        "nl" => QuotesData::from('\u{2018}', '\u{2019}', '\u{2018}', '\u{2019}'),
+        "nmg" => QuotesData::from('\u{201e}', '\u{201d}', '\u{ab}', '\u{bb}'),
+        "pl" => QuotesData::from('\u{201e}', '\u{201d}', '\u{ab}', '\u{bb}'),
+        "ro" => QuotesData::from('\u{201e}', '\u{201d}', '\u{ab}', '\u{bb}'),
+        "shi" => QuotesData::from('\u{ab}', '\u{bb}', '\u{201e}', '\u{201d}'),
+        "zgh" => QuotesData::from('\u{ab}', '\u{bb}', '\u{201e}', '\u{201d}'),
+        "sr" => QuotesData::from('\u{201e}', '\u{201d}', '\u{2019}', '\u{2019}'),
+        "st" => QuotesData::from('\u{201c}', '\u{2019}', '\u{201c}', '\u{201d}'),
+        "tk" => QuotesData::from('\u{201c}', '\u{201d}', '\u{201c}', '\u{201d}'),
+        "uz" => QuotesData::from('\u{201c}', '\u{201d}', '\u{2019}', '\u{2018}'),
+};
+
+fn quotes_data_for_lang(lang: &str) -> QuotesData {
+    // All valid language codes are at least two bytes long.
+    if lang.len() < 2 {
+        return DEFAULT_QUOTES;
+    }
+
+    // Found an exact match for the requested lang.
+    if let Some(quotes_data) = QUOTES_MAP.get(lang) {
+        return *quotes_data;
+    }
+
+    // Try parsing lang as a Locale and canonicalizing the subtags, then see if
+    // we can match it with region or script subtags, if present, or just the
+    // primary language tag.
+    let locale = match lang.parse::<Locale>() {
+        Err(_) => return DEFAULT_QUOTES,
+        Ok(locale) => locale,
+    };
+
+    let lang = locale.id.language.to_string();
+
+    if let Some(quotes_data) = QUOTES_MAP.get(lang.as_str()) {
+        return *quotes_data;
+    }
+
+    if let Some(quotes_data) = locale
+        .id
+        .region
+        .and_then(|region| QUOTES_MAP.get(format!("{lang}-{region}").as_str()))
+    {
+        return *quotes_data;
+    }
+
+    if let Some(quotes_data) = locale
+        .id
+        .script
+        .and_then(|script| QUOTES_MAP.get(format!("{lang}-{script}").as_str()))
+    {
+        return *quotes_data;
+    }
+
+    DEFAULT_QUOTES
+}
+
+pub(crate) fn quotes_for_lang(lang: &str, depth: usize) -> QuotePair {
+    let quotes_data = quotes_data_for_lang(lang);
+    match depth {
+        0 => quotes_data.quotes,
+        _ => quotes_data.alternative_quotes,
+    }
+}

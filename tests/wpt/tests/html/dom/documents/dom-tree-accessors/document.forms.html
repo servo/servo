@@ -1,0 +1,83 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Document.forms</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<form id="form1">
+<input type="button" name="thebutton" value="alpha">
+<input type=radio name=r1 value=a>
+<input type=radio name=r1 value=b>
+<input type=radio name=r1 value=c>
+<input type=radio name=r1 value=d>
+<input type=radio name=r1 value=e>
+</form>
+
+<form id="form2">
+<input type="button" name="thebutton" value="alpha">
+<input type=radio name=r1 value="a">
+<input type=radio name=r1 value="b">
+<input type=radio name=r1 value="c">
+<input type=radio name=r1 value="d">
+<input type=radio name=r1 value="e">
+</form>
+
+<form id=""></form>
+<script>
+test(function() {
+  assert_equals(document.forms.length, 3);
+  assert_equals(document.forms[0].id, "form1");
+  assert_equals(document.forms[1].id, "form2");
+  assert_equals(document.forms.form1.id, "form1");
+  assert_equals(document.forms.form2.id, "form2");
+  assert_equals(document.forms.item(0).id, "form1");
+  assert_equals(document.forms.item(1).id, "form2");
+  assert_equals(document.forms.namedItem("form1").id, "form1");
+  assert_equals(document.forms.namedItem("form2").id, "form2");
+}, "document.forms")
+
+test(function() {
+  // The `item` method takes one *numeric* argument. Passing a string to `item`
+  // results in that string getting converted to 0
+  assert_equals(document.forms.item("form1").id, "form1");
+  assert_equals(document.forms.item("form2").id, "form1");
+}, "document.forms.item with string arg")
+
+test(function() {
+  assert_equals(document.forms[""], undefined);
+  assert_equals(document.forms.namedItem(""), null);
+}, "document.forms with empty string")
+
+test(function() {
+  var result = [];
+  for (var p in document.forms) {
+    result.push(p);
+  }
+  // https://webidl.spec.whatwg.org/#property-enumeration
+  // If the object supports indexed properties, then the object’s supported
+  // property indices are enumerated first, in numerical order.
+  assert_array_equals(result.splice(0, 3), ["0", "1", "2"]);
+  // [...]
+  // Finally, any enumerable own properties or properties from the object’s
+  // prototype chain are then enumerated, in no defined order.
+  assert_array_equals(result.sort(), ["item", "namedItem", "length"].sort())
+}, "document.forms iteration")
+
+test(function() {
+  var result = Object.getOwnPropertyNames(document.forms);
+  assert_array_equals(result, ["0", "1", "2", "form1", "form2"])
+}, "document.forms getOwnPropertyNames")
+
+test(function() {
+  var forms = document.forms;
+  assert_true(forms instanceof HTMLCollection);
+  assert_equals(forms.length, 3);
+
+  var form = document.createElement("form");
+  document.body.appendChild(form);
+  assert_equals(forms.length, 4);
+
+  document.body.removeChild(form);
+  assert_equals(forms.length, 3);
+}, "Document.forms should be a live collection");
+</script>

@@ -1,0 +1,34 @@
+<!doctype HTML>
+<html>
+<meta charset="utf8">
+<title>Display Locking: focus on styled element</title>
+<link rel="author" title="Rakina Zata Amni" href="mailto:rakina@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<meta name="assert" content="focus does not target display-none but hidden elements">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="container" style="content-visibility: auto">
+  <div id="focusable1" tabIndex="0">
+    focusable thing
+  </div>
+  <div id="displayNoneParent">
+    <div id="focusable2" tabIndex="0">
+      focusable thing
+    </div>
+  </div>
+</div>
+
+<script>
+test(() => {
+  focusable1.style.display = "none";
+  focusable1.focus();
+  assert_not_equals(document.activeElement, focusable1);
+
+  displayNoneParent.style.display = "none";
+  focusable2.focus();
+  assert_not_equals(document.activeElement, focusable2);
+}, "Trying to focus on an element in a hidden subtree with display none will not work");
+</script>
+</html>

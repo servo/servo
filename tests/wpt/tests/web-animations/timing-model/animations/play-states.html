@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Play states</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations/#play-states">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+test(t => {
+  const animation = new Animation(
+    new KeyframeEffect(null, {}, 100 * MS_PER_SEC)
+  );
+  assert_equals(animation.currentTime, null,
+                'Current time should be initially unresolved');
+
+  assert_equals(animation.playState, 'idle');
+}, 'reports \'idle\' for an animation with an unresolved current time'
+   + ' and no pending tasks')
+
+test(t => {
+  const animation = createDiv(t).animate({}, 100 * MS_PER_SEC);
+
+  animation.pause();
+
+  assert_equals(animation.playState, 'paused');
+}, 'reports \'paused\' for an animation with a pending pause task');
+
+test(t => {
+  const animation = new Animation(
+    new KeyframeEffect(null, {}, 100 * MS_PER_SEC)
+  );
+
+  animation.currentTime = 0;
+  assert_equals(animation.startTime, null,
+                'Start time should still be unresolved after setting current'
+                + ' time');
+
+  assert_equals(animation.playState, 'paused');
+}, 'reports \'paused\' for an animation with a resolved current time and'
+   + ' unresolved start time')
+
+test(t => {
+  const animation = new Animation(
+    new KeyframeEffect(null, {}, 100 * MS_PER_SEC)
+  );
+
+  animation.startTime = document.timeline.currentTime;
+  assert_not_equals(animation.currentTime, null,
+                    'Current time should be resolved after setting start time');
+
+  assert_equals(animation.playState, 'running');
+}, 'reports \'running\' for an animation with a resolved start time and'
+   + ' current time');
+
+test(t => {
+  const animation = new Animation(
+    new KeyframeEffect(null, {}, 100 * MS_PER_SEC)
+  );
+  animation.startTime = document.timeline.currentTime;
+
+  animation.currentTime = 100 * MS_PER_SEC;
+
+  assert_equals(animation.playState, 'finished');
+}, 'reports \'finished\' when playback rate > 0 and'
+   + ' current time = target effect end');
+
+test(t => {
+  const animation = new Animation(
+    new KeyframeEffect(null, {}, 100 * MS_PER_SEC)
+  );
+  animation.startTime = document.timeline.currentTime;
+
+  animation.playbackRate = 0;
+  animation.currentTime = 100 * MS_PER_SEC;
+
+  assert_equals(animation.playState, 'running');
+}, 'reports \'running\' when playback rate = 0 and'
+   + ' current time = target effect end');
+
+test(t => {
+  const animation = new Animation(
+    new KeyframeEffect(null, {}, 100 * MS_PER_SEC)
+  );
+  animation.startTime = document.timeline.currentTime;
+
+  animation.playbackRate = -1;
+  animation.currentTime = 100 * MS_PER_SEC;
+
+  assert_equals(animation.playState, 'running');
+}, 'reports \'running\' when playback rate < 0 and'
+   + ' current time = target effect end');
+
+test(t => {
+  const animation = new Animation(
+    new KeyframeEffect(null, {}, 100 * MS_PER_SEC)
+  );
+  animation.startTime = document.timeline.currentTime;
+
+  animation.currentTime = 0;
+
+  assert_equals(animation.playState, 'running');
+}, 'reports \'running\' when playback rate > 0 and'
+   + ' current time = 0');
+
+test(t => {
+  const animation = new Animation(
+    new KeyframeEffect(null, {}, 100 * MS_PER_SEC)
+  );
+  animation.startTime = document.timeline.currentTime;
+
+  animation.playbackRate = 0;
+  animation.currentTime = 0;
+
+  assert_equals(animation.playState, 'running');
+}, 'reports \'running\' when playback rate = 0 and'
+   + ' current time = 0');
+
+test(t => {
+  const animation = new Animation(
+    new KeyframeEffect(null, {}, 100 * MS_PER_SEC)
+  );
+  animation.startTime = document.timeline.currentTime;
+
+  animation.playbackRate = -1;
+  animation.currentTime = 0;
+
+  assert_equals(animation.playState, 'finished');
+}, 'reports \'finished\' when playback rate < 0 and'
+   + ' current time = 0');
+
+test(t => {
+  const animation = createDiv(t).animate({}, 0);
+  assert_equals(animation.startTime, null,
+                'Sanity check: start time should be unresolved');
+
+  assert_equals(animation.playState, 'finished');
+}, 'reports \'finished\' when playback rate > 0 and'
+   + ' current time = target effect end and there is a pending play task');
+
+test(t => {
+  const animation = createDiv(t).animate({}, 100 * MS_PER_SEC);
+  assert_equals(animation.startTime, null,
+                'Sanity check: start time should be unresolved');
+
+  assert_equals(animation.playState, 'running');
+}, 'reports \'running\' when playback rate > 0 and'
+   + ' current time < target effect end and there is a pending play task');
+
+test(t => {
+  const animation = createDiv(t).animate({}, 100 * MS_PER_SEC);
+  assert_equals(animation.playState, 'running');
+  assert_true(animation.pending);
+}, 'reports \'running\' for a play-pending animation');
+
+test(t => {
+  const animation = createDiv(t).animate({}, 100 * MS_PER_SEC);
+  animation.pause();
+  assert_equals(animation.playState, 'paused');
+  assert_true(animation.pending);
+}, 'reports \'paused\' for a pause-pending animation');
+
+test(t => {
+  const animation = createDiv(t).animate({}, 0);
+  assert_equals(animation.playState, 'finished');
+  assert_true(animation.pending);
+}, 'reports \'finished\' for a finished-pending animation');
+
+test(t => {
+  const animation = createDiv(t).animate({}, 100 * MS_PER_SEC);
+  // Set up the pending playback rate
+  animation.updatePlaybackRate(-1);
+  // Call play again so that we seek to the end while remaining play-pending
+  animation.play();
+  // For a pending animation, the play state should always report what the
+  // play state _will_ be once we finish pending.
+  assert_equals(animation.playState, 'running');
+  assert_true(animation.pending);
+}, 'reports the play state based on the pending playback rate');
+
+</script>
+</body>

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Performance test for appending inline items one at a time</title>
+        <meta charset="utf-8">
+        <script src="../resources/runner.js"></script>
+    </head>
+    <body>
+        <div id="container"></div>
+        <script>
+            var pangrams = [
+                'Amazingly few discotheques provide jukeboxes.',
+                'All questions asked by five watched experts amaze the judge.',
+                'Pack my box with five dozen liquor jugs.',
+                'Sphinx of black quartz, judge my vow!',
+                'My faxed joke won a pager in the cable TV quiz show.'
+            ];
+
+            function addItem(container, text) {
+                container.appendChild(document.createTextNode(text));
+                container.appendChild(document.createElement('br'));
+            }
+
+            function test() {
+                var container = document.createElement('div');
+                document.body.appendChild(container);
+                for (var i = 0; i < 100; i++) {
+                    addItem(container, i + ') ' + pangrams[i % 5]);
+                    PerfTestRunner.forceLayout();
+                }
+                document.body.removeChild(container);
+            }
+
+            PerfTestRunner.measureRunsPerSecond({
+                description: 'Measures performance of appending inline ' +
+                    'items one at a time',
+                run: test
+            });
+        </script>
+    </body>
+</html>

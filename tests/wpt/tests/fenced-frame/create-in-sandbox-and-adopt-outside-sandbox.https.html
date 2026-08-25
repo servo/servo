@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>Test fenced frame sandbox adoption</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/common/utils.js"></script>
+
+<body>
+<script>
+promise_test(async() => {
+  const fenced_frame_loaded_key = token();
+
+  const iframe = document.createElement('iframe');
+  iframe.setAttribute('sandbox', 'allow-same-origin');
+  document.body.append(iframe);
+
+  const inner_document = iframe.contentDocument;
+  const fenced_frame = inner_document.createElement('fencedframe');
+  // The `inner_document` is not suitable to host a fenced frame because its
+  // sandbox flags are too strict.
+  inner_document.body.append(fenced_frame);
+
+  // Per https://dom.spec.whatwg.org/#concept-node-append, this will adopt the
+  // inner fenced frame into the outer (main frame) document.
+  document.body.append(fenced_frame);
+  fenced_frame.config =
+      new FencedFrameConfig(generateURL(
+          'resources/fenced-frame-loaded.html', [fenced_frame_loaded_key]));
+  const response = await nextValueFromServer(fenced_frame_loaded_key);
+  assert_equals(response, "fenced frame loaded",
+                "The inner frame should be loaded.");
+}, "Adopting a fenced frame from a too-strict document to a suitable " +
+   "document leaves the frame in a functional state");
+</script>
+</body>

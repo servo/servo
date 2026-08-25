@@ -1,0 +1,146 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="CN" author="SH" status="accepted"
+    version="$Revision: 1.6 $" testname="$RCSfile: animate-elem-32-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/animate.html#Animation">
+      <p>
+        Tests the animation to and from the degenerate cases of the basic shapes.
+        The shapes are drawn within the black rectangles.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>Run the test. No interaction required.</p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>The test passes if within each of the 11 rectangles an animated shape
+      is shown over the first six seconds and that after the six seconds, at the
+      end of the animation, each of these rectangles is empty.</p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: animate-elem-32-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <!-- ====================================================================== -->
+    <!-- Draw the boxes to contain the shapes and the text labels for the boxes -->
+    <!-- ====================================================================== -->
+    <g fill="black" stroke="none" font-family="Arial" font-size="8">
+      <text x="5" y="90">Stroked</text>
+      <text x="5" y="195">Unstroked</text>
+      <text x="50" y="135">Zero width rect</text>
+      <text x="130" y="135">Zero height rect</text>
+      <text x="210" y="135">Zero radius circle</text>
+      <text x="315" y="135">Zero x radius ellipse</text>
+      <text x="394" y="135">Zero y radius ellipse</text>
+      <text x="210" y="290">Zero length line</text>
+    </g>
+
+    <g fill="none" stroke="#000000">
+      <!-- rects -->
+      <rect x="50" y="50" width="35" height="60"/>
+      <rect x="50" y="155" width="35" height="60"/>
+      <rect x="130" y="50" width="35" height="60"/>
+      <rect x="130" y="155" width="35" height="60"/>
+
+      <!-- circles -->
+      <rect x="210" y="50" width="60" height="60"/>
+      <rect x="210" y="155" width="60" height="60"/>
+
+      <!-- ellipses -->
+      <rect x="315" y="50" width="35" height="60"/>
+      <rect x="315" y="155" width="35" height="60"/>
+      <rect x="394" y="50" width="35" height="60"/>
+      <rect x="394" y="155" width="35" height="60"/>
+
+      <!-- line -->
+      <rect x="210" y="260" width="60" height="10"/>
+    </g>
+
+    <!-- ====================================================================== -->
+    <!-- Draw 4 rectangles, two with zero width, two with zero height           -->
+    <!-- (stroked and unstroked)                                                -->
+    <!-- ====================================================================== -->
+    <rect id="Zero-width-stroked-rect" fill="#00FF00" stroke="#000000" x="55" y="55" height="50" width="0">
+      <animate attributeName="width" from="0" to="25" begin="0" dur="3" fill="freeze"/>
+      <animate attributeName="width" from="25" to="0" begin="3" dur="3" fill="freeze"/>
+    </rect>
+    <rect id="Zero-height-stroked-rect" fill="#00FF00" stroke="#000000" x="135" y="55" width="25" height="0">
+      <animate attributeName="height" from="0" to="50" begin="0" dur="3" fill="freeze"/>
+      <animate attributeName="height" from="50" to="0" begin="3" dur="3" fill="freeze"/>
+    </rect>
+    <rect id="Zero-width-unstroked-rect" fill="#FF8000" stroke="none" x="55" y="160" height="50" width="0">
+      <animate attributeName="width" from="0" to="25" begin="0" dur="3" fill="freeze"/>
+      <animate attributeName="width" from="25" to="0" begin="3" dur="3" fill="freeze"/>
+    </rect>
+    <rect id="Zero-height-unstroked-rect" fill="#FF8000" stroke="none" x="135" y="160" width="25" height="0">
+      <animate attributeName="height" from="0" to="50" begin="0" dur="3" fill="freeze"/>
+      <animate attributeName="height" from="50" to="0" begin="3" dur="3" fill="freeze"/>
+    </rect>
+    <!-- ====================================================================== -->
+    <!-- Draw two zero radius circles (stroked and unstroked)                   -->
+    <!-- ====================================================================== -->
+    <circle id="Zero-radius-stroked-circle" fill="#00FF00" stroke="#000000" cx="240" cy="80" r="0">
+      <animate attributeName="r" from="0" to="25" begin="0" dur="3" fill="freeze"/>
+      <animate attributeName="r" from="25" to="0" begin="3" dur="3" fill="freeze"/>
+    </circle>
+    <circle id="Zero-radius-unstroked-circle" fill="#FF8000" stroke="none" cx="240" cy="185" r="0">
+      <animate attributeName="r" from="0" to="25" begin="0" dur="3" fill="freeze"/>
+      <animate attributeName="r" from="25" to="0" begin="3" dur="3" fill="freeze"/>
+    </circle>
+    <!-- ====================================================================== -->
+    <!-- Draw 4 ellipses, two with a zero x radius, two with a zero y radius    -->
+    <!-- (stroked and unstroked)                                                -->
+    <!-- ====================================================================== -->
+    <ellipse id="Zero-x-radius-stroked-ellipse" fill="#00FF00" stroke="#0000FF" cx="332" cy="80" rx="0" ry="25">
+      <animate attributeName="rx" from="0" to="12" begin="0" dur="3" fill="freeze"/>
+      <animate attributeName="rx" from="12" to="0" begin="3" dur="3" fill="freeze"/>
+    </ellipse>
+    <ellipse id="Zero-x-radius-unstroked-ellipse" fill="#FF8000" stroke="none" cx="332" cy="185" rx="0" ry="25">
+      <animate attributeName="rx" from="0" to="12" begin="0" dur="3" fill="freeze"/>
+      <animate attributeName="rx" from="12" to="0" begin="3" dur="3" fill="freeze"/>
+    </ellipse>
+    <ellipse id="Zero-y-radius-stroked-ellipse" fill="#00FF00" stroke="#0000FF" cx="411" cy="80" rx="12" ry="0">
+      <animate attributeName="ry" from="0" to="25" begin="0" dur="3" fill="freeze"/>
+      <animate attributeName="ry" from="25" to="0" begin="3" dur="3" fill="freeze"/>
+    </ellipse>
+    <ellipse id="Zero-y-radius-unstroked-ellipse" fill="#FF8000" stroke="none" cx="411" cy="185" rx="12" ry="0">
+      <animate attributeName="ry" from="0" to="25" begin="0" dur="3" fill="freeze"/>
+      <animate attributeName="ry" from="25" to="0" begin="3" dur="3" fill="freeze"/>
+    </ellipse>
+    <!-- ====================================================================== -->
+    <!-- Draw a zero-length line                                                -->
+    <!-- ====================================================================== -->
+    <line id="Zero-length-line" stroke="#0000FF" x1="240" y1="265" x2="240" y2="265">
+      <animate attributeName="x1" from="240" to="215" begin="0" dur="3" fill="freeze"/>
+      <animate attributeName="x2" from="240" to="265" begin="0" dur="3" fill="freeze"/>
+      <animate attributeName="x1" from="215" to="240" begin="3" dur="3" fill="freeze"/>
+      <animate attributeName="x2" from="265" to="240" begin="3" dur="3" fill="freeze"/>
+    </line>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.6 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <meta charset="utf-8">
+  <title>CSS Background and Borders Test: background-clip: border-box with background-color</title>
+  <link rel="author" title="Julien Chaffraix" href="mailto:jchaffraix@webkit.org">
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2013-04-09 -->
+  <link rel="help" href="http://www.w3.org/TR/css3-background/#the-background-clip" title="3.7. Painting Area: the 'background-clip' property">
+  <meta content="When 'background-clip' is set to 'border-box', then the background painting area is clipped at the edges of the borders of the element. In this test, the border box is 96px tall and 96px wide and is made from only the borders." name="assert">
+  <link rel="match" href="reference/ref-filled-black-96px-square.xht">
+  <style>
+   div
+   {
+    background-clip: border-box;
+    background-color: black;
+    border: transparent solid 48px;
+    height: auto;
+    width: 0px;
+   }
+  </style>
+ </head>
+ <body>
+  <p>Test passes if there is a filled black square.</p>
+   <div></div>
+ </body>
+</html>

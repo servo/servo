@@ -1,0 +1,39 @@
+<!doctype html>
+<title>WebSockets: serialize establish a connection</title>
+<meta name="timeout" content="long">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../constants.sub.js></script>
+<meta name="variant" content="?default">
+<meta name="variant" content="?wss">
+<div id=log></div>
+<script>
+
+async_test(function(t) {
+  var ws = [];
+  var events = 0;
+  var prevDate;
+  var date;
+  for (var i = 0; i < 2; ++i) {
+    ws[i] = new WebSocket(SCHEME_DOMAIN_PORT+'/handshake_sleep_2');
+    ws[i].id = i;
+    ws[i].onopen = t.step_func(function(e) {
+      events++;
+      date = new Date();
+      if (prevDate) {
+        assert_greater_than(date - prevDate, 1000);
+      }
+      prevDate = date;
+      this.onopen = t.step_func(function() {assert_unreached()});
+    }.bind(ws[i]))
+    ws[i].onclose = t.step_func(function() {
+      events++;
+      if (events == 4) {
+        t.done();
+      }
+      this.onclose = t.step_func(function() {assert_unreached()});
+    }.bind(ws[i]));
+    ws[i].onerror = ws[i].onmessage = t.step_func(function() {assert_unreached()});
+  }
+});
+</script>

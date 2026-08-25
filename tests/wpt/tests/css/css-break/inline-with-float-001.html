@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1113185">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<style>
+  .ib {
+    display: inline-block;
+    width: 100%;
+    vertical-align: top;
+    background: green;
+  }
+</style>
+<div style="columns:4; gap:0; column-fill:auto; width:100px; height:100px; orphans:1; widows:1; background:red;">
+  <div style="height:70px; background:green;"></div>
+  <span style="position:relative;">
+    <div class="ib" style="height:30px;"></div>
+    <div class="ib" style="height:20px;"></div>
+    <div style="position:relative; float:left; width:100%; height:200px; background:green;"></div>
+    <div class="ib" style="height:80px;"></div>
+  </span>
+</div>

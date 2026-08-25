@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Console Timing Missing Label Warnings - Tentative</title>
+<link rel="help" href="https://console.spec.whatwg.org/#timing">
+<meta name="assert" content="timeLog/timeEnd on a missing label should produce warning output observable via BiDi log.entryAdded">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js?feature=bidi"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/console/helper.js"></script>
+
+<script>
+promise_test(async (t) => {
+  const unsubscribe =
+      await test_driver.bidi.log.entry_added.subscribe({ contexts: [window] });
+  t.add_cleanup(async () => await unsubscribe());
+
+  const missing_label = "__wpt_missing_timer__";
+  const missing_label_ops = [
+    () => console.timeLog(missing_label),
+    () => console.timeEnd(missing_label),
+  ];
+
+  const expected_warning_count = missing_label_ops.length;
+  const warningsPromise = waitForConsoleEntries(t, {
+    count: expected_warning_count,
+    accept: (entry) => typeof entry.text === "string" && entry.text.includes(missing_label),
+  });
+  for (const op of missing_label_ops) op();
+
+  const warnings = await warningsPromise;
+  assert_equals(warnings.length, expected_warning_count);
+  for (const warning of warnings) {
+    assert_true(typeof warning.text === "string" && warning.text.length > 0);
+    assert_true(warning.text.includes(missing_label));
+  }
+}, "Missing-label timeLog/timeEnd produce observable warning output");
+</script>

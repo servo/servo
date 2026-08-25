@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>XMLHttpRequest: getResponseHeader() and HTTP trailer</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#dom-xmlhttprequest-getresponseheader" data-tested-assertations="/following::OL[1]/LI[4] /following::OL[1]/LI[5] /following::OL[1]/LI[6]" />
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      var test = async_test()
+      test.step(function() {
+        var client = new XMLHttpRequest()
+        client.onreadystatechange = function() {
+          test.step(function() {
+            if(client.readyState == 4) {
+              assert_equals(client.getResponseHeader('Trailer'), 'X-Test-Me')
+              assert_equals(client.getResponseHeader('X-Test-Me'), null)
+              assert_equals(client.getAllResponseHeaders().indexOf('Trailer header value'), -1)
+              assert_regexp_match(client.getAllResponseHeaders(), /trailer:\sX-Test-Me/)
+              assert_equals(client.responseText, "First chunk\r\nSecond chunk\r\nYet another (third) chunk\r\nYet another (fourth) chunk\r\n")
+              test.done()
+            }
+          })
+        }
+        client.open("GET", "resources/chunked.py")
+        client.send(null)
+      })
+  </script>
+ </body>
+</html>

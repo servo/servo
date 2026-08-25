@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>CSS Test: `display: contents` inside table</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://www.w3.org/TR/css-tables-3/#fixup">
+<link rel="help" href="https://www.w3.org/TR/css-display-3/#valdef-display-contents">
+<link rel="match" href="display-contents-001-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<meta name="assert" content="
+  The contents of the table (anonymous or not) should inherit the green color from the
+  element with `display: contents`.
+">
+
+<div style="display: table; font: 25px/1 Ahem; color: red">
+  <div style="display: contents; color: green">
+    X
+    <div style="display: table-cell">X</div>
+    X
+    <div style="display: table-row">X</div>
+    X
+  </div>
+</div>

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="author" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-box-4/#margin-trim-flex">
+<meta name="assert" content="block-end trimmed margins should be reflected in computed style">
+<style>
+flexbox {
+    display: flex;
+    flex-direction: column;
+    width: min-content;
+    margin-trim: block-end;
+}
+item {
+    display: block;
+    background-color: green;
+    width: 50px;
+    height: 50px;
+    margin-block-end: 10px;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+</head>
+<body onload="checkLayout('flexbox > item')">
+<div id="target">
+<flexbox>
+    <item data-expected-margin-bottom="10" data-offset-y="8"></item>
+    <item data-expected-margin-bottom="0" data-offset-y="68"></item>
+</flexbox>
+</div>
+</body>
+</html>

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script'">
+</head>
+<body>
+<div>
+  <p id="p" onclick="alert(1)"></p>
+  <iframe id="iframe" srcdoc="abc"></iframe>
+</div>
+<script>
+  // Regression test for crbug.com/341057803.
+  // This tests that TT doesn't interfere with regular DOM behaviour, and so
+  // these tests should pass on any browser, whether they support TT or not.
+
+  test(t => {
+    const elem = document.getElementById("p");
+    elem.toggleAttribute("onclick");
+    assert_false(elem.hasAttribute("onclick"));
+    elem.toggleAttribute("onclick");
+    assert_true(elem.hasAttribute("onclick"));
+  }, "TT should not interfere with toggleAttribute on an event handler");
+
+  test(t => {
+    const elem = document.getElementById("iframe");
+    elem.toggleAttribute("srcdoc");
+    assert_false(elem.hasAttribute("srcdoc"));
+    elem.toggleAttribute("srcdoc");
+    assert_true(elem.hasAttribute("srcdoc"));
+  }, "TT should not interfere with toggleAttribute on an iframe srcdoc");
+</script>
+</body>

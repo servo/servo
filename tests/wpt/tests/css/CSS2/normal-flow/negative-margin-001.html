@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<title>Negative margins in LTR/RTL and BFC/non-BFC</title>
+<link rel="author" title="Koji Ishii" href="kojii@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/CSS22/box.html#margin-properties" title="Margin properties">
+<link rel="match" href="negative-margin-001-ref.html">
+<style>
+html, body {
+  margin: 0;
+}
+html {
+  margin-left: 10px;
+}
+outer {
+  display: block;
+  border: blue 10px solid;
+  width: 100px;
+}
+inner {
+  display: block;
+  border: orange 10px solid;
+  margin-left: -20px;
+  margin-right: -50px;
+  height: 10px;
+}
+inner.bfc {
+  overflow: hidden;
+}
+</style>
+<body>
+  <outer>
+    <inner></inner>
+  </outer>
+  <outer dir="rtl">
+    <inner></inner>
+  </outer>
+  <outer>
+    <inner class="bfc"></inner>
+  </outer>
+  <outer dir="rtl">
+    <inner class="bfc"></inner>
+  </outer>
+</body>

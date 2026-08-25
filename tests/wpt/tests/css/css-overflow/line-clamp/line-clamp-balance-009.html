@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<title>CSS Overflow: `line-clamp` and text-wrap: balance, height based, never overflow</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-balance-009-ref.html">
+<meta name="assert" content="Checks that when the browser clamps then balances, it clamps again. And if it balances again, it clamps yet another time.">
+<style>
+.clamp {
+  font-size: 10px;
+  line-clamp: "abcdefghi";
+  font-family: monospace;
+  width: 49.1ch;
+  line-height: 1;
+  max-height: 120px;
+  text-wrap: balance;
+  color: red;
+  background: red;
+
+}
+b {
+    font-weight: normal;
+    font-size: 3em;
+}
+aside {
+    position: absolute;
+    width: 600px;
+    height: 120px;
+    background: white;
+}
+</style>
+<p>Test passes if there is no red below.
+
+<aside></aside>
+<div class="clamp">
+    <b><b>1 2 3</b></b> <b>4</b> 5 6666666666666666666666666666666666666 777777777777777777777777777777777777777777777777 888888888888888888888888888888 99999999999999999
+</div>
+
+<!--
+    if unbalanced, the first line fits numbers up to 4,
+    the second one to 6,
+    the third to 7,
+    and the fourth to 9.
+    The whole thing fits into 120px;
+
+    If you apply balance,
+    4 (which is quite large) wraps the the second line, which still ends in 6
+    the first 2 lines just fit into 120px,
+    so the last two are discarded.
+
+    the second line s now the last line,
+    so the ellipsis gets inserted.
+
+    Because the ellipsis is a little long,
+    we need to remove the 6s for it to fit.
+    If the browser stops there,
+    the first 2 lines fit within 120px.
+
+    But after having removed the 6s, the first two lines are unbalanced,
+    so the browser might chose to rebalance them.
+    If it does that, it moves the 3 from the first to the second line,
+    which grows again.
+    it would now take 180px to fit the first two lines,
+    so we need to clamp again.
+    If we don't,
+    some content (or background) will stick out and show red.
+-->

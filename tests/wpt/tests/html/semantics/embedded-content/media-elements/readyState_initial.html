@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+ <head>
+  <title>{audio,video}.readyState - default state</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+ </head>
+ <body>
+  <p><a href="https://html.spec.whatwg.org/multipage/#dom-media-networkstate">spec reference</a></p>
+  <audio id="a">
+  </audio>
+  <video id="v">
+  </video>
+  <div id="log"></div>
+  <script>
+test(function() {
+ var a = document.getElementById("a");
+ assert_equals(
+  a.readyState,
+  a.HAVE_NOTHING,
+  "audioElement.readyState should be HAVE_NOTHING to begin with");
+}, "audio.readyState - default state");
+
+test(function() {
+ var v = document.getElementById("v");
+ assert_equals(
+  v.readyState,
+  v.HAVE_NOTHING,
+  "videoElement.readyState should be HAVE_NOTHING to begin with");
+}, "video.readyState - default state");
+  </script>
+ </body>
+</html>

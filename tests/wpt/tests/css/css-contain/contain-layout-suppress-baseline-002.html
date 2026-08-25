@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Test: 'contain: layout' should make elements behave as if they have no baseline</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <link rel="help" href="https://drafts.csswg.org/css-contain/#containment-layout">
+  <link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#valdef-align-items-baseline">
+  <link rel="match" href="contain-layout-suppress-baseline-002-ref.html">
+  <style>
+  .flexBaselineCheck {
+    display: flex;
+    border: 1px solid black;
+  }
+  .flexBaselineCheck > * {
+    contain: layout;
+    border: 2px solid teal;
+    align-self: baseline;
+    margin: 2px;
+  }
+  canvas {
+    background: purple;
+    width: 20px;
+    height: 50px;
+    box-sizing: border-box;
+  }
+  </style>
+</head>
+<body>
+  <div class="flexBaselineCheck">
+    <!-- This canvas just exists to establish a precise, far-down baseline
+         alignment position: -->
+    <canvas></canvas>
+    <!-- "contain:layout" should force all the elements below to behave as if
+         they have no baseline. That means they all should *synthesize* a
+         baseline from their border-box edge, in order to participate in flex
+         item baseline alignment (to honor the outer flex container's
+         "align-items:baseline"). So, the expectation here is that all of these
+         elements' border-bottom edges should be aligned. -->
+    <button>btn</button>
+    <input type="button" value="i-btn">
+    <input type="submit" value="i-sub">
+  </div>
+
+  <!-- Same as above, but with different form controls:
+       (split into multiple flex containers so as not to be too wide): -->
+  <div class="flexBaselineCheck">
+    <canvas></canvas>
+    <input type="text" value="text">
+    <input type="number" value="0">
+  </div>
+
+  <div class="flexBaselineCheck">
+    <canvas></canvas>
+    <input type="date">
+    <input type="time">
+  </div>
+
+  <div class="flexBaselineCheck">
+    <canvas></canvas>
+    <input type="file">
+    <textarea>textarea</textarea>
+  </div>
+
+  <div class="flexBaselineCheck">
+    <canvas></canvas>
+    <select><option>dropdown</option></select>
+    <select multiple style="max-height:40px"><option>multi</option></select>
+  </div>
+</body>
+</html>

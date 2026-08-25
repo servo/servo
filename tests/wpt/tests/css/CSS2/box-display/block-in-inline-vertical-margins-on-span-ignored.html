@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>CSS Test: vertical margins on the span ancestor are ignored</title>
+<link rel="help" href="https://www.w3.org/TR/CSS21/box.html#margin-properties">
+<link rel="help" href="https://www.w3.org/TR/CSS21/visuren.html#anonymous-block-level">
+<link rel="match" href="block-in-inline-vertical-margins-on-span-ignored-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<meta name="assert" content="Vertical margins specified on the inline span containing a block-in-inline are ignored and do not shift the block.">
+<style>
+.container { width: 100px; font: 20px/1 Ahem; }
+.span { margin-top: 50px; margin-bottom: 50px; }
+.inner { width: 100px; height: 20px; background: green; }
+.sibling { width: 100px; height: 20px; background: green; }
+</style>
+<p>Two adjacent green squares with no gap.</p>
+<div class="container">
+    <span class="span"><div class="inner"></div></span>
+    <div class="sibling"></div>
+</div>

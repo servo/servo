@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<link rel="author" title="David Shin" href="mailto:dshin@mozilla.com">
+<meta name="assert" content="Ensure that specifying baseline-source on inline boxes have no effect.">
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#baseline-source">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1792501">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<link rel="match" href="baseline-source-inline-box-ref.html">
+<style>
+div {
+  border: 1px solid;
+}
+span {
+  baseline-source: first;
+}
+</style>
+<div>
+  <span>a</span>
+</div>

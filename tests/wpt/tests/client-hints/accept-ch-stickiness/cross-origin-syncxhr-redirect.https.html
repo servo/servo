@@ -1,0 +1,17 @@
+<!doctype html>
+<meta name="timeout" content="long">
+<title>Accept-CH Persistence test</title>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/accept-ch-test.js"></script>
+
+<script>
+// Make sure a cross origin syn XHR that gets redirected doesn't keep the initial request's Client Hints.
+const test_name = "cross-origin sync XHR redirect";
+verify_syncxhr_state("resources/accept-ch-and-redir.py?url=" + get_host_info()["HTTPS_REMOTE_ORIGIN"] + "/client-hints/accept-ch-stickiness/resources/do-not-expect-received.py", test_name);
+</script>
+</body>
+</html>
+

@@ -1,0 +1,3 @@
+rules:
+- storage-access-beyond-cookies.*: [non-cookie-storage-access]
+- "*": [storage-access]

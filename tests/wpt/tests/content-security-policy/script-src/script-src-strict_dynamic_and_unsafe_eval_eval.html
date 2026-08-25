@@ -1,0 +1,31 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <title>Scripts injected via `eval` are allowed with `strict-dynamic` with `unsafe-eval`.</title>
+    <script src='/resources/testharness.js' nonce='dummy'></script>
+    <script src='/resources/testharnessreport.js' nonce='dummy'></script>
+
+    <!-- CSP served: script-src 'strict-dynamic' 'nonce-dummy' 'unsafe-eval' -->
+</head>
+
+<body>
+    <h1>Scripts injected via `eval` are allowed with `strict-dynamic` with `unsafe-eval`.</h1>
+    <div id='log'></div>
+
+    <script nonce='dummy'>
+        var evalScriptRan = false;
+        async_test(function(t) {
+            window.addEventListener('securitypolicyviolation', t.unreached_func('No CSP violation report has fired.'));
+            try {
+                eval("evalScriptRan = true;");
+            } catch (e) {
+                assert_unreached("`eval` should be allowed with `strict-dynamic` with `unsafe-eval`.");
+            }
+            assert_true(evalScriptRan);
+            t.done();
+        }, "Script injected via `eval` is allowed with `strict-dynamic` with `unsafe-eval`.");
+    </script>
+</body>
+
+</html>

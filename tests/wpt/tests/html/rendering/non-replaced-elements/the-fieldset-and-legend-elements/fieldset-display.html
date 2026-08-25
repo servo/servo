@@ -1,0 +1,39 @@
+<!doctype html>
+<title>fieldset and CSS display</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<style>
+ #inline-ref { display: inline-block; }
+</style>
+<fieldset id="block-ref">x</fieldset>
+<fieldset id="inline-ref">x</fieldset>
+<fieldset id="test">x</fieldset>
+<script>
+  const blockWidth = getComputedStyle(document.querySelector('#block-ref')).width;
+  const inlineWidth = getComputedStyle(document.querySelector('#inline-ref')).width;
+  const testElm = document.querySelector('#test');
+  // Please only add canonical values to these lists:
+  // (Also, note that we're not testing "display:run-in" here; it's mentioned
+  // in several CSS specs, but no browser engines appear likely to support it.)
+  const blocks = ['block', 'table', 'table-row-group', 'table-header-group', 'table-footer-group', 'table-row', 'table-cell',
+                  'table-column-group', 'table-column', 'table-caption', 'list-item', 'flow-root'];
+  const inlines = ['inline', 'inline-block', 'inline-table'];
+
+  function test_display(val, expectedWidth) {
+    test(() => {
+      testElm.style.removeProperty('display');
+      testElm.style.display = val;
+      const computed = getComputedStyle(testElm);
+      assert_equals(computed.display, val, `display: ${val} is not supported`);
+      assert_equals(computed.width, expectedWidth);
+    }, `fieldset with display: ${val}`);
+  }
+
+  for (const val of blocks) {
+    test_display(val, blockWidth);
+  }
+
+  for (const val of inlines) {
+    test_display(val, inlineWidth);
+  }
+</script>

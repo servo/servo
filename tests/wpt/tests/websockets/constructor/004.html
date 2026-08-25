@@ -1,0 +1,36 @@
+<!doctype html>
+<title>WebSockets: new WebSocket(url, invalid protocol)</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../constants.sub.js></script>
+<meta name="variant" content="?default">
+<meta name="variant" content="?wss">
+<meta name="variant" content="?wpt_flags=h2">
+<div id=log></div>
+<script>
+// empty string
+test(function() {
+  assert_throws_dom("SyntaxError", function() {
+    new WebSocket(SCHEME_DOMAIN_PORT + '/empty-message', "")
+  })
+});
+
+// chars below U+0020 except U+0000; U+0000 is tested in a separate test
+for (var i = 1; i < 0x20; ++i) {
+  test(function() {
+    assert_throws_dom("SyntaxError", function() {
+      new WebSocket(SCHEME_DOMAIN_PORT + '/empty-message',
+                    "a"+String.fromCharCode(i)+"b")
+    }, 'char code '+i);
+  })
+}
+// some chars above U+007E
+for (var i = 0x7F; i < 0x100; ++i) {
+  test(function() {
+    assert_throws_dom("SyntaxError", function() {
+      new WebSocket(SCHEME_DOMAIN_PORT + '/empty-message',
+                    "a"+String.fromCharCode(i)+"b")
+    }, 'char code '+i);
+  })
+}
+</script>

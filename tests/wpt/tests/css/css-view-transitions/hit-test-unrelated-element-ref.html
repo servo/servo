@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>View transitions: hit test shared element at the real dom location (ref)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+
+<style>
+#target {
+  width: 100px;
+  height: 100px;
+  contain: paint;
+  background: blue;
+  position: relative;
+  left: 200px;
+}
+#unrelated {
+  width: 100px;
+  height: 100px;
+  background: green;
+  position: relative;
+  top: 200px;
+  left: 200px;
+}
+
+</style>
+
+<div id=target></div>
+<div id=unrelated></div>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Inert and contenteditable</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#inert">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#attr-contenteditable">
+<meta assert="assert" content="
+    Executing an editing command in a node marked as both inert and editable
+    should have the same result regardless of which ancestors trigger each effect.
+    Only testing for consistency, the exact result is not interoperable.">
+
+<div id="log"></div>
+
+<div class="wrapper" contenteditable inert>
+  {<p class="target">target</p>}
+</div>
+
+<div class="wrapper" contenteditable>
+  {<p class="target" inert>target</p>}
+</div>
+
+<div class="wrapper" inert>
+  {<p class="target" contenteditable>target</p>}
+</div>
+
+<div class="wrapper">
+  {<p class="target" contenteditable inert>target</p>}
+</div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const results = [];
+const textContents = [];
+setup(function() {
+  const selection = getSelection();
+  for (let wrapper of document.querySelectorAll(".wrapper")) {
+    const target = wrapper.querySelector(".target");
+    selection.collapse(target.firstChild, 3);
+    results.push(document.execCommand("delete"));
+    textContents.push(wrapper.textContent.trim());
+  }
+});
+function testSameValues(array, description) {
+  test(function() {
+    assert_greater_than(array.length, 0, "Array shouldn't be empty");
+    for (let i = 1; i < array.length; ++i) {
+      assert_equals(array[i], array[0], `${JSON.stringify(array)} at index ${i}`);
+    }
+  }, description);
+}
+testSameValues(results, "execCommand should return the same value");
+testSameValues(textContents, "The resulting textContent should be the same value");
+</script>

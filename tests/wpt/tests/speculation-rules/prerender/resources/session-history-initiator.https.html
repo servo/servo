@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script src="session-history-harness.js"></script>
+<body>
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const prerender = urlParams.get("prerender");
+    const testName = urlParams.get("testName");
+    const uid = urlParams.get("uid");
+
+    const prerenderChannel = new PrerenderChannel(
+      `prerender-channel-${testName}`, uid
+    );
+    const testChannel = new PrerenderChannel(`test-channel-${testName}`, uid);
+
+    // Activate when a test sends a "activate" message.
+    testChannel.addEventListener("message", (e) => {
+      assert(e.data === "activate");
+      window.location.href = `${prerender}?testName=${testName}&uid=${uid}`;
+    });
+
+    // Runs before and after the history manipulation in the prerender page to confirm
+    // that the session history of the initiator page is not affected by any history
+    // changes in the prerender page.
+    function assertInitialHistoryState() {
+      assert(history.length == 1, "Initial history length");
+      assert(!history.state, "Initial history state");
+    }
+
+    async function startPrerenderingAndWaitTestResult() {
+      const message = new Promise((resolve) => {
+        prerenderChannel.addEventListener(
+          "message",
+          (e) => {
+            resolve(e.data);
+          },
+          { once: true }
+        );
+      });
+
+      assertInitialHistoryState();
+
+      startPrerendering(`${prerender}?testName=${testName}&uid=${uid}`);
+      const testResult = await message;
+
+      assertInitialHistoryState();
+
+      return testResult;
+    }
+
+    (async () => {
+      try {
+        testChannel.postMessage(await startPrerenderingAndWaitTestResult());
+      } catch (e) {
+        testChannel.postMessage("Failed: " + e.name + ": " + e.message);
+      } finally {
+        prerenderChannel.close();
+      }
+    })();
+  </script>
+</body>

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="utils.js"></script>
+<title>Fenced frame content to report the value of window.navigation</title>
+
+<body>
+<script>
+function init() {
+  // This file is meant to be navigated to from a <fencedframe> element. It
+  // reports back to the page hosting the <fencedframe> after manual timeout
+  // indicating that the 204 navigation succeeds without navigating away.
+  location.href = "response-204.py";
+
+  step_timeout(function() {
+    const [window_data_key] = parseKeylist();
+    writeValueToServer(window_data_key, "still in page");
+  }, 1000);
+}
+
+init();
+</script>
+</body>

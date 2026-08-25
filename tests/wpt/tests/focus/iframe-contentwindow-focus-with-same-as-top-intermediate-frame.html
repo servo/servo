@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>iframe.contentWindow.focus() with same-as-top intermediate frame</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+setup({explicit_done:true});
+window.onmessage = function(e) {
+    var actual = e.data;
+    test(function() {
+        assert_equals(actual, "outeronload;outeractivelement:body;starttest;middleactivelement:body;callfocus;middleactivelement:iframe;innerfocus;middletimer;middleactivelement:iframe;outeractivelement:iframe;", 'Check log');
+    }, "Check result");
+    w.close();
+    done();
+};
+var w = window.open("support/iframe-contentwindow-focus-with-same-as-top-intermediate-frame-outer.html");
+</script>

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml">
+  <title>SVG CSS Text Decoration Test: getComputedStyle().textDecorationColor</title>
+  <metadata>
+    <h:link rel="help" ref="https://drafts.csswg.org/css-text-decor-3/#text-decoration-color-property"/>
+    <h:meta name="assert" content="SVG text-decoration-color computed value is as specified."/>
+  </metadata>
+  <style>
+    #container {
+      color: rgb(255, 0, 0);
+      text-decoration-color: currentcolor;
+    }
+    #target {
+      color: rgb(0, 255, 0);
+    }
+  </style>
+  <g id="container">
+    <g id="target"></g>
+  </g>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <h:script src="/css/support/computed-testcommon.js"/>
+  <script><![CDATA[
+
+test_computed_value("text-decoration-color", "rgb(0, 0, 255)");
+test_computed_value("text-decoration-color", "currentcolor", "rgb(0, 255, 0)");
+test_computed_value("text-decoration-color", "inherit", "rgb(0, 255, 0)"); // currentcolor
+
+  ]]></script>
+</svg>

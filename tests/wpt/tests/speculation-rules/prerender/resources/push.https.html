@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script src="/speculation-rules/prerender/resources/deferred-promise-utils.js"></script>
+<script>
+
+const params = new URLSearchParams(location.search);
+
+// The main test page (restriction-push.https.html) loads the initiator page,
+// then the initiator page will prerender itself with the `prerendering`
+// parameter.
+const isPrerendering = params.has('prerendering');
+
+if (!isPrerendering) {
+  loadInitiatorPage();
+} else {
+  async function loadPrerenderPage() {
+    const prerenderEventCollector = new PrerenderEventCollector();
+    const scope = `resources/`;
+    const registration = await navigator.serviceWorker.getRegistration(scope);
+    const subscribe_promise = registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: new TextEncoder().encode('0987654321')
+    });
+    prerenderEventCollector.start(subscribe_promise, 'pushManager.subscribe');
+  }
+  loadPrerenderPage();
+}
+
+</script>

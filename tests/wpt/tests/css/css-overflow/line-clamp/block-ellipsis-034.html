@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: punctuation before block-ellipsis cannot hang</title>
+<link rel="author" title="Florian Rivoal" href="https::/florian.rivoal.net">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#block-ellipsis">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#hanging-punctuation-property">
+<link rel="match" href="reference/block-ellipsis-034-ref.html">
+<meta name="assert" content="Punctionat preceding the ellipsis cannot hang, since it isn't last on the line.">
+<style>
+p {
+  font-family: monospace;
+  width: 35ch;
+  line-clamp: 1 ")";
+  hanging-punctuation: last;
+}
+/* 35ch is enough to fit up to the word FAIL if the following "))" will both "))" hang, which should not happen.
+   Otherwise, FAIL) has to be ellided to make room for )
+*/
+.red { color: red; }
+</style>
+
+<p>Test passes if there is no red <span class=red>FAIL)</span>
+<span class=red>
+FAIL FAIL FAIL FAIL
+FAIL FAIL FAIL FAIL
+FAIL FAIL FAIL FAIL
+</span>

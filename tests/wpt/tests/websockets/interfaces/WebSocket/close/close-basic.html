@@ -1,0 +1,26 @@
+<!doctype html>
+<title>WebSockets: close()</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../../../constants.sub.js></script>
+<meta name="variant" content="?default">
+<meta name="variant" content="?wss">
+<div id=log></div>
+<script>
+async_test(function(t) {
+  var ws = new WebSocket(SCHEME_DOMAIN_PORT+'/');
+  ws.onclose = t.step_func(function(e) {
+    assert_equals(e instanceof CloseEvent, true, 'e instanceof CloseEvent');
+    assert_equals(e.wasClean, false, 'e.wasClean');
+    e.wasClean = true;
+    assert_equals(e.wasClean, false, 'e.wasClean = true');
+    delete e.wasClean;
+    assert_equals(e.wasClean, false, 'delete e.wasClean');
+    delete CloseEvent.prototype.wasClean;
+    assert_equals(e.wasClean, undefined, 'delete CloseEvent.prototype.wasClean');
+    t.done();
+  });
+  ws.close();
+  assert_equals(ws.readyState, ws.CLOSING);
+});
+</script>

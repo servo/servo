@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>backdrop-filter: The backdrop root concept</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropRoot">
+<link rel=stylesheet  href="resources/backdrop-filter-backdrop-root.css">
+<link rel="match"  href="backdrop-filter-backdrop-root-ref.html">
+
+<!-- A Backdrop Root is formed, anywhere in the document, by:
+     - An element with a mix-blend-mode value other than "normal".
+     - An element with a will-change value specifying any property that would create a Backdrop Root on non-initial value. -->
+<div class=container>
+  <div class=testcase>
+    <div style="mix-blend-mode:darken;"><div></div></div>
+  </div>
+  <div class=testcase>
+    <div style="will-change:mix-blend-mode;"><div></div></div>
+  </div>
+</div>

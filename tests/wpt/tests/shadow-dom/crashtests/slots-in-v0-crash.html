@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Adding/removing slots should not cause a crash</title>
+<link rel="help" href="https://crbug.com/634506">
+<div id="host"></div>
+<script>
+  let shadowRoot = host.attachShadow({mode: 'open'});
+  let slot1 = document.createElement('slot');
+  shadowRoot.appendChild(slot1);
+  document.body.appendChild(slot1);
+  let slot2 = document.createElement('slot');
+  shadowRoot.appendChild(slot2);
+</script>

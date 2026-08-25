@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <meta http-equiv="Content-Security-Policy" content="form-action 'none'; script-src 'self' 'nonce-noncynonce'; connect-src 'self';">
+    <title>form-action-src-javascript-blocked</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["violated-directive=form-action","TEST COMPLETE"]'></script>
+    <script src="../support/alertAssert.sub.js?alerts=[]"></script>
+    <script nonce='noncynonce'>
+        window.addEventListener('securitypolicyviolation', function(e) {
+            log('violated-directive=' + e.violatedDirective);
+        });
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                document.getElementById('submit').click();
+                log("TEST COMPLETE");
+            }, 0);
+        });
+    </script>
+</head>
+
+<body>
+    <form action="javascript:log(&quot;FAIL!&quot;)" id="theform" method="post">
+        <input type="text" name="fieldname" value="fieldvalue">
+        <input type="submit" id="submit" value="submit">
+    </form>
+    <p>Tests that blocking form actions works correctly. If this test passes, a CSP violation will be generated, and will not see a JavaScript alert.</p>
+    <div id="log"></div>
+</body>
+
+</html>

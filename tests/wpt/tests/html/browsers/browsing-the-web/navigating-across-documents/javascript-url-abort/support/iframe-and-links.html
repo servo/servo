@@ -1,0 +1,18 @@
+<!doctype html>
+
+<iframe name="iframe"></iframe>
+
+<!-- slow link's response is delayed by 1 second -->
+<!-- https://wptserve.readthedocs.io/en/latest/pipes.html#trickle -->
+<a target="iframe" href="set-child-loaded.html?pipe=trickle(d1)" id="slowLink">slow link</a>
+<a target="iframe" href="javascript:'javascript:string <script> parent.javascriptStringDocLoaded(); </script>'" id="javascriptStringLink">javascript:string link</a>
+<a target="iframe" href="javascript:undefined" id="javascriptUndefinedLink">javascript:undefined link</a>
+
+<script>
+// set-child-loaded.html (the slow link) sets this to true.
+window.childLoaded = false;
+
+// Do nothing when the javascript:string doc has loaded, if it's correctly targeted to the above iframe.
+// However, if it replaces this document, it needs to fail the test (handled in the parent).
+function javascriptStringDocLoaded() {}
+</script>

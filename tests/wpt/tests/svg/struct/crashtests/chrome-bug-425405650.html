@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<style>
+  #el0 {
+    display: block;
+  }
+
+  #el1 {
+    position: absolute;
+  }
+
+  .c7 {
+    position: absolute;
+  }
+</style>
+<svg id="el0"></svg>
+
+<svg id="el1">
+  <use href="#el0"></use>
+</svg>
+
+<script>
+  document.body.offsetTop;
+  document.getElementById('el0').setAttribute('class', 'c7');
+  document.body.offsetTop;
+</script>

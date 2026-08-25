@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<title>CSS Grid Layout Test: free space computation with flex lengths.</title>
+<link rel="author" title="Sergio Villar Senin" href="mailto:svillar@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#algo-flex-tracks">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#fr-unit">
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=150359">
+<link rel="stylesheet" href="/css/support/grid.css">
+<link rel="stylesheet" href="/css/support/alignment.css">
+<meta name="assert" content="Test that free space is properly computed after computing fr tracks so that we could use it for content distribution." />
+
+<style>
+.freeSpaceForColumnsGrid {
+    grid-template: 100% / minmax(20px, 0.7fr);
+    width: 50px;
+    height: 100px;
+}
+
+.freeSpaceForRowsGrid {
+    grid-template: minmax(20px, 0.7fr) / 100%;
+    width: 50px;
+    height: 100px;
+}
+
+.container { position: relative; }
+
+.item {
+    width: 100%;
+    height: 50px;
+    background-color: red;
+}
+
+.item2 {
+    width: 50px;
+    height: 100%;
+    background-color: red;
+}
+
+</style>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+
+<body onload="checkLayout('.grid');">
+
+<p>Grid with justify-content: start.</p>
+<div class="container">
+    <div class="grid freeSpaceForColumnsGrid justifyContentStart">
+        <div class="item" data-offset-x="0" data-offset-y="0" data-expected-width="35" data-expected-height="50"></div>
+    </div>
+</div>
+
+<p>Grid with justify-content: center.</p>
+<div class="container">
+    <div class="grid freeSpaceForColumnsGrid justifyContentCenter">
+        <div class="item" data-offset-x="8" data-offset-y="0" data-expected-width="35" data-expected-height="50"></div>
+    </div>
+</div>
+
+<p>Grid with justify-content: end.</p>
+<div class="container">
+    <div class="grid freeSpaceForColumnsGrid justifyContentEnd">
+        <div class="item" data-offset-x="15" data-offset-y="0" data-expected-width="35" data-expected-height="50"></div>
+    </div>
+</div>
+
+<p>Grid with align-content: start.</p>
+<div class="container">
+    <div class="grid freeSpaceForRowsGrid alignContentStart">
+        <div class="item2" data-offset-x="0" data-offset-y="0" data-expected-width="50" data-expected-height="70"></div>
+    </div>
+</div>
+
+<p>Grid with align-content: center.</p>
+<div class="container">
+    <div class="grid freeSpaceForRowsGrid alignContentCenter">
+        <div class="item2" data-offset-x="0" data-offset-y="15" data-expected-width="50" data-expected-height="70"></div>
+    </div>
+</div>
+
+<p>Grid with align-content: end.</p>
+<div class="container">
+    <div class="grid freeSpaceForRowsGrid alignContentEnd">
+        <div class="item2" data-offset-x="0" data-offset-y="30" data-expected-width="50" data-expected-height="70"></div>
+    </div>
+</div>
+</body>

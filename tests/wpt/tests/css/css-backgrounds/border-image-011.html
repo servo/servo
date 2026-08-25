@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Backgrounds and Borders Test: border-image-outset (basic)</title>
+
+  <link rel="author" title="Jérémie Patonnier" href="mailto:jeremie@patonnier.net">
+  <link rel="help" href="http://www.w3.org/TR/css3-background/#border-image-outset">
+  <link rel="match" href="reference/ref-filled-green-100px-square.xht">
+
+  <meta name="flags" content="">
+
+  <!--
+
+  This is a follow-up to
+  Pull Request 8788: Update css-backgrounds/border-image tests
+  https://github.com/web-platform-tests/wpt/pull/8788
+
+  Credit should go to Chris Nardi for trying to fix
+  16 border-image tests with 2 relevant commits
+
+  -->
+
+  <style>
+  div#red-overlapped-ref
+    {
+      background-color: red;
+      padding: 24px;
+      height: 52px;
+      width: 52px;
+      /* border-box is therefore 100px by 100px */
+    }
+
+  div#green-overlapping-test
+    {
+      background-color: green;
+      border: red solid 1px;
+      height: 50px;
+      width: 50px; /* border-box is 52px by 52px */
+
+      border-image-outset: 24px; /* 24px is equal to padding belt */
+      border-image-slice: 25;
+      border-image-source: url("support/60x60-green.png");
+      border-image-width: 25px; /* we make sure that we will fill the outset */
+    }
+  </style>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.
+
+  <div id="red-overlapped-ref">
+    <div id="green-overlapping-test"></div>
+  </div>

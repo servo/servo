@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: object-events</title>
+<meta name="timeout" content="long">
+<link rel="author" title="Intel" href="http://www.intel.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+
+async_test(function(t) {
+  var obj = document.createElement("object");
+  obj.onerror = t.step_func_done(function(e){
+    assert_equals(Object.getPrototypeOf(e).constructor, Event, "The error event should use the Event interface.");
+    assert_true(e.isTrusted, "The error event should be a trusted event.");
+    assert_false(e.cancelable, "The error event should not be a cancelable event.");
+    assert_false(e.bubbles, "The error event should not be a bubble event.");
+    assert_equals(e.target, obj, "The error event target should be the corresponding object element.");
+  });
+
+  obj.onload = t.step_func_done(function(e){
+    assert_unreached("The load event should not be fired.");
+  });
+
+  obj.data = "file:\\http://nonexistent.html";
+  document.body.appendChild(obj);
+}, "error event (using 'file:' protocol)");
+
+async_test(function(t) {
+  var obj = document.createElement("object");
+  obj.onerror = t.step_func_done(function(e){
+    assert_equals(e.target, obj,
+                  "The error event should be fired on our element");
+  });
+  obj.onload = t.step_func_done(function(e){
+    assert_unreached("The load event should not be fired.");
+  });
+
+  obj.data = "http://test:test";
+  document.body.appendChild(obj);
+}, "error event (using 'http:' protocol)");
+
+
+async_test(function(t) {
+  var obj = document.createElement("object");
+  obj.onload = t.step_func_done(function(e){
+    assert_equals(Object.getPrototypeOf(e).constructor, Event, "The load event should use the Event interface.");
+    assert_true(e.isTrusted, "The load event should be a trusted event.");
+    assert_false(e.cancelable, "The load event should not be a cancelable event.");
+    assert_false(e.bubbles, "The load event should not be a bubble event.");
+    assert_equals(e.target, obj, "The load event target should be the corresponding object element.");
+  });
+
+  obj.onerror = t.step_func_done(function(e){
+    assert_unreached("The error event should not be fired.");
+  });
+
+  obj.data = "/images/blue.png";
+  document.body.appendChild(obj);
+}, "load event");
+
+async_test(function(t) {
+  var obj = document.createElement("object");
+  obj.onload = t.step_func_done(function(e){
+    assert_true(obj.contentWindow instanceof obj.contentWindow.Window, "The object element should represent a nested browsing context.")
+    assert_equals(Object.getPrototypeOf(e).constructor, Event, "The load event should use the Event interface.");
+    assert_true(e.isTrusted, "The load event should be a trusted event.");
+    assert_false(e.cancelable, "The load event should not be a cancelable event.");
+    assert_false(e.bubbles, "The load event should not be a bubble event.");
+    assert_equals(e.target, obj, "The load event target should be the corresponding object element.");
+  });
+
+  obj.onerror = t.step_func_done(function(e){
+    assert_unreached("The error event should not be fired.");
+  });
+
+  obj.data = "about:blank";
+  document.body.appendChild(obj);
+}, "load event of about:blank");
+
+</script>

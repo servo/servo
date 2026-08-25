@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: -webkit-line-clamp on vertical writing mode flex item when -webkit-box-orient:horizontal</title>
+<link rel="author" title="Cameron McCormack" href="mailto:cam@mcc.id.au">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#webkit-line-clamp">
+<link rel="match" href="reference/webkit-line-clamp-015-ref.html">
+<meta name="assert" content="-webkit-line-clamp should not apply to a -webkit-box-orient:horizontal flex item even if using a vertical writing mode.">
+<style>
+.clamp {
+  display: -webkit-box;
+  -webkit-box-orient: horizontal;
+  -webkit-line-clamp: 2;
+  font: 16px / 32px serif;
+  white-space: pre;
+  padding: 4px 0;
+  background-color: yellow;
+  overflow: hidden; /* can be removed once implementations update their old -webkit-line-clamp implementations */
+  writing-mode: vertical-rl;
+}
+</style>
+<div class="clamp">Line 1
+Line 2
+Line 3
+Line 4
+Line 5</div>

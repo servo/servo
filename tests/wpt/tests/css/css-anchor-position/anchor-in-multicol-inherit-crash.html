@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning: Crash with anchor in multicol (inheritance)</title>
+<link rel="help" href="https://issues.chromium.org/issues/324930388">
+<style>
+.cb {
+  position: relative;
+  border: 1px solid black;
+}
+.columns {
+  column-count: 4;
+  column-width: 100px;
+  width: 320px;
+  height: 100px;
+}
+.anchor {
+  anchor-name: --a1;
+  width: 100px;
+  height: 90px;
+  background: blue;
+}
+.target {
+  position: absolute;
+  position-anchor: --a1;
+  width: 10px;
+  height: 10px;
+  background: purple;
+  position-try-fallbacks: --pf1, --pf2;
+}
+.child {
+  position: fixed;
+  right: inherit;
+  bottom: inherit;
+}
+@position-try --pf1 {
+  right: 400px;
+  bottom: 10px;
+}
+@position-try --pf2 {
+  right: 40px;
+  bottom: 30px;
+}
+</style>
+<body>
+  PASS if no crash
+  <div class="columns">
+    <div class="cb">
+      <div class="anchor"></div>
+      <div class="target">
+        <div class="child"></div>
+      </div>
+    </div>
+  </div>
+</body>

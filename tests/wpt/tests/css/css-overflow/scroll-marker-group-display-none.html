@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<title>CSS Overflow: scroll markers crash with display:none</title>
+<link rel="help" href="https://crbug.com/476651195">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  #scroller {
+    overflow: scroll;
+    scroll-marker-group: after;
+    width: 200px;
+    height: 100px;
+  }
+
+  .item {
+    height: 100px;
+    width: 100%;
+  }
+
+  .item::scroll-marker {
+    content: " ";
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+  }
+
+  #scroller::scroll-marker-group {
+    display: flex;
+  }
+
+  #scroller.hide-group::scroll-marker-group {
+    display: none;
+  }
+</style>
+<div id="scroller">
+  <div class="item" id="item">Item</div>
+</div>
+<script>
+  promise_test(async () => {
+    const scroller = document.getElementById('scroller');
+    scroller.classList.add('hide-group');
+    scroller.offsetTop;
+    document.getElementById('item').focus();
+    await test_driver.send_keys(document.body, "\uE004");
+  }, "No crash when scroll-marker-group is display: none during focus navigation");
+</script>

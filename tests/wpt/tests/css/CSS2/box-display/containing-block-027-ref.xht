@@ -1,0 +1,38 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  table {border-spacing: 0px;}
+
+  td
+  {
+  line-height: 5px;
+  padding: 0px;
+  }
+
+  img {vertical-align: bottom;}
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if the orange rectangle is within or overflows to the right and outside of the blue square.</p>
+
+  <table>
+    <tr><td><img src="support/blue15x15.png" width="96" height="5" alt="Image download support must be enabled" /></td></tr>
+
+    <tr><td><img src="support/swatch-orange.png" width="192" height="53" alt="Image download support must be enabled" /></td></tr>
+
+    <tr><td><img src="support/blue15x15.png" width="96" height="43" alt="Image download support must be enabled" /></td></tr>
+  </table>
+
+ </body>
+</html>

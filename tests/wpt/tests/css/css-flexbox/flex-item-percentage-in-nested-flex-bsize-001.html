@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<link rel="match" href="/css/reference/ref-filled-green-100px-square.xht">
+<link rel="author" title="David Shin" href="mailto:dshin@mozilla.com">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2014220">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#definite-sizes">
+<style>
+.row {
+  display: flex;
+  background: red;
+  width: max-content;
+}
+
+.col {
+  display: flex;
+  flex-direction: column;
+}
+
+.elem-with-min-height {
+  min-height: 100px;
+}
+
+.elem-with-pct-height {
+  width: 100px;
+  height: 100%;
+  background: green;
+}
+.filler {
+  height: 10px;
+  width: 10px;
+  background: transparent;
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="row">
+  <div class="col">
+    <div class="col">
+      <div class="elem-with-min-height">
+        <div class="elem-with-pct-height">
+          <div class="filler"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

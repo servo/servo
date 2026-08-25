@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      Test AudioWorkletNode's processor lifetime when process() returns false
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <script>
+      // Verify that the AudioWorkletProcessor's process() method is called
+      // as long as inputs are active, even if process() returns false.
+      // And verify that it stops running once inputs become inactive.
+
+      const RENDER_QUANTUM_FRAMES = 128;
+      const sampleRate = 8000;
+      const renderLength = RENDER_QUANTUM_FRAMES * 4;
+      const channelCount = 1;
+      const filePath = 'processors/lifetime-processor.js';
+
+      promise_test(async (t) => {
+        const context =
+            new OfflineAudioContext(channelCount, renderLength, sampleRate);
+
+        await context.audioWorklet.addModule(filePath);
+
+        const testSource = new ConstantSourceNode(context, { offset: 1.0 });
+        const workletNode =
+            new AudioWorkletNode(context, 'lifetime-processor', {
+              numberOfInputs: 1,
+              numberOfOutputs: 1
+            });
+
+        testSource.connect(workletNode);
+        workletNode.connect(context.destination);
+
+        testSource.start();
+        // Stop the source node at the start of the third render quantum.
+        testSource.stop(2 * RENDER_QUANTUM_FRAMES / sampleRate);
+
+        const renderedBuffer = await context.startRendering();
+        const data = renderedBuffer.getChannelData(0);
+
+        // The first 256 frames (Quantum 1 and 2) must be 1.0.
+        const activeFrames = 2 * RENDER_QUANTUM_FRAMES;
+        assert_array_equals(
+            data.subarray(0, activeFrames),
+            new Float32Array(activeFrames).fill(1.0),
+            'First 2 quanta output (active inputs) must be 1.0');
+
+        // The remaining 256 frames (Quantum 3 and 4) must be 0.0 (silent
+        // after cleanup).
+        const silentFrames = renderLength - activeFrames;
+        assert_array_equals(
+            data.subarray(activeFrames),
+            new Float32Array(silentFrames).fill(0.0),
+            'Remaining 2 quanta output (inactive inputs) must be 0.0');
+      }, 'Test AudioWorkletNode lifetime when process() returns false');
+    </script>
+  </body>
+</html>

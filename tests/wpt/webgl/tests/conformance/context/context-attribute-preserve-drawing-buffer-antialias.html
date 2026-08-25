@@ -1,0 +1,145 @@
+<!--
+Copyright (c) 2022 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas id="canvas" width="128" height="64" style="width: 32px; height: 32px;"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+
+const wtu = WebGLTestUtils;
+description(' Test drawingbuffer is preserved when drawing');
+
+const waitForComposite = () => new Promise(resolve => wtu.waitForComposite(resolve));
+const gl = wtu.create3DContext("canvas", {
+  preserveDrawingBuffer: true,
+  antialias: true,
+});
+console.log(gl.getContextAttributes());
+const w = 128;
+const h = 64;
+
+if (!gl) {
+    testFailed('canvas.getContext() failed');
+} else {
+    gl.viewport(0, 0, w, h);
+    runTest(gl, 4);
+}
+
+async function runTest(gl, sampleCount) {
+    const vs = `
+    attribute vec4 position;
+    uniform mat4 mat;
+
+    void main() {
+      gl_Position = mat * position;
+    }
+    `;
+
+    const fs = `
+    precision mediump float;
+    uniform vec4 color;
+    void main() {
+      gl_FragColor = color;
+    }
+    `;
+
+    const positionLoc = 0;  // hard coded in shaders so they match
+    const buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+      0, 0,
+      1, 0,
+      0, 1,
+      0, 1,
+      1, 0,
+      1, 1,
+    ]), gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(positionLoc);
+    gl.vertexAttribPointer(positionLoc, 2, gl.FLOAT, false, 0, 0);
+
+    const program = wtu.setupProgram(gl, [vs, fs]);
+
+    const colorLoc = gl.getUniformLocation(program, 'color');
+    const matLoc = gl.getUniformLocation(program, 'mat');
+
+    gl.useProgram(program);
+
+    const draw = (color, mat) => {
+      gl.uniform4fv(colorLoc, color);
+      gl.uniformMatrix4fv(matLoc, false, mat);
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+    };
+
+    const f32Red    = [1, 0, 0, 1];
+    const f32Green  = [0, 1, 0, 1];
+    const f32Gray   = [0.5, 0.5, 0.5, 1];
+
+    const u8Red         = [255,   0,   0, 255];
+    const u8Green       = [  0, 255,   0, 255];
+    const u8LightRed    = [255, 128, 128, 255];
+    const u8LightGreen  = [128, 255, 128, 255];
+
+    draw(f32Red, [
+      2, 0, 0, 0,
+      0, 2, 0, 0,
+      0, 0, 1, 0,
+      -1, -1, 0, 1,
+    ]);
+    await waitForComposite();
+
+    draw(f32Green, [
+      1, 0, 0, 0,
+      0, 2, 0, 0,
+      0, 0, 1, 0,
+      0, -1, 0, 1,
+    ]);
+    await waitForComposite();
+
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ONE, gl.ONE);
+    draw(f32Gray, [
+      1, 0, 0, 0,
+      0, 2, 0, 0,
+      0, 0, 1, 0,
+      -0.5, -1, 0, 1,
+    ]);
+    gl.disable(gl.BLEND);
+    await waitForComposite();
+
+    /*
+       expected
+       +-----+-------+---------+--------+
+       | red | ltRed | ltGreen | green  |
+       +-----+-------+---------+--------+
+      0,0
+    */
+
+    const tolerance = 2; // For multisampling resolution differences between GPUs
+    wtu.checkCanvasRect(gl, 0, 0, w / 4, h , u8Red, 'left edge', tolerance)
+    wtu.checkCanvasRect(gl, w * 3 / 4, 0, w / 4, h, u8Green, 'right edge', tolerance);
+    wtu.checkCanvasRect(gl, w / 4, 0, w / 4, h, u8LightRed, 'left of center', tolerance);
+    wtu.checkCanvasRect(gl, w / 2, 0, w / 4, h, u8LightGreen, 'right of center', tolerance);
+
+    finishTest();
+}
+
+var successfullyParsed = true;
+shouldBeTrue("successfullyParsed");
+</script>
+</body>
+</html>

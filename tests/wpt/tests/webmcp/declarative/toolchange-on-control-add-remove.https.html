@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>WebMCP: toolchange event on control add/remove</title>
+<link rel="author" href="mailto:dom@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/helpers.js"></script>
+<body>
+
+<form id="f1" toolname="my_tool" tooldescription="desc">
+  <input id="input1" type="text" name="input_name">
+</form>
+
+<script>
+
+  promise_test(async t => {
+    const form = document.getElementById('f1');
+
+    // Wait for the baseline form schema.
+    await waitForFormToolSchemaToMatch(`{"type":"object","properties":{"input_name":{"type":"string"}},"required":[]}`);
+
+    // Test adding an input
+    const i = document.createElement('input');
+    i.type = 'text';
+    i.name = 'new_input';
+    i.id = 'new_input';
+    form.appendChild(i);
+    await waitForFormToolSchemaToMatch(`{"type":"object","properties":{"input_name":{"type":"string"},"new_input":{"type":"string"}},"required":[]}`);
+
+    // Test removing an input
+    const newInput = document.getElementById('new_input');
+    form.removeChild(newInput);
+    await waitForFormToolSchemaToMatch(`{"type":"object","properties":{"input_name":{"type":"string"}},"required":[]}`);
+  }, "Test that toolchange event fires when controls are added or removed");
+</script>
+</body>

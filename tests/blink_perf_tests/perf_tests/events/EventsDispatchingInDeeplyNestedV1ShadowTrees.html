@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script type="text/javascript" src="../resources/runner.js"></script>
+</head>
+<body>
+<div id="root"><div id="child1"></div><div id="child2"></div></div>
+<script>
+function createComposedTree(root, depth, eachTreeHeight)
+{
+    var node = root;
+    var i;
+    for (i = 0; i < eachTreeHeight; ++i) {
+        var child = document.createElement('div');
+        node.appendChild(child);
+        node = child;
+    }
+    if (depth == 1)
+        return;
+      var child = document.createElement('div');
+      node.appendChild(child);
+      var shadowRoot = child.attachShadow({ mode: 'open' });
+      createComposedTree(shadowRoot, depth - 1, eachTreeHeight);
+}
+
+function leftMostLeaf(root)
+{
+    var node = root;
+    while (node.firstChild)
+        node = node.firstChild
+    if (!node.shadowRoot)
+        return node;
+    return leftMostLeaf(node.shadowRoot)
+}
+
+function rightMostLeaf(root)
+{
+    var node = root;
+    while (node.lastChild)
+        node = node.lastChild
+    if (!node.shadowRoot)
+        return node;
+    return rightMostLeaf(node.shadowRoot)
+}
+
+var root = document.getElementById('root');
+createComposedTree(document.getElementById('child1'), 50, 10);
+createComposedTree(document.getElementById('child2'), 50, 10);
+var leaf1 = leftMostLeaf(root);
+var leaf2 = rightMostLeaf(root);
+
+function run()
+{
+    leaf1.dispatchEvent(new MouseEvent('mousemove', {
+        relatedTarget: leaf2
+    }));
+}
+
+PerfTestRunner.measureRunsPerSecond({
+    description: "Measure mousemove events dispatching in shadow trees",
+    run: run
+});
+</script>
+</body>
+</html>

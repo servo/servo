@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="resources/manual.js"></script>
+  </head>
+  <body>
+    <p>
+      These tests require a USB device to be connected.
+    </p>
+    <script>
+      manual_usb_test(async (t, device) => {
+        const devicesBeforeForget = await navigator.usb.getDevices();
+        assert_equals(devicesBeforeForget.length, 1);
+        assert_equals(devicesBeforeForget[0], device);
+
+        await device.forget();
+
+        const devicesAfterForget = await navigator.usb.getDevices();
+        assert_equals(devicesAfterForget.length, 0);
+      }, 'forget() removes the device from getDevices()');
+    </script>
+  </body>
+</html>

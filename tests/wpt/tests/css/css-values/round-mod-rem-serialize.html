@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#round-func">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#numbers">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#calc-serialize">
+<link rel="author" title="Xiaocheng Hu" href="mailto:xiaochengh@chromium.org">
+<link rel="author" title="Apple Inc">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/serialize-testcommon.js"></script>
+<div id=target></div>
+<script>
+function test_serialization(t,s,c) {
+    test_specified_serialization('opacity', t, s);
+    test_specified_serialization('transform', `scale(${t})`, `scale(${s})`);
+    test_computed_serialization('opacity', t, c);
+    test_computed_serialization('transform', `scale(${t})`, `matrix(${c}, 0, 0, ${c}, 0, 0)`);
+}
+
+test_serialization(
+    'round(1.1,1)',
+    'calc(1)',
+    '1');
+test_serialization(
+    'mod(1,1)',
+    'calc(0)',
+    '0');
+test_serialization(
+    'rem(1,1)',
+    'calc(0)',
+    '0');
+
+test_serialization(
+    'calc(round(1,0))',
+    'calc(NaN)',
+    '0');
+test_serialization(
+    'calc(mod(1,0))',
+    'calc(NaN)',
+    '0');
+test_serialization(
+    'calc(rem(1,0))',
+    'calc(NaN)',
+    '0');
+</script>

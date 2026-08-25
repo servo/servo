@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>CSS Test: font-variation-settings descriptor</title>
+<link rel="author" title="Sejal Anand" href="mailto:sejalanand@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#font-rend-desc">
+<link rel="match" href="font-variation-settings-descriptor-03-ref.html">
+<meta name="assert" content="Multiple font variation settings should be handled as font-face rule.">
+<style>
+  @font-face {
+    font-family: "Roboto";
+    src: url('support/fonts/RobotoExtremo-VF.subset.ttf') format('truetype');
+    font-variation-settings: 'wdth' 125, 'opsz' 144, 'wght' 600;
+  }
+  .weight100 {
+     font-family: "Roboto";
+     font-variation-settings: 'wght' 100;
+  }
+  .weight400 {
+     font-family: "Roboto";
+     font-variation-settings: 'wght' 400;
+  }
+  .weight900 {
+     font-family: "Roboto";
+     font-variation-settings: 'wght' 900;
+  }
+</style>
+<body>
+<p>Test passes if the text below maintains the same optical size and width, while weight varies.</p>
+<p class="weight100">Filler Text</p>
+<p class="weight400">Filler Text</p>
+<p class="weight900">Filler Text</p>
+</body>
+</html>

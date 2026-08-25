@@ -1,0 +1,92 @@
+<!--
+Copyright (c) 2020 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL2 can render to layers in 3D texture angle issue check</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script id="vshader" type="x-shader/x-vertex">#version 300 es
+void main(void) {
+  gl_Position = vec4(0, 0, 0, 1);
+  gl_PointSize = 1.0;
+}
+</script>
+<script id="fshader" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+out vec4 outColor;
+void main() {
+  outColor = vec4(0, 1, 0, 1);
+}
+</script>
+</head>
+<body>
+<canvas id="example" width="1", height="1"></canvas>
+<div id="description"></div>
+<a href='https://bugs.chromium.org/p/angleproject/issues/detail?id=4417'>ANGLE issue #4417</a>
+<div id="console"></div>
+<script>
+"use strict";
+debug("");
+
+description("Test that WebGL2 can render to layers in 3D textures");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("example", undefined, 2);
+
+if (!gl) {
+    testFailed("WebGL context creation failed");
+} else {
+    testPassed("WebGL context creation succeeded");
+    runTest();
+}
+
+function runTest() {
+  const fb = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+
+  const tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_3D, tex);
+  gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+  gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texImage3D(gl.TEXTURE_3D, 0, gl.RGBA8, gl.canvas.width, gl.canvas.height, 2, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+
+  for (let i = 0; i < 2; i++) {
+    gl.framebufferTextureLayer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, tex, 0, i);
+
+    const rb = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, rb);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, gl.canvas.width, gl.canvas.height);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, rb);
+
+    wtu.framebufferStatusShouldBe(gl, gl.FRAMEBUFFER, gl.FRAMEBUFFER_COMPLETE);
+
+    const program = wtu.setupProgram(gl, ['vshader','fshader'], [], console.log.bind(console));
+    gl.useProgram(program);
+
+    gl.drawArrays(gl.POINTS, 0, 1);
+
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, `No errors`);
+    wtu.checkCanvas(gl, [0, 255, 0, 255], `framebuffer layer ${i} should be green`);
+  }
+
+  // make sure we were not rendering to the canvas.
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+  wtu.checkCanvas(gl, [0, 0, 0, 0], "canvas should be zero");
+}
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

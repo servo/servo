@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Motion Path: ray() 'sides' size with a fourth-quadrant angle</title>
+    <style>
+      #container {
+        width: 400px;
+        height: 400px;
+      }
+      #target {
+        position: relative;
+        left: 200px;
+        top: 160px;
+        width: 40px;
+        height: 40px;
+        background-color: green;
+        transform-origin: 0px 0px;
+        /* ray(315deg sides) from (200,160) hits the top edge: length = 160 / cos(45deg).
+           With offset-rotate:0 this is a pure translation of length * (sin315, -cos315) = (-160, -160). */
+        transform: translate(-160px, -160px);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="container"><div id="target"></div></div>
+  </body>
+</html>

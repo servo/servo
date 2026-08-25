@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en" >
+<meta charset="utf-8">
+<title>CSS test: balancing and line-clamp</title>
+<link rel='author' title='Andreu Botella' href='mailto:abotella@igalia.com'>
+<link rel='help' href='https://drafts.csswg.org/css-overflow-4/#line-clamp'>
+<link rel='help' href='https://drafts.csswg.org/css-text-4/#text-wrap-style'>
+<meta name="assert" content="If the element is affected by line-clamp, the clamping effect is applied first, then the remaining lines are balanced. This also happens if the balanced paragraph is within the line-clamp container, not the line-clamp container itself.">
+<link rel="match" href="reference/text-wrap-balance-line-clamp-005-ref.html">
+<style>
+body > div {
+    border: solid;
+    font-family: monospace;
+    margin: 1ch;
+    width: 11.1ch;  /* .1ch to work around browser bugs */
+}
+.test {
+    border-color: blue;
+
+    line-clamp: 3;
+    /* This code is unnecessary in any browser that supports the unprefixed version of line-clamp,
+       but neither does it have any detrimental effect,
+       and it broadens the test to browsers that only support the prefixed version */
+
+    -webkit-line-clamp: 3;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.balanced {
+    text-wrap-style: balance;
+}
+.ref {
+    border-color: orange;
+    white-space: nowrap;
+}
+</style>
+
+<p>Test passes if the box with a blue frame is identical to the orange one.
+
+<div class=test>
+    abc def
+    <div class="balanced">
+        AB CD EF GH
+        IJ KL MN O
+        PQ RST
+    </div>
+    uvwxyz
+</div>
+
+<div class=ref>abc def<br>AB CD EF GH<br>IJ KL MN O…</div>
+
+<!--
+unbalanced layout without clamping:
+    |-----------|
+    |abc def    |
+    |AB CD EF GH|
+    |IJ KL MN O |
+    |PQ RST     |
+    |uvwxyz     |
+    |-----------|
+
+unbalanced layout after clamping:
+    |-----------|
+    |abc def    |
+    |AB CD EF GH|
+    |IJ KL MN O…|
+    |-----------|
+
+There is no way to balance the uppercase lines without changing the number of
+lines.
+-->

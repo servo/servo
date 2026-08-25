@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes Test: grid-lanes inside flex container with min-height and indefinite block size needs additional pass</title>
+  <link rel="author" title="Yanling Wang" href="mailto:yanlingwang@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3">
+  <link rel="match" href="../../../reference/ref-filled-green-100px-square-only.html">
+</head>
+<body>
+  <p>Test passes if there is a filled green square.</p>
+  <div style="display: flex; flex-direction: column; min-height: 100px; width: 100px;">
+    <div style="display: grid-lanes; flow-tolerance: 0; grid-template-rows: auto; flex: 1; background: red;">
+      <div style="width: 100%; background: green;"></div>
+    </div>
+  </div>
+</body>
+</html>

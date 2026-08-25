@@ -1,0 +1,65 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+/*
+ * The origin of this IDL file is
+ * https://w3c.github.io/hr-time/#sec-performance
+ */
+
+typedef double DOMHighResTimeStamp;
+typedef sequence<PerformanceEntry> PerformanceEntryList;
+
+[Exposed=(Window, Worker)]
+interface Performance : EventTarget {
+  DOMHighResTimeStamp now();
+  readonly attribute DOMHighResTimeStamp timeOrigin;
+  [Default] object toJSON();
+};
+
+// https://w3c.github.io/performance-timeline/#extensions-to-the-performance-interface
+[Exposed=(Window, Worker)]
+partial interface Performance {
+  PerformanceEntryList getEntries();
+  PerformanceEntryList getEntriesByType(DOMString type);
+  PerformanceEntryList getEntriesByName(DOMString name,
+                                        optional DOMString type);
+};
+
+// https://w3c.github.io/user-timing/#extensions-performance-interface
+dictionary PerformanceMarkOptions {
+    any detail;
+    DOMHighResTimeStamp startTime;
+};
+
+// https://w3c.github.io/user-timing/#extensions-performance-interface
+dictionary PerformanceMeasureOptions {
+    any detail;
+    (DOMString or DOMHighResTimeStamp) start;
+    DOMHighResTimeStamp duration;
+    (DOMString or DOMHighResTimeStamp) end;
+};
+
+[Exposed=(Window,Worker)]
+partial interface Performance {
+  [Throws] PerformanceMark mark(DOMString markName, optional PerformanceMarkOptions markOptions = {});
+  undefined clearMarks(optional DOMString markName);
+  [Throws]
+  PerformanceMeasure measure(DOMString measureName, optional (DOMString or PerformanceMeasureOptions) startOrMeasureOptions = {}, optional DOMString endMark);
+  undefined clearMeasures(optional DOMString measureName);
+};
+
+//https://w3c.github.io/resource-timing/#sec-extensions-performance-interface
+partial interface Performance {
+  undefined clearResourceTimings ();
+  undefined setResourceTimingBufferSize (unsigned long maxSize);
+              attribute EventHandler onresourcetimingbufferfull;
+};
+
+// https://w3c.github.io/navigation-timing/#extensions-to-the-performance-interface
+[Exposed=Window]
+partial interface Performance {
+  [SameObject]
+  readonly attribute PerformanceTiming timing;
+  [SameObject]
+  readonly attribute PerformanceNavigation navigation;
+};

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+
+<script>
+let testName = "Navigator.xr meets [SameObject] requirement";
+
+let testFunction = function(session, fakeDeviceController, t) {
+  let xr = navigator.xr;
+
+  return new Promise((resolve) => {
+    // Make sure the navigator.xr object is the same on each frame.
+    session.requestAnimationFrame((time, xrFrame) => {
+      t.step(() => {
+        assert_equals(navigator.xr, xr, "navigator.xr returns the same object");
+      });
+      session.requestAnimationFrame((time, xrFrame) => {
+        t.step(() => {
+          assert_equals(navigator.xr, xr,
+            "naivgator.xr returns the same object");
+        });
+        resolve();
+      });
+    });
+  });
+};
+
+xr_session_promise_test(
+  testName, testFunction, TRACKED_IMMERSIVE_DEVICE, 'immersive-vr');
+</script>

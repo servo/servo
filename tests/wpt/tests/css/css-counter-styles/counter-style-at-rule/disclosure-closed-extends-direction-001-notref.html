@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Reference: counter style extending disclosure-closed with direction:rtl (horizontal-tb)</title>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+  @counter-style closed-ext { system: extends disclosure-closed; }
+  .cell {
+    width: 160px; height: 160px;
+    display: flex; align-items: center; justify-content: center;
+    font: 100px/1 Ahem;
+  }
+  .m::before { content: counter(x, closed-ext); }
+</style>
+<div class="cell"><span class="m" style="writing-mode: horizontal-tb; direction: rtl"></span></div>

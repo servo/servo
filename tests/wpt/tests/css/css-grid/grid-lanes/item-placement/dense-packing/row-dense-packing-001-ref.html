@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<style>
+.grid {
+    display: grid;
+    background: gray;
+    position: relative;
+    grid-template-rows: repeat(3, 50px);
+    width: 170px;
+    grid-auto-flow: dense;
+}
+
+.flex {
+    display: flex;
+    flex-direction: row;
+}
+</style>
+<body>
+  <p>Ensure that dense-packing places items correctly in grid-lanes.</p>
+  <div class="grid">
+    <div class="flex">
+      <div style="background: lightskyblue; width: 20px;" >
+        1
+      </div>
+      <div style="background: red; width: 40px;">
+        5
+      </div>
+      <div style="background: brown; width: 10px; height: 100px;">
+        4
+      </div>
+      <div style="background: yellow; width: 40px;">
+        7
+      </div>
+    </div>
+    <div class="flex">
+      <div style="background: lightcoral; width: 60px;" >
+        2
+      </div>
+      <div style="background: brown; width: 10px;"></div>
+      <div style="background: blueviolet; width: 12px; grid-row: 2; margin-left: 3px;">
+        9
+      </div>
+      <div style="background: orange; width: 20px; grid-row: 2;">
+        10
+      </div>
+      <div style="background: brown; width: 10px; grid-row: span 2;">
+        8
+      </div>
+    </div>
+    <div class="flex">
+      <div style="background: lightgreen; width: 60px;">
+        3
+      </div>
+      <div style="background: pink; width: 45px;">
+        6
+      </div>
+      <div style="background: brown; width: 10px;"></div>
+    </div>
+  </div>
+</body>
+</html>

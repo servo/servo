@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>Bidi reordering of ruby</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-ruby-1/#bidi">
+<link rel="match" href="ruby-bidi-002-ref.html">
+<link rel="stylesheet" href="support/ruby-common.css">
+<style> rb { margin: 0 5px; } </style>
+<p>
+  <ruby>
+    <rb>base1</rb><rb>base2</rb>
+    <rtc dir="rtl">
+      <rt>text1</rt><rt>text2</rt>
+    </rtc>
+    <rbc dir="rtl">
+      <rb>base3</rb><rb>base4</rb>
+    </rbc>
+    <rt>text3</rt><rt>text4</rt>
+  </ruby>
+  <ruby dir="rtl">
+    <rb>base5</rb><rb>base6</rb>
+    <rt>text5</rt><rt>text6</rt>
+    <rbc dir="ltr">
+      <rb>base7</rb><rb>base8</rb>
+    </rbc>
+    <rt>text7</rt><rt>text8</rt>
+  </ruby>
+</p>
+<p dir="rtl">
+  <ruby>
+    <rb>base1</rb><rb>base2</rb>
+    <rtc dir="ltr">
+      <rt>text1</rt><rt>text2</rt>
+    </rtc>
+    <rbc dir="ltr">
+      <rb>base3</rb><rb>base4</rb>
+    </rbc>
+    <rt>text3</rt><rt>text4</rt>
+  </ruby>
+  <ruby dir="ltr">
+    <rb>base5</rb><rb>base6</rb>
+    <rt>text5</rt><rt>text6</rt>
+    <rbc dir="rtl">
+      <rb>base7</rb><rb>base8</rb>
+    </rbc>
+    <rt>text7</rt><rt>text8</rt>
+  </ruby>
+</p>

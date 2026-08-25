@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<title>contain-intrinsic-size: auto with various dynamic changes</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#last-remembered">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="log"></div>
+
+<div style="height: 2000px;"></div>
+
+<div style="contain-intrinsic-size: auto 1px; contain: size;" id="test">
+  <div style="height: 50px;" id="child"></div> <!-- make 'test' have a 50px height -->
+</div>
+
+<script>
+var next_func;
+
+var t = async_test("contain-intrinsic-size: auto");
+
+var log = document.getElementById("log");
+var el = document.getElementById("test");
+var child = document.getElementById("child");
+var observer = new ResizeObserver(function() {
+  requestAnimationFrame(next_func);
+  observer.unobserve(el);
+});
+
+function step2() {
+  el.style.contentVisibility = "auto";
+  el.style.contain = "size";
+  assert_equals(el.offsetHeight, 50);
+  child.style.height = "30px";
+  // We should still use the old saved size.
+  assert_equals(el.offsetHeight, 50);
+
+  el.style.contentVisibility = "";
+  el.style.contain = "";
+  assert_equals(el.offsetHeight, 30);
+
+  // Need to let resize observer run again to update the size.
+  next_func = t.step_func_done(finalize);
+  observer.observe(el);
+}
+
+function finalize() {
+  el.style.contentVisibility = "auto";
+  el.style.contain = "size";
+  assert_equals(el.offsetHeight, 30);
+}
+
+
+el.offsetWidth;
+t.step(function() {
+  assert_equals(el.offsetHeight, 1);
+  el.style.contain = "";
+  assert_equals(el.offsetHeight, 50);
+
+  // Let ResizeObserver run so that the size gets saved.
+  next_func = t.step_func(step2);
+  observer.observe(el);
+});
+
+</script>

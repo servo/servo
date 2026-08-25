@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="fuzzy" content="maxDifference=0-4; totalPixels=0-9" />
+<title>letter-spacing with cursive content</title>
+<link rel='help' href='https://drafts.csswg.org/css-text-3/#letter-spacing-property'>
+<link rel='match' href='reference/letter-spacing-ligatures-005-ref.html'>
+<meta name="assert" content="letter-spacing should not introduce gaps between adjacent content here.">
+<style>
+div {
+  font-size: 50px;
+  font-family: Monospace;
+  width: max-content;
+  border: 1px solid green;
+  letter-spacing: 10px;
+}
+</style>
+<div><span>ت</span><span>ف</span><span>ا</span><span>ح</span>ة</div>

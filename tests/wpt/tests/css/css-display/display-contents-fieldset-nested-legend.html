@@ -1,0 +1,25 @@
+<!doctype html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<meta charset="utf-8">
+<link rel="match" href="display-contents-fieldset-nested-legend-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-display/#unbox">
+<link rel="help" href="https://drafts.csswg.org/css-display/#valdef-display-contents">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1427292">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<title>CSS Test: display: contents on legend</title>
+<style>
+fieldset {
+  color: red;
+}
+.contents {
+  display: contents;
+  color: green;
+  border: 10px solid red;
+  unicode-bidi: normal;
+}
+</style>
+<fieldset><legend class="contents">P<legend>legend</legend>ASS</legend></fieldset>

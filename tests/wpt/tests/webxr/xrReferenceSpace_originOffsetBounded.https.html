@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+<script src="resources/webxr_test_asserts.js"></script>
+
+<script>
+
+const testName = "Updating XRBoundedReferenceSpace origin offset updates view, input matrices, and bounds geometry.";
+
+const INITIAL_VIEW_OFFSET = {
+  position: [1, 2, 3],
+  orientation: [0,0,0,1]
+};
+
+const VIEWS_WITH_OFFSET = [{
+    eye:"left",
+    projectionMatrix: VALID_PROJECTION_MATRIX,
+    viewOffset: INITIAL_VIEW_OFFSET,
+    resolution: VALID_RESOLUTION
+  }, {
+    eye:"right",
+    projectionMatrix: VALID_PROJECTION_MATRIX,
+    viewOffset: INITIAL_VIEW_OFFSET,
+    resolution: VALID_RESOLUTION
+}];
+
+const FLOOR_TRANSFORM = {
+  position: [-0.1, -0.2, -0.3],
+  orientation: [0, 0, 0, 1]
+};
+
+const fakeDeviceInitParams = {
+  supportsImmersive: true,
+  supportedModes: ["inline", "immersive-vr"],
+  views: VIEWS_WITH_OFFSET,
+  viewerOrigin: IDENTITY_TRANSFORM,
+  floorOrigin: FLOOR_TRANSFORM,
+  supportedFeatures: ALL_FEATURES,
+  boundsCoordinates: [
+    { x:  1, z: -1.5 },
+    { x:  1, z:  1.5 },
+    { x: -1, z:  1.5 },
+    { x: -1, z: -1.5 }
+  ]
+};
+
+function testFunction(session, fakeDeviceController, t) {
+  const INITIAL_GRIP_TRANSFORM = {
+    position: [1, 2, 3],
+    orientation: [0, 0, 0, 1]
+  };
+
+  const LOCAL_POINTER_TRANSFORM = {
+    position: [1.01, 2.02, 3.03],
+    orientation: [0, 0, 0, 1]
+  }
+
+  let input_source = fakeDeviceController.simulateInputSourceConnection({
+    handedness: "right",
+    targetRayMode: "tracked-pointer",
+    pointerOrigin: LOCAL_POINTER_TRANSFORM,
+    gripOrigin: INITIAL_GRIP_TRANSFORM,
+    profiles: []
+  });
+
+  return new Promise((resolve, reject) => {
+    session.requestReferenceSpace('bounded-floor').then((referenceSpace) => {
+      requestSkipAnimationFrame(session, (time, frame) => {
+        let input_source = session.inputSources[0];
+
+        function CheckState(
+          reference_space,
+          expected_view_matrix,
+          expected_grip_matrix,
+          expected_ray_matrix,
+          expected_bounds_geometry
+        ) {
+          t.step(() => {
+            let pose = frame.getViewerPose(reference_space);
+            let grip_pose = frame.getPose(input_source.gripSpace, reference_space);
+            let input_pose = frame.getPose(input_source.targetRaySpace, reference_space);
+
+            let view_matrix = pose.views[0].transform.inverse.matrix;
+            let grip_matrix = grip_pose.transform.matrix;
+            let ray_matrix = input_pose.transform.matrix;
+
+            assert_matrix_approx_equals(view_matrix, expected_view_matrix);
+            assert_matrix_approx_equals(grip_matrix, expected_grip_matrix);
+            assert_matrix_approx_equals(ray_matrix, expected_ray_matrix);
+
+            assert_equals(reference_space.boundsGeometry.length, expected_bounds_geometry.length);
+            for (var i = 0; i < reference_space.boundsGeometry.length; ++i) {
+              assert_point_approx_equals(reference_space.boundsGeometry[i], expected_bounds_geometry[i]);
+            }
+          });
+        }
+
+        const EXPECTED_VIEW_MATRIX_1 = [
+           1,    0,    0,   0,
+           0,    1,    0,   0,
+           0,    0,    1,   0,
+          -1.1, -2.2, -3.3, 1,
+        ];
+        const EXPECTED_GRIP_MATRIX_1 = [
+          1,   0,   0,   0,
+          0,   1,   0,   0,
+          0,   0,   1,   0,
+          1.1, 2.2, 3.3, 1,
+        ];
+        const EXPECTED_RAY_MATRIX_1 =  [
+          1,    0,    0,    0,
+          0,    1,    0,    0,
+          0,    0,    1,    0,
+          1.11, 2.22, 3.33, 1,
+        ];
+
+        const EXPECTED_BOUNDS_GEOMETRY_1 = [
+          {x:  1, y: 0, z: -1.5, w: 1},
+          {x:  1, y: 0, z:  1.5, w: 1},
+          {x: -1, y: 0, z:  1.5, w: 1},
+          {x: -1, y: 0, z: -1.5, w: 1},
+        ];
+
+        // Check state after initialization
+        CheckState(
+          referenceSpace,
+          EXPECTED_VIEW_MATRIX_1,
+          EXPECTED_GRIP_MATRIX_1,
+          EXPECTED_RAY_MATRIX_1,
+          EXPECTED_BOUNDS_GEOMETRY_1
+        );
+
+        const RADIANS_90D = Math.PI / 2;
+
+        // Perform arbitrary transformation to reference space originOffset
+        const new_position1 = {
+          x: 10, // Translate 10 units along the x-axis
+          y: -3, // Translate -3 units along the y-axis
+          z:  5, // Translate 5 units along the z-axis
+        };
+        const new_orientation1 = {
+          x: Math.sin(RADIANS_90D / 2), // Rotate 90 degrees around the x-axis
+          y: 0,
+          z: 0,
+          w: Math.cos(RADIANS_90D / 2),
+        };
+        referenceSpace = referenceSpace.getOffsetReferenceSpace(new XRRigidTransform(new_position1, new_orientation1));
+
+        const EXPECTED_VIEW_MATRIX_2 = [
+          1,    0,   0,   0,
+          0,    0,   1,   0,
+          0,   -1,   0,   0,
+          8.9, -5.2, 1.7, 1,
+        ];
+        const EXPECTED_GRIP_MATRIX_2 = [
+           1,    0,    0,   0,
+           0,    0,   -1,   0,
+           0,    1,    0,   0,
+          -8.9, -1.7, -5.2, 1,
+        ];
+        const EXPECTED_RAY_MATRIX_2 = [
+           1,     0,     0,    0,
+           0,     0,    -1,    0,
+           0,     1,     0,    0,
+          -8.89, -1.67, -5.22, 1,
+        ];
+
+        const EXPECTED_BOUNDS_GEOMETRY_2 = [
+          {x:  -9, y: -6.5, z: -3, w: 1},
+          {x:  -9, y: -3.5, z: -3, w: 1},
+          {x: -11, y: -3.5, z: -3, w: 1},
+          {x: -11, y: -6.5, z: -3, w: 1},
+        ];
+
+        // Check state after transformation
+        CheckState(
+          referenceSpace,
+          EXPECTED_VIEW_MATRIX_2,
+          EXPECTED_GRIP_MATRIX_2,
+          EXPECTED_RAY_MATRIX_2,
+          EXPECTED_BOUNDS_GEOMETRY_2
+        );
+
+        // Perform arbitrary transformation to reference space originOffset
+        const new_position2 = {
+          x: 5, // Translate 5 units along the x-axis
+          y: 2, // Translate 2 units along the y-axis
+          z: 0,
+        };
+        const new_orientation2 = {
+          x: 0,
+          y: Math.sin(RADIANS_90D / 2), // Rotate 90 degrees about the y-axis
+          z: 0,
+          w: Math.cos(RADIANS_90D / 2),
+        };
+        referenceSpace = referenceSpace.getOffsetReferenceSpace(new XRRigidTransform(new_position2, new_orientation2));
+
+        const EXPECTED_VIEW_MATRIX_3 = [
+           0,    1,   0,   0,
+           0,    0,   1,   0,
+           1,    0,   0,   0,
+          13.9, -5.2, 3.7, 1,
+        ];
+        const EXPECTED_GRIP_MATRIX_3 = [
+          0,    0,     1,   0,
+          1,    0,     0,   0,
+          0,    1,     0,   0,
+          5.2, -3.7, -13.9, 1,
+        ];
+        const EXPECTED_RAY_MATRIX_3 = [
+          0,     0,      1,    0,
+          1,     0,      0,    0,
+          0,     1,      0,    0,
+          5.22, -3.67, -13.89, 1,
+        ];
+
+        const EXPECTED_BOUNDS_GEOMETRY_3 = [
+          {x: 3, y: -8.5, z: -14, w: 1},
+          {x: 3, y: -5.5, z: -14, w: 1},
+          {x: 3, y: -5.5, z: -16, w: 1},
+          {x: 3, y: -8.5, z: -16, w: 1},
+        ];
+
+        // Check state after transformation
+        CheckState(
+          referenceSpace,
+          EXPECTED_VIEW_MATRIX_3,
+          EXPECTED_GRIP_MATRIX_3,
+          EXPECTED_RAY_MATRIX_3,
+          EXPECTED_BOUNDS_GEOMETRY_3
+        );
+
+        resolve();
+      });
+    });
+  });
+};
+
+xr_session_promise_test(
+  testName, testFunction, fakeDeviceInitParams, 'immersive-vr', { 'requiredFeatures': ['bounded-floor'] });
+
+</script>

@@ -1,0 +1,6 @@
+rules:
+- exec-command-*: [execcommand]
+- inserthtml-do-not-preserve-inline-styles.html: [execcommand]
+- legacy-edit-command.html: [execcommand]
+- non-html-document.html: [execcommand]
+- restoration.html: [execcommand]

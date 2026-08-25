@@ -1,0 +1,14 @@
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  assert_equals(String(DOMParser).indexOf("function DOMParser("), 0);
+  var parser = new DOMParser();
+  assert_true(parser instanceof DOMParser, "Should be DOMParser");
+  assert_true(parser.parseFromString("", "text/html") instanceof Document, "Should be Document");
+});
+</script>
+</head>
+</html>

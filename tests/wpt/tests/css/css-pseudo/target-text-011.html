@@ -1,0 +1,14 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: ::target-text empty author rule should not suppress default colors</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo/#selectordef-target-text">
+<link rel="match" href="target-text-011-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+  .ahem { font-family: Ahem; }
+  ::target-text {}
+</style>
+<p class="ahem">match me</p>
+<script>
+  window.location.hash = "#:~:text=match%20me";
+</script>

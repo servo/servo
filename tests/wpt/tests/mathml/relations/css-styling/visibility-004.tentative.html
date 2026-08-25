@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<meta charset="utf-8">
+<title>visibility</title>
+<link rel="help" href="https://w3c.github.io/mathml-core/#css-styling">
+<link rel="help" href="https://w3c.github.io/mathml-core/#text-mtext">
+<link rel="help" href="https://github.com/mathml-refresh/mathml-core/pull/24">
+<link rel="match" href="visibility-004.tentative-ref.html"/>
+<meta name="assert" content="Verify that visibility=hidden is used for the text and graphical elements of the menclose element.">
+</head>
+<body>
+  <p>Test passes if you see a green square.</p>
+  <div style="background: green; color: red; width: 200px; height: 200px;">
+    <math><menclose notation="left" style="visibility: hidden"><mn>1</mn></menclose></math>
+    <math><menclose notation="right" style="visibility: hidden"><mn>2</mn></menclose></math>
+    <math><menclose notation="top" style="visibility: hidden"><mn>3</mn></menclose></math>
+    <math><menclose notation="bottom" style="visibility: hidden"><mn>4</mn></menclose></math>
+    <math><menclose notation="box" style="visibility: hidden"><mn>5</mn></menclose></math>
+    <math><menclose notation="roundedbox" style="visibility: hidden"><mn>6</mn></menclose></math>
+    <math><menclose notation="actuarial" style="visibility: hidden"><mn>7</mn></menclose></math>
+    <math><menclose notation="madruwb" style="visibility: hidden"><mn>8</mn></menclose></math>
+    <math><menclose notation="horizontalstrike" style="visibility: hidden"><mn>9</mn></menclose></math>
+    <math><menclose notation="verticalstrike" style="visibility: hidden"><mn>10</mn></menclose></math>
+    <math><menclose notation="updiagonalstrike" style="visibility: hidden"><mn>11</mn></menclose></math>
+    <math><menclose notation="downdiagonalstrike" style="visibility: hidden"><mn>12</mn></menclose></math>
+    <math><menclose notation="longdiv" style="visibility: hidden"><mn>13</mn></menclose></math>
+    <math><menclose notation="circle" style="visibility: hidden"><mn>14</mn></menclose></math>
+    <div id="dynamic">
+      <math><menclose notation="left"><mn>1</mn></menclose></math>
+      <math><menclose notation="right"><mn>2</mn></menclose></math>
+      <math><menclose notation="top"><mn>3</mn></menclose></math>
+      <math><menclose notation="bottom"><mn>4</mn></menclose></math>
+      <math><menclose notation="box"><mn>5</mn></menclose></math>
+      <math><menclose notation="roundedbox"><mn>6</mn></menclose></math>
+      <math><menclose notation="actuarial"><mn>7</mn></menclose></math>
+      <math><menclose notation="madruwb"><mn>8</mn></menclose></math>
+      <math><menclose notation="horizontalstrike"><mn>9</mn></menclose></math>
+      <math><menclose notation="verticalstrike"><mn>10</mn></menclose></math>
+      <math><menclose notation="updiagonalstrike"><mn>11</mn></menclose></math>
+      <math><menclose notation="downdiagonalstrike"><mn>12</mn></menclose></math>
+      <math><menclose notation="longdiv"><mn>13</mn></menclose></math>
+      <math><menclose notation="circle"><mn>14</mn></menclose></math>
+    </div>
+  </div>
+  <script>
+    window.addEventListener("load", () => {
+        document.getElementById("dynamic").style.visibility = "hidden";
+        document.documentElement.classList.remove("reftest-wait");
+    });
+  </script>
+  <script src="/mathml/support/feature-detection.js"></script>
+  <script>MathMLFeatureDetection.ensure_for_match_reftest("has_menclose");</script>
+</body>
+</html>

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<title>navigator.install() in sandboxed and non-sandboxed iframes</title>
+<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/WebInstall/explainer.md">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+var lastCallbackId = 0;
+var callbacks = {};
+
+function postMessageAndWaitResult(frame) {
+  return new Promise(function(resolve) {
+    var id = ++lastCallbackId;
+    callbacks[id] = resolve;
+    frame.contentWindow.postMessage({id: id}, '*');
+  });
+}
+
+window.onmessage = function(e) {
+  var message = e.data;
+  var id = message['id'];
+  var callback = callbacks[id];
+  delete callbacks[id];
+  callback(message);
+};
+
+function with_iframe(url) {
+  return new Promise(function(resolve) {
+    var frame = document.createElement('iframe');
+    frame.src = url;
+    frame.onload = function() { resolve(frame); };
+    document.body.appendChild(frame);
+  });
+}
+
+function with_sandboxed_iframe(url, sandbox) {
+  return new Promise(function(resolve) {
+    var frame = document.createElement('iframe');
+    frame.sandbox = sandbox;
+    frame.src = url;
+    frame.onload = function() { resolve(frame); };
+    document.body.appendChild(frame);
+  });
+}
+
+const helper_url = 'resources/navigator-install-iframe-helper.html';
+
+promise_test(function(t) {
+    return with_sandboxed_iframe(helper_url, 'allow-scripts')
+      .then(function(frame) {
+          t.add_cleanup(() => { frame.remove(); });
+          return postMessageAndWaitResult(frame);
+        })
+      .then(function(message) {
+          // In a sandboxed iframe without allow-same-origin, the origin is
+          // opaque. The permissions policy default allowlist of "self" does not
+          // include opaque origins, so the permissions policy check fails first
+          // with a SecurityError.
+          assert_equals(message.errorName, 'SecurityError',
+              'Should throw SecurityError in sandboxed iframe');
+        });
+  }, 'navigator.install() in sandboxed iframe (allow-scripts) should throw ' +
+     'SecurityError.');
+
+promise_test(function(t) {
+    return with_sandboxed_iframe(
+               helper_url, 'allow-scripts allow-same-origin')
+      .then(function(frame) {
+          t.add_cleanup(() => { frame.remove(); });
+          return postMessageAndWaitResult(frame);
+        })
+      .then(function(message) {
+          // With allow-same-origin, the iframe retains its real origin, so the
+          // permissions policy check passes. However, navigator.install()
+          // disallows ALL sandboxed contexts, so the sandbox flags check fails
+          // with a SecurityError.
+          assert_equals(message.errorName, 'SecurityError',
+              'Should throw SecurityError in sandboxed iframe even with ' +
+              'allow-same-origin');
+        });
+  }, 'navigator.install() in sandboxed iframe (allow-scripts ' +
+     'allow-same-origin) should throw SecurityError.');
+
+promise_test(function(t) {
+    return with_iframe(helper_url)
+      .then(function(frame) {
+          t.add_cleanup(() => { frame.remove(); });
+          return postMessageAndWaitResult(frame);
+        })
+      .then(function(message) {
+          // A regular same-origin iframe passes the permissions policy and
+          // sandbox checks, but fails the main-frame check with an
+          // InvalidStateError.
+          assert_equals(message.errorName, 'InvalidStateError',
+              'Should throw InvalidStateError in non-main-frame iframe');
+        });
+  }, 'navigator.install() in a same-origin iframe should throw ' +
+     'InvalidStateError.');
+</script>
+</body>

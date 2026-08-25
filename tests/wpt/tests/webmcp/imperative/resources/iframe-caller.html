@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>WebMCP Iframe Caller</title>
+<script src="/resources/testharness.js"></script>
+</head>
+<body>
+<script>
+  window.onmessage = e => {
+    if (e.data.action === 'invoke') {
+      const options = e.data.options || {};
+      document.modelContext.getTools(options).then(tools => {
+        const tool = tools.find(t => t.name === e.data.name);
+        document.modelContext.executeTool(tool, '{}').then(result => {
+          parent.postMessage({action: 'executeResponse', result: result, success: true}, '*');
+        }).catch(err => {
+          parent.postMessage({action: 'executeResponse', result: String(err), success: false}, '*');
+        });
+      });
+    } else if (e.data.action === 'invoke_with_abort') {
+      const options = e.data.options || {};
+      const controller = new AbortController();
+      document.modelContext.getTools(options).then(tools => {
+        const tool = tools.find(t => t.name === e.data.name);
+        document.modelContext.executeTool(tool, '{}', { signal: controller.signal }).then(result => {
+          parent.postMessage({action: 'executeResponse', result: result, success: true}, '*');
+        }).catch(err => {
+          parent.postMessage({action: 'executeResponse', result: String(err), success: false}, '*');
+        });
+        step_timeout(() => {
+          controller.abort(e.data.abortReason || 'iframe aborted');
+        }, e.data.abortDelayMs || 50);
+      });
+    } else if (e.data.action === 'navigate') {
+      window.location.href = 'about:blank';
+    }
+  };
+</script>
+</body>
+</html>

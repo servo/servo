@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<link rel="author" title="David Grogan" href="dgrogan@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#distributing-width-to-columns">
+
+<style>
+table {
+  width: 300px;
+  border-collapse: collapse;
+  table-layout: fixed;
+  height: 20px;
+}
+
+td {
+  padding: 0px;
+  background: lime;
+  outline: 1px solid blue;
+}
+
+td:nth-child(1) { width: 20px; }
+td:nth-child(2) { width: 10px; }
+td:nth-child(3) { width: 10%; }
+</style>
+
+<h2>Fixed layout tables with excess width and no auto columns</h2>
+
+FF/Edge give excess only to fixed columns, in proportion to their relative
+widths. This is what the spec dictates.
+<br>Chrome (62) gives excess to ALL columns, in proportion to their
+contribution to total width.
+<table id=theTable>
+  <tr>
+    <td data-expected-width=180></td>
+    <td data-expected-width=90></td>
+    <td data-expected-width=30></td>
+  </tr>
+</table>
+
+<script>
+checkLayout('#theTable')
+</script>

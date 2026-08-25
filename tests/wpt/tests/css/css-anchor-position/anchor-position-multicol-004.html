@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<title>Tests resolving anchor-name conflicts in multicol</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#propdef-anchor-name">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#anchor-pos">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#anchor-size">
+<link rel="author" href="mailto:kojii@chromium.org">
+<link rel="author" href="mailto:mstensho@chromium.org">
+<link rel="match" href="anchor-position-multicol-004-ref.html">
+<style>
+.cb {
+  transform: translate(0);  /* Make it a containing block. */
+  border: solid transparent;
+  border-width: 5px 6px 7px 8px;
+  padding: 5px 6px 7px 8px;
+}
+.columns {
+  columns: 5;
+  column-fill: auto;
+  column-gap: 10px;
+  width: 540px;
+  height: 100px;
+}
+.spacer {
+  height: 10px;
+}
+.anchor1 {
+  anchor-name: --a1;
+  margin-left: 10px;
+  width: 40px;
+  height: 90px;
+}
+.target {
+  position: absolute;
+}
+.all {
+  left: anchor(--a1 left);
+  top: anchor(--a1 top);
+  width: anchor-size(--a1 width);
+  height: anchor-size(--a1 height);
+}
+.rb {
+  right: anchor(--a1 right);
+  bottom: anchor(--a1 bottom);
+  width: 10px;
+  height: 10px;
+}
+</style>
+<p>There should be two green rectangles below, and no red.</p>
+<div>
+  <div class="columns">
+    <div style="height: 70px"></div>
+    <div class="cb">
+      <!-- This spacer fills up to the middle of the 2nd column. -->
+      <div style="height: 60px"></div>
+      <div class="anchor1"></div>
+      <div class="cb">
+        <div style="height: 120px"></div>
+        <div class="anchor1" style="width:20px; background:red;"></div>
+
+        <div class="target all">
+          <div style="height:50%; background:green;"></div>
+        </div>
+        <div class="target rb">
+          <div style="margin-left:auto; width:50%; height:100%; background:green;"></div>
+        </div>
+      </div>
+
+      <div class="target all">
+        <!-- Leave room for the rb thingie that comes after. -->
+        <div style="position:absolute; width:100%; top:50%; bottom:10px; background:green;"></div>
+        <div style="position:absolute; width:10px; height:10px; bottom:0; background:green;"></div>
+      </div>
+      <div class="target rb">
+        <div style="width:50%; height:100%; background:green;"></div>
+      </div>
+    </div>
+  </div>
+</div>

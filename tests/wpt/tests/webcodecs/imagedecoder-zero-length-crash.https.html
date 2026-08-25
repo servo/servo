@@ -1,0 +1,12 @@
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const _ = new ImageDecoder({
+    type: "image/png",
+    data: new ReadableStream({
+      start(controller) {
+        controller.enqueue(new Uint8Array(0))
+      }
+    })
+  })
+})
+</script>

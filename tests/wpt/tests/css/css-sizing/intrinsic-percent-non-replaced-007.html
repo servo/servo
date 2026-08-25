@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>Percentage max-width on aspect-ratio box is ignored during intrinsic size contribution.</title>
+<link rel="help" href="https://www.w3.org/TR/css-sizing-3/#cyclic-percentage-contribution">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<link rel="match" href="intrinsic-percent-non-replaced-007-ref.html">
+<style>
+.container {
+  width: max-content;
+}
+
+.aspect-ratio-box {
+  aspect-ratio: 2 / 1;
+  height: 100px;
+  max-width: 50%;
+  background: green;
+}
+</style>
+<p>Test passes if there is a 200x100 rectangle (green left half, blue right half).</p>
+<div class="container" style="background: blue;">
+  <div class="aspect-ratio-box"></div>
+</div>

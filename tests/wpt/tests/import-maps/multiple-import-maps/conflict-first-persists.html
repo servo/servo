@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script type="importmap">
+{
+   "imports": {
+    "module-a": "../resources/log.js?pipe=sub&name=ModuleA",
+    "module-b/something": "../resources/log.js?pipe=sub&name=ModuleB"
+  }
+}
+</script>
+<script type="importmap">
+{
+  "imports": {
+    "module-a": "../resources/log.js?pipe=sub&name=OtherModuleA",
+    "module-b/": "../resources/log.js?pipe=sub&name=PrefixModuleB",
+    "module-b": "../resources/log.js?pipe=sub&name=OtherModuleB"
+  }
+}
+</script>
+<script>
+const test_loaded = (specifier, expected_log, description) => {
+  promise_test(async t => {
+    log = [];
+    await import(specifier);
+    assert_array_equals(log, expected_log);
+  }, description);
+};
+
+test_loaded(
+  "module-a",
+  ["log:ModuleA"],
+  "First defined rule persists in case of conflict"
+);
+
+test_loaded(
+  "module-b/something",
+  ["log:ModuleB"],
+  "First defined rule persists in case of conflict - prefixed bare specifiers"
+);
+
+test_loaded(
+  "module-b",
+  ["log:OtherModuleB"],
+  "First defined rule persists in case of conflict - non-prefix bare specifier"
+);
+</script>
+</html>

@@ -1,0 +1,13 @@
+<!doctype html>
+<title>invoking resource selection by inserting &lt;source> in video not in a document</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+async_test(function(t) {
+  var v = document.createElement('video');
+  v.onloadstart = t.step_func(function() { t.done(); });
+  v.appendChild(document.createElement('source'));
+  window.onload = t.step_func(function() { assert_unreached(); });
+});
+</script>

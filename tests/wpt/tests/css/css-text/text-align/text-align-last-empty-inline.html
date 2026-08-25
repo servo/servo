@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>Tests justification of empty inline element</title>
+<link rel="author" title="Emil A Eklund" href="eae@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#text-align-last-property" title="6.3. Last Line Alignment: the text-align-last property">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #justify {
+    text-align-last: justify;
+    margin-bottom: 5px;
+  }
+  #justify > span, #reference > span {
+    padding: 1px;
+    background: black;
+  }
+  #reference {
+    text-align: center;
+  }
+</style>
+<body>
+  <div id="justify"><span></span></div>
+  <div id="reference"><span></span></div>
+  <p>
+    The two black line segments above should align.
+  </p>
+</body>
+<script>
+test(function() {
+  const justify_element = document.getElementById('justify');
+  const justify_rect = justify_element.firstElementChild.getBoundingClientRect();
+  const ref_element = document.getElementById('reference');
+  const ref_rect = ref_element.firstElementChild.getBoundingClientRect();
+  assert_equals(justify_rect.left, ref_rect.left);
+  assert_equals(justify_rect.right, ref_rect.right);
+}, 'content that cannot be justified should be centered when text-align-last is justify');
+</script>

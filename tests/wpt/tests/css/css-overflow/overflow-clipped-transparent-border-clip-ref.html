@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Reference: overflow clipping with transparent borders</title>
+<style>
+.ref {
+  width: 100px;
+  height: 100px;
+  border: 10px solid green;
+  background: blue;
+}
+.ref-clip-y {
+  position: relative;
+  display: inline-block;
+  width: 100px;
+  height: 100px;
+  background: green;
+  box-sizing: border-box;
+}
+.ref-clip-y-inner {
+  position: absolute;
+  top: 20px;
+  left: 0;
+  width: 140px;
+  height: 60px;
+  background: blue;
+}
+</style>
+<p>Test passes if you see two blue squares with green borders, followed by
+  a green-blue-green striped rectangle where the blue stripe overflows to the right.</p>
+<div class="ref"></div>
+<div class="ref"></div>
+<br>
+<div class="ref-clip-y">
+  <div class="ref-clip-y-inner"></div>
+</div>

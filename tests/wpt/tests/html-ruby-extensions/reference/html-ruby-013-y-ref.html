@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en" >
+<meta charset="utf-8">
+<title>test reference</title>
+<link rel='author' title='Florian Rivoal' href='https://florian.rivoal.net'>
+<style>
+.r1 { color: orange; }
+.r2 { color: blue; }
+.r3 { color: purple; }
+</style>
+<body>
+<p>The example below consists of 3 base characters, each annotated with its pronunciation.
+“<span class=r1>浄</span>” is annotated by “<span class=r1>じょう</span>”.
+“<span class=r2>瑠</span>” is annotated by “<span class=r2>る</span>”.
+“<span class=r3>璃</span>” is annotated by “<span class=r3>り</span>”.
+For ease of comparison, it is preceded by some context text: “例文は”.
+This test passes if:
+<ul>
+    <li>each base character is presented inline with and similarly to the context text, as if they are all part of the same sentence, and
+    <li>each annotation is presented as an annotation, and
+    <li>the correct annotation is presented clearly as being associated with the correct base.
+</ul>
+
+<p>Note: The colors are not part of the test,
+they are merely provided as help to the person running the test,
+to make it easier to recognize the various parts of the text.
+
+<p>Note: This is not a layout or rendering test.
+The precise appearance is not specified,
+and implementations may therefore validly vary.
+
+<hr> <!-- incorrect rendering: annotations not displayed at all -->
+例文は <span class=r1>浄</span> <span class=r2>瑠</span> <span class=r3>璃</span>

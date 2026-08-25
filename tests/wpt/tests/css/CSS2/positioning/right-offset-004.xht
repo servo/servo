@@ -1,0 +1,33 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+   <title>CSS Test: right box offset - position relative</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" title="9.3.2 Box offsets: 'top', 'right', 'bottom', 'left'" href="http://www.w3.org/TR/CSS21/visuren.html#position-props" />
+  <link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+
+  <meta content="image" name="flags" />
+  <meta content="The 'right' property, for relative positioning, specifies the offset of the box itself from its normal in-flow position, from the position it would have had if it had been static." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  img#rel-pos-overlapping-green
+  {
+  position: relative;
+  right: 100px;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+  <div><img src="support/100x100-red.png" width="100" height="100" alt="Image download support must be enabled" /><img id="rel-pos-overlapping-green" src="support/swatch-green.png" width="100" height="100" alt="Image download support must be enabled" /></div>
+
+ </body>
+</html>

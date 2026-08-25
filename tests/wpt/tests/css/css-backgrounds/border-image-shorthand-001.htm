@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+        <title>CSS Background and Borders Test: The 'border-image' shorthand property</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+        <!--
+        Test rehabilitated by Gérard Talbot
+        2020-05-28
+        -->
+        <link rel="help" href="http://www.w3.org/TR/css3-background/#the-border-image">
+        <link rel="match" href="reference/border-image-shorthand-001-ref.html">
+        <meta name="assert" content="This test checks that setting 'border-image-source', 'border-image-slice', 'border-image-width', 'border-image-outset' and 'border-image-repeat' properties in the shorthand notation produces the same border image as setting individual properties with the same values.">
+        <style>
+            div
+            {
+                border: 10px double red;
+                height: 150px;
+                margin: 50px 0px 100px 50px;
+                width: 150px;
+            }
+
+            #test
+            {
+                border-image: url("support/blue-and-red-diamonds-81x81.png") 30 / 4 / 2 round stretch;
+            }
+
+            #reference
+            {
+                border-image-outset: 2;
+                border-image-repeat: round stretch;
+                border-image-slice: 30;
+                border-image-source: url("support/blue-and-red-diamonds-81x81.png");
+                border-image-width: 4;
+            }
+        </style>
+
+        <p>Test passes if there are <strong>2 identical images.</strong>
+        <div id="test"></div>
+        <div id="reference"></div>

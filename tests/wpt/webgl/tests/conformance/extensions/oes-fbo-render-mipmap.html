@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL OES_fbo_render_mipmap Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas id="canvas" width="128" height="128"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description("This test verifies the functionality of the OES_fbo_render_mipmap extension, if it is available.");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+var gl = wtu.create3DContext(canvas);
+var ext = null;
+
+(function(){
+
+    const oesFboRenderMipmap = gl.getExtension("OES_fbo_render_mipmap");
+    if (!oesFboRenderMipmap) {
+        testPassed("OES_fbo_render_mipmap is allowed to be missing.");
+        return;
+    }
+
+    let texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST_MIPMAP_NEAREST);
+
+    let colors = [
+        [255, 0, 0, 255],
+        [255, 127, 0, 255],
+        [255, 255, 0, 255],
+        [0, 255, 0, 255],
+        [0, 255, 255, 255],
+        [0, 127, 255, 255],
+        [0, 0, 255, 255],
+        [255, 0, 255, 255],
+    ];
+
+    let fbos = [];
+    let maxLevel = 7;
+    for (let level = 0; level <= maxLevel; level++) {
+        let size = Math.pow(2, maxLevel - level);
+        gl.texImage2D(gl.TEXTURE_2D, level, gl.RGBA, size, size, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        let fbo = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, level);
+        fbos.push(fbo);
+
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Any level of a texture can be attached to a framebuffer object.");
+    }
+
+    for (let level = 0; level <= maxLevel; level++) {
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fbos[level]);
+        shouldBe("gl.checkFramebufferStatus(gl.FRAMEBUFFER)", "gl.FRAMEBUFFER_COMPLETE");
+        gl.clearColor(colors[level][0] / 255, colors[level][1] / 255, colors[level][2] / 255, colors[level][3] / 255);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+    }
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+    let program = wtu.setupTexturedQuad(gl);
+
+    for (let level = 0; level <= maxLevel; level++) {
+        let size = Math.pow(2, maxLevel - level);
+        // We use differrent viewport sizes to affect which miplevel is fetched from the texture.
+        gl.viewport(0, 0, size, size);
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+        wtu.checkCanvasRect(gl, 0, 0, 1, 1, colors[level]);
+    }
+
+})();
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->

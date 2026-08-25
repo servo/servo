@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<style>
+.flexbox {
+    display: flex;
+}
+.inline-flexbox {
+    display: inline-flex;
+}
+.flex-one {
+    flex: 1;
+}
+.inline-block { display: inline-block; }
+.flexbox, .inline-flexbox { background-color: lightgrey; }
+.border { border: 11px solid pink; }
+.padding { padding: 13px; }
+.margin { margin: 8px 0; }
+.flexbox > div {
+    min-width: 0;
+    min-height: 0;
+}
+</style>
+<div>
+before text
+<div class="border" style="display: inline-block; background-color: lightgrey">
+<div class="flexbox" style="height: 30px; margin-top: 7px; padding-top: 10px;">
+  baseline
+</div>
+</div>
+after text
+</div>
+
+<div>
+Should align
+<div class="inline-block border">
+  <div class="flexbox padding" style="width: 50px; height: 50px; background-color: pink">
+      <div class="flex-one" style="background-color: lightgrey"></div>
+  </div>
+</div>
+with the
+<div class="inline-block margin">
+  <div class="flexbox border" style="width: 50px; height: 50px; background-color: pink">
+      <div class="flex-one" style="background-color: lightgrey"></div>
+  </div>
+</div>
+bottom of
+<div class="inline-block padding" style="padding-left: 0; padding-right: 0">
+  <div class="flexbox margin border" style="width: 50px; height: 50px; background-color: pink">
+      <div class="flex-one" style="background-color: lightgrey;"></div>
+  </div>
+</div>
+the grey box.
+</div>
+
+<div>
+Should align with the
+<div class="inline-block">
+  <div class="flexbox" style="background-color: white">
+      <div class="flex-one border padding margin" style="background-color: lightgrey;"></div>
+  </div>
+</div>
+bottom of the pink box.
+</div>
+
+<div>
+Should align 8px
+<div class="inline-flexbox margin border" style="width: 30px; height: 30px;"></div>
+below the bottom
+<div class="inline-flexbox margin border padding"></div>
+of the pink box.
+</div>

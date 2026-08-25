@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: min|max-content sizing constraints on grid containers</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://www.w3.org/TR/css-grid-1/#intrinsic-sizes">
+<link rel="help" href="https://www.w3.org/TR/css-sizing-3/#sizing-values">
+<meta name="assert" content="The test checks the intrinsic size of a grid container when sized under different constraints. In inline axis min|max-content have some effect, however in block axis they behave as auto.">
+<style>
+  .grid {
+    display: grid;
+    float: left;
+    background: lime;
+  }
+
+  .grid-columns-minmax-50-100 {
+    grid-template-columns: minmax(50px, 100px);
+  }
+
+  .grid-columns-minmax-100-200 {
+    grid-template-columns: minmax(100px, 200px);
+  }
+
+  .grid-rows-minmax-50-100 {
+    grid-template-rows: minmax(50px, 100px);
+  }
+
+  .min-content {
+    width: min-content;
+    height: min-content;
+  }
+
+  .max-content {
+    width: max-content;
+    height: max-content;
+  }
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+
+<body onload="checkLayout('.grid');">
+
+  <div id="log"></div>
+
+  <div class="grid grid-columns-minmax-50-100 grid-rows-minmax-50-100"
+    data-expected-width="100" data-expected-height="100"></div>
+
+  <div class="grid min-content grid-columns-minmax-100-200 grid-rows-minmax-50-100"
+    data-expected-width="100" data-expected-height="100"></div>
+
+  <div class="grid max-content grid-columns-minmax-50-100 grid-rows-minmax-50-100"
+    data-expected-width="100" data-expected-height="100"></div>
+
+  <div class="min-content">
+    <div class="grid grid-columns-minmax-100-200 grid-rows-minmax-50-100"
+      data-expected-width="100" data-expected-height="100"></div>
+  </div>
+
+  <div class="max-content">
+    <div class="grid grid-columns-minmax-50-100 grid-rows-minmax-50-100"
+      data-expected-width="100" data-expected-height="100"></div>
+  </div>
+
+  <div style="writing-mode: vertical-lr;">
+
+    <div class="grid grid-columns-minmax-50-100 grid-rows-minmax-50-100"
+      data-expected-width="100" data-expected-height="100"></div>
+
+    <div class="grid min-content grid-columns-minmax-100-200 grid-rows-minmax-50-100"
+      data-expected-width="100" data-expected-height="100"></div>
+
+    <div class="grid max-content grid-columns-minmax-50-100 grid-rows-minmax-50-100"
+      data-expected-width="100" data-expected-height="100"></div>
+
+    <div class="min-content">
+      <div class="grid grid-columns-minmax-100-200 grid-rows-minmax-50-100"
+        data-expected-width="100" data-expected-height="100"></div>
+    </div>
+
+    <div class="max-content">
+      <div class="grid grid-columns-minmax-50-100 grid-rows-minmax-50-100"
+        data-expected-width="100" data-expected-height="100"></div>
+    </div>
+
+  </div>
+
+  <div style="writing-mode: vertical-rl;">
+
+    <div class="grid grid-columns-minmax-50-100 grid-rows-minmax-50-100"
+      data-expected-width="100" data-expected-height="100"></div>
+
+    <div class="grid min-content grid-columns-minmax-100-200 grid-rows-minmax-50-100"
+      data-expected-width="100" data-expected-height="100"></div>
+
+    <div class="grid max-content grid-columns-minmax-50-100 grid-rows-minmax-50-100"
+      data-expected-width="100" data-expected-height="100"></div>
+
+    <div class="min-content">
+      <div class="grid grid-columns-minmax-100-200 grid-rows-minmax-50-100"
+        data-expected-width="100" data-expected-height="100"></div>
+    </div>
+
+    <div class="max-content">
+      <div class="grid grid-columns-minmax-50-100 grid-rows-minmax-50-100"
+        data-expected-width="100" data-expected-height="100"></div>
+    </div>
+
+  </div>
+
+</body>

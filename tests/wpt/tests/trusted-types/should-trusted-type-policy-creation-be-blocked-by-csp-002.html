@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<meta name="timeout" content="long">
+<link rel="help" href="https://w3c.github.io/trusted-types/dist/spec/#should-block-create-policy">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./support/csp-violations.js"></script>
+<script>
+  // These are valid values for tt-policy-name per the spec's ABNF.
+  // https://w3c.github.io/trusted-types/dist/spec/#tt-policy-name
+  const validTrustedTypePolicyNames = [
+    "1",
+    "abcdefghijklmnopqrstuvwxyz",
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+    "0123456789",
+    "policy-name",
+    "policy=name",
+    "policy_name",
+    "policy/name",
+    "policy@name",
+    "policy.name",
+    "policy%name",
+    "policy#name",
+    "6xY/2x=3Y..."
+  ];
+  validTrustedTypePolicyNames.forEach(trustedTypePolicyName => {
+    promise_test(async t => {
+      let results = await tryCreatingTrustedTypePoliciesWithCSP(
+        [trustedTypePolicyName],
+        `header(Content-Security-Policy,trusted-types ${encodeURIComponent(trustedTypePolicyName)},True)`
+      );
+      assert_equals(results.length, 1);
+      assert_equals(results[0].name, trustedTypePolicyName);
+      assert_equals(results[0].exception, null);
+      assert_equals(results[0].violatedPolicies.length, 0);
+    }, `valid tt-policy-name name "${trustedTypePolicyName}"`);
+  });
+
+  // These are invalid values for tt-policy-name per the spec's ABNF.
+  // https://w3c.github.io/trusted-types/dist/spec/#tt-policy-name
+  const invalidTrustedTypePolicyNames = [
+    // Space not accepted in tt-policy-name. This is treated as allowing names
+    // "policy" and "name" and so forbids creation of "policy name".
+    "policy name",
+    // '*' is not accepted in tt-policy-name. This could be treated as
+    // tt-wildcard, but tt-expressions must be separated by a
+    // required-ascii-whitespace.
+    "policy*name",
+    // '$', '?' '!' and non-ASCII letters are not accepted in tt-policy-name.
+    "policy$name",
+    "policy?name",
+    "policy!name",
+  ];
+  invalidTrustedTypePolicyNames.forEach(trustedTypePolicyName => {
+    promise_test(async t => {
+      let results = await tryCreatingTrustedTypePoliciesWithCSP(
+        [trustedTypePolicyName],
+        `header(Content-Security-Policy,trusted-types ${encodeURIComponent(trustedTypePolicyName)},True)`
+      );
+      assert_equals(results.length, 1);
+      assert_equals(results[0].name, trustedTypePolicyName);
+      // https://w3c.github.io/trusted-types/dist/spec/#create-trusted-type-policy-algorithm
+      // https://w3c.github.io/trusted-types/dist/spec/#should-block-create-policy
+      assert_true(results[0].exception instanceof TypeError, "createPolicy() should throw a TypeError.");
+      assert_equals(results[0].violatedPolicies.length, 1, "createPolicy() should trigger a violation report.");
+      assert_equals(results[0].violatedPolicies[0].disposition, "enforce");
+      assert_equals(results[0].violatedPolicies[0].policy, `trusted-types ${trustedTypePolicyName}`);
+    }, `invalid tt-policy-name name "${trustedTypePolicyName}"`);
+  });
+
+  // If a trusted-types directive is non-ASCII then the CSP parser will discard
+  // it per https://w3c.github.io/webappsec-csp/#parse-serialized-policy
+  const nonASCIITrustedTypePolicyNames = [
+    "política",
+    // "ポリシー", https://github.com/web-platform-tests/wpt/issues/51928
+  ];
+  nonASCIITrustedTypePolicyNames.forEach(trustedTypePolicyName => {
+    promise_test(async t => {
+      let results = await tryCreatingTrustedTypePoliciesWithCSP(
+        [trustedTypePolicyName],
+        `header(Content-Security-Policy,trusted-types ${encodeURIComponent(trustedTypePolicyName)},True)`
+      );
+      assert_equals(results.length, 1);
+      assert_equals(results[0].name, trustedTypePolicyName);
+      assert_equals(results[0].exception, null);
+      assert_equals(results[0].violatedPolicies.length, 0);
+    }, `non-ASCII trusted-types directives are discarded ("${trustedTypePolicyName}")`);
+  });
+
+  // tt-expressions can be separated by any ASCII whitespace per the spec's
+  // ABNF:
+  // https://w3c.github.io/trusted-types/dist/spec/#serialized-tt-configuration
+  // https://w3c.github.io/webappsec-csp/#grammardef-required-ascii-whitespace
+  // U+00A / U+00D LF breaks the header field value into two lines so make sure
+  // that "the continuation line begins with a space or horizontal tab" in
+  // accordance with https://www.rfc-editor.org/rfc/rfc2616
+  promise_test(async t => {
+    let results = await tryCreatingTrustedTypePoliciesWithCSP(
+      ["_TTP1_", "_TTP2_", "_TTP3_", "_TTP4_", "_TTP5_", "_TTP6_"],
+      "header(Content-Security-Policy,trusted-types _TTP1_%09_TTP2_%0A%20_TTP3_%0C_TTP4_%0D%20_TTP5_%20_TTP6_,True)"
+    );
+    assert_equals(results.length, 6);
+    results.forEach((result, index) => {
+      assert_equals(result.exception, null);
+      assert_equals(result.violatedPolicies.length, 0);
+    });
+  }, `directive "trusted-type _TTP1_%09_TTP2_%0A%20_TTP3_%0C_TTP4_%0D_TTP5_%20_TTP6_" (required-ascii-whitespace)`);
+
+  // tt-expressions must be separated by a required-ascii-whitespace:
+  promise_test(async t => {
+    let results = await tryCreatingTrustedTypePoliciesWithCSP(
+      ["_TTP_"],
+      "header(Content-Security-Policy,trusted-types _TTP_*,True)"
+    );
+    assert_equals(results.length, 1);
+    assert_true(results[0].exception instanceof TypeError);
+    assert_equals(results[0].violatedPolicies.length, 1);
+    assert_equals(results[0].violatedPolicies[0].disposition, "enforce");
+    assert_equals(results[0].violatedPolicies[0].policy, `trusted-types _TTP_*`);
+  }, `invalid directive "trusted-type _TTP" (no ascii whitespace)`);
+</script>

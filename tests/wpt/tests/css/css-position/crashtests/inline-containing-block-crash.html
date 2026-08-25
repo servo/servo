@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1431205">
+<span style="position: relative;">
+  <div id="target" style="position: absolute; left: 0; top: 0; width: 10px; height: 10px; overflow: hidden;"></div>
+</span>
+<script>
+document.body.offsetTop;
+document.getElementById('target').textContent = 'kaboom';
+</script>

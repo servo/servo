@@ -1,0 +1,20 @@
+[project]
+name = "servo_ci_scenario_test"
+version = "0.1.0"
+requires-python = ">3.11"
+dependencies = [
+    "selenium",
+    "hdc-py>=0.1.2",
+    "pillow",
+    "matplotlib",
+]
+license = "Apache-2.0 OR MIT"
+
+[tool.uv]
+system-certs = true
+
+[tool.pyrefly]
+search-path = ["."]
+project-excludes = [
+    "**/.venv/**",
+]

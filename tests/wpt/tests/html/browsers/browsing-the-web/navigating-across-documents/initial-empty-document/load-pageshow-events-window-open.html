@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>"load" and "pageshow" events don't fire on window.open() that stays on the initial empty document</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/helpers.js"></script>
+<body></body>
+<script>
+"use strict";
+
+promise_test(async t => {
+  const w = window.open();
+  return assertNoLoadAndPageshowEvent(t, w)
+}, "load event does not fire on window.open()");
+
+promise_test(async t => {
+  const w = window.open("");
+  return assertNoLoadAndPageshowEvent(t, w)
+}, "load event does not fire on window.open('')");
+
+promise_test(async t => {
+  const w = window.open("about:blank");
+  return assertNoLoadAndPageshowEvent(t, w)
+}, "load event does not fire on window.open('about:blank')");
+
+promise_test(async t => {
+  const w = window.open("about:blank#foo");
+  return assertNoLoadAndPageshowEvent(t, w)
+}, "load event does not fire on window.open('about:blank#foo')");
+
+promise_test(async t => {
+  const w = window.open("about:blank?foo");
+  return assertNoLoadAndPageshowEvent(t, w)
+}, "load event does not fire on window.open('about:blank?foo')");
+</script>

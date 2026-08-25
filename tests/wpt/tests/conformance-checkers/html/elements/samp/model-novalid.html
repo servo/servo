@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset=utf-8>
+  <title>&lt;samp&gt;</title>
+</head>
+<body>
+  <!-- is structured inline -->
+  <p><samp class="class" lang="en">text</samp></p>
+
+  <!-- is strictly inline -->
+  <p><dfn><samp class="class" lang="en">text</samp></dfn></p>
+
+  <!-- can be empty -->
+  <p>text <samp></samp></p>
+  <p>text <dfn><samp></samp></dfn></p>
+
+  <!-- can contain interactive -->
+  <p><samp><a>text</a></samp></p>
+  <p><dfn><samp><a>text</a></samp></dfn></p>
+
+  <!-- cannot contain structured inline -->
+  <p><samp>text <ul><li>list</li></ul> <em>elem</em></samp></p>
+</body>
+</html>

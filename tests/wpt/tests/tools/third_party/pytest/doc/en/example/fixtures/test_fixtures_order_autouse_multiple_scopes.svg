@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="862" height="402">
+    <style>
+        text {
+            font-family: 'Consolas', 'Menlo', 'DejaVu Sans Mono', 'Bitstream Vera Sans Mono', monospace;
+            dominant-baseline: middle;
+            text-anchor: middle;
+            fill: #062886;
+            font-size: medium;
+        }
+        ellipse.fixture, rect.test {
+            fill: #eeffcc;
+            stroke: #007020;
+            stroke-width: 2;
+        }
+        text.fixture {
+            color: #06287e;
+        }
+        circle.class {
+            fill: #c3e0ec;
+            stroke: #0e84b5;
+            stroke-width: 2;
+        }
+        text.class {
+            fill: #0e84b5;
+        }
+        line {
+            stroke: black;
+            stroke-width: 2;
+        }
+        rect.autouse {
+            fill: #ca7f3d;
+        }
+    </style>
+
+    <!-- TestWithC1Request -->
+    <circle class="class" r="200" cx="221" cy="201" />
+    <line x1="221" x2="221" y1="61" y2="316"/>
+    <ellipse class="fixture" rx="50" ry="25" cx="221" cy="61" />
+    <text x="221" y="61">order</text>
+    <ellipse class="fixture" rx="25" ry="25" cx="221" cy="131" />
+    <text x="221" y="131">c1</text>
+    <ellipse class="fixture" rx="25" ry="25" cx="221" cy="271" />
+    <text x="221" y="271">c3</text>
+    <rect class="test" width="110" height="50" x="166" y="316" />
+    <text x="221" y="341">test_order</text>
+    <!-- scope name -->
+    <defs>
+        <path d="M31,201 A 190 190 0 0 1 411 201" id="testClassWith"/>
+    </defs>
+    <text class="class">
+        <textPath xlink:href="#testClassWith" startOffset="50%">TestWithC1Request</textPath>
+    </text>
+
+    <!-- TestWithoutC1Request -->
+    <circle class="class" r="200" cx="641" cy="201" />
+    <line x1="641" x2="641" y1="61" y2="316"/>
+    <ellipse class="fixture" rx="50" ry="25" cx="641" cy="61" />
+    <text x="641" y="61">order</text>
+    <ellipse class="fixture" rx="25" ry="25" cx="641" cy="131" />
+    <text x="641" y="131">c1</text>
+    <ellipse class="fixture" rx="25" ry="25" cx="641" cy="271" />
+    <text x="641" y="271">c2</text>
+    <rect class="test" width="110" height="50" x="586" y="316" />
+    <text x="641" y="341">test_order</text>
+    <!-- scope name -->
+    <defs>
+        <path d="M451,201 A 190 190 0 0 1 831 201" id="testClassWithout"/>
+    </defs>
+    <text class="class">
+        <textPath xlink:href="#testClassWithout" startOffset="50%">TestWithoutC1Request</textPath>
+    </text>
+
+    <rect class="autouse" width="862" height="40" x="1" y="181" />
+    <rect width="10" height="100" class="autouse" x="426" y="151" />
+    <text x="431" y="201">autouse</text>
+</svg>

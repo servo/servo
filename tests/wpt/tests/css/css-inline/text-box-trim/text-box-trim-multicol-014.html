@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>Test text-box-trim with start/end column spanners and inner fragmented blocks</title>
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-trim">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<link rel="match" href="text-box-trim-multicol-014-ref.html">
+<style>
+  .multicol {
+    columns: 3;
+    column-fill: auto;
+    width: 450px;
+    gap: 0;
+    text-box-trim: trim-both;
+    font: 50px/2 Ahem;
+  }
+
+  .spanner {
+    background: yellow;
+    column-span: all;
+  }
+</style>
+<div class="multicol">
+  <div class="spanner">xxx</div>
+  <div>xxx xxx xxx xxx xxx</div>
+  <div class="spanner">xxx</div>
+  <div>xxx xxx xxx xxx xxx</div>
+  <div class="spanner">xxx</div>
+</div>

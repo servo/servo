@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Shapes Module Level 1: path() function cache collision</title>
+<link rel="help" href="https://drafts.csswg.org/css-shapes-1/#funcdef-basic-shape-path">
+<link rel="help" href="https://crbug.com/514751990">
+<meta name="assert" content="Tests that path() with different wind rules does not collide in the Matched Properties Cache when defined via stylesheets">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .nonzero-path {
+    clip-path: path(nonzero, 'M10,10H90V90H10ZM25,25H75V75H25Z');
+  }
+  .evenodd-path {
+    clip-path: path(evenodd, 'M10,10H90V90H10ZM25,25H75V75H25Z');
+  }
+</style>
+</head>
+<body>
+<div id="t1" class="nonzero-path"></div>
+<div id="t2" class="evenodd-path"></div>
+<script>
+test(function() {
+    var t1 = document.getElementById('t1');
+    var t2 = document.getElementById('t2');
+
+    // Resolve t1 first. It should be nonzero.
+    assert_equals(getComputedStyle(t1).clipPath, 'path("M 10 10 H 90 V 90 H 10 Z M 25 25 H 75 V 75 H 25 Z")');
+
+    // Resolve t2. If cache collision occurs and wind rule is ignored, it might reuse t1's style and be nonzero instead of evenodd.
+    assert_equals(getComputedStyle(t2).clipPath, 'path(evenodd, "M 10 10 H 90 V 90 H 10 Z M 25 25 H 75 V 75 H 25 Z")');
+}, "Test that path() with different wind rules does not collide in the Matched Properties Cache");
+</script>
+</body>
+</html>

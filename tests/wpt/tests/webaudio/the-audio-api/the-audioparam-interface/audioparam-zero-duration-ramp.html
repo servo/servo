@@ -1,0 +1,105 @@
+<!doctype html>
+<html>
+  <head>
+    <title>AudioParam: zero-duration ramps scheduled at a non-frame-aligned time</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+
+  <body>
+    <script>
+      // Power of two so that frame/sampleRate is exact and the event times below are
+      // representable without round-off.
+      const sampleRate = 8192;
+      const renderQuantum = 128;
+
+      // Coincident automation event times are legal, so a ramp can legitimately have
+      // zero duration (time2 - time1 == 0). Evaluating the exponential ramp formula
+      //
+      //   v(t) = value1 * (value2 / value1) ^ ((t - time1) / (time2 - time1))
+      //
+      // then divides by zero, and the per-sample multiplier (value2 / value1) raised to
+      // 1 / (0 frames) is infinite. Implementations must not let those non-finite
+      // intermediates reach the output: per
+      // https://webaudio.github.io/web-audio-api/#computation-of-value a NaN
+      // computedValue must be replaced by the AudioParam's defaultValue, so the rendered
+      // signal is required to be finite regardless.
+      //
+      // What varies below is where the coincident events fall relative to a frame
+      // boundary. An event time that is not frame-aligned leaves the internal write
+      // cursor already at the end of the region the ramp covers, so the ramp's per-sample
+      // loop runs zero times. That is the path worth covering: with no iterations there is
+      // nothing to overwrite a poisoned starting value, and a frame-aligned event time can
+      // mask the problem because a later event overwrites the value instead.
+      //
+      // The events are placed inside the render quantum starting at frame 512, offset by
+      // a fraction of a frame. Offset 0 is the frame-aligned control.
+      const baseEventFrame = 4 * renderQuantum + 34;
+      const subFrameOffsets = [0, 0.25, 0.5, 0.75];
+
+      // A trailing setTargetAtTime keeps consuming the value the ramp left behind, so it
+      // is what makes a poisoned value observable in the output. Its timeConstant is
+      // chosen large enough that setTargetAtTime cannot force-converge to its target
+      // within the render (it does so after 10 time constants), which would otherwise
+      // mask the failure partway through the buffer.
+      const timeConstant = 10;
+
+      // Renders three coincident events at |eventFrame| / sampleRate, where |method| is
+      // the zero-duration ramp under test, and returns the rendered samples.
+      async function renderCoincidentRamp(method, eventFrame) {
+        const context = new OfflineAudioContext({
+          numberOfChannels: 1,
+          length: sampleRate,
+          sampleRate: sampleRate
+        });
+
+        // offset has no audio-rate inputs, which is the common case and the one where an
+        // implementation cannot rely on input summing to sanitize the value.
+        const src = new ConstantSourceNode(context, {offset: 0});
+        src.connect(context.destination);
+
+        const eventTime = eventFrame / sampleRate;
+
+        // value1 is non-zero and has the same sign as value2, so the exponential ramp
+        // formula above applies rather than the "v(t) = value1" special case.
+        src.offset.setValueAtTime(1, eventTime);
+        src.offset[method](2, eventTime);
+        src.offset.setTargetAtTime(5, eventTime, timeConstant);
+
+        src.start();
+
+        const buffer = await context.startRendering();
+        return buffer.getChannelData(0);
+      }
+
+      // Asserts every sample is finite, reporting the first offender and how far the
+      // damage extends.
+      function assert_all_finite(output, description) {
+        const firstBad = output.findIndex(value => !Number.isFinite(value));
+        if (firstBad < 0)
+          return;
+
+        let count = 0;
+        for (let i = firstBad; i < output.length; ++i) {
+          if (!Number.isFinite(output[i]))
+            ++count;
+        }
+
+        assert_unreached(
+            `${description}: output[${firstBad}] is ${output[firstBad]} ` +
+            `(${count} of ${output.length} samples are not finite)`);
+      }
+
+      for (const method of ['exponentialRampToValueAtTime',
+                            'linearRampToValueAtTime']) {
+        for (const offset of subFrameOffsets) {
+          const eventFrame = baseEventFrame + offset;
+          promise_test(async () => {
+            const output = await renderCoincidentRamp(method, eventFrame);
+            assert_all_finite(output, `${method} at frame ${eventFrame}`);
+          }, `Zero-duration ${method} at frame ${eventFrame} renders finite values`);
+        }
+      }
+    </script>
+  </body>
+</html>

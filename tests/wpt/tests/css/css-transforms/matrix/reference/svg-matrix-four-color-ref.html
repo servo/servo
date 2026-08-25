@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Reftest Reference</title>
+    <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+    <meta name="flags" content="svg">
+    <style type="text/css">
+    svg {
+        width: 200px;
+        height: 200px;
+    }
+    </style>
+</head>
+<body>
+    <p>The test passes if you see a four color square where the top left is green, the top right is fuchsia, the bottom left is yellow, and the bottom right is blue. You should see no red.</p>
+    <svg>
+        <rect x="0" y="0" width="50" height="50" fill="green"/>
+        <rect x="50" y="0" width="50" height="50" fill="fuchsia"/>
+        <rect x="0" y="50" width="50" height="50" fill="yellow"/>
+        <rect x="50" y="50" width="50" height="50" fill="blue"/>
+    </svg>
+</body>
+</html>

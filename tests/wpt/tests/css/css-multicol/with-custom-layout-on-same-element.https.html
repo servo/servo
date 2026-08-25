@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=997403">
+<link rel="help" href="https://www.w3.org/TR/css-multicol-1/#cc">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="column-count and column-width should only apply to block containers, and not tables, flexboxes, grid, custom layout containers, etc.">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="display:layout(parent); column-count:2; width:100px; height:100px; background:red;">
+  <div style="height:100px; background:green;"></div>
+</div>

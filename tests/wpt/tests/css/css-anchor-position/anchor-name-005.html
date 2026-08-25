@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#determining">
+<link rel="author" href="mailto:kiet.ho@apple.com">
+<link rel="match" href="reference/anchor-name-005-ref.html">
+<meta name="assert" content="An anchor element with multiple anchor names can be referenced using both names">
+<style>
+#anchor {
+  position: relative;
+  top: 10px;
+  left: 10px;
+
+  anchor-name: --a1, --a2;
+  width: 100px;
+  height: 100px;
+  background: red;
+}
+#target {
+  position: absolute;
+  /* if this fails, the target (green) box is displayed below the anchor (red) box */
+  top: anchor(--a1 top);
+  /* if this fails, the target box will not fully cover the anchor box */
+  left: anchor(--a2 left);
+
+  width: 100px;
+  height: 100px;
+  background: green;
+  z-index: 1;
+}
+</style>
+<body>
+  <p>The test passes if there is only one green square with no red.</p>
+  <div>
+    <div>
+        <div id="anchor"></div>
+    </div>
+    <div id="target"></div>
+  </div>
+</body>

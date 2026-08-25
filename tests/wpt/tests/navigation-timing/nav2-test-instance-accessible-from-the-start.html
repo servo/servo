@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  var navigationTiming2 = window.performance.getEntriesByType('navigation')[0];
+  assert_not_equals(navigationTiming2, undefined);
+  assert_equals(navigationTiming2.entryType, "navigation");
+  assert_equals(navigationTiming2.startTime, 0);
+  assert_equals(navigationTiming2.initiatorType, "navigation");
+  done();
+}, "PerformanceNavigationTiming instance exists with reasonable values.");
+</script>

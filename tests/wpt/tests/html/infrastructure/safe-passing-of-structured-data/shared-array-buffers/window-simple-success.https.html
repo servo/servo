@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Structured cloning of SharedArrayBuffers: simple success cases that don't need dedicated files</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#structuredserialize">
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/test-incrementer.js"></script>
+
+<div id="log"></div>
+
+<script>
+"use strict";
+
+[
+  "DataView",
+  "Int8Array",
+  "Uint8Array",
+  "Uint8ClampedArray",
+  "Int16Array",
+  "Uint16Array",
+  "Int32Array",
+  "Uint32Array",
+  "BigInt64Array",
+  "BigUint64Array",
+  "Float16Array",
+  "Float32Array",
+  "Float64Array"
+].forEach(type => {
+  promise_test(t => {
+    const worker = new Worker("resources/incrementer-worker.js");
+
+    return testSharingViaIncrementerScript(t, worker, "window", worker, "worker", undefined, type);
+  }, "postMessaging to a dedicated worker allows them to see each others' modifications with " + type);
+});
+
+promise_test(t => {
+  return new Promise(resolve => {
+    const iframe = document.createElement("iframe");
+    iframe.onload = t.step_func(() => {
+      resolve(testSharingViaIncrementerScript(t, window, "window", iframe.contentWindow, "iframe", "*"));
+    });
+    iframe.src = "resources/incrementer-iframe.html";
+    document.body.appendChild(iframe);
+  });
+}, "postMessaging to a same-origin iframe allows them to see each others' modifications");
+
+promise_test(t => {
+  return new Promise(resolve => {
+    const iframe = document.createElement("iframe");
+    iframe.onload = t.step_func(() => {
+      const level1 = iframe.contentWindow;
+      const level2 = level1.frames[0];
+      const level3 = level2.frames[0];
+      const targetWindow = level3.frames[0];
+      resolve(testSharingViaIncrementerScript(t, window, "window", targetWindow, "nested iframe", "*"));
+    });
+    iframe.src = "resources/nested-iframe-1.html";
+    document.body.appendChild(iframe);
+  });
+}, "postMessaging to a same-origin deeply-nested iframe allows them to see each others' modifications");
+
+promise_test(t => {
+  return new Promise(resolve => {
+    const w = window.open("resources/incrementer-popup.html");
+    w.onload = t.step_func(() => {
+      resolve(testSharingViaIncrementerScript(t, window, "window", w, "popup window", "*").then(() => {
+        w.close();
+      }));
+    });
+  });
+}, "postMessaging to a same-origin opened window allows them to see each others' modifications");
+</script>

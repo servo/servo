@@ -1,0 +1,50 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Fixed table layout - specified column-group width</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#fixed-table-layout" />
+        <meta name="assert" content="Specified column-group width is ignored in fixed table layout." />
+        <style type="text/css">
+            table
+            {
+                border-collapse: collapse;
+                table-layout: fixed;
+                width: 200px;
+            }
+            #colgroup
+            {
+                width: 50px;
+            }
+            #cell
+            {
+                background: black;
+            }
+            #div1
+            {
+                background: blue;
+                width: 100px;
+            }
+            #div1, #cell
+            {
+                height: 1em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the boxes below are the same width.</p>
+        <table>
+            <colgroup id="colgroup">
+                <col />
+            </colgroup>
+            <colgroup>
+                <col />
+            </colgroup>
+            <tr>
+                <td id="cell"></td>
+                <td></td>
+           </tr>
+        </table>
+        <div id="div1"></div>
+    </body>
+</html>

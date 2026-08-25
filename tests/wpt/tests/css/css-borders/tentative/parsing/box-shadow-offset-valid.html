@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Borders and Box Decorations 4 Test: Parsing 'box-shadow-offset' with valid values</title>
+<link rel="author" title="Sebastian Zartner" href="mailto:sebastianzartner@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#box-shadow-offset">
+<meta name="assert" content="This test checks that 'box-shadow-offset' supports offset values.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+
+<script>
+test_valid_value("box-shadow-offset", "0");
+test_valid_value("box-shadow-offset", "0 0");
+test_valid_value("box-shadow-offset", "1px 2px");
+test_valid_value("box-shadow-offset", "1em 2em");
+test_valid_value("box-shadow-offset", "-1px -2px");
+test_valid_value("box-shadow-offset", "calc(1em + 2px) calc(3rem + 4vw)");
+test_valid_value("box-shadow-offset", "1px 2px, 3px 4px");
+</script>

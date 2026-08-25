@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<link rel="author" href="mailto:caseq@chromium.org">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1348019">
+<title>Releasing wake locks upon visibility change does not cause crash if an iframe is appended in event listener</title>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/page-visibility/resources/window_state_context.js"></script>
+<script>
+'use strict';
+
+promise_test(async t => {
+  await test_driver.set_permission({ name: 'screen-wake-lock' }, 'granted');
+  const { minimize } = window_state_context(t);
+
+  const screenLock = await navigator.wakeLock.request('screen');
+
+  assert_false(screenLock.released, "The released attribute is initially false");
+
+  screenLock.addEventListener('release', () => {
+    const iframe = document.createElement('iframe');
+    iframe.src = 'about:blank';
+    document.body.appendChild(iframe);
+  });
+
+  const release = new EventWatcher(t, screenLock, 'release').wait_for('release');
+  await Promise.all([minimize(), release]);
+  assert_true(screenLock.released, "The released attribute is true after the lock is released");
+}, "Appending iframe in release event listener does not cause a crash when page visibility changes");
+</script>
+</body>
+</html>

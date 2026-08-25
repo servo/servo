@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: relative box order of pseudo elements</title>
+<link rel="match" href="relative-box-order-of-pseudo-elements-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-markers">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-buttons">
+<style>
+div {
+  overflow: auto;
+  scroll-marker-group: after;
+}
+
+div::before {
+  background: red;
+  content: "";
+  height: 20px;
+  width: 100px;
+  display: flex;
+}
+
+div > li {
+  background: orange;
+  height: 20px;
+  width: 100px;
+  display: flex;
+}
+
+div::after {
+  background: yellow;
+  content: "";
+  height: 20px;
+  width: 100px;
+  display: flex;
+}
+
+div::scroll-button(up) {
+  background: green;
+  border: none;
+  content: "";
+  height: 20px;
+  width: 100px;
+  display: flex;
+}
+
+div::scroll-button(right) {
+  content: "";
+  border: none;
+  background: blue;
+  height: 20px;
+  width: 100px;
+  display: flex;
+}
+
+
+div::scroll-marker-group {
+  background: purple;
+  height: 20px;
+  width: 100px;
+  display: flex;
+}
+</style>
+<div>
+  <li></li>
+</div>

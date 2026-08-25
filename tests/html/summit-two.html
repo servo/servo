@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      body {
+        margin: 0;
+        padding: 30px 47px;
+      }
+      img {
+        width: 206px;
+        height: 206px;
+      }
+    </style>
+  </head>
+  <body>
+    <p><img></p>
+    <script>
+var index = 0;
+function change() {
+    document.getElementsByTagName("img")[0].src = "rust-" + (index * 45) + ".png";
+    index = (index + 1) % 8;
+    setTimeout(change, 100);
+}
+change();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Relative Positioned Grid Items as a Containing Block of Absolute Positioned Descendant</title>
+<link rel="author" title="Jo Steven Novaryo" href="mailto:steven.novaryo@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#absolute-cb">
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#fixed-cb">
+<link rel="help" href="https://drafts.csswg.org/css-grid/#grid-items">
+<link rel="help" href="https://github.com/servo/servo/issues/34535">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="Ensures that relative positioned grid item established as an absolute containing block correctly.">
+<link rel="stylesheet" href="support/grid-items-relative-positioned-containing-block.css">
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div class="grid">
+    <div class="box1 red"></div>
+    <div class="container">
+        <div class="box-abspos green"></div>
+    </div>
+</div>

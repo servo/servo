@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Text: hanging-punctuation first</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#hanging-punctuation-property">
+<link rel="match" href="reference/hanging-punctuation-first-ref.html">
+<meta name="assert" content="hanging-punctuation: first causes opening punctuation at the start of the first line to hang into the margin. Punctuation preceded by a non-zero-width border does not hang. Hanging interacts correctly with text-indent.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+    body { font-family: 'Ahem'; color:green }
+    .hang { hanging-punctuation: first; margin:1em }
+</style>
+<div style="float:left" class="hang">(Hang test)</div>
+<div style="clear:both">
+<div class="hang">(This should hang.<br>(This should not.</div>
+<div class="hang" style="text-align:justify; width:300px;">(This should hang and justifybecause and now were fine.</div>
+<div class="hang" style="text-align:justify; width:300px;"><span>(</span>This should hang.</div>
+<div class="hang" style="text-align:justify; width:300px;"><span style="border-left:1em solid blue">(</span>This should not hang.</div>
+<div class="hang" style="text-indent:2em; text-align:justify; width:300px;">(This should hang into the text-indent.</div>

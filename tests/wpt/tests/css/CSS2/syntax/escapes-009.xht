@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Characters and case: Escaping a character inside a keyword</title>
+  <link rel="author" title="Gabriele Romanato" href="mailto:gabriele.romanato@gmail.com" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#characters" />
+  <link rel="match" href="../reference/ref-this-text-should-be-green.xht"/>
+  <meta name="flags" content="invalid" />
+  <meta name="assert" content="Browsers should be able to ignore the keyword"/>
+<style type="text/css">
+p {color: green}
+p {color: r\ed}
+</style>
+ </head>
+ <body>
+<p>This text should be green.</p>
+ </body>
+</html>

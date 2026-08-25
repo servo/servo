@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Basic ConstantSourceNode Tests</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="../../resources/start-stop-exceptions.js"></script>
+  </head>
+  <body>
+    <script>
+      const context = new AudioContext();
+
+      test(() => {
+        const node = new ConstantSourceNode(context);
+        verifyNodeDefaults(node);
+      }, `ConstantSourceNode constructor creates a valid node `+
+          `with correct defaults`);
+
+      test(() => {
+        const node = new ConstantSourceNode(context);
+        testStartStop_W3CTH(node);
+      }, `ConstantSourceNode start()/stop() should throw correct `+
+          `exceptions per spec`);
+
+      test(() => {
+        const node = context.createConstantSource();
+        assert_true(node instanceof ConstantSourceNode,
+            'Factory should return a ConstantSourceNode');
+        verifyNodeDefaults(node);
+      }, `context.createConstantSource() creates a ConstantSourceNode `+
+          `with correct defaults`);
+
+      test(() => {
+        const node = context.createConstantSource();
+        testStartStop_W3CTH(node);
+      }, `context.createConstantSource() node start()/stop() should `+
+          `throw correct exceptions per spec`);
+
+      function verifyNodeDefaults(node) {
+        assert_equals(node.numberOfInputs, 0, 'numberOfInputs should be 0');
+        assert_equals(node.numberOfOutputs, 1, 'numberOfOutputs should be 1');
+        assert_equals(node.channelCount, 2, 'channelCount should be 2');
+        assert_equals(
+            node.channelCountMode, 'max', 'channelCountMode should be "max"');
+        assert_equals(
+            node.channelInterpretation,
+            'speakers',
+            'channelInterpretation should be "speakers"');
+
+        assert_equals(node.offset.value, 1, 'offset.value should be 1');
+        assert_equals(
+            node.offset.defaultValue, 1, 'offset.defaultValue should be 1');
+        assert_equals(
+            node.offset.minValue,
+            Math.fround(-3.4028235e38),
+            'offset.minValue should match spec');
+        assert_equals(
+            node.offset.maxValue,
+            Math.fround(3.4028235e38),
+            'offset.maxValue should match spec');
+      }
+    </script>
+  </body>
+</html>

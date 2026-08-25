@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>Padding/border/margin on largeop</title>
+<link rel="help" href="https://w3c.github.io/mathml-core/#layout-algorithms">
+<link rel="help" href="https://w3c.github.io/mathml-core/#the-math-style-property">
+<link rel="help" href="https://w3c.github.io/mathml-core/#layout-of-operators">
+<link rel="match" href="padding-border-margin-002-ref.html"/>
+<meta name="assert" content="Verify visual rendering of padding/border/margin on a displaystyle mo element with the largeop property.">
+<style>
+  @font-face {
+    font-family: TestFont;
+    src: url("/fonts/math/largeop-displayoperatorminheight5000.woff");
+  }
+  math  {
+    /* Largeop variant for U+2AFF has width 100px
+       and height 300 * 5000 / 1000 = 1500px */
+    font-family: TestFont;
+    font-size: 300px;
+  }
+</style>
+<body>
+  <p>This test passes if you see a cyan rectangle of width 300px and
+    height 1500px, surrounded by a 10px blue padding, surrounded by a 10px
+    blue/yellow dashed border, itself
+    surrounded by a 10px pink margin.</p>
+  <div style="background: pink; position: absolute; left: 10px; top: 4em;">
+    <math displaystyle="true">
+      <mo largeop="true" lspace="0" rspace="0" style="background: blue; border: 10px dashed yellow; padding: 10px; margin: 10px; color: cyan;">&#x2AFF;</mo>
+    </math>
+  </div>
+</body>
+</html>

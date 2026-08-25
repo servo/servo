@@ -1,0 +1,19 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>The 'width' media feature (for visual devices with desktop viewport widths)</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/media/queries/002.html"/>
+  <link rel="help" href="https://www.w3.org/TR/css3-mediaqueries/#width"/>
+    <style type="text/css"><![CDATA[
+   @media screen and (width) { .a { color: green; } }
+   @media screen and (min-width: 1em) { .b { color: green; } }
+   @media screen and (max-width: 1000000em) { .c { color: green; } }
+  ]]></style>
+ </head>
+ <body>
+  <p class="a"> This line should be green. </p>
+  <p class="b"> This line should be green. </p>
+  <p class="c"> This line should be green. </p>
+ </body>
+</html>

@@ -1,0 +1,73 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <title>A modulepreloaded parser-inserted external module script is allowed with `strict-dynamic` in the script-src directive.</title>
+    <script src='/resources/testharness.js' nonce='dummy'></script>
+    <script src='/resources/testharnessreport.js' nonce='dummy'></script>
+
+    <!-- CSP served: script-src 'strict-dynamic' 'nonce-dummy' -->
+    <link rel="modulepreload" href="simpleSourcedModule.js?modulepreloaded-module">
+    <link rel="preload" as="script" href="simpleSourcedModule.js?preload-as-script">
+    <link rel="modulepreload" href="simpleSourcedModule.js?modulepreloaded-other">
+</head>
+
+<body>
+    <h1>A modulepreloaded parser-inserted external module script is allowed with `strict-dynamic` in the script-src directive.</h1>
+    <div id='log'></div>
+
+    <script nonce='dummy'>
+        async_test(function(t) {
+            window.addEventListener('message', t.step_func(function(e) {
+                if (e.data === 'modulepreloaded-module') {
+                    t.done();
+                }
+            }));
+            window.addEventListener('securitypolicyviolation', t.step_func(function(violation) {
+                if (!violation.blockedURI.includes('simpleSourcedModule.js?modulepreloaded-module')) {
+                    return;
+                }
+                assert_unreached('A modulepreloaded parser-inserted external module script is allowed with `strict-dynamic`.');
+            }));
+        }, 'Parser-inserted external module script that is also `modulepreload`ed is allowed with `strict-dynamic`.');
+    </script>
+    <script type="module" src="simpleSourcedModule.js?modulepreloaded-module"></script>
+
+    <script nonce='dummy'>
+        async_test(function(t) {
+            window.addEventListener('message', t.step_func(function(e) {
+                if (e.data === 'preload-as-script') {
+                    assert_unreached('A generic `<link rel=preload as=script>` must not allow a parser-inserted module script with `strict-dynamic`.');
+                }
+            }));
+            window.addEventListener('securitypolicyviolation', t.step_func(function(violation) {
+                if (!violation.blockedURI.includes('simpleSourcedModule.js?preload-as-script')) {
+                    return;
+                }
+                assert_equals(violation.effectiveDirective, 'script-src-elem');
+                t.done();
+            }));
+        }, 'Parser-inserted external module script with only a `<link rel=preload as=script>` is not allowed with `strict-dynamic`.');
+    </script>
+    <script type="module" src="simpleSourcedModule.js?preload-as-script"></script>
+
+    <script nonce='dummy'>
+        async_test(function(t) {
+            window.addEventListener('message', t.step_func(function(e) {
+                if (e.data === 'url-mismatch') {
+                    assert_unreached('A `modulepreload` for a different URL must not allow a parser-inserted module script with `strict-dynamic`.');
+                }
+            }));
+            window.addEventListener('securitypolicyviolation', t.step_func(function(violation) {
+                if (!violation.blockedURI.includes('simpleSourcedModule.js?url-mismatch')) {
+                    return;
+                }
+                assert_equals(violation.effectiveDirective, 'script-src-elem');
+                t.done();
+            }));
+        }, 'A `modulepreload` for a different URL does not allow a parser-inserted external module script with `strict-dynamic`.');
+    </script>
+    <script type="module" src="simpleSourcedModule.js?url-mismatch"></script>
+</body>
+
+</html>

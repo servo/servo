@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html>
+<title>getTiming on a KeyframeEffect with invalid pseudoElement option</title>
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=441567711">
+<meta name="assert" content="This should not crash.">
+<body>
+  <script>
+    let t = (new KeyframeEffect(null, [], { pseudoElement: "img2" })).getTiming();
+  </script>
+</body>
+
+</html>

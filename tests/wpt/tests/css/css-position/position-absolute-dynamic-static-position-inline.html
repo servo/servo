@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<link rel="help" href="https://www.w3.org/TR/css-position-3/" />
+<meta name="assert" content="This test checks that the static-position of an absolute positioned element changes, if the display value changes from inline to block." />
+<p>Test passes if there is a filled green square.</p>
+<div style="position: relative; line-height: 0;">
+  <div style="width: 100px; height: 50px; display: inline-block; background: green;"></div>
+  <div id="target" style="width: 100px; height: 50px; display: inline; position: absolute; background: green;"></div>
+</div>
+<script>
+document.body.offsetTop;
+document.getElementById('target').style.display = 'block';
+</script>

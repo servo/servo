@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+'use strict';
+
+promise_test((t) => {
+  const p1 = navigator.keyboard.lock(["KeyA", "KeyB"]);
+  const p2 = navigator.keyboard.lock(["KeyC", "KeyD"]);
+  return Promise.all([promise_rejects_dom(t, "AbortError", p1), p2]);
+}, '[Keyboard Lock] keyboard.lock twice in parallel');
+
+</script>

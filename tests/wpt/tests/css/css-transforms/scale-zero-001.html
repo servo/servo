@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Transforms Test: transform property with scale function and zero values</title>
+    <link rel="author" title="Jian Zhang" href="mailto:jian.andy.zhang@gmail.com">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-property">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#two-d-transform-functions">
+    <link rel="match" href="reference/scale-zero-ref.html">
+    <meta name="assert" content="If zero value is passed to scale function, it causes the element to disappear.">
+    <style type="text/css">
+        .greenSquare {
+            position: absolute;
+            top: 50px;
+            left: 50px;
+            width: 100px;
+            height: 100px;
+            background: green;
+        }
+        .redSquare {
+            position: absolute;
+            top: 50px;
+            left: 50px;
+            width: 100px;
+            height: 100px;
+            background: red;
+            transform: scale(0);
+        }
+    </style>
+</head>
+<body>
+    <p>The test passes if there is a green square and no red.</p>
+    <div class="greenSquare"></div>
+    <div class="redSquare"></div>
+</body>
+</html>

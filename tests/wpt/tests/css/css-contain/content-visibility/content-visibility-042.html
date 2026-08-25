@@ -1,0 +1,38 @@
+<!doctype HTML>
+<html class="reftest-wait">
+<meta charset="utf8">
+<title>Content Visibility: pseudo elements</title>
+<link rel="author" title="Rakina Zata Amni" href="mailto:rakina@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<link rel="match" href="content-visibility-042-ref.html">
+<meta name="assert" content="content-visibility elements paints ::before and ::after when hidden is removed">
+
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+#container::before {
+  content: "This test ";
+  color: green;
+}
+.hasAfter::after {
+  content: "PASSES.";
+  background: green;
+  color: white;
+}
+.hidden {
+  content-visibility: hidden;
+}
+</style>
+<div id="container" class=hidden style="display:none;"></div>
+
+<script>
+async function runTest() {
+  container.classList.add("hasAfter");
+  container.classList.remove("hidden");
+  container.style = "";
+  requestAnimationFrame(takeScreenshot);
+}
+
+window.onload = runTest;
+</script>
+</html>

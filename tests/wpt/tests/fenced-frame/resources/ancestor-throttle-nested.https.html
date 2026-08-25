@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<script src="utils.js"></script>
+<title>Header Inheritance CSP Reporting Page</title>
+<body>
+<script>
+// This file is embedded in an iframe by ancestor-throttle-inner.https.html
+// which in turn has been embedded in a fenced frame by
+// ancestor-throttle.https.html. This in turn will load a same-origin iframe.
+async function init() {
+  const url = new URL(location.href);
+  const embed_url = generateURL(url.searchParams.get("nested_url"),
+      parseKeylist());
+  const iframe = document.createElement('iframe');
+  iframe.src = embed_url;
+  document.body.append(iframe);
+}
+
+init();
+</script>
+</body>
+</html>

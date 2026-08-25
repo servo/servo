@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://open-ui.org/components/interest-invokers.explainer">
+<link rel="match" href="interestfor-pseudo-element-appearance-ref.html">
+
+<div class=example>
+  <button interestfor=target><span>Button</span></button>
+</div>
+<div class=example>
+  <a href=# interestfor=target><span>Link</span></a>
+</div>
+<div class=example>
+  <img src="/images/blue.png" usemap="#map1" width=40 height=40><map id="map1"><area href="/" shape="default" interestfor=target></map>
+</div>
+
+<div class="example defaultcontent">
+  <button interestfor=target><span>Button</span></button>
+</div>
+<div class="example defaultcontent">
+  <a href=# interestfor=target><span>Link</span></a>
+</div>
+
+<div id=target></div>
+
+<style>
+  [interestfor]::interest-button {
+    /* Always show the pseudo, regardless of media. */
+    display: inline-block;
+  }
+  .example:not(.defaultcontent) {
+    & [interestfor]::before {
+      content: "::before";
+      border: 1px solid lime;
+    }
+    & [interestfor]::interest-button {
+      content: "::interest-button";
+    }
+    [interestfor]::after {
+      content: "::after";
+      border: 1px solid lime;
+    }
+    [interestfor]>span {
+      border: 1px solid lime;
+    }
+  }
+
+  .example {
+    width: 400px;
+    height: 50px;
+  }
+</style>
+

@@ -1,0 +1,132 @@
+<!doctype html>
+<html>
+<head>
+<title>Test setSinkId behavior with permissions / device changes</title>
+<link rel="author" title="Dominique Hazael-Massieux" href="mailto:dom@w3.org"/>
+<link rel="help" href="https://www.w3.org/TR/audio-output/#dom-htmlmediaelement-setsinkid">
+<meta name="timeout" content="long">
+
+</head>
+<body>
+<h1 class="instructions">Description</h1>
+<p class="instructions">This test checks that <code>setSinkId</code> follows the algorithm, this includes manually checking the proper rendering on new output devices.</p>
+<p class="instructions">When prompted to access microphones, please accept as this is the only current way to get permissions for associated output devices.</p>
+<p class="instructions">For each authorized output device, check that selecting it makes the audio beat rendered on the corresponding device.</p>
+<p>Available but unauthorized devices (only those for which we can gain permission can be selected):</p>
+<ul id="available"></ul>
+<p>Authorized  devices:</p>
+<ul id="authorized"></ul>
+<audio controls id="beat" src="/media/sound_5.mp3" loop></audio>
+
+<div id='log'></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+"use strict";
+
+const is_output = d => d.kind === "audiooutput";
+const by_id = (id) => d => d.groupId === id;
+const is_input = d => d.kind === "audioinput";
+const audio = document.getElementById("beat");
+const available = document.getElementById("available");
+const authorized = document.getElementById("authorized");
+
+let outputList;
+
+const selectDeviceTester = (t) => (e) => {
+    const groupId = e.target.dataset["groupid"];
+    const device = outputList.find(by_id(groupId));
+    if (audio.paused) audio.play();
+    promise_test(pt => audio.setSinkId(device.deviceId).then(() => {
+        assert_equals(device.deviceId, audio.sinkId);
+
+        const pass = document.createElement("button");
+        const fail = document.createElement("button");
+
+        const result = (bool) => () => {
+            assert_true(bool, "Sound rendered on right device");
+            fail.remove();
+            pass.remove();
+            audio.pause();
+            e.target.checked = false;
+            e.target.disabled = true;
+            t.done();
+        };
+
+        pass.style.backgroundColor = "#0f0";
+        pass.textContent = "\u2713 Sound plays on " + device.label;
+        pass.addEventListener("click", result(true));
+
+        fail.style.backgroundColor = "#f00";
+        fail.textContent = "\u274C Sound doesn't play on " + device.label;
+        fail.addEventListener("click", result(true));
+
+        const container = e.target.parentNode.parentNode;
+        container.appendChild(pass);
+        container.appendChild(fail);
+    }), "setSinkId for " + device.label + " resolves");
+};
+
+const addAuthorizedDevice = (groupId) => {
+    const device = outputList.find(by_id(groupId));
+    const async_t = async_test("Selecting output device " + device.label + " makes the audio rendered on the proper device");
+    const li = document.createElement("li");
+    const label = document.createElement("label");
+    const input = document.createElement("input");
+    input.type = "radio";
+    input.name = "device";
+    input.dataset["groupid"] = device.groupId;
+    input.addEventListener("change", selectDeviceTester(async_t));
+    const span = document.createElement("span");
+    span.textContent = device.label;
+    label.appendChild(input);
+    label.appendChild(span);
+    li.appendChild(label);
+    authorized.appendChild(li);
+};
+
+const authorizeDeviceTester = (t) => (e) => {
+    const groupId = e.target.dataset["groupid"];
+    navigator.mediaDevices.getUserMedia({audio: {groupId}})
+        .then( () => {
+            addAuthorizedDevice(groupId);
+            t.done();
+        });
+};
+
+promise_test(gum =>
+             navigator.mediaDevices.getUserMedia({audio: true}).then(
+                 () => {
+                     promise_test(t =>
+                                  navigator.mediaDevices.enumerateDevices().then(list => {
+                                      assert_not_equals(list.find(is_output), undefined, "media device list includes at least one audio output device");
+                                      outputList = list.filter(is_output);
+                                      outputList.forEach(d => {
+                                          const li = document.createElement("li");
+                                          assert_not_equals(d.label, "", "Audio Output Device Labels are available after permission grant");
+                                          li.textContent = d.label;
+                                          // Check permission
+                                          promise_test(perm => navigator.permissions.query({name: "speaker", deviceId: d.deviceId}).then(({state}) => {
+                                              if (state === "granted") {
+                                                  addAuthorizedDevice(d.groupId);
+                                              } else if (state === "prompt") {
+                                                  const inp = list.find(inp => inp.kind === "audioinput" && inp.groupId === d.groupId);
+                                                  if (inp || true) {
+                                                      const async_t = async_test("Authorizing output devices via permission requests for microphones works");
+                                                      const button = document.createElement("button");
+                                                      button.textContent = "Authorize access";
+                                                      button.dataset["groupid"] = d.groupId;
+                                                      button.addEventListener("click", async_t.step_func_done(authorizeDeviceTester(async_t)));
+                                                      li.appendChild(button);
+                                                  }
+                                                  available.appendChild(li);
+                                              }
+                                          }, () => {
+                                                           // if we can't query the permission, we assume it's granted :/
+                                                           addAuthorizedDevice(d.groupId);
+                                                       })
+                                                       , "Query permission to use " + d.label);
+                                      });
+                                  }), "List media devices");
+                 }), "Authorize mike access");
+</script>

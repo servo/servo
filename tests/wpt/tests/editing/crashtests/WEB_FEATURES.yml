@@ -1,0 +1,3 @@
+rules:
+- execCommand-*.html: [execcommand]
+- queryCommand*.html: [execcommand]

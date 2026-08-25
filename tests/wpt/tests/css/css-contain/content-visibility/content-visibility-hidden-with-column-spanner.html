@@ -1,0 +1,33 @@
+<!doctype HTML>
+<html>
+<meta charset="utf8">
+<title>CSS Content Visibility: hidden column spanner</title>
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<link rel="match" href="content-visibility-hidden-with-column-spanner-ref.html">
+<meta name="assert" content="content-visibility hidden column spanner should stay hidden">
+<style>
+body {
+  width: 600px;
+  overflow: hidden;
+}
+.container {
+  column-count: 2;
+  width: 200px;
+  height: 100px;
+}
+.spanner {
+  column-span: all;
+}
+</style>
+Test fails if you can see text below.
+<div class=container>
+  <div id=hide_this>
+    XXX
+    <div class=spanner>PASS if not visible</div>
+    XXX
+  </div>
+</div>
+<script>
+document.body.offsetHeight;
+hide_this.style.contentVisibility = "hidden";
+</script>

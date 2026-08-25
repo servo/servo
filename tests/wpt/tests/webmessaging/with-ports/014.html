@@ -1,0 +1,17 @@
+<!doctype html>
+<title>structured clone vs reference</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+async_test(function(t) {
+  var x = [];
+  y = [x,x];
+  postMessage(y, '*', []);
+  onmessage = t.step_func(function(e) {
+    assert_equals(e.data[0], e.data[1], 'e.data[0] === e.data[1]');
+    assert_not_equals(e.data[0], x, 'e.data[0] !== x');
+    t.done();
+  });
+});
+</script>

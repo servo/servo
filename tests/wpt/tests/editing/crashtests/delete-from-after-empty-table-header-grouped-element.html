@@ -1,0 +1,16 @@
+<!doctype html>
+<html>
+<head>
+<meta char="utf-8">
+<script>
+addEventListener("load", () => {
+  document.documentElement.contentEditable = true;
+  getSelection().collapse(document.querySelector("svg"), document.querySelector("svg").childNodes.length);
+  document.execCommand("delete");
+});
+</script>
+<body>
+<svg>
+  <a display="table-header-group">
+  </a>
+  </svg></body></html>

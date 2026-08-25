@@ -1,0 +1,30 @@
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+@keyframes boo {
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
+}
+div.test { animation: boo 1s infinite; }
+</style>
+<div class="test" id="first">hi there!</div>
+<div class="test" id="second">hi again!</div>
+<script>
+  async_test(function(t) {
+    window.onload = t.step_func(function() {
+      // Verify that there are the expected animations active.
+      assert_equals(window.runningAnimationCount, 2);
+      // Cause the animating nodes to become uninvolved with layout.
+      document.getElementById('first').remove();
+      document.getElementById('second').style.display = 'none';
+      // Ensure that we wait until the next layout is complete.
+      requestAnimationFrame(t.step_func(function() {
+        requestAnimationFrame(t.step_func(function() {
+          // Verify that the previous animations are no longer considered active.
+          assert_equals(window.runningAnimationCount, 0);
+          t.done();
+        }));
+      }));
+    });
+  }, "Animations are no longer active when a node can't be animated.");
+</script>

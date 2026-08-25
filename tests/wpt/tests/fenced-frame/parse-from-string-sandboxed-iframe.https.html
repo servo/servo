@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>Test HTML parsing a fencedframe element in a sandboxed iframe</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+promise_test(async(t) => {
+  const iframe = document.createElement("iframe");
+  iframe.sandbox = "allow-scripts allow-same-origin";
+  document.body.appendChild(iframe);
+  const parser = new iframe.contentWindow.DOMParser();
+  const parsed_value =
+      parser.parseFromString("<fencedframe></fencedframe>", 'text/html');
+}, 'Parsing HTML with a fencedframe element in a sandboxed iframe works ' +
+   'without crashing.');
+</script>
+</body>

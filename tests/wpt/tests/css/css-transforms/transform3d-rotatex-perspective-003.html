@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test (Transforms): 'perspective' and 'opacity'</title>
+    <link rel="author" title="Matt Woodrow" href="mailto:mwoodrow@mozilla.com">
+    <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-2/#perspective-property">
+    <meta name="assert" content="This tests for a real-world implementation
+    bug: see <https://bugzilla.mozilla.org/show_bug.cgi?id=707563>.  The only
+    difference between the test and reference is 'opacity: 0.9999', which should
+    not affect anything in the test.">
+    <link rel="match" href="transform3d-rotatex-perspective-ref.html">
+    <link rel="mismatch" href="transform3d-rotatex-perspective-notref.html">
+    <meta name="fuzzy" content="maxDifference=0-25;totalPixels=0-2080">
+
+    <style>
+      #container {
+        position: relative;
+        height: 300px;
+        width: 300px;
+        margin: 50px 100px;
+        border: 2px solid blue;
+
+        perspective: 500px;
+        opacity: 0.9999;
+      }
+      #parent {
+        margin: 10px;
+        width: 280px;
+        height: 280px;
+        background-color: #844BCA;
+
+        transform: rotateY(40deg);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="container">
+      <div id="parent"></div>
+    </div>
+  </body>
+</html>

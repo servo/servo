@@ -1,0 +1,118 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="help" href="https://html.spec.whatwg.org/#event-loop-processing-model">
+<link rel="help" href="https://issues.chromium.org/issues/397737222">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+</style>
+<iframe width="300" height="300" srcdoc="
+  <style>
+    html {
+      transition: color 1s step-start;
+    }
+    .scroller {
+      overflow: auto;
+      width: 100%;
+      height: 100px;
+    }
+    .spacer {
+      height: 500px;
+    }
+  </style>
+  <div class='scroller'>
+    <div class='spacer'></div>
+  </div>
+  <div class='scroller'>
+    <div class='spacer'></div>
+  </div>
+  "></iframe>
+<script>
+promise_test(async function(t) {
+  await new Promise(resolve => window.addEventListener("load", resolve, { once: true }));
+
+  const iframe = document.querySelector("iframe");
+
+  const mql = iframe.contentWindow.matchMedia("(max-width: 300px)");
+  assert_true(mql.matches, "precondition");
+
+  const scrollers = iframe.contentDocument.querySelectorAll(".scroller");
+  let frameEvents = [];
+
+  // We set up listeners for various things: Both scrollers' scroll event,
+  // transitionrun, mediaquery change event, and also test raf.
+  // We trigger all these changes at once, and trigger the scroll for
+  // scrollers[1] on the scroll event of scroller[0], which should effectively
+  // push it to the next rendering update.
+  function recordFrameEvent(type) {
+    frameEvents.push(type);
+  }
+
+  mql.addEventListener("change", () => {
+    recordFrameEvent("mqlchange");
+  }, { once: true });
+
+  scrollers[1].addEventListener("scroll", () => {
+    recordFrameEvent("scroll1");
+  }, { once: true });
+
+  iframe.contentDocument.documentElement.addEventListener("transitionrun", () => {
+    recordFrameEvent("transitionrun");
+  }, { once: true });
+
+  // Setup another scroll event listener for the other scroll container.
+  scrollers[0].addEventListener("scroll", e => {
+    recordFrameEvent("scroll0");
+    // Scroll the second scroller.
+    scrollers[1].scrollTop = 10;
+  }, { once: true });
+
+  // Now we trigger all those changes (except scroll1) at once. See below for
+  // the reasoning about the expected order.
+
+  // Trigger scroll0
+  scrollers[0].scrollTop = 10;
+
+  // Trigger mqlchange
+  iframe.width = "400";
+
+  // Trigger transitionrun
+  iframe.contentDocument.documentElement.style.color = "blue";
+  getComputedStyle(iframe.contentDocument.documentElement).color;
+
+  // Trigger raf0 and then raf1, and wait after that.
+  await new Promise(resolve => {
+    iframe.contentWindow.requestAnimationFrame(() => {
+      recordFrameEvent("raf0");
+      t.step_timeout(() => {
+        recordFrameEvent("timeout0");
+      });
+      iframe.contentWindow.requestAnimationFrame(() => {
+        recordFrameEvent("raf1");
+        resolve();
+      });
+    });
+  });
+
+  // The order as per https://html.spec.whatwg.org/#event-loop-processing-model
+  // should be:
+  //
+  //  * scroll0 (frame 0, run the scroll steps)
+  //  * mqlchange (frame 0, evaluate media queries and report changes)
+  //  * transitionrun (frame 0, update animations and send events)
+  //  * raf0 (frame 0, run the animation frame callbacks)
+  //  * timeout0 (in between frames)
+  //  * scroll1 (frame 1, run the scroll steps)
+  //  * raf1 (frame 1, run the animation frame callbacks)
+  assert_array_equals(frameEvents, [
+    "scroll0",
+    "mqlchange",
+    "transitionrun",
+    "raf0",
+    "timeout0",
+    "scroll1",
+    "raf1",
+  ]);
+});
+</script>

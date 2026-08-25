@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>A cue is recovered when a line with a "-->" is encountered without blank line separator</title>
+<script src="track-helpers.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+check_cues_from_track("resources/cue-recovery-header.vtt", testTrack);
+check_cues_from_track("resources/cue-recovery-note.vtt", testTrack);
+check_cues_from_track("resources/cue-recovery-cuetext.vtt", testTrack);
+
+function testTrack(track) {
+    var expected = [
+        { startTime: 0, endTime: 1, text: "Valid cue 1" },
+        { startTime: 2, endTime: 3, text: "Valid cue 2" }
+    ];
+
+    assert_cues_match(track.cues, expected);
+}
+</script>

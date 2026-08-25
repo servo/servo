@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<link rel="match" href="root-to-shared-animation-start-ref.html">
+
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+body {
+  background: lightgreen;
+  padding: 0;
+  margin: 0;
+}
+#box {
+  width: 100px;
+  height: 120px;
+  background: blue;
+  contain: paint;
+}
+
+html::view-transition-group(*) { animation-delay: 300s; }
+html::view-transition-new(*) { animation: unset; opacity: 0; }
+html::view-transition-old(*) { animation: unset; opacity: 1; }
+</style>
+
+<div id=box></div>
+
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+async function runTest() {
+  document.startViewTransition(() => {
+    document.documentElement.style.viewTransitionName = "none";
+    box.style.viewTransitionName = "root";
+    // We should not see the "live" body at all.
+    document.body.style.background = "red";
+
+    requestAnimationFrame(() => requestAnimationFrame(takeScreenshot));
+  });
+}
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+

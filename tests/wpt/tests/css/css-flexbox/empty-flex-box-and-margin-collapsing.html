@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/">
+<link rel="match" href="empty-flex-box-and-margin-collapsing-ref.html">
+<meta name="assert" content="This checks that empty flex/grid box's margins do not collapse through.">
+<style>
+.container {
+  background: green;
+  height: 50px;
+  width: 100px;
+}
+
+.root {
+  margin-top: 0;
+  margin-bottom: 200px;
+}
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div class=container>
+  <div class=root style="display: flex"></div>
+</div>
+<div class=container>
+  <div class=root style="display: grid"></div>
+</div>

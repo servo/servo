@@ -1,0 +1,35 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8">
+<title>Retry inline floats until they fit -- rect</title>
+<link rel="author" title="Jason Leo" href="mailto:cgqaq@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-shapes-1/#funcdef-basic-shape-rect">
+<link rel="match" href="reference/float-retry-push-ref.html">
+<meta name="assert" content="Test that a too-wide inline block is pushed in the block direction along a shape-outside rect until it fits.">
+<style>
+  body {
+    margin: 0px;
+    line-height: 1;
+  }
+
+  .too-wide {
+    display: inline-block;
+    height: 20px;
+    width: 250px;
+    background: blue;
+  }
+
+  .shape {
+    width: 100px;
+    height: 100px;
+    float: left;
+    /* rect(top right bottom left) defines the shape rectangle edges.
+       rect(0px 60px 60px 0px) is equivalent to inset(0px 40px 40px 0px)
+       on a 100x100 box, with the same border-radius. */
+    shape-outside: rect(0px 60px 60px 0px round 0 0 34.142136px 0);
+  }
+</style>
+
+<div style="width: 300px; height: 100px;">
+  <div class="shape"></div>
+  <span class="too-wide"></span>
+<div>

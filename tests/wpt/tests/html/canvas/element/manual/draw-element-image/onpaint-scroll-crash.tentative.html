@@ -1,0 +1,24 @@
+<!doctype html>
+<html class=reftest-wait>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<script src="/common/reftest-wait.js"></script>
+
+<div id="scroller" style="overflow: scroll; width: 100px; height: 100px; will-change: transform;">
+  <div style="height: 500px;"></div>
+  <canvas id="canvas" width="100" height="100" layoutsubtree>
+    <div id="target"></div>
+  </canvas>
+</div>
+
+<script>
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      canvas.onpaint = () => {
+        scroller.scrollTop = 200;
+        takeScreenshot();
+      };
+      canvas.requestPaint();
+    });
+  });
+</script>
+</html>

@@ -1,0 +1,49 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+                      "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Ignoring at-rules inside declaration blocks</title>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#parsing-errors"/>
+  <link rel="match" href="declarations-009-ref.xht"/>
+  <meta name="flags" content="invalid"/>
+  <meta name="assert" content="At-rules inside declaration blocks are parsed as malformed declarations."/>
+  <style type="text/css">
+    #a {
+      color: green;
+      @import "support/import-red.css" color: red;
+    }
+    #b {
+      color: red;
+      @import "support/import-red.css";
+      color: green;
+    }
+    #c {
+      color: green;
+      @media { #c { color: red !important } }
+      color: red;
+    }
+    #d {
+      color: red;
+      @media { #c { color: red !important } };
+      color: green;
+    }
+    #e {
+      color: green;
+      @foo [ color: red; } #e { color: red; } ]
+    }
+    #f {
+      color: green;
+      color: red @import "support/import-red.css";
+    }
+  </style>
+ </head>
+ <body>
+  <p id="a">This sentence must be green</p>
+  <p id="b">This sentence must be green</p>
+  <p id="c">This sentence must be green</p>
+  <p id="d">This sentence must be green</p>
+  <p id="e">This sentence must be green</p>
+  <p id="f">This sentence must be green</p>
+ </body>
+</html>

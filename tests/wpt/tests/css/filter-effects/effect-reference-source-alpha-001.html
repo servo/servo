@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<title>CSS Filters: feMergeNode with SourceAlpha</title>
+<link rel="author" title="Fredrik Söderquist" href="mailto:fs@opera.com">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#feMergeElement">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#attr-valuedef-in-sourcealpha">
+<link rel="help" href="https://crbug.com/109224">
+<link rel="match" href="reference/effect-reference-source-alpha-001-ref.html">
+<meta name="assert" content="Check that SourceAlpha is correctly derived from SourceGraphic which is the output of the opacity(0) filter function which essentially sets all pixels to transparent."/>
+
+<style>
+div {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+}
+#test {
+  background-color: red;
+  filter: opacity(0) url(#f);
+}
+</style>
+<div style="background-color: green"></div>
+<div id="test">
+<svg height="0">
+  <filter id="f">
+    <feMerge><feMergeNode in="SourceAlpha"></feMergeNode></feMerge>
+  </filter>
+</svg>
+</div>

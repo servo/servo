@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg")
+    const text = document.createElementNS("http://www.w3.org/2000/svg", "text")
+    text.setAttribute("letter-spacing", "-37vw")
+    const node = document.createTextNode("\n\n\r7%Ù î¯•\0ó …§ð†ªã€€&**=ðŸ¯šð¯‚ï¸¡ó ”©Û¹â€Ùªv*/ð¯„ð–¹§åžçº¶*;{0ð–£”9ï¿¼Ì†ë¢»\r\n^æŽ¶ï¿ºð©¹º*|\r\nðŸ©‚Ù«ð‡½ë«»eçŠ®ã‡†á­²ð¡‡‚\u2028á¨²â¤\rv+ðŸ§Œ8ï¬¬\nð¯Žè›¥ó „ˆêº¡\nâ’ð±’Ù Û¹ð–¯¸0ó ¤™/á¾‚ð«ž¾99Â a&=ð‰‚Û¹ð¯©’ã‚™2ó ¥µ^0ê’‹ð—»ð…»\0X%+0*/é•³ã€€ÙªÈºXá©¿L2â¼¤ð›ªˆÂ­ðª¸ð›‰")
+    text.appendChild(node)
+    svg.appendChild(text)
+    document.documentElement.appendChild(svg)
+    const rect = document.documentElement.getBoundingClientRect()
+    node.convertRectFromNode(rect, svg, {})
+  })
+</script>

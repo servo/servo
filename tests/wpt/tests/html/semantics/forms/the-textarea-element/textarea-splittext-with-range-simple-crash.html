@@ -1,0 +1,14 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const textarea = document.querySelector("textarea");
+  getSelection().selectAllChildren(textarea);
+  textarea.firstChild.splitText(0);
+});
+</script>
+</head>
+<body><textarea>abcd</textarea></body>
+</html>

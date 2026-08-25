@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Ruby text with RTL direction and vw margin should not crash</title>
+<link rel="help" href="https://crbug.com/378189498">
+<style>
+rt { direction: rtl; margin-bottom: 11vw; }
+</style>
+<ruby>
+AAAA
+<rt dir="auto"><nav></nav>AAAAAAAAAAAAAAAA</rt>
+</ruby>

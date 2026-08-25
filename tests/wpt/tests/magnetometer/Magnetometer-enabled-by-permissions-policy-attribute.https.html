@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<body>
+<title>Magnetometer Permissions Policy Test: Enabled by attribute</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/permissions-policy/resources/permissions-policy.js"></script>
+<script src="/generic-sensor/generic-sensor-permissions-policy-test.sub.js"></script>
+<script>
+"use strict";
+
+run_permissions_policy_tests_enabled_by_attribute('Magnetometer');
+run_permissions_policy_tests_enabled_by_attribute('UncalibratedMagnetometer');
+</script>
+</body>

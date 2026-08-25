@@ -1,0 +1,75 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>&lt;object&gt;</title>
+</head>
+<body>
+  <map name="idref"></map>
+  <!-- is structured inline -->
+  <p><object
+      data="uri"
+      height="40"
+      usemap="#idref"
+      width="40"
+      class="class"
+      xml:lang="en"></object></p>
+
+  <!-- is strictly inline -->
+  <p><dfn><object
+      data="uri"
+      height="40"
+      usemap="#idref"
+      width="40"
+      class="class"
+      xml:lang="en"></object></dfn></p>
+
+  <!-- can contain inline while in inline context, but param must come first -->
+  <p>paragraph
+    <object data='bar.ogg'>
+        <em>some</em> 
+    </object>
+  </p>
+  <p>paragraph
+    <object data='bar.ogg'>
+        <param name="foo" value='bar'></param><param name="bar" value='foo'></param>
+        <em>some</em> 
+    </object>
+  </p>
+
+  <!-- can contain strictly inline while in strictly inline context, but param must come first -->
+  <p><dfn>strictly inline
+    <object data='bar.ogg'>
+        <em>text</em>
+    </object>
+  </dfn></p>
+  <p><dfn>strictly inline
+    <object data='bar.ogg'>
+        <param name="foo" value='bar'></param><param name="bar" value='foo'></param>
+        <em>text</em>
+    </object>
+  </dfn></p>
+
+  <!-- can contain interactive if ancestor does not forbid it, but param must come first -->
+  <p>paragraph
+    <object data='bar.ogg'>
+      <a>link</a>
+    </object>
+  </p>
+  <p>paragraph
+    <object data='bar.ogg'>
+     <param name="foo" value='bar'></param><param name="bar" value='foo'></param>
+      <a>link</a>
+    </object>
+  </p>
+  <p><dfn>strictly inline
+    <object data='foo.mov'>
+      <a>link</a>
+    </object>
+  </dfn></p>
+  <p><dfn>strictly inline
+    <object type='text/plain'>
+     <param name="foo" value='bar'></param><param name="bar" value='foo'></param>
+     <a>link</a>
+    </object>
+  </dfn></p>
+</body>
+</html>

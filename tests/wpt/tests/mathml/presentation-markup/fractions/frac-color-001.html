@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Fraction bar color</title>
+    <link rel="help" href="https://w3c.github.io/mathml-core/#fractions-mfrac">
+    <link rel="help" href="https://w3c.github.io/mathml-core/#css-styling">
+    <meta name="assert" content="The CSS color property has an effect on the fraction bar.">
+    <link rel="mismatch" href="frac-color-001-notref.html">
+  </head>
+  <body style="font-size: 20pt;">
+    <p>This test passes if you see a fraction with a blue fraction bar.</p>
+    <math>
+      <mfrac style="color: blue;">
+        <mspace width="200px" height="20px" style="background: black"></mspace>
+        <mspace width="200px" height="20px" style="background: black"></mspace>
+      </mfrac>
+    </math>
+  </body>
+</html>

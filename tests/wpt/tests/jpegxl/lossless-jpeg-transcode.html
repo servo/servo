@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>JPEG XL: lossless JPEG transcode decode</title>
+<link rel="help" href="https://github.com/web-platform-tests/interop-jpegxl">
+<meta name="assert" content="Decodes JPEG-reconstruction-capable JPEG XL fixture.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/helpers.js"></script>
+<script>
+
+promise_test(async () => {
+  const img = await loadImage('resources/3x3_jpeg_recompression.jxl');
+  assert_equals(img.naturalWidth, 3);
+  assert_equals(img.naturalHeight, 3);
+}, 'Lossless JPEG-transcoded JPEG XL fixture decodes.');
+
+</script>

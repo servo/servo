@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Subresource Integrity Check + preload + partial image rendering</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+// https://crbug.com/1058045: Chromium crashed when:
+// 1. <link rel="preload" as="image" integrity="..." href="url">
+//    (strictly speaking the preload scannner) starts preloading the image,
+//    and the image url takes some time for loading,
+// 2. <img> loads the same URL and renders the partial image after some image
+//    data is received but before fully loaded, and then
+// 3. the image is loaded and integrity check is done.
+
+const t = async_test(
+  "<link rel='image'> with progressive image shouldn't crash");
+
+</script>
+
+<link
+  rel="preload"
+  as="image"
+  integrity="sha256-Ly1v7MxPoMXjm9Dwrr4mDCVUe1PAA781vd0G8xvgpj8="
+  href="/element-timing/resources/progressive-image.py?name=square100.png&numInitial=7500&sleep=1000">
+<img src="/element-timing/resources/progressive-image.py?name=square100.png&numInitial=7500&sleep=1000"
+  onload="t.step_func_done()()"
+  onerror="t.unreached_func('image should load because SRI is not checked')()">

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<title>View transitions: scroller child element (ref)</title>
+<link rel="help" href="https://www.w3.org/TR/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+
+<style>
+#target {
+  width: 200px;
+  height: 200px;
+  background: yellow;
+}
+#scroller {
+  overflow: scroll;
+  width: 100px;
+  height: 100px;
+  background: blue;
+  isolation: isolate;
+}
+
+#child {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  background: green;
+  top: 200px;
+}
+</style>
+
+<div id="target">
+  <div id="scroller">
+    <div id="child"></div>
+  </div>
+</div>
+
+<script>
+onload = () => { scroller.scrollTop = 300; };
+</script>
+
+

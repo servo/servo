@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>font-size: 0 with ligatures should not affect layout</title>
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#font-size-prop">
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=311246">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+@font-face {
+  font-family: "LatoLiga";
+  src: url(/fonts/Lato-Medium-Liga.ttf);
+}
+
+.container {
+  display: inline-block;
+  font-family: "LatoLiga", serif;
+}
+
+.zero {
+  font-size: 0;
+}
+</style>
+<body>
+<div id="log"></div>
+
+<!-- Reference: empty container -->
+<div class="container" id="empty"></div>
+
+<!-- Text without ligature, font-size: 0 -->
+<div class="container"><span class="zero" id="no-liga">ab</span></div>
+
+<!-- Text with fi ligature, font-size: 0 -->
+<div class="container"><span class="zero" id="with-liga">fi</span></div>
+
+<!-- Text with multiple ligature pairs, font-size: 0 -->
+<div class="container"><span class="zero" id="multi-liga">ffi ffl</span></div>
+
+<script>
+setup({ explicit_done: true });
+
+document.fonts.ready.then(() => {
+  const noLiga = document.getElementById("no-liga");
+  const withLiga = document.getElementById("with-liga");
+  const multiLiga = document.getElementById("multi-liga");
+
+  test(() => {
+    assert_equals(noLiga.offsetWidth, 0,
+      "Text without ligature at font-size: 0 should have zero width");
+  }, "font-size: 0 without ligature produces zero width");
+
+  test(() => {
+    assert_equals(withLiga.offsetWidth, 0,
+      "Text with fi ligature at font-size: 0 should have zero width");
+  }, "font-size: 0 with fi ligature produces zero width");
+
+  test(() => {
+    assert_equals(multiLiga.offsetWidth, 0,
+      "Text with multiple ligatures at font-size: 0 should have zero width");
+  }, "font-size: 0 with multiple ligatures produces zero width");
+
+  test(() => {
+    const noLigaParentWidth = noLiga.closest(".container").offsetWidth;
+    const withLigaParentWidth = withLiga.closest(".container").offsetWidth;
+    assert_equals(noLigaParentWidth, withLigaParentWidth,
+      "Containers with font-size: 0 text should be the same width regardless of ligatures");
+  }, "Ligature text and non-ligature text at font-size: 0 produce identical container width");
+
+  done();
+});
+</script>
+</body>

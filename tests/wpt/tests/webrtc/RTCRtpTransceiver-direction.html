@@ -1,0 +1,94 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCRtpTransceiver.prototype.direction</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://rawgit.com/w3c/webrtc-pc/8495678808d126d8bc764bf944996f32981fa6fd/webrtc.html
+
+  // The following helper functions are called from RTCPeerConnection-helper.js:
+  // generateAnswer
+
+  /*
+    5.4.  RTCRtpTransceiver Interface
+      interface RTCRtpTransceiver {
+                 attribute RTCRtpTransceiverDirection  direction;
+        readonly attribute RTCRtpTransceiverDirection? currentDirection;
+        ...
+      };
+   */
+
+   /*
+    5.4.  direction
+      7.  Set transceiver's [[Direction]] slot to newDirection.
+   */
+  test(t => {
+    const pc = new RTCPeerConnection();
+    const transceiver = pc.addTransceiver('audio');
+    assert_equals(transceiver.direction, 'sendrecv');
+    assert_equals(transceiver.currentDirection, null);
+
+    transceiver.direction = 'recvonly';
+    assert_equals(transceiver.direction, 'recvonly');
+    assert_equals(transceiver.currentDirection, null,
+      'Expect transceiver.currentDirection to not change');
+
+  }, 'setting direction should change transceiver.direction');
+
+   /*
+    5.4.  direction
+      3.  If newDirection is equal to transceiver's [[Direction]] slot, abort
+          these steps.
+   */
+  test(t => {
+    const pc = new RTCPeerConnection();
+    const transceiver = pc.addTransceiver('audio', { direction: 'sendonly' });
+    assert_equals(transceiver.direction, 'sendonly');
+    transceiver.direction = 'sendonly';
+    assert_equals(transceiver.direction, 'sendonly');
+
+  }, 'setting direction with same direction should have no effect');
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const transceiver = pc.addTransceiver('audio', { direction: 'recvonly' });
+    assert_equals(transceiver.direction, 'recvonly');
+    assert_equals(transceiver.currentDirection, null);
+
+    return pc.createOffer()
+    .then(offer =>
+      pc.setLocalDescription(offer)
+      .then(() => generateAnswer(offer)))
+    .then(answer => pc.setRemoteDescription(answer))
+    .then(() => {
+      assert_equals(transceiver.currentDirection, 'inactive');
+      transceiver.direction = 'sendrecv';
+      assert_equals(transceiver.direction, 'sendrecv');
+      assert_equals(transceiver.currentDirection, 'inactive');
+    });
+  }, 'setting direction should change transceiver.direction independent of transceiver.currentDirection');
+
+  /*
+    TODO
+        An update of directionality does not take effect immediately. Instead, future calls
+        to createOffer and createAnswer mark the corresponding media description as
+        sendrecv, sendonly, recvonly or inactive as defined in [JSEP] (section 5.2.2.
+        and section 5.3.2.).
+
+    Tested in RTCPeerConnection-onnegotiationneeded.html
+      5.4.  direction
+        6.  Update the negotiation-needed flag for connection.
+
+    Coverage Report
+      Tested        6
+      Not Tested    1
+      Untestable    0
+      Total         7
+   */
+
+</script>

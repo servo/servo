@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>cssom-view - elementFromPoint and elementsFromPoint dealing with negative margins</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div id="outer" style="background:yellow">
+  <div id="inner" style="width:100px; height:100px; margin-bottom:-100px; background:lime;"></div>
+  Hello
+</div>
+<script>
+ window.onload = function () {
+   var outer = document.getElementById('outer');
+   var inner = document.getElementById('inner');
+   var outerRect = outer.getBoundingClientRect();
+   test(function () {
+     assert_equals(document.elementFromPoint(outerRect.left + 1,
+                                             outerRect.top + 1),
+                   outer,
+                   "elementFromPoint should get outer element");
+   });
+   test(function () {
+     assert_array_equals(document.elementsFromPoint(outerRect.left + 1,
+                                                    outerRect.top + 1),
+                         [inner, outer, document.body, document.querySelector('html')],
+                         "elementsFromPoint should get sequence [inner, outer, body, html]");
+   });
+ };
+</script>
+</body>

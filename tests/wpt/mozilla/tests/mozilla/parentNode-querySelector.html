@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+    </head>
+    <body>
+        <div id="foo"></div>
+        <div id="foo\bar"></div>
+        <div id="foo:bar"></div>
+        <div id="bar" class="myClass"></p>
+        <script>
+            test(function() {
+                var div = document.getElementById("foo");
+                assert_equals(document.querySelector("#foo"), div);
+
+                div = document.getElementById("foo\\bar");
+                assert_equals(document.querySelector("#foo\\\\bar"), div);
+
+                div = document.getElementById("foo:bar");
+                assert_equals(document.querySelector("#foo\\:bar"), div);
+
+                div = document.getElementById("bar");
+                assert_equals(document.querySelector("div.myClass"), div);
+                assert_equals(document.querySelector("div:nth-of-type(4)"), div);
+            }, "Document");
+
+            test(function() {
+                var body = document.body;
+                var div = document.getElementById("foo");
+                assert_equals(body.querySelector("#foo"), div);
+
+                div = document.getElementById("foo\\bar");
+                assert_equals(body.querySelector("#foo\\\\bar"), div);
+
+                div = document.getElementById("foo:bar");
+                assert_equals(body.querySelector("#foo\\:bar"), div);
+
+                div = document.getElementById("bar");
+                assert_equals(body.querySelector("div.myClass"), div);
+                assert_equals(body.querySelector("div:nth-of-type(4)"), div);
+            }, "Element");
+
+            test(function() {
+                var docfrag = document.createDocumentFragment();
+
+                var div = document.createElement("div");
+                div.id = "foo";
+                div.className = "myClass";
+
+                var child = document.createElement("div");
+                div.appendChild(child);
+                docfrag.appendChild(div);
+
+                var p = document.createElement("p");
+                p.id = "bar";
+                p.className = "myClass";
+                docfrag.appendChild(p);
+
+                assert_equals(docfrag.querySelector("#foo"), div);
+                assert_equals(docfrag.querySelector("div.myClass"), div);
+
+                assert_equals(docfrag.querySelector("#bar"), p);
+                assert_equals(docfrag.querySelector("p.myClass"), p);
+
+                assert_equals(docfrag.querySelector(".myClass"), div);
+                assert_equals(docfrag.querySelector("div > div"), child);
+            }, "DocumentFragment");
+        </script>
+    </body>
+</html>

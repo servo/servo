@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../resources/webxr_util.js"></script>
+<script src="../resources/webxr_test_constants.js"></script>
+
+<script>
+
+const SMOOTH_DEPTH_ONLY_DEVICE = {
+  ...IMMERSIVE_AR_DEVICE,
+  depthSupport: {
+    depthTypes: ["smooth"]
+  }
+};
+
+const RAW_DEPTH_ONLY_DEVICE = {
+  ...IMMERSIVE_AR_DEVICE,
+  depthSupport: {
+    depthTypes: ["raw"]
+  }
+};
+
+const depthTypeFunctionGenerator = function(expectedSessionDepthType) {
+  return (session, controller, t) => new Promise((resolve) => {
+    t.step(()=> {
+      assert_true(session.depthType === expectedSessionDepthType);
+    });
+
+    resolve();
+  });
+}
+
+// While only requesting a depth type that is unsupported is allowed, the spec
+// does not require that the actual supported type be returned. So we simply
+// test that e.g. if a device does not support smooth depth it doesn't say it
+// does.
+const unexpectedDepthTypeFunctionGenerator = function(unexpectedSessionDepthType) {
+  return (session, controller, t) => new Promise((resolve) => {
+    t.step(()=> {
+      assert_false(session.depthType === unexpectedSessionDepthType);
+    });
+
+    resolve();
+  });
+}
+
+xr_session_promise_test(
+  "Can grant sessions that request a raw depth type",
+  depthTypeFunctionGenerator("raw"),
+  IMMERSIVE_AR_DEVICE,
+  'immersive-ar',
+  {
+      'requiredFeatures': ['depth-sensing'],
+      depthSensing: {
+        usagePreference: [],
+        dataFormatPreference: [],
+        depthTypeRequest: ["raw", "smooth"],
+      },
+  });
+
+xr_session_promise_test(
+  "Can grant sessions that request a smooth depth type",
+  depthTypeFunctionGenerator("smooth"),
+  IMMERSIVE_AR_DEVICE,
+  'immersive-ar',
+  {
+      'requiredFeatures': ['depth-sensing'],
+      depthSensing: {
+        usagePreference: [],
+        dataFormatPreference: [],
+        depthTypeRequest: ["smooth", "raw"],
+      },
+  });
+
+xr_session_promise_test(
+  "Can grant sessions that request empty depth type",
+  depthTypeFunctionGenerator(null),
+  IMMERSIVE_AR_DEVICE,
+  'immersive-ar',
+  {
+      'requiredFeatures': ['depth-sensing'],
+      depthSensing: {
+        usagePreference: [],
+        dataFormatPreference: [],
+        depthTypeRequest: [],
+      },
+  });
+
+xr_session_promise_test(
+  "Can grant sessions that don't request depth type",
+  depthTypeFunctionGenerator(null),
+  IMMERSIVE_AR_DEVICE,
+  'immersive-ar',
+  {
+      'requiredFeatures': ['depth-sensing'],
+      depthSensing: {
+        usagePreference: [],
+        dataFormatPreference: []
+      },
+  });
+
+xr_session_promise_test(
+  "Unsupported depth type does not block creation - raw",
+  unexpectedDepthTypeFunctionGenerator("raw"),
+  SMOOTH_DEPTH_ONLY_DEVICE,
+  'immersive-ar',
+  {
+      'requiredFeatures': ['depth-sensing'],
+      depthSensing: {
+        usagePreference: [],
+        dataFormatPreference: [],
+        depthTypeRequest: ["raw"],
+      },
+  });
+
+xr_session_promise_test(
+  "Unsupported depth type does not block creation - smooth",
+  unexpectedDepthTypeFunctionGenerator("smooth"),
+  RAW_DEPTH_ONLY_DEVICE,
+  'immersive-ar',
+  {
+      'requiredFeatures': ['depth-sensing'],
+      depthSensing: {
+        usagePreference: [],
+        dataFormatPreference: [],
+        depthTypeRequest: ["smooth"],
+      },
+  });
+
+</script>

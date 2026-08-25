@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View Transitions: Scrolled target capture position</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="match" href="scrolled-target-position-ref.html">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Accommodate small color mismatch -->
+<meta name="fuzzy" content="maxDifference=0-2; totalPixels=0-7824">
+<script src="/common/reftest-wait.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+
+<style>
+#target {
+  width: 100px;
+  height: 100px;
+  overflow: scroll;
+  background: lightblue;
+}
+#child {
+  width: 50px;
+  height: 75px;
+  background: green;
+}
+#content {
+  width: 100px;
+  height: 400px;
+  background: yellow;
+}
+
+::view-transition-group(*),
+::view-transition-image-pair(*),
+::view-transition-old(*),
+::view-transition-new(*) {
+  /* freeze all animations at start */
+  animation-duration: 100000s;
+  animation-timing-function: steps(1, jump-end);
+}
+</style>
+
+<div id="target">
+  <div id="content"><div id=child></div></div>
+</div>
+
+<script>
+async function runTest() {
+  target.scrollTop = 25;
+  await target.startViewTransition().ready;
+  takeScreenshotOnAnimationsReady();
+}
+
+waitForCompositorReady().then(runTest);
+</script>
+</html>

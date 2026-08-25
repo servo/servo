@@ -1,0 +1,174 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="VH" status="accepted"
+    version="$Revision: 1.9 $" testname="$RCSfile: text-text-05-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/text.html#TextElement">
+        <p>
+          The purpose of this test is to validate the interaction of text-anchor
+          and x/y glyph positioning.
+        </p>
+        <p>
+          Each row shows a different combination of x/y values: 1, more than characters,
+          fewer than characters. This tests the anchor value: start.
+        </p>
+        <p>
+          The blue markers show the various x/y absolute positions around which text
+          chunks should be anchored. The glyphs are black squares of increasing sizes.
+        </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Rendered output must match the reference image for the test to pass.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: text-text-05-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <style type="text/css">
+  @font-face {
+    font-family: embeded;
+    src: url(woffs/embeded-text-text-05.woff) format("woff");
+    }
+  </style>
+    <g font-size="16">
+      <defs>
+        <font id="embeded" horiz-adv-x="224">
+          <font-face font-family="embeded" units-per-em="1000" panose-1="0 0 0 0 0 0 0 0 0 0" ascent="917" descent="-250" alphabetic="0"/>
+          <missing-glyph horiz-adv-x="800" d="M50 0V800H750V0H50ZM700 50V750H100V50H700Z"/>
+          <glyph unicode="1" glyph-name="gl_1" horiz-adv-x="1500" d="M 0 0 L 250 0 L 250 250 L 0 250 Z"/>
+          <glyph unicode="2" glyph-name="gl_2" horiz-adv-x="1500" d="M 0 0 L 500 0 L 500 500 L 0 500 Z"/>
+          <glyph unicode="3" glyph-name="gl_3" horiz-adv-x="1500" d="M 0 0 L 750 0 L 750 750 L 0 750 Z"/>
+          <glyph unicode="4" glyph-name="gl_4" horiz-adv-x="1500" d="M 0 0 L 1000 0 L 1000 1000 L 0 1000 Z"/>
+        </font>
+
+      </defs>
+
+      <defs>
+        <g id="marker">
+          <line y2="-15" stroke="fuchsia"/>
+          <rect x="-4" y="-4" width="8" height="8"/>
+        </g>
+      </defs>
+
+      <g id="legend" transform="translate(10, 40)">
+        <text y="30">1.x 1.y</text>
+        <text y="60">4.x 1.y</text>
+        <text y="90">2.x 1.y</text>
+        <text y="120">1.x 4.y</text>
+        <text y="150">4.x 4.y</text>
+        <text y="180">2.x 4.y</text>
+        <text y="210">1.x 2.y</text>
+        <text y="240">4.x 2.y</text>
+        <text y="270">2.x 2.y</text>
+      </g>
+
+      <g id="anchorStart" text-anchor="start" transform="translate(150, 40)">
+        <text y="-17" text-anchor="middle">text-anchor</text>
+        <text y="-3" text-anchor="middle">start</text>
+        <line x1="0" y1="10" x2="0" y2="290" stroke="fuchsia"/>
+
+        <g id="textContent">
+          <!-- 1.x 1.y -->
+          <use y="30" xlink:href="#marker" fill="#8888ff"/>
+          <text x="0" y="30" font-family="embeded" font-size="10">1234</text>
+
+          <!-- 4.x 1.y : four text chunks -->
+          <use x="10" y="60" xlink:href="#marker" fill="#8888ff"/>
+          <use x="20" y="60" xlink:href="#marker" fill="#8888ff"/>
+          <use x="30" y="60" xlink:href="#marker" fill="#8888ff"/>
+          <use x="40" y="60" xlink:href="#marker" fill="#8888ff"/>
+          <text x="10 20 30 40" y="60" font-family="embeded" font-size="10">1234</text>
+
+          <!-- 2.x 1.y : two text chunks -->
+          <use x="10" y="90" xlink:href="#marker" fill="#8888ff"/>
+          <use x="60" y="90" xlink:href="#marker" fill="#8888ff"/>
+          <text x="10 60" y="90" font-family="embeded" font-size="10">1234</text>
+
+          <!-- 1.x 4.y : four text chunks -->
+          <g transform="translate(0, 120)">
+            <use x="0" y="-10" xlink:href="#marker" fill="#8888ff"/>
+            <use x="15" y="-5" xlink:href="#marker" fill="#8888ff"/>
+            <use x="30" y="5" xlink:href="#marker" fill="#8888ff"/>
+            <use x="45" y="10" xlink:href="#marker" fill="#8888ff"/>
+            <text x="0" y="-10 -5 5 10" font-family="embeded" font-size="10">1234</text>
+          </g>
+
+          <!-- 4.x 4.y : four text chunks -->
+          <g transform="translate(0, 150)">
+            <use x="10" y="-10" xlink:href="#marker" fill="#8888ff"/>
+            <use x="20" y="-5" xlink:href="#marker" fill="#8888ff"/>
+            <use x="30" y="5" xlink:href="#marker" fill="#8888ff"/>
+            <use x="40" y="10" xlink:href="#marker" fill="#8888ff"/>
+            <text x="10 20 30 40" y="-10 -5 5 10" font-family="embeded" font-size="10">1234</text>
+          </g>
+
+          <!-- 2.x 4.y : four text chunks -->
+          <g transform="translate(0, 180)">
+            <use x="10" y="-10" xlink:href="#marker" fill="#8888ff"/>
+            <use x="20" y="-5" xlink:href="#marker" fill="#8888ff"/>
+            <use x="35" y="5" xlink:href="#marker" fill="#8888ff"/>
+            <use x="50" y="10" xlink:href="#marker" fill="#8888ff"/>
+            <text x="10 20" y="-10 -5 5 10" font-family="embeded" font-size="10">1234</text>
+          </g>
+
+          <!-- 1.x 2.y : two text chunks -->
+          <g transform="translate(0, 210)">
+            <use x="0" y="-10" xlink:href="#marker" fill="#8888ff"/>
+            <use x="15" y="5" xlink:href="#marker" fill="#8888ff"/>
+            <text x="0" y="-10 5" font-family="embeded" font-size="10">1234</text>
+          </g>
+
+          <!-- 4.x 2.y : four text chunks -->
+          <g transform="translate(0, 240)">
+            <use x="10" y="-10" xlink:href="#marker" fill="#8888ff"/>
+            <use x="20" y="-5" xlink:href="#marker" fill="#8888ff"/>
+            <use x="30" y="-5" xlink:href="#marker" fill="#8888ff"/>
+            <use x="40" y="-5" xlink:href="#marker" fill="#8888ff"/>
+            <text x="10 20 30 40" y="-10 -5" font-family="embeded" font-size="10">1234</text>
+          </g>
+
+          <!-- 2.x 2.y : two text chunks -->
+          <g transform="translate(0, 270)">
+            <use x="10" y="-10" xlink:href="#marker" fill="#8888ff"/>
+            <use x="60" y="-5" xlink:href="#marker" fill="#8888ff"/>
+            <text x="10 60" y="-10 -5" font-family="embeded" font-size="10">1234</text>
+          </g>
+
+        </g>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.9 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

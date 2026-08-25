@@ -1,0 +1,5 @@
+@import url("alternate-import.css");
+
+div {
+    background-color: red;
+}

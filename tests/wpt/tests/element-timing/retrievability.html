@@ -1,0 +1,29 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Element Timing: 'element' entries are not accessible via performance timeline</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/element-timing-helpers.js"></script>
+<script>
+  let img;
+  async_test(function (t) {
+    assert_implements(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
+    const beforeRender = performance.now();
+    new PerformanceObserver(
+      t.step_func_done(function(entryList) {
+        assert_equals(entryList.getEntries().length, 1);
+        const entry = entryList.getEntries()[0];
+        assert_equals(entry.entryType, 'element');
+        assert_equals(entry.name, 'image-paint');
+
+        const entriesByName = performance.getEntriesByName('image-paint', 'element');
+        const entriesByType = performance.getEntriesByType('element');
+        const allEntries = performance.getEntries();
+        assert_equals(entriesByName.length, 0, 'Element Timing entry should not be retrievable by getEntriesByName');
+        assert_equals(entriesByType.length, 0, 'Element Timing entry should not be retrievable by getEntriesByType');
+        assert_equals(allEntries.filter(e => e.entryType === 'element').length, 0, 'Element Timing entry should not be retrievable by getEntries');
+      })
+    ).observe({type: 'element', buffered: true});
+  }, 'Element Timing entries are not accessible via performance.getEntries*');
+</script>
+<img src='resources/square100.png' elementtiming='my_image' id='my_id'/>

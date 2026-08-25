@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes Test: column fill-reverse justify-items baseline and last baseline align individual items within the tracks with indefinite size</title>
+  <link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+  <link rel="match" href="column-fill-reverse-justify-items-indefinite-size-002-ref.html">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3/#alignment">
+  <style>
+    html, body {
+      font: 16px/1 monospace;
+      background: white;
+    }
+
+    .grid-lanes {
+      display: grid-lanes;
+      grid-lanes-direction: column fill-reverse;
+      grid-template-columns: 80px;
+      border: 1px solid blue;
+      gap: 4px;
+      width: min-content;
+    }
+
+    item {
+      display: block;
+      width: min-content;
+      height: min-content;
+      color: white;
+      background: #555;
+      writing-mode: vertical-rl;
+    }
+  </style>
+</head>
+<body>
+  <p>justify-items: baseline</p>
+  <div class="grid-lanes" style="justify-items: baseline;">
+    <item>item 1 with some extra text</item>
+    <item>item 2</item>
+    <item>item 3</item>
+    <item>item 4 with more text</item>
+    <item>item 5</item>
+    <item>item 6</item>
+  </div>
+
+  <p>justify-items: last baseline</p>
+  <div class="grid-lanes" style="justify-items: last baseline;">
+    <item>item 1 with some extra text</item>
+    <item>item 2</item>
+    <item>item 3</item>
+    <item>item 4 with more text</item>
+    <item>item 5</item>
+    <item>item 6</item>
+  </div>
+</body>
+</html>

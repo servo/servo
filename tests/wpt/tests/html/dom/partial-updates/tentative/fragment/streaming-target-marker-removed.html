@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Declarative Fragment: streaming target marker removal during parsing</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div id="target" marker="dest-marker">
+  <?start name="dest-marker">Original Content<?end>
+</div>
+
+<template for="dest-marker">
+  <span id="child1">One</span>
+  <script>
+    // Remove the target <?end> PI while streaming is mid-way
+    const target = document.getElementById('target');
+    for (const child of Array.from(target.childNodes)) {
+      if (child.nodeType === Node.PROCESSING_INSTRUCTION_NODE && child.target === 'end') {
+        child.remove();
+      }
+    }
+  </script>
+  <span id="child2">Two</span>
+</template>
+
+<script>
+test(() => {
+  const target = document.getElementById('target');
+
+  // Verify that both elements were successfully streamed into target,
+  // falling back to appending when the end marker was removed.
+  assert_equals(target.querySelector('#child1').textContent, 'One');
+  assert_equals(target.querySelector('#child2').textContent, 'Two');
+
+  // Verify order: child1 -> child2 (ignoring script elements)
+  const children = Array.from(target.childNodes).filter(n => n.nodeType === Node.ELEMENT_NODE && n.tagName.toLowerCase() !== 'script');
+  assert_equals(children.length, 2, "There should be exactly 2 non-script element children");
+  assert_equals(children[0].id, 'child1');
+  assert_equals(children[1].id, 'child2');
+
+  // Verify that the template is not in the DOM
+  assert_equals(target.querySelector('template'), null);
+}, "Streaming target end marker can be removed mid-stream safely, falling back to appending");
+</script>
+</body>

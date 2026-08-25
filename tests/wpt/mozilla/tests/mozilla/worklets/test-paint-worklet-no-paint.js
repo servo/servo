@@ -1,0 +1,2 @@
+registerPaint("noPaint", class {
+});

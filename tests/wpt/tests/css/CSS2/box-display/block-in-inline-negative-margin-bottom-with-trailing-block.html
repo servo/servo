@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>CSS Test: block-in-inline with negative margin-bottom overlaps following sibling</title>
+<link rel="help" href="https://www.w3.org/TR/CSS21/visuren.html#anonymous-block-level">
+<link rel="help" href="https://www.w3.org/TR/CSS21/box.html#collapsing-margins">
+<link rel="match" href="block-in-inline-negative-margin-bottom-with-trailing-block-ref.html">
+<meta name="assert" content="A block-in-inline with negative margin-bottom causes the following sibling to overlap upward by the absolute margin amount.">
+<style>
+.container { width: 100px; }
+.first { width: 100px; height: 30px; margin-bottom: -10px; background: blue; }
+.second { width: 100px; height: 30px; background: green; }
+</style>
+<p>A blue rectangle and a green rectangle overlapping by 10px.</p>
+<div class="container">
+    <span><div class="first"></div></span>
+    <span><div class="second"></div></span>
+</div>

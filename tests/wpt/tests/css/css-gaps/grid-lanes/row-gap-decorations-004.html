@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: row and column rules with an item spanning two grid-axis row tracks</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/">
+<link rel="match" href="row-gap-decorations-004-ref.html">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-rows: repeat(3, 46px);
+    gap: 10px;
+    background: #cdd5e0;
+    width: max-content;
+    column-rule: 4px solid blue;
+    row-rule: 4px solid gold;
+  }
+  .lanes > div {
+    width: 60px;
+    background: #5b8def;
+    color: #fff;
+    font: 600 12px/1 sans-serif;
+  }
+  .lanes > div.alt { background: #8a6df0; }
+  .lanes > div.span2 { grid-row: span 2; width: 68px; }
+  .lanes > div.w { width: 92px; }
+</style>
+<div class="lanes">
+  <div class="span2 alt">1 (span 2)</div>
+  <div class="w">2</div>
+  <div>3</div>
+  <div>4</div>
+  <div>5</div>
+  <div>6</div>
+  <div>7</div>
+</div>

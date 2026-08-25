@@ -1,0 +1,206 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Test insertParagraph when selection collapsed in void element</title>
+<meta name="timeout" content="long">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div contenteditable></div>
+<script>
+"use strict";
+
+const voidElements = [
+  "br",
+  "embed",
+  "hr",
+  "img",
+  "input",
+  "wbr",
+];
+
+// This test tests whether the inserted text is inserted into, when selection
+// is collapsed in the void element.  The expected results are based on Blink,
+// but the results of <hr>, <embed> and <wbr> elements are not consistent with
+// the other elements'.  Therefore, Blink also does not pass some of the
+// following tests.
+// FYI: This cannot be tested by editing/run because there is no way to collapse
+//      selection into a void element with the framework.
+
+const editor = document.querySelector("div[contenteditable]");
+for (const container of ["div", "h1", "li"]) {
+  const openTagOfContainer = (() => {
+    if (container == "li") {
+      return "<ol><li>";
+    }
+    return `<${container}>`;
+  })();
+  const closeTagOfContainer = (() => {
+    if (container == "li") {
+      return "</li></ol>";
+    }
+    return `</${container}>`;
+  })();
+  const closeAndOpenTagsOfSplitPoint = (() => {
+    if (container == "li") {
+      return "</li><li>";
+    }
+    return `</${container}><${container}>`;
+  })();
+  for (const tag of voidElements) {
+    const visibleTag = tag == "hr" || tag == "img" || tag == "input";
+    test(() => {
+      editor.innerHTML = `${openTagOfContainer}<${tag}>${closeTagOfContainer}`;
+      const element = editor.querySelector(tag);
+      editor.focus();
+      const selection = getSelection();
+      selection.collapse(element, 0);
+      document.execCommand("insertParagraph");
+      if (tag == "br") {
+        if (!visibleTag && container == "h1") {
+          assert_in_array(
+            editor.innerHTML,
+            `${openTagOfContainer}<br>${closeTagOfContainer}<div><br></div>`,
+            `The paragraph should be inserted before the <${tag}> element`
+          );
+        } else {
+          assert_in_array(
+            editor.innerHTML,
+            `${openTagOfContainer}<br>${closeAndOpenTagsOfSplitPoint}<br>${closeTagOfContainer}`,
+            `The paragraph should be inserted before the <${tag}> element`
+          );
+        }
+      } else if (!visibleTag && container == "h1") {
+        assert_in_array(
+          editor.innerHTML,
+          [
+            `${openTagOfContainer}<br>${closeTagOfContainer}<div><${tag}></div>`,
+            `${openTagOfContainer}<br>${closeTagOfContainer}<div><${tag}><br></div>`,
+          ],
+          `The paragraph should be inserted before the <${tag}> element`
+        );
+      } else {
+        assert_in_array(
+          editor.innerHTML,
+          [
+            `${openTagOfContainer}<br>${closeAndOpenTagsOfSplitPoint}<${tag}>${closeTagOfContainer}`,
+            `${openTagOfContainer}<br>${closeAndOpenTagsOfSplitPoint}<${tag}><br>${closeTagOfContainer}`,
+          ],
+          `The paragraph should be inserted before the <${tag}> element`
+        );
+      }
+    }, `Inserting paragraph when selection is collapsed in <${tag}> in <${container}> which is only child`);
+
+    test(() => {
+      editor.innerHTML = `${openTagOfContainer}<${tag}>${closeTagOfContainer}`;
+      const element = editor.querySelector(tag);
+      editor.focus();
+      const selection = getSelection();
+      selection.collapse(element, 0);
+      element.getBoundingClientRect();
+      document.execCommand("insertParagraph");
+      if (tag == "br") {
+        if (!visibleTag && container == "h1") {
+          assert_in_array(
+            editor.innerHTML,
+            `${openTagOfContainer}<br>${closeTagOfContainer}<div><br></div>`,
+            `The paragraph should be inserted before the <${tag}> element`
+          );
+        } else {
+          assert_in_array(
+            editor.innerHTML,
+            `${openTagOfContainer}<br>${closeAndOpenTagsOfSplitPoint}<br>${closeTagOfContainer}`,
+            `The paragraph should be inserted before the <${tag}> element`
+          );
+        }
+      } else if (!visibleTag && container == "h1") {
+        assert_in_array(
+          editor.innerHTML,
+          [
+            `${openTagOfContainer}<br>${closeTagOfContainer}<div><${tag}></div>`,
+            `${openTagOfContainer}<br>${closeTagOfContainer}<div><${tag}><br></div>`,
+          ],
+          `The paragraph should be inserted before the <${tag}> element`
+        );
+      } else {
+        assert_in_array(
+          editor.innerHTML,
+          [
+            `${openTagOfContainer}<br>${closeAndOpenTagsOfSplitPoint}<${tag}>${closeTagOfContainer}`,
+            `${openTagOfContainer}<br>${closeAndOpenTagsOfSplitPoint}<${tag}><br>${closeTagOfContainer}`,
+          ],
+          `The paragraph should be inserted before the <${tag}> element`
+        );
+      }
+    }, `Inserting paragraph when selection is collapsed in <${tag}> in <${container}> which is only child (explicitly flushes maybe pending layout)`);
+
+    test(() => {
+      editor.innerHTML = `${openTagOfContainer}abc<${tag}>${closeTagOfContainer}`;
+      const element = editor.querySelector(tag);
+      editor.focus();
+      const selection = getSelection();
+      selection.collapse(element, 0);
+      document.execCommand("insertParagraph");
+      if (tag == "br") {
+        if (!visibleTag && container == "h1") {
+          assert_in_array(
+            editor.innerHTML,
+            [
+              `${openTagOfContainer}abc${closeTagOfContainer}<div><br></div>`,
+              `${openTagOfContainer}abc<br>${closeTagOfContainer}<div><br></div>`,
+            ],
+            `The paragraph should be split before the <${tag}> element`
+          );
+        } else {
+          assert_in_array(
+            editor.innerHTML,
+            [
+              `${openTagOfContainer}abc${closeAndOpenTagsOfSplitPoint}<br>${closeTagOfContainer}`,
+              `${openTagOfContainer}abc<br>${closeAndOpenTagsOfSplitPoint}<br>${closeTagOfContainer}`,
+            ],
+            `The paragraph should be split before the <${tag}> element`
+          );
+        }
+      } else if (!visibleTag && container == "h1") {
+        assert_in_array(
+          editor.innerHTML,
+          [
+            `${openTagOfContainer}abc${closeTagOfContainer}<div><${tag}></div>`,
+            `${openTagOfContainer}abc<br>${closeTagOfContainer}<div><${tag}></div>`,
+            `${openTagOfContainer}abc${closeTagOfContainer}<div><${tag}><br></div>`,
+            `${openTagOfContainer}abc<br>${closeTagOfContainer}<div><${tag}><br></div>`,
+          ],
+          `The paragraph should be split before the <${tag}> element`
+        );
+      } else {
+        assert_in_array(
+          editor.innerHTML,
+          [
+            `${openTagOfContainer}abc${closeAndOpenTagsOfSplitPoint}<${tag}>${closeTagOfContainer}`,
+            `${openTagOfContainer}abc<br>${closeAndOpenTagsOfSplitPoint}<${tag}>${closeTagOfContainer}`,
+            `${openTagOfContainer}abc${closeAndOpenTagsOfSplitPoint}<${tag}><br>${closeTagOfContainer}`,
+            `${openTagOfContainer}abc<br>${closeAndOpenTagsOfSplitPoint}<${tag}><br>${closeTagOfContainer}`,
+          ],
+          `The paragraph should be split before the <${tag}> element`
+        );
+      }
+    }, `Inserting paragraph when selection is collapsed in <${tag}> which follows a text node in <${container}>`);
+
+    test(() => {
+      editor.innerHTML = `${openTagOfContainer}<${tag}>abc${closeTagOfContainer}`;
+      const element = editor.querySelector(tag);
+      editor.focus();
+      const selection = getSelection();
+      selection.collapse(element, 0);
+      document.execCommand("insertParagraph");
+      assert_in_array(
+        editor.innerHTML,
+        [
+          `${openTagOfContainer}<br>${closeAndOpenTagsOfSplitPoint}<${tag}>abc${closeTagOfContainer}`,
+          `${openTagOfContainer}<br>${closeAndOpenTagsOfSplitPoint}<${tag}>abc<br>${closeTagOfContainer}`,
+        ],
+        `The paragraph should be inserted before the <${tag}> element`
+      );
+    }, `Inserting paragraph when selection is collapsed in <${tag}> which is followed by a text node in <${container}>`);
+  }
+}
+
+</script>

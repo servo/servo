@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<title>Percentage height in flexbox: css-sizing-3</title>
+<link rel="author" title="mailto:atotic@google.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://www.w3.org/TR/css-sizing-3/#percentage-sizing">
+<link rel="help" href="https://crbug.com/907911">
+<meta name="assert" content="Percentage height resolves correctly inside flexbox.">
+<style>
+#outer {
+  width: 100px;
+  height: 100px;
+  background: red;
+}
+#container {
+  display: inline-flex;
+  height: 50px;
+  background: green;
+}
+#target {
+  height:100%;
+  display:block;
+}
+</style>
+<script>
+setup({explicit_done: true});
+function doTest() {
+  test(() => {
+    let target = document.querySelector("#target");
+    assert_equals(target.offsetWidth, target.offsetHeight);
+    assert_equals(target.offsetWidth, target.parentNode.offsetWidth);
+    assert_equals(target.offsetHeight, target.parentNode.offsetHeight);
+  }, '#target offsetSize matches #container offsetSize' );
+  test(() => {
+    document.querySelector("#container").style.height = "100px";
+    let target = document.querySelector("#target");
+    assert_equals(target.offsetWidth, target.offsetHeight);
+    assert_equals(target.offsetWidth, target.parentNode.offsetWidth);
+    assert_equals(target.offsetHeight, target.parentNode.offsetHeight);
+  }, '#target offsetSize matches #container offsetSize after resize' );
+  done();
+}
+</script>
+<body onload="doTest()">
+<div id="outer">
+  <div id="container">
+    <img id="target" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7">
+  </div>
+</div>
+</body>

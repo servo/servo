@@ -1,0 +1,40 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Writing Modes Test: 'writing-mode: vertical-rl' - default page flow (progression) direction</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#block-flow" title="3.1 Block Flow Direction: the writing-mode property" />
+
+  <meta content="image paged" name="flags" />
+  <meta content="This test checks that when 'writing-mode' is set on the root element, then it determines the default page flow (or progression) direction. In this test, the page flow (or progression) direction is right-to-left." name="assert" />
+
+  <style type="text/css" media="print"><![CDATA[
+  html
+    {
+      writing-mode: vertical-rl;
+    }
+
+  body, div
+    {
+      width: 100%;
+  /* width: 100% will force a page-break in vertical-rl writing-mode */
+    }
+  ]]></style>
+ </head>
+
+ <body>
+
+  <div><img src="support/page-flow-direction-002p1.png" alt="Image download support must be enabled" /></div>
+
+  <div><img src="support/page-flow-direction-002p2.png" alt="Image download support must be enabled" /></div>
+
+  <div><img src="support/page-flow-direction-002p3.png" alt="Image download support must be enabled" /></div>
+
+  <div><img src="support/page-flow-direction-002p4.png" alt="Image download support must be enabled" /></div>
+
+ </body>
+</html>

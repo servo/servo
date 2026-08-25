@@ -1,0 +1,45 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>stretching works for replaced items with no aspect ratio</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-grid">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1656281">
+<link rel="match" href="grid-item-no-aspect-ratio-stretch-1-ref.html">
+<style>
+  body {
+    line-height: 0;
+  }
+
+  div {
+    display: inline-grid;
+    height: 250px;
+    width: 350px;
+    background: purple;
+    margin: 10px;
+    vertical-align: top;
+  }
+
+  svg {
+    background: green;
+  }
+
+  .justify {
+    justify-self: stretch;
+  }
+  .align {
+    align-self: stretch;
+  }
+</style>
+<div>
+  <svg class="align justify"></svg>
+</div>
+<div>
+  <svg class="align"></svg>
+</div>
+<div>
+  <svg class="justify"></svg>
+</div>
+<div>
+  <svg></svg>
+</div>

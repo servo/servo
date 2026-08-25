@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border-collapse set to 'inherit'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#propdef-border-collapse" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#borders" />
+        <meta name="assert" content="A table can inherit its 'border-collapse' behavior from its parent container." />
+        <style type="text/css">
+            #parent
+            {
+                border-collapse: collapse;
+            }
+            table
+            {
+                border-collapse: inherit;
+                border-spacing: 3px;
+                border-style: none;
+            }
+            td
+            {
+                background: black;
+                border: 5px solid black;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if a single box appears below this line.</p>
+        <div id="parent">
+        <table>
+            <tr>
+                <td>XXXXX</td>
+                <td>XXXXX</td>
+            </tr>
+            <tr>
+                <td>XXXXX</td>
+                <td>XXXXX</td>
+            </tr>
+        </table>
+        </div>
+    </body>
+</html>

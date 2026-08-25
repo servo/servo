@@ -1,0 +1,1431 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
+
+use log::{info, warn};
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use rusqlite::{Connection, Error, OptionalExtension, params};
+use sea_query::{Condition, Expr, ExprTrait, IntoCondition, SqliteQueryBuilder};
+use sea_query_rusqlite::RusqliteBinder;
+use servo_base::threadpool::ThreadPool;
+use storage_traits::indexeddb::{
+    AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, AsyncSchemaOperation,
+    BackendError, CreateObjectResult, IndexedDBIndex, IndexedDBKeyRange, IndexedDBKeyType,
+    IndexedDBRecord, IndexedDBTxnMode, KeyPath, PutItemResult,
+};
+
+use crate::indexeddb::IndexedDBDescription;
+use crate::indexeddb::engines::{KvsEngine, KvsTransaction};
+use crate::shared::{DB_INIT_PRAGMAS, DB_PRAGMAS};
+
+mod create;
+mod database_model;
+mod encoding;
+mod object_data_model;
+mod object_store_index_model;
+mod object_store_model;
+
+fn range_to_query(range: IndexedDBKeyRange) -> Condition {
+    // Special case for optimization
+    if let Some(singleton) = range.as_singleton() {
+        let encoded = encoding::serialize(singleton);
+        return Expr::column(object_data_model::Column::Key)
+            .eq(encoded)
+            .into_condition();
+    }
+    let mut parts = vec![];
+    if let Some(upper) = range.upper.as_ref() {
+        let upper_bytes = encoding::serialize(upper);
+        let query = if range.upper_open {
+            Expr::column(object_data_model::Column::Key).lt(upper_bytes)
+        } else {
+            Expr::column(object_data_model::Column::Key).lte(upper_bytes)
+        };
+        parts.push(query);
+    }
+    if let Some(lower) = range.lower.as_ref() {
+        let lower_bytes = encoding::serialize(lower);
+        let query = if range.lower_open {
+            Expr::column(object_data_model::Column::Key).gt(lower_bytes)
+        } else {
+            Expr::column(object_data_model::Column::Key).gte(lower_bytes)
+        };
+        parts.push(query);
+    }
+    let mut condition = Condition::all();
+    for part in parts {
+        condition = condition.add(part);
+    }
+    condition
+}
+
+pub struct SqliteEngine {
+    db_path: PathBuf,
+    connection: Connection,
+    read_pool: Arc<ThreadPool>,
+    write_pool: Arc<ThreadPool>,
+    created_db_path: bool,
+}
+
+impl SqliteEngine {
+    fn object_store_by_name(
+        connection: &Connection,
+        store_name: &str,
+    ) -> Result<object_store_model::Model, Error> {
+        connection.query_row(
+            "SELECT * FROM object_store WHERE name = ?",
+            params![store_name.to_string()],
+            |row| object_store_model::Model::try_from(row),
+        )
+    }
+
+    // TODO: intake dual pools
+    pub fn new(
+        path: PathBuf,
+        created: bool,
+        db_info: &IndexedDBDescription,
+        pool: Arc<ThreadPool>,
+    ) -> Result<Self, Error> {
+        let db_path = path.join("indexeddb.sqlite");
+        let connection = Self::init_db(&db_path, db_info)?;
+
+        for stmt in DB_PRAGMAS {
+            // TODO: Handle errors properly
+            let _ = connection.execute(stmt, ());
+        }
+
+        Ok(Self {
+            connection,
+            db_path,
+            read_pool: pool.clone(),
+            write_pool: pool,
+            created_db_path: created,
+        })
+    }
+
+    /// Returns whether the physical db was created as part of `new`.
+    pub(crate) fn created_db_path(&self) -> bool {
+        self.created_db_path
+    }
+
+    fn init_db(path: &Path, db_info: &IndexedDBDescription) -> Result<Connection, Error> {
+        let connection = Connection::open(path)?;
+        if connection.table_exists(None, "database")? {
+            // Database already exists, no need to initialize
+            return Ok(connection);
+        }
+        info!("Initializing indexeddb database at {:?}", path);
+        for stmt in DB_INIT_PRAGMAS {
+            // FIXME(arihant2math): this fails occasionally
+            let _ = connection.execute(stmt, ());
+        }
+        create::create_tables(&connection)?;
+        // From https://w3c.github.io/IndexedDB/#database-version:
+        // "When a database is first created, its version is 0 (zero)."
+        connection.execute(
+            "INSERT INTO database (name, origin, version) VALUES (?, ?, ?)",
+            params![
+                db_info.name.to_owned(),
+                db_info.origin.to_owned().ascii_serialization().into_owned(),
+                i64::from_ne_bytes(0_u64.to_ne_bytes())
+            ],
+        )?;
+        Ok(connection)
+    }
+
+    fn get(
+        connection: &Connection,
+        store: object_store_model::Model,
+        key_range: IndexedDBKeyRange,
+    ) -> Result<Option<object_data_model::Model>, Error> {
+        let query = range_to_query(key_range);
+        let (sql, values) = sea_query::Query::select()
+            .from(object_data_model::Column::Table)
+            .columns(vec![
+                object_data_model::Column::ObjectStoreId,
+                object_data_model::Column::Key,
+                object_data_model::Column::Data,
+            ])
+            .and_where(query.and(Expr::col(object_data_model::Column::ObjectStoreId).is(store.id)))
+            .limit(1)
+            .build_rusqlite(SqliteQueryBuilder);
+        connection
+            .prepare(&sql)?
+            .query_one(&*values.as_params(), |row| {
+                object_data_model::Model::try_from(row)
+            })
+            .optional()
+    }
+
+    fn get_key(
+        connection: &Connection,
+        store: object_store_model::Model,
+        key_range: IndexedDBKeyRange,
+    ) -> Result<Option<Vec<u8>>, Error> {
+        Self::get(connection, store, key_range).map(|opt| opt.map(|model| model.key))
+    }
+
+    fn get_item(
+        connection: &Connection,
+        store: object_store_model::Model,
+        key_range: IndexedDBKeyRange,
+    ) -> Result<Option<Vec<u8>>, Error> {
+        Self::get(connection, store, key_range).map(|opt| opt.map(|model| model.data))
+    }
+
+    fn get_all(
+        connection: &Connection,
+        store: object_store_model::Model,
+        key_range: IndexedDBKeyRange,
+        count: Option<u32>,
+    ) -> Result<Vec<object_data_model::Model>, Error> {
+        let query = range_to_query(key_range);
+        let mut sql_query = sea_query::Query::select();
+        sql_query
+            .from(object_data_model::Column::Table)
+            .columns(vec![
+                object_data_model::Column::ObjectStoreId,
+                object_data_model::Column::Key,
+                object_data_model::Column::Data,
+            ])
+            .and_where(query.and(Expr::col(object_data_model::Column::ObjectStoreId).is(store.id)));
+        if let Some(count) = count {
+            sql_query.limit(count as u64);
+        }
+        let (sql, values) = sql_query.build_rusqlite(SqliteQueryBuilder);
+        let mut stmt = connection.prepare(&sql)?;
+        let models = stmt
+            .query_and_then(&*values.as_params(), |row| {
+                object_data_model::Model::try_from(row)
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(models)
+    }
+
+    fn get_all_keys(
+        connection: &Connection,
+        store: object_store_model::Model,
+        key_range: IndexedDBKeyRange,
+        count: Option<u32>,
+    ) -> Result<Vec<Vec<u8>>, Error> {
+        Self::get_all(connection, store, key_range, count)
+            .map(|models| models.into_iter().map(|m| m.key).collect())
+    }
+
+    fn get_all_items(
+        connection: &Connection,
+        store: object_store_model::Model,
+        key_range: IndexedDBKeyRange,
+        count: Option<u32>,
+    ) -> Result<Vec<Vec<u8>>, Error> {
+        Self::get_all(connection, store, key_range, count)
+            .map(|models| models.into_iter().map(|m| m.data).collect())
+    }
+
+    #[expect(clippy::type_complexity)]
+    fn get_all_records(
+        connection: &Connection,
+        store: object_store_model::Model,
+        key_range: IndexedDBKeyRange,
+    ) -> Result<Vec<(Vec<u8>, Vec<u8>)>, Error> {
+        Self::get_all(connection, store, key_range, None)
+            .map(|models| models.into_iter().map(|m| (m.key, m.data)).collect())
+    }
+
+    fn put_item(
+        connection: &Connection,
+        store: object_store_model::Model,
+        key: IndexedDBKeyType,
+        value: Vec<u8>,
+        should_overwrite: bool,
+        key_generator_current_number: Option<i64>,
+    ) -> Result<PutItemResult, Error> {
+        let no_overwrite = !should_overwrite;
+        let serialized_key: Vec<u8> = encoding::serialize(&key);
+        let existing_item = connection
+            .prepare("SELECT * FROM object_data WHERE key = ? AND object_store_id = ?")
+            .and_then(|mut stmt| {
+                stmt.query_row(params![serialized_key, store.id], |row| {
+                    object_data_model::Model::try_from(row)
+                })
+                .optional()
+            })?;
+        if existing_item.is_some() {
+            if no_overwrite {
+                return Ok(PutItemResult::CannotOverwrite);
+            }
+            // Preserve `put()` semantics by replacing the stored value when the primary
+            // key already exists.
+            connection.execute(
+                "UPDATE object_data SET data = ? WHERE object_store_id = ? AND key = ?",
+                params![value, store.id, serialized_key],
+            )?;
+        } else {
+            connection.execute(
+                "INSERT INTO object_data (object_store_id, key, data) VALUES (?, ?, ?)",
+                params![store.id, serialized_key, value],
+            )?;
+        }
+        if let Some(next_key_generator_current_number) = key_generator_current_number {
+            connection.execute(
+                "UPDATE object_store SET auto_increment = ? WHERE id = ?",
+                params![next_key_generator_current_number, store.id],
+            )?;
+        }
+        Ok(PutItemResult::Key(key))
+    }
+
+    fn delete_item(
+        connection: &Connection,
+        store: object_store_model::Model,
+        key_range: IndexedDBKeyRange,
+    ) -> Result<(), Error> {
+        let query = range_to_query(key_range);
+        let (sql, values) = sea_query::Query::delete()
+            .from_table(object_data_model::Column::Table)
+            .and_where(query.and(Expr::col(object_data_model::Column::ObjectStoreId).is(store.id)))
+            .build_rusqlite(SqliteQueryBuilder);
+        connection.prepare(&sql)?.execute(&*values.as_params())?;
+        Ok(())
+    }
+
+    fn clear(connection: &Connection, store: object_store_model::Model) -> Result<(), Error> {
+        connection.execute(
+            "DELETE FROM object_data WHERE object_store_id = ?",
+            params![store.id],
+        )?;
+        Ok(())
+    }
+
+    fn count(
+        connection: &Connection,
+        store: object_store_model::Model,
+        key_range: IndexedDBKeyRange,
+    ) -> Result<usize, Error> {
+        let query = range_to_query(key_range);
+        let (sql, values) = sea_query::Query::select()
+            .expr(Expr::col(object_data_model::Column::Key).count())
+            .from(object_data_model::Column::Table)
+            .and_where(query.and(Expr::col(object_data_model::Column::ObjectStoreId).is(store.id)))
+            .build_rusqlite(SqliteQueryBuilder);
+        connection
+            .prepare(&sql)?
+            .query_row(&*values.as_params(), |row| row.get(0))
+            .map(|count: i64| count as usize)
+    }
+
+    fn create_store(
+        connection: &Connection,
+        store_name: &str,
+        key_path: Option<KeyPath>,
+        auto_increment: bool,
+    ) -> Result<CreateObjectResult, Error> {
+        let mut stmt = connection.prepare("SELECT * FROM object_store WHERE name = ?")?;
+        if stmt.exists(params![store_name.to_string()])? {
+            // Store already exists
+            return Ok(CreateObjectResult::AlreadyExists);
+        }
+        connection.execute(
+            "INSERT INTO object_store (name, key_path, auto_increment) VALUES (?, ?, ?)",
+            params![
+                store_name.to_string(),
+                key_path.map(|v| postcard::to_stdvec(&v).unwrap()),
+                auto_increment as i32
+            ],
+        )?;
+        Ok(CreateObjectResult::Created)
+    }
+
+    fn delete_store(connection: &Connection, store_name: &str) -> Result<(), Error> {
+        // https://www.w3.org/TR/IndexedDB-3/#dom-idbdatabase-deleteobjectstore
+        // Step 7. Destroy store.
+        let object_store = Self::object_store_by_name(connection, store_name)?;
+
+        connection.execute(
+            "DELETE FROM index_data WHERE object_store_id = ?",
+            params![object_store.id],
+        )?;
+        connection.execute(
+            "DELETE FROM unique_index_data WHERE object_store_id = ?",
+            params![object_store.id],
+        )?;
+        connection.execute(
+            "DELETE FROM object_store_index WHERE object_store_id = ?",
+            params![object_store.id],
+        )?;
+        connection.execute(
+            "DELETE FROM object_data WHERE object_store_id = ?",
+            params![object_store.id],
+        )?;
+        let result = connection.execute(
+            "DELETE FROM object_store WHERE id = ?",
+            params![object_store.id],
+        )?;
+        if result == 0 {
+            Err(Error::QueryReturnedNoRows)
+        } else if result > 1 {
+            Err(Error::QueryReturnedMoreThanOneRow)
+        } else {
+            Ok(())
+        }
+    }
+
+    fn create_index(
+        connection: &Connection,
+        store_name: &str,
+        index_name: String,
+        key_path: KeyPath,
+        unique: bool,
+        multi_entry: bool,
+    ) -> Result<CreateObjectResult, Error> {
+        let object_store = connection.query_row(
+            "SELECT * FROM object_store WHERE name = ?",
+            params![store_name.to_string()],
+            |row| object_store_model::Model::try_from(row),
+        )?;
+
+        let index_exists: bool = connection.query_row(
+            "SELECT EXISTS(SELECT * FROM object_store_index WHERE name = ? AND object_store_id = ?)",
+            params![index_name, object_store.id],
+            |row| row.get(0),
+        )?;
+        if index_exists {
+            return Ok(CreateObjectResult::AlreadyExists);
+        }
+
+        connection.execute(
+            "INSERT INTO object_store_index (object_store_id, name, key_path, unique_index, multi_entry_index)\
+            VALUES (?, ?, ?, ?, ?)",
+            params![
+                object_store.id,
+                index_name,
+                postcard::to_stdvec(&key_path).unwrap(),
+                unique,
+                multi_entry,
+            ],
+        )?;
+        Ok(CreateObjectResult::Created)
+    }
+
+    fn rename_index(
+        connection: &Connection,
+        store_name: &str,
+        index_name: &str,
+        new_name: &str,
+    ) -> Result<(), Error> {
+        let object_store = connection.query_row(
+            "SELECT * FROM object_store WHERE name = ?",
+            params![store_name],
+            |row| object_store_model::Model::try_from(row),
+        )?;
+
+        // Rename the index if it exists
+        let _ = connection.execute(
+            "UPDATE object_store_index SET name = ? WHERE name = ? AND object_store_id = ?",
+            params![new_name, index_name, object_store.id],
+        )?;
+        Ok(())
+    }
+
+    fn delete_index(
+        connection: &Connection,
+        store_name: &str,
+        index_name: String,
+    ) -> Result<(), Error> {
+        let object_store = connection.query_row(
+            "SELECT * FROM object_store WHERE name = ?",
+            params![store_name.to_string()],
+            |row| Ok(object_store_model::Model::try_from(row).unwrap()),
+        )?;
+
+        // Delete the index if it exists
+        let _ = connection.execute(
+            "DELETE FROM object_store_index WHERE name = ? AND object_store_id = ?",
+            params![index_name, object_store.id],
+        )?;
+        Ok(())
+    }
+}
+
+impl KvsEngine for SqliteEngine {
+    type Error = Error;
+
+    fn create_store(
+        &self,
+        store_name: &str,
+        key_path: Option<KeyPath>,
+        auto_increment: bool,
+    ) -> Result<CreateObjectResult, Self::Error> {
+        Self::create_store(&self.connection, store_name, key_path, auto_increment)
+    }
+    fn create_index(
+        &self,
+        store_name: &str,
+        index_name: String,
+        key_path: KeyPath,
+        unique: bool,
+        multi_entry: bool,
+    ) -> Result<CreateObjectResult, Self::Error> {
+        Self::create_index(
+            &self.connection,
+            store_name,
+            index_name,
+            key_path,
+            unique,
+            multi_entry,
+        )
+    }
+
+    fn delete_store(&self, store_name: &str) -> Result<(), Self::Error> {
+        Self::delete_store(&self.connection, store_name)
+    }
+
+    fn close_store(&self, _store_name: &str) -> Result<(), Self::Error> {
+        // TODO: do something
+        Ok(())
+    }
+
+    fn process_transaction(
+        &self,
+        transaction: KvsTransaction,
+        on_complete: Box<dyn FnOnce() + Send + 'static>,
+    ) {
+        let spawning_pool = if transaction.mode == IndexedDBTxnMode::Readonly {
+            self.read_pool.clone()
+        } else {
+            self.write_pool.clone()
+        };
+        let path = self.db_path.clone();
+        spawning_pool.spawn(move || {
+            let connection = match Connection::open(path) {
+                Ok(connection) => connection,
+                Err(error) => {
+                    for request in transaction.requests {
+                        request
+                            .operation
+                            .notify_error(BackendError::DbErr(format!("{error:?}")));
+                    }
+                    on_complete();
+                    return;
+                },
+            };
+            for request in transaction.requests {
+                if let AsyncOperation::Schema(AsyncSchemaOperation::CreateObjectStore {
+                    callback,
+                    key_path,
+                    auto_increment
+                }) = &request.operation {
+                    if let Err(error) =
+                        Self::create_store(&connection, &request.store_name, key_path.clone(), *auto_increment)
+                    {
+                        let _ = callback.send(BackendError::DbErr(format!("{error:?}")));
+                    }
+                    continue;
+                }
+
+                let object_store = connection
+                    .prepare("SELECT * FROM object_store WHERE name = ?")
+                    .and_then(|mut stmt| {
+                        stmt.query_row(params![request.store_name.to_string()], |row| {
+                            object_store_model::Model::try_from(row)
+                        })
+                        .optional()
+                    });
+                let object_store = match object_store {
+                    Ok(Some(store)) => store,
+                    Ok(None) => {
+                        request.operation.notify_error(BackendError::StoreNotFound);
+                        continue;
+                    },
+                    Err(error) => {
+                        request
+                            .operation
+                            .notify_error(BackendError::DbErr(format!("{error:?}")));
+                        continue;
+                    },
+                };
+
+                match request.operation {
+                    AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
+                        callback,
+                        key,
+                        value,
+                        should_overwrite,
+                        key_generator_current_number,
+                    }) => {
+                        let (key, key_generator_current_number) = match key {
+                            Some(key) => (key, key_generator_current_number),
+                            None => {
+                                if object_store.auto_increment == 0 {
+                                    if let Err(error) = callback.send(Err(BackendError::DbErr(
+                                        "Missing key for PutItem request".to_string(),
+                                    ))) {
+                                        warn!("Failed to send PutItem missing key error: {error:?}");
+                                    }
+                                    continue;
+                                }
+                                let Some(next_key_generator_current_number) =
+                                    object_store.auto_increment.checked_add(1)
+                                else {
+                                    if let Err(error) = callback.send(Err(BackendError::DbErr(
+                                        "Key generator overflow".to_string(),
+                                    ))) {
+                                        warn!(
+                                            "Failed to send PutItem key generator overflow error: {error:?}"
+                                        );
+                                    }
+                                    continue;
+                                };
+                                (
+                                    IndexedDBKeyType::Number(object_store.auto_increment as f64),
+                                    Some(next_key_generator_current_number),
+                                )
+                            },
+                        };
+                        let _ = callback.send(
+                            Self::put_item(
+                                &connection,
+                                object_store,
+                                key,
+                                value,
+                                should_overwrite,
+                                key_generator_current_number,
+                            )
+                            .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
+                        );
+                    },
+                    AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetItem {
+                        callback,
+                        key_range,
+                    }) => {
+                        let _ = callback.send(
+                            Self::get_item(&connection, object_store, key_range)
+                                .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
+                        );
+                    },
+                    AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetAllKeys {
+                        callback,
+                        key_range,
+                        count,
+                    }) => {
+                        let _ = callback.send(
+                            Self::get_all_keys(&connection, object_store, key_range, count)
+                                .map(|keys| {
+                                    keys.into_iter()
+                                        .map(|k| encoding::deserialize(&k).unwrap())
+                                        .collect()
+                                })
+                                .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
+                        );
+                    },
+                    AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetAllItems {
+                        callback,
+                        key_range,
+                        count,
+                    }) => {
+                        let _ = callback.send(
+                            Self::get_all_items(&connection, object_store, key_range, count)
+                                .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
+                        );
+                    },
+                    AsyncOperation::ReadWrite(AsyncReadWriteOperation::RemoveItem {
+                        callback,
+                        key_range,
+                    }) => {
+                        let _ = callback.send(
+                            Self::delete_item(&connection, object_store, key_range)
+                                .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
+                        );
+                    },
+                    AsyncOperation::ReadOnly(AsyncReadOnlyOperation::Count {
+                        callback,
+                        key_range,
+                    }) => {
+                        let _ = callback.send(
+                            Self::count(&connection, object_store, key_range)
+                                .map(|r| r as u64)
+                                .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
+                        );
+                    },
+                    AsyncOperation::ReadOnly(AsyncReadOnlyOperation::Iterate {
+                        callback,
+                        key_range,
+                    }) => {
+                        let _ = callback.send(
+                            Self::get_all_records(&connection, object_store, key_range)
+                                .map(|records| {
+                                    records
+                                        .into_iter()
+                                        .map(|(key, data)| IndexedDBRecord {
+                                            key: encoding::deserialize(&key).unwrap(),
+                                            primary_key: encoding::deserialize(&key).unwrap(),
+                                            value: data,
+                                        })
+                                        .collect()
+                                })
+                                .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
+                        );
+                    },
+                    AsyncOperation::ReadWrite(AsyncReadWriteOperation::Clear(sender)) => {
+                        let _ = sender.send(
+                            Self::clear(&connection, object_store)
+                                .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
+                        );
+                    },
+                    AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetKey {
+                        callback,
+                        key_range,
+                    }) => {
+                        let _ = callback.send(
+                            Self::get_key(&connection, object_store, key_range)
+                                .map(|key| key.map(|k| encoding::deserialize(&k).unwrap()))
+                                .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
+                        );
+                    },
+                    AsyncOperation::Schema(AsyncSchemaOperation::CreateIndex {
+                        callback,
+                        index_name,
+                        key_path,
+                        unique,
+                        multi_entry
+                    }) => {
+                        if let Err(error) = Self::create_index(
+                            &connection,
+                            &request.store_name,
+                            index_name,
+                            key_path,
+                            unique,
+                            multi_entry
+                        ) {
+                            let _ = callback.send(BackendError::DbErr(format!("{error:?}")));
+                        }
+                    },
+                    AsyncOperation::Schema(AsyncSchemaOperation::CreateObjectStore { .. }) => {
+                        unreachable!("Should be handled above");
+                    },
+                    AsyncOperation::Schema(AsyncSchemaOperation::DeleteIndex { index_name, callback }) => {
+                        if let Err(error) = Self::delete_index(&connection, &request.store_name, index_name) {
+                            let _ = callback.send(BackendError::DbErr(format!("{error:?}")));
+                        }
+                    },
+                    AsyncOperation::Schema(AsyncSchemaOperation::DeleteObjectStore { callback }) => {
+                        if let Err(error) = Self::delete_store(&connection, &request.store_name) {
+                            let _ = callback.send(BackendError::DbErr(format!("{error:?}")));
+                        }
+                    },
+                    AsyncOperation::Schema(AsyncSchemaOperation::RenameIndex { index_name, new_name, callback }) =>  {
+                        if let Err(error) = Self::rename_index(
+                            &connection,
+                            &request.store_name,
+                            &index_name,
+                            &new_name
+                        ) {
+                            let _ = callback.send(BackendError::DbErr(format!("{error:?}")));
+                        }
+                    },
+                }
+            }
+            on_complete();
+        });
+    }
+
+    fn key_generator_current_number(&self, store_name: &str) -> Option<i64> {
+        self.connection
+            .prepare("SELECT * FROM object_store WHERE name = ?")
+            .and_then(|mut stmt| {
+                stmt.query_row(params![store_name.to_string()], |r| {
+                    let object_store = object_store_model::Model::try_from(r).unwrap();
+                    Ok(object_store.auto_increment)
+                })
+            })
+            .optional()
+            .unwrap()
+            .and_then(|current_number| (current_number != 0).then_some(current_number))
+    }
+
+    fn set_key_generator_current_number(
+        &self,
+        store_name: &str,
+        current_number: i64,
+    ) -> Result<(), Self::Error> {
+        // Ensure missing store is reported as QueryReturnedNoRows even when an
+        // UPDATE might affect zero rows due to no-op assignment.
+        let store_exists: bool = self.connection.query_row(
+            "SELECT EXISTS(SELECT 1 FROM object_store WHERE name = ?)",
+            params![store_name],
+            |row| row.get(0),
+        )?;
+        if !store_exists {
+            return Err(Error::QueryReturnedNoRows);
+        }
+
+        let rows_affected = self.connection.execute(
+            "UPDATE object_store SET auto_increment = ? WHERE name = ?",
+            params![current_number, store_name],
+        )?;
+        if rows_affected > 1 {
+            return Err(Error::QueryReturnedMoreThanOneRow);
+        }
+        Ok(())
+    }
+
+    fn key_path(&self, store_name: &str) -> Option<KeyPath> {
+        self.connection
+            .prepare("SELECT * FROM object_store WHERE name = ?")
+            .and_then(|mut stmt| {
+                stmt.query_row(params![store_name.to_string()], |r| {
+                    let object_store = object_store_model::Model::try_from(r).unwrap();
+                    Ok(object_store
+                        .key_path
+                        .map(|key_path| postcard::from_bytes(&key_path).unwrap()))
+                })
+            })
+            .optional()
+            .unwrap()
+            // TODO: Wrong, same issues as has_key_generator
+            .unwrap_or_default()
+    }
+
+    fn object_store_names(&self) -> Result<Vec<String>, Self::Error> {
+        let mut stmt = self.connection.prepare("SELECT name FROM object_store")?;
+        stmt.query_map([], |row| row.get(0))?
+            .collect::<Result<Vec<_>, _>>()
+    }
+
+    fn indexes(&self, store_name: &str) -> Result<Vec<IndexedDBIndex>, Self::Error> {
+        let object_store = self.connection.query_row(
+            "SELECT * FROM object_store WHERE name = ?",
+            params![store_name.to_string()],
+            |row| object_store_model::Model::try_from(row),
+        )?;
+
+        let mut stmt = self
+            .connection
+            .prepare("SELECT * FROM object_store_index WHERE object_store_id = ?")?;
+        let indexes = stmt
+            .query_map(params![object_store.id], |row| {
+                let model = object_store_index_model::Model::try_from(row)?;
+                Ok(IndexedDBIndex {
+                    name: model.name,
+                    key_path: postcard::from_bytes(&model.key_path).unwrap(),
+                    unique: model.unique_index,
+                    multi_entry: model.multi_entry_index,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(indexes)
+    }
+
+    fn delete_index(&self, store_name: &str, index_name: String) -> Result<(), Self::Error> {
+        Self::delete_index(&self.connection, store_name, index_name)
+    }
+
+    fn version(&self) -> Result<u64, Self::Error> {
+        let version: i64 =
+            self.connection
+                .query_row("SELECT version FROM database LIMIT 1", [], |row| row.get(0))?;
+        Ok(u64::from_ne_bytes(version.to_ne_bytes()))
+    }
+
+    fn set_version(&self, version: u64) -> Result<(), Self::Error> {
+        let rows_affected = self.connection.execute(
+            "UPDATE database SET version = ?",
+            params![i64::from_ne_bytes(version.to_ne_bytes())],
+        )?;
+        if rows_affected == 0 {
+            return Err(Error::QueryReturnedNoRows);
+        }
+        Ok(())
+    }
+}
+
+fn get_db_status(connection: &Connection, op: i32) -> Result<i32, i32> {
+    let mut p_curr = 0;
+    let mut p_hiwater = 0;
+    let res = unsafe {
+        rusqlite::ffi::sqlite3_db_status(connection.handle(), op, &mut p_curr, &mut p_hiwater, 0)
+    };
+    if res != 0 { Err(res) } else { Ok(p_curr) }
+}
+
+impl MallocSizeOf for SqliteEngine {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        // 48 KB (3.3.1 at https://sqlite.org/malloc.html)
+        const DEFAULT_LOOKASIDE_SIZE: usize = 48 * 1024;
+        self.created_db_path.size_of(ops) +
+            DEFAULT_LOOKASIDE_SIZE +
+            get_db_status(
+                &self.connection,
+                rusqlite::ffi::SQLITE_DBSTATUS_CACHE_USED_SHARED,
+            )
+            .unwrap_or_default() as usize +
+            get_db_status(&self.connection, rusqlite::ffi::SQLITE_DBSTATUS_SCHEMA_USED)
+                .unwrap_or_default() as usize +
+            get_db_status(&self.connection, rusqlite::ffi::SQLITE_DBSTATUS_STMT_USED)
+                .unwrap_or_default() as usize
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::VecDeque;
+    use std::path::PathBuf;
+    use std::sync::Arc;
+
+    use profile_traits::generic_callback::GenericCallback;
+    use profile_traits::time::ProfilerChan;
+    use serde::{Deserialize, Serialize};
+    use servo_base::generic_channel::{self, GenericReceiver, GenericSender};
+    use servo_base::id::{PIPELINE_NAMESPACE, PipelineNamespace, PipelineNamespaceId, WebViewId};
+    use servo_base::threadpool::ThreadPool;
+    use servo_url::ImmutableOrigin;
+    use storage_traits::client_storage::{
+        ClientStorageThreadHandle, StorageIdentifier, StorageProxyMap, StorageType,
+    };
+    use storage_traits::indexeddb::{
+        AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, CreateObjectResult,
+        IndexedDBKeyRange, IndexedDBKeyType, IndexedDBTxnMode, KeyPath, PutItemResult,
+    };
+    use url::Host;
+
+    use crate::ClientStorageThreadFactory;
+    use crate::indexeddb::IndexedDBDescription;
+    use crate::indexeddb::engines::sqlite::encoding;
+    use crate::indexeddb::engines::{KvsEngine, KvsOperation, KvsTransaction, SqliteEngine};
+
+    fn install_test_namespace() {
+        PipelineNamespace::install(PipelineNamespaceId(1));
+    }
+
+    fn test_origin() -> ImmutableOrigin {
+        ImmutableOrigin::Tuple(
+            "test_origin".to_string(),
+            Host::Domain("localhost".to_string()),
+            80,
+        )
+    }
+
+    fn get_pool() -> Arc<ThreadPool> {
+        ThreadPool::global()
+    }
+
+    fn create_db(
+        db_name: String,
+    ) -> (
+        tempfile::TempDir,
+        PathBuf,
+        bool,
+        StorageProxyMap,
+        ClientStorageThreadHandle,
+    ) {
+        if PIPELINE_NAMESPACE.get().is_none() {
+            install_test_namespace();
+        }
+        let tmp_dir = tempfile::tempdir().unwrap();
+        let handle: ClientStorageThreadHandle =
+            ClientStorageThreadFactory::new(Some(tmp_dir.path().to_path_buf()), true);
+
+        let storage_proxy_map = handle
+            .obtain_a_storage_bottle_map(
+                StorageType::Local,
+                Some(WebViewId::new(servo_base::id::TEST_PAINTER_ID)),
+                StorageIdentifier::IndexedDB,
+                test_origin(),
+            )
+            .recv()
+            .unwrap()
+            .unwrap();
+        let (path, created) = handle
+            .create_database(storage_proxy_map.bottle_id, db_name)
+            .recv()
+            .unwrap()
+            .unwrap();
+        (tmp_dir, path, created, storage_proxy_map, handle)
+    }
+
+    #[test]
+    fn test_cycle() {
+        let (_temp_dir, path, created, proxy_map, handle) = create_db("test_db".to_string());
+        let thread_pool = get_pool();
+        // Test create
+        let db = SqliteEngine::new(
+            path.clone(),
+            created,
+            &IndexedDBDescription {
+                name: "test_db".to_string(),
+                origin: test_origin(),
+            },
+            thread_pool.clone(),
+        )
+        .unwrap();
+        drop(db);
+
+        // Test open
+        let db = SqliteEngine::new(
+            path,
+            created,
+            &IndexedDBDescription {
+                name: "test_db".to_string(),
+                origin: test_origin(),
+            },
+            thread_pool.clone(),
+        )
+        .unwrap();
+        let version = db.version().expect("Failed to get version");
+        assert_eq!(version, 0);
+        db.set_version(5).unwrap();
+        let new_version = db.version().expect("Failed to get new version");
+        assert_eq!(new_version, 5);
+        drop(db);
+        handle
+            .delete_database(proxy_map.bottle_id, "test_db".to_string())
+            .recv()
+            .unwrap()
+            .expect("Failed to delete database");
+    }
+
+    #[test]
+    fn test_create_store() {
+        let (_temp_dir, path, created, _proxy_map, _handle) = create_db("test_db".to_string());
+        let thread_pool = get_pool();
+        let db = SqliteEngine::new(
+            path,
+            created,
+            &IndexedDBDescription {
+                name: "test_db".to_string(),
+                origin: test_origin(),
+            },
+            thread_pool,
+        )
+        .unwrap();
+        let store_name = "test_store";
+        let result = db.create_store(store_name, None, true);
+        assert!(result.is_ok());
+        let create_result = result.unwrap();
+        assert_eq!(create_result, CreateObjectResult::Created);
+        // Try to create the same store again
+        let result = db.create_store(store_name, None, false);
+        assert!(result.is_ok());
+        let create_result = result.unwrap();
+        assert_eq!(create_result, CreateObjectResult::AlreadyExists);
+        // Ensure store was not overwritten
+        assert!(db.key_generator_current_number(store_name).is_some());
+    }
+
+    #[test]
+    fn test_create_store_empty_name() {
+        let (_temp_dir, path, created, _proxy_map, _handle) = create_db("test_db".to_string());
+        let thread_pool = get_pool();
+        let db = SqliteEngine::new(
+            path,
+            created,
+            &IndexedDBDescription {
+                name: "test_db".to_string(),
+                origin: test_origin(),
+            },
+            thread_pool,
+        )
+        .unwrap();
+        let store_name = "";
+        let result = db.create_store(store_name, None, true);
+        assert!(result.is_ok());
+        let create_result = result.unwrap();
+        assert_eq!(create_result, CreateObjectResult::Created);
+    }
+
+    #[test]
+    fn test_injection() {
+        let (_temp_dir, path, created, _proxy_map, _handle) = create_db("test_db".to_string());
+        let thread_pool = get_pool();
+        let db = SqliteEngine::new(
+            path,
+            created,
+            &IndexedDBDescription {
+                name: "test_db".to_string(),
+                origin: test_origin(),
+            },
+            thread_pool,
+        )
+        .unwrap();
+        // Create a normal store
+        let store_name1 = "test_store";
+        let result = db.create_store(store_name1, None, true);
+        assert!(result.is_ok());
+        let create_result = result.unwrap();
+        assert_eq!(create_result, CreateObjectResult::Created);
+        // Injection
+        let store_name2 = "' OR 1=1 -- -";
+        let result = db.create_store(store_name2, None, false);
+        assert!(result.is_ok());
+        let create_result = result.unwrap();
+        assert_eq!(create_result, CreateObjectResult::Created);
+    }
+
+    #[test]
+    fn test_key_path() {
+        let (_temp_dir, path, created, _proxy_map, _handle) = create_db("test_db".to_string());
+        let thread_pool = get_pool();
+        let db = SqliteEngine::new(
+            path,
+            created,
+            &IndexedDBDescription {
+                name: "test_db".to_string(),
+                origin: test_origin(),
+            },
+            thread_pool,
+        )
+        .unwrap();
+        let store_name = "test_store";
+        let result = db.create_store(store_name, Some(KeyPath::String("test".to_string())), true);
+        assert!(result.is_ok());
+        assert_eq!(
+            db.key_path(store_name),
+            Some(KeyPath::String("test".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_delete_store() {
+        let (_temp_dir, path, created, _proxy_map, _handle) = create_db("test_db".to_string());
+        let thread_pool = get_pool();
+        let db = SqliteEngine::new(
+            path,
+            created,
+            &IndexedDBDescription {
+                name: "test_db".to_string(),
+                origin: test_origin(),
+            },
+            thread_pool,
+        )
+        .unwrap();
+        db.create_store("test_store", None, false)
+            .expect("Failed to create store");
+        // Delete the store
+        db.delete_store("test_store")
+            .expect("Failed to delete store");
+        // Try to delete the same store again
+        let result = db.delete_store("test_store");
+        assert!(result.is_err());
+        // Try to delete a non-existing store
+        let result = db.delete_store("test_store");
+        // Should work as per spec
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_delete_store_removes_store_records() {
+        let (_temp_dir, path, created, _proxy_map, _handle) = create_db("test_db".to_string());
+        let thread_pool = get_pool();
+        let db = SqliteEngine::new(
+            path,
+            created,
+            &IndexedDBDescription {
+                name: "test_db".to_string(),
+                origin: test_origin(),
+            },
+            thread_pool,
+        )
+        .unwrap();
+
+        db.create_store("test_store", None, false)
+            .expect("Failed to create store");
+        let object_store = SqliteEngine::object_store_by_name(&db.connection, "test_store")
+            .expect("Failed to fetch store metadata");
+        SqliteEngine::put_item(
+            &db.connection,
+            object_store.clone(),
+            IndexedDBKeyType::Number(1.0),
+            vec![1, 2, 3],
+            true,
+            None,
+        )
+        .expect("Failed to insert item");
+
+        let row_count_before: i64 = db
+            .connection
+            .query_row(
+                "SELECT COUNT(*) FROM object_data WHERE object_store_id = ?",
+                rusqlite::params![object_store.id],
+                |row| row.get(0),
+            )
+            .expect("Failed to count rows before delete");
+        assert_eq!(row_count_before, 1);
+
+        db.delete_store("test_store")
+            .expect("Failed to delete store");
+
+        let row_count_after: i64 = db
+            .connection
+            .query_row(
+                "SELECT COUNT(*) FROM object_data WHERE object_store_id = ?",
+                rusqlite::params![object_store.id],
+                |row| row.get(0),
+            )
+            .expect("Failed to count rows after delete");
+        assert_eq!(row_count_after, 0);
+    }
+
+    #[test]
+    fn test_async_operations() {
+        fn get_channel<T>() -> (GenericSender<T>, GenericReceiver<T>)
+        where
+            T: for<'de> Deserialize<'de> + Serialize,
+        {
+            generic_channel::channel().unwrap()
+        }
+
+        fn get_callback<T>(chan: GenericSender<T>) -> GenericCallback<T>
+        where
+            T: for<'de> Deserialize<'de> + Serialize + Send + Sync,
+        {
+            GenericCallback::new(ProfilerChan(None), move |r| {
+                assert!(chan.send(r.unwrap()).is_ok());
+            })
+            .expect("Could not construct callback")
+        }
+
+        let (_temp_dir, path, created, _proxy_map, _handle) = create_db("test_db".to_string());
+        let thread_pool = get_pool();
+        let db = SqliteEngine::new(
+            path,
+            created,
+            &IndexedDBDescription {
+                name: "test_db".to_string(),
+                origin: test_origin(),
+            },
+            thread_pool,
+        )
+        .unwrap();
+        let store_name = "test_store";
+        db.create_store(store_name, None, false)
+            .expect("Failed to create store");
+        let put = get_channel();
+        let put2 = get_channel();
+        let put3 = get_channel();
+        let put_dup = get_channel();
+        let put_overwrite = get_channel();
+        let get_item_some = get_channel();
+        let get_item_none = get_channel();
+        let get_all_items = get_channel();
+        let count = get_channel();
+        let remove = get_channel();
+        let clear = get_channel();
+        let (done_tx, done_rx) = std::sync::mpsc::channel();
+        db.process_transaction(
+            KvsTransaction {
+                mode: IndexedDBTxnMode::Readwrite,
+                requests: VecDeque::from(vec![
+                    KvsOperation {
+                        store_name: store_name.to_owned(),
+                        operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
+                            callback: get_callback(put.0),
+                            key: Some(IndexedDBKeyType::Number(1.0)),
+                            value: vec![1, 2, 3],
+                            should_overwrite: false,
+                            key_generator_current_number: None,
+                        }),
+                    },
+                    KvsOperation {
+                        store_name: store_name.to_owned(),
+                        operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
+                            callback: get_callback(put2.0),
+                            key: Some(IndexedDBKeyType::String("2.0".to_string())),
+                            value: vec![4, 5, 6],
+                            should_overwrite: false,
+                            key_generator_current_number: None,
+                        }),
+                    },
+                    KvsOperation {
+                        store_name: store_name.to_owned(),
+                        operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
+                            callback: get_callback(put3.0),
+                            key: Some(IndexedDBKeyType::Array(vec![
+                                IndexedDBKeyType::String("3".to_string()),
+                                IndexedDBKeyType::Number(0.0),
+                            ])),
+                            value: vec![7, 8, 9],
+                            should_overwrite: false,
+                            key_generator_current_number: None,
+                        }),
+                    },
+                    // Try to put a duplicate key without overwrite
+                    KvsOperation {
+                        store_name: store_name.to_owned(),
+                        operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
+                            callback: get_callback(put_dup.0),
+                            key: Some(IndexedDBKeyType::Number(1.0)),
+                            value: vec![10, 11, 12],
+                            should_overwrite: false,
+                            key_generator_current_number: None,
+                        }),
+                    },
+                    KvsOperation {
+                        store_name: store_name.to_owned(),
+                        operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
+                            callback: get_callback(put_overwrite.0),
+                            key: Some(IndexedDBKeyType::Number(1.0)),
+                            value: vec![13, 14, 15],
+                            should_overwrite: true,
+                            key_generator_current_number: None,
+                        }),
+                    },
+                    KvsOperation {
+                        store_name: store_name.to_owned(),
+                        operation: AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetItem {
+                            callback: get_callback(get_item_some.0),
+                            key_range: IndexedDBKeyRange::only(IndexedDBKeyType::Number(1.0)),
+                        }),
+                    },
+                    KvsOperation {
+                        store_name: store_name.to_owned(),
+                        operation: AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetItem {
+                            callback: get_callback(get_item_none.0),
+                            key_range: IndexedDBKeyRange::only(IndexedDBKeyType::Number(5.0)),
+                        }),
+                    },
+                    KvsOperation {
+                        store_name: store_name.to_owned(),
+                        operation: AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetAllItems {
+                            callback: get_callback(get_all_items.0),
+                            key_range: IndexedDBKeyRange::lower_bound(
+                                IndexedDBKeyType::Number(0.0),
+                                false,
+                            ),
+                            count: None,
+                        }),
+                    },
+                    KvsOperation {
+                        store_name: store_name.to_owned(),
+                        operation: AsyncOperation::ReadOnly(AsyncReadOnlyOperation::Count {
+                            callback: get_callback(count.0),
+                            key_range: IndexedDBKeyRange::only(IndexedDBKeyType::Number(1.0)),
+                        }),
+                    },
+                    KvsOperation {
+                        store_name: store_name.to_owned(),
+                        operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::RemoveItem {
+                            callback: get_callback(remove.0),
+                            key_range: IndexedDBKeyRange::only(IndexedDBKeyType::Number(1.0)),
+                        }),
+                    },
+                    KvsOperation {
+                        store_name: store_name.to_owned(),
+                        operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::Clear(
+                            get_callback(clear.0),
+                        )),
+                    },
+                ]),
+            },
+            Box::new(move || {
+                let _ = done_tx.send(());
+            }),
+        );
+        let _ = done_rx.recv().unwrap();
+        put.1.recv().unwrap().unwrap();
+        put2.1.recv().unwrap().unwrap();
+        put3.1.recv().unwrap().unwrap();
+        let err = put_dup.1.recv().unwrap().unwrap();
+        assert_eq!(err, PutItemResult::CannotOverwrite);
+        let overwritten = put_overwrite.1.recv().unwrap().unwrap();
+        assert_eq!(
+            overwritten,
+            PutItemResult::Key(IndexedDBKeyType::Number(1.0))
+        );
+        let get_result = get_item_some.1.recv().unwrap();
+        let value = get_result.unwrap();
+        assert_eq!(value, Some(vec![13, 14, 15]));
+        let get_result = get_item_none.1.recv().unwrap();
+        let value = get_result.unwrap();
+        assert_eq!(value, None);
+        let all_items = get_all_items.1.recv().unwrap().unwrap();
+        assert_eq!(all_items.len(), 3);
+        // Check that all three items are present
+        assert!(all_items.contains(&vec![13, 14, 15]));
+        assert!(all_items.contains(&vec![4, 5, 6]));
+        assert!(all_items.contains(&vec![7, 8, 9]));
+        let amount = count.1.recv().unwrap().unwrap();
+        assert_eq!(amount, 1);
+        remove.1.recv().unwrap().unwrap();
+        clear.1.recv().unwrap().unwrap();
+    }
+
+    #[test]
+    fn test_delete_item_range_respects_open_bounds() {
+        fn remaining_keys_after_delete(
+            lower: i32,
+            upper: i32,
+            lower_open: bool,
+            upper_open: bool,
+        ) -> Vec<i32> {
+            let (_temp_dir, path, created, _proxy_map, _handle) = create_db("test_db".to_string());
+            let thread_pool = get_pool();
+            let db = SqliteEngine::new(
+                path,
+                created,
+                &IndexedDBDescription {
+                    name: "test_db".to_string(),
+                    origin: test_origin(),
+                },
+                thread_pool,
+            )
+            .unwrap();
+            let store_name = "test_store";
+            db.create_store(store_name, None, false)
+                .expect("Failed to create store");
+            let store = SqliteEngine::object_store_by_name(&db.connection, store_name)
+                .expect("Failed to get object store");
+
+            for key in 1..=10 {
+                SqliteEngine::put_item(
+                    &db.connection,
+                    store.clone(),
+                    IndexedDBKeyType::Number(key as f64),
+                    vec![key as u8],
+                    false,
+                    None,
+                )
+                .expect("Failed to seed object store");
+            }
+
+            SqliteEngine::delete_item(
+                &db.connection,
+                store.clone(),
+                IndexedDBKeyRange::new(
+                    Some(IndexedDBKeyType::Number(lower as f64)),
+                    Some(IndexedDBKeyType::Number(upper as f64)),
+                    lower_open,
+                    upper_open,
+                ),
+            )
+            .expect("Failed to delete key range");
+
+            SqliteEngine::get_all_keys(&db.connection, store, IndexedDBKeyRange::default(), None)
+                .expect("Failed to read remaining keys")
+                .into_iter()
+                .map(|raw_key| match encoding::deserialize(&raw_key).unwrap() {
+                    IndexedDBKeyType::Number(number) => number as i32,
+                    other => panic!("Expected numeric key, got {other:?}"),
+                })
+                .collect()
+        }
+
+        assert_eq!(
+            remaining_keys_after_delete(3, 8, false, false),
+            vec![1, 2, 9, 10]
+        );
+        assert_eq!(
+            remaining_keys_after_delete(3, 8, true, false),
+            vec![1, 2, 3, 9, 10]
+        );
+        assert_eq!(
+            remaining_keys_after_delete(3, 8, false, true),
+            vec![1, 2, 8, 9, 10]
+        );
+        assert_eq!(
+            remaining_keys_after_delete(3, 8, true, true),
+            vec![1, 2, 3, 8, 9, 10]
+        );
+    }
+}

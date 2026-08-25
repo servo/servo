@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+  <title>Test MediaSource addSourceBuffer overloads for WebCodecs Audio/VideoDecoderConfigs</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+setup(() => {
+  assert_implements(
+      SourceBuffer.prototype.hasOwnProperty('appendEncodedChunks'),
+      'SourceBuffer prototype hasOwnProperty "appendEncodedChunks", used ' +
+          'here to feature detect MSE-for-WebCodecs implementation.');
+});
+
+testInvalidArguments();
+testValidArguments();
+
+function getValidAudioConfig() {
+  // TODO(crbug.com/1144908): Consider confirming with WebCodecs'
+  // isConfigSupported() once that API is available.
+  return {
+    codec: 'opus',
+    sampleRate: 48000,
+    numberOfChannels: 2
+  };
+}
+
+function getValidVideoConfig() {
+  // TODO(crbug.com/1144908): Consider confirming with WebCodecs'
+  // isConfigSupported() once that API is available.
+  return { codec: 'vp09.00.10.08' };
+}
+
+function testInvalidArguments() {
+  const INVALID_CASES = [
+    { arg: null,
+      name: 'null' },
+    { arg: undefined,
+      name: 'undefined' },
+    { arg: { },
+      name: '{ empty dictionary }' },
+    {
+      arg: {
+        audioConfig: getValidAudioConfig(),
+        videoConfig: getValidVideoConfig()
+      },
+      name: '{ valid audioConfig and videoConfig }',
+    },
+    { arg: { audioConfig: { sampleRate: 48000, numberOfChannels: 2 } },
+      name: 'audio config missing required member "codec"' },
+    { arg: { videoConfig: { } },
+      name: 'video config missing required member "codec"' },
+  ];
+
+  [ 'closed', 'open', 'ended' ].forEach(readyStateScenario => {
+    INVALID_CASES.forEach(invalidCase => {
+      runAddSourceBufferTest(invalidCase['arg'] /* argument */,
+          false /* isValidArgument */,
+          invalidCase['name'] /* argumentDescription */,
+          readyStateScenario);
+    });
+  });
+}
+
+function testValidArguments() {
+  const VALID_CASES = [
+    {
+      arg: {
+        audioConfig: getValidAudioConfig()
+      },
+      name: 'valid audioConfig'
+    },
+    {
+      arg: {
+        videoConfig: getValidVideoConfig()
+      },
+      name: 'valid videoConfig'
+    },
+  ];
+
+  [ 'closed', 'open', 'ended' ].forEach(readyStateScenario => {
+    VALID_CASES.forEach(validCase => {
+      runAddSourceBufferTest(
+          validCase['arg'] /* argument */,
+          true /* isValidArgument */,
+          validCase['name'] /* argumentDescription */,
+          readyStateScenario);
+    });
+  });
+}
+
+async function getClosedMediaSource(test) {
+  let mediaSource = new MediaSource();
+  assert_equals(mediaSource.readyState, 'closed');
+  return mediaSource;
+}
+
+async function getOpenMediaSource(test) {
+  return new Promise(async resolve => {
+    const v = document.createElement('video');
+    const mediaSource = new MediaSource();
+    const url = URL.createObjectURL(mediaSource);
+    mediaSource.addEventListener('sourceopen', test.step_func(() => {
+      URL.revokeObjectURL(url);
+      assert_equals(mediaSource.readyState, 'open', 'MediaSource is open');
+      resolve(mediaSource);
+    }), { once: true });
+    v.src = url;
+  });
+}
+
+async function getEndedMediaSource(test) {
+  let mediaSource = await getOpenMediaSource(test);
+  assert_equals(mediaSource.readyState, 'open', 'MediaSource is open');
+  mediaSource.endOfStream();
+  assert_equals(mediaSource.readyState, 'ended', 'MediaSource is ended');
+  return mediaSource;
+}
+
+function runAddSourceBufferTest(argument, isValidArgument, argumentDescription, readyStateScenario) {
+  const testDescription = 'addSourceBuffer call with ' +
+      (isValidArgument ? 'valid' : 'invalid') +
+      ' argument ' + argumentDescription + ' while MediaSource readyState is ' +
+      readyStateScenario;
+
+  switch(readyStateScenario) {
+    case 'closed':
+      promise_test(async t => {
+        let mediaSource = await getClosedMediaSource(t);
+        assert_equals(mediaSource.readyState, 'closed');
+        let sourceBuffer;
+        if (isValidArgument) {
+          assert_throws_dom('InvalidStateError',
+              () => { sourceBuffer = mediaSource.addSourceBuffer(argument); },
+              'addSourceBuffer(valid config) throws InvalidStateError if MediaSource is "closed"');
+          assert_equals(sourceBuffer, undefined,
+              'addSourceBuffer result for valid config while "closed" should be exception');
+        } else {
+          assert_throws_js(TypeError,
+              () => { sourceBuffer = mediaSource.addSourceBuffer(argument); },
+              'addSourceBuffer(invalid config) throws TypeError if MediaSource is "closed"');
+          assert_equals(sourceBuffer, undefined,
+              'addSourceBuffer result for invalid config while "closed" should be exception');
+        }
+      }, testDescription);
+      break;
+    case 'open':
+      promise_test(async t => {
+        let mediaSource = await getOpenMediaSource(t);
+        assert_equals(mediaSource.readyState, 'open', 'MediaSource is open');
+        let sourceBuffer;
+        if (isValidArgument) {
+          sourceBuffer = mediaSource.addSourceBuffer(argument);
+          assert_true(sourceBuffer instanceof SourceBuffer,
+              'addSourceBuffer result for valid config while "open" should be a SourceBuffer instance');
+        } else {
+          assert_throws_js(TypeError,
+              () => { sourceBuffer = mediaSource.addSourceBuffer(argument); },
+              'addSourceBuffer(invalid config) throws TypeError if MediaSource is "open"');
+          assert_equals(sourceBuffer, undefined,
+              'addSourceBufferResult for invalid config while "open" should be exception');
+        }
+      }, testDescription);
+      break;
+    case 'ended':
+      promise_test(async t => {
+        let mediaSource = await getEndedMediaSource(t);
+        let sourceBuffer;
+        if (isValidArgument) {
+          assert_throws_dom('InvalidStateError',
+              () => { sourceBuffer = mediaSource.addSourceBuffer(argument); },
+              'addSourceBuffer(valid config) throws InvalidStateError if MediaSource is "ended"');
+          assert_equals(sourceBuffer, undefined,
+              'addSourceBuffer result for valid config while "ended" should be exception');
+        } else {
+          assert_throws_js(TypeError,
+              () => { sourceBuffer = mediaSource.addSourceBuffer(argument); },
+              'addSourceBuffer(invalid config) throws TypeError if MediaSource is "ended"');
+          assert_equals(sourceBuffer, undefined,
+              'addSourceBuffer result for invalid config while "ended" should be exception');
+        }
+      }, testDescription);
+      break;
+    default:
+      assert_unreached('Invalid readyStateScenario ' + readyStateScenario);
+      break;
+  }
+}
+
+</script>
+</html>

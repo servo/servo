@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>Tests that popover alignment responds to anchor positioning</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#conditional-centering">
+<link rel="match" href="popover-alignment-002-ref.html">
+<link rel="author" href="mailto:tabatkins@google.com">
+<link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact">
+
+<style>
+button {
+  border: solid blue 15px;
+  margin: 25px;
+}
+[popover] {
+  border: solid orange 10px;
+}
+</style>
+
+Orange box should be centered vertically against the left edge of the blue box.
+<button popovertarget=p3></button>
+<div id="p3" popover style="position-area: left span-all"></div>
+
+<script>
+document.querySelector("[popover]").showPopover({ source: document.querySelector("button") });
+document.documentElement.removeAttribute("class");
+</script>

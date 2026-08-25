@@ -1,0 +1,12 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>CSSStyleDeclaration should expose Symbol.iterator</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-1/">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2025453">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+  test(function() {
+    assert_true(Symbol.iterator in CSSStyleDeclaration.prototype);
+  });
+</script>

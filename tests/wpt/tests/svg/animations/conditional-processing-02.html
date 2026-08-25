@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>Timing events do not fire for animations inside failed conditional processing elements</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg>
+  <g systemLanguage="x-xl">
+    <set id="anim" xlink:href="#test" attributeName="width" to="0" />
+  </g>
+  <rect id="test" width="100" height="100" fill="green"/>
+  <set id="ref" attributeName="visibility" to="visible" begin="0.1s" />
+</svg>
+<script>
+  async_test(function(t) {
+    let anim = document.getElementById('anim');
+    let ref = document.getElementById('ref');
+
+    anim.addEventListener('beginEvent', t.unreached_func(
+        "beginEvent should not fire when ancestor fails conditional processing"));
+
+    // ref animation ends the test after anim had a chance to fire.
+    ref.addEventListener('beginEvent', t.step_func_done());
+
+    document.querySelector('svg').setCurrentTime(0.1);
+  }, "beginEvent does not fire when ancestor fails conditional processing");
+</script>

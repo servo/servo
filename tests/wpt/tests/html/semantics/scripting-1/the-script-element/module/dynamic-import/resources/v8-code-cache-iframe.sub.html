@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<meta http-equiv="content-security-policy"
+      content="script-src 'nonce-{{GET[nonce]}}'">
+<!--
+base element to make the base URLs of the Document and the script different
+-->
+<base href="../">
+<script src="resources/v8-code-cache.js?pipe=header(Cache-Control,max-age=1000)"
+    nonce="{{GET[nonce]}}" type="{{GET[type]}}"></script>

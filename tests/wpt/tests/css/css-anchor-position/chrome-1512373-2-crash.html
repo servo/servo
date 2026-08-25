@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>Chrome crash bug 1512373 with @position-try fallback</title>
+<link rel="help" href="https://crbug.com/1512373">
+<style>
+  @position-try --foo { left: 0; }
+  #t {
+    position: absolute;
+    left: 999999px; /* force fallback */
+    position-try-fallbacks: --foo;
+  }
+</style>
+<div id="t"></div>
+<script>
+  t.animate([{"height":"100px"},{"height":"200px"}], {"duration":1});
+</script>

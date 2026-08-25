@@ -1,0 +1,54 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Function in parameter passed as an inout argument and a global variable with the same name</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="fshaderParameters" type="x-shader/x-fragment">
+precision mediump float;
+uniform vec3 u_zero;
+vec3 p;
+void G(inout vec3 q) {
+    p += q;
+}
+void F(in vec3 p) {
+    G(p);
+}
+void main(){
+    F(u_zero + vec3(0.0, 1.0, 0.0));
+    gl_FragColor = vec4(p, 1.0);
+}
+</script>
+<script type="text/javascript">
+"use strict";
+description();
+
+// This is intended to test an issue seen on NVIDIA OpenGL drivers (at least up to version 388.59).
+// http://crbug.com/792210
+
+GLSLConformanceTester.runRenderTests([
+{
+  fShaderId: 'fshaderParameters',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: "Function in parameter passed as an inout argument and a global variable with the same name"
+}
+]);
+</script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>lv windows-1257 late</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+setup({explicit_done:true});
+window.onmessage = function(e) {
+    test(function() {
+        assert_equals(e.data, "windows-1257", 'Expected windows-1257');
+    }, "Check detection result");
+    w.close();
+    done();
+};
+var w = window.open("support/lv-windows-1257-late.sub.html");
+</script>

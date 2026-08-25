@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="Content-Security-Policy"
+    content="script-src 'self'
+    'sha256-fRoLYKuwZQJxt6FZolBE1MyQUsKFOnlf-uj65N-txt0='
+    'sha384-vw3Q67p46tF_mKt4v6VDRTLv5Nre_boyQqppYghZpZmuy7po_KT4WSj2PF6VpNiS'
+    'nonce-EDNnf03nceIOfn39fn3e9h3sdfa'
+    ">
+    <title>Test whether hash-src are normalized from base64url to base64.</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/content-security-policy/support/alertAssert.sub.js?alerts=%5B%22PASS%20(1%2F2)%22%2C%22PASS%20(2%2F2)%22%5D"></script>
+    <script nonce="EDNnf03nceIOfn39fn3e9h3sdfa">
+        window.addEventListener('securitypolicyviolation', function(e) {
+            alert_assert("Fail");
+        });
+    </script>
+
+    <script>
+        alert_assert('PASS (1/2)');
+
+    </script>
+    <script>
+        alert_assert('PASS (2/2)');
+
+    </script>
+</head>
+
+<body>
+    <p>
+        This tests whether hash-src are normalized from base64url
+        to base64. It passes if no CSP violation is generated, and
+        the alert_assert() calls are executed.
+    </p>
+    <div id="log"></div>
+</body>
+
+</html>

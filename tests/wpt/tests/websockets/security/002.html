@@ -1,0 +1,20 @@
+<!doctype html>
+<title>WebSockets: check Sec-WebSocket-Key</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../constants.sub.js></script>
+<meta name="variant" content="?default">
+<meta name="variant" content="?wss">
+<div id=log></div>
+<script>
+async_test(function(t) {
+  var xhr = new XMLHttpRequest();
+  xhr.onload = t.step_func(function() {
+    assert_equals(xhr.responseText, 'PASS');
+    t.done();
+  });
+  xhr.open("GET", "check.py", true);
+  xhr.setRequestHeader('Sec-WebSocket-Key', 'jW7qmdXj5Kk5jTClF1BN3');
+  xhr.send(null);
+});
+</script>

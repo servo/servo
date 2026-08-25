@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<style>
+  .container {
+    display: grid;
+    grid-template-rows: 50px auto auto auto 50px;
+    height: 100%;
+  }
+  .outerRow {
+    display: flex;
+    align-items: center;
+  }
+  .outerRow > div:nth-child(1) { text-align: right; }
+  .outerRow > div:nth-child(2) { text-align: left; }
+  .outerRow > div:nth-child(3) { text-align: center; }
+  .outerRow > div:nth-child(4) { text-align: right; }
+  .outerRow > div:nth-child(5) { text-align: left; }
+  .outerRow > div:first-child,
+  .outerRow > div:last-child { width: 50px; }
+  .outerRow > div:nth-child(3) { margin:auto; }
+
+  .innerRow {
+    display: flex;
+    flex: 1;
+  }
+  .innerRow > div {
+    width: 50px;
+    text-align: center;
+  }
+  .innerRow > div:first-child {
+    margin-right: auto;
+  }
+  @page {
+    size: 550px 400px;
+    margin: 0;
+  }
+  body {
+    margin: 0;
+  }
+</style>
+<div style="margin:58px;">
+  Small blue letters from A to P should be seen in a clockwise manner, starting
+  with A in the top left corner.
+</div>
+
+<div style="position:absolute; inset:0; font-family:monospace; font-size:0.7em; color:blue;">
+  <div class="container">
+    <div class="outerRow">
+      <div>A</div>
+      <div>B</div>
+      <div>C</div>
+      <div>D</div>
+      <div>E</div>
+    </div>
+    <div class="innerRow" style="align-items:flex-start;">
+      <div>P</div>
+      <div>F</div>
+    </div>
+    <div class="innerRow" style="align-items:center;">
+      <div>O</div>
+      <div>G</div>
+    </div>
+    <div class="innerRow" style="align-items:flex-end;">
+      <div>N</div>
+      <div>H</div>
+    </div>
+    <div class="outerRow">
+      <div>M</div>
+      <div>L</div>
+      <div>K</div>
+      <div>J</div>
+      <div>I</div>
+    </div>
+  </div>
+</div>

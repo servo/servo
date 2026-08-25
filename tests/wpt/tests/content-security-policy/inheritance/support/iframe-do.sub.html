@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta http-equiv="Content-Security-Policy" content="img-src {{GET[img-src]}}">
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script>
+  window.addEventListener('message', function(e) {
+    eval(e.data);
+  });
+
+  const uuid = new URLSearchParams(window.location.search).get('uuid');
+  if (uuid !== null) {
+    const executor = new Executor(uuid);
+  }
+
+  top.postMessage('ready', '*');
+</script>

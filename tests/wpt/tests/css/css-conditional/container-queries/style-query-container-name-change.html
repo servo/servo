@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#container-name">
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#style-container">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  #container {
+    container-name: --bar;
+    --foo: bar;
+  }
+  #target { color: red; }
+  @container --baz style(--foo: bar) {
+    #target { color: green; }
+  }
+</style>
+<div id="container">
+  <div>
+    <div id="target">Should be green</div>
+  </div>
+</div>
+<script>
+  setup(() => assert_implements_style_container_queries());
+
+  test(() => {
+    assert_equals(getComputedStyle(target).color, "rgb(255, 0, 0)");
+    container.style.containerName = "--baz";
+    assert_equals(getComputedStyle(target).color, "rgb(0, 128, 0)");
+  }, "Start matching style() query after container-name change");
+</script>

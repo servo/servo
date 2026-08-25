@@ -1,0 +1,270 @@
+<!doctype html>
+<meta name="timeout" content="long">
+<meta name="variant" content="?reporting=false">
+<meta name="variant" content="?reporting=true">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/reporting/resources/report-helper.js"></script>
+
+<body>
+<script>
+  const params = new URLSearchParams(location.search);
+  const with_reporting = params.get('reporting') === "true";
+  const {ORIGIN} = get_host_info();
+  const getAbsoluteUrl = url => {
+    return new URL(url, window.location.href).href;
+  }
+
+  const check_report = async (reporting_endpoint, reporting_uuid, iframe_url, url, report_only) => {
+    const reports = await pollReports(reporting_endpoint, reporting_uuid);
+    const abs_iframe_url = getAbsoluteUrl(iframe_url);
+    checkReportExists(reports, 'integrity-violation', abs_iframe_url);
+    const abs_blocked_url = getAbsoluteUrl(url);
+    const report = getReport(reports, 'integrity-violation', abs_iframe_url, abs_blocked_url);
+    assert_not_equals(report, null);
+    assert_equals(report.body.documentURL, abs_iframe_url);
+    assert_equals(report.body.blockedURL, abs_blocked_url);
+    assert_equals(report.body.destination, "script");
+    assert_equals(report.body.reportOnly, report_only);
+  };
+  const blob = new Blob([`window.ran=true;`],
+                        { type: 'application/javascript' });
+
+  const blob_url = URL.createObjectURL(blob);
+
+  const test_cases = [
+    {
+      description: "Ensure that a script without integrity did not run",
+      url: "/content-security-policy/resources/ran.js",
+      cross_origin: true,
+      integrity: "",
+      policy_violation: true,
+      add_blocking_header: true,
+      endpoints: true,
+      expected: {blocked: ORIGIN + "/content-security-policy/resources/ran.js", ran: false},
+    },
+    {
+      description: "Ensure that a script with unknown integrity algorithm did not run",
+      url: "/content-security-policy/resources/ran.js",
+      cross_origin: true,
+      integrity: "foobar-AAAAAAAAAAAAAAAAAAAa",
+      policy_violation: true,
+      add_blocking_header: true,
+      endpoints: true,
+      expected: {blocked: ORIGIN + "/content-security-policy/resources/ran.js", ran: false},
+    },
+    {
+      description: "Ensure that a script without integrity algorithm runs and gets reported in report-only mode",
+      url: "/content-security-policy/resources/ran.js",
+      cross_origin: true,
+      integrity: "",
+      policy_violation: true,
+      add_blocking_header: false,
+      endpoints: true,
+      expected: {blocked: ORIGIN + "/content-security-policy/resources/ran.js", ran: true},
+    },
+    {
+      description: "Ensure that a no-cors script gets blocked",
+      url: "/content-security-policy/resources/ran.js",
+      cross_origin: false,
+      integrity: "sha384-tqyFpeo21WFM8HDeUtLqH20GUq/q3D1R6mqTzW3RtyTZ3dAYZJhC1wUcnkgOE2ak",
+      policy_violation: true,
+      add_blocking_header: true,
+      endpoints: true,
+      expected: {blocked: ORIGIN + "/content-security-policy/resources/ran.js", ran: false},
+    },
+    {
+      description: "Ensure that ReportingObserver gets called without endpoints",
+      url: "/content-security-policy/resources/ran.js",
+      cross_origin: false,
+      integrity: "sha384-tqyFpeo21WFM8HDeUtLqH20GUq/q3D1R6mqTzW3RtyTZ3dAYZJhC1wUcnkgOE2ak",
+      policy_violation: true,
+      add_blocking_header: true,
+      endpoints: false,
+      expected: {blocked: ORIGIN + "/content-security-policy/resources/ran.js", ran: false},
+    },
+    {
+      description: "Ensure that a script with integrity runs",
+      url: "/content-security-policy/resources/ran.js",
+      cross_origin: true,
+      integrity: "sha384-tqyFpeo21WFM8HDeUtLqH20GUq/q3D1R6mqTzW3RtyTZ3dAYZJhC1wUcnkgOE2ak",
+      policy_violation: false,
+      add_blocking_header: true,
+      endpoints: true,
+      expected: {blocked: "", ran: true},
+    },
+    {
+      description: "Ensure that a data URI script with no integrity runs",
+      url: "data:application/javascript,window.ran=true",
+      cross_origin: true,
+      integrity: "",
+      policy_violation: false,
+      add_blocking_header: true,
+      endpoints: true,
+      expected: {blocked: "", ran: true},
+    },
+    {
+      description: "Ensure that a no-CORS data URI script with no integrity runs",
+      url: "data:application/javascript,window.ran=true",
+      cross_origin: false,
+      integrity: "",
+      policy_violation: false,
+      add_blocking_header: true,
+      endpoints: true,
+      expected: {blocked: "", ran: true},
+    },
+    {
+      description: "Ensure that a blob URL script with no integrity runs",
+      url: blob_url,
+      cross_origin: true,
+      integrity: "",
+      policy_violation: false,
+      add_blocking_header: true,
+      endpoints: true,
+      expected: {blocked: "", ran: true},
+    },
+    {
+      description: "Ensure that a no-CORS blob URL script with no integrity runs",
+      url: blob_url,
+      cross_origin: false,
+      integrity: "",
+      policy_violation: false,
+      add_blocking_header: true,
+      endpoints: true,
+      expected: {blocked: "", ran: true},
+    },
+    {
+      description: "Ensure that an about:blank URL script with no integrity does not trigger a report",
+      url: "about:blank",
+      cross_origin: true,
+      integrity: "",
+      policy_violation: false,
+      add_blocking_header: true,
+      endpoints: false,
+      expected: {blocked: "", ran: false},
+    },
+    {
+      description: "Ensure that a no-CORS about:blank URL script with no integrity does not trigger a report",
+      url: "about:blank",
+      cross_origin: false,
+      integrity: "",
+      policy_violation: false,
+      add_blocking_header: true,
+      endpoints: false,
+      expected: {blocked: "", ran: false},
+    }
+  ];
+  test_cases.map(test_case => {
+    promise_test(async () => {
+      const REMOTE_EXECUTOR =
+        `/common/dispatcher/remote-executor.html?pipe=`;
+      const iframe_uuid = token();
+
+      const params = new URLSearchParams(location.search);
+      if (params.get('type') === "report") {
+        if (test_case.expected.blocked) {
+          return;
+        }
+        header_name += "-Report-Only";
+      }
+      const reporting_uuid_1 = token();
+      const reporting_uuid_2 = token();
+      const reporting_uuid_3 = token();
+      const reporting_endpoint = `${ORIGIN}/reporting/resources/report.py`;
+      let header = "";
+      if (test_case.add_blocking_header) {
+        header +=
+          `header(Integrity-Policy,blocked-destinations=\\(script\\)\\, endpoints=\\(integrity-endpoint-1 integrity-endpoint-2\\))`;
+      }
+      header +=
+        `|header(Integrity-Policy-Report-Only,blocked-destinations=\\(script\\)\\, endpoints=\\(integrity-endpoint-3\\))`;
+      if (test_case.endpoints) {
+        header +=
+          `|header(Reporting-Endpoints, integrity-endpoint-1=\"${reporting_endpoint}?reportID=${reporting_uuid_1}\"\\, ` +
+          `integrity-endpoint-2=\"${reporting_endpoint}?reportID=${reporting_uuid_2}\"\\, ` +
+          `integrity-endpoint-3=\"${reporting_endpoint}?reportID=${reporting_uuid_3}\")`;
+      }
+      const iframe_url = `${REMOTE_EXECUTOR}${encodeURIComponent(header)}&uuid=${iframe_uuid}`;
+
+      const iframe = document.createElement('iframe');
+      iframe.src = iframe_url;
+      document.body.appendChild(iframe);
+
+      // Execute code directly from the iframe.
+      const ctx = new RemoteContext(iframe_uuid);
+      const result = await ctx.execute_script(async (test_case, with_reporting) => {
+        window.ran = false;
+
+        // Always set up report observer to catch any unexpected reports
+        const report_observed_promise = new Promise(r => {
+          (new ReportingObserver((reports, observer) => {
+            reports.forEach(report => {
+              // Match the tested URL against the stripped one:
+              // https://www.w3.org/TR/reporting-1/#strip-url-for-use-in-reports
+              // 1. If url’s scheme is not an HTTP(S) scheme, then return url’s scheme.
+              const test_url = test_case.url.startsWith("http") ?
+                test_case.url :
+                test_case.url.split(":")[0];
+              if (report.body.blockedURL.endsWith(test_url)) {
+                r(report.body);
+                observer.disconnect();
+              }
+            });
+          })).observe('integrity-violation');
+        });
+
+        // Load the script
+        await new Promise(resolve => {
+          const script = document.createElement('script');
+          if (test_case.cross_origin) {
+            script.crossOrigin="anonymous";
+          }
+          if (test_case.integrity) {
+            script.integrity = test_case.integrity;
+          }
+          script.onload = resolve;
+          script.onerror = resolve;
+          script.src = test_case.url;
+          document.body.appendChild(script);
+        });
+        let report_body = null;
+        if (with_reporting) {
+          if (test_case.policy_violation) {
+            report_body = await report_observed_promise;
+          } else {
+            const timeout_promise = new Promise(r => setTimeout(() => r('timeout'), 100));
+            const race_result = await Promise.race([report_observed_promise, timeout_promise]);
+            if (race_result !== 'timeout') {
+              report_body = race_result;
+            }
+          }
+        }
+        return { body: report_body, ran: window.ran };
+      }, [test_case, with_reporting]);
+
+      assert_equals(result.ran, test_case.expected.ran, "Ran");
+      if (with_reporting) {
+        if (test_case.policy_violation) {
+          assert_not_equals(result.body, null, "Expected a policy violation report");
+          assert_equals(result.body.blockedURL, test_case.expected.blocked);
+          assert_true(result.body.documentURL.endsWith(iframe_url));
+          assert_equals(result.body.destination, "script");
+          assert_equals(result.body.reportOnly, !test_case.add_blocking_header);
+        } else {
+          assert_equals(result.body, null, "No policy violation report should be observed");
+        }
+
+        if (test_case.endpoints && test_case.policy_violation) {
+          if (test_case.add_blocking_header) {
+            await check_report(reporting_endpoint, reporting_uuid_1, iframe_url, test_case.url, !test_case.add_blocking_header);
+            await check_report(reporting_endpoint, reporting_uuid_2, iframe_url, test_case.url, !test_case.add_blocking_header);
+          }
+          await check_report(reporting_endpoint, reporting_uuid_3, iframe_url, test_case.url, true);
+        }
+      }
+    }, test_case.description);
+  });
+</script>

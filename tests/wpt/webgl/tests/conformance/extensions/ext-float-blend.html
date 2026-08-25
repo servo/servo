@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL EXT_float_blend Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/tests/ext-float-blend.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description("This test verifies the functionality of the EXT_float_blend extension, if it is available.");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+var gl = wtu.create3DContext(canvas);
+var ext = null;
+
+function extFloatBlendTests(version, config) {
+    debug("");
+    debug("Testing float32 blending without EXT_float_blend");
+    testExtFloatBlend(config.internalFormat);
+    testExtFloatBlendMRT(version, config.drawBuffers);
+    testExtFloatBlendNonFloat32Type(version, config.oesTextureHalfFloat);
+
+    const floatBlend = gl.getExtension("EXT_float_blend");
+    if (!floatBlend) {
+        testPassed("EXT_float_blend is allowed to be missing.");
+        return;
+    }
+
+    debug("");
+    debug("Testing that float32 blending is allowed with EXT_float_blend");
+    testExtFloatBlend(config.internalFormat);
+    testExtFloatBlendMRT(version, config.drawBuffers);
+    testExtFloatBlendNonFloat32Type(version, config.oesTextureHalfFloat);
+}
+
+(function(){
+    if (wtu.getDefault3DContextVersion() < 2) {
+        const oesTextureFloat = gl.getExtension("OES_texture_float");
+        if (!oesTextureFloat) {
+            testPassed("OES_texture_float is allowed to be missing.");
+            return;
+        }
+
+        const colorBufferFloat = gl.getExtension("WEBGL_color_buffer_float");
+        if (!colorBufferFloat) {
+            testPassed("WEBGL_color_buffer_float is allowed to be missing.");
+            return;
+        }
+
+        const drawBuffers = gl.getExtension("WEBGL_draw_buffers");
+        if (!drawBuffers) {
+            debug("WEBGL_draw_buffers is allowed to be missing. MRT tests will be skipped.");
+        }
+
+        const oesTextureHalfFloat = gl.getExtension("OES_texture_half_float");
+        const extColorBufferHalfFloat = gl.getExtension("EXT_color_buffer_half_float");
+        const testHalfFloat = !(!oesTextureHalfFloat || !extColorBufferHalfFloat);
+        if (!testHalfFloat) {
+            debug("OES_texture_half_float or EXT_color_buffer_half_float is allowed to be missing. NonFloat32Type tests will be skipped.");
+        }
+
+        const internalFormat = gl.RGBA;
+        extFloatBlendTests(1, {
+            internalFormat, drawBuffers, oesTextureHalfFloat
+        });
+    } else {
+        const colorBufferFloat = gl.getExtension("EXT_color_buffer_float");
+        if (!colorBufferFloat) {
+            testPassed("EXT_color_buffer_float is allowed to be missing.");
+            return;
+        }
+
+        const internalFormat = gl.RGBA32F;
+        extFloatBlendTests(2, {
+            internalFormat
+        });
+    }
+})();
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->

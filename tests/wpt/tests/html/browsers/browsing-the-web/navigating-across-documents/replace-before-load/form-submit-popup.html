@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/helpers.js"></script>
+
+<form target="the-window">
+  <input type="hidden" name="pushed">
+</form>
+
+<script>
+"use strict";
+promise_test(async t => {
+  const form = document.querySelector("form");
+  const wEndingURL = absoluteURL("resources/slow-message-source-with-history-and-location.html?pushed=");
+  form.action = wEndingURL;
+
+  const wStartingCode = `
+    window.onload = () => { window.onloadFired = true; };
+    opener.postMessage({ historyLength: history.length, locationHref: location.href }, "*");
+    opener.document.querySelector("form").submit();
+  `;
+
+  const wStartingURL = codeInjectorURL(wStartingCode);
+  const w = window.open(wStartingURL, "the-window");
+  t.add_cleanup(() => w.close());
+
+  const wBeforeLoadedMessage = await waitForMessage();
+  assert_equals(wBeforeLoadedMessage.historyLength, 1, "window's starting history.length");
+  assert_equals(wBeforeLoadedMessage.locationHref, wStartingURL, "window's starting location.href");
+  assert_equals(w.onloadFired, undefined, "window's onload not fired yet");
+
+  const wAfterFormSubmitMessage = await waitForMessage();
+  assert_equals(wAfterFormSubmitMessage.historyLength, 2, "window's after-submit history.length");
+  assert_equals(wAfterFormSubmitMessage.locationHref, wEndingURL, "window's after-submit location.href");
+}, "No replace before load, triggered by formElement.submit() in the opener window, after the opener has loaded");
+</script>

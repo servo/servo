@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Transform Module Level 2: parsing perspective-origin with invalid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-transforms-2/#perspective-origin-property">
+<meta name="assert" content="perspective-origin supports only the '<position>' grammar.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("perspective-origin", "auto");
+test_invalid_value("perspective-origin", "1px 2px 3px");
+test_invalid_value("perspective-origin", "left right");
+test_invalid_value("perspective-origin", "bottom 10% top 20%");
+
+// The following were supported in an earlier version of the spec.
+// https://github.com/w3c/csswg-drafts/issues/2140
+test_invalid_value("perspective-origin", "center left 1px");
+test_invalid_value("perspective-origin", "center top 2px");
+test_invalid_value("perspective-origin", "right 3% center");
+test_invalid_value("perspective-origin", "left 4px top");
+test_invalid_value("perspective-origin", "right top 5px");
+test_invalid_value("perspective-origin", "bottom 6% center");
+test_invalid_value("perspective-origin", "bottom 7% left");
+test_invalid_value("perspective-origin", "bottom right 8%");
+
+</script>
+</body>
+</html>

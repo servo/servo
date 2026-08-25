@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Color 4: `none` components are treated as 0 when painted</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#missing">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<canvas id="canvas" width="1" height="1"></canvas>
+<script>
+'use strict';
+
+const ctx = document.getElementById('canvas').getContext('2d');
+
+function paint(color) {
+  ctx.clearRect(0, 0, 1, 1);
+  ctx.fillStyle = color;
+  ctx.fillRect(0, 0, 1, 1);
+  return Array.from(ctx.getImageData(0, 0, 1, 1).data);
+}
+
+// Per CSS Color 4, a missing component used directly (i.e. without
+// interpolation analogous component forwarding) is treated as 0. Therefore the
+// painted pixel of a color containing `none` must equal that of the same color
+// with each `none` substituted with `0`.
+for (const [c_none, c_zero] of [
+  ['lab(50 50 none)',            'lab(50 50 0)'],
+  ['lab(50 none 50)',            'lab(50 0 50)'],
+  ['lab(none 50 50)',            'lab(0 50 50)'],
+  ['oklab(0.5 0.1 none)',        'oklab(0.5 0.1 0)'],
+  ['oklab(0.5 none 0.1)',        'oklab(0.5 0 0.1)'],
+  ['lch(50 50 none)',            'lch(50 50 0)'],
+  ['lch(50 none 180)',           'lch(50 0 180)'],
+  ['oklch(0.7 0.15 none)',       'oklch(0.7 0.15 0)'],
+  ['oklch(0.7 none 180)',        'oklch(0.7 0 180)'],
+  ['color(display-p3 1 none 0)', 'color(display-p3 1 0 0)'],
+  ['color(display-p3 none 1 0)', 'color(display-p3 0 1 0)'],
+  ['color(rec2020 1 none 0)',    'color(rec2020 1 0 0)'],
+  ['color(a98-rgb 1 none 0)',    'color(a98-rgb 1 0 0)'],
+  ['color(prophoto-rgb 1 none 0)', 'color(prophoto-rgb 1 0 0)'],
+  ['color(xyz 0.3 none 0.3)',    'color(xyz 0.3 0 0.3)'],
+  ['color(srgb-linear 1 none 0)', 'color(srgb-linear 1 0 0)'],
+  ['lab(50 50 50 / none)',       'lab(50 50 50 / 0)'],
+  ['oklch(0.7 0.15 180 / none)', 'oklch(0.7 0.15 180 / 0)'],
+]) {
+  test(() => {
+    assert_array_equals(paint(c_none), paint(c_zero));
+  }, `'${c_none}' paints the same as '${c_zero}'`);
+}
+</script>

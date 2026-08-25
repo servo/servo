@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html class="reftest-wait" lang="nl">
+<meta charset="utf-8">
+<title>CSS Text, text-transform reacts to dynamic lang changes for locale-tailored casing</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#text-transform">
+<link rel="match" href="reference/text-transform-tailoring-dynamic-ref.html">
+<meta name="assert" content="Dynamic changes to lang or xml:lang (on the element or an ancestor; via setAttribute or removeAttribute) update the locale used by text-transform, including the Dutch 'ij' digraph for capitalize, the Turkish 'i' for uppercase, and the reverse direction.">
+<style>
+.test, .test-upper { font-size: 36px; font-family: 'Gentium Plus', 'Noto Serif', 'Noto Sans', webfont, sans-serif; }
+.test { text-transform: capitalize; }
+.test-upper { text-transform: uppercase; }
+</style>
+<script>
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    document.getElementById("element-set").setAttribute("lang", "nl");
+    document.getElementById("ancestor-remove").removeAttribute("lang");
+    document.getElementById("xml-lang-set").setAttributeNS("http://www.w3.org/XML/1998/namespace", "xml:lang", "nl");
+    document.getElementById("reverse").setAttribute("lang", "en");
+    document.getElementById("turkish-uppercase").setAttribute("lang", "tr");
+    document.documentElement.classList.remove("reftest-wait");
+  });
+});
+</script>
+<div class="test" id="element-set" lang="en">ijsland</div>
+<div id="ancestor-remove" lang="en">
+  <div class="test">ijsland</div>
+</div>
+<div class="test" id="xml-lang-set" xml:lang="en">ijsland</div>
+<div class="test" id="reverse" lang="nl">ijsland</div>
+<div class="test-upper" id="turkish-uppercase" lang="en">istanbul</div>
+</html>

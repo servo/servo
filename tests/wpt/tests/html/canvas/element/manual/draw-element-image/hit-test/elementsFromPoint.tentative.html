@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<title>Elements should appear in elementsFromPoint</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #canvas {
+    width: 200px;
+    height: 200px;
+  }
+  div {
+    width: 100px;
+    height: 100px;
+    background: green;
+  }
+</style>
+
+<canvas id=canvas width="200" height="200" layoutsubtree>
+  <div id=a></div>
+  <div id=b></div>
+  <div id=pointerEventsNone style="pointer-events: none;"></div>
+  <div id=inert inert></div>
+</canvas>
+
+<script>
+  test(function () {
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [b, a, canvas, document.body, document.documentElement],
+                        'Should have returned a sequence with `[b, a, canvas, body, html]`');
+  }, 'Pointer-events: none and inert should be excluded from elementsFromPoint');
+
+  test(function (t) {
+    b.style.transform = 'translate(50px, 50px)';
+    t.add_cleanup(() => {
+      b.style.transform = '';
+    });
+    assert_array_equals(document.elementsFromPoint(110, 110),
+                        [b, canvas, document.body, document.documentElement],
+                        'Should have returned a sequence with `[b, canvas, body, html]`');
+  }, 'CSS transform should be used for hit testing');
+
+  test(function (t) {
+    b.setCanvasTransform(new DOMMatrix().translate(50, 50));
+    t.add_cleanup(() => {
+      b.setCanvasTransform();
+    });
+    assert_array_equals(document.elementsFromPoint(110, 110),
+                        [b, canvas, document.body, document.documentElement],
+                        'Should have returned a sequence with `[b, canvas, body, html]`');
+  }, 'Canvas transform should be used for hit testing');
+</script>
+</html>

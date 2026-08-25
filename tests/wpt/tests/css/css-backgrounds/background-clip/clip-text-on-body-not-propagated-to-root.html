@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>background-clip:text on the root</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-4/#valdef-background-clip-text">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<link rel="match" href="clip-text-on-body-not-propagated-to-root-ref.html">
+<style>
+html {
+  background-color: white;
+  font-size: 24px;
+  color: transparent;
+  font-family: Ahem;
+}
+body {
+  background-color: green;
+  background-clip: text;
+}
+</style>
+
+This text should be green<br>
+on a white background.

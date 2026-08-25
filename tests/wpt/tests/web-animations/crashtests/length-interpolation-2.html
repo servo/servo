@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<meta charset="utf-8">
+<title>Length interpolation should not crash</title>
+<link rel="help" href="https://crbug.com/40856061">
+<body>
+  <marquee id="marquee">
+    <wbr id="wbr"></wbr>
+  </marquee>
+</body>
+<script>
+  // Lengths created via layout units are clamped to a maximum value.
+  async function rAF() {
+    return new Promise(resolve => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          resolve();
+        });
+      });
+    });
+  }
+
+  window.onload = async function() {
+    const anim = wbr.animate({ right: ['20%', '5e192pt'] },
+                             { duration: 1000 });
+    anim.currentTime = 900;
+    anim.pause();
+    marquee.animate({ zoom: ['68%', '100%'] },
+                    { duration: 1000 }).pause();
+    await rAF();
+    document.documentElement.classList.remove('test-wait');
+  }
+</script>
+</html>

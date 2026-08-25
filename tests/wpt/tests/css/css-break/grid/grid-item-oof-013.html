@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#pagination">
+<link rel="match" href="./grid-item-oof-013-ref.html">
+<p>Test passes if there is a filled multi-color square.</p>
+<div id="container"style="columns: 2; height: 100px; width: 100px; column-gap: 0; column-fill: auto; background: yellow;">
+  <div id="grid"style="position: relative; display: grid; grid-template-rows: 40px 100px 40px; row-gap: 10px">
+    <div id="child1" style="background: green;">
+      <div id="item1" style="position: absolute; background: teal; grid-row-start: 2; inset: 0;"></div>
+      <div style="position: absolute; background: orange; grid-row-start: 3; inset: 0;"></div>
+    </div>
+  </div>
+</div>

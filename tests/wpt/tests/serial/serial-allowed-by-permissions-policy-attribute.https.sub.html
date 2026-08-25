@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<body>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/permissions-policy/resources/permissions-policy.js></script>
+<script>
+'use strict';
+const sub = 'https://{{domains[www]}}:{{ports[https][0]}}';
+const same_origin_src = '/permissions-policy/resources/permissions-policy-serial.html';
+const cross_origin_src = sub + same_origin_src;
+const same_origin_worker_frame_src =
+    '/permissions-policy/resources/permissions-policy-serial-worker.html';
+const cross_origin_worker_frame_src = sub + same_origin_worker_frame_src;
+const feature_name = 'Permissions policy "serial"';
+const header = 'allow="serial" attribute';
+
+async_test(t => {
+  test_feature_availability(
+      'serial.getPorts()', t, same_origin_src,
+      expect_feature_available_default, 'serial');
+}, feature_name + ' can be enabled in same-origin iframe using ' + header);
+
+async_test(t => {
+  test_feature_availability(
+      'serial.getPorts()', t, same_origin_worker_frame_src,
+      expect_feature_available_default, 'serial');
+}, feature_name + ' can be enabled in a worker in same-origin iframe using ' +
+    header);
+
+async_test(t => {
+  test_feature_availability(
+      'serial.getPorts()', t, cross_origin_src,
+      expect_feature_available_default, 'serial');
+}, feature_name + ' can be enabled in cross-origin iframe using ' + header);
+
+async_test(t => {
+  test_feature_availability(
+      'serial.getPorts()', t, cross_origin_worker_frame_src,
+      expect_feature_available_default, 'serial');
+}, feature_name + ' can be enabled in a worker in cross-origin iframe using ' +
+    header);
+
+fetch_tests_from_worker(new Worker(
+    'resources/serial-allowed-by-permissions-policy-worker.js'));
+</script>
+</body>

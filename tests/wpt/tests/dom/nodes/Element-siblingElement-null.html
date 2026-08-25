@@ -1,0 +1,16 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Null test</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<h1>Test of previousElementSibling and nextElementSibling returning null</h1>
+<div id="log"></div>
+<p id="parentEl">The result of this test is <span id="first_element_child" style="font-weight:bold;">unknown.</span></p>
+<script>
+test(function() {
+  var fec = document.getElementById("first_element_child");
+  assert_equals(fec.previousElementSibling, null)
+  assert_equals(fec.nextElementSibling, null)
+})
+</script>
+

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/whatwg/html/issues/9034">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/html/semantics/popovers/resources/popover-utils.js"></script>
+
+<div id=mypopover>popover</div>
+
+<script>
+promise_test(async () => {
+  const mypopover = document.getElementById('mypopover');
+
+  mypopover.popover = "manual";
+  mypopover.showPopover();
+
+  await new Promise(resolve => {
+    mypopover.addEventListener("beforetoggle", (e) => {
+      if (e.newState === "closed") {
+        mypopover.remove();
+        requestAnimationFrame(() => {
+          document.body.append(mypopover);
+          mypopover.showPopover();
+          resolve();
+        });
+      }
+    }, {once: true});
+
+    mypopover.popover = "auto";
+  });
+
+  assert_true(mypopover.matches(':popover-open'),
+    'The popover should be open after the toggling sequence.');
+
+  await sendEscape();
+  assert_false(mypopover.matches(':popover-open'),
+    'The popover should light dismiss because it is in the auto state.');
+}, 'Changing the popover attribute should always update the auto/manual behavior.');
+</script>

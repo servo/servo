@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Inner document</title>
+</head>
+<body>
+<h1>Inner</h1>
+<input type="text">
+<script>
+window.onmessage = function(e) {
+    if (e.data == "getlog") {
+        parent.postMessage(log, "*");
+    }
+};
+
+let log = "log:";
+let input = document.getElementsByTagName("input")[0];
+input.onfocus = function() {
+    log += "inputfocus,"
+}
+input.onblur = function() {
+    log += "inputblur,"
+}
+document.body.onfocus = function() {
+    log += "bodyfocus,"
+}
+document.body.onblur = function() {
+    log += "bodyblur,"
+}
+window.onload = function() {
+    log += "willfocusinput,"
+    input.focus();
+    log += "didfocusinput,"
+    parent.postMessage("start", "*");
+}
+</script>
+</body>
+</html>

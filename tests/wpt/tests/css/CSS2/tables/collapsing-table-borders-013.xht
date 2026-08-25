@@ -1,0 +1,60 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: All of table footer group border can be specified</title>
+
+  <link rel="author"  title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#collapsing-borders" title="17.6.2 The collapsing border model" />
+
+  <meta name="assert" content="The borders for all four sides of a table footer group can be specified under the collapsing border model." />
+
+  <style type="text/css"><![CDATA[
+  table {border-collapse: collapse;}
+
+  td
+  {
+  border: black solid 1px;
+  height: 50px;
+  width: 50px;
+  }
+
+  tfoot {border: blue solid 10px;}
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a blue border around the bottommost row of a three-by-three table. There should be no blue anywhere else.</p>
+
+  <table>
+      <thead>
+          <tr>
+              <td></td>
+              <td></td>
+              <td></td>
+          </tr>
+      </thead>
+
+      <tfoot>
+          <tr>
+              <td></td>
+              <td></td>
+              <td></td>
+          </tr>
+      </tfoot>
+
+      <tbody>
+          <tr>
+              <td></td>
+              <td></td>
+              <td></td>
+          </tr>
+      </tbody>
+  </table>
+
+ </body>
+</html>

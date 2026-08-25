@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>CSS Test: font-variation-settings descriptor</title>
+<link rel="author" title="Jason Leo" href="mailto:cgqaq@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-fonts/#font-variation-settings-def">
+<link rel="match" href="font-variation-settings-descriptor-04-ref.html">
+<meta name="assert" content="Font settings value can be fractional or negative, depending on the value range available in your font, as defined by the font designer.">
+<style>
+  @font-face {
+    font-family: "Roboto";
+    src: url('support/fonts/RobotoExtremo-VF.subset.ttf') format('truetype');
+    font-variation-settings: 'wdth' 125, 'opsz' 144, 'wght' 600.7;
+  }
+  .content {
+     font-family: "Roboto";
+  }
+</style>
+<body>
+<p>Test passes if the text below renders correct text weight.</p>
+<p class="content">Filler Text</p>
+</body>
+</html>

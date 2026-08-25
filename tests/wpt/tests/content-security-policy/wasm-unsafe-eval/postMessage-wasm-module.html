@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>eval-in-iframe</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/utils.js"></script>
+</head>
+<body>
+    <iframe src="/content-security-policy/wasm-unsafe-eval/support/iframe.html">
+    </iframe>
+
+    <script>
+        async_test(t => {
+          self.addEventListener('message', t.step_func_done(({data}) => {
+            assert_equals(data.violatedDirective, "script-src");
+            assert_equals(data.originalPolicy, "default-src 'unsafe-inline'")
+            assert_equals(data.blockedURI, "wasm-eval")
+          }));
+        }, "Got the expected securitypolicyviolation in the iframe");
+
+        const iframe = document.querySelector('iframe');
+        iframe.addEventListener('load', () => {
+            let m = new WebAssembly.Module(
+                new Uint8Array([0, 0x61, 0x73, 0x6d, 0x1, 0, 0, 0]));
+            iframe.contentWindow.postMessage(m);
+        });
+    </script>
+</body>
+</html>

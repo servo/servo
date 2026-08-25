@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <meta charset="utf-8">
+  <link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+  <link rel="help" href="https://drafts.csswg.org/css-writing-modes/#orthogonal-flows">
+  <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1949151">
+  <link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+  <meta name="assert" content="Size of the outer div fits its orthogonal child (including borders) after a dynamic change.">
+  <style>
+    #outer {
+      position: absolute;
+      background: red;
+      writing-mode: vertical-lr;
+    }
+    #inner {
+      width: 100px;
+      border: 0px solid green;
+      border-width: 40px 20px 60px 30px;  /* top + bottom borders = 100px */
+      writing-mode: horizontal-tb;
+    }
+  </style>
+
+  <script>
+    function run() {
+      inner.style.width = "50px";  /* left + right borders add a further 50px */
+      document.documentElement.classList.remove("reftest-wait");
+    }
+  </script>
+
+  <body onload="run()">
+    <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+    <div id="outer">
+      <div id="inner">
+      </div>
+    </div>
+  </body>
+</html>

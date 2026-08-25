@@ -1,0 +1,10 @@
+<!doctype html>
+<script>
+opener.history_length = history.length;
+</script>
+<a onclick="location = 'scripted_click_assign_during_load-2.html'; return false;" href>Click Here</a>
+<script>
+document.links[0].click()
+</script>
+<p>Filler image to keep the page loading:</p>
+<img src="/images/smiley.png?pipe=trickle(20:d1:r2)">

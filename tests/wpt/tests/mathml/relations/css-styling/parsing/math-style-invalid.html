@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>MathML Core: parsing math-style with invalid values</title>
+<link rel="author" title="Eri Pazos" href="mailto:eri@igalia.com">
+<link rel="help" href="https://w3c.github.io/mathml-core/#the-math-style-property">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+  test_invalid_value("math-style", "auto");
+  test_invalid_value("math-style", "invalid");
+  test_invalid_value("math-style", "normal compact");
+</script>
+</body>
+</html>

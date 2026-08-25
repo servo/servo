@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
+<title>CSSOM View - scrollIntoView() then a deferred scrollBy() correction</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-scrollintoview">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2053004">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+<div style="height: 200px;"></div>
+<h1 id="a">A</h1>
+<div style="height: 200vh;"></div>
+
+<script>
+  const OFFSET = 80;
+
+  promise_test(async t => {
+    const target = document.getElementById("a");
+
+    await waitForCompositorReady();
+    await waitForCompositorCommit();
+
+    window.addEventListener("scroll", () => {
+      step_timeout(() => window.scrollBy(0, -OFFSET), 1);
+    }, { once: true });
+
+    target.scrollIntoView();
+
+    await waitForDelayWithoutScrollEvent(window);
+    await waitForCompositorCommit();
+
+    assert_equals(target.getBoundingClientRect().top, OFFSET,
+      "#a should rest OFFSET below the top after the deferred scrollBy()");
+  }, "scrollIntoView() followed by a deferred scrollBy() preserves the scroll correction");
+</script>

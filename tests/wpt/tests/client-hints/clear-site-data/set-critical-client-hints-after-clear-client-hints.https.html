@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+// Here's the set-up for this test:
+// Step 1 (first window) Set client hints in the same header that clears them.
+// Step 2 (first window) Open second window.
+// Step 3 (second window) Message first window about client hints sent.
+// Step 4 (first window) Asserts client hints not sent.
+async_test(t => {
+    // Step 4
+    window.addEventListener("message", t.step_func(e => {
+        assert_equals(e.data, "MissingDeviceMemory");
+        t.done();
+    }), {once: true});
+
+    // Step 2
+    new_window = window.open("/client-hints/clear-site-data/resources/check-client-hints.py");
+    t.add_cleanup(new_window.close);
+}, "Setting critical client hints after Clear-Site-Data for client hints shouldn't allow the client hints to take.");
+</script>
+</body>
+</html>

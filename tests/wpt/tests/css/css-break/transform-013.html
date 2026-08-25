@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-break-3/#transforms">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1371426">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="display:flow-root; width:100px; height:100px; background:red;">
+  <div style="columns:3; margin-top:100px; column-fill:auto; gap:0; width:150px; height:100px;">
+    <div style="transform:rotate(180deg); transform-origin:bottom left; height:120px;">
+      <div style="position:absolute; top:100px; width:100%;">
+        <!-- The containing block (the transformed element) takes up 20px in the
+             second column. To compensate for the 180 degree rotation with a
+             transform origin at the bottom, move the green rectangle by the
+             double. -->
+        <div style="position:relative; top:40px; height:100px; background:green;"></div>
+        <!-- The containing block doesn't exist in third column, meaning that the
+             block-size of the non-existing fragment is 0. -->
+        <div style="height:100px; background:green;"></div>
+      </div>
+    </div>
+  </div>
+</div>

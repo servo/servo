@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>image-animation: running creates per-element timeline (unsynced between elements)</title>
+<link rel="help" href="https://drafts.csswg.org/css-image-animation-1/">
+<meta charset="utf-8" />
+<link rel="match" href="image-animation-img-running-ref.html" />
+<script src="/common/reftest-wait.js"></script>
+<script src="resources/image-animation-utils.js"></script>
+<script>
+  let count = 0;
+  function loaded() {
+    count++;
+    if (count === 1) {
+      document.getElementById('img1').style.imageAnimation = "running";
+      waitForFrameTime(125).then(() => {
+        document.getElementById('img2').src = '../../images/anim-gr.gif';
+      });
+    }
+    if (count === document.querySelectorAll('img').length) {
+      requestAnimationFrame(()=> {
+        for(const el of document.getElementsByTagName("img")) {
+          el.style.imageAnimation = 'paused';
+        }
+        requestAnimationFrame(()=>{
+          takeScreenshot();
+        })
+      })
+    }
+  }
+</script>
+
+<style>
+  img {
+    image-animation: paused;
+  }
+</style>
+
+<img id="img1" src="../../images/anim-gr.gif" onload="loaded()" />
+<img id="img2" onload="loaded()" />
+
+</html>

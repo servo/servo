@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: parsing scroll-axis-lock property computed values</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-axis-lock">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<div id="target"></div>
+<script>
+  test_computed_value('scroll-axis-lock', 'initial', 'auto');
+  test_computed_value('scroll-axis-lock', 'inherit', 'auto');
+  test_computed_value('scroll-axis-lock', 'unset', 'auto');
+  test_computed_value('scroll-axis-lock', 'revert', 'auto');
+
+  test_computed_value('scroll-axis-lock', 'auto');
+  test_computed_value('scroll-axis-lock', 'none');
+
+  test(() => {
+    let style = getComputedStyle(document.getElementById('target'));
+    assert_not_equals(Array.from(style).indexOf('scroll-axis-lock'), -1);
+  }, 'The scroll-axis-lock property shows up in CSSStyleDeclaration enumeration');
+
+  test(() => {
+    let style = document.getElementById('target').style;
+    assert_not_equals(style.cssText.indexOf('scroll-axis-lock'), -1);
+  }, 'The scroll-axis-lock property shows up in CSSStyleDeclaration.cssText');
+</script>

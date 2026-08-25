@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="support/frame-ancestors-test.sub.js"></script>
+</head>
+<body>
+    <script>
+        test = async_test("A 'frame-ancestors' CSP directive with a URL which doesn't match this origin should be blocked.");
+
+        crossOriginFrameShouldBeBlocked("http://example.com/");
+    </script>
+</body>
+</html>

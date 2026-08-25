@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<title>
+  CSS Gap Decorations: in a fragmented flex container with flex-direction:
+  column, row gaps in flex lines laid out with a suppressed gap preserve the
+  correct rule pattern.
+</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/pull/13850">
+<link rel="match" href="flex-gap-decorations-fragmentation-030-ref.html">
+<style>
+  body { margin: 0; }
+  .multi-column {
+    columns: 3;
+    column-width: 110px;
+    column-gap: 10px;
+    height: 100px;
+    width: 350px;
+    background: lightgray;
+    column-fill: auto;
+  }
+  #flexbox {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    width: 110px;
+    height: 300px;
+    row-gap: 10px;
+    column-gap: 10px;
+    row-rule-style: solid;
+    row-rule-width: 10px;
+    row-rule-color: red, blue, pink;
+    column-rule-style: solid;
+    column-rule-width: 10px;
+    column-rule-color: purple;
+  }
+  .l0 { background: cornflowerblue; width: 50px; }
+  .l1 { background: goldenrod; width: 50px; }
+</style>
+<div class="multi-column">
+  <div id="flexbox">
+    <div class="l0" style="height: 200px;"></div>
+    <div class="l0" style="height: 40px;"></div>
+    <div class="l0" style="height: 40px;"></div>
+    <div class="l1" style="height: 240px;"></div>
+    <div class="l1" style="height: 40px;"></div>
+  </div>
+</div>

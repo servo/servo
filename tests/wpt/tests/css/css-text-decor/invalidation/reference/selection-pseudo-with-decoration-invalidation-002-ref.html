@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Text Decoration Test: Invalidation of text decorations in css-pseudo ::selection</title>
+<style>
+    div {
+        display: block;
+        margin-top: 10px;
+        margin-bottom: 10px;
+        line-height: 20px;
+        will-change: transform;
+        text-decoration-line: underline;
+        text-decoration-style: line;
+        text-decoration-thickness: 1px;
+        text-underline-offset: 10px;
+    }
+    ::selection {
+        background: yellow;
+        color: currentColor;
+    }
+</style>
+</head>
+<body>
+<div>
+This is one line of text, with an image underneath.
+</div>
+<image src="../../../support/60x60-green.png"/>
+<div>
+And another line of text.
+</div>
+</body>
+<script>
+  const selection = window.getSelection();
+  const node = document.getElementsByTagName("body")[0];
+  let range = document.createRange();
+  range.selectNodeContents(node);
+  selection.addRange(range);
+</script>
+</html>

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Reftest Reference</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <style>
+  .flexBaselineCheck {
+    display: flex;
+    border: 1px solid black;
+  }
+  .flexBaselineCheck > * {
+    border: 2px solid teal;
+    /* In the testcase, the (baseline-aligned) items should all have their
+       bottom borders aligned with the 50px-tall canvas.  In other words, their
+       bottom borders should all be aligned at the bottom of their flex
+       container, separated from the bottom by only by their margin-end
+       distance.  Here in the reference case, we just use "flex-end" alignment
+       (plus the same amount of margin) to produce a precise reference for what
+       that should look like. */
+    align-self: flex-end;
+    margin: 2px;
+  }
+  canvas {
+    background: purple;
+    width: 20px;
+    height: 50px;
+    box-sizing: border-box;
+  }
+  </style>
+</head>
+<body>
+  <div class="flexBaselineCheck">
+    <canvas></canvas>
+    <button>btn</button>
+    <input type="button" value="i-btn">
+    <input type="submit" value="i-sub">
+  </div>
+
+  <div class="flexBaselineCheck">
+    <canvas></canvas>
+    <input type="text" value="text">
+    <input type="number" value="0">
+  </div>
+
+  <div class="flexBaselineCheck">
+    <canvas></canvas>
+    <input type="date">
+    <input type="time">
+  </div>
+
+  <div class="flexBaselineCheck">
+    <canvas></canvas>
+    <input type="file">
+    <textarea>textarea</textarea>
+  </div>
+
+  <div class="flexBaselineCheck">
+    <canvas></canvas>
+    <select><option>dropdown</option></select>
+    <select multiple style="max-height:40px"><option>multi</option></select>
+  </div>
+</body>
+</html>

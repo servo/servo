@@ -1,0 +1,17 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+// https://html.spec.whatwg.org/multipage/#htmlsourceelement
+[Exposed=Window]
+interface HTMLSourceElement : HTMLElement {
+  [HTMLConstructor] constructor();
+
+  [CEReactions] attribute USVString src;
+  [CEReactions] attribute DOMString type;
+  [CEReactions] attribute USVString srcset;
+  [CEReactions] attribute DOMString sizes;
+  [CEReactions] attribute DOMString media;
+  [CEReactions] attribute unsigned long width;
+  [CEReactions] attribute unsigned long height;
+};

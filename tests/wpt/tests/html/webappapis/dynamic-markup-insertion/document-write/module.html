@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>document.write in a module</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+async_test(t => {
+  const iframe = document.createElement("iframe");
+
+  iframe.onerror = t.unreached_func("Error loading iframe");
+  document.addEventListener("documentWriteDone", t.step_func(() => {
+    assert_equals(iframe.contentDocument.body.textContent, "Initial body contents\n");
+  }));
+  iframe.onload = t.step_func_done(() => {
+    assert_equals(iframe.contentDocument.body.textContent, "Initial body contents\n");
+  });
+
+  iframe.src = "module-iframe.html";
+  document.body.appendChild(iframe);
+});
+</script>

@@ -1,0 +1,46 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: border-right</title>
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#border-right"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <style type="text/css"><![CDATA[
+   body { color: blue; }
+   ul { margin-right: 25%; }
+   .threea {border-right: orange medium solid;}
+   .threeb {border-right: lime medium solid;}
+   .threec {border-right: yellow medium solid;}
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-properties" title="8.5 Border properties"/>
+ </head>
+ <body>
+  <p>There should be a solid line to the right of the text below,
+  having three segments each of a different colour as indicated.</p>
+  <ul>
+   <li class="threea">Orange orange...
+    <ul>
+     <li>...orange orange...
+     </li>
+     <li>...orange orange...
+     </li>
+     <li>...orange orange.
+     </li>
+    </ul>
+   </li>
+   <li class="threeb">Lime.</li>
+   <li class="threec">Yellow yellow yellow yellow yellow yellow yellow
+   yellow yellow yellow yellow yellow yellow yellow yellow yellow
+   yellow yellow yellow yellow yellow yellow yellow yellow yellow
+   yellow yellow yellow yellow yellow yellow yellow yellow yellow
+   yellow yellow yellow yellow yellow yellow yellow yellow yellow
+   yellow yellow yellow yellow yellow yellow yellow yellow yellow
+   yellow yellow yellow yellow yellow yellow yellow yellow yellow
+   yellow yellow yellow yellow yellow yellow yellow yellow yellow
+   yellow yellow yellow yellow yellow yellow yellow yellow yellow
+   yellow yellow yellow yellow yellow yellow yellow yellow yellow
+   yellow yellow yellow yellow yellow yellow yellow yellow yellow
+   yellow yellow yellow yellow yellow yellow yellow yellow.</li>
+  </ul>
+ </body>
+</html>

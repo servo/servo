@@ -1,0 +1,81 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Disabled Vertex Attrib Update Test</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"> </script>
+</head>
+<body>
+<canvas id="example" width="50" height="50">
+</canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script id="vshader" type="x-shader/x-vertex">
+attribute vec4 a_position;
+attribute float a_actualValue;
+uniform float u_expectedValue;
+varying float v_result;
+void main() {
+  gl_Position = a_position;
+  v_result = a_actualValue == u_expectedValue ? 1.0 : 0.0;
+}
+</script>
+
+<script id="fshader" type="x-shader/x-fragment">
+precision mediump float;
+varying float v_result;
+void main() {
+  gl_FragColor = v_result > 0.0 ? vec4(0.0, 1.0, 0.0, 1.0) : vec4(1.0, 0.0, 0.0, 1.0);
+}
+</script>
+
+<script>
+// Tests that repeatedly updating a disabled vertex attribute works as expected.
+// This covers an ANGLE bug where dirty bits for current values were ignoring repeated updates.
+// Based on ANGLE test (VertexAttributeTest, DisabledAttribUpdates) from https://github.com/google/angle/blob/f7f0b8c3ab21c52cc2915048959361cf628d95f0/src/tests/gl_tests/VertexAttributeTest.cpp
+"use strict";
+var wtu = WebGLTestUtils;
+description();
+
+var gl = wtu.create3DContext("example");
+
+var program = wtu.setupProgram(gl, ['vshader', 'fshader']);
+gl.useProgram(program);
+
+var positionLocation = gl.getAttribLocation(program, "a_position");
+var attribLoc = gl.getAttribLocation(program, "a_actualValue");
+gl.vertexAttribPointer(attribLoc, 1, gl.FLOAT, gl.FALSE, 0, 0);
+
+var uniLoc = gl.getUniformLocation(program, "u_expectedValue");
+
+var gridRes = 1;
+wtu.setupIndexedQuad(gl, gridRes, positionLocation);
+
+var testValues = [1, 2, 3, 4];
+for (var i = 0; i < testValues.length; ++i) {
+  var testValue = testValues[i];
+  gl.uniform1f(uniLoc, testValue);
+  gl.vertexAttrib1f(attribLoc, testValue);
+  wtu.clearAndDrawIndexedQuad(gl, gridRes);
+  wtu.checkCanvas(gl, [0, 255, 0, 255], "should be green");
+}
+
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>
+

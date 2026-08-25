@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Test for PaymentRequest.show(optional detailsPromise) method</title>
+<link
+  rel="help"
+  href="https://w3c.github.io/browser-payment-api/#show-method"
+/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+  // See function testBadUpdate() for test details!
+  setup({
+    allow_uncaught_exception: true,
+  });
+
+  // == TEST DATA ===
+  // PaymentMethod
+  const validMethod = Object.freeze({
+    supportedMethods: "valid-but-wont-ever-match",
+  });
+
+  const validMethodBasicCard = Object.freeze({
+    supportedMethods: "basic-card",
+  });
+
+  const validMethodApplePay = Object.freeze({
+    supportedMethods: "https://apple.com/apple-pay",
+    data: {
+      version: 3,
+      merchantIdentifier: "merchant.com.example",
+      countryCode: "US",
+      merchantCapabilities: ["supports3DS"],
+      supportedNetworks: ["visa"],
+    },
+  });
+
+  // Methods
+  const validMethods = Object.freeze([
+    validMethodBasicCard,
+    validMethod,
+    validMethodApplePay,
+  ]);
+
+  // Amounts
+  const validAmount = Object.freeze({
+    currency: "USD",
+    value: "1.00",
+  });
+
+  const invalidAmount = Object.freeze({
+    currency: "¡INVALID!",
+    value: "A1.0",
+  });
+
+  const negativeAmount = Object.freeze({
+    currency: "USD",
+    value: "-1.00",
+  });
+
+  // Totals
+  const validTotal = Object.freeze({
+    label: "Valid Total",
+    amount: validAmount,
+  });
+
+  const invalidTotal = Object.freeze({
+    label: "Invalid Total",
+    amount: invalidAmount,
+  });
+
+  const invalidNegativeTotal = Object.freeze({
+    label: "Invalid negative total",
+    amount: negativeAmount,
+  });
+
+  // PaymentDetailsInit
+  const validDetails = Object.freeze({
+    total: validTotal,
+  });
+
+  const invalidDetailsNegativeTotal = Object.freeze({
+    total: invalidNegativeTotal,
+  });
+
+  // PaymentOptions
+  const validOptions = Object.freeze({
+    requestShipping: true,
+  });
+
+  // PaymentItem
+  const validPaymentItem = Object.freeze({
+    amount: validAmount,
+    label: "Valid payment item",
+  });
+
+  const invalidPaymentItem = Object.freeze({
+    amount: invalidAmount,
+    label: "Invalid payment item",
+  });
+
+  // PaymentItem
+  const validPaymentItems = Object.freeze([validPaymentItem]);
+  const invalidPaymentItems = Object.freeze([invalidPaymentItem]);
+
+  // PaymentShippingOption
+  const invalidShippingOption = Object.freeze({
+    id: "abc",
+    label: "Invalid shipping option",
+    amount: invalidAmount,
+    selected: true,
+  });
+
+  // PaymentShippingOptions
+  const validShippingOption = Object.freeze({
+    id: "abc",
+    label: "valid shipping option",
+    amount: validAmount,
+  });
+
+  const validShippingOptions = Object.freeze([validShippingOption]);
+  const invalidShippingOptions = Object.freeze([invalidShippingOption]);
+
+  // PaymentDetailsModifier
+  const validModifier = Object.freeze({
+    additionalDisplayItems: validPaymentItems,
+    supportedMethods: "valid-but-wont-ever-match",
+    total: validTotal,
+  });
+
+  const modifierWithInvalidDisplayItems = Object.freeze({
+    additionalDisplayItems: invalidPaymentItems,
+    supportedMethods: "basic-card",
+    total: validTotal,
+  });
+
+  const modifierWithValidDisplayItems = Object.freeze({
+    additionalDisplayItems: validPaymentItems,
+    supportedMethods: "basic-card",
+    total: validTotal,
+  });
+
+  const modifierWithInvalidTotal = Object.freeze({
+    additionalDisplayItems: validPaymentItems,
+    supportedMethods: "basic-card",
+    total: invalidTotal,
+  });
+
+  const recursiveData = {};
+  recursiveData.foo = recursiveData;
+  Object.freeze(recursiveData);
+
+  const modifierWithRecursiveData = Object.freeze({
+    supportedMethods: "basic-card",
+    total: validTotal,
+    data: recursiveData,
+  });
+  // == END OF TEST DATA ===
+  /*
+    These test work by creating a "valid" payment request and then
+    performing a bad update via `show(detailsPromise)`.
+    The `badDetails` cause detailsPromise to reject with `expectedError`.
+    */
+  function testBadUpdate(testAssertion, badDetails, expectedError) {
+    promise_test(async (t) => {
+      const request = new PaymentRequest(
+        validMethods,
+        validDetails,
+        validOptions
+      );
+      await test_driver.bless("Payment request");
+      const detailsPromise = Promise.resolve(badDetails);
+      const acceptPromise = request.show(detailsPromise);
+      const test_func =
+        typeof expectedError == "function"
+          ? promise_rejects_js
+          : promise_rejects_dom;
+      await test_func(
+        t,
+        expectedError,
+        acceptPromise,
+        "badDetails must cause acceptPromise to reject with expectedError"
+      );
+    }, testAssertion);
+  }
+
+  const rejectedPromise = Promise.reject(new SyntaxError("test"));
+  testBadUpdate(
+    "Rejection of detailsPromise must abort the update with an 'AbortError' DOMException.",
+    rejectedPromise,
+    "AbortError"
+  );
+
+  testBadUpdate(
+    "Total in the update is a string, so converting to IDL must abort the update with a TypeError.",
+    { total: `this will cause a TypeError!` },
+    TypeError
+  );
+
+  testBadUpdate(
+    "Total is recursive, so converting to IDL must abort the update with a TypeError.",
+    { total: recursiveData },
+    TypeError
+  );
+
+  testBadUpdate(
+    "Updating with a negative total results in a TypeError.",
+    invalidDetailsNegativeTotal,
+    TypeError
+  );
+
+  testBadUpdate(
+    "Updating with a displayItem with an invalid currency results in RangeError.",
+    { ...validDetails, displayItems: invalidPaymentItems },
+    RangeError
+  );
+
+  testBadUpdate(
+    "Updating with duplicate shippingOptions (same IDs) results in a TypeError.",
+    {
+      ...validDetails,
+      shippingOptions: [validShippingOption, validShippingOption],
+    },
+    TypeError
+  );
+
+  testBadUpdate(
+    "Updating with a shippingOption with an invalid currency value results in a RangError.",
+    { ...validDetails, shippingOptions: invalidShippingOptions },
+    RangeError
+  );
+
+  testBadUpdate(
+    "Must throw a RangeError when a modifier's total item has an invalid currency.",
+    { ...validDetails, modifiers: [modifierWithInvalidTotal, validModifier] },
+    RangeError
+  );
+
+  testBadUpdate(
+    "Must throw a RangeError when a modifier display item has an invalid currency.",
+    {
+      ...validDetails,
+      modifiers: [modifierWithInvalidDisplayItems, validModifier],
+    },
+    RangeError
+  );
+  testBadUpdate(
+    "Must throw as Modifier has a recursive dictionary.",
+    { ...validDetails, modifiers: [modifierWithRecursiveData, validModifier] },
+    TypeError
+  );
+</script>

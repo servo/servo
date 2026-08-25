@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/namespaces.js"></script>
+<script src="support/passthroughpolicy.js"></script>
+<script src="support/script-messages.js"></script>
+<link rel="help" href="https://w3c.github.io/trusted-types/dist/spec/#enforcement-in-scripts">
+<link rel="help" href="https://html.spec.whatwg.org/#prepare-the-script-element">
+<link rel="help" href="https://w3c.github.io/webappsec-csp/#should-block-inline">
+<meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script'">
+<meta id="metaTagForScriptSrc" http-equiv="Content-Security-Policy" content="script-src 'nonce-script-messages' 'nonce-self' 'sha256-IpCtvKVFQbqDBhwCvQEsZoqgVXvAd6T2uRWd/Pz7FuI=' 'sha256-xanaWuoRdfLzI0+K8zpwr8eHi4RK2P6GglgCFXv0r00=' 'sha256-BPWjrQT1GMyyQ+6Fmycn7pSqh8L945ToMJ/nfGClLBc=' 'sha256-X8s1oxab9326HmgKKqIjvhpkIxxWHfKLwwrLnvar4qY=' 'sha256-MVGQ2tBJbpcCqD/1Qs14444kw47sdgW4H/8ewsu3oyk='">
+<!-- This test covers the following step from the "prepare the script element"
+     algorithm, verifying that "source text" is the one after application of
+     the default policy: "If el does not have a src content attribute, and the
+     Should element's inline behavior be blocked by Content Security Policy?
+     algorithm returns "Blocked" when given el, "script", and source text, then
+     return." -->
+<div id="container"></div>
+<script nonce="self">
+  const logMessageModulePath = "./support/logMessage-module.sub.js";
+
+  // Define a default policy that transforms the script's type to some valid
+  // source content.
+  function scriptTypeToValue(value) {
+    switch (value) {
+    case "classic":
+      return `window.log_message('CLASSIC');`;
+    case "module":
+      return `window.log_message('MODULE');`;
+    case "importmap":
+      return `{ "imports": { "${logMessageModulePath}?message=UNMAPPED": "${logMessageModulePath}?message=IMPORTMAP" }}`;
+    case "importmap2":
+      return `{ "imports": { "${logMessageModulePath}?message=UNMAPPED2": "${logMessageModulePath}?message=IMPORTMAP2" }}`;
+    case "importmap3":
+      return `{ "imports": { "${logMessageModulePath}?message=UNMAPPED3": "${logMessageModulePath}?message=IMPORTMAP3" }}`;
+    }
+  }
+  trustedTypes.createPolicy("default", {
+    createScript: (value, _, sink) => {
+      window.log_message("CREATE_SCRIPT");
+      window.log_message(sink);
+      return scriptTypeToValue(value);
+    }
+  });
+
+  promise_test(async t => {
+    let classicHash = await base64_hash_for_inline_script(scriptTypeToValue("classic"), "SHA-256");
+    let moduleHash = await base64_hash_for_inline_script(scriptTypeToValue("module"), "SHA-256");
+    let importmapHash = await base64_hash_for_inline_script(scriptTypeToValue("importmap"), "SHA-256");
+    let importmap2Hash = await base64_hash_for_inline_script(scriptTypeToValue("importmap2"), "SHA-256");
+    let importmap3Hash = await base64_hash_for_inline_script(scriptTypeToValue("importmap3"), "SHA-256");
+    let metaTagContent = document.getElementById("metaTagForScriptSrc").getAttribute("content");
+    assert_equals(metaTagContent, `script-src 'nonce-script-messages' 'nonce-self' 'sha256-${classicHash}' 'sha256-${moduleHash}' 'sha256-${importmapHash}' 'sha256-${importmap2Hash}' 'sha256-${importmap3Hash}'`);
+  }, "script-src CSP directive is properly set.");
+
+  promise_test(async t => {
+    let messages = await script_messages_for(_ => {
+      let script = create_html_script_with_untrusted_source_text("classic");
+      script.setAttribute("type", "application/ecmascript");
+      // Appending the script will log "CLASSIC".
+      container.appendChild(script);
+    });
+    assert_array_equals(messages, ["CREATE_SCRIPT", "HTMLScriptElement text", "CLASSIC"]);
+  }, "Untrusted HTMLScriptElement with classic type uses the source text returned by the default policy for inline CSP check.");
+
+  promise_test(async t => {
+    let messages = await script_messages_for(async _ => {
+      let script = create_html_script_with_untrusted_source_text("importmap");
+      script.setAttribute("type", "importmap");
+
+      // Appending the script sets up an import map for logMessageModulePath.
+      container.appendChild(script);
+
+      // Importing logMessageModulePath will log message "IMPORTMAP"
+      await import(`${logMessageModulePath}?message=UNMAPPED`);
+    });
+    assert_array_equals(messages, ["CREATE_SCRIPT", "HTMLScriptElement text", "IMPORTMAP"]);
+  }, "Untrusted HTMLScriptElement of importmap type uses the source text returned by the default policy for inline CSP check.");
+
+  promise_test(async t => {
+    let messages = await script_messages_for(async _ => {
+      let script = create_html_script_with_untrusted_source_text("module");
+      script.setAttribute("type", "module");
+
+      // Appending the script will log message "MODULE"
+      container.appendChild(script);
+    });
+    assert_array_equals(messages, ["CREATE_SCRIPT", "HTMLScriptElement text", "MODULE"]);
+  }, "Untrusted HTMLScriptElement of module type uses the source text returned by the default policy for inline CSP check.");
+
+  promise_test(async t => {
+    let messages = await script_messages_for(async _ => {
+      let script2 = create_html_script_with_untrusted_source_text("importmap2");
+      script2.setAttribute("type", "importmap");
+
+      // Appending the script sets up an import map for logMessageModulePath.
+      container.appendChild(script2);
+
+      // Importing logMessageModulePath will log message "IMPORTMAP2"
+      await import(`${logMessageModulePath}?message=UNMAPPED2`);
+
+      let script3 = create_html_script_with_untrusted_source_text("importmap3");
+      script3.setAttribute("type", "importmap");
+
+      // Appending the script sets up an import map for logMessageModulePath.
+      container.appendChild(script3);
+
+      // Importing logMessageModulePath will log message "IMPORTMAP3"
+      await import(`${logMessageModulePath}?message=UNMAPPED3`);
+    });
+    assert_array_equals(messages,
+        ["CREATE_SCRIPT", "HTMLScriptElement text", "IMPORTMAP2",
+         "CREATE_SCRIPT", "HTMLScriptElement text", "IMPORTMAP3"]);
+  }, "Untrusted HTMLScriptElement of two importmap types use the source text returned by the default policy for inline CSP check.");
+</script>

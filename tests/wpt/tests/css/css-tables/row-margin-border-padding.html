@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CSS Table test: table-row border/padding/margin has no effect in border-collapse:separate tables</title>
+  <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+  <link rel="help" href="https://www.w3.org/TR/CSS22/tables.html#separated-borders">
+  <link rel="match" href="row-margin-border-padding-ref.html">
+<style>
+.ltr { direction:ltr; }
+.rtl { direction:rtl; }
+table, td {
+  border: 3px solid;
+}
+.bc table {
+  border-collapse: collapse;
+}
+
+tr.inherited {
+  border: 3px dashed;
+  padding: 5px;
+  margin: 7px;
+}
+.inherited > td {
+  border:inherit;
+  padding:inherit;
+  margin:inherit;
+}
+</style>
+</head>
+<body>
+
+<table class="ltr"><tr style="border: 20px solid"><td></td><td></td></tr></table>
+<table class="ltr"><tr style="padding: 20px"><td></td><td></td></tr></table>
+<table class="ltr"><tr style="margin: 20px"><td></td><td></td></tr></table>
+
+<table class="rtl"><tr style="border: 20px solid"><td></td><td></td></tr></table>
+<table class="rtl"><tr style="padding: 20px"><td></td><td></td></tr></table>
+<table class="rtl"><tr style="margin: 20px"><td></td><td></td></tr></table>
+
+<table class="ltr"><tr class="inherited"><td></td><td></td></tr></table>
+<table class="rtl"><tr class="inherited"><td></td><td></td></tr></table>
+
+<!-- ditto with border-collapse:collapse -->
+<div class="bc">
+<table class="ltr"><tr style="border: 20px solid"><td></td><td></td></tr></table>
+<table class="ltr"><tr style="padding: 20px"><td></td><td></td></tr></table>
+<table class="ltr"><tr style="margin: 20px"><td></td><td></td></tr></table>
+
+<table class="rtl"><tr style="border: 20px solid"><td></td><td></td></tr></table>
+<table class="rtl"><tr style="padding: 20px"><td></td><td></td></tr></table>
+<table class="rtl"><tr style="margin: 20px"><td></td><td></td></tr></table>
+
+<table class="ltr"><tr class="inherited"><td></td><td></td></tr></table>
+<table class="rtl"><tr class="inherited"><td></td><td></td></tr></table>
+</div>
+
+</body>
+</html>

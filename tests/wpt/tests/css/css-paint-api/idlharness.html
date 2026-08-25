@@ -1,0 +1,17 @@
+<!doctype html>
+<title>CSS Painting API IDL tests</title>
+<meta name="timeout" content="long">
+<link rel="help" href="https://drafts.css-houdini.org/css-paint-api/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+<script>
+  "use strict";
+
+  idl_test(
+    ["css-paint-api"],
+    ["cssom", "html"]
+    // No objects in Window global
+  );
+</script>

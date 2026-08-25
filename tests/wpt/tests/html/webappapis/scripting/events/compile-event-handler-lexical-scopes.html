@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Lexical scopes when compiling an inline event handler</title>
+<link rel="help" href="https://html.spec.whatwg.org/C/#getting-the-current-value-of-the-event-handler">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+setup({allow_uncaught_exception: true});
+</script>
+
+<!-- test case 1: element, document, and window -->
+
+<table>
+  <tr id="test1_outer">
+    <td id="test1_target" onclick="
+window.testResults.complete = typeof(complete);
+window.testResults.cellIndex = typeof(cellIndex);
+window.testResults.cells = typeof(cells);
+window.testResults.domain = typeof(domain);
+window.testResults.print = typeof(print);
+window.testResults.testResults = typeof(testResults);
+window.testResults.target_own_property = typeof(target_own_property);
+window.testResults.inner_own_property = typeof(inner_own_property);
+window.testResults.outer_own_property = typeof(outer_own_property);
+window.testResults.event = typeof(event);
+">
+      <img id="test1_inner">
+    </td>
+  </tr>
+</table>
+
+<script>
+"use strict";
+
+test(() => {
+  const target_element = document.getElementById("test1_target");
+  const inner_element = document.getElementById("test1_inner");
+  const outer_element = document.getElementById("test1_outer");
+
+  target_element.target_own_property = {};
+  inner_element.inner_own_property = {};
+  outer_element.outer_own_property = {};
+
+  const results = window.testResults = {};
+  // Clicking an inner element makes the event target where the event handler is
+  // registered doesn't match the event target that the event is fired.  From a
+  // point of view |target_element|, event.target != event.currentTarget.
+  inner_element.click();
+  // Expected scopes are: |target_element|, document, and window.
+  assert_equals(results.complete, "undefined", "HTMLImageElement.prototype.complete");
+  assert_equals(results.cellIndex, "number", "HTMLTableCellElement.prototype.cellIndex");
+  assert_equals(results.cells, "undefined", "HTMLTableRowElement.prototype.cellIndex");
+  assert_equals(results.domain, "string", "Document.prototype.domain");
+  assert_equals(results.print, "function", "window.print");
+  assert_equals(results.testResults, "object");
+  assert_equals(results.target_own_property, "object");
+  assert_equals(results.inner_own_property, "undefined");
+  assert_equals(results.outer_own_property, "undefined");
+  assert_equals(results.event, "object", "The argument of event handler");
+}, "The EventHandler is an element's event handler and has no form owner.");
+</script>
+
+
+<!-- test case 2: element, form owner, document, and window -->
+
+<form id="test2_form_owner" onsubmit="return false;">
+  <!-- 'button' is a form-associated element and has a form owner.
+       https://html.spec.whatwg.org/C/#form-associated-element
+    -->
+  <button id="test2_target" onclick="
+window.testResults.cite = typeof(cite);
+window.testResults.autofocus = typeof(autofocus);
+window.testResults.form = typeof(form);
+window.testResults.encoding = typeof(encoding);
+window.testResults.domain = typeof(domain);
+window.testResults.print = typeof(print);
+window.testResults.testResults = typeof(testResults);
+window.testResults.target_own_property = typeof(target_own_property);
+window.testResults.inner_own_property = typeof(inner_own_property);
+window.testResults.form_owner_own_property = typeof(form_owner_own_property);
+window.testResults.event = typeof(event);
+">
+    <q id="test2_inner"></q>
+  </button>
+</form>
+
+<script>
+"use strict";
+
+test(() => {
+  const target_element = document.getElementById("test2_target");
+  const inner_element = document.getElementById("test2_inner");
+  const form_owner_element = document.getElementById("test2_form_owner");
+
+  target_element.target_own_property = {};
+  inner_element.inner_own_property = {};
+  form_owner_element.form_owner_own_property = {};
+
+  const results = window.testResults = {};
+  // Clicking an inner element makes the event target where the event handler is
+  // registered doesn't match the event target that the event is fired.  From a
+  // point of view |target_element|, event.target != event.currentTarget.
+  inner_element.click();
+  // Expected scopes are: |target_element|, form owner, document, and window.
+  assert_equals(results.cite, "undefined", "HTMLQuoteElement.prototype.cite");
+  assert_equals(results.autofocus, "boolean", "HTMLButtonElement.prototype.autofocus");
+  assert_equals(results.form, "object", "HTMLButtonElement.prototype.form");
+  assert_equals(results.encoding, "string", "HTMLFormElement.prototype.encoding");
+  assert_equals(results.domain, "string", "Document.prototype.domain");
+  assert_equals(results.print, "function", "window.print");
+  assert_equals(results.testResults, "object");
+  assert_equals(results.target_own_property, "object");
+  assert_equals(results.inner_own_property, "undefined");
+  assert_equals(results.form_owner_own_property, "object");
+  assert_equals(results.event, "object", "The argument of event handler");
+}, "The EventHandler is an element's event handler and has a form owner.");
+</script>
+
+
+<!-- test case 3: element and window -->
+
+<a id="test3_inner"></a>
+
+<script>
+"use strict";
+
+// This test is placed at last so that it can safely use a global variable
+// without conflicting other tests.  Only this test is asynchronous.
+async_test(t => {
+  const target_element = window;
+  const inner_element = document.getElementById("test3_inner");
+
+  target_element.target_own_property = {};
+  inner_element.inner_own_property = {};
+  document.body.body_own_property = {};
+
+  // "onerror" is one of the Window-reflecting body element event handler set.
+  // https://html.spec.whatwg.org/C/#window-reflecting-body-element-event-handler-set
+  // So, the EventHandler is treated as a Window's event handler.
+  document.body.setAttribute("onerror", "\
+window.testResults.ping = typeof(ping);  \
+window.testResults.domain = typeof(domain);  \
+window.testResults.print = typeof(print);  \
+window.testResults.testResults = typeof(testResults);  \
+window.testResults.target_own_property = typeof(target_own_property);  \
+window.testResults.inner_own_property = typeof(inner_own_property);  \
+window.testResults.body_own_property = typeof(body_own_property);  \
+window.testResults.event = typeof(event);  \
+");
+
+  const results = window.testResults = {};
+  window.addEventListener("error", t.step_func_done(() => {
+    // Expected scopes are: |target_element| and window only.
+    assert_equals(results.domain, "undefined", "Document.prototype.domain");
+    assert_equals(results.print, "function", "window.print");
+    assert_equals(results.testResults, "object");
+    assert_equals(results.target_own_property, "object");
+    assert_equals(results.inner_own_property, "undefined");
+    assert_in_array(results.event, ["object", "string"], "The first argument of onerror event handler");
+  }));
+
+  // Make a compilation error happen in order to invoke onerror event handler.
+  inner_element.setAttribute("onclick", "cause a compilation error");
+  inner_element.click();
+}, "The EventHandler is not an element's event handler (i.e. Window's event handler) and has no form owner.");
+</script>

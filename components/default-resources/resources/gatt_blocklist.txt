@@ -1,0 +1,62 @@
+# Source:
+# https://github.com/WebBluetoothCG/registries/blob/master/gatt_blocklist.txt
+# License:
+# https://github.com/WebBluetoothCG/registries/blob/master/LICENSE
+
+# This file holds a list of GATT UUIDs that websites using the Web
+# Bluetooth API are forbidden from accessing.
+
+## Services
+
+# org.bluetooth.service.human_interface_device
+# Direct access to HID devices like keyboards would let web pages
+# become keyloggers.
+00001812-0000-1000-8000-00805f9b34fb
+
+# Firmware update services that don't check the update's signature
+# present a risk of devices' software being modified by malicious web
+# pages. Users may connect to a device believing they are enabling
+# only simple interaction or that they're interacting with the
+# device's manufacturer, but the site might instead persistently
+# compromise the device.
+#
+# Nordic's Device Firmware Update service, http://infocenter.nordicsemi.com/topic/com.nordic.infocenter.sdk5.v11.0.0/examples_ble_dfu.html:
+00001530-1212-efde-1523-785feabcd123
+# TI's Over-the-Air Download service, http://www.ti.com/lit/ug/swru271g/swru271g.pdf:
+f000ffc0-0451-4000-b000-000000000000
+
+
+## Characteristics
+
+# org.bluetooth.characteristic.gap.peripheral_privacy_flag
+# Don't let web pages turn off privacy mode.
+00002a02-0000-1000-8000-00805f9b34fb exclude-writes
+
+# org.bluetooth.characteristic.gap.reconnection_address
+# Disallow messing with connection parameters
+00002a03-0000-1000-8000-00805f9b34fb
+
+# org.bluetooth.characteristic.serial_number_string
+# Block access to standardized unique identifiers, for privacy reasons.
+00002a25-0000-1000-8000-00805f9b34fb
+
+# Blocklisted characteristic used to test readValue function.
+bad1c9a2-9a5b-4015-8b60-1579bbbf2135 exclude-reads
+
+
+## Descriptors
+
+# org.bluetooth.descriptor.gatt.client_characteristic_configuration
+# Writing to this would let a web page interfere with other pages'
+# notifications and indications.
+00002902-0000-1000-8000-00805f9b34fb exclude-writes
+
+# org.bluetooth.descriptor.gatt.server_characteristic_configuration
+# Writing to this would let a web page interfere with the broadcasted services.
+00002903-0000-1000-8000-00805f9b34fb exclude-writes
+
+# Blocklisted descriptor used to test.
+07711111-6104-0970-7011-1107105110aa
+
+# Blocklisted descriptor used to test.
+aaaaaaaa-aaaa-1181-0510-810819516110 exclude-reads

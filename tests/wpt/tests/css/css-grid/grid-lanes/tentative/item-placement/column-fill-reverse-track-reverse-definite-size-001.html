@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes: Column fill-reverse and track-reverse with definite size</title>
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3">
+  <link rel="match" href="column-fill-reverse-track-reverse-definite-size-001-ref.html">
+  <link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+  <style>
+    .grid-lanes {
+      display: grid-lanes;
+      flow-tolerance: 0;
+      grid-template-columns: repeat(3, 50px);
+      gap: 10px;
+      height: 200px;
+      width: min-content;
+      border: solid blue;
+      grid-lanes-direction: column fill-reverse track-reverse;
+    }
+  </style>
+</head>
+<body>
+  <p>Test that grid-lanes items with fill-reverse and track-reverse placement are correctly positioned
+     within a definite-size container.</p>
+  <div class="grid-lanes">
+    <div style="background: lavender; height: 20px;">1</div>
+    <div style="background: lightskyblue; height: 30px;">2</div>
+    <div style="background: lightgreen; height: 20px;">3</div>
+    <div style="background: lightpink; grid-column: span 2; height: 25px;">4</div>
+    <div style="background: lavender; height: 20px; margin-top: 10px;">5</div>
+    <div style="background: lightskyblue; height: 35px;">6</div>
+    <div style="background: lightgreen; height: 20px;">7</div>
+    <div style="background: lightpink; height: 40px;">8</div>
+    <div style="background: coral; height: 30px; margin-top: -10px;">9</div>
+    <div style="background: gold; height: 30px; margin-bottom: -10px;">10</div>
+    <div style="background: tomato; height: 15px; margin-top: -25px;">11</div>
+    <div style="background: orchid; height: 15px; margin-bottom: -110px;">12</div>
+  </div>
+</body>
+</html>

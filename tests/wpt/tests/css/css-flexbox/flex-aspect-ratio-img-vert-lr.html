@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#algo-main-item">
+<meta name="assert" content="Flex item should compute its main size from its definite cros size and aspect ratio.">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<style>
+.flexbox {
+  position: relative;
+  display: flex;
+  writing-mode: vertical-lr;
+  width: 100px;
+  align-items: start;
+}
+.flex-item{
+  width: 40px
+}
+.abspos {
+  width: 60px;
+  height: 100px; background-color: green;
+  position: absolute;
+  left: 40px;
+}
+</style>
+</head>
+</head>
+<body>
+  <p>Test passes if there is a filled green square.</p>
+  <div class="flexbox">
+    <img class="flex-item" src="support/20x50-green.png">
+    <div class="abspos"></div>
+  </div>
+</body>
+</html>

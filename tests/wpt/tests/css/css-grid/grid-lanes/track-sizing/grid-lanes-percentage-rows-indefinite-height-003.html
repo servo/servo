@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes Test: auto-repeat with percentage track needs an additional pass</title>
+  <link rel="author" title="Yanling Wang" href="mailto:yanlingwang@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3">
+  <link rel="match" href="grid-lanes-percentage-rows-indefinite-height-003-ref.html">
+  <link rel="stylesheet" href="/fonts/ahem.css">
+  <style>
+    .grid-lanes {
+        display: grid-lanes;
+        background: gray;
+        flow-tolerance: 0;
+        grid-template-rows: repeat(auto-fill, min-content max-content fit-content(100px) 20%);
+        width: 300px;
+        font: 15px/1 Ahem;
+    }
+
+    .grid-lanes > div {
+        width: 100px;
+    }
+  </style>
+</head>
+<body>
+  <div class="grid-lanes">
+      <div style="background: lightskyblue;">Number 1</div>
+      <div style="background: lightcoral;">Number 2</div>
+      <div style="background: lightgreen;">Number 3</div>
+      <div style="background: lightpink;">Number 4</div>
+      <div style="background: orange;">Number 5</div>
+      <div style="grid-row: span 2; background: brown; height: 200px;">Number 6</div>
+  </div>
+</body>
+</html>

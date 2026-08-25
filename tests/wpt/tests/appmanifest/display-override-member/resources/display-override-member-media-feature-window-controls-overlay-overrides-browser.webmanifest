@@ -1,0 +1,12 @@
+{
+    "name": "Window Controls Overlay - CSS environment variables",
+    "icons": [
+        {
+            "src": "icon.png",
+            "sizes": "192x192"
+        }
+    ],
+    "start_url": "../display-override-member-media-feature-window-controls-overlay-overrides-browser-manual.tentative.html",
+    "display": "browser",
+    "display_override": [ "window-controls-overlay" ]
+}

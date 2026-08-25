@@ -1,0 +1,19 @@
+<html>
+  <head>
+  </head>
+  <body>
+    <script>
+      var x = 0;
+      alert("Interval begin");
+      var intervalID = setInterval(function() {
+        if (x < 10) {
+          alert("interval " + x);
+          x += 1;
+        } else {
+          clearInterval(intervalID);
+          alert("Interval deleted");
+        }
+      }, 300);
+    </script>
+  </body>
+</html>

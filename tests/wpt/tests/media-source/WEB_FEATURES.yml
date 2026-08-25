@@ -1,0 +1,3 @@
+rules:
+- mediasource-avtracks.html: [audio-video-tracks]
+- "*": [media-source]

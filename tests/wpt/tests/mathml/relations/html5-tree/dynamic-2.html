@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>Dynamic id and style</title>
+<link rel="help" href="https://w3c.github.io/mathml-core/#dom-and-javascript"/>
+<link rel="match" href="dynamic-2-ref.html"/>
+<meta name="assert" content="Verify dynamic change of id and style attributes.">
+<style>
+  #fail, #fail2 { background: red; color: white; }
+  #pass { background: green; color: white; }
+</style>
+<script>
+  window.addEventListener("DOMContentLoaded", function() {
+    document.getElementById("fail2").setAttribute("id", "pass");
+    document.getElementById("fail").setAttribute("style", "display: none");
+  });
+</script>
+</head>
+<body>
+  <p>Test passes if you see the text "PASS".</p>
+  <math>
+    <mtext id="fail">FAIL</mtext>
+    <mtext id="fail2">PASS</mtext>
+  </math>
+</body>
+</html>

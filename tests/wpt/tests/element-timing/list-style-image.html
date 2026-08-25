@@ -1,0 +1,51 @@
+<!DOCTYPE HTML>
+<head>
+<meta charset=utf-8>
+<title>Element Timing: observe an li using an image list style</title>
+<style>
+body {
+  margin: 20px;
+}
+ul {
+  list-style-image: url('/images/green-100x50.png');
+  padding-inline-start: 0px;
+  margin: 0px;
+  list-style-type: none;
+  list-style-position: inside;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/element-timing-helpers.js"></script>
+<script>
+  async_test(function (t) {
+    let beforeRender;
+    let li;
+    assert_implements(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
+    const observer = new PerformanceObserver(
+      t.step_func_done(function(entryList) {
+        assert_equals(entryList.getEntries().length, 1);
+        const entry = entryList.getEntries()[0];
+        const pathname = window.location.origin + '/images/green-100x50.png';
+        checkElement(entry, pathname, 'my_li', 'li_with_image', beforeRender, li);
+        checkRect(entry, [20, 120, 20, 70]);
+        checkNaturalSize(entry, 100, 50);
+      })
+    );
+    observer.observe({entryTypes: ['element']});
+    // We add the elements during onload to be sure that the observer is
+    // registered in time for it to observe the element timing.
+    window.onload = () => {
+      const ul = document.createElement('ul');
+
+      li = document.createElement('li');
+      li.id = 'li_with_image'
+      li.setAttribute('elementtiming', 'my_li');
+      ul.appendChild(li);
+
+      document.body.appendChild(ul);
+      beforeRender = performance.now();
+    };
+  }, 'Element with an li using an image list style.');
+</script>
+</head>

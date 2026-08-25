@@ -1,0 +1,25 @@
+<!doctype html>
+<title>background-image with multiple layers using different views of the same image</title>
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/linking.html#LinksIntoSVG">
+<link rel="match" href="../../struct/reftests/reference/green-100x100.html">
+<style>
+  .one {
+    width: 100px;
+    height: 20px;
+    background-repeat: no-repeat;
+    background-image: url("support/green-random-rects.svg#xywh=200,0,100,20");
+  }
+  .two {
+    width: 100px;
+    height: 80px;
+    background-repeat: no-repeat;
+    background-image: url("support/green-random-rects.svg#xywh=pixel:0,0,100,80");
+    position: absolute;
+    left: 0;
+    top: 20px;
+  }
+</style>
+<div style="position: relative">
+  <div class="one"></div>
+  <div class="two"></div>
+</div>

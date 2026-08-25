@@ -1,0 +1,88 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <title>Scripts injected via `eval` are allowed with `trusted-types-eval` and `require-trusted-types-for 'script'`.</title>
+    <script src='/resources/testharness.js' nonce='dummy'></script>
+    <script src='/resources/testharnessreport.js' nonce='dummy'></script>
+
+    <!-- CSP served: script-src 'nonce-dummy' 'trusted-types-eval'; require-trusted-types-for 'script'; -->
+</head>
+
+<body>
+    <h1>Scripts injected via `eval` are allowed with `trusted-types-eval` and `require-trusted-types-for 'script'`.</h1>
+    <div id='log'></div>
+
+    <script nonce='dummy'>
+        trustedTypes.createPolicy('default', {createScript: s => s});
+
+        var evalScriptRan = false;
+        var indirectEvalScriptRan = false;
+        var functionScriptRan = false;
+        var setTimeoutScriptRan = false;
+
+        async_test(function(t) {
+            var eventHandler = t.unreached_func('No CSP violation report has fired.');
+            window.addEventListener('securitypolicyviolation', eventHandler);
+            t.add_cleanup(() => {
+                window.removeEventListener('securitypolicyviolation', eventHandler);
+            });
+            try {
+                eval("evalScriptRan = true;");
+            } catch (e) {
+                assert_unreached("`eval` should be allowed with `trusted-types-eval` and `require-trusted-types-for 'script'`.");
+            }
+            assert_true(evalScriptRan);
+            t.done();
+        }, "Script injected via direct `eval` is allowed with `trusted-types-eval` and `require-trusted-types-for 'script'`.");
+
+        async_test(function(t) {
+            var eventHandler = t.unreached_func('No CSP violation report has fired.');
+            window.addEventListener('securitypolicyviolation', eventHandler);
+            t.add_cleanup(() => {
+                window.removeEventListener('securitypolicyviolation', eventHandler);
+            });
+            try {
+                eval?.("indirectEvalScriptRan = true;");
+            } catch (e) {
+                assert_unreached("indirect `eval` should be allowed with `trusted-types-eval` and `require-trusted-types-for 'script'`.");
+            }
+            assert_true(indirectEvalScriptRan);
+            t.done();
+        }, "Script injected via indirect `eval` is allowed with `trusted-types-eval` and `require-trusted-types-for 'script'`.");
+
+        async_test(function(t) {
+            var eventHandler = t.unreached_func('No CSP violation report has fired.');
+            window.addEventListener('securitypolicyviolation', eventHandler);
+            t.add_cleanup(() => {
+                window.removeEventListener('securitypolicyviolation', eventHandler);
+            });
+            try {
+                new Function("functionScriptRan = true;")();
+            } catch (e) {
+                assert_unreached("`new Function` should be allowed with `trusted-types-eval` and `require-trusted-types-for 'script'`.");
+            }
+            assert_true(functionScriptRan);
+            t.done();
+        }, "Script injected via `new Function` is allowed with `trusted-types-eval` and `require-trusted-types-for 'script'`.");
+
+        async_test(function(t) {
+            var eventHandler = t.unreached_func('No CSP violation report has fired.');
+            window.addEventListener('securitypolicyviolation', eventHandler);
+            t.add_cleanup(() => {
+                window.removeEventListener('securitypolicyviolation', eventHandler);
+            });
+            try {
+                setTimeout("setTimeoutScriptRan = true;", 0);
+            } catch (e) {
+                assert_unreached("`setTimeout` should be allowed with `trusted-types-eval` and `require-trusted-types-for 'script'`.");
+            }
+            setTimeout(() => {
+                assert_true(setTimeoutScriptRan);
+                t.done();
+            }, 0);
+        }, "Script injected via `setTimeout` is allowed with `trusted-types-eval` and `require-trusted-types-for 'script'`.");
+    </script>
+</body>
+
+</html>

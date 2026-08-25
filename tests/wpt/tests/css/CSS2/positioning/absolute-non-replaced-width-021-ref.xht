@@ -1,0 +1,43 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="author" title="Daniel Schattenkirchner" href="mailto:crazy-daniel@gmx.de" />
+
+  <style type="text/css"><![CDATA[
+  div.green-45x120
+  {
+  background-color: green;
+  height: 45px;
+  margin-left: auto;
+  width: 120px;
+  }
+
+  div#black-stripe
+  {
+  background-color: black;
+  height: 30px;
+  margin-left: auto;
+  width: 240px;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Below, on the right edge of the page, there should be a green square. In the middle of such green square, a black horizontal stripe should be traversing it and protruding out of it toward the left. There should be no red in this page.</p>
+
+  <div class="green-45x120"></div>
+
+  <div id="black-stripe"></div>
+
+  <div class="green-45x120"></div>
+
+ </body>
+</html>

@@ -1,0 +1,16 @@
+<link rel=match href=class-namespaces-ref.html>
+<style>
+.foo { background: green; }
+</style>
+<body>
+<script>
+var p = document.body.appendChild(document.createElement("p"));
+p.setAttributeNS("foo", "class", "bar");
+p.setAttributeNS("", "class", "foo");
+p.textContent = "AAA";
+
+var p = document.body.appendChild(document.createElement("p"));
+p.setAttributeNS("", "class", "foo");
+p.setAttributeNS("foo", "class", "bar");
+p.textContent = "BBB";
+</script>

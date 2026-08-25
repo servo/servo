@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-sizes">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="This checks that replaced element transfers its size when resolving against a flex-item with stretch alignment.">
+<p>Test passes if there is a filled green square.</p>
+<div style="display: inline-flex; height: 100px; background: green;">
+  <img src="support/60x60-green.png" style="align-self: stretch; opacity: 0" />
+</div>

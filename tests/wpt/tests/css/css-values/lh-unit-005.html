@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Values and Units Test: lh unit based on inherited line-height</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#font-relative-lengths">
+<link rel="help" href="https://crbug.com/1487480">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #lh50, #lh100 {
+    height: 1lh;
+  }
+</style>
+<div style="line-height: 50px">
+  <div id="lh50"></div>
+</div>
+<div style="line-height: 100px">
+  <div id="lh100"></div>
+</div>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(lh50).height, "50px");
+    assert_equals(getComputedStyle(lh100).height, "100px");
+  }, "lh relative to line-height inherited from parent");
+</script>

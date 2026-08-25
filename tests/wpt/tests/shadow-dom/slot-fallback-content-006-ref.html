@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8" >
+<meta name="author" title="Di Zhang" href="mailto:dizhangg@chromium.org">
+<meta name="assert" content="Imperatively assigned node overwrites fallback contents, when dynamically created.">
+<title>Shadow DOM: Slots and fallback contents</title>
+
+<p>Test passes if there are two lines of text "B", "A" below.</p>
+
+<div>
+  <div>B</div>
+  <div>A</div>
+</div>
+
+<p>Test passes if there are two lines of text "D", "C" below.</p>
+
+<div>
+  <div>D</div>
+  <div>C</div>
+</div>
+
+<p>Test passes if there are two lines of text "F", "E" below.</p>
+
+<div>
+  <div>F</div>
+  <div>E</div>
+</div>
+
+<p>Test passes if there is one line of text "SLOT4" below.</p>
+
+<div>
+  <div>SLOT4</div>
+</div>
+
+<p>Test passes if there is one line of text "SLOT5" below.</p>
+
+<div>
+  <div>SLOT5</div>
+</div>

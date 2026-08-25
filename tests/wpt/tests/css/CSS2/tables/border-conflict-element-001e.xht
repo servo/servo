@@ -1,0 +1,112 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: Border conflict resolution - adjacent cells with same border-style and border-width</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#border-conflict-resolution" title="17.6.2.1 Border conflict resolution" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-color-properties" title="8.5.2 Border color" />
+  <link rel="match" href="border-conflict-element-001e-ref.xht" />
+
+
+  <meta content="image" name="flags" />
+  <meta content="If a table cell's border color is not specified with a border property, then user agents must use the value of the element's 'color' property as the computed value for the border color. When two adjacent cells have the same border-width and the same border-style in a 'border-collapse: collapse' table, then the color of the border from the leftmost cell wins (if the table's 'direction' is 'ltr'; right, if it is 'rtl')." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  table#test
+  {
+  border: red solid 1em;
+  }
+
+  table
+  {
+  border-collapse: collapse;
+  font: 1.25em/1 serif;
+  margin: auto auto 2em 2em;
+  }
+
+  table#test td
+  {
+  border: solid 1em;
+  padding: 0.5em;
+  }
+
+  td.blue {color: blue;}
+
+  td.yellow {color: yellow;}
+
+  td.orange {color: orange;}
+
+  table#reference td {padding: 0em;}
+
+  img
+  {
+  height: 1em;
+  vertical-align: bottom;
+  /*
+  With 'vertical-align: bottom', swatch-[color] images "sit"
+  at the bottom of the cell's line box and not on its baseline
+  */
+  width: 1em;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if both grids are <strong>perfectly identical</strong>.</p>
+
+  <table id="test">
+    <tr>
+     <td class="blue"></td> <td class="yellow"></td> <td class="yellow"></td> <td class="orange"></td>
+    </tr>
+
+    <tr>
+     <td class="blue"></td> <td class="yellow"></td> <td class="yellow"></td> <td class="orange"></td>
+    </tr>
+
+    <tr>
+     <td class="blue"></td> <td class="yellow"></td> <td class="yellow"></td> <td class="orange"></td>
+    </tr>
+
+  </table>
+
+
+  <table id="reference">
+
+    <tr>
+      <td><img src="support/swatch-blue.png" alt="Image download support must be enabled" /><img src="support/swatch-blue.png" alt="Image download support must be enabled" /><img src="support/swatch-blue.png" alt="Image download support must be enabled" /><img src="support/swatch-yellow.png" alt="Image download support must be enabled" /><img src="support/swatch-yellow.png" alt="Image download support must be enabled" /><img src="support/swatch-yellow.png" alt="Image download support must be enabled" /><img src="support/swatch-yellow.png" alt="Image download support must be enabled" /><img src="support/swatch-orange.png" alt="Image download support must be enabled" /><img src="support/swatch-orange.png" alt="Image download support must be enabled" /></td>
+    </tr>
+
+    <tr>
+      <td><img src="support/swatch-blue.png" alt="Image download support must be enabled" /><img src="support/swatch-white.png" alt="Image download support must be enabled" /><img src="support/swatch-blue.png" alt="Image download support must be enabled" /><img src="support/swatch-white.png" alt="Image download support must be enabled" /><img src="support/swatch-yellow.png" alt="Image download support must be enabled" /><img src="support/swatch-white.png" alt="Image download support must be enabled" /><img src="support/swatch-yellow.png" alt="Image download support must be enabled" /><img src="support/swatch-white.png" alt="Image download support must be enabled" /><img src="support/swatch-orange.png" alt="Image download support must be enabled" /></td>
+    </tr>
+
+    <tr>
+      <td><img src="support/swatch-blue.png" alt="Image download support must be enabled" /><img src="support/swatch-blue.png" alt="Image download support must be enabled" /><img src="support/swatch-blue.png" alt="Image download support must be enabled" /><img src="support/swatch-yellow.png" alt="Image download support must be enabled" /><img src="support/swatch-yellow.png" alt="Image download support must be enabled" /><img src="support/swatch-yellow.png" alt="Image download support must be enabled" /><img src="support/swatch-yellow.png" alt="Image download support must be enabled" /><img src="support/swatch-orange.png" alt="Image download support must be enabled" /><img src="support/swatch-orange.png" alt="Image download support must be enabled" /></td>
+    </tr>
+
+    <tr>
+      <td><img src="support/swatch-blue.png" alt="Image download support must be enabled" /><img src="support/swatch-white.png" alt="Image download support must be enabled" /><img src="support/swatch-blue.png" alt="Image download support must be enabled" /><img src="support/swatch-white.png" alt="Image download support must be enabled" /><img src="support/swatch-yellow.png" alt="Image download support must be enabled" /><img src="support/swatch-white.png" alt="Image download support must be enabled" /><img src="support/swatch-yellow.png" alt="Image download support must be enabled" /><img src="support/swatch-white.png" alt="Image download support must be enabled" /><img src="support/swatch-orange.png" alt="Image download support must be enabled" /></td>
+    </tr>
+
+    <tr>
+      <td><img src="support/swatch-blue.png" alt="Image download support must be enabled" /><img src="support/swatch-blue.png" alt="Image download support must be enabled" /><img src="support/swatch-blue.png" alt="Image download support must be enabled" /><img src="support/swatch-yellow.png" alt="Image download support must be enabled" /><img src="support/swatch-yellow.png" alt="Image download support must be enabled" /><img src="support/swatch-yellow.png" alt="Image download support must be enabled" /><img src="support/swatch-yellow.png" alt="Image download support must be enabled" /><img src="support/swatch-orange.png" alt="Image download support must be enabled" /><img src="support/swatch-orange.png" alt="Image download support must be enabled" /></td>
+    </tr>
+
+    <tr>
+      <td><img src="support/swatch-blue.png" alt="Image download support must be enabled" /><img src="support/swatch-white.png" alt="Image download support must be enabled" /><img src="support/swatch-blue.png" alt="Image download support must be enabled" /><img src="support/swatch-white.png" alt="Image download support must be enabled" /><img src="support/swatch-yellow.png" alt="Image download support must be enabled" /><img src="support/swatch-white.png" alt="Image download support must be enabled" /><img src="support/swatch-yellow.png" alt="Image download support must be enabled" /><img src="support/swatch-white.png" alt="Image download support must be enabled" /><img src="support/swatch-orange.png" alt="Image download support must be enabled" /></td>
+    </tr>
+
+    <tr>
+      <td><img src="support/swatch-blue.png" alt="Image download support must be enabled" /><img src="support/swatch-blue.png" alt="Image download support must be enabled" /><img src="support/swatch-blue.png" alt="Image download support must be enabled" /><img src="support/swatch-yellow.png" alt="Image download support must be enabled" /><img src="support/swatch-yellow.png" alt="Image download support must be enabled" /><img src="support/swatch-yellow.png" alt="Image download support must be enabled" /><img src="support/swatch-yellow.png" alt="Image download support must be enabled" /><img src="support/swatch-orange.png" alt="Image download support must be enabled" /><img src="support/swatch-orange.png" alt="Image download support must be enabled" /></td>
+    </tr>
+
+  </table>
+
+ </body>
+</html>

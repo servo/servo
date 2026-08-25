@@ -1,0 +1,25 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>border-bottom-right-radius using two percentages</title>
+    <link rel="match" href="border-bottom-right-radius-005-ref.xht" />
+    <link rel="help" href="https://drafts.csswg.org/css-backgrounds/#border-radius" />
+    <meta name="fuzzy" content="maxDifference=0-36; totalPixels=0-131" />
+    <style type="text/css">
+      div
+      {
+          width: 200px;
+          height: 100px;
+
+          background: orange;
+          border: 20px solid teal;
+          border-bottom-right-radius: 20% 10%;
+      }
+    </style>
+  </head>
+  <body>
+    <p>The box should have a border-bottom-right-radius of 48px 14px. The
+        horizontal radius should therefore be clearly larger than the
+        vertical radius.</p>
+    <div></div>
+  </body>
+</html>

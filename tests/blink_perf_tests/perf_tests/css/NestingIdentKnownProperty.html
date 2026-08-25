@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<script src="../resources/runner.js"></script>
+<script src="./resources/utils.js"></script>
+<script>
+const RULES = 200;
+const DECLARATIONS_PER_RULE = 10;
+
+// This test is the same as NestingIdentNonProperty.html, except that the
+// first ident is a known CSS property, instead of 'not-a-property'.
+function makeStyle() {
+  let rules = [];
+
+  for (let i = 0; i < RULES; i++) {
+    rules.push(`
+      width:is(.a${i}) {
+        ${[...Array(DECLARATIONS_PER_RULE).keys()]
+          .map(x => `--x${x}:a b c d e f g;`).join('\n')}
+      }
+    `);
+  }
+
+  return `
+    div {
+      ${rules.join('\n')}
+    }
+  `
+}
+
+let globalCounter = 0;
+const stylesheetText = makeStyle();
+let stylesheet = new CSSStyleSheet();
+
+PerfTestRunner.measureTime({
+    description: 'Many nested rules that look like width declarations',
+    run: () => {
+      // This is a parsing test: we don't care about style recalc.
+      // We append a rule based on globalCounter to prevent caching
+      // on the stylesheet string.
+      stylesheet.replaceSync(stylesheetText + `\n .b${globalCounter++} {}`);
+    }
+});
+
+</script>
+

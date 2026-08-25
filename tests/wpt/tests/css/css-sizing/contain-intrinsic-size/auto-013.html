@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Last remembered size</title>
+<link rel="author" title="Jihye Hong" href="mailto:jihye@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#last-remembered">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override">
+<link rel="help" href="https://drafts.csswg.org/css-contain-2/#content-visibility">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/8407">
+<meta name="assert" content="Tests that content-visibility: auto forces contain-intrinsic-size to gain an auto value." />
+
+<style>
+  #t1 {
+    position: absolute;
+    left: 0vmax;
+    content-visibility: auto;
+    contain-intrinsic-size: 1000vmax 1000vmax;
+    background: red;
+  }
+  #t1::before {
+    content: "";
+    display: block;
+    width: 10px;
+    height: 10px;
+  }
+</style>
+<div id="t1"></div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+function nextRendering() {
+  return new Promise(resolve => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+  });
+}
+
+promise_test(async () => {
+  // Size normally.
+  await nextRendering();
+
+  assert_equals(t1.clientWidth, 10, "Sizing normally: clientWidth");
+  assert_equals(t1.clientHeight, 10, "Sizing normally: clientHeight");
+
+  await nextRendering();
+
+  // Move off-screen the target. Same size as in previous step!
+  t1.style.left = "-200vmax";
+
+  assert_true(window.getComputedStyle(t1).containIntrinsicSize.includes("auto"), "containIntrinsicSize should be adjusted to auto");
+
+  await nextRendering();
+
+  assert_equals(t1.clientWidth, 10, "Sizing with new last remembered size: clientWidth");
+  assert_equals(t1.clientHeight, 10, "Sizing with new last remembered size: clientHeight");
+}, 'content-visibility: auto forces contain-intrinsic-size to gain an auto value');
+
+</script>

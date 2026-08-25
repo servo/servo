@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+
+addEventListener("DOMContentLoaded", () => {
+  const editingHost = document.querySelector("div[contenteditable]");
+  editingHost.focus();
+  test(() => {
+    // Move selection outside the editing host.
+    const nonEditableTextInSpan = document.querySelector("div").querySelector("span").firstChild;
+    getSelection().collapse(
+      nonEditableTextInSpan,
+      "non-editable".length
+    );
+    assert_equals(
+      getSelection().focusNode,
+      nonEditableTextInSpan,
+      "Collapsing selection outside the focused editing host should work"
+    );
+    test(() => {
+      assert_equals(document.activeElement, editingHost);
+    }, "Collapsing selection outside the focused editing host shouldn't cause the blur");
+    test(() => {
+      getSelection().modify("extend", "right", "character");
+      assert_true(getSelection().isCollapsed);
+      assert_equals(
+        getSelection().focusNode,
+        nonEditableTextInSpan
+      );
+      assert_equals(
+        getSelection().focusOffset,
+        "non-editable".length
+      );
+    }, "Modifying selection should do nothing");
+  });
+
+}, {once: true});
+</script>
+</head>
+<body>
+<div><span>non-editable</span> text</div>
+<div contenteditable>editable text</div>
+</body>
+</html>

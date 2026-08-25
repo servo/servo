@@ -1,0 +1,95 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Value and pair iterable bindings</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  function collect(iter) {
+    var collection = [];
+    for (element of iter) {
+      collection.push(element);
+    }
+    return collection;
+  }
+
+  test(function() {
+    var t = new TestBindingIterable();
+    var empty = true;
+    t.forEach(function() { empty = false; });
+    assert_true(empty);
+  }, "Empty value iterator");
+
+  test(function() {
+    var t = new TestBindingIterable();
+    function is_iterator(o) {
+      return o[Symbol.iterator]() === o;
+    }
+    assert_true(is_iterator(t.keys()));
+    assert_true(is_iterator(t.values()));
+    assert_true(is_iterator(t.entries()));
+  }, "Iterable iterators are iterators");
+
+  test(function() {
+    var t = new TestBindingIterable();
+    t.add("first");
+    t.add("second");
+    t.add("third");
+    assert_array_equals(collect(t.keys()), [0, 1, 2]);
+    assert_array_equals(collect(t.values()), ["first", "second", "third"]);
+    var expected = [[0, "first"], [1, "second"], [2, "third"]];
+    var i = 0;
+    for (entry of t.entries()) {
+      assert_array_equals(entry, expected[i++]);
+    }
+
+    t.add("fourth");
+    assert_array_equals(collect(t.keys()), [0, 1, 2, 3]);
+    assert_array_equals(collect(t.values()), ["first", "second", "third", "fourth"]);
+    var expected = [[0, "first"], [1, "second"], [2, "third"], [3, "fourth"]];
+    var i = 0;
+    for (entry of t.entries()) {
+      assert_array_equals(entry, expected[i++]);
+    }
+  }, "Iterators iterate over values");
+
+  test(function() {
+    var t = new TestBindingPairIterable();
+    var empty = true;
+    t.forEach(function() { empty = false; });
+    assert_true(empty);
+  }, "Empty pair iterator");
+
+  test(function() {
+    var t = new TestBindingPairIterable();
+    function is_iterator(o) {
+      return o[Symbol.iterator]() === o;
+    }
+    assert_true(is_iterator(t.keys()));
+    assert_true(is_iterator(t.values()));
+    assert_true(is_iterator(t.entries()));
+  }, "Pair iterable iterators are iterators");
+
+  test(function() {
+    var t = new TestBindingPairIterable();
+    t.add("first", 0);
+    t.add("second", 1);
+    t.add("third", 2);
+    assert_array_equals(collect(t.keys()), ["first", "second", "third"]);
+    assert_array_equals(collect(t.values()), [0, 1, 2]);
+    var expected = [["first", 0], ["second", 1], ["third", 2]];
+    var i = 0;
+    for (entry of t.entries()) {
+      assert_array_equals(entry, expected[i++]);
+    }
+
+    t.add("fourth", 3);
+    assert_array_equals(collect(t.keys()), ["first", "second", "third", "fourth"]);
+    assert_array_equals(collect(t.values()), [0, 1, 2, 3]);
+    var expected = [["first", 0], ["second", 1], ["third", 2], ["fourth", 3]];
+    var i = 0;
+    for (entry of t.entries()) {
+      assert_array_equals(entry, expected[i++]);
+    }
+  }, "Pair iterators iterate over key/value pairs");
+
+</script>

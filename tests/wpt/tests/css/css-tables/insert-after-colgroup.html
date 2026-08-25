@@ -1,0 +1,21 @@
+<!doctype html>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2021043">
+<link rel="help" href="https://drafts.csswg.org/css-tables/#content-model">
+<link rel="match" href="insert-after-colgroup-ref.html">
+<title>Insertion of a tbody after a colgroup</title>
+<table border="1" id="target">
+  <colgroup>
+    <col>
+  </colgroup>
+  <tbody>
+    <tr><td>B</td></tr>
+    <tr><td>C</td></tr>
+    <tr><td>D</td></tr>
+  </tbody>
+</table>
+<script>
+target.getBoundingClientRect();
+let tbody = document.createElement("tbody");
+tbody.innerHTML = `<tr><td>A</td></tr>`;
+target.insertBefore(tbody, document.querySelector("tbody"));
+</script>

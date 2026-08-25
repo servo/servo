@@ -1,0 +1,26 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Ensure that the window.scrollBy function affects scroll position as expected</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+    <a id="link" href="http://mozilla.org">This is some link text.</a>
+    <div style="width: 10000px; height: 10000px; background: pink; z-index: -1;"></div>
+    <script>
+    test(function() {
+        scrollBy(0, 5000);
+        assert_equals(scrollX, 0);
+        assert_equals(pageXOffset, 0);
+        assert_equals(scrollY, 5000);
+        assert_equals(pageYOffset, 5000);
+
+        scrollTo(0, 0);
+
+        var link = document.getElementById("link");
+        var linkRect = link.getBoundingClientRect();
+        assert_equals(link, document.elementFromPoint(linkRect.left, linkRect.top));
+        window.scrollBy(0, 1);
+        assert_equals(link, document.elementFromPoint(linkRect.left, linkRect.top - 1));
+    });
+    </script>
+</body>

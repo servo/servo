@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#random">
+<link rel="author" title="sam@webkit.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/parsing-testcommon.js"></script>
+<script>
+
+test_invalid_value('width', 'random()');
+test_invalid_value('width', 'random( )');
+test_invalid_value('width', 'random(,)');
+test_invalid_value('width', 'random(1px, )');
+test_invalid_value('width', 'random(,1px)');
+test_invalid_value('width', 'random(1px)');
+test_invalid_value('width', 'random(1px,2px,)');
+test_invalid_value('width', 'random(1px,2px,1px,)');
+test_invalid_value('width', 'random(1px,2px,1px foo)');
+test_invalid_value('width', 'random(foo, 1px, 2px)');
+test_invalid_value('width', 'random("foo", 1px, 2px)');
+test_invalid_value('width', 'random("--foo", 1px, 2px)');
+test_invalid_value('width', 'random(element-shared foo, 1px, 2px)');
+test_invalid_value('width', 'random(element-shared 1px, 2px)');
+test_invalid_value('width', 'random(1px, 2px, 1px, element-shared)');
+test_invalid_value('width', 'random(--foo --bar, 1px, 2px)');
+test_invalid_value('width', 'random(fixed 0.5 element-shared, 1px, 2px)');
+test_invalid_value('width', 'random(fixed 0.5 auto, 1px, 2px)');
+test_invalid_value('width', 'random(fixed 0.5 --foo, 1px, 2px)');
+test_invalid_value('width', 'random(fixed 0.5px, 1px, 2px)');
+test_invalid_value('width', 'random(fixed 0.5%, 1px, 2px)');
+test_invalid_value('width', 'random(fixed -1, 1px, 2px)');
+test_invalid_value('width', 'random(10deg, 20deg)');
+test_invalid_value('width', 'random(element-scoped --foo --bar, 1px, 2px)');
+test_invalid_value('width', 'random(element-scoped uawidth, 1px, 2px)');
+test_invalid_value('width', 'random(foo element-scoped, 1px, 2px)');
+test_invalid_value('width', 'random(element-scoped 1px, 2px)');
+test_invalid_value('width', 'random(--foo element-scoped element-scoped, 1px, 2px)');
+test_invalid_value('width', 'random(property-scoped --foo ua-width, 1px, 2px)');
+test_invalid_value('width', 'random(property-scoped ua-width-1, 1px, 2px)');
+test_invalid_value('width', 'random(--foo element-scoped property-scoped element-scoped, 1px, 2px)');
+test_invalid_value('width', 'random(foo property-scoped, 1px, 2px)');
+test_invalid_value('width', 'random(property-scoped 1px, 2px)');
+test_invalid_value('width', 'random(property-scoped property-index-scoped, 1px, 2px)');
+test_invalid_value('width', 'random(property-index-scoped --foo property-scoped, 1px, 2px)');
+test_invalid_value('width', 'random(property-index-scoped ua-width-1, 1px, 2px)');
+test_invalid_value('width', 'random(foo property-index-scoped, 1px, 2px)');
+test_invalid_value('width', 'random(property-index-scoped 1px, 2px)');
+test_invalid_value('width', 'random(property-index-scoped property-scoped, 1px, 2px)');
+
+</script>

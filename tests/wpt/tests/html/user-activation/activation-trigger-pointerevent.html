@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#activation-triggering-input-event">
+  <meta name="variant" content="?mouse">
+  <meta name="variant" content="?pen">
+  <meta name="variant" content="?touch">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="resources/utils.js"></script>
+</head>
+<body onload="runTests()">
+  <h1>Test for pointerevent click activation trigger</h1>
+  <p>Tests user activation from a pointer click.</p>
+  <ol id="instructions">
+    <li>Click anywhere in the document.
+  </ol>
+  <script>
+  function runTests() {
+    let pointer_type = location.search.substring(1);
+
+    promise_test(async () => {
+        const test_pointer = pointer_type + "TestPointer";
+
+        let pointerdown_event = getEvent('pointerdown');
+        let pointerup_event = getEvent('pointerup');
+        let click_event = getEvent('click');
+
+        await new test_driver.Actions().addPointer(test_pointer, pointer_type)
+            .pointerMove(0, 0, {origin:document.body, sourceName:test_pointer})
+            .pointerDown({sourceName:test_pointer})
+            .pointerUp({sourceName:test_pointer})
+            .send();
+
+        await pointerdown_event;
+        let consumed_pointerdown = await consumeTransientActivation();
+        await pointerup_event;
+        let consumed_pointerup = await consumeTransientActivation();
+        await click_event;
+        let consumed_click = await consumeTransientActivation();
+
+        if (pointer_type === "mouse") {
+            assert_true(consumed_pointerdown,
+                        pointer_type + " pointerdown event should result in activation");
+            assert_false(consumed_pointerup,
+                         pointer_type + " pointerup should have no activation after pointerdown consumption");
+            assert_false(consumed_click,
+                         pointer_type + " click should have no activation after pointerdown consumption");
+        } else {
+            assert_false(consumed_pointerdown,
+                        pointer_type + " pointerdown event should not result in activation");
+            assert_true(consumed_pointerup,
+                        pointer_type + " pointerup event should result in activation");
+            assert_false(consumed_click,
+                         pointer_type + " click should have no activation after pointerup consumption");
+        }
+    }, "Activation through " + pointer_type + " pointerevent click");
+  }
+  </script>
+</body>
+</html>

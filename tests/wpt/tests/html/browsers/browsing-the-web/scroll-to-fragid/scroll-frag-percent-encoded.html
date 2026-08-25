@@ -1,0 +1,62 @@
+<!doctype html>
+<title>Fragment Navigation: fragment id should be percent-decoded</title>
+<meta name=timeout content=long>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div></div>
+<div id="has two spaces" style="position:absolute; top:100px;"></div>
+<div id="escape%20collision" style="position:absolute; top:200px;"></div>
+<div id="%20has%20two%20spaces" style="position:absolute; top:300px;"></div>
+<div id="escape collision" style="position:absolute; top:400px;"></div>
+<div id="do%20not%20go%20here" style="position:absolute; top:400px;"></div>
+<div style="height:200em;"></div>
+<script>
+var steps = [{
+    fragid:'has%20two%20spaces',
+      handler: function(){
+        assert_equals( document.scrollingElement.scrollTop, 100 );
+      }
+    },{
+      fragid:'escape%20collision',
+      handler: function(){
+        assert_equals( document.scrollingElement.scrollTop, 200 );
+        document.getElementById("%20has%20two%20spaces").setAttribute("id", "has%20two%20spaces");
+      }
+    },{
+      fragid:'has%20two%20spaces',
+      handler: function(){
+        assert_equals( document.scrollingElement.scrollTop, 300 );
+      }
+    },{
+      fragid:'do%20not%20go%20here',
+      handler: function(){
+        // don't move
+        assert_equals( document.scrollingElement.scrollTop, 400 );
+      }
+    }];
+
+function runNextStep(){
+    if( steps.length > 0 ) {
+      var step = steps.shift();
+      var listener = t.step_func( function(){
+        step.handler();
+        runNextStep();
+      });
+      scrollToFragmentThenDo( step.fragid, listener );
+    } else {
+      t.done();
+    }
+}
+
+function scrollToFragmentThenDo( fragid, then ){
+  location.hash = fragid;
+  setTimeout( then, 1 );
+}
+
+var t = async_test();
+t.step( function(){
+  assert_equals(location.hash, "", "Page must be loaded with no hash");
+  runNextStep();
+})
+</script>

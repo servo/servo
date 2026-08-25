@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<script>
+async function run() {
+  await document.modelContext.registerTool({
+    name: "test_tool",
+    description: "Test tool",
+    execute: async () => {
+      parent.postMessage({action: "tool_started"}, "*");
+      await new Promise(() => {}); // Hangs forever
+    }
+  });
+  const tools = await document.modelContext.getTools();
+  const tool = tools.find(t => t.name === "test_tool");
+  document.modelContext.executeTool(tool, "{}");
+}
+run();
+</script>

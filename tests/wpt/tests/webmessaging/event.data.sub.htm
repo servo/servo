@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title> event.data returns the data of the message </title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id=log></div>
+
+<script>
+
+
+    var description = "Test Description: event.data returns the data of the message.";
+
+    var t = async_test(description);
+
+    var PORT = location.port !== "" ? ":" + location.port : "";
+    var DATA = "STRING";
+    var TYPE = "string";
+    var XORIGIN = "{{location[scheme]}}://{{domains[www]}}" + PORT;
+    var SORIGIN = "{{location[scheme]}}://{{host}}" + PORT;
+    var ExpectedResult = [DATA, TYPE, DATA, TYPE];
+    var ActualResult = [];
+
+    window.onmessage = t.step_func(function(e)
+    {
+        if (e.data.toString() === "STRING") {
+           ActualResult.push(e.data, typeof(e.data));
+
+           if (ActualResult.length >= ExpectedResult.length) {
+               assert_array_equals(ActualResult, ExpectedResult, "ActualResult");
+                t.done();
+           }
+        }
+    });
+</script>
+
+<div style="display:none">
+    <iframe width="70%" onload="this.contentWindow.postMessage(DATA, XORIGIN)" src="{{location[scheme]}}://{{domains[www]}}:{{location[port]}}/webmessaging/support/ChildWindowPostMessage.htm"></iframe>
+    <iframe width="70%" onload="this.contentWindow.postMessage(DATA, SORIGIN)" src="./support/ChildWindowPostMessage.htm"></iframe>
+</div>
+</body>
+</html>

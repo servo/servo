@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<title>Node.moveBefore should preserve CSS transition state on pseudo-elements (left)</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+  <section id="old-parent">
+    <div id="item"></div>
+  </section>
+  <section id="new-parent">
+  </section>
+  <style>
+    #item {
+      width: 100px;
+      height: 100px;
+      background: green;
+      position: absolute;
+      left: 0;
+    }
+
+    #item::before {
+      content: "Foo";
+      width: 100px;
+      height: 100px;
+      background: green;
+      transition: left 60s steps(1, jump-both);
+      left: 0px;
+      position: absolute;
+    }
+
+    #item.big::before {
+      left: 400px;
+    }
+
+    section {
+      position: relative;
+    }
+
+    body {
+      margin-left: 0;
+    }
+  </style>
+  <script>
+    promise_test(async t => {
+      const item = document.querySelector("#item");
+      assert_equals(item.getBoundingClientRect().x, 0);
+      item.classList.add("big");
+      await new Promise(resolve => item.addEventListener("transitionstart", resolve));
+      document.querySelector("#new-parent").moveBefore(item, null);
+      await new Promise(resolve => requestAnimationFrame(() => resolve()));
+      assert_equals(getComputedStyle(item, "::before").left, "200px");
+    });
+  </script>
+</body>

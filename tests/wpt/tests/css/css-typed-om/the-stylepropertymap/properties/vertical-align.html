@@ -1,0 +1,23 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>'vertical-align' property</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#dom-stylepropertymap-get">
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#dom-stylepropertymap-set">
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#property-stle-value-normalization">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../resources/testhelper.js"></script>
+<script src="resources/testsuite.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+runUnsupportedPropertyTests('vertical-align', [
+  'baseline', 'sub', 'super', 'text-top', 'text-bottom', 'middle', 'top',
+  'bottom',
+  '0px', '-3.14em', '3.14cm', 'calc(0px + 0em)',
+  '0%', '-3.14%', '3.14%', 'calc(0% + 0%)',
+]);
+
+</script>

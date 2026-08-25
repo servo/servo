@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<link rel="help" href="crbug.com/394980089">
+<style>
+  #scroller {
+    overflow: scroll;
+    scroll-marker-group: after;
+  }
+  #scroller div::scroll-marker {
+    content: counter(test);
+  }
+</style>
+<select>
+  <div id="scroller">
+    <div></div>
+  </div>
+</select>

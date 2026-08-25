@@ -1,0 +1,41 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  table
+  {
+  border-spacing: 0px;
+  table-layout: fixed;
+  width: 100%;
+  }
+
+  td
+  {
+  padding: 0px;
+  vertical-align: top;
+  width: 50%;
+  }
+
+  div {background-color: green;}
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <table>
+    <tr>
+      <td>There should be a green bar to the right: &#x21E8;</td>
+      <td><div>&nbsp;</div></td>
+    </tr>
+  </table>
+
+ </body>
+</html>

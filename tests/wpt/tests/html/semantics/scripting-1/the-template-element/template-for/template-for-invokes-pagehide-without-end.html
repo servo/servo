@@ -1,0 +1,36 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>HTML partial updates - patch can invoke pagehide</title>
+<link rel="help" href="https://github.com/WICG/declarative-partial-updates" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <div id="container">
+    <?start name="around-iframe"?>
+    <div id="before-iframe"></div>
+    <iframe id="iframe"></iframe>
+    <div id="after-iframe-1"></div>
+    <div id="after-iframe-2"></div>
+  </div>
+  <script>
+    const iframe = document.querySelector("iframe");
+    const after_iframe = iframe.nextElementSibling;
+    const newly_inserted = document.createElement("div");
+    newly_inserted.id = "inserted-in-pagehide";
+    iframe.contentWindow.addEventListener("pagehide", () => {
+      after_iframe.before(newly_inserted);
+      document.querySelector("#after-iframe-2").remove();
+    });
+  </script>
+  <template for="around-iframe">
+    <div id="patched"></div>
+  </template>
+  <script>
+    test(() => {
+      const first = document.querySelector("#container").firstElementChild;
+      assert_equals(first.id, "inserted-in-pagehide");
+      assert_equals(first.nextElementSibling.id, "patched");
+      assert_equals(first.nextElementSibling.nextElementSibling, null);
+    }, "Patching only removes elements that were present when patching is prepared");
+  </script>
+</body>

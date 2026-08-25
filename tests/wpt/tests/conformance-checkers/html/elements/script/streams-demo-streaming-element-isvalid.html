@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Streaming element demo</title>
+
+<script src="transforms/transform-stream-polyfill.js"></script>
+<script src="transforms/text-encode-transform.js"></script>
+<script src="tags/streaming-element.js"></script>
+<script src="resources/highlight.pack.js"></script>
+<script src="resources/web-animations.min.js"></script>
+<script src="tags/view-source.js"></script>
+
+<link rel=stylesheet href="resources/common.css">
+<link rel=stylesheet href="resources/jank-meter.css">
+<link rel=stylesheet href="resources/commits.css">
+
+<h1>Streaming element demo</h1>
+<a id=back-to-index href=index.html>Back to demo index</a>
+<view-source></view-source>
+
+<div id=buttons>
+  <button id="load">Load HTML stream</button>
+  <button id="reset">Reset</button>
+</div>
+
+<div id=jank-meter>JANK METER</div>
+
+<streaming-element id=target></streaming-element>
+
+<script>
+'use strict';
+const loadButton = document.querySelector('#load');
+const resetButton = document.querySelector('#reset');
+const targetDiv = document.querySelector('#target');
+
+// BEGIN SOURCE TO VIEW
+async function streamDirectlyIntoDOM() {
+  const response = await fetch('data/commits.include',
+                               {
+                                 mode: 'same-origin',
+                                 headers: {
+                                   'Cache-Control': 'no-cache, no-store'
+                                 }
+                               });
+
+  await response.body
+      .pipeThrough(new TextDecoder())
+      .pipeTo(targetDiv.writable);
+}
+
+loadButton.onclick = () => {
+  loadButton.disabled = true;
+  streamDirectlyIntoDOM();
+};
+// END SOURCE TO VIEW
+
+resetButton.onclick = () => {
+  targetDiv.reset();
+  loadButton.disabled = false;
+};
+</script>

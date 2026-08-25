@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>hebrew, outside range</title>
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<link rel='help' href='http://www.w3.org/TR/css-counter-styles-3/#simple-numeric'>
+<link rel='help' href='https://bugzilla.mozilla.org/show_bug.cgi?id=1738356'>
+<style>
+ol li { list-style-type: hebrew;  }
+/* the following CSS is not part of the test */
+.test { font-size: 25px; }
+ol { margin: 0; padding-left: 8em; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the two columns are the same, IGNORING the suffix.</p>
+<div class="test">
+<ol start="10999">
+<div><bdi dir=ltr>י׳תתקצט. </bdi>י׳תתקצט</div>
+<div><bdi dir=ltr>יא׳. </bdi>11000</div>
+<div><bdi dir=ltr>יא׳א. </bdi>11001</div>
+</ol>
+</div>
+<!--Notes:
+You will need an appropriate font to run this test.
+To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
+-->
+</body>
+</html>

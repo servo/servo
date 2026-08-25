@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>CSS Backgrounds and Borders Test: background-clip Reference</title>
+<link rel="author" title="James Wang" href="mailto:wangjian@ucweb.com">
+<link rel="help" href="https://www.w3.org/TR/css-backgrounds-3/#the-background-clip">
+<link rel="match" href="reference/background-clip-content-box-ref.html">
+<style>
+#test-color-blue {
+  background-color: blue;
+  height: 200px;
+  position: absolute;
+  width: 200px;
+}
+#test-color-orange {
+  background-clip: content-box;
+  background-color: rgba(255, 165, 0, 1);
+  height: 180px;
+  padding: 10px;
+  position: absolute;
+  width: 180px;
+}
+</style>
+<p>Test passes if the orange box has a 10px width blue edge.</p>
+<!-- background -->
+<div id="test-color-blue"></div>
+<div id="test-color-orange"></div>

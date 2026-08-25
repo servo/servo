@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<body>
+<script src="../resources/runner.js"></script>
+<script src="resources/paint.js"></script>
+<div id="container"></div>
+<script>
+// This test measures the lifecycle update performance when adding small
+// amounts of text to a large page.
+
+var initialTextCount = 10000;
+var initialText = "";
+for (var i = 0; i < initialTextCount; i++)
+  initialText += '<span>a</span>';
+
+measurePaint({
+  run: function() {
+    var text = document.createElement('span');
+    text.innerText = 'abc';
+    container.appendChild(text);
+  },
+  setup: function() {
+    container.innerHTML = initialText;
+  },
+  done: function() {
+    container.innerHTML = "";
+  },
+});
+</script>
+</body>

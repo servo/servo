@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Decoration 4: percentage text-decoration-inset over three line fragments</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-inset-property">
+<link rel="author" title="Helmut Januschka" href="mailto:helmut@januschka.com">
+<link rel="match" href="reference/text-decoration-inset-percentage-slice-multiline-ref.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+  div {
+    width: 100px;
+    font: 20px/2 Ahem;
+  }
+  u {
+    text-decoration-line: underline;
+    text-decoration-color: blue;
+    text-decoration-thickness: 2px;
+    text-decoration-inset: 40%;
+    box-decoration-break: slice;
+  }
+</style>
+<!-- The single text node wraps into three fragments. The middle fragment is
+     neither first nor last. The 40% inset resolves to 120px against the 300px
+     decorated run, consuming the first and last lines and carrying 20px into
+     each edge of the middle line. -->
+<div><p><u>abcde fghij klmno</u></p></div>

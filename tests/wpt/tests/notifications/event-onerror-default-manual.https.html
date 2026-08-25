@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Notification.onerror (permission=default)</title>
+<link rel="author" title="Apple Inc." href="http://www.apple.com/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+setup({ explicit_timeout: true })
+if (Notification.permission != "default") {
+    alert("TEST NOT RUN. Change your browser settings so that the notification"
+        + " settings for this origin are completely cleared/removed, (so your"
+        + " browser default settings are used for this origin), and then reload"
+        + " this page.")
+} else {
+    async_test(function (t) {
+        t.step(function () {
+            var notification = new Notification("New Email Received")
+            notification.onerror = function(e) {
+                assert_equals(Object.prototype.toString.call(e), "[object Event]")
+                assert_equals(e.type, "error")
+                Notification.requestPermission()
+                t.done()
+            }
+        })
+    })
+}
+</script>

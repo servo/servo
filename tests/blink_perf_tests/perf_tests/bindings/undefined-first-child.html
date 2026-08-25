@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script src="../resources/runner.js"></script>
+<script>
+var div = document.createElement("div");
+
+PerfTestRunner.measureRunsPerSecond({
+    description: "This benchmark covers undefined DOM attributes that return a null.",
+    run: function() {
+        var localDiv = div;
+        for (var i = 0; i < 100000; i++)
+            localDiv.firstChild;
+}});
+</script>
+</body>
+</html>

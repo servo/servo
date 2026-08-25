@@ -1,0 +1,34 @@
+<!doctype html>
+<title>Test dialog form submission, unusual cases</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id=log></div>
+
+<dialog>
+  <form method=dialog action="https://test:test/" target=doesnotmatter rel=noopener>
+    <input type=submit formaction="https://test:test/" id=submit-1>
+    <input type=submit id=submit-2>
+  </form>
+</dialog>
+
+<script>
+test(() => {
+  const dialog = document.querySelector("dialog");
+  dialog.showModal();
+  assert_true(dialog.open);
+
+  document.getElementById("submit-1").click();
+  assert_false(dialog.open);
+}, "A form's action and rel=noopener are ignored during submission");
+
+test(() => {
+  const dialog = document.querySelector("dialog");
+  dialog.showModal();
+  assert_true(dialog.open);
+
+  document.getElementById("submit-2").click();
+  assert_false(dialog.open);
+}, "A form's action and rel=noopener are ignored during submission, part 2");
+
+</script>

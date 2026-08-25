@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>margin-trim: block-container-non-adjoining-item</title>
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-box-4/#margin-trim-block">
+<link rel="match" href="block-container-non-adjoining-item-ref.html">
+<meta name="assert" content="non-adjoining first child should still have its margins trimmed and the container should keep its set margin">
+<style>
+.container {
+    background-color: green;
+    width: min-content;
+    margin-bottom: 100px;
+    padding-bottom: 50px;
+    background-clip: padding-box;
+    margin-trim: block;
+}
+.child {
+    margin-top: 50px;
+    margin-bottom: 200px;
+    width: 100px;
+    height: 50px;
+}
+</style>
+</head>
+<body>
+<div class="container">
+    <div class="child"></div>
+</div>
+<div>This text should be 100px below the green square.</div>
+</body>
+</html>

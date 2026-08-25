@@ -1,0 +1,64 @@
+<!doctype html>
+<html>
+  <head>
+    <title>
+      Custom Elements: adoption agency must not create a cyclic DOM when a
+      customized built-in reaction reparents the clone
+    </title>
+    <meta
+      name="assert"
+      content="The adoption agency AppendChildrenToNewParent step must not append into a node that has become its own descendant via a custom element reaction"
+    />
+    <link rel="author" href="wpt@keithcirkel.co.uk" />
+    <link
+      rel="help"
+      href="https://html.spec.whatwg.org/multipage/parsing.html#adoption-agency-algorithm"
+    />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      const srcdoc = `<!doctype html>
+<script>
+class XBold extends HTMLElement {
+  static get observedAttributes() { return ["x"]; }
+  attributeChangedCallback() {
+    const marker = document.getElementById("marker");
+    if (!marker || window.moved) return;
+    window.moved = true;
+    marker.appendChild(this);
+  }
+}
+customElements.define("x-bold", XBold, {extends: "b"});
+<\/script>
+<b is="x-bold" x="1"><p id="marker"></b>`;
+
+      promise_test((t) => {
+        const iframe = document.createElement("iframe");
+        t.add_cleanup(() => iframe.remove());
+        const loaded = new Promise((resolve) => {
+          iframe.onload = resolve;
+        });
+        iframe.srcdoc = srcdoc;
+        document.body.appendChild(iframe);
+        return loaded.then(() => {
+          const doc = iframe.contentDocument;
+          const root = doc.documentElement;
+          for (const node of doc.querySelectorAll("*")) {
+            let depth = 0;
+            for (let a = node; a; a = a.parentNode) {
+              assert_less_than(
+                depth++,
+                100000,
+                "DOM ancestor chain must be finite (no cycle)",
+              );
+              if (a === root) break;
+            }
+          }
+        });
+      }, "Adoption agency reparenting a customized built-in clone must not create a cyclic DOM");
+    </script>
+  </body>
+</html>

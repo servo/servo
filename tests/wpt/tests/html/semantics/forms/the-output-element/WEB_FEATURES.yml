@@ -1,0 +1,4 @@
+rules:
+- output-setcustomvalidity.html: [constraint-validation]
+- output-validity.html: [constraint-validation]
+- "*": [output]

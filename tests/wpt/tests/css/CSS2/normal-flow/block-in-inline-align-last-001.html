@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta name="assert" content="Test if `text-align-last` handles block-in-inline correctly">
+<link rel="match" href="block-in-inline-align-last-001-ref.html"/>
+<link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#anonymous-block-level" />
+<link rel='help' href='https://drafts.csswg.org/css-text-3/#text-align-property'>
+<link rel="author" title="Koji Ishii" href="mailto:kojii@chromium.org" />
+<style>
+section {
+  width: 10ch;
+}
+.last-right {
+  text-align-last: right;
+}
+</style>
+<body>
+  <section class="last-right">
+    <span>
+      1234567 1234567
+      <div>1234567 1234567</div>
+      1234567 1234567
+    </span>
+  </section>
+</body>

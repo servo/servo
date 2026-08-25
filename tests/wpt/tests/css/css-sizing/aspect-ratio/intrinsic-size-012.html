@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>CSS aspect-ratio: min-content size contribution with border-box</title>
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht" />
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div style="width: min-content; height: 25px; background: green;">
+  <div style="height: 25px; aspect-ratio: 4/1; box-sizing: border-box; padding-top: 15px;"></div>
+</div>
+
+<div style="width: min-content; height: 25px; background: green;">
+  <div style="height: 10px; aspect-ratio: 4/1; min-height: 25px; box-sizing: border-box; padding-top: 15px;"></div>
+</div>
+
+<div style="width: min-content; height: 25px; background: green;">
+  <div style="height: 100px; aspect-ratio: 4/1; max-height: 25px; box-sizing: border-box; padding-top: 15px;"></div>
+</div>
+
+<div style="width: min-content; height: 25px; background: green;">
+  <div style="height: 40px; aspect-ratio: auto 4/1; box-sizing: border-box; padding-top: 15px;"></div>
+</div>

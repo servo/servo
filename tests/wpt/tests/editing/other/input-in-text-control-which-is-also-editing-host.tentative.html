@@ -1,0 +1,184 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<meta name="variant" content="?textcontrol=text">
+<meta name="variant" content="?textcontrol=password">
+<meta name="variant" content="?textcontrol=textarea">
+<title>Check whether a text control element handles user input when it's an editing host</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+</head>
+<body>
+<div></div>
+<script>
+const searchParams = new URLSearchParams(document.location.search);
+const textControlType = searchParams.get("textcontrol");
+const textControlDescription =
+  textControlType == "textarea"
+    ? "<textarea contenteditable>"
+    : `<input type="${textControlType}" contenteditable>`;
+const div = document.querySelector("div");
+
+function createTextControl() {
+  const textControl = document.createElement(
+    textControlType == "textarea" ? "textarea" : "input"
+  );
+  if (textControlType != "textarea") {
+    textControl.type = textControlType;
+  }
+  return textControl;
+}
+
+promise_test(async t => {
+  const textControl = createTextControl();
+  div.appendChild(textControl);
+  textControl.setAttribute("contenteditable", "");
+  textControl.focus();
+  await (new test_driver.Actions()
+    .keyDown("a")
+    .keyUp("a")
+    .keyDown("b")
+    .keyUp("b")
+    .keyDown("c")
+    .keyUp("c")
+    .send());
+  assert_equals(
+    textControl.value,
+    "abc",
+    `${t.name}: The text control value should be updated`
+  );
+  assert_equals(
+    document.querySelector("div").textContent.trim(),
+    "",
+    `${t.name}: No text should be inserted as a child of the text control`
+  );
+  textControl.remove();
+}, `User typing in ${textControlDescription} should update the value`);
+
+promise_test(async t => {
+  const textControl = createTextControl();
+  div.appendChild(textControl);
+  textControl.setAttribute("contenteditable", "");
+  textControl.focus();
+  document.execCommand("insertText", false, "abc");
+  assert_equals(
+    textControl.value,
+    "abc",
+    `${t.name}: The text control value should be updated`
+  );
+  assert_equals(
+    div.textContent.trim(),
+    "",
+    `${t.name}: No text should be inserted as a child of the text control`
+  );
+  textControl.remove();
+}, `execCommand("insertText") in ${textControlDescription} should update the value`);
+
+promise_test(async t => {
+  const textControl = createTextControl();
+  div.appendChild(textControl);
+  textControl.focus();
+  textControl.setAttribute("contenteditable", "");
+  await (new test_driver.Actions()
+    .keyDown("a")
+    .keyUp("a")
+    .keyDown("b")
+    .keyUp("b")
+    .keyDown("c")
+    .keyUp("c")
+    .send());
+  assert_equals(
+    textControl.value,
+    "abc",
+    `${t.name}: The text control value should be updated`
+  );
+  assert_equals(
+    div.textContent.trim(),
+    "",
+    `${t.name}: No text should be inserted as a child of the text control`
+  );
+  textControl.remove();
+}, `User typing in ${textControlDescription} should update the value (became an editing host during focused)`);
+
+promise_test(async t => {
+  const textControl = createTextControl();
+  div.appendChild(textControl);
+  textControl.focus();
+  textControl.setAttribute("contenteditable", "");
+  document.execCommand("insertText", false, "abc");
+  assert_equals(
+    textControl.value,
+    "abc",
+    `${t.name}: The text control value should be updated`
+  );
+  assert_equals(
+    div.textContent.trim(),
+    "",
+    `${t.name}: No text should be inserted as a child of the text control`
+  );
+  textControl.remove();
+}, `execCommand("insertText") in ${textControlDescription} should update the value (became an editing host during focused)`);
+
+if (textControlType != "textarea") {
+  promise_test(async t => {
+    const textControl = createTextControl();
+    textControl.type = "button";
+    div.appendChild(textControl);
+    textControl.setAttribute("contenteditable", "");
+    textControl.focus();
+    textControl.type = textControlType;
+    await (new test_driver.Actions()
+      .keyDown("a")
+      .keyUp("a")
+      .keyDown("b")
+      .keyUp("b")
+      .keyDown("c")
+      .keyUp("c")
+      .send());
+    assert_equals(
+      textControl.value,
+      "abc",
+      `${t.name}: The text control value should be updated`
+    );
+    assert_equals(
+      document.querySelector("div").textContent.trim(),
+      "",
+      `${t.name}: No text should be inserted as a child of the text control`
+    );
+    textControl.remove();
+  }, `User typing in ${
+    textControlDescription
+  } should update the value (became an editing host during focused and different type)`);
+
+  promise_test(async t => {
+    const textControl = createTextControl();
+    textControl.type = "button";
+    div.appendChild(textControl);
+    textControl.setAttribute("contenteditable", "");
+    textControl.focus();
+    textControl.type = textControlType;
+    document.execCommand("insertText", false, "abc");
+    assert_equals(
+      textControl.value,
+      "abc",
+      `${t.name}: The text control value should be updated`
+    );
+    assert_equals(
+      div.textContent.trim(),
+      "",
+      `${t.name}: No text should be inserted as a child of the text control`
+    );
+    textControl.remove();
+  }, `execCommand("insertText") in ${
+    textControlDescription
+  } should update the value (became an editing host during focused and different type)`);
+}
+
+</script>
+</body>
+</html>

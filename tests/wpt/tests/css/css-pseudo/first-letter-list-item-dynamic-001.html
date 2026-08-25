@@ -1,0 +1,24 @@
+<!doctype html>
+<title>CSS Test: Move ::first-letter text node (required: list item, float, fixed, contenteditable).</title>
+<link rel="match" href="first-letter-list-item-dynamic-001-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo/#first-letter-pseudo">
+<link rel="help" href="https://crbug.com/977044">
+<style>
+  #outer {
+    display: list-item;
+    overflow: auto; /* Triggers a crash in Blink see link to issue 977044 */
+  }
+  #outer::first-letter {
+    float: left;
+    color: green;
+  }
+  #fixed { position: fixed; }
+  #inner { float: left; }
+</style>
+<p>The X below should be green.</p>
+<div id="outer" contenteditable="true">X<div id="fixed"></div><div id="inner"></div></div>
+<script>
+  document.body.offsetTop;
+  inner.appendChild(outer.removeChild(outer.firstChild));
+  inner.removeAttribute("id");
+</script>

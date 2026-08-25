@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Resource Timing - initiatorUrl for resources loaded by a static stylesheet</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="../../resources/test-initiator.js"></script>
+<link rel="stylesheet" href="/resource-timing/resources/nested-initiator.css">
+</head>
+<body>
+<ol>
+  <li>X</li>
+</ol>
+<script>
+const hostInfo = get_host_info();
+const expectedInitiatorUrl = hostInfo["ORIGIN"] +
+  "/resource-timing/resources/nested-initiator.css";
+
+const resources = [
+  "resource_timing_test0.css?label=initiator",
+  "Ahem.ttf?label=initiator",
+  "blue.png?label=initiator",
+];
+for (const resource of resources) {
+  initiator_url_test(resource, expectedInitiatorUrl, resource +
+    " initiatorUrl from style sheet", resource + " timeout");
+}
+</script>
+</body>
+</html>

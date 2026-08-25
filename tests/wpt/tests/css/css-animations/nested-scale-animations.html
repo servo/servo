@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Nested scale animations</title>
+<link rel="author" title="Xianzhu Wang" href="mailto:wangxianzhu@chromium.org">
+<link rel="help" href="https://crbug.com/1165408">
+<link rel="match" href="nested-scale-animations-ref.html">
+<meta name="assert" content="Contents under nested scale animations should not be too blurry">
+<script src="/common/reftest-wait.js"></script>
+<style>
+@keyframes scale {
+  0% {transform: scale(1);}
+  1% {transform: scale(10);}
+  100% {transform: scale(10);}
+}
+.animate {
+  animation: scale 1s forwards;
+  position: relative;
+  top: 40%;
+  left: 40%;
+  width: 20%;
+  height: 20%;
+}
+</style>
+<div style="width: 100px; height: 100px; overflow: hidden; position: relative">
+  <div class="animate" onanimationstart="animationStarted()">
+    <div class="animate" onanimationstart="animationStarted()">
+      <div style="width: 4px; height: 2px; background: blue"></div>
+      <div style="width: 4px; height: 2px; background: green"></div>
+    </div>
+  </div>
+  <!-- To mask off the pixels that may be blurry/antialiased while the rendering
+       quality is acceptable. -->
+  <div style="position: absolute; top: 45px; left: 0; width: 100px; height: 10px; background: white"></div>
+</div>
+<script>
+var startedCount = 0;
+function animationStarted() {
+  startedCount++;
+  if (startedCount == 2)
+    takeScreenshotDelayed(900);
+}
+</script>

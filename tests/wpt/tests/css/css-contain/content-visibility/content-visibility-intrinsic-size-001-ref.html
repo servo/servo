@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <meta charset="utf-8">
+  <title>content-visibility and intrinsic size (reference)</title>
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+  <script src="/common/rendering-utils.js"></script>
+  <style>
+    #container {
+        position: sticky;
+    }
+    #container > div {
+        font: 25px/1 Ahem;
+    }
+  </style>
+  <div id="container">
+    <div>X</div>
+    <div id="target">XX</div>
+    <div>XXX</div>
+    <div>XXXX</div>
+  </div>
+  <script>
+    target.scrollIntoView();
+    document.fonts.ready.then(() => {
+        waitForAtLeastOneFrame().then(() => {
+            document.documentElement.classList.remove("reftest-wait");
+        });
+    });
+  </script>
+</html>

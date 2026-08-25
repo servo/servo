@@ -1,0 +1,59 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>CSS Display Test: display:flow-root list-item</title>
+  <link rel="author" title="Mats Palmgren" href="">
+  <link rel="help" href="https://drafts.csswg.org/css-display-3/#list-items">
+  <link rel="match" href="display-flow-root-list-item-001-ref.html">
+  <style type="text/css">
+html,body {
+  color:black; background-color:white; font:16px/1 monospace; padding:0; margin:0;
+}
+
+body { padding-left: 100px; }
+
+.float {
+  float: left;
+  width: 20px;
+  height: 40px;
+  background: pink;
+}
+
+.li { display: flow-root list-item; }
+  </style>
+</head>
+<body>
+
+<div style="border:1px solid">
+  <!-- this tests that the flow-root margins don't collapse with its children. -->
+  <span class="li" style="margin: 20px 0">
+    <div style="margin: 20px 0">x</div>
+  </span>
+</div>
+
+<div style="border:1px solid">
+  <!-- this tests that the flow-root grows to fit child floats -->
+  <span class="li"><div class="float"></div></span>
+</div>
+
+<div style="border:1px solid; margin-bottom:20px">
+  <!-- this tests that a float does not intrude into flow-root box -->
+  <div class="float"></div>
+  <span class="li" style="border:1px solid">x</span>
+</div>
+
+<span>
+  <!-- this tests that a flow-root box is constructed also in the "ibsplit" case -->
+  <span class="li" style="background:grey;"><div style="margin:20px">x</div></span>
+</span>
+
+<span class="li" style="border:3px solid; height:10px;">
+  <!-- this tests that a flow-root fills the available width, and that 'height' applies -->
+</span>
+
+</body>
+</html>

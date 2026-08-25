@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<style>
+body {
+  width: 120px;
+  border: solid 3px;
+}
+#flex {
+  display: flex;
+  flex-wrap: wrap;
+  padding: 10px;
+  gap: 10px;
+}
+#flex > div {
+  width: 20px;
+  height: 25px;
+  background: green;
+}
+</style>
+<div id="flex">
+  <div></div>
+  <div></div>
+  <div style="background: none"></div>
+  <div></div>
+  <div></div>
+  <div style="width: 100px"></div>
+  <div></div>
+  <div></div>
+  <div></div>
+  <div style="width: 10px; background: none"></div>
+  <div style="width: 10px"></div>
+  <div style="width: 70px"></div>
+</div>

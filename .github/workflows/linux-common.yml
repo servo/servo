@@ -1,0 +1,288 @@
+name: Linux Common
+on:
+  workflow_call:
+    outputs:
+      artifact_ids:
+        value: ${{ jobs.build.outputs.artifact_ids }}
+        description: Comma-separated list of artifact IDs for the release artifacts
+    inputs:
+      arch:
+        required: true
+        type: string
+      github-runner-label:
+        required: true
+        type: string
+      uploaded-artifact-name:
+        required: true
+        type: string
+      self-hosted-image-name:
+        required: true
+        type: string
+      profile:
+        required: false
+        default: "checked-release"
+        type: string
+      build-args:
+        default: ""
+        required: false
+        type: string
+      wpt-args:
+        default: ""
+        required: false
+        type: string
+      wpt-sync-from-upstream:
+        required: false
+        default: false
+        type: boolean
+      wpt:
+        required: false
+        type: boolean
+      number-of-wpt-chunks:
+        default: 20
+        required: false
+        type: number
+      unit-tests:
+        required: false
+        default: false
+        type: boolean
+      devtools-tests:
+        required: false
+        default: false
+        type: boolean
+      build-libservo:
+        required: false
+        default: false
+        type: boolean
+      force-github-hosted-runner:
+        required: false
+        type: boolean
+        default: false
+      bencher:
+        required: false
+        default: false
+        type: boolean
+      coverage:
+        required: false
+        default: false
+        type: boolean
+      capi:
+        required: false
+        default: false
+        type: boolean
+
+env:
+  RUST_BACKTRACE: 1
+  SHELL: /bin/bash
+
+jobs:
+  runner-select:
+    runs-on: ubuntu-24.04
+    outputs:
+      unique-id: ${{ steps.select.outputs.unique-id }}
+      selected-runner-label: ${{ steps.select.outputs.selected-runner-label }}
+      runner-type-label: ${{ steps.select.outputs.runner-type-label }}
+      is-self-hosted: ${{ steps.select.outputs.is-self-hosted }}
+    steps:
+      - name: Runner select
+        id: select
+        uses: servo/ci-runners/actions/runner-select@a05e7e830e3f4d4c71bdc5a38f003f052b72668c
+        with:
+          GITHUB_TOKEN: ${{ github.token }}
+          github-hosted-runner-label: ${{ inputs.github-runner-label }}
+          self-hosted-image-name: ${{ inputs.self-hosted-image-name }}
+          # You can disable self-hosted runners globally by creating a repository variable named
+          # NO_SELF_HOSTED_RUNNERS with any non-empty value.
+          # <https://github.com/servo/servo/settings/variables/actions>
+          NO_SELF_HOSTED_RUNNERS: ${{ vars.NO_SELF_HOSTED_RUNNERS }}
+          # Any other boolean conditions that disable self-hosted runners go here.
+          force-github-hosted-runner: ${{ inputs.force-github-hosted-runner }}
+
+  build:
+    needs:
+      - runner-select
+    name: Linux Build (${{ inputs.arch }}) [${{ needs.runner-select.outputs.unique-id }}]
+    runs-on: ${{ needs.runner-select.outputs.selected-runner-label }}
+    outputs:
+      artifact_ids: ${{ steps.artifact_ids.outputs.artifact_ids }}
+    steps:
+      - uses: servo/ci-runners/actions/checkout@a05e7e830e3f4d4c71bdc5a38f003f052b72668c
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+        if: ${{ runner.environment != 'self-hosted' }}
+        with:
+          tool-cache: false
+          large-packages: false
+          swap-storage: false
+      - name: Set LIBCLANG_PATH env # needed for bindgen in mozangle
+        if: ${{ runner.environment != 'self-hosted' }}
+        run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
+      - name: Setup Python
+        if: ${{ runner.environment != 'self-hosted' }}
+        uses: ./.github/actions/setup-python
+      - name: Change Mirror Priorities
+        if: ${{ runner.environment != 'self-hosted' }}
+        uses: ./.github/actions/apt-mirrors
+      - name: Install cargo nextest
+        if: ${{ inputs.unit-tests }}
+        uses: taiki-e/install-action@v2
+        with:
+          tool: nextest@0.9.140
+      - name: Bootstrap dependencies
+        if: ${{ runner.environment != 'self-hosted' }}
+        timeout-minutes: 30
+        run: |
+          sudo apt update
+          echo "wireshark-common wireshark-common/install-setuid boolean true" | sudo debconf-set-selections
+          sudo apt install -qy tshark shellcheck
+          ./mach bootstrap --yes --skip-lints --skip-nextest
+
+      # Only enable `sccache` on forks. On the main repository we suffer from too much cache-trashing,
+      # and also don't need it for builds running on our self-hosted runners (cached cargo target directory).
+      # On forks expected activity is much lower, so the 10GB cache will be sufficient for the expected
+      # use-case of running `./mach try linux-wpt`.
+      # `sccache` can be turned off by adding a repository-level variable SCCACHE_GHA_ENABLED and
+      # setting the value to `false`. See <https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-variables#creating-configuration-variables-for-a-repository>.
+      - name: Install sccache
+        if: ${{ github.repository != 'servo/servo' && vars.SCCACHE_GHA_ENABLED != 'false' }}
+        uses: mozilla-actions/sccache-action@v0.0.11
+      - name: Enable sccache
+        if: ${{ github.repository != 'servo/servo' && vars.SCCACHE_GHA_ENABLED != 'false' }}
+        run: |
+          {
+            # Set / Increment SCCACHE_GHA_VERSION as a repository level variable in your fork
+            # to purge the cache, if you believe you're encountering issues.
+            echo "SCCACHE_GHA_VERSION=${{ vars.SCCACHE_GHA_VERSION || '1' }}"
+            echo "SCCACHE_GHA_ENABLED=true"
+            echo "RUSTC_WRAPPER=sccache"
+            # sccache cannot cache incremental compilation.
+            echo "CARGO_INCREMENTAL=0"
+          } >> $GITHUB_ENV
+
+      # Always install crown, even on self-hosted runners, because it is tightly
+      # coupled to the rustc version, and we may have the wrong version if the
+      # commit we are building uses a different rustc version.
+      - name: Install crown
+        run: cargo install --path support/crown
+
+      - name: Build (${{ inputs.profile }})
+        env:
+          RUSTFLAGS: ${{ inputs.profile == 'checked-release' && '-D warnings' || '' }}
+        run: |
+          ./mach build --use-crown --locked --profile ${{ inputs.profile }} ${{ inputs.build-args }}
+          mv target/cargo-timings target/cargo-timings-linux
+      - name: Smoketest
+        run: xvfb-run ./mach smoketest --profile ${{ inputs.profile  }}
+      - name: Script tests
+        run: ./mach test-scripts
+      - name: Unit tests
+        id: run_unit_tests
+        if: ${{ inputs.unit-tests }}
+        env:
+          NEXTEST_RETRIES: 2 # https://github.com/servo/servo/issues/30683
+          LANG: en-US
+        run: |
+          ./mach test-unit --profile ${{ inputs.profile }} --nextest-profile ci
+          ./mach test-unit --profile ${{ inputs.profile }} --doc
+      # We upload the test-results to Codecov to help us identify flaky unit-tests.
+      - name: Upload test results to Codecov
+        # Upload test results to Codecov, also for failed unit-tests, but only
+        # if unit-tests were supposed to run, and not if they were skipped (e.g., due
+        # to an earlier failure).
+        if: ${{ !cancelled() && steps.run_unit_tests.conclusion != 'skipped' }}
+        uses: codecov/codecov-action@v6
+        with:
+          report_type: test_results
+          files: target/nextest/ci/junit.xml
+          disable_search: true
+          flags: unittests,unittests-linux,unittests-linux-${{ inputs.profile }}
+          token: ${{ secrets.CODECOV_TOKEN }}
+      - name: Devtools tests
+        if: ${{ inputs.devtools-tests }}
+        run: ./mach test-devtools --profile ${{ inputs.profile }}
+      - name: Archive build timing
+        uses: actions/upload-artifact@v7
+        with:
+          name: cargo-timings-linux-${{ inputs.profile }}
+          # Using a wildcard here ensures that the archive includes the path.
+          path: target/cargo-timings-*
+          if-no-files-found: error
+      - name: Build mach package
+        run: ./mach package --profile ${{ inputs.profile }}
+      - name: Upload artifact for mach package
+        uses: actions/upload-artifact@v7
+        id: upload-tarball
+        with:
+          name: ${{ inputs.uploaded-artifact-name }}
+          path: target/${{ inputs.profile }}/servo-tech-demo.tar.gz
+          if-no-files-found: error
+      - name: Collect artifact IDs needed by the release workflow
+        id: artifact_ids
+        shell: bash
+        run: |
+          echo "artifact_ids=${{steps.upload-tarball.outputs.artifact-id}}" >> $GITHUB_OUTPUT
+
+  build-libservo:
+    if: ${{ inputs.build-libservo }}
+    name: Build libservo and MSRV check (${{ inputs.arch }})
+    runs-on: ${{ inputs.github-runner-label }}
+    steps:
+      - uses: servo/ci-runners/actions/checkout@a05e7e830e3f4d4c71bdc5a38f003f052b72668c
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+        if: ${{ runner.environment != 'self-hosted' }}
+        with:
+          tool-cache: false
+          large-packages: false
+          swap-storage: false
+      - name: Set LIBCLANG_PATH env # needed for bindgen in mozangle
+        run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
+      - name: Determine MSRV
+        id: msrv
+        uses: ./.github/actions/parse_msrv
+      - name: Install MSRV
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ steps.msrv.outputs.rust_version }}
+      # We can remove this after upgrading to Rust 1.90, but for now
+      # installing lld is the easiest way to get it in path.
+      - name: install lld
+        run: sudo apt-get install -y lld
+      - name: Compile libservo with MSRV
+        env:
+          # lld seems to use less memory and prevents OOM errors during linking.
+          # We can remove this after upgrading to Rust 1.90, where lld will be the default.
+          RUSTFLAGS: "-C link-arg=-fuse-ld=lld"
+          LLVM_OBJDUMP: llvm-objdump-14
+        run: |
+          cargo +${{ steps.msrv.outputs.rust_version }} build -p servo --locked
+
+  capi:
+    if: ${{ inputs.capi }}
+    name: Build and test Servo's C API (${{ inputs.arch }})
+    runs-on: ${{ inputs.github-runner-label }}
+    steps:
+      - uses: servo/ci-runners/actions/checkout@a05e7e830e3f4d4c71bdc5a38f003f052b72668c
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          large-packages: false
+          swap-storage: false
+      - name: Set LIBCLANG_PATH env # needed for bindgen in mozangle
+        run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
+      - name: Change Mirror Priorities
+        uses: ./.github/actions/apt-mirrors
+      - name: Install EGL library and headers
+        run: |
+          sudo apt update
+          sudo apt install -y libegl1-mesa-dev libegl-dev
+      - name: Install cargo-c # required by servo-capi-tests's build.rs
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-c@0.10.23
+      - name: Build and test servo-capi-tests
+        run: cargo test -p servo-capi-tests --locked

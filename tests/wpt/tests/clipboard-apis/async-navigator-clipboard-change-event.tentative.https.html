@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>
+  'clipboardchange' event should be fired upon setting clipboard using JS
+</title>
+<link rel="help" href="https://www.w3.org/TR/clipboard-apis/#clipboard-event-clipboardchange" />
+
+<body>
+  Body needed for test_driver.click()
+  <p><button id="button">Put payload in the clipboard</button></p>
+  <div id="output"></div>
+  <iframe id="iframe" srcdoc="<p>Some text</p>"></iframe>
+  <link rel="help" href="https://issues.chromium.org/issues/41442253" />
+
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="resources/user-activation.js"></script>
+
+  <script>
+    function waitForRender() {
+      return new Promise(resolve => {
+        requestAnimationFrame(() => requestAnimationFrame(resolve));
+      });
+    }
+
+    let typesToSet_ = ["text/html", "web txt/csv"];
+    button.onclick = () => document.execCommand("copy");
+    document.oncopy = (ev) => {
+      ev.preventDefault();
+      for (let i = 0; i < typesToSet_.length; i++) {
+        const type = typesToSet_[i];
+        const data = new Blob([`Test data for ${type}`], {type: type});
+        ev.clipboardData.setData(type, data);
+      }
+    };
+
+    function triggerCopyToClipboard(typesToSet) {
+      if (typesToSet) {
+        typesToSet_ = typesToSet;
+      }
+      return test_driver.click(button);
+    }
+
+    promise_test(async (test) => {
+      let clipboardChangeEventCount = 0;
+      let eventType = "";
+      let capturedEventTypes = null;
+      navigator.clipboard.addEventListener("clipboardchange", (ev) => {
+        clipboardChangeEventCount++;
+        eventType = ev.type;
+        capturedEventTypes = ev.types;
+      });
+      await triggerCopyToClipboard();
+      assert_equals(clipboardChangeEventCount, 1, "clipboardchange event should be called exactly once");
+      assert_equals(eventType, "clipboardchange", "Event type should be 'clipboardchange'");
+      assert_true(capturedEventTypes.includes("text/html"), "types should contain 'text/html'");
+      assert_false(capturedEventTypes.includes("web txt/csv"), "types should not contain custom MIME type");
+    }, "clipboardchange event is invoked");
+
+    promise_test(async (test) => {
+      await tryGrantWritePermission();
+      let clipboardChangeEventCount = 0;
+      let capturedEventTypes = null;
+      navigator.clipboard.addEventListener("clipboardchange", (ev) => {
+        clipboardChangeEventCount++;
+        capturedEventTypes = ev.types;
+      });
+      await navigator.clipboard.writeText("Test text");
+      await waitForRender();
+      assert_equals(clipboardChangeEventCount, 1, "clipboardchange event should be called exactly once");
+      assert_true(capturedEventTypes.includes("text/plain"), "types should contain 'text/plain'");
+    }, "clipboardchange event is invoked with async clipboard API");
+
+    promise_test(async (test) => {
+      let onClipboardChangeAttributeCount = 0;
+      let capturedEventTypes = null;
+      navigator.clipboard.onclipboardchange = (ev) => {
+        onClipboardChangeAttributeCount++;
+        capturedEventTypes = ev.types;
+      };
+      await triggerCopyToClipboard();
+      assert_equals(onClipboardChangeAttributeCount, 1, "onclipboardchange attribute should be called exactly once");
+      assert_true(capturedEventTypes.includes("text/html"), "types should contain 'text/html'");
+      assert_false(capturedEventTypes.includes("web txt/csv"), "types should not contain custom MIME type");
+    }, "clipboardchange event is invoked using onclipboardchange attribute");
+
+    promise_test(async (test) => {
+      let onClipboardChangeAttributeCount = 0;
+      let capturedEventTypes = null;
+      navigator.clipboard.onclipboardchange = (ev) => {
+        onClipboardChangeAttributeCount++;
+        capturedEventTypes = ev.types;
+      };
+      await triggerCopyToClipboard(["web txt/csv"]);
+      assert_equals(onClipboardChangeAttributeCount, 1, "onclipboardchange attribute should be called exactly once");
+      assert_equals(capturedEventTypes.length, 0, "clipboardchange event should have no types");
+    }, "clipboardchange event is invoked even when only custom MIME types are set");
+
+    promise_test(async (test) => {
+      let listenerCallCount = 0;
+      function clipboardChangeListener() {
+        listenerCallCount++;
+      }
+
+      // 1. Add listener and verify it's called
+      navigator.clipboard.addEventListener("clipboardchange", clipboardChangeListener);
+      await triggerCopyToClipboard();
+      assert_equals(listenerCallCount, 1, "Event listener should be called exactly once after adding");
+
+      // 2. Remove listener and verify it's not called
+      navigator.clipboard.removeEventListener("clipboardchange", clipboardChangeListener);
+      await triggerCopyToClipboard();
+      assert_equals(listenerCallCount, 1, "Event listener should not be called after removing");
+
+      // 3. Re-add listener and verify it's called again
+      navigator.clipboard.addEventListener("clipboardchange", clipboardChangeListener);
+      await triggerCopyToClipboard();
+      assert_equals(listenerCallCount, 2, "Event listener should be called exactly once after re-adding");
+    }, "clipboardchange event listener behavior when adding, removing, and re-adding");
+
+    promise_test(async (test) => {
+      // https://w3c.github.io/clipboard-apis/#mandatory-data-types-x
+      const standardTypes = [
+        "text/plain",
+        "text/html",
+        "image/png",
+      ];
+      const unsupportedTypes = [
+        "web application/custom",
+        "web web/proprietary",
+        "web x-custom/type",
+        "txt/json",
+        "text/rtf",
+        "image/svg+xml",
+        "text/uri-list",
+      ];
+      const allTypesToSet = [...standardTypes, ...unsupportedTypes];
+
+      let clipboardChangeEventCount = 0;
+      let capturedEventTypes = null;
+
+      navigator.clipboard.addEventListener("clipboardchange", (ev) => {
+        clipboardChangeEventCount++;
+        capturedEventTypes = ev.types;
+      });
+
+      await triggerCopyToClipboard(allTypesToSet);
+
+      assert_true(clipboardChangeEventCount == 1, "clipboardchange event should be invoked once");
+
+      // Check that types is a frozen array
+      assert_true(Array.isArray(capturedEventTypes), "types should be an array");
+      assert_true(Object.isFrozen(capturedEventTypes), "types should be frozen");
+
+      // Verify all standard types are included
+      for (const type of standardTypes) {
+        assert_true(capturedEventTypes.includes(type), `types should contain standard MIME type '${type}'`);
+      }
+
+      // Verify custom types are filtered out
+      for (const type of unsupportedTypes) {
+        assert_false(capturedEventTypes.includes(type), `types should not contain custom MIME type '${type}'`);
+      }
+
+      // Verify we have exactly the standard types and nothing else
+      assert_equals(capturedEventTypes.length, standardTypes.length,
+        "clipboardchange event types should contain exactly the standard MIME types");
+    }, "clipboardchange event exposes all standard MIME types and filters non-standard ones");
+
+    promise_test(async (test) => {
+      // Focus the document and acquire permission to write to the clipboard
+      await test_driver.click(document.body);
+      await tryGrantWritePermission();
+
+      const iframe = document.getElementById('iframe');
+
+      let frameEventCount = 0;
+      let capturedEventTypes = null;
+      let focusEventFired = false;
+      iframe.contentWindow.addEventListener("focus", () => {
+        focusEventFired = true;
+      });
+
+      // Add listener to iframe
+      iframe.contentWindow.navigator.clipboard.addEventListener("clipboardchange", () => {
+        assert_true(focusEventFired, "focus event should fire before clipboardchange event");
+        frameEventCount++;
+        capturedEventTypes = event.types;
+      });
+
+      // Ensure iFrame doesn't have the focus
+      assert_false(iframe.contentWindow.document.hasFocus(), "iFrame should not have focus");
+      assert_false(focusEventFired, "focus event should not have fired yet");
+
+      // Trigger multiple clipboard changes
+      await navigator.clipboard.writeText("Test text");
+
+      // Write HTML to clipboard to ensure the event captured only html and not txt
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          "text/html": new Blob(["<p>Test HTML</p>"], {type: "text/html"})
+        })
+      ]);
+      await waitForRender();
+
+      assert_equals(frameEventCount, 0, "iframe should not recieve any clipboardchange event yet");
+
+      iframe.focus();
+      assert_true(iframe.contentWindow.document.hasFocus(), "iFrame should have focus");
+      assert_equals(frameEventCount, 1, "iframe should receive event only 1 event after focus");
+      assert_equals(capturedEventTypes.length, 1, "clipboardchange event should only have one type");
+      assert_true(capturedEventTypes.includes("text/html"), "clipboardchange event should only have text/html type");
+    }, "clipboardchange event should only fire in the focused context");
+
+  </script>
+</body>

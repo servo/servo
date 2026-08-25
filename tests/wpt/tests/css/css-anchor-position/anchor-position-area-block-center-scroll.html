@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Anchor Positioning: block-direction position-area grid overflow is unaffected by scroll</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#fallback-apply">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2050613">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+  #cb {
+    position: relative;
+    width: 200px;
+    height: 100px;
+  }
+  #scroller {
+    width: 200px;
+    height: 100px;
+    overflow: scroll;
+    scrollbar-width: none;
+  }
+  #content {
+    width: 400px;
+    height: 200px;
+  }
+  #anchor {
+    width: 100px;
+    height: 60px;
+    margin-left: 100px;
+    margin-top: 100px;
+    background: red;
+    anchor-name: --a;
+  }
+  #target {
+    position: absolute;
+    width: 100px;
+    /* Always overflows the vertical center grid. */
+    height: 100px;
+    position-anchor: --a;
+    position-area: right center;
+    position-try-fallbacks: --span;
+    background: green;
+  }
+  @position-try --span {
+    /* CB no longer constrained by anchor height. */
+    position-area: span-all;
+  }
+  .dn {
+    display: none;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="cb">
+  <div id="scroller">
+    <div id="content">
+      <div id="anchor"></div>
+    </div>
+  </div>
+  <div id="target" class="dn"></div>
+</div>
+<script>
+  scroller.scrollLeft = 100;
+  scroller.scrollTop = 80;
+  // Reveal the target after scrolling so its first fit check runs with a
+  // non-zero scroll shift.
+  target.classList.remove('dn');
+  document.documentElement.classList.remove('reftest-wait');
+</script>

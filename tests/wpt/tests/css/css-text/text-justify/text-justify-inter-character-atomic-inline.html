@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Justification Method: text-justify: inter-character</title>
+<link rel="author" title="Kent Tamura" href="mailto:tkent@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#valdef-text-justify-inter-character">
+<link rel='match' href='text-justify-inter-character-atomic-inline-ref.html'>
+<meta name="assert" content="text-justify:inter-character should handle a consecutive run of atomic inlines as a single typographic unit.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+p {
+  font: 20px/1 Ahem;
+  border: 1px solid black;
+  padding: 10px;
+  width: 100px;
+}
+.test {
+  text-align-last: justify;
+  text-justify: inter-character;
+}
+.test img {
+  width: 20px;
+  height: 20px;
+  vertical-align: top;
+}
+</style>
+</head>
+<body>
+<p class="test">X<img src="/images/blue.png"><img src="/images/blue.png">X</p>
+</body>
+</html>

@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+     <head>
+        <title>CSS Test: when quoted font family not found, should not use font family list of body element</title>
+        <link rel="author" title="Mozilla" href="http://www.mozilla.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#propdef-font-family" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-family-prop" />
+        <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-family-prop"/>
+        <link rel="match" href="font-family-name-mixcase-ref.xht"/>
+        <meta name="assert" content="When a quoted font family name is not found font fallback occurs, the rule is not treated as invalid, the font-family setting of the enclosed body should not be used." />
+        <style type="text/css">
+            body { font-size: 36px; }
+            span#verify { font-family: CSSTest Verify; }
+            body { font-family: CSSTest Fallback; }
+            p, div {
+                font-family: "CSSTest Unknown";
+            }
+        </style>
+    </head>
+    <body>
+        <div><a href="http://www.w3.org/Style/CSS/Test/Fonts/">Test fonts</a> must be installed for this test: <span id="verify">FAIL</span></div>
+        <p>PaSs</p>
+    </body>
+</html>

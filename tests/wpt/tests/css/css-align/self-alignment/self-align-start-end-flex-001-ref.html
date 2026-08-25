@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!-- Reference case for align-items / align-self behavior, using floated divs
+     in place of flex items and using margin-top in place of the align-items /
+     align-self properties. -->
+<html>
+  <head>
+    <title>CSS Reftest Reference</title>
+    <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com"/>
+    <style>
+      .flexbox {
+        border: 1px dashed blue;
+        height: 200px;
+        width: 320px;
+        font-size: 10px;
+        line-height: 10px;
+      }
+
+      .flexbox > div {
+        width: 40px;
+        float: left;
+      }
+
+      .big {
+        height: 100px;
+        font-size: 20px;
+        line-height: 20px;
+      }
+
+      /* Classes for each of the various align-self values */
+      .flex-start {
+        background: lime;
+      }
+      .flex-end {
+        background: orange;
+      }
+      .start {
+        background: lightblue;
+      }
+      .end {
+        background: teal;
+      }
+   </style>
+  </head>
+  <body>
+    <div class="flexbox">
+      <div class="flex-start">start</div>
+      <div class="flex-start big">a b c d e f</div>
+      <div class="flex-end" style="margin-top: 190px">end</div>
+      <div class="flex-end big"  style="margin-top: 100px">a b c d e f</div>
+      <div class="start">start</div>
+      <div class="start big">a b c d e f</div>
+      <div class="end" style="margin-top: 190px">end</div>
+      <div class="end big"  style="margin-top: 100px">a b c d e f</div>
+    </div>
+    <div class="flexbox">
+      <div class="flex-start" style="margin-top: 190px">start</div>
+      <div class="flex-start big" style="margin-top: 100px">a b c d e f</div>
+      <div class="flex-end">end</div>
+      <div class="flex-end big" >a b c d e f</div>
+      <div class="start">start</div>
+      <div class="start big">a b c d e f</div>
+      <div class="end" style="margin-top: 190px">end</div>
+      <div class="end big"  style="margin-top: 100px">a b c d e f</div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,10 @@
+rules:
+- SVGPoint.html: [svg-discouraged]
+- SVGAnimatedEnumeration-SVGFilterElement.html: [svg-filters]
+- SVGAnimatedEnumeration-SVGFEColorMatrixElement.html: [svg-filters]
+- SVGGraphicsElement*: [svg]
+- SVGLength-*: [svg]
+- SVGLengthList-*: [svg]
+- SVGMatrix.html: [svg]
+- SVGPathElement.getTotalLength-01.html: [svg]
+- SVGRect.html: [svg]

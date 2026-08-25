@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>Layout Instability: parent/child moved together with overflow-x: clip</title>
+<link rel="help" href="https://wicg.github.io/layout-instability/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/util.js"></script>
+<div id="parent" style="position: relative; width: 100px; height: 100px; border: 100px solid blue; overflow-x: clip">
+  <div id="child" style="width: 1000px; height: 300px; background: blue"></div>
+</div>
+<script>
+
+promise_test(async () => {
+  const watcher = new ScoreWatcher;
+
+  // Wait for the initial render to complete.
+  await waitForAnimationFrames(2);
+
+  // Modify the position of the div.
+  const parent = document.querySelector("#parent");
+  parent.style.top = '100px';
+
+  const expectedScore = computeExpectedScore(300 * (400 + 100), 100);
+
+  // Observer fires after the frame is painted.
+  assert_equals(watcher.score, 0);
+  await watcher.promise;
+  assert_equals(watcher.score, expectedScore);
+}, 'Parent/child movement with overflow-x: clip.');
+
+</script>

@@ -1,0 +1,51 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Writing Modes Test: 'float: left' and 'float: right' in a 'vertical-lr' block formating context (basic)</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#vertical-layout" title="7.1 Principles of Layout in Vertical Writing Modes" />
+  <link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+
+  <meta content="ahem image" name="flags" />
+  <meta content="This test checks that a floated left box and a floated right box in a containing block with 'writing-mode' set to 'vertical-lr' will be respectively floated at the line-left side of its line box and floated at line-right of its line box." name="assert" />
+
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+  <style type="text/css"><![CDATA[
+  div#wrapper
+    {
+      background: red url("support/pattern-rg-gr-100x100.png") no-repeat;
+      color: transparent;
+      font: 50px/1 Ahem; /* computes to 50px/50px */
+      height: 100px;
+      width: 100px;
+      writing-mode: vertical-lr;
+    }
+
+  div#floated-right
+    {
+      color: green;
+      float: right;
+    }
+
+  div#floated-left
+    {
+      color: green;
+      float: left;
+    }
+  ]]></style>
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+  <div id="wrapper">
+    A <div id="floated-left">L</div> <div id="floated-right">R</div> B
+  </div>
+
+ </body>
+</html>

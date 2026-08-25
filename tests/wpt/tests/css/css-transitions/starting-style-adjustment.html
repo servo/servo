@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>CSS Transitions Test: Style adjustments for @starting-style</title>
+<link rel="help" href="https://drafts.csswg.org/css-transitions-2/#defining-before-change-style-the-starting-style-rule">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-transitions/support/helper.js"></script>
+<style>
+legend {
+  transition: display 1s step-end allow-discrete;
+}
+@starting-style {
+  legend { display:inline; }
+}
+</style>
+<body>
+<legend></legend>
+<script>
+promise_test(async t => {
+  await waitForAnimationFrames(1);
+  assert_equals(document.getAnimations().length, 0, "No transitions");
+}, "The display property in <legend> @starting-style should be blockified so no transition should start");
+</script>
+</body>

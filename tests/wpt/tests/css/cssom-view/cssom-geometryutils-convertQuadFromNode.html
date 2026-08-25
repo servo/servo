@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<title>CSSOM View - convertQuadFromNode()</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#the-geometryutils-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/geometry-utils.js"></script>
+<style>
+  html, body {
+    margin: 0;
+  }
+
+  #target {
+    position: absolute;
+    left: 15px;
+    top: 20px;
+    width: 280px;
+    height: 180px;
+    margin: 9px 13px 17px 21px;
+    border: solid;
+    border-width: 4px 6px 8px 10px;
+    padding: 3px 5px 7px 9px;
+  }
+
+  #source {
+    position: absolute;
+    left: 65px;
+    top: 50px;
+    width: 100px;
+    height: 50px;
+    margin: 12px 16px 20px 24px;
+    border: solid;
+    border-width: 2px 4px 6px 8px;
+    padding: 3px 5px 7px 9px;
+    transform: skewX(15deg) rotate(-8deg) translate(9px, 4px);
+    transform-origin: 25% 75%;
+  }
+</style>
+<div id="target">
+  <div id="source"></div>
+</div>
+<script>
+const source = document.getElementById("source");
+const target = document.getElementById("target");
+const boxes = ["margin", "border", "padding", "content"];
+
+for (const fromBox of boxes) {
+  for (const toBox of boxes) {
+    test(() => {
+      const size = box_size(source, fromBox);
+      const quad = new DOMQuad(
+        new DOMPoint(0, 0),
+        new DOMPoint(size.width, 0),
+        new DOMPoint(size.width, size.height),
+        new DOMPoint(0, size.height)
+      );
+      const actual = target.convertQuadFromNode(quad, source, {fromBox, toBox});
+      const expected = expected_quad_in_target_box(source, target, fromBox,
+                                                   toBox);
+      assert_quad_approx_equals(actual, expected,
+                                `${fromBox} quad to ${toBox} coordinates`);
+    }, `convertQuadFromNode() maps ${fromBox} quad to ${toBox} coordinates`);
+  }
+}
+
+test(() => {
+  const borderRect = local_box_rect(source, "border");
+  const quad = quad_from_rect(borderRect);
+  const converted = document.convertQuadFromNode(quad, source);
+  assert_quad_approx_equals(converted, source.getBoxQuads()[0],
+                            "source border quad in document coordinates");
+}, "Document.convertQuadFromNode() matches getBoxQuads()");
+
+test(() => {
+  const borderRect = local_box_rect(source, "border");
+  const quad = quad_from_rect(borderRect);
+  const targetQuad = target.convertQuadFromNode(quad, source);
+  const roundTripped = source.convertQuadFromNode(targetQuad, target);
+  assert_quad_approx_equals(roundTripped, quad,
+                            "quad after round-trip conversion");
+}, "convertQuadFromNode() round-trips between two elements");
+</script>

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en" class="reftest-wait">
+<title>position:fixed on non-standard ::-webkit-media-text-track-display should not affect</title>
+<link rel="match" href="non-standard-pseudo-elements-ref.html">
+<style>
+video { width:560px; height:320px; }
+video::-webkit-media-text-track-display {
+  position: fixed !important;
+}
+</style>
+<video>
+<source src="/media/white.webm" type="video/webm">
+<source src="/media/white.mp4" type="video/mp4">
+<track label="English subtitles" kind="subtitles" srclang="en" src="support/test.vtt" default>
+</video>
+<script>
+const v = document.querySelector('video');
+v.onseeked = () => { document.documentElement.classList.remove('reftest-wait'); };
+v.currentTime = 3;
+</script>
+</html>

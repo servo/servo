@@ -1,0 +1,255 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL EXT_texture_norm16 Conformance Tests</title>
+<LINK rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description("This test verifies the functionality of the EXT_texture_norm16 extension, if it is available.");
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext(null, null, 2);
+var ext;
+
+var formats = null;
+var textures;
+var fbos;
+var renderbuffer;
+var readbackBuf = new Uint16Array(4);
+
+function generateFormatColor(format, value, alpha) {
+  alpha = alpha !== undefined ? alpha : 255;
+  switch(format) {
+    case gl.RED:
+      return [value, 0, 0, alpha];
+    case gl.RG:
+      return [value, value, 0, alpha];
+    case gl.RGB:
+      return [value, value, value, alpha];
+    case gl.RGBA:
+      return [value, value, value, value];
+    default:
+      wtu.error("Unreachable: Unknown format.");
+      return null;
+  }
+}
+
+function testNorm16Texture(internalFormat, format, type, error="NO_ERROR") {
+  debug(`\ntestNorm16Texture(${[].slice.call(arguments).join(", ")})`);
+  let pixelValue;
+  let expectedValue;
+  let imageData;
+
+  switch(gl[type]) {
+    case gl.SHORT:
+      pixelValue = 0x7fff;
+      expectedValue = 0xff;
+      imageData = new Int16Array(4).fill(pixelValue);
+      break;
+    case gl.UNSIGNED_SHORT:
+      pixelValue = 0x6a35;
+      expectedValue = pixelValue >> 8;
+      imageData = new Uint16Array(4).fill(pixelValue);
+      break;
+    default:
+      wtu.error("Unreachable: Unknown texture type.");
+      break;
+  }
+
+  // Texture sampled from
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, textures[0]);
+  gl.texImage2D(gl.TEXTURE_2D, 0, ext[internalFormat] || gl[internalFormat],
+        1, 1, 0, gl[format], gl[type], imageData);
+
+  wtu.glErrorShouldBe(gl, gl[error], `texImage should generate error:${error}`);
+  if (gl[error]) return;
+
+  gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+  // Read back as gl.UNSIGNED_BYTE
+  wtu.checkCanvasRect(gl, 0, 0, 1, 1, generateFormatColor(gl[format], expectedValue));
+}
+
+function testNorm16Render(interalFormat, format, type, tolerance) {
+  // Only UNSIGNED_SHORT are renderable
+  let pixelValue = 0x6a35;
+  let expectedValue = pixelValue;
+  let imageData = new Uint16Array(4).fill(pixelValue);
+
+  // Render to fbo texture attachment test
+  gl.bindTexture(gl.TEXTURE_2D, textures[1]);
+  gl.texImage2D(gl.TEXTURE_2D, 0, interalFormat, 1, 1, 0, format, type, null);
+
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "rtt bindings succeed");
+
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fbos[0]);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, textures[1], 0);
+
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "fbo bindings succeed");
+
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, textures[0]);
+  gl.texImage2D(gl.TEXTURE_2D, 0, interalFormat, 1, 1, 0, format, type, imageData);
+
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texture bindings succeed");
+
+  gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+  wtu.checkCanvasRect(gl, 0, 0, 1, 1, generateFormatColor(format, expectedValue, 0xffff), undefined, tolerance, readbackBuf, type);
+
+  // Renderbuffer test
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fbos[1]);
+  gl.bindRenderbuffer(gl.RENDERBUFFER, renderbuffer);
+  gl.renderbufferStorage(gl.RENDERBUFFER, interalFormat, 1, 1);
+  gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER,
+                            renderbuffer);
+  gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "renderbuffer bindings succeed");
+
+  gl.clearColor(1, 1, 1, 1);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  wtu.checkCanvasRect(gl, 0, 0, 1, 1, generateFormatColor(format, 0xffff, 0xffff), undefined, tolerance, readbackBuf, type);
+
+  // Copy from renderbuffer to textures[1] test
+  gl.bindTexture(gl.TEXTURE_2D, textures[1]);
+  gl.copyTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 0, 0, 1, 1);
+
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "copy succeed");
+
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fbos[0]);
+  wtu.checkCanvasRect(gl, 0, 0, 1, 1, generateFormatColor(format, 0xffff, 0xffff), undefined, tolerance, readbackBuf, type);
+
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  gl.bindTexture(gl.TEXTURE_2D, null);
+}
+
+function testExtFormatUnrenderable(internalFormatName, format, type) {
+  gl.bindTexture(gl.TEXTURE_2D, textures[1]);
+  gl.texImage2D(gl.TEXTURE_2D, 0, ext[internalFormatName], 1, 1, 0, format, type, null);
+
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texture definition succeeded");
+
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fbos[0]);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, textures[1], 0);
+
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "fbo binding succeeded");
+
+  wtu.framebufferStatusShouldBe(gl, gl.FRAMEBUFFER, [ gl.FRAMEBUFFER_INCOMPLETE_ATTACHMENT, gl.FRAMEBUFFER_UNSUPPORTED ],
+                                `framebuffer should not be complete with ${internalFormatName} texture attached`);
+}
+
+function runInternalFormatQueryTest()
+{
+    debug("");
+    debug("testing the internal format query");
+
+    var maxSamples = gl.getParameter(gl.MAX_SAMPLES);
+    const formats = [ext.R16_EXT, ext.RG16_EXT, ext.RGBA16_EXT];
+    for (const format of formats) {
+        var samples = gl.getInternalformatParameter(gl.RENDERBUFFER, format, gl.SAMPLES);
+        if (samples == null || samples.length == 0 || samples[0] < maxSamples) {
+            testFailed("the maximum value in SAMPLES should be at least " + maxSamples);
+            return;
+        }
+    }
+    testPassed("Internal format query succeeded");
+}
+
+function runTestExtension() {
+  textures = [gl.createTexture(), gl.createTexture()];
+  fbos = [gl.createFramebuffer(), gl.createFramebuffer()];
+  renderbuffer = gl.createRenderbuffer();
+
+  for (let i = 0; i < 2; i++) {
+    gl.bindTexture(gl.TEXTURE_2D, textures[i]);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  }
+
+  gl.bindTexture(gl.TEXTURE_2D, null);
+
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texture and framebuffer setup succeed");
+
+  let program300 = wtu.setupSimpleTextureProgramESSL300(gl);
+  let program100 = wtu.setupTexturedQuad(gl, 0, 1, wtu.simpleHighPrecisionTextureFragmentShader);
+
+  debug("");
+  debug("Texture creation");
+  testNorm16Texture("R16_EXT", "RED", "UNSIGNED_SHORT");
+  testNorm16Texture("RG16_EXT", "RG", "UNSIGNED_SHORT");
+  testNorm16Texture("RGB16_EXT", "RGB", "UNSIGNED_SHORT");
+  testNorm16Texture("RGBA16_EXT", "RGBA", "UNSIGNED_SHORT");
+  testNorm16Texture("R16_SNORM_EXT", "RED", "SHORT");
+  testNorm16Texture("RG16_SNORM_EXT", "RG", "SHORT");
+  testNorm16Texture("RGB16_SNORM_EXT", "RGB", "SHORT");
+  testNorm16Texture("RGBA16_SNORM_EXT", "RGBA", "SHORT");
+
+  testNorm16Texture("RGBA", "RGBA", "UNSIGNED_SHORT", "INVALID_OPERATION");
+  testNorm16Texture("RGBA", "RGBA", "SHORT", "INVALID_OPERATION");
+
+  debug("");
+  debug("Texture renderability");
+
+  testNorm16Render(ext.R16_EXT, gl.RED, gl.UNSIGNED_SHORT, 8);
+  testNorm16Render(ext.RG16_EXT, gl.RG, gl.UNSIGNED_SHORT, 8);
+  testNorm16Render(ext.RGBA16_EXT, gl.RGBA, gl.UNSIGNED_SHORT, 8);
+
+  gl.useProgram(program300);
+
+  testNorm16Render(ext.R16_EXT, gl.RED, gl.UNSIGNED_SHORT, 0);
+  testNorm16Render(ext.RG16_EXT, gl.RG, gl.UNSIGNED_SHORT, 0);
+  testExtFormatUnrenderable("RGB16_EXT", gl.RGB, gl.UNSIGNED_SHORT);
+  testNorm16Render(ext.RGBA16_EXT, gl.RGBA, gl.UNSIGNED_SHORT, 0);
+
+  testExtFormatUnrenderable("R16_SNORM_EXT", gl.RED, gl.SHORT);
+  testExtFormatUnrenderable("RG16_SNORM_EXT", gl.RG, gl.SHORT);
+  testExtFormatUnrenderable("RGB16_SNORM_EXT", gl.RGB, gl.SHORT);
+  testExtFormatUnrenderable("RGBA16_SNORM_EXT", gl.RGBA, gl.SHORT);
+};
+
+function runTest() {
+  if (!gl) {
+    testFailed("context does not exist");
+  } else {
+    testPassed("context exists");
+
+    ext = gl.getExtension("EXT_texture_norm16");
+
+    wtu.runExtensionSupportedTest(gl, "EXT_texture_norm16", ext !== null);
+
+    if (ext !== null) {
+      runInternalFormatQueryTest();
+      runTestExtension();
+    } else {
+      testPassed("No EXT_texture_norm16 support -- this is legal");
+    }
+  }
+}
+
+runTest();
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

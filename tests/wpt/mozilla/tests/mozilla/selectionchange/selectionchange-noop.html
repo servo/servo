@@ -1,0 +1,25 @@
+<html>
+<head>
+  <title>Test that selectionchange doesn't fire for bad reasons</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<span id="abcd">abcd</span><span id="efgh">efgh</span><span id="ijkl">ijkl</span>
+<script>
+var t = async_test("things that don't queue selectionchange");
+document.onselectionchange = () => {
+  assert_unreached("A document should not see selectionchange events when the selection isn't changing");
+}
+var r = new Range();
+r.setStart(document.getElementById("abcd"), 1);
+r.setEnd(document.getElementById("ijkl"), 1);
+var s = document.getSelection();
+assert_throws_dom("IndexSizeError", () => { s.getRangeAt(0) });
+assert_throws_dom("NotFoundError", () => { s.removeRange(r) });
+
+// selectionchange event is asynchronous, so give tasks a chance to fire.
+setTimeout(() => { t.done(); }, 1);
+</script>
+</body>
+</html>

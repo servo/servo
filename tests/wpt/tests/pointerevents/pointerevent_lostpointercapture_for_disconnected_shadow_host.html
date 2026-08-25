@@ -1,0 +1,138 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Lostpointercapture fires on document when target in shadow dom  is removed</title>
+    <meta name="viewport" content="width=device-width">
+    <link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=810882">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-actions.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <style>
+      #shadowhost{
+        height:200px;
+        width:200px;
+        background-color:magenta;
+      }
+    </style>
+  </head>
+  <body onload="onLoad()">
+    <template id="template">
+      <style>
+          #content{
+              height:100px;
+              width:100px;
+              background-color: lightgrey;
+          }
+      </style>
+      <div id="content"></div>
+    </template>
+    <h1>Pointer Events - lostpointercapture when capturing element in shadow dom is removed by removing the shadow host</h1>
+    <h4>
+        Test Description:
+        This test checks if lostpointercapture is fired at the document when the capturing node is removed from the document by removing the shadow host.
+        The shadow host is colored magenta and the shadow dom element is colored gray.
+        Complete the following actions:
+        <ol>
+            <li>Press left mouse button over "Set Capture" button. Pointer should be captured by the gray rectangle.</li>
+            <li>Shadow host magenta rectangle including the gray rectangle will be removed from shadow dom.</li>
+            <li>"lostpointercapture" should be received on the document not on the gray rectangle.</li>
+        </ol>
+    </h4>
+    <div id="shadowhost"></div>
+    <br>
+    <input type="button" id="btnCapture" value="Set Capture">
+    <div id="log"></div>
+    <script>
+      async function onLoad(){
+        var logDiv = document.getElementById("log");
+        function logMessage(message){
+          var log = document.createElement("div");
+          var messageNode = document.createTextNode(message);
+          log.appendChild(messageNode);
+          logDiv.appendChild(log);
+        }
+        var events = [];
+
+        var host = document.getElementById("shadowhost");
+        var shadowRoot = host.attachShadow({mode: "open"});
+        var template = document.getElementById("template");
+        var node = template.content.cloneNode(true);
+        shadowRoot.appendChild(node);
+
+        var content = host.shadowRoot.getElementById("content");
+        var captureButton = document.getElementById("btnCapture");
+
+        captureButton.addEventListener("pointerdown", function(event){
+          logMessage("Pointer will be captured by the shadow dom gray rectangle.");
+          content.setPointerCapture(event.pointerId);
+          events.push("pointerdown@captureButton");
+        });
+        content.addEventListener("gotpointercapture", function(event){
+          logMessage("Gray rectangle received pointercapture.");
+          logMessage("Removing magenta rectangle (which includes gray rectangle) from shadow dom.")
+          host.parentNode.removeChild(host);
+          events.push("gotpointercapture@content");
+        });
+        content.addEventListener("lostpointercapture", function(event){
+          logMessage("Test Failed! The element removed from shadow dom should not receive lostpointercapture.")
+          events.push("lostpointercapture@content");
+          if(window.promise_test && shadow_dom_test){
+            shadow_dom_test.step(function(){
+              assert_unreached("lostpointercapture must be fired on the document, not the capturing element");
+              reject_test("lostpointercapture must not be dispatched on the disconnected node");
+              shadow_dom_test.done();
+            });
+          }
+        });
+        document.addEventListener("lostpointercapture", function(event){
+          logMessage("Test Passed! Document received lostpointercapture.");
+          events.push("lostpointercapture@document");
+          if(window.promise_test && shadow_dom_test){
+            shadow_dom_test.step(function(){
+              assert_array_equals(events, ["pointerdown@captureButton",
+                "gotpointercapture@content",
+                "lostpointercapture@document"]);
+              resolve_test();
+            });
+          }
+        });
+
+        var shadow_dom_test = null;
+          var resolve_test = null;
+          var reject_test = null;
+
+        function cleanup(){
+          events = [];
+          shadow_dom_test = null;
+          resolve_test = null;
+          reject_test = null;
+        }
+        if(window.promise_test){
+          promise_test(async function(t){
+            var actions_promise;
+            return new Promise(function(resolve, reject){
+              shadow_dom_test = t;
+              resolve_test = resolve;
+              reject_test = reject;
+              t.add_cleanup(function(){
+                cleanup();
+              });
+              var actions = new test_driver.Actions();
+              actions_promise = actions
+                .pointerMove(0, 0, {origin:captureButton})
+                .pointerDown({button: actions.ButtonType.LEFT})
+                .pointerUp({button: actions.ButtonType.LEFT})
+                .send();
+            }).finally(async () => {
+              await actions_promise;
+              t.done();
+            });
+          }, "lostpointercapture is dispatched on the document when shadow host is removed");
+        }
+      }
+    </script>
+  </body>
+</html>
+

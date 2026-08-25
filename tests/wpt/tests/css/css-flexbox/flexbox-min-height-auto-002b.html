@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Test: Testing min-height:auto</title>
+    <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+    <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#min-size-auto">
+    <link rel="match" href="flexbox-min-height-auto-002-ref.html">
+<!--
+     This testcase tests the used value of "min-height:auto" (the property's
+     initial value) on flex items in a vertical flex container.
+
+     It's supposed to resolve to the smallest of:
+      a) The used 'flex-basis' (taken from 'height'), if 'flex-basis' is at its
+         initial value.
+      b) The computed 'max-height' property
+      c) If there's no intrinsic aspect ratio: the item's min-content height.
+      d) If there is an intrinsic aspect ratio: the item's height derived from
+         the ratio & constraints in the other dimension.
+
+    We measure what the used value is by putting flex items in a small flex
+    container, which will shrink its items down to their min-height.
+
+    This test checks for situations where we should resolve the min-height as
+    (d) above, with "constraints in the other dimension" being "min-width".
+-->
+    <style>
+      .flexbox {
+        display: flex;
+        flex-direction: column;
+        max-width: 34px; /* Constrain the flex container's cross size. */
+        height: 1px;  /* No available space; shrink flex items to min-height */
+        margin-right: 2px; /* (Just for spacing things out, visually) */
+        float: left;
+      }
+
+      .flexbox > * {
+        /* Flex items have purple border: */
+        border: 2px dotted purple;
+        /* Flex items have sizing constraint in cross axis: */
+        min-width: 30px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Check for min-height:auto resolving correctly when the smallest
+         candidate value is: -->
+
+    <!-- *** (d) (with intrinsic aspect ratio) The height derived from ratio
+                 and constraints in the other dimension *** -->
+    <!-- First, with a larger candidate 'flex-basis' value (from 'height') -->
+    <div class="flexbox">
+      <img style="height: 100px" src="support/solidblue.png" alt="blue square">
+    </div>
+    <!-- ...and now with a larger explicit 'flex-basis' value (which shouldn't
+         be considered for 'min-height:auto' anyway) -->
+    <div class="flexbox">
+      <img style="flex-basis: 100px" src="support/solidblue.png" alt="blue square">
+    </div>
+    <!-- ...and now with a smaller explicit 'flex-basis' value (which shouldn't
+         be considered for 'min-height:auto' anyway) -->
+    <div class="flexbox">
+      <img style="flex-basis: 10px" src="support/solidblue.png" alt="blue square">
+    </div>
+  </body>
+</html>

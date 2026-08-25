@@ -1,0 +1,117 @@
+<!doctype html>
+<html>
+<title> Check enforcement of COEP in a ServiceWorker using CacheStorage. </title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+<script>
+// See also: ./dedicated-worker-cache-storage.https.html
+
+function remote(path) {
+  const REMOTE_ORIGIN = get_host_info().HTTPS_REMOTE_ORIGIN;
+  return new URL(path, REMOTE_ORIGIN);
+}
+
+const iframe_path = "./resources/iframe.html?pipe=";
+const service_worker_path = "./resources/universal-worker.js?pipe=";
+const ressource_path = "/images/blue.png?pipe=";
+
+const coep_header= {
+  "coep-none"         : "",
+  "coep-require-corp" : "|header(Cross-Origin-Embedder-Policy,require-corp)",
+}
+
+const corp_header = {
+  "corp-undefined"    : "",
+  "corp-cross-origin" : "|header(Cross-Origin-Resource-Policy,cross-origin)",
+}
+
+// Send a message to the |worker| and wait for its response.
+function executeCommandInServiceWorker(worker, command) {
+  const channel = new MessageChannel();
+  const response = new Promise(resolve => channel.port1.onmessage = resolve);
+  worker.postMessage(command, [ channel.port2 ]);
+  return response;
+}
+
+// Check enforcement of COEP in a ServiceWorker using CacheStorage.
+//
+// 1) Fetch a response from a document with COEP:none. Store it in the
+//    CacheStorage. The response is cross-origin without any CORS header.
+// 2) From a ServiceWorker, retrieve the response from the CacheStorage.
+//
+// Test parameters:
+// - |worker_coep| the COEP header of the ServiceWorker's script response.
+// - |response_corp| the CORP header of the response.
+//
+// Test expectations:
+// |loaded| is true whenever the worker is able to fetch the response from
+// the CacheStorage. According to the specification:
+// https://mikewest.github.io/corpp/#initialize-embedder-policy-for-global
+// it must be false when:
+// - |worker_coep| is 'coep-require-corp' and
+// - |response-corp| is 'corp-undefined'.
+function check(
+  // Test parameters:
+  worker_coep,
+  response_corp,
+
+  // Test expectations:
+  loaded) {
+
+  promise_test(async (t) => {
+    // 1) Fetch a response from a document with COEP:none. Store it in the
+    //    CacheStorage. The response is cross-origin without any CORS header.
+    const resource_path = ressource_path + corp_header[response_corp];
+    const resource_url = remote(resource_path);
+    const fetch_request = new Request(resource_url, {mode: 'no-cors'});
+    const cache = await caches.open('v1');
+    const fetch_response = await fetch(fetch_request);
+    await cache.put(fetch_request, fetch_response);
+
+    // 2) Start a ServiceWorker.
+    const SCOPE= new URL(location.href).pathname;
+    const service_worker_allowed = `|header(service-worker-allowed,${SCOPE})`;
+    const SCRIPT =
+      service_worker_path +
+      coep_header[worker_coep] +
+      service_worker_allowed;
+
+    const reg = await service_worker_unregister_and_register(t, SCRIPT, SCOPE);
+    add_completion_callback(() => reg.unregister());
+
+    // Start talking to the ServiceWorker, no matter its state.
+    const worker = reg.installing || reg.waiting || reg.active;
+
+    // 3) From the service worker, try to retrieve the response from the
+    //    CacheStorage.
+    const response = executeCommandInServiceWorker(worker, `
+      (async function() {
+        const cache = await caches.open('v1');
+        const request = new Request('${resource_url}', {
+          mode: 'no-cors'
+        });
+        try {
+          const response = await cache.match(request);
+          message.ports[0].postMessage('success');
+        } catch(error) {
+          message.ports[0].postMessage('error');
+        }
+      })()
+    `);
+    const {data} = await response;
+    assert_equals(data === "success", loaded);
+  }, `A ServiceWorker with ${worker_coep} use CacheStorage to get a ${response_corp} response.`)
+}
+
+// ------------------------------------------------------
+//    worker_coep         , response_corp       , loaded
+// ------------------------------------------------------
+check("coep-none"         , "corp-undefined"    , true);
+check("coep-none"         , "corp-cross-origin" , true);
+check("coep-require-corp" , "corp-undefined"    , false);
+check("coep-require-corp" , "corp-cross-origin" , true);
+
+</script>
+</html>

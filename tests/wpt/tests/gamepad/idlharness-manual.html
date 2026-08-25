@@ -1,0 +1,37 @@
+<!doctype html>
+<title>Manual Gamepad IDL tests</title>
+<link rel="help" href="https://w3c.github.io/gamepad/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+<p id="instructions">This test requires a gamepad. Connect one and press any button to start the test.</p>
+<script>
+'use strict';
+
+idl_test(
+  ['gamepad'],
+  ['dom', 'html'],
+  (idl_array, t) => {
+    idl_array.add_objects({
+      Gamepad: ['gamepad'],
+      GamepadButton: ['gamepadButton'],
+      GamepadEvent: ['event'],
+      Navigator: ['navigator']
+    });
+
+    const eventWatcher = new EventWatcher(t, window, "gamepadconnected");
+    const gamepadConnected = eventWatcher.wait_for("gamepadconnected")
+        .then(e => {
+          self.event = e;
+          self.gamepad = e.gamepad;
+          self.gamepadButton = e.gamepad.buttons[0];
+        });
+
+    const timeout = new Promise((_, reject) => {
+      t.step_timeout(() => { reject('Timed out waiting for gamepad'); }, 5000);
+    });
+    return Promise.race([gamepadConnected, timeout]);
+  }
+);
+</script>

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<link rel="match" href="textpath-combining-marks-ref.html">
+<title>SVG text: combining marks on a textPath shape as one typographic character</title>
+<link rel="help" href="https://w3c.github.io/svgwg/master/text.html#TextLayoutIntroduction">
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=266832">
+<meta name="assert" content="A base letter followed by a combining mark (e + U+0301) placed on a textPath must be shaped together as one typographic character, rendering an accented letter — not a base glyph and a dotted-circle for the lone mark.">
+
+<body style="margin:20px">
+
+<!-- e + U+0301 (COMBINING ACUTE ACCENT): the mark must join its base, not become its own
+     isolated single-code-point fragment. Straight horizontal path so layout matches the
+     precomposed reference exactly. -->
+<svg width="600" height="100">
+  <path id="hline" d="M 50 50 L 550 50" fill="none"/>
+  <text font-size="40px">
+    <textPath href="#hline">cafe&#x0301; expose&#x0301;</textPath>
+  </text>
+</svg>
+
+</body>
+</html>

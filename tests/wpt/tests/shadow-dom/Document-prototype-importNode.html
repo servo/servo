@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>DOM and Shadow DOM: Document.prototype.importNode</title>
+<meta name="author" title="Ryosuke Niwa" href="mailto:rniwa@webkit.org">
+<meta name="assert" content="The importNode(node, deep) method must throw a NotSupportedError exception if node is a shadow root.">
+<link rel="help" href="https://dom.spec.whatwg.org/#dom-document-importnode">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+
+function testImportNode(mode) {
+    test(function () {
+        var newDocument = document.implementation.createHTMLDocument();
+        assert_throws_dom('NotSupportedError', function () {
+            var element = document.createElement('div');
+            var shadowRoot = element.attachShadow({mode: mode});
+            newDocument.importNode(shadowRoot);
+        });
+    }, 'importNode on a shadow root in ' + mode + ' mode must throw a NotSupportedError');
+}
+
+testImportNode('open');
+testImportNode('closed');
+
+</script>
+</body>
+</html>

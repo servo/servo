@@ -1,0 +1,16 @@
+<!doctype html><meta charset=utf-8>
+<script>
+    function end() {
+        console.log("end");
+        let a = 1;
+        let b = 2;
+    }
+    function loop() {
+        console.log("start");
+        end();
+        let a = 1;
+        let b = 2;
+        setTimeout(loop, 1000);
+    }
+    loop();
+</script>

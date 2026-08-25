@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<title>Percentages of width on non-replaced blocks are ignored for intrinsic sizing and resolved afterwards</title>
+<link rel="help" href="https://www.w3.org/TR/css-sizing-3/#intrinsic-contribution">
+<link rel="match" href="intrinsic-percent-non-replaced-002-ref.html">
+
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  /* establish context */
+  .container {
+    clear: both;
+    padding: 10px;
+    color: blue;
+    font: 20px/1 Ahem;
+  }
+  .zero {
+    width: 0;
+  }
+  .infinite {
+    width: 400px; /* close enough */
+  }
+
+  /* visualize size contribution */
+  .container > div {
+    float: left;
+    border: solid orange 20px;
+    border-style: none solid;
+  }
+  .container > div > div {
+    border-right: solid 20px aqua;
+  }
+
+  /* test width */
+  /* content = 100% = 80px = 4ch + border */
+  /* choose sizes that are different than content to see if how they take effect */
+  .raw-percent {
+    width: 50%;
+  }
+  .calc-percent {
+    width: calc(40px + 0%);
+  }
+  .no-percent {
+    width: 40px;
+  }
+</style>
+
+<!-- calculating min-content widths -->
+<div class='zero container'>
+  <div><div class="control">ppp pp</div></div>
+</div>
+<div class='zero container'>
+  <div><div class="raw-percent">ppp pp</div></div>
+</div>
+<div class='zero container'>
+  <div><div class="calc-percent">ppp pp</div></div>
+</div>
+<div class='zero container'>
+  <div><div class="no-percent">ppp pp</div></div>
+</div>
+
+<!-- calculating max-content widths -->
+<div class='infinite container'>
+  <div><div class="control">p p</div></div>
+</div>
+<div class='infinite container'>
+  <div><div class="raw-percent">p p</div></div>
+</div>
+<div class='infinite container'>
+  <div><div class="calc-percent">p p</div></div>
+</div>
+<div class='infinite container'>
+  <div><div class="no-percent">p p</div></div>
+</div>

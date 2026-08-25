@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<link rel="help" href="https://drafts.csswg.org/css-logical/#float-clear">
+<link rel="match" href="reference/logical-values-float-clear-4-ref.html">
+<style>
+html { writing-mode: vertical-rl; }
+body > div { height: 15em; width: 10em; margin: 1em; padding: 2px; border: 1px solid silver; }
+div > div { margin: .5em; padding: .5em; background: yellow; }
+.a { clear: inline-start; }
+.b { clear: inline-end; }
+.is { float: inline-start; width: 4em; }
+.ie { float: inline-end; width: 2em; }
+.ltr { direction: ltr; }
+.rtl { direction: rtl; }
+</style>
+
+<body>
+<div class="ltr">
+ <div class="is">Start</div>
+ <div class="ie">End</div>
+ <p class="a">a b c d e f g h i j k l m n o p q r s t u v w x y z LTR clear:inline-start</p>
+</div>
+
+<div class="ltr">
+ <div class="is">Start</div>
+ <div class="ie">End</div>
+ <p class="b">a b c d e f g h i j k l m n o p q r s t u v w x y z LTR clear:inline-end</p>
+</div>
+
+<div class="rtl">
+ <div class="is">Start</div>
+ <div class="ie">End</div>
+ <p class="a">a b c d e f g h i j k l m n o p q r s t u v w x y z RTL clear:inline-start</p>
+</div>
+
+<div class="rtl">
+ <div class="is">Start</div>
+ <div class="ie">End</div>
+ <p class="b">a b c d e f g h i j k l m n o p q r s t u v w x y z RTL clear:inline-end</p>
+</div>

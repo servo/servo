@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1947223">
+<style>
+html {
+  width: 200vw;
+  height: 200vh;
+}
+.fixed {
+  position: fixed;
+  top: 0px;
+  left: -200px;
+  width: 100px;
+  height: 100px;
+  overflow: scroll;
+}
+#target {
+  width: 100px;
+  height: 100px;
+}
+</style>
+<div class="fixed">
+  <div id="target"></div>
+  <div style="height: 200vh"></div>
+</div>
+<script>
+promise_test(async t => {
+  assert_equals(window.scrollY, 0);
+  assert_equals(visualViewport.pageTop, 0);
+
+  // Scroll the root scroll container a bit.
+  const scrollPromise =
+      new Promise(resolve => window.addEventListener("scroll", resolve));
+  window.scrollTo(0, 10);
+  await scrollPromise;
+  assert_equals(window.scrollY, 10);
+  assert_equals(visualViewport.pageTop, 10);
+
+  window.addEventListener("scroll", () => {
+    assert_unreached("Any scroll event should not be observed");
+  });
+
+  // Now trigger a scrollIntoView call to an element inside a position:fixed element.
+  // NOTE: smooth scroll is a trigger of the firefox bug.
+  document.querySelector('#target').scrollIntoView({ behavior: "smooth" });
+
+  // Wait four rAFs to give a chance the scrollIntoView scrolls this document.
+  await new Promise(resolve => requestAnimationFrame(resolve));
+  await new Promise(resolve => requestAnimationFrame(resolve));
+  await new Promise(resolve => requestAnimationFrame(resolve));
+  await new Promise(resolve => requestAnimationFrame(resolve));
+
+  assert_equals(window.scrollY, 10);
+  assert_equals(visualViewport.pageTop, 10);
+}, "Element.scrollIntoView doesn't scroll a position:fixed element outside of the layout viewport");
+</script>

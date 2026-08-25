@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test (Transforms): matrix() with zeros in the diagonal</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://www.w3.org/TR/css-transforms-1/#funcdef-transform-matrix">
+<link rel="help" href="https://www.w3.org/TR/css-transforms-1/#transform-function-lists">
+<link rel="help" href="https://github.com/servo/servo/issues/37146">
+<link rel="match" href="../reference/ref-filled-green-200px-square.html">
+<meta name="assert" content="Tests that the element is still rendered,
+    even though the current transformation matrix has zeros in the diagonal,
+    as long as the matrix remains invertible.">
+
+<style>
+.wrapper {
+  width: 200px;
+  height: 200px;
+  background: red;
+}
+.test {
+  width: 200px;
+  height: 200px;
+  background: green;
+  transform: matrix(0,1, 1,0, 0,0);
+  /*
+    The resulting matrix is:
+    ┌         ┐
+    │ 0 1 0 0 │
+    │ 1 0 0 0 │
+    │ 0 0 1 0 │
+    │ 0 0 0 1 │
+    └         ┘
+    It could result from e.g. `scaleX(-1) rotate(90deg)`.
+  */
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div class="wrapper">
+  <div class="test"></div>
+</div>

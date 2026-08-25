@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="help" href="https://crbug.com/391632970">
+  <title>clip path animation with a view timeline doesn't crash</title>
+</head>
+<style type="text/css">
+  .spacer {
+    height: 200vh;
+  }
+  @keyframes clip {
+    0% { clip-path: circle(50% at 50% 50%); }
+    50% { clip-path: circle(5% at 50% 50%); }
+    100% { clip-path: circle(50% at 50% 50%); }
+  }
+  #target {
+    height: 100px;
+    width: 100px;
+    clip-path: circle(50% at 50% 50%);
+    background-color: blue;
+    animation: clip auto linear;
+    animation-timeline: --t1;
+    view-timeline: --t1;
+    animation-range-start: cover 20%;
+    animation-range-end: cover 80%;
+  }
+</style>
+<body>
+  <div class="spacer"></div>
+  <div id="target"></div>
+  <div class="spacer"></div>
+</body>
+<script>
+  function raf() {
+    return new Promise(resolve => {
+      requestAnimationFrame(resolve);
+    });
+  }
+  window.onload = async () => {
+    await raf();
+    await raf();
+    const scroller = document.scrollingElement;
+    const spacer = document.querySelector('.spacer');
+    scroller.scrollTop = spacer.clientHeight;
+    const anim = document.getAnimations()[0];
+    anim.ready.then(async () => {
+      await raf();
+      await raf();
+      // Remove test-wait to indicate that the test is complete.
+      document.documentElement.className = "";
+    });
+  };
+</script>

@@ -1,0 +1,42 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>setTimeout() in a detached iframe's realm does not throw and the callback does not run</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id="content" style="display: none"></div>
+<script>
+function createIframe(detach) {
+  const iframe = document.createElement("iframe");
+  document.getElementById("content").appendChild(iframe);
+  const win = iframe.contentWindow;
+  if (detach) {
+    iframe.remove();
+  }
+  return win;
+}
+
+async_test(t => {
+  const attachedWin = createIframe(false);
+  const detachedWin = createIframe(true);
+
+  let attachedRan = false;
+  let detachedRan = false;
+
+  const attachedId = attachedWin.setTimeout(t.step_func(() => {
+    attachedRan = true;
+  }), 0);
+  assert_equals(typeof attachedId, "number",
+    "setTimeout in an attached realm returns a numeric timer id");
+
+  detachedWin.setTimeout(t.step_func(() => {
+    detachedRan = true;
+  }), 0);
+
+  t.step_timeout(() => {
+    t.step_timeout(t.step_func_done(() => {
+      assert_true(attachedRan, "the attached realm's timeout callback ran");
+      assert_false(detachedRan, "the detached realm's timeout callback did not run");
+    }), 0);
+  }, 0);
+}, "setTimeout() on a detached iframe's window does not throw and its callback never runs");
+</script>

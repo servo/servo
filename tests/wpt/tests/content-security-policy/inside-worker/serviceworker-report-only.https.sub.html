@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Test the 'connect-src' directive on service workers in report-only mode
+-->
+<script>
+  promise_test(async t => {
+    let r = await navigator.serviceWorker.register(
+      "./support/connect-src-self-report-only.sub.js?id={{uuid()}}",
+      {scope: "./support/blank.html"});
+    t.add_cleanup(_ => r.unregister());
+    let sw = r.active || r.installing || r.waiting;
+    await fetch_tests_from_worker(sw);
+  });
+</script>

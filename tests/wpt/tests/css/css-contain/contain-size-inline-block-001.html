@@ -1,0 +1,59 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Test: 'contain: size' on inline-block elements should cause them to be sized as if they had no contents and baseline-aligned regularly.</title>
+  <link rel="author" title="Morgan Rae Reschenberg" href="mailto:mreschenberg@berkeley.edu">
+  <link rel="help" href="https://drafts.csswg.org/css-contain/#containment-size">
+  <link rel="match" href="contain-size-inline-block-001-ref.html">
+  <style>
+  .contain {
+    display: inline-block;
+    contain:size;
+    border: 1em solid green;
+    background: red;
+  }
+  .innerContents {
+    color: transparent;
+    height: 100px;
+    width: 100px;
+  }
+  .minHeight {
+    min-height: 50px;
+  }
+  .height {
+    height: 50px;
+  }
+  .minWidth {
+    min-width: 50px;
+  }
+  .width {
+    width: 50px;
+  }
+  </style>
+</head>
+<body>
+  <!--CSS Test: A size-contained inline-block element with no specified size should render at 0 height and 0 width regardless of content.-->
+  <div class="contain"><div class="innerContents">inner</div></div>
+  <br>
+
+  <!--CSS Test: A size-contained inline-block element should perform baseline alignment regularly.-->
+  outside before<div class="contain"><div class="innerContents">inner</div></div>outside after
+  <br>
+
+  <!--CSS Test: A size-contained inline-block element with specified min-height should render at given min-height and 0 width regardless of content.-->
+  <div class="contain minHeight"><div class="innerContents">inner</div></div>
+  <br>
+
+  <!--CSS Test: A size-contained inline-block element with specified height should render at given height and 0 width regardless of content.-->
+  <div class="contain height"><div class="innerContents">inner</div></div>
+  <br>
+
+  <!--CSS Test: A size-contained inline-block element with specified min-width should render at given min-width and 0 height regardless of content.-->
+  <div class="contain minWidth"><div class="innerContents">inner</div></div>
+  <br>
+
+  <!--CSS Test: A size-contained inline-block element with specified width should render at given width and 0 height regardless of content.-->
+  <div class="contain width"><div class="innerContents">inner</div></div>
+</body>
+</html>

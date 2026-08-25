@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2054742">
+<link rel="help" href="https://drafts.csswg.org/css-tables/">
+<!-- Really a crashtest but since we can't really have print crashtests, we assert that we print something -->
+<link rel="mismatch" href="/css/reference/blank.html">
+<style>
+  @page {
+    size: 2.2in 3in;
+    margin: 0.1in;
+  }
+
+  @page :first {
+    size: 4in 3in;
+    margin: 0.1in;
+  }
+
+  .cqc {
+    container-type: inline-size;
+  }
+
+  @container (max-width: 3.5in) {
+    .victim {
+      display: none;
+    }
+
+    .victim2 {
+      display: none;
+    }
+  }
+
+  td {
+    border: 1px solid black;
+    font-size: 10px;
+    vertical-align: top;
+  }
+
+  table {
+    border-collapse: collapse;
+  }
+</style>
+
+<body>
+  <script>
+    function lines(n) {let s = ''; for (let i = 0; i < n; i++) s += 'ln' + i + '<br>'; return s;}
+    function build(fillerLines, victimLines, extraRows) {
+      const wrap = document.createElement('div');
+      wrap.className = 'cqc';
+      let h = '<div>' + lines(fillerLines) + '</div>';
+      h += '<table><tbody>';
+      h += '<tr><td rowspan="3">' + lines(8) + '</td><td>a</td><td>b</td></tr>';
+      h += '<tr><td>c</td><td>d</td></tr>';
+      h += '<tr class="victim"><td>' + lines(victimLines) + '</td><td>' + lines(victimLines - 4) + '</td></tr>';
+      h += '<tr class="victim2"><td>' + lines(victimLines) + '</td><td>v2</td><td>v3</td></tr>';
+      for (let i = 0; i < extraRows; i++) {
+        h += '<tr><td>e' + i + '</td><td>' + lines(3) + '</td><td>f' + i + '</td></tr>';
+      }
+      h += '</tbody></table>';
+      wrap.innerHTML = h;
+      document.body.appendChild(wrap);
+    }
+    for (let filler = 1; filler <= 15; filler += 2) {
+      build(filler, 26, 6);
+    }
+  </script>

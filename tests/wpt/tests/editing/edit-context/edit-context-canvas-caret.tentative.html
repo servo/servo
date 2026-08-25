@@ -1,0 +1,10 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Test that no caret is rendered for canvas EditContext</title>
+<link rel=match href=edit-context-canvas-caret-ref.html>
+<canvas></canvas>
+<script>
+const canvas = document.querySelector('canvas');
+canvas.editContext = new EditContext();
+canvas.focus();
+</script>

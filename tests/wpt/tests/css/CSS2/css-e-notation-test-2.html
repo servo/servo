@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>CSS test: E-notation</title>
+<link rel="author" title="Bert Bos" href="mailto:bert@w3.org">
+<link rel="help" href="http://www.w3.org/TR/CSS2/syndata.html#numbers">
+<link rel="match" href="css-e-notation-ref-2.html">
+<meta name="flags" content="asis">
+<meta name="assert" content="Test checks interpretation of numbers in e-notation.">
+<style>
+    body {background: white; color: black; min-width: 300px}
+    .t {background: black; color: white}
+    #p0 {width: 300px}
+    #p1 {width: 3e2px}
+    #p2 {width: 3.0e2px}
+    #p3 {width: 30.0e1px}
+    #p4 {width: 300.0e0px}
+    #p5 {width: 3e+2px}
+    #p6 {width: 3E+2px}
+    #p7 {width: 0.3E+3px}
+    #p8 {width: 3000.0E-1px}
+    #p9 {width: 30000.000000000000000E-2px}
+</style>
+<body>
+    <p>Test passes if all rectangles below are 300px wide
+    <p class=t id=p0>300px
+    <p class=t id=p1>300px
+    <p class=t id=p2>300px
+    <p class=t id=p3>300px
+    <p class=t id=p4>300px
+    <p class=t id=p5>300px
+    <p class=t id=p6>300px
+    <p class=t id=p7>300px
+    <p class=t id=p8>300px
+    <p class=t id=p9>300px
+</body>

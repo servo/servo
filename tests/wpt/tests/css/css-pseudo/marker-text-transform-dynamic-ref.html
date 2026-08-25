@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>CSS Reftest Reference</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com" />
+<style>
+.inside {
+  list-style-position: inside;
+}
+.latin {
+  list-style-type: upper-latin;
+}
+.string {
+  list-style-type: "B. ";
+}
+.content::marker {
+  content: "C. ";
+}
+</style>
+<ol class="outside">
+  <li class="latin"></li>
+  <li class="string"></li>
+  <li class="content"></li>
+</ol>
+<ol class="inside">
+  <li class="latin"></li>
+  <li class="string"></li>
+  <li class="content"></li>
+</ol>

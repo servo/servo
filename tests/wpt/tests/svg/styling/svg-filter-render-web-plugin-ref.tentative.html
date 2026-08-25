@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<script src="/common/reftest-wait.js"></script>
+<script src="/svg/styling/support/svg-filter-render-util.js"></script>
+<script>
+    onload = async () => {
+        await waitForRender(takeScreenshot);
+    };
+</script>
+</head>
+<body>
+    <div>
+        SVG filter security test: this test passes if there is no filter effect on the web plugin.
+    </div>
+    <br />
+    <div>
+        <embed width="100px" height="100px" type="application/x-webkit-test-webplugin"></embed>
+    </div>
+</body>
+</html>

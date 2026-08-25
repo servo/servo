@@ -1,0 +1,51 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Should not scroll out of rounded corner</title>
+<link rel="help" href="https://crbug.com/40277896">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+<style>
+  #scroller {
+    border-radius: 100px;
+    overflow: auto;
+    width: 300px;
+    height: 300px;
+    border: 2px solid blue;
+    will-change: scroll-position;
+  }
+
+  .spacer {
+    height: 200vh;
+  }
+
+</style>
+
+<div id="scroller">
+  <div class="spacer"></div>
+</div>
+<div class="spacer"></div>
+
+<script>
+  promise_test(async (t) => {
+    await waitForCompositorCommit();
+    let scrolled = new Promise((resolve) => {
+      let scrollers = [window, document.getElementById("scroller")];
+      let onscroll = (evt) => {
+        for (const scroller of scrollers) {
+          scroller.removeEventListener("scroll", onscroll);
+        }
+        resolve(evt.target.id || "root");
+      }
+      for (const scroller of scrollers) {
+        scroller.addEventListener("scroll", onscroll);
+      }
+    });
+    const actions = new test_driver.Actions().scroll(20, 20, 0, 50, { duration: 50 });
+    actions.send();
+    assert_equals(await scrolled, "root", "Incorrect element scrolled");
+  }, "Wheel-scroll out of rounded corner skips that scroller");
+</script>

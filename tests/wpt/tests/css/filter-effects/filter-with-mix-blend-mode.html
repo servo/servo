@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Filters: filter and mix-blend mode on the same element</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1">
+<link rel="match" href="reference/filter-with-mix-blend-mode-ref.html">
+<style>
+    html {
+        background: green;
+    }
+    div {
+        width: 200px;
+        height: 200px;
+        background: red;
+        filter: grayscale();
+        mix-blend-mode: screen;
+    }
+</style>
+</head>
+<body>
+    <div></div>
+</body>
+</html>

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 3 Test: Breaking sequences of trailing ideograohic spaces </title>
+<link rel="author" title="Javier Fernandez Garcia-Boente" href="mailto:jfernandez@igalia.com"/>
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#valdef-white-space-break-spaces">
+<link rel="match" href="reference/trailing-ideographic-space-break-spaces-001-ref.html">
+<meta name="assert" content="If white-space is set to 'break-spaces', the overflowing idegraphic spaces must wrap to the next line.">
+<style>
+div {
+    width: 3em;
+    white-space: break-spaces;
+    line-height: 1;
+}
+</style>
+
+<p>Test passes if the characters below are arranged in pairs with a empty line in between.</p>
+<div contenteditable="true">ああ&#x3000;<span>&#x3000;&#x3000;&#x3000;</span>ああ</div>

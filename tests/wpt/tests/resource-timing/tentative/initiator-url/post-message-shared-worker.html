@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <h1>Description</h1>
+  <p> This test verifies that, for the resources fetched in a message
+      handler in a shared worker thread, the initiator_url reported is
+      the shared worker script that sets up the message handler.
+  </p>
+</body>
+<script>
+
+const worker = new
+   SharedWorker("../../resources/message-handler-in-shared-worker.js");
+const {promise: workerPromise, resolve: resolveWorker} = Promise.withResolvers();
+let result, expected;
+
+worker.port.onmessage = function(event) {
+  result = event.data.result;
+  expected = event.data.expected;
+  resolveWorker();
+}
+
+promise_test(async () => {
+  await workerPromise;
+  assert_equals(result, expected, `initiatorUrl for resources fetched
+    in message handler in worker thread`);
+}, "check initiatorUrl for resources fetched in message handler in worker thread");
+
+worker.port.postMessage('please_test');
+</script>

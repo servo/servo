@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<title>innerHTML: li auto-closing behavior</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/grouping-content.html#the-li-element">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/parsing.html#parsing-main-inbody">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+// Per the HTML spec, an opening <li> tag implicitly closes any currently open
+// <li> in the same list scope. These tests verify that innerHTML parsing
+// produces sibling <li> elements (not nested) when adjacent <li> tags appear.
+
+test(function() {
+    var div = document.createElement("div");
+    div.innerHTML = "<ul><li><li></li></li></ul>";
+    var ul = div.querySelector("ul");
+    assert_equals(ul.children.length, 2, "ul should have 2 children");
+    assert_equals(ul.innerHTML, "<li></li><li></li>");
+}, "Adjacent empty li elements in ul produce siblings.");
+
+test(function() {
+    var div = document.createElement("div");
+    div.innerHTML = "<ol><li><li></li></li></ol>";
+    var ol = div.querySelector("ol");
+    assert_equals(ol.children.length, 2, "ol should have 2 children");
+    assert_equals(ol.innerHTML, "<li></li><li></li>");
+}, "Adjacent empty li elements in ol produce siblings.");
+
+test(function() {
+    var div = document.createElement("div");
+    div.innerHTML = "<ul><li>first<li>second</li></li></ul>";
+    var ul = div.querySelector("ul");
+    assert_equals(ul.children.length, 2, "ul should have 2 children");
+    assert_equals(ul.innerHTML, "<li>first</li><li>second</li>");
+}, "Adjacent li elements with text content produce siblings.");
+
+test(function() {
+    var div = document.createElement("div");
+    div.innerHTML = "<ul><li>a<li>b<li>c</li></li></li></ul>";
+    var ul = div.querySelector("ul");
+    assert_equals(ul.children.length, 3, "ul should have 3 children");
+    assert_equals(ul.innerHTML, "<li>a</li><li>b</li><li>c</li>");
+}, "Three adjacent li elements produce siblings.");
+
+test(function() {
+    var div = document.createElement("div");
+    div.innerHTML = "<ul><li><ul><li>nested</li></ul></li></ul>";
+    var outerUl = div.querySelector("ul");
+    assert_equals(outerUl.children.length, 1, "outer ul should have 1 child");
+    var innerUl = outerUl.querySelector("ul");
+    assert_equals(innerUl.children.length, 1, "inner ul should have 1 child");
+    assert_equals(innerUl.innerHTML, "<li>nested</li>");
+}, "Legitimate li nesting through intervening ul is preserved.");
+
+test(function() {
+    var div = document.createElement("div");
+    div.innerHTML = "<div><ul><li><li></li></li></ul></div>";
+    var ul = div.querySelector("ul");
+    assert_equals(ul.children.length, 2, "ul should have 2 children");
+}, "Adjacent li elements produce siblings when ul is nested in div.");
+
+test(function() {
+    var div = document.createElement("div");
+    div.innerHTML = '<ul><li class="a"><li class="b"></li></li></ul>';
+    var ul = div.querySelector("ul");
+    assert_equals(ul.children.length, 2, "ul should have 2 children");
+    assert_equals(ul.children[0].className, "a");
+    assert_equals(ul.children[1].className, "b");
+}, "Adjacent li elements with attributes produce siblings.");
+</script>

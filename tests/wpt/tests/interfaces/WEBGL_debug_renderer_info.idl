@@ -1,0 +1,12 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebGL WEBGL_debug_renderer_info Khronos Ratified Extension Specification (https://registry.khronos.org/webgl/extensions/WEBGL_debug_renderer_info/)
+
+[Exposed=(Window,Worker), LegacyNoInterfaceObject]
+interface WEBGL_debug_renderer_info {
+
+      const GLenum UNMASKED_VENDOR_WEBGL            = 0x9245;
+      const GLenum UNMASKED_RENDERER_WEBGL          = 0x9246;
+
+};

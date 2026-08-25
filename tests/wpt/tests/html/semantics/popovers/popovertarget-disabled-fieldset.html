@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/whatwg/html/pull/8221#discussion_r987582567">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id=popover popover=auto>popover</div>
+
+<fieldset>
+  <button id=popoverbutton popovertarget=popover>open popover with popovertarget</button>
+  <button id=commandbutton commandfor=popover command=show-popover>open popover with command</button>
+</fieldset>
+
+<script>
+test(() => {
+  const popover = document.getElementById('popover');
+  const fieldset = document.querySelector('fieldset');
+  ['popoverbutton', 'commandbutton'].forEach(id => {
+    const button = document.getElementById(id);
+    button.click();
+    assert_true(popover.matches(':popover-open'),
+      `${id}: popover should open when not disabled.`);
+    popover.hidePopover();
+
+    fieldset.disabled = true;
+    button.click();
+    assert_false(popover.matches(':popover-open'),
+      `${id}: popover should not open when disabled.`);
+    fieldset.disabled = false;
+  });
+}, 'Disabled fieldset ancestor should prevent popovertarget/command behavior.');
+</script>

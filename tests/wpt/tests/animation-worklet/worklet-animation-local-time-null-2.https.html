@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Setting localTime to null means effect does not apply (reftest)</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-animationworklet/">
+<link rel="match" href="worklet-animation-local-time-null-2-ref.html">
+<meta name="timeout" content="long">
+
+<script src="/common/reftest-wait.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="common.js"></script>
+
+<style>
+.box {
+  width: 100px;
+  height: 100px;
+  background-color: green;
+  display: inline-block;
+}
+</style>
+
+<div>
+<div class="box" id="target1"></div>
+<div class="box" id="target2"></div>
+<div class="box" id="target3"></div>
+<div class="box" id="target4"></div>
+<div class="box" id="control"></div>
+</div>
+
+
+<script>
+runInAnimationWorklet(`
+  registerAnimator("blank_animator", class {
+    animate(currentTime, effect) {
+      // Unset effect.localTime is equivalent to 'null'
+    }
+  });
+
+  registerAnimator("null_animator", class {
+    animate(currentTime, effect) {
+      effect.localTime = null;
+    }
+  });
+
+  registerAnimator("drop_animator", class {
+    animate(currentTime, effect) {
+      if (currentTime < 500)
+        effect.localTime = 500;
+      else if (currentTime < 1000)
+        effect.localTime = 0;
+      else
+        effect.localTime = null;
+    }
+  });
+
+  registerAnimator("add_animator", class {
+    animate(currentTime, effect) {
+      if (currentTime < 1000)
+        effect.localTime = 500;
+      else
+        effect.localTime = 0;
+    }
+  });
+`).then(() => {
+
+  const start_animation = (animator, targetId, keyframes) => {
+    const animation = new WorkletAnimation(animator,
+      new KeyframeEffect(
+        document.getElementById(targetId),
+        keyframes,
+        {duration: 1000}
+      )
+    );
+    animation.play();
+    return animation;
+  };
+
+  start_animation('blank_animator','target1', [
+    { transform: 'translateY(100px)' },
+    { transform: 'translateY(200px)' }
+  ]);
+
+  start_animation('null_animator','target2', [
+    { transform: 'translateY(100px)' },
+    { transform: 'translateY(200px)' }
+  ]);
+
+  start_animation('drop_animator','target3', [
+    { transform: 'translateY(100px)' },
+    { transform: 'translateY(200px)' }
+  ]);
+
+  start_animation('drop_animator','target4', [
+    { backgroundColor: 'red' },
+    { backgroundColor: 'blue' }
+  ]);
+
+  // check that animation worklets are running to stop accidental pass
+  const control_anim = start_animation('add_animator','control', [
+    { backgroundColor: 'red', transform: 'translateY(100px)' },
+    { backgroundColor: 'blue', transform: 'translateY(200px)' }
+  ]);
+
+  waitForAnimationFrameWithCondition(() => control_anim.currentTime > 1000)
+    // long timeout due to laggy compositor thread on debug build.
+    .then(() => waitForAsyncAnimationFrames(120))
+    .then(takeScreenshot);
+});
+
+
+</script>

@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>
+  Single-line row flex fragmentation: auto margin end alignment.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="position: relative; width: 100px; height: 100px; columns: 2; column-gap: 0; background: red;">
+  <div style="position: absolute; background: green; width: 50px; height: 100px;"></div>
+  <div style="display: flex; width: 50px; height: 200px;">
+    <div style="height: 100px; width: 50px; background: green; margin-top: auto;"></div>
+  </div>
+</div>

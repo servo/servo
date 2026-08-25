@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8">
+<meta name="timeout" content="long"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<!-- resources/early-hint-for-compression-dictionary-test-loader.h2.py loads
+     this file but it really uses links relative to the parent directory. -->
+<base href="../">
+<script src="./resources/compression-dictionary-util.sub.js"></script>
+</head>
+<body>
+<script>
+
+compression_dictionary_promise_test(async (t) => {
+  const searchParams = new URLSearchParams(location.search);
+  const dictionary_url = searchParams.get("dictionary_url");
+  const dict_token = (new URL(dictionary_url)).searchParams.get("save_header");
+  const headers = await waitUntilPreviousRequestHeaders(t, dict_token, {use_http2: true});
+  assert_true(headers !== undefined, 'Headers should be available');
+  // Wait until `available-dictionary` header is available.
+  assert_equals(
+      await waitUntilAvailableDictionaryHeader(t, {}),
+      kDefaultDictionaryHashBase64);
+  // Check if the data compressed using Brotli with the dictionary can be
+  // decompressed.
+  const data_url = `${kCompressedDataHttp2Path}?content_encoding=dcb`;
+  assert_equals(await (await fetch(data_url)).text(), kExpectedCompressedData);
+}, 'Fetch dictionary using link header in early hint');
+
+</script>
+</body>

@@ -1,0 +1,14 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: HTML root containment stops overflow propagation from BODY</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow/#overflow-propagation">
+<link rel="match" href="overflow-body-propagation-011-ref.html">
+<style>
+  html {
+    contain: paint;
+  }
+  body {
+    overflow: scroll;
+  }
+</style>
+<body>PASS if BODY has scrollbars, but not viewport.</body>

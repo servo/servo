@@ -1,0 +1,58 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Forward-Compatible Parsing</title>
+  <meta name="flags" content="invalid" />
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#forward-compatible-parsing"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="match" href="c71-fwd-parsing-000-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+   p.one {color: green; rotation: 70deg;}
+   p.oneb {color: green;}
+   p.oneb {color: invalidValue;}
+   div.twopc { background: white url(support/swatch-red.png); color: green; }
+   p.two {background-color: inherit;}
+   p.eight {COLOR: GREEN;}
+   p.twentya {rotation-code: "}"; color: green;}
+   p.twentyb {rotation-code: "\"}\""; color: green;}
+   p.twentyonea {rotation-code: '}'; color: green;}
+   p.twentyoneb {rotation-code: '\'}\''; color: green;}
+   p.twentytwo {
+    type-display: @threedee {rotation-code: '}';};
+    color: green;
+    }
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#parsing-errors" title="4.2 Rules for handling parsing errors"/>
+ </head>
+ <body>
+  <p class="one">
+   This sentence should be green.
+  </p>
+  <p class="oneb">
+   This sentence should be green.
+  </p>
+  <div class="twopc"><p class="two">
+   This sentence should be green.
+  </p></div>
+  <p class="eight">
+   This sentence should be green.
+  </p>
+  <p class="twentya">
+   This sentence should be green.
+  </p>
+  <p class="twentyb">
+   This sentence should be green.
+  </p>
+  <p class="twentyonea">
+   This sentence should be green.
+  </p>
+  <p class="twentyoneb">
+   This sentence should be green.
+  </p>
+  <p class="twentytwo">
+   This sentence should be green.
+  </p>
+ </body>
+</html>

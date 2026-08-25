@@ -1,0 +1,38 @@
+<!doctype html>
+<link rel="author" title="Di Zhang" href="mailto:dizhangg@chromium.org">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#the-meter-element-2">
+<title>Meter appearance native writing mode computed style</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<meter value="40" min="0" max="100" style="writing-mode: horizontal-tb"></meter>
+<meter value="40" min="0" max="100" style="writing-mode: vertical-lr"></meter>
+<meter value="40" min="0" max="100" style="writing-mode: vertical-rl"></meter>
+
+<script>
+test(() => {
+  const meter = document.querySelector(`meter[style="writing-mode: horizontal-tb"]`);
+  const style = getComputedStyle(meter);
+  const blockSize = parseInt(style.blockSize, 10);
+  const inlineSize = parseInt(style.inlineSize, 10);
+  assert_not_equals(blockSize, 0);
+  assert_not_equals(inlineSize, 0);
+  assert_greater_than(inlineSize, blockSize);
+  assert_equals(style.blockSize, style.height);
+  assert_equals(style.inlineSize, style.width);
+}, `meter[style="writing-mode: horizontal-tb"] block size should match height and inline size should match width`);
+
+for (const writingMode of ["vertical-lr", "vertical-rl"]) {
+  test(() => {
+    const meter = document.querySelector(`meter[style="writing-mode: ${writingMode}"]`);
+    const style = getComputedStyle(meter);
+    const blockSize = parseInt(style.blockSize, 10);
+    const inlineSize = parseInt(style.inlineSize, 10);
+    assert_not_equals(blockSize, 0);
+    assert_not_equals(inlineSize, 0);
+    assert_greater_than(inlineSize, blockSize);
+    assert_equals(style.blockSize, style.width);
+    assert_equals(style.inlineSize, style.height);
+  }, `meter[style="writing-mode: ${writingMode}"] block size should match width and inline size should match height`);
+};
+</script>

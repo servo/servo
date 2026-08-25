@@ -1,0 +1,161 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL EXT_texture_compression_bptc Conformance Tests</title>
+<LINK rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/tests/compressed-texture-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description("This test verifies the functionality of the EXT_texture_compression_bptc extension, if it is available.");
+
+debug("");
+
+var validFormats = {
+  COMPRESSED_RGBA_BPTC_UNORM_EXT: 0x8E8C,
+  COMPRESSED_SRGB_ALPHA_BPTC_UNORM_EXT: 0x8E8D,
+  COMPRESSED_RGB_BPTC_SIGNED_FLOAT_EXT: 0x8E8E,
+  COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT_EXT: 0x8E8F
+};
+
+function expectedByteLength(width, height, format) {
+  return Math.ceil(width / 4) * Math.ceil(height / 4) * 16;
+}
+
+function getBlockDimensions(format) {
+  return {width: 4, height: 4};
+}
+
+var wtu = WebGLTestUtils;
+var ctu = CompressedTextureUtils;
+var contextVersion = wtu.getDefault3DContextVersion();
+var gl = wtu.create3DContext();
+var ext;
+
+var formats = null;
+
+function runTestExtension() {
+  // Test that enum values are listed correctly in supported formats and in the extension object.
+  ctu.testCompressedFormatsListed(gl, validFormats);
+  ctu.testCorrectEnumValuesInExt(ext, validFormats);
+  // Test that texture upload buffer size is validated correctly.
+  ctu.testFormatRestrictionsOnBufferSize(gl, validFormats, expectedByteLength, getBlockDimensions);
+  // Test TexSubImage validation on dimensions
+  // CompressedTexSubImage* will result in an
+  // INVALID_OPERATION error only if one of the following conditions occurs:
+  // * <width> is not a multiple of four, and <width> plus <xoffset> is not
+  // equal to TEXTURE_WIDTH;
+  // * <height> is not a multiple of four, and <height> plus <yoffset> is
+  //           not equal to TEXTURE_HEIGHT; or
+  // * <xoffset> or <yoffset> is not a multiple of four.
+  ctu.testTexSubImageDimensions(gl, ext, validFormats, expectedByteLength, getBlockDimensions,
+    16, 16, [
+      { xoffset: 0, yoffset: 0, width: 4, height: 3,
+        expectation: gl.INVALID_OPERATION, message: "height is not a multiple of 4" },
+      { xoffset: 0, yoffset: 0, width: 3, height: 4,
+        expectation: gl.INVALID_OPERATION, message: "width is not a multiple of 4" },
+      { xoffset: 1, yoffset: 0, width: 4, height: 4,
+        expectation: gl.INVALID_OPERATION, message: "xoffset is not a multiple of 4" },
+      { xoffset: 0, yoffset: 1, width: 4, height: 4,
+        expectation: gl.INVALID_OPERATION, message: "yoffset is not a multiple of 4" },
+      { xoffset: 12, yoffset: 12, width: 4, height: 4,
+        expectation: gl.NO_ERROR, message: "is valid" },
+  ]);
+
+  // Test TexImage validation on level dimensions combinations.
+  // When level equals 0, width and height must be a multiple of 4.
+  // When level is larger than 0, this constraint doesn't apply.
+
+  let npotExpectation, npotMessage;
+  if (contextVersion >= 2) {
+    npotExpectation = gl.NO_ERROR;
+    npotMessage = "valid";
+  } else {
+    npotExpectation = gl.INVALID_VALUE;
+    npotMessage = "invalid";
+  }
+
+  ctu.testTexImageLevelDimensions(gl, ext, validFormats, expectedByteLength, getBlockDimensions,
+    [
+      { level: 0, width: 4, height: 3,
+        expectation: gl.INVALID_OPERATION, message: "level is 0, height is not a multiple of 4" },
+      { level: 0, width: 3, height: 4,
+        expectation: gl.INVALID_OPERATION, message: "level is 0, width is not a multiple of 4" },
+      { level: 0, width: 2, height: 2,
+        expectation: gl.INVALID_OPERATION, message: "level is 0, width is not a multiple of 4" },
+      { level: 0, width: 4, height: 4,
+        expectation: gl.NO_ERROR, message: "is valid" },
+      { level: 1, width: 1, height: 1,
+        expectation: gl.INVALID_OPERATION, message: "implied base mip 2x2 is invalid" },
+      { level: 1, width: 1, height: 2,
+        expectation: gl.INVALID_OPERATION, message: "implied base mip 2x4 is invalid" },
+      { level: 1, width: 2, height: 1,
+        expectation: gl.INVALID_OPERATION, message: "implied base mip 4x2 is invalid" },
+      { level: 1, width: 2, height: 2,
+        expectation: gl.NO_ERROR, message: "implied base mip 4x4 is valid" },
+      { level: 2, width: 1, height: 3,
+        expectation: npotExpectation, message: "implied base mip 4x12 is " + npotMessage },
+  ]);
+
+  // Test that BPTC enums are not accepted by texImage2D
+  {
+    var tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+
+    gl.texImage2D(gl.TEXTURE_2D, 0, ext.COMPRESSED_RGBA_BPTC_UNORM_EXT, 4, 4, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    wtu.glErrorShouldBe(gl, [gl.INVALID_VALUE, gl.INVALID_OPERATION], "COMPRESSED_RGBA_BPTC_UNORM_EXT fails with texImage2D");
+
+    gl.texImage2D(gl.TEXTURE_2D, 0, ext.COMPRESSED_SRGB_ALPHA_BPTC_UNORM_EXT, 4, 4, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    wtu.glErrorShouldBe(gl, [gl.INVALID_VALUE, gl.INVALID_OPERATION], "COMPRESSED_SRGB_ALPHA_BPTC_UNORM_EXT fails with texImage2D");
+
+    if (contextVersion >= 2) {
+      gl.texImage2D(gl.TEXTURE_2D, 0, ext.COMPRESSED_RGB_BPTC_SIGNED_FLOAT_EXT, 4, 4, 0, gl.RGB, gl.FLOAT, null);
+      wtu.glErrorShouldBe(gl, [gl.INVALID_VALUE, gl.INVALID_OPERATION], "COMPRESSED_RGB_BPTC_SIGNED_FLOAT_EXT fails with texImage2D");
+
+      gl.texImage2D(gl.TEXTURE_2D, 0, ext.COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT_EXT, 4, 4, 0, gl.RGB, gl.FLOAT, null);
+      wtu.glErrorShouldBe(gl, [gl.INVALID_VALUE, gl.INVALID_OPERATION], "COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT_EXT fails with texImage2D");
+    }
+
+    gl.deleteTexture(tex);
+  }
+};
+
+function runTest() {
+  if (!gl) {
+    testFailed("context does not exist");
+  } else {
+    testPassed("context exists");
+
+    ctu.testCompressedFormatsUnavailableWhenExtensionDisabled(gl, validFormats, expectedByteLength, 4);
+
+    ext = gl.getExtension("EXT_texture_compression_bptc");
+
+    wtu.runExtensionSupportedTest(gl, "EXT_texture_compression_bptc", ext !== null);
+
+    if (ext !== null) {
+      runTestExtension();
+    }
+  }
+}
+
+runTest();
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

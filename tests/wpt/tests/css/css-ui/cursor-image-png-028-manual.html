@@ -1,0 +1,17 @@
+﻿<!DOCTYPE html>
+<title>CSS Basic User Interface Test: Cursor property, PNG</title>
+<link rel="author" title="Chris Lilley" href="mailto:chris@w3.org">
+<link rel="help" href="http://www.w3.org/TR/css3-ui/#cursor">
+<meta name="flags" content="interact">
+<meta name="assert" content="Test checks that an interlaced greyscale with alpha PNG image cursor is supported.">
+<style>
+	.test{background: #ffe5b4; border: 2px solid #555;
+	cursor:url(support/PTS/basi4a16.png), help; width :128px; height: 64px}
+	.test:before {content: url(support/PTS/basi4a16.png)
+</style>
+<body>
+  <p>The test passes if, when moved inside the peach rectangle,  the cursor looks like the reference image.</p>
+  <!-- changed background colour so grey semitransparent image can be seen -->
+  <p class="test"> </p>
+  <p>Local interlaced greyscale with alpha (type 4) PNG image, 16 bit/pixel.
+</body>

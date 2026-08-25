@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>caret-shape underscore</title>
+<link rel="help" href="https://drafts.csswg.org/css-ui/#caret-shape">
+<link rel="mismatch" href="caret-shape-underscore-001-notref-1.html">
+<link rel="mismatch" href="caret-shape-underscore-001-notref-2.html">
+<link rel="mismatch" href="caret-shape-underscore-001-notref-3.html">
+<meta name="assert" content="Test checks that caret-shape underscore works as expected">
+<script src="/common/reftest-wait.js"></script>
+<style>
+  #target {
+    font-size: 3em;
+    caret-color: green;
+    caret-shape: underscore;
+    caret-animation: manual;
+  }
+  #target:focus {
+    outline: none;
+  }
+</style>
+<p>Test passes if, when the text below is focused for editing, the text insertion caret is a green underscore.</p>
+<div id="target" contenteditable spellcheck="false">test</div>
+<script>
+  document.getElementById("target").focus();
+  takeScreenshot();
+</script>

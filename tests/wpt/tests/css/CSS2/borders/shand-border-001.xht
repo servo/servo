@@ -1,0 +1,74 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS test: Shorthand Properties (border) - maximum of 3 border subproperties</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-shorthand-properties" title="8.5.4 Border shorthand properties" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/about.html#shorthand" title="1.4.3 Shorthand properties" />
+  <link rel="match" href="../reference/ref-if-there-is-no-red.xht" />
+
+  <meta content="invalid" name="flags" />
+  <meta content="The 'border' shorthand property, 'border-top' shorthand property and 'border-bottom' shorthand property accept a maximum of 3 border subproperties." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  div#first-test {border: red solid 16px red;}
+
+  div#second-test {border-top: red solid 16px red;}
+
+  div#third-test {border-bottom: red solid 16px red;}
+
+  div#fourth-test {border: red 16px solid red;}
+
+  div#fifth-test {border-top: red 16px solid red;}
+
+  div#sixth-test {border-bottom: red 16px solid red;}
+
+  div#seventh-test {border: red solid thick red;}
+
+  div#eightth-test {border-top: red solid thick red;}
+
+  div#ninth-test {border-bottom: red solid thick red;}
+
+  div#tenth-test {border: red thick solid red;}
+
+  div#eleventh-test {border-top: red thick solid red;}
+
+  div#twelveth-test {border-bottom: red thick solid red;}
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is <strong>no red</strong>.</p>
+
+  <div id="first-test"></div>
+
+  <div id="second-test"></div>
+
+  <div id="third-test"></div>
+
+  <div id="fourth-test"></div>
+
+  <div id="fifth-test"></div>
+
+  <div id="sixth-test"></div>
+
+  <div id="seventh-test"></div>
+
+  <div id="eightth-test"></div>
+
+  <div id="ninth-test"></div>
+
+  <div id="tenth-test"></div>
+
+  <div id="eleventh-test"></div>
+
+  <div id="twelveth-test"></div>
+
+ </body>
+</html>

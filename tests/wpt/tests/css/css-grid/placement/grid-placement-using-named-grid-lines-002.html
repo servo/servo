@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Grid item placement with named line and auto repeat()</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="http://www.w3.org/TR/css-grid-1/#line-placement">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="Grid placement algorithm is able to select the 1st line by name when the 1st track is defined with auto repeat().">
+<style>
+.grid {
+  display: grid;
+  width: 100px;
+  height: 100px;
+  background: red;
+  grid-template-columns: [area-start] repeat(auto-fill, 10px) [area-end];
+  grid-template-rows: [area-start] repeat(auto-fill, 10px [area-start]) [area-end];
+}
+.grid > div {
+  grid-area: area;
+  background: green;
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="grid">
+  <div></div>
+</div>

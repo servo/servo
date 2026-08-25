@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Variables - Animation - Substitute Within Keyframe</title>
+
+    <meta rel="author" title="Kevin Babbitt">
+    <meta rel="author" title="Greg Whitworth">
+    <link rel="author" title="Microsoft Corporation" href="http://microsoft.com" />
+    <link rel="help" href="http://www.w3.org/TR/css-variables-1/#syntax">
+
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style>
+        @keyframes coloranim
+        {
+            from { color: blue; }
+            to { --endColor: green; color: var(--endColor); }
+        }
+
+        /* Start the animation in the paused state and fill at both ends so we can inspect values from both keyframes. */
+        #target
+        {
+            animation-name: coloranim;
+            animation-duration: 1s;
+            animation-play-state: paused;
+            animation-fill-mode: both;
+        }
+        #target
+        {
+            color: red;
+            --endColor: red;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="target">This text should animate from blue to green over a period of 1 second.</div>
+
+<script type="text/javascript">
+    "use strict";
+
+    // Force an initial layout pass
+    document.documentElement.offsetHeight;
+
+    test(function() {
+        // Different browsers generate interpolated colors differently, so check multiple valid forms.
+        assert_in_array(window.getComputedStyle(document.getElementById("target")).getPropertyValue("color").trim(),
+            ["rgb(0, 0, 255)", "rgba(0, 0, 255, 1)"],
+            "color is blue before animation runs");
+        }, "Verify color before animation");
+
+    var animationTest = async_test("Verify color after animation");
+
+    animationTest.step(function() {
+        // Set event handler
+        document.getElementById("target").addEventListener("animationend", animationTest.step_func(function() {
+            assert_in_array(window.getComputedStyle(document.getElementById("target")).getPropertyValue("color").trim(),
+                ["rgb(0, 128, 0)", "rgba(0, 128, 0, 1)"],
+                "color is green after animation runs")
+            animationTest.done();
+            }));
+
+        // Trigger animation
+        document.getElementById("target").style.animationPlayState = "running";
+    });
+</script>
+
+</body>
+</html>

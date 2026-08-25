@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<title>
+    Tests gap decorations in flex layout with fragmentation and monolithic items.
+</title>
+<link rel="help" href="https://issues.chromium.org/u/1/issues/489948958">
+<link rel="match" href="flex-gap-decorations-fragmentation-021-ref.html">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+    body {
+      margin: 0;
+    }
+    .multi-column {
+        height: 47px;
+        column-width: 110px;
+        width: 350px;
+        column-gap: 10px;
+
+    }
+    #flexbox {
+        display: flex;
+        flex-wrap: wrap;
+        height: 110px;
+        column-rule: 10px solid gold;
+        column-gap: 10px;
+        width: 110px;
+        background: lightgreen;
+    }
+    #monolithic {
+       contain: size;
+    }
+
+    .items {
+      background: lightblue;
+      width: 50px;
+    }
+</style>
+<div class="multi-column">
+    <div id="flexbox">
+        <div class="items">1</div>
+        <div class="items" id="monolithic">2</div>
+        <div class="items">3</div>
+        <div class="items">4</div>
+    </div>
+</div>

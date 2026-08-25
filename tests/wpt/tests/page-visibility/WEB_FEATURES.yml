@@ -1,0 +1,3 @@
+rules:
+- visibility-state-entry.tentative.html: [page-visibility-state]
+- "*": [page-visibility]

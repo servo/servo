@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<title>Speculation rules: no crash with selector_matches and details element</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/utils.js"></script>
+
+<body>
+<script>
+  setup(() => assertSpeculationRulesIsSupported());
+
+  // This test verifies that using selector_matches with links inside a
+  // <details> element does not cause a crash. This is a regression test for
+  // a bug where forcing style computation on links inside a closed <details>
+  // element would cause DidStyleChildren to incorrectly remove links from
+  // stale_links_, leading to a DCHECK failure in CSSSelectorPredicate::Matches.
+  test(() => {
+    // Create a closed details element with a link inside.
+    const details = document.createElement('details');
+    document.body.appendChild(details);
+
+    const summary = document.createElement('summary');
+    summary.textContent = 'Click to expand';
+    details.appendChild(summary);
+
+    const link = document.createElement('a');
+    link.href = 'https://example.com/test';
+    link.className = 'test-link';
+    link.textContent = 'Link inside details';
+    details.appendChild(link);
+
+    // Insert a document rule with selector_matches.
+    const script = document.createElement('script');
+    script.type = 'speculationrules';
+    script.textContent = JSON.stringify({
+      prefetch: [{
+        source: 'document',
+        eagerness: 'immediate',
+        where: { selector_matches: 'a.test-link' }
+      }]
+    });
+    document.head.appendChild(script);
+
+    // Force style computation on the link. This triggers a forced update
+    // which temporarily allows style computation on display-locked elements.
+    // Before the fix, this would cause a crash when the speculation rules
+    // tried to match the selector against the link.
+    getComputedStyle(link).display;
+
+    // If we get here without crashing, the test passes.
+    assert_true(true, 'No crash occurred');
+  }, 'selector_matches with link inside closed details should not crash');
+
+  test(() => {
+    // Create a closed details element with a link inside.
+    const details = document.createElement('details');
+    document.body.appendChild(details);
+
+    const summary = document.createElement('summary');
+    summary.textContent = 'Click to expand';
+    details.appendChild(summary);
+
+    const link = document.createElement('a');
+    link.href = 'https://example.com/test2';
+    link.className = 'toggle-link';
+    link.textContent = 'Link for toggle test';
+    details.appendChild(link);
+
+    // Insert a document rule with selector_matches.
+    const script = document.createElement('script');
+    script.type = 'speculationrules';
+    script.textContent = JSON.stringify({
+      prefetch: [{
+        source: 'document',
+        eagerness: 'immediate',
+        where: { selector_matches: 'a.toggle-link' }
+      }]
+    });
+    document.head.appendChild(script);
+
+    // Rapidly toggle the details element and force style computation.
+    for (let i = 0; i < 10; i++) {
+      details.open = !details.open;
+      getComputedStyle(link).display;
+    }
+
+    // Ensure details is closed at the end.
+    details.open = false;
+    getComputedStyle(link).display;
+
+    // If we get here without crashing, the test passes.
+    assert_true(true, 'No crash occurred during rapid toggling');
+  }, 'Rapid toggling of details with selector_matches should not crash');
+
+</script>
+</body>

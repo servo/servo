@@ -1,0 +1,21 @@
+<!doctype html>
+<title>SVGPathElement.getPathData() with empty or missing d attribute</title>
+<link rel="help" href="https://svgwg.org/specs/paths/#InterfaceSVGPathData">
+<link rel="author" title="Virali Purbey" href="mailto:viralipurbey@microsoft.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/getPathData-helpers.js"></script>
+
+<svg>
+  <path id="pathMissingD"/>
+  <path id="pathEmptyD" d=""/>
+</svg>
+<script>
+test(() => {
+  assert_path_data_equals(pathMissingD.getPathData(), []);
+}, "path.getPathData() with missing d attribute returns []");
+
+test(() => {
+  assert_path_data_equals(pathEmptyD.getPathData(), []);
+}, "path.getPathData() with empty d attribute returns []");
+</script>

@@ -1,0 +1,16 @@
+<html class="test-wait">
+<head>
+<meta charset="utf-8">
+<title>Test for bug 499844 of Mozilla</title>
+<script>
+function boom()
+{
+  document.body.contentEditable = "true";
+  getSelection().collapse(document.body.firstChild, 0);
+  document.execCommand("outdent");
+  document.documentElement.removeAttribute("class");
+}
+</script>
+</head>
+<body style="word-spacing: 3px;" onload="boom();"> &#x0301;</body>
+</html>

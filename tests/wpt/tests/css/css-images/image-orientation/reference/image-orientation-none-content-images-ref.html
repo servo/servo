@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Images Module Level 3: image-orientation: none for content images</title>
+<link rel="author" title="Stephen Chenney" href="mailto:schenney@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#propdef-image-orientation">
+<style>
+    div.image {
+        display: inline-block;
+    }
+    div.container {
+        display: inline-block;
+        width: 100px;
+        vertical-align: top;
+    }
+    img {
+        width: 100px;
+        height: 100px;
+        background-repeat: no-repeat;
+    }
+    body {
+        overflow: hidden;
+    }
+</style>
+</head>
+<body>
+    <p>The images should not rotate respecting their EXIF orientation because
+       image-orientation: none is specified.</p>
+    <div class="container">
+        <div class="image" style="content: url(../support/exif-orientation-1-ul.jpg)"></div>
+    </div>
+    <div class="container">
+        <div class="image" style="content: url(../support/exif-orientation-1-ul.jpg)"></div>
+    </div>
+    <div class="container">
+        <div class="image" style="content: url(../support/exif-orientation-1-ul.jpg)"></div>
+    </div>
+    <div class="container">
+        <div class="image" style="content: url(../support/exif-orientation-1-ul.jpg)"></div>
+    </div>
+    <br>
+    <div class="container">
+        <div class="image" style="content: url(../support/exif-orientation-1-ul.jpg)"></div>
+    </div>
+    <div class="container">
+        <div class="image" style="content: url(../support/exif-orientation-1-ul.jpg)"></div>
+    </div>
+    <div class="container">
+        <div class="image" style="content: url(../support/exif-orientation-1-ul.jpg)"></div>
+    </div>
+    <div class="container">
+        <div class="image" style="content: url(../support/exif-orientation-1-ul.jpg)"></div>
+    </div>
+    <br>
+    <div class="container">
+        <img style="background-image: url(../support/exif-orientation-1-ul.jpg)"></img>
+    </div>
+    <div class="container">
+        <img style="background-image: url(../support/exif-orientation-1-ul.jpg)"></img>
+    </div>
+    <div class="container">
+        <img style="background-image: url(../support/exif-orientation-1-ul.jpg)"></img>
+    </div>
+    <div class="container">
+        <img style="background-image: url(../support/exif-orientation-1-ul.jpg)"></img>
+    </div>
+    <br>
+    <div class="container">
+        <div class="image" style="content: url(../support/exif-orientation-1-ul.jpg)"></div>
+    </div>
+</body>
+</html>

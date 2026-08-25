@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Containment Test: 'contain: size' affects intrinsic size</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel="help" href="https://www.w3.org/TR/css-contain-1/#containment-size">
+<link rel="match" href="reference/contain-size-063-ref.html">
+<meta name="asserts" content="the intrinsic size of a size-contained element is treated as 0 in various scenarios involving intrinsic sizing.">
+
+<style>
+.red {
+    background: red;
+}
+.abs {
+    position: absolute;
+}
+.float {
+    float: left;
+}
+.zero {
+    width: 0;
+}
+.contained {
+    contain: size;
+    color: transparent;
+}
+.grid {
+    display: grid;
+    grid: max-content auto / min-content auto;
+}
+table {
+    border-collapse: collapse;
+}
+td {
+    padding: 0;
+}
+</style>
+
+<p>Test passes if there is no red below.
+
+<!-- max content sized-->
+<div class="red abs"><div class="contained">Arbitrary content content<br>that takes up size.<br>Block Layout</div></div>
+
+<!-- max content sized-->
+<div class="red float"><div class="contained">Arbitrary content content<br>that takes up size.<br>Float</div></div>
+
+<!-- min content sized-->
+<div class=zero><div class="red float"><div class="contained">Arbitrary content content<br>that takes up size.<br>Float in narrow wrapper</div></div></div>
+
+<div class="grid red">
+    <div class="red"></div>
+    <div class="contained">Arbitrary content content<br>that takes up size.<br>Grid item giving the first row it's height</div>
+    <div class="contained">Arbitrary content content<br>that takes up size.<br>Grid item giving the first column its width</div>
+</div>
+
+<table class=red>
+    <tr>
+        <td class=red>
+        <td><div class="contained">Arbitrary content content<br>that takes up size.<br>content of a table cell giving the fist row it's height</div>
+    <tr>
+        <td><div class="contained">Arbitrary content content<br>that takes up size.<br>content of a table cell giving the first column it's width</div>
+</div>

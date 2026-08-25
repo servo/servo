@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Flexbox: percentage in block-level inside inline inside flex item</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#algo-stretch">
+<link rel="help" href="https://github.com/servo/servo/issues/41623">
+<link rel="match" href="../reference/ref-filled-green-200px-square.html">
+<meta name="assert" content="When the 2nd flex item is stretched to fill the flex line,
+  it needs to be laid out again, and the percentage should now resolve against 200px.">
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div style="display: flex">
+  <div style="height: 200px"></div>
+  <div style="background: red">
+    <span>
+      <div style="width: 200px; height: 100%; background: green"></div>
+    </span>
+  </div>
+</div>

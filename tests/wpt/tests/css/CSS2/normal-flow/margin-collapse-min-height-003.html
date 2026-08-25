@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: min-height smaller than content does not prevent margin collapsing</title>
+<link rel="author" title="Alan Baradlay" href="mailto:ABaradlay@apple.com">
+<link rel="help" href="https://www.w3.org/TR/CSS22/box.html#collapsing-margins">
+<link rel="match" href="margin-collapse-min-height-003-ref.html">
+<meta name="assert" content="When min-height does not increase the block's height (min-height < content), the child's bottom margin should still collapse through normally.">
+<style>
+.parent {
+    min-height: 5px;
+    width: 100px;
+    background: green;
+}
+.child {
+    height: 30px;
+    margin-bottom: 50px;
+}
+.footer {
+    width: 100px;
+    height: 50px;
+    background: green;
+}
+</style>
+<p>Test passes if there are two green rectangles with a gap between them.</p>
+<div class="parent">
+    <div class="child"></div>
+</div>
+<div class="footer"></div>

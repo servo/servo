@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>display: block math and inline math on pseudo elements</title>
+<link rel="help" href="https://drafts.csswg.org/css-display/#the-display-properties">
+<meta name="assert" content="display: inline math and display: block math on compute to flow">
+<link rel="match" href="display-math-on-pseudo-elements-002-ref.html">
+<style>
+  .inline::before { content: 'math'; display: math; }
+  .inline::after { content: 'math'; display: math; }
+  .block::before { content: 'math'; display: block math; }
+  .block::after { content: 'math'; display: block math; }
+</style>
+<p>Test passes if SPAN and DIV are respectively surrounded by inline and block
+  "math" text.</p>
+<div>
+  <span class="inline">SPAN</span>
+</div>
+<div>
+  <span class="block">DIV</span>
+</div>

@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: CSS Inline Box Model: Behaviour near cells</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-10-20 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/inline/007.xml" type="application/xhtml+xml"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/inline/007.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#inline-boxes" />
+  <style type="text/css">
+   div, table, tr, td { margin: 0; border: 0; padding: 0; border-spacing: 0; line-height: 1; }
+   span { font-size: 0.2em; }
+   table { background: green; color: white; width: 5em; }
+   .test { height: 1em; background: red; width: 5em; }
+   .wrapper { font-size: 5em; }
+  </style>
+ </head>
+ <body>
+  <p>Test passes if there is <strong>no red</strong>.</p>
+  <div class="wrapper">
+   <div class="test"><table><tr><td><span>This rectangle should be green.</span></td></tr></table></div>
+  </div>
+ </body>
+</html>

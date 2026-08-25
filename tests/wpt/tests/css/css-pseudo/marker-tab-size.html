@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>::marker supports 'tab-size'</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com" />
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#marker-pseudo">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#propdef-tab-size">
+<link rel="match" href="marker-tab-size-ref.html">
+<meta name="assert" content="Checks that ::marker supports 'tab-size', both explicitly set or inherited from an ancestor">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+div {
+  float: left;
+  font: 25px/1 Ahem;
+}
+.inside {
+  list-style-position: inside;
+  width: 250px;
+}
+.outside {
+  list-style-position: outside;
+  width: 100px;
+  margin-left: 150px;
+}
+ol {
+  padding: 0;
+}
+.tab-size.explicit ::marker,
+.tab-size.inherit {
+  tab-size: 1;
+}
+.marker-string {
+  list-style-type: "X\9p";
+}
+.marker-content::marker {
+  content: "X\9p\9p";
+}
+</style>
+<div class="inside">
+  <ol class="tab-size explicit">
+    <li class="marker-string">É</li>
+    <li class="marker-content">É</li>
+  </ol>
+  <ol class="tab-size inherit">
+    <li class="marker-string">É</li>
+    <li class="marker-content">É</li>
+  </ol>
+</div>
+<div class="outside">
+  <ol class="tab-size explicit">
+    <li class="marker-string">É</li>
+    <li class="marker-content">É</li>
+  </ol>
+  <ol class="tab-size inherit">
+    <li class="marker-string">É</li>
+    <li class="marker-content">É</li>
+  </ol>
+</div>

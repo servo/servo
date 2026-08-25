@@ -1,0 +1,74 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <title id='desc'> KeyboardEvent.location </title>
+        <script type="text/javascript">
+            var PassTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "PASS";
+            }
+
+            var FailTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "FAIL";
+            }
+
+            var EVENT = "keydown";
+            var TARGET;
+            var ExpectResult = ["a", 0, "Control", 1, "Shift", 2];
+            var ActualResult = [];
+
+            window.onload = function(e)
+            {
+                try
+                {
+                    TARGET = document.getElementById("target");
+                    TARGET.addEventListener(EVENT, TestEvent, true);
+                }
+                catch(ex)
+                {
+                    FailTest();
+                }
+            }
+
+            function TestEvent(evt)
+            {
+                ActualResult.push(evt.key, evt.location);
+
+                if ((evt.type == EVENT) && (evt.key == "Shift"))
+                {
+                    if (ExpectResult.toString() == ActualResult.toString())
+                    {
+                        PassTest();
+                    }
+                    else
+                    {
+                        FailTest();
+                    }
+                    TARGET.removeEventListener(EVENT, TestEvent, true);
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <h3>DOM Events</h3>
+        <h4>
+            Test Description: KeyboardEvent.location attribute contains an indication of the
+            location of the key on the device.
+        </h4>
+
+        <pre>
+            <input id="target" value=""/>
+
+            Steps:
+            1) Type 'a' in the above textbox using keyboard
+            2) Press '{CTRL}' key on the left side of the keyboard
+            3) Press '{SHIFT}' key on the right side of the keyboard
+            4) <a href="KeyboardEvent.location.html">Click here</a> to test again if not following the steps exactly
+        </pre>
+
+        <p>Test passes if the word "PASS" appears below after following the above steps.</p>
+           <div>Test result: </div>
+        <div id='testresult'>FAIL</div>
+    </body>
+</html>

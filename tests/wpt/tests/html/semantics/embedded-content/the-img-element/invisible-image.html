@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<head>
+  <title>Test that below-viewport invisible images that are not marked
+         loading=lazy still load, and block the window load event</title>
+  <link rel="author" title="Rob Buis" href="mailto:rbuis@igalia.com">
+  <link rel="author" title="Dom Farolino" href="mailto:dom@chromium.org">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
+</head>
+
+<body>
+  <div style="height:1000vh;"></div>
+  <img id="visibility_hidden" style="visibility:hidden;" src='resources/image.png?1'>
+  <img id="visibility_hidden_explicit_eager" style="visibility:hidden;" src='resources/image.png?2'
+       loading="eager">
+
+  <img id="display_none" style="display:none;" src='resources/image.png?3'>
+  <img id="display_none_explicit_eager" style="display:none;" src='resources/image.png?4'
+       loading="eager">
+
+  <img id="attribute_hidden" hidden src='resources/image.png?5'>
+  <img id="attribute_hidden_explicit_eager" hidden src='resources/image.png?6'
+       loading="eager">
+
+  <img id="js_display_none" src='resources/image.png?7'>
+  <img id="js_display_none_explicit_eager" src='resources/image.png?8'
+       loading="eager">
+  <script>
+    document.getElementById("js_display_none").style = 'display:none;';
+
+    const visibility_hidden_element = document.getElementById("visibility_hidden");
+    const visibility_hidden_element_explicit_eager =
+      document.getElementById("visibility_hidden_explicit_eager");
+
+    const display_none_element = document.getElementById("display_none");
+    const display_none_element_explicit_eager =
+      document.getElementById("display_none_explicit_eager");
+
+    const attribute_hidden_element = document.getElementById("attribute_hidden");
+    const attribute_hidden_element_explicit_eager =
+      document.getElementById("attribute_hidden_explicit_eager");
+
+    const js_display_none_element = document.getElementById("js_display_none");
+    const js_display_none_element_explicit_eager =
+      document.getElementById("js_display_none_explicit_eager");
+
+    let have_images_loaded = false;
+
+    async_test(t => {
+      let image_fully_loaded_promise = (element) => {
+        return new Promise(resolve => {
+          element.addEventListener("load", t.step_func(resolve));
+        });
+      }
+
+      Promise.all([
+        image_fully_loaded_promise(visibility_hidden_element),
+        image_fully_loaded_promise(visibility_hidden_element_explicit_eager),
+        image_fully_loaded_promise(display_none_element),
+        image_fully_loaded_promise(display_none_element_explicit_eager),
+        image_fully_loaded_promise(attribute_hidden_element),
+        image_fully_loaded_promise(attribute_hidden_element_explicit_eager),
+        image_fully_loaded_promise(js_display_none_element),
+        image_fully_loaded_promise(js_display_none_element_explicit_eager)
+      ]).then(t.step_func(() => {
+        have_images_loaded = true;
+      })).catch(t.unreached_func("All images should load correctly"));
+
+      window.addEventListener("load", t.step_func_done(() => {
+        assert_true(have_images_loaded,
+                    "The images should block the window load event.");
+      }));
+
+    }, "Test that below-viewport invisible images that are not marked " +
+       "loading=lazy still load, and block the window load event");
+</script>
+

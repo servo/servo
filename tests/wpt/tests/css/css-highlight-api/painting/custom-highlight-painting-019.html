@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Highlight API Test: Non-overlapping highlight colors</title>
+<link rel="author" title="Stephen Chenney" href="mailto:schenney@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#highlight-text">
+<link rel="match" href="custom-highlight-painting-019-ref.html">
+<meta name="assert" value="When painting non-overlapping highlights the current color should be resolved against the next layer beneath the highlight at the current location within the span.">
+<meta name="fuzzy" content="0-250;0-6">
+<style>
+  body {
+    text-decoration: 2px green underline;
+  }
+  ::highlight(foo) {
+    color:blue;
+    text-decoration: 2px blue underline;
+  }
+  ::highlight(bar) {
+    text-decoration-line: underline;
+    text-decoration-thickness: 2px;
+  }
+</style>
+<body>This part should be blue and this part should be black
+<script>
+  let textNode = document.body.firstChild;
+
+  let r1 = new Range();
+  r1.setStart(textNode, 0);
+  r1.setEnd(textNode, 24);
+
+  let r2 = new Range();
+  r2.setStart(textNode, 29);
+  r2.setEnd(textNode, 54);
+
+  let h1 = new Highlight(r1);
+  let h2 = new Highlight(r2);
+
+  CSS.highlights.set("foo", h1);
+  CSS.highlights.set("bar", h2);
+</script>

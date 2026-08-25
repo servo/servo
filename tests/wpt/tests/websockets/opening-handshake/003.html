@@ -1,0 +1,27 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>WebSockets: origin</title>
+<meta name="timeout" content="long">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../constants.sub.js></script>
+<meta name="variant" content="?default">
+<meta name="variant" content="?wss">
+<div id=log></div>
+<script>
+async_test(function(t) {
+  const url = SCHEME_DOMAIN_PORT+'/origin',
+        ws = new WebSocket(url.replace("://", "://天気の良い日."));
+  ws.onmessage = t.step_func(function(e) {
+    assert_equals(e.origin, new URL(url).origin.replace("://", "://xn--n8j6ds53lwwkrqhv28a."))
+    assert_equals(e.data, location.protocol+'//'+location.host);
+    ws.onclose = t.step_func(function(e) {
+      assert_equals(e.wasClean, true);
+      ws.onclose = t.unreached_func();
+      t.step_timeout(() => t.done(), 50);
+    })
+    ws.close();
+  })
+  ws.onerror = ws.onclose = t.unreached_func();
+});
+</script>

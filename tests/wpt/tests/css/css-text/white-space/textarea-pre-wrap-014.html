@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 3 Test: preserved white space at the end of soft-wrapped lines and white-space:pre-wrap with justification in a textarea</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
+<link rel="match" href="reference/textarea-pre-wrap-014-ref.html">
+<meta name="assert" content="When white-space is pre-wrap, spaces at the end of a soft-wrapped line get collapsed or hanged, and don't influence justification.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+textarea {
+  word-wrap: initial; /*deprecated alias*/
+  overflow-wrap: initial;
+  line-break: initial;
+  word-break: initial;
+  margin: 0;
+  padding: 0;
+  border: none;
+  outline: none;
+  resize: none;
+  overflow: hidden; /* I don't want scrollbars, and overflow:visible isn't typically supported on textarea */
+
+  font-size: 20px;
+  font-family: Ahem;
+  line-height: 1em;
+  white-space: pre-wrap;
+  color: white;
+
+  background: linear-gradient(red, red) 3ch 0/2ch 1ch no-repeat;
+
+  width: 4ch;
+  text-align: justify;
+}
+</style>
+<body>
+  <p>Test passes if there is <strong>no red</strong> below.</p>
+  <textarea>X X X</textarea>
+</body>

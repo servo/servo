@@ -1,0 +1,37 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Animating CSS logical properties using CSS Animations - Web Animations reflection</title>
+<link rel="help" href="https://drafts.csswg.org/css-logical/#box">
+<meta name="assert" content="The specified values of these properties are separate from the specified values of the parallel physical properties, but the flow-relative and physical properties share computed values.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../css-animations/support/testcommon.js"></script>
+
+<div id="log"></div>
+<script>
+'use strict';
+
+/*
+ * The mapping from CSS Animations to Web Animations has yet to be specified
+ * but, when it is, we expect it to require that logical properties in CSS
+ * keyframes be represented as physical properties in the result returned from
+ * getKeyframes() since this is consistent with the behavior of expanding out
+ * all shorthands in to their consituent longhands in order to resolve
+ * overlapping properties.
+ */
+
+test(t => {
+  addStyle(t, {
+    '@keyframes anim': 'from { block-size: 0px } to { block-size: 100px }',
+  });
+  const div = addDiv(t, { style: 'animation: anim 10s' });
+  const anim = div.getAnimations()[0];
+
+  assert_own_property(anim.effect.getKeyframes()[0], 'height');
+  assert_false(anim.effect.getKeyframes()[0].hasOwnProperty('blockSize'));
+
+  assert_own_property(anim.effect.getKeyframes()[1], 'height');
+  assert_false(anim.effect.getKeyframes()[1].hasOwnProperty('blockSize'));
+}, 'Logical properties are represented as physical properties in keyframes');
+
+</script>

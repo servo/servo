@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<title>SXG reporting test of ok for navigation with origin referrer</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/network-error-logging/support/nel.sub.js"></script>
+<script src="../resources/sxg-util.js"></script>
+<body>
+<script>
+const alt_origin = get_host_info().HTTPS_NOTSAMESITE_ORIGIN;
+const test_origin = get_host_info().HTTPS_ORIGIN;
+
+nel_iframe_test(async t => {
+  await loadResourceWithBasicPolicyInIframe();
+  const sxg_url = alt_origin + '/signed-exchange/resources/sxg/sxg-location.sxg?navigation';
+  const cert_url = test_origin + '/signed-exchange/resources/127.0.0.1.sxg.pem.cbor';
+  const message = await openSXGInIframeAndWaitForMessage(t, sxg_url, 'origin');
+  assert_equals(message.location,
+                innerURLOrigin() + '/signed-exchange/resources/inner-url.html');
+  assert_false(message.is_fallback);
+  assert_true(await reportsExist([
+    {
+      url: sxg_url,
+      user_agent: navigator.userAgent,
+      type: "network-error",
+      body: {
+        phase: "sxg",
+        type: "ok",
+        status_code: 200,
+        referrer: document.location.origin + '/',
+        sxg: {
+          outer_url: sxg_url,
+          inner_url:
+              innerURLOrigin() + '/signed-exchange/resources/inner-url.html',
+          cert_url: [cert_url]
+        }
+      },
+      metadata: {
+        content_type: "application/reports+json",
+      },
+    },
+    {
+      url: sxg_url,
+      user_agent: navigator.userAgent,
+      type: "network-error",
+      body: {
+        phase: "application",
+        type: "ok",
+        status_code: 200,
+        referrer: document.location.origin + '/',
+      },
+      metadata: {
+        content_type: "application/reports+json",
+      },
+    },
+  ]));
+}, 'SXG reporting test of ok for navigation with origin referrer.');
+</script>
+</body>

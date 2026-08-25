@@ -1,0 +1,25 @@
+<!doctype html>
+<title>TrackEvent constructor</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+test(function(){
+    var ev = new TrackEvent('foo');
+    assert_true(ev instanceof TrackEvent, 'ev instanceof TrackEvent');
+    assert_true(ev instanceof Event, 'ev instanceof Event');
+    assert_equals(ev.track, null, 'ev.track');
+    ev.track = {};
+    assert_equals(ev.track, null, 'ev.track after assignment');
+}, document.title+', one arg');
+test(function(){
+    var video = document.createElement('video');
+    var testTrack = video.addTextTrack('subtitles', 'foo', 'foo');
+    var ev = new TrackEvent('foo', {track: testTrack});
+    assert_true(ev instanceof TrackEvent, 'ev instanceof TrackEvent');
+    assert_true(ev instanceof Event, 'ev instanceof Event');
+    assert_equals(ev.track, testTrack, 'ev.track');
+    ev.track = {};
+    assert_equals(ev.track, testTrack, 'ev.track after assignment');
+}, document.title+', two args');
+</script>

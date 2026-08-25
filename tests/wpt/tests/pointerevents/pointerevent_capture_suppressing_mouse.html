@@ -1,0 +1,239 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Set/Release capture</title>
+    <meta name="viewport" content="width=device-width">
+    <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-actions.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <!-- Additional helper script for common checks across event types -->
+    <script type="text/javascript" src="pointerevent_support.js"></script>
+  </head>
+  <body>
+    <div class="spacer"></div>
+    <div id="target0"></div>
+    <div class="spacer"></div>
+    <div id="target1"></div>
+    <div class="spacer"></div>
+    <input type="button" id="captureButton" value="Set Capture">
+  </body>
+  <script type='text/javascript'>
+    window.onload = () => {
+      let eventLog = [];
+      let nextUncheckedEventIndex = 0;
+      const target0 = document.getElementById('target0');
+      const target1 = document.getElementById('target1');
+      const captureButton = document.getElementById('captureButton');
+
+      function eventLabel(target, eventName) {
+        return `${eventName}@${target.id}`;
+      }
+
+      function recordEvent(target, eventName) {
+        eventLog.push(eventLabel(target, eventName));
+      }
+
+      // Ensure match to the next sequence of events in the event log.
+      function assert_next_events(target, expectedEventNames, message) {
+        for (let i = 0; i < expectedEventNames.length; i++) {
+          assert_true(nextUncheckedEventIndex < eventLog.length,
+                      `${message}: empty event queue`);
+          const observed = eventLog[nextUncheckedEventIndex++];
+          const expected = eventLabel(target, expectedEventNames[i]);
+          assert_equals(observed, expected,`${message}: Event  mismatch`);
+        }
+      }
+
+      // After validating the expected events, all entries in the event map
+      // must be false or we have recorded an unexpected event.
+      function assert_empty_event_queue(message) {
+        const uncheckedEvents = eventLog.length - nextUncheckedEventIndex;
+        assert_equals(uncheckedEvents, 0,
+                      `${message}: Unexpected events ` +
+                      `${eventLog.slice(-uncheckedEvents).join(", ")}`);
+      }
+
+      // Adds listeners for all element-pointerevent combinations. Each listener
+      // records the event for validation. the pointerdown event on the button
+      // triggers an extra step of triggering pointer capture.
+      function addEventListeners(t) {
+        // Adds a single event that is removed at the conclusion of the test.
+        const addListener = (target, eventName, fn) => {
+          const callback = (e) => {
+            recordEvent(target, eventName);
+            // Additional event handling is optional.
+            if (fn)
+              fn(e);
+          };
+          target.addEventListener(eventName, callback);
+          t.add_cleanup(() => {
+             target.removeEventListener(eventName, callback);
+          });
+        };
+        [target0, target1, captureButton].forEach(el => {
+          ['gotpointercapture', 'lostpointercapture', 'pointerenter',
+           'pointerleave', 'pointermove', 'pointerout',
+           'pointerover'].forEach(eventName => {
+             addListener(el, eventName);
+           });
+        });
+        addListener(captureButton, 'pointerdown', (e) => {
+          target0.setPointerCapture(e.pointerId);
+        });
+        t.add_cleanup(() => {
+          eventLog = [];
+          nextUncheckedEventIndex = 0;
+        });
+      }
+
+      // Trigger and wait for a pointer move.  The wait is to ensure there is
+      // no coalescence of pointer move events.
+      async function moveTo(x, y, target) {
+        const movePromise = getEvent('pointermove', target);
+        let actions = new test_driver.Actions()
+                      .pointerMove(x, y, { origin: target })
+                      .send();
+        await actions;
+        await movePromise;
+      }
+
+      promise_test(async t => {
+        // Reset pointer position.
+        await moveTo(0, 0, document.body);
+        addEventListeners(t);
+        // Move to the first target.
+        await moveTo(0, 0, target0);
+        assert_next_events(target0,["pointerover", "pointerenter", "pointermove"],
+                           'Move to first target');
+        assert_empty_event_queue('Check after first move');
+
+        // Move to the second taret.
+        await moveTo(0, 0, target1);
+        assert_next_events(target0, ['pointerout', 'pointerleave'],
+                           'Exit first target');
+        assert_next_events(target1,
+                      ["pointerover", "pointerenter", "pointermove"],
+                      'Move to second target');
+        assert_empty_event_queue('Check after second move');
+
+        // Move to the capture button.
+        await moveTo(0, 0, captureButton);
+        assert_next_events(target1, ['pointerout', 'pointerleave'],
+                           'Exit second target');
+        assert_next_events(
+            captureButton, ["pointerover", "pointerenter", "pointermove"],
+            'Move to button');
+        assert_empty_event_queue('Check after third move');
+      }, 'Validate pointer events track pointer movement without pointer '
+         + 'capture.');
+
+      async function runCaptureAndHoverTargetActionSequence(t, hoverTarget) {
+        const pointerUpPromise = getEvent('pointerup', document);
+        const actionsPromise =
+            new test_driver.Actions()
+                // Start outside capture button.
+                .pointerMove(0, 0)
+                .pointerDown()
+                .pointerUp()
+                // Move to the capture button
+                .pointerMove(0, 0, {origin: captureButton})
+                // Trigger pointer capture
+                .pointerDown()
+                // Hover over the target element
+                .pointerMove(10, 0, {origin: hoverTarget})
+                // Release capture
+                .pointerUp()
+                .send();
+        await actionsPromise;
+        await pointerUpPromise;
+      }
+
+      promise_test(async t => {
+        // Reset pointer position.
+        await moveTo(0, 0, document.body);
+        addEventListeners(t);
+
+        // On entry for this sub-test, the pointer is at the document origin.
+        await runCaptureAndHoverTargetActionSequence(t, captureButton);
+        assert_next_events(
+            captureButton,
+            ['pointerover', 'pointerenter', 'pointermove'],
+            'Move to button from origin');
+        assert_next_events(
+            captureButton,
+            ['pointerdown', 'pointerout', 'pointerleave'],
+            'Pointer down on button to trigger capture');
+        assert_next_events(
+            target0,
+            ['pointerover', 'pointerenter', 'gotpointercapture', 'pointermove'],
+            'Capture triggered while hovering over button');
+        assert_next_events(
+            target0,
+            ['lostpointercapture', 'pointerout', 'pointerleave'],
+            'Lose pointer capture while hovering over button');
+        // Post pointer capture.
+        assert_next_events(
+            captureButton,
+            ['pointerover', 'pointerenter'],
+            'Post capture while hovering over button');
+        assert_empty_event_queue('Check after button hover');
+
+        // On entry for this sub-test, the pointer is over the button.
+        await runCaptureAndHoverTargetActionSequence(t, target0);
+        assert_next_events(
+            captureButton,
+            ['pointerout', 'pointerleave'],
+            'Move from button to document origin');
+        assert_next_events(
+            captureButton,
+            ['pointerover', 'pointerenter', 'pointermove'],
+            'Move from document origin to button');
+        assert_next_events(
+            captureButton,
+            [ 'pointerdown', 'pointerout', 'pointerleave'],
+            'Pointer down on button to trigger capture');
+        assert_next_events(
+            target0,
+            ['pointerover', 'pointerenter', 'gotpointercapture', 'pointermove'],
+            'Capture triggered while hovering over capture target');
+        assert_next_events(
+            target0,
+            ['lostpointercapture'],
+            'Lose pointer capture while hovering over capture target');
+        assert_empty_event_queue('Check after hover on capture target');
+
+
+        // On entry for this sub-test, the pointer is over the capture target.
+        await runCaptureAndHoverTargetActionSequence(t, target1);
+        assert_next_events(
+            target0,
+            ['pointerout', 'pointerleave'],
+            'Move from capture target to button');
+        assert_next_events(
+            captureButton,
+            ['pointerover', 'pointerenter', 'pointermove'],
+            'Move from capture target to button');
+        assert_next_events(
+            captureButton,
+            [ 'pointerdown', 'pointerout', 'pointerleave'],
+            'Pointer down on button to trigger capture');
+        assert_next_events(
+            target0,
+            ['pointerover', 'pointerenter', 'gotpointercapture', 'pointermove'],
+            'Capture triggered while hovering over non-capture target');
+        assert_next_events(
+            target0,
+            ['lostpointercapture', 'pointerout', 'pointerleave'],
+            'Lose pointer capture while hovering over non-capture target');
+        assert_next_events(
+            target1,
+            ["pointerover", "pointerenter"],
+            'Post capture while hovering over non-capture target');
+        assert_empty_event_queue('Check after hover on non-capture target ');
+      }, 'Test pointer capture.');
+    };
+  </script>
+</html>

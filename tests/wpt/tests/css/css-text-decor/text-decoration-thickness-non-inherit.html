@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Test case for text-decoration-thickness inheritance</title>
+    <meta name="assert" content="text-decoration-thickness: should not be inherited">
+    <link rel="author" title="Joonghun Park" href="mailto:pjh0718@gmail.com">
+    <link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-thickness-property">
+    <link rel="match" href="reference/text-decoration-thickness-non-inherit-ref.html">
+    <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+    <style>
+        p { text-decoration-thickness: 20px; }
+        span { text-decoration-line: underline; text-decoration-color: black; }
+    </style>
+</head>
+<body>
+    <p><span>Test passes if this text decoration underline is not 20px thick.</span></p>
+</body>
+</html>

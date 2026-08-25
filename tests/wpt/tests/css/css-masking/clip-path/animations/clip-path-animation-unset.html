@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.csswg.org/css-shapes-1/#basic-shape-interpolation">
+<link rel="match" href="clip-path-animation-none-ref.html">
+<!--
+  This test verifies that
+  1) clip-path: unset in an animation does not cause a crash
+  2) that clip-path: unset displays correctly for an animation
+-->
+<style>
+  @keyframes clippath {
+    0% {
+      clip-path: inset(25% 25%);
+    }
+
+    100% {
+      clip-path: unset;
+    }
+  }
+
+  .target {
+    animation: clippath 20s steps(2, jump-end) -9.999s;
+    background-color: blue;
+    width: 100px;
+    height: 100px;
+  }
+
+  /*
+   * Ensure that clip-path: none is truly none, and not a rectangle that
+   * encompasses area of the parent
+   */
+  .outofbounds {
+    position: absolute;
+    top: 200px;
+    left: 200px;
+    height: 10px;
+    width: 10px;
+    background-color: blue
+  }
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="../../../../web-animations/resources/timing-utils.js"></script>
+
+<body>
+  <div class="target">
+    <div class="outofbounds"></div>
+  </div>
+  <script>
+    waitForAnimationTime(document.getAnimations()[0], 1).then(takeScreenshot);
+  </script>
+</body>
+
+</html>

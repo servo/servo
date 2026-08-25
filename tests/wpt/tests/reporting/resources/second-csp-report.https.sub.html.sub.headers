@@ -1,0 +1,2 @@
+Reporting-Endpoints: csp="/reporting/resources/report.py?endpoint=csp2"
+Content-Security-Policy: img-src 'none'; report-to csp

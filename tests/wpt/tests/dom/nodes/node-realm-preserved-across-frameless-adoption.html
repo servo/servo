@@ -1,0 +1,71 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>A node created in a frameless document keeps its creation realm across adoption</title>
+<link rel=help href="https://dom.spec.whatwg.org/#concept-create-node">
+<link rel=help href="https://dom.spec.whatwg.org/#concept-node-adopt">
+<link rel=help href="https://github.com/whatwg/dom/issues/977">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<body>
+<iframe></iframe>
+<script>
+// A document created via DOMImplementation.createHTMLDocument() (or DOMParser)
+// has no browsing context; its realm is that of the document that created it.
+// A node created in such a frameless document must keep that creation realm when
+// adopted into a document belonging to a different realm.
+//
+// Here the frameless document is created by the inner (iframe) realm. Each subtree
+// is built with innerHTML and only inspected after adoption, so no wrapper exists
+// until then; the correct realm is the inner one, not the top-level one.
+
+const inner = document.querySelector("iframe").contentWindow;
+
+function assertInnerRealm(node, iface) {
+  assert_true(node instanceof inner[iface], `is an inner-realm ${iface}`);
+}
+
+// The frameless document belongs to the inner realm (createHTMLDocument() was
+// called on the inner realm's DOMImplementation), so its context document is
+// the inner document.
+function innerFramelessDocument() {
+  return inner.document.implementation.createHTMLDocument("");
+}
+
+test(() => {
+  const container = innerFramelessDocument().createElement("div");
+  container.innerHTML = "<p></p>"; // <p> created in the frameless document, not wrapped
+  document.body.appendChild(container); // adopts container and <p> to top-level
+  const p = container.querySelector("p"); // first access, after adoption
+  assert_equals(p.ownerDocument, document, "p was adopted into the top-level document");
+  assertInnerRealm(p, "HTMLParagraphElement");
+}, "Built-in element from a frameless document keeps its creation realm after adoption");
+
+test(() => {
+  const container = innerFramelessDocument().createElement("div");
+  container.innerHTML = "text"; // Text created in the frameless document, not wrapped
+  document.body.appendChild(container);
+  const text = container.firstChild;
+  assert_equals(text.ownerDocument, document, "text was adopted into the top-level document");
+  assertInnerRealm(text, "Text");
+}, "Text node from a frameless document keeps its creation realm after adoption");
+
+test(() => {
+  const container = innerFramelessDocument().createElement("div");
+  container.innerHTML = "<!--comment-->"; // Comment created in the frameless document, not wrapped
+  document.body.appendChild(container);
+  const comment = container.firstChild;
+  assert_equals(comment.ownerDocument, document, "comment was adopted into the top-level document");
+  assertInnerRealm(comment, "Comment");
+}, "Comment node from a frameless document keeps its creation realm after adoption");
+
+// A deeper tree: a never-wrapped descendant of a frameless-document subtree must
+// still report the inner realm once adopted.
+test(() => {
+  const container = innerFramelessDocument().createElement("div");
+  container.innerHTML = "<section><b>x</b></section>";
+  document.body.appendChild(container);
+  const b = container.querySelector("b");
+  assert_equals(b.ownerDocument, document, "descendant was adopted into the top-level document");
+  assertInnerRealm(b, "HTMLElement");
+}, "Never-wrapped descendant from a frameless document keeps its creation realm after adoption");
+</script>

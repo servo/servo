@@ -1,0 +1,44 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Relatively positioned elements with auto positioning with anonymous boxes before and after</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+		<link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-07-09 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#relative-positioning" />
+		<link rel="match" href="position-relative-027-ref.xht" />
+
+        <meta name="assert" content="Relatively positioned element with auto positioning appear as though they were positioned in flow." />
+		<!--
+		"
+		If both 'left' and 'right' are 'auto' (their initial values),
+		[then] the[ir] used values are '0' (i.e., the boxes stay
+		in their original position).
+		(...)
+		If both [top and bottom] are 'auto', [then] their used values are both '0'.
+		"
+		http://www.w3.org/TR/CSS21/visuren.html#relative-positioning
+		-->
+
+        <style type="text/css">
+            div
+            {
+                width: 5in;
+            }
+            span
+            {
+				 bottom: auto;
+                 left: auto;
+                 position: relative;
+                 right: auto;
+                 top: auto;
+
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the 3 "Filler Text" are on the same line.</p>
+        <div>
+            Filler Text <span>Filler Text</span> Filler Text
+        </div>
+    </body>
+</html>

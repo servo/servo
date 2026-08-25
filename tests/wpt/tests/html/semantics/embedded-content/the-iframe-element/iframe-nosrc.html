@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>Check processing of iframe without src and srcdoc attribute</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/iframe-embed-object.html#process-the-iframe-attributes">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="log"></div>
+<iframe></iframe>
+<script>
+  let iframe = document.querySelector("iframe");
+
+  async_test(t => {
+    let originDoc = iframe.contentDocument;
+    window.addEventListener("load", t.step_func_done(() => {
+      assert_equals(iframe.contentDocument, originDoc, "contentDocument shouldn't be changed");
+    }));
+  }, "iframe.contentDocument should not be changed");
+
+  async_test(t => {
+    iframe.addEventListener("load", t.unreached_func());
+    window.addEventListener("load", () => t.done());
+  }, "load event of iframe should not be fired after processing the element");
+</script>

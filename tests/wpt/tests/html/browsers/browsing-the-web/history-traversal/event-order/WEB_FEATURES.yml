@@ -1,0 +1,9 @@
+rules:
+- pushState-inside-popstate.html: [history]
+- after-load-hash*: [hashchange]
+- after-load-pushState.html: [hashchange]
+- after-load-replaceState.html: [hashchange]
+- before-load-hash*: [hashchange]
+- before-load-pushState.html: [hashchange]
+- before-load-replaceState.html: [hashchange]
+- same-document-traverse-*: [hashchange]

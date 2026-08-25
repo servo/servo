@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/w3c/csswg-drafts/issues/8389">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<dialog>
+  <button>button</button>
+</dialog>
+
+<style>
+dialog.ready {
+  transition: display 500ms;
+}
+</style>
+
+<script>
+promise_test(async () => {
+  const dialog = document.querySelector('dialog');
+  const button = document.querySelector('button');
+
+  dialog.showModal();
+  button.blur(); // Dialog initial focus focused the button
+  dialog.classList.add('ready');
+
+  dialog.close();
+  await new Promise(resolve => requestAnimationFrame(resolve));
+  button.focus();
+
+  assert_not_equals(document.activeElement, button, 'Inert elements should not be focusable.');
+}, 'Elements which are transitioning to display:none should be inert.');
+</script>

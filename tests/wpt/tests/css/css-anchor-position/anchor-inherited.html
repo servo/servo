@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<title>Tests that anchor functions inherit as pixels</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script src="/css/css-anchor-position/support/test-common.js"></script>
+
+<style>
+.cb {
+  width: 400px;
+  height: 400px;
+  position: relative;
+  border: 1px solid black;
+}
+
+.anchor {
+  width: 100px;
+  height: 100px;
+  top: 10px;
+  left: 20px;
+  position: absolute;
+  background: red;
+  anchor-name: --a;
+}
+
+.anchored {
+  position-anchor: --a;
+  position: absolute;
+  /* Anchored directly on top */
+  top: anchor(top);
+  left: anchor(left);
+  width: anchor-size(width);
+  height: anchor-size(height);
+  background: coral;
+}
+
+/* The child should have the same size as the anchored element,
+   and inset by top:10px,left:20px vs. that element. */
+.child {
+  position-anchor: --unknown; /* Should have no effect. */
+  position: relative;
+  background: skyblue;
+  top: inherit;
+  left: inherit;
+  width: inherit;
+  height: inherit;
+}
+
+</style>
+
+<body onload="checkLayoutForAnchorPos('.child')">
+
+<div class=cb>
+  <div class=anchor></div>
+  <div class=anchored>
+    <div class=child
+         data-offset-x=20 data-offset-y=10
+         data-expected-width=100 data-expected-height=100></div>
+  </div>
+</div>
+
+</body>

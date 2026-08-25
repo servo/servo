@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<title>Removing render-blocking element should unblock rendering</title>
+<link rel="help" href="https://html.spec.whatwg.org/C/#blocking-attribute">
+<link rel="help" href="https://html.spec.whatwg.org/C/#rendering-opportunity">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/test-render-blocking.js"></script>
+
+<!--
+  The test is marked "optional" because even when the document is no longer
+  render-blocked, the user agent is still free to take other factors, which are
+  not limited by the spec, into consideration and therefore decide not to
+  render. However, it is still more desirable if rendering starts
+  immediately/soon.
+-->
+
+<script class="test" data="parser-inserted async script" async blocking="render"
+        src="support/dummy-1.js?pipe=trickle(d1)&async"></script>
+<script class="test" data="parser-inserted defer script" defer blocking="render"
+        src="support/dummy-1.js?pipe=trickle(d1)&defer"></script>
+<script class="test" data="parser-inserted module script" type="module"
+        blocking="render" src="support/dummy-1.mjs?pipe=trickle(d1)"></script>
+<script class="test" data="parser-inserted async module script" type="module"
+        async blocking="render" src="support/dummy-1.mjs?pipe=trickle(d1)&async"></script>
+
+<!--
+  No test for parser-inserted stylesheets and synchronous scripts because
+  they are script-blocking or even parser-blocking, and they do not have new
+  behaviors to test about.
+-->
+
+<script>
+function addRenderBlockingElement(tag, title, attributes, optional_text) {
+  let element = document.createElement(tag);
+  element.className = 'test';
+  element.setAttribute('data', title);
+  element.blocking = 'render';
+  Object.assign(element, attributes);
+  if (optional_text)
+    element.textContent = optional_text;
+  document.head.appendChild(element);
+}
+
+addRenderBlockingElement(
+    'link', 'script-inserted stylesheet link',
+    {rel: 'stylesheet', blocking: 'render', href: 'support/target-red.css?pipe=trickle(d1)&dynamic'});
+
+addRenderBlockingElement(
+    'script', 'script-inserted script',
+    {src: 'support/dummy-1.js?pipe=trickle(d1)&dynamic'});
+addRenderBlockingElement(
+    'script', 'script-inserted module script',
+    {type: 'module', src: 'support/dummy-1.mjs?pipe=trickle(d1)&dynamic'});
+
+addRenderBlockingElement(
+    'style', 'script-inserted inline style', {},
+    '@import url("support/target-red.css?pipe=trickle(d1)&imported&dynamic")');
+</script>
+
+<div id="dummy">Some text</div>
+
+<script>
+const testElements = [...document.querySelectorAll('.test')];
+const loadObservers = testElements.map(element => new LoadObserver(element));
+
+promise_setup(async () => {
+  for (let element of testElements)
+    element.remove();
+
+  // Test cases are run after rendering is unblocked.
+  await new Promise(resolve => requestAnimationFrame(resolve));
+});
+
+for (let index = 0; index < testElements.length; ++index) {
+  promise_test(
+    async () => assert_false(loadObservers[index].finished),
+    'Render-blocking on ' + testElements[index].getAttribute('data') + ' is cancellable');
+
+  // The loading can either continue or cancel. This test does not assert it.
+  loadObservers[index].load.catch(() => {});
+}
+</script>
+

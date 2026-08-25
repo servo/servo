@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>CSS Reference</title>
+<style>
+.container { width: 100px; }
+.first { width: 100px; height: 10px; margin-bottom: 50px; background: blue; }
+.intervening { float: left; width: 90px; height: 50px; background: green; }
+.atomic { display: inline-block; width: 50px; height: 10px; vertical-align: top; background: orange; }
+</style>
+<p>A blue rectangle, a green floated rectangle below it, and an orange inline-block past the float.</p>
+<div class="container">
+    <div class="first"></div>
+    <div class="intervening"></div>
+    <span class="atomic"></span>
+</div>

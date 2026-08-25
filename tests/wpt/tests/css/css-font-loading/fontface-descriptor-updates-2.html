@@ -1,0 +1,162 @@
+<!doctype html>
+<title>CSS Font Loading test: modification of descriptors reflects in FontFaceSet</title>
+<link rel="author" title="Sejal Anand" href="mailto:sejalanand@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-font-loading/#fontface-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<span id="probe" style="position:absolute;visibility:hidden;font-size:20px">Test</span>
+
+<script>
+function snapshotFontFaces() {
+  const faces = Array.from(document.fonts);
+  return {
+    families:  faces.map(f => f.family),
+    weights:   faces.map(f => f.weight),
+    ranges:    faces.map(f => f.unicodeRange),
+    styles:    faces.map(f => f.style),
+    stretches: faces.map(f => f.stretch),
+    featureSettings: faces.map(f => f.featureSettings),
+    variationSettings: faces.map(f => f.variationSettings),
+  };
+}
+
+function applyUpdates(updates) {
+  for (const [fontFace, props] of updates) {
+    for (const [key, value] of Object.entries(props)) {
+      fontFace[key] = value;
+    }
+  }
+}
+
+function assertSnapshot(snapshot, expectations) {
+  for (const [field, { present = [], absent = [] }] of Object.entries(expectations)) {
+    present.forEach(v =>
+      assert_in_array(v, snapshot[field], `${field}: expected ${v} to be present`)
+    );
+    absent.forEach(v =>
+      assert_false(snapshot[field].includes(v), `${field}: expected ${v} to be absent`)
+    );
+  }
+}
+
+promise_test(async () => {
+  const f1 = new FontFace("originalFamily", "url(resources/GenR102.woff2)");
+  const f2 = new FontFace("weightTest", "url(resources/GenR102.woff2)", { weight: "700" });
+  const f3 = new FontFace("unicodeTest", "url(resources/GenR102.woff2)", { unicodeRange: "U+0020-007F" });
+  const f4 = new FontFace("styleTest", "url(resources/GenR102.woff2)", { style: "oblique" });
+  const f5 = new FontFace("stretchTest", "url(resources/GenR102.woff2)", { stretch: "expanded" });
+  const f6 = new FontFace("featureTest", "url(resources/GenR102.woff2)", { featureSettings: "'liga' 1" });
+  const f7 = new FontFace("variationTest", "url(resources/GenR102.woff2)", { variationSettings: "'wght' 700" });
+
+  [f1, f2, f3, f4, f5, f6, f7].forEach(f => document.fonts.add(f));
+
+  const before = snapshotFontFaces();
+
+  assertSnapshot(before, {
+    families:  { present: ["originalFamily"] },
+    weights:   { present: ["700"] },
+    ranges:    { present: ["U+20-7F"] },
+    styles:    { present: ["oblique"] },
+    stretches: { present: ["expanded"] },
+    featureSettings:   { present: ['"liga"'] },
+    variationSettings: { present: ['"wght" 700'] },
+  });
+
+  applyUpdates([
+    [f1, { family: "updatedFamily" }],
+    [f2, { weight: "400" }],
+    [f3, { unicodeRange: "U+0000-00FF" }],
+    [f4, { style: "italic" }],
+    [f5, { stretch: "normal" }],
+    [f6, { featureSettings: "'smcp' 1" }],
+    [f7, { variationSettings: "'wght' 400" }],
+  ]);
+
+  const after = snapshotFontFaces();
+
+  assertSnapshot(after, {
+    families:  { present: ["updatedFamily"], absent: ["originalFamily"] },
+    weights:   { present: ["400"], absent: ["700"] },
+    ranges:    { present: ["U+0-FF"], absent: ["U+20-7F"] },
+    styles:    { present: ["italic"], absent: ["oblique"] },
+    stretches: { present: ["normal"], absent: ["expanded"] },
+    featureSettings:   { present: ['"smcp"'], absent: ['"liga"'] },
+    variationSettings: { present: ['"wght" 400'], absent: ['"wght" 700'] },
+  });
+}, "FontFace descriptor mutations are reflected in FontFaceSet");
+
+promise_test(async () => {
+  // css_font_face_ is created during FontFace construction, but
+  // segmented_font_faces_ remains empty until the FontFace is added to
+  // document.fonts (which inserts it into the FontFaceCache). Mutating
+  // descriptors in this state should not crash, and the updated values
+  // should be picked up when the font is eventually added.
+  const f = new FontFace("preAddFamily", "url(resources/GenR102.woff2)", {
+    weight: "700",
+    style: "oblique",
+    stretch: "expanded",
+    unicodeRange: "U+0020-007F",
+  });
+
+  // Mutate all descriptors BEFORE adding to document.fonts.
+  f.family = "renamedPreAdd";
+  f.weight = "300";
+  f.style = "italic";
+  f.stretch = "condensed";
+  f.unicodeRange = "U+0000-00FF";
+
+  document.fonts.add(f);
+
+  const snapshot = snapshotFontFaces();
+  assertSnapshot(snapshot, {
+    families:  { present: ["renamedPreAdd"], absent: ["preAddFamily"] },
+    weights:   { present: ["300"], absent: ["700"] },
+    styles:    { present: ["italic"], absent: ["oblique"] },
+    stretches: { present: ["condensed"], absent: ["expanded"] },
+    ranges:    { present: ["U+0-FF"], absent: ["U+20-7F"] },
+  });
+
+  document.fonts.delete(f);
+}, "Descriptor mutations before adding to FontFaceSet are correctly reflected");
+
+promise_test(async () => {
+  // Two faces under the same family, distinguished by style.
+  // GenR102 and GenI102 have different glyph widths.
+  const fNormal = new FontFace("testFamily",
+    "url(resources/GenR102.woff2)", { style: "normal" });
+  const fItalic = new FontFace("testFamily",
+    "url(resources/GenI102.woff2)", { style: "italic" });
+  document.fonts.add(fNormal);
+  document.fonts.add(fItalic);
+  await Promise.all([fNormal.load(), fItalic.load()]);
+
+  const el = document.getElementById('probe');
+  el.style.fontFamily = 'testFamily';
+
+  // Measure which font renders for each style.
+  el.style.fontStyle = 'normal';
+  const widthA = el.offsetWidth;
+  el.style.fontStyle = 'italic';
+  const widthB = el.offsetWidth;
+  assert_not_equals(widthA, widthB, 'the two fonts have different widths');
+
+  // Swap styles: normal face becomes italic, italic face becomes normal.
+  fNormal.style = "italic";
+  fItalic.style = "normal";
+
+  // After swap, font-style:normal should render GenI102 (old italic width).
+  el.style.fontStyle = 'normal';
+  assert_equals(el.offsetWidth, widthB,
+    'after style swap, normal renders the previously-italic font');
+
+  // Rename one face's family.
+  fNormal.family = "renamedFamily";
+  el.style.fontFamily = 'renamedFamily';
+  el.style.fontStyle = 'italic';
+  assert_equals(el.offsetWidth, widthA,
+    'after family rename, new name matches the renamed face');
+
+  document.fonts.delete(fNormal);
+  document.fonts.delete(fItalic);
+}, "Font matching uses updated style and family name");
+</script>

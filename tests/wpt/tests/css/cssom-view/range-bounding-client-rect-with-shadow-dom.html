@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Range.getClientRects and getBoundingClientRect for ranges not in the document</title>
+<link rel=help href="https://github.com/servo/servo/issues/47115">
+<link rel="author" title="Euclid Ye" href="mailto:yezhizhenjiakang@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/cssom-view-1/#dom-range-getclientrects">
+<link rel="help" href="https://drafts.csswg.org/cssom-view-1/#dom-range-getboundingclientrect">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<span id="light">Light</span>
+<span id="host"></span>
+<script>
+  const host = document.getElementById("host");
+  const shadowRoot = host.attachShadow({ mode: "open" });
+  shadowRoot.innerHTML = "<mark id=\"shadow\">Shadow</mark>";
+  const shadowMark = shadowRoot.getElementById("shadow");
+
+  test(() => {
+    const range = document.createRange();
+    range.setStartBefore(document.getElementById("light"));
+    range.setEndAfter(shadowMark);
+
+    assert_equals(range.getClientRects().length, 0,
+      "getClientRects() returns an empty list for a range that is not in the document");
+
+    const rect = range.getBoundingClientRect();
+    assert_equals(rect.x, 0, "x");
+    assert_equals(rect.y, 0, "y");
+    assert_equals(rect.width, 0, "width");
+    assert_equals(rect.height, 0, "height");
+  }, "getBoundingClientRect returns a zero rect for a range crossing a shadow boundary");
+
+  test(() => {
+    const range = document.createRange();
+    range.selectNode(shadowMark);
+
+    assert_not_equals(range.getClientRects().length, 0,
+      "getClientRects() returns client rects for a range inside a shadow tree");
+    assert_true(range.getBoundingClientRect().width > 0);
+  }, "ranges entirely inside a shadow tree return client rects");
+
+  test(() => {
+    const detached = document.createElement("div");
+    detached.textContent = "detached";
+    const range = document.createRange();
+    range.selectNodeContents(detached);
+
+    assert_equals(range.getClientRects().length, 0,
+      "getClientRects() returns an empty list for a range in a detached tree");
+    assert_equals(range.getBoundingClientRect().width, 0);
+  }, "ranges in a detached tree return empty rects");
+
+  test(() => {
+    const text = document.getElementById("light").firstChild;
+    const range = document.createRange();
+    range.setStart(text, 1);
+    range.setEnd(text, 1);
+
+    assert_not_equals(range.getClientRects().length, 0,
+      "a collapsed range at a text node still returns client rects");
+    assert_true(range.getBoundingClientRect().height > 0);
+  }, "a collapsed range at a text node returns client rects");
+</script>

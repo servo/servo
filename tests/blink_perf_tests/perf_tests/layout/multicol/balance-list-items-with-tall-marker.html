@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<script src="../../resources/runner.js"></script>
+<style>
+  ul li li::marker {
+    content:'x';
+    font-size: 120%;
+  }
+  #target > * {
+    break-before: avoid;
+    break-inside: avoid;
+  }
+</style>
+<pre id="log"></pre>
+<div style="overflow:hidden; width:0; height:0;">
+  <ul id="target" style="columns:3; orphans:1; widows:1; width:40em;">
+    <li>
+      <ul>
+        <li>List item 1</li>
+        <li>List item 2</li>
+        <li>List item 3</li>
+      </ul>
+    </li>
+    <li>
+      <ul>
+        <li>List item 4</li>
+        <li>List item 5</li>
+        <li>List item 6</li>
+        <li>List item 7</li>
+        <li>List item 8</li>
+        <li>List item 9</li>
+        <li>List item 10</li>
+        <li>List item 11</li>
+        <li>List item 12</li>
+        <li>List item 13</li>
+        <li>List item 14</li>
+        <li>List item 15</li>
+        <li>List item 16</li>
+        <li>List item 17</li>
+        <li>List item 18</li>
+        <li>List item 19</li>
+        <li>List item 20</li>
+        <li>List item 21</li>
+        <li>List item 22</li>
+        <li>List item 23</li>
+        <li>List item 24</li>
+        <li>List item 25</li>
+        <li>List item 26</li>
+        <li>List item 27</li>
+      </ul>
+    </li>
+    <li>
+      <ul>
+        <li>List item 28</li>
+        <li>List item 29</li>
+        <li>List item 30</li>
+        <li>List item 31</li>
+        <li>List item 32</li>
+        <li>List item 33</li>
+        <li>List item 34</li>
+        <li>List item 35</li>
+        <li>List item 36</li>
+      </ul>
+    </li>
+    <li>
+      <ul>
+        <li>List item 37</li>
+        <li>List item 38</li>
+        <li>List item 39</li>
+        <li>List item 40</li>
+        <li>List item 41</li>
+        <li>List item 42</li>
+        <li>List item 43</li>
+        <li>List item 44</li>
+        <li>List item 45</li>
+        <li>List item 46</li>
+        <li>List item 47</li>
+        <li>List item 48</li>
+        <li>List item 49</li>
+        <li>List item 50</li>
+        <li>List item 51</li>
+        <li>List item 52</li>
+        <li>List item 53</li>
+        <li>List item 54</li>
+        <li>List item 55</li>
+        <li>List item 56</li>
+        <li>List item 57</li>
+      </ul>
+    </li>
+    <li>
+      <h4>Heading</h4>
+      <ul>
+        <li>List item 58</li>
+        <li>List item 59</li>
+        <li>List item 60</li>
+        <li>List item 61</li>
+        <li>List item 62</li>
+        <li>List item 63</li>
+      </ul>
+    </li>
+  </ul>
+</div>
+<script>
+  var target = document.getElementById("target");
+  var style = target.style;
+
+  function test() {
+    style.display = "block";
+    PerfTestRunner.forceLayout();
+    style.display = "none";
+    PerfTestRunner.forceLayout();
+  }
+
+  PerfTestRunner.measureRunsPerSecond({
+    description: "Lists items with tall markers in balanced multicol.",
+    run: test
+  });
+</script>

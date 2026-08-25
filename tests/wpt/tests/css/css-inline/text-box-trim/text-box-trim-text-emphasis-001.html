@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>text-box-trim ignores emphasis marks</title>
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-trim">
+<link rel="help" href="https://www.w3.org/TR/css-text-decor/#emphasis-marks">
+<link rel="match" href="text-box-trim-text-emphasis-001-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css"/>
+<style>
+.spacer {
+  height: 40px;
+  background: lightgray;
+}
+.target {
+  font: 40px/2 Ahem;
+  text-box-trim: trim-both;
+  text-box-edge: text;
+}
+em {
+  text-emphasis: dot;
+  text-emphasis-position: over;
+}
+em + em {
+  text-emphasis-position: under;
+}
+</style>
+<div class="spacer"></div>
+<div class="target"><span>super</span> <span>important</span></div>
+<div class="spacer"></div>

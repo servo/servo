@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/test-only-api.js"></script>
+<script src="/permissions-policy/resources/permissions-policy.js"></script>
+<script>
+'use strict';
+const sub = 'https://{{domains[www]}}:{{ports[https][0]}}';
+const same_origin_src = '/permissions-policy/resources/permissions-policy-serial.html';
+const cross_origin_src = sub + same_origin_src;
+const same_origin_worker_frame_src =
+    '/permissions-policy/resources/permissions-policy-serial-worker.html';
+const cross_origin_worker_frame_src = sub + same_origin_worker_frame_src;
+const header = 'Permissions-Policy header serial=()';
+
+promise_test(() => {
+  return navigator.serial.getPorts().then(() => {
+    assert_unreached('expected promise to reject with SecurityError');
+  }, error => {
+    assert_equals(error.name, 'SecurityError');
+  });
+}, header + ' disallows getPorts in the top-level document.');
+
+async_test(t => {
+  test_feature_availability('serial.getPorts()', t, same_origin_src,
+      expect_feature_unavailable_default);
+}, header + ' disallows same-origin iframes.');
+
+async_test(t => {
+  test_feature_availability('serial.getPorts()', t, same_origin_worker_frame_src,
+      expect_feature_unavailable_default);
+}, header + ' disallows workers in same-origin iframes.');
+
+async_test(t => {
+  test_feature_availability('serial.getPorts()', t, cross_origin_src,
+      expect_feature_unavailable_default);
+}, header + ' disallows cross-origin iframes.');
+
+async_test(t => {
+  test_feature_availability('serial.getPorts()', t,
+      cross_origin_worker_frame_src,
+      expect_feature_unavailable_default);
+}, header + ' disallows workers in cross-origin iframes.');
+
+fetch_tests_from_worker(new Worker(
+    'resources/serial-disabled-by-permissions-policy-worker.js'));
+
+</script>
+</body>

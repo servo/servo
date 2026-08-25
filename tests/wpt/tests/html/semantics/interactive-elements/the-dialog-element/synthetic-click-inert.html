@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=author href="mailto:falken@chromium.org">
+<link rel=help href="https://html.spec.whatwg.org/multipage/interactive-elements.html#the-dialog-element">
+<link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=241699">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+dialog {
+  width: 50px;
+}
+</style>
+
+<button>Click me</button>
+<div id="div">Click me too</div>
+<dialog></dialog>
+
+<script>
+test(() => {
+  dialog = document.querySelector('dialog');
+  dialog.showModal();
+
+  const button = document.querySelector('button');
+  const div = document.getElementById('div');
+  let clicked = false;
+
+  [button, div].forEach(function(element) {
+    element.addEventListener('click', () => clicked = true);
+
+    clicked = false;
+    element.click();
+    assert_true(clicked, 'Calling click() on ' + element.tagName);
+
+    clicked = false;
+    element.dispatchEvent(new Event('click'));
+    assert_true(clicked, 'Calling dispatchEvent() on ' + element.tagName);
+  });
+}, 'Test that inert nodes still get programmatic click events');
+</script>

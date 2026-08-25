@@ -1,0 +1,4 @@
+rules:
+- imagedata.html: [canvas-2d]
+- 2d-getcontext-options.html: [canvas-2d]
+- "*": [canvas]

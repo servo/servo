@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<title>Hit-test of clip-path nested objectBoundingBox &lt;clipPath></title>
+<link rel="help" href="https://drafts.fxtf.org/css-masking/#the-clip-path">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+body {
+  margin: 0;
+}
+.box {
+  width: 200px;
+  height: 200px;
+  background-color: blue;
+  margin: 100px;
+  clip-path: url(#clip);
+}
+</style>
+<div class="box"></div>
+<svg height="0">
+  <clipPath id="nested" clipPathUnits="objectBoundingBox">
+    <circle cx="0.25" cy="0.25" r="0.25"/>
+  </clipPath>
+  <clipPath id="clip" clipPathUnits="objectBoundingBox" clip-path="url(#nested)">
+    <rect width="0.5" height="0.5"/>
+  </clipPath>
+</svg>
+<script>
+function assert_element_at(element, pointlist) {
+  for (let point of pointlist) {
+    let result = document.elementFromPoint(point[0], point[1]);
+    assert_equals(result, element, point.join(','));
+  }
+}
+
+test(function() {
+  let div = document.querySelector('.box');
+
+  // Points inside clip-path.
+  assert_element_at(div, [[150, 150], [150, 125], [150, 175], [125, 150], [175, 150]]);
+
+  // Points outside clip-path.
+  assert_element_at(document.body, [[110, 110], [190, 110], [110, 190], [190, 190]]);
+});
+</script>

@@ -1,0 +1,2 @@
+rules:
+- svg-in-svg-circular-filter-reference-crash.html: [svg-filters]

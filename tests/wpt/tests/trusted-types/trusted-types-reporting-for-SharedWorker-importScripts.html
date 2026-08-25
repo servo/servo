@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+  fetch_tests_from_worker(new SharedWorker(
+    "support/trusted-types-reporting-for-importScripts.js"
+  ));
+</script>

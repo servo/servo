@@ -1,0 +1,209 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<button id="button">User gesture</button>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+'use strict';
+
+async function getFrameStatsUntil(track, condition) {
+  while (true) {
+    const stats = track.stats.toJSON();
+    if (condition(stats)) {
+      return stats;
+    }
+    // Repeat in the next task execution cycle.
+    await Promise.resolve();
+  }
+};
+
+promise_test(async t => {
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  const [track] = stream.getTracks();
+  t.add_cleanup(() => track.stop());
+
+  const firstStats =
+    await getFrameStatsUntil(track, stats => stats.totalFrames > 0);
+  await getFrameStatsUntil(track,
+    stats => stats.totalFrames > firstStats.totalFrames && stats.totalFramesDuration > firstStats.totalFramesDuration);
+}, `totalFrames and totalFramesDuration increase over time`);
+
+promise_test(async t => {
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  const [track] = stream.getTracks();
+  t.add_cleanup(() => track.stop());
+
+  // Wait one second for stats
+  const stats =
+    await getFrameStatsUntil(track, stats => stats.totalFramesDuration > 1000);
+  assert_less_than_equal(stats.deliveredFrames, stats.totalFrames);
+  assert_less_than_equal(stats.deliveredFramesDuration, stats.totalFramesDuration);
+  assert_greater_than_equal(stats.deliveredFrames, 0);
+  assert_greater_than_equal(stats.deliveredFramesDuration, 0);
+}, `deliveredFrames and deliveredFramesDuration are at most as large as totalFrames and totalFramesDuration`);
+
+promise_test(async t => {
+  function assertLatencyStatsInBounds(stats) {
+    assert_greater_than_equal(stats.maximumLatency, stats.latency);
+    assert_greater_than_equal(stats.maximumLatency, stats.averageLatency);
+    assert_less_than_equal(stats.minimumLatency, stats.latency);
+    assert_less_than_equal(stats.minimumLatency, stats.averageLatency);
+  };
+
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  const [track] = stream.getTracks();
+  t.add_cleanup(() => track.stop());
+  const firstStats = track.stats.toJSON();
+  assertLatencyStatsInBounds(firstStats);
+
+  // Wait one second for a second stats object.
+  const secondStats =
+    await getFrameStatsUntil(track, stats => stats.totalFramesDuration - firstStats.totalFramesDuration >= 1000);
+  assertLatencyStatsInBounds(secondStats);
+
+  // Reset the latency stats and wait one second for a third stats object.
+  track.stats.resetLatency();
+  const thirdStats =
+    await getFrameStatsUntil(track, stats => stats.totalFramesDuration - secondStats.totalFramesDuration >= 1000);
+  assertLatencyStatsInBounds(thirdStats);
+}, `Latency and averageLatency is within the bounds of minimumLatency and maximumLatency`);
+
+promise_test(async t => {
+  // This behaviour is defined in
+  // https://w3c.github.io/mediacapture-extensions/#dom-mediastreamtrackaudiostats-resetlatency
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  const [track] = stream.getTracks();
+  t.add_cleanup(() => track.stop());
+
+  // Wait one second for stats
+  const stats =
+    await getFrameStatsUntil(track, stats => stats.totalFramesDuration > 1000);
+  track.stats.resetLatency();
+  assert_equals(track.stats.latency, stats.latency);
+  assert_equals(track.stats.averageLatency, stats.latency);
+  assert_equals(track.stats.minimumLatency, stats.latency);
+  assert_equals(track.stats.maximumLatency, stats.latency);
+}, `Immediately after resetLatency(), latency, averageLatency, minimumLatency and maximumLatency are equal to the most recent latency.`);
+
+promise_test(async t => {
+  // This behaviour is defined in
+  // https://w3c.github.io/mediacapture-extensions/#dfn-expose-audio-frame-counters-steps
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  const [track] = stream.getTracks();
+  t.add_cleanup(() => track.stop());
+
+  // Wait until we have meaningful data
+  await getFrameStatsUntil(track, stats => stats.totalFrames > 0);
+  const firstStats = track.stats.toJSON();
+
+  // Synchronously wait 500 ms.
+  const start = performance.now();
+  while(performance.now() - start < 500);
+
+  // The stats should still be the same, despite the time difference.
+  const secondStats = track.stats.toJSON();
+  assert_equals(JSON.stringify(firstStats), JSON.stringify(secondStats));
+}, `Stats do not change within the same task execution cycle.`);
+
+promise_test(async t => {
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  const [track] = stream.getTracks();
+  t.add_cleanup(() => track.stop());
+
+  // Wait for media to flow before disabling the `track`.
+  const initialStats = await getFrameStatsUntil(track, stats => stats.totalFrames > 0);
+  track.enabled = false;
+  // Upon disabling, the counters are not reset.
+  const disabledSnapshot = track.stats.toJSON();
+  assert_greater_than_equal(disabledSnapshot.totalFramesDuration,
+                            initialStats.totalFramesDuration);
+
+  await new Promise(r => t.step_timeout(r, 4000));
+
+  // Frame metrics should be frozen, but because `enabled = false` does not
+  // return a promise, we allow some lee-way in case som buffers were still in flight
+  // during the disabling.
+  assert_approx_equals(
+      track.stats.totalFramesDuration, disabledSnapshot.totalFramesDuration, 1000);
+}, `Stats are frozen while disabled`);
+
+promise_test(async t => {
+  const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+  const [track] = stream.getTracks();
+  t.add_cleanup(() => track.stop());
+
+  const a = track.stats;
+  await getFrameStatsUntil(track, stats => stats.totalFrames > 0);
+  const b = track.stats;
+  // The counters may have changed, but `a` and `b` are still the same object.
+  assert_equals(a, b);
+}, `SameObject policy applies`);
+
+promise_test(async t => {
+  const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+  const [track] = stream.getTracks();
+  t.add_cleanup(() => track.stop());
+
+  // Hold a reference directly to the [SameObject] stats, bypassing the
+  // `track.stats` getter in the subsequent getting of `totalFrames`.
+  const stats = track.stats;
+  const firstTotalFrames = stats.totalFrames;
+  while (stats.totalFrames == firstTotalFrames) {
+    await Promise.resolve();
+  }
+  assert_greater_than(stats.totalFrames, firstTotalFrames);
+}, `Counters increase even if we don't call the track.stats getter`);
+
+promise_test(async t => {
+  const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+  const [track] = stream.getTracks();
+  t.add_cleanup(() => track.stop());
+
+  // Wait for 500 ms of audio to flow before disabling the `track`.
+  const initialStats = await getFrameStatsUntil(track, stats =>
+      stats.totalFramesDuration > 500);
+  track.enabled = false;
+
+  // Re-enable the track. The stats counters should be greater than or equal to
+  // what they were previously.
+  track.enabled = true;
+  assert_greater_than_equal(track.stats.totalFrames,
+                            initialStats.totalFrames);
+  assert_greater_than_equal(track.stats.totalFramesDuration,
+                            initialStats.totalFramesDuration);
+  // This should be true even in the next task execution cycle.
+  await Promise.resolve();
+  assert_greater_than_equal(track.stats.totalFrames,
+                            initialStats.totalFrames);
+  assert_greater_than_equal(track.stats.totalFramesDuration,
+                            initialStats.totalFramesDuration);
+}, `Disabling and re-enabling does not reset the counters`);
+
+promise_test(async t => {
+  const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+  const [originalTrack] = stream.getTracks();
+  t.add_cleanup(() => originalTrack.stop());
+
+  // Wait for 500 ms of audio to flow.
+  await getFrameStatsUntil(originalTrack, stats =>
+      stats.totalFramesDuration > 500);
+
+  // Clone the track. While its counters should initially be zero, it would be
+  // racy to assert that they are exactly zero because media is flowing.
+  const clonedTrack = originalTrack.clone();
+  t.add_cleanup(() => clonedTrack.stop());
+
+  // Ensure that as media continues to flow, the cloned track will necessarily
+  // have less frames than the original track on all accounts since its counters
+  // will have started from zero.
+  const clonedTrackStats = await getFrameStatsUntil(clonedTrack, stats =>
+      stats.totalFramesDuration > 0);
+  assert_less_than(clonedTrackStats.totalFrames,
+                    originalTrack.stats.totalFrames);
+  assert_less_than(clonedTrackStats.totalFramesDuration,
+                    originalTrack.stats.totalFramesDuration);
+}, `New stats baselines when a track is cloned from an enabled track`);
+</script>

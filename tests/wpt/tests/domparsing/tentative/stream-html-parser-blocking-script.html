@@ -1,0 +1,177 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>streamHTMLUnsafe with parser blocking script</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="placeholder"></div>
+<script>
+  setup({ allow_uncaught_exception: true });
+
+  promise_test(async (t) => {
+    window.events = [];
+    window.resolvers = Promise.withResolvers();
+    const placeholder = document.getElementById("placeholder");
+    placeholder.replaceChildren();
+    const writable = placeholder.streamHTMLUnsafe({ runScripts: true });
+    const writer = writable.getWriter();
+
+    // Chunk 1: A slow script that pushes 'slow' to events.
+    await writer.write("<script src='resources/slow.js?pipe=trickle(d0.3)&t=1'><" + "/script>");
+
+    // Chunk 2: An inline script that pushes 'inline' to events and resolves the promise.
+    // Because the parser should block on Chunk 1, 'inline' should not be executed until 'slow' is executed.
+    await writer.write("<script>window.events.push('inline'); window.resolvers.resolve();<" + "/script>");
+
+    // We close the writer.
+    await writer.close();
+
+    await window.resolvers.promise;
+
+    assert_array_equals(window.events, ["slow", "inline"]);
+  }, "streamHTMLUnsafe with parser blocking script should process in order");
+
+  promise_test(async (t) => {
+    window.events = [];
+    window.resolvers = Promise.withResolvers();
+    const placeholder = document.getElementById("placeholder");
+    placeholder.replaceChildren();
+    const writable = placeholder.streamHTMLUnsafe({ runScripts: true });
+    const writer = writable.getWriter();
+
+    // Script 1 takes 0.3s, Script 2 takes 0.1s.
+    // Script 2 must NOT execute before Script 1.
+    await writer.write(
+      "<script src='resources/slow.js?pipe=trickle(d0.3)&t=2_1'><" + "/script>" +
+      "<p id='mid'>mid</p>" +
+      "<script src='resources/slow.js?pipe=trickle(d0.1)&t=2_2'><" + "/script>" +
+      "<script>window.events.push('inline'); window.resolvers.resolve();<" + "/script>"
+    );
+    await writer.close();
+
+    await window.resolvers.promise;
+
+    assert_array_equals(window.events, ["slow", "slow", "inline"]);
+  }, "Multiple parser-blocking scripts with out-of-order fetch times execute in document order");
+
+  promise_test(async (t) => {
+    window.inline_split_result = null;
+    const placeholder = document.getElementById("placeholder");
+    placeholder.replaceChildren();
+    const writable = placeholder.streamHTMLUnsafe({ runScripts: true });
+    const writer = writable.getWriter();
+
+    await writer.write("<script>window.inline_");
+    assert_equals(window.inline_split_result, null, "Script must not execute while incomplete");
+    await writer.write("split_result = 10 + ");
+    assert_equals(window.inline_split_result, null, "Script must not execute while incomplete");
+    await writer.write("20;<" + "/");
+    assert_equals(window.inline_split_result, null, "Script must not execute until end tag is complete");
+    await writer.write("script>");
+    assert_equals(window.inline_split_result, 30, "Script executes immediately once end tag is parsed");
+    await writer.close();
+  }, "Inline script split across chunk boundaries executes only when tag closes");
+
+  promise_test(async (t) => {
+    window.events = [];
+    window.resolvers = Promise.withResolvers();
+    const placeholder = document.getElementById("placeholder");
+    placeholder.replaceChildren();
+    const writable = placeholder.streamHTMLUnsafe({ runScripts: true });
+    const writer = writable.getWriter();
+
+    await writer.write("<script sr");
+    await writer.write("c='resources/slow.js?pipe=trickle(d0.1)&split=1'");
+    await writer.write("><" + "/");
+    await writer.write("script>");
+    await writer.write("<script>window.events.push('inline'); window.resolvers.resolve();<" + "/script>");
+    await writer.close();
+
+    await window.resolvers.promise;
+    assert_array_equals(window.events, ["slow", "inline"]);
+  }, "External script tag split across chunk boundaries parses and executes correctly");
+
+  promise_test(async (t) => {
+    window.resolvers = Promise.withResolvers();
+    const placeholder = document.getElementById("placeholder");
+    placeholder.replaceChildren();
+    const writable = placeholder.streamHTMLUnsafe({ runScripts: true });
+    const writer = writable.getWriter();
+
+    const scriptCode = `
+      const p = document.createElement('p');
+      p.id = 'from-script';
+      p.textContent = 'from script';
+      document.getElementById('placeholder').append(p);
+    `;
+
+    await writer.write(
+      "<p id='p1'>p1</p>" +
+      `<script src="data:text/javascript,${encodeURIComponent(scriptCode)}"><` + `/script>` +
+      "<p id='p2'>p2</p>" +
+      "<script>window.resolvers.resolve();<" + "/script>"
+    );
+    await writer.close();
+    await window.resolvers.promise;
+
+    const ids = Array.from(placeholder.children).map(c => c.id);
+    assert_array_equals(ids, ["p1", "", "from-script", "p2", ""]);
+  }, "DOM mutations inside streamed parser-blocking script maintain correct insertion order");
+
+  promise_test(async (t) => {
+    window.events = [];
+    const placeholder = document.getElementById("placeholder");
+    placeholder.replaceChildren();
+    const writable = placeholder.streamHTMLUnsafe({ runScripts: true });
+    const writer = writable.getWriter();
+
+    await writer.write("<script src='resources/slow.js?pipe=trickle(d0.2)&abort_test=1'><" + "/script>");
+    await writer.abort();
+
+    // Wait 300ms to ensure the network response for slow.js arrived
+    await new Promise(r => t.step_timeout(r, 300));
+    assert_array_equals(window.events, [], "Aborted parser-blocking script must not execute after abort");
+  }, "streamHTMLUnsafe with parser-blocking script should not execute after abort");
+
+  promise_test(async (t) => {
+    window.events = [];
+    window.resolvers = Promise.withResolvers();
+    const placeholder = document.getElementById("placeholder");
+    placeholder.replaceChildren();
+    const writable = placeholder.streamHTMLUnsafe({ runScripts: true });
+    const writer = writable.getWriter();
+
+    // Set up window.onerror listener for the expected script error
+    let got_error = false;
+    const error_listener = (e) => {
+      got_error = true;
+      e.preventDefault();
+    };
+    window.addEventListener("error", error_listener);
+    t.add_cleanup(() => window.removeEventListener("error", error_listener));
+
+    await writer.write(
+      "<script>window.events.push('before-err'); throw new Error('expected test error');<" + "/script>" +
+      "<p id='after-err'>after</p>" +
+      "<script>window.events.push('after-err'); window.resolvers.resolve();<" + "/script>"
+    );
+    await writer.close();
+    await window.resolvers.promise;
+
+    assert_true(got_error, "window.onerror should receive the thrown error");
+    assert_array_equals(window.events, ["before-err", "after-err"]);
+    assert_equals(placeholder.querySelector("#after-err").textContent, "after");
+  }, "streamHTMLUnsafe continues parsing after runtime script error");
+
+  promise_test(async (t) => {
+    window.detached_script_ran = false;
+    const detachedDiv = document.createElement("div");
+    const writable = detachedDiv.streamHTMLUnsafe({ runScripts: true });
+    const writer = writable.getWriter();
+
+    await writer.write("<script>window.detached_script_ran = true;<" + "/script><p>text</p>");
+    await writer.close();
+
+    assert_false(window.detached_script_ran, "Scripts in detached element should not execute");
+    assert_equals(detachedDiv.querySelector("p").textContent, "text");
+  }, "streamHTMLUnsafe on detached element should parse markup without executing scripts");
+</script>

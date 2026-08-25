@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Crashtest bug 713606</title>
+  </head>
+  <body onload="document.querySelector('mstyle').setAttribute('scriptminsize', '0%');">
+    <math>
+      <msubsup>
+        <mtext>X</mtext>
+        <mtable displaystyle="true"></mstyle>
+        </mtext>Y</mtext>
+      </msubsup>
+    </math>
+    <math>
+      <msubsup>
+        <mtext>X</mtext>
+        <mstyle displaystyle="true"></mstyle>
+        </mtext>Y</mtext>
+      </msubsup>
+    </math>
+    <math><mfrac><mstyle displaystyle="true"></mstyle></mfrac></math>
+  </body>
+</html>
+

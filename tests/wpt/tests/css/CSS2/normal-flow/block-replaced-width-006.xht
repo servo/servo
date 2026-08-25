@@ -1,0 +1,41 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Block replaced elements and 'auto' specified for 'margin-left', 'margin-right' and percentage intrinsic width</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-10-06 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#block-replaced-width" />
+		<link rel="match" href="block-replaced-width-006-ref.xht" />
+
+        <meta name="flags" content="ahem image" />
+        <meta name="assert" content="Percentage intrinsic widths are evaluated against the containing block's width." />
+        <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+        <style type="text/css">
+            #div1
+            {
+                border: solid black;
+                height: 300px;
+                width: 200px;
+            }
+            img
+            {
+                display: block;
+                margin-left: auto;
+                margin-right: auto;
+            }
+            div div
+            {
+                color: orange;
+                font: 100px/1em Ahem;
+                text-align: center;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the blue and orange squares have the <strong>same width</strong> and if they are <strong>horizontally centered</strong> inside an hollow black rectangle.</p>
+        <div id="div1">
+            <img alt="blue 15x15" src="support/blue15x15.png" width="50%" />
+            <div>X</div>
+        </div>
+    </body>
+</html>

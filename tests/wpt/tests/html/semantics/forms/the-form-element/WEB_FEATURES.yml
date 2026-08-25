@@ -1,0 +1,5 @@
+rules:
+- form-checkvalidity.html: [constraint-validation]
+- form-action-reflection-with-base-url.html: [base]
+- form-action-submission-with-base-url.html: [base]
+- "*": [form]

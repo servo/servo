@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#replaced-percentage-min-contribution">
+<meta name="assert" content="A preferred or max inline size property set to a percentage is treated as zero when computing the min-content contribution.">
+
+<style>
+.wrapper {
+  display: inline-block;
+  border: solid;
+  margin: 5px;
+}
+</style>
+
+<div style="width: 0px">
+  <!-- Set 'width' to a percentage -->
+  <div class="wrapper" data-expected-client-width="0">
+    <canvas style="width: 0%; max-width: 100px"></canvas>
+  </div>
+  <div class="wrapper" data-expected-client-width="0">
+    <canvas style="width: 50%; max-width: 100px"></canvas>
+  </div>
+  <div class="wrapper" data-expected-client-width="0">
+    <canvas style="width: 100%; max-width: 100px"></canvas>
+  </div>
+  <div class="wrapper" data-expected-client-width="0">
+    <canvas style="width: 200%; max-width: 100px"></canvas>
+  </div>
+
+  <!-- Set 'max-width' to a percentage -->
+  <div class="wrapper" data-expected-client-width="0">
+    <canvas style="width: 100px; max-width: 0%"></canvas>
+  </div>
+  <div class="wrapper" data-expected-client-width="0">
+    <canvas style="width: 100px; max-width: 50%"></canvas>
+  </div>
+  <div class="wrapper" data-expected-client-width="0">
+    <canvas style="width: 100px; max-width: 100%"></canvas>
+  </div>
+  <div class="wrapper" data-expected-client-width="0">
+    <canvas style="width: 100px; max-width: 200%"></canvas>
+  </div>
+</div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script>
+checkLayout(".wrapper");
+</script>

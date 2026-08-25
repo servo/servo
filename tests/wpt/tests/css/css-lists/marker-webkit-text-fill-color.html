@@ -1,0 +1,32 @@
+<!doctype html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<meta charset="utf-8">
+<title>CSS Lists Test - ::markers should honor -webkit-text-fill-color</title>
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<link rel="author" title="Xidorn Quan" href="https://github.com/upsuper">
+<link rel="help" href="https://github.com/whatwg/compat/issues/71">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1329052">
+<link rel="match" href="marker-webkit-text-fill-color-ref.html">
+<style>
+:root { color: red; -webkit-text-fill-color: green }
+.c1::marker { content: counter(list-item, decimal) }
+.c2::marker { content: counter(list-item, disc) }
+.c3::marker { content: counter(list-item, square) }
+.c4::marker { content: counter(list-item, circle) }
+.c5::marker { content: counter(list-item, disclosure-open) }
+.c6::marker { content: counter(list-item, disclosure-closed) }
+</style>
+<pre>PASS if all text and symbols are green.  Nothing is red or black.</pre>
+<ol><li>hello</li></ol>
+<ul><li>hello<ul><li>hello<ul><li>hello</li></ul></li></ul></li></ul>
+<ul><li style="list-style-type:disclosure-open">hello<ul><li style="list-style-type:disclosure-closed">hello</li></ul></li></ul>
+<ul><li style="list-style-type:'hej'">hello</li></ul>
+<ul><li class="c1">hello</li></ul>
+<ul><li class="c2">hello</li></ul>
+<ul><li class="c3">hello</li></ul>
+<ul><li class="c4">hello</li></ul>
+<ul><li class="c5">hello</li></ul>
+<ul><li class="c6">hello</li></ul>

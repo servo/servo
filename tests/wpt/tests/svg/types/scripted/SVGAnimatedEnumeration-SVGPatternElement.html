@@ -1,0 +1,71 @@
+<!DOCTYPE HTML>
+<title>Use of SVGAnimatedEnumeration within SVGPatternElement</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  // This test checks the use of SVGAnimatedEnumeration within SVGPatternElement.
+
+  var patternElement = document.createElementNS("http://www.w3.org/2000/svg", "pattern");
+  patternElement.setAttribute("patternUnits", "userSpaceOnUse");
+  patternElement.setAttribute("patternContentUnits", "userSpaceOnUse");
+
+  // patternUnits
+  // Check initial 'patternUnits' value.
+  assert_true(patternElement.patternUnits instanceof SVGAnimatedEnumeration);
+  assert_equals(typeof(patternElement.patternUnits.baseVal), "number");
+  assert_equals(patternElement.patternUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_USERSPACEONUSE);
+
+  // Switch to 'objectBoundingBox'.
+  patternElement.patternUnits.baseVal = SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX;
+  assert_equals(patternElement.patternUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
+  assert_equals(patternElement.getAttribute('patternUnits'), "objectBoundingBox");
+
+  // Try setting invalid values.
+  assert_throws_js(TypeError, function() { patternElement.patternUnits.baseVal = 3; });
+  assert_equals(patternElement.patternUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
+  assert_equals(patternElement.getAttribute('patternUnits'), "objectBoundingBox");
+
+  assert_throws_js(TypeError, function() { patternElement.patternUnits.baseVal = -1; });
+  assert_equals(patternElement.patternUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
+  assert_equals(patternElement.getAttribute('patternUnits'), "objectBoundingBox");
+
+  assert_throws_js(TypeError, function() { patternElement.patternUnits.baseVal = 0; });
+  assert_equals(patternElement.patternUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
+  assert_equals(patternElement.getAttribute('patternUnits'), "objectBoundingBox");
+
+  // Switch to 'userSpaceOnUse'.
+  patternElement.patternUnits.baseVal = SVGUnitTypes.SVG_UNIT_TYPE_USERSPACEONUSE;
+  assert_equals(patternElement.patternUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_USERSPACEONUSE);
+  assert_equals(patternElement.getAttribute('patternUnits'), "userSpaceOnUse");
+
+  // patternContentUnits
+  // Check initial 'patternContentUnits' value.
+  assert_true(patternElement.patternContentUnits instanceof SVGAnimatedEnumeration);
+  assert_equals(typeof(patternElement.patternContentUnits.baseVal), "number");
+  assert_equals(patternElement.patternContentUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_USERSPACEONUSE);
+
+  // Switch to 'objectBoundingBox'.
+  patternElement.patternContentUnits.baseVal = SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX;
+  assert_equals(patternElement.patternContentUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
+  assert_equals(patternElement.getAttribute('patternContentUnits'), "objectBoundingBox");
+
+  // Try setting invalid values.
+  assert_throws_js(TypeError, function() { patternElement.patternContentUnits.baseVal = 3; });
+  assert_equals(patternElement.patternContentUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
+  assert_equals(patternElement.getAttribute('patternContentUnits'), "objectBoundingBox");
+
+  assert_throws_js(TypeError, function() { patternElement.patternContentUnits.baseVal = -1; });
+  assert_equals(patternElement.patternContentUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
+  assert_equals(patternElement.getAttribute('patternContentUnits'), "objectBoundingBox");
+
+  assert_throws_js(TypeError, function() { patternElement.patternContentUnits.baseVal = 0; });
+  assert_equals(patternElement.patternContentUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
+  assert_equals(patternElement.getAttribute('patternContentUnits'), "objectBoundingBox");
+
+  // Switch to 'userSpaceOnUse'.
+  patternElement.patternContentUnits.baseVal = SVGUnitTypes.SVG_UNIT_TYPE_USERSPACEONUSE;
+  assert_equals(patternElement.patternContentUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_USERSPACEONUSE);
+  assert_equals(patternElement.getAttribute('patternContentUnits'), "userSpaceOnUse");
+});
+</script>

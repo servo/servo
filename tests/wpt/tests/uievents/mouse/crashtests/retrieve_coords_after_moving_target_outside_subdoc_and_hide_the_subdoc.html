@@ -1,0 +1,37 @@
+<!doctype html>
+<html class="test-wait">
+<head>
+<meta charset="utf-8">
+<title>Retrieve coordinates after event target is moved to outside the subdocument and hide the subdocument</title>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+"use strict";
+
+addEventListener("load", async () => {
+  const iframe = document.querySelector("iframe");
+  const div = iframe.contentDocument.getElementById("target");
+  let clickEvent;
+  div.addEventListener("click", event => clickEvent = event, {once: true});
+  await test_driver.click(div);
+  document.body.appendChild(div);
+  iframe.hidden = true;
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  div.innerText = clickEvent.screenX;
+  div.innerText = clickEvent.screenY;
+  div.innerText = clickEvent.clientX;
+  div.innerText = clickEvent.clientY;
+  div.innerText = clickEvent.offsetX;
+  div.innerText = clickEvent.offsetY;
+  div.innerText = clickEvent.pageX;
+  div.innerText = clickEvent.pageY;
+  div.innerText = clickEvent.layerX;
+  div.innerText = clickEvent.layerY;
+  document.documentElement.removeAttribute("class");
+}, {once: true});
+</script>
+</head>
+<body>
+  <iframe srcdoc="<body><div id='target' style='height:32px'></div></body>"></iframe>
+</body>
+</html>

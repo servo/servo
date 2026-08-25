@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>::before transition keeps updating while pointer moves to another element (IntersectionObserver)</title>
+<link rel="author" title="batu_hoang" href="https://github.com/longvatrong111">
+<link rel="help" href="https://w3c.github.io/IntersectionObserver/">
+<link rel="help" href="https://github.com/servo/servo/issues/39225"/>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+  .scene {
+    position: relative;
+    width: 400px;
+    height: 120px;
+    margin: 16px;
+    outline: 1px dashed #ccc;
+  }
+
+  #host {
+    display: inline-block;
+    position: absolute;
+    left: 10px;
+    top: 20px;
+    height: 60px;
+    border: 1px solid #666;
+    background: #fafafa;
+    vertical-align: top;
+  }
+
+  /* Animated pseudo element */
+  #host::before {
+    content: "";
+    display: block;
+    width: 0px;                 /* start at 0px */
+    height: 10px;
+    background: red;
+    transition: width 1s linear; /* duration: 1s */
+  }
+  #host.active::before {
+    width: 100px;               /* end at 100px */
+  }
+
+  #other {
+    position: absolute;
+    left: 95px;
+    top: 20px;
+    width: 100px;
+    height: 60px;
+    border: 1px solid #09c;
+    background: #eef7ff;
+  }
+</style>
+
+<div class="scene">
+  <div id="host">Host</div>
+  <div id="other">Other</div>
+</div>
+
+<script>
+promise_test(async t => {
+  const host = document.getElementById('host');
+  const other = document.getElementById('other');
+
+  // Sanity: initial ::before width is 0px and no intersection yet.
+  assert_equals(getComputedStyle(host, '::before').width, '0px', 'Initial ::before width should be 0px');
+  const rectH = host.getBoundingClientRect();
+  const rectO = other.getBoundingClientRect();
+  const initiallyIntersecting =
+    rectH.left + rectH.width > rectO.left &&
+    rectH.top < rectO.bottom &&
+    rectH.bottom > rectO.top;
+  assert_false(initiallyIntersecting, 'Host should not intersect other before animation');
+
+  // Observe when "other" starts intersecting the host’s border box.
+  const intersectionReached = new Promise(resolve => {
+    const io = new IntersectionObserver(entries => {
+      for (const e of entries) {
+        if (e.isIntersecting) {
+          io.disconnect();
+          resolve();
+          break;
+        }
+      }
+    }, { root: host, threshold: 0.01 });
+    io.observe(other);
+  });
+
+  // Start the transition by clicking host (once).
+  host.addEventListener('click', () => host.classList.add('active'), { once: true });
+  await new test_driver.Actions()
+    .pointerMove(15, 15, { origin: host })
+    .pointerDown()
+    .pointerUp()
+    .send();
+
+  // Let the transition run briefly, then move pointer to "other" while transition is in progress.
+  // to force layout/reflow
+  await new Promise(r => t.step_timeout(r, 200));
+  await new test_driver.Actions()
+    .pointerMove(15, 15, { origin: other })
+    .send();
+  await new test_driver.Actions()
+    .pointerMove(35, 55, { origin: other })
+    .send();
+
+  // Wait until the growing host intersects "other" (i.e., ::before expansion continued).
+  const guard = new Promise((_, rej) => t.step_timeout(() => rej(new Error('intersection timeout')), 3000));
+  await Promise.race([intersectionReached, guard]);
+}, '::before width transition continues while pointer moves');
+</script>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#grid-item-sizing">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<p>Test passes if there is a filled green square.</p>
+<style>
+.flex {
+    display: flex;
+    flex-direction: column;
+    height: 200px;
+    width: 100px;
+}
+.grid {
+    height: 100%;
+    display: grid;
+    grid-template-rows: 1fr 1fr;
+}
+img {
+    height: 100%;
+}
+</style>
+<div class="flex">
+    <div class="grid">
+        <img src="grid-items/support/100x100-green.png">
+    </div>
+</div>

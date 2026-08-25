@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Foster parenting into another Document that already has an element child</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/parsing.html#insert-an-element-at-the-adjusted-insertion-location">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+// The inline script makes the on-stack <table> the document element of a second
+// Document; the following <b> is then foster-parented into that Document, which
+// already has an element child, and so must be dropped on the floor.
+const SRCDOC = `<table><tr><script>
+  var other = document.implementation.createHTMLDocument("");
+  other.documentElement.remove();
+  other.appendChild(document.querySelector("table"));
+  window.other = other;
+<\/script><b id="fostered">x</b>`;
+
+async_test(t => {
+  const iframe = document.createElement("iframe");
+  iframe.srcdoc = SRCDOC;
+  iframe.onload = t.step_func_done(() => {
+    const other = iframe.contentWindow.other;
+    const table = other.querySelector("table");
+    assert_true(!!table, "table was moved into the second Document");
+    assert_equals(table.parentNode, other, "table is the second Document's child");
+
+    const outcome = other.getElementById("fostered") ? "inserted-into-second-document"
+                  : iframe.contentDocument.getElementById("fostered") ? "inserted-into-iframe-document"
+                  : "dropped";
+    assert_equals(outcome, "dropped", "the foster-parented <b> should be dropped on the floor");
+    assert_equals(other.childElementCount, 1, "the second Document should still have one element child (the table)");
+  });
+  document.body.appendChild(iframe);
+}, "A foster-parented element whose adjusted insertion location is another Document that already has an element child is dropped on the floor");
+</script>

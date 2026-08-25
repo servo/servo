@@ -1,0 +1,28 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head>
+    <title>CSS Test: blocks inside inlines &#8211; remove-from-split-inline-6</title>
+    <link rel="author" title="Boris Zbarsky" href="mailto:bzbarsky@mit.edu" />
+    <link rel="author" title="Mozilla Corporation" href="http://mozilla.com/" />
+    <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#anonymous-block-level" />
+    <link rel="match" href="block-in-inline-remove-006-nosplit-ref.xht"/>
+    <meta name="flags" content="dom" />
+  <script type="text/javascript">
+   function doit() {
+     var target = document.getElementById("target");
+     target.parentNode.removeChild(target);
+   }
+  </script>
+  <style type="text/css">
+   body &gt; span { border: 3px solid blue }
+  </style>
+ </head>
+ <body onload="doit()">
+   <span>
+     One
+     <div>Two</div>
+     <span id="target">Five</span>
+     <div>Three</div>
+     Four
+   </span>
+
+
+</body></html>

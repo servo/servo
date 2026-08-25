@@ -1,0 +1,26 @@
+<!doctype html>
+<title>CSS Test Reference</title>
+<style>
+body {
+  font-size: 30px;
+}
+
+.container {
+  font-size: 5px;
+  height: 40px;
+}
+
+.container::after {
+  content: "";
+  display: block;
+  border: 2px solid blue;
+  width: 1em;
+  height: 1em;
+  font-size: 1em;
+}
+</style>
+<div class="container"></div>
+<div class="container"></div>
+<div class="container"></div>
+<div class="container"></div>
+<div class="container"></div>

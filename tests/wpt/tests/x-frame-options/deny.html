@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>X-Frame-Options variations of DENY</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./support/helper.sub.js"></script>
+
+<body>
+<script>
+"use strict";
+
+xfo_simple_tests({
+  headerValue: `DENY`,
+  sameOriginAllowed: false,
+  crossOriginAllowed: false
+});
+
+xfo_simple_tests({
+  headerValue: `denY`,
+  sameOriginAllowed: false,
+  crossOriginAllowed: false
+});
+
+xfo_simple_tests({
+  headerValue: `  DENY `,
+  sameOriginAllowed: false,
+  crossOriginAllowed: false
+});
+
+xfo_simple_tests({
+  headerValue: `DENY`,
+  cspValue: `default-src 'self'`,
+  sameOriginAllowed: false,
+  crossOriginAllowed: false
+});
+
+xfo_simple_tests({
+  headerValue: `DENY`,
+  cspValue: `frame-ancestors 'self'`,
+  sameOriginAllowed: true,
+  crossOriginAllowed: false
+});
+</script>

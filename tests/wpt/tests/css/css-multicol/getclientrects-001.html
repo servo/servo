@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://developer.mozilla.org/en-US/docs/Web/API/Element/getClientRects">
+<link rel="help" href="https://drafts.csswg.org/css-multicol/">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  .multicol {
+      visibility: hidden;
+      position: absolute;
+      left: 100px;
+      top: 50px;
+      columns: 3;
+      column-gap: 10px;
+      inline-size: 290px;
+      font: 20px/1 Ahem;
+      orphans: 1;
+      widows: 1;
+  }
+  #horizontalTbLtr {
+      writing-mode: horizontal-tb;
+  }
+  #verticalLrLtr {
+      writing-mode: vertical-lr;
+  }
+  #verticalRlLtr {
+      writing-mode: vertical-rl;
+  }
+  #sidewaysLrLtr {
+      writing-mode: sideways-lr;
+  }
+  #sidewaysRlLtr {
+      writing-mode: sideways-rl;
+  }
+  #horizontalTbRtl {
+      writing-mode: horizontal-tb;
+      direction: rtl;
+  }
+  #verticalLrRtl {
+      writing-mode: vertical-lr;
+      direction: rtl;
+  }
+  #verticalRlRtl {
+      writing-mode: vertical-rl;
+      direction: rtl;
+  }
+  #sidewaysLrRtl {
+      writing-mode: sideways-lr;
+      direction: rtl;
+  }
+  #sidewaysRlRtl {
+      writing-mode: sideways-rl;
+      direction: rtl;
+  }
+</style>
+<div class="multicol" id="horizontalTbLtr">
+  <br>
+  <span>XXXX XXXX XXXX XXXX</span>
+</div>
+<div class="multicol" id="verticalLrLtr">
+  <br>
+  <span>XXXX XXXX XXXX XXXX</span>
+</div>
+<div class="multicol" id="verticalRlLtr">
+  <br>
+  <span>XXXX XXXX XXXX XXXX</span>
+</div>
+<div class="multicol" id="sidewaysLrLtr">
+  <br>
+  <span>XXXX XXXX XXXX XXXX</span>
+</div>
+<div class="multicol" id="sidewaysRlLtr">
+  <br>
+  <span>XXXX XXXX XXXX XXXX</span>
+</div>
+<div class="multicol" id="horizontalTbRtl" >
+  <br>
+  <span>XXXX XXXX XXXX XXXX</span>
+</div>
+<div class="multicol" id="verticalLrRtl">
+  <br>
+  <span>XXXX XXXX XXXX XXXX</span>
+</div>
+<div class="multicol" id="verticalRlRtl">
+  <br>
+  <span>XXXX XXXX XXXX XXXX</span>
+</div>
+<div class="multicol" id="sidewaysLrRtl">
+  <br>
+  <span>XXXX XXXX XXXX XXXX</span>
+</div>
+<div class="multicol" id="sidewaysRlRtl">
+  <br>
+  <span>XXXX XXXX XXXX XXXX</span>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  const LEFT = 100;
+  const TOP = 50;
+  const LINE = 20;
+  const COLUMN = 90;
+  const GAP = 10;
+  const TEXT_SIZE = 80;
+
+  setup({ explicit_done: true });
+
+  document.fonts.ready.then(() => {
+    test(()=> {
+      var span = document.querySelector("#horizontalTbLtr span");
+      var rects = span.getClientRects();
+      assert_equals(rects.length, 4);
+      assert_equals(rects[0].left, 100);
+      assert_equals(rects[0].top, 70);
+      assert_equals(rects[1].left, 200);
+      assert_equals(rects[1].top, 50);
+      assert_equals(rects[2].left, 200);
+      assert_equals(rects[2].top, 70);
+      assert_equals(rects[3].left, 300);
+      assert_equals(rects[3].top, 50);
+    }, "horizontal-tb ltr");
+
+    test(()=> {
+      var span = document.querySelector("#verticalLrLtr span");
+      var rects = span.getClientRects();
+      assert_equals(rects.length, 4);
+      assert_equals(rects[0].left, 120);
+      assert_equals(rects[0].top, 50);
+      assert_equals(rects[1].left, 100);
+      assert_equals(rects[1].top, 150);
+      assert_equals(rects[2].left, 120);
+      assert_equals(rects[2].top, 150);
+      assert_equals(rects[3].left, 100);
+      assert_equals(rects[3].top, 250);
+    }, "vertical-lr ltr");
+
+    test(()=> {
+      var span = document.querySelector("#verticalRlLtr span");
+      var rects = span.getClientRects();
+      assert_equals(rects.length, 4);
+      assert_equals(rects[0].left, 100);
+      assert_equals(rects[0].top, 50);
+      assert_equals(rects[1].left, 120);
+      assert_equals(rects[1].top, 150);
+      assert_equals(rects[2].left, 100);
+      assert_equals(rects[2].top, 150);
+      assert_equals(rects[3].left, 120);
+      assert_equals(rects[3].top, 250);
+    }, "vertical-rl ltr");
+
+    test(()=> {
+      var span = document.querySelector("#sidewaysLrLtr span");
+      var rects = span.getClientRects();
+      assert_equals(rects.length, 4);
+      assert_equals(rects[0].left, LEFT + LINE);
+      assert_equals(rects[0].top, TOP + COLUMN * 3 + GAP * 2 - TEXT_SIZE);
+      assert_equals(rects[1].left, LEFT);
+      assert_equals(rects[1].top, TOP + COLUMN * 2 + GAP - TEXT_SIZE);
+      assert_equals(rects[2].left, LEFT + LINE);
+      assert_equals(rects[2].top, TOP + COLUMN * 2 + GAP - TEXT_SIZE);
+      assert_equals(rects[3].left, LEFT);
+      assert_equals(rects[3].top, TOP + COLUMN - TEXT_SIZE);
+    }, "sideways-lr ltr");
+
+    test(()=> {
+      var span = document.querySelector("#sidewaysRlLtr span");
+      var rects = span.getClientRects();
+      assert_equals(rects.length, 4);
+      assert_equals(rects[0].left, LEFT);
+      assert_equals(rects[0].top, TOP);
+      assert_equals(rects[1].left, LEFT + LINE);
+      assert_equals(rects[1].top, TOP + COLUMN + GAP);
+      assert_equals(rects[2].left, LEFT);
+      assert_equals(rects[2].top, TOP + COLUMN + GAP);
+      assert_equals(rects[3].left, LEFT + LINE);
+      assert_equals(rects[3].top, TOP + COLUMN * 2 + GAP * 2);
+    }, "sideways-rl ltr");
+
+    test(()=> {
+      var span = document.querySelector("#horizontalTbRtl span");
+      var rects = span.getClientRects();
+      assert_equals(rects.length, 4);
+      assert_equals(rects[0].left, 310);
+      assert_equals(rects[0].top, 70);
+      assert_equals(rects[1].left, 210);
+      assert_equals(rects[1].top, 50);
+      assert_equals(rects[2].left, 210);
+      assert_equals(rects[2].top, 70);
+      assert_equals(rects[3].left, 110);
+      assert_equals(rects[3].top, 50);
+    }, "horizontal-tb rtl");
+
+    test(()=> {
+      var span = document.querySelector("#verticalLrRtl span");
+      var rects = span.getClientRects();
+      assert_equals(rects.length, 4);
+      assert_equals(rects[0].left, 120);
+      assert_equals(rects[0].top, 260);
+      assert_equals(rects[1].left, 100);
+      assert_equals(rects[1].top, 160);
+      assert_equals(rects[2].left, 120);
+      assert_equals(rects[2].top, 160);
+      assert_equals(rects[3].left, 100);
+      assert_equals(rects[3].top, 60);
+    }, "vertical-lr rtl");
+
+    test(()=> {
+      var span = document.querySelector("#verticalRlRtl span");
+      var rects = span.getClientRects();
+      assert_equals(rects.length, 4);
+      assert_equals(rects[0].left, 100);
+      assert_equals(rects[0].top, 260);
+      assert_equals(rects[1].left, 120);
+      assert_equals(rects[1].top, 160);
+      assert_equals(rects[2].left, 100);
+      assert_equals(rects[2].top, 160);
+      assert_equals(rects[3].left, 120);
+      assert_equals(rects[3].top, 60);
+    }, "vertical-rl rtl");
+
+    test(()=> {
+      var span = document.querySelector("#sidewaysLrRtl span");
+      var rects = span.getClientRects();
+      assert_equals(rects.length, 4);
+      assert_equals(rects[0].left, LEFT + LINE);
+      assert_equals(rects[0].top, TOP);
+      assert_equals(rects[1].left, LEFT);
+      assert_equals(rects[1].top, TOP + COLUMN + GAP);
+      assert_equals(rects[2].left, LEFT + LINE);
+      assert_equals(rects[2].top, TOP + COLUMN + GAP);
+      assert_equals(rects[3].left, LEFT);
+      assert_equals(rects[3].top, TOP + COLUMN + GAP + COLUMN + GAP);
+    }, "sideways-lr rtl");
+
+    test(()=> {
+      var span = document.querySelector("#sidewaysRlRtl span");
+      var rects = span.getClientRects();
+      assert_equals(rects.length, 4);
+      assert_equals(rects[0].left, LEFT);
+      assert_equals(rects[0].top, TOP + COLUMN * 3 + GAP * 2 - TEXT_SIZE);
+      assert_equals(rects[1].left, LEFT + LINE);
+      assert_equals(rects[1].top, TOP + COLUMN * 2 + GAP - TEXT_SIZE);
+      assert_equals(rects[2].left, LEFT);
+      assert_equals(rects[2].top, TOP + COLUMN * 2 + GAP - TEXT_SIZE);
+      assert_equals(rects[3].left, LEFT + LINE);
+      assert_equals(rects[3].top, TOP + COLUMN - TEXT_SIZE);
+    }, "sideways-rl rtl");
+
+    done();
+  });
+</script>

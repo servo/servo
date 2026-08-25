@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Text Module Test: parsing letter-spacing with invalid values</title>
+<link rel="help" href="https://www.w3.org/TR/css-text-3/#propdef-letter-spacing">
+<meta name="assert" content="letter-spacing supports only the grammar 'normal | <length-percentage>'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("letter-spacing", "auto");
+test_invalid_value("letter-spacing", "20");
+
+test_invalid_value("letter-spacing", "normal 10px");
+test_invalid_value("letter-spacing", "10% 10px");
+</script>
+</body>
+</html>

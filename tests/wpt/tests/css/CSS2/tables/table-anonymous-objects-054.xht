@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: Auto-imported from Gecko test 373379-1.html</title>
+  <link rel="author" title="Boris Zbarsky" href="mailto:bzbarsky@mit.edu"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#anonymous-boxes"/>
+  <meta name="flags" content='dom'/>
+
+  <style type="text/css">
+
+   #tablecell {
+     display: table-cell;
+   }
+   .border { border: 1px solid blue; }
+
+  </style>
+ </head>
+<body>
+<p>There should be no red below, except for antialiasing issues.</p>
+<div style="position: relative; font-size: 2em;">
+<div style="position: absolute; z-index: 2; top: 0; color: green; padding: 1px;">
+
+
+   <span class="border">
+      <span id="tablecell">x</span>
+   </span>
+
+   <script type="text/javascript"><![CDATA[
+
+   document.body.offsetWidth;
+   document.getElementById("tablecell").removeAttribute("id");
+
+   ]]></script>
+ </div>
+<div style="position: relative; z-index: 1; color: red; padding: 1px;">
+
+
+   <span class="border">
+      <span>x</span>
+   </span>
+
+ </div>
+</div>
+</body>
+</html>

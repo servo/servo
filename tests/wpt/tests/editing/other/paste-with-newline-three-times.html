@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../include/editor-test-utils.js"></script>
+<textarea id="copy">test
+</textarea>
+<textarea id="paste"></textarea>
+<textarea id="target"></textarea>
+<script>
+  promise_test(async () => {
+    const range = document.createRange();
+    const contentToCopy = document.getElementById("copy");
+    range.selectNodeContents(contentToCopy);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    // Send copy command
+    let utils = new EditorTestUtils(contentToCopy);
+    await utils.sendCopyShortcutKey();
+    selection.removeAllRanges();
+
+    const textarea = document.getElementById("paste");
+    utils = new EditorTestUtils(textarea);
+    textarea.focus();
+    // Send paste command three times
+    await utils.sendPasteShortcutKey();
+    await utils.sendPasteShortcutKey();
+    await utils.sendPasteShortcutKey();
+
+    // Type "end"
+    await utils.sendKey("e", utils.kShiftKey);
+    await utils.sendKey("n", utils.kShiftKey);
+    await utils.sendKey("d", utils.kShiftKey);
+
+    assert_equals(textarea.value.substr(textarea.value.length - 3), "end");
+  }, "Pasting three times content with a newline at the end, the insertion caret keeps positioned at the end.");
+</script>

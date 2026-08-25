@@ -1,0 +1,70 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Writing Modes Test: 'direction: rtl' - table columns order and sideways-lr</title>
+
+  <link rel="author" title="Hajime Shiozawa" href="mailto:hajime.shiozawa@gmail.com" />
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2015-12-22 -->
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-4/#direction" title="2.1 Specifying Directionality: the direction property" />
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-4/#vertical-layout" title="7.1 Principles of Layout in Vertical Writing Modes" />
+  <link rel="match" href="block-flow-direction-001-ref.xht" />
+
+  <meta content="ahem" name="flags" />
+  <meta content="This test checks that a table with 'writing-mode' set to 'sideways-lr' and with 'direction' set to 'rtl' will have its column displayed from top (1st column) to bottom (last column). This test relies on right-to-left directionality applying to characters that are strongly sensitive to directionality. In this test, we use digits [0-9] and non-breaking spaces which are all strongly sensitive to bidi directionality." name="assert" />
+
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+  <style type="text/css"><![CDATA[
+  body
+    {
+      color: yellow;
+      font: 20px/1 Ahem;
+    }
+
+  table
+    {
+      background-color: blue;
+      border-spacing: 0em;
+      border: blue solid 1em;
+      height: 7em;
+      direction: rtl;
+      writing-mode: sideways-lr;
+    }
+
+  td
+    {
+      padding-bottom: 0em;
+      padding-left: 1em;
+      padding-right: 0em;
+      padding-top: 0em;
+    }
+
+  td.left-most-cell
+    {
+      padding-left: 0em;
+    }
+  ]]></style>
+ </head>
+
+ <body>
+
+  <table>
+
+   <!-- The "P" -->
+   <tr><td class="left-most-cell"><!-- topmost column -->11 2&nbsp; 3&nbsp; 44</td><td class="left-most-cell">55 &nbsp;6 &nbsp;7 88</td><td class="left-most-cell"><!-- bottommost column -->999 &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;</td></tr>
+
+   <!-- The "A" -->
+   <tr><td><!-- topmost column -->00 1&nbsp; 2&nbsp; 33</td><td>44 &nbsp;5 &nbsp;6 77</td><td><!-- bottommost column -->888 &nbsp;&nbsp; &nbsp;&nbsp; 999</td></tr>
+
+   <!-- The left-most "S" -->
+   <tr><td><!-- topmost column -->00 1&nbsp; 2&nbsp; 3&nbsp;</td><td>44 &nbsp;5 &nbsp;6 &nbsp;7</td><td><!-- bottommost column -->&nbsp; 8 &nbsp; 9 &nbsp; 0 111</td></tr>
+
+   <!-- The right-most "S" -->
+   <tr><td><!-- topmost column -->22 3&nbsp; 4&nbsp; 5&nbsp;</td><td>66 &nbsp;7 &nbsp;8 &nbsp;9</td><td><!-- bottommost column -->&nbsp; 0 &nbsp; 1 &nbsp; 2 333</td></tr>
+
+  </table>
+
+ </body>
+</html>

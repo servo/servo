@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>XPathResult singleNodeValue should be nullable</title>
+<link rel=help href="https://dom.spec.whatwg.org/#dom-xpathresult-singlenodevalue">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div id="div">
+  <span id="exist"></span>
+</div>
+<script>
+test(() => {
+  const div = document.getElementById('div');
+
+  const isNull = document.evaluate(
+    '//non-span',
+    div,
+    null,
+    XPathResult.FIRST_ORDERED_NODE_TYPE,
+    null
+  );
+  assert_equals(isNull.singleNodeValue, null);
+
+  const isNotNull = document.evaluate(
+    '//span',
+    div,
+    null,
+    XPathResult.FIRST_ORDERED_NODE_TYPE,
+    null
+  );
+  assert_not_equals(isNotNull.singleNodeValue, null);
+}, 'singleNodeValue should be nullable');
+</script>
+</body>

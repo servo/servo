@@ -1,0 +1,55 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<section>
+  <div id="div1"></div>
+  <h1 id="h1">This is an h1</h1>
+  <h2 id="h2">This is an h2</h2>
+  <div id="div2"></div>
+</section>
+
+<script>
+  setup({ explicit_done: true });
+  window.onload = () => {
+    test((t) => {
+      ServoTestUtils.ensureAccessibilityActive();
+      let initial = ServoTestUtils.forceAccessibilityUpdate();
+
+      assert_equals(initial.nodesUpdatedFromDom, 23, "nodesUpdatedFromDom");
+      assert_equals(initial.nodesUpdatedFromTree, 23, "nodesUpdatedFromTree");
+      // Bounds are refreshed for every node in the tree
+      assert_equals(initial.nodesUpdatedBounds, 23, "nodesUpdatedBounds");
+      assert_equals(initial.nodesInTreeUpdate, 23, "nodesInTreeUpdate");
+
+      div1.moveBefore(h1, null);
+      div2.appendChild(h2);
+      let update = window.ServoTestUtils.forceAccessibilityUpdate();
+
+      // Nodes updated from DOM:
+      // - div1 (child added)
+      // - div2 (child added)
+      // - <section> (children removed)
+      assert_equals(update.nodesUpdatedFromDom, 3, "nodesUpdatedFromDom");
+
+      // Nodes checked for changes based on the tree:
+      // - the document
+      // - <body>
+      // - <section>
+      // - div1
+      // - div2
+      assert_equals(update.nodesUpdatedFromTree, 5, "nodesUpdatedFromTree");
+
+      // Bounds are refreshed for every node in the tree; moving nodes removes none
+      assert_equals(update.nodesUpdatedBounds, 23, "nodesUpdatedBounds");
+
+      //  updated nodes:
+      // - <section>, which had 2 children removed
+      // - div1, which had 1 node (<h1>) added (and now wraps it, changing its bounds)
+      // - div2, which had 1 node (<h2>) added (and now wraps it, changing its bounds)
+      assert_equals(update.nodesInTreeUpdate, 3, "nodesInTreeUpdate");
+    }, "Moving two nodes should update 3 nodes");
+
+    done();
+  };
+</script>

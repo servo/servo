@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#intrinsic-sizes">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+
+<meta name="assert"
+  content="column-wrap container's min-content width is non-zero. Old algorithm agrees. I broke this case during development but no other tests failed." />
+
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+
+  .item {
+    /* Remove min-height so we don't have to think about it. */
+    min-height: 0px;
+    width: 100px;
+    flex: 0 0 auto;
+  }
+
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.
+</p>
+
+<div id=reference-overlapped-red></div>
+
+<div
+  style="display: flex; flex-flow: column wrap; height: 100px; width: min-content; background: green;">
+  <div class="item"></div>
+  <div class="item"></div>
+</div>

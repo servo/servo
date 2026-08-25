@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>Become a spanner without changing column-span</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://issues.chromium.org/issues/422810439">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="columns:1; column-fill:auto; height:100px;">
+  <div style="background:red;">
+    <div id="e3" style="float:left; column-span:all;">
+      <div style="width:100px; height:100px; background:green;"></div>
+    </div>
+    <div style="clear:both;"></div>
+  </div>
+</div>
+<script>
+  document.body.offsetTop;
+  e3.style.cssFloat = "none";
+</script>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html class="reftest-wait paused">
+<title>paused, stopped and normal image animation mixed</title>
+<link rel="help" href="https://drafts.csswg.org/css-image-animation-1/">
+<meta charset="utf-8" />
+<link rel="match" href="image-animation-img-paused-normal-mixed-ref.html" />
+<script src="/common/reftest-wait.js"></script>
+<script src="resources/image-animation-utils.js"></script>
+<style>
+  html.paused img {
+    image-animation: paused !important;
+  }
+</style>
+
+<script>
+  let count = 0;
+  function loaded() {
+    count++;
+    if (count === document.querySelectorAll('img').length) {
+      document.documentElement.classList.remove('paused');
+      waitForFrameTime(300).then(() => {
+        for (const img of document.querySelectorAll('img'))
+          img.style.imageAnimation = 'paused';
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            takeScreenshot();
+          });
+        });
+      });
+    }
+  }
+</script>
+
+<img src="../../images/anim-gr.gif" style="image-animation: paused;" onload="loaded()" />
+<img src="../../images/anim-gr.gif" onload="loaded()" />
+<img src="../../images/anim-gr.gif" style="image-animation: paused;" onload="loaded()" />
+<img src="../../images/anim-gr.gif" style="image-animation: normal;" onload="loaded()"  />
+<img src="../../images/anim-gr.gif" style="image-animation: stopped;" onload="loaded()" />
+
+</html>

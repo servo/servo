@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Declarative Fragment: sanitize template element itself</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div id="container">
+  <div id="target-outer" marker="outer-marker">
+    <?start name="outer-marker">Original Outer<?end>
+  </div>
+  <script>
+    window.addedNodes = [];
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        for (const node of mutation.addedNodes) {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            window.addedNodes.push(node.id || node.nodeName);
+          }
+        }
+      }
+    });
+    observer.observe(document.getElementById('container'), { childList: true, subtree: true });
+  </script>
+  <template for="outer-marker">
+    <div id="target-inner" marker="inner-marker">
+      <?start name="inner-marker">Original Inner<?end>
+    </div>
+    <template id="inner" for="inner-marker" buffer sanitize>
+      <span id="ok">Inner Allowed</span>
+    </template>
+  </template>
+</div>
+
+<script>
+test(() => {
+  observer.disconnect();
+
+  // We expect "target-inner", "inner", and "SPAN" to be added.
+  assert_true(window.addedNodes.includes("target-inner"), "target-inner should be added, got: " + JSON.stringify(window.addedNodes));
+  assert_true(window.addedNodes.includes("inner"), "inner template element should be added, got: " + JSON.stringify(window.addedNodes));
+  assert_true(window.addedNodes.includes("SPAN"), "inner span should be added, got: " + JSON.stringify(window.addedNodes));
+}, "Template with sanitize attribute should not strip itself when nested");
+</script>
+</body>

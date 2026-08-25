@@ -1,0 +1,21 @@
+<!doctype html>
+<html>
+<title>Selection extend() test thrown exceptions</title>
+<meta charset=utf-8>
+<body>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+"use strict";
+
+test(function() {
+    let div = document.createElement("div");
+    document.body.appendChild(div);
+
+    assert_throws_dom("INVALID_STATE_ERR", function() { getSelection().extend(div) }, "InvalidStateError exception should be thrown for extend() due to no ranges being added to Selection");
+
+    this.add_cleanup(function() { div.remove() });
+}, "InvalidStateError exception is thrown for extend() when no ranges are present in Selection");
+</script>
+</body>
+</html>

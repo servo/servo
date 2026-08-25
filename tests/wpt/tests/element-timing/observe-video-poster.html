@@ -1,0 +1,32 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Element Timing: observe video poster image</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/element-timing-helpers.js"></script>
+<script>
+let beforeRender;
+async_test(function (t) {
+  assert_implements(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
+  const observer = new PerformanceObserver(
+    t.step_func_done(function(entryList) {
+      assert_equals(entryList.getEntries().length, 1);
+      const entry = entryList.getEntries()[0];
+      const pathname = window.location.origin + '/element-timing/resources/circle.svg';
+      checkElement(entry, pathname, 'my_poster', 'the_poster', beforeRender,
+          document.getElementById('the_poster'));
+      // Assume viewport has size at least 200, so the element is fully visible.
+      checkRect(entry, [0, 200, 0, 200]);
+      checkNaturalSize(entry, 200, 200);
+    })
+  );
+  observer.observe({entryTypes: ['element']});
+  beforeRender = performance.now();
+}, "Able to observe a video's poster image.");
+</script>
+<style>
+body {
+  margin: 0;
+}
+</style>
+<video elementtiming='my_poster' id='the_poster' src='/media/test.mp4' poster='resources/circle.svg'></video>

@@ -1,0 +1,42 @@
+<!doctype html>
+<title>Background image-set images should be LCP candidates</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .background {
+    width: calc(100vw - 40px);
+    height: calc(100vw - 40px);
+    max-width: 100px;
+    max-height: 100px;
+    background: #eee image-set("/images/lcp-100x50.png" type("image/png")) center center no-repeat;
+    background-size: cover;
+  }
+</style>
+<body>
+  <div class="background"></div>
+  <p>fallback</p>
+</body>
+
+<script>
+  promise_test(async (t) => {
+    await Promise.race([
+      new Promise((resolve) => {
+        const entries = [];
+        new PerformanceObserver((list) => {
+          entries.push(...list.getEntries());
+          for (const entry of entries) {
+            if (entry.url.includes("lcp-100x50")) {
+              resolve(entry.url);
+              return;
+            }
+          }
+        }).observe({ type: "largest-contentful-paint", buffered: true });
+      }),
+      new Promise((resolve, reject) => {
+        t.step_timeout(() => {
+          reject(new Error("Timed out waiting for LCP entry for background image-set image."));
+        }, 3000);
+      }),
+    ]);
+  }, "Background image-set images should be eligible for LCP candidates");
+</script>

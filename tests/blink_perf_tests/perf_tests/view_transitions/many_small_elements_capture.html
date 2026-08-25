@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+html { view-transition-name: unset }
+#container > * {
+  contain: layout;
+  display: inline-block;
+  border: 1px solid black;
+  width: 20px;
+  height: 20px;
+}
+.green > * {
+  background: green;
+}
+.blue > * {
+  background: blue;
+}
+::view-transition-group(*) {
+  animation-duration: 0s;
+}
+</style>
+<script src="../resources/runner.js"></script>
+
+<script>
+const kCount = 1500;
+
+function startTest() {
+  var transition;
+  for (let i = 0; i < kCount; i++) {
+    let e = document.createElement("div");
+    e.viewTransitionName = "e" + i;
+    container.appendChild(e);
+  }
+  PerfTestRunner.measureFrameTime({
+      description: "Measures performance starting/finishing a transition with many small elements",
+      setup: () => {
+        transition = document.startViewTransition(() => {
+          container.classList.toggle("green");
+          container.classList.toggle("blue");
+        });
+      },
+      run: async () => { await transition.finished },
+      done: () => {}
+  });
+}
+</script>
+</head>
+<body onload="startTest()">
+<div id=container class=green></div>
+<div id="log"></div>
+</body></html>

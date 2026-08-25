@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Notification.requestPermission (permission=denied)</title>
+<link rel="author" title="Intel" href="http://www.intel.com/">
+<link rel="author" title="Xin Liu" href="mailto:xinx.liu@intel.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+setup({ explicit_timeout: true })
+Notification.requestPermission()
+if (Notification.permission != "denied") {
+    alert("TEST NOT RUN. Change your browser settings so that notifications"
+        + " for this origin are blocked, and then reload this page.")
+} else {
+    async_test(function (t) {
+        t.step(function () {
+            Notification.requestPermission()
+            t.done()
+        })
+    })
+}
+</script>

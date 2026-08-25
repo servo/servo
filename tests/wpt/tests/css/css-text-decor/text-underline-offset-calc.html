@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>text-underline-offset calc() support</title>
+<link rel="author" title="Zak Ridouh" href="mailto:zakr@apple.com" />
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#underline-offset" />
+<meta name="assert" content="Test checks whether text-underline-offset supports calc() values.">
+<link rel="match" href="text-underline-offset-calc-ref.html">
+<style>
+div {
+  display: flex;
+  font-size: 22px;
+}
+.underline {
+  text-decoration-color: green;
+  text-decoration-line: underline;
+  text-decoration-thickness: 15px;
+  text-decoration-skip-ink: none;
+}
+.ref {
+  text-underline-offset: 1em;
+}
+.test1 {
+  text-underline-offset: calc(1em);
+}
+.test2 {
+  text-underline-offset: calc(100%);
+}
+.test3 {
+  text-underline-offset: calc(50% + 11px);
+}
+.test4 {
+  text-underline-offset: calc(50% + 0.5em);
+}
+.test5 {
+  text-underline-offset: calc(0.5em + 11px);
+}
+</style>
+<p>Test passes if black and green bar pairs are the same shape and size.</p>
+<div>
+  <span class="underline ref">X</span>
+  <span class="underline test1">X</span>
+  <span class="underline test2">X</span>
+  <span class="underline test3">X</span>
+  <span class="underline test4">X</span>
+  <span class="underline test5">X</span>
+</div>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script>
+// This document hosts an AudioContext and communicates with its embedder via
+// postMessage. The embedder can query the AudioContext state, resume it, or
+// suspend it, and this document notifies the embedder of state changes.
+const audioCtx = new AudioContext();
+
+audioCtx.addEventListener('statechange', () => {
+  if (window.parent !== window) {
+    window.parent.postMessage(
+        {operation: 'statechange', value: audioCtx.state}, '*');
+  }
+});
+
+window.addEventListener('message', async (event) => {
+  if (event.data === 'getState') {
+    window.parent.postMessage(
+        {operation: 'getState', value: audioCtx.state}, '*');
+  } else if (event.data === 'resume') {
+    try {
+      await audioCtx.resume();
+    } catch (e) {
+      window.parent.postMessage({operation: 'resume', value: e.name}, '*');
+      return;
+    }
+    window.parent.postMessage({operation: 'resume', value: null}, '*');
+  } else if (event.data === 'suspend') {
+    await audioCtx.suspend();
+    window.parent.postMessage({operation: 'suspend', value: null}, '*');
+  }
+});
+</script>
+</body>
+</html>

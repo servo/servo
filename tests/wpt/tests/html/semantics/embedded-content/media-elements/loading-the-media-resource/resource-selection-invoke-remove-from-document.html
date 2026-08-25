@@ -1,0 +1,15 @@
+<!doctype html>
+<title>NOT invoking resource selection by removing from document with NETWORK_EMPTY</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+var v;
+test(function() {
+  v = document.createElement('video');
+  document.body.appendChild(v);
+  assert_equals(v.networkState, v.NETWORK_EMPTY, 'networkState after appending v to document');
+  v.parentNode.removeChild(v); // search for "When a media element is removed from a Document,"
+  assert_equals(v.networkState, v.NETWORK_EMPTY, 'networkState after removing v');
+});
+</script>

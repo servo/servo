@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>performance.getSpeculations() - navigations from speculation rules</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/speculation-rules/resources/utils.js"></script>
+<script src="/speculation-rules/prefetch/resources/utils.sub.js"></script>
+<script src="support/speculation-measurement-utils.js"></script>
+<body>
+<script>
+setup(() => {
+  assertSpeculationRulesIsSupported();
+  assert_true(isSpeculationMeasurementEnabled(),
+    "SpeculationMeasurement feature must be enabled");
+});
+
+promise_test(async t => {
+  // Before any speculation rules, navigations should be empty.
+  const data = performance.getSpeculations();
+  assert_true(Array.isArray(data.navigations),
+    "navigations should be an array");
+  assert_equals(data.navigations.length, 0,
+    "navigations should be empty when no speculation rules exist");
+}, "Empty navigations when no speculation rules");
+
+promise_test(async t => {
+  // Verify the SpeculationData interface shape includes navigations.
+  const data = performance.getSpeculations();
+  assert_true('preloads' in data, "should have preloads");
+  assert_true('navigations' in data, "should have navigations");
+  assert_true(Array.isArray(data.preloads), "preloads should be an array");
+  assert_true(Array.isArray(data.navigations),
+    "navigations should be an array");
+}, "SpeculationData has both preloads and navigations");
+
+promise_test(async t => {
+  // An immediate-eagerness prefetch rule triggers the browser to actually
+  // prefetch without any user gesture, so the URL appears in navigations
+  // once the browser has enacted it.
+  const prefetchUrl = uniqueNavigationUrl('immediate-prefetch');
+
+  insertSpeculationRules({
+    prefetch: [{
+      urls: [prefetchUrl],
+      eagerness: 'immediate',
+      tag: 'test-prefetch'
+    }]
+  });
+
+  const nav = await waitForSpeculationMatching(t, prefetchUrl);
+  assert_equals(nav.type, "prefetch", "type should be 'prefetch'");
+  assert_equals(nav.url, prefetchUrl, "url should match");
+  assert_equals(nav.eagerness, "immediate",
+    "eagerness should be 'immediate'");
+}, "Immediate-eagerness prefetch rule appears in navigations once the " +
+   "browser starts prefetching");
+
+promise_test(async t => {
+  // Tags declared on the rule are exposed on the navigations entry.
+  const prefetchUrl = uniqueNavigationUrl('tags-test');
+
+  insertSpeculationRules({
+    prefetch: [{
+      urls: [prefetchUrl],
+      eagerness: 'immediate',
+      tag: 'my-tag'
+    }]
+  });
+
+  const nav = await waitForSpeculationMatching(t, prefetchUrl);
+  assert_true(Array.isArray(nav.tags), "tags should be an array");
+  assert_true(nav.tags.includes('my-tag'),
+    "tags should include the specified tag");
+}, "Navigation tags are exposed");
+
+promise_test(async t => {
+  // A rule without an explicit `tag` produces a navigations entry with
+  // tags === null.
+  const prefetchUrl = uniqueNavigationUrl('no-tags-test');
+
+  insertSpeculationRules({
+    prefetch: [{
+      urls: [prefetchUrl]
+    }]
+  });
+
+  const nav = await waitForSpeculationMatching(t, prefetchUrl);
+  assert_equals(nav.tags, null, "tags should be null when not specified");
+}, "Navigation without tags has null tags");
+
+promise_test(async t => {
+  // Verify SpeculationNavigationData interface exists.
+  assert_true('SpeculationNavigationData' in window,
+    "SpeculationNavigationData should exist as a global interface");
+}, "SpeculationNavigationData interface exists");
+
+promise_test(async t => {
+  // A moderate-eagerness prefetch rule alone (no user interaction, no
+  // pointerdown, no hover) must NOT populate
+  // `performance.getSpeculations().navigations`, because the browser only parks
+  // such candidates on-standby and never prefetches them.
+  //
+  // Synchronization: include an eager barrier URL in the same rule set.
+  // Once the barrier appears in navigations, we know the browser has
+  // processed this rule set; if `moderateUrl` still isn't there, it's
+  // because the browser chose not to enact it.
+  const moderateUrl = uniqueNavigationUrl('moderate-no-interaction');
+  const { barrierUrl, ruleSet } = makeBarrierRuleSet([
+    { urls: [moderateUrl], eagerness: 'moderate' },
+  ]);
+
+  insertSpeculationRules(ruleSet);
+
+  const navsAfterBarrier = await awaitBarrierAndSnapshot(t, barrierUrl);
+  const moderateEntry = navsAfterBarrier.find(n => n.url === moderateUrl);
+  assert_equals(moderateEntry, undefined,
+    "A moderate-eagerness prefetch rule alone must NOT populate " +
+    "navigations even after the browser has finished processing the " +
+    "same rule set's eager barrier.");
+}, "Moderate-eagerness rule alone does not populate navigations");
+
+promise_test(async t => {
+  // Once the browser has actually started a speculative navigation, the
+  // navigation entry persists for the lifetime of the document even if the
+  // site later removes the speculation rule. This reflects "a speculative
+  // navigation actually happened", which is not undone by removing the rule
+  // that produced it.
+  const prefetchUrl = uniqueNavigationUrl('remove-test');
+
+  const script = document.createElement('script');
+  script.type = 'speculationrules';
+  script.textContent = JSON.stringify({
+    prefetch: [{
+      urls: [prefetchUrl],
+      eagerness: 'immediate',
+      tag: 'to-remove'
+    }]
+  });
+  document.head.appendChild(script);
+
+  await waitForSpeculationMatching(t, prefetchUrl);
+
+  // Remove the speculation rules script element.
+  script.remove();
+
+  // Verify the entry is still present. Use a barrier via a fresh rule set
+  // to give any hypothetical removal task time to run before we check.
+  const { barrierUrl, ruleSet } = makeBarrierRuleSet([]);
+  insertSpeculationRules(ruleSet);
+  const navsAfterBarrier = await awaitBarrierAndSnapshot(t, barrierUrl);
+
+  const nav = navsAfterBarrier.find(n => n.url === prefetchUrl);
+  assert_not_equals(nav, undefined,
+    "Navigation entry for an already-started speculative navigation " +
+    "should persist after the corresponding rule is removed");
+}, "Navigations persist after speculation rules are removed");
+
+promise_test(async t => {
+  // Two consecutive rule replacements for DIFFERENT URLs. Each URL is
+  // prefetched at eager eagerness; both entries should end up in
+  // navigations even though only one rule set is active at any time.
+  //
+  // `performance.getSpeculations().navigations` accumulates across rule
+  // replacement for distinct URLs. Same-URL declarations dedup by
+  // (url, action).
+  const firstUrl = uniqueNavigationUrl('replace-first');
+  const secondUrl = uniqueNavigationUrl('replace-second');
+
+  const script1 = document.createElement('script');
+  script1.type = 'speculationrules';
+  script1.textContent = JSON.stringify({
+    prefetch: [{ urls: [firstUrl], eagerness: 'immediate', tag: 'first' }]
+  });
+  document.head.appendChild(script1);
+
+  await waitForSpeculationMatching(t, firstUrl);
+
+  // Swap rule sets: remove the first, add a rule for a different URL.
+  script1.remove();
+
+  const script2 = document.createElement('script');
+  script2.type = 'speculationrules';
+  script2.textContent = JSON.stringify({
+    prefetch: [{ urls: [secondUrl], eagerness: 'immediate', tag: 'second' }]
+  });
+  document.head.appendChild(script2);
+  t.add_cleanup(() => script2.remove());
+
+  await waitForSpeculationMatching(t, secondUrl);
+
+  // Both entries should coexist.
+  const data = performance.getSpeculations();
+  assert_not_equals(data.navigations.find(n => n.url === firstUrl),
+    undefined,
+    "First URL's navigation entry should persist after its rule is " +
+    "replaced by another rule set");
+  assert_not_equals(data.navigations.find(n => n.url === secondUrl),
+    undefined,
+    "Second URL should appear after the second rule set kicks in");
+}, "Navigations from replaced rule sets accumulate for distinct URLs");
+</script>
+</body>

@@ -1,0 +1,418 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Form named getter</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<!-- XXX Nothing tests id attributes yet. -->
+<!-- XXX We also need tests for moving inputs and forms in the DOM. -->
+<form>
+<input type=button name=button>
+<input type=radio name=radio value=x>
+<input type=radio name=radio value=y>
+<input type=radio name=radio value=z>
+</form>
+
+<form>
+<button name=l1></button>
+<fieldset name=l2></fieldset>
+<input type=hidden name=l3>
+<input type=text name=l4>
+<input type=search name=l5>
+<input type=tel name=l6>
+<input type=url name=l7>
+<input type=email name=l8>
+<input type=password name=l9>
+<input type=datetime name=l10>
+<input type=date name=l11>
+<input type=month name=l12>
+<input type=week name=l13>
+<input type=time name=l14>
+<input type=datetime-local name=l15>
+<input type=number name=l16>
+<input type=range name=l17>
+<input type=color name=l18>
+<input type=checkbox name=l19>
+<input type=radio name=l20>
+<input type=file name=l21>
+<input type=submit name=l22>
+<input type=image name=l23>
+<input type=reset name=l24>
+<input type=button name=l25>
+<input type=foo name=l26>
+<input name=l27>
+<object name=l28></object>
+<output name=l29></output>
+<select name=l30></select>
+<textarea name=l31></textarea>
+</form>
+
+<form>
+<!-- EventTarget -->
+<input type=radio name=addEventListener>
+<input type=radio name=removeEventListener>
+<input type=radio name=dispatchEvent>
+
+<!-- Node -->
+<input type=radio name=nodeType>
+<input type=radio name=nodeName>
+<input type=radio name=ownerDocument>
+
+<!-- Element -->
+<input type=radio name=namespaceURI>
+<input type=radio name=prefix>
+<input type=radio name=localName>
+
+<!-- HTMLElement -->
+<input type=radio name=title>
+<input type=radio name=lang>
+<input type=radio name=dir>
+
+<!-- HTMLFormElement -->
+<input type=radio name=acceptCharset>
+<input type=radio name=action>
+<input type=radio name=autocomplete>
+<input type=radio name=enctype>
+<input type=radio name=encoding>
+<input type=radio name=method>
+<input type=radio name=name>
+<input type=radio name=noValidate>
+<input type=radio name=target>
+<input type=radio name=elements>
+<input type=radio name=length>
+<input type=radio name=submit>
+<input type=radio name=reset>
+<input type=radio name=checkValidity>
+</form>
+
+<img name=x>
+<form></form><!-- no child nodes -->
+<img name=y>
+<form><!-- a child node --></form>
+<img name=z>
+
+<input form=a name=b>
+<form id=a></form>
+<input form=c name=d>
+<input form=c name=d>
+<form id=c></form>
+<script>
+test(function() {
+  var form = document.getElementsByTagName("form")[0]
+  assert_equals(form.item, undefined)
+  assert_false("item" in form)
+}, "Forms should not have an item method")
+
+test(function() {
+  var form = document.getElementsByTagName("form")[0]
+  assert_equals(form.namedItem, undefined)
+  assert_false("namedItem" in form)
+}, "Forms should not have a namedItem method")
+
+test(function() {
+  var form = document.getElementsByTagName("form")[0]
+  var button = document.getElementsByTagName("input")[0]
+  assert_equals(button.type, "button")
+  assert_equals(form.button, button)
+  var desc = Object.getOwnPropertyDescriptor(form, "button");
+  assert_equals(desc.value, button);
+  assert_false(desc.writable);
+  assert_true(desc.configurable);
+  assert_false(desc.enumerable);
+  assert_equals(form.button.length, undefined)
+}, "Name for a single element should work")
+
+test(function() {
+  var form = document.getElementsByTagName("form")[0]
+  assert_equals(form.radio.item(-1), null)
+  assert_array_equals([0, 1, 2].map(function(i) {
+    return form.radio.item(i).value
+  }), ["x", "y", "z"])
+  assert_equals(form.radio.item(3), null)
+}, "Calling item() on the NodeList returned from the named getter should work")
+
+test(function() {
+  var form = document.getElementsByTagName("form")[0]
+  assert_equals(form.radio.length, 3)
+  assert_equals(form.radio[-1], undefined)
+  assert_array_equals([0, 1, 2].map(function(i) {
+    return form.radio[i].value
+  }), ["x", "y", "z"])
+  assert_equals(form.radio[3], undefined)
+}, "Indexed getter on the NodeList returned from the named getter should work")
+
+test(function() {
+  var form = document.getElementsByTagName("form")[0]
+  var indices = [-1, 0, 1, 2, 3]
+  indices.forEach(function(i) {
+    assert_throws_js(TypeError, function() {
+      form.radio(i)
+    })
+  })
+}, "Invoking a legacycaller on the NodeList returned from the named getter " +
+   "should not work")
+
+test(function() {
+  var form = document.getElementsByTagName("form")[1]
+  for (var i = 1; i <= 31; ++i) {
+    if (i == 23) {
+      // input type=image
+      assert_equals(form["l" + i], undefined)
+    } else {
+      assert_equals(form["l" + i], form.children[i - 1])
+    }
+  }
+}, "All listed elements except input type=image should be present in the form")
+
+test(function() {
+  var names = [
+    // EventTarget
+    "addEventListener", "removeEventListener", "dispatchEvent",
+    // Node
+    "nodeType", "nodeName", "ownerDocument",
+    // Element
+    "namespaceURI", "prefix", "localName",
+    // HTMLElement
+    "title", "lang", "dir",
+    // HTMLFormElement
+    "acceptCharset", "action", "autocomplete", "enctype", "encoding", "method",
+    "name", "noValidate", "target", "elements", "length", "submit", "reset",
+    "checkValidity"
+  ]
+  var form = document.getElementsByTagName("form")[2]
+  names.forEach(function(name, i) {
+    assert_equals(form[name], form.children[i])
+  })
+}, "Named elements should override builtins")
+
+test(function() {
+  var form = document.getElementsByTagName("form")[3]
+  assert_equals(form.x, undefined, "x should not be associated with the form")
+  assert_equals(form.y, undefined, "y should not be associated with the form")
+  assert_equals(form.z, undefined, "z should not be associated with the form")
+  assert_equals(form[0], undefined, "The form should not have supported property indices")
+  assert_equals(form.length, 0)
+}, "Named items outside the form should not be returned (no children)")
+
+test(function() {
+  var form = document.getElementsByTagName("form")[4]
+  assert_equals(form.x, undefined, "x should not be associated with the form")
+  assert_equals(form.y, undefined, "y should not be associated with the form")
+  assert_equals(form.z, undefined, "z should not be associated with the form")
+  assert_equals(form[0], undefined, "The form should not have supported property indices")
+  assert_equals(form.length, 0)
+}, "Named items outside the form should not be returned (one child)")
+
+test(function() {
+  var form = document.getElementsByTagName("form")[5]
+  assert_equals(form.id, "a")
+
+  var input = document.getElementsByName("b")[0]
+  assert_equals(input.localName, "input")
+  assert_equals(input.getAttribute("form"), "a")
+
+  assert_equals(form.b, input);
+}, "The form attribute should be taken into account for named getters (single element)")
+
+test(function() {
+  var form = document.getElementsByTagName("form")[6]
+  assert_equals(form.id, "c")
+
+  var input1 = document.getElementsByName("d")[0]
+  assert_equals(input1.localName, "input")
+  assert_equals(input1.getAttribute("form"), "c")
+
+  var input2 = document.getElementsByName("d")[1]
+  assert_equals(input2.localName, "input")
+  assert_equals(input2.getAttribute("form"), "c")
+
+  var desc = Object.getOwnPropertyDescriptor(form, "d");
+  assert_equals(desc.value, form.d);
+  assert_false(desc.writable);
+  assert_true(desc.configurable);
+  assert_false(desc.enumerable);
+
+  assert_true(form.d instanceof NodeList, "form.d should be a NodeList")
+  assert_array_equals(form.d, [input1, input2])
+}, "The form attribute should be taken into account for named getters (multiple elements)")
+
+test(function() {
+  var f = document.body.appendChild(document.createElement("form"))
+  f.id = "f"
+  var g = f.appendChild(document.createElement("form"))
+  g.id = "g"
+  var input = g.appendChild(document.createElement("input"))
+  input.name = "x"
+  assert_equals(f.x, undefined)
+  assert_equals(g.x, input)
+}, "Input should only be a named property on the innermost form that contains it")
+
+test(function() {
+  var form = document.getElementsByTagName("form")[1];
+  var old_item = form["l1"];
+  var old_desc = Object.getOwnPropertyDescriptor(form, "l1");
+  assert_equals(old_desc.value, old_item);
+  assert_false(old_desc.enumerable);
+  assert_true(old_desc.configurable);
+  assert_false(old_desc.writable);
+
+  form["l1"] = 5;
+  assert_equals(form["l1"], old_item);
+  assert_throws_js(TypeError, function() {
+    "use strict";
+    form["l1"] = 5;
+  });
+  assert_throws_js(TypeError, function() {
+    Object.defineProperty(form, "l1", { value: 5 });
+  });
+
+  delete form["l1"];
+  assert_equals(form["l1"], old_item);
+
+  assert_throws_js(TypeError, function() {
+    "use strict";
+    delete form["l1"];
+  });
+  assert_equals(form["l1"], old_item);
+
+}, 'Trying to set an expando that would shadow an already-existing named property');
+
+test(function() {
+  var form = document.getElementsByTagName("form")[1];
+  var old_item = form["new-name"];
+  var old_desc = Object.getOwnPropertyDescriptor(form, "new-name");
+  assert_equals(old_item, undefined);
+  assert_equals(old_desc, undefined);
+
+  form["new-name"] = 5;
+  assert_equals(form["new-name"], 5);
+
+  var input = document.createElement("input");
+  this.add_cleanup(function () {input.remove();});
+  input.name = "new-name";
+  form.appendChild(input);
+
+  assert_equals(form["new-name"], 5);
+
+  delete form["new-name"];
+  assert_equals(form["new-name"], input);
+}, 'Trying to set an expando that shadows a named property that gets added later');
+
+test(function() {
+  var form = document.getElementsByTagName("form")[1];
+  var old_item = form["new-name2"];
+  var old_desc = Object.getOwnPropertyDescriptor(form, "new-name2");
+  assert_equals(old_item, undefined);
+  assert_equals(old_desc, undefined);
+
+  Object.defineProperty(form, "new-name2", { configurable: false, writable:
+                                              false, value: 5 });
+  assert_equals(form["new-name2"], 5);
+
+  var input = document.createElement("input");
+  this.add_cleanup(function () {input.remove();});
+  input.name = "new-name2";
+  form.appendChild(input);
+
+  assert_equals(form["new-name2"], 5);
+
+  delete form["new-name2"];
+  assert_equals(form["new-name2"], 5);
+
+  assert_throws_js(TypeError, function() {
+    "use strict";
+    delete form["new-name2"];
+  });
+  assert_equals(form["new-name2"], 5);
+}, 'Trying to set a non-configurable expando that shadows a named property that gets added later');
+
+test(function() {
+  var form = document.getElementsByTagName("form")[1];
+
+  var i1 = document.createElement("input");
+  i1.name = "past-name1";
+  i1.id = "past-id1"
+
+  assert_equals(form["past-name1"], undefined);
+  assert_equals(form["past-id1"], undefined);
+  form.appendChild(i1);
+  assert_equals(form["past-name1"], i1);
+  assert_equals(form["past-id1"], i1);
+
+  i1.name = "twiddled-name1";
+  i1.id = "twiddled-id1";
+  assert_equals(form["past-name1"], i1);
+  assert_equals(form["twiddled-name1"], i1);
+  assert_equals(form["past-id1"], i1);
+  assert_equals(form["twiddled-id1"], i1);
+
+  i1.name = "twiddled-name2";
+  i1.id = "twiddled-id2";
+  assert_equals(form["past-name1"], i1);
+  assert_equals(form["twiddled-name1"], i1);
+  assert_equals(form["twiddled-name2"], i1);
+  assert_equals(form["past-id1"], i1);
+  assert_equals(form["twiddled-id1"], i1);
+  assert_equals(form["twiddled-id2"], i1);
+
+  i1.removeAttribute("id");
+  i1.removeAttribute("name");
+  assert_equals(form["past-name1"], i1);
+  assert_equals(form["twiddled-name1"], i1);
+  assert_equals(form["twiddled-name2"], i1);
+  assert_equals(form["past-id1"], i1);
+  assert_equals(form["twiddled-id1"], i1);
+  assert_equals(form["twiddled-id2"], i1);
+
+  i1.remove();
+  assert_equals(form["past-name1"], undefined);
+  assert_equals(form["twiddled-name1"], undefined);
+  assert_equals(form["twiddled-name2"], undefined);
+  assert_equals(form["past-id1"], undefined);
+  assert_equals(form["twiddled-id1"], undefined);
+  assert_equals(form["twiddled-id2"], undefined);
+
+  var i2 = document.createElement("input");
+  i2.name = "past-name2";
+  i2.id = "past-id2";
+
+  assert_equals(form["past-name2"], undefined);
+  assert_equals(form["past-id2"], undefined);
+  form.appendChild(i2);
+  assert_equals(form["past-name2"], i2);
+  assert_equals(form["past-id2"], i2);
+
+  i2.name = "twiddled-name3";
+  i2.id = "twiddled-id3";
+  assert_equals(form["past-name2"], i2);
+  assert_equals(form["twiddled-name3"], i2);
+  assert_equals(form["past-id2"], i2);
+  assert_equals(form["twiddled-id3"], i2);
+
+  i2.name = "twiddled-name4";
+  i2.id = "twiddled-id4";
+  assert_equals(form["past-name2"], i2);
+  assert_equals(form["twiddled-name3"], i2);
+  assert_equals(form["twiddled-name4"], i2);
+  assert_equals(form["past-id2"], i2);
+  assert_equals(form["twiddled-id3"], i2);
+  assert_equals(form["twiddled-id4"], i2);
+
+  i2.removeAttribute("id");
+  i2.removeAttribute("name");
+  assert_equals(form["past-name2"], i2);
+  assert_equals(form["twiddled-name3"], i2);
+  assert_equals(form["twiddled-name4"], i2);
+  assert_equals(form["past-id2"], i2);
+  assert_equals(form["twiddled-id3"], i2);
+  assert_equals(form["twiddled-id4"], i2);
+
+  i2.setAttribute("form", "c");
+  assert_equals(form["past-name2"], undefined);
+  assert_equals(form["twiddled-name3"], undefined);
+  assert_equals(form["twiddled-name4"], undefined);
+  assert_equals(form["past-id2"], undefined);
+  assert_equals(form["twiddled-id3"], undefined);
+  assert_equals(form["twiddled-id4"], undefined);
+}, "Past names map should work correctly");
+</script>

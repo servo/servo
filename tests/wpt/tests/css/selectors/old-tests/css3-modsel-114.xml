@@ -1,0 +1,34 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>Attribute dash-separated value selector without declared namespace</title>
+  <style type="text/css"><![CDATA[@namespace a url(http://www.example.org/a);
+@namespace b url(http://www.example.org/b);
+@namespace html url(http://www.w3.org/1999/xhtml);
+*|p, *|address, *|q, *|r { display : block ; margin-bottom : 1em }
+*|p, *|q { background-color : red }
+*|*[|lang|="foo-bar"], *|*[|myattr|="tat-tut"] { background-color : lime }]]></style>
+  <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+  <meta name="flags" content=" namespace" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
+ </head>
+ <body xmlns:b="http://www.example.org/b">
+<p id="t1" lang="foo-bar">This paragraph should have a green background.</p>
+<address id="u1" lang="foo-b">This address should be unstyled.</address>
+<address id="u2" lang="foo-barbar-toto">This address should be unstyled.</address>
+<q id="t2" xmlns="http://www.example.org/a" myattr="tat-tut-tot">This paragraph should have a green background.</q>
+<r id="u3" xmlns="http://www.example.org/b" b:myattr="tat-tut-tot">This paragraph should be unstyled.</r>
+<script><![CDATA[
+test(function() {
+  assert_background_color('t1', LIME);
+  assert_background_color('t2', LIME);
+  assert_not_background_color('u1', LIME);
+  assert_not_background_color('u2', LIME);
+  assert_not_background_color('u3', LIME);
+}, 'Attribute dash-separated value selector without declared namespace');
+]]></script>
+</body>
+</html>

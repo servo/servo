@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Overflow: getComputedStyle() for display: -webkit-box in the presence of line-clamp or continue</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#continue">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<script>
+
+// Checks the computed value of `display` in an element with the specified
+// properties in `properties`. If `expectedDisplayComputedValue` is not given,
+// it will be assumed to be the same as the specified value of `display`.
+function test_display_computed(properties, expectedDisplayComputedValue) {
+  test((t) => {
+    const target = document.getElementById('target');
+
+    for (const [prop, value] of Object.entries(properties)) {
+      target.style[prop] = value;
+    }
+
+    t.add_cleanup(() => {
+      for (const prop of Object.keys(properties)) {
+        target.style.removeProperty(prop);
+      }
+    });
+
+    assert_equals(
+      getComputedStyle(target).display,
+      expectedDisplayComputedValue ?? properties.display
+    );
+  }, Object.entries(properties).map(([k, v]) => `${k}: ${v};`).join(" "));
+}
+
+test_display_computed({
+  "display": "-webkit-box"
+});
+test_display_computed({
+  "display": "-webkit-box",
+  "-webkit-box-orient": "vertical"
+});
+test_display_computed({
+  "display": "-webkit-box",
+  "-webkit-box-orient": "vertical",
+  "-webkit-line-clamp": "none"
+});
+test_display_computed({
+  "display": "-webkit-box",
+  "-webkit-line-clamp": "3"
+});
+test_display_computed({
+  "display": "-webkit-box",
+  "-webkit-box-orient": "horizontal",
+  "-webkit-line-clamp": "3"
+});
+test_display_computed({
+  "display": "-webkit-box",
+  "-webkit-box-orient": "vertical",
+  "-webkit-line-clamp": "3"
+}, "flow-root");
+
+test_display_computed({
+  "display": "-webkit-inline-box"
+});
+test_display_computed({
+  "display": "-webkit-inline-box",
+  "-webkit-box-orient": "vertical"
+});
+test_display_computed({
+  "display": "-webkit-inline-box",
+  "-webkit-box-orient": "vertical",
+  "-webkit-line-clamp": "none"
+});
+test_display_computed({
+  "display": "-webkit-inline-box",
+  "-webkit-line-clamp": "3"
+});
+test_display_computed({
+  "display": "-webkit-inline-box",
+  "-webkit-box-orient": "horizontal",
+  "-webkit-line-clamp": "3"
+});
+test_display_computed({
+  "display": "-webkit-inline-box",
+  "-webkit-box-orient": "vertical",
+  "-webkit-line-clamp": "3"
+}, "inline-block");
+
+// -webkit-box and -webkit-inline-box are defined in the Compat spec as keyword
+// mappings to flex and inline-flex, respectively (along with -webkit-flex and
+// -webkit-inline-flex). However, only -webkit(-inline)-box changes computed
+// value in the presence of -webkit-line-clamp.
+test_display_computed({
+  "display": "flex",
+  "-webkit-box-orient": "vertical",
+  "-webkit-line-clamp": "3"
+});
+test_display_computed({
+  "display": "inline-flex",
+  "-webkit-box-orient": "vertical",
+  "-webkit-line-clamp": "3"
+});
+test_display_computed({
+  "display": "-webkit-flex",
+  "-webkit-box-orient": "vertical",
+  "-webkit-line-clamp": "3"
+}, "flex");
+test_display_computed({
+  "display": "-webkit-inline-flex",
+  "-webkit-box-orient": "vertical",
+  "-webkit-line-clamp": "3"
+}, "inline-flex");
+
+if (CSS.supports("line-clamp: none")) {
+  test_display_computed({
+    "display": "-webkit-box",
+    "-webkit-box-orient": "vertical",
+    "line-clamp": "none"
+  });
+  test_display_computed({
+    "display": "-webkit-inline-box",
+    "-webkit-box-orient": "vertical",
+    "line-clamp": "none"
+  });
+}
+
+if (CSS.supports("line-clamp: 2")) {
+  test_display_computed({
+    "display": "-webkit-box",
+    "line-clamp": "2"
+  });
+  test_display_computed({
+    "display": "-webkit-box",
+    "-webkit-box-orient": "vertical",
+    "line-clamp": "2"
+  }, "flow-root");
+  test_display_computed({
+    "display": "-webkit-inline-box",
+    "line-clamp": "2"
+  });
+  test_display_computed({
+    "display": "-webkit-inline-box",
+    "-webkit-box-orient": "vertical",
+    "line-clamp": "2"
+  }, "inline-block");
+}
+
+if (CSS.supports("line-clamp: auto")) {
+  test_display_computed({
+    "display": "-webkit-box",
+    "line-clamp": "auto"
+  });
+  test_display_computed({
+    "display": "-webkit-box",
+    "-webkit-box-orient": "vertical",
+    "line-clamp": "auto"
+  }, "flow-root");
+  test_display_computed({
+    "display": "-webkit-inline-box",
+    "line-clamp": "auto"
+  });
+  test_display_computed({
+    "display": "-webkit-inline-box",
+    "-webkit-box-orient": "vertical",
+    "line-clamp": "auto"
+  }, "inline-block");
+}
+
+if (CSS.supports("continue: none")) {
+  test_display_computed({
+    "display": "-webkit-box",
+    "-webkit-box-orient": "vertical",
+    "continue": "none"
+  });
+  test_display_computed({
+    "display": "-webkit-inline-box",
+    "-webkit-box-orient": "vertical",
+    "continue": "none"
+  });
+}
+
+if (CSS.supports("continue: discard")) {
+  test_display_computed({
+    "display": "-webkit-box",
+    "continue": "discard"
+  });
+  test_display_computed({
+    "display": "-webkit-box",
+    "-webkit-box-orient": "vertical",
+    "continue": "discard"
+  }, "flow-root");
+  test_display_computed({
+    "display": "-webkit-inline-box",
+    "continue": "discard"
+  });
+  test_display_computed({
+    "display": "-webkit-inline-box",
+    "-webkit-box-orient": "vertical",
+    "continue": "discard"
+  }, "inline-block");
+}
+
+</script>
+</body>
+</html>

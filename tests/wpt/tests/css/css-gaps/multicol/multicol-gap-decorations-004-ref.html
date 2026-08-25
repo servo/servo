@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+
+    .outer {
+        border: 2px solid rgb(96 139 168);
+        width: 200px;
+        height: 130px;
+    }
+
+    .container1 {
+        width: 200px;
+        height: 130px;
+        column-gap: 10px;
+        display: flex;
+    }
+
+    .items1 {
+        background: rgb(96 139 168 / 0.2);
+        height: 60px;
+        margin: 0px;
+        width: 60px;
+    }
+
+    .container2 {
+        position: absolute;
+        top: 72px;
+        left: 2px;
+        width: 200px;
+        height: 60px;
+        column-gap: 10px;
+        display: flex;
+    }
+
+    .items2 {
+        background: rgb(96 139 168 / 0.2);
+        height: 60px;
+        margin: 0px;
+        width: 60px;
+    }
+
+    .row-gap {
+        position: absolute;
+        height: 4px;
+        width: 200px;
+        background: gold;
+        left: 2px;
+        top: 65px;
+    }
+
+    .column-gap {
+        position: absolute;
+        height: 60px;
+        width: 4px;
+        background: blue;
+        top: 2px;
+    }
+</style>
+
+<div class="outer">
+    <div class="container1">
+        <div class="items1"></div>
+        <div class="items1"></div>
+        <div class="items1"></div>
+    </div>
+    <div class="container2">
+        <div class="items2"></div>
+        <div class="items2"></div>
+        <div class="items2"></div>
+    </div>
+    <div class="column-gap" style="left:65px;"></div>
+    <div class="column-gap" style="left:135px;"></div>
+    <div class="column-gap" style="left:65px; top: 72px"></div>
+    <div class="column-gap" style="left:135px; top: 72px"></div>
+    <div class="row-gap"></div>
+</div>

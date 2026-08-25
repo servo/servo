@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes/">
+<link rel="match" href="orthogonal-containing-block-height-changes-ref.html">
+<meta name="assert" content="orthogonal child box should get resized when containing block content box shrinks">
+<style>
+#container {
+  height: 100px;
+  box-sizing: border-box;
+}
+.child {
+  writing-mode: vertical-rl;
+  width: 50px;
+  height: 100%;
+  background-color: green;
+}
+</style>
+<div id=container>
+  <div class=child></div>
+</div>
+<script>
+document.body.offsetTop;
+container.style.paddingBottom = "50px";
+</script>

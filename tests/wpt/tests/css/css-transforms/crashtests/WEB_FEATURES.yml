@@ -1,0 +1,8 @@
+rules:
+- large-scale3d-001.html: [transforms3d]
+- preserve3d-*: [transforms3d]
+- w-crossing-zero-001.html: [transforms3d]
+- w-negative-*: [transforms3d]
+- zero-perspective-001.html: [transforms3d]
+- fragmented-block-in-inline-with-perspective.html: [transforms3d]
+- "*": [transforms2d]

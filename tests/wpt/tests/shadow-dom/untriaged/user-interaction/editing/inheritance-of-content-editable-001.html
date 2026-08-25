@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Shadow DOM Test: Inheritance of contentEditable attribute</title>
+<link rel="author" title="Moto Ishizawa" href="mailto:summerwind.jp@gmail.com">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-20130514/#editing">
+<meta name="assert" content="User Interaction: Shadow trees must not be propagated contentEditable attribute from shadow host">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../../../html/resources/common.js"></script>
+<script src="../../../resources/shadow-dom-utils.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+test(unit(function (ctx) {
+    var d = newRenderedHTMLDocument(ctx);
+
+    var host = d.createElement('div');
+    host.contentEditable = "true";
+    d.body.appendChild(host);
+
+    var s = host.attachShadow({mode: 'open'});
+
+    assert_equals(host.contentEditable, "true");
+    assert_equals(s.contentEditable, undefined);
+}), 'contentEditable of shadow trees must be undefined when contentEditable attribute of shadow host is "true"');
+
+test(unit(function (ctx) {
+    var d = newRenderedHTMLDocument(ctx);
+
+    var host = d.createElement('div');
+    host.contentEditable = "false";
+    d.body.appendChild(host);
+
+    var s = host.attachShadow({mode: 'open'});
+
+    assert_equals(host.contentEditable, 'false');
+    assert_equals(s.contentEditable, undefined);
+}), 'contentEditable of shadow trees must be undefined when contentEditable of shadow host is "false"');
+
+test(unit(function (ctx) {
+    var d = newRenderedHTMLDocument(ctx);
+
+    var host = d.createElement('div');
+    d.body.appendChild(host);
+    d.body.contentEditable = "true";
+
+    var s = host.attachShadow({mode: 'open'});
+
+    assert_equals(host.contentEditable, 'inherit');
+    assert_equals(s.contentEditable, undefined);
+}), 'contentEditable of shadow trees must be undefined when contentEditable attribute of shadow host is "inherit"');
+</script>
+</body>
+</html>

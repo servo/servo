@@ -1,0 +1,18 @@
+<!doctype html>
+<title>import.defer basic deferred evaluation</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+promise_test(async t => {
+  delete window.__moduleEvaluated;
+  const ns = await import.defer("./resources/side-effect-module.js");
+  assert_equals(window.__moduleEvaluated, undefined,
+      "Module should not be evaluated after import.defer resolves");
+  assert_equals(ns.value, 42,
+      "Accessing namespace property should return the exported value");
+  assert_true(window.__moduleEvaluated,
+      "Module should be evaluated after accessing namespace property");
+}, "import.defer() defers module evaluation until namespace property access");
+</script>

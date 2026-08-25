@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+  <head>
+    <title>CSS Test (Conditional Rules): In @supports, ::details-content can be parsed successfully</title>
+    <link rel="author" title="Luke Warlow" href="mailto:lwarlow@igalia.com">
+    <link rel="help" href="https://drafts.csswg.org/css-conditional-3/#at-supports">
+    <link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#details-content-pseudo">
+    <link rel="match" href="at-supports-001-ref.html">
+    <style>
+      div {
+        background: red;
+        height: 100px;
+        width: 100px;
+      }
+      @supports selector(input::details-content) {
+        div { background-color:green; }
+      }
+    </style>
+  </head>
+  <body>
+    <p>Test passes if there is a <strong>filled green square</strong> and <strong>no red</strong>.</p>
+    <div></div>
+  </body>
+</html>

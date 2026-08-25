@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>TextTrack "id" attribute</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<video>
+    <track id="LoremIpsum" src="resources/captions-fast.vtt" default>
+    <script>
+    test(function() {
+        var video = document.querySelector("video");
+        var track = document.querySelector("track");
+        var textTrack = track.track;
+
+        // Test default attribute value.
+        assert_equals(textTrack.id, "LoremIpsum");
+        assert_equals(video.textTracks[0].id, "LoremIpsum");
+
+        // Make sure we can look up tracks by id.
+        assert_equals(video.textTracks.getTrackById("LoremIpsum"), textTrack);
+
+        // Test that it's readonly.
+        textTrack.id = "newvalue";
+        assert_equals(textTrack.id, "LoremIpsum");
+    });
+    </script>
+</video>

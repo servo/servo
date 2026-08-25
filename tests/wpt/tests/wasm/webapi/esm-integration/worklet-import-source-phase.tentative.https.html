@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>Import a source phase module to a worklet</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script type=module>
+setup({ single_test: true });
+
+const audioContext = new AudioContext();
+await audioContext.audioWorklet.addModule("./resources/audio-worklet-source-phase.js");
+const audioNode = new AudioWorkletNode(audioContext, "audio-processor");
+
+audioNode.port.postMessage("");
+audioNode.port.onmessage = (msg) => {
+  assert_equals(msg.data.value, 42);
+  assert_true(msg.data.staticCheck);
+  assert_true(msg.data.dynamicCheck);
+  done();
+}
+
+audioNode.connect(audioContext.destination);
+</script>

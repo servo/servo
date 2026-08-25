@@ -1,0 +1,21 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8">
+<title>CSS Test Reference (Transforms): Flattening at the leafward edges of a preserve-3d scene</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Google" href="http://www.google.com/">
+
+<style>
+body {
+  margin: 0;
+}
+
+.reference {
+  background: blue;
+  width: 100px;
+  height: 100px;
+  transform-origin: 0 0;
+  transform: translate(50px, 100px) perspective(1000px) rotateX(30deg) translateY(50px) translateZ(100px);
+}
+</style>
+
+<div class="reference"></div>

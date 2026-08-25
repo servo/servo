@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<title>CSS aspect-ratio: div block size with width and {min|max}-width</title>
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio-size-transfers">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert" content="A {min|max}-width constraint should be transferred through the aspect-ratio to apply to the block size">
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div style="background: green; aspect-ratio: 2/1; width: 300px; max-width: 100px;"></div>
+<div style="background: green; aspect-ratio: 2/1; width: 10px; min-width: 100px;"></div>

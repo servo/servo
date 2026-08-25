@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>Fetch Priority - Link element</title>
+<meta name="author" title="Dominic Farolino" href="mailto:domfarolino@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<link id=link1 href=resources/stylesheet.css fetchpriority=high>
+<link id=link2 href=resources/stylesheet.css fetchpriority=low>
+<link id=link3 href=resources/stylesheet.css fetchpriority=auto>
+<link id=link4 href=resources/stylesheet.css fetchpriority=xyz>
+<link id=link5 href=resources/stylesheet.css>
+
+<script>
+  test(() => {
+    assert_equals(link1.fetchPriority, "high", "high fetchPriority is a valid IDL value on the link element");
+    assert_equals(link2.fetchPriority, "low", "low fetchPriority is a valid IDL value on the link element");
+    assert_equals(link3.fetchPriority, "auto", "auto fetchPriority is a valid IDL value on the link element");
+    assert_equals(link4.fetchPriority, "auto", "invalid fetchPriority reflects as 'auto' IDL attribute on the link element");
+    assert_equals(link5.fetchPriority, "auto", "missing fetchPriority reflects as 'auto' IDL attribute on the link element");
+  }, "fetchpriority attribute on <link> elements should reflect valid IDL values");
+
+  test(() => {
+    const link = document.createElement("link");
+    assert_equals(link.fetchPriority, "auto");
+  }, "default fetchpriority attribute on <link> elements should be 'auto'");
+</script>

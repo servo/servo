@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="David Shin" href="mailto:dshin@mozilla.com">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#block-flow">
+<meta name="assert" content="This test checks that absolutely positioned elements are positioned correctly, when their writing mode is different from that of their containing block." />
+<link rel="match" href="abs-pos-replaced-vrl-001-ref.html">
+<style>
+  .vert-cb {
+    position: relative;
+    width: 250px;
+    writing-mode: vertical-rl;
+  }
+  .horiz-parent {
+    width: 150px;
+    writing-mode: horizontal-tb;
+  }
+  audio, video, canvas, iframe, svg {
+    position: absolute;
+    border: 1px solid blue;
+  }
+</style>
+<body>
+  <div class="vert-cb">
+    <div class="horiz-parent">
+      <audio controls></audio>
+      <video controls style="top: 50px;"></video>
+      <canvas style="top: 210px;"></canvas>
+      <iframe style="top: 370px;"></iframe>
+      <!-- Note: Including width/height attrs in order to test SVG without
+           hitting https://bugzilla.mozilla.org/show_bug.cgi?id=1766304 -->
+      <svg style="top: 530px;" width="300" height="20"></svg>
+    </div>
+  </div>
+</body>

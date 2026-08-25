@@ -1,0 +1,4 @@
+Reporting-Endpoints: group1="https://{{host}}:{{ports[https][0]}}/reporting/resources/report.py?reportID=0d334af1-1c5c-4e59-9079-065131ff2a45"
+Reporting-Endpoints: group2="https://{{host}}:{{ports[https][0]}}/reporting/resources/report.py?reportID=09c1a265-5fc7-4c49-b35c-32078c2d0c19"
+Content-Security-Policy: script-src 'self' 'unsafe-inline'; img-src 'none'; report-to group1
+Document-Policy-Report-Only: sync-xhr=?0;report-to=group2

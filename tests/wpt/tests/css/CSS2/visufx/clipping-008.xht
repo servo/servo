@@ -1,0 +1,56 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: CSS clipping test</title>
+<link rel="author" title="David Hyatt" href="mailto:hyatt@netscape.com"/>
+
+<link rel="help" href="http://www.w3.org/TR/CSS21/visufx.html#overflow" />
+<style type="text/css">
+div {
+  width: 100px;
+  height: 100px;
+}
+
+.green {
+  background-color: green;
+}
+
+.red {
+  background-color: red;
+}
+
+.overflow {
+  overflow: hidden;
+}
+
+.positioned {
+  position: absolute;
+}
+
+.fixed {
+  position: fixed;
+  left: 100px;
+  top: 100px;
+}
+
+.offset {
+  margin-left: 100px;
+  margin-top: 100px;
+}
+</style>
+</head>
+<body>
+<p>Test passes if there is <strong>a green square</strong> and <strong>no red</strong>.</p>
+
+ <!-- This test is checking to make sure overflow is done using a containing
+block model, and that a fixed positioned element inside an absolute positioned
+element is not considered overflow.  -->
+
+<div class="overflow positioned">
+  <div class="fixed">
+    <div class="offset green overflow"></div>
+  </div>
+</div>
+
+</body>
+</html>

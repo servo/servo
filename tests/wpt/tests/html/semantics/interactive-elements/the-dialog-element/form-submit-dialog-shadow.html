@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/whatwg/html/issues/7971">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<dialog>
+  <div id=host>
+    <template shadowrootmode=open>
+      <form method=dialog>
+        <button>close</button>
+      </form>
+    </template>
+  </div>
+</dialog>
+
+<script>
+test(() => {
+  const dialog = document.querySelector('dialog');
+  const host = document.getElementById('host');
+  const button = host.shadowRoot.querySelector('button');
+
+  dialog.showModal();
+  button.click();
+  assert_true(dialog.open);
+}, '<form method=dialog> should not submit across shadow boundaries.');
+</script>

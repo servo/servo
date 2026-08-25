@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en" >
+<meta charset="utf-8">
+<title>Ruby Markup Content Model: one ruby per base, rb as base, annotation with rtc and rt</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel="help" href="https://www.w3.org/TR/html-ruby-extensions/#the-ruby-element">
+<link rel="help" href="https://www.w3.org/TR/html-ruby-extensions/#the-rb-element">
+<link rel="help" href="https://www.w3.org/TR/html-ruby-extensions/#the-rtc-element">
+<link rel="help" href="https://www.w3.org/TR/html-ruby-extensions/#the-rt-element">
+<link rel="help" href="https://www.w3.org/TR/html-ruby-extensions/#ruby-pairing">
+<link rel="mismatch" href="reference/html-ruby-001-a-ref.html">
+<link rel="mismatch" href="reference/html-ruby-001-b-ref.html">
+<link rel="mismatch" href="reference/html-ruby-001-c-ref.html">
+<link rel="mismatch" href="reference/html-ruby-001-d-ref.html">
+<link rel="mismatch" href="reference/html-ruby-001-e-ref.html">
+<link rel="mismatch" href="reference/html-ruby-001-f-ref.html">
+<link rel="mismatch" href="reference/html-ruby-001-g-ref.html">
+<link rel="mismatch" href="reference/html-ruby-001-h-ref.html">
+<link rel="mismatch" href="reference/html-ruby-001-y-ref.html">
+<link rel="mismatch" href="reference/html-ruby-001-z-ref.html">
+<style>
+.r1 { color: orange; }
+.r2 { color: blue; }
+.r3 { color: purple; }
+</style>
+<body>
+<p>The example below consists of 3 base characters, each annotated with its pronunciation.
+“<span class=r1>浄</span>” is annotated by “<span class=r1>じょう</span>”.
+“<span class=r2>瑠</span>” is annotated by “<span class=r2>る</span>”.
+“<span class=r3>璃</span>” is annotated by “<span class=r3>り</span>”.
+For ease of comparison, it is preceded by some context text: “例文は”.
+This test passes if:
+<ul>
+    <li>each base character is presented inline with and similarly to the context text, as if they are all part of the same sentence, and
+    <li>each annotation is presented as an annotation, and
+    <li>the correct annotation is presented clearly as being associated with the correct base.
+</ul>
+
+<p>Note: The colors are not part of the test,
+they are merely provided as help to the person running the test,
+to make it easier to recognize the various parts of the text.
+
+<p>Note: This is not a layout or rendering test.
+The precise appearance is not specified,
+and implementations may therefore validly vary.
+
+<hr>
+例文は<ruby><rb class=r1>浄<rtc><rt class=r1>じょう</ruby><ruby><rb class=r2>瑠<rtc><rt class=r2>る</ruby><ruby><rb class=r3>璃<rtc><rt class=r3>り</rt></ruby>

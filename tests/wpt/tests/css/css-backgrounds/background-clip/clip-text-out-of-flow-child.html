@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-4/#valdef-background-clip-text">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1996457">
+<link rel="match" href="clip-text-out-of-flow-child-ref.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+  .box {
+    font: 10px/1 Ahem;
+    width: 100px;
+    height: 100px;
+    background-color: aqua;
+    color: transparent;
+    background-clip: text;
+    position: relative;
+
+    &::before {
+      width: 100px;
+      height: 100px;
+      background-color: blueviolet;
+      content: '_';
+      position: absolute;
+      z-index: -1;
+    }
+  }
+</style>
+<div class="box">XXX</div>

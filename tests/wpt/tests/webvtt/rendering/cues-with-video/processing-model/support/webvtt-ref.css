@@ -1,0 +1,75 @@
+html { overflow: hidden }
+body { margin: 0 }
+.video {
+    display: inline-block;
+    width: 320px;
+    height: 180px;
+    position: relative;
+    outline: 1px solid black;
+}
+
+/* The following CSS comes from 7.4. Applying CSS properties to WebVTT Node Objects. */
+
+.cue {
+    position: absolute;
+    unicode-bidi: plaintext;
+    writing-mode: horizontal-tb;
+    overflow-wrap: break-word;
+    text-wrap: balance;
+    text-align: center;
+    color: green;
+    white-space: pre-line;
+    opacity: 1;
+    visibility: visibile;
+    text-decoration: none;
+    text-shadow: none;
+    outline: none;
+    font: 9px Ahem, sans-serif; /* Use Ahem because it improves test reliability. */
+    bottom: 0;
+    left: 0;
+    right: 0;
+}
+.cue-background {
+    background: rgba(0,0,0,0.8);
+}
+
+.i {
+    font-style: italic;
+}
+
+.b {
+    font-weight: bold;
+}
+
+.u {
+    text-decoration: underline;
+}
+
+.ruby {
+    display: ruby;
+}
+
+.rubyText {
+    display: ruby-text;
+}
+
+.region {
+    position: absolute;
+    writing-mode: horizontal-tb;
+    background: rgba(0,0,0,0.8);
+    overflow-wrap: break-word;
+    font: 9px Ahem, sans-serif;
+    color: green;
+    overflow: hidden;
+    min-height: 0px;
+    display: inline-flex;
+    flex-flow: column;
+    justify-content: flex-end;
+}
+
+.region-child {
+    position: relative;
+    unicode-bidi: plaintext;
+    width: auto;
+    text-align: center;
+}

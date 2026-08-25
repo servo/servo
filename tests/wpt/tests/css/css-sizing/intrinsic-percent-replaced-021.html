@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-sizes">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1919220">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="This test verifies that button's width is the same as the img's width, transferred from the img's height and aspect-ratio.">
+
+<style>
+button {
+  padding: 0;
+  border: 0;
+  height: 100px;
+  background: red;
+}
+img {
+  height: 100%;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<button>
+  <img src="aspect-ratio/support/200x200-green.png">
+</button>

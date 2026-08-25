@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <head>
+    <meta charset="UTF-8">
+    <title>CSS Test: :dir() selector</title>
+    <link rel="author" title="Astley Chen" href="mailto:aschen@mozilla.com">
+    <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+    <link rel="help" href="https://drafts.csswg.org/selectors-4/#the-dir-pseudo">
+    <meta name="assert" content="Test checks :dir() basic functions after dynamic directionality change on elements.">
+    <link rel="match" href="dir-style-01-ref.html">
+    <meta name="fuzzy" content="maxDifference=0-255; totalPixels=0-30">
+    <style>
+      div { text-align: left; }
+      :dir(ltr) { color: blue }
+      :dir(rtl) { color: lime }
+      :dir(foopy) { color: red }
+    </style>
+    <script>
+      function switchDir()
+      {
+        divs = document.getElementsByTagName("div");
+        divs[0].offsetWidth; // ensure it's a dynamic change
+        for (var i = 0; i < divs.length; ++i) {
+          theDiv = divs[i];
+          if (theDiv.dir == "ltr") {
+            theDiv.dir = "rtl";
+          } else if (theDiv.dir == "rtl") {
+            theDiv.dir = "ltr";
+          }
+        }
+
+        document.documentElement.removeAttribute("class");
+      }
+    </script>
+  </head>
+  <body onload="switchDir()">
+    <div>This element has default direction.</div>
+    <div dir="rtl">This element is ltr.</div>
+    <div dir="ltr">This element is rtl.</div>
+    <div dir="rtl">
+      <div>This element should inherit ltr.</div>
+      <div dir="rtl">This element is ltr.</div>
+      <div dir="ltr">This element is rtl.</div>
+      <div><span>Every <span>word <span>in <span>this <span>element <span>should <span>inherit <span>ltr</span></span></span></span></span></span></span></span>.</div>
+    </div>
+    <div dir="ltr">
+      <div>This element should inherit rtl.</div>
+      <div dir="rtl">This element is ltr.</div>
+      <div dir="ltr">This element is rtl.</div>
+      <div><span>Every <span>word <span>in <span>this <span>element <span>should <span>inherit <span>rtl</span></span></span></span></span></span></span></span>.</div>
+    </div>
+    <div dir="foopy">This element has an invalid dir attribute and
+      should have default direction.</div>
+  </body>
+</html>

@@ -1,0 +1,60 @@
+<!doctype HTML>
+<html>
+<meta charset="utf8">
+<title>Content Visibility: scrollLeft/scrollTop/scrollWidth/scrollHeight measure correctly</title>
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<meta name="assert" content="scrollLeft/scrollTop/scrollWidth/scrollHeight measure correctly in content-visibility hidden subtree">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+body {
+  margin: 0;
+  padding: 0;
+}
+#outer {
+  width: 200px;
+  height: 200px;
+  background: lightblue;
+
+  content-visibility: hidden;
+}
+#inner {
+  width: 50px;
+  height: 50px;
+  background: lightgreen;
+  overflow: auto;
+}
+
+.content {
+  width: 100px;
+  height: 100px;
+  background-color: red;
+}
+</style>
+
+<body>
+<div id="outer"><div id="inner"><div class=content></div></div></div>
+</body>
+
+<script>
+test(() => {
+  const inner = document.getElementById("inner");
+
+  inner.scroll(10, 10);
+  assert_equals(inner.scrollLeft, 10, "left");
+  inner.scroll(10, 20);
+  assert_equals(inner.scrollTop, 20, "top");
+
+  inner.scroll(0, 0);
+  inner.style.width = "150px";
+  inner.style.height = "200px";
+  assert_equals(inner.scrollWidth, 150, "width");
+
+  inner.style.height = "100px";
+  assert_equals(inner.scrollHeight, 100, "height");
+});
+
+</script>
+</html>

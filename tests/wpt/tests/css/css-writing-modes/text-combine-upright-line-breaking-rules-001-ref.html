@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Writing Modes: line-breaking-rules</title>
+<link rel="author" title="Shinsuke Matsuki" href="mailto:shinsuke.matsuki@access-company.com">
+<link rel="author" title="Koji Ishii" href="mailto:kojiishi@gmail.com">
+<style>
+@font-face {
+    font-family: "orientation";
+    src: url("/fonts/adobe-fonts/CSSHWOrientationTest.otf");
+}
+.vrl {
+    border:solid;
+    font-family:orientation;
+    font-size:60px;
+    height:2em;
+    margin:.2em;
+    writing-mode:vertical-rl;
+}
+.tcy {
+    text-combine-upright:all;
+}
+.ref {
+  white-space: nowrap;
+}
+</style>
+</head>
+<body>
+<p>Test passes two blocks look identical.
+If the right most columns do not match, the test is invalid.</p>
+<div class="vrl ref">ああああああああ<br>あああああああ<br>「<span class=tcy>12</span></div>
+<div class="vrl ref">ああああああああ<br>あああああああ<br>「<span class=tcy>12</span></div>
+</body>
+</html>

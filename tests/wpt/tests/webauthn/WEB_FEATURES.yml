@@ -1,0 +1,7 @@
+rules:
+- createcredential-getpublickey.https.html: [webauthn-public-key-easy]
+- signal-all-accepted-credentials.https.html: [webauthn-signals]
+- signal-current-user-details.https.html: [webauthn-signals]
+- signal-unknown-credential.https.html: [webauthn-signals]
+- signal-*: []
+- "*": [webauthn]

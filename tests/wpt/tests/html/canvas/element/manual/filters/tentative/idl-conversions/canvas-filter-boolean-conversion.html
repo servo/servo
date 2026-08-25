@@ -1,0 +1,58 @@
+<head>
+    <link rel="match" href="canvas-filter-boolean-conversion-expected.html">
+</head>
+<body>
+  <canvas id="canvas" width="300" height="300"></canvas>
+</body>
+<script>
+  // Test the built-in ECMAScript types Undefined, Null, Boolean, String, Number, and Object
+  // as input to the CanvasFilter resolver when a bool is the intended result.
+  var ctx = document.getElementById('canvas').getContext('2d');
+
+  // preserveAlpha for convolveMatrix is the only boolean so far implemented
+  function drawWithConvolveFilter(x, y, preserveAlphaValue) {
+    ctx.filter = new CanvasFilter({
+      name: "convolveMatrix",
+      kernelMatrix: [[1, 0], [0, 1]],
+      preserveAlpha: preserveAlphaValue,
+    });
+    ctx.fillRect(x, y, 30, 30);
+  }
+
+  const trueTestCases = [
+    true,
+    { valueOf() { return false; }},
+    "foo",
+    1,
+    {},
+    []
+  ];
+
+  const falseTestCases = [
+    false,
+    "",
+    0,
+    null,
+    undefined,
+  ];
+
+  ctx.fillStyle = "rgba(255,0,255,0.5)";
+  let x = 10;
+  let y = 10;
+  for (tc of trueTestCases) {
+    drawWithConvolveFilter(x, y, tc);
+    x += 40;
+  }
+  y = 50;
+  x = 10;
+  for (tc of falseTestCases) {
+    drawWithConvolveFilter(x, y, tc);
+    x += 40;
+  }
+
+  ctx.filter = new CanvasFilter({
+    name: "componentTransfer",
+    funcR: {type: "discrete", tableValues: 0.5},
+  });
+  ctx.fillRect(10, 10, 100, 100);
+</script>

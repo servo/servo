@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>CSS Test: CSS Tables fixup merge anonymous table siblings (cell + cell)</title>
+<link rel="author" title="Rune Lillesveen" href="mailto:futhark@chromium.org">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<link rel="help" href="https://drafts.csswg.org/css-tables/#fixup-algorithm">
+<style>
+  .cell {
+    display: table-cell;
+    width: 50px;
+    height: 100px;
+    background-color: green;
+  }
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div>
+  <span class="cell"></span>
+  <span id="rm">Remove me</span>
+  <span class="cell"></span>
+</div>
+<script>
+  rm.offsetTop;
+  rm.remove();
+</script>

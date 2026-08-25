@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml"
+     width="800px" height="8000px">
+  <title>&lt;style&gt; type="" edge cases</title>
+  <metadata>
+    <h:link rel="help" href="https://html.spec.whatwg.org/multipage/semantics.html#update-a-style-block"/>
+  </metadata>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+
+  <style>
+  #test1 { color: rgb(0, 128, 0); }
+  </style>
+
+  <style type="">
+  #test2 { color: rgb(0, 128, 0); }
+  </style>
+
+  <style type="TEXT/CsS">
+  #test3 { color: rgb(0, 128, 0); }
+  </style>
+
+  <style type=" text/css ">
+  #test4 { color: rgb(0, 128, 0); }
+  </style>
+
+  <style type="text/css; charset=utf-8">
+  #test5 { color: rgb(0, 128, 0); }
+  </style>
+
+  <h:body>
+    <h:div id="test1"/>
+    <h:div id="test2"/>
+    <h:div id="test3"/>
+    <h:div id="test4"/>
+    <h:div id="test5"/>
+
+    <h:script><![CDATA[
+    "use strict";
+
+    test(() => {
+      assertApplied("test1");
+    }, "With no type attribute, the style should apply");
+
+    test(() => {
+      assertApplied("test2");
+    }, "With an empty type attribute, the style should apply");
+
+    test(() => {
+      assertApplied("test3");
+    }, "With a mixed-case type attribute, the style should apply");
+
+    test(() => {
+      assertNotApplied("test4");
+    }, "With a whitespace-surrounded type attribute, the style should not apply");
+
+    test(() => {
+      assertNotApplied("test5");
+    }, "With a charset parameter in the type attribute, the style should not apply");
+
+    function getColor(id) {
+      return window.getComputedStyle(document.getElementById(id)).color;
+    }
+
+    function assertApplied(id) {
+      assert_equals(getColor(id), "rgb(0, 128, 0)");
+    }
+
+    function assertNotApplied(id) {
+      assert_not_equals(getColor(id), "rgb(0, 128, 0)");
+    }
+    ]]></h:script>
+  </h:body>
+</svg>

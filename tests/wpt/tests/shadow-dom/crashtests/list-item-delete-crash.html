@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Deleting a list-item in a summary element should not crash</title>
+<link rel="help" href="https://crbug.com/846449">
+<ul><summary><div><div style="display: list-item;"></div></div><iframe></iframe><div></div></summary></ul>
+<script>
+  document.querySelector('summary').remove();
+</script>

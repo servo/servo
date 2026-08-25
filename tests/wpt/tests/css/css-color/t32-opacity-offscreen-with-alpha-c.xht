@@ -1,0 +1,28 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>CSS Test: opacity</title>
+		<link rel="author" title="L. David Baron" href="https://dbaron.org/" />
+		<link rel="author" title="Mozilla Corporation" href="http://mozilla.com/" />
+		<link rel="help" href="http://www.w3.org/TR/css3-color/#transparency" />
+		<link rel="match" href="t32-opacity-offscreen-with-alpha-c-ref.html" />
+		<meta name="assert" content="That alpha within the offscreen buffer is composited correctly." />
+		<meta name="fuzzy" content="0-1;0-5120" />
+		<style type="text/css"><![CDATA[
+
+		body { background: white; }
+
+		div { width: 5em; height: 1em; }
+		div.top { margin: 2px 0; }
+
+		]]></style>
+	</head>
+	<body>
+		<p>The following four boxes should be the same color:</p>
+
+		<div class="top" style="background: rgb(204, 204, 255)"></div>
+		<div class="top" style="opacity: 0.2; background: rgb(0, 0, 255)"></div>
+		<div class="top" style="opacity: 0.5"><div style="opacity: 0.4; background: rgb(0, 0, 255)"></div></div>
+		<div class="top" style="opacity: 0.4"><div style="background: rgba(0, 0, 255, 0.5)"></div></div>
+	</body>
+</html>

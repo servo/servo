@@ -1,0 +1,14 @@
+<!doctype html>
+<html class="reftest-wait">
+<title>Checkbox with switch attribute set renders differently than a checkbox without switch attribute</title>
+<link rel=match href="input-checkbox-switch-ref.html">
+<link rel=mismatch href="input-checkbox-switch-notref.html">
+<input type=checkbox switch>
+<input id='input2' type=checkbox>
+<input id='input3' type=checkbox switch>
+<script>
+    input2.setAttribute('switch','');
+    input3.removeAttribute('switch');
+    document.documentElement.classList.remove("reftest-wait");
+</script>
+</html>

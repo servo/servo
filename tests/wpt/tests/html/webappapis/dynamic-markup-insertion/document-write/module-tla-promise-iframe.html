@@ -1,0 +1,11 @@
+<!doctype html>
+<script type=module>
+await new Promise(resolve => {
+  window.parent.document.test.step_timeout(resolve, 0);
+  document.write("document.write body contents\n");
+  document.close();
+  window.parent.document.dispatchEvent(new CustomEvent("documentWriteDone"));
+});
+</script>
+
+Initial body contents

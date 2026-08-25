@@ -1,0 +1,60 @@
+<!doctype html>
+
+<meta charset="utf-8">
+<title>Table sizing inside a fixed sized grid</title>
+<link rel="help" href="https://crbug.com/667785">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+
+  .grid {
+    display: grid;
+    width: 400px;
+    height: 400px;
+    border: 1px solid black;
+    background: red;
+  }
+
+  .item {
+    display: table;
+    background: lime;
+  }
+
+  caption {
+    background: grey;
+  }
+
+</style>
+
+<pre>There should be no red areas:</pre>
+
+<p>Table with one cell</p>
+<div class="grid">
+  <div class="item">
+    table cell
+  </div>
+</div>
+
+<p>Empty table with caption</p>
+<div class="grid">
+  <table class="item">
+    <caption>caption</caption>
+  </table>
+</div>
+
+<p>Table with caption and cell</p>
+<div class="grid">
+  <table class="item">
+    <caption>caption</caption>
+    <tr><td>table cell</td></tr>
+  </table>
+</div>
+
+<script>
+  test(_ => {
+    for (let t of Array.from(document.body.querySelectorAll(".item"))) {
+      assert_equals(t.offsetWidth, 400, "table is as wide as the grid");
+      assert_equals(t.offsetHeight, 400, "table is as tall as the grid");
+    }
+  }, "<table> grid items should fill their grid area");
+</script>

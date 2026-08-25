@@ -1,0 +1,85 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Negative tests for writting to a shader input with interpolation qualifier</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../resources/glsl-feature-tests.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<!--
+According to ESSL 3.00.6 section 4.3.4:
+"Variables declared as in or centroid in may not be written to during shader execution.",
+these tests ensure that a compile error is generated when using a shader input with interpolation qualifier as l-value.
+-->
+<script type="application/javascript">
+"use strict";
+description();
+
+var vertexShaderTemplate = [
+    '#version 300 es',
+    '$(InterpolationQualifier) out float v_float_varying;',
+    'void main()',
+    '{',
+    '    v_float_varying = 1.0;',
+    '    gl_Position = vec4(0.0, 0.0, 0.0, 1.0);',
+    '}'
+].join('\n');
+
+var fragmentShaderTemplate = [
+    '#version 300 es',
+    'precision mediump float;',
+    '$(InterpolationQualifier) in float v_float_varying;',
+    'out vec4 my_color;',
+    'void main()',
+    '{',
+    '    v_float_varying = 1.0;',
+    '    my_color = vec4(1.0, 0.0, 0.0, v_float_varying);',
+    '}'
+].join('\n');
+
+var errorMessageTemplate = "Writting to shader inputs with '$(InterpolationQualifier)' qualifier must fail";
+
+var testDataList = [
+{
+    InterpolationQualifier: 'flat'
+},
+{
+    InterpolationQualifier: 'smooth'
+},
+{
+    InterpolationQualifier: 'centroid'
+}
+];
+
+var wtu = WebGLTestUtils;
+
+var tests = [];
+for (var i = 0; i < testDataList.length; ++i) {
+    tests.push({
+        vShaderSource: wtu.replaceParams(vertexShaderTemplate, testDataList[i]),
+        vShaderSuccess: true,
+        fShaderSource: wtu.replaceParams(fragmentShaderTemplate, testDataList[i]),
+        fShaderSuccess: false,
+        linkSuccess: false,
+        passMsg: wtu.replaceParams(errorMessageTemplate, testDataList[i])
+    });
+}
+
+GLSLConformanceTester.runTests(tests, 2);
+</script>
+</body>
+</html>

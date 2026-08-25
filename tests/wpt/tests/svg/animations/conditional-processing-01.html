@@ -1,0 +1,18 @@
+<!doctype html>
+<html class="reftest-wait">
+<title>Test animation as children of failed conditional processing test elements</title>
+<link rel="match" href="../struct/reftests/reference/green-100x100.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<script>
+function test() {
+  document.getElementsByTagName('svg')[0].setCurrentTime(2);
+  waitForAtLeastOneFrame().then(takeScreenshot);
+}
+</script>
+<svg onload="test()">
+  <g systemLanguage="x-xl">
+    <set xlink:href="#test" attributeName="width" begin="2s" to="0" />
+  </g>
+  <rect id="test" width="100" height="100" fill="green"/>
+</svg>

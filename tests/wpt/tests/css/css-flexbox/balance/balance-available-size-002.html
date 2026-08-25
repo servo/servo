@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-2/#flex-line-count-property">
+<link rel="match" href="balance-available-size-002-ref.html">
+<meta name="assert" content="Tests that the available-size for measuring is smaller than the container.">
+<style>
+#flex {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: balance;
+  flex-line-count: 2;
+  gap: 20px;
+  height: 220px;
+}
+
+#flex > div {
+  writing-mode: vertical-rl;
+  background: green;
+  line-height: 0;
+}
+
+span {
+  display: inline-block;
+  width: 50px;
+  height: 100px;
+}
+</style>
+<p>There should be three (3) green squares below.</p>
+<div id="flex">
+  <div>
+    <span></span><span></span>
+  </div>
+  <div>
+    <span></span><span></span>
+  </div>
+  <div>
+    <span></span><span></span>
+  </div>
+</div>

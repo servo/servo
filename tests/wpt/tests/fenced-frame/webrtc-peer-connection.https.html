@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/utils.js"></script>
+<title>Test that RTCPeerConnection construction fails in a fenced frame.</title>
+
+<body>
+  <script>
+    promise_test(async (t) => {
+      let fencedframe = attachFencedFrameContext();
+      return fencedframe.execute(() => {
+        try {
+          // Copied from https://webrtc.org/getting-started/peer-connections.
+          // The contents of the configuration object doesn't matter here,
+          // because construction should fail before the information becomes
+          // relevant.
+          const configuration = {
+            'iceServers': [{'urls': 'stun:stun.example.com:19302'}]
+          };
+          const peerConnection = new RTCPeerConnection(configuration);
+          assert_unreached("RTCPeerConnection construction should fail in a " +
+                           "fenced frame");
+        } catch (err) {
+          assert_equals(err.name, "NotAllowedError");
+        }
+      });
+    }, "Test that RTCPeerConnection construction fails in a fenced frame.");
+
+  </script>
+</body>

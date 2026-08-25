@@ -1,0 +1,43 @@
+<!doctype html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>Verify additive transform animation behavior</title>
+<link rel="match" href="transform-additive-animation-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-transforms-2/#ctm">
+<script src="/common/reftest-wait.js"></script>
+<style>
+
+@keyframes scale {
+  0%, 100% { transform: scale(2) }
+}
+
+#target {
+  width: 100px;
+  height: 100px;
+  background-color: black;
+
+  transform-origin: top left;
+  transform: translateX(100px);
+
+  animation: scale 1s infinite;
+  animation-composition: add;
+}
+
+</style>
+<body>
+  <div id="target"></div>
+
+<script>
+
+'use strict';
+
+(async function() {
+    // Wait for the animation to be committed on the compositor.
+    await new Promise(requestAnimationFrame);
+    await new Promise(requestAnimationFrame);
+    await new Promise(requestAnimationFrame);
+    takeScreenshot();
+})();
+
+</script>
+</body>

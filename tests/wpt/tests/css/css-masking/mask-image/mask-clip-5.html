@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<title>CSS Masking: mask-clip: clip mask image, foreignObject</title>
+<link rel="help" href="http://www.w3.org/TR/css-masking-1/#the-mask-clip">
+<link rel="match" href="mask-clip-2-ref.html">
+<meta name="assert" content="fill-box, stroke-box and view-box values of mask-clip should clip to the appropriate boxes.">
+<style type="text/css">
+  svg {
+    position: absolute;
+    top: 10px;
+    border: 1px solid black;
+  }
+
+  foreignObject.mask {
+    mask-origin: fill-box;
+    mask-repeat: no-repeat;
+    mask-image: url(support/50x50-opaque-blue.svg);
+  }
+
+  foreignObject.mask > div.content {
+    background-color: blue;
+    width: 100%;
+    height: 100%;
+  }
+
+  div.border {
+    box-sizing: border-box;
+    border: 10px solid green;
+  }
+
+  foreignObject.view {
+    mask-clip: view-box;
+  }
+
+  foreignObject.fill {
+    mask-clip: fill-box;
+  }
+
+  foreignObject.stroke {
+    mask-clip: stroke-box;
+  }
+</style>
+<svg width="200" height="200" viewBox="0 0 100 100" preserveAspectRatio="none" style="left: 10px;">
+  <foreignObject class="view mask" x="10" y="10" width="50" height="100">
+    <div class="content"></div>
+  </foreignObject>
+</svg>
+<svg width="200" height="200" style="left: 220px;">
+  <foreignObject class="fill mask" x="50" y="50" width="150" height="150">
+    <div class="content"></div>
+  </foreignObject>
+</svg>
+<svg width="200" height="200" style="left: 10px; top: 220px;">
+  <foreignObject class="stroke mask" x="50" y="50" width="100" height="100">
+    <div class="content border"></div>
+  </foreignObject>
+</svg>

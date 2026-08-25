@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<style>
+#rotated-anchor {
+  transform: rotate(36deg);
+  transform-origin: 150px 190px;
+}
+</style>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1998071">
+<link rel="match" href="text-path-transformed-002-ref.html">
+<svg width="400" height="200" viewBox="-150 0 600 200">
+  <path id="rotated-anchor" d="M 20 200 A 125 125 0 0 1 289 175" fill="none" stroke="black"/>
+  <text>
+    <textPath href="#rotated-anchor">XXXX</textPath>
+  </text>
+</svg>

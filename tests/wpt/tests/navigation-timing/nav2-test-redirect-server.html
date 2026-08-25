@@ -1,0 +1,49 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>Navigation Timing 2 WPT</title>
+        <link rel="author" title="Google" href="http://www.google.com/" />
+        <link rel="help" href="http://www.w3.org/TR/navigation-timing-2/#sec-PerformanceNavigationTiming"/>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+
+        <script>
+            setup({ single_test: true });
+
+            function verifyTimingEventOrder(eventOrder, timingEntry) {
+                for (let i = 0; i < eventOrder.length - 1; i++) {
+                    assert_true(timingEntry[eventOrder[i]] < timingEntry[eventOrder[i + 1]],
+                        "Expected " + eventOrder[i] + " to be no greater than " + eventOrder[i + 1] + ".");
+                }
+            }
+
+            function onload_test()
+            {
+                const frame_performance = document.getElementById("frameContext").contentWindow.performance;
+                const navigation_entry = frame_performance.getEntriesByType("navigation")[0];
+                assert_equals(navigation_entry.type,
+                        "navigate",
+                        "Expected navigation type  to be navigate.");
+                assert_equals(navigation_entry.redirectCount, 1, "Expected redirectCount to be 1.");
+                assert_equals(navigation_entry.name, 'http://' + document.location.host + '/navigation-timing/resources/blank_page_green.html');
+
+                var timgingEvents = [
+                    'startTime',
+                    'redirectStart',
+                    'redirectEnd',
+                ];
+                verifyTimingEventOrder(timgingEvents, frame_performance.getEntriesByType("navigation")[0]);
+                done();
+            }
+        </script>
+
+    </head>
+    <body>
+        <h1>Description</h1>
+        <p>This test validates the values of the window.performance.redirectCount and the
+           window.performance.timing.redirectStart/End times for a same-origin server side redirect navigation.</p>
+
+        <iframe id="frameContext" onload="onload_test();" src="/common/redirect.py?location=/navigation-timing/resources/blank_page_green.html" style="width: 250px; height: 250px;"></iframe>
+    </body>
+</html>

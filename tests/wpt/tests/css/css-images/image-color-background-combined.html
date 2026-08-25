@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Images Module Level 4: image(&lt;color&gt;) with background-size, background-position, and background-repeat</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#image-notation">
+<link rel="match" href="image-color-background-combined-ref.html">
+<style>
+  .container {
+    width: 120px;
+    height: 120px;
+    display: inline-block;
+    vertical-align: top;
+    background-color: red;
+    background-image: image(green);
+  }
+
+  /* Single 40×40 tile centered */
+  .center-no-repeat {
+    background-size: 40px 40px;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+
+  /* 40×40 tiles tiled horizontally, row centered vertically */
+  .repeat-x-center {
+    background-size: 40px 40px;
+    background-position: 0 center;
+    background-repeat: repeat-x;
+  }
+
+  /* 40×40 tiles tiled vertically, column centered horizontally */
+  .repeat-y-center {
+    background-size: 40px 40px;
+    background-position: center 0;
+    background-repeat: repeat-y;
+  }
+
+  /* Single 60×60 tile pinned to bottom-right */
+  .bottom-right-no-repeat {
+    background-size: 60px 60px;
+    background-position: right bottom;
+    background-repeat: no-repeat;
+  }
+</style>
+<p>Four 120×120 squares on red: centered 40×40 green (no-repeat), full-width 40px green band at vertical center (repeat-x), full-height 40px green band at horizontal center (repeat-y), 60×60 green at bottom-right (no-repeat).</p>
+<div class="container center-no-repeat"></div>
+<div class="container repeat-x-center"></div>
+<div class="container repeat-y-center"></div>
+<div class="container bottom-right-no-repeat"></div>

@@ -1,0 +1,8 @@
+<!doctype html>
+<script>
+  window.addEventListener("message", e => {
+    window.top.postMessage(e.data, "*");
+  });
+</script>
+<iframe src="secure-connection-test.html">
+

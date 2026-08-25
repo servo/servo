@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<meta charset="utf-8">
+<title>Pause and resume animation should not crash</title>
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=67510">
+<style>
+  .box {
+    height: 100px;
+    width: 100px;
+    margin: 10px;
+    background-color: blue;
+    animation-duration: 2s;
+    animation-direction: alternate;
+    animation-iteration-count: infinite;
+  }
+
+  @keyframes anim {
+    from { transform: matrix3d(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1); }
+    to   { transform: matrix3d(1,0,0,0, 0,1,0,0, 0,0,1,0, 400,0,0,1); }
+  }
+</style>
+<div id="container">
+  <div id="box1" class="box"></div>
+</div>
+<script>
+  function animationStarted() {
+    requestAnimationFrame(() => {
+      document.getElementById('box1').style.animationPlayState = "paused";
+      requestAnimationFrame(() => {
+        document.getElementById('box1').style.animationPlayState = "running";
+        requestAnimationFrame(() => {
+          document.documentElement.classList.remove('test-wait');
+        });
+      });
+    });
+  }
+
+  function startTest() {
+    document.getElementById('box1').addEventListener('animationstart', animationStarted);
+    document.getElementById('box1').style.animationName = "anim";
+  }
+
+  window.addEventListener('load', startTest, false);
+</script>
+</html>

@@ -1,0 +1,52 @@
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<span>Paragraph containing <div>event listener</div>.</span>
+<script>
+test(function() {
+  var bodyTimes = 0;
+  function bodyListener(ev) {
+    bodyTimes++;
+    assert_equals(ev.currentTarget, document.getElementsByTagName('body')[0]);
+    assert_equals(ev.target, document.getElementsByTagName('div')[0]);
+    if (bodyTimes == 1) {
+      assert_equals(ev.eventPhase, ev.CAPTURING_PHASE);
+    } else if (bodyTimes == 2) {
+      assert_equals(ev.eventPhase, ev.BUBBLING_PHASE);
+    }
+  }
+
+  var spanTimes = 0;
+  function spanListener(ev) {
+    assert_equals(ev.currentTarget, document.getElementsByTagName('span')[0]);
+    assert_equals(ev.target, document.getElementsByTagName('div')[0]);
+    assert_equals(ev.eventPhase, ev.BUBBLING_PHASE);
+    spanTimes++;
+  }
+
+  var divTimes = 0;
+  function divListener(ev) {
+    var self = document.getElementsByTagName('div')[0];
+    assert_equals(ev.currentTarget, self);
+    assert_equals(ev.target, self);
+    assert_equals(ev.eventPhase, ev.AT_TARGET);
+    divTimes++;
+  }
+
+  document.getElementsByTagName('body')[0].addEventListener("foopy", this.step_func(bodyListener), true);
+  document.getElementsByTagName('body')[0].addEventListener("foopy", this.step_func(bodyListener), false);
+  document.getElementsByTagName('span')[0].addEventListener("foopy", this.step_func(spanListener), false);
+  document.getElementsByTagName('div')[0].addEventListener("foopy", this.step_func(divListener), false);
+  var ev = new Event('foopy', {bubbles: true});
+  assert_equals(ev.bubbles, true);
+  document.getElementsByTagName('div')[0].dispatchEvent(ev);
+  assert_equals(bodyTimes, 2, 'body listener should be called multiple times');
+  assert_equals(divTimes, 1, 'target listener should be called once');
+  assert_equals(spanTimes, 1, 'span listener should be called while bubbling');
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+<script src="/common/PrefixedPostMessage.js"></script>
+<script>
+var prefixedMessage = new PrefixedMessageResource();
+function sendBarProps() {
+  prefixedMessage.postToOpener({
+    locationbar: window.locationbar.visible,
+    menubar: window.menubar.visible,
+    personalbar: window.personalbar.visible,
+    scrollbars: window.scrollbars.visible,
+    statusbar: window.statusbar.visible,
+    toolbar: window.toolbar.visible,
+  });
+}
+window.addEventListener('load', sendBarProps);
+</script>

@@ -1,0 +1,18 @@
+dictionary HTMLMediaStreamConstraints {
+  MediaTrackConstraintSet video;
+  MediaTrackConstraintSet audio;
+};
+
+[Exposed=Window]
+interface HTMLUserMediaElement : HTMLElement {
+  [HTMLConstructor] constructor();
+
+  attribute EventHandler onstream;
+  attribute EventHandler oncancel;
+  attribute EventHandler onerror;
+
+  readonly attribute MediaStream? stream;
+  readonly attribute DOMException? error;
+
+  undefined setConstraints(optional HTMLMediaStreamConstraints constraints = {});
+};

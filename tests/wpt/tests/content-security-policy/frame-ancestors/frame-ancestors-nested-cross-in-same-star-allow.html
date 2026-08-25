@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="timeout" content="long">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="support/frame-ancestors-test.sub.js"></script>
+</head>
+<body>
+    <script>
+        test = async_test("A 'frame-ancestors' CSP directive with a value '*' should render in nested frames.");
+
+        // Note that we can't distinguish blocked URLs from allowed cross-origin URLs due to the same-origin policy. This test passes if no console message declares that the frame was blocked.
+        testNestedIFrame("*", SAME_ORIGIN, CROSS_ORIGIN, EXPECT_BLOCK);
+    </script>
+</body>
+</html>

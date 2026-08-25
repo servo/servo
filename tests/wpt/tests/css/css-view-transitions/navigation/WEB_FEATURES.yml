@@ -1,0 +1,2 @@
+rules:
+- "**": [cross-document-view-transitions]

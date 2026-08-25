@@ -1,0 +1,11 @@
+rules:
+- has-slotted-*: [has-slotted]
+- css-scoping-shadow-*-slot-*.html: [slot]
+- css-scoping-shadow-slotted-*.html: [slot]
+- slot-non-html-display-value.html: [slot]
+- slotted-*.html: [slot]
+- host-context-*: [host-context]
+- host-in-host-context-selector.html: [host-context]
+- scope-pseudo*: [scope-pseudo]
+- host-is-featureless.html: []
+- host-*: [host]

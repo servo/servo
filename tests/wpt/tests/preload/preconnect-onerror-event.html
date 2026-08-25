@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<title>Makes sure that preconnected resources do not trigger load or error events</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+
+<body>
+<script>
+    const {HTTP_REMOTE_ORIGIN} = get_host_info();
+
+    /**
+     * Test workflow:
+     * - Create preconnect link
+     * - Wait 200 ms
+     * - Create preload link
+     * Event listeners for 'load' and 'error' are attached to both links.
+     * The first event listener that fires is tested to see which element fired it.
+     * The event should always be fired by the preload element because per spec, the preconnect link should never fire these events:
+     * https://html.spec.whatwg.org/#link-type-preconnect
+     *
+     * This test assumes that the preload link element fires 'load' and 'error' events correctly, otherwise the test will timeout.
+     */
+    function test_preconnect(origin, resource, desc) {
+        promise_test(async t => {
+            const result = await new Promise(async didLoad => {
+                const href = `${origin}${resource}`;
+                for (const rel of ['preconnect', 'preload']) {
+                    const link = document.createElement('link');
+                    link.href = href;
+                    link.as = 'script';
+                    link.rel = rel;
+                    link.addEventListener('load', () => didLoad({rel, type: 'load'}));
+                    link.addEventListener('error', () => didLoad({rel, type: 'error'}));
+                    document.head.appendChild(link);
+                    await new Promise(resolve => t.step_timeout(resolve, 200));
+                }
+            });
+            assert_equals(result.rel, 'preload');
+        }, desc);
+    }
+
+    test_preconnect(HTTP_REMOTE_ORIGIN, '/preload/resources/dummy.js', 'Preconnect should not fire load (or error) events');
+    test_preconnect('http://NON-EXISTENT.origin', '/preload/resources/dummy.js', 'Preconnect should not fire error (or load) events for non-existent origins');
+    test_preconnect('some-scheme://URL', '/preload/resources/dummy.js', 'Preconnect should not fire error (or load) events for non-http(s) scheme');
+</script>
+</body>
+</html>

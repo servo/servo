@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>Script @type and @language: JavaScript types</title>
+<link rel="author" title="Ms2ger" href="mailto:ms2ger@gmail.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#scriptingLanguages">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#prepare-a-script">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="script-placeholder"></div>
+<script src="resources/script-type-and-language-js.js"></script>
+
+<script>window.ran = false;</script>
+<script type="javascript">window.ran = true;</script>
+<script>testParserInsertedDidNotRun('type=javascript');</script>
+<script type="javascript1.0">window.ran = true;</script>
+<script>testParserInsertedDidNotRun('type=javascript1.0');</script>
+<script type="javascript1.1">window.ran = true;</script>
+<script>testParserInsertedDidNotRun('type=javascript1.1');</script>
+<script type="javascript1.2">window.ran = true;</script>
+<script>testParserInsertedDidNotRun('type=javascript1.2');</script>
+<script type="javascript1.3">window.ran = true;</script>
+<script>testParserInsertedDidNotRun('type=javascript1.3');</script>
+<script type="javascript1.4">window.ran = true;</script>
+<script>testParserInsertedDidNotRun('type=javascript1.4');</script>
+<script type="javascript1.5">window.ran = true;</script>
+<script>testParserInsertedDidNotRun('type=javascript1.5');</script>
+<script type="javascript1.6">window.ran = true;</script>
+<script>testParserInsertedDidNotRun('type=javascript1.6');</script>
+<script type="javascript1.7">window.ran = true;</script>
+<script>testParserInsertedDidNotRun('type=javascript1.7');</script>
+<script type="livescript">window.ran = true;</script>
+<script>testParserInsertedDidNotRun('type=livescript');</script>
+<script type="ecmascript">window.ran = true;</script>
+<script>testParserInsertedDidNotRun('type=ecmascript');</script>
+<script type="jscript">window.ran = true;</script>
+<script>testParserInsertedDidNotRun('type=jscript');</script>

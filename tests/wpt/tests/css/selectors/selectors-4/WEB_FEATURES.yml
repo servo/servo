@@ -1,0 +1,3 @@
+rules:
+- lang-*: [lang]
+- details-open-pseudo-*: [open-pseudo]

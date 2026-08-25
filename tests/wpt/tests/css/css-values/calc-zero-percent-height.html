@@ -1,0 +1,30 @@
+<!doctype html>
+<link rel="help" href="https://www.w3.org/TR/css-values-4/#calc-computed-value">
+<link rel="help" href="https://www.w3.org/TR/CSS2/visudet.html#the-height-property">
+<link rel="author" title="Xiaocheng Hu" href="mailto:xiaochengh@chromium.org">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<title>0% in calc() should be preserved</title>
+<script>
+CSS.registerProperty({
+  name: '--custom-height',
+  syntax: '<length-percentage>',
+  initialValue: 'calc(0% + 0px)',
+  inherits: false
+});
+</script>
+<style>
+.height-filler {
+  height: 100px;
+}
+
+.test {
+  width: 100px;
+  height: var(--custom-height);
+  background-color: green;
+}
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div class="test">
+  <div class="height-filler">
+  </div>
+</div>

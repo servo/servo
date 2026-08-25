@@ -1,0 +1,49 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: white-space normal: simple tests</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-06-29 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/text/white-space/normal/001.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#white-space-model" />
+  <link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2" />
+  <link rel="match" href="white-space-normal-001-ref.xht" />
+
+  <meta name="flags" content="ahem" />
+
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+  <style type="text/css">
+   * { white-space: normal; }
+   div { display: block; }
+   span { display: inline; }
+   table { padding: 0; border-spacing: 0; border: solid; }
+   td { font: 20px/1 Ahem; color: red; background: red; padding: 0; }
+   .red { background: red; }
+   .green { color: green; background: lime; }
+   .check { width: 3em; background: lime; color: green; }
+  </style>
+ </head>
+ <body>
+  <p>Test passes if there is a rectangle with 3 columns (1 dark green, 1 light green and then 1 dark green) and if there is <strong>no red</strong>.</p>
+  <table>
+   <tr>
+    <td>
+     <div class="red"> </div>
+     <div class="red"> <div></div></div>
+     <div class="red"> <div> </div></div>
+     <div class="red"><div> </div></div>
+     <div class="red"><div> </div> </div>
+     <div class="red"><div></div> </div>
+     <div class="red"> <div></div> </div>
+     <div class="red"> <div> </div> </div>
+     <div class="green"><span>X</span> <span>X</span></div>
+     <div class="green"> <span>X</span> <span>X</span></div>
+     <div class="green"><span>X</span> <span>X</span> </div>
+     <div class="green"> <div></div> <span>X</span> <span>X</span> </div>
+     <div class="green"> <span>X</span> <span>X</span> <div></div> </div>
+     <div class="check">X X</div>
+    </td>
+   </tr>
+  </table>
+ </body>
+</html>

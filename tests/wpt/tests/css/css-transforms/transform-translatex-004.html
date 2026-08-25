@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test (Transforms): translatex() plus relative positioning</title>
+    <link rel="author" title="Keith Schwarz" href="mailto:keith@keithschwarz.com">
+    <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#two-d-transform-functions">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#funcdef-transform-translatex">
+    <meta name="assert" content='This tests that translatex(25px)
+    plus relative positioning 25px to the right is the same as relative
+    positioning by 50px toward the right.'>
+    <link rel="match" href="transform-translatex-ref.html">
+    <style>
+      div {
+        transform: translatex(25px);
+        position: relative;
+        left: 25px;
+      }
+    </style>
+  </head>
+  <body>
+    <div>Test Text</div>
+  </body>
+</html>

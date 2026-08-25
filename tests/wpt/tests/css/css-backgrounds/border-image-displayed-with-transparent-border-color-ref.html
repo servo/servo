@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>
+  border-color: transparent should not hide the border-image
+</title>
+<style>
+    div {
+        width: 200px;
+        height: 200px;
+        margin: 20px;
+        background-color: silver;
+        border-image-source: url('./support/100x100-blue-and-orange.png');
+        border-image-slice: 32;
+        border-image-repeat: repeat;
+        border-style: solid;
+        border-width: 32px;
+    }
+</style>
+
+This box should have a visible blue-orange border-image.
+<div></div>
+

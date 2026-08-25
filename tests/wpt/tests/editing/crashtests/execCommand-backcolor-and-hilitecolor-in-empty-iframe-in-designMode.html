@@ -1,0 +1,116 @@
+<!DOCTYPE HTML>
+<html><head>
+    <meta charset="iso-8859-1">
+    <title>Testcase #3 for bug 448329 of Bugzilla</title>
+</head>
+<body>
+
+<iframe id="frame448329"></iframe>
+
+<script>
+
+function test448329(id,cmd,val) {
+
+  var elm = document.getElementById(id);
+  var doc = elm.contentDocument;
+  doc.designMode = "On";
+
+  doc.body.offsetWidth;
+  var selection = doc.defaultView.getSelection();
+
+  // Test document node
+  if (selection.rangeCount > 0) {
+    selection.removeAllRanges();
+  }
+  var range = doc.createRange();
+  range.setStart(doc, 0);
+  range.setEnd(doc, 0);
+  selection.addRange(range);
+  doc.execCommand(cmd,false,val);
+
+  // Test HTML node
+  if (selection.rangeCount > 0) {
+    selection.removeAllRanges();
+  }
+  range = doc.createRange();
+  range.setStart(doc.documentElement, 0);
+  range.setEnd(doc.documentElement, 0);
+  selection.addRange(range);
+  doc.execCommand(cmd,false,val);
+
+  // Test BODY node
+  if (selection.rangeCount > 0) {
+    selection.removeAllRanges();
+  }
+  range = doc.createRange();
+  var body = doc.documentElement.childNodes[1];
+  range.setStart(body, 0);
+  range.setEnd(body, 0);
+  selection.addRange(range);
+  doc.execCommand(cmd,false,val);
+
+  var text = doc.createTextNode("Hello Kitty");
+  body.insertBefore(text, null)
+
+  // Test TEXT node
+  if (selection.rangeCount > 0) {
+    selection.removeAllRanges();
+  }
+  range = doc.createRange();
+  range.setStart(text, 0);
+  range.setEnd(text, 1);
+  selection.addRange(range);
+  doc.execCommand(cmd,false,val);
+
+  // Test BODY[0,0] + TEXT node
+  if (selection.rangeCount > 0) {
+    selection.removeAllRanges();
+  }
+  range = doc.createRange();
+  range.setStart(body, 0);
+  range.setEnd(body, 0);
+  selection.addRange(range);
+  range = doc.createRange();
+  range.setStart(text, 0);
+  range.setEnd(text, 1);
+  selection.addRange(range);
+  doc.execCommand(cmd,false,val);
+
+  // Test BODY[0,1] + TEXT node
+  if (selection.rangeCount > 0) {
+    selection.removeAllRanges();
+  }
+  range = doc.createRange();
+  range.setStart(body, 0);
+  range.setEnd(body, 1);
+  selection.addRange(range);
+  range = doc.createRange();
+  range.setStart(text, 0);
+  range.setEnd(text, 1);
+  selection.addRange(range);
+  doc.execCommand(cmd,false,val);
+
+  // Test BODY[0,1] + TEXT node without a parent
+  if (selection.rangeCount > 0) {
+    selection.removeAllRanges();
+  }
+  range = doc.createRange();
+  range.setStart(body, 0);
+  range.setEnd(body, 1);
+  selection.addRange(range);
+  range = doc.createRange();
+  text = doc.createTextNode("Hello there"); // not in doc
+  range.setStart(text, 0);
+  range.setEnd(text, 1);
+  selection.addRange(range);
+  doc.execCommand(cmd,false,val);
+}
+
+test448329("frame448329", "backcolor", "green")
+test448329("frame448329", "hilitecolor", "green")
+
+</script>
+
+
+</body>
+</html>

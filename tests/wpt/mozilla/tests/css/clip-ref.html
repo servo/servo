@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+<!-- Tests that various `clip` values per CSS 2.1 work. -->
+<style>
+section {
+    position: absolute;
+}
+#a {
+    top: 0;
+    left: 0;
+    width: 192px;
+    height: 192px;
+    background: red;
+}
+#b {
+    top: 32px;
+    left: 32px;
+    width: 128px;
+    height: 128px;
+    background: green;
+}
+#c {
+    top: 64px;
+    left: 64px;
+    width: 64px;
+    height: 64px;
+    background: blue;
+}
+#d {
+    top: 32px;
+    left: 192px;
+    width: 32px;
+    height: 32px;
+    background: red;
+}
+#e {
+    top: 32px;
+    left: 224px;
+    width: 96px;
+    height: 32px;
+    background: green;
+}
+#f {
+    top: 224px;
+    left: 128px;
+    width: 64px;
+    height: 160px;
+    background: red;
+}
+#g {
+    top: 224px;
+    left: 128px;
+    width: 32px;
+    height: 128px;
+    background: green;
+}
+</style>
+</head>
+<body>
+<section id=a></section>
+<section id=b></section>
+<section id=c></section>
+<section id=d></section>
+<section id=e></section>
+<section id=f></section>
+<section id=g></section>
+</body>
+</html>
+

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!-- Reference case for behavior of the 'baseline' value for align-items and
+     align-self, in a multi-line flex container.
+
+     This reference case just consists of three single-line flex containers,
+     to match the testcase's one flex container with three flex lines.
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Reftest Reference</title>
+    <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com"/>
+    <style>
+      .flexbox {
+        display: flex;
+        align-items: baseline;
+        width: 90px;
+      }
+
+      .flexbox > * {
+        width: 28px;
+        background: yellow;
+        border: 1px solid black;
+      }
+
+      .big    { font: 24px sans-serif; }
+      .medium { font: 14px sans-serif; }
+      .small  { font: 8px sans-serif;  }
+
+   </style>
+  </head>
+  <body>
+    <div class="flexbox">
+      <!-- First flex line: Just 3 different sizes of text -->
+      <div class="big">a</div>
+      <div class="small">b</div>
+      <div class="medium">c</div>
+    </div>
+    <div class="flexbox">
+      <!-- Second flex line: different margin/padding amounts on each item,
+           and one non-baseline-aligned item.-->
+      <div class="medium" style="padding-top: 10px">d</div>
+      <div class="medium" style="margin-bottom: 8px">e</div>
+      <div class="medium" style="align-self: stretch">f</div>
+    </div>
+    <div class="flexbox">
+      <!-- Third flex line: other margin/padding amounts on each item -->
+      <div class="small" style="margin-top: 20px">g</div>
+      <div class="big">h</div>
+      <div class="medium" style="padding-bottom: 6px">i</div>
+    </div>
+  </body>
+</html>

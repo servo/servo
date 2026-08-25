@@ -1,0 +1,17 @@
+<script>
+/**
+ * Send a message to the opening browsing context when the document is
+ * "completely loaded" (a condition which occurs immediately after the `load`
+ * and `pageshow` events are fired).
+ * https://html.spec.whatwg.org/multipage/parsing.html#the-end
+ */
+'use strict';
+
+// The `pageshow` event is used instead of the `load` event because this
+// document may itself be accessed via history traversal. In such cases, the
+// browser may choose to reuse a cached document and therefore fire no
+// additional `load` events.
+addEventListener('pageshow', () => {
+  setTimeout(() => opener.postMessage(null, '*'), 0);
+});
+</script>

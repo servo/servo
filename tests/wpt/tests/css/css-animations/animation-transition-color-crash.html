@@ -1,0 +1,29 @@
+<html>
+<head>
+    <link rel="help" href="https://github.com/servo/servo/issues/45945">
+    <style>
+    :root {
+        animation: keyframes 1s normal;
+        transition: border-right 1ms;
+        border: solid;
+        translate: 10px;
+    }
+    @keyframes keyframes {
+        to { border: inset; }
+    }
+    </style>
+</head>
+
+<body onload="main()">
+
+<script>
+function main() {
+    document.styleSheets[0].insertRule("nonexistent-tag {}");
+    document.body.clientHeight;
+    document.styleSheets[0].insertRule("nonexistent-tag2 {}");
+    window.scroll(1, 1);
+}
+
+document.body.clientHeight;
+</script>
+

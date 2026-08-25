@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<title>anchor-center overflow adjustments (anchored < inset area, with margin)</title>
+<style>
+.abs-cb {
+  display: inline-block;
+  box-sizing: border-box;
+  border: 5px solid;
+  width: 100px;
+  height: 100px;
+  position: relative;
+}
+
+.anchor {
+  width: 20px;
+  height: 20px;
+  background: pink;
+  position: absolute;
+  inset: 0;
+}
+
+.positioned {
+  position: absolute;
+  width: 50px;
+  height: 50px;
+  margin: 5px;
+  background: purple;
+}
+
+.anchor.tl {
+  align-self: start;
+  justify-self: start;
+}
+
+.anchor.tr {
+  align-self: start;
+  justify-self: end;
+}
+
+.anchor.bl {
+  align-self: end;
+  justify-self: start;
+}
+
+.anchor.br {
+  align-self: end;
+  justify-self: end;
+}
+
+.positioned.bl {
+  left: 0;
+  top: 20px;
+}
+
+.positioned.lr {
+  left: 20px;
+  top: 0;
+}
+
+
+.positioned.bc {
+  top: anchor(bottom);
+  justify-self: anchor-center;
+}
+
+.positioned.tc {
+  bottom: anchor(top);
+  justify-self: anchor-center;
+}
+
+.positioned.cr {
+  left: anchor(right);
+  align-self: anchor-center;
+}
+
+.positioned.cl {
+  right: anchor(left);
+  align-self: anchor-center;
+}
+</style>
+</style>
+<div class=abs-cb>
+  <div class="anchor tl"></div>
+  <div class=positioned style="left: 0; top: 20px;"></div>
+</div
+><div class=abs-cb>
+  <div class="anchor tl"></div>
+  <div class=positioned style="left: 20px; top: 0;"></div>
+</div
+><div class=abs-cb>
+  <div class="anchor tr"></div>
+  <div class=positioned style="right: 0; top: 20px;"></div>
+</div
+><div class=abs-cb>
+  <div class="anchor tr"></div>
+  <div class=positioned style="right: 20px; top: 0px;"></div>
+</div><br>
+<div class=abs-cb>
+  <div class="anchor bl"></div>
+  <div class=positioned style="bottom: 20px; left: 0;"></div>
+</div
+><div class=abs-cb>
+  <div class="anchor bl"></div>
+  <div class=positioned style="bottom: 0; left: 20px;"></div>
+</div
+><div class=abs-cb>
+  <div class="anchor br"></div>
+  <div class=positioned style="bottom: 20px; right: 0;"></div>
+</div
+><div class=abs-cb>
+  <div class="anchor br"></div>
+  <div class=positioned style="bottom: 0; right: 20px;"></div>
+</div>

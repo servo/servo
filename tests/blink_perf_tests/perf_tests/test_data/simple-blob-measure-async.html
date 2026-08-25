@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script src = "../resources/runner.js"></script>
+<script>
+
+var startTime;
+var isDone = false;
+
+function createAndRead(size) {
+    var reader = new FileReader();
+    var blob = new Blob([new Uint8Array(size)], {type: 'application/octet-string'});
+    reader.onloadend = function(e) {
+        if (reader.error) {
+            throw new Error('Error when reading blob: ' + reader.error);
+        }
+        if (reader.result.byteLength != size)
+            throw new Error("Sizes don't match");
+        PerfTestRunner.measureValueAsync(PerfTestRunner.now() - startTime);
+        PerfTestRunner.addRunTestEndMarker();
+        if (!isDone)
+            createAndRead(size);
+    }
+    PerfTestRunner.addRunTestStartMarker();
+    startTime = PerfTestRunner.now();
+    reader.readAsArrayBuffer(blob);
+}
+
+function runTest() {
+  createAndRead(1024*1024);
+}
+
+window.onload = function () {
+    PerfTestRunner.startMeasureValuesAsync({
+        unit: 'ms',
+        done: function () {
+            isDone = true;
+        },
+        run: function() {
+            runTest();
+        },
+        warmUpCount: 2,
+        iterationCount: 6,
+        description: "Measures performance of blob read.",
+        tracingCategories: 'Blob',
+        traceEventsToMeasure: ['BlobRequest', 'BlobRequest::ReadRawData',
+                               'BlobReader', 'BlobReader::ReadMore']
+    });
+};
+</script>
+</body>
+</html>
+

@@ -1,0 +1,20 @@
+<!doctype html>
+<title>A trailing semicolon is allowed in the 'keyTimes' attribute</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<svg>
+  <rect width="100" height="100" fill="blue" opacity="0">
+    <animate attributeName="opacity" dur="10ms" fill="freeze"
+             values="0; 1" keyTimes="0; 1;"/>
+  </rect>
+</svg>
+<script>
+  promise_test(async t => {
+    const animation = document.querySelector('rect > animate');
+    const watcher = new EventWatcher(t, animation, 'endEvent');
+    await watcher.wait_for('endEvent');
+    await waitForAtLeastOneFrame();
+    assert_equals(getComputedStyle(animation.targetElement).opacity, "1");
+  });
+</script>

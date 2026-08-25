@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const form = document.createElement("form");
+  const range = new Range();
+  document.documentElement.contentEditable = true;
+  document.execCommand("formatBlock", false, "h3");
+  document.documentElement.appendChild(form);
+  range.setStartBefore(form);
+  getSelection().addRange(range);
+  range.selectNode(form);
+  document.execCommand("insertHorizontalRule");
+});
+</script>
+</head>
+</html>

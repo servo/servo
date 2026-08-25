@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: percentage sizes resolving against subpixel lengths</title>
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#percentage-sizing">
+<meta name="assert" content="
+  Two floats with `width: 50%` each should fit on the same line,
+  and four floats with `width: 25%` each should fit on the same line.
+  That's even if the containing block width, expressed in layout units,
+  cannot be divided by 2 or 4.
+  This test checks cases that are tricky for browsers where 1 pixel
+  are either 60, 64 or 100 layout units.
+">
+
+<!-- Allow a 1px wide 10px tall red area for each of the 12 lines -->
+<meta name="fuzzy" content="maxDifference=0-255; totalPixels=0-120">
+<link rel="match" href="percentage-width-subpixels.tentative-ref.html">
+
+<style>
+.test {
+  display: flow-root;
+  margin-bottom: 5px;
+  background: red;
+}
+.test > div {
+  height: 10px;
+  float: left;
+  background: green;
+}
+.x2 > div {
+  width: 50%;
+}
+.x4 > div {
+  width: 25%;
+}
+</style>
+
+<p>Test passes if there are only horizontal green lines and (almost) <strong>no red</strong>.</p>
+
+<!-- 20001 layout units among 2 children would be 10000.5 each,
+     that should round down to 10000, not up to 10001. -->
+<div style="--w: 20001px">
+  <div class="test x2" style="width: calc(var(--w) / 60)">
+    <div></div> <div></div>
+  </div>
+  <div class="test x2" style="width: calc(var(--w) / 64)">
+    <div></div> <div></div>
+  </div>
+  <div class="test x2" style="width: calc(var(--w) / 100)">
+    <div></div> <div></div>
+  </div>
+</div>
+
+<!-- 20007 layout units among 4 children would be 5001.75 each,
+     that should round down to 5001, not up to 5002. -->
+<div style="--w: 20007px">
+  <div class="test x4" style="width: calc(var(--w) / 60)">
+    <div></div> <div></div> <div></div> <div></div>
+  </div>
+  <div class="test x4" style="width: calc(var(--w) / 64)">
+    <div></div> <div></div> <div></div> <div></div>
+  </div>
+  <div class="test x4" style="width: calc(var(--w) / 100)">
+    <div></div> <div></div> <div></div> <div></div>
+  </div>
+</div>
+
+<!-- 20010 layout units among 4 children would be 5002.5 each,
+     that should round down to 5002, not up to 5003. -->
+<div style="--w: 20010px">
+  <div class="test x4" style="width: calc(var(--w) / 60)">
+    <div></div> <div></div> <div></div> <div></div>
+  </div>
+  <div class="test x4" style="width: calc(var(--w) / 64)">
+    <div></div> <div></div> <div></div> <div></div>
+  </div>
+  <div class="test x4" style="width: calc(var(--w) / 100)">
+    <div></div> <div></div> <div></div> <div></div>
+  </div>
+</div>
+
+<!-- 20013 layout units among 4 children would be 5003.25 each,
+     that should round down to 5003, not up to 5004. -->
+<div style="--w: 20013px">
+  <div class="test x4" style="width: calc(var(--w) / 60)">
+    <div></div> <div></div> <div></div> <div></div>
+  </div>
+  <div class="test x4" style="width: calc(var(--w) / 64)">
+    <div></div> <div></div> <div></div> <div></div>
+  </div>
+  <div class="test x4" style="width: calc(var(--w) / 100)">
+    <div></div> <div></div> <div></div> <div></div>
+  </div>
+</div>

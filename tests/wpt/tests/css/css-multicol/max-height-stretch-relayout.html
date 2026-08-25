@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>Resize containing block of auto-height multicol container with max-height:stretch</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://issues.chromium.org/issues/486806596">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+  #target {
+    columns: 2;
+    column-fill: auto;
+    gap: 0;
+    max-height: stretch;
+  }
+  #content {
+    height: 200px;
+    background: green;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="elm" style="width:100px; height:30px; background:red;">
+  <div id="target">
+    <div id="content"></div>
+  </div>
+</div>
+<script>
+  document.body.offsetTop;
+  elm.style.height = "100px";
+</script>

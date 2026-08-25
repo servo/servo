@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1416539">
+<link rel="match" href="display-with-overflow-ref.html">
+<meta name="assert" content="Use safe centering (so that content is reachable with scroll) for display=block centering.">
+<style>
+math {
+  width: 20px;
+  padding: 5px;
+  font-size: 40px;
+  overflow-x: scroll;
+  overflow-y: hidden;
+}
+</style>
+<math display="block">
+  <mn>text</mn>
+</math>
+<math display="block" style="direction: rtl;">
+  <mn>text</mn>
+</math>

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="David Shin" href="mailto:dshin@mozilla.com">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#block-flow">
+<meta name="assert" content="This test checks that absolutely positioned elements are offset correctly in a containing block with an orthogonal writing mode and that has a border." />
+<link rel="match" href="abs-pos-vlr-border-001-ref.html">
+<style>
+  body { margin: 0; }
+  .vert-cb {
+    position: relative;
+    width: 150px;
+    height: 60px;
+    writing-mode: vertical-lr;
+    direction: rtl;
+    background: lightblue;
+    border: solid gray;
+    border-width: 1px 2px 3px 4px;
+    margin-bottom: 2px;
+  }
+  .horiz-parent {
+    width: 120px;
+    height: 100%;
+    box-sizing: border-box;
+    border: solid orange;
+    border-width: 4px 3px 2px 1px;
+    writing-mode: horizontal-tb;
+  }
+  .abspos {
+    position: absolute;
+    /* Specify a height to work around https://bugzilla.mozilla.org/1769102 */
+    height: 40px;
+    background: pink;
+    border: solid black;
+    border-width: 2px 1px 4px 3px;
+  }
+</style>
+<body>
+  <div class="vert-cb">
+    <div class="horiz-parent">
+      <div class="abspos" style="width: max-content">Hello</div>
+    </div>
+  </div>
+  <div class="vert-cb">
+    <div class="horiz-parent">
+      <div class="abspos" style="width: 100px">Hello</div>
+    </div>
+  </div>
+  <div class="vert-cb">
+    <div class="horiz-parent">
+      <canvas class="abspos" height="40px" width="100px"></canvas>
+    </div>
+  </div>
+  <div class="vert-cb">
+    <div class="horiz-parent">
+      <img src="broken" class="abspos" height="40px" width="100px">
+    </div>
+  </div>
+</body>

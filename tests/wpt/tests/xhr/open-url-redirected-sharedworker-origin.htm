@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>XMLHttpRequest: redirected classic shared worker scripts, origin and referrer</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+var finalWorkerURL = "workerxhr-origin-referrer.js";
+var url = "resources/redirect.py?location=" + encodeURIComponent(finalWorkerURL);
+fetch_tests_from_worker(new SharedWorker(url));
+</script>

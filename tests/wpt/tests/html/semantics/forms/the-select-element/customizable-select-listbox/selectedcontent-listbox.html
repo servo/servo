@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://html.spec.whatwg.org/multipage/form-elements.html#the-selectedcontent-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<style>
+select {
+  appearance: base-select;
+}
+</style>
+
+<select size=4>
+  <optgroup>
+    <legend>
+      <selectedcontent></selectedcontent>
+    </legend>
+  </optgroup>
+  <option class=one selected>one</option>
+  <option class=two>two</option>
+</select>
+
+<script>
+function click(element) {
+  return (new test_driver.Actions()
+    .pointerMove(0, 0, {origin: element})
+    .pointerDown()
+    .pointerUp())
+    .send();
+}
+
+promise_test(async () => {
+  const select = document.querySelector('select');
+  const selectedcontent = select.querySelector('selectedcontent');
+  const optionOne = select.querySelector('.one');
+  const optionTwo = select.querySelector('.two');
+
+  assert_equals(selectedcontent.innerHTML, optionOne.innerHTML,
+    '<selectedcontent> should initially contain the initially selected option.');
+
+  optionOne.selected = false;
+  assert_equals(selectedcontent.innerHTML, '',
+    '<selectedcontent> should respond to assigning to option.selected.');
+
+  await click(optionOne);
+  assert_equals(selectedcontent.innerHTML, optionOne.innerHTML,
+    '<selectedcontent> should respond to the user clicking an option element.');
+}, '<select size=4> should support <selectedcontent>.');
+</script>

@@ -1,0 +1,15 @@
+diff --git a/WebIDL.py b/WebIDL.py
+index 0ad1f8f9215..d8f87bc332d 100644
+--- a/WebIDL.py
++++ b/WebIDL.py
+@@ -2151,6 +2151,7 @@ class IDLInterface(IDLInterfaceOrNamespace):
+             or identifier == "RunConstructorInCallerCompartment"
+             or identifier == "WantsEventListenerHooks"
+             or identifier == "Serializable"
++            or identifier == "Abstract"
+         ):
+             # Known extended attributes that do not take values
+             if not attr.noArguments():
+-- 
+2.51.0
+

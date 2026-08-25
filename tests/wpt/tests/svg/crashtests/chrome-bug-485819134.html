@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<link rel="help" href="http://crbug.com/485819134">
+<style>
+.target {
+  float: left;
+  transform: translateY(1px);
+}
+</style>
+<body class="target">
+  <table>
+    <caption><svg><text></text></svg></caption>
+  </table>
+</body>
+<script>
+document.body.offsetTop;
+document.body.className = '';
+</script>

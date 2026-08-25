@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en" manifest="{{GET[manifest]}}">
+<script>
+if (!window.applicationCache) {
+  parent.postMessage('application cache not supported');
+} else {
+  applicationCache.onnoupdate =
+    applicationCache.ondownloading =
+    applicationCache.onobsolete =
+    applicationCache.onerror = function() {
+      parent.postMessage('okay');
+    };
+}
+</script>
+</html>

@@ -1,0 +1,31 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Text-decoration on descendents with relative positioning</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#lining-striking-props" />
+        <meta name="assert" content="Text-decoration is moved with relative positioned elements." />
+        <style type="text/css">
+            div
+            {
+                color: orange;
+                text-decoration: underline;
+            }
+            span
+            {
+                border: 1px solid blue;
+            }
+            #span1
+            {
+                left: 75px;
+                position: relative;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes there is an orange line under only the words "Filler Text" below. Between the blue boxes, there cannot be any orange line.</p>
+        <div>
+            <span>Filler Text Filler Text</span><span id="span1">Filler Text Filler Text</span>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,98 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+  async function getResultsInOrder(promises) {
+    const results = [];
+    const tasks = promises.map(p => p.then(r => results.push(r)));
+    await Promise.all(tasks);
+    return results;
+  }
+
+  promise_test(async t => {
+    await new Promise(resolve => window.onload = resolve);
+    const iframe = document.createElement('iframe');
+    iframe.srcdoc = `
+      <script>
+        window.task = async function() {
+          await scheduler.yield();
+          return "inner";
+        }
+
+        window.task2 = async function(callback) {
+          Promise.resolve().then(callback);
+        }
+      </scr`+`ipt>
+    `;
+
+    window.parentTask = async function() {
+      await scheduler.yield();
+      return "inner";
+    };
+
+    const p = new Promise(resolve => iframe.onload = resolve);
+    document.body.appendChild(iframe);
+    await p;
+
+    // task1: user-blocking, main frame scheduler, child frame task.
+    //   task 1 continuation: child frame yield().
+    // task2: user-blocking, main frame scheduler, main frame task.
+    //
+    // Expected: no inheritance, task1 continuation has default continuation
+    // priority and runs last.
+    let task1 = scheduler.postTask(
+        iframe.contentWindow.task, {priority: 'user-blocking'});
+    let task2 = scheduler.postTask(() => "outer", {priority: 'user-blocking'});
+    let result = await getResultsInOrder([task1, task2]);
+    assert_equals(result.toString(), "outer,inner",
+        "Expected outer before inner for iframe task with main frame scheduler");
+
+    // task1: user-blocking, child frame scheduler, child frame task.
+    //   task 1 continuation: child frame yield().
+    // task2: user-blocking, main frame scheduler, main frame task.
+    //
+    // Expected: continuation inherits user-blocking priority and runs before
+    // task2.
+    task1 = iframe.contentWindow.scheduler.postTask(
+        iframe.contentWindow.task, {priority: 'user-blocking'});
+    task2 = scheduler.postTask(() => "outer", {priority: 'user-blocking'});
+    result = await getResultsInOrder([task1, task2]);
+    assert_equals(result.toString(), "inner,outer",
+        "Expected inner before outer for iframe task with iframe scheduler");
+
+    // task1: user-blocking, main frame scheduler, main frame task.
+    //   task 1 continuation: child frame yield() called from main frame task.
+    // task2: user-blocking, main frame scheduler, main frame task.
+    //
+    // Expected: no inheritance, task1 continuation has default continuation
+    // priority and runs last.
+    task1 = scheduler.postTask(
+        async () => await iframe.contentWindow.task(), {priority: 'user-blocking'});
+    task2 = scheduler.postTask(() => "outer", {priority: 'user-blocking'});
+    result = await getResultsInOrder([task1, task2]);
+    assert_equals(result.toString(), "outer,inner",
+        "Expected outer before inner for iframe task called from main frame task");
+
+    // This tests that priority is inherited in the main frame if hopping
+    // through a child frame task.
+    //
+    // task1: user-blocking; main frame scheduler; main frame task, which calls
+    //        back into the main frame in a microtask.
+    //   task 1 continuation: main frame yield, called from child frame.
+    // task2: user-blocking, main frame scheduler, main frame task.
+    //
+    // Expected: continuation inherits user-blocking priority and runs before
+    // task2.
+    task1 = scheduler.postTask(() => new Promise(resolve => {
+      iframe.contentWindow.task2(async () => {
+        await scheduler.yield();
+        resolve("inner");
+      });
+    }), {priority: 'user-blocking'});
+    task2 = scheduler.postTask(() => "outer", {priority: 'user-blocking'});
+    result = await getResultsInOrder([task1, task2]);
+    assert_equals(result.toString(), "inner,outer",
+        "Expected inner before outer for iframe task calling back to main frame task");
+  }, 'Test scheduler.yield() does not use propagated state in same origin frames');
+</script>

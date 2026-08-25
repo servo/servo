@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ja">
+<meta charset="utf-8">
+<title>Intrinsic ISize calculation of ruby</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org">
+<link rel="help" href="https://drafts.csswg.org/css-ruby-1/#line-breaks">
+<link rel="match" href="ruby-intrinsic-isize-003-ref.html">
+<style>
+  ruby {
+    border-left: 5px solid blue;
+    border-right: 10px solid blue;
+    padding: 0 20px 0 10px;
+    margin: 0 10px 0 20px;
+  }
+  div {
+    display: inline-block;
+    border: 1px solid black;
+    font-kerning: none; /* disable kerning, because in the reference file
+                            it might occur across <span> boundaries */
+  }
+</style>
+
+<div style="width: min-content">
+  <ruby><rb>ABC<rb>DEF</ruby>
+</div>
+<div style="width: max-content">
+  <ruby><rb>ABC<rb>DEF</ruby>
+</div>
+<br>
+
+<div style="width: min-content">
+  XYZ<ruby><rb>ABC<rb>DEF</ruby>XYZ
+</div>
+<div style="width: max-content">
+  XYZ<ruby><rb>ABC<rb>DEF</ruby>XYZ
+</div>
+<br>
+
+<div style="width: min-content">
+  <ruby><rb>あい<rb>うえ</ruby>
+</div>
+<div style="width: max-content">
+  <ruby><rb>あい<rb>うえ</ruby>
+</div>
+<br>
+
+<div style="width: min-content">
+  お<ruby><rb>あい<rb>うえ</ruby>お
+</div>
+<div style="width: max-content">
+  お<ruby><rb>あい<rb>うえ</ruby>お
+</div>
+<br>

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>Test for dynamic insertion of ruby frames</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<link rel="stylesheet" href="support/ruby-common.css">
+
+<p>One space should exist between 'a' and 'b':</p>
+
+<p>a<rb></rb><span></span> <rt></rt>b</p>
+<p>a<rb></rb> <span></span><rt></rt>b</p>
+<p>a<rb></rb> <rb></rb><rt></rt>b</p>
+<p>a<rt></rt><rb></rb> <rb></rb>b</p>
+<p>a<rbc></rbc> <rbc></rbc><rt></rt>b</p>
+<p>a<rb></rb><rt></rt> <rt></rt>b</p>
+<p>a<rt></rt> <rt></rt><rb></rb>b</p>
+
+<p>a<rb></rb> <rb></rb>b</p>
+<p>a<rbc></rbc> <rbc></rbc>b</p>
+<p>a<rt></rt> <rt></rt>b</p>

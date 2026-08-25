@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1999396">
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  o3 = document.createElement('div');
+  document.body.appendChild(o3);
+  o14 = document.createElement('style');
+  document.documentElement.appendChild(o14);
+  o18 = document.createElement('style');
+  o14.appendChild(o18);
+  s4 = unescape('%u06A10');
+  o3.appendChild(document.createTextNode(s4));
+  o59 = document.createTextNode("{}:first-letter{ all: inherit;'x'}\n*{ float: left }:first-line{}");
+  o18['before'](o18, -1, o59);
+  document.documentElement.offsetHeight;
+  o3.appendChild(document.createTextNode(s4));
+  o18['before'](o18, -1, o59);
+})
+</script>

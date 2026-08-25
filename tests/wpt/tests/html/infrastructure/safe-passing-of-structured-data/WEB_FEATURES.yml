@@ -1,0 +1,8 @@
+rules:
+- messagechannel.any.js: [channel-messaging]
+- transfer-errors.window.js: [channel-messaging]
+- cross-origin-transfer-resizable-arraybuffer.html: [postmessage]
+- structured-cloning-error-extra.html: [postmessage]
+- structured-cloning-error-stack-optional.sub.window.js: [postmessage]
+- structuredclone_0.html: [postmessage]
+- window-postmessage.window.js: [postmessage]

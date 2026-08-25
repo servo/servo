@@ -1,0 +1,7 @@
+rules:
+- attr-case-sensitivity-001.html: [attr-contents]
+- attr-case-sensitivity-002.html: [attr-contents]
+- attr-case-sensitivity-003.html: [attr-contents]
+- quotes-*: [quotes]
+- content-*: [content]
+- pseudo-element-inline-box.html: [content]

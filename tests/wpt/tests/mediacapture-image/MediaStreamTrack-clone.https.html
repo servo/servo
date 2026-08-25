@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/mediacapture-image/resources/imagecapture-helpers.js"></script>
+<script>
+
+// This test verifies that we can set some nondefault constraints, then clone a
+// MediaStreamTrack and check that the cloned constraints are the same as the
+// original, with a mock Mojo service implementation.
+image_capture_test(async (t, imageCaptureTest) => {
+  await test_driver.set_permission({name: 'camera', panTiltZoom: true},
+        'granted');
+
+  const constraints = { advanced : [{ whiteBalanceMode : 'single-shot',
+                                      exposureMode     : 'manual',
+                                      focusMode        : 'single-shot',
+
+                                      pointsOfInterest : [{x : 0.1, y : 0.2},
+                                                          {x : 0.3, y : 0.4}],
+
+                                      exposureCompensation : 133.77,
+                                      exposureTime         : 10000,
+                                      colorTemperature     : 6000,
+                                      iso                  : 120.0,
+
+                                      brightness           : 3,
+                                      contrast             : 4,
+                                      saturation           : 5,
+                                      sharpness            : 6,
+                                      focusDistance        : 7,
+
+                                      pan                  : 8,
+                                      tilt                 : 9,
+                                      zoom                 : 3.141592,
+
+                                      torch                : true
+                                    }]};
+    for (const [key, value] of Object.entries(constraints.advanced[0])) {
+      constraints[key] = {exact: value};
+    }
+
+    let stream = await navigator.mediaDevices.getUserMedia({video: true});
+    let originalVideoTrack = stream.getVideoTracks()[0];
+
+    await originalVideoTrack.applyConstraints(constraints);
+
+    let appliedConstraints = originalVideoTrack.getConstraints();
+
+    let clonedVideoTrack = originalVideoTrack.clone();
+    let appliedClonedConstraints = clonedVideoTrack.getConstraints();
+    assert_true('advanced' in appliedClonedConstraints);
+    assert_equals(appliedClonedConstraints.advanced.length, 1);
+    const appliedClonedAdvancedConstraints = appliedClonedConstraints.advanced[0];
+
+    // Check that |appliedClonedConstraints| and |appliedConstraints| are equal.
+    const appliedAdvancedConstraints = appliedConstraints.advanced[0];
+    assert_equals(appliedAdvancedConstraints.length, appliedClonedAdvancedConstraints.length);
+    Object.keys(appliedClonedAdvancedConstraints).forEach(key => {
+      assert_not_equals(appliedClonedConstraints[key], undefined, 'key ' + key);
+      assert_not_equals(appliedConstraints[key], undefined, 'key ' + key);
+      assert_not_equals(appliedConstraints[key].exact, undefined, 'key ' + key);
+      assert_not_equals(appliedAdvancedConstraints[key], undefined, 'key ' + key);
+      if (key != 'pointsOfInterest') {
+        assert_equals(appliedConstraints[key].exact, appliedClonedConstraints[key].exact, key);
+        assert_equals(appliedAdvancedConstraints[key], appliedClonedAdvancedConstraints[key], key);
+      } else {
+        assert_point2d_array_approx_equals(appliedConstraints[key].exact,
+                                           appliedClonedConstraints[key].exact, 0.01);
+        assert_point2d_array_approx_equals(appliedAdvancedConstraints[key],
+                                           appliedClonedAdvancedConstraints[key], 0.01);
+      }
+    });
+
+    assert_equals(appliedAdvancedConstraints.whiteBalanceMode,
+                  appliedClonedAdvancedConstraints.whiteBalanceMode,
+                  'whiteBalanceMode');
+    assert_equals(appliedAdvancedConstraints.exposureMode,
+                  appliedClonedAdvancedConstraints.exposureMode,
+                  'exposureMode');
+    assert_equals(appliedAdvancedConstraints.focusMode,
+                  appliedClonedAdvancedConstraints.focusMode,
+                  'focusMode');
+
+    assert_point2d_array_approx_equals(
+        appliedAdvancedConstraints.pointsOfInterest,
+        appliedClonedAdvancedConstraints.pointsOfInterest,
+        0.01);
+
+    assert_equals(appliedAdvancedConstraints.exposureCompensation,
+                  appliedClonedAdvancedConstraints.exposureCompensation,
+                  'exposureCompensation');
+    assert_equals(appliedAdvancedConstraints.exposureTime,
+                  appliedClonedAdvancedConstraints.exposureTime,
+                  'exposureTime');
+    assert_equals(appliedAdvancedConstraints.colorTemperature,
+                  appliedClonedAdvancedConstraints.colorTemperature,
+                  'colorTemperature');
+    assert_equals(appliedAdvancedConstraints.iso,
+                  appliedClonedAdvancedConstraints.iso,
+                  'iso');
+    assert_equals(appliedAdvancedConstraints.brightness,
+                  appliedClonedAdvancedConstraints.brightness,
+                  'brightness');
+    assert_equals(appliedAdvancedConstraints.contrast,
+                  appliedClonedAdvancedConstraints.contrast,
+                  'constrast');
+    assert_equals(appliedAdvancedConstraints.saturation,
+                  appliedClonedAdvancedConstraints.saturation,
+                  'saturation');
+    assert_equals(appliedAdvancedConstraints.sharpness,
+                  appliedClonedAdvancedConstraints.sharpness,
+                  'sharpness');
+    assert_equals(appliedAdvancedConstraints.focusDistance,
+                  appliedClonedAdvancedConstraints.focusDistance,
+                  'focusDistance');
+
+    assert_equals(appliedAdvancedConstraints.pan,
+                  appliedClonedAdvancedConstraints.pan,
+                  'pan');
+    assert_equals(appliedAdvancedConstraints.tilt,
+                  appliedClonedAdvancedConstraints.tilt,
+                  'tilt');
+    assert_equals(appliedAdvancedConstraints.zoom,
+                  appliedClonedAdvancedConstraints.zoom,
+                  'zoom');
+
+    assert_equals(appliedAdvancedConstraints.torch,
+                  appliedClonedAdvancedConstraints.torch,
+                  'torch');
+}, 'checks MediaStreamTrack.clone() gets same applied constraints');
+
+// This test verifies that MediaStreamTrack ImageCapture settings are copied
+// when cloning a MediaStreamTrack.
+image_capture_test(async (t, imageCaptureTest) => {
+  await test_driver.set_permission({name: 'camera', panTiltZoom: true},
+        'granted');
+
+  let stream = await navigator.mediaDevices.getUserMedia({video: true});
+  let originalVideoTrack = stream.getVideoTracks()[0];
+  let clonedVideoTrack = originalVideoTrack.clone();
+
+  let settings = originalVideoTrack.getSettings();
+  let clonedSettings = clonedVideoTrack.getSettings();
+
+  assert_equals(settings.whiteBalanceMode,
+                clonedSettings.whiteBalanceMode,
+                'whiteBalanceMode');
+  assert_equals(settings.exposureMode,
+                clonedSettings.exposureMode,
+                'exposureMode;');
+  assert_equals(settings.focusMode,
+                clonedSettings.focusMode,
+                'focusMode');
+
+  assert_point2d_array_approx_equals(
+      settings.pointsOfInterest,
+      clonedSettings.pointsOfInterest,
+      0.01);
+
+  assert_equals(settings.exposureCompensation,
+                clonedSettings.exposureCompensation,
+                'exposureCompensation');
+  assert_equals(settings.exposureTime,
+                clonedSettings.exposureTime,
+                'exposureTime');
+  assert_equals(settings.colorTemperature,
+                clonedSettings.colorTemperature,
+                'colorTemperature');
+  assert_equals(settings.iso,
+                clonedSettings.iso,
+                'iso');
+
+  assert_equals(settings.brightness,
+                clonedSettings.brightness,
+                'brightness');
+  assert_equals(settings.contrast,
+                clonedSettings.contrast,
+                'contrast');
+  assert_equals(settings.saturation,
+                clonedSettings.saturation,
+                'saturation');
+  assert_equals(settings.sharpness,
+                clonedSettings.sharpness,
+                'sharpness');
+
+  assert_equals(settings.focusDistance,
+                clonedSettings.focusDistance,
+                'focusDistance');
+
+  assert_equals(settings.pan,
+                clonedSettings.pan,
+                'pan');
+  assert_equals(settings.tilt,
+                clonedSettings.tilt,
+                'tilt');
+  assert_equals(settings.zoom,
+                clonedSettings.zoom,
+                'zoom');
+
+  assert_equals(settings.torch,
+                clonedSettings.torch,
+                'torch');
+}, 'checks MediaStreamTrack.clone() gets same settings');
+
+// This test verifies that MediaStreamTrack ImageCapture capabilities are copied
+// when cloning a MediaStreamTrack.
+image_capture_test(async (t, imageCaptureTest) => {
+  await test_driver.set_permission({name: 'camera', panTiltZoom: true},
+      'granted');
+
+  let stream = await navigator.mediaDevices.getUserMedia({video: true});
+  let originalVideoTrack = stream.getVideoTracks()[0];
+  let clonedVideoTrack = originalVideoTrack.clone();
+
+  let capabilities = originalVideoTrack.getCapabilities();
+  let clonedCapabilities = clonedVideoTrack.getCapabilities();
+
+  assert_equals(capabilities.whiteBalanceMode.length,
+                clonedCapabilities.whiteBalanceMode.length,
+                'whiteBalanceMode length');
+  for (i = 0; i < capabilities.whiteBalanceMode.length; ++i) {
+    assert_equals(capabilities.whiteBalanceMode[i],
+                  clonedCapabilities.whiteBalanceMode[i],
+                  'whiteBalanceMode');
+  }
+
+  assert_equals(capabilities.exposureMode.length,
+                clonedCapabilities.exposureMode.length,
+                'exposureMode length');
+  for (i = 0; i < capabilities.exposureMode.length; ++i) {
+    assert_equals(capabilities.exposureMode[i],
+                  clonedCapabilities.exposureMode[i],
+                  'exposureMode');
+  }
+
+  assert_equals(capabilities.focusMode.length,
+                clonedCapabilities.focusMode.length,
+                'focusMode length');
+  for (i = 0; i < capabilities.focusMode.length; ++i) {
+    assert_equals(capabilities.focusMode[i],
+                  clonedCapabilities.focusMode[i],
+                  'focusMode');
+  }
+
+  assert_equals(capabilities.exposureCompensation.max,
+                clonedCapabilities.exposureCompensation.max,
+                'exposureCompensation max');
+  assert_equals(capabilities.exposureCompensation.min,
+                clonedCapabilities.exposureCompensation.min,
+                'exposureCompensation min');
+  assert_equals(capabilities.exposureCompensation.step,
+                clonedCapabilities.exposureCompensation.step,
+                'exposureCompensation step');
+
+  assert_equals(capabilities.exposureTime.max,
+                clonedCapabilities.exposureTime.max,
+                'exposureTime max');
+  assert_equals(capabilities.exposureTime.min,
+                clonedCapabilities.exposureTime.min,
+                'exposureTime min');
+  assert_equals(capabilities.exposureTime.step,
+                clonedCapabilities.exposureTime.step,
+                'exposureTime step');
+
+  assert_equals(capabilities.colorTemperature.max,
+                clonedCapabilities.colorTemperature.max,
+                'colorTemperature max');
+  assert_equals(capabilities.colorTemperature.min,
+                clonedCapabilities.colorTemperature.min,
+                'colorTemperature min');
+  assert_equals(capabilities.colorTemperature.step,
+                clonedCapabilities.colorTemperature.step,
+                'colorTemperature step');
+
+  assert_equals(capabilities.iso.max,
+                clonedCapabilities.iso.max,
+                'iso max');
+  assert_equals(capabilities.iso.min,
+                clonedCapabilities.iso.min,
+                'iso min');
+  assert_equals(capabilities.iso.step,
+                clonedCapabilities.iso.step,
+                'iso step');
+
+  assert_equals(capabilities.brightness.max,
+                clonedCapabilities.brightness.max,
+                'brightness max');
+  assert_equals(capabilities.brightness.min,
+                clonedCapabilities.brightness.min,
+                'brightness min');
+  assert_equals(capabilities.brightness.step,
+                clonedCapabilities.brightness.step,
+                'brightness step');
+
+  assert_equals(capabilities.contrast.max,
+                clonedCapabilities.contrast.max,
+                'contrast max');
+  assert_equals(capabilities.contrast.min,
+                clonedCapabilities.contrast.min,
+                'contrast min');
+  assert_equals(capabilities.contrast.step,
+                clonedCapabilities.contrast.step,
+                'contrast step');
+
+  assert_equals(capabilities.saturation.max,
+                clonedCapabilities.saturation.max,
+                'saturation max');
+  assert_equals(capabilities.saturation.min,
+                clonedCapabilities.saturation.min,
+                'saturation min');
+  assert_equals(capabilities.saturation.step,
+                clonedCapabilities.saturation.step,
+                'saturation step');
+
+  assert_equals(capabilities.sharpness.max,
+                clonedCapabilities.sharpness.max,
+                'sharpness max');
+  assert_equals(capabilities.sharpness.min,
+                clonedCapabilities.sharpness.min,
+                'sharpness min');
+  assert_equals(capabilities.sharpness.step,
+                clonedCapabilities.sharpness.step,
+                'sharpness step');
+
+  assert_equals(capabilities.focusDistance.max,
+                clonedCapabilities.focusDistance.max,
+                'focusDistance max');
+  assert_equals(capabilities.focusDistance.min,
+                clonedCapabilities.focusDistance.min,
+                'focusDistance min');
+  assert_equals(capabilities.focusDistance.step,
+                clonedCapabilities.focusDistance.step,
+                'focusDistance step');
+
+  assert_equals(capabilities.pan.max,
+                clonedCapabilities.pan.max,
+                'pan max');
+  assert_equals(capabilities.pan.min,
+                clonedCapabilities.pan.min,
+                'pan min');
+  assert_equals(capabilities.pan.step,
+                clonedCapabilities.pan.step,
+                'pan step');
+
+  assert_equals(capabilities.tilt.max,
+                clonedCapabilities.tilt.max,
+                'tilt max');
+  assert_equals(capabilities.tilt.min,
+                clonedCapabilities.tilt.min,
+                'tilt min');
+  assert_equals(capabilities.tilt.step,
+                clonedCapabilities.tilt.step,
+                'tilt step');
+
+  assert_equals(capabilities.zoom.max,
+                clonedCapabilities.zoom.max,
+                'zoom max');
+  assert_equals(capabilities.zoom.min,
+                clonedCapabilities.zoom.min,
+                'zoom min');
+  assert_equals(capabilities.zoom.step,
+                clonedCapabilities.zoom.step,
+                'zoom step');
+
+  assert_equals(capabilities.torch,
+                clonedCapabilities.torch,
+                'torch');
+}, 'checks MediaStreamTrack.clone() gets same capabilities');
+</script>

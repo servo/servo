@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+<head>
+  <title>Pointer Lock exit on element disconnect test</title>
+  <meta name="viewport" content="width=device-width">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="test-helper.js"></script>
+</head>
+<body>
+  <div id="target" style="width:200px;height:200px;background:green"></div>
+</body>
+<script>
+  promise_test(async function(t) {
+    var target = document.getElementById("target");
+
+    await lockPointerAndWaitForEvent(
+      target, /*provideTransientActivation=*/ true);
+
+    // Remove the element from the DOM. This action should
+    // automatically release the lock and fire another
+    // pointerlockchange event.
+    var unlockChangePromise = new Promise(resolve => {
+      document.addEventListener('pointerlockchange', resolve, {
+        once: true
+      });
+    });
+    target.remove();
+    await unlockChangePromise;
+
+    assert_equals(document.pointerLockElement, null,
+      "pointerLockElement should be null after target disconnected.");
+    assert_false(document.contains(target),
+      "Target element should no longer be in the document.");
+  }, "pointer lock exits when lock target is disconnected");
+</script>
+</html>

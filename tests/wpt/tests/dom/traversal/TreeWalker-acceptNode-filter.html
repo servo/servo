@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<!--
+Test adapted from chromium/source/src/third_party/WebKit/LayoutTests/fast/dom/TreeWalker/script-tests/acceptNode-filter.js
+-->
+<head>
+<title>TreeWalker: acceptNode-filter</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/assert-node.js"></script>
+<link rel="help" href="https://dom.spec.whatwg.org/#callbackdef-nodefilter">
+<div id=log></div>
+</head>
+<body>
+<p>Test JS objects as NodeFilters</p>
+<script>
+var testElement;
+setup(function() {
+    testElement = document.createElement("div");
+    testElement.id = 'root';
+    //testElement.innerHTML='<div id="A1"><div id="B1"></div><div id="B2"></div></div>';
+
+    // XXX for Servo, build the tree without using innerHTML
+    var a1 = document.createElement("div");
+    a1.id = "A1";
+    var b1 = document.createElement("div");
+    b1.id = "B1";
+    var b2 = document.createElement("div");
+    b2.id = "B2";
+    testElement.appendChild(a1);
+    a1.appendChild(b1);
+    a1.appendChild(b2);
+});
+
+test(function()
+{
+    function filter(node)
+    {
+        if (node.id == "B1")
+            return NodeFilter.FILTER_SKIP;
+        return NodeFilter.FILTER_ACCEPT;
+    }
+
+    var walker = document.createTreeWalker(testElement, NodeFilter.SHOW_ELEMENT, filter);
+    assert_node(walker.currentNode, { type: Element, id: 'root' });
+    assert_node(walker.firstChild(), { type: Element, id: 'A1' });
+    assert_node(walker.currentNode, { type: Element, id: 'A1' });
+    assert_node(walker.nextNode(), { type: Element, id: 'B2' });
+    assert_node(walker.currentNode, { type: Element, id: 'B2' });
+}, 'Testing with raw function filter');
+
+test(function()
+{
+    var walker = document.createTreeWalker(testElement, NodeFilter.SHOW_ELEMENT, {
+        acceptNode : function(node) {
+            if (node.id == "B1")
+                return NodeFilter.FILTER_SKIP;
+            return NodeFilter.FILTER_ACCEPT;
+        }
+    });
+    assert_node(walker.currentNode, { type: Element, id: 'root' });
+    assert_node(walker.firstChild(), { type: Element, id: 'A1' });
+    assert_node(walker.currentNode, { type: Element, id: 'A1' });
+    assert_node(walker.nextNode(), { type: Element, id: 'B2' });
+    assert_node(walker.currentNode, { type: Element, id: 'B2' });
+}, 'Testing with object filter');
+
+test(function()
+{
+    var walker = document.createTreeWalker(testElement, NodeFilter.SHOW_ELEMENT, null);
+    assert_node(walker.currentNode, { type: Element, id: 'root' });
+    assert_node(walker.firstChild(), { type: Element, id: 'A1' });
+    assert_node(walker.currentNode, { type: Element, id: 'A1' });
+    assert_node(walker.nextNode(), { type: Element, id: 'B1' });
+    assert_node(walker.currentNode, { type: Element, id: 'B1' });
+}, 'Testing with null filter');
+
+test(function()
+{
+    var walker = document.createTreeWalker(testElement, NodeFilter.SHOW_ELEMENT, undefined);
+    assert_node(walker.currentNode, { type: Element, id: 'root' });
+    assert_node(walker.firstChild(), { type: Element, id: 'A1' });
+    assert_node(walker.currentNode, { type: Element, id: 'A1' });
+    assert_node(walker.nextNode(), { type: Element, id: 'B1' });
+    assert_node(walker.currentNode, { type: Element, id: 'B1' });
+}, 'Testing with undefined filter');
+
+test(function()
+{
+    var walker = document.createTreeWalker(testElement, NodeFilter.SHOW_ELEMENT, {});
+    assert_throws_js(TypeError, function () { walker.firstChild(); });
+    assert_node(walker.currentNode, { type: Element, id: 'root' });
+    assert_throws_js(TypeError, function () { walker.nextNode(); });
+    assert_node(walker.currentNode, { type: Element, id: 'root' });
+}, 'Testing with object lacking acceptNode property');
+
+test(function()
+{
+    var walker = document.createTreeWalker(testElement, NodeFilter.SHOW_ELEMENT, { acceptNode: "foo" });
+    assert_throws_js(TypeError, function () { walker.firstChild(); });
+    assert_node(walker.currentNode, { type: Element, id: 'root' });
+    assert_throws_js(TypeError, function () { walker.nextNode(); });
+    assert_node(walker.currentNode, { type: Element, id: 'root' });
+}, 'Testing with object with non-function acceptNode property');
+
+test(function(t)
+{
+    var filter = function() { return NodeFilter.FILTER_ACCEPT; };
+    filter.acceptNode = t.unreached_func("`acceptNode` method should not be called on functions");
+    var walker = document.createTreeWalker(testElement, NodeFilter.SHOW_ELEMENT, filter);
+    assert_node(walker.firstChild(), { type: Element, id: 'A1' });
+    assert_node(walker.nextNode(), { type: Element, id: 'B1' });
+}, 'Testing with function having acceptNode function');
+
+test(function()
+{
+    var test_error = { name: "test" };
+    var walker = document.createTreeWalker(testElement, NodeFilter.SHOW_ELEMENT,
+                                           function(node) {
+                                               throw test_error;
+                                           });
+    assert_throws_exactly(test_error, function () { walker.firstChild(); });
+    assert_node(walker.currentNode, { type: Element, id: 'root' });
+    assert_throws_exactly(test_error, function () { walker.nextNode(); });
+    assert_node(walker.currentNode, { type: Element, id: 'root' });
+}, 'Testing with filter function that throws');
+
+test(function() {
+    var testError = { name: "test" };
+    var filter = {
+        get acceptNode() {
+            throw testError;
+        },
+    };
+
+    var walker = document.createTreeWalker(testElement, NodeFilter.SHOW_ELEMENT, filter);
+    assert_throws_exactly(testError, function() { walker.firstChild(); });
+    assert_node(walker.currentNode, { type: Element, id: 'root' });
+    assert_throws_exactly(testError, function() { walker.nextNode(); });
+    assert_node(walker.currentNode, { type: Element, id: 'root' });
+}, "rethrows errors when getting `acceptNode`");
+
+test(function() {
+    var calls = 0;
+    var walker = document.createTreeWalker(testElement, NodeFilter.SHOW_ELEMENT, {
+        get acceptNode() {
+            calls++;
+            return function() {
+                return NodeFilter.FILTER_ACCEPT;
+            };
+        },
+    });
+
+    assert_equals(calls, 0);
+    walker.nextNode();
+    walker.nextNode();
+    assert_equals(calls, 2);
+}, "performs `Get` on every traverse");
+
+test(function()
+{
+    var test_error = { name: "test" };
+    var walker = document.createTreeWalker(testElement, NodeFilter.SHOW_ELEMENT,
+                                           {
+                                               acceptNode : function(node) {
+                                                   throw test_error;
+                                               }
+                                           });
+    assert_throws_exactly(test_error, function () { walker.firstChild(); });
+    assert_node(walker.currentNode, { type: Element, id: 'root' });
+    assert_throws_exactly(test_error, function () { walker.nextNode(); });
+    assert_node(walker.currentNode, { type: Element, id: 'root' });
+}, 'Testing with filter object that throws');
+
+test(() =>
+{
+    let thisValue, nodeArgID;
+    const filter = {
+        acceptNode(node) {
+            thisValue = this;
+            nodeArgID = node.id;
+            return NodeFilter.FILTER_ACCEPT;
+        },
+    };
+
+    const walker = document.createTreeWalker(testElement, NodeFilter.SHOW_ELEMENT, filter);
+    walker.nextNode();
+
+    assert_equals(thisValue, filter);
+    assert_equals(nodeArgID, 'A1');
+}, 'Testing with filter object: this value and `node` argument');
+
+</script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Min-width applied to elements with 'display' set to 'table-column'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#propdef-min-width" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#min-max-widths" />
+        <link rel="match" href="../../reference/pass_if_square_96px_black.html"/>
+        <meta name="assert" content="The 'min-width' property applies to elements with 'display' set to 'table-column'." />
+        <style type="text/css">
+            #test
+            {
+                display: table-column;
+                min-width: 1in;
+            }
+            #table
+            {
+                display: table;
+                table-layout: fixed;
+            }
+            #row
+            {
+                display: table-row;
+            }
+            #cell
+            {
+                background: black;
+                display: table-cell;
+                height: 1in;
+
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a square below.</p>
+        <div id="table">
+            <div id="test"></div>
+            <div id="row">
+                <div id="cell"></div>
+            </div>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Reference: non-scaling-stroke with scaling from viewBox and preserveAspectRatio=none</title>
+<link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+<style>
+  svg {
+    border: 1px solid black;
+  }
+  svg.wide {
+    width: 150px;
+    height: 100px;
+  }
+  svg.thin {
+    width: 100px;
+    height: 150px;
+  }
+  rect {
+   fill: transparent;
+   stroke: blue;
+   stroke-width: 10px;
+ }
+</style>
+<svg class="wide">
+  <rect x="15" y="20" width="75" height="60"></rect>
+</svg>
+<svg class="wide">
+  <rect x="15" y="20" width="75" height="60"></rect>
+</svg>
+<svg class="wide">
+  <rect x="15" y="20" width="75" height="60"></rect>
+</svg>
+<svg class="wide">
+  <rect x="15" y="20" width="75" height="60"></rect>
+</svg>
+<br>
+<svg class="thin">
+  <rect x="10" y="30" width="50" height="90"></rect>
+</svg>
+<svg class="thin">
+  <rect x="10" y="30" width="50" height="90"></rect>
+</svg>
+<svg class="thin">
+  <rect x="10" y="30" width="50" height="90"></rect>
+</svg>
+<svg class="thin">
+  <rect x="10" y="30" width="50" height="90"></rect>
+</svg>

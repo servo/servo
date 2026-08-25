@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Animation.onremove</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations/#dom-animation-onremove">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+async_test(t => {
+  const div = createDiv(t);
+  const animA = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+  const animB = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+
+  let finishedTimelineTime = null;
+  animB.onfinish = event => {
+    finishedTimelineTime = event.timelineTime;
+  };
+
+  animA.onremove = t.step_func_done(event => {
+    assert_equals(animA.replaceState, 'removed');
+    assert_equals(event.currentTime, 1);
+    assert_true(finishedTimelineTime != null, 'finished event fired');
+    assert_equals(event.timelineTime, finishedTimelineTime,
+                'timeline time is set');
+  });
+
+}, 'onremove event is fired when replaced animation is removed.');
+
+promise_test(async t => {
+  const div = createDiv(t);
+  const animA = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+  const animB = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+  const animC = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+  const animD = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
+
+  const removed = [];
+
+  animA.onremove = () => { removed.push('A'); };
+  animB.onremove = () => { removed.push('B'); };
+  animC.onremove = () => { removed.push('C'); };
+
+  animD.onremove = event => {
+    assert_unreached('onremove event should not be fired');
+  };
+
+  await waitForAnimationFrames(2);
+
+  assert_equals(removed.join(''), 'ABC');
+
+}, 'onremove events are fired in the correct order');
+
+</script>
+</body>
+

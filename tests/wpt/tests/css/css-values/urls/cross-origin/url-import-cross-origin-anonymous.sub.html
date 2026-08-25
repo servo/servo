@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<title>Request URL Modifiers: cross-origin(anonymous) for @import</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#typedef-request-url-modifier-cross-origin-modifier">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="cross-origin(anonymous) should allow a cross-origin @import served with CORS headers.">
+<style>
+@import url("http://{{hosts[][]}}:{{ports[http][1]}}/css/css-values/urls/support/green-style.css?pipe=header(Access-Control-Allow-Origin,*)" cross-origin(anonymous));
+div {
+  width: 100px;
+  height: 100px;
+  background-color: red;
+}
+</style>
+</head>
+<body>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div></div>
+<script>
+window.addEventListener("load", () => {
+  document.documentElement.classList.remove("reftest-wait");
+});
+</script>
+</body>
+</html>

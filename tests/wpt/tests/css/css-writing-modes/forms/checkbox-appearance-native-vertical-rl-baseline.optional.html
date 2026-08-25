@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<link rel="author" title="Aditya Keerthi" href="https://github.com/pxlcoder">
+<link rel="help" href="https://html.spec.whatwg.org/#checkbox-state-(type=checkbox)">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-4/#block-flow">
+<title>Test baseline alignment of checkboxes in vertical-rl writing mode.</title>
+<meta charset="utf-8">
+<link rel="match" href="checkbox-appearance-native-vertical-rl-baseline.optional-ref.html">
+<style>
+
+label {
+    color: red;
+    background-color: red;
+    margin-top: -30px;
+}
+
+</style>
+<p>The checkbox should be center-aligned with the label it since text is non-alphabetic.</p>
+<div style="writing-mode: vertical-rl">
+    <input type="checkbox" id="checkbox" checked>
+    <label for="checkbox">こんにちわ</label>
+</div>
+
+<br>
+
+<p>The checkbox should be left-aligned with the label text since it has text-orientation sideways.</p>
+<div style="writing-mode: vertical-rl; text-orientation: sideways;">
+  <input type="checkbox" id="checkbox" checked>
+  <label for="checkbox">Baseline</label>
+</div>

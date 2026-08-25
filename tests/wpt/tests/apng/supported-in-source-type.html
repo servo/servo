@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>Animated PNG MIME type (image/apng) is recognized by &lt;source type></title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+function resolveUrl(relativeUrl) {
+  var a = document.createElement('a');
+  a.href = relativeUrl;
+  return a.href;
+}
+
+async_test(t => {
+  window.onload = t.step_func_done(() => {
+    let image = document.querySelector('img');
+    let apngSrc = document.querySelector('source');
+    assert_equals(image.currentSrc, resolveUrl(apngSrc.srcset));
+  });
+});
+</script>
+<picture>
+  <source srcset="/images/anim-gr.png" type="image/apng">
+  <img src="/images/anim-gr.gif" style="visibility: hidden">
+</picture>

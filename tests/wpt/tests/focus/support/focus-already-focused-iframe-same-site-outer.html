@@ -1,0 +1,21 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Focus already focused iframe</title>
+<script>
+let failed = false;
+window.onmessage = function(e) {
+    if (e.data == "focus") {
+        document.getElementsByTagName("iframe")[0].focus();
+        opener.step_timeout(function() {
+            if (failed) {
+                opener.postMessage("FAIL", "*");
+            } else {
+                opener.postMessage("PASS", "*");
+            }
+        }, 1500);
+    } else if (e.data == "FAIL") {
+        failed = true;
+    }
+}
+</script>
+<iframe src="focus-already-focused-iframe-inner.html"></iframe>

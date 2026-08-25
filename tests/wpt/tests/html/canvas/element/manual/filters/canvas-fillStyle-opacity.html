@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<link rel="match" href="canvas-opacity-expected.html"/>
+<meta name="fuzzy" content="maxDifference=0-2; totalPixels=0-14000">
+<body>
+  <canvas id="canvas" width="300" height="300"></canvas>
+</body>
+<script>
+  var canvas = document.getElementById('canvas');
+  var ctx = canvas.getContext('2d');
+  ctx.fillStyle = 'rgba(0, 128, 128, 0.75)';
+  ctx.fillRect(10, 10, 50, 50);
+  ctx.fillStyle = 'rgba(255, 0, 255, 0.5)';
+  ctx.fillRect(70, 10, 50, 50);
+  ctx.fillStyle = 'rgba(255, 165, 0, 0.25)';
+  ctx.fillRect(10, 70, 50, 50);
+  ctx.fillStyle = 'rgba(210, 105, 30, 0)';
+  ctx.fillRect(70, 70, 50, 50);
+
+  ctx.fillStyle = 'rgba(0, 255, 255, 0.8)';
+  ctx.fillRect(10, 150, 50, 50);
+  ctx.fillStyle = 'rgba(255, 0, 0, 0.6)';
+  ctx.fillRect(20, 150, 50, 50);
+  ctx.fillStyle = 'rgba(255, 255, 0, 0.4)';
+  ctx.fillRect(30, 150, 50, 50);
+  ctx.fillStyle = 'rgba(0, 128, 0, 0.2)';
+  ctx.fillRect(40, 150, 50, 50);
+</script>

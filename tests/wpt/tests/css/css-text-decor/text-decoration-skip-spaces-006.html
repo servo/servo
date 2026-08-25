@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang=en>
+<meta charset="utf-8">
+<title>Decoration skipping spaces: all value with preserved spaces</title>
+<meta name="assert" content="text-decoration-skip-spaces:all skips leading/trailing preserved spaces (same as start end), in addition to letter-spacing.">
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-skip-spaces-property">
+<link rel="author" title="Perry Wang" href="mailto:perryuwang@gmail.com">
+<link rel="match" href="reference/text-decoration-skip-spaces-002-ref.html">
+<meta name="fuzzy" content="maxDifference=0-5;totalPixels=0-5">
+<style>
+div {
+    text-decoration: underline;
+    text-decoration-color: blue;
+
+    text-decoration-skip-spaces: all;
+    color: orange;
+    font-size: 2em;
+    white-space: pre;
+}
+</style>
+
+<p>Test passes if there is an blue underline below orange letters A through F below, <em>but no further</em>.
+
+<div>        ABCDEF        </div>

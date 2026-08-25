@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/420329041">
+<style>
+  #crash {
+    position: absolute;
+    left: anchor(right);
+    --svg: url("data:image/svg+xml,");
+    content: var(--svg);
+    fill: var(--svg);
+  }
+</style>
+<p>Pass if no crash</p>
+<div id="crash"></div>

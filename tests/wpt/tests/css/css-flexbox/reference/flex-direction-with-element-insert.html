@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Test: flex flow direction</title>
+<link rel="author" title="houzhenyu" href="http://www.github.com/sskyy" />
+<style>
+    .flex-container{
+        display:block;
+        margin:20px;
+        background: #333;
+        line-height: 0px;
+    }
+    .flex-item{
+        display: inline-block;
+        width:50px;
+        height:50px;
+        margin:20px 20px;
+        background: #eee;
+        line-height: 50px;
+        text-align: center;
+    }
+
+    .flex-container.flex-direction-row{
+        flex-direction : row;
+    }
+    .flex-container.flex-direction-row-reverse{
+        text-align: right;
+    }
+
+    .flex-container.flex-direction-column{
+        padding:20px 0px;
+    }
+
+    .flex-container.flex-direction-column .flex-item{
+        display: block;
+        margin:40px 20px;
+    }
+
+    .flex-container.flex-direction-column .flex-item.first{
+        margin-top:0px;
+    }
+    .flex-container.flex-direction-column .flex-item.last{
+        margin-bottom:0px;
+    }
+
+    .flex-container.flex-direction-column-reverse{
+        padding:20px 0px;
+    }
+
+    .flex-container.flex-direction-column-reverse .flex-item{
+        display: block;
+        margin:40px 20px;
+    }
+
+    .flex-container.flex-direction-column-reverse .flex-item.first{
+        margin-top:0px;
+    }
+    .flex-container.flex-direction-column-reverse .flex-item.last{
+        margin-bottom:0px;
+    }
+</style>
+</head>
+<body>
+    <h1>flex-direction:row</h1>
+    <div class="flex-container flex-direction-row"><div class="flex-item">1</div><div class="flex-item">2</div><div class="flex-item">3</div><div class="flex-item">new</div></div>
+
+    <h1>flex-direction:row-reverse</h1>
+    <div class="flex-container flex-direction-row-reverse"><div class="flex-item">new</div><div class="flex-item">3</div><div class="flex-item">2</div><div class="flex-item">1</div></div>
+
+    <h1>flex-direction:column</h1>
+    <div class="flex-container flex-direction-column"><div class="flex-item first">1</div><div class="flex-item">2</div><div class="flex-item">3</div><div class="flex-item last">new</div></div>
+
+    <h1>flex-direction:column-reverse</h1>
+    <div class="flex-container flex-direction-column-reverse"><div class="flex-item first">new</div><div class="flex-item">3</div><div class="flex-item">2</div><div class="flex-item last">1</div></div>
+</body>
+</html>

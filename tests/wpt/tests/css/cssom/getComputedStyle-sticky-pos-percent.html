@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>CSS Test: resolve top percentage value against proper box</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/3115" />
+<link rel="help" href="https://drafts.csswg.org/css-position/#sticky-pos" />
+<link rel="help" href="https://drafts.csswg.org/cssom/#resolved-values" />
+<meta name="assert" content="Test that the sticky percentage insets are
+resolved against the right ancestor, i.e. the nearest scrollport." />
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div style="height: 500px; background: purple; overflow: hidden;">
+  <div style="height: 400px; background: yellow;">
+    <div id="target" style="height: 100px; position: sticky; left: 0; top: 50%; background: blue;">
+    </div>
+  </div>
+</div>
+<script>
+test(() => {
+  assert_equals(getComputedStyle(target).top, '250px');
+}, "Sticky element's top property percentage value should be resolved against the div with overflow: hidden");
+</script>

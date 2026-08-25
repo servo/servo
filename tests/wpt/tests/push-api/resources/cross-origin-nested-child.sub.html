@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Push subscription nested iframe first party child</title>
+<script src="/notifications/resources/helpers.js"></script>
+<body>
+<script type="module">
+import { permissionTest } from "./permission-helper.js"
+
+await unregisterAllServiceWorker();
+const registration = await navigator.serviceWorker.register("../noop-sw.js");
+
+permissionTest('https://{{hosts[][]}}:{{ports[https][0]}}', "child", registration);
+</script>

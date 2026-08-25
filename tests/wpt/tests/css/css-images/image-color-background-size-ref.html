@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS reftest reference: image(&lt;color&gt;) with background-size</title>
+<style>
+  .container {
+    width: 100px;
+    height: 100px;
+    display: inline-block;
+    vertical-align: top;
+    background-color: red;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .green {
+    position: absolute;
+    background-color: green;
+  }
+
+  .auto > .green,
+  .cover > .green,
+  .contain > .green { inset: 0; }
+
+  .half-width > .green  { top: 0; left: 0; width: 50px;  height: 100px; }
+  .half-height > .green { top: 0; left: 0; width: 100px; height: 50px;  }
+  .quarter > .green     { top: 0; left: 0; width: 50px;  height: 50px;  }
+</style>
+<p>Six squares: first three fully green, then left-half green, top-half green, top-left quarter green.</p>
+<div class="container auto"><div class="green"></div></div>
+<div class="container cover"><div class="green"></div></div>
+<div class="container contain"><div class="green"></div></div>
+<div class="container half-width"><div class="green"></div></div>
+<div class="container half-height"><div class="green"></div></div>
+<div class="container quarter"><div class="green"></div></div>

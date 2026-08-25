@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+  <title>CSS Test: Max-width - replaced elements</title>
+  <link rel="author" title="James Hopkins" href="http://idreamincode.co.uk/css21testsuite"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#min-max-widths"/>
+  <meta name="flags" content="image"/>
+  <meta name="assert" content="For UAs who choose to scale replaced elements, the height of that element (based on it's intrinsic ratio) should be re-calculated based on it's constraining 'max-width' value"/>
+  <style type="text/css">
+  #test{
+	width:200px;
+  }
+  #test img{
+  	max-width:100px;
+	width:200%;
+  }
+  </style>
+ </head>
+
+ <body>
+  <p>Test is passed if there is a blue square (four equal sides) below.</p>
+  <div id="test">
+   <img src="support/swatch-blue.png" alt="Test image"/>
+  </div>
+ </body>
+</html>

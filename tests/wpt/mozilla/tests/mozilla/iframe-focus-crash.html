@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<meta name="assert" content="focusing an iframe with onfocus event shouldn't crash">
+
+<iframe id="f" srcdoc="<iframe></iframe><script>document.querySelector('iframe').focus();</script>"></iframe>
+<script>
+    document.querySelector('iframe').onfocus = () => f;
+</script>

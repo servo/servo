@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>ref for iframe in an element with css zoom</title>
+<link rel="author" title="Yotam Hacohen" href="mailto:yotha@chromium.org">
+<link rel="author" title="Stefan Zager" href="mailto:szager@chromium.org">
+<link rel="author" title="Google" href="http://www.google.com/">
+<link rel="help" href="https://drafts.csswg.org/css-viewport/">
+
+<style>
+body {
+  --iframe-width: 128px;
+  --iframe-height: 64px;
+  --scale: 1;
+}
+iframe {
+  border: none;
+  width: calc(var(--iframe-width) * var(--scale));
+  height: calc(var(--iframe-height) * var(--scale));
+}
+.scale {
+  --scale: 2;
+}
+</style>
+
+<iframe id="baseline-ref" src="../resources/leaf.html"></iframe>
+<iframe id="zoom-same-origin-ref" class="scale" src="../resources/leaf.html?scale=2"></iframe>
+<iframe id="zoom-cross-origin-ref" class="scale" src="../resources/leaf.html?scale=2"></iframe>

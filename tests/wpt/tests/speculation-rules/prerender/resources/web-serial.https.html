@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<script src="/common/utils.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script src="/speculation-rules/prerender/resources/deferred-promise-utils.js"></script>
+<script>
+
+const params = new URLSearchParams(location.search);
+
+// The main test page (restriction-web-serial.https.html) loads the
+// initiator page, then the initiator page will prerender itself with the
+// `prerendering` parameter.
+const isPrerendering = params.has('prerendering');
+
+if (!isPrerendering) {
+  loadInitiatorPage();
+} else {
+  const prerenderEventCollector = new PrerenderEventCollector();
+  // The spec, https://wicg.github.io/nav-speculation/prerendering.html#patch-serial,
+  // says that Web Serial API has delay while prerendering for
+  // requestPort(). As this test uses getPorts(), it's a tentative test.
+  prerenderEventCollector.start(
+      navigator.serial.getPorts(), 'navigator.serial.getPorts');
+}
+
+</script>

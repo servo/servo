@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>background-clip:text in a scaled element</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-4/#valdef-background-clip-text">
+<link rel="match" href="clip-text-scaled-ref.html">
+
+<style>
+body { overflow: hidden; margin: 0; }
+.scaled {
+  transform: scale(2);
+  transform-origin: top left;
+}
+.clip-text {
+  font-size: 50px;
+  background-color: blue;
+  background-clip: text;
+  color: transparent;
+}
+</style>
+<div class="scaled">
+  <span class="clip-text">This text should be nice and sharp.</span>
+</div>

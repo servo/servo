@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#sticky-pos">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div style="overflow: hidden; width: 200px; height: 150px;">
+  <div style="overflow: hidden clip; width: 120px; height: 80px;">
+    <div id="target" style="position: sticky; inset: 50% calc(20% + 5px) calc(20% + 5px) 60%;"></div>
+  </div>
+</div>
+<script>
+test(() => {
+  const style = getComputedStyle(document.getElementById('target'));
+  assert_equals(style.top, '75px');
+  assert_equals(style.right, '29px');
+  assert_equals(style.bottom, '35px');
+  assert_equals(style.left, '72px');
+}, 'The used values from getComputedStyle() resolve against the correct scroller.');
+</script>

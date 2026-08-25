@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>Declarative Shadow DOM with shadow disabled</title>
+<link rel='author' href='mailto:masonf@chromium.org'>
+<link rel='help' href='https://github.com/whatwg/dom/issues/831'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+
+<body>
+<script>
+class ShadowDisabledElement extends HTMLElement {
+  static get disabledFeatures() {
+    return ['shadow'];
+  }
+}
+customElements.define('shadow-disabled',ShadowDisabledElement);
+</script>
+
+<shadow-disabled>
+  <template shadowrootmode="open"><span id=inside></span></template>
+</shadow-disabled>
+
+<script>
+test(t => {
+  let element = document.querySelector('shadow-disabled');
+  assert_true(element instanceof ShadowDisabledElement);
+  let template = element.querySelector('template');
+  assert_true(!!template, 'Declarative shadow attach should fail, since shadow-disabled is true');
+  assert_true(!element.shadowRoot, 'Shadow root should not be present on custom element');
+}, 'Declarative Shadow DOM: declarative shadow should fail if attachShadow() already called');
+</script>
+</body>

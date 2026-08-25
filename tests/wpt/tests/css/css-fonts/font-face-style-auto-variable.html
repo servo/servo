@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8"/>
+<title>CSS Test: Support for font-style: auto in @font-face</title>
+<link rel="match" href="font-face-style-auto-variable-ref.html">
+<link rel="help" href="https://www.w3.org/TR/css-fonts-4/#font-prop-desc" />
+<meta name="assert" content="font-style: auto applies automatic slant range for variable fonts in @font-face descriptor">
+<style>
+    @font-face {
+        font-family: "Inter";
+        src: url('support/fonts/Inter-VF.subset.ttf') format('truetype');
+        font-display: swap;
+        font-style: auto;
+    }
+    .style10 {
+        font-family: "Inter";
+        font-size: 3em;
+        font-style: oblique 10deg;
+    }
+    .style5 {
+        font-family: "Inter";
+        font-size: 3em;
+        font-style: oblique 5deg;
+    }
+    .style0 {
+        font-family: "Inter";
+        font-size: 3em;
+        font-style: oblique 0deg;
+    }
+</style>
+
+<p class="style10">text</p>
+<p class="style5">text</p>
+<p class="style0">text</p>

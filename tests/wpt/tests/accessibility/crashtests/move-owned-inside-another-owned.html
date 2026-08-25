@@ -1,0 +1,13 @@
+<script>
+window.onload = function() {
+  // Reparent z1 under z2.
+  const z2 = document.getElementById('z2');
+  z2.appendChild(document.querySelector('#z1'));
+}
+</script>
+<div aria-owns="z1 z2">
+  <progress>
+    <div id="z1"></div>
+    <div id="z2"></div>
+  </progress>
+</div>

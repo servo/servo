@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#determining">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script src="support/test-common.js"></script>
+<style>
+.relpos {
+  position: relative;
+}
+.anchor1 {
+  anchor-name: --a1, --a2;
+  width: 30px;
+  height: 10px;
+  background: orange;
+}
+.target {
+  position: absolute;
+  height: 10px;
+  background: lime;
+}
+#target1 {
+  width: anchor-size(--a1 width);
+}
+#target2 {
+  width: anchor-size(--a2 width);
+}
+#target3 {
+  width: anchor-size(--a3 width, 11px);
+}
+</style>
+<body onload="checkLayoutForAnchorPos('.target')">
+  <!--
+    First two targets should find the same anchor via different names.
+    Third target shouldn't find the anchor, as the name is invalid.
+  -->
+  <div class="relpos">
+    <div class="anchor1" style="width: 30px"></div>
+    <div class="target" id="target1" data-expected-width=30></div>
+    <div class="target" id="target2" data-expected-width=30></div>
+    <div class="target" id="target3" data-expected-width=11></div>
+  </div>
+</body>

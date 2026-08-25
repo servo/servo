@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes Test: Grid Lanes layout with `justify-self`</title>
+  <link rel="author" title="Yanling Wang" href="mailto:yanlingwang@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3/#alignment">
+  <link rel="match" href="column-grid-lanes-justify-self-003-ref.html">
+  <style>
+    html,body {
+      color:black; background-color:white; font:15px/1 monospace; padding:0; margin:0;
+    }
+
+    .grid-lanes {
+      display: grid-lanes;
+      width: 250px;
+      height: 100px;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 5px;
+      border: 1px solid black;
+      margin-bottom: 20px;
+    }
+
+    .item {
+      background-color: #444;
+      color: #fff;
+      padding: 2px;
+      height: 35px;
+    }
+
+    .img-placeholder {
+      width: 30px;
+      height: 30px;
+      background: linear-gradient(45deg, #666, #999);
+      display: inline-block;
+    }
+
+    input[type="text"] {
+      background-color: #f0f0f0;
+      border: 1px solid #999;
+      padding: 2px;
+      width: 40px;
+      height: auto;
+    }
+
+    button {
+      background-color: #ddd;
+      border: 1px solid #999;
+      padding: 2px 4px;
+      cursor: pointer;
+      height: auto;
+    }
+
+    .start {
+      justify-self: start;
+      background-color: red;
+    }
+
+    .end {
+      justify-self: end;
+      background-color: blue;
+    }
+
+    .center {
+      justify-self: center;
+      background-color: green;
+    }
+
+    .stretch {
+      justify-self: stretch;
+      background-color: orange;
+    }
+  </style>
+</head>
+<body>
+<div class="grid-lanes">
+  <div class="item start">
+    <div class="img-placeholder"></div>
+  </div>
+  <div class="item center">
+    <div class="img-placeholder"></div>
+  </div>
+  <div class="item end">
+    <div class="img-placeholder"></div>
+  </div>
+  <div class="item stretch">
+    <div class="img-placeholder" style="width: 100%;"></div>
+  </div>
+</div>
+
+<div class="grid-lanes">
+  <div class="item start">
+    <input type="text" value="start">
+  </div>
+  <div class="item center">
+    <button>center</button>
+  </div>
+  <div class="item end">
+    <input type="text" value="end">
+  </div>
+  <div class="item stretch">
+    <button style="width: 100%;">stretch</button>
+  </div>
+</div>
+</body>
+</html>

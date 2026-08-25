@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Shadow DOM: Element interface shadowRoot attribute</title>
+<meta name="author" title="Ryosuke Niwa" href="mailto:rniwa@webkit.org">
+<meta name="assert" content="shadowRoot attribute on Element interface must return the associated open shadow tree if there is one">
+<link rel="help" href="https://w3c.github.io/webcomponents/spec/shadow/#the-shadowroot-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+
+test(function () {
+    assert_true('shadowRoot' in Element.prototype, 'shadowRoot must be defined on Element prototype');
+    assert_true('shadowRoot' in document.createElement('div'), 'shadowRoot must be defined on an instance of div element');
+    assert_false('shadowRoot' in Node.prototype, 'shadowRoot must not be defined on Node prototype');
+    assert_false('shadowRoot' in Text.prototype, 'shadowRoot must not be defined on Text prototype');
+    assert_false('shadowRoot' in document.createTextNode(''), 'shadowRoot must not be defined on an instance of Text node');
+    assert_false('shadowRoot' in Comment.prototype, 'shadowRoot must not be defined on Comment prototype');
+    assert_false('shadowRoot' in document.createComment(''), 'shadowRoot must not be defined on an instance of Comment node');
+    assert_false('shadowRoot' in Document.prototype, 'shadowRoot must not be defined on Document prototype');
+    assert_false('shadowRoot' in document, 'shadowRoot must not be defined on an instance of Document');
+    assert_false('shadowRoot' in DocumentFragment.prototype, 'shadowRoot must not be defined on DocumentFragment prototype');
+    assert_false('shadowRoot' in (new DOMParser).parseFromString('', 'text/html'), 'shadowRoot must not be defined on an instance of DocumentFragment node');
+}, 'shadowRoot must be defined on Element prototype');
+
+test(function () {
+    var host = document.createElement('div');
+    assert_equals(host.shadowRoot, null, 'shadowRoot must return null when the host does not have a shadow tree attached to it');
+
+    var openShadowRoot = host.attachShadow({mode: 'open'});
+    assert_equals(host.shadowRoot, openShadowRoot, 'shadowRoot must return the open shadow root attachShadow attached');
+}, 'shadowRoot attribute must return the open shadow root associated with the element');
+
+test(function () {
+    var host = document.createElement('div');
+    host.attachShadow({mode: 'closed'});
+    assert_equals(host.shadowRoot, null);
+}, 'shadowRoot attribute must return null if the shadow root attached to the element is closed');
+
+</script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Text: text-align: match-parent</title>
+    <link rel="author" title="Simon Montagu" href="mailto:smontagu@mozilla.com">
+    <link rel="help" href="http://www.w3.org/TR/css-text-3/#text-align-property">
+    <meta name="assert" content="Text checks that
+      text-align: match-parent on a root element with dir=ltr is
+      equivalent to text-align: start">
+    <link rel="match" href="text-align-match-parent-root-ltr-ref.html">
+    <style type="text/css">
+html { text-align: match-parent; }
+    </style>
+  </head>
+  <body>
+    <p>This line should be aligned left</p>
+  </body>
+</html>

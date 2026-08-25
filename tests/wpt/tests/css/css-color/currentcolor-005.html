@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+    <title>column-rule-color that depend on currentcolor should be recomputed when currentcolor changes</title>
+    <link rel="match" href="currentcolor-005-ref.html">
+    <link rel="help" href="https://drafts.csswg.org/css-color-4/#resolving-other-colors">
+    <link rel="author" title="CGQAQ" href="mailto:m.jason.liu@gmail.com">
+    <style>
+        #column-rule-color-currentcolor {
+          columns: 2;
+          column-rule-style: solid;
+          column-rule-width: 10px;
+          height: 1em;
+          column-rule-color: currentcolor;
+        }
+
+        #column-rule-color-color-mix-currentcolor {
+            columns: 2;
+            column-rule-style: solid;
+            column-rule-width: 10px;
+            height: 1em;
+            column-rule-color: color-mix(in hsl, currentcolor 50%, white);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="column-rule-color-currentcolor">XXX<br>YYY</div>
+    <div id="column-rule-color-color-mix-currentcolor">XXX<br>YYY</div>
+<script>
+    // Use double requestAnimationFrame to remove need of setTimeout.
+    // Wait for the first frame to ensure that the style is computed.
+    requestAnimationFrame(() => {
+        // Wait for the second frame to ensure that the style is painted.
+        requestAnimationFrame(() => {
+            document.getElementById("column-rule-color-currentcolor").style.color = "green";
+            document.getElementById("column-rule-color-color-mix-currentcolor").style.color = "green";
+            document.documentElement.classList.remove("reftest-wait");
+        });
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,81 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  td
+  {
+  border: black solid medium;
+  font: 1em/1 monospace;
+  }
+
+  tr.normal div {white-space: normal;}
+
+  tr.pre div {white-space: pre;}
+
+  tr.nowrap div {white-space: nowrap;}
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>The following two columns should be pixel-perfect identical (the
+  first two rows should just be rows of Xs, the last row should be
+  a step pattern):</p>
+
+  <table>
+   <thead>
+    <tr>
+     <th> Test </th>
+     <th> Control </th>
+    </tr>
+   </thead>
+   <tbody>
+    <tr class="normal">
+     <td>
+<div>XXX
+   XXX
+      XXX</div>
+     </td>
+     <td>
+<div>XXX
+   XXX
+      XXX</div>
+     </td>
+    </tr>
+    <tr class="nowrap">
+     <td>
+<div>XXX
+   XXX
+      XXX</div>
+     </td>
+     <td>
+<div>XXX
+   XXX
+      XXX</div>
+     </td>
+    </tr>
+    <tr class="pre">
+     <td>
+<div>XXX
+   XXX
+      XXX</div>
+     </td>
+     <td>
+<div>XXX
+   XXX
+      XXX</div>
+     </td>
+    </tr>
+   </tbody>
+  </table>
+
+ </body>
+</html>

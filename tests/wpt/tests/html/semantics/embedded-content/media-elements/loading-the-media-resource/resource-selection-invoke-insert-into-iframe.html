@@ -1,0 +1,23 @@
+<!doctype html>
+<title>NOT invoking resource selection by inserting into other document with src set</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<iframe hidden></iframe>
+<script>
+async_test(function(t) {
+  var v = document.createElement('video');
+  v.src = 'data:,';
+  v.onerror = t.step_func(function() {
+    assert_equals(v.readyState, v.HAVE_NOTHING);
+    assert_equals(v.networkState, v.NETWORK_NO_SOURCE);
+    var iframe = document.querySelector('iframe');
+    iframe.contentDocument.body.appendChild(v);
+    v.onloadstart = t.step_func(function() { assert_unreached(); });
+    // wait for an event after the above
+    var v2 = document.createElement('video');
+    v2.src = 'data:,';
+    v2.onloadstart = t.step_func(function() { t.done(); });
+  });
+});
+</script>

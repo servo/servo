@@ -1,0 +1,33 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  div#inline-block
+  {
+  display: inline-block;
+  padding-top: 24px;
+  }
+
+  img {vertical-align: top;}
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a blue square with its bottom-left corner missing.</p>
+
+  <div id="inline-block">
+  		<div><img src="support/blue15x15.png" width="48" height="48" alt="Image download support must be enabled" /><img src="support/blue15x15.png" width="48" height="48" alt="Image download support must be enabled" /></div>
+  		<div><img src="support/1x1-white.png" width="48" height="48" alt="Image download support must be enabled" /><img src="support/blue15x15.png" width="48" height="48" alt="Image download support must be enabled" /></div>
+  </div>
+
+ </body>
+</html>

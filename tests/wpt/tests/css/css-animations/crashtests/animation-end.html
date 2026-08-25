@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<meta charset="utf-8">
+<title>Waiting for a composited animation to end should not crash</title>
+<link rel="help" href="https://crbug.com/40596233">
+<style>
+  @keyframes animation-a {
+    0% {
+      transform: scale(1);
+      opacity: 0.5;
+    }
+  }
+  @keyframes animation-b {
+    100% {
+      transform: scale(1);
+    }
+  }
+</style>
+<div style="animation: animation-a .01s .01s 1 linear forwards;">
+  <div id="target" style="animation: animation-b .1s 0.1s 1 linear forwards;"></div>
+</div>
+<script>
+  target.addEventListener('animationend', () => {
+    document.documentElement.classList.remove('test-wait');
+  });
+</script>
+</html>

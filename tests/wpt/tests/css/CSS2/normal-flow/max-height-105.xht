@@ -1,0 +1,44 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: max-height - oveflow</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="author" title="James Hopkins" href="http://idreamincode.co.uk/css21testsuite" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#min-max-heights" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visufx.html#overflow" />
+  <meta content="The 'max-height' property can restrain the used value of height when the used value of height is greater than the declared max-height and not when it is less than the declared max-height and not when it does not exceed the declared max-height." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  div#red-parent
+  {
+  background-color: red;
+  max-height: 400px;
+  overflow: scroll;
+  width: 200px;
+  }
+
+  div#green-child
+  {
+  background-color: green;
+  height: 200px;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>PREREQUISITE: User agent needs to support scrollbars as the scrolling mechanism. If it does not, then this test case does not apply to this user agent.</p>
+
+  <p>Test passes if there is a green rectangle with inactive scrollbars and no red square.</p>
+
+  <div id="red-parent">
+    <div id="green-child"></div>
+  </div>
+
+ </body>
+</html>

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1">
+<title>scrollIntoView still scrolls the viewport programmatically when overflow-x or overflow-y: clip is applied to the viewport.</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#overflow-propagation">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-scrollintoview">
+<meta name="assert" content="When overflow-x or overflow-y: clip is applied to the viewport, it is interpreted as hidden, so scrollIntoView can still scroll the viewport programmatically in that axis.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#log { position: fixed; }
+html, body { margin: 0; }
+body {
+  position: relative;
+  width: 10000px;
+  height: 10000px;
+}
+.target {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+}
+#target-x {
+  left: 5000px;
+  top: 0;
+}
+#target-y {
+  left: 0;
+  top: 5000px;
+}
+</style>
+
+<div id="log"></div>
+<div id="target-x" class="target"></div>
+<div id="target-y" class="target"></div>
+
+<script>
+const targetX = document.getElementById("target-x");
+const targetY = document.getElementById("target-y");
+
+function reset() {
+  document.documentElement.style.overflowX = "visible";
+  document.documentElement.style.overflowY = "visible";
+  document.scrollingElement.scrollLeft = 0;
+  document.scrollingElement.scrollTop = 0;
+  assert_equals(window.scrollX, 0, "Precondition: window.scrollX");
+  assert_equals(window.scrollY, 0, "Precondition: window.scrollY");
+}
+
+test(() => {
+  reset();
+  // Use clip + visible so this specifically exercises the viewport rule,
+  // not the general overflow-x/overflow-y compute-to-hidden rule.
+  document.documentElement.style.overflowX = "clip";
+  document.documentElement.style.overflowY = "visible";
+
+  targetX.scrollIntoView({block: "nearest", inline: "start", behavior: 'instant'});
+
+  assert_greater_than(window.scrollX, 0, "scrollIntoView should scroll the viewport horizontally");
+  assert_equals(window.scrollY, 0, "scrollIntoView should not scroll the viewport vertically");
+}, "scrollIntoView scrolls the viewport when overflow-x: clip is applied to the root element");
+
+test(() => {
+  reset();
+  // Use visible + clip so this specifically exercises the viewport rule,
+  // not the general overflow-x/overflow-y compute-to-hidden rule.
+  document.documentElement.style.overflowX = "visible";
+  document.documentElement.style.overflowY = "clip";
+
+  targetY.scrollIntoView({block: "start", inline: "nearest", behavior: 'instant'});
+
+  assert_equals(window.scrollX, 0, "scrollIntoView should not scroll the viewport horizontally");
+  assert_greater_than(window.scrollY, 0, "scrollIntoView should scroll the viewport vertically");
+}, "scrollIntoView scrolls the viewport when overflow-y: clip is applied to the root element");
+</script>

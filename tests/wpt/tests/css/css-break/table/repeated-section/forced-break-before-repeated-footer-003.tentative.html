@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>Repeated table footer, forced break on table row</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://issues.chromium.org/issues/415712687">
+<link rel="match" href="../../../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="columns:4; gap:0; column-fill:auto; width:100px; height:100px; background:red;">
+  <div style="position:relative; display:table; width:100%;">
+    <div style="position:absolute; top:70px; left:25px; width:25px; height:30px; background:green;"></div>
+    <div style="display:table-row; break-after:column;">
+      <div style="height:130px; background:green;"></div>
+    </div>
+    <div style="height:160px; background:green;"></div>
+    <div id="footer" style="display:table-footer-group; break-inside:avoid;">
+      <div style="height:20px; background:green;"></div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,1 @@
+Permissions-Policy: fullscreen=("*://{{domains[]}}:{{ports[https][0]}}" "https://*.*.{{domains[]}}:{{ports[https][0]}}" "https://example.*.{{domains[]}}:{{ports[https][0]}}" "https://*.example.com" self)

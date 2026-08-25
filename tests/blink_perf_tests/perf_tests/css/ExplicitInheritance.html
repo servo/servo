@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<script src="../resources/runner.js"></script>
+<script src="resources/utils.js"></script>
+<body>
+<nav id="container" class="red" style="visibility:hidden"></nav>
+<style>
+  .red { border: 1px solid red; }
+  .green { border: 2px solid green; }
+  #container div { all: unset; }
+  #container div { border-color: inherit; }
+</style>
+<script>
+  createDOMTree(container, 4, 5);
+
+  PerfTestRunner.measureTime({
+      description: 'Measure impact of explicit inheritance',
+      setup: () => forceStyleRecalc(container),
+      run: () => {
+        container.classList.toggle('red');
+        container.classList.toggle('green');
+        forceStyleRecalc(container);
+      }
+  });
+</script>
+</body>

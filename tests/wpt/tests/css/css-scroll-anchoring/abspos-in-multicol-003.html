@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com" />
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org" />
+<link rel="help" href="https://drafts.csswg.org/css-scroll-anchoring/#candidate-examination">
+<meta name="assert" content="The candidate examination algorithm iterates abspos descendants of the containing block. Being inside a fragmentainer shouldn't break that.">
+<style>
+html {
+  column-count: 1; /* Fragmentainer */
+}
+
+main {
+  position: relative; /* Containing block */
+}
+
+div {
+  position: absolute; /* Abspos */
+  font-size: 100px;
+  width: 200px;
+  height: 4000px;
+  line-height: 100px;
+}
+</style>
+<main><div>abc <b id=b>def</b> ghi</div></main>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+// Tests anchoring to a text node that is moved by preceding text,
+// everything in an absolutely positioned element whose containing block
+// is inside a multi-column fragmentainer.
+
+test(() => {
+  var b = document.querySelector("#b");
+  var preText = b.previousSibling;
+  document.scrollingElement.scrollTop = 150;
+  preText.nodeValue = "abcd efg ";
+  assert_equals(document.scrollingElement.scrollTop, 250);
+}, "Anchoring with text wrapping changes.");
+</script>

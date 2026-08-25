@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+
+<meta charset="utf-8">
+<title>Creating a receiving browsing context</title>
+<link rel="author" title="Tomoyuki Shimizu" href="https://github.com/tomoyukilabs/">
+<link rel="help" href="https://w3c.github.io/presentation-api/#creating-a-receiving-browsing-context">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../common.js"></script>
+<script src="stash.js"></script>
+<style>
+a { visibility: hidden; }
+iframe { width: 100%; }
+</style>
+
+<iframe id="child" src="PresentationReceiver_create_receiving-ua_child.html"></iframe>
+<p id="notice">Checking <code id="modal"></code>: if you see this message, please wait for test to time out.</p>
+<a href="PresentationReceiver_unreached_receiving-ua.html">do not navigate</a>
+<script>
+let finished = false;
+
+const sendResult = (test, status) => {
+    if(!finished) {
+        finished = true;
+        const stash = new Stash(stashIds.toReceiver, stashIds.toController);
+        stash.send(JSON.stringify({ test: test, status: status }));
+    }
+};
+
+add_completion_callback((tests, status) => {
+    // note: a single test result is supposed to appear here.
+    sendResult(tests[0], status);
+});
+
+const child = document.getElementById('child');
+child.addEventListener('load', () => {
+    const notice = document.getElementById('notice');
+    const modal = document.getElementById('modal');
+
+    const dbName = {
+        controller: 'db-presentation-api-controlling-ua',
+        receiver: 'db-presentation-api-receiving-ua'
+    };
+
+    promise_test(t => {
+        t.add_cleanup(() => {
+            document.cookie = cookieName + '=False;Expires=' + new Date().toUTCString();
+            document.cookie = cookieNameChild + '=False;Expires=' + new Date().toUTCString();
+            sessionStorage.removeItem(storageName);
+            localStorage.removeItem(storageName);
+            sessionStorage.removeItem(storageNameChild);
+            localStorage.removeItem(storageNameChild);
+
+            Object.values(dbName).forEach(name => {
+                indexedDB.deleteDatabase(name);
+            });
+
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(registrations => {
+                    return Promise.all(registrations.map(reg => reg.unregister()));
+                });
+            }
+            if ('caches' in window) {
+                caches.keys().then(keys => {
+                    return Promise.all(keys.map(key => caches.delete(key)));
+                });
+            }
+        });
+
+        // Session history
+        assert_equals(window.history.length, 1, 'Session history consists of the current page only.');
+
+        // The Sandboxed auxiliary navigation browsing context flag
+        assert_equals(window.open('PresentationReceiver_unreached_receiving-ua.html'), null, 'Sandboxed auxiliary navigation browsing context flag is set.');
+
+        // The sandboxed top-level navigation browsing context flag (codes below are expected to be ignored)
+        window.close();
+        document.querySelector('a').click();
+        location.href = 'PresentationReceiver_unreached_receiving-ua.html';
+
+        // The sandboxed modals flag (codes below are expected to be ignored):
+        // If user agent prompts user, a timeout will occur and the test will eventually fail
+        let message = 'If you see this prompt, do not dismiss it and wait for test to time out.';
+        notice.style.display = 'block';
+        modal.textContent = 'alert()';
+        alert(message);
+        modal.textContent = 'confirm()';
+        confirm(message);
+        modal.textContent = 'print()';
+        print();
+        modal.textContent = 'prompt()';
+        prompt(message);
+        notice.style.display = 'none';
+
+        // Permissions
+        const checkPermission = query => {
+            return navigator.permissions ? navigator.permissions.query(query).then(status => {
+                assert_equals(status.state, 'denied', 'The state of the "' + query.name + '" permission is set to "denied".');
+            }, () => { /* skip this assertion if the specified permission is not implemented */ }) : Promise.resolve();
+        }
+
+        // Cookie
+        assert_equals(document.cookie, '', 'A cookie store is set to an empty store.')
+
+        // Indexed Database
+        const checkIndexedDB = () => {
+            if ('indexedDB' in window) {
+                // The test would fail when the database is already created by the controlling UA
+                const req = indexedDB.open(dbName.controller);
+                const upgradeneededWatcher = new EventWatcher(t, req, 'upgradeneeded');
+                const successWatcher = new EventWatcher(t, req, 'success');
+                return Promise.race([
+                    upgradeneededWatcher.wait_for('upgradeneeded').then(evt => {
+                        evt.target.result.close();
+                        const req = indexedDB.open(dbName.receiver, 2);
+                        const eventWatcher = new EventWatcher(t, req, 'upgradeneeded');
+                        return eventWatcher.wait_for('upgradeneeded');
+                    }).then(evt => {
+                        evt.target.result.close();
+                    }),
+                    successWatcher.wait_for('success').then(evt => {
+                        evt.target.result.close();
+                        // This would fail if the database created by the controlling UA is visible to the receiving UA
+                        assert_unreached('Indexed Database is set to an empty storage.');
+                    })
+                ]);
+            }
+            else
+                return Promise.resolve();
+        };
+
+        // Web Storage
+        assert_equals(sessionStorage.length, 0, 'Session storage is set to an empty storage.');
+        assert_equals(localStorage.length, 0, 'Local storage is set to an empty storage.');
+
+        // Service Workers
+        const checkServiceWorkers = () => {
+            return 'serviceWorker' in navigator ? navigator.serviceWorker.getRegistrations().then(registrations => {
+                assert_equals(registrations.length, 0, 'List of registered service worker registrations is empty.');
+            }) : Promise.resolve();
+        };
+        const checkCaches = () => {
+            return 'caches' in window ? caches.keys().then(keys => {
+                assert_equals(keys.length, 0, 'Cache storage is empty.')
+            }) : Promise.resolve();
+        };
+
+        // Navigation
+        const checkNavigation = () => {
+            return navigator.presentation.receiver.connectionList.then(connectionList => {
+                assert_equals(connectionList.connections.length, 1, 'The initial number of presentation connections is one');
+                assert_equals(location.href, connectionList.connections[0].url, 'A receiving browsing context is navigated to the presentation URL.');
+            });
+        };
+
+        // Update storages and service workers shared with the top-level brosing context
+        const cookieName = 'PresentationApiTest';
+        const cookieValue = 'Receiving-UA';
+        const storageName = 'presentation_api_test';
+        const storageValue = 'receiving-ua';
+        document.cookie = cookieName + '=' + cookieValue;
+        sessionStorage.setItem(storageName, storageValue);
+        localStorage.setItem(storageName, storageValue);
+
+        // Service Workers and Caches
+        const cacheName = 'receiving-ua';
+        const getClientUrls = () => {
+            return new Promise(resolve => {
+                navigator.serviceWorker.getRegistration().then(reg => {
+                    const channel = new MessageChannel();
+                    channel.port1.onmessage = event => {
+                        resolve(event.data);
+                    };
+                    reg.active.postMessage('test', [channel.port2]);
+                });
+            });
+        };
+
+        const registerServiceWorker = () => {
+            return ('serviceWorker' in navigator ?
+                navigator.serviceWorker.register('../serviceworker.js').then(registration => {
+                    return new Promise((resolve, reject) => {
+                        if (registration.installing) {
+                            registration.installing.addEventListener('statechange', event => {
+                                if(event.target.state === 'installed')
+                                    resolve();
+                            });
+                        }
+                        else
+                            resolve();
+                    });
+                }) : Promise.resolve()).then(getClientUrls).then(urls => {
+                    assert_true(urls.every(url => { return url !== new Request('../PresentationReceiver_create-manual.https.html').url }),
+                                'A window client in a controlling user agent is not accessible to a service worker on a receiving user agent.');
+                });
+        };
+
+        const openCaches = () => {
+            return 'caches' in window ? caches.open(cacheName).then(cache => cache.add('../cache.txt')) : Promise.resolve();
+        };
+
+        const getChildFrameResult = () => {
+            return new Promise(resolve => {
+                window.addEventListener('message', t.step_func(event => {
+                    const result = event.data;
+                    if (result.type === 'presentation-api') {
+                        // if the test in iframe failed, report the result and abort the test
+                        if (result.test.status === 0)
+                            resolve();
+                        else {
+                            sendResult(result.test, result.status);
+                            assert_unreached('A test for a nested browsing context failed.');
+                        }
+                    }
+                }));
+                child.contentWindow.postMessage('start', location.origin);
+            });
+        };
+
+        // check the results from updates by iframe
+        const cookieNameChild = 'NestedBrowsingContext';
+        const cookieValueChild = 'True';
+        const storageNameChild = 'nested_browsing_context';
+        const storageValueChild = 'yes';
+
+        const checkUpdatedResult = () => {
+            // cookie
+            const cookies = document.cookie.split(/;\s*/).reduce((result, item) => {
+                const t = item.split('=');
+                result[t[0]] = t[1];
+                return result;
+            }, {});
+            message = 'A cookie store is shared by top-level and nested browsing contexts.'
+            assert_equals(Object.keys(cookies).length, 2, message);
+            assert_equals(cookies[cookieName], cookieValue, message);
+            assert_equals(cookies[cookieNameChild], cookieValueChild, message);
+
+            // Web Storage
+            message = 'Session storage is shared by top-level and nested browsing contexts.';
+            assert_equals(sessionStorage.length, 2, message);
+            assert_equals(sessionStorage.getItem(storageName), storageValue, message);
+            assert_equals(sessionStorage.getItem(storageNameChild), storageValueChild, message);
+            message = 'Local storage is shared by top-level and nested browsing contexts.';
+            assert_equals(localStorage.length, 2, message);
+            assert_equals(localStorage.getItem(storageName), storageValue, message);
+            assert_equals(localStorage.getItem(storageNameChild), storageValueChild, message);
+        };
+
+        // Indexed Database
+        const checkUpdatedIndexedDB = () => {
+            if ('indexedDB' in window) {
+                message = 'Indexed Database is shared by top-level and nested browsing contexts.';
+                const req = indexedDB.open(dbName.receiver);
+                const upgradeneededWatcher = new EventWatcher(t, req, 'upgradeneeded');
+                const successWatcher = new EventWatcher(t, req, 'success');
+                return Promise.race([
+                    upgradeneededWatcher.wait_for('upgradeneeded').then(evt => {
+                        evt.target.result.close();
+                        // Check if the version of the database is upgraded to 3 by the nested browsing context
+                        assert_unreached(message);
+                    }),
+                    successWatcher.wait_for('success').then(evt => {
+                        const db = evt.target.result;
+                        const version = db.version;
+                        db.close();
+                        // Check if the version of the database is upgraded to 3 by the nested browsing context
+                        assert_equals(version, 3, message);
+                    })
+                ]);
+            }
+            else
+                return Promise.resolve();
+        };
+
+        // Service Workers
+        const checkUpdatedServiceWorkers = () => {
+            return 'serviceWorker' in window ? navigator.serviceWorker.getRegistrations().then(registrations => {
+                message = 'List of registered service worker registrations is shared by top-level and nested browsing contexts.';
+                assert_equals(registrations.length, 2, message);
+                const scriptURLs = registrations.map(reg => { return reg.active.scriptURL; }).sort();
+                assert_equals(scriptURLs[0], new Request('../serviceworker.js').url, message);
+                assert_equals(scriptURLs[1], new Request('serviceworker.js').url, message);
+            }) : Promise.resolve();
+        };
+        const cacheNameChild = 'nested-browsing-context';
+        const checkUpdatedCaches = () => {
+            message = 'Cache storage is shared by top-level and nested browsing contexts.';
+            return 'caches' in window ? caches.keys().then(keys => {
+                assert_equals(keys.length, 2, message);
+                const cacheKeys = keys.sort();
+                assert_equals(cacheKeys[0], cacheNameChild, message);
+                assert_equals(cacheKeys[1], cacheName, message);
+                return Promise.all(keys.map(
+                    key => caches.open(key)
+                        .then(cache => cache.matchAll())
+                        .then(responses => {
+                            assert_equals(responses.length, 1, message);
+                            assert_equals(responses[0].url, new Request('../cache.txt').url, message);
+                        })));
+            }) : Promise.resolve();
+        };
+
+        // Asynchronous tests
+        const permissionList = [
+            { name: 'geolocation' },
+            { name: 'notifications' },
+            { name: 'push', userVisibleOnly: true },
+            { name: 'midi' },
+            { name: 'camera' },
+            { name: 'microphone' },
+            { name: 'speaker' },
+            { name: 'background-sync' }
+        ];
+        return Promise.all(permissionList.map(perm => { return checkPermission(perm); }))
+            .then(checkIndexedDB)
+            .then(checkServiceWorkers)
+            .then(checkCaches)
+            .then(checkNavigation)
+            .then(registerServiceWorker)
+            .then(openCaches)
+            .then(getChildFrameResult)
+            .then(checkUpdatedResult)
+            .then(checkUpdatedIndexedDB)
+            .then(checkUpdatedServiceWorkers)
+            .then(checkUpdatedCaches);
+    });
+});
+</script>

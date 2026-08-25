@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<title>Cyclic percentage sizes on table captions</title>
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-tables/#table-caption">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#cyclic-percentage-contribution">
+<meta assert="
+  Cyclic percentages on a table caption behave like in a normal block box.
+  Note that browsers don't agree with the spec on the exact behavior
+  (https://github.com/w3c/csswg-drafts/issues/10969),
+  but they should still pass this test.">
+
+<style>
+.test {
+  display: inline-block;
+  border: 10px solid;
+}
+.min-width > .test > div {
+  min-width: calc(100px + 0%);
+}
+.width > .test > div {
+  width: calc(100px + 0%);
+}
+.max-width > .test > div {
+  max-width: calc(100px + 0%);
+}
+</style>
+
+<article class="min-width">
+  <p>These 2 rectangles should be equally wide:</p>
+  <div class="test">
+    <div></div>
+  </div>
+  <br>
+  <div class="test">
+    <div style="display: table-caption"></div>
+  </div>
+</article>
+
+<article class="width">
+  <p>These 2 rectangles should be equally wide:</p>
+  <div class="test">
+    <div></div>
+  </div>
+  <br>
+  <div class="test">
+    <div style="display: table-caption"></div>
+  </div>
+</article>
+
+<article class="max-width">
+  <p>These 2 rectangles should be equally wide:</p>
+  <div class="test">
+    <div></div>
+  </div>
+  <br>
+  <div class="test">
+    <div style="display: table-caption"></div>
+  </div>
+</article>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+for (let article of document.querySelectorAll("article")) {
+  test(function() {
+    let elements = article.querySelectorAll(".test");
+    assert_greater_than(elements.length, 1, "Need more than 1 element to compare");
+    let expected = elements[0].offsetWidth;
+    for (let i = 1; i < elements.length; ++i) {
+        assert_equals(
+          elements[i].offsetWidth,
+          expected,
+          `Element #${i + 1} is as wide as the 1st one`,
+        );
+    }
+  }, article.className);
+}
+</script>
+

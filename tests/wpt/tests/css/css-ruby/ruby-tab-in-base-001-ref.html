@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Ruby Reference: tabulation inside a ruby base</title>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+div.test {
+  font: 25px/1 Ahem;
+}
+span.tab {
+  /* The tab starts at 25px; the next 100px tab stop is at 100px, i.e. 75px. */
+  padding-left: 75px;
+}
+</style>
+<body>
+<div class="test">X<ruby><span class="tab"></span>Y<rt>z</rt></ruby></div>
+</body>

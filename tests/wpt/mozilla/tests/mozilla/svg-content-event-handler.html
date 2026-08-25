@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVG elements support event handler content attributes</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+test(() => {
+  const svg = document.createElementNS(SVG_NS, "svg");
+  let ran = false;
+  window.__svgContentEventHandlerCallback = () => { ran = true; };
+  svg.setAttribute("onclick", "window.__svgContentEventHandlerCallback()");
+  assert_equals(typeof svg.onclick, "function",
+    "the onclick content attribute should be reflected as an event handler");
+  svg.dispatchEvent(new Event("click"));
+  assert_true(ran,
+    "dispatching a click event should invoke the content attribute handler");
+}, "An event handler content attribute set on an SVG element is activated");
+
+test(() => {
+  const svg = document.createElementNS(SVG_NS, "svg");
+  svg.setAttribute("onclick", "void 0");
+  assert_equals(typeof svg.onclick, "function",
+    "the onclick content attribute should be reflected as an event handler");
+  svg.removeAttribute("onclick");
+  assert_equals(svg.onclick, null,
+    "removing the content attribute should deactivate the event handler");
+}, "Removing an event handler content attribute on an SVG element deactivates it");
+</script>

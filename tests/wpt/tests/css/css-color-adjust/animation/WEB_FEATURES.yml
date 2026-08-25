@@ -1,0 +1,3 @@
+rules:
+- color-scheme-*: [color-scheme]
+- forced-color-adjust-*: [forced-colors]

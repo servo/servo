@@ -1,0 +1,79 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <!--
+  Test inspired by
+  http://test.csswg.org/source/css-writing-modes-3/table-progression-vrl-004.html
+  -->
+
+  <title>CSS Writing Modes Test: vertical-rl - contiguous floated tables and horizontal margins</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#vertical-layout" title="7.1 Principles of Layout in Vertical Writing Modes" />
+  <link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+
+  <meta content="image" name="flags" />
+  <meta content="This test checks that horizontal margins existing between contiguous floated tables with writing-mode set to 'vertical-rl' are not subtracted by the amount of their horizontal padding. In this test, there should be an horizontal gap of 50px separating both tables. Margins between 2 floated boxes do not collapse." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  table
+    {
+      background-color: green;
+      border-collapse: separate;
+      border-spacing: 0px;
+      float: left;
+      height: 100px;
+      writing-mode: vertical-rl;
+    }
+
+  td
+    {
+      padding: 0px;
+    }
+
+  table#left-first
+    {
+      padding-right: 25px;
+      margin-right: 25px;
+    }
+
+  table#right-second
+    {
+      padding-left: 25px;
+      margin-left: 25px;
+    }
+
+  div#reference-overlapped
+    {
+      background-color: red;
+      background-image: url("support/margin-collapse-2em-space-wm-vert.png");
+      background-repeat: no-repeat;
+      height: 100px;
+      width: 100px;
+    }
+  ]]></style>
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+  <table id="left-first">
+
+    <tr><td></td><td></td><td></td><td></td></tr>
+
+  </table>
+
+  <table id="right-second">
+
+    <tr><td></td><td></td><td></td><td></td></tr>
+
+  </table>
+
+  <div id="reference-overlapped"></div>
+
+ </body>
+</html>

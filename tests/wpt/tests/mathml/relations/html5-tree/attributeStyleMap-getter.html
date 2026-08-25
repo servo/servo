@@ -1,0 +1,40 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>MathMLElement attributeStyleMap getter for all elements</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om/#dom-elementcssinlinestyle-attributestylemap">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/mathml/support/mathml-fragments.js"></script>
+<body>
+
+</body>
+<script>
+  for (const tag in MathMLFragments) {
+    document.body.insertAdjacentHTML("beforeend",
+      `<div style="display: block;"><math>${MathMLFragments[tag]}</math></div>`
+    );
+
+    let div = document.body.lastElementChild;
+
+    let element = FragmentHelper.element(div.firstElementChild);
+
+    test(function () {
+      element.style.color = 'rgb(0, 255, 0)';
+      element.style.fontSize = '20px';
+
+      let styleMap = element.attributeStyleMap;
+      assert_true(!!styleMap, `attributeStyleMap should exist on ${tag}`);
+      assert_true(styleMap.constructor.name.includes("StylePropertyMap"),
+      `attributeStyleMap should be an instance of StylePropertyMap on <${tag}>`);
+
+      assert_equals(styleMap.get('color').toString(), 'rgb(0, 255, 0)',
+        `attributeStyleMap.get('color') mismatch on <${tag}>`);
+
+      assert_equals(styleMap.get('font-size').toString(), '20px',
+        `attributeStyleMap.get('font-size') mismatch on <${tag}>`);
+
+    }, `attributeStyleMap getter on <${tag}>`);
+
+    div.style = "display: none;";
+  }
+</script>

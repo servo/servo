@@ -1,0 +1,7 @@
+rules:
+- clip-border-box*: [background-clip]
+- clip-content-box*: [background-clip]
+- clip-padding-box*: [background-clip]
+- clip-rounded-corner.html: [background-clip]
+- clip-text-*: [background-clip-text]
+- clip-border-area*: [background-clip-border-area]

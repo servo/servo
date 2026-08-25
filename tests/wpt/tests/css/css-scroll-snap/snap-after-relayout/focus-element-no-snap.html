@@ -1,0 +1,51 @@
+<!doctype html>
+<title>Resnap to focused element after relayout</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+
+#snapper {
+    width: 100px;
+    height: 200px;
+    overflow-x: scroll;
+    scroll-snap-type: x mandatory;
+    color: white;
+    background-color: oldlace;
+    display: flex;
+    align-items: center;
+}
+.child {
+    margin-right: 0.5rem;
+    height: 90%;
+    scroll-snap-align: start;
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    width: 100px;
+    height: 100px;
+    background-color: indigo;
+}
+</style>
+
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap/#re-snap">
+
+<div id=snapper>
+    <div class="child no-snap" tabindex=-1></div>
+    <div class=child></div>
+    <div class="child" id ="focus" tabindex=-1></div>
+    <div class="child" tabindex=-1></div>
+    <div class=child></div>
+    <div class=child></div>
+</div>
+
+<script>
+
+test(t => {
+    document.getElementById("focus").focus();
+    const element = document.getElementById("snapper");
+    element.style.width = "101px";
+    assert_equals(element.scrollLeft, 0);
+});
+</script>

@@ -1,0 +1,29 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+</head>
+<body>
+<script>
+
+promise_test(async t => {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia(
+      {video: {width: {exact: 639}, resizeMode: {exact: "none"}}});
+    t.add_cleanup(()=>stream.getVideoTracks()[0].stop());
+    t.step(() => assert_unreached('applyConstraints should have failed'));
+  } catch(e) {
+    assert_true(e instanceof DOMException);
+    assert_equals(e.name, 'OverconstrainedError');
+    assert_equals(e.constraint, 'width');
+  }
+}, 'Error of OverconstrainedError type inherit from DOMException');
+
+promise_test(async t => {
+    assert_true(new OverconstrainedError("constraint") instanceof DOMException);
+}, 'OverconstrainedError class inherits from DOMException');
+
+</script>
+</body>
+</html>

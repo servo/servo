@@ -1,0 +1,71 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>CSS pseudo element ordering with appearance: base-select</title>
+<link rel="author" title="Keith Cirkel" href="mailto:wpt@keithcirkel.co.uk" />
+<link
+  rel="help"
+  href="https://drafts.csswg.org/css-ui-4/#valdef-appearance-base-select"
+/>
+
+<style>
+  .select {
+    width: 100%;
+    display: flex;
+    border-radius: 0;
+    font: inherit;
+    color: inherit;
+    background: transparent;
+    border: 1px solid orange;
+    padding: 0;
+    margin: 0;
+    gap: 1rem;
+    align-items: center;
+  }
+  .before {
+    border: 1px solid lime;
+  }
+  .after {
+    border: 1px solid hotpink;
+  }
+  button {
+    appearance: none;
+    font: inherit;
+    display: contents;
+    border: 100px solid red;
+  }
+  .option {
+    display: flex;
+    padding: 0;
+    margin: 0;
+    gap: 1rem;
+    align-items: center;
+  }
+  .checkmark {
+    display: inline-block;
+    border: 1px solid navy;
+    height: 30px;
+  }
+  .picker {
+    position: static;
+    display: inline-block;
+    padding: 0;
+    margin: 0;
+    border: 1px solid teal;
+  }
+  .picker-icon {
+    border: 1px solid rebeccapurple;
+    margin: 0;
+  }
+</style>
+<div class="select">
+  <div class="before">Before</div>
+  <button>Button</button>
+  <div class="picker">
+    <div class="option">
+      <div class="checkmark">Checkmark</div>
+      <span>Option</span>
+    </div>
+  </div>
+  <div class="after">After</div>
+  <div class="picker-icon">PickerIcon</div>
+</div>

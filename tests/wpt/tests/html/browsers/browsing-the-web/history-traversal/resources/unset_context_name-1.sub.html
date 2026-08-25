@@ -1,0 +1,45 @@
+<!doctype html>
+<!-- test must be run in a top level browsing context -->
+<title>window.name test helper</title>
+<script>
+const search = window.location.search.replace("?", "");
+const steps = search.split("|");
+
+async function proceedTest() {
+  while (steps.length) {
+    const step = steps.shift();
+
+    if (step.startsWith("report=")) {
+      const id = step.split("=")[1];
+      const stashURL = new URL("unset_context_name_stash.py", location);
+      stashURL.searchParams.set('id', id);
+      stashURL.searchParams.set('value', window.name);
+
+      await fetch(stashURL, { method: "POST" });
+      continue;
+    }
+
+    if (step === "close") {
+      window.close();
+      break;
+    }
+
+    if (step === "navigate") {
+      const url = new URL(window.location);
+      url.host = "{{hosts[][www]}}:{{ports[http][0]}}";
+      url.search = "?" + steps.join("|");
+      window.location = url.href;
+      break;
+    }
+
+    if (step.startsWith("set=")) {
+      window.name = step.split("=")[1];
+      continue;
+    }
+
+    throw new Error("Unsupported step!");
+  }
+}
+
+proceedTest();
+</script>

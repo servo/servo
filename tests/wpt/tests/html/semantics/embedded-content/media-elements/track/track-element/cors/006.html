@@ -1,0 +1,10 @@
+<!doctype html>
+<title>track CORS: Anonymous, same-origin, with headers</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script src=/common/utils.js></script>
+<script src=support/common.js?pipe=sub></script>
+<script>
+var expected = {event:'load', requests:[{cors:'no', cookie:'yes'}]};
+</script>

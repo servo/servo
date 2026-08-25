@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Test: Testing min-width:auto & 'overflow' interaction</title>
+    <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+    <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#min-size-auto">
+    <link rel="match" href="flexbox-min-width-auto-003-ref.html">
+<!--
+     This testcase checks how "overflow-x" impacts the sizing behavior of flex
+     items with "min-width:auto" (the new initial value for "min-width").
+
+     In particular, the flex-item-specific "min-width:auto" behavior is
+     supposed to be disabled (e.g. we end up with min-width:0) when
+     "overflow-x" is non-"visible".
+-->
+    <style>
+      .flexbox {
+        display: flex;
+        width: 30px;  /* Shrink flex items below min-width */
+        margin-bottom: 2px; /* (Just for spacing things out, visually) */
+      }
+
+      .flexbox > * {
+        /* Flex items have purple border: */
+        border: 2px dotted purple;
+      }
+
+      .flexbox > * > * {
+        /* Flex items' contents are gray & fixed-size: */
+        background: gray;
+        height: 40px;
+        width: 80px;
+      }
+
+      .xvisible { overflow-x: visible; }
+      .xhidden  { overflow-x: hidden;  }
+      .xscroll  { overflow-x: scroll;  }
+      .xauto    { overflow-x: auto;    }
+    </style>
+  </head>
+  <body>
+    <!-- min-width:auto should prevent shrinking below intrinsic width when
+         the flex item has "overflow-x: visible", but not for any other
+         overflow-x values. -->
+    <div class="flexbox"><div class="xvisible"><div></div></div></div>
+    <div class="flexbox"><div class="xhidden"><div></div></div></div>
+    <div class="flexbox"><div class="xscroll"><div></div></div></div>
+    <div class="flexbox"><div class="xauto"><div></div></div></div>
+  </body>
+</html>

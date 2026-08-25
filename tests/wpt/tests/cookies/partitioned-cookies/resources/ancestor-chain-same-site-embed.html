@@ -1,0 +1,19 @@
+<!doctype html>
+<head>
+<meta charset="utf-8"/>
+<title>Test partitioned cookies ancestor chain: same site embed</title>
+</head>
+<body>
+<script>
+  // This frame is same-site with the top-level page but has a cross-site
+  // ancestor. The top-level page's partitioned cookie has no cross-site
+  // ancestor in its key, so it must not be accessible here. Report the result
+  // directly to the top-level page via a single postMessage rather than
+  // forwarding through nested fetch_tests_from_window(), whose multi-message
+  // catch-up protocol races across process boundaries under Fission.
+  window.top.postMessage({
+    type: "ancestor-chain-result",
+    cookieVisible: document.cookie.includes("ancestor=chain"),
+  }, "*");
+</script>
+</body>

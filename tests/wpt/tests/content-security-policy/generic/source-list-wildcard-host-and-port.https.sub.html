@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<title>A host-source of "*:*" with a path matches any host and any port at that path</title>
+<meta http-equiv="Content-Security-Policy"
+      content="connect-src *:*/content-security-policy/support/resource.py">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/content-security-policy/support/testharness-helper.js"></script>
+<link rel="help" href="https://w3c.github.io/webappsec-csp/#grammardef-host-source">
+<link rel="help" href="https://w3c.github.io/webappsec-csp/#match-url-to-source-expression">
+<body>
+<script>
+  // "*:*" is a host-source whose host-part is the "*" wildcard and whose
+  // port-part is the "*" wildcard, followed by a path-part:
+  //
+  //   host-source = [ scheme-part "://" ] host-part [ ":" port-part ] [ path-part ]
+  //   host-part   = "*" / [ "*." ] 1*host-char *( "." 1*host-char ) [ "." ]
+  //   port-part   = 1*DIGIT / "*"
+  //
+  // Note that the "*" shortcut in step 1 of "Does url match expression in
+  // origin with redirect count?" only applies when the expression is exactly
+  // the string "*", so "*:*" with a path must be matched via the full
+  // host-source path: host-part matching accepts any domain, port-part
+  // matching accepts any port, and path-part matching still applies. It should
+  // therefore allow the given path on any host and any port, and nothing else.
+  const RESOURCE_PATH = "/content-security-policy/support/resource.py";
+  const SAME_ORIGIN = "https://{{host}}:{{ports[https][0]}}";
+  const OTHER_PORT = "https://{{host}}:{{ports[https][1]}}";
+  const OTHER_HOST = "https://{{hosts[alt][]}}:{{ports[https][0]}}";
+
+  promise_test(async t => {
+    const url = SAME_ORIGIN + RESOURCE_PATH + "?same-origin";
+    assert_no_csp_event_for_url(t, url);
+    await fetch(url);
+  }, "\"*:*\" with a path allows the path on the document's own origin");
+
+  promise_test(async t => {
+    const url = OTHER_PORT + RESOURCE_PATH + "?other-port";
+    assert_no_csp_event_for_url(t, url);
+    await fetch(url);
+  }, "\"*:*\" with a path allows the path on a different port");
+
+  promise_test(async t => {
+    const url = OTHER_HOST + RESOURCE_PATH + "?other-host";
+    assert_no_csp_event_for_url(t, url);
+    await fetch(url);
+  }, "\"*:*\" with a path allows the path on a different host");
+
+  promise_test(async t => {
+    const url = SAME_ORIGIN + "/common/blank.html";
+    await Promise.all([
+      waitUntilCSPEventForURL(t, url),
+      promise_rejects_js(t, TypeError, fetch(url)),
+    ]);
+  }, "\"*:*\" with a path does not allow other paths");
+</script>
+</body>

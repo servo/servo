@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Simple case with grid focusgroup, but with the cell R2C2 not focusable.</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<table focusgroup=grid>
+  <tr>
+    <td id=r1c1 tabindex=0>r1c1</td>
+    <td id=r1c2 tabindex=0>r1c2</td>
+    <td id=r1c3 tabindex=0>r1c3</td>
+  </tr>
+  <tr>
+    <td id=r2c1 tabindex=0>r2c1</td>
+    <td id=r2c2>r2c2</td>
+    <td id=r2c3 tabindex=0>r2c3</td>
+  </tr>
+  <tr>
+    <td id=r3c1 tabindex=0>r3c1</td>
+    <td id=r3c2 tabindex=0>r3c2</td>
+    <td id=r3c3 tabindex=0>r3c3</td>
+  </tr>
+</table>
+
+<script>
+
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(r2c1, kRight);
+    assert_equals(document.activeElement, r2c3);
+  }, "Navigating right should move the focus to the next column, skipping the non-focusable cell.");
+
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(r1c2, kDown);
+    assert_equals(document.activeElement, r3c2);
+  }, "Navigating down should move the focus to the next row, skipping the non-focusable cell.");
+
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(r2c3, kLeft);
+    assert_equals(document.activeElement, r2c1);
+  }, "Navigating left should move to the previous column, skipping the non-focusable cell.");
+
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(r3c2, kUp);
+    assert_equals(document.activeElement, r1c2);
+  }, "Navigating up should move the focus to the previous row, skipping the non-focusable cell.");
+
+</script>

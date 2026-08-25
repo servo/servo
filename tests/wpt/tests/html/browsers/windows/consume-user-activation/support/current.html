@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<title>Current page used as a test helper</title>
+<button id="focus-opener-button" onclick="opener.focus()">Focus opener</button>
+<script>
+'use strict';
+
+onload = async () => {
+  await opener.opener.test_driver.click(document.getElementById("focus-opener-button"));
+  opener.postMessage("current page", "*");
+};
+</script>

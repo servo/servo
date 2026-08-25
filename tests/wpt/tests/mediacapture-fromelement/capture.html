@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+</head>
+<body>
+<script>
+
+// Run captureStream() on different videos, and assert data is flowing.
+
+function makeAsyncTest(filename) {
+  promise_test(async test => {
+    const video = document.createElement('video');
+    video.src = "/media/" + filename;
+    video.onerror = this.unreached_func("<video> error");
+    video.play();
+
+    const stream = video.captureStream();
+
+    await new Promise(r => stream.onaddtrack = r);
+    const recorder = new MediaRecorder(stream);
+
+    recorder.start(0);
+    const {data} = await new Promise(r => recorder.ondataavailable = r);
+    assert_true(data.size > 0, 'Recorded data size should be > 0');
+  }), "<video>.captureStream() and assert data flows.";
+}
+
+generate_tests(makeAsyncTest, [
+  [ "video-only", "test-v-128k-320x240-24fps-8kfr.webm" ],
+  [ "audio-only", "test-a-128k-44100Hz-1ch.webm" ],
+  [ "video+audio", "test-av-384k-44100Hz-1ch-320x240-30fps-10kfr.webm" ]
+]);
+
+</script>
+</body>
+</html>

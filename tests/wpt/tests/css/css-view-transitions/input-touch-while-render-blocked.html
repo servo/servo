@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: Touch event target during render blocking</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/7797">
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/#document-rendering-suppression-for-view-transitions">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+:root {
+  /* Ensure clicks during the transition fall through the pseudo tree root to
+   * real DOM */
+  view-transition-name: none;
+}
+
+::view-transition {
+  /* Ensure clicks during the transition fall through the pseudo tree root to
+   * real DOM */
+  pointer-events: none;
+  width: 0;
+  height: 0;
+}
+
+::view-transition-group(*) {
+  animation-duration: 30s;
+}
+
+#touchtarget {
+  width: 100px;
+  height: 100px;
+  background: green;
+}
+
+#transition {
+  width: 100px;
+  height: 100px;
+  background: blue;
+  contain: paint;
+  view-transition-name: transitionElement;
+}
+</style>
+
+<div id="touchtarget"></div>
+<div id="transition"></div>
+
+<script>
+const touchTarget = document.getElementById("touchtarget");
+
+promise_test(async t => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
+  assert_true(!!touchTarget, "Sanity check: touchTarget element exists");
+
+  const watcher = new EventWatcher(t, document, ["touchstart", "touchend"]);
+
+  // Need to use a single action to avoid wptrunner implicitly releasing
+  const action = new test_driver.Actions()
+    .setContext(window)
+    .addPointer("touch1", "touch")
+    .pointerMove(10, 10, { origin: "viewport", sourceName: "touch1" })
+    .pointerDown({ sourceName: "touch1" })
+    // Pause to let the touchstart handler run and VT begin render-blocking.
+    .pause(100)
+    .pointerUp({ sourceName: "touch1" })
+    .send();
+
+  const touchstartEvt = await watcher.wait_for("touchstart");
+  assert_equals(touchstartEvt.target, touchTarget, "Action should target touchtarget");
+  const cbDone = Promise.withResolvers();
+  const transition = document.startViewTransition(() => cbDone.promise);
+
+  const touchendEvt = await watcher.wait_for("touchend");
+  assert_equals(touchendEvt.target, touchTarget,
+    "touchend targets touched element despite render-blocking");
+
+  cbDone.resolve();
+  await Promise.all([action, transition]);
+}, "Releasing touch during render-blocking targets touched element");
+
+promise_test(async t => {
+  const watcher = new EventWatcher(t, document, ['touchstart', 'touchend']);
+
+  const transition = document.startViewTransition(async () => {
+    await new test_driver.Actions()
+    .setContext(window)
+    .addPointer("touch1", "touch")
+    .pointerMove(10, 10, {origin: "viewport", sourceName: "touch1"})
+    .pointerDown({sourceName: "touch1"})
+    .pointerUp({sourceName: "touch1"})
+    .send();
+  });
+
+  const touchstartEvt = await watcher.wait_for("touchstart");
+  const touchendEvt = await watcher.wait_for("touchend");
+
+  assert_equals(touchstartEvt.target, document.documentElement, "touchstart targeted root");
+  assert_equals(touchendEvt.target, document.documentElement, "touchend targeted root");
+}, "While render-blocked, new touch targets root");
+</script>
+</html>

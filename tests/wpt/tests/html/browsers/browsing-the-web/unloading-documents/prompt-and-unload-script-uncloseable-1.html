@@ -1,0 +1,10 @@
+<!doctype html>
+script-uncloseable-1
+<script>
+onbeforeunload = function() {
+  parent.beforeunload_fired = true;
+};
+onunload = function() {
+  parent.unload_fired = true;
+};
+</script>

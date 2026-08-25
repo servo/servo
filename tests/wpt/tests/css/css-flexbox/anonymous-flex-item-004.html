@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Flexbox Test: Flex item - non-contiguous text runs - position:absolute</title>
+<link rel="author" title="Rune Lillesveen" href="mailto:futhark@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#flex-items">
+<link rel="match" href="anonymous-flex-item-split-ref.html">
+<p>The words "Two" and "lines" should not be on the same line.</p>
+<div style="display:flex;flex-direction:column">Two <span style="position:absolute"></span>lines</div>

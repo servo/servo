@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>default styles for the b, strong elements</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#phrasing-content-3">
+<link rel="help" href="https://issues.chromium.org/issues/396607231">
+<link rel="author" href="mailto:dizhangg@chromium.org">
+<link rel="match" href="b-strong-styles-ref.html">
+
+<div style="font: 100 32px system-ui">lighter <b>normal <b>bolder</b></b></div>
+<div style="font: 32px system-ui">normal <b>bold <b>bolder</b></b></div>
+<div style="font: 900 32px system-ui">context max <b>bolder</b></div>
+
+<br>
+
+<div style="font: 100 32px system-ui">lighter <strong>normal <strong>bolder</strong></strong></div>
+<div style="font: 32px system-ui">normal <strong>bold <strong>bolder</strong></strong></div>
+<div style="font: 900 32px system-ui">context max <strong>bolder</strong></div>

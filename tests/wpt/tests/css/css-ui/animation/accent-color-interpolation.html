@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>accent-color interpolation</title>
+<link rel="author" title="Joey Arhar" href="mailto:jarhar@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#widget-accent">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+
+<style>
+.parent {
+  accent-color: blue;
+}
+.target {
+  display: inline-block;
+  font-size: 60pt;
+  accent-color: yellow;
+}
+.expected {
+  margin-right: 15px;
+}
+</style>
+
+<body contenteditable>
+  <template id="target-template">T</template>
+</body>
+
+<script>
+test_interpolation({
+  property: 'accent-color',
+  from: neutralKeyframe,
+  to: 'green',
+}, [
+  {at: -0.3, expect: 'rgb(255, 255, 0)'},
+  {at: 0, expect: 'rgb(255, 255, 0)'},
+  {at: 0.3, expect: 'rgb(179, 217, 0)'},
+  {at: 0.6, expect: 'rgb(102, 179, 0)'},
+  {at: 1, expect: 'rgb(0, 128, 0)'},
+  {at: 1.5, expect: 'rgb(0, 65, 0)'},
+]);
+
+test_no_interpolation({
+  property: 'accent-color',
+  from: 'initial',
+  to: 'green',
+});
+
+test_no_interpolation({
+  property: 'accent-color',
+  from: 'auto',
+  to: 'green',
+});
+
+test_interpolation({
+  property: 'accent-color',
+  from: 'currentColor',
+  to: 'green',
+}, [
+  {at: -0.3, expect: 'rgb(0, 0, 0)'},
+  {at: 0, expect: 'rgb(0, 0, 0)'},
+  {at: 0.3, expect: 'rgb(0, 38, 0)'},
+  {at: 0.6, expect: 'rgb(0, 77, 0)'},
+  {at: 1, expect: 'rgb(0, 128, 0)'},
+  {at: 1.5, expect: 'rgb(0, 192, 0)'},
+]);
+
+test_interpolation({
+  property: 'accent-color',
+  from: 'inherit',
+  to: 'green',
+}, [
+  {at: -0.3, expect: 'rgb(0, 0, 255)'},
+  {at: 0, expect: 'rgb(0, 0, 255)'},
+  {at: 0.3, expect: 'rgb(0, 38, 179)'},
+  {at: 0.6, expect: 'rgb(0, 77, 102)'},
+  {at: 1, expect: 'rgb(0, 128, 0)'},
+  {at: 1.5, expect: 'rgb(0, 192, 0)'},
+]);
+
+test_interpolation({
+  property: 'accent-color',
+  from: 'unset',
+  to: 'green',
+}, [
+  {at: -0.3, expect: 'rgb(0, 0, 255)'},
+  {at: 0, expect: 'rgb(0, 0, 255)'},
+  {at: 0.3, expect: 'rgb(0, 38, 179)'},
+  {at: 0.6, expect: 'rgb(0, 77, 102)'},
+  {at: 1, expect: 'rgb(0, 128, 0)'},
+  {at: 1.5, expect: 'rgb(0, 192, 0)'},
+]);
+
+test_interpolation({
+  property: 'accent-color',
+  from: 'black',
+  to: 'orange',
+}, [
+  {at: -0.3, expect: 'rgb(0, 0, 0)'},
+  {at: 0, expect: 'rgb(0, 0, 0)'},
+  {at: 0.3, expect: 'rgb(77, 50, 0)'},
+  {at: 0.6, expect: 'rgb(153, 99, 0)'},
+  {at: 1, expect: 'rgb(255, 165, 0)'},
+  {at: 1.5, expect: 'rgb(255, 248, 0)'},
+]);
+</script>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>margin-trim: grid-inline-start</title>
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-box-4/#margin-trim-grid">
+<meta name="assert" content="inline-start should trim inline-start margins of items on first column">
+<style>
+grid {
+    display: inline-grid;
+    border: 1px solid black;
+    grid-template-columns: auto auto;
+    margin-trim: inline-start;
+}
+
+item {
+    display: block;
+    background-color: green;
+    width: 50px;
+    height: 50px;
+}
+.inline-start-margin {
+    margin-inline-start: 10px;
+}
+</style>
+</head>
+<body>
+<grid>
+<item></item>
+<item class="inline-start-margin"></item>
+<item></item>
+<item class="inline-start-margin"></item>
+</grid>
+</body>
+</html>

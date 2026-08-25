@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<meta name="assert" content="the correct scrollbars appear for sideways and vertical writing-mode flexboxes">
+<link rel="help" href="https://www.w3.org/TR/css-overflow-3/">
+<style>
+.container {
+  width: 100px;
+  height: 100px;
+  overflow: scroll;
+  border: solid 3px;
+  display: inline-flex;
+  gap: 10px;
+  align-items: start;
+  margin: 10px;
+  vertical-align: bottom;
+}
+
+.item {
+  min-width: 110px;
+  min-height: 110px;
+  background: cyan;
+}
+</style>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="checkLayout('.container')">
+<script>
+const writingModes = ['sideways-rl', 'sideways-lr', 'vertical-rl', 'vertical-lr'];
+const directions = ['ltr', 'rtl'];
+const flexDirections = ['row', 'row-reverse', 'column', 'column-reverse'];
+const flexWraps = ['nowrap', 'wrap', 'wrap-reverse'];
+
+for (let writingMode of writingModes) {
+  for (let direction of directions) {
+    for (let flexDirection of flexDirections) {
+      for (let flexWrap of flexWraps) {
+        let container = document.createElement('div');
+        container.className = 'container';
+        container.style.writingMode = writingMode;
+        container.style.direction = direction;
+        container.style.flexDirection = flexDirection;
+        container.style.flexWrap = flexWrap;
+
+        for (let i = 0; i < 3; i++) {
+          let item = document.createElement('div');
+          item.className = 'item';
+          item.textContent = (i+1);
+          container.appendChild(item);
+        }
+
+        let bias = flexWrap != 'nowrap';
+        if (flexDirection == 'row' || flexDirection == 'row-reverse') {
+          bias = !bias;
+        }
+        container.setAttribute('data-expected-scroll-width', bias ? 110 : 350);
+        container.setAttribute('data-expected-scroll-height', bias ? 350 : 110);
+
+        document.body.appendChild(container);
+      }
+    }
+  }
+}
+</script>

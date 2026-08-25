@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Variables: prioritary properties referencing custom properties resolve fully</title>
+<link rel="help" href="https://drafts.csswg.org/css-variables/#substitute-a-var">
+<link rel="help" href="https://drafts.csswg.org/css-variables/#cycles">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  @property --len-a { syntax: "<length>"; inherits: false; initial-value: 0px; }
+  @property --len-b { syntax: "<length>"; inherits: false; initial-value: 0px; }
+  @property --len-c { syntax: "<length>"; inherits: false; initial-value: 0px; }
+  @property --len-d { syntax: "<length>"; inherits: false; initial-value: 0px; }
+  .case { font-size: 20px; }
+  #a { --src-a: monospace; --fam-a: var(--src-a); --len-a: 1em; font-family: var(--fam-a); }
+  #b { --src-b: monospace; --fam-b: var(--src-b); --len-b: 1em; font-family: var(--fam-b); }
+  #c { --src-c: monospace; --fam-c: var(--src-c); --len-c: 1em; font-family: var(--fam-c); }
+  #d { --src-d: monospace; --fam-d: var(--src-d); --len-d: 1em; font-family: var(--fam-d); }
+  #w { --weight: 700; --weight-ref: var(--weight); --len-a: 1em; font-weight: var(--weight-ref); }
+</style>
+<div class="case" id="a">hello</div>
+<div class="case" id="b">hello</div>
+<div class="case" id="c">hello</div>
+<div class="case" id="d">hello</div>
+<div class="case" id="w">hello</div>
+<script>
+for (const id of ["a", "b", "c", "d"]) {
+  test(() => {
+    assert_equals(getComputedStyle(document.getElementById(id)).fontFamily, "monospace");
+  }, `#${id}: font-family resolves through a chained custom property with a registered font-relative custom present`);
+}
+test(() => {
+  assert_equals(getComputedStyle(document.getElementById("w")).fontWeight, "700");
+}, "#w: font-weight resolves through a chained custom property with a registered font-relative custom present");
+</script>

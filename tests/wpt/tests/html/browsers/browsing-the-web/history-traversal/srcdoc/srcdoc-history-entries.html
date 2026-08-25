@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>srcdoc history entries</title>
+<link rel="help" href="https://github.com/whatwg/html/issues/6809">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../resources/helpers.js"></script>
+
+<script>
+"use strict";
+
+// Note: bfcache won't mess with any windows with openers, so it doesn't
+// interfere with these tests.
+
+promise_test(async t => {
+  // Set up a window whose iframe contains
+  // [normal page, srcdoc, normal page, srcdoc] entries.
+  const w = await openWindow("/common/blank.html", t);
+  const iframe = await addIframe("/common/blank.html?iframe", w.document);
+
+  assert_equals(w.history.length, 1);
+
+  await waitToAvoidReplace(t);
+  iframe.srcdoc = srcdocThatPostsParentOpener("srcdoc1");
+  assert_equals(w.history.length, 1, "srcdoc navigation must not be sync");
+
+  await waitForMessage(iframe.contentWindow);
+  assert_equals(w.history.length, 2);
+
+  await waitToAvoidReplace(t);
+  const middleURL = (new URL(
+    "../../resources/post-top-opener-on-load.html", location.href)).href;
+  iframe.contentWindow.location.href = middleURL;
+
+  await waitForMessage(iframe.contentWindow);
+  assert_equals(w.history.length, 3);
+
+  await waitToAvoidReplace(t);
+  iframe.srcdoc = srcdocThatPostsParentOpener("srcdoc2");
+  assert_equals(w.history.length, 3, "srcdoc navigation must not be sync");
+
+  await waitForMessage(iframe.contentWindow);
+  assert_equals(w.history.length, 4);
+
+  // Now test traversal.
+  w.history.back();
+  await waitForMessage(iframe.contentWindow);
+  assert_equals(iframe.contentWindow.location.href, middleURL);
+
+  await waitToAvoidReplace(t);
+
+  w.history.back();
+  await waitForMessage(iframe.contentWindow);
+  assert_equals(iframe.contentWindow.location.href, "about:srcdoc");
+  assert_equals(
+    iframe.contentDocument.querySelector("p").textContent,
+    "srcdoc1",
+    "srcdoc contents must be restored from history, not from the current " +
+    "value ('srcdoc2') of the content attribute"
+  );
+}, "srcdoc history entries: the iframe itself navigates");
+
+promise_test(async t => {
+  // Set up a window whose iframe contains [normal page, srcdoc] entries.
+  const w = await openWindow("../../resources/has-iframe.html", t);
+  const iframe = w.document.querySelector("iframe");
+
+  assert_equals(w.history.length, 1);
+
+  await waitToAvoidReplace(t);
+  iframe.srcdoc = srcdocThatPostsParentOpener("srcdoc1");
+  assert_equals(w.history.length, 1, "srcdoc navigation must not be sync");
+
+  await waitForMessage(iframe.contentWindow);
+  assert_equals(w.history.length, 2);
+
+  // Now navigate the window itself.
+  w.location.href = "../../resources/post-top-opener-on-load.html";
+  await waitForMessage(w);
+  assert_equals(w.history.length, 3);
+
+  // Now test traversal.
+  w.history.back();
+  await waitForMessage(w);
+  const iframeAgain = w.document.querySelector("iframe");
+
+  assert_equals(iframeAgain.contentWindow.location.href, "about:srcdoc");
+  assert_equals(
+    iframeAgain.contentDocument?.querySelector("p")?.textContent,
+    "srcdoc1",
+    "srcdoc contents must be restored from history, not from the current " +
+    "value of the (not-existing) content attribute"
+  );
+}, "srcdoc history entries: the container window navigates");
+</script>

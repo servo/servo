@@ -1,0 +1,20 @@
+<!doctype html>
+<title>legend</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+ const t = async_test();
+</script>
+<fieldset>
+ <legend onfocus="t.unreached_func('legend was focused')()">
+  legend
+  <input onfocus="t.unreached_func('input in legend was focused')();">
+ </legend>
+ <input onfocus="t.unreached_func('input after legend was focused')();">
+</fieldset>
+<script>
+  document.querySelector('legend').focus();
+  t.step_timeout(() => {
+    t.done();
+  }, 500);
+</script>

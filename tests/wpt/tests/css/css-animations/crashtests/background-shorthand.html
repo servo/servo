@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<meta charset="utf-8">
+<title>Background shorthand animation should not crash</title>
+<link rel="help" href="https://crbug.com/40352785">
+<style>
+body {
+  background: url('a'), url('b');
+  animation: test 1s;
+}
+
+@keyframes test {
+  to { background: url('a'), url('b'); }
+}
+</style>
+<script>
+  requestAnimationFrame(() => {
+    document.documentElement.classList.remove('test-wait');
+  });
+</script>
+</html>

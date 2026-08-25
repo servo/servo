@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8">
+<meta name="timeout" content="long"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="./resources/compression-dictionary-util.sub.js"></script>
+</head>
+<body>
+<script>
+
+function getHeadersCrossorigin() {
+  function headersCallback(r) {
+    return (x) => {
+      r(x);
+    }
+  }
+  let script = document.createElement("script");
+  return new Promise((resolve, reject) => {
+    getHeadersCrossorigin['callback'] = headersCallback(resolve);
+    script.src =
+      `${CROSS_ORIGIN_RESOURCES_URL}/echo-headers.py?callback=getHeadersCrossorigin.callback`;
+    document.head.appendChild(script);
+  });
+}
+
+compression_dictionary_promise_test(async (t) => {
+  // Register the dictionary
+  const dict = await (await fetch(kRegisterDictionaryPath)).text();
+  assert_equals(dict, kDefaultDictionaryContent);
+  assert_equals(
+      await waitUntilAvailableDictionaryHeader(t, {}),
+      kDefaultDictionaryHashBase64);
+  // Test a no-cors crossorigin fetch
+  const headers = await getHeadersCrossorigin();
+  assert_false("available-dictionary" in headers);
+}, 'Fetch cross-origin no-cors request does not include Available-Dictionary header');
+
+compression_dictionary_promise_test(async (t) => {
+  const dictionary_url = `${CROSS_ORIGIN_RESOURCES_URL}/register-dictionary.py`;
+  const redirect_url = `/common/redirect.py?location=${encodeURIComponent(dictionary_url)}`;
+  try {
+    await fetch(redirect_url, {mode: 'no-cors'});
+  } catch (e) {}
+  await registerAltDictionaryAndWait(t, `alt_${token()}`);
+  const headers = await (await fetch(`${CROSS_ORIGIN_RESOURCES_URL}/echo-headers.py`)).json();
+  assert_false("available-dictionary" in headers);
+}, 'Opaque responses resulting from cross-origin redirects in no-cors mode do not register dictionary');
+
+</script>
+</body>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#abspos-breaking">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<!-- Tests that the fragments of a positioned element are added to the right fragmentainer despite the presence of column spanners. -->
+<style>
+  #multicol {
+    column-count: 2;
+    column-fill: auto;
+    column-gap: 0px;
+    height: 140px;
+    width: 100px;
+    margin-top: -40px;
+  }
+  .rel {
+    position: relative;
+  }
+  .abs {
+    position: absolute;
+    width: 50px;
+    height: 200px;
+    background: green;
+  }
+  .spanner {
+    column-span: all;
+    height: 5px;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="multicol">
+  <div class="rel">
+    <div class="spanner"></div>
+    <div style="height: 60px; "></div>
+    <div class="spanner"></div>
+    <div class="abs"></div>
+  </div>
+</div>

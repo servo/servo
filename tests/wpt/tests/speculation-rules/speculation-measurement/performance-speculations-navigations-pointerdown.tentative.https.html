@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>performance.getSpeculations() - conservative candidate appears after
+       user pointerdown</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/speculation-rules/resources/utils.js"></script>
+<script src="/speculation-rules/prefetch/resources/utils.sub.js"></script>
+<script src="support/speculation-measurement-utils.js"></script>
+<body>
+<script>
+// This subtest lives in its own file because it depends on test-driver's
+// synthesized pointer input firing all the way through the compositor and
+// anchor-interaction pipeline, which does not currently work under the
+// headless_shell WPT product (headless_shell_wpt_tests bot). The other
+// eagerness assertions live in
+// performance-speculations-navigations-eagerness.tentative.https.html and
+// run everywhere.
+
+// Chromium's WPT infrastructure doesn't honor upstream WPT's `.ini`
+// metadata files, and TestExpectations tags don't discriminate between WPT
+// products. Detect headless_shell via the UA (it advertises `HeadlessChrome`
+// in the userAgent string) and turn the subtest into a no-op there.
+function isHeadlessShell() {
+  return navigator.userAgent.includes('HeadlessChrome');
+}
+
+setup(() => {
+  assertSpeculationRulesIsSupported();
+  assert_true(isSpeculationMeasurementEnabled(),
+    "SpeculationMeasurement feature must be enabled");
+});
+
+promise_test(async t => {
+  if (isHeadlessShell()) {
+    return;  // See file comment: pointer input unreachable under this WPT
+             // product.
+  }
+  // Conservative rule bound to a specific anchor. Before the user presses
+  // down on the anchor, the URL is not in navigations. After a pointerdown
+  // on that anchor, the URL appears.
+  const url = uniqueNavigationUrl('conservative-pointerdown');
+
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.textContent = 'target link';
+  anchor.style.display = 'inline-block';
+  anchor.style.margin = '20px';
+  anchor.style.padding = '10px 20px';
+  document.body.appendChild(anchor);
+  t.add_cleanup(() => anchor.remove());
+
+  const barrierUrl = uniqueNavigationUrl('conservative-pointerdown-barrier');
+  // Escape '?' as '\\?' in the URL Pattern (raw '?' means "optional").
+  insertSpeculationRules({
+    prefetch: [
+      {
+        where: {
+          href_matches:
+              '*\\?spec-measurement-conservative-pointerdown-*'
+        },
+        eagerness: 'conservative'
+      },
+      { urls: [barrierUrl], eagerness: 'immediate' },
+    ]
+  });
+
+  // Sanity check: after the barrier is in navigations, the conservative
+  // candidate must still be absent (no interaction yet).
+  const navsBefore = await awaitBarrierAndSnapshot(t, barrierUrl);
+  assert_equals(navsBefore.find(n => n.url === url), undefined,
+    "conservative candidate must not appear before pointerdown");
+
+  // Simulate a pointerdown on the anchor followed by moving the mouse away
+  // before releasing, so that click / navigation doesn't fire. Uses the
+  // pattern established by other speculation-rules WPTs (see
+  // start_non_immediate_prefetch_on_pointerdown in
+  // speculation-rules/prefetch/resources/executor.sub.html).
+  await new test_driver.Actions()
+    .addPointer("mouse")
+    .pointerMove(0, 0, {origin: anchor})
+    .pointerDown()
+    .pointerMove(0, 0)
+    .pointerUp()
+    .send();
+
+  // Poll for the entry to show up.
+  const nav = await waitForSpeculationMatching(t, url);
+  assert_equals(nav.eagerness, 'conservative',
+    "reported eagerness must be the declared eagerness");
+  assert_equals(nav.type, 'prefetch',
+    "reported action must be prefetch");
+}, "Conservative-eagerness candidate appears after pointerdown");
+</script>
+</body>

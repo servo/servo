@@ -1,0 +1,150 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Range.extractContents() should work when the range container is a ShadowRoot</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+
+addEventListener("load", () => {
+  function innerHTMLOfDocumentFragment(docFlag) {
+    const div = document.createElement("div");
+    div.appendChild(docFlag.cloneNode(true));
+    return div.innerHTML;
+  }
+  test(t => {
+    const host = document.createElement("div");
+    t.add_cleanup(() => host.remove());
+    const shadowRoot = host.attachShadow({mode: "open"});
+    const range = document.createRange();
+    range.setStart(shadowRoot, 0);
+    let docFlag;
+    try {
+      docFlag = range.extractContents();
+    } catch (e) {
+      assert_true(
+        false,
+        `${t.name}: range.extractContents() shouldn't throw exception: ${e}`
+      );
+    }
+    assert_true(
+      !!host.shadowRoot,
+      `${t.name}: range.extractContents() shouldn't delete the ShadowRoot`
+    );
+    assert_equals(
+      host.shadowRoot.innerHTML,
+      "",
+      `${t.name}: range.extractContents() shouldn't modify the ShadowRoot`
+    );
+    assert_equals(
+      innerHTMLOfDocumentFragment(docFlag),
+      "",
+      `${t.name}: range.extractContents() should return empty DocumentFragment`
+    );
+  }, 'Range.extractContents() when "<div><shadow-root>{}</shadow-root></div>"');
+
+  test(t => {
+    const host = document.createElement("div");
+    t.add_cleanup(() => host.remove());
+    const shadowRoot = host.attachShadow({mode: "open"});
+    shadowRoot.innerHTML = "<span>ABC</span>";
+    const range = document.createRange();
+    range.setStart(shadowRoot, 0);
+    range.setEnd(shadowRoot, 1);
+    let docFlag;
+    try {
+      docFlag = range.extractContents();
+    } catch (e) {
+      assert_true(
+        false,
+        `${t.name}: range.extractContents() shouldn't throw exception: ${e}`
+      );
+    }
+    assert_true(
+      !!host.shadowRoot,
+      `${t.name}: range.extractContents() shouldn't delete the ShadowRoot`
+    );
+    assert_equals(
+      host.shadowRoot.innerHTML,
+      "",
+      `${t.name}: range.extractContents() should delete all children of ShadowRoot`
+    );
+    assert_equals(
+      innerHTMLOfDocumentFragment(docFlag),
+      "<span>ABC</span>",
+      `${t.name}: range.extractContents() should return the removed elements DocumentFragment`
+    );
+  }, 'Range.extractContents() when "<div><shadow-root>{<span>ABC</span>}</shadow-root></div>"');
+
+  test(t => {
+    const host = document.createElement("div");
+    t.add_cleanup(() => host.remove());
+    const shadowRoot = host.attachShadow({mode: "open"});
+    shadowRoot.innerHTML = "<span>ABC</span><span>DEF</span>";
+    const range = document.createRange();
+    range.setStart(shadowRoot, 0);
+    range.setEnd(shadowRoot, 1);
+    let docFlag;
+    try {
+      docFlag = range.extractContents();
+    } catch (e) {
+      assert_true(
+        false,
+        `${t.name}: range.extractContents() shouldn't throw exception: ${e}`
+      );
+    }
+    assert_true(
+      !!host.shadowRoot,
+      `${t.name}: range.extractContents() shouldn't delete the ShadowRoot`
+    );
+    assert_equals(
+      host.shadowRoot.innerHTML,
+      "<span>DEF</span>",
+      `${t.name}: range.extractContents() should delete only the first child of ShadowRoot`
+    );
+    assert_equals(
+      innerHTMLOfDocumentFragment(docFlag),
+      "<span>ABC</span>",
+      `${t.name}: range.extractContents() should return the removed elements DocumentFragment`
+    );
+  }, 'Range.extractContents() when "<div><shadow-root>{<span>ABC</span>}<span>DEF</span></shadow-root></div>"');
+
+  test(t => {
+    const host = document.createElement("div");
+    t.add_cleanup(() => host.remove());
+    const shadowRoot = host.attachShadow({mode: "open"});
+    shadowRoot.innerHTML = "<span>ABC</span><span>DEF</span>";
+    const range = document.createRange();
+    range.setStart(shadowRoot, 1);
+    range.setEnd(shadowRoot, 2);
+    let docFlag;
+    try {
+      docFlag = range.extractContents();
+    } catch (e) {
+      assert_true(
+        false,
+        `${t.name}: range.extractContents() shouldn't throw exception: ${e}`
+      );
+    }
+    assert_true(
+      !!host.shadowRoot,
+      `${t.name}: range.extractContents() shouldn't delete the ShadowRoot`
+    );
+    assert_equals(
+      host.shadowRoot.innerHTML,
+      "<span>ABC</span>",
+      `${t.name}: range.extractContents() should delete only the last child of ShadowRoot`
+    );
+    assert_equals(
+      innerHTMLOfDocumentFragment(docFlag),
+      "<span>DEF</span>",
+      `${t.name}: range.extractContents() should return the removed elements DocumentFragment`
+    );
+  }, 'Range.extractContents() when "<div><shadow-root><span>ABC</span>{<span>DEF</span>}</shadow-root></div>"');
+}, {once: true});
+</script>
+</head>
+<body></body>
+</html>

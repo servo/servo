@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Replaced Elements</title>
+
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-06-30 -->
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#replaced-elements"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#block-replaced-width" title="10.3.4 Block-level, replaced elements in normal flow"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#inline-replaced-height" title="10.6.2 Inline replaced elements, block-level replaced elements in normal flow, 'inline-block' replaced elements in normal flow and floating replaced elements"/>
+
+  <meta name="flags" content="image" />
+
+  <style type="text/css"><![CDATA[
+   html, body, p { margin-left: 0; margin-right: 0; padding-left: 0; padding-right: 0; }
+   img { display: block; margin-right: auto; margin-left: auto; width: 50%; }
+  ]]></style>
+ </head>
+ <body>
+  <p>
+   Test passes if there is a big blue square half the width of the window and centered.
+  </p>
+  <p><img src="support/swatch-blue.png" alt="FAIL: Images required for this test."/></p>
+ </body>
+</html>

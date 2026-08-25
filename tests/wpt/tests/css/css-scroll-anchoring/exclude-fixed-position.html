@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+
+body { height: 4000px; margin: 0; }
+#fixed, #content { width: 200px; height: 100px; }
+#fixed { position: fixed; left: 100px; top: 50px; }
+#before { height: 50px; }
+#content { margin-top: 100px; }
+
+</style>
+<div id="fixed">fixed</div>
+<div id="before"></div>
+<div id="content">content</div>
+<script>
+
+// Tests that the anchor selection algorithm skips fixed-positioned elements.
+
+test(() => {
+  document.scrollingElement.scrollTop = 100;
+  document.querySelector("#before").style.height = "100px";
+  assert_equals(document.scrollingElement.scrollTop, 150);
+}, "Fixed-position header.");
+
+</script>

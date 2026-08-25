@@ -1,0 +1,49 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Comments</title>
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#comments"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="match" href="c17-comments-000-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+   body { color: red; }
+   /* This is a CSS comment. */
+   .one {color: green;} /* Another comment */
+   /* The following should not be used:
+   .two {color: red;} */
+   .three {color: green; /* color: red; */}
+   /**
+   .four {color: red;} */
+   .five {color: green;}
+   /**/
+   .six {color: green;}
+   /*********/
+   .seven {color: green;}
+   /* a comment **/
+   .eight {color: green;}
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#comments" title="4.1.9 Comments"/>
+ </head>
+ <body>
+  <p class="one">
+   This sentence should be green.
+  </p>
+  <p class="three">
+   This sentence should be green.
+  </p>
+  <p class="five">
+   This sentence should be green.
+  </p>
+  <p class="six">
+   This sentence should be green.
+  </p>
+  <p class="seven">
+   This sentence should be green.
+  </p>
+  <p class="eight">
+   This sentence should be green.
+  </p>
+ </body>
+</html>

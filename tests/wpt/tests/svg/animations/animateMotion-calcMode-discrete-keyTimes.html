@@ -1,0 +1,57 @@
+<!doctype html>
+<title>Test animateMotion with calcMode="discrete", path, and non-uniform keyTimes</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+
+<svg xmlns="http://www.w3.org/2000/svg">
+  <rect width="10" height="10">
+    <animateMotion id="anim" calcMode="discrete" dur="4s" fill="freeze"
+      path="M0,0 L100,0 L100,100"
+      keyTimes="0;0.25;1" />
+  </rect>
+</svg>
+
+<script>
+// Path has 3 endpoints: (0,0), (100,0), (100,100).
+// keyTimes="0;0.25;1" with dur=4s means:
+//   keyframe 0 occupies t=0..1s (0 to 0.25 of duration)
+//   keyframe 1 occupies t=1..4s (0.25 to 1.0 of duration)
+//   keyframe 2 is only reached at t=4s (fill=freeze)
+//
+// With discrete, the element jumps at keyTime boundaries.
+
+const rootSVGElement = document.querySelector("svg");
+const rect = document.querySelector("rect");
+
+function assert_motion_position_no_rotate(mtx, x, y, description) {
+    assert_equals(mtx.a, 1, description + " (no rotation: a)");
+    assert_equals(mtx.b, 0, description + " (no rotation: b)");
+    assert_equals(mtx.c, 0, description + " (no rotation: c)");
+    assert_equals(mtx.d, 1, description + " (no rotation: d)");
+    assert_equals(mtx.e, x, description + " (x)");
+    assert_equals(mtx.f, y, description + " (y)");
+}
+
+function sample1() {
+    assert_motion_position_no_rotate(rect.getCTM(), 0, 0, "point 1");
+}
+function sample2() {
+    assert_motion_position_no_rotate(rect.getCTM(), 100, 0, "point 2");
+}
+function sample3() {
+    assert_motion_position_no_rotate(rect.getCTM(), 100, 100, "point 3");
+}
+
+smil_async_test((t) => {
+    const expectedValues = [
+        ["anim", 0.0,   sample1],
+        ["anim", 0.5,   sample1],
+        ["anim", 1.0,   sample2],
+        ["anim", 3.0,   sample2],
+        ["anim", 4.0,   sample3],
+    ];
+    runAnimationTest(t, expectedValues);
+});
+</script>
+</html>

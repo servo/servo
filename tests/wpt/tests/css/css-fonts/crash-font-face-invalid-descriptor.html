@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/977953" />
+<script type="text/javascript" src="/resources/testharness.js"></script>
+<script type="text/javascript" src="/resources/testharnessreport.js"></script>
+<style>
+    @font-face {}
+</style>
+<script>
+    test(() => {
+        let rule = document.styleSheets[0].cssRules[0];
+        rule.style.backgroundPosition = 'bottom 10px right 20px';
+    }, 'Do not crash when setting an invalid @font-face descriptor via CSSOM');
+</script>

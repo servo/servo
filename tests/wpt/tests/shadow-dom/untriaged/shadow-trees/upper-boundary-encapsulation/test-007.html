@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Shadow DOM Test: A_04_01_07</title>
+<link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-20130514/#upper-boundary-encapsulation">
+<meta name="assert" content="Upper-boundary encapsulation:The nodes with a unique id and named elements are addressable from any attributes of elements in the same shadow DOM subtree">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../../../html/resources/common.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+// check for label.control
+test(function () {
+    var d = newHTMLDocument();
+    var div = d.createElement('div');
+    d.body.appendChild(div);
+    var s = div.attachShadow({mode: 'open'});
+
+    var input = d.createElement('input');
+    input.setAttribute('type', 'text');
+    input.setAttribute('id', 'input_id');
+    d.body.appendChild(input);
+
+    var label = d.createElement('label');
+    label.setAttribute('for', 'input_id');
+    s.appendChild(label);
+    s.appendChild(input);
+
+    assert_equals(label.control, input, 'Elements in shadow DOM must be accessible from ' +
+        'shadow document label.for attribute');
+
+}, 'A_04_01_07_T01');
+
+// check for elem.form associated elements
+test(function () {
+
+    HTML5_FORM_ASSOCIATED_ELEMENTS.forEach(function (tagName) {
+        d = newHTMLDocument();
+
+        var form = d.createElement('form');
+        var el = d.createElement(tagName);
+
+        d.body.appendChild(form);
+        d.body.appendChild(el);
+
+        form.setAttribute('id', 'form_id');
+        el.setAttribute('form', 'form_id');
+
+        div = d.createElement('div');
+        d.body.appendChild(div);
+
+        var s = div.attachShadow({mode: 'open'});
+        s.appendChild(form);
+        s.appendChild(el);
+
+        assert_equals(el.form, form, 'Elements in shadow DOM must be accessible from ' +
+            'shadow document ' + tagName + '.form attribute');
+    });
+}, 'A_04_01_07_T02');
+</script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml"
+     width="400px" height="200px">
+  <title>SVG Geometry Properties: negative presentation-attribute values compute to the initial value</title>
+  <metadata>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/geometry.html#RX"/>
+    <h:meta name="assert" content="A negative value supplied as a presentation attribute for r, rx or ry is invalid and computes to the property's initial value (auto for rx/ry, 0 for r); cx/cy accept negatives."/>
+  </metadata>
+  <ellipse id="e-rx" cx="50" cy="50" rx="-20" ry="30"/>
+  <ellipse id="e-ry" cx="50" cy="50" rx="30" ry="-20"/>
+  <circle  id="c-r"  cx="50" cy="50" r="-20"/>
+  <circle  id="c-cx" cx="-20" cy="50" r="30"/>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <script><![CDATA[
+
+test(() => {
+  assert_equals(getComputedStyle(document.getElementById("e-rx")).rx, "auto");
+}, "negative rx presentation attribute computes to auto");
+
+test(() => {
+  assert_equals(getComputedStyle(document.getElementById("e-ry")).ry, "auto");
+}, "negative ry presentation attribute computes to auto");
+
+test(() => {
+  assert_equals(getComputedStyle(document.getElementById("c-r")).r, "0px");
+}, "negative r presentation attribute computes to 0px");
+
+test(() => {
+  assert_equals(getComputedStyle(document.getElementById("c-cx")).cx, "-20px");
+}, "negative cx presentation attribute is accepted");
+
+  ]]></script>
+</svg>

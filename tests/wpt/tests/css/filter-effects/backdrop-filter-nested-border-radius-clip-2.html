@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<title>backdrop-filter should respect rounded clip from ancestor with border-radius and overflow:hidden</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty">
+<link rel="match" href="backdrop-filter-nested-border-radius-clip-2-ref.html">
+<meta name="fuzzy" content="maxDifference=0-100; totalPixels=0-800" />
+<style>
+#outer {
+  position: relative;
+  width: 200px;
+  height: 100px;
+  padding: 10px;
+  border-radius: 100px;
+  overflow: hidden;
+  background-color: #66ccff;
+}
+#inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
+  overflow: hidden;
+}
+#backdrop-source {
+  width: 100%;
+  height: 100%;
+  background-color: rgb(255, 127, 255);
+}
+#backdrop-filter {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 100%;
+  height: 100%;
+  backdrop-filter:invert(1);
+}
+</style>
+<!-- Test passes if there is a green rounded rectangle fully clipped within
+     a light blue elliptical border (#outer), with no artifacts at the edges.
+     The backdrop-filter area must be clipped by all ancestor border-radius
+     clips; in this case, specifically #outer's elliptical border-radius. -->
+<div id="outer">
+  <div id="inner">
+    <div id="backdrop-source"></div>
+    <div id="backdrop-filter"></div>
+  </div>
+</div>

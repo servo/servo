@@ -1,0 +1,21 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: CSS Conditional Rules Module Level 5 (https://drafts.csswg.org/css-conditional-5/)
+
+dictionary CSSContainerCondition {
+  required CSSOMString name;
+  required CSSOMString query;
+};
+
+[Exposed=Window]
+interface CSSContainerRule : CSSConditionRule {
+  readonly attribute CSSOMString containerName;
+  readonly attribute CSSOMString containerQuery;
+  readonly attribute FrozenArray<CSSContainerCondition> conditions;
+};
+
+[Exposed=Window]
+interface CSSSupportsConditionRule : CSSGroupingRule {
+  readonly attribute CSSOMString name;
+};

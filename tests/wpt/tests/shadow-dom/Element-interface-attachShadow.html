@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Shadow DOM: Attaching a ShadowRoot</title>
+<meta name="author" title="Ryosuke Niwa" href="mailto:rniwa@webkit.org">
+<meta name="assert" content="Element.prototype.attachShadow should create an instance of ShadowRoot">
+<link rel="help" href="https://w3c.github.io/webcomponents/spec/shadow/#widl-Element-attachShadow-ShadowRoot-ShadowRootInit-shadowRootInitDict">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src='../html/resources/common.js'></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+
+test(function () {
+    assert_true('attachShadow' in Element.prototype, 'Element.prototype.attachShadow must exist');
+    assert_equals(typeof(document.createElement('div').attachShadow), 'function', 'An instance of div must have attachShadow which is a function');
+}, 'Check the existence of Element.attachShadow');
+
+test(function () {
+    assert_false('attachShadow' in Node.prototype, 'Node.prototype.attachShadow must not exist');
+    assert_false('attachShadow' in CharacterData.prototype, 'CharacterData.prototype.attachShadow must not exist');
+    assert_false('attachShadow' in Comment.prototype, 'Comment.prototype.attachShadow must not exist');
+    assert_equals(typeof(document.createComment('').attachShadow), 'undefined', 'An instance of comment must not have attachShadow');
+    assert_false('attachShadow' in Document.prototype, 'Document.prototype.attachShadow must not exist');
+    assert_equals(typeof(document.attachShadow), 'undefined', 'An instance of document must not have attachShadow which is a function');
+    assert_false('attachShadow' in DocumentFragment.prototype, 'DocumentFragment.prototype.attachShadow must not exist');
+    assert_equals(typeof((new DOMParser()).parseFromString('', 'text/html').attachShadow), 'undefined', 'An instance of document must not have attachShadow which is a function');
+    assert_false('attachShadow' in Text.prototype, 'Text.prototype.attachShadow must not exist');
+    assert_equals(typeof(document.createTextNode('').attachShadow), 'undefined', 'An instance of text node must not have attachShadow');
+}, 'Nodes other than Element should not have attachShadow');
+
+test(function () {
+    assert_throws_js(TypeError, function () {
+        document.createElement('div').attachShadow({})
+    }, 'attachShadow must throw a TypeError when mode is omitted');
+
+    assert_throws_js(TypeError, function () {
+        document.createElement('div').attachShadow({mode: true})
+    }, 'attachShadow must throw a TypeError when mode is a boolean');
+
+    assert_throws_js(TypeError, function () {
+        document.createElement('div').attachShadow({mode: 1})
+    }, 'attachShadow must throw a TypeError when mode is 1');
+}, 'Element.attachShadow must throw a TypeError if mode is not "open" or "closed"');
+
+test(function () {
+    assert_true(document.createElement('div').attachShadow({mode: "open"}) instanceof ShadowRoot,
+        'attachShadow({mode: "open"}) should create an instance of ShadowRoot');
+    assert_true(document.createElement('div').attachShadow({mode: "closed"}) instanceof ShadowRoot,
+        'attachShadow({mode: "closed"}) should create an instance of ShadowRoot');
+}, 'Element.attachShadow must create an instance of ShadowRoot');
+
+test(function () {
+    assert_throws_dom('NotSupportedError', function () {
+        var div = document.createElement('div');
+        div.attachShadow({mode: "open"});
+        div.attachShadow({mode: "open"});
+    }, 'Calling attachShadow({mode: "open"}) twice on the same element must throw');
+
+    assert_throws_dom('NotSupportedError', function () {
+        var div = document.createElement('div');
+        div.attachShadow({mode: "closed"});
+        div.attachShadow({mode: "closed"});
+    }, 'Calling attachShadow({mode: "closed"}) twice on the same element must throw');
+
+    assert_throws_dom('NotSupportedError', function () {
+        var div = document.createElement('div');
+        div.attachShadow({mode: "open"});
+        div.attachShadow({mode: "closed"});
+    }, 'Calling attachShadow({mode: "closed"}) after attachShadow({mode: "open"}) on the same element must throw');
+
+    assert_throws_dom('NotSupportedError', function () {
+        var div = document.createElement('div');
+        div.attachShadow({mode: "closed"});
+        div.attachShadow({mode: "open"});
+    }, 'Calling attachShadow({mode: "open"}) after attachShadow({mode: "closed"}) on the same element must throw');
+}, 'Element.attachShadow must throw a NotSupportedError if the context object already hosts a shadow tree');
+
+test(function () {
+    for (var elementName of HTML5_SHADOW_DISALLOWED_ELEMENTS) {
+        assert_throws_dom('NotSupportedError', function () {
+            document.createElement(elementName).attachShadow({mode: "open"});
+        }, 'Calling attachShadow({mode: "open"}) on ' + elementName + ' element must throw');
+
+        assert_throws_dom('NotSupportedError', function () {
+            document.createElement(elementName).attachShadow({mode: "closed"});
+        }, 'Calling attachShadow({mode: "closed"}) on ' + elementName + ' element must throw');
+    }
+}, 'Element.attachShadow must throw a NotSupportedError for non-safelisted elements');
+
+</script>
+</body>
+</html>

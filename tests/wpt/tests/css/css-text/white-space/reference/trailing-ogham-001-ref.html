@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 3 Test Reference</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<style>
+div {
+    border: solid;
+    width: min-content;
+}
+.soft-wrap { border-color: blue; }
+.hard-break { border-color: orange; }
+
+</style>
+
+<p>Test passes if the content of the blue and orange boxes is identical to that of the black box.
+
+<div class=soft-wrap>᚛ᚑᚌᚐᚋ᚜<br>᚛ᚑᚌᚐᚋ᚜</div>
+<div class=hard-break>᚛ᚑᚌᚐᚋ᚜<br>᚛ᚑᚌᚐᚋ᚜</div>
+<div class=ref>᚛ᚑᚌᚐᚋ᚜<br>᚛ᚑᚌᚐᚋ᚜</div>

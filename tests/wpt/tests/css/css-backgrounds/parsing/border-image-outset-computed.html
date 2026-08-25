@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Backgrounds and Borders: getComputedStyle().borderImageOutset</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds/#border-image-outset">
+<meta name="assert" content="border-image-outset computed value is four values, each a number or absolute length.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<style>
+  #container {
+    font-size: 40px;
+    container-type: inline-size;
+    width: 100px;
+  }
+</style>
+</head>
+<body>
+<div id="container">
+  <div id="target"></div>
+</div>
+<script>
+test_computed_value("border-image-outset", "1px");
+test_computed_value("border-image-outset", "1px 2");
+test_computed_value("border-image-outset", "1px 2 3px");
+test_computed_value("border-image-outset", "1px 2 3px 4");
+test_computed_value("border-image-outset", "0 calc(0.5em + 10px) 3 calc(-0.5em + 10px)", "0 30px 3 0px");
+test_computed_value("border-image-outset", "calc(10 + (sign(2cqw - 10px) * 5))", "5");
+test_computed_value("border-image-outset", "calc(10 + (sign(2cqw - 10px) * 5)) calc(20px + (sign(2cqw - 10px) * 5px)", "5 15px");
+</script>
+</body>
+</html>

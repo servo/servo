@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 3 Test: word-break-keep-all and overflow-wrap:normal</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+<link rel="help" href="https://www.w3.org/TR/css-text-3/#overflow-wrap-property">
+<link rel="match" href="reference/overflow-wrap-normal-keep-all-001-ref.html">
+<meta name="flags" content="may">
+<meta name="assert" content="with overflow-wrap:normal, the restrictions introduced by word-break:keep-all may be relaxed to match word-break:normal if there are no otherwise-acceptable break points in the line.">
+<style>
+  div {
+    overflow-wrap: normal;
+    word-break: keep-all;
+    width: 0;
+  }
+</style>
+
+<p>Test passes if there is a column of 文 characters on top of eachother below.
+<div lang=ja>文文文文文文文文</div>

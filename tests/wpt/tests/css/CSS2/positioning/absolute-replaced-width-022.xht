@@ -1,0 +1,62 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Absolutely positioned inline replaced element with 'direction' as left-to-right, 'auto' specified for 'margin-left', 'margin-right', 'right' and intrinsic width</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+		<link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-09-07 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#abs-replaced-width" />
+        <link rel="match" href="absolute-replaced-width-022-ref.xht" />
+
+        <meta name="flags" content="image" />
+        <meta name="assert" content="The intrinsic width is used if 'height' and 'width' are 'auto'. Computed value of 'auto' for 'margin-left' or margin-right' on absolutely positioned inline replaced element becomes a used value of '0'. If at this point there is an 'auto' left (like right as in this test), solve the equation for that value." />
+        <style type="text/css">
+            #div1
+            {
+                border: solid black;
+                direction: ltr;
+                height: 2in;
+                position: relative;
+                width: 2in;
+            }
+            img
+            {
+                margin-left: auto;
+                margin-right: auto;
+                left: 1in;
+                position: absolute;
+                right: auto;
+            }
+
+			/*
+
+			1in			: left
+			0px (set)	: margin-left
+			1in			: width (intrinsic width)
+			0px (set)	: margin-right
+			(solve)		: right
+		=========================
+		    2in			: width of containing block (2in)
+
+		    Therefore , the used right offset must be 0px
+		    so that the contraining equation gets balanced.
+
+			*/
+
+            div div
+            {
+                background: orange;
+                height: 96px;
+                margin-left: 1in;
+                margin-top: 96px;
+                width: 96px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the blue and orange squares have the same width and the blue square is in the upper-right corner of an hollow black square.</p>
+        <div id="div1">
+            <img alt="blue 96x96" src="support/blue96x96.png" />
+            <div></div>
+        </div>
+    </body>
+</html>

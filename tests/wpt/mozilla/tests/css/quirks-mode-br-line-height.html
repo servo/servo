@@ -1,0 +1,35 @@
+<!-- quirks mode -->
+<link rel="match" href="quirks-mode-br-line-height-ref.html">
+<link rel="author" href="mrobinson@igalia.com">
+<!--
+    Normally in quirks, only text and uncollapsible white space in inline boxes
+    adds the inline box line height to the line. A forced line break is a kind of
+    uncollapsible white space, so it should add line height to the line box.
+
+    We implement <br> in Servo with `white-space: pre-line`, but <br> doesn't act
+    like a preserved line break. It only adds its line height to the line if its
+    on an empty line.
+
+    This behavior doesn't seem to be specified, so is part of the "magic" behavior
+    of <br> elements.
+-->
+<style>
+    span {
+        display: inline-block;
+        width: 50px;
+        height: 50px;
+        background: green;
+        color: transparent;
+    }
+</style>
+<body>
+    <div style="width: 100px; border: solid; line-height: 50px;">
+        <span>A</span>
+        <!-- The first <br> ends the line and the second <br> adds 50px
+            of block size, because it inherits `line-height` from the
+            parent <div> -->
+        <br>
+        <br>
+        <span>A</span>
+    </div>
+</body>

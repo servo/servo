@@ -1,0 +1,67 @@
+<!doctype html>
+<title>VTTRegion()</title>
+<link rel="help" href="https://w3c.github.io/webvtt/#dom-vttregion-vttregion">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+test(function() {
+    var region = new VTTRegion();
+    assert_true(region instanceof VTTRegion, "instanceof");
+
+    assert_equals(region.scroll, "");
+    assert_equals(region.viewportAnchorX, 0);
+    assert_equals(region.viewportAnchorY, 100);
+    assert_equals(region.regionAnchorX, 0);
+    assert_equals(region.regionAnchorY, 100);
+    assert_equals(region.lines, 3);
+    assert_equals(region.width, 100);
+}, document.title + " initial values");
+
+test(function() {
+    var region = new VTTRegion();
+    region.scroll = "invalid-scroll-value";
+    assert_equals(region.scroll, "");
+
+    checkValues([-1, 101], "IndexSizeError");
+    checkValues([-Infinity, Infinity, NaN], TypeError);
+
+    function assert_throws_something(error, func) {
+        if (typeof error == "string") {
+            assert_throws_dom(error, func);
+        } else {
+            assert_throws_js(error, func);
+        }
+    }
+
+    function checkValues(invalidValues, exception) {
+        for (var value of invalidValues) {
+            assert_throws_something(exception, function() { region.viewportAnchorX = value; });
+            assert_equals(region.viewportAnchorX, 0);
+            assert_throws_something(exception, function() { region.viewportAnchorY = value; });
+            assert_equals(region.viewportAnchorY, 100);
+            assert_throws_something(exception, function() { region.regionAnchorX = value; });
+            assert_equals(region.regionAnchorX, 0);
+            assert_throws_something(exception, function() { region.regionAnchorY = value; });
+            assert_equals(region.regionAnchorY, 100);
+            assert_throws_something(exception, function() { region.width = value; });
+            assert_equals(region.width, 100);
+        }
+    }
+
+    assert_equals(region.lines, 3);
+
+    region.lines = 130;
+    assert_equals(region.lines, 130);
+    region.viewportAnchorX = 64;
+    assert_equals(region.viewportAnchorX, 64);
+    region.viewportAnchorY = 32;
+    assert_equals(region.viewportAnchorY, 32);
+    region.regionAnchorX = 16;
+    assert_equals(region.regionAnchorX, 16);
+    region.regionAnchorY = 8;
+    assert_equals(region.regionAnchorY, 8);
+    region.width = 42;
+    assert_equals(region.width, 42);
+}, document.title + " mutations");
+</script>

@@ -1,0 +1,50 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Long Animation Frame Timing: basic</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+
+<body>
+<h1>Long Animation Frame: onmessage</h1>
+<div id="log"></div>
+<script>
+
+for (const origin of ["ORIGIN", "REMOTE_ORIGIN", "HTTP_NOTSAMESITE_ORIGIN"]) {
+    test_self_event_listener(async (t, busy_wait) => {
+        const iframe = document.createElement("iframe");
+        iframe.src = `${get_host_info()[origin]}/long-animation-frame/resources/postMessage.html`;
+        const promise = new Promise(resolve => window.addEventListener("message", e => {
+            if (e.data === "NEXT") {
+                busy_wait();
+                resolve();
+            }
+        }, {once: true}));
+        document.body.append(iframe);
+        t.add_cleanup(() => iframe.remove());
+        await promise;
+    }, "DOMWindow.onmessage", `onmessage from iframe - ${origin}`);
+
+    test_self_event_listener(async (t, busy_wait) => {
+        const iframe = document.createElement("iframe");
+        iframe.src = `${get_host_info()[origin]}/long-animation-frame/resources/postMessage-from-port.html`;
+        const channel = new MessageChannel();
+        const promise = new Promise(resolve => channel.port1.addEventListener("message", e => {
+            if (e.data === "NEXT") {
+                busy_wait();
+                resolve();
+            }
+        }, {once: true}));
+        channel.port1.start();
+        iframe.onload = () => {
+            iframe.contentWindow.postMessage("START", {transfer: [channel.port2], targetOrigin: "*"});
+        }
+        document.body.append(iframe);
+        t.add_cleanup(() => iframe.remove());
+        await promise;
+    }, "MessagePort.onmessage", `onmessage from channel - ${origin}`);
+}
+</script>
+</body>

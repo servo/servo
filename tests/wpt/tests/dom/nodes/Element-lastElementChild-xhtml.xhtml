@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>firstElementChild</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<h1>Test of firstElementChild</h1>
+<div id="log"></div>
+<p id="parentEl">The result of <span id="first_element_child">this test</span> is <span id="last_element_child" style="font-weight:bold;">logged</span> above.</p>
+<script><![CDATA[
+test(function() {
+  var parentEl = document.getElementById("parentEl");
+  var lec = parentEl.lastElementChild;
+  assert_true(!!lec)
+  assert_equals(lec.nodeType, 1)
+  assert_equals(lec.getAttribute("id"), "last_element_child")
+})
+]]></script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!doctype html>
+<title>SVGPathElement.setPathData() fires MutationObserver on the d attribute</title>
+<link rel="help" href="https://svgwg.org/specs/paths/#__svg__SVGPathData__setPathData">
+<link rel="author" title="Virali Purbey" href="mailto:viralipurbey@microsoft.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/getPathData-helpers.js"></script>
+
+<svg></svg>
+<script>
+// setPathData() must fire MutationObserver (equivalent to setAttribute('d')).
+
+promise_test(async () => {
+  const path = createPath("M 0 0");
+  const records = [];
+  const observer = new MutationObserver(mutations => {
+    for (const m of mutations) {
+      records.push({
+        type: m.type,
+        attributeName: m.attributeName,
+        oldValue: m.oldValue,
+        newValue: m.target.getAttribute(m.attributeName)
+      });
+    }
+  });
+  observer.observe(path, { attributes: true, attributeOldValue: true,
+                           attributeFilter: ["d"] });
+
+  path.setPathData([
+    { type: "M", values: [0, 0] },
+    { type: "L", values: [10, 10] }
+  ]);
+
+  await Promise.resolve();  // Flush microtasks so MutationObserver fires.
+
+  observer.disconnect();
+  assert_equals(records.length, 1, "exactly one mutation record");
+  assert_equals(records[0].type, "attributes");
+  assert_equals(records[0].attributeName, "d");
+  assert_equals(records[0].oldValue, "M 0 0");
+  assert_equals(records[0].newValue, "M 0 0 L 10 10");
+}, "setPathData() fires a MutationObserver record for the d attribute");
+
+promise_test(async () => {
+  const path = createPath("M 0 0 L 5 5");
+  let count = 0;
+  const observer = new MutationObserver(mutations => { count += mutations.length; });
+  observer.observe(path, { attributes: true, attributeFilter: ["d"] });
+
+  path.setPathData([]);  // Removes the d attribute.
+
+  await Promise.resolve();
+  observer.disconnect();
+  assert_equals(count, 1, "empty input still fires one record");
+  assert_equals(path.getAttribute("d"), null);
+}, "setPathData([]) fires a MutationObserver record");
+</script>

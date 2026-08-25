@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<title>Usage of css var() on circle radius attribute (units specified)</title>
+<link rel="author" title="Divyansh Mangal" href="mailto:dmangal@microsoft.com">
+<link rel="match" href="css-linked-parameters/circle-green-ref.html">
+<style>
+  circle {
+    --radii: 48px
+  }
+</style>
+<svg width="100px" height="100px">
+  <circle cx="50px" cy="50px" r="var(--radii)" fill="green" stroke-width="2"/>
+</svg>

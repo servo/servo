@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<title>Remove the last element on the fullscreen element stack</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../trusted-click.js"></script>
+<div id="log"></div>
+<div id="first">
+  <div id="last"></div>
+</div>
+<script>
+  promise_test(async (t) => {
+    t.add_cleanup(() => {
+      if (document.fullscreenElement) {
+        return document.exitFullscreen();
+      }
+    });
+    const first = document.getElementById("first");
+    const [, firstEvent] = await Promise.all([
+      trusted_request(first),
+      fullScreenChange(),
+    ]);
+
+    assert_equals(document.fullscreenElement, first, "fullscreen element after first request");
+    assert_equals(firstEvent.target, first, "first fullscreenchange event target");
+
+    const last = document.getElementById("last");
+    const [, secondEvent] = await Promise.all([
+      trusted_request(last),
+      fullScreenChange(),
+    ]);
+
+    assert_equals(document.fullscreenElement, last, "fullscreen element after second request");
+    assert_equals(secondEvent.target, last, "second fullscreenchange event target");
+    last.remove();
+    // Although /last/ was removed from the top layer synchronously, /first/ remains
+    // and becomes the new fullscreen element.
+    assert_equals(document.fullscreenElement, first, "fullscreen element immediately after removal");
+
+    // The removal of the fullscreen element triggers exiting fullscreen, but those changes
+    // happen async when the event is fired.
+    const thirdEvent = await fullScreenChange();
+    assert_equals(document.fullscreenElement, null, "fullscreen element after third event");
+    assert_equals(thirdEvent.target, document, "third fullscreenchange event target");
+  });
+</script>

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+
+    .flex-container {
+        height: 110px;
+        width: 340px;
+        border: solid 2px;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .flex-item {
+        background: skyblue;
+        width: 50px;
+    }
+
+    .row-gap {
+        width: 340px;
+        height: 0px;
+        border-bottom: solid 5px rgba(255, 0, 0, 0.5);
+        position: absolute;
+        left: 2px;
+        top: 54.5px;
+    }
+
+    .col-gap {
+        height: 57.5px;
+        width: 0px;
+        border-right: solid 5px rgba(0, 0, 255, 0.5);
+        position: absolute;
+        left: 0px;
+        top: 2px;
+    }
+</style>
+<div class="flex-container" id="container">
+    <div class="flex-item" style="width: 50px;"></div>
+    <div class="flex-item" style="width: 90px;"></div>
+    <div class="flex-item" style="width: 120px;"></div>
+    <div class="flex-item" style="width: 50px;"></div>
+    <div class="flex-item" style="width: 80px;"></div>
+    <div class="flex-item" style="width: 30px;"></div>
+    <div class="flex-item" style="width: 70px;"></div>
+    <div class="flex-item" style="width: 130px;"></div>
+</div>
+
+<div class="col-gap" style="left: 54.5px;"> </div>
+<div class="col-gap" style="left: 154.5px;"> </div>
+<div class="col-gap" style="left: 284.5px;"> </div>
+<div class="col-gap" style="left: 84.5px; top:54.5px;"> </div>
+<div class="col-gap" style="left: 124.5px; top:54.5px;"> </div>
+<div class="col-gap" style="left: 204.5px; top:54.5px;"> </div>
+
+<div class="row-gap"> </div>

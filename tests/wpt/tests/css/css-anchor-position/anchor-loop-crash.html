@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html reftest-async-scroll>
+<style>
+.container {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+.scroller {
+  position: absolute;
+  overflow: auto;
+  scrollbar-width: none;
+  width: 150px;
+  height: 100px;
+}
+.spacer {
+  width: 1px;
+  height: 500px;
+}
+.anchor1 {
+  width: 50px;
+  height: 50px;
+  background: blue;
+  anchor-name: --my-anchor1;
+  position: absolute;
+  position-anchor: --my-anchor2;
+  position-visibility: always;
+  left: anchor(right);
+  top: anchor(bottom);
+}
+.anchor2 {
+  width: 50px;
+  height: 50px;
+  background: pink;
+  anchor-name: --my-anchor2;
+  position: absolute;
+  position-anchor: --my-anchor3;
+  position-visibility: always;
+  left: anchor(right);
+  top: anchor(bottom);
+}
+.anchored {
+  position: absolute;
+  position-anchor: --my-anchor1;
+  position-visibility: always;
+  width: 50px;
+  height: 50px;
+  background: yellow;
+  left: anchor(right);
+  top: anchor(bottom);
+  anchor-name: --my-anchor3;
+}
+</style>
+<div class="container">
+  <div class="scroller"
+    reftest-displayport-x="0" reftest-displayport-y="0"
+    reftest-displayport-w="150" reftest-displayport-h="500">
+    <div class="scroller"
+    reftest-displayport-x="0" reftest-displayport-y="0"
+    reftest-displayport-w="150" reftest-displayport-h="500"
+    reftest-async-scroll-y="50">
+      <div class="anchor2"></div>
+      <div class="spacer"></div>
+    </div>
+    <div class="anchor1"></div>
+  	<div class="spacer"></div>
+  </div>
+  <div class="anchored"></div>
+</div>
+</html>

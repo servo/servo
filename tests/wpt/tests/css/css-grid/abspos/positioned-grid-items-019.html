@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Fixed positioned element in grid.</title>
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#abspos" title="9. Absolute Positioning">
+<link rel="match" href="positioned-grid-items-019-ref.html">
+<meta name="assert" content="This test checks the behavior of the fixed positioned elements with a grid container as parent.">
+<style>
+
+  #grid {
+    display: inline-grid;
+    grid: 50px 50px / 50px 50px;
+    padding: 5px;
+    border: 5px solid;
+    background-color: gray;
+    margin: 50px;
+  }
+
+  #fixed {
+    width: 50px;
+    height: 50px;
+    background-color: blue;
+    position: fixed;
+    top: 0px;
+    left: 0px;
+  }
+
+</style>
+
+<p>The test passes if it has the same output than the reference.</p>
+
+<div id="grid">
+  <div id="fixed"></div>
+</div>

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script>
+  let result;
+  try {
+    parent.document.getElementsByClassName('script');
+    result = 'iframe not sandboxed'
+  } catch (e) {
+    result = 'iframe sandboxed(' + e.message + ')';
+  }
+  window.onmessage = m => {
+    window.parent.postMessage({
+      result: result
+    }, '*');
+  };
+</script>

@@ -1,0 +1,86 @@
+<!doctype html>
+<html>
+  <head>
+    <title>aria-details</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+    <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/wai-aria/scripts/ATTAcomm.js"></script>
+    <script>
+    setup({explicit_timeout: true, explicit_done: true });
+
+    var theTest = new ATTAcomm(
+    {
+   "steps" : [
+      {
+         "element" : "test",
+         "test" : {
+            "ATK" : [
+               [
+                  "relation",
+                  "RELATION_DETAILS",
+                  "is",
+                  "[details]"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "relation",
+                  "IA2_RELATION_DETAILS",
+                  "is",
+                  "[details]"
+               ]
+            ],
+            "UIA" : [
+               [
+                  "property",
+                  "DescribedBy",
+                  "is",
+                  "[details]"
+               ]
+            ]
+         },
+         "title" : "step 1",
+         "type" : "test"
+      },
+      {
+         "element" : "details",
+         "test" : {
+            "ATK" : [
+               [
+                  "relation",
+                  "RELATION_DETAILS_FOR",
+                  "is",
+                  "[test]"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "relation",
+                  "IA2_RELATION_DETAILS_FOR",
+                  "is",
+                  "[test]"
+               ]
+            ]
+         },
+         "title" : "step 2",
+         "type" : "test"
+      }
+   ],
+   "title" : "aria-details"
+}
+
+    ) ;
+    </script>
+  </head>
+  <body>
+  <p>This test examines the ARIA properties for aria-details.</p>
+    <div role='group' id='test' aria-details='details'>content</div>
+  <div id='details'>hello world</div>
+
+  <div id="manualMode"></div>
+  <div id="log"></div>
+  <div id="ATTAmessages"></div>
+  </body>
+</html>

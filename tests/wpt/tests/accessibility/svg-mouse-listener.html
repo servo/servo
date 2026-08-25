@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<svg viewBox="0 0 500 500">
+    <rect width="500" height="500" id="target" fill="red">
+</svg>
+
+<script>
+function clickPromise() {
+  return new Promise(resolve => {
+    document.getElementById("target").addEventListener("click", resolve,
+                                                       { once: true });
+  });
+}
+
+// While the other accessibility tests are crash-tests, this one cannot be
+// authored as one. The reason is that a crash-test is complete when a onload
+// is complete. The recommended strategy for supporting asynchronous testing
+// is to use reftest wait. Unfortunately, reftests are not compatible with
+// test-driver. The test needs to be asynchronous as unless we wait for the
+// click to be handled, we are not giving the browser a chance to crash. In
+// addition the lack of a wait triggers detection of a memory leak in Blink.
+promise_test(async () => {
+  const click_promise = clickPromise();
+  await test_driver.click(document.body);
+  return click_promise;
+}, 'Clicking SVG element does not crash the browser');
+
+</script>
+</html>

@@ -1,0 +1,53 @@
+<!doctype html>
+<html>
+<title>This test verifies a video element only triggers a single LCP entry</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+  <video muted src="/images/pattern.webm" poster="/images/lcp-16x16.png" width="600"></video>
+  <script>
+    const lcp_entries = [];
+    let unread_lcp_index = 0;
+    let lcp_resolver = null;
+
+    new PerformanceObserver((list, observer) => {
+      for (const entry of list.getEntries()) {
+        lcp_entries.push(entry);
+      }
+      // If we're currently waiting for an LCP entry, consume it now.
+      if (lcp_resolver) {
+        lcp_resolver();
+      }
+    }).observe({ type: "largest-contentful-paint", buffered: true });
+
+    get_lcp_entry = async () => {
+      // If there are no unread LCP entries, wait for one to show up.
+      if (unread_lcp_index == lcp_entries.length) {
+        await new Promise((resolve) => { lcp_resolver = resolve; });
+        lcp_resolver = null;
+      }
+      // Return the next unread entry.
+      unread_lcp_index++;
+      return lcp_entries[unread_lcp_index-1];
+    };
+
+    promise_test(async t => {
+      // Ensure that the first LCP is the poster image.
+      lcpEntry = await get_lcp_entry();
+      assert_true(lcpEntry.url.endsWith('lcp-16x16.png'), "LCP Entry should be poster, but we got " + lcpEntry.url);
+
+      // Start the video.
+      document.querySelector('video').play();
+
+      // Race a task to get a second LCP entry with a 500ms timeout.
+      const second_lcpEntry = await Promise.race([
+        new Promise(resolve => { t.step_timeout(() => resolve('TIMEOUT'), 500); }),
+        get_lcp_entry()
+      ]);
+      assert_equals(second_lcpEntry, 'TIMEOUT', "There should be no further LCP entry, but we got " + second_lcpEntry.url);
+    }, "Video with poster should not emit a second LCP entry after playing.")
+  </script>
+</body>
+
+</html>

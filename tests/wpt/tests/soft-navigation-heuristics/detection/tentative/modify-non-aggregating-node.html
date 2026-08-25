@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../../resources/soft-navigation-test-helper.js"></script>
+
+<button id="navigateButton">Click me!</button>
+
+<div id="aggregating-node">
+  <span>Initial text.</span>
+  <span id="target"></span>
+</div>
+
+<script>
+  promise_test(async t => {
+    const modifyDOM = () => {
+      target.innerText = ' And a lot more text!';
+      return "aggregating-node";
+    };
+    const url = '/soft-nav';
+    const helper = new SoftNavigationTestHelper(t);
+    const result = await helper.clickAndExpectSoftNavigation(
+        navigateButton, url, modifyDOM);
+  }, 'Soft Navigation Detection detects modifying inline elements');
+</script>

@@ -1,0 +1,39 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: Baseline alignment of an inline-block with vertical padding and margin</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#leading" title="10.8.1 Leading and half-leading" />
+
+  <meta name="assert" content="The baseline of an (anonymous) inline element is aligned with the baseline of the last line box of an 'inline-block' in the normal flow as 'vertical-align: baseline' is by default applied. In such case, the vertical padding and vertical margin have no influence on the position of the baseline line of an 'inline-block'." />
+
+  <style type="text/css"><![CDATA[
+  div > div
+  {
+  display: inline-block;
+  font-size: 30px;
+  margin: 0.3em 0em;
+  padding: 0.7em 0em;
+  vertical-align: baseline;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if the bottom of all 'L's are aligned.</p>
+
+  <div>LLLLL
+      <div>
+          <p>ABCDE</p>
+          <p>LLLLL</p>
+      </div>LLLLL
+  </div>
+
+ </body>
+</html>

@@ -1,0 +1,427 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use html5ever::LocalName;
+use js::context::JSContext;
+use script_bindings::root::DomRoot;
+use style::attr::AttrValue;
+
+use crate::dom::bindings::inheritance::{
+    Castable, DocumentFragmentTypeId, ElementTypeId, HTMLElementTypeId, HTMLMediaElementTypeId,
+    NodeTypeId, SVGElementTypeId, SVGGeometryElementTypeId, SVGGradientElementTypeId,
+    SVGGraphicsElementTypeId,
+};
+use crate::dom::bindings::str::DOMString;
+use crate::dom::document::Document;
+use crate::dom::documentfragment::DocumentFragment;
+use crate::dom::element::attributes::storage::AttrRef;
+use crate::dom::element::{AttributeMutation, Element};
+use crate::dom::event::Event;
+use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
+use crate::dom::html::htmlanchorelement::HTMLAnchorElement;
+use crate::dom::html::htmlareaelement::HTMLAreaElement;
+use crate::dom::html::htmlbaseelement::HTMLBaseElement;
+use crate::dom::html::htmlbodyelement::HTMLBodyElement;
+use crate::dom::html::htmlbuttonelement::HTMLButtonElement;
+use crate::dom::html::htmlcanvaselement::HTMLCanvasElement;
+use crate::dom::html::htmldetailselement::HTMLDetailsElement;
+use crate::dom::html::htmlelement::HTMLElement;
+use crate::dom::html::htmlfieldsetelement::HTMLFieldSetElement;
+use crate::dom::html::htmlfontelement::HTMLFontElement;
+use crate::dom::html::htmlformelement::HTMLFormElement;
+use crate::dom::html::htmlheadelement::HTMLHeadElement;
+use crate::dom::html::htmlhrelement::HTMLHRElement;
+use crate::dom::html::htmliframeelement::HTMLIFrameElement;
+use crate::dom::html::htmlimageelement::HTMLImageElement;
+use crate::dom::html::htmllabelelement::HTMLLabelElement;
+use crate::dom::html::htmllielement::HTMLLIElement;
+use crate::dom::html::htmllinkelement::HTMLLinkElement;
+use crate::dom::html::htmlmediaelement::HTMLMediaElement;
+use crate::dom::html::htmlmetaelement::HTMLMetaElement;
+use crate::dom::html::htmlmeterelement::HTMLMeterElement;
+use crate::dom::html::htmlobjectelement::HTMLObjectElement;
+use crate::dom::html::htmloptgroupelement::HTMLOptGroupElement;
+use crate::dom::html::htmloptionelement::HTMLOptionElement;
+use crate::dom::html::htmloutputelement::HTMLOutputElement;
+use crate::dom::html::htmlpreelement::HTMLPreElement;
+use crate::dom::html::htmlprogresselement::HTMLProgressElement;
+use crate::dom::html::htmlscriptelement::HTMLScriptElement;
+use crate::dom::html::htmlselectelement::HTMLSelectElement;
+use crate::dom::html::htmlslotelement::HTMLSlotElement;
+use crate::dom::html::htmlsourceelement::HTMLSourceElement;
+use crate::dom::html::htmlstyleelement::HTMLStyleElement;
+use crate::dom::html::htmltablecellelement::HTMLTableCellElement;
+use crate::dom::html::htmltablecolelement::HTMLTableColElement;
+use crate::dom::html::htmltableelement::HTMLTableElement;
+use crate::dom::html::htmltablerowelement::HTMLTableRowElement;
+use crate::dom::html::htmltablesectionelement::HTMLTableSectionElement;
+use crate::dom::html::htmltemplateelement::HTMLTemplateElement;
+use crate::dom::html::htmltextareaelement::HTMLTextAreaElement;
+use crate::dom::html::htmltitleelement::HTMLTitleElement;
+use crate::dom::html::htmltrackelement::HTMLTrackElement;
+use crate::dom::html::htmlvideoelement::HTMLVideoElement;
+use crate::dom::htmlbuttonelement::CommandState;
+use crate::dom::htmldialogelement::HTMLDialogElement;
+use crate::dom::node::{
+    BindContext, ChildrenMutation, CloneChildrenFlag, MoveContext, Node, UnbindContext,
+};
+use crate::dom::shadowroot::ShadowRoot;
+use crate::dom::svg::svgcircleelement::SVGCircleElement;
+use crate::dom::svg::svgdefselement::SVGDefsElement;
+use crate::dom::svg::svgelement::SVGElement;
+use crate::dom::svg::svgellipseelement::SVGEllipseElement;
+use crate::dom::svg::svggelement::SVGGElement;
+use crate::dom::svg::svgimageelement::SVGImageElement;
+use crate::dom::svg::svglineargradientelement::SVGLinearGradientElement;
+use crate::dom::svg::svglineelement::SVGLineElement;
+use crate::dom::svg::svgpathelement::SVGPathElement;
+use crate::dom::svg::svgpolygonelement::SVGPolygonElement;
+use crate::dom::svg::svgpolylineelement::SVGPolylineElement;
+use crate::dom::svg::svgradialgradientelement::SVGRadialGradientElement;
+use crate::dom::svg::svgrectelement::SVGRectElement;
+use crate::dom::svg::svgstopelement::SVGStopElement;
+use crate::dom::svg::svgsvgelement::SVGSVGElement;
+use crate::dom::svg::svgsymbolelement::SVGSymbolElement;
+use crate::dom::svg::svguseelement::SVGUseElement;
+
+/// Trait to allow DOM nodes to opt-in to overriding (or adding to) common
+/// behaviours. Replicates the effect of C++ virtual methods.
+pub(crate) trait VirtualMethods {
+    /// Returns self as the superclass of the implementation for this trait,
+    /// if any.
+    fn super_type(&self) -> Option<&dyn VirtualMethods>;
+
+    /// Called when attributes of a node are mutated.
+    /// <https://dom.spec.whatwg.org/#attribute-is-set>
+    /// <https://dom.spec.whatwg.org/#attribute-is-removed>
+    fn attribute_mutated(
+        &self,
+        cx: &mut js::context::JSContext,
+        attr: AttrRef<'_>,
+        mutation: AttributeMutation,
+    ) {
+        if let Some(s) = self.super_type() {
+            s.attribute_mutated(cx, attr, mutation);
+        }
+    }
+
+    /// Returns `true` if given attribute `attr` affects style of the
+    /// given element.
+    fn attribute_affects_presentational_hints(&self, attr: AttrRef<'_>) -> bool {
+        match self.super_type() {
+            Some(s) => s.attribute_affects_presentational_hints(attr),
+            None => false,
+        }
+    }
+
+    /// Returns the right AttrValue variant for the attribute with name `name`
+    /// on this element.
+    fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
+        match self.super_type() {
+            Some(s) => s.parse_plain_attribute(name, value),
+            _ => AttrValue::String(value.into()),
+        }
+    }
+
+    /// Invoked during a DOM tree mutation after a node becomes connected, once all
+    /// related DOM tree mutations have been applied.
+    /// <https://dom.spec.whatwg.org/#concept-node-post-connection-ext>
+    fn post_connection_steps(&self, cx: &mut JSContext) {
+        if let Some(s) = self.super_type() {
+            s.post_connection_steps(cx);
+        }
+    }
+
+    /// <https://dom.spec.whatwg.org/#concept-node-move-ext>
+    fn moving_steps(&self, cx: &mut JSContext, context: &MoveContext) {
+        if let Some(s) = self.super_type() {
+            s.moving_steps(cx, context);
+        }
+    }
+
+    /// Called when a Node is appended to a tree.
+    fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
+        if let Some(s) = self.super_type() {
+            s.bind_to_tree(cx, context);
+        }
+    }
+
+    /// Called when a Node is removed from a tree.
+    /// Implements removing steps:
+    /// <https://dom.spec.whatwg.org/#concept-node-remove-ext>
+    fn unbind_from_tree(&self, cx: &mut js::context::JSContext, context: &UnbindContext) {
+        if let Some(s) = self.super_type() {
+            s.unbind_from_tree(cx, context);
+        }
+    }
+
+    /// Called on the parent when its children are changed.
+    fn children_changed(&self, cx: &mut JSContext, mutation: &ChildrenMutation) {
+        if let Some(s) = self.super_type() {
+            s.children_changed(cx, mutation);
+        }
+    }
+
+    /// Called during event dispatch after the bubbling phase completes.
+    fn handle_event(&self, cx: &mut js::context::JSContext, event: &Event) {
+        if let Some(s) = self.super_type() {
+            s.handle_event(cx, event);
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#is-valid-command-steps>
+    fn is_valid_command_steps(&self, command: CommandState) -> bool {
+        self.super_type()
+            .is_some_and(|super_type| super_type.is_valid_command_steps(command))
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#command-steps>
+    fn command_steps(
+        &self,
+        cx: &mut js::context::JSContext,
+        button: DomRoot<HTMLButtonElement>,
+        command: CommandState,
+    ) -> bool {
+        self.super_type()
+            .is_some_and(|super_type| super_type.command_steps(cx, button, command))
+    }
+
+    /// <https://dom.spec.whatwg.org/#concept-node-adopt-ext>
+    fn adopting_steps(&self, cx: &mut JSContext, old_doc: &Document) {
+        if let Some(s) = self.super_type() {
+            s.adopting_steps(cx, old_doc);
+        }
+    }
+
+    /// <https://dom.spec.whatwg.org/#concept-node-clone-ext>
+    fn cloning_steps(
+        &self,
+        cx: &mut JSContext,
+        copy: &Node,
+        maybe_doc: Option<&Document>,
+        clone_children: CloneChildrenFlag,
+    ) {
+        if let Some(s) = self.super_type() {
+            s.cloning_steps(cx, copy, maybe_doc, clone_children);
+        }
+    }
+
+    /// Called on an element when it is popped off the stack of open elements
+    /// of a parser.
+    fn pop(&self, cx: &mut js::context::JSContext) {
+        if let Some(s) = self.super_type() {
+            s.pop(cx);
+        }
+    }
+}
+
+/// Obtain a VirtualMethods instance for a given Node-derived object. Any
+/// method call on the trait object will invoke the corresponding method on the
+/// concrete type, propagating up the parent hierarchy unless otherwise
+/// interrupted.
+pub(crate) fn vtable_for(node: &Node) -> &dyn VirtualMethods {
+    match node.type_id() {
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) => {
+            node.downcast::<HTMLAnchorElement>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAreaElement)) => {
+            node.downcast::<HTMLAreaElement>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBaseElement)) => {
+            node.downcast::<HTMLBaseElement>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBodyElement)) => {
+            node.downcast::<HTMLBodyElement>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) => {
+            node.downcast::<HTMLButtonElement>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLCanvasElement)) => {
+            node.downcast::<HTMLCanvasElement>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLDetailsElement)) => {
+            node.downcast::<HTMLDetailsElement>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLDialogElement)) => {
+            node.downcast::<HTMLDialogElement>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFieldSetElement)) => {
+            node.downcast::<HTMLFieldSetElement>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFontElement)) => {
+            node.downcast::<HTMLFontElement>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFormElement)) => {
+            node.downcast::<HTMLFormElement>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLHeadElement)) => {
+            node.downcast::<HTMLHeadElement>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLHRElement)) => {
+            node.downcast::<HTMLHRElement>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLImageElement)) => {
+            node.downcast::<HTMLImageElement>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLIFrameElement)) => {
+            node.downcast::<HTMLIFrameElement>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) => {
+            node.downcast::<HTMLInputElement>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLabelElement)) => {
+            node.downcast::<HTMLLabelElement>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLIElement)) => {
+            node.downcast::<HTMLLIElement>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLinkElement)) => {
+            node.downcast::<HTMLLinkElement>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLMediaElement(
+            media_el,
+        ))) => match media_el {
+            HTMLMediaElementTypeId::HTMLVideoElement => {
+                node.downcast::<HTMLVideoElement>().unwrap() as &dyn VirtualMethods
+            },
+            _ => node.downcast::<HTMLMediaElement>().unwrap() as &dyn VirtualMethods,
+        },
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLMetaElement)) => {
+            node.downcast::<HTMLMetaElement>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLMeterElement)) => {
+            node.downcast::<HTMLMeterElement>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLObjectElement)) => {
+            node.downcast::<HTMLObjectElement>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOptGroupElement)) => {
+            node.downcast::<HTMLOptGroupElement>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOptionElement)) => {
+            node.downcast::<HTMLOptionElement>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOutputElement)) => {
+            node.downcast::<HTMLOutputElement>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLPreElement)) => {
+            node.downcast::<HTMLPreElement>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLProgressElement)) => {
+            node.downcast::<HTMLProgressElement>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLScriptElement)) => {
+            node.downcast::<HTMLScriptElement>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)) => {
+            node.downcast::<HTMLSelectElement>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSourceElement)) => {
+            node.downcast::<HTMLSourceElement>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSlotElement)) => {
+            node.downcast::<HTMLSlotElement>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLStyleElement)) => {
+            node.downcast::<HTMLStyleElement>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableElement)) => {
+            node.downcast::<HTMLTableElement>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(ElementTypeId::HTMLElement(
+            HTMLElementTypeId::HTMLTableCellElement,
+        )) => node.downcast::<HTMLTableCellElement>().unwrap() as &dyn VirtualMethods,
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableColElement)) => {
+            node.downcast::<HTMLTableColElement>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableRowElement)) => {
+            node.downcast::<HTMLTableRowElement>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(ElementTypeId::HTMLElement(
+            HTMLElementTypeId::HTMLTableSectionElement,
+        )) => node.downcast::<HTMLTableSectionElement>().unwrap() as &dyn VirtualMethods,
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTemplateElement)) => {
+            node.downcast::<HTMLTemplateElement>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) => {
+            node.downcast::<HTMLTextAreaElement>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTitleElement)) => {
+            node.downcast::<HTMLTitleElement>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTrackElement)) => {
+            node.downcast::<HTMLTrackElement>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(ElementTypeId::SVGElement(SVGElementTypeId::SVGGraphicsElement(
+            SVGGraphicsElementTypeId::SVGGeometryElement(
+                SVGGeometryElementTypeId::SVGCircleElement,
+            ),
+        ))) => node.downcast::<SVGCircleElement>().unwrap() as &dyn VirtualMethods,
+        NodeTypeId::Element(ElementTypeId::SVGElement(SVGElementTypeId::SVGGraphicsElement(
+            SVGGraphicsElementTypeId::SVGGeometryElement(
+                SVGGeometryElementTypeId::SVGEllipseElement,
+            ),
+        ))) => node.downcast::<SVGEllipseElement>().unwrap() as &dyn VirtualMethods,
+        NodeTypeId::Element(ElementTypeId::SVGElement(SVGElementTypeId::SVGGraphicsElement(
+            SVGGraphicsElementTypeId::SVGImageElement,
+        ))) => node.downcast::<SVGImageElement>().unwrap() as &dyn VirtualMethods,
+        NodeTypeId::Element(ElementTypeId::SVGElement(SVGElementTypeId::SVGGraphicsElement(
+            SVGGraphicsElementTypeId::SVGGeometryElement(SVGGeometryElementTypeId::SVGRectElement),
+        ))) => node.downcast::<SVGRectElement>().unwrap() as &dyn VirtualMethods,
+        NodeTypeId::Element(ElementTypeId::SVGElement(SVGElementTypeId::SVGGraphicsElement(
+            SVGGraphicsElementTypeId::SVGGeometryElement(SVGGeometryElementTypeId::SVGLineElement),
+        ))) => node.downcast::<SVGLineElement>().unwrap() as &dyn VirtualMethods,
+        NodeTypeId::Element(ElementTypeId::SVGElement(SVGElementTypeId::SVGGraphicsElement(
+            SVGGraphicsElementTypeId::SVGGeometryElement(
+                SVGGeometryElementTypeId::SVGPolylineElement,
+            ),
+        ))) => node.downcast::<SVGPolylineElement>().unwrap() as &dyn VirtualMethods,
+        NodeTypeId::Element(ElementTypeId::SVGElement(SVGElementTypeId::SVGGraphicsElement(
+            SVGGraphicsElementTypeId::SVGGeometryElement(
+                SVGGeometryElementTypeId::SVGPolygonElement,
+            ),
+        ))) => node.downcast::<SVGPolygonElement>().unwrap() as &dyn VirtualMethods,
+        NodeTypeId::Element(ElementTypeId::SVGElement(SVGElementTypeId::SVGGraphicsElement(
+            SVGGraphicsElementTypeId::SVGGeometryElement(SVGGeometryElementTypeId::SVGPathElement),
+        ))) => node.downcast::<SVGPathElement>().unwrap() as &dyn VirtualMethods,
+        NodeTypeId::Element(ElementTypeId::SVGElement(SVGElementTypeId::SVGGraphicsElement(
+            SVGGraphicsElementTypeId::SVGSVGElement,
+        ))) => node.downcast::<SVGSVGElement>().unwrap() as &dyn VirtualMethods,
+        NodeTypeId::Element(ElementTypeId::SVGElement(SVGElementTypeId::SVGGraphicsElement(
+            SVGGraphicsElementTypeId::SVGGElement,
+        ))) => node.downcast::<SVGGElement>().unwrap() as &dyn VirtualMethods,
+        NodeTypeId::Element(ElementTypeId::SVGElement(SVGElementTypeId::SVGGraphicsElement(
+            SVGGraphicsElementTypeId::SVGUseElement,
+        ))) => node.downcast::<SVGUseElement>().unwrap() as &dyn VirtualMethods,
+        NodeTypeId::Element(ElementTypeId::SVGElement(SVGElementTypeId::SVGGraphicsElement(
+            SVGGraphicsElementTypeId::SVGSymbolElement,
+        ))) => node.downcast::<SVGSymbolElement>().unwrap() as &dyn VirtualMethods,
+        NodeTypeId::Element(ElementTypeId::SVGElement(SVGElementTypeId::SVGGraphicsElement(
+            SVGGraphicsElementTypeId::SVGDefsElement,
+        ))) => node.downcast::<SVGDefsElement>().unwrap() as &dyn VirtualMethods,
+        NodeTypeId::Element(ElementTypeId::SVGElement(SVGElementTypeId::SVGGradientElement(
+            SVGGradientElementTypeId::SVGLinearGradientElement,
+        ))) => node.downcast::<SVGLinearGradientElement>().unwrap() as &dyn VirtualMethods,
+        NodeTypeId::Element(ElementTypeId::SVGElement(SVGElementTypeId::SVGGradientElement(
+            SVGGradientElementTypeId::SVGRadialGradientElement,
+        ))) => node.downcast::<SVGRadialGradientElement>().unwrap() as &dyn VirtualMethods,
+        NodeTypeId::Element(ElementTypeId::SVGElement(SVGElementTypeId::SVGStopElement)) => {
+            node.downcast::<SVGStopElement>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(ElementTypeId::SVGElement(SVGElementTypeId::SVGElement)) => {
+            node.downcast::<SVGElement>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(ElementTypeId::Element) => {
+            node.downcast::<Element>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(_) => node.downcast::<HTMLElement>().unwrap() as &dyn VirtualMethods,
+        NodeTypeId::DocumentFragment(DocumentFragmentTypeId::ShadowRoot) => {
+            node.downcast::<ShadowRoot>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::DocumentFragment(_) => {
+            node.downcast::<DocumentFragment>().unwrap() as &dyn VirtualMethods
+        },
+        _ => node as &dyn VirtualMethods,
+    }
+}

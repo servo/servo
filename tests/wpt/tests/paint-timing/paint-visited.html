@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<style>
+  a:visited {
+    color:white;
+  }
+</style>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+<a id="link" href="./">link</a>
+<script>
+/* This test ensures that an empty page is painted when there is an invisible visited link (that
+would be visible if the link was not visited). It's necessary that whether the page is painted or
+not does not depend on visitedness of the link. Otherwise the paint-timing API could be used to
+sniff whether a link has been visited or not. */
+window.onload = function() {
+  /* Convenience helper to get the link into the browsing history.
+    Using a relative path because some browsers only allow replaceState within the same domain. */
+  current_url = window.location.href;
+  history.replaceState({}, "", "./");
+  history.replaceState({}, "", current_url);
+}
+setup({"hide_test_state": true});
+async_test(function(t) {
+  assert_implements(window.PerformancePaintTiming, "Paint Timing isn't supported.");
+
+  assertPaintTimingEntries(t, 20);
+}, "Visited-attack test to check existence of FP and FCP.");
+</script>
+</body>

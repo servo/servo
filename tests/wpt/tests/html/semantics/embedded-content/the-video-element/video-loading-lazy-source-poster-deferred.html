@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<link rel="author" title="Helmut Januschka" href="mailto:helmut@januschka.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  .below-viewport {
+    margin-top: 1000vh;
+  }
+</style>
+
+<video class="below-viewport" loading="lazy" poster="/media/2048x1360-random.jpg" controls>
+  <source src="/media/A4.webm" type="video/webm">
+</video>
+
+<script>
+  async_test(t => {
+    const video = document.querySelector("video");
+    let loadStarted = false;
+    video.addEventListener("loadstart", () => {
+      loadStarted = true;
+    });
+
+    t.step_timeout(() => {
+      assert_false(loadStarted, "Video load should not start while offscreen");
+      assert_equals(video.readyState, HTMLMediaElement.HAVE_NOTHING);
+
+      video.addEventListener("loadstart", t.step_func_done(() => {}),
+                             {once: true});
+      video.scrollIntoView();
+    }, 1000);
+  }, "Video with loading=lazy, poster and source does not load until visible");
+</script>

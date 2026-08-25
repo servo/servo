@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<title>@container: scroll-state(scrolled) user mouse drag scroll</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#scrolled">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+<script src="/css/css-conditional/container-queries/support/cq-testcommon.js"></script>
+<style>
+  #scroller {
+    width: 200px;
+    height: 200px;
+    container-type: scroll-state;
+    overflow-y: scroll;
+  }
+  #filler {
+    height: 600px;
+  }
+  #target {
+    --none: no;
+    --y: no;
+    @container scroll-state(scrolled: none) {
+      --none: yes;
+    }
+    @container scroll-state(scrolled: y) {
+      --y: yes;
+    }
+  }
+</style>
+<div id="scroller">
+  <div id="filler">
+    <div id="target"></div>
+  </div>
+</div>
+<script>
+  setup(() => assert_implements_scroll_state_container_queries());
+
+  function scrollbar_track_click(track_position) {
+    return new test_driver.Actions()
+        .addPointer("TestPointer", "mouse")
+        .pointerMove(Math.round(track_position.x), Math.round(track_position.y))
+        .pointerDown()
+        .pointerUp()
+        .send();
+  }
+
+  promise_test(async t => {
+    // Skip test on platforms that do not have a visible scrollbar (e.g.
+    // overlay scrollbar) since it wouldn't have scrollbar buttons.
+    const scrollbar_width = scroller.offsetWidth - scroller.clientWidth;
+    if (scrollbar_width == 0) {
+      return;
+    }
+
+    assert_equals(scroller.scrollTop, 0);
+
+    let scrollEndPromise = waitForScrollEndFallbackToDelayWithoutScrollEvent(scroller);
+
+    /* Scrollbar down button should be located on bottom right side */
+    const track_position = { x: 200, y: 200 };
+    await scrollbar_track_click(track_position);
+
+    await scrollEndPromise;
+    await waitForAnimationFrames(2);
+
+    assert_not_equals(scroller.scrollTop, 0);
+    assert_equals(getComputedStyle(target).getPropertyValue("--y"), "yes");
+
+  }, "Scrollbar button clicks scroll");
+
+</script>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#funcdef-random-item">
+<link rel="author" title="Joanne Pan" href="https://github.com/J0pan">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+// random-item() is an arbitrary substitution function, so only its argument grammar is
+// validated at parse time:
+//   <random-item-args> = random-item( <declaration-value>, [ <declaration-value>? ]# )
+// See https://drafts.csswg.org/css-values-5/#funcdef-random-item
+
+// The first argument (<random-key>) is required, and a comma-separated item list must follow.
+test_invalid_value('font-family', 'random-item()');
+test_invalid_value('font-family', 'random-item( )');
+test_invalid_value('font-family', 'random-item(auto)');
+test_invalid_value('font-family', 'random-item(, serif, sans-serif)');
+
+// Forbidden tokens in <declaration-value>.
+// https://drafts.csswg.org/css-syntax/#typedef-declaration-value
+test_invalid_value('font-family', 'random-item(auto, !)');
+test_invalid_value('font-family', 'random-item(auto, ;)');
+test_invalid_value('font-family', 'random-item(auto, })');
+test_invalid_value('font-family', 'random-item(auto, ])');
+
+// Badly closed / unbalanced curly braces.
+test_invalid_value('font-family', 'random-item(auto, {serif)');
+test_invalid_value('font-family', 'random-item(auto, serif})');
+test_invalid_value('font-family', 'random-item(auto, {Times, serif)');
+test_invalid_value('font-family', 'random-item({auto, serif, sans-serif)');
+
+// A non-{}-wrapped item may not be mixed with a {}-wrapped block.
+test_invalid_value('font-family', 'random-item(auto, {Times, serif} extra)');
+test_invalid_value('font-family', 'random-item(auto, extra {Times, serif})');
+
+</script>

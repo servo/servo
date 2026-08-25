@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>Elements under canvas should report intersections, but not visibility</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+
+<canvas id=canvas width="200" height="200" layoutsubtree>
+  <div id=target>hello world</div>
+</canvas>
+
+<script>
+promise_test(async function(t) {
+  await waitForCanvasPaint(canvas);
+  canvas.getContext('2d').drawElementImage(target, 0, 0);
+
+  await new Promise(r => requestAnimationFrame(r));
+  await new Promise(r => requestAnimationFrame(r));
+
+  let intersectingIntersections = 0;
+  let visibleIntersections = 0;
+  const observer = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) { intersectingIntersections++; }
+        if (entry.isVisible) { visibleIntersections++; }
+      }
+    },
+    { trackVisibility: true, delay: 100 }
+  );
+  observer.observe(target);
+
+  await new Promise(r => requestAnimationFrame(r));
+  await new Promise(r => requestAnimationFrame(r));
+  await new Promise(r => setTimeout(r, 100));
+
+  assert_equals(intersectingIntersections, 1);
+  assert_equals(visibleIntersections, 0);
+}, "Elements under canvas should report intersections, but not visibility");
+</script>

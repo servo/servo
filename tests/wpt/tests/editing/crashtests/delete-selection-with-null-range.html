@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>
+  This test crashes on Null-dereference READ in
+  blink::Range::StartPosition
+</title>
+<style>
+  .fieldset {
+    box-decoration-break: slice;
+    visibility: hidden !important;
+  }
+  *:last-child {
+    -webkit-border-vertical-spacing: 04.408cm;
+    -webkit-text-security: disc;
+  }
+  *:empty {
+    background-origin: inherit;
+    display: initial;
+  }
+</style>
+<script>
+  function run_on_page_load() {
+    document.designMode = "on";
+    const oSelection = window.getSelection();
+    document.execCommand("SelectAll");
+    const oDocumentFragment = oSelection.getRangeAt(0).extractContents();
+  }
+  document.addEventListener("DOMContentLoaded", run_on_page_load);
+  function run_on_readystatechange() {
+    document.execCommand("Indent");
+  }
+  document.addEventListener(
+    "readystatechange",
+    run_on_readystatechange
+  );
+</script>
+<h2>This test should not crash.</h2>
+<fieldset class="fieldset" xml:space="preserve"></fieldset>

@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Test: ::first-letter with text-transform:capitalize after supplementary character</title>
+  <link rel="author" title="Chris Dumez" href="mailto:cdumez@apple.com">
+  <link rel="match" href="first-letter-capitalize-supplementary-char-ref.html">
+  <link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#first-letter-styling">
+  <link rel="help" href="https://drafts.csswg.org/css-text-3/#text-transform-property">
+  <meta name="assert" content="When ::first-letter captures a supplementary Unicode character (surrogate pair), text-transform:capitalize on the remaining text must correctly identify the previous character for word boundary detection.">
+  <style>
+  .test {
+    font-size: 36px;
+    text-transform: capitalize;
+  }
+  .test::first-letter {
+    color: green;
+  }
+  </style>
+</head>
+<body>
+  <!-- U+1D400 (MATHEMATICAL BOLD CAPITAL A) is a supplementary character (surrogate pair in UTF-16).
+       "bc" continues the same word, so capitalize should NOT uppercase "b".
+       "def" is a new word, so capitalize SHOULD uppercase "d". -->
+  <div class="test">&#x1D400;bc def</div>
+</body>
+</html>

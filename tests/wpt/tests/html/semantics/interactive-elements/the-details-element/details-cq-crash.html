@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:vmpstr@chromium.org">
+<link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=1334983">
+
+<canvas>
+  <details>
+    <card card>
+
+<script>
+async function trigger() {
+ document.querySelector("canvas").style.setProperty("container-type", "size");
+ document.querySelector("canvas").style.setProperty("column-span", "all");
+ document.querySelector("card").setAttribute("contenteditable", "true");
+}
+onload = requestAnimationFrame(() => requestAnimationFrame(trigger));
+</script>

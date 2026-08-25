@@ -1,0 +1,35 @@
+<!doctype HTML>
+<head>
+  <meta charset=utf-8>
+  <title>Fragment Navigation: Scrolling to a fragment focuses the fragment, falling back to the viewport</title>
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#scrolling-to-a-fragment:focusing-steps">
+  <link rel="author" href="mailto:mrobinson@igalia.com" title="Martin Robinson">
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+</head>
+<body>
+    <div id="initial" tabindex="1">Initial</div>
+    <!-- This div is focusable, so navigating to it should focus it. -->
+    <div id="target1" tabindex="1">Target 1</div>
+    <!-- This div is not focusable, so navigating to it should focus the viewport. -->
+    <div id="target2">Target 1</div>
+</body>
+<script>
+test((t) => {
+  initial.focus();
+  assert_equals(document.activeElement, initial);
+
+  let sawTarget1FocusEvent = false;
+  target1.addEventListener("focus", () => sawTarget1FocusEvent = true);
+  location.hash = "target1";
+  assert_equals(document.activeElement, target1);
+  assert_true(sawTarget1FocusEvent);
+
+  initial.focus();
+  assert_equals(document.activeElement, initial);
+
+  location.hash = "target2";
+  assert_equals(document.activeElement, document.body);
+
+});
+</script>

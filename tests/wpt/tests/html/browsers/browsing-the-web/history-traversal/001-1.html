@@ -1,0 +1,11 @@
+<!doctype html>
+001-1
+<script>
+addEventListener("pageshow",
+  function(e) {
+    parent.events.push(e);
+    if (parent.events.length == 2) {
+      parent.do_test();
+    }
+  }, false);
+</script>

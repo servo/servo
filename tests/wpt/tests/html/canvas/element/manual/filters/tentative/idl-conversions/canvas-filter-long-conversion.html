@@ -1,0 +1,35 @@
+<head>
+    <link rel="match" href="canvas-filter-long-conversion-expected.html">
+</head>
+<body>
+  <canvas id="canvas" width="300" height="300"></canvas>
+</body>
+<script>
+  // Test the built-in ECMAScript types Undefined, Null, Boolean, String, Number, and Object
+  // as input to the CanvasFilter resolver when a long is the intended result.
+  var ctx = document.getElementById('canvas').getContext('2d');
+
+  // Null, False and [] evaluate to zero
+  ctx.filter  = new CanvasFilter({filter: "gaussianBlur", stdDeviation: null});
+  ctx.fillRect(10, 10, 30, 30);
+  ctx.filter  = new CanvasFilter({filter: "gaussianBlur", stdDeviation: false});
+  ctx.fillRect(50, 10, 30, 30);
+  ctx.filter  = new CanvasFilter({filter: "gaussianBlur", stdDeviation: []});
+  ctx.fillRect(90, 10, 30, 30);
+  // True evaluates to one
+  ctx.filter  = new CanvasFilter({filter: "gaussianBlur", stdDeviation: true});
+  ctx.fillRect(130, 10, 30, 30);
+  // String, Number and Object should all work
+  ctx.filter  = new CanvasFilter({filter: "gaussianBlur", stdDeviation: "5"});
+  ctx.fillRect(10, 50, 30, 30);
+  ctx.filter  = new CanvasFilter({filter: "gaussianBlur", stdDeviation: 5});
+  ctx.fillRect(50, 50, 30, 30);
+  ctx.filter  = new CanvasFilter({filter: "gaussianBlur", stdDeviation: { valueOf() { return 5; }}});
+  ctx.fillRect(90, 50, 30, 30);
+  // Valid sequence
+  ctx.filter  = new CanvasFilter({filter: "gaussianBlur", stdDeviation: [5]});
+  ctx.fillRect(130, 50, 30, 30);
+
+  // Undefined and other inputs that throw exceptions are tested in:
+  // html/canvas/element/filters/2d.filter.canvasFilterObject.blur.exceptions.html
+</script>

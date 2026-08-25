@@ -1,0 +1,17 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Dynamic Adding of Elements</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<h1>Test of Dynamic Adding of Elements</h1>
+<div id="log"></div>
+<p id="parentEl">The result of this test is
+<span id="first_element_child" style="font-weight:bold;">logged above.</span></p>
+<script>
+test(function() {
+  var parentEl = document.getElementById("parentEl");
+  var newChild = document.createElement("span");
+  parentEl.appendChild(newChild);
+  assert_equals(parentEl.childElementCount, 2)
+})
+</script>

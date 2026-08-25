@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test that HTML is pasted into EditContext as plain text</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../include/editor-test-utils.js"></script>
+<div id=host></div>
+<div id=copyFrom contenteditable>Co<b>pie</b>d <i>text</i></div>
+<script>
+'use strict';
+const host = document.getElementById('host');
+const editContext = new EditContext();
+host.editContext = editContext;
+const copyFrom = document.getElementById('copyFrom');
+
+promise_test(async () => {
+  copyFrom.focus();
+  getSelection().selectAllChildren(copyFrom);
+  await new EditorTestUtils(copyFrom).sendCopyShortcutKey();
+  host.focus();
+  let textUpdateFired = false;
+  editContext.addEventListener('textupdate', () => {
+    textUpdateFired = true;
+  });
+  await new EditorTestUtils(host).sendPasteShortcutKey();
+  assert_true(textUpdateFired, 'Should fire textupdate.');
+  assert_equals(editContext.text, 'Copied text',
+                'EditContext.text should be updated with plain text.');
+  assert_equals(host.firstChild, null, 'DOM should not be changed.');
+});
+
+</script>

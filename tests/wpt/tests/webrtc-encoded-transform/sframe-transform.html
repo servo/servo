@@ -1,0 +1,110 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+    </head>
+    <body>
+        <script>
+
+promise_test(async (test) => {
+    const pc = new RTCPeerConnection();
+    const senderTransform = new RTCRtpSFrameEncrypter({ cipherSuite: "AES_128_CTR_HMAC_SHA256_80" });
+    const receiverTransform = new RTCRtpSFrameDecrypter({ cipherSuite: "AES_128_CTR_HMAC_SHA256_80" });
+    const sender1 = pc.addTransceiver('audio').sender;
+    const sender2 = pc.addTransceiver('video').sender;
+    const receiver1 = pc.getReceivers()[0];
+    const receiver2 = pc.getReceivers()[1];
+
+    sender1.transform = senderTransform;
+    receiver1.transform = receiverTransform;
+    assert_throws_dom("InvalidStateError", () => sender2.transform = senderTransform);
+    assert_throws_dom("InvalidStateError", () => receiver2.transform = receiverTransform);
+
+    sender1.transform = senderTransform;
+    receiver1.transform = receiverTransform;
+
+    sender1.transform = null;
+    receiver1.transform = null;
+}, "Cannot reuse attached transforms");
+
+test(() => {
+    const stream = new SFrameEncrypterStream({ cipherSuite: "AES_128_CTR_HMAC_SHA256_80" });
+
+    assert_true(stream.readable instanceof ReadableStream);
+    assert_true(stream.writable instanceof WritableStream);
+}, "SFrameEncrypterStream exposes readable and writable");
+
+promise_test(async (test) => {
+    const key = await crypto.subtle.importKey("raw", new Uint8Array([143, 77, 43, 10, 72, 19, 37, 67, 236, 219, 24, 93, 26, 165, 91, 178]), "HKDF", false, ["deriveBits", "deriveKey"]);
+
+    const senderTransform = new SFrameEncrypterStream({ cipherSuite: "AES_128_CTR_HMAC_SHA256_80" });
+    senderTransform.setEncryptionKey(key);
+
+    const receiverTransform = new SFrameDecrypterStream({ cipherSuite: "AES_128_CTR_HMAC_SHA256_80" });
+    receiverTransform.addDecryptionKey(key);
+
+    const writer = senderTransform.writable.getWriter();
+    const reader = receiverTransform.readable.getReader();
+
+    senderTransform.readable.pipeTo(receiverTransform.writable);
+
+    const sent = new ArrayBuffer(8);
+    const view = new Int8Array(sent);
+    for (let cptr = 0; cptr < sent.byteLength; ++cptr)
+        view[cptr] = cptr;
+
+    writer.write(sent);
+    const received = await reader.read();
+
+    assert_equals(received.value.byteLength, 8);
+    const view2 = new Int8Array(received.value);
+    for (let cptr = 0; cptr < sent.byteLength; ++cptr)
+        assert_equals(view2[cptr], view[cptr]);
+}, "SFrame with array buffer - AES_128_CTR_HMAC_SHA256_80");
+
+promise_test(async (test) => {
+    const key = await crypto.subtle.importKey("raw", new Uint8Array([143, 77, 43, 10, 72, 19, 37, 67, 236, 219, 24, 93, 26, 165, 91, 178]), "HKDF", false, ["deriveBits", "deriveKey"]);
+
+    const senderTransform = new SFrameEncrypterStream({ cipherSuite: "AES_128_CTR_HMAC_SHA256_80" });
+    const senderWriter = senderTransform.writable.getWriter();
+    const senderReader = senderTransform.readable.getReader();
+
+    const receiverTransform = new SFrameDecrypterStream({ cipherSuite: "AES_128_CTR_HMAC_SHA256_80" });
+    const receiverWriter = receiverTransform.writable.getWriter();
+    const receiverReader = receiverTransform.readable.getReader();
+
+    senderTransform.setEncryptionKey(key);
+    receiverTransform.addDecryptionKey(key);
+
+    const chunk = new ArrayBuffer(8);
+
+    // decryption should fail, leading to an empty array buffer.
+    await receiverWriter.write(chunk);
+    let received = await receiverReader.read();
+    assert_equals(received.value.byteLength, 0);
+
+    // We write again but this time with a chunk we can decrypt.
+    await senderWriter.write(chunk);
+    const encrypted = await senderReader.read();
+    await receiverWriter.write(encrypted.value);
+    received = await receiverReader.read();
+    assert_equals(received.value.byteLength, 8);
+}, "SFrame decryption with array buffer that is too small");
+
+promise_test(async (test) => {
+    const key = await crypto.subtle.importKey("raw", new Uint8Array([143, 77, 43, 10, 72, 19, 37, 67, 236, 219, 24, 93, 26, 165, 91, 178]), "HKDF", false, ["deriveBits", "deriveKey"]);
+
+    const receiverTransform = new SFrameDecrypterStream({ cipherSuite: "AES_128_CTR_HMAC_SHA256_80" });
+    const receiverWriter = receiverTransform.writable.getWriter();
+    receiverTransform.addDecryptionKey(key);
+
+    // decryption should fail, leading to erroring the transform.
+    await promise_rejects_js(test, TypeError, receiverWriter.write({ }));
+    await promise_rejects_js(test, TypeError, receiverWriter.closed);
+}, "SFrame transform gets errored if trying to process unexpected value types");
+
+        </script>
+    </body>
+</html>

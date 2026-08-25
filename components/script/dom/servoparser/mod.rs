@@ -1,0 +1,2340 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use std::borrow::Cow;
+use std::cell::{Cell, RefCell};
+use std::mem;
+use std::rc::Rc;
+
+use base64::Engine as _;
+use base64::engine::general_purpose;
+use content_security_policy::sandboxing_directive::SandboxingFlagSet;
+use devtools_traits::ScriptToDevtoolsControlMsg;
+use dom_struct::dom_struct;
+use embedder_traits::resources::{self, Resource};
+use encoding_rs::{Encoding, UTF_8};
+use html5ever::buffer_queue::BufferQueue;
+use html5ever::tendril::StrTendril;
+use html5ever::tree_builder::{ElementFlags, NodeOrText, QuirksMode, TreeSink};
+use html5ever::{Attribute, ExpandedName, LocalName, QualName, local_name, ns};
+use hyper_serde::Serde;
+use js::context::JSContext;
+use markup5ever::TokenizerResult;
+use mime::{self, Mime};
+use net_traits::mime_classifier::{ApacheBugFlag, MediaType, MimeClassifier, NoSniffFlag};
+use net_traits::policy_container::PolicyContainer;
+use net_traits::request::RequestId;
+use net_traits::{
+    FetchMetadata, LoadContext, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming,
+};
+use profile_traits::time::{
+    ProfilerCategory, ProfilerChan, TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType,
+};
+use profile_traits::time_profile;
+use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::script_runtime::temp_cx;
+use script_traits::DocumentActivity;
+use servo_base::id::{PipelineId, WebViewId};
+use servo_config::pref;
+use servo_constellation_traits::{LoadOrigin, TargetSnapshotParams};
+use servo_url::{MutableOrigin, ServoUrl};
+use style::context::QuirksMode as ServoQuirksMode;
+use tendril::stream::LossyDecoder;
+use tendril::{ByteTendril, TendrilSink};
+
+use crate::dom::SuppressObserver;
+use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
+    DocumentMethods, DocumentReadyState,
+};
+use crate::dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLMediaElementBinding::HTMLMediaElementMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
+use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
+    ShadowRootMode, SlotAssignmentMode,
+};
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::refcounted::Trusted;
+use crate::dom::bindings::reflector::DomGlobal;
+use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
+use crate::dom::bindings::settings_stack::is_execution_stack_empty;
+use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::characterdata::CharacterData;
+use crate::dom::comment::Comment;
+use crate::dom::csp::{Violation, parse_csp_list_from_metadata};
+use crate::dom::customelementregistry::{CustomElementReactionStack, CustomElementRegistry};
+use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
+use crate::dom::documentfragment::DocumentFragment;
+use crate::dom::documenttype::DocumentType;
+use crate::dom::element::create::create_element;
+use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::html::document_metadata::processingoptions::{
+    LinkHeader, LinkProcessingPhase, extract_links_from_headers, process_link_headers,
+};
+use crate::dom::html::htmlformelement::{FormControlElementHelpers, HTMLFormElement};
+use crate::dom::html::htmlimageelement::HTMLImageElement;
+use crate::dom::html::htmlscriptelement::{HTMLScriptElement, ScriptResult};
+use crate::dom::html::htmltemplateelement::HTMLTemplateElement;
+use crate::dom::iterators::ShadowIncluding;
+use crate::dom::node::Node;
+use crate::dom::node::virtualmethods::vtable_for;
+use crate::dom::performance::performanceentry::PerformanceEntry;
+use crate::dom::performance::performancenavigationtiming::PerformanceNavigationTiming;
+use crate::dom::processinginstruction::ProcessingInstruction;
+use crate::dom::reporting::reportingendpoint::ReportingEndpoint;
+use crate::dom::security::csp::CspReporting;
+use crate::dom::security::xframeoptions::check_a_navigation_response_adherence_to_x_frame_options;
+use crate::dom::shadowroot::IsUserAgentWidget;
+use crate::dom::text::Text;
+use crate::dom::types::{HTMLElement, HTMLMediaElement, HTMLOptionElement};
+use crate::event_loop::document_loader::{DocumentLoader, LoadType};
+use crate::event_loop::script_thread::ScriptThread;
+use crate::fetch::network_listener::FetchResponseListener;
+use crate::navigation::determine_the_origin;
+use crate::realms::enter_auto_realm;
+use crate::runtime::script_runtime::IntroductionType;
+
+mod async_html;
+pub(crate) mod encoding;
+pub(crate) mod html;
+mod prefetch;
+mod xml;
+
+use encoding::{NetworkDecoderState, NetworkSink};
+pub(crate) use html::serialize_html_fragment;
+
+#[dom_struct]
+/// The parser maintains two input streams: one for input from script through
+/// document.write(), and one for input from network.
+///
+/// There is no concrete representation of the insertion point, instead it
+/// always points to just before the next character from the network input,
+/// with all of the script input before itself.
+///
+/// ```text
+///     ... script input ... | ... network input ...
+///                          ^
+///                 insertion point
+/// ```
+pub(crate) struct ServoParser {
+    reflector: Reflector,
+    /// The document associated with this parser.
+    document: Dom<Document>,
+    /// The decoder used for the network input.
+    network_decoder: DomRefCell<NetworkDecoderState>,
+    /// Input received from network.
+    #[ignore_malloc_size_of = "Defined in html5ever"]
+    #[no_trace]
+    network_input: BufferQueue,
+    /// Input received from script. Used only to support document.write().
+    #[ignore_malloc_size_of = "Defined in html5ever"]
+    #[no_trace]
+    script_input: BufferQueue,
+    /// The tokenizer of this parser.
+    tokenizer: Tokenizer,
+    /// Whether to expect any further input from the associated network request.
+    last_chunk_received: Cell<bool>,
+    /// Whether this parser should avoid passing any further data to the tokenizer.
+    suspended: Cell<bool>,
+    /// <https://html.spec.whatwg.org/multipage/#script-nesting-level>
+    script_nesting_level: Cell<usize>,
+    /// <https://html.spec.whatwg.org/multipage/#abort-a-parser>
+    aborted: Cell<bool>,
+    /// <https://html.spec.whatwg.org/multipage/#stop-parsing>
+    stopped: Cell<bool>,
+    /// <https://html.spec.whatwg.org/multipage/#script-created-parser>
+    script_created_parser: bool,
+    /// A decoder exclusively for input to the prefetch tokenizer.
+    ///
+    /// Unlike the actual decoder, this one takes a best guess at the encoding and starts
+    /// decoding immediately.
+    #[no_trace]
+    prefetch_decoder: RefCell<LossyDecoder<NetworkSink>>,
+    /// We do a quick-and-dirty parse of the input looking for resources to prefetch.
+    // TODO: if we had speculative parsing, we could do this when speculatively
+    // building the DOM. https://github.com/servo/servo/pull/19203
+    prefetch_tokenizer: prefetch::Tokenizer,
+    #[ignore_malloc_size_of = "Defined in html5ever"]
+    #[no_trace]
+    prefetch_input: BufferQueue,
+    // The whole input as a string, if needed for the devtools Sources panel.
+    // TODO: use a faster type for concatenating strings?
+    content_for_devtools: Option<DomRefCell<String>>,
+}
+
+pub(crate) struct ElementAttribute {
+    name: QualName,
+    value: DOMString,
+}
+
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
+pub(crate) enum ParsingAlgorithm {
+    Normal,
+    Fragment,
+}
+
+impl ElementAttribute {
+    pub(crate) fn new(name: QualName, value: DOMString) -> ElementAttribute {
+        ElementAttribute { name, value }
+    }
+}
+
+impl ServoParser {
+    /// <https://html.spec.whatwg.org/multipage/#parse-html-from-a-string>
+    pub(crate) fn parse_html_document(
+        cx: &mut JSContext,
+        document: &Document,
+        input: Option<DOMString>,
+        url: ServoUrl,
+        encoding_hint_from_content_type: Option<&'static Encoding>,
+        encoding_of_container_document: Option<&'static Encoding>,
+    ) {
+        // Step 1. Set document's type to "html".
+        //
+        // Set by callers of this function and asserted here
+        assert!(document.is_html_document());
+
+        // Step 2. Create an HTML parser parser, associated with document.
+        let parser = ServoParser::new(
+            cx,
+            document,
+            if pref!(dom_servoparser_async_html_tokenizer_enabled) {
+                Tokenizer::AsyncHtml(self::async_html::Tokenizer::new(document, url, None))
+            } else {
+                Tokenizer::Html(self::html::Tokenizer::new(
+                    document,
+                    url,
+                    None,
+                    ParsingAlgorithm::Normal,
+                ))
+            },
+            ParserKind::Normal,
+            encoding_hint_from_content_type,
+            encoding_of_container_document,
+        );
+
+        // Step 3. Place html into the input stream for parser. The encoding confidence is irrelevant.
+        // Step 4. Start parser and let it run until it has consumed all the
+        // characters just inserted into the input stream.
+        //
+        // Set as the document's current parser and initialize with `input`, if given.
+        if let Some(input) = input {
+            parser.parse_complete_string_chunk(cx, String::from(input));
+        } else {
+            parser.document.set_current_parser(Some(&parser));
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#parsing-html-fragments>
+    pub(crate) fn parse_html_fragment<'el>(
+        cx: &mut JSContext,
+        context: &'el Element,
+        input: DOMString,
+        allow_declarative_shadow_roots: bool,
+    ) -> impl Iterator<Item = DomRoot<Node>> + use<'el> {
+        let context_node = context.upcast::<Node>();
+        let context_document = context_node.owner_doc();
+        let window = context_document.window();
+        let url = context_document.url();
+
+        // Step 1. Let document be a Document node whose type is "html".
+        let loader = DocumentLoader::new_with_threads(
+            context_document.loader().resource_threads().clone(),
+            Some(url.clone()),
+        );
+        let document = Document::new(
+            cx,
+            window,
+            HasBrowsingContext::No,
+            Some(url.clone()),
+            context_document.about_base_url(),
+            context_document.origin().clone(),
+            IsHTMLDocument::HTMLDocument,
+            None,
+            None,
+            DocumentActivity::Inactive,
+            DocumentSource::FromParser,
+            loader,
+            None,
+            None,
+            Default::default(),
+            false,
+            allow_declarative_shadow_roots,
+            Some(context_document.insecure_requests_policy()),
+            context_document.has_trustworthy_ancestor_or_current_origin(),
+            context_document.custom_element_reaction_stack(),
+            context_document.creation_sandboxing_flag_set(),
+            context_document.pipeline_id(),
+            context_document.image_cache(),
+        );
+
+        // Step 2. If context's node document is in quirks mode, then set document's mode to "quirks".
+        // Step 3. Otherwise, if context's node document is in limited-quirks mode, then set document's
+        // mode to "limited-quirks".
+        document.set_quirks_mode(context_document.quirks_mode());
+
+        // NOTE: The following steps happened as part of Step 1.
+        // Step 4. If allowDeclarativeShadowRoots is true, then set document's
+        // allow declarative shadow roots to true.
+        // Step 5. Create a new HTML parser, and associate it with document.
+
+        // Step 11.
+        let form = context_node
+            .inclusive_ancestors(ShadowIncluding::No)
+            .find(|element| element.is::<HTMLFormElement>());
+
+        let fragment_context = FragmentContext {
+            context_elem: context_node,
+            form_elem: form.as_deref(),
+            context_element_allows_scripting: context_document.scripting_enabled(),
+        };
+
+        let parser = ServoParser::new(
+            cx,
+            &document,
+            Tokenizer::Html(self::html::Tokenizer::new(
+                &document,
+                url,
+                Some(fragment_context),
+                ParsingAlgorithm::Fragment,
+            )),
+            ParserKind::Normal,
+            None,
+            None,
+        );
+        parser.parse_complete_string_chunk(cx, String::from(input));
+
+        // Step 14.
+        let root_element = document.GetDocumentElement().expect("no document element");
+        FragmentParsingResult {
+            inner: root_element.upcast::<Node>().children(),
+        }
+    }
+
+    pub(crate) fn parse_html_script_input(cx: &mut JSContext, document: &Document, url: ServoUrl) {
+        let parser = ServoParser::new(
+            cx,
+            document,
+            if pref!(dom_servoparser_async_html_tokenizer_enabled) {
+                Tokenizer::AsyncHtml(self::async_html::Tokenizer::new(document, url, None))
+            } else {
+                Tokenizer::Html(self::html::Tokenizer::new(
+                    document,
+                    url,
+                    None,
+                    ParsingAlgorithm::Normal,
+                ))
+            },
+            ParserKind::ScriptCreated,
+            None,
+            None,
+        );
+        document.set_current_parser(Some(&parser));
+    }
+
+    pub(crate) fn parse_xml_document(
+        cx: &mut JSContext,
+        document: &Document,
+        input: Option<DOMString>,
+        url: ServoUrl,
+        encoding_hint_from_content_type: Option<&'static Encoding>,
+    ) {
+        let parser = ServoParser::new(
+            cx,
+            document,
+            Tokenizer::Xml(self::xml::Tokenizer::new(document, url)),
+            ParserKind::Normal,
+            encoding_hint_from_content_type,
+            None,
+        );
+
+        // Set as the document's current parser and initialize with `input`, if given.
+        if let Some(input) = input {
+            parser.parse_complete_string_chunk(cx, String::from(input));
+        } else {
+            parser.document.set_current_parser(Some(&parser));
+        }
+    }
+
+    pub(crate) fn script_nesting_level(&self) -> usize {
+        self.script_nesting_level.get()
+    }
+
+    pub(crate) fn is_script_created(&self) -> bool {
+        self.script_created_parser
+    }
+
+    /// Corresponds to the latter part of the "Otherwise" branch of the 'An end
+    /// tag whose tag name is "script"' of
+    /// <https://html.spec.whatwg.org/multipage/#parsing-main-incdata>
+    ///
+    /// This first moves everything from the script input to the beginning of
+    /// the network input, effectively resetting the insertion point to just
+    /// before the next character to be consumed.
+    ///
+    ///
+    /// ```text
+    ///     | ... script input ... network input ...
+    ///     ^
+    ///     insertion point
+    /// ```
+    pub(crate) fn resume_with_pending_parsing_blocking_script(
+        &self,
+        cx: &mut JSContext,
+        script: &HTMLScriptElement,
+        result: ScriptResult,
+    ) {
+        assert!(self.suspended.get());
+        self.suspended.set(false);
+
+        self.script_input.swap_with(&self.network_input);
+        while let Some(chunk) = self.script_input.pop_front() {
+            self.network_input.push_back(chunk);
+        }
+
+        let script_nesting_level = self.script_nesting_level.get();
+        assert_eq!(script_nesting_level, 0);
+
+        self.script_nesting_level.set(script_nesting_level + 1);
+        script.execute(cx, result);
+        self.script_nesting_level.set(script_nesting_level);
+
+        if !self.suspended.get() && !self.aborted.get() {
+            self.parse_sync(cx);
+        }
+    }
+
+    pub(crate) fn can_write(&self) -> bool {
+        self.script_created_parser || self.script_nesting_level.get() > 0
+    }
+
+    /// Steps 6-8 of <https://html.spec.whatwg.org/multipage/#document.write()>
+    pub(crate) fn write(&self, cx: &mut JSContext, text: DOMString) {
+        assert!(self.can_write());
+
+        if self.document.has_pending_parsing_blocking_script() {
+            // There is already a pending parsing blocking script so the
+            // parser is suspended, we just append everything to the
+            // script input and abort these steps.
+            self.script_input.push_back(String::from(text).into());
+            return;
+        }
+
+        // There is no pending parsing blocking script, so all previous calls
+        // to document.write() should have seen their entire input tokenized
+        // and process, with nothing pushed to the parser script input.
+        assert!(self.script_input.is_empty());
+
+        let input = BufferQueue::default();
+        input.push_back(String::from(text).into());
+
+        let profiler_chan = self
+            .document
+            .window()
+            .as_global_scope()
+            .time_profiler_chan()
+            .clone();
+        let profiler_metadata = TimerMetadata {
+            url: self.document.url().as_str().into(),
+            iframe: TimerMetadataFrameType::RootWindow,
+            incremental: TimerMetadataReflowType::FirstReflow,
+        };
+        self.tokenize(cx, |cx, tokenizer| {
+            tokenizer.feed(cx, &input, profiler_chan.clone(), profiler_metadata.clone())
+        });
+
+        if self.suspended.get() {
+            // Parser got suspended, insert remaining input at end of
+            // script input, following anything written by scripts executed
+            // reentrantly during this call.
+            while let Some(chunk) = input.pop_front() {
+                self.script_input.push_back(chunk);
+            }
+            return;
+        }
+
+        assert!(input.is_empty());
+    }
+
+    /// Steps 4-6 of <https://html.spec.whatwg.org/multipage/#dom-document-close>
+    pub(crate) fn close(&self, cx: &mut JSContext) {
+        assert!(self.script_created_parser);
+
+        // Step 4. Insert an explicit "EOF" character at the end of the parser's input stream.
+        self.last_chunk_received.set(true);
+
+        // Step 5. If this's pending parsing-blocking script is not null, then return.
+        if self.suspended.get() {
+            return;
+        }
+
+        // Step 6. Run the tokenizer, processing resulting tokens as they are emitted,
+        // and stopping when the tokenizer reaches the explicit "EOF" character or spins the event loop.
+        self.parse_sync(cx);
+    }
+
+    // https://html.spec.whatwg.org/multipage/#abort-a-parser
+    pub(crate) fn abort(&self, cx: &mut JSContext) {
+        assert!(!self.aborted.get());
+        self.aborted.set(true);
+
+        // Step 1.
+        self.script_input.replace_with(BufferQueue::default());
+        self.network_input.replace_with(BufferQueue::default());
+
+        // Step 2.
+        self.document
+            .update_the_current_document_readiness(cx, DocumentReadyState::Interactive);
+
+        // Step 3.
+        self.tokenizer.end(cx);
+        self.document.set_current_parser(None);
+
+        // Step 4.
+        self.document
+            .update_the_current_document_readiness(cx, DocumentReadyState::Complete);
+    }
+
+    pub(crate) fn get_current_line(&self) -> u32 {
+        self.tokenizer.get_current_line()
+    }
+
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
+    fn new_inherited(
+        document: &Document,
+        tokenizer: Tokenizer,
+        kind: ParserKind,
+        encoding_hint_from_content_type: Option<&'static Encoding>,
+        encoding_of_container_document: Option<&'static Encoding>,
+    ) -> Self {
+        // Store the whole input for the devtools Sources panel, if the devtools server is running
+        // and we are parsing for a document load (not just things like innerHTML).
+        // TODO: check if a devtools client is actually connected and/or wants the sources?
+        let content_for_devtools = (document.global().devtools_chan().is_some() &&
+            document.has_browsing_context())
+        .then_some(DomRefCell::new(String::new()));
+
+        ServoParser {
+            reflector: Reflector::new(),
+            document: Dom::from_ref(document),
+            network_decoder: DomRefCell::new(NetworkDecoderState::new(
+                encoding_hint_from_content_type,
+                encoding_of_container_document,
+            )),
+            network_input: BufferQueue::default(),
+            script_input: BufferQueue::default(),
+            tokenizer,
+            last_chunk_received: Cell::new(false),
+            suspended: Default::default(),
+            script_nesting_level: Default::default(),
+            aborted: Default::default(),
+            stopped: Default::default(),
+            script_created_parser: kind == ParserKind::ScriptCreated,
+            prefetch_decoder: RefCell::new(LossyDecoder::new_encoding_rs(
+                encoding_hint_from_content_type.unwrap_or(UTF_8),
+                Default::default(),
+            )),
+            prefetch_tokenizer: prefetch::Tokenizer::new(document),
+            prefetch_input: BufferQueue::default(),
+            content_for_devtools,
+        }
+    }
+
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
+    fn new(
+        cx: &mut JSContext,
+        document: &Document,
+        tokenizer: Tokenizer,
+        kind: ParserKind,
+        encoding_hint_from_content_type: Option<&'static Encoding>,
+        encoding_of_container_document: Option<&'static Encoding>,
+    ) -> DomRoot<Self> {
+        reflect_dom_object_with_cx(
+            Box::new(ServoParser::new_inherited(
+                document,
+                tokenizer,
+                kind,
+                encoding_hint_from_content_type,
+                encoding_of_container_document,
+            )),
+            document.window(),
+            cx,
+        )
+    }
+
+    fn push_tendril_input_chunk(&self, chunk: StrTendril) {
+        if let Some(mut content_for_devtools) = self
+            .content_for_devtools
+            .as_ref()
+            .map(|content| content.borrow_mut())
+        {
+            // TODO: append these chunks more efficiently
+            content_for_devtools.push_str(chunk.as_ref());
+        }
+
+        if chunk.is_empty() {
+            return;
+        }
+
+        // Push the chunk into the network input stream,
+        // which is tokenized lazily.
+        self.network_input.push_back(chunk);
+    }
+
+    fn push_bytes_input_chunk(&self, chunk: Vec<u8>) {
+        // For byte input, we convert it to text using the network decoder.
+        if let Some(decoded_chunk) = self
+            .network_decoder
+            .borrow_mut()
+            .push(&chunk, &self.document)
+        {
+            self.push_tendril_input_chunk(decoded_chunk);
+        }
+
+        if self.should_prefetch() {
+            // Push the chunk into the prefetch input stream,
+            // which is tokenized eagerly, to scan for resources
+            // to prefetch. If the user script uses `document.write()`
+            // to overwrite the network input, this prefetching may
+            // have been wasted, but in most cases it won't.
+            let mut prefetch_decoder = self.prefetch_decoder.borrow_mut();
+            prefetch_decoder.process(ByteTendril::from(&*chunk));
+
+            self.prefetch_input
+                .push_back(mem::take(&mut prefetch_decoder.inner_sink_mut().output));
+            self.prefetch_tokenizer.feed(&self.prefetch_input);
+        }
+    }
+
+    fn should_prefetch(&self) -> bool {
+        // Per https://github.com/whatwg/html/issues/1495
+        // stylesheets should not be loaded for documents
+        // without browsing contexts.
+        // https://github.com/whatwg/html/issues/1495#issuecomment-230334047
+        // suggests that no content should be preloaded in such a case.
+        // We're conservative, and only prefetch for documents
+        // with browsing contexts.
+        self.document.browsing_context().is_some()
+    }
+
+    fn push_string_input_chunk(&self, chunk: String) {
+        // The input has already been decoded as a string, so doesn't need
+        // to be decoded by the network decoder again.
+        let chunk = StrTendril::from(chunk);
+        self.push_tendril_input_chunk(chunk);
+    }
+
+    fn parse_sync(&self, cx: &mut JSContext) {
+        assert!(self.script_input.is_empty());
+
+        // This parser will continue to parse while there is either pending input or
+        // the parser remains unsuspended.
+
+        if self.last_chunk_received.get() {
+            let chunk = self.network_decoder.borrow_mut().finish(&self.document);
+            if !chunk.is_empty() {
+                self.push_tendril_input_chunk(chunk);
+            }
+        }
+
+        if self.aborted.get() {
+            return;
+        }
+
+        let profiler_chan = self
+            .document
+            .window()
+            .as_global_scope()
+            .time_profiler_chan()
+            .clone();
+        let profiler_metadata = TimerMetadata {
+            url: self.document.url().as_str().into(),
+            iframe: TimerMetadataFrameType::RootWindow,
+            incremental: TimerMetadataReflowType::FirstReflow,
+        };
+        self.tokenize(cx, |cx, tokenizer| {
+            tokenizer.feed(
+                cx,
+                &self.network_input,
+                profiler_chan.clone(),
+                profiler_metadata.clone(),
+            )
+        });
+
+        if self.suspended.get() {
+            return;
+        }
+
+        assert!(self.network_input.is_empty());
+
+        if self.last_chunk_received.get() {
+            self.finish(cx);
+        }
+    }
+
+    fn parse_complete_string_chunk(&self, cx: &mut JSContext, input: String) {
+        self.document.set_current_parser(Some(self));
+        self.push_string_input_chunk(input);
+        self.last_chunk_received.set(true);
+        if !self.suspended.get() {
+            self.parse_sync(cx);
+        }
+    }
+
+    fn parse_bytes_chunk(&self, cx: &mut JSContext, input: Vec<u8>) {
+        let mut realm = enter_auto_realm(cx, &*self.document);
+        let cx = &mut realm.current_realm();
+        self.document.set_current_parser(Some(self));
+        self.push_bytes_input_chunk(input);
+        if !self.suspended.get() {
+            self.parse_sync(cx);
+        }
+    }
+
+    fn tokenize<F>(&self, cx: &mut JSContext, feed: F)
+    where
+        F: Fn(&mut JSContext, &Tokenizer) -> TokenizerResult<DomRoot<HTMLScriptElement>>,
+    {
+        loop {
+            assert!(!self.suspended.get());
+            assert!(!self.aborted.get());
+
+            self.document.window().reflow_if_reflow_timer_expired(cx);
+            let script = match feed(cx, &self.tokenizer) {
+                TokenizerResult::Done => return,
+                TokenizerResult::EncodingIndicator(_) => continue,
+                TokenizerResult::Script(script) => script,
+            };
+
+            // https://html.spec.whatwg.org/multipage/#parsing-main-incdata
+            // branch "An end tag whose tag name is "script"
+            // The spec says to perform the microtask checkpoint before
+            // setting the insertion mode back from Text, but this is not
+            // possible with the way servo and html5ever currently
+            // relate to each other, and hopefully it is not observable.
+            if is_execution_stack_empty() {
+                self.document.window().perform_a_microtask_checkpoint(cx);
+            }
+
+            let script_nesting_level = self.script_nesting_level.get();
+
+            self.script_nesting_level.set(script_nesting_level + 1);
+            script.set_initial_script_text();
+            let introduction_type_override =
+                (script_nesting_level > 0).then_some(IntroductionType::INJECTED_SCRIPT);
+            script.prepare(cx, introduction_type_override);
+            self.script_nesting_level.set(script_nesting_level);
+
+            if self.document.has_pending_parsing_blocking_script() {
+                self.suspended.set(true);
+                return;
+            }
+            if self.aborted.get() {
+                return;
+            }
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#abort-a-parser>
+    pub(crate) fn has_aborted(&self) -> bool {
+        self.aborted.get()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#stop-parsing>
+    pub(crate) fn has_stopped(&self) -> bool {
+        self.stopped.get()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#the-end>
+    fn finish(&self, cx: &mut JSContext) {
+        assert!(!self.suspended.get());
+        assert!(self.last_chunk_received.get());
+        assert!(self.script_input.is_empty());
+        assert!(self.network_input.is_empty());
+        assert!(self.network_decoder.borrow().is_finished());
+
+        self.stopped.set(true);
+
+        // Step 1. If the active speculative HTML parser is not null,
+        // then stop the speculative HTML parser and return.
+        // TODO
+        // Step 2. Set the insertion point to undefined.
+        self.tokenizer.end(cx);
+        // Step 3. Update the current document readiness to "interactive".
+        self.document
+            .update_the_current_document_readiness(cx, DocumentReadyState::Interactive);
+        // Step 4. Pop all the nodes off the stack of open elements.
+        self.document.set_current_parser(None);
+        // Step 5. While the list of scripts that will execute when the document has finished parsing is not empty:
+        self.document.start_the_end_loading_phase();
+        let url = self.tokenizer.url().clone();
+        self.document.finish_load(LoadType::PageSource(url), cx);
+
+        // Send the source contents to devtools, if needed.
+        if let Some(content_for_devtools) = self
+            .content_for_devtools
+            .as_ref()
+            .map(|content| content.take())
+        {
+            let global = self.document.global();
+            let chan = global.devtools_chan().expect("Guaranteed by new");
+            let pipeline_id = self.document.global().pipeline_id();
+            let _ = chan.send(ScriptToDevtoolsControlMsg::UpdateSourceContent(
+                pipeline_id,
+                content_for_devtools,
+            ));
+        }
+    }
+}
+
+struct FragmentParsingResult<I>
+where
+    I: Iterator<Item = DomRoot<Node>>,
+{
+    inner: I,
+}
+
+impl<I> Iterator for FragmentParsingResult<I>
+where
+    I: Iterator<Item = DomRoot<Node>>,
+{
+    type Item = DomRoot<Node>;
+
+    #[expect(unsafe_code)]
+    fn next(&mut self) -> Option<DomRoot<Node>> {
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+        let cx = &mut cx;
+
+        let next = self.inner.next()?;
+        next.remove_self(cx);
+        Some(next)
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.inner.size_hint()
+    }
+}
+
+#[derive(JSTraceable, MallocSizeOf, PartialEq)]
+enum ParserKind {
+    Normal,
+    ScriptCreated,
+}
+
+#[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+enum Tokenizer {
+    Html(self::html::Tokenizer),
+    AsyncHtml(self::async_html::Tokenizer),
+    Xml(self::xml::Tokenizer),
+}
+
+impl Tokenizer {
+    fn feed(
+        &self,
+        cx: &mut JSContext,
+        input: &BufferQueue,
+        profiler_chan: ProfilerChan,
+        profiler_metadata: TimerMetadata,
+    ) -> TokenizerResult<DomRoot<HTMLScriptElement>> {
+        match *self {
+            Tokenizer::Html(ref tokenizer) => time_profile!(
+                ProfilerCategory::ScriptParseHTML,
+                Some(profiler_metadata),
+                profiler_chan,
+                || tokenizer.feed(input),
+            ),
+            Tokenizer::AsyncHtml(ref tokenizer) => time_profile!(
+                ProfilerCategory::ScriptParseHTML,
+                Some(profiler_metadata),
+                profiler_chan,
+                || tokenizer.feed(input, cx),
+            ),
+            Tokenizer::Xml(ref tokenizer) => time_profile!(
+                ProfilerCategory::ScriptParseXML,
+                Some(profiler_metadata),
+                profiler_chan,
+                || tokenizer.feed(input),
+            ),
+        }
+    }
+
+    fn end(&self, cx: &mut JSContext) {
+        match *self {
+            Tokenizer::Html(ref tokenizer) => tokenizer.end(),
+            Tokenizer::AsyncHtml(ref tokenizer) => tokenizer.end(cx),
+            Tokenizer::Xml(ref tokenizer) => tokenizer.end(),
+        }
+    }
+
+    fn url(&self) -> &ServoUrl {
+        match *self {
+            Tokenizer::Html(ref tokenizer) => tokenizer.url(),
+            Tokenizer::AsyncHtml(ref tokenizer) => tokenizer.url(),
+            Tokenizer::Xml(ref tokenizer) => tokenizer.url(),
+        }
+    }
+
+    fn set_plaintext_state(&self) {
+        match *self {
+            Tokenizer::Html(ref tokenizer) => tokenizer.set_plaintext_state(),
+            Tokenizer::AsyncHtml(ref tokenizer) => tokenizer.set_plaintext_state(),
+            Tokenizer::Xml(_) => unimplemented!(),
+        }
+    }
+
+    fn get_current_line(&self) -> u32 {
+        match *self {
+            Tokenizer::Html(ref tokenizer) => tokenizer.get_current_line(),
+            Tokenizer::AsyncHtml(ref tokenizer) => tokenizer.get_current_line(),
+            Tokenizer::Xml(ref tokenizer) => tokenizer.get_current_line(),
+        }
+    }
+}
+
+/// <https://html.spec.whatwg.org/multipage/#navigation-params>
+/// This does not have the relevant fields, but mimics the intent
+/// of the struct when used in loading document spec algorithms.
+struct NavigationParams {
+    /// <https://html.spec.whatwg.org/multipage/#navigation-params-policy-container>
+    policy_container: PolicyContainer,
+    /// content-type of this document, if known. Otherwise need to sniff it
+    content_type: Option<Mime>,
+    /// link headers from the response
+    link_headers: Vec<LinkHeader>,
+    /// <https://html.spec.whatwg.org/multipage/#navigation-params-sandboxing>
+    final_sandboxing_flag_set: SandboxingFlagSet,
+    /// <https://mimesniff.spec.whatwg.org/#resource-header>
+    resource_header: Vec<u8>,
+    /// <https://html.spec.whatwg.org/multipage/#navigation-params-about-base-url>
+    about_base_url: Option<ServoUrl>,
+}
+
+/// The context required for asynchronously fetching a document
+/// and parsing it progressively.
+pub(crate) struct ParserContext {
+    /// The parser that initiated the request.
+    parser: Option<Trusted<ServoParser>>,
+    /// Is this a synthesized document
+    is_synthesized_document: bool,
+    /// Has a document already been loaded (relevant for checking the resource header)
+    has_loaded_document: bool,
+    /// The [`WebViewId`] of the `WebView` associated with this document.
+    webview_id: WebViewId,
+    /// The [`PipelineId`] of the `Pipeline` associated with this document.
+    pipeline_id: PipelineId,
+    /// The URL for this document.
+    url: ServoUrl,
+    /// pushed entry index
+    pushed_entry_index: Option<usize>,
+    /// params required in document load algorithms
+    navigation_params: NavigationParams,
+    /// To report CSP violations to the global that initiated the navigation
+    parent_info: Option<PipelineId>,
+    target_snapshot_params: TargetSnapshotParams,
+    load_origin: LoadOrigin,
+    document: Option<Trusted<Document>>,
+}
+
+impl ParserContext {
+    pub(crate) fn new(
+        webview_id: WebViewId,
+        pipeline_id: PipelineId,
+        url: ServoUrl,
+        creation_sandboxing_flag_set: SandboxingFlagSet,
+        parent_info: Option<PipelineId>,
+        target_snapshot_params: TargetSnapshotParams,
+        load_origin: LoadOrigin,
+    ) -> ParserContext {
+        ParserContext {
+            parser: None,
+            is_synthesized_document: false,
+            has_loaded_document: false,
+            webview_id,
+            pipeline_id,
+            url,
+            parent_info,
+            pushed_entry_index: None,
+            navigation_params: NavigationParams {
+                policy_container: Default::default(),
+                content_type: None,
+                link_headers: vec![],
+                final_sandboxing_flag_set: creation_sandboxing_flag_set,
+                resource_header: vec![],
+                about_base_url: Default::default(),
+            },
+            target_snapshot_params,
+            load_origin,
+            document: None,
+        }
+    }
+
+    pub(crate) fn set_policy_container(&mut self, policy_container: Option<&PolicyContainer>) {
+        let Some(policy_container) = policy_container else {
+            return;
+        };
+        self.navigation_params.policy_container = policy_container.clone();
+    }
+
+    pub(crate) fn set_about_base_url(&mut self, about_base_url: Option<ServoUrl>) {
+        self.navigation_params.about_base_url = about_base_url;
+    }
+
+    pub(crate) fn get_document(&self) -> Option<DomRoot<Document>> {
+        self.parser
+            .as_ref()
+            .map(|parser| parser.root().document.as_rooted())
+    }
+
+    pub(crate) fn parent_info(&self) -> Option<PipelineId> {
+        self.parent_info
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#creating-a-policy-container-from-a-fetch-response>
+    fn create_policy_container_from_fetch_response(metadata: &Metadata) -> PolicyContainer {
+        // TODO Step 1. If response's URL's scheme is "blob", then return a clone of response's
+        // URL's blob URL entry's environment's policy container.
+
+        // Step 2. Let result be a new policy container.
+        // TODO Step 6. Parse Integrity-Policy headers with response and result.
+        // Step 7. Return result.
+        PolicyContainer {
+            // Step 3. Set result's CSP list to the result of parsing a response's Content Security Policies given response.
+            csp_list: parse_csp_list_from_metadata(&metadata.headers),
+            // TODO Step 4. If environment is non-null, then set result's embedder policy to the
+            // result of obtaining an embedder policy given response and environment.
+            // Otherwise, set it to "unsafe-none".
+            embedder_policy: Default::default(),
+            // Step 5. Set result's referrer policy to the result of parsing the `Referrer-Policy` header given response. [REFERRERPOLICY]
+            referrer_policy: ReferrerPolicy::parse_header_for_response(&metadata.headers),
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#initialise-the-document-object>
+    fn initialize_document_object(&self, document: &Document) {
+        // Step 9. Let document be a new Document, with
+        document.set_policy_container(self.navigation_params.policy_container.clone());
+        document.set_active_sandboxing_flag_set(self.navigation_params.final_sandboxing_flag_set);
+        document.set_about_base_url(self.navigation_params.about_base_url.clone());
+        // Step 17. Process link headers given document, navigationParams's response, and "pre-media".
+        process_link_headers(
+            &self.navigation_params.link_headers,
+            document,
+            LinkProcessingPhase::PreMedia,
+        );
+    }
+
+    /// Part of various load document methods
+    fn process_link_headers_in_media_phase_with_task(&mut self, document: &Document) {
+        // The first task that the networking task source places on the task queue
+        // while fetching runs must process link headers given document,
+        // navigationParams's response, and "media", after the task has been processed by the HTML parser.
+        let link_headers = std::mem::take(&mut self.navigation_params.link_headers);
+        if !link_headers.is_empty() {
+            let window = document.window();
+            let document = Trusted::new(document);
+            window
+                .upcast::<GlobalScope>()
+                .task_manager()
+                .networking_task_source()
+                .queue(task!(process_link_headers_task: move || {
+                    process_link_headers(&link_headers, &document.root(), LinkProcessingPhase::Media);
+                }));
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#loading-a-document>
+    fn load_document(
+        &mut self,
+        cx: &mut JSContext,
+        parser: Option<&ServoParser>,
+        document: &Document,
+    ) {
+        assert!(!self.has_loaded_document);
+        self.has_loaded_document = true;
+        // Step 1. Let type be the computed type of navigationParams's response.
+        let content_type = &self.navigation_params.content_type;
+        let mime_type = MimeClassifier::default().classify(
+            LoadContext::Browsing,
+            NoSniffFlag::Off,
+            ApacheBugFlag::from_content_type(content_type.as_ref()),
+            content_type,
+            &self.navigation_params.resource_header,
+        );
+        // Step 2. If the user agent has been configured to process resources of the given type using
+        // some mechanism other than rendering the content in a navigable, then skip this step.
+        // Otherwise, if the type is one of the following types:
+        let Some(media_type) = MimeClassifier::get_media_type(&mime_type) else {
+            let page = format!(
+                "<html><body><p>Unknown content type ({}).</p></body></html>",
+                mime_type,
+            );
+            self.load_inline_unknown_content(
+                cx,
+                parser.expect("Must have a parser for unknown content"),
+                page,
+            );
+            return;
+        };
+        match media_type {
+            // Return the result of loading an HTML document, given navigationParams.
+            MediaType::Html => self.load_html_document(cx, document),
+            // Return the result of loading an XML document given navigationParams and type.
+            MediaType::Xml => self.load_xml_document(document),
+            // Return the result of loading a text document given navigationParams and type.
+            MediaType::JavaScript | MediaType::Text | MediaType::Css => {
+                self.load_text_document(cx, parser.expect("Must have a parser for text"))
+            },
+            // Return the result of loading a json document given navigationParams and type.
+            MediaType::Json => {
+                self.load_json_document(cx, parser.expect("Must have a parser for JSON"))
+            },
+            // Return the result of loading a media document given navigationParams and type.
+            MediaType::Image | MediaType::AudioVideo => {
+                self.load_media_document(
+                    cx,
+                    parser.expect("Must have a parser for media"),
+                    media_type,
+                    &mime_type,
+                );
+                return;
+            },
+            MediaType::Font => {
+                let page = format!(
+                    "<html><body><p>Unable to load font with content type ({}).</p></body></html>",
+                    mime_type,
+                );
+                self.load_inline_unknown_content(
+                    cx,
+                    parser.expect("Must have a parser for inline unknown"),
+                    page,
+                );
+                return;
+            },
+        };
+
+        if let Some(parser) = parser {
+            parser.parse_bytes_chunk(
+                cx,
+                std::mem::take(&mut self.navigation_params.resource_header),
+            );
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#navigate-html>
+    fn load_html_document(&mut self, cx: &mut JSContext, document: &Document) {
+        // Step 1. Let document be the result of creating and initializing a
+        // Document object given "html", "text/html", and navigationParams.
+        self.initialize_document_object(document);
+        // Step 2. If document's URL is about:blank, then populate with html/head/body given document.
+        if document.is_initial_about_blank() {
+            populate_about_blank(cx, document);
+        }
+        // The first task that the networking task source places on the task queue while fetching
+        // runs must process link headers given document, navigationParams's response, and "media",
+        // after the task has been processed by the HTML parser.
+        self.process_link_headers_in_media_phase_with_task(document);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#read-xml>
+    fn load_xml_document(&mut self, document: &Document) {
+        // When faced with displaying an XML file inline, provided navigation params navigationParams
+        // and a string type, user agents must follow the requirements defined in XML and Namespaces in XML,
+        // XML Media Types, DOM, and other relevant specifications to create and initialize a
+        // Document object document, given "xml", type, and navigationParams, and return that Document.
+        // They must also create a corresponding XML parser. [XML] [XMLNS] [RFC7303] [DOM]
+        self.initialize_document_object(document);
+        // The first task that the networking task source places on the task queue while fetching
+        // runs must process link headers given document, navigationParams's response, and "media",
+        // after the task has been processed by the XML parser.
+        self.process_link_headers_in_media_phase_with_task(document);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#navigate-text>
+    fn load_text_document(&mut self, cx: &mut JSContext, parser: &ServoParser) {
+        // Step 1. Let document be the result of creating and initializing a Document
+        // object given "html", type, and navigationParams.
+        self.initialize_document_object(&parser.document);
+        // Step 4. Create an HTML parser and associate it with the document.
+        // Act as if the tokenizer had emitted a start tag token with the tag name "pre" followed by
+        // a single U+000A LINE FEED (LF) character, and switch the HTML parser's tokenizer to the PLAINTEXT state.
+        // Each task that the networking task source places on the task queue while fetching runs must then
+        // fill the parser's input byte stream with the fetched bytes and cause the HTML parser to perform
+        // the appropriate processing of the input stream.
+        let page = "<pre>\n".into();
+        parser.push_string_input_chunk(page);
+        parser.parse_sync(cx);
+        parser.tokenizer.set_plaintext_state();
+        // The first task that the networking task source places on the task queue while fetching
+        // runs must process link headers given document, navigationParams's response, and "media",
+        // after the task has been processed by the HTML parser.
+        self.process_link_headers_in_media_phase_with_task(&parser.document);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#navigate-media>
+    fn load_media_document(
+        &mut self,
+        cx: &mut JSContext,
+        parser: &ServoParser,
+        media_type: MediaType,
+        mime_type: &Mime,
+    ) {
+        // Step 1. Let document be the result of creating and initializing a Document
+        // object given "html", type, and navigationParams.
+        self.initialize_document_object(&parser.document);
+        // Step 8. Act as if the user agent had stopped parsing document.
+        self.is_synthesized_document = true;
+        parser.last_chunk_received.set(true);
+        // Step 3. Populate with html/head/body given document.
+        let page = "<html><body></body></html>".into();
+        parser.push_string_input_chunk(page);
+        parser.parse_sync(cx);
+
+        let doc = &parser.document;
+        // Step 5. Set the appropriate attribute of the element host element, as described below,
+        // to the address of the image, video, or audio resource.
+        let node = if media_type == MediaType::Image {
+            let img = Element::create(
+                cx,
+                QualName::new(None, ns!(html), local_name!("img")),
+                None,
+                doc,
+                ElementCreator::ParserCreated(1),
+                CustomElementCreationMode::Asynchronous,
+                None,
+            );
+            let img = DomRoot::downcast::<HTMLImageElement>(img).unwrap();
+            img.SetSrc(cx, USVString(self.url.to_string()));
+            DomRoot::upcast::<Node>(img)
+        } else if mime_type.type_() == mime::AUDIO {
+            let audio = Element::create(
+                cx,
+                QualName::new(None, ns!(html), local_name!("audio")),
+                None,
+                doc,
+                ElementCreator::ParserCreated(1),
+                CustomElementCreationMode::Asynchronous,
+                None,
+            );
+            let audio = DomRoot::downcast::<HTMLMediaElement>(audio).unwrap();
+            audio.SetControls(cx, true);
+            audio.SetSrc(cx, USVString(self.url.to_string()));
+            DomRoot::upcast::<Node>(audio)
+        } else {
+            let video = Element::create(
+                cx,
+                QualName::new(None, ns!(html), local_name!("video")),
+                None,
+                doc,
+                ElementCreator::ParserCreated(1),
+                CustomElementCreationMode::Asynchronous,
+                None,
+            );
+            let video = DomRoot::downcast::<HTMLMediaElement>(video).unwrap();
+            video.SetControls(cx, true);
+            video.SetSrc(cx, USVString(self.url.to_string()));
+            DomRoot::upcast::<Node>(video)
+        };
+        // Step 4. Append an element host element for the media, as described below, to the body element.
+        let doc_body = DomRoot::upcast::<Node>(doc.GetBody().unwrap());
+        doc_body.AppendChild(cx, &node).expect("Appending failed");
+        // Step 7. Process link headers given document, navigationParams's response, and "media".
+        let link_headers = std::mem::take(&mut self.navigation_params.link_headers);
+        process_link_headers(&link_headers, doc, LinkProcessingPhase::Media);
+    }
+
+    /// Load a JSON document with a pretty-printing, interactive viewer.
+    fn load_json_document(&mut self, cx: &mut JSContext, parser: &ServoParser) {
+        self.initialize_document_object(&parser.document);
+        parser.push_string_input_chunk(resources::read_string(Resource::JsonViewerHTML));
+        parser.parse_sync(cx);
+        parser.tokenizer.set_plaintext_state();
+        self.process_link_headers_in_media_phase_with_task(&parser.document);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#navigate-ua-inline>
+    fn load_inline_unknown_content(
+        &mut self,
+        cx: &mut JSContext,
+        parser: &ServoParser,
+        page: String,
+    ) {
+        self.is_synthesized_document = true;
+        parser.document.mark_as_internal();
+        parser.push_string_input_chunk(page);
+        // Step 7. Act as if the user agent had stopped parsing document.
+        parser.last_chunk_received.set(true);
+        parser.parse_sync(cx);
+    }
+
+    /// Store a PerformanceNavigationTiming entry in the globalscope's Performance buffer
+    fn submit_resource_timing(&mut self, cx: &mut JSContext) {
+        let Some(parser) = self.parser.as_ref() else {
+            return;
+        };
+        let parser = parser.root();
+        if parser.aborted.get() {
+            return;
+        }
+
+        let document = &parser.document;
+
+        let performance_entry = PerformanceNavigationTiming::new(cx, &document.global(), document);
+        self.pushed_entry_index = document
+            .global()
+            .performance(cx)
+            .queue_entry(performance_entry.upcast::<PerformanceEntry>());
+    }
+
+    fn finish_synchronous_load_for_initial_about_blank(
+        &self,
+        cx: &mut JSContext,
+        document: &Document,
+    ) {
+        // Synchronous loads for initial `about:blank` always start in the `Complete` state
+        // which is why we do not notify the embedder of completion via
+        // `Document::update_the_current_document_readiness`.
+        debug_assert_eq!(document.ReadyState(), DocumentReadyState::Complete);
+
+        document.set_current_parser(None);
+        document.start_the_end_loading_phase();
+        document.finish_load(LoadType::PageSource(self.url.clone()), cx);
+
+        document.notify_embedder_of_load_completion();
+    }
+}
+
+impl FetchResponseListener for ParserContext {
+    fn process_request_body(&mut self, _: RequestId) {}
+
+    /// Implements parts of
+    /// <https://html.spec.whatwg.org/multipage/#attempt-to-populate-the-history-entry's-document>
+    fn process_response(
+        &mut self,
+        cx: &mut JSContext,
+        _: RequestId,
+        meta_result: Result<FetchMetadata, NetworkError>,
+    ) {
+        let (metadata, mut error) = match meta_result {
+            Ok(meta) => (
+                Some(match meta {
+                    FetchMetadata::Unfiltered(m) => m,
+                    FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
+                }),
+                None,
+            ),
+            Err(error) => (
+                // Check variant without moving
+                match &error {
+                    NetworkError::LoadCancelled => {
+                        return;
+                    },
+                    _ => {
+                        let mut meta = Metadata::default(self.url.clone());
+                        let mime: Option<Mime> = "text/html".parse().ok();
+                        meta.set_content_type(mime.as_ref());
+                        Some(meta)
+                    },
+                },
+                Some(error),
+            ),
+        };
+        let content_type: Option<Mime> = metadata
+            .clone()
+            .and_then(|meta| meta.content_type)
+            .map(Serde::into_inner)
+            .map(Into::into);
+
+        // <https://html.spec.whatwg.org/multipage/#create-navigation-params-by-fetching>
+        // Step 21.9. Set responsePolicyContainer to the result of creating a
+        // policy container from a fetch response given response and request's
+        // reserved client.
+        let (policy_container, endpoints_list, link_headers) = match metadata.as_ref() {
+            None => (PolicyContainer::default(), None, vec![]),
+            Some(metadata) => (
+                Self::create_policy_container_from_fetch_response(metadata),
+                ReportingEndpoint::parse_reporting_endpoints_header(
+                    &self.url.clone(),
+                    &metadata.headers,
+                ),
+                extract_links_from_headers(&metadata.headers),
+            ),
+        };
+
+        // Step 21.10. Set finalSandboxFlags to the union of targetSnapshotParams's
+        // sandboxing flags and responsePolicyContainer's CSP list's CSP-derived
+        // sandboxing flags.
+        let final_sandboxing_flag_set = policy_container
+            .csp_list
+            .as_ref()
+            .and_then(|csp| csp.get_sandboxing_flag_set_for_document())
+            .unwrap_or(SandboxingFlagSet::empty())
+            .union(self.target_snapshot_params.sandboxing_flags);
+
+        // Step 21.11. Set responseOrigin to the result of determining the origin
+        // given response's URL, finalSandboxFlags, and entry's document state's
+        // initiator origin.
+        let source_origin = match self.load_origin {
+            LoadOrigin::Script(ref snapshot) => {
+                Some(MutableOrigin::from_snapshot(snapshot.clone()))
+            },
+            _ => None,
+        };
+        let origin = determine_the_origin(
+            metadata.as_ref().map(|metadata| &metadata.final_url),
+            final_sandboxing_flag_set,
+            source_origin,
+        );
+
+        let Some(document) = ScriptThread::page_headers_available(
+            self.webview_id,
+            self.pipeline_id,
+            metadata.as_ref(),
+            origin.clone(),
+            cx,
+        ) else {
+            return;
+        };
+
+        self.document = Some(Trusted::new(&*document));
+
+        if document
+            .get_current_parser()
+            .is_some_and(|parser| parser.aborted.get())
+        {
+            return;
+        }
+
+        let mut realm = enter_auto_realm(cx, &*document);
+        let cx = &mut realm;
+        let window = document.window();
+
+        // https://html.spec.whatwg.org/multipage/#attempt-to-populate-the-history-entry%27s-document
+        // Step 4. Otherwise, if any of the following are true:
+        if
+        // navigationParams is null;
+        // TODO
+        // the result of should navigation response to navigation request of
+        // type in target be blocked by Content Security Policy? given
+        // navigationParams's request, navigationParams's response, navigationParams's policy container's CSP list,
+        // cspNavigationType, and navigable is "Blocked";
+        policy_container.csp_list.should_navigation_response_to_navigation_request_be_blocked(
+            cx,
+            window,
+            self.url.clone().into_url(),
+            &origin.immutable().clone().into_url_origin(),
+        )
+        // navigationParams's reserved environment is non-null and the result of
+        // checking a navigation response's adherence to its embedder policy given navigationParams's response,
+        // navigable, and navigationParams's policy container's embedder policy is false; or
+        // TODO
+        // the result of checking a navigation response's adherence to `X-Frame-Options`
+        // given navigationParams's response, navigable, navigationParams's policy container's CSP list,
+        // and navigationParams's origin is false,
+        || !check_a_navigation_response_adherence_to_x_frame_options(
+            window,
+            policy_container.csp_list.as_ref(),
+            &origin,
+            metadata
+                .as_ref()
+                .and_then(|metadata| metadata.headers.as_ref()),
+        ) {
+            // Step 4.1. Set entry's document state's document to the result of creating a document for inline content
+            // that doesn't have a DOM, given navigable, null, navTimingType, and userInvolvement.
+            // The inline content should indicate to the user the sort of error that occurred.
+            error = Some(NetworkError::ContentSecurityPolicy);
+            // Step 4.2. Make document unsalvageable given entry's document state's document and "navigation-failure".
+            document.make_document_unsalvageable();
+            // Step 4.3. Set saveExtraDocumentState to false.
+            // TODO
+            // Step 4.4. If navigationParams is not null, then:
+            // TODO
+        }
+
+        if let Some(endpoints) = endpoints_list {
+            window.set_endpoints_list(endpoints);
+        }
+        if let Some(parser) = document.get_current_parser() {
+            self.parser = Some(Trusted::new(&*parser));
+        }
+        self.navigation_params = NavigationParams {
+            policy_container,
+            content_type,
+            final_sandboxing_flag_set,
+            link_headers,
+            about_base_url: document.about_base_url(),
+            resource_header: vec![],
+        };
+        self.submit_resource_timing(cx);
+
+        // Part of https://html.spec.whatwg.org/multipage/#loading-a-document
+        //
+        // Step 3. If, given type, the new resource is to be handled by displaying some sort of inline content,
+        // e.g., a native rendering of the content or an error message because the specified type is not supported,
+        // then return the result of creating a document for inline content that doesn't have a DOM given
+        // navigationParams's navigable, navigationParams's id, navigationParams's navigation timing type,
+        // and navigationParams's user involvement.
+        if let Some(error) = error {
+            let page = match error {
+                NetworkError::SslValidation(reason, bytes) => {
+                    let page = resources::read_string(Resource::BadCertHTML);
+                    let page = page.replace("${reason}", &reason);
+                    let encoded_bytes = general_purpose::STANDARD_NO_PAD.encode(bytes);
+                    let page = page.replace("${bytes}", encoded_bytes.as_str());
+                    page.replace("${secret}", &net_traits::PRIVILEGED_SECRET.to_string())
+                },
+                NetworkError::BlobURLStoreError(reason) |
+                NetworkError::WebsocketConnectionFailure(reason) |
+                NetworkError::HttpError(reason) |
+                NetworkError::ResourceLoadError(reason) |
+                NetworkError::MimeType(reason) => {
+                    let page = resources::read_string(Resource::NetErrorHTML);
+                    page.replace("${reason}", &reason)
+                },
+                NetworkError::Crash(details) => {
+                    let page = resources::read_string(Resource::CrashHTML);
+                    page.replace("${details}", &details)
+                },
+                NetworkError::UnsupportedScheme |
+                NetworkError::CorsGeneral |
+                NetworkError::CrossOriginResponse |
+                NetworkError::CorsCredentials |
+                NetworkError::CorsAllowMethods |
+                NetworkError::CorsAllowHeaders |
+                NetworkError::CorsMethod |
+                NetworkError::CorsAuthorization |
+                NetworkError::CorsHeaders |
+                NetworkError::ConnectionFailure |
+                NetworkError::RedirectError |
+                NetworkError::TooManyRedirects |
+                NetworkError::TooManyInFlightKeepAliveRequests |
+                NetworkError::InvalidMethod |
+                NetworkError::ContentSecurityPolicy |
+                NetworkError::Nosniff |
+                NetworkError::SubresourceIntegrity |
+                NetworkError::MixedContent |
+                NetworkError::CacheError |
+                NetworkError::InvalidPort |
+                NetworkError::LocalDirectoryError |
+                NetworkError::PartialResponseToNonRangeRequestError |
+                NetworkError::ProtocolHandlerSubstitutionError |
+                NetworkError::DecompressionError => {
+                    let page = resources::read_string(Resource::NetErrorHTML);
+                    page.replace("${reason}", &format!("{:?}", error))
+                },
+                NetworkError::LoadCancelled => {
+                    // The next load will show a page
+                    return;
+                },
+            };
+            let parser = document
+                .get_current_parser()
+                .expect("Must have a parser for errors");
+            self.load_inline_unknown_content(cx, &parser, page);
+        }
+    }
+
+    fn process_response_chunk(&mut self, cx: &mut JSContext, _: RequestId, payload: Vec<u8>) {
+        if self.is_synthesized_document {
+            return;
+        }
+        let Some(parser) = self.parser.as_ref().map(|p| p.root()) else {
+            return;
+        };
+        let Some(document) = self.document.as_ref().map(|document| document.root()) else {
+            return;
+        };
+        if parser.aborted.get() {
+            return;
+        }
+        if !self.has_loaded_document {
+            // https://mimesniff.spec.whatwg.org/#read-the-resource-header
+            self.navigation_params
+                .resource_header
+                .extend_from_slice(&payload);
+            // the number of bytes in buffer is greater than or equal to 1445.
+            if self.navigation_params.resource_header.len() >= 1445 {
+                self.load_document(cx, Some(&parser), &document);
+            }
+        } else {
+            parser.parse_bytes_chunk(cx, payload);
+        }
+    }
+
+    // This method is called via script_thread::handle_fetch_eof, so we must call
+    // submit_resource_timing in this function
+    // Resource listeners are called via net_traits::Action::process, which handles submission for them
+    fn process_response_eof(
+        mut self,
+        cx: &mut JSContext,
+        _: RequestId,
+        status: Result<(), NetworkError>,
+        timing: ResourceFetchTiming,
+    ) {
+        let parser = self.parser.as_ref().map(|parser| parser.root());
+        if parser.as_ref().is_some_and(|parser| parser.aborted.get()) ||
+            self.is_synthesized_document
+        {
+            return;
+        }
+
+        if let Err(error) = &status {
+            // TODO(Savago): we should send a notification to callers #5463.
+            debug!("Failed to load page URL {}, error: {error:?}", self.url);
+        }
+
+        let Some(document) = self.document.as_ref().map(|document| document.root()) else {
+            return;
+        };
+
+        // https://mimesniff.spec.whatwg.org/#read-the-resource-header
+        //
+        // the end of the resource is reached.
+        if !self.has_loaded_document {
+            self.load_document(cx, parser.as_deref(), &document);
+        }
+
+        let mut realm = enter_auto_realm(cx, &*document);
+        let cx = &mut realm;
+
+        if status.is_ok() {
+            document.set_resource_fetch_timing(timing);
+        }
+
+        if let Some(parser) = parser {
+            parser.last_chunk_received.set(true);
+            if !parser.suspended.get() {
+                parser.parse_sync(cx);
+            }
+        }
+
+        // TODO: Only update if this is the current document resource.
+        if let Some(pushed_index) = self.pushed_entry_index {
+            let performance_entry =
+                PerformanceNavigationTiming::new(cx, &document.global(), &document);
+            document
+                .global()
+                .performance(cx)
+                .update_entry(pushed_index, performance_entry.upcast::<PerformanceEntry>());
+        }
+
+        if document.is_initial_about_blank() {
+            self.finish_synchronous_load_for_initial_about_blank(cx, &document);
+        }
+    }
+
+    fn process_csp_violations(&mut self, _: &mut JSContext, _: RequestId, _: Vec<Violation>) {
+        unreachable!("Script_thread should handle reporting violations for parser contexts");
+    }
+}
+
+pub(crate) struct FragmentContext<'a> {
+    pub(crate) context_elem: &'a Node,
+    pub(crate) form_elem: Option<&'a Node>,
+    pub(crate) context_element_allows_scripting: bool,
+}
+
+/// <https://html.spec.whatwg.org/multipage/#insert-an-element-at-the-adjusted-insertion-location>
+#[cfg_attr(crown, expect(crown::unrooted_must_root))]
+fn insert_an_element_at_the_adjusted_insertion_location(
+    cx: &mut JSContext,
+    node_to_insert: Dom<Node>,
+    adjusted_insertion_location_parent: &Node,
+    adjusted_insertion_location_child: Option<&Node>,
+    parsing_algorithm: ParsingAlgorithm,
+    custom_element_reaction_stack: &CustomElementReactionStack,
+) {
+    // Step 1: Let the adjusted insertion location be the appropriate place for inserting a node.
+    //
+    // Note: This is handled as part of the input.
+
+    // Step 2: If it is not possible to insert element at the adjusted insertion location,
+    // abort these steps.
+    if Node::ensure_pre_insertion_validity(
+        cx.no_gc(),
+        &node_to_insert,
+        adjusted_insertion_location_parent,
+        adjusted_insertion_location_child,
+    )
+    .is_err()
+    {
+        return;
+    }
+
+    // Step 3. If the parser was not created as part of the HTML fragment parsing algorithm,
+    // then push a new element queue onto element's relevant agent's custom element reactions
+    // stack.
+    let element_in_non_fragment =
+        parsing_algorithm != ParsingAlgorithm::Fragment && node_to_insert.is::<Element>();
+    if element_in_non_fragment {
+        custom_element_reaction_stack.push_new_element_queue();
+    }
+
+    // Step 4: Insert element at the adjusted insertion location.
+    Node::insert(
+        cx,
+        &node_to_insert,
+        adjusted_insertion_location_parent,
+        adjusted_insertion_location_child,
+        SuppressObserver::Unsuppressed,
+    );
+
+    // Step 5: If the parser was not created as part of the HTML fragment parsing algorithm,
+    // then pop the element queue from element's relevant agent's custom element reactions
+    // stack, and invoke custom element reactions in that queue.
+    //
+    // Note: Handled as part of `pop_current_element_queue()`.
+    if element_in_non_fragment {
+        custom_element_reaction_stack.pop_current_element_queue(cx);
+    }
+}
+
+#[cfg_attr(crown, expect(crown::unrooted_must_root))]
+fn insert(
+    cx: &mut JSContext,
+    parent: &Node,
+    reference_child: Option<&Node>,
+    child: NodeOrText<Dom<Node>>,
+    parsing_algorithm: ParsingAlgorithm,
+    custom_element_reaction_stack: &CustomElementReactionStack,
+) {
+    match child {
+        NodeOrText::AppendNode(node) => {
+            // This encompasses two parts of the specification:
+            //  - https://html.spec.whatwg.org/multipage/#insert-a-foreign-element
+            //  - https://html.spec.whatwg.org/multipage/#insert-a-comment
+            //
+            // TODO: This part of the code should match the specification more closely.
+            insert_an_element_at_the_adjusted_insertion_location(
+                cx,
+                node,
+                parent,
+                reference_child,
+                parsing_algorithm,
+                custom_element_reaction_stack,
+            );
+        },
+        NodeOrText::AppendText(t) => {
+            // https://html.spec.whatwg.org/multipage/#insert-a-character
+            let text = reference_child
+                .and_then(Node::GetPreviousSibling)
+                .or_else(|| parent.GetLastChild())
+                .and_then(DomRoot::downcast::<Text>);
+
+            if let Some(text) = text {
+                text.upcast::<CharacterData>().append_data(cx, &t);
+            } else {
+                let text = Text::new(cx, String::from(t).into(), &parent.owner_doc());
+                parent
+                    .InsertBefore(cx, text.upcast(), reference_child)
+                    .unwrap();
+            }
+        },
+    }
+}
+
+#[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+pub(crate) struct Sink {
+    #[no_trace]
+    base_url: ServoUrl,
+    document: Dom<Document>,
+    current_line: Cell<u64>,
+    script: MutNullableDom<HTMLScriptElement>,
+    parsing_algorithm: ParsingAlgorithm,
+    #[conditional_malloc_size_of]
+    custom_element_reaction_stack: Rc<CustomElementReactionStack>,
+}
+
+impl Sink {
+    fn same_tree(&self, x: &Dom<Node>, y: &Dom<Node>) -> bool {
+        let x = x.downcast::<Element>().expect("Element node expected");
+        let y = y.downcast::<Element>().expect("Element node expected");
+
+        x.is_in_same_home_subtree(y)
+    }
+
+    fn has_parent_node(&self, node: &Dom<Node>) -> bool {
+        node.GetParentNode().is_some()
+    }
+}
+
+impl TreeSink for Sink {
+    type Output = Self;
+
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
+    fn finish(self) -> Self {
+        self
+    }
+
+    type Handle = Dom<Node>;
+    type ElemName<'a>
+        = ExpandedName<'a>
+    where
+        Self: 'a;
+
+    fn get_document(&self) -> Dom<Node> {
+        Dom::from_ref(self.document.upcast())
+    }
+
+    #[expect(unsafe_code)]
+    fn get_template_contents(&self, target: &Dom<Node>) -> Dom<Node> {
+        // TODO: https://github.com/servo/servo/issues/42839
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
+        let template = target
+            .downcast::<HTMLTemplateElement>()
+            .expect("tried to get template contents of non-HTMLTemplateElement in HTML parsing");
+        Dom::from_ref(template.Content(cx).upcast())
+    }
+
+    fn same_node(&self, x: &Dom<Node>, y: &Dom<Node>) -> bool {
+        x == y
+    }
+
+    fn elem_name<'a>(&self, target: &'a Dom<Node>) -> ExpandedName<'a> {
+        let elem = target
+            .downcast::<Element>()
+            .expect("tried to get name of non-Element in HTML parsing");
+        ExpandedName {
+            ns: elem.namespace(),
+            local: elem.local_name(),
+        }
+    }
+
+    #[expect(unsafe_code)]
+    fn create_element(
+        &self,
+        name: QualName,
+        attrs: Vec<Attribute>,
+        flags: ElementFlags,
+    ) -> Dom<Node> {
+        // TODO: https://github.com/servo/servo/issues/42839
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
+        let attrs = attrs
+            .into_iter()
+            .map(|attr| ElementAttribute::new(attr.name, DOMString::from(String::from(attr.value))))
+            .collect();
+        let parsing_algorithm = if flags.template {
+            ParsingAlgorithm::Fragment
+        } else {
+            self.parsing_algorithm
+        };
+        let element = create_element_for_token(
+            cx,
+            name,
+            attrs,
+            &self.document,
+            ElementCreator::ParserCreated(self.current_line.get()),
+            parsing_algorithm,
+            &self.custom_element_reaction_stack,
+            flags.had_duplicate_attributes,
+        );
+        Dom::from_ref(element.upcast())
+    }
+
+    #[expect(unsafe_code)]
+    fn create_comment(&self, text: StrTendril) -> Dom<Node> {
+        // TODO: https://github.com/servo/servo/issues/42839
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
+        let comment = Comment::new(
+            cx,
+            DOMString::from(String::from(text)),
+            &self.document,
+            None,
+        );
+        Dom::from_ref(comment.upcast())
+    }
+
+    #[expect(unsafe_code)]
+    fn create_pi(&self, target: StrTendril, data: StrTendril) -> Dom<Node> {
+        // TODO: https://github.com/servo/servo/issues/42839
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
+        let doc = &*self.document;
+        let pi = ProcessingInstruction::new(
+            cx,
+            DOMString::from(String::from(target)),
+            DOMString::from(String::from(data)),
+            doc,
+        );
+        Dom::from_ref(pi.upcast())
+    }
+
+    #[expect(unsafe_code)]
+    fn associate_with_form(
+        &self,
+        target: &Dom<Node>,
+        form: &Dom<Node>,
+        nodes: (&Dom<Node>, Option<&Dom<Node>>),
+    ) {
+        // TODO: https://github.com/servo/servo/issues/42839
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
+        let (element, prev_element) = nodes;
+        let tree_node = prev_element.map_or(element, |prev| {
+            if self.has_parent_node(element) {
+                element
+            } else {
+                prev
+            }
+        });
+        if !self.same_tree(tree_node, form) {
+            return;
+        }
+
+        let node = target;
+        let form = DomRoot::downcast::<HTMLFormElement>(DomRoot::from_ref(&**form))
+            .expect("Owner must be a form element");
+
+        let elem = node.downcast::<Element>();
+        let control = elem.and_then(|e| e.as_maybe_form_control());
+
+        if let Some(control) = control {
+            control.set_form_owner_from_parser(cx, &form);
+        }
+    }
+
+    #[expect(unsafe_code)]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
+    fn append_before_sibling(&self, sibling: &Dom<Node>, new_node: NodeOrText<Dom<Node>>) {
+        // TODO: https://github.com/servo/servo/issues/42839
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
+
+        let parent = sibling
+            .GetParentNode()
+            .expect("append_before_sibling called on node without parent");
+
+        insert(
+            cx,
+            &parent,
+            Some(sibling),
+            new_node,
+            self.parsing_algorithm,
+            &self.custom_element_reaction_stack,
+        );
+    }
+
+    fn parse_error(&self, msg: Cow<'static, str>) {
+        debug!("Parse error: {}", msg);
+    }
+
+    fn set_quirks_mode(&self, mode: QuirksMode) {
+        let mode = match mode {
+            QuirksMode::Quirks => ServoQuirksMode::Quirks,
+            QuirksMode::LimitedQuirks => ServoQuirksMode::LimitedQuirks,
+            QuirksMode::NoQuirks => ServoQuirksMode::NoQuirks,
+        };
+        self.document.set_quirks_mode(mode);
+    }
+
+    #[expect(unsafe_code)]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
+    fn append(&self, parent: &Dom<Node>, child: NodeOrText<Dom<Node>>) {
+        // TODO: https://github.com/servo/servo/issues/42839
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
+
+        insert(
+            cx,
+            parent,
+            None,
+            child,
+            self.parsing_algorithm,
+            &self.custom_element_reaction_stack,
+        );
+    }
+
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
+    fn append_based_on_parent_node(
+        &self,
+        elem: &Dom<Node>,
+        prev_elem: &Dom<Node>,
+        child: NodeOrText<Dom<Node>>,
+    ) {
+        if self.has_parent_node(elem) {
+            self.append_before_sibling(elem, child);
+        } else {
+            self.append(prev_elem, child);
+        }
+    }
+
+    #[expect(unsafe_code)]
+    fn append_doctype_to_document(
+        &self,
+        name: StrTendril,
+        public_id: StrTendril,
+        system_id: StrTendril,
+    ) {
+        // TODO: https://github.com/servo/servo/issues/42839
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
+
+        let doc = &*self.document;
+        let doctype = DocumentType::new(
+            cx,
+            DOMString::from(String::from(name)),
+            Some(DOMString::from(String::from(public_id))),
+            Some(DOMString::from(String::from(system_id))),
+            doc,
+        );
+        doc.upcast::<Node>()
+            .AppendChild(cx, doctype.upcast())
+            .expect("Appending failed");
+    }
+
+    #[expect(unsafe_code)]
+    fn add_attrs_if_missing(&self, target: &Dom<Node>, attrs: Vec<Attribute>) {
+        // TODO: https://github.com/servo/servo/issues/42839
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
+
+        let elem = target
+            .downcast::<Element>()
+            .expect("tried to set attrs on non-Element in HTML parsing");
+        for attr in attrs {
+            elem.set_attribute_from_parser(
+                cx,
+                attr.name,
+                DOMString::from(String::from(attr.value)),
+            );
+        }
+    }
+
+    #[expect(unsafe_code)]
+    fn remove_from_parent(&self, target: &Dom<Node>) {
+        // TODO: https://github.com/servo/servo/issues/42839
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
+
+        if let Some(ref parent) = target.GetParentNode() {
+            parent.RemoveChild(cx, target).unwrap();
+        }
+    }
+
+    fn mark_script_already_started(&self, node: &Dom<Node>) {
+        let script = node.downcast::<HTMLScriptElement>();
+        if let Some(script) = script {
+            script.set_already_started(true)
+        }
+    }
+
+    #[expect(unsafe_code)]
+    fn reparent_children(&self, node: &Dom<Node>, new_parent: &Dom<Node>) {
+        // TODO: https://github.com/servo/servo/issues/42839
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
+
+        while let Some(ref child) = node.GetFirstChild() {
+            new_parent.AppendChild(cx, child).unwrap();
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#html-integration-point>
+    /// Specifically, the `<annotation-xml>` cases.
+    fn is_mathml_annotation_xml_integration_point(&self, handle: &Dom<Node>) -> bool {
+        let elem = handle.downcast::<Element>().unwrap();
+        elem.get_attribute_string_value(&local_name!("encoding"))
+            .is_some_and(|value| {
+                value.eq_ignore_ascii_case("text/html") ||
+                    value.eq_ignore_ascii_case("application/xhtml+xml")
+            })
+    }
+
+    fn set_current_line(&self, line_number: u64) {
+        self.current_line.set(line_number);
+    }
+
+    #[expect(unsafe_code)]
+    fn pop(&self, node: &Dom<Node>) {
+        // TODO: https://github.com/servo/servo/issues/42839
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
+
+        let node = DomRoot::from_ref(&**node);
+        vtable_for(&node).pop(cx);
+    }
+
+    fn allow_declarative_shadow_roots(&self, intended_parent: &Dom<Node>) -> bool {
+        intended_parent.owner_doc().allow_declarative_shadow_roots()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#parsing-main-inhead>
+    /// A start tag whose tag name is "template"
+    /// Attach shadow path
+    #[expect(unsafe_code)]
+    fn attach_declarative_shadow(
+        &self,
+        host: &Dom<Node>,
+        template: &Dom<Node>,
+        attributes: &[Attribute],
+    ) -> bool {
+        // TODO: https://github.com/servo/servo/issues/42839
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
+
+        attach_declarative_shadow_inner(cx, host, template, attributes)
+    }
+
+    #[expect(unsafe_code)]
+    fn maybe_clone_an_option_into_selectedcontent(&self, option: &Self::Handle) {
+        // TODO: https://github.com/servo/servo/issues/42839
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
+
+        let Some(option) = option.downcast::<HTMLOptionElement>() else {
+            if cfg!(debug_assertions) {
+                unreachable!();
+            }
+            log::error!(
+                "Received non-option element in maybe_clone_an_option_into_selectedcontent"
+            );
+            return;
+        };
+
+        option.maybe_clone_an_option_into_selectedcontent(cx)
+    }
+}
+
+/// <https://html.spec.whatwg.org/multipage/#create-an-element-for-the-token>
+#[expect(clippy::too_many_arguments)]
+fn create_element_for_token(
+    cx: &mut JSContext,
+    name: QualName,
+    attrs: Vec<ElementAttribute>,
+    document: &Document,
+    creator: ElementCreator,
+    parsing_algorithm: ParsingAlgorithm,
+    custom_element_reaction_stack: &CustomElementReactionStack,
+    had_duplicate_attributes: bool,
+) -> DomRoot<Element> {
+    // Step 1. If the active speculative HTML parser is not null, then return the result
+    // of creating a speculative mock element given namespace, token's tag name, and
+    // token's attributes.
+    // TODO: Implement
+
+    // Step 2: Otherwise, optionally create a speculative mock element given namespace,
+    // token's tag name, and token's attributes
+    // TODO: Implement.
+
+    // Step 3. Let document be intendedParent's node document.
+    // Passed as argument.
+
+    // Step 4. Let localName be token's tag name.
+    // Passed as argument
+
+    // Step 5. Let is be the value of the "is" attribute in token, if such an attribute
+    // exists; otherwise null.
+    let is = attrs
+        .iter()
+        .find(|attr| attr.name.local.eq_str_ignore_ascii_case("is"))
+        .map(|attr| LocalName::from(&attr.value));
+
+    // Step 6. Let registry be the result of looking up a custom element registry given intendedParent.
+    // TODO: Implement registries other than `Document`.
+
+    // Step 7. Let definition be the result of looking up a custom element definition
+    // given registry, namespace, localName, and is.
+    let definition = CustomElementRegistry::lookup_custom_element_definition(
+        document.custom_element_registry().as_deref(),
+        &name.ns,
+        &name.local,
+        is.as_ref(),
+    );
+
+    // Step 8. Let willExecuteScript be true if definition is non-null and the parser was
+    // not created as part of the HTML fragment parsing algorithm; otherwise false.
+    let will_execute_script =
+        definition.is_some() && parsing_algorithm != ParsingAlgorithm::Fragment;
+
+    // Step 9. If willExecuteScript is true:
+    if will_execute_script {
+        // Step 9.1. Increment document's throw-on-dynamic-markup-insertion counter.
+        document.increment_throw_on_dynamic_markup_insertion_counter();
+        // Step 6.2. If the JavaScript execution context stack is empty, then perform a
+        // microtask checkpoint.
+        if is_execution_stack_empty() {
+            document.window().perform_a_microtask_checkpoint(cx);
+        }
+        // Step 9.3. Push a new element queue onto document's relevant agent's custom
+        // element reactions stack.
+        custom_element_reaction_stack.push_new_element_queue()
+    }
+
+    // Step 10. Let element be the result of creating an element given document,
+    // localName, namespace, null, is, willExecuteScript, and registry.
+    let creation_mode = if will_execute_script {
+        CustomElementCreationMode::Synchronous
+    } else {
+        CustomElementCreationMode::Asynchronous
+    };
+    let element = Element::create(cx, name, is, document, creator, creation_mode, None);
+
+    // Step 11. Append each attribute in the given token to element.
+    for attr in attrs {
+        element.set_attribute_from_parser(cx, attr.name, attr.value);
+    }
+
+    // Record if the tokenizer saw duplicate attributes on this element,
+    // used for CSP nonce validation (step 3 of "is element nonceable").
+    if had_duplicate_attributes {
+        element.set_had_duplicate_attributes(cx.no_gc());
+    }
+
+    // Step 12. If willExecuteScript is true:
+    if will_execute_script {
+        // Step 12.1. Let queue be the result of popping from document's relevant agent's
+        // custom element reactions stack. (This will be the same element queue as was
+        // pushed above.)
+        // Step 12.2 Invoke custom element reactions in queue.
+        custom_element_reaction_stack.pop_current_element_queue(cx);
+        // Step 12.3. Decrement document's throw-on-dynamic-markup-insertion counter.
+        document.decrement_throw_on_dynamic_markup_insertion_counter();
+    }
+
+    // Step 13. If element has an xmlns attribute in the XMLNS namespace whose value is
+    // not exactly the same as the element's namespace, that is a parse error. Similarly,
+    // if element has an xmlns:xlink attribute in the XMLNS namespace whose value is not
+    // the XLink Namespace, that is a parse error.
+    // TODO: Implement.
+
+    // Step 14. If element is a resettable element and not a form-associated custom
+    // element, then invoke its reset algorithm. (This initializes the element's value and
+    // checkedness based on the element's attributes.)
+    if let Some(html_element) = element.downcast::<HTMLElement>() &&
+        element.is_resettable() &&
+        !html_element.is_form_associated_custom_element()
+    {
+        element.reset(cx);
+    }
+
+    // Step 15. If element is a form-associated element and not a form-associated custom
+    // element, the form element pointer is not null, there is no template element on the
+    // stack of open elements, element is either not listed or doesn't have a form attribute,
+    // and the intendedParent is in the same tree as the element pointed to by the form
+    // element pointer, then associate element with the form element pointed to by the form
+    // element pointer and set element's parser inserted flag.
+    // TODO: Implement
+
+    // Step 16. Return element.
+    element
+}
+
+fn attach_declarative_shadow_inner(
+    cx: &mut JSContext,
+    host: &Node,
+    template: &Node,
+    attributes: &[Attribute],
+) -> bool {
+    let host_element = host.downcast::<Element>().unwrap();
+
+    if host_element.shadow_root().is_some() {
+        return false;
+    }
+
+    let template_element = template.downcast::<HTMLTemplateElement>().unwrap();
+
+    // Step 3. Let mode be templateStartTag's shadowrootmode attribute's value.
+    // Step 4. Let slotAssignment be "named".
+    // Step 5. If templateStartTag's shadowrootslotassignment attribute is in
+    // the Manual state, then set slotAssignment to "manual".
+    // Step 6. Let clonable be true if templateStartTag has a shadowrootclonable attribute; otherwise false.
+    // Step 7. Let serializable be true if templateStartTag has a shadowrootserializable
+    // attribute; otherwise false.
+    // Step 8. Let delegatesFocus be true if templateStartTag has a shadowrootdelegatesfocus
+    // attribute; otherwise false.
+    let mut shadow_root_mode = ShadowRootMode::Open;
+    let mut slot_assignment_mode = SlotAssignmentMode::Named;
+    let mut clonable = false;
+    let mut delegatesfocus = false;
+    let mut serializable = false;
+
+    attributes
+        .iter()
+        .for_each(|attr: &Attribute| match attr.name.local {
+            local_name!("shadowrootmode") => {
+                if attr.value.eq_ignore_ascii_case("open") {
+                    shadow_root_mode = ShadowRootMode::Open;
+                } else if attr.value.eq_ignore_ascii_case("closed") {
+                    shadow_root_mode = ShadowRootMode::Closed;
+                } else {
+                    unreachable!("shadowrootmode value is not open nor closed");
+                }
+            },
+            local_name!("shadowrootclonable") => {
+                clonable = true;
+            },
+            local_name!("shadowrootdelegatesfocus") => {
+                delegatesfocus = true;
+            },
+            local_name!("shadowrootserializable") => {
+                serializable = true;
+            },
+            local_name!("shadowrootslotassignment") => {
+                if attr.value.eq_ignore_ascii_case("manual") {
+                    slot_assignment_mode = SlotAssignmentMode::Manual;
+                }
+            },
+            _ => {},
+        });
+
+    // Step 8.1. Attach a shadow root with declarative shadow host element,
+    // mode, clonable, serializable, delegatesFocus, and "named".
+    match host_element.attach_shadow(
+        cx,
+        IsUserAgentWidget::No,
+        shadow_root_mode,
+        clonable,
+        serializable,
+        delegatesfocus,
+        slot_assignment_mode,
+    ) {
+        Ok(shadow_root) => {
+            // Step 8.3. Set shadow's declarative to true.
+            shadow_root.set_declarative(true);
+
+            // Set 8.4. Set template's template contents property to shadow.
+            let shadow = shadow_root.upcast::<DocumentFragment>();
+            template_element.set_contents(Some(shadow));
+
+            // Step 8.5. Set shadow’s available to element internals to true.
+            shadow_root.set_available_to_element_internals(true);
+
+            true
+        },
+        Err(_) => false,
+    }
+}
+
+/// <https://html.spec.whatwg.org/multipage/#populate-with-html/head/body>
+fn populate_about_blank(cx: &mut JSContext, document: &Document) {
+    let mut create_html_element = |name| {
+        create_element(
+            cx,
+            QualName::new(None, ns!(html), name),
+            None,
+            document,
+            ElementCreator::ParserCreated(0),
+            CustomElementCreationMode::Synchronous,
+            None,
+        )
+    };
+    // Step 1. Let html be the result of creating an element given document, "html", and the HTML namespace.
+    let html = create_html_element(local_name!("html"));
+    // Step 2. Let head be the result of creating an element given document, "head", and the HTML namespace.
+    let head = create_html_element(local_name!("head"));
+    // Step 3. Let body be the result of creating an element given document, "body", and the HTML namespace.
+    let body = create_html_element(local_name!("body"));
+    // Step 4. Append html to document.
+    let _ = document.upcast::<Node>().AppendChild(cx, html.upcast());
+    // Step 5. Append head to html.
+    let _ = html.upcast::<Node>().AppendChild(cx, head.upcast());
+    // Step 6. Append body to html.
+    let _ = html.upcast::<Node>().AppendChild(cx, body.upcast());
+}

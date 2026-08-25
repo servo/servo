@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes Test: column fill-reverse justify-self mixes baseline and last baseline with indefinite size</title>
+  <link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+  <link rel="match" href="column-fill-reverse-justify-self-indefinite-size-001-ref.html">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3/#alignment">
+  <style>
+    html, body {
+      font: 16px/1 monospace;
+      background: white;
+    }
+
+    .grid-lanes {
+      display: grid-lanes;
+      grid-lanes-direction: column fill-reverse;
+      grid-template-columns: repeat(2, 80px);
+      border: 1px solid blue;
+      gap: 4px;
+      width: min-content;
+    }
+
+    item {
+      display: block;
+      width: min-content;
+      height: min-content;
+      color: white;
+      background: #555;
+      writing-mode: vertical-rl;
+    }
+  </style>
+</head>
+<body>
+  <p>justify-self: baseline / last baseline</p>
+  <div class="grid-lanes">
+    <item style="justify-self: baseline;">item 1 with extra text</item>
+    <item style="justify-self: last baseline;">item 2</item>
+    <item style="justify-self: baseline;">item 3 with more text</item>
+    <item style="justify-self: last baseline;">item 4</item>
+    <item style="justify-self: baseline;">item 5</item>
+    <item style="justify-self: last baseline;">item 6 with even more text</item>
+  </div>
+</body>
+</html>

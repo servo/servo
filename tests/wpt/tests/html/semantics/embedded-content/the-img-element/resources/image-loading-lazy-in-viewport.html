@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+
+<!-- This frame is used by image-loading-lazy-in-cross-origin-iframe-002.sub.html -->
+
+<img id="img" loading="lazy">
+
+<script>
+  const img = document.querySelector('#img');
+
+  // Prevent the list of available images check from loading the image non-lazily.
+  img.src = "image.png?image-loading-lazy-in-viewport-" + Math.random() + "-" + Date.now();
+
+  img.addEventListener("load", () => {
+    parent.postMessage("image_loaded", "*");
+  });
+
+  window.addEventListener("load", () => {
+    parent.postMessage("window_loaded", "*");
+  });
+</script>

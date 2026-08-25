@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<title>Computed CSSStyleDeclaration includes registered custom properties</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/1316">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  @property --non-inherited-length {
+    syntax: "<length>";
+    inherits: false;
+    initial-value: 0px;
+  }
+  @property --inherited-length {
+    syntax: "<length>";
+    inherits: true;
+    initial-value: 0px;
+  }
+  @property --universal-with-initial {
+    syntax: "*";
+    inherits: false;
+    initial-value: foo;
+  }
+  @property --universal-without-initial {
+    syntax: "*";
+    inherits: false;
+  }
+  #outer { --non-registered-outer: 1px; }
+  #inner { --non-registered-inner: 2px; }
+  #sibling { --universal-without-initial: bar; }
+</style>
+<div id=outer>
+  <div id=inner></div>
+  <div id=sibling></div>
+</div>
+<script>
+  const assert_present = (props, name) => assert_not_equals(props.indexOf(name), -1);
+  const assert_absent = (props, name) => assert_equals(props.indexOf(name), -1);
+
+  test(function() {
+    let props = Array.from(getComputedStyle(inner));
+    assert_present(props, '--non-inherited-length');
+    assert_present(props, '--inherited-length');
+    assert_present(props, '--non-registered-outer');
+    assert_present(props, '--non-registered-inner');
+    assert_present(props, '--universal-with-initial');
+    assert_absent(props, '--universal-without-initial');
+  }, 'Registered custom properties are included in CSSComputedStyleDeclaration');
+
+  test(function() {
+    let props = Array.from(getComputedStyle(sibling));
+    assert_present(props, '--non-inherited-length');
+    assert_present(props, '--inherited-length');
+    assert_present(props, '--non-registered-outer');
+    assert_present(props, '--universal-with-initial');
+    assert_present(props, '--universal-without-initial');
+    assert_absent(props, '--non-registered-inner');
+  }, 'Only relevant custom properties are included');
+</script>

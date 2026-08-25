@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://www.w3.org/TR/css-backgrounds-3/#background-position">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#comp-func">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1874606#c3">
+<link rel="match" href="reference/background-position-negative-percentage-comparison-ref.html">
+<style>
+.target {
+  margin: 50px;
+  width: 50px;
+  height: 50px;
+  border: 1px solid black;
+  background-image: url("support/100x100-blue-and-orange.png");
+  background-position: min(0%, 100%) max(0%, 100%);
+  /* Should behave the same as the declaration above: */
+  background-position-x: min(0%, 100%);
+  background-position-y: max(0%, 100%);
+}
+</style>
+<div class="target"></div>

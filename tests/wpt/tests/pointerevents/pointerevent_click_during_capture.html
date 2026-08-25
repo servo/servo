@@ -1,0 +1,158 @@
+<!DOCTYPE HTML>
+<title>Target of click-like events with pointer capture</title>
+<link rel="help" href="https://w3c.github.io/pointerevents/#event-dispatch" />
+<meta name="variant" content="?mouse-click">
+<meta name="variant" content="?mouse-auxclick">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="pointerevent_support.js"></script>
+
+<style>
+  div {
+    padding: 10px;
+  }
+  #parent {
+    background: grey;
+  }
+  #child1 {
+    background: green;
+  }
+  #child2 {
+    background: blue;
+  }
+</style>
+
+<div id="parent">
+  <div id="child1"></div>
+  <div id="child2"></div>
+</div>
+<div id="done"></div>
+
+<script>
+  'use strict';
+
+  const [pointer_type, event_to_test] = location.search.substring(1).split("-");
+  assert_true(["click", "auxclick"].includes(event_to_test));
+  assert_equals(pointer_type, "mouse");
+  // Other pointer types can generate click/auxclick and should be tested here.
+
+  const test_pointer = pointer_type + 'TestPointer';
+
+  let event_log = [];
+
+  function logEvent(event) {
+    if (event.eventPhase == event.AT_TARGET) {
+      event_log.push(event.type + '@' + event.target.id);
+    }
+  }
+
+  const parent = document.getElementById('parent');
+  const child2 = document.getElementById('child2');
+  const child1 = document.getElementById('child1');
+  const done = document.getElementById('done');
+
+  let logged_events = [
+    'gotpointercapture', 'lostpointercapture',
+    'pointerdown', 'pointerup', event_to_test
+  ];
+  logged_events.forEach(ename => {
+    [parent, child2, child1].forEach(target => {
+      target.addEventListener(ename, logEvent);
+    });
+  });
+  // Suppress context-menus at right-clicks.
+  parent.addEventListener("contextmenu", e => e.preventDefault());
+
+  function dragBetweenChildrenAndClickOnDone(from_child, to_child, test) {
+    let actions_promise = new test_driver.Actions();
+
+    const button_type = (event_to_test === "click")
+        ? actions_promise.ButtonType.LEFT
+        : actions_promise.ButtonType.RIGHT;
+
+    actions_promise.addPointer(test_pointer, pointer_type)
+      .pointerMove(0, 0, {origin:from_child})
+      .pointerDown({button:button_type})
+      .pointerMove(0, 0, {origin:to_child})
+      .pointerUp({button:button_type})
+      .pointerMove(0, 0, {origin:done})
+      .pointerDown()
+      .pointerUp();
+
+    let done_click_promise = getEvent('click', done, test);
+
+    return actions_promise.send().then(done_click_promise);
+  }
+
+  promise_test(async test => {
+    event_log = [];
+
+    await dragBetweenChildrenAndClickOnDone(child1, child1, test);
+
+    assert_equals(event_log.join(','),
+      `pointerdown@child1,pointerup@child1,${event_to_test}@child1`);
+  }, 'pointerdown/up at child1, no capture');
+
+  promise_test(async test => {
+    event_log = [];
+
+    getEvent('pointerdown', child1, test)
+      .then(event => child1.setPointerCapture(event.pointerId));
+    await dragBetweenChildrenAndClickOnDone(child1, child1, test);
+
+    assert_equals(event_log.join(','),
+      'pointerdown@child1,gotpointercapture@child1,' +
+      `pointerup@child1,lostpointercapture@child1,${event_to_test}@child1`);
+  }, 'pointerdown/up at child1, capture at child1');
+
+  promise_test(async test => {
+    event_log = [];
+
+    getEvent('pointerdown', child1, test)
+      .then(event => child2.setPointerCapture(event.pointerId));
+    await dragBetweenChildrenAndClickOnDone(child1, child1, test);
+
+    assert_equals(event_log.join(','),
+      'pointerdown@child1,gotpointercapture@child2,' +
+      `pointerup@child2,lostpointercapture@child2,${event_to_test}@child2`);
+  }, 'pointerdown/up at child1, capture at child2');
+
+  promise_test(async test => {
+    event_log = [];
+
+    await dragBetweenChildrenAndClickOnDone(child1, child2, test);
+
+    assert_equals(event_log.join(','),
+      `pointerdown@child1,pointerup@child2,${event_to_test}@parent`);
+  }, 'pointerdown at child1, pointerup at child2, no capture');
+
+  promise_test(async test => {
+    event_log = [];
+
+    getEvent('pointerdown', child1, test)
+      .then(event => child1.setPointerCapture(event.pointerId));
+    await dragBetweenChildrenAndClickOnDone(child1, child2, test);
+
+    assert_equals(event_log.join(','),
+      'pointerdown@child1,gotpointercapture@child1,' +
+      `pointerup@child1,lostpointercapture@child1,${event_to_test}@child1`);
+  }, 'pointerdown at child1, pointerup at child2, capture at child1');
+
+  promise_test(async test => {
+    event_log = [];
+
+    getEvent('pointerdown', child1, test)
+      .then(event => child2.setPointerCapture(event.pointerId));
+    await dragBetweenChildrenAndClickOnDone(child1, child2, test);
+
+    assert_equals(event_log.join(','),
+      'pointerdown@child1,gotpointercapture@child2,' +
+      `pointerup@child2,lostpointercapture@child2,${event_to_test}@child2`);
+  }, 'pointerdown at child1, pointerup at child2, capture at child2');
+</script>
+<html>
+</html>

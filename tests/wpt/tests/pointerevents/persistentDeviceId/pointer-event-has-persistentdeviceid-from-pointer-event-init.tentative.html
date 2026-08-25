@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<!--
+   Tentative; contingent on merge of:
+   https://github.com/w3c/pointerevents/pull/495
+-->
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="console"></div>
+
+<!-- This test verifies that pointerEvent.persistentDeviceId
+     can be set via PointerEventInit. -->
+<script>
+    const PERSISTENT_ID = 1001;
+    const INVALID_PERSISTENT_ID = 0;
+
+    function CheckDeviceId(event, persistentDeviceId) {
+        assert_equals(event.persistentDeviceId, persistentDeviceId, "persistentDeviceId is populated");
+    }
+
+    promise_test(async () => {
+        var deviceId = PERSISTENT_ID;
+        var downEvent = new PointerEvent("pointerdown",
+          {pointerId: 1,
+            bubbles: true,
+            cancelable: true,
+            pointerType: "pen",
+            width: 100,
+            height: 100,
+            isPrimary: true,
+            persistentDeviceId: deviceId
+          });
+        CheckDeviceId(downEvent, PERSISTENT_ID);
+        var moveEvent = new PointerEvent("pointermove",
+          {pointerId: 1,
+            bubbles: true,
+            cancelable: true,
+            pointerType: "pen",
+            width: 100,
+            height: 100,
+            isPrimary: true,
+            persistentDeviceId: deviceId
+          });
+        CheckDeviceId(moveEvent, PERSISTENT_ID);
+        var upEvent = new PointerEvent("pointerup",
+          {pointerId: 1,
+            bubbles: true,
+            cancelable: true,
+            pointerType: "pen",
+            width: 100,
+            height: 100,
+            isPrimary: true,
+            persistentDeviceId: deviceId
+          });
+        CheckDeviceId(upEvent, PERSISTENT_ID);
+    }, 'PointerEvent.persistentDeviceId via PointerEventInit');
+
+    promise_test(async () => {
+        var downEventEmptyProps = new PointerEvent("pointerdown",
+          {pointerId: 1,
+            bubbles: true,
+            cancelable: true,
+            pointerType: "pen",
+            width: 100,
+            height: 100,
+            isPrimary: true,
+        });
+        assert_equals(downEventEmptyProps.persistentDeviceId, INVALID_PERSISTENT_ID);
+    }, 'No persistentDeviceId in PointerEventInit');
+</script>

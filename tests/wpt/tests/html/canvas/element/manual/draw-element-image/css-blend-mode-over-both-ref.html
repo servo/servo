@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<head>
+  <title>drawElementImage applies CSS blend-mode correctly - ref</title>
+  <style>
+    #parent {
+      width: 100px;
+      height: 100px;
+      background: white;
+      border: 1px black solid;
+    }
+    #child1 {
+      margin: 0px;
+      width: 50px;
+      height: 50px;
+      background: blue;
+    }
+    #child2 {
+      margin-left: 10px;
+      margin-top: -40px;
+      width: 80px;
+      height: 80px;
+      background: green;
+      mix-blend-mode: difference;
+    }
+  </style>
+</head>
+<body>
+  <div id=parent>
+    <div id=child1></div>
+    <div id=child2></div>
+  </div>
+</body>
+</html>

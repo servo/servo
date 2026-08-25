@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<meta charset="utf8">
+<title>CSS contain-intrinsic-size: multi-column containers</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override">
+<link rel="help" href="https://drafts.csswg.org/css-multicol-1/#the-multi-column-model">
+<style>
+.test {
+  contain: size;
+  display: inline-block;
+  padding: 0;
+  border: 5px solid;
+  column-gap: 5px;
+}
+.columns-60px-1 {
+  columns: 60px 1;
+}
+.columns-120px-1 {
+  columns: 120px 1;
+}
+.columns-60px-2 {
+  columns: 60px 2;
+}
+.cis-none {
+  contain-intrinsic-size: none none;
+}
+.cis-height {
+  contain-intrinsic-size: none 50px;
+}
+.cis-width {
+  contain-intrinsic-size: 100px none;
+}
+.cis-both {
+  contain-intrinsic-size: 100px 50px;
+}
+</style>
+
+<div id="log"></div>
+
+<div class="test columns-60px-1 cis-none"
+     data-expected-client-width="60" data-expected-client-height="0"></div>
+<div class="test columns-60px-1 cis-height"
+     data-expected-client-width="60" data-expected-client-height="50"></div>
+<div class="test columns-60px-1 cis-width"
+     data-expected-client-width="100" data-expected-client-height="0"></div>
+<div class="test columns-60px-1 cis-both"
+     data-expected-client-width="100" data-expected-client-height="50"></div>
+
+<div class="test columns-120px-1 cis-none"
+     data-expected-client-width="120" data-expected-client-height="0"></div>
+<div class="test columns-120px-1 cis-height"
+     data-expected-client-width="120" data-expected-client-height="50"></div>
+<div class="test columns-120px-1 cis-width"
+     data-expected-client-width="100" data-expected-client-height="0"></div>
+<div class="test columns-120px-1 cis-both"
+     data-expected-client-width="100" data-expected-client-height="50"></div>
+
+<div class="test columns-60px-2 cis-none"
+     data-expected-client-width="125" data-expected-client-height="0"></div>
+<div class="test columns-60px-2 cis-height"
+     data-expected-client-width="125" data-expected-client-height="50"></div>
+<div class="test columns-60px-2 cis-width"
+     data-expected-client-width="100" data-expected-client-height="0"></div>
+<div class="test columns-60px-2 cis-both"
+     data-expected-client-width="100" data-expected-client-height="50"></div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script>
+checkLayout(".test");
+</script>

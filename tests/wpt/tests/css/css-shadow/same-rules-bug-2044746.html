@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<link rel="match" href="same-rules-bug-2044746-ref.html">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2044746">
+<link rel="help" href="https://drafts.csswg.org/css-shadow-1/#selectors-data-model">
+<style>div > div { background: blue; }</style>
+<div>
+  <div>a</div>
+</div>
+<div>
+  <template shadowrootmode=open>
+    <div>b</div>
+  </template>
+</div>

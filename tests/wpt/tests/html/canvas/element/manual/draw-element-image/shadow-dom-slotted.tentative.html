@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Canvas.drawElementImage: A slotted element as a child paints as expected</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<link rel="author" href="mailto:schenney@chromium.org">
+<link rel="match" href="basic-rect-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+<style>
+#canvas {
+  background: grey;
+}
+</style>
+
+<canvas id=canvas width="200" height="200" layoutsubtree>
+  <div id="shadowHost">
+    <template shadowrootmode="open">
+      <!-- Put the style here to confirm the div is slotted-->
+      <style>
+        ::slotted(div) {
+          width: 100px;
+          height: 100px;
+          background: green;
+        }
+      </style>
+      <slot name="slot1"></slot>
+    </template>
+    <div id="slotted" slot="slot1"></div>
+  </div>
+</canvas>
+
+<script>
+onload = async () => {
+  await waitForCanvasPaint(canvas);
+  canvas.getContext("2d").drawElementImage(shadowHost, 20, 30);
+  takeScreenshot();
+};
+</script>
+</html>

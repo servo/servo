@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf8">
+<title>CSS Content Visibility: popover shows when rendered (ref)</title>
+
+<style>
+.box { width: 100px; height: 100px; border: 1px solid black; }
+#popover { outline: none; }
+</style>
+
+<div id=container class=box>
+This test passes if you can see “PASS” in a white box.
+<div popover id=popover>PASS<div id=inner></div></div>
+</div>
+text
+
+<script>
+popover.showPopover();
+</script>

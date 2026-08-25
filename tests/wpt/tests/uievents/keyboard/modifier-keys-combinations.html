@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>UI Events Test: Modifier keys combinations</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://w3c.github.io/uievents/#idl-keyboardevent" />
+<meta name="assert" content="This test checks that modifier keys combinations are properly detected in 'keydown' event.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<div id="target" tabindex="0">Target</div>
+<script>
+  const keys = {
+    "Shift": '\uE008' + 'y',
+    "Control": '\uE009' + 'y',
+    "Alt": '\uE00A' + 'y',
+    "Meta": '\uE03D' + 'y',
+  };
+
+  target.focus();
+  for (const [key, code] of Object.entries(keys)) {
+    promise_test(() => {
+      return new Promise(resolve => {
+        target.addEventListener("keydown", (event) => {
+          if (event.key != key)
+              resolve(event);
+        });
+        test_driver.send_keys(target, code);
+      }).then((event) => {
+        if (event.shiftKey) {
+          // Shift + y will send a "Y" keydown event on Chromium and Firefox, but a "y" one on WebKit.
+          assert_true(event.key == "y" || event.key == "Y");
+        } else {
+          assert_equals(event.key, "y");
+        }
+        assert_equals(event.shiftKey, key === "Shift");
+        assert_equals(event.ctrlKey, key === "Control");
+        assert_equals(event.altKey, key === "Alt");
+        assert_equals(event.metaKey, key === "Meta");
+      });
+    }, `Check sending "${key} + y" key combination`);
+  }
+</script>

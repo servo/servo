@@ -1,0 +1,60 @@
+<link rel="help" href="https://drafts.csswg.org/css-scroll-anchoring/">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  body {
+    margin: 0px;
+    height: 2000px;
+    width: 2000px;
+  }
+
+  #first {
+    height: 1000px;
+    background-color: #FFA5D2;
+  }
+
+  #anchor {
+    position: absolute;
+    background-color: #84BE6A;
+    height: 600px;
+    width: 100%;
+  }
+
+  #fragment {
+    position: relative;
+    background-color: orange;
+    height: 200px;
+    width: 200px;
+    margin: 10px;
+  }
+</style>
+
+<div id="first"></div>
+<div id="changer"></div>
+<div id="anchor">
+    <div id="fragment" name="fragment"></div>
+</div>
+
+<script>
+  promise_test(async function(t) {
+    // Note that this test passes even without scroll anchoring because of
+    // fragment anchoring.
+    window.location.hash = 'fragment';
+    // Height of first + fragment margin-top.
+    assert_equals(window.scrollY, 1010);
+
+    // Change height of content above fragment.
+    var ch = document.getElementById('changer');
+    ch.style.height = 100;
+
+    await new Promise(resolve => addEventListener('scroll', resolve, {once: true}));
+
+    // Height of first + height changer + fragment margin-top.
+    assert_equals(window.scrollY, 1110);
+
+    first.remove();
+    changer.remove();
+    anchor.remove();
+  }, 'Verify scroll anchoring interaction with fragment scrolls');
+</script>

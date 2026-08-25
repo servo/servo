@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
+<g id="testmeta">
+	<title>CSS Masking: mask without mask-type alpha</title>
+	<html:link rel="author" title="Dirk Schulze" href="mailto:dschulze@adobe.com"/>
+	<html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#svg-masks"/>
+	<html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#MaskElement"/>
+	<html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#the-mask-type"/>
+	<html:link rel="match" href="reference/mask-green-square-001-ref.svg"/>
+	<metadata class="flags">svg</metadata>
+	<desc class="assert">The mask type "alpha" is applied to the mask element.
+	The mask should take the alpha channel of the content to mask. You should
+	see a green square.</desc>
+</g>
+<mask id="mask" mask-type="alpha">
+	<rect width="200" height="200" fill="black" opacity="0"/>
+	<rect x="50" y="50" width="100" height="100" fill="black"/>
+</mask>
+<rect width="200" height="200" fill="green" mask="url(#mask)"/>
+</svg>

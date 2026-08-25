@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../resources/orientation-event-helpers.js"></script>
+<script>
+'use strict';
+
+promise_test(async (t) => {
+  const helper = new SensorTestHelper(t, 'devicemotion');
+  await helper.grantSensorsPermissions();
+
+  const motionData1 = generateMotionData(1, 2, 3,
+                                         null, null, null,
+                                         null, null, null);
+
+  const motionData2 = generateMotionData(null, null, null,
+                                         1, 2, 3,
+                                         null, null, null);
+
+  const motionData3 = generateMotionData(null, null, null,
+                                         null, null, null,
+                                         1, 2, 3);
+
+  const motionData4 = generateMotionData(null, null, null,
+                                         null, null, null,
+                                         null, null, null);
+
+  await helper.initializeSensors({disabledSensors: ['accelerometer','gyroscope']});
+  await helper.setData(motionData1);
+  await waitForEvent(getExpectedMotionEvent(motionData1));
+  // If test needs to change virtual sensor state from connected to not
+  // connected or vise versa, reset needs to be called. It removes created
+  // virtual sensors and creating them with different connection state is then
+  // possible.
+  await helper.reset();
+
+  await helper.initializeSensors({disabledSensors: ['linear-acceleration','gyroscope']});
+  await helper.setData(motionData2);
+  await waitForEvent(getExpectedMotionEvent(motionData2));
+  await helper.reset();
+
+  await helper.initializeSensors({disabledSensors: ['accelerometer','linear-acceleration']});
+  await helper.setData(motionData3);
+  await waitForEvent(getExpectedMotionEvent(motionData3));
+  await helper.reset();
+
+  await helper.initializeSensors({disabledSensors: ['accelerometer','linear-acceleration','gyroscope']});
+  await helper.setData(motionData4);
+  await waitForEvent(getExpectedMotionEvent(motionData4));
+}, 'Tests using null values for some or all of the event properties.');
+</script>

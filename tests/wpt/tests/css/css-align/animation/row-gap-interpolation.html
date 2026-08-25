@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>row-gap interpolation</title>
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#propdef-row-gap">
+<meta name="assert" content="row-gap supports animation by computed value type">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+
+<style>
+.parent {
+  row-gap: 90px;
+}
+.target {
+  row-gap: 10px;
+}
+.expected div {
+  opacity: 0.7;
+}
+.target > div {
+  height: 20px;
+  background-color: black;
+}
+.target.expected > div {
+  background-color: green;
+}
+</style>
+
+<body>
+<template id='target-template'>
+  <div></div><div></div>
+</template>
+</body>
+
+<script>
+test_interpolation({
+  property: 'row-gap',
+  from: neutralKeyframe,
+  to: '40px',
+}, [
+  {at: -0.3, expect: '1px'},
+  {at: 0, expect: '10px'},
+  {at: 0.3, expect: '19px'},
+  {at: 0.6, expect: '28px'},
+  {at: 1, expect: '40px'},
+  {at: 1.5, expect: '55px'},
+]);
+
+test_no_interpolation({
+  property: 'row-gap',
+  from: 'initial',
+  to: '20px',
+});
+
+test_interpolation({
+  property: 'row-gap',
+  from: 'inherit',
+  to: '20px',
+}, [
+  {at: -0.3, expect: '111px'},
+  {at: 0, expect: '90px'},
+  {at: 0.3, expect: '69px'},
+  {at: 0.6, expect: '48px'},
+  {at: 1, expect: '20px'},
+  {at: 1.5, expect: '0px'},
+]);
+
+test_no_interpolation({
+  property: 'row-gap',
+  from: 'unset',
+  to: '20px',
+});
+
+test_no_interpolation({
+  property: 'row-gap',
+  from: 'normal',
+  to: '20px',
+});
+
+test_interpolation({
+  property: 'row-gap',
+  from: '0px',
+  to: '100px'
+}, [
+  {at: -0.3, expect: '0'}, // row-gap can't be negative.
+  {at: 0, expect: '0'},
+  {at: 0.3, expect: '30px'},
+  {at: 0.6, expect: '60px'},
+  {at: 1, expect: '100px'},
+  {at: 1.5, expect: '150px'}
+]);
+</script>

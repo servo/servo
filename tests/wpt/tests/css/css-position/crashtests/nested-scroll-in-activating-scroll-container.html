@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2042439">
+<!-- Scroll-only variant (no position:sticky). A nested async-active scroll
+     container (#C) sits behind a will-change:transform stacking-context
+     boundary, inside #B, inside an outer element (#A) that starts
+     async-inactive because it has no scrollable overflow. Growing #spacer
+     makes #A a scroll container and async-active during a partial display list
+     update; #C is not revisited (retained behind the boundary), so its cached
+     scroll-tree node depth must not go stale. -->
+<html class="test-wait">
+<head>
+<meta charset="utf-8">
+<style>
+  body { margin: 0; }
+  * { scrollbar-width: none; }
+
+  #outer { height: 300px; overflow-y: auto; }
+  #outer-content { height: 3000px; }
+
+  #A { height: 460px; overflow-y: auto; width: 400px; }
+  #B { height: 200px; overflow-y: auto; background: #eef; }
+  .wct { will-change: transform; }
+  #C { height: 100px; overflow-y: auto; background: #efe; }
+  #spacer { height: 0; }
+</style>
+</head>
+<body>
+<div id="outer">
+  <div id="outer-content">
+    <div id="A">
+      <div id="B">
+        <div class="wct">
+          <div id="C">
+            <div style="height:200px;background:blue"></div>
+          </div>
+        </div>
+        <div style="height:200px;background:green"></div>
+      </div>
+      <div id="spacer"></div>
+    </div>
+  </div>
+</div>
+<script>
+  function raf() { return new Promise(r => requestAnimationFrame(r)); }
+  onload = async () => {
+    await raf();
+    await raf();
+    document.getElementById("spacer").style.height = "400px";
+    await raf();
+    await raf();
+    document.documentElement.classList.remove("test-wait");
+  };
+</script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: Auto-imported from Gecko test 372641-1c.xhtml</title>
+  <link rel="author" title="Boris Zbarsky" href="mailto:bzbarsky@mit.edu"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#anonymous-boxes"/>
+  <meta name="flags" content='dom nonHTML'/>
+
+</head>
+<body>
+<p>There should be no red below, except for antialiasing issues.</p>
+<div style="position: relative; font-size: 2em;">
+<div style="position: relative; z-index: 1; color: red; padding: 1px;">
+
+
+<table border="1"><tbody><tr id="tr">XXX<td>TD</td></tr></tbody></table>
+
+<script type="text/javascript"><![CDATA[
+document.body.offsetWidth;
+document.getElementById("tr").firstChild.data = '';
+]]></script>
+
+</div>
+<div style="position: absolute; z-index: 2; top: 0; color: green; padding: 1px;">
+
+
+<table border="1"><tbody><tr><td>TD</td></tr></tbody></table>
+
+</div>
+</div>
+</body>
+</html>

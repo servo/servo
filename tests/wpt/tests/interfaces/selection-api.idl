@@ -1,0 +1,50 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Selection API (https://w3c.github.io/selection-api/)
+
+[Exposed=Window]
+interface Selection {
+  readonly attribute Node? anchorNode;
+  readonly attribute unsigned long anchorOffset;
+  readonly attribute Node? focusNode;
+  readonly attribute unsigned long focusOffset;
+  readonly attribute boolean isCollapsed;
+  readonly attribute unsigned long rangeCount;
+  readonly attribute DOMString type;
+  readonly attribute DOMString direction;
+  Range getRangeAt(unsigned long index);
+  undefined addRange(Range range);
+  undefined removeRange(Range range);
+  undefined removeAllRanges();
+  undefined empty();
+  sequence<StaticRange> getComposedRanges(optional GetComposedRangesOptions options = {});
+  undefined collapse(Node? node, optional unsigned long offset = 0);
+  undefined setPosition(Node? node, optional unsigned long offset = 0);
+  undefined collapseToStart();
+  undefined collapseToEnd();
+  undefined extend(Node node, optional unsigned long offset = 0);
+  undefined setBaseAndExtent(Node anchorNode, unsigned long anchorOffset, Node focusNode, unsigned long focusOffset);
+  undefined selectAllChildren(Node node);
+  undefined modify(optional DOMString alter, optional DOMString direction, optional DOMString granularity);
+  [CEReactions] undefined deleteFromDocument();
+  boolean containsNode(Node node, optional boolean allowPartialContainment = false);
+  stringifier;
+};
+
+dictionary GetComposedRangesOptions {
+  sequence<ShadowRoot> shadowRoots = [];
+};
+
+partial interface Document {
+  Selection? getSelection();
+};
+
+partial interface Window {
+  Selection? getSelection();
+};
+
+partial interface mixin GlobalEventHandlers {
+  attribute EventHandler onselectstart;
+  attribute EventHandler onselectionchange;
+};

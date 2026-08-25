@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>No crash when changing text node data in size-contained element</title>
+<link rel="help" href="https://crbug.com/40559894">
+<style>
+#test {
+  contain: layout size;
+  line-height: 1;
+}
+</style>
+<div id="test">
+  <div style="display: inline-block;"></div>
+</div>
+<script>
+  let contentNode = document.createTextNode("");
+  contentNode.data = "foo";
+  document.getElementById('test').appendChild(contentNode);
+  document.body.offsetLeft;
+  contentNode.data = "bar";
+</script>

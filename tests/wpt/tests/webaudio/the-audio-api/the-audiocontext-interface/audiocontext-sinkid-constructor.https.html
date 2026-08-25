@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<head>
+<title>Test AudioContext constructor with sinkId options</title>
+</head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+
+let outputDeviceList = null;
+let firstDeviceId = null;
+
+promise_setup(async t => {
+  await navigator.mediaDevices.getUserMedia({audio: true});
+  const deviceList = await navigator.mediaDevices.enumerateDevices();
+  outputDeviceList =
+      deviceList.filter(({kind}) => kind === 'audiooutput');
+  if (outputDeviceList.length > 1) {
+    firstDeviceId = outputDeviceList[1].deviceId;
+  }
+}, 'Get permission via getUserMedia() and a list of audio output devices.');
+
+// 1.2.1. AudioContext constructor
+// https://webaudio.github.io/web-audio-api/#AudioContext-constructors
+
+// Step 10.1.1. If sinkId is equal to [[sink ID]], abort these substeps.
+promise_test(async t => {
+  const audioContext = new AudioContext({sinkId: ''});
+  await new Promise((resolve, reject) => {
+    audioContext.addEventListener('statechange', () => {
+      try {
+        assert_equals(audioContext.sinkId, '');
+        assert_equals(audioContext.state, 'running');
+        resolve();
+      } catch (e) {
+        reject(e);
+      }
+    }, {once: true});
+  });
+  audioContext.close();
+}, 'Setting sinkId to the empty string at construction should succeed.');
+
+// Step 10.1.2~3: See "Validating sinkId" tests below.
+
+// Step 10.1.4. If sinkId is a type of DOMString, set [[sink ID]] to sinkId and
+// abort these substeps.
+promise_test(async t => {
+  // At least one non-default audio output device is required to test setting
+  // a specific sinkId at construction.
+  if (outputDeviceList.length <= 1) {
+    return;
+  }
+  const audioContext = new AudioContext({sinkId: firstDeviceId});
+  await new Promise((resolve, reject) => {
+    audioContext.addEventListener('statechange', () => {
+      try {
+        assert_true(audioContext.sinkId === firstDeviceId,
+                    'the context sinkId should match the given sinkId.');
+        resolve();
+      } catch (e) {
+        reject(e);
+      }
+    }, {once: true});
+  });
+  audioContext.close();
+}, 'Setting sinkId with a valid device identifier at ' +
+   'construction should succeed.');
+
+// Step 10.1.5. If sinkId is a type of AudioSinkOptions, set [[sink ID]] to a
+// new instance of AudioSinkInfo created with the value of type of sinkId.
+promise_test(async t => {
+  const audioContext = new AudioContext({sinkId: {type: 'none'}});
+  await new Promise((resolve, reject) => {
+    audioContext.addEventListener('statechange', () => {
+      try {
+        assert_equals(typeof audioContext.sinkId, 'object');
+        assert_equals(audioContext.sinkId.type, 'none');
+        resolve();
+      } catch (e) {
+        reject(e);
+      }
+    }, {once: true});
+  });
+  audioContext.close();
+}, 'Setting sinkId with an AudioSinkOptions at construction should succeed.');
+
+// 1.2.4. Validating sinkId
+// https://webaudio.github.io/web-audio-api/#validating-sink-identifier
+
+// Step 3. If document is not allowed to use the feature identified by
+// "speaker-selection", return false.
+// TODO(https://crbug.com/1380872): Due to the lack of "speaker-selection"
+// implementation, a test for such step does not exist yet.
+
+promise_test(async t => {
+  // The wrong AudioSinkOption.type should cause a TypeError. This exception
+  // is thrown at the IDL validation level.
+  assert_throws_js(TypeError, () => {
+    const audioContext = new AudioContext({sinkId: {type: 'something_else'}});
+    audioContext.close();
+  });
+}, 'Invalid sinkId argument with a wrong type should throw ' +
+   'an appropriate exception.');
+
+// Step 4. If sinkIdArg is a type of DOMString but it is not equal to the
+// empty string or it does not match any audio output device identified by
+// the result that would be provided by enumerateDevices(), return false.
+//
+// When validation returns a false value, the context dispatches an onerror
+// event.
+promise_test(async t => {
+  // An invalid device ID should dispatch an onerror event.
+  const audioContext = new AudioContext({sinkId: 'some_random_device_id'});
+  await new Promise(resolve => {
+    audioContext.addEventListener('error', () => {
+      resolve();
+    }, {once: true});
+  });
+  audioContext.close();
+}, 'Invalid sinkId argument with a wrong ID should dispatch an onerror event.');
+</script>
+</html>

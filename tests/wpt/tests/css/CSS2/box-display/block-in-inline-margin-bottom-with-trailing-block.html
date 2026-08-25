@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>CSS Test: block-in-inline margin-bottom propagates to next sibling block</title>
+<link rel="help" href="https://www.w3.org/TR/CSS21/visuren.html#anonymous-block-level">
+<link rel="help" href="https://www.w3.org/TR/CSS21/box.html#collapsing-margins">
+<link rel="match" href="block-in-inline-margin-bottom-with-trailing-block-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<meta name="assert" content="A block inside an inline contributes its margin-bottom to the next block sibling's position.">
+<style>
+.container { width: 100px; font: 20px/1 Ahem; }
+.first { width: 100px; height: 20px; margin-bottom: 40px; background: green; }
+.second { width: 100px; height: 20px; background: green; }
+</style>
+<p>Two green squares separated by a 40px gap; no overlap.</p>
+<div class="container">
+    <span><div class="first"></div></span>
+    <div class="second"></div>
+</div>

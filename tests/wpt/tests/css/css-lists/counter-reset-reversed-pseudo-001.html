@@ -1,0 +1,23 @@
+<!doctype html>
+<title>CSS Lists: reversed() with pseudo-elements</title>
+<link rel="help" href="https://drafts.csswg.org/css-lists/#counter-reset">
+<link rel="help" href="https://drafts.csswg.org/css-lists/#instantiating-counters">
+<link rel="author" title="Minseong Kim" href="mailto:jja08111@gmail.com">
+<link rel="match" href="counter-reset-reversed-pseudo-001-ref.html">
+<style>
+.list {
+  counter-reset: reversed(foo);
+}
+.item::before {
+  counter-increment: foo -1;
+  content: "B" counter(foo);
+}
+.item::after {
+  counter-increment: foo -2;
+  content: "A" counter(foo);
+}
+</style>
+<div class="list">
+  <div class="item"></div>
+  <div class="item"></div>
+</div>

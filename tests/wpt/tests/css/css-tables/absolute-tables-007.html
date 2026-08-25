@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/903224">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="A positioned absolute table should resolve its %-height against its containing block.">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="position:relative; width:100px;">
+  <div style="position:absolute; display:table; width:100%; height:100%; background:green;"></div>
+  <div style="height:100px; background:red;"></div>
+</div>

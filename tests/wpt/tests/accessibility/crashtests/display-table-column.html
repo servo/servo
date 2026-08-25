@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<head>
+<style>
+.foo * {
+  display: table-column;
+}
+</style>
+<script>
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    const link = document.querySelector('link');
+    // This will queue the creation of an accessibility object for the
+    // link, because it will now have layout.
+    document.documentElement.className = 'foo';
+    // Do something that forces the link's accessibility object to get an
+    // additional update.
+    link.ariaChecked = 'true';
+    requestAnimationFrame(()=> {
+      requestAnimationFrame(()=> {
+        document.documentElement.className = '';
+      });
+    });
+  });
+});
+</script>
+</head>
+<body>
+  <link/>
+</body>
+</html>

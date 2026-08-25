@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: element remains grouping during transition</title>
+<link rel="help" href="https://www.w3.org/TR/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+
+<style>
+.parent {
+  top: 0;
+  width: 100px;
+  height: 100px;
+  position: absolute;
+  background: blue;
+  transform-style: preserve-3d;
+}
+.child {
+  background: green;
+  width: 100px;
+  height: 100px;
+  top: 0;
+  left: 0;
+  position: absolute;
+  transform: translateZ(-500px);
+}
+body {
+  perspective: 1000px;
+  height: 500px;
+}
+</style>
+
+<div class=parent><div class=child></div></div>
+

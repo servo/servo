@@ -1,0 +1,8 @@
+rules:
+# `clipboard-item.https.html` tests both `async-clipboard` and `clipboard-supports`
+- async-custom-formats-*: [clipboard-custom-format]
+- async-svg-read-write.tentative.https.html: [clipboard-svg]
+- async-unsanitized-*: [clipboard-unsanitized-formats]
+- async-navigator-clipboard-change-event.tentative.https.html: [clipboardchange]
+- async-*: [async-clipboard]
+- clipboard-events-synthetic.html: [clipboard-events]

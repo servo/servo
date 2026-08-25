@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+
+<link rel="help" href="https://github.com/servo/servo/issues/37421">
+
+<div style="display: table; visibility: collapse">
+  <div id="scroller" style="overflow: scroll"></div>
+</div>
+
+<table>
+    <colgroup>
+        <col style="background: green; visibility: collapse">
+    </colgroup>
+    <tr>
+        <td><div id="scroller2" style="overflow: scroll"></div></td>
+    </tr>
+</table>
+
+<script>
+    scroller.scrollTo();
+    scroller2.scrollTo();
+</script>
+

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<title>Resolving viewport units</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#viewport-relative-lengths">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  iframe {
+    width: 200px;
+    height: 100px;
+  }
+</style>
+
+<iframe id=iframe></iframe>
+
+<script>
+
+const doc = iframe.contentDocument;
+const win = iframe.contentWindow;
+
+function test_computed_value(value, expected) {
+  test((t) => {
+    t.add_cleanup(() => { doc.body.innerHTML = ''; });
+    doc.body.innerHTML = `
+      <!doctype html>
+      <style>
+        * { margin: 0; }
+        body { height: 100%; }
+        div { height: ${value}; }
+      </style>
+      <div></div>
+    `;
+    let div = doc.querySelector('div');
+    assert_equals(win.getComputedStyle(div).height, expected);
+  }, `${value} computes to ${expected}`);
+}
+
+test_computed_value('100vw', '200px');
+test_computed_value('100vi', '200px');
+test_computed_value('100vmax', '200px');
+test_computed_value('100svw', '200px');
+test_computed_value('100svi', '200px');
+test_computed_value('100svmax', '200px');
+test_computed_value('100lvw', '200px');
+test_computed_value('100lvi', '200px');
+test_computed_value('100lvmax', '200px');
+test_computed_value('100dvw', '200px');
+test_computed_value('100dvi', '200px');
+test_computed_value('100dvmax', '200px');
+
+test_computed_value('100vh', '100px');
+test_computed_value('100vb', '100px');
+test_computed_value('100vmin', '100px');
+test_computed_value('100svh', '100px');
+test_computed_value('100svb', '100px');
+test_computed_value('100svmin', '100px');
+test_computed_value('100lvh', '100px');
+test_computed_value('100lvb', '100px');
+test_computed_value('100lvmin', '100px');
+test_computed_value('100dvh', '100px');
+test_computed_value('100dvb', '100px');
+test_computed_value('100dvmin', '100px');
+
+test_computed_value('1dvw', '2px');
+test_computed_value('10dvw', '20px');
+test_computed_value('1dvh', '1px');
+test_computed_value('10dvh', '10px');
+
+test_computed_value('calc(1dvw + 1dvw)', '4px');
+test_computed_value('calc(1dvw + 1dvh)', '3px');
+test_computed_value('calc(1dvw + 100px)', '102px');
+test_computed_value('max(1svw, 1svh)', '2px');
+test_computed_value('min(1lvw, 1lvh)', '1px');
+test_computed_value('calc(1dvw + 10%)', '12px');
+
+</script>

@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>No crash when constraining border-radius with overflow hidden</title>
+<link rel="help" href="https://crbug.com/41150616">
+<style>
+header {
+  border-radius: 4in;
+  overflow: hidden;
+}
+</style>
+<header>
+  <fieldset></fieldset>
+  <h1></h1>
+</header>

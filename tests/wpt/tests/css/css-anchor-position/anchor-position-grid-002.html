@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#anchor-pos">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#anchor-size">
+<link rel="help" href="https://drafts.csswg.org/css-position/#original-cb">
+<link rel="match" href="anchor-position-grid-002-ref.html">
+<style>
+.grid {
+  display: grid;
+  grid-template-columns: 50px 100px;
+  grid-template-rows: 30px 100px;
+  position: relative;
+}
+.anchor {
+  anchor-name: --a;
+  grid-column: 2;
+  grid-row: 2;
+  background: red;
+}
+.target {
+  grid-column: 2;
+  grid-row: 2;
+  position: absolute;
+  left: anchor(--a left);
+  top: anchor(--a top);
+  width: anchor-size(--a width);
+  height: anchor-size(--a height);
+  background: green;
+}
+</style>
+<p>Test that anchor() and anchor-size() resolve relative to the grid area
+  containing block. There should be a green square with no red.</p>
+<div class="grid">
+  <div class="anchor"></div>
+  <div class="target"></div>
+</div>

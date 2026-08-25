@@ -1,0 +1,5 @@
+rules:
+- dir-*: []
+- list-style-*: [list-style]
+- lists-styles*: [list-style]
+- "*": [list-elements]

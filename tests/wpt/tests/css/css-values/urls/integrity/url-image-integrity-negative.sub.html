@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>Request URL Modifiers: integrity() negative test for background-image</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#typedef-request-url-modifier-integrity-modifier">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="A url with a non-matching integrity() modifier should not load the image.">
+<style>
+.test {
+  width: 100px;
+  height: 100px;
+  background-color: green;
+  background-image: url("{{location[server]}}/css/support/1x1-red.png?pipe=header(Access-Control-Allow-Origin,*)" cross-origin(anonymous) integrity("sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="));
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="test"></div>

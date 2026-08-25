@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<script src="/common/reftest-wait.js"></script>
+<style>
+  #wrapper {
+    writing-mode: sideways-lr;
+    width: stretch;
+  }
+  #target {
+    font-size: 3em;
+  }
+  #target::highlight(caret) {
+    background: lime;
+  }
+</style>
+<p>Test passes if, when the text below is focused for editing, the text insertion caret is a lime block.</p>
+<div id="wrapper">
+  <div id="target">test</div>
+</div>
+<script>
+  let range = new Range();
+  range.setStart(target.firstChild, 0);
+  range.setEnd(target.firstChild, 1);
+  CSS.highlights.set("caret", new Highlight(range));
+  takeScreenshot();
+</script>

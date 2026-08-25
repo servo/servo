@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<title>WebBundle subresource loading with script API and invalid JSON</title>
+<link
+  rel="help"
+  href="https://github.com/WICG/webpackage/blob/main/explainers/subresource-loading.md"
+/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <script>
+    setup(
+      () => {
+        assert_true(HTMLScriptElement.supports("webbundle"));
+      },
+      { allow_uncaught_exception: true }
+    );
+    promise_test((t) => {
+      const script = document.createElement("script");
+      script.type = "webbundle";
+      script.textContent = "invalid json";
+      return new Promise((resolve, reject) => {
+        script.onload = () => reject(script);
+        script.onerror = () => reject(script);
+        window.onerror = function (message, url, line, col, error) {
+          assert_equals(error.name, "SyntaxError");
+          resolve(script);
+        };
+        document.body.appendChild(script);
+      });
+    }, "Invalid JSON rule should throw a SyntaxError on the window.");
+    promise_test((t) => {
+      const script = document.createElement("script");
+      script.type = "webbundle";
+      const json_rule = { resources: [] };
+      script.textContent = JSON.stringify(json_rule);
+      return new Promise((resolve, reject) => {
+        script.onload = () => reject(script);
+        script.onerror = () => reject(script);
+        window.onerror = function (message, url, line, col, error) {
+          assert_equals(error.name, "TypeError");
+          resolve(script);
+        };
+        document.body.appendChild(script);
+      });
+    }, "JSON rule with a type error should throw a TypeError on the window.");
+  </script>
+</body>

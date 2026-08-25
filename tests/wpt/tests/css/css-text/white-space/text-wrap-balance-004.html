@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<meta charset="utf-8">
+<title>CSS test: balancing and forced breaks</title>
+<link rel='author' title='Florian Rivoal' href='https://florian.rivoal.net/'>
+<link rel='help' href='https://drafts.csswg.org/css-text-4/#text-wrap-style'>
+<meta name="assert" content="Groups of lines separated by a forced line break are processed separately.">
+<link rel="match" href="reference/text-wrap-balance-004-ref.html">
+<link rel="mismatch" href="reference/text-wrap-balance-004-misref.html">
+
+<style>
+section {
+    width: 50ch;
+    font-family: monospace;
+}
+.test, .ref {
+    text-wrap: balance;
+}
+.test { color: blue; }
+.ref { color: orange; }
+.mis { color: magenta; }
+
+</style>
+
+<p>This test passes if the line breaks in the blue text and the orange text occur at the same points, unless they are identical to the magenta text.
+
+<section class=test>
+Lorem ipsum dolor sit amet,
+consectetur adipiscing elit,
+sed do eiusmod tempor incididunt
+ut labore et dolore magna aliqua.
+Ut enim ad minim veniam,
+quis nostrud exercitation ullamco laboris nisi
+ut aliquip ex ea commodo consequat.
+<br>
+Duis aute irure dolor in reprehenderit
+in voluptate velit
+esse cillum dolore eu fugiat nulla pariatur.
+</section>
+
+<section class=ref>
+<div>
+Lorem ipsum dolor sit amet,
+consectetur adipiscing elit,
+sed do eiusmod tempor incididunt
+ut labore et dolore magna aliqua.
+Ut enim ad minim veniam,
+quis nostrud exercitation ullamco laboris nisi
+ut aliquip ex ea commodo consequat.
+</div>
+<div>
+Duis aute irure dolor in reprehenderit
+in voluptate velit
+esse cillum dolore eu fugiat nulla pariatur.
+</div>
+</section>
+
+<section class=mis>
+Lorem ipsum dolor sit amet,
+consectetur adipiscing elit,
+sed do eiusmod tempor incididunt
+ut labore et dolore magna aliqua.
+Ut enim ad minim veniam,
+quis nostrud exercitation ullamco laboris nisi
+ut aliquip ex ea commodo consequat.
+<br>
+Duis aute irure dolor in reprehenderit
+in voluptate velit
+esse cillum dolore eu fugiat nulla pariatur.
+</section>

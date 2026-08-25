@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+  #scroll-container {
+    overflow: hidden scroll;
+    width: 300px;
+    height: 100px;
+  }
+
+  #spacer {
+    height: 100px;
+  }
+
+  #target {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    left: 100px;
+    background: green;
+  }
+</style>
+
+<div id="scroll-container">
+  <div id="spacer"></div>
+  <div id="target">target</div>
+</div>
+
+<script>
+  const scroller = document.getElementById('scroll-container');
+  scroller.scrollTop = 100;
+</script>

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="help" src="https://drafts.csswg.org/css-animations-2/#animation-trigger">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/web-animations/testcommon.js"></script>
+    <script src="/dom/events/scrolling/scroll_support.js"></script>
+    <script src="support/support.js"></script>
+  </head>
+  <body>
+    <style>
+      @keyframes myAnim {
+        from { transform: scaleX(1); }
+        to { transform: scaleX(5); }
+      }
+      .subject, .target {
+        height: 50px;
+        width: 50px;
+        background-color: red;
+      }
+      .target {
+        animation: myAnim linear 0.5s forwards;
+        timeline-trigger: --trigger 150px 200px;
+      }
+      .deferred.subject {
+        view-timeline: --viewtimeline;
+      }
+      .scroller {
+        overflow-y: scroll;
+        height: 500px;
+        width: 500px;
+        border: solid 1px;
+        position: relative;
+      }
+      #wrapper {
+        timeline-scope: --viewtimeline;
+      }
+      #space {
+        width: 50px;
+        height: 600px;
+      }
+    </style>
+    <div id="wrapper">
+      <div id="scroller" class="scroller">
+        <div id="space"></div>
+        <div id="deferred_subject" class="deferred subject"></div>
+        <div id="space"></div>
+      </div>
+      <div id="target" class="target"></div>
+    </div>
+    <script>
+      // The trigger and exit ranges are the same for this test.
+      const CSS_TRIGGER_START_PX = 150;
+      const CSS_TRIGGER_END_PX = 200;
+
+      promise_test(async (test) => {
+        const COVER_START_OFFSET = 100;
+
+        const rangeBoundaries = getRangeBoundariesForTest(
+                                      COVER_START_OFFSET + CSS_TRIGGER_START_PX,
+                                      COVER_START_OFFSET + CSS_TRIGGER_END_PX,
+                                      COVER_START_OFFSET + CSS_TRIGGER_START_PX,
+                                      COVER_START_OFFSET + CSS_TRIGGER_END_PX,
+                                      scroller);
+        const animation = target.getAnimations()[0];
+        await waitForAnimationFrames(5);
+        // The animation is currently associated with the document timeline and
+        // would automatically run. Cancel it.
+        animation.cancel();
+
+        // Enter the trigger range. Since it is not yet associated with the
+        // view timeline, this should have no effect.
+        await rangeBoundaries.enterTriggerRange();
+        await waitForAnimationFrames(5);
+
+        // Now attach a view timeline. Since we are in the trigger range, we
+        // should trigger.
+        await testAnimationTrigger(test, async () => {
+          target.style.animationTrigger = "--trigger play-once";
+          target.style.timelineTriggerSource = "--viewtimeline";
+          await waitForAnimationFrames(5);
+        }, target, ["animationstart", "animationend", "animationcancel"],
+           [true, true, false]);
+
+        assert_equals(animation.playState, "finished",
+           "animation was run when its trigger was attached to a view " +
+           " timeline inside the trigger range.");
+
+        // TODO: Add a test which switches the timeline of the trigger.
+      }, "late-attached trigger timeline plays animation");
+    </script>
+  </body>
+</html>

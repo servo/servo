@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2052162">
+<link rel="help" href="https://drafts.csswg.org/css-tables/">
+<link rel="match" href="table-in-flex-overflow-print-ref.html">
+<title>Fragmentation of tables inside flex columns</title>
+<style>
+  .flex-col {
+    display: flex;
+    flex-flow: column;
+    border: 5px solid red;
+    font: 40px/1 monospace;
+  }
+  tr { height: 400px }
+</style>
+<div class="flex-col">
+  <table border>
+    <!-- It's important that there's a break inside the first <tbody> -->
+    <tbody>
+      <tr><td>AAA</td><td>BBB</td></tr>
+      <tr><td>AAA</td><td>BBB</td></tr>
+      <tr><td>AAA</td><td>BBB</td></tr>
+      <tr><td>AAA</td><td>BBB</td></tr>
+      <tr><td>AAA</td><td>BBB</td></tr>
+      <tr><td>AAA</td><td>BBB</td></tr>
+      <tr><td>AAA</td><td>BBB</td></tr>
+      <tr><td>AAA</td><td>BBB</td></tr>
+      <tr><td>AAA</td><td>BBB</td></tr>
+    </tbody>
+    <tbody>
+      <tr>
+        <td>Cell in a second tbody element.</td>
+      </tr>
+    </tbody>
+  </table>
+</div>

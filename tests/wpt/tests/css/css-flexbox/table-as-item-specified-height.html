@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>table is flex item</title>
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="help" href="https://www.w3.org/TR/css-flexbox-1/#layout-algorithm" title="9. Flex Layout Algorithm">
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#computing-the-table-height">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1692116">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="Table's specified height does not count as another min-height for the purposes of the flexbox algorithm.">
+
+<p>Test passes if there is a filled green square.</p>
+
+<div style="display: flex; flex-direction: column; width: 100px;">
+  <div style="display: table; width: 100px; height: 500px; background: green; flex: 0 0 100px;"></div>
+</div>

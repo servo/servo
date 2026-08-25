@@ -1,0 +1,104 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://html.spec.whatwg.org/multipage/semantics.html#the-style-element" />
+<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/ShadowDOM/explainer.md" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style type="module" specifier="foo" id="style_element">
+    #test_element {color:blue}
+</style>
+
+<div id="test_element">Test content</div>
+
+<script type="module">
+  const test_element = document.getElementById("test_element");
+  import sheet from "foo" with { type: "css"};
+  document.adoptedStyleSheets = [sheet];
+
+  test(function (t) {
+    assert_equals(
+      sheet.cssRules.length, 1,
+      "Declaratively defined rules were imported imperatively.",
+    );
+
+    assert_equals(
+      getComputedStyle(test_element).color, "rgb(0, 0, 255)",
+      "Declarative styles were applied.");
+  }, "CSS Modules can be defined declaratively.");
+
+  test(function (t) {
+    test_element.setAttribute("specifier", "bar");
+    import('bar').then(module => {
+      assert_unreached("The declarative <style> element should not create new module entries when the specifier is changed, so the import should fail.");
+    }).catch(error => {
+      assert_equals(error.name, 'TypeError');
+    });
+  }, "The specifier mapping is fixed at initial parse time.");
+
+  // Validate that a module cannot be turned into a regular <style> element.
+  const style_element = document.getElementById("style_element");
+  test(function (t) {
+    style_element.innerText = "#test_element {color: red}";
+    assert_equals(getComputedStyle(test_element).color, "rgb(0, 0, 255)",
+      "The stylesheet generated when parsing declarative <style> modules does not change when the element's content is modified.");
+  }, "Declarative modules content is static at parse time.");
+
+  test(function (t) {
+    document.adoptedStyleSheets = [];
+    assert_equals(getComputedStyle(test_element).color, "rgb(0, 0, 0)",
+      "Styles from the declarative module are no longer applied after the stylesheet is removed from adoptedStyleSheets.");
+  }, "Removing the stylesheet from adoptedStyleSheets causes styles to no longer apply.");
+
+  test(function (t) {
+    style_element.removeAttribute("type");
+    assert_equals(getComputedStyle(test_element).color, "rgb(0, 0, 0)",
+      "The stylesheet generated from the declarative <style> module is not applied after the type attribute is removed.");
+  }, "Removing type=\"module\" does not turn the module into a regular <style> tag.");
+
+  test(function (t) {
+    style_element.removeAttribute("specifier");
+    assert_equals(getComputedStyle(test_element).color, "rgb(0, 0, 0)",
+      "The stylesheet generated from the declarative <style> module is not applied after the specifier attribute is removed.");
+
+    import('foo', { with: { type: "css" } }).then(module => {
+      assert_equals(module.default.cssRules[0].cssText, "#test_element { color: blue; }",);
+    }).catch(error => {
+      assert_unreached("The declarative <style> element should not create new module entries when the specifier is changed, so the import should still succeed.");
+    });
+  }, "Removing specifier does not turn the module into a regular <style> tag or impact the module map.");
+
+  test(function (t) {
+    document.head.removeChild(style_element);
+    document.head.appendChild(style_element);
+    assert_equals(getComputedStyle(test_element).color, "rgb(0, 0, 0)",
+      "The stylesheet generated from the declarative <style> module is not applied after the element is removed and re-inserted.");
+  }, "Removing and re-inserting the <style> module does not convert it into a regular <style> tag.");
+
+  // Verify that a non-module <style> element cannot be turned into a module by changing its attributes.
+  const new_style_element = document.createElement("style");
+  test(function (t) {
+    new_style_element.innerText = "#test_element {color: blue}";
+    document.head.appendChild(new_style_element);
+    assert_equals(getComputedStyle(test_element).color, "rgb(0, 0, 255)",
+      "The new style element's styles were applied to the test element.");
+
+    new_style_element.setAttribute("type", "module");
+    new_style_element.setAttribute("specifier", "bar");
+    import('bar', { with: { type: "css" } }).then(module => {
+      assert_unreached("The non-module <style> element should not be turned into a module, so the import should fail.");
+    }).catch(error => {
+      assert_equals(error.name, 'TypeError');
+    });
+
+    document.head.removeChild(new_style_element);
+    document.head.appendChild(new_style_element);
+    import('bar').then(module => {
+      assert_unreached("The non-module <style> element should not be turned into a module, so the import should fail.");
+    }).catch(error => {
+      assert_equals(error.name, 'TypeError');
+    });
+  }, "A non-module <style> element cannot be turned into a declarative module.");
+</script>
+

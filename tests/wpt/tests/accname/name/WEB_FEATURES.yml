@@ -1,0 +1,2 @@
+rules:
+- comp_name_*content*: [alt-text-generated-content]

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+    body {
+      margin: 0px;
+    }
+    .container {
+      width: 200px;
+      height: 205px;
+      column-count: 3;
+      column-width: 60px;
+      column-gap: 10px;
+    }
+    .items {
+      background: rgb(96 139 168 / 0.2);
+      height: 100px;
+      width: 60px;
+      margin: 0px;
+      writing-mode: vertical-rl;
+    }
+    .spanner {
+      height: 5px;
+      background: cyan;
+      column-span: all;
+      opacity: 0.5;
+    }
+
+    .rule-container {
+      display: flex;
+      height: 205px;
+      position: absolute;
+      top: 0px;
+      left: 62.5px;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .rule {
+      height: 100px;
+      width: 5px;
+      background: blue;
+    }
+</style>
+<div class="rule-container">
+  <div class="rule"></div>
+  <div class="rule"></div>
+</div>
+<div class="rule-container" style="left: 132.5px;">
+  <div class="rule"></div>
+  <div class="rule"></div>
+</div>
+<div class="rule" style="position: absolute; left: 202.5px; height: 205px;"></div>
+<div class="rule" style="position: absolute; left: 272.5px; height: 205px;"></div>
+<div class="rule" style="position: absolute; left: 342.5px; height: 205px;"></div>
+<div class="container">
+    <div class="items"></div>
+    <div class="spanner"></div>
+    <div class="items"></div>
+    <div class="items"></div>
+    <div class="items"></div>
+    <div class="items"></div>
+    <div class="items"></div>
+    <div class="items"></div>
+</div>

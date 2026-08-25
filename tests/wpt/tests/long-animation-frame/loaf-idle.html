@@ -1,0 +1,36 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Long Animation Frame Timing: requestIdleCallback</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<h1>Long Animation Frame: requestIdleCallback</h1>
+<div id="log"></div>
+<script>
+setup(() =>
+  assert_implements(window.requestIdleCallback,
+    'requestIdleCallback is not supported.'));
+
+/*
+promise_test(async t => {
+    await expect_no_long_frame(() => requestIdleCallback(busy_wait), t);
+}, 'A long busy wait in an idle callback is not a long animation frame');
+*/
+
+promise_test(async t => {
+    const segment_duration = very_long_frame_duration / 2;
+    requestIdleCallback(() => {
+        busy_wait(segment_duration);
+        requestAnimationFrame(() => {
+            busy_wait(segment_duration);
+        });
+    });
+    await expect_long_frame(() => {}, t);
+}, 'A long busy wait split between an idle callback and a ' +
+   'requestAnimationFrame is a long animation frame');
+
+</script>
+</body>

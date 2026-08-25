@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<body style="position: relative;">
+  <svg style="top: 0; left: 0; position:absolute;" width="10" height="10">
+    <rect id="target" width="5" height="10" />
+  </svg>
+  <div id="target2" style="position: absolute; width: 10px; height: 10px; top: 0; left: 0; background: lime;"></div>
+</body>
+<script>
+document.body.offsetTop;
+document.getElementById('target').setAttribute('width', '10');
+document.body.offsetTop;
+document.getElementById('target2').style.transform = 'translate(2px, 2px)'
+</script>

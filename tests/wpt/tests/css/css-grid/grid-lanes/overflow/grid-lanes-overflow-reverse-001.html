@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes Test: fill-reverse changes which edge overflows</title>
+  <link rel="author" title="Yanling Wang" href="mailto:yanlingwang@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3">
+  <link rel="match" href="grid-lanes-overflow-reverse-001-ref.html">
+  <meta name="assert" content="This test verifies that fill-reverse changes which edge overflows in grid-lanes scroll containers.">
+  <style>
+  .grid-lanes {
+    display: inline grid-lanes;
+    vertical-align: top;
+    flow-tolerance: 0;
+    width: 100px;
+    height: 100px;
+    overflow: auto;
+    border: 1px solid black;
+    margin-bottom: 20px;
+  }
+  .a { background: coral; }
+  .b { background: steelblue; }
+  .c { background: seagreen; }
+  .d { background: goldenrod; }
+  .e { background: mediumpurple; }
+  .f { background: tomato; }
+  </style>
+</head>
+<body>
+
+<!-- Overflows on the right; scroll starts at the left edge. -->
+<div id="row-normal" class="grid-lanes" style="grid-template-rows: 40px 40px;">
+  <div class="a" style="width:60px; height:30px;">A</div>
+  <div class="b" style="width:60px; height:30px;">B</div>
+  <div class="c" style="width:60px; height:30px;">C</div>
+  <div class="d" style="width:60px; height:30px;">D</div>
+</div>
+
+<!-- fill-reverse: overflows on the left; scroll starts at the right (end) edge. -->
+<div id="row-fill-reverse" class="grid-lanes" style="grid-template-rows: 40px 40px; grid-lanes-direction: row fill-reverse;">
+  <div class="a" style="width:60px; height:30px;">A</div>
+  <div class="b" style="width:60px; height:30px;">B</div>
+  <div class="c" style="width:60px; height:30px;">C</div>
+  <div class="d" style="width:60px; height:30px;">D</div>
+</div>
+
+<!-- Overflows on the bottom; scroll starts at the top edge. -->
+<div id="column-normal" class="grid-lanes" style="grid-template-columns: 40px 40px;">
+  <div class="d" style="width:30px; height:60px;">A</div>
+  <div class="e" style="width:30px; height:60px;">B</div>
+  <div class="f" style="width:30px; height:60px;">C</div>
+  <div class="a" style="width:30px; height:60px;">D</div>
+</div>
+
+<!-- fill-reverse: overflows on the top; scroll starts at the bottom (end) edge. -->
+<div id="column-fill-reverse" class="grid-lanes" style="grid-template-columns: 40px 40px; grid-lanes-direction: column fill-reverse;">
+  <div class="d" style="width:30px; height:60px;">A</div>
+  <div class="e" style="width:30px; height:60px;">B</div>
+  <div class="f" style="width:30px; height:60px;">C</div>
+  <div class="a" style="width:30px; height:60px;">D</div>
+</div>
+
+<!-- fill-reverse + track-reverse: overflows on the left and top; scroll starts
+     at the bottom-right (end) corner. -->
+<div id="row-both-reverse" class="grid-lanes" style="grid-template-rows: 60px 60px; grid-lanes-direction: row fill-reverse track-reverse;">
+  <div class="a" style="width:60px; height:60px;">A</div>
+  <div class="b" style="width:60px; height:60px;">B</div>
+  <div class="c" style="width:60px; height:60px;">C</div>
+  <div class="d" style="width:60px; height:60px;">D</div>
+</div>
+
+<!-- fill-reverse + track-reverse: overflows on the top and left; scroll starts
+     at the bottom-right (end) corner. -->
+<div id="column-both-reverse" class="grid-lanes" style="grid-template-columns: 60px 60px; grid-lanes-direction: column fill-reverse track-reverse;">
+  <div class="d" style="width:60px; height:60px;">A</div>
+  <div class="e" style="width:60px; height:60px;">B</div>
+  <div class="f" style="width:60px; height:60px;">C</div>
+  <div class="a" style="width:60px; height:60px;">D</div>
+</div>
+
+</body>
+</html>

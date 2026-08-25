@@ -1,0 +1,25 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>
+  Digital Credentials: get() from a top-level opaque origin rejects with
+  SecurityError
+</title>
+<link rel="help" href="https://w3c-fedid.github.io/digital-credentials/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <script>
+    // This document is served with `Content-Security-Policy: sandbox allow-scripts`
+    // (see the accompanying .headers file): the top-level document has an opaque
+    // origin while remaining a secure context. Permissions Policy still grants the
+    // feature to a top-level document (it matches its own 'self'), so the
+    // opaque-origin check is the only thing that can reject the request.
+    promise_test(async (t) => {
+      await promise_rejects_dom(
+        t,
+        "SecurityError",
+        navigator.credentials.get({ digital: { requests: [] } }),
+      );
+    }, "navigator.credentials.get() from a top-level opaque origin rejects with SecurityError");
+  </script>
+</body>

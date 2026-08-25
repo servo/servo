@@ -1,0 +1,29 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Build detached deeply nested shadow tree, attach to document, then append text node</title>
+<link rel="author" title="Euclid Ye" href="mailto:yezhizhenjiakang@gmail.com">
+<link rel="help" href="https://github.com/servo/servo/issues/43998">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="X"></div>
+
+<script>
+test(() => {
+  const detachedRoot = document.createElement('div');
+  let currentContainer = detachedRoot;
+  const depth = 999;
+
+  for (let i = 0; i < depth; i++) {
+    const childHost = document.createElement('div');
+    const childShadow = childHost.attachShadow({ mode: 'open' });
+    currentContainer.appendChild(childHost);
+    currentContainer = childShadow;
+  }
+
+  document.getElementById('X').appendChild(detachedRoot);
+  currentContainer.appendChild(document.createTextNode('Hello!'));
+
+  assert_equals(currentContainer.textContent, 'Hello!');
+}, "Build detached deeply nested shadow tree, attaching to the document, then appending a text node should not hang or crash");
+</script>

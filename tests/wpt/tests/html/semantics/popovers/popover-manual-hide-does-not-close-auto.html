@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Hiding a manual popover must not close open auto popovers</title>
+<link rel="author" href="mailto:bfulgham@webkit.org">
+<link rel=help href="https://html.spec.whatwg.org/multipage/popover.html#hide-popover-algorithm">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div popover id=autoPopover>Auto</div>
+<div popover=manual id=manualPopover>Manual</div>
+
+<script>
+  function closeAll() {
+    autoPopover.hidePopover();
+    manualPopover.hidePopover();
+  }
+
+  test(t => {
+    t.add_cleanup(closeAll);
+    autoPopover.showPopover();
+    manualPopover.showPopover();
+    assert_true(autoPopover.matches(':popover-open'), 'auto is open');
+    assert_true(manualPopover.matches(':popover-open'), 'manual is open');
+
+    manualPopover.hidePopover();
+    assert_false(manualPopover.matches(':popover-open'), 'manual is closed after hidePopover()');
+    assert_true(autoPopover.matches(':popover-open'), 'auto must stay open when a manual popover is hidden');
+  }, 'Hiding a manual popover shown after an auto popover does not close the auto popover');
+
+  test(t => {
+    t.add_cleanup(closeAll);
+    manualPopover.showPopover();
+    autoPopover.showPopover();
+    assert_true(autoPopover.matches(':popover-open'), 'auto is open');
+    assert_true(manualPopover.matches(':popover-open'), 'manual is open');
+
+    manualPopover.hidePopover();
+    assert_false(manualPopover.matches(':popover-open'), 'manual is closed after hidePopover()');
+    assert_true(autoPopover.matches(':popover-open'), 'auto must stay open when a manual popover is hidden');
+  }, 'Hiding a manual popover shown before an auto popover does not close the auto popover');
+</script>

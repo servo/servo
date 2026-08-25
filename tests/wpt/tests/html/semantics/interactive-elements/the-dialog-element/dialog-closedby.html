@@ -1,0 +1,145 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<link rel=help href="https://html.spec.whatwg.org/multipage/interactive-elements.html#dialog-light-dismiss">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../../popovers/resources/popover-utils.js"></script>
+
+<button id="outside">Outside</button>
+
+<!-- test cases: -->
+
+<!-- normal cases: -->
+<dialog closedby="any" data-behavior="any"></dialog>
+<dialog closedby="closerequest" data-behavior="closerequest"></dialog>
+<dialog closedby="none" data-behavior="none"></dialog>
+
+<!-- case sensitivity: -->
+<dialog closedby="AnY" data-behavior="any"></dialog>
+<dialog closedby="ClOsErEqUeSt" data-behavior="closerequest"></dialog>
+<dialog closedby="NoNe" data-behavior="none"></dialog>
+
+<!-- invalid value, no value, missing attribute: -->
+<dialog closedby="invalid" data-behavior="auto"></dialog>
+<dialog closedby data-behavior="auto"></dialog>
+<dialog data-behavior="auto"></dialog>
+
+<script>
+  function openDialog(dialog,openMethod) {
+    assert_false(dialog.open,'Should be closed to start');
+    assert_equals(dialog.matches('[open]'),dialog.open,'[open] should match .open');
+    switch (openMethod) {
+      case 'modeless' :
+        dialog.show();
+        break;
+      case 'modal' :
+        dialog.showModal();
+        break;
+      case 'open' :
+        dialog.open = true;
+        break;
+      default:
+        assert_unreached('Invalid open method');
+    }
+    assert_true(dialog.open,'Should be open now');
+    assert_equals(dialog.matches('[open]'),dialog.open,'[open] should match .open');
+  }
+
+  function getDefaultExpectations(behavior, openMethod) {
+    switch (behavior) {
+      case 'any':
+        return {
+          respondsToEsc: true,
+          respondsToLightDismiss: true,
+          expectedReflectionWhileOpen: behavior,
+          expectedReflectionWhileClosed: behavior,
+        };
+      case 'closerequest':
+        return {
+          respondsToEsc: true,
+          respondsToLightDismiss: false,
+          expectedReflectionWhileOpen: behavior,
+          expectedReflectionWhileClosed: behavior,
+        };
+      case 'none':
+        return {
+          respondsToEsc: false,
+          respondsToLightDismiss: false,
+          expectedReflectionWhileOpen: behavior,
+          expectedReflectionWhileClosed: behavior,
+        };
+      case 'auto':
+        if (openMethod === 'modal') {
+          return {
+            respondsToEsc: true,
+            respondsToLightDismiss: false,
+            expectedReflectionWhileOpen: 'closerequest',
+            expectedReflectionWhileClosed: 'none',
+          };
+        } else {
+          return {
+            respondsToEsc: false,
+            respondsToLightDismiss: false,
+            expectedReflectionWhileOpen: 'none',
+            expectedReflectionWhileClosed: 'none',
+          };
+        }
+      default:
+        assert_unreached('Invalid expectation');
+    }
+  }
+
+  function runTest(dialog, openMethod) {
+    promise_test(async (t) => {
+      assert_false(dialog.open,'setup');
+      assert_false(dialog.matches('[open]'));
+      t.add_cleanup(() => dialog.close());
+      let expectations = getDefaultExpectations(dialog.dataset.behavior, openMethod);
+
+      // Open the dialog
+      openDialog(dialog,openMethod);
+      assert_equals(dialog.matches(':modal'),openMethod === 'modal',':modal incorrect');
+      const closedByReflectionWhileOpen = dialog.closedBy;
+
+      // Try hitting ESC
+      const ESC = '\uE00C';
+      const close_fired = new Promise(resolve => {
+        dialog.addEventListener('close', resolve, { once: true })
+      });
+      await test_driver.send_keys(document.documentElement,ESC);
+      if (expectations.respondsToEsc) {
+        await close_fired;
+      } else {
+        await waitForRender();
+      }
+      const respondsToEsc = !dialog.open;
+      assert_equals(!dialog.matches('[open]'),respondsToEsc,'[open] should match dialog.open');
+      dialog.close();
+
+      // Try clicking outside
+      openDialog(dialog,openMethod);
+      assert_equals(dialog.matches(':modal'),openMethod === 'modal',':modal incorrect');
+      await clickOn(outside);
+      const respondsToLightDismiss = !dialog.open;
+      assert_equals(!dialog.matches('[open]'),respondsToLightDismiss,'[open] should match dialog.open');
+      dialog.close();
+
+      // See if expectations match
+      assert_equals(respondsToEsc,expectations.respondsToEsc,`Dialog ${expectations.respondsToEsc ? "should" : "should NOT"} respond to ESC`);
+      assert_equals(respondsToLightDismiss,expectations.respondsToLightDismiss,`Dialog ${expectations.respondsToLightDismiss ? "should" : "should NOT"} respond to light dismiss`);
+      assert_equals(closedByReflectionWhileOpen,expectations.expectedReflectionWhileOpen,'Reflection should be limited to known values (open)');
+      assert_equals(dialog.closedBy,expectations.expectedReflectionWhileClosed,'Reflection should be limited to known values (closed)');
+    }, `closedby=${dialog.getAttribute('closedby')}, ${openMethod}`);
+  }
+
+  // Run tests
+  document.querySelectorAll('dialog').forEach((dialog) => {
+    for(openMethod of ['modeless','modal','open']) {
+      runTest(dialog, openMethod);
+    }
+  });
+</script>

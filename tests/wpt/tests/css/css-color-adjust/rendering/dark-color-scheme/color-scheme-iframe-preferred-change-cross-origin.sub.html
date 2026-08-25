@@ -1,0 +1,40 @@
+<!doctype html>
+
+<html class="reftest-wait">
+
+<title>prefers-color-scheme propagation to cross-origin iframe - dynamic change</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-adjust/#color-scheme-effect">
+<link rel="author" title="Kiet Ho" href="mailto:kiet.ho@apple.com">
+<link rel="match" href="color-scheme-iframe-preferred-change-cross-origin-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<style>
+  #iframe {
+    display: block;
+    border: none;
+    width: 100px;
+    height: 100px;
+  }
+</style>
+
+<iframe id="iframe" style="color-scheme: light"></iframe>
+
+<script>
+  (async () => {
+    await new Promise((resolve) => {
+      iframe.addEventListener("load", resolve, { once: true });
+      iframe.src = "http://{{hosts[alt][]}}:{{ports[http][0]}}/css/css-color-adjust/rendering/dark-color-scheme/support/prefers-color-scheme-blue-purple.html";
+    });
+
+    await waitForAtLeastOneFrame();
+    await waitForAtLeastOneFrame();
+
+    iframe.style.colorScheme = "dark";
+    await waitForAtLeastOneFrame();
+    await waitForAtLeastOneFrame();
+
+    takeScreenshot();
+  })();
+</script>
+
+</html>

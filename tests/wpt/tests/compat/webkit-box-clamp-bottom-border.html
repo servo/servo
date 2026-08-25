@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<link rel="match" href="webkit-box-clamp-bottom-border-ref.html">
+<style>
+  #wb {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+    white-space: pre;
+    border-bottom: red 14px solid;
+  }
+</style>
+<p>Line-clamp should respect bottom-border.
+<div id="wb">Line 1
+Line 2
+Line 3
+Line 4
+</div>

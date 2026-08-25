@@ -1,0 +1,74 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>drawElementImage does not use cross-origin feimage content via CSS backdrop-filter</title>
+  <link rel="help" href="https://github.com/WICG/html-in-canvas">
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src='/html/canvas/resources/canvas-tests.js'></script>
+  <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+  <style>
+    #wrapper {
+      width: 10px;
+      height: 20px;
+      background: blue;
+    }
+    .child {
+      width: 10px;
+      height: 10px;
+      background: transparent;
+    }
+    #child-same { backdrop-filter: url('#filter-same'); }
+    #child-cross { backdrop-filter: url('#filter-cross'); }
+  </style>
+</head>
+<body>
+  <svg width="0" height="0">
+    <filter id="filter-same">
+      <feimage href="https://{{location[host]}}/images/green-100x100.png" />
+    </filter>
+    <filter id="filter-cross">
+      <feimage href="https://{{hosts[alt][www]}}:{{ports[https][0]}}/images/red-100x100.png" />
+    </filter>
+  </svg>
+
+  <canvas id=canvas width="10" height="20" layoutsubtree>
+    <div id="wrapper">
+      <div id="child-same" class="child"></div>
+      <div id="child-cross" class="child"></div>
+    </div>
+  </canvas>
+
+  <script>
+    window.onload = () => {
+      promise_test(async function(t) {
+        const preloadImage = (url) => new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = () => reject(new Error(`Failed to load image: ${url}`));
+          img.src = url;
+        });
+
+        const sameOriginFeImageEl = document.querySelector('#filter-same feimage');
+        const crossOriginFeImageEl = document.querySelector('#filter-cross feimage');
+        await Promise.all([
+          preloadImage(sameOriginFeImageEl.getAttribute('href')),
+          preloadImage(crossOriginFeImageEl.getAttribute('href'))
+        ]);
+
+        await waitForCanvasPaint(canvas);
+        var ctx = canvas.getContext('2d');
+        ctx.drawElementImage(document.getElementById('wrapper'), 0, 0);
+
+        // Fetch all pixel data once to avoid multiple slow readbacks.
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+        let pixel = _getPixelFromImageData(imgData, 5, 5);
+        assert_array_equals(pixel, [0, 255, 0, 255], "Same origin feImage backdrop-filter should draw");
+        pixel = _getPixelFromImageData(imgData, 5, 15);
+        assert_array_equals(pixel, [0, 0, 255, 255], "Cross origin feImage backdrop-filter should not draw");
+      });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Tests that view timeline defined by a pseudo-element can be found</title>
+<link rel="match" href="../../css/reference/ref-filled-green-100px-square.xht">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2058585">
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#view-timeline-name">
+<link rel="author" name="David Shin" href="mailto:dshin@mozilla.com">
+<style>
+.container {
+  timeline-scope: --foo;
+}
+
+.bad {
+  width: 100px;
+  height: 100px;
+  background: red;
+}
+
+@keyframes anim {
+  from { width: 100px; }
+  to { width: 200px; }
+}
+
+#target {
+  width: 0px;
+  height: 100px;
+  background: green;
+  animation: anim auto linear;
+  animation-timeline: --foo;
+}
+
+.st {
+  width: 100px;
+  height: 100px;
+  overflow: hidden;
+  border: 1px solid;
+  opacity: 0;
+}
+
+.st::after {
+  display: block;
+  position: relative;
+  top: 100px;
+  width: 100px;
+  height: 100px;
+  content: "";
+  view-timeline: --foo;
+  background: blue;
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class=container>
+  <div class=bad>
+    <div id=target></div>
+  </div>
+  <div class=st></div>
+</div>

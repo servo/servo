@@ -1,0 +1,11 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>OnErrorEventHandler + ErrorEvent is treated differently</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+var t = async_test("onerror + ErrorEvent + Window");
+var t2 = async_test("onerror + !ErrorEvent + Window");
+var t3 = async_test("onerror + Document");
+</script>
+<iframe src="onerroreventhandler-frame.html"></iframe>

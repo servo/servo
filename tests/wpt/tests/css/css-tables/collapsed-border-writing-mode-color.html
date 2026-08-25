@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>Collapsed border resolution uses table writing mode, not cell writing mode</title>
+<link rel="help" href="https://drafts.csswg.org/css-tables/#border-collapsing">
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=311048">
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<style>
+  #tabletest {
+    border-collapse: collapse;
+    writing-mode: horizontal-tb;
+  }
+  #tabletest td {
+    padding: 20px 50px;
+  }
+  #tabletest #top {
+    writing-mode: vertical-rl;
+    border: 2px solid blue;
+    border-left: 10px solid blue;
+  }
+  #tabletest #bottom {
+    border: 2px solid blue;
+    border-top: 3px solid green;
+  }
+</style>
+<table id="tabletest">
+  <tr><td id="top"></td></tr>
+  <tr><td id="bottom"></td></tr>
+</table>
+<script>
+  test(function() {
+    var table = document.getElementById("tabletest");
+    var top = document.getElementById("top");
+
+    // Initial state: border-left is 10px, border-bottom is 2px.
+    // With the bug, borderAfter() reads border-left (10px) instead of
+    // border-bottom (2px), creating a Frankenstein value that beats the
+    // bottom cell's 3px green → blue border between rows (WRONG).
+    // With the fix, border-bottom (2px) is correctly used, loses to
+    // the 3px green → green border between rows (CORRECT).
+
+    // Measure height with the thick border-left (triggers bug if present).
+    var h1 = table.offsetHeight;
+
+    // Temporarily set border-left to match border-bottom (2px). The bug
+    // has no visible effect here since both edges have the same value.
+    top.style.borderLeft = "2px solid blue";
+    document.body.offsetTop;
+    var h2 = table.offsetHeight;
+
+    // Restore the original border-left so the visual state shows the bug.
+    // The border between rows should be green (3px). If it is blue, the
+    // bug is present: border-left leaked into the inter-row border.
+    top.style.borderLeft = "10px solid blue";
+
+    // With the fix, both heights are the same because border-left never
+    // participates in the inter-row border. With the bug, h1 is taller
+    // because the 10px border-left leaked into the inter-row border.
+    assert_equals(h1, h2,
+      "Changing border-left on a vertical-rl cell must not affect " +
+      "the collapsed border between rows");
+  }, "Collapsed border between rows are table writing mode aware");
+</script>

@@ -1,0 +1,71 @@
+<!doctype html>
+<title>ResizeObserver test: an observation is fired when device-pixel-content-box is being observed and zoom changed</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/resizeTestHelper.js"></script>
+<body>
+<div id="log"></div>
+
+<script>
+'use strict';
+
+function test() {
+  let t = createAndAppendElement("div");
+  t.style.height = "100px";
+  t.style.width = "50px";
+
+  let helper = new ResizeTestHelper(
+    "an observation is fired when device-pixel-content-box is being " +
+    "observed and zoom change",
+  [
+    {
+      setup: observer => {
+        observer.observe(t, {box: "device-pixel-content-box"});
+      },
+      notify: entries => {
+        // No need to test again (see observe-019.html), so skip this event loop.
+        return true;
+      }
+    },
+    {
+      setup: observer => {
+        document.body.style.zoom = 3;
+      },
+      notify: entries => {
+        assert_equals(entries.length, 1, "1 pending notification");
+        assert_equals(entries[0].target, t, "target is t");
+        assert_equals(entries[0].contentRect.width, 50, "target width");
+        assert_equals(entries[0].contentRect.height, 100, "target height");
+        assert_equals(entries[0].contentBoxSize[0].inlineSize, 50,
+                      "target content-box inline size");
+        assert_equals(entries[0].contentBoxSize[0].blockSize, 100,
+                      "target content-box block size");
+        assert_equals(entries[0].borderBoxSize[0].inlineSize, 50,
+                      "target border-box inline size");
+        assert_equals(entries[0].borderBoxSize[0].blockSize, 100,
+                      "target border-box block size");
+        assert_equals(entries[0].devicePixelContentBoxSize[0].inlineSize, 150,
+                      "target device-pixel-content-box inline size");
+        assert_equals(entries[0].devicePixelContentBoxSize[0].blockSize, 300,
+                      "target device-pixel-content-box block size");
+        return true;
+      }
+    },
+    {
+      setup: observer => {
+        document.body.style.zoom = '';
+      },
+      notify: entries => {}
+    }
+  ]);
+
+  return helper.start(() => t.remove());
+}
+
+// zoom is not a standard css property, so we should check it first.
+// Only run the test if it's supported.
+(async () => {
+  if (CSS.supports("zoom", "3"))
+    await test();
+})();
+</script>

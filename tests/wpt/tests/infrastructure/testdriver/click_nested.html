@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>TestDriver click method with multiple windows and nested iframe</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<iframe src="about:blank"></iframe>
+
+<script>
+setup({single_test: true});
+
+window.open("about:blank")
+var child = window.open("click_outer_child.html")
+window.open("about:blank")
+
+addEventListener("load",() => {
+    child.addEventListener("load", () => {
+        let doc = child.frames[2].document;
+        let button = doc.getElementById("button");
+        test_driver
+            .click(button)
+            .then(() => {
+                assert_equals(doc.getElementById("log").textContent, "PASS");
+                done();
+            })
+            .catch(() => assert_unreached("click failed"));
+    });
+});
+</script>

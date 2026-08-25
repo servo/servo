@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>dialog element: centered alignment</title>
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+<link rel="help" href="https://html.spec.whatwg.org/#flow-content-3">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+
+<script>
+"use strict";
+
+// Be sure to sync with centering-iframe.html
+const dialogWidth = 20;
+const dialogHeight = 10;
+
+testDialogCentering("horizontal-tb", "", "", "tall viewport", 40, 100);
+testDialogCentering("horizontal-tb", "", "", "wide viewport", 100, 40);
+testDialogCentering("horizontal-tb", "", "", "square viewport", 100, 100);
+testDialogCentering("horizontal-tb", "", "", "dialog and viewport match", dialogWidth, dialogHeight);
+
+testDialogCentering("vertical-rl", "", "", "tall viewport", 40, 100);
+testDialogCentering("vertical-lr", "", "", "tall viewport", 40, 100);
+
+testDialogCentering("vertical-rl", "", "horizontal-tb", "tall viewport", 40, 100);
+testDialogCentering("vertical-lr", "", "horizontal-tb", "tall viewport", 40, 100);
+
+testDialogCentering("horizontal-tb", "vertical-rl", "", "tall viewport", 40, 100);
+testDialogCentering("vertical-rl", "horizontal-tb", "", "tall viewport", 40, 100);
+
+testDialogCentering("horizontal-tb", "vertical-rl", "horizontal-tb", "tall viewport", 40, 100);
+testDialogCentering("vertical-rl", "horizontal-tb", "vertical-rl", "tall viewport", 40, 100);
+
+function testDialogCentering(writingMode, containerWritingMode, dialogWritingMode, label, iframeWidth, iframeHeight) {
+  const dialogSizesToTest = [["", ""], [dialogWidth.toString()+'px', dialogHeight.toString()+'px']];
+  for (const dialogSizes of dialogSizesToTest) {
+    const isDefaultSize = dialogSizes[0] == "";
+    // This test doesn't make sense if the dialog sizes are default
+    if (isDefaultSize && label == "dialog and viewport match") {
+      continue;
+    }
+
+    async_test(t => {
+      const iframe = document.createElement("iframe");
+      iframe.src = `centering-iframe.sub.html?html-writing-mode=${writingMode}&container-writing-mode=${containerWritingMode}&dialog-writing-mode=${dialogWritingMode}&dialog-width=${dialogSizes[0]}&dialog-height=${dialogSizes[1]}`;
+      iframe.width = iframeWidth;
+      iframe.height = iframeHeight;
+      iframe.onload = t.step_func_done(() => {
+        const dialog = iframe.contentDocument.querySelector("dialog");
+        const dialogRect = dialog.getBoundingClientRect();
+
+        const expectedLeftOffset = iframeWidth / 2 - dialogRect.width / 2;
+        const expectedTopOffset = Math.max(iframeHeight / 2 - dialogRect.height / 2, 0);
+
+        if (isDefaultSize) {
+          assert_approx_equals(dialogRect.left, expectedLeftOffset, 1/60);
+          assert_approx_equals(dialogRect.top, expectedTopOffset, 1/60);
+        } else {
+          assert_equals(dialogRect.left, expectedLeftOffset);
+          assert_equals(dialogRect.top, expectedTopOffset);
+        }
+      });
+      document.body.appendChild(iframe);
+    }, writingMode + (containerWritingMode ? ` (container ${containerWritingMode})` : "") +
+       (dialogWritingMode ? ` (dialog ${dialogWritingMode})` : "") + `: ${label}` + `, default-sizes: ${isDefaultSize}`);
+
+  }
+}
+</script>

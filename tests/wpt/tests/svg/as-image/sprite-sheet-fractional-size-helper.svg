@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="20" viewBox="0 0 800 20">
+  <!-- A 40 frame sprite sheet, 20x20 per frame: the first frame is green, the
+       rest are red. -->
+  <rect width="800" height="20" fill="red"/>
+  <rect width="20" height="20" fill="green"/>
+</svg>

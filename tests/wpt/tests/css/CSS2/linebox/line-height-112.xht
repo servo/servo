@@ -1,0 +1,46 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Line-height with keyword value of 'inherit'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#propdef-line-height" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#leading" />
+        <link rel="match" href="line-height-006-ref.xht" />
+
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The 'line-height' property set to 'inherit' uses the default line-height." />
+        <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+        <style type="text/css">
+            div
+            {
+                font: 20px/1 Ahem;
+                line-height: 1in;
+                position: relative;
+                width: 1em;
+            }
+            div div
+            {
+                background: black;
+                line-height: 1em;
+            }
+            #div2
+            {
+                line-height: inherit;
+            }
+            #div3
+            {
+                height: 1in;
+                left: 1.1em;
+                position: absolute;
+                top: 0;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the 2 black vertical stripes have the <strong>same height</strong>.</p>
+        <div id="div1">
+            <div id="div2">X</div>
+            <div id="div3"></div>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,16 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/_mozilla/bluetooth/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+promise_test(t => {
+    window.testRunner.setBluetoothMockDataSet(adapter_type.missing_service_heart_rate);
+    return window.navigator.bluetooth.requestDevice({
+        filters: [{services: [heart_rate.name]}],
+        optionalServices: [generic_access.name]
+    })
+    .then(device => device.gatt.connect())
+    .then(gattServer => promise_rejects_dom(t, 'NotFoundError', gattServer.getPrimaryServices()));
+}, 'Request for absent service. Reject with NotFoundError.');
+</script>

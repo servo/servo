@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CSS Test: legacy table rules attribute</title>
+<link rel="author" title="Jonathan Kew" href="mailto:jfkthame@mozilla.com">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1832101">
+<link rel="match" href="rules-groups-ref.html">
+
+<style>
+table { margin: 1em 1em 2em 1em; }
+
+/* Modify style of the inter-group borders, assuming default UA rules are in effect. */
+
+/* With border-block-start suppressed, the block-end border should still appear: */
+#a > * { border-block-start: none; }
+
+/* Change the color of the border: */
+#b > * { border-block-end-color: blue; }
+
+/* Change the thickness of the border: */
+#c > * { border-block-end-width: 5px; }
+</style>
+
+<p>Borders between groups should be present:</p>
+<table id=a rules=groups>
+ <thead><tr><td>head</td></tr></thead>
+ <tbody>
+   <tr><td>body</td><td>one</td></tr>
+   <tr><td>body</td><td>two</td></tr>
+ </tbody>
+ <tfoot><tr><td>foot</td></tr></tfoot>
+</table>
+
+<p>Borders between groups should be blue:</p>
+<table id=b rules=groups>
+ <thead><tr><td>head</td></tr></thead>
+ <tbody>
+   <tr><td>body</td><td>one</td></tr>
+   <tr><td>body</td><td>two</td></tr>
+ </tbody>
+ <tfoot><tr><td>foot</td></tr></tfoot>
+</table>
+
+<p>Borders between groups should be 5px thick:</p>
+<table id=c rules=groups>
+ <thead><tr><td>head</td></tr></thead>
+ <tbody>
+   <tr><td>body</td><td>one</td></tr>
+   <tr><td>body</td><td>two</td></tr>
+ </tbody>
+ <tfoot><tr><td>foot</td></tr></tfoot>
+</table>

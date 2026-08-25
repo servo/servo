@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<title>A selection range that intersects a character should not cause a crash</title>
+<link rel="help" href="https://github.com/servo/servo/issues/42217">
+
+<textarea id="textarea">A</textarea>
+<script>
+  textarea.setSelectionRange(1, 1);
+  textarea.defaultValue = String.fromCodePoint(301146);
+  textarea.selectionStart;
+</script>

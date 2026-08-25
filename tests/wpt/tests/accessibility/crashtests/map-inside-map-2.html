@@ -1,0 +1,11 @@
+<html>
+  <img usemap="map2" class="img-outside-map">
+  <map name="map2"></map>
+  <script>
+    const img = document.createElement('img');
+    img.className = 'img-inside-map';
+    img.setAttribute('usemap', '#map2');
+    img.style.visibility = 'collapse';
+    document.querySelector('map').appendChild(img);
+  </script>
+</html>

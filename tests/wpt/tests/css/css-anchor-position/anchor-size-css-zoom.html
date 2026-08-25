@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+
+<title>CSS Anchor Positioning: tests that anchor-size() works with CSS zoom property</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#anchor-size-fn">
+<link rel="help" href="https://drafts.csswg.org/css-viewport/#zoom-property">
+<link rel="author" href="mailto:kiet.ho@apple.com">
+<link rel="match" href="reference/anchor-size-css-zoom-ref.html">
+
+<style>
+    #containing-block {
+        position: relative;
+
+        zoom: 2;
+    }
+
+    #anchor {
+        position: absolute;
+
+        width: 200px;
+        height: 100px;
+
+        anchor-name: --anchor;
+
+        background: red;
+    }
+
+    #anchor-positioned {
+        position: absolute;
+
+        width: anchor-size(--anchor width);
+        height: anchor-size(--anchor height);
+
+        background: green;
+
+        z-index: 1;
+    }
+</style>
+
+Test passes if no red is visible.
+
+<div id="containing-block">
+    <!--
+        Both rectangles below overlaps.
+        #anchor is red, #anchor-positioned is green and above #anchor in Z order.
+        If no red is visible then #anchor-positioned has fully covered #anchor.
+    -->
+    <div id="anchor"></div>
+    <div id="anchor-positioned"></div>
+</div>

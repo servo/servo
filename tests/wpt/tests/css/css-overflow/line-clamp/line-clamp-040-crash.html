@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: line-clamp ellipsis before block-in-outlined-inline crash</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://crbug.com/499496973">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+
+<div style="line-clamp: 1">
+  Line 1
+  <span style="outline: 1px solid black">
+    <div></div>
+  </span>
+</div>

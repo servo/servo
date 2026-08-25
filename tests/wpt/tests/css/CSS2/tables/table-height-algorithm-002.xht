@@ -1,0 +1,71 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Specified table height is treated as minimum height</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#height-layout" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="A specified table height value is treated as the minimum height of the table." />
+        <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+        <style type="text/css">
+            #reference
+            {
+                background: black;
+                font: 16px/1em Ahem;
+                height: 10em;
+                width: 20em;
+            }
+            table
+            {
+                border-spacing: 0;
+                padding: 0;
+            }
+            .t1
+            {
+                height: 4em;
+                background: blue;
+                color: blue;
+            }
+            .t2
+            {
+                height: 5em;
+                background: purple;
+                color: purple;
+            }
+            td
+            {
+                padding: 0;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the blue and purple boxes below are half the height of the black box.</p>
+        <div id="reference">
+            <table class="t1">
+                <tr>
+                    <td>XXXXXXXXXX</td>
+                </tr>
+                <tr>
+                    <td>XXXXXXXXXX</td>
+                </tr>
+                <tr>
+                    <td>XXXXXXXXXX</td>
+                </tr>
+                <tr>
+                    <td>XXXXXXXXXX</td>
+                </tr>
+                <tr>
+                    <td>XXXXXXXXXX</td>
+                </tr>
+            </table>
+            <table class="t2">
+                <tr>
+                    <td>XXXXXXXXXX</td>
+                </tr>
+                <tr>
+                    <td>XXXXXXXXXX</td>
+                </tr>
+            </table>
+        </div>
+    </body>
+</html>

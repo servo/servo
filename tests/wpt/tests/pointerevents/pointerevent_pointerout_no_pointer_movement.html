@@ -1,0 +1,70 @@
+<!doctype html>
+<title>
+  Layout change under a stationary pointer fires boundary events and no pointermove event
+</title>
+<meta name="viewport" content="width=device-width">
+<link rel="help"
+  href="https://w3c.github.io/pointerevents/#boundary-events-caused-by-layout-changes">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="pointerevent_support.js"></script>
+<style>
+  div {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 50px;
+    height: 50px;
+  }
+
+  #overlay {
+    z-index: 1000;
+    display: none;
+  }
+
+  #log {
+    display: none; /* Required to run this test alone */
+  }
+</style>
+<div id="target"></div>
+<div id="overlay"></div>
+<script>
+  "use strict";
+
+  const target = document.getElementById("target");
+  const overlay = document.getElementById("overlay");
+
+  let logging_active = false;
+  let num_pointermoves = 0;
+
+  target.addEventListener("click", () => logging_active = true);
+  target.addEventListener("pointermove", () => {
+    if (logging_active) num_pointermoves++;
+  });
+
+  promise_test(async t => {
+    await test_driver.click(target);
+
+    num_pointermoves = 0;
+    let pointerout_promise = getEvent("pointerout", target);
+    overlay.style.display = "block";
+    await pointerout_promise;
+    assert_equals(num_pointermoves, 0, "no pointermove events are expected");
+  }, "Layout change under a stationary pointer (a new element appears) fires boundary events and no pointermove event");
+
+
+  promise_test(async t => {
+    await test_driver.click(overlay);
+
+    num_pointermoves = 0;
+    let pointerover_promise = getEvent("pointerover", target);
+    overlay.style.display = "none";
+    await pointerover_promise;
+    assert_equals(num_pointermoves, 0, "no pointermove events are expected");
+
+    document.querySelector("style").remove(); // Show the test log if running alone.
+  }, "Layout change under a stationary pointer (the element disappears) fires boundary events and no pointermove event");
+</script>

@@ -1,0 +1,44 @@
+WEBVTT
+
+NOTE valid
+
+REGION
+id:foo lines:1
+
+-->
+REGION
+id:foo
+lines:2
+-->
+
+REGION
+id:bill
+lines:2
+
+REGION
+REGION
+id:jill
+lines:3
+
+REGION
+--->
+id:jill lines:4
+
+REGION
+id:jack--> lines:5
+
+REGION
+id:jack lines:4
+
+00:00:00.000 --> 00:00:01.000 region:foo
+text
+
+00:00:00.000 --> 00:00:01.000 region:bill
+text
+
+00:00:00.000 --> 00:00:01.000 region:jill
+text
+
+00:00:00.000 --> 00:00:01.000 region:jack
+text
+

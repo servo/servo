@@ -1,0 +1,15 @@
+<!doctype html>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2047187">
+<link rel="match" href="combobox-selected-option-text-removal-ref.html">
+<select style="width: 400px">
+  <option id="opt" value="1">Old text</option>
+</select>
+<script>
+onload = () => {
+  const opt = document.getElementById('opt');
+  const oldText = opt.firstChild;
+  const newText = document.createTextNode('New text');
+  opt.insertBefore(newText, oldText);
+  opt.removeChild(oldText);
+};
+</script>

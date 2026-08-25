@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 4 Test: word-break:auto-phrase untagged</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#word-break-property">
+<link rel="match" href="reference/word-break-auto-phrase-fallback-002-ref.html">
+<meta name="assert" content="word-break:auto-phrase, if supported, does the same as normal (insert soft wraps for south east asian) on content not language tagged.">
+<style>
+div {
+  font-size: 2em;
+  border: solid blue;
+  margin: 5px;
+  width: min-content; /*not 0, to avoid falling into overflow fallback behavior */
+  word-break: normal;
+}
+#test {
+  word-break: auto-phrase;
+}
+</style>
+
+<p>Test passes if the two boxes below are identical.
+
+<div id=test>กรุงเทพคือสวยงาม</div>
+<div id=ref>กรุงเทพคือสวยงาม</div>

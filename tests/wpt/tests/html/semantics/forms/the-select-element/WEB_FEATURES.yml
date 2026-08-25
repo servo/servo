@@ -1,0 +1,6 @@
+rules:
+- select-setcustomvalidity.html: [constraint-validation]
+- select-validity.html: [constraint-validation]
+- select-willvalidate-readonly-attribute.html: [constraint-validation]
+- show-picker-*: [show-picker-select]
+- "*": [select]

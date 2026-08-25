@@ -1,0 +1,32 @@
+<!DOCTYPE HTML>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-animations/">
+<link rel="match" href="animations-shadow-print-ref.html">
+<title>Static CSS animation in Shadow DOM</title>
+<style>
+
+@keyframes a {
+  from, to { color: blue }
+}
+
+.anim {
+  color: olive;
+  animation: a 1s infinite;
+}
+
+</style>
+<p class="anim">blue with animation support; olive without</p>
+<div id="holder"></div>
+<script>
+let shadow_style = style = document.createElement("style");
+shadow_style.textContent = "@keyframes shadow_a { from, to { color: orange } }";
+
+let shadow = document.getElementById("holder").attachShadow({mode:"open"});
+let shadow_p = document.createElement("p");
+
+shadow_p.style.color = "olive";
+shadow_p.style.animation = "shadow_a 1s infinite";
+shadow_p.innerHTML = "orange with animation support; olive without";
+shadow.appendChild(shadow_style);
+shadow.appendChild(shadow_p);
+</script>

@@ -1,0 +1,34 @@
+<!doctype html>
+<title>Referrer Policy: iframes with document.write()</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/make-html-script.js"></script>
+<meta name="referrer" content="origin">
+<div id="log"></div>
+<script>
+  let reportedReferrer = () => {
+    return new Promise(resolve => {
+      window.addEventListener("message", msg => resolve(msg.data.referrer));
+    });
+  };
+
+  const iframe = document.createElement("iframe");
+  promise_test(async t => {
+    let referrer_of_srcdoc_iframe = reportedReferrer();
+    const script_to_fetch_cross_origin_resource =
+          createScriptString(get_host_info().REMOTE_ORIGIN, location.origin + "/custom");
+    iframe.srcdoc = `<head><meta name="referrer" content="unsafe-url"></head>`
+      + script_to_fetch_cross_origin_resource;
+    document.body.appendChild(iframe);
+    assert_equals(await referrer_of_srcdoc_iframe, self.origin + "/custom",
+                  "Srcdoc iframe setting referrer policy via meta header should use that referrer policy.");
+
+    let referrer_after_document_open = reportedReferrer();
+    iframe.contentDocument.open();
+    iframe.contentDocument.write(script_to_fetch_cross_origin_resource);
+    iframe.contentDocument.close();
+    assert_equals(await referrer_after_document_open, self.origin + "/custom",
+                  "Referrer policy should not change after document.open().");
+  }, "document.open() should not change the referrer policy of the opened document.");
+</script>

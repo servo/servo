@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: Auto-imported from Gecko test white-space-pre-1.html</title>
+  <link rel="author" title="Boris Zbarsky" href="mailto:bzbarsky@mit.edu"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#anonymous-boxes"/>
+  <meta name="flags" content='dom'/>
+
+    <style type="text/css">
+      #x:after { content: " cd"; display: table-cell; }
+    </style>
+    <script type="text/javascript"><![CDATA[
+      function doTest() {
+        var f = document.getElementById("f");
+        f.parentNode.removeChild(f);
+      }
+    ]]></script>
+  </head>
+<body onload="doTest()">
+<p>There should be no red below, except for antialiasing issues.</p>
+<div style="position: relative; font-size: 2em;">
+<div style="position: absolute; z-index: 2; top: 0; color: green; padding: 1px;">
+
+    <div style="font-family: monospace; width: 10em; white-space: pre-wrap"><span id="f" style="float: left; width: 80%; height: 0.5em"></span><span id="x">a <script type="text/javascript">document.body.offsetWidth; dump('aa');</script> <span style="display: table-cell">b</span></span></div>
+  </div>
+<div style="position: relative; z-index: 1; color: red; padding: 1px;">
+
+    <div style="font-family: monospace; white-space: pre-wrap">a  b cd</div>
+  </div>
+</div>
+</body>
+</html>

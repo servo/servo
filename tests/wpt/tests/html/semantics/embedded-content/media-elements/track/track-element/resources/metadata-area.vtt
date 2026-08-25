@@ -1,0 +1,14 @@
+WEBVTT
+This is where metadata would go and these lines should be skipped.
+author = silviapf@google.com
+COMMENT-->
+this is a comment, that will parse as part of the header;
+the STYLE and DEFAULTS below are parsed as invalid cues
+
+1
+00:00:00.000 --> 00:00:30.500
+Bear is Coming!!!!!
+
+2
+00:00:31.000 --> 00:20:00.500
+I said Bear is coming!!!!

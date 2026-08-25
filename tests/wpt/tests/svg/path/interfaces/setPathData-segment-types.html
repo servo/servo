@@ -1,0 +1,124 @@
+<!doctype html>
+<title>SVGPathElement.setPathData() basic segment types</title>
+<link rel="help" href="https://svgwg.org/specs/paths/#__svg__SVGPathData__setPathData">
+<link rel="author" title="Virali Purbey" href="mailto:viralipurbey@microsoft.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/getPathData-helpers.js"></script>
+
+<svg></svg>
+<script>
+const cases = [
+  {
+    desc: "M/L/Z (absolute)",
+    input: [
+      { type: "M", values: [0, 0] },
+      { type: "L", values: [10, 10] },
+      { type: "Z", values: [] }
+    ],
+    output: "M 0 0 L 10 10 Z"
+  },
+  {
+    desc: "m/l/z (relative)",
+    input: [
+      { type: "m", values: [5, 5] },
+      { type: "l", values: [3, 4] },
+      { type: "z", values: [] }
+    ],
+    // ClosePath serializes to canonical "Z".
+    output: "m 5 5 l 3 4 Z"
+  },
+  {
+    desc: "H/V (horizontal/vertical lineto)",
+    input: [
+      { type: "M", values: [0, 0] },
+      { type: "H", values: [50] },
+      { type: "V", values: [50] },
+      { type: "h", values: [-50] },
+      { type: "v", values: [-50] }
+    ],
+    output: "M 0 0 H 50 V 50 h -50 v -50"
+  },
+  {
+    desc: "C/S (cubic + smooth cubic)",
+    input: [
+      { type: "M", values: [0, 0] },
+      { type: "C", values: [10, 10, 20, 20, 30, 30] },
+      { type: "S", values: [50, 50, 60, 60] }
+    ],
+    output: "M 0 0 C 10 10 20 20 30 30 S 50 50 60 60"
+  },
+  {
+    desc: "Q/T (quadratic + smooth quadratic)",
+    input: [
+      { type: "M", values: [0, 0] },
+      { type: "Q", values: [10, 10, 20, 20] },
+      { type: "T", values: [40, 40] }
+    ],
+    output: "M 0 0 Q 10 10 20 20 T 40 40"
+  },
+  {
+    desc: "A (elliptical arc with flags)",
+    input: [
+      { type: "M", values: [0, 0] },
+      { type: "A", values: [25, 25, 0, false, true, 50, 50] }
+    ],
+    output: "M 0 0 A 25 25 0 0 1 50 50"
+  },
+  {
+    desc: "c/s (relative cubic + smooth cubic)",
+    input: [
+      { type: "M", values: [0, 0] },
+      { type: "c", values: [1, 1, 2, 2, 3, 3] },
+      { type: "s", values: [4, 4, 5, 5] }
+    ],
+    output: "M 0 0 c 1 1 2 2 3 3 s 4 4 5 5"
+  },
+  {
+    desc: "q/t (relative quadratic + smooth quadratic)",
+    input: [
+      { type: "M", values: [0, 0] },
+      { type: "q", values: [1, 1, 2, 2] },
+      { type: "t", values: [3, 3] }
+    ],
+    output: "M 0 0 q 1 1 2 2 t 3 3"
+  },
+  {
+    desc: "a (relative elliptical arc)",
+    input: [
+      { type: "M", values: [0, 0] },
+      { type: "a", values: [10, 10, 0, true, false, 5, 5] }
+    ],
+    output: "M 0 0 a 10 10 0 1 0 5 5"
+  },
+  {
+    desc: "A flags follow ToBoolean (non-zero coerces to 1)",
+    input: [
+      { type: "M", values: [0, 0] },
+      { type: "A", values: [25, 25, 0, 2, 5, 50, 50] }
+    ],
+    output: "M 0 0 A 25 25 0 1 1 50 50"
+  },
+  {
+    desc: "single moveto (minimal valid non-empty path)",
+    input: [
+      { type: "M", values: [0, 0] }
+    ],
+    output: "M 0 0"
+  }
+];
+
+for (const c of cases) {
+  test(() => {
+    const path = createPath();
+    path.setPathData(c.input);
+    assert_equals(path.getAttribute("d"), c.output);
+
+    // getPathData() -> setPathData() -> getPathData() round-trips.
+    const segments = path.getPathData();
+    const path2 = createPath();
+    path2.setPathData(segments);
+    assert_path_data_equals(path2.getPathData(), segments);
+  }, "setPathData() " + c.desc);
+}
+</script>

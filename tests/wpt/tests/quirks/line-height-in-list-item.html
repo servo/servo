@@ -1,0 +1,12 @@
+<!-- quirks mode -->
+<link rel="author" title="Morten Stenshorne" href="mstensho@chromium.org">
+<link rel="help" href="https://quirks.spec.whatwg.org/#the-line-height-calculation-quirk">
+<link rel="match" href="reference/green-100px-square-no-red.html">
+<meta name="assert" content="List items force strict line height; see https://github.com/whatwg/quirks/issues/38">
+<p>There should be a filled green square below, and no red.</p>
+<div style="width:100px; height:100px; background:red;">
+  <li style="line-height:50px; color:green; background:green;">
+    <br>
+    <div style="display:inline-block; width:1px; height:1px;"></div>
+  </li>
+</div>

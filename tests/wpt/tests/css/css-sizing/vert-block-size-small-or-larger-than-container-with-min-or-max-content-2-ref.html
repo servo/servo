@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>
+    CSS Reference Case: Different values of width:auto container in vertical wm
+  </title>
+  <meta charset="utf-8">
+  <link rel="author" title="Boris Chiou" href="mailto:boris.chiou@gmail.com">
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+  <meta name="flags" content="ahem">
+  <style>
+    html,body {
+      margin: 0;
+    }
+
+    .outer {
+      writing-mode: vertical-lr;
+      display: inline-block;
+    }
+
+    .outer * {
+      border: 2px solid lime;
+      display: inline-block;
+    }
+
+    .container {
+      height: 80px;
+      border-color: blue;
+      vertical-align: bottom;
+
+      font-family: Ahem;
+      font-size: 8px;
+      line-height: 13px;
+    }
+
+    .too-small {
+      width: 10px;
+    }
+
+    .too-big {
+      width: 100px;
+    }
+  </style>
+</head>
+<body>
+<div class="outer">
+  <div class="container">
+    <div>auto<br>container: min-content.</div>
+    <div>auto<br>container: min-content.</div>
+  </div>
+  <div class="container">
+    <div class="too-small">10px<br>container: min-content.</div>
+    <div class="too-small">10px<br>container: min-content.</div>
+  </div>
+  <div class="container">
+    <div class="too-big">150px<br>container: min-content.</div>
+    <div class="too-big">150px<br>container: min-content.</div>
+  </div>
+
+  <div class="container">
+    <div>auto<br>container: max-content.</div>
+    <div>auto<br>container: max-content.</div>
+  </div>
+  <div class="container">
+    <div class="too-small">10px<br>container: max-content.</div>
+    <div class="too-small">10px<br>container: max-content.</div>
+  </div>
+  <div class="container">
+    <div class="too-big">100px<br>container: max-content.</div>
+    <div class="too-big">100px<br>container: max-content.</div>
+  </div>
+</div>
+
+<div class="outer">
+  <div class="container">
+    <div>auto<br>container: auto.</div>
+    <div>auto<br>container: auto.</div>
+  </div>
+
+  <div class="container">
+    <div class="too-small">10px<br>container min-size: min-content.</div>
+    <div class="too-small">10px<br>container min-size: min-content.</div>
+  </div>
+
+  <div class="container">
+    <div class="too-small">10px<br>container min-size: max-content.</div>
+    <div class="too-small">10px<br>container min-size: max-content.</div>
+  </div>
+
+  <div class="container">
+    <div class="too-big">100px<br>container max-size: min-content.</div>
+    <div class="too-big">100px<br>container max-size: min-content.</div>
+  </div>
+
+  <div class="container">
+    <div class="too-big">100px<br>container max-size: max-content.</div>
+    <div class="too-big">100px<br>container max-size: max-content.</div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,33 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Width of containing block is determined by with of child</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#the-width-property" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The containing block's width depends on this element's width because the resulting layout has not been defined in CSS2.1." />
+        <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+        <style type="text/css">
+            #span1
+            {
+                background-color: red;
+                font: 1in/1em Ahem;
+                left: 10px;
+                position: absolute;
+                top: 10px;
+            }
+            p
+            {
+                margin-top: 1.1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page.</p>
+        <div>
+            <span id="span1">
+                <span>XX</span>
+            </span>
+        </div>
+    </body>
+</html>

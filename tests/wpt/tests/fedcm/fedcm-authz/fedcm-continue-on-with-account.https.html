@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API network request tests.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+
+<script type="module">
+import {fedcm_test,
+        request_options_with_mediation_required,
+        select_manifest,
+        fedcm_get_and_select_first_account} from '../support/fedcm-helper.sub.js';
+
+fedcm_test(async t => {
+  const options = request_options_with_mediation_required('manifest_with_continue_on.json');
+  options.identity.providers[0].nonce = "accountId=jane_doe";
+  await select_manifest(t, options);
+  const cred = await fedcm_get_and_select_first_account(t, options);
+  // This indicates the account that was selected in the dialog,
+  // not the account that was specified in IdentityProvider.resolve,
+  // hence we get 1234 instead of jane_doe.
+  assert_equals(cred.token, "account=1234");
+
+  // Now, jane_doe should be considered a returning user. Make sure
+  // auto reauthentication works. We have to use optional instead of
+  // silent so that we can open the continue_on popup.
+  options.mediation = "optional";
+  return test_driver.bless('initiate FedCM request', async function() {
+    let cred2 = await navigator.credentials.get(options);
+    assert_equals(cred2.token, "account=jane_doe");
+  });
+}, "continue_on and IdentityProvider.resolve work correctly.");
+
+</script>

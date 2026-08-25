@@ -1,0 +1,55 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Table Cell Vertical Alignment with Specified Height</title>
+  <link rel="author" title="L. David Baron" href="https://dbaron.org/"/>
+  <link rel="alternate" href="https://dbaron.org/css/test/2007/height-of-cell-box"/>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="alternate" href="http://www.brunildo.org/test/td_height1.html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#height-layout"/>
+  <meta name="assert" content="Vertical alignment in table cells works whether
+    or not that cell has a specified height."/>
+  <style type="text/css"><![CDATA[
+    .control {
+       width: 20px;
+       height: 30px;
+       border: solid blue 35px;
+       border-style: solid none;
+       background: yellow;
+    }
+    table, .control {
+      float: left;
+      border-spacing: 0;
+    }
+    td {
+      background: blue;
+      padding: 0;
+    }
+    .content {
+      width: 20px;
+      height: 30px;
+      background: yellow;
+      color: yellow;
+    }
+    .one { height: 100px; }
+
+    .middle td { vertical-align: middle; }
+    .baseline td { vertical-align: baseline; }
+    .baseline .two .content { margin-top: 35px; }
+  ]]></style>
+ </head>
+ <body>
+  <p>There must be a single yellow stripe across the blue box.</p>
+  <div class="container">
+    <div class="control"></div>
+    <table class="middle"><tr>
+       <td class="one"><div class="content"></div></td>
+       <td class="two"><div class="content"></div></td>
+    </tr></table>
+    <table class="baseline"><tr>
+       <td class="one"><div class="content">A</div></td>
+       <td class="two"><div class="content">B</div></td>
+    </tr></table>
+  </div>
+ </body>
+</html>

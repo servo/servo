@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<link href="/css/support/grid.css" rel="stylesheet">
+<style>
+  .item {
+    height: 100%;
+    width: 30px;
+    background: salmon;
+  }
+</style>
+<body>
+  <p>This test passes if it has the same output than the reference. As spec states that child text runs containing only white space should not rendered (just as if its text nodes were display:none).</p>
+  <div class="grid">
+    <div class="item"></div>
+  </div>
+</body>
+</html>

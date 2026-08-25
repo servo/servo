@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Grid: !important flag parsing</title>
+    <link rel="help" href="https://crbug.com/340100643">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div id="target" style="grid: 'myArea myArea . . .' 'myArea myArea . . .' !important">Some text.</div>
+  </body>
+  <script>
+test(() => {
+  assert_equals(target.style.grid, '"myArea myArea . . ." "myArea myArea . . ."');
+});
+  </script>
+</html>

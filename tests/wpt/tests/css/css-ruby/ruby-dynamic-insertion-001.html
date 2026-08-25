@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>Test for dynamic insertion of ruby frames</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-ruby-1/#box-fixup">
+<link rel="match" href="ruby-dynamic-insertion-001-ref.html">
+<link rel="stylesheet" href="support/ruby-common.css">
+<script src="support/ruby-dynamic-insertion.js"></script>
+<p>One space should exist between 'a' and 'b':</p>
+
+<!-- leading white space -->
+<!--     => inter-base white space -->
+<p>a<rbc data-insert="start" data-tag="rb"> <rb></rb></rbc>b</p>
+<p>a<ruby data-insert="start" data-tag="rb"> <rb></rb></ruby>b</p>
+<!--     => inter-segment white space -->
+<p>a<ruby data-insert="start" data-tag="rbc"> <rbc></rbc></ruby>b</p>
+<!--     => inter-annotation white space -->
+<p>a<rtc data-insert="start" data-tag="rt"> <rt></rt></rtc>b</p>
+<p>a<ruby data-insert="start" data-tag="rt"> <rt></rt></ruby>b</p>
+
+<!-- trailing white space -->
+<!--     => inter-base white space -->
+<p>a<rbc data-insert="end" data-tag="rb"><rb></rb> </rbc>b</p>
+<p>a<ruby data-insert="end" data-tag="rb"><rb></rb> </ruby>b</p>
+<!--     => inter-segment white space -->
+<p>a<ruby data-insert="end" data-tag="rbc"><rbc></rbc> </ruby>b</p>
+<!--     => inter-annotation white space -->
+<p>a<rtc data-insert="end" data-tag="rt"><rt></rt> </rtc>b</p>
+<p>a<ruby data-insert="end" data-tag="rt"><rt></rt> </ruby>b</p>

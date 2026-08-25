@@ -1,0 +1,70 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border Conflict Resolution (by border style): 'groove' vs. 'double' - border with highest priority border style should dominate</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#border-conflict-resolution" />
+        <meta name="assert" content="The 'double' border is the dominant border when it is collapsed with a 'groove' border of the same size." />
+        <style type="text/css">
+            #table1
+            {
+                margin-bottom: 20px;
+            }
+            table
+            {
+                border-collapse: collapse;
+            }
+            td
+            {
+                border: 5px groove lime;
+                height: 3em;
+                width: 3em;
+            }
+            #center, #table1 td
+            {
+                border: 5px double lime;
+            }
+            #top
+            {
+                border-top: 5px groove red;
+            }
+            #left
+            {
+                border-left: 5px groove red;
+            }
+            #bottom
+            {
+                border-bottom: 5px groove red;
+            }
+            #right
+            {
+                border-right: 5px groove red;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the center box in the table below has a border similar to this:</p>
+        <table id="table1">
+            <tr>
+                <td></td>
+            </tr>
+        </table>
+        <table>
+            <tr>
+                <td>groove</td>
+                <td id="bottom">groove</td>
+                <td>groove</td>
+            </tr>
+            <tr>
+                <td id="right">groove</td>
+                <td id="center">double</td>
+                <td id="left">groove</td>
+            </tr>
+            <tr>
+                <td>groove</td>
+                <td id="top">groove</td>
+                <td>groove</td>
+            </tr>
+        </table>
+    </body>
+</html>

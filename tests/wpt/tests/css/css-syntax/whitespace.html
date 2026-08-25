@@ -1,0 +1,62 @@
+<!doctype html>
+<title>CSS Whitespace</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<meta name="author" title="Tab Atkins-Bittner">
+<link rel=help href="https://drafts.csswg.org/css-syntax/#whitespace">
+
+<div class=a><b></b></div>
+<div id=foo></div>
+
+<!--
+CSS's definition of "whitespace" matches HTML,
+and includes only the five ASCII characters
+U+0009, U+000A, U+000C, U+000D, and U+0020.
+The rest of Unicode's whitespace characters,
+many of which are recognized as whitespace by JS,
+are not valid whitespace in CSS.
+-->
+
+<script>
+
+function isWhitespace(codepoint) {
+    const char = String.fromCodePoint(codepoint);
+    const codepointName = "U+" + codepoint.toString(16).padStart(4, "0");
+    test(()=>{
+        const withSpace = document.querySelector(".a b");
+        const withChar = document.querySelector(`.a${char}b`);
+        assert_equals(withSpace, withChar);
+    }, `${codepointName} is CSS whitespace`);
+}
+function isNotWhitespace(codepoint) {
+    const char = String.fromCodePoint(codepoint);
+    const codepointName = "U+" + codepoint.toString(16).padStart(4, "0");
+    test(()=>{
+        const withSpace = document.querySelector(".a b");
+        document.querySelector("#foo").setAttribute("class", `.a${char}b`);
+        try {
+            var withChar = document.querySelector(`.a${char}b`);
+        } catch(e) {
+            assert_true(true, `${codepointName} isn't valid in a selector at all`);
+            return;
+        }
+        assert_not_equals(withSpace, withChar);
+    }, `${codepointName} is *not* CSS whitespace`);
+}
+
+// CSS Whitespace characters
+var whitespace = [0x9, 0xa, 0xc, 0xd, 0x20];
+
+// Unicode Whitespace characters not recognized by CSS
+// https://en.wikipedia.org/wiki/Whitespace_character#Unicode
+var notWhitespace = [0xb, 0x85, 0xa0, 0x1680, 0x2000, 0x2001, 0x2002, 0x2003, 0x2004, 0x2005, 0x2006, 0x2007, 0x2008, 0x2009, 0x200a, 0x2928, 0x2029, 0x202f, 0x205f, 0x3000, 0x180e, 0x200b, 0x200c, 0x200d, 0x2060, 0xfeff];
+
+for(var codepoint of whitespace) {
+    isWhitespace(codepoint);
+}
+for(var codepoint of notWhitespace) {
+    isNotWhitespace(codepoint);
+}
+
+</script>

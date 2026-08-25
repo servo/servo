@@ -1,0 +1,58 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL2 Canvas Context Mode Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description("This test ensures WebGL 2.0 implementations respect the canvas's context mode.");
+
+debug("");
+
+assertMsg(window.WebGLRenderingContext,
+          "WebGL2RenderingContext should be a member of window");
+assertMsg('WebGL2RenderingContext' in window,
+          "WebGL2RenderingContext should be 'in' window");
+
+function testContextMode(mode, altMode) {
+  debug("Testing " + mode + " context type");
+
+  let c = document.createElement('canvas');
+  c.width = 2;
+  c.height = 2;
+  let gl = c.getContext(mode);
+  assertMsg(c.getContext(mode) == gl,
+            "Canvas.getContext('" + mode + "') should return the same value every time");
+  try {
+    assertMsg(c.getContext(altMode) == null,
+              "Canvas.getContext('" + altMode + "') after getContext('" + mode + "') should return null");
+  } catch (e) {
+    testFailed("Canvas.getContext('" + altMode + "') after getContext('" + mode + "') should not throw an exception");
+  }
+}
+
+testContextMode('webgl2', 'webgl');
+testContextMode('webgl', 'webgl2');
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCRtpReceiver.track.getSettings()</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+// Tentative pending resolution of https://github.com/w3c/mediacapture-fromelement/issues/48.
+
+promise_test(async t => {
+  if (!document.body) {
+    await new Promise(r => document.addEventListener("DOMContentLoaded", r, {once: true}));
+  }
+  const noiseStream = await getNoiseStream({video: true});
+  const [sendTrack] = noiseStream.getTracks();
+  const [canvas] = document.body.getElementsByTagName("canvas");
+  const ctx = canvas.getContext("2d");
+
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  // Send noise track.
+  const sender = pc1.addTrack(sendTrack);
+  const params = sender.getParameters();
+  params.degradationPreference = "maintain-resolution";
+  await sender.setParameters(params);
+
+  const haveTrackEvent = new Promise(r => pc2.ontrack = r);
+  exchangeIceCandidates(pc1, pc2);
+  await pc1.setLocalDescription();
+  await pc2.setRemoteDescription(pc1.localDescription);
+  await pc2.setLocalDescription();
+  await pc1.setRemoteDescription(pc2.localDescription);
+
+  const {track: recvTrack} = await haveTrackEvent;
+  assert_equals(recvTrack.getSettings().width, 0, "Receive track width setting is zero initially");
+  assert_equals(recvTrack.getSettings().height, 0, "Receive track height setting is zero initially");
+
+  // Display received track in video element for resize events.
+  const destVideo = document.createElement('video');
+  destVideo.autoplay = true;
+  destVideo.srcObject = new MediaStream([recvTrack]);
+  await new Promise(r => destVideo.onloadedmetadata = r);
+  assert_equals(recvTrack.getSettings().width, canvas.width, "Receive track width setting is set after receiving data");
+  assert_equals(recvTrack.getSettings().height, canvas.height, "Receive track height setting is set after receiving data");
+
+  canvas.width = 240;
+  canvas.height = 160;
+  await new Promise(r => destVideo.onresize = r);
+  assert_equals(recvTrack.getSettings().width, 240, "Receive track width setting is updated after resolution change");
+  assert_equals(recvTrack.getSettings().height, 160, "Receive track height setting is updated after resolution change");
+}, "RTCRtpReceiver.track.getSettings() contains resolution entries");
+</script>

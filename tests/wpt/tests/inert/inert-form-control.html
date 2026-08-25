@@ -1,0 +1,34 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="help" href="https://html.spec.whatwg.org/#inert-subtrees">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1926304">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<title>Inert doesn't prevent initiated click from changing form control</title>
+<style>
+  label {
+    display: block
+  }
+</style>
+<div id="ancestor">
+  <label>
+    <input type=radio name=foo value=1 checked> Something
+  </label>
+  <label id="target">
+    <input type=radio name=foo value=2> Something else
+  </label>
+</div>
+<script>
+  let targetInput = target.querySelector("input");
+  ancestor.addEventListener("click", () => {
+    ancestor.inert = true;
+  });
+  promise_test(async function () {
+    assert_false(targetInput.checked, "input shouldn't be checked");
+    await test_driver.click(target);
+    assert_true(ancestor.inert, "click handler should've ran");
+    assert_true(targetInput.checked, "input should become checked");
+  });
+</script>

@@ -1,0 +1,13 @@
+<!-- quirks -->
+<title>Origin check for stylesheet with non-CSS MIME type quirk</title>
+<link rel="stylesheet" href="data:text/plain,.test { background: red }">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<p class=test>There should be no red.</p>
+<script>
+setup({ single_test: true });
+onload = () => {
+  assert_equals(getComputedStyle(document.querySelector('.test')).backgroundColor, 'rgba(0, 0, 0, 0)');
+  done();
+};
+</script>

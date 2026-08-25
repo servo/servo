@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<meta name="assert" content="Dragging out of a float extends the selection forward, not backward to the float's start.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<div style="float:left">bad <span id="good">good</span></div>
+
+<script>
+promise_test(async (t) => {
+  t.add_cleanup(() => window.getSelection().removeAllRanges());
+
+  const goodRect = good.getBoundingClientRect();
+  const startX = goodRect.left;
+  const targetX = goodRect.right + 100;
+
+  const Y = goodRect.top + goodRect.height / 2;
+
+  let actions = new test_driver.Actions();
+  await actions.pointerMove(startX, Y)
+      .pointerDown()
+      .pointerMove(targetX, Y)
+      .pointerUp()
+      .send();
+
+  const selectedText = window.getSelection().toString();
+  assert_false(selectedText.includes("bad"),
+               "selection should extend forward into 'good', not backward " +
+               "into 'bad'. Got: \"" + selectedText + "\"");
+}, 'Drag rightward out of a floated block extends the selection forward, ' +
+   'not backward to the start of the float\'s content.');
+</script>
+</html>

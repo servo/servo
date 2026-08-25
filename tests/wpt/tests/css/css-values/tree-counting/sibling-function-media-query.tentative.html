@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<title>CSS Values and Units Test: sibling-index() and sibling-count() invalid in media queries</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#tree-counting">
+<link rel="help" href="https://drafts.csswg.org/mediaqueries-5/#width">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/10982">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/mediaqueries/resources/matchmedia-utils.js"></script>
+<script>
+  query_should_be_unknown("(width > calc(0px * sibling-index()))");
+  query_should_be_unknown("(width > calc(0px * sibling-count()))");
+</script>

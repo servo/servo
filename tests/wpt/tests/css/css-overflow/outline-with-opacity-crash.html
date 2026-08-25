@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<link rel="author" title="Philip Rogers" href="mailto:pdr@chromium.org">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1011699">
+<span id="target" style="outline: 1px solid black; will-change: opacity; opacity: 0.7;">test</span>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(()=> {
+      target.style.background = "lightblue";
+  }, "no crash");
+</script>

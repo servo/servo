@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head>
+<title>CSS Test: Reference for inline-table test</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/" />
+<link rel="author" title="Mozilla Corporation" href="http://mozilla.com/" />
+<style type="text/css">
+span#table { display: inline-table; }
+span#cell { display: table-cell; }
+span#table, span#rowgroup, span#row, span#cell {
+  border: 4px solid white;
+  margin: 3px 0;
+  border-width: 4px 0;
+  padding: 9px 0;
+  border-spacing: 0 5px;
+}
+span#block { display: block; visibility: hidden; }
+</style>
+</head>
+<body>
+<table border=""><tbody><tr><td>
+        <p>
+          a<span id="table"><span id="cell">bcd</span></span>e
+          <span id="block">x</span>
+        </p>
+</td></tr></tbody></table>
+
+
+</body></html>

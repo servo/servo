@@ -1,0 +1,231 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Long Animation Frame Timing: conditional measure time resolve</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<h1>Long Animation Frame: Conditional Measure Time Resolve</h1>
+<div id="log"></div>
+<script>
+setup(() =>
+  assert_implements(
+    "userTimingEntries" in PerformanceLongAnimationFrameTiming.prototype,
+    'conditional user timing for LoAF not implemented'));
+
+const segment_duration = very_long_frame_duration / 2;
+const busy_wait_multipliers = [1, 2, 3];
+const epsilon = 1e-6;
+
+promise_test(async t => {
+  const loaf_entry = await expect_long_frame(async (t, busy_wait) => {
+
+    const element = document.createElement("div");
+    document.body.appendChild(element);
+    t.add_cleanup(() => element.remove());
+    performance.markConditional("mark0");
+    busy_wait(segment_duration * busy_wait_multipliers[0]);
+    performance.markConditional("mark1");
+    performance.measureConditional("measure0", "mark0");
+    performance.measureConditional("measure_no_marks_0");
+    requestAnimationFrame(() => {
+      performance.markConditional("mark2");
+      busy_wait(segment_duration * busy_wait_multipliers[1]);
+      performance.markConditional("mark3");
+      performance.measureConditional("measure1", "mark2");
+      performance.measureConditional("measure_no_marks_1");
+    });
+    const observer = new ResizeObserver(() => {
+      observer.disconnect();
+      performance.markConditional("mark4");
+      busy_wait(segment_duration * busy_wait_multipliers[2]);
+      performance.markConditional("mark5");
+      performance.measureConditional("measure2", "mark4");
+      performance.measureConditional("measure_no_marks_2");
+    });
+    observer.observe(element);
+
+  }, t);
+
+  assert_not_equals(loaf_entry, "timeout");
+
+  const conditional_mark_entries = Array.from(loaf_entry.userTimingEntries)
+    .filter(entry => entry.entryType === "mark-conditional");
+
+  const conditional_measure_entries = Array.from(loaf_entry.userTimingEntries)
+    .filter(entry => entry.entryType === "measure-conditional");
+  assert_equals(conditional_measure_entries.length, 6);
+
+  // Measures with start_mark provided (omitted end_mark defaults to "now").
+  const with_start_mark = conditional_measure_entries
+    .filter(entry => entry.name.startsWith("measure") && !entry.name.startsWith("measure_no_marks"));
+  assert_equals(with_start_mark.length, 3);
+  for(let i = 0; i < 3; i++) {
+    assert_equals(with_start_mark[i].name, "measure" + i);
+    // The measure startTime should match the start mark's startTime.
+    assert_approx_equals(with_start_mark[i].startTime,
+      conditional_mark_entries[i * 2].startTime, epsilon);
+    // The measure duration reflects the delay since the omitted end_mark
+    // defaults to "now" (right after the busy_wait).
+    assert_true(close_enough(with_start_mark[i].duration,
+      segment_duration * busy_wait_multipliers[i]));
+  }
+
+  // Measures with both marks omitted: startTime is 0 (time origin) and they
+  // appear at the beginning of userTimingEntries.
+  const all_entries = Array.from(loaf_entry.userTimingEntries);
+  const no_marks_measures = all_entries
+    .filter(entry => entry.name.startsWith("measure_no_marks_"));
+  assert_equals(no_marks_measures.length, 3);
+  for(let i = 0; i < no_marks_measures.length; i++) {
+    assert_approx_equals(no_marks_measures[i].startTime, 0, epsilon);
+  }
+  const first_non_zero_idx = all_entries.findIndex(e => e.startTime > epsilon);
+  assert_true(first_non_zero_idx >= no_marks_measures.length);
+
+  // The duration is the time from page load (time origin) to when
+  // measureConditional is called. It must be at least the cumulative
+  // busy_wait time, and since measureConditional is called right after
+  // the second mark in each segment, it should be close to that mark's
+  // startTime.
+  let cumulative = 0;
+  for(let i = 0; i < no_marks_measures.length; i++) {
+    cumulative += busy_wait_multipliers[i];
+    assert_true(no_marks_measures[i].duration >= segment_duration * cumulative - epsilon);
+    assert_true(close_enough(no_marks_measures[i].duration,
+      conditional_mark_entries[i * 2 + 1].startTime));
+  }
+
+}, 'conditional measure with omitted marks');
+
+promise_test(async t => {
+  const loaf_entry = await expect_long_frame(async (t, busy_wait) => {
+    busy_wait(segment_duration);
+    performance.markConditional("mark0");
+    performance.measureConditional("measure_unresolved", "mark1", "mark0");
+    busy_wait(segment_duration);
+  }, t);
+
+  assert_not_equals(loaf_entry, "timeout");
+
+  // "mark1" does not exist in this frame, so start_time resolves to 0
+  // (time origin). The end_mark "mark0" resolves to mark0's startTime.
+  // Therefore duration equals mark0's startTime.
+  const measure_entries = Array.from(loaf_entry.userTimingEntries)
+    .filter(entry => entry.name === "measure_unresolved");
+  const mark_entries = Array.from(loaf_entry.userTimingEntries)
+    .filter(entry => entry.name === "mark0");
+  assert_equals(measure_entries.length, 1);
+  assert_equals(mark_entries.length, 1);
+  assert_approx_equals(measure_entries[0].startTime, 0, epsilon);
+  // The minimum duration accounts for the cumulative busy_waits from the
+  // previous test plus 1x segment_duration in this test.
+  const min_cumulative = busy_wait_multipliers.reduce((a, b) => a + b, 0) + 1;
+  assert_true(measure_entries[0].duration >= segment_duration * min_cumulative - epsilon);
+  assert_true(close_enough(measure_entries[0].duration, mark_entries[0].startTime));
+
+}, 'conditional measure does not resolve marks beyond current frame');
+
+promise_test(async t => {
+  const loaf_entry = await expect_long_frame(async (t, busy_wait) => {
+
+    const element = document.createElement("div");
+    document.body.appendChild(element);
+    t.add_cleanup(() => element.remove());
+    performance.markConditional("");
+    busy_wait(segment_duration * busy_wait_multipliers[0]);
+    performance.markConditional("mark0");
+    performance.measureConditional("measure0", "");
+    performance.measureConditional("measure_end0", "", "mark0");
+    requestAnimationFrame(() => {
+      performance.markConditional("");
+      busy_wait(segment_duration * busy_wait_multipliers[1]);
+      performance.markConditional("mark1");
+      performance.measureConditional("measure1", "");
+      performance.measureConditional("measure_end1", "", "mark1");
+    });
+    const observer = new ResizeObserver(() => {
+      observer.disconnect();
+      performance.markConditional("");
+      busy_wait(segment_duration * busy_wait_multipliers[2]);
+      performance.markConditional("mark2");
+      performance.measureConditional("measure2", "");
+      performance.measureConditional("measure_end2", "", "mark2");
+    });
+    observer.observe(element);
+
+  }, t);
+
+  assert_not_equals(loaf_entry, "timeout");
+
+  // Measures with start_mark="" and omitted end_mark: duration should be
+  // close to the busy_wait delay (same as using a named mark before busy_wait).
+  const with_empty_start = Array.from(loaf_entry.userTimingEntries)
+    .filter(entry => entry.name.startsWith("measure") &&
+      !entry.name.startsWith("measure_end"));
+  assert_equals(with_empty_start.length, 3);
+  for(let i = 0; i < 3; i++) {
+    assert_equals(with_empty_start[i].name, "measure" + i);
+    assert_true(close_enough(with_empty_start[i].duration,
+      segment_duration * busy_wait_multipliers[i]));
+  }
+
+  // Measures with start_mark="" and end_mark="markN": duration should also
+  // be close to the busy_wait delay.
+  const with_end_mark = Array.from(loaf_entry.userTimingEntries)
+    .filter(entry => entry.name.startsWith("measure_end"));
+  assert_equals(with_end_mark.length, 3);
+  for(let i = 0; i < 3; i++) {
+    assert_equals(with_end_mark[i].name, "measure_end" + i);
+    assert_true(close_enough(with_end_mark[i].duration,
+      segment_duration * busy_wait_multipliers[i]));
+  }
+
+}, 'conditional measure with empty string mark name');
+
+promise_test(async t => {
+  const loaf_entry = await expect_long_frame(async (t, busy_wait) => {
+
+    const element = document.createElement("div");
+    document.body.appendChild(element);
+    t.add_cleanup(() => element.remove());
+    performance.markConditional("checkpoint");
+    busy_wait(segment_duration);
+    performance.measureConditional("measure0", "checkpoint");
+    requestAnimationFrame(() => {
+      performance.markConditional("checkpoint");
+      busy_wait(segment_duration);
+      performance.measureConditional("measure1", "checkpoint");
+    });
+    const observer = new ResizeObserver(() => {
+      observer.disconnect();
+      performance.markConditional("checkpoint");
+      busy_wait(segment_duration);
+      performance.measureConditional("measure2", "checkpoint");
+    });
+    observer.observe(element);
+
+  }, t);
+
+  assert_not_equals(loaf_entry, "timeout");
+
+  const conditional_mark_entries = Array.from(loaf_entry.userTimingEntries)
+    .filter(entry => entry.entryType === "mark-conditional");
+  const conditional_measure_entries = Array.from(loaf_entry.userTimingEntries)
+    .filter(entry => entry.entryType === "measure-conditional");
+  assert_equals(conditional_measure_entries.length, 3);
+  for(let i = 0; i < 3; i++) {
+    assert_equals(conditional_measure_entries[i].name, "measure" + i);
+    // The measure startTime should match the most recent "checkpoint" mark.
+    assert_approx_equals(conditional_measure_entries[i].startTime,
+      conditional_mark_entries[i].startTime, epsilon);
+    // The most recent "checkpoint" mark is used, so duration should be
+    // close to |segment_duration|.
+    assert_true(close_enough(conditional_measure_entries[i].duration, segment_duration));
+  }
+
+}, 'conditional measure resolves to most recent mark with same name');
+</script>
+</body>

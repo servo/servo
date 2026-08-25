@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: zero-width scroller with scrollbar-gutter should not crash</title>
+<link rel="author" title="Jason Leo" href="mailto:cgqaq@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#scrollbar-gutter-property">
+<style>
+#target {
+  overflow: auto;
+  scrollbar-gutter: stable both-edges;
+  width: 0;
+}
+</style>
+<div id="target"></div>
+<script>
+  target.scrollTop;
+</script>

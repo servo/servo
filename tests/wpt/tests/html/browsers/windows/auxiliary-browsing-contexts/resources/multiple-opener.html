@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+<script src="/common/PrefixedLocalStorage.js"></script>
+<body onload="openNested()">
+<script>
+var prefixedLocalStorage = new PrefixedLocalStorageResource({
+  close_on_cleanup: true
+});
+function openNested () {
+  // Listen for message from opened context and pass through to this
+  // context's opener
+  window.addEventListener('message', (e) => {
+    if (window.opener) {
+      window.opener.postMessage({
+        aux2: e.data, // From multipleOpenee
+        aux1: { // This context
+          name               : window.name,
+          openerName         : window.opener.name,
+          isTop              : window.top === window
+        }
+      }, '*');
+    }
+  });
+  var a = document.createElement('a');
+  a.target = 'multipleOpenee';
+  a.href = prefixedLocalStorage.url('message-window-opener.html');
+  document.body.appendChild(a);
+  a.click();
+}
+</script>
+</body>
+</html>

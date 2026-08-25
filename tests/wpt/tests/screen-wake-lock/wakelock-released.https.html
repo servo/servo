@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<link rel="help" href="https://w3c.github.io/screen-wake-lock/#dom-wakelocksentinel-released">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+promise_test(async t => {
+  await test_driver.set_permission({ name: 'screen-wake-lock' }, 'granted');
+
+  const lock = await navigator.wakeLock.request("screen");
+  assert_false(lock.released, "lock.released must be false on creation");
+
+  lock.onrelease = t.step_func(() => {
+    assert_true(lock.released, "WakeLockSentinel.released is true in an onrelease event handler");
+  });
+  await lock.release();
+  assert_true(lock.released, "WakeLockSentinel.released remains true outside the event handler");
+}, "The released attribute inside an event handler");
+</script>

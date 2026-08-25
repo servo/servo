@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>Consistent image fidelity of background-image with border-radius</title>
+<link rel="help" href="https://crbug.com/1069434">
+<link rel="match" href="reference/background-image-with-border-radius-fidelity-ref.html">
+<style>
+  #target {
+    background-image: url("support/aqua-yellow-32x32.png");
+    background-size: 100% 100%;
+    border-radius: 8px;
+    width: 256px;
+    height: 256px;
+  }
+</style>
+<div id="target"></div>

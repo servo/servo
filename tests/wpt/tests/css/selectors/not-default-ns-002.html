@@ -1,0 +1,25 @@
+<!doctype html>
+<title>Default namespace gets ignored inside non-type selectors for :is() / :not() / :where().</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#negation">
+<!--
+  Default namespace declarations do not affect the compound selector
+  representing the subject of any selector within a :not() pseudo-class, unless
+  that compound selector contains an explicit universal selector or type
+  selector.
+-->
+<link rel="match" href="/css/reference/blank.html">
+<style>
+@namespace url("http://www.w3.org/2000/svg");
+
+*|input {
+  display: none;
+}
+
+/* No type selector, so selector should _not_ match and keep the input hidden */
+*|input:not(:disabled) {
+  display: initial;
+}
+</style>
+<input disabled>

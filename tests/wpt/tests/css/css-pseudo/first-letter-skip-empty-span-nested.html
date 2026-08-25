@@ -1,0 +1,12 @@
+<!DOCTYPE HTML>
+<title>CSS Test: The nested empty span should be skipped when finding the ::first-letter content</title>
+<link rel="author" title="Jaeyong Bae" href="jdragon.bae@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#application-in-css">
+<link rel="match" href="first-letter-skip-empty-span-nested-ref.html">
+<style>
+  div::first-letter { color: green }
+</style>
+<div>
+  <span></span>
+  <span><span></span>First letter should be green</span>
+</div>

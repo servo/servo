@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>A negative length in a calc() expression isn't incorrectly clamped.</title>
+<link rel="match" href="negative-calc-cv-ref.html">
+<style>
+  .container {
+    width: 500px;
+  }
+  .kid {
+    height: 50px;
+    background: green;
+    width: calc(-10px + 10%);
+  }
+</style>
+<div class="container">
+  <div class="kid"></div>
+</div>

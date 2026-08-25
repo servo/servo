@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<title>
+  Adding a scrollable element should make it start capturing snap points.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap/#captures-snap-positions"/>
+<meta name="viewport" content="user-scalable=no">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+div {
+  position: absolute;
+  margin: 0px;
+}
+
+html {
+  scroll-snap-type: y mandatory;
+}
+
+body {
+  margin: 0px;
+}
+
+#middle-scroller {
+  top: 100px;
+  height: 500px;
+  width: 500px;
+  overflow: visible;
+  background-color: rgb(12, 61, 2);
+  scroll-snap-type: none;
+}
+
+#inner-scroller {
+  top: 200px;
+  height: 400px;
+  width: 400px;
+  overflow: visible;
+  background-color: rgb(65, 139, 50);
+  scroll-snap-type: y mandatory;
+}
+
+.space {
+  width: 2000px;
+  height: 2000px;
+}
+
+#inner-snap-area {
+  top: 300px;
+  width: 200px;
+  height: 200px;
+  background-color: blue;
+  scroll-snap-align: start;
+}
+
+#document-snap-area {
+  top: 500px;
+  width: 200px;
+  height: 200px;
+  background-color: lightblue;
+  scroll-snap-align: start;
+}
+
+#inserted-snap-container {
+  top: 400px;
+  height: 600px;
+  width: 400px;
+  overflow: scroll;
+  scroll-snap-type: y mandatory;
+}
+</style>
+
+<div class="space"></div>
+  <div id="middle-scroller">
+    <div class="space"></div>
+    <div id="inner-scroller">
+        <div class="space"></div>
+        <div id="inner-snap-area"></div>
+    </div>
+  </div>
+</div>
+<div id="document-snap-area"></div>
+<script>
+
+const inner_scroller = document.getElementById("inner-scroller");
+const middle_scroller = document.getElementById("middle-scroller");
+const document_scroller = document.scrollingElement;
+
+// This tests that making an element scrollable will reassign the correct snap
+// areas to itself, per spec [1].
+// [1] https://drafts.csswg.org/css-scroll-snap/#captures-snap-positions
+test(() => {
+  // Confirm that the document-level scroller is the snap container for all of
+  // the snap areas.
+  document_scroller.scrollTo(0, 10);
+  assert_equals(document_scroller.scrollTop, 500);
+  // Snaps to the inner snap area.
+  document_scroller.scrollBy(0, 75);
+  assert_equals(document_scroller.scrollTop, 600);
+
+  // The middle scroller should now have the inner snap area assigned to it.
+  // Per spec, even if the snap-type is 'none', it should still capture snap
+  // points.
+  middle_scroller.style.setProperty("overflow", "scroll");
+
+  // The middle scroller has snap-type 'none' so it should not snap.
+  middle_scroller.scrollBy(0, 10);
+  assert_equals(middle_scroller.scrollTop, 10);
+
+  // The document scroller should only snap to the document-level snap area.
+  document_scroller.scrollTo(0, 600);
+  assert_equals(document_scroller.scrollTop, 500);
+
+  // The inner scroller should now have the innermost snap area assigned to it.
+  inner_scroller.style.setProperty("overflow", "scroll");
+  inner_scroller.scrollBy(0, 10);
+  assert_equals(inner_scroller.scrollTop, 300);
+
+  document_scroller.scrollTo(0, 600);
+  assert_equals(document_scroller.scrollTop, 500);
+
+}, "Making an element scrollable should make it capture the correct descendant\
+ snap areas' snap points.");
+
+ // Test that attaching a new snap container also properly assigns snap areas.
+ test(() => {
+  // All containers should capture snap areas.
+  middle_scroller.style.setProperty("overflow", "scroll");
+  inner_scroller.style.setProperty("overflow", "scroll");
+
+  // Sanity check that the scrollers still snap to the snap areas.
+  document_scroller.scrollTo(0, 10);
+  inner_scroller.scrollTo(0,10);
+  assert_equals(inner_scroller.scrollTop, 300);
+  assert_equals(document_scroller.scrollTop, 500);
+
+  // Create new snap container and append thedocument-level snap area as its
+  // child.
+  const inserted_scroller = document.createElement("div");
+  inserted_scroller.id = "inserted-snap-container";
+  const space = document.createElement("div");
+  space.classList.add("space");
+  inserted_scroller.appendChild(space);
+  inserted_scroller.appendChild(document.getElementById("document-snap-area"));
+  document_scroller.appendChild(inserted_scroller);
+
+  // Document scroller no longer snaps.
+  document_scroller.scrollTo(0, 400);
+  assert_equals(document_scroller.scrollTop, 400);
+
+  // Inserted scroller snaps.
+  inserted_scroller.scrollTo(0, 10);
+  assert_equals(inserted_scroller.scrollTop, 500);
+ }, "Attaching a new element that is scrollable should assign the correct snap\
+ areas to it.");
+</script>

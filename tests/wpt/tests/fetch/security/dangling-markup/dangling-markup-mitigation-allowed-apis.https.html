@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+  const blank = 'about:blank';
+  const dangling_url = 'resources/empty.html?\n<';
+  const navigation_api_calls = [
+    `window.open(\`${dangling_url}\`,'_self')`,
+    `location.replace(\`${dangling_url}\`)`,
+  ];
+
+  function get_requests(test, worker, expected) {
+    return new Promise((resolve, reject) => {
+      let didTimeout = false;
+      test.step_timeout(() => {
+        didTimeout = true;
+        reject("get_requests timed out");
+      }, 1000);
+      navigator.serviceWorker.addEventListener('message', function onMsg(evt) {
+        if (evt.data.size >= expected) {
+          navigator.serviceWorker.removeEventListener('message', onMsg);
+          resolve(evt.data);
+        } else if (!didTimeout) {
+          worker.postMessage("");
+        }
+      });
+      worker.postMessage("");
+    });
+  }
+
+  navigation_api_calls.forEach(call => {
+    async_test(t => {
+      const iframe =
+        document.body.appendChild(document.createElement('iframe'));
+      t.step(() => {
+        iframe.contentWindow.eval(call);
+        t.step_timeout(() => {
+          assert_false(iframe.contentWindow.location.href.endsWith(blank));
+          t.done();
+        }, 500);
+      });
+    }, `Does not block ${call}`);
+  });
+
+  const dangling_resource = "404?type=text/javascript&\n<"
+  const dangling_resource_expected = "404?type=text/javascript&%3C"
+  const api_calls = [
+    [`const xhr = new XMLHttpRequest();
+     xhr.open("GET", \`${"xhr" + dangling_resource}\`);
+     xhr.send(null);`, "xhr"],
+    [`new EventSource(\`${"EventSource" + dangling_resource}\`)`,"EventSource"],
+    [`fetch(\`${"fetch" + dangling_resource}\`).catch(()=>{})`, "fetch"],
+    [`new Worker(\`${"Worker" + dangling_resource}\`)`, "Worker"],
+    [`let text = \`try{importScripts(\\\`${location.href + "/../importScripts" + dangling_resource}\\\`)}catch(e){}\`;
+     let blob = new Blob([text], {type : 'text/javascript'});
+     let url = URL.createObjectURL(blob);
+     new Worker(url)`, "importScripts"],
+
+  ];
+
+  let iframe, registration;
+  promise_test(async t => {
+    iframe = document.createElement('iframe');
+    iframe.src = "resources/empty.html";
+    document.body.appendChild(iframe);
+    await new Promise(resolve => iframe.onload = resolve);
+    registration = await navigator.serviceWorker.register('service-worker.js');
+    if (!iframe.contentWindow.navigator.serviceWorker.controller)
+      await new Promise(resolve => iframe.contentWindow.navigator.serviceWorker.oncontrollerchange = resolve);
+  }, "Setup controlled frame");
+
+  let number_api_calls = 0;
+  api_calls.forEach(call => {
+    promise_test(async t => {
+      iframe.contentWindow.eval(call[0]);
+      const requests = await get_requests(t, registration.active, number_api_calls + 1);
+      assert_equals(Array.from(requests)[number_api_calls], call[1] + dangling_resource_expected);
+      number_api_calls++;
+    }, `Does not block ${call[1]}`);
+  });
+  promise_test(async () => {
+    iframe.remove();
+    registration.unregister();
+  }, "Clean up iframe");
+
+  async_test(t => {
+    let url = new URL(location.origin + "/" + dangling_url);
+    // Newlines are removed by the URL parser.
+    assert_true(url.href.endsWith(encodeURI(dangling_url.replace("\n",""))));
+    t.done();
+  }, `Does not block new URL()`);
+</script>

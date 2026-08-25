@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/intersection-observer-test-utils.js"></script>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 200px;
+    width: 100%;
+  }
+  #parent {
+    position: relative;
+    height: 200px;
+    width: 200px;
+    background-color: rgb(250, 221, 221);
+    overflow-y: clip;
+    overflow-x: visible;
+  }
+  #child {
+    background-color: rgb(208, 250, 208);
+    position: absolute;
+    left: 100%;
+    width: 200px;
+    height: 200px;
+  }
+</style>
+</head>
+<body>
+<div id="parent">
+  <div id="child"></div>
+</div>
+</body>
+<script>
+const test = async_test("ParentWithOverflowVisibleAndNotVisible");
+const child = document.getElementById("child");
+const observer = new IntersectionObserver((entries) => {
+  test.step(() => {
+    assert_true(entries[0].isIntersecting);
+    assert_equals(entries[0].intersectionRatio, 1.0);
+    assert_equals(entries[0].intersectionRect.height, 200);
+    assert_equals(entries[0].intersectionRect.width, 200);
+  });
+  test.done();
+});
+observer.observe(child);
+</script>
+</html>

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>We shouldn't crash if the composited parents are empty</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+
+<body style="offset-path: ray(45deg closest-side contain);xborder-top: 1px solid black;inset-inline-start: 0;align-content: space-evenly flex-start safe;-webkit-mask-image: linear-gradient(white, white);border-inline-start-style: solid;flex-grow: 1.5;border-top-color: black;border-left-color: #000;-webkit-margin-start: 4px;-webkit-margin-before: 1px;offset-position: 30px 10px;-webkit-border-vertical-spacing: 10px;empty-cells: hide;scroll-padding-bottom: 12px;-webkit-clip-path: polygon(nonzero, 10px 75px, 180px 180px, 100px 10px, 10px 180px, 180px 75px, 10px 75px)"> { ;  false;</script><iframe srcdoc="
+"></iframe>
+<script>
+  onload = runTest;
+  async function startTransition(document, oldColor) {
+    await document.startViewTransition(() => {
+    }).ready;
+  }
+  async function runTest() {
+    const iframeDocument = document.querySelector("iframe").contentDocument;
+    await startTransition(iframeDocument, "blue");
+    await startTransition(document);
+  }
+</script>

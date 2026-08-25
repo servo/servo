@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>Reference for WebVTT rendering, bidi U+002E U+2029 U+05D0</title>
+<style>
+html { overflow:hidden }
+body { margin:0 }
+.video {
+    display: inline-block;
+    width: 320px;
+    height: 180px;
+    position: relative;
+    font-size: 9px;
+}
+.cue {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    text-align: center
+}
+.cue > span {
+    font-family: sans-serif;
+    background: rgba(0,0,0,0.8);
+    color: white;
+}
+</style>
+<div class="video"><span class="cue"><span>.<br><bdo dir=ltr>&#x05D0;ab)</bdo></span></span></div>

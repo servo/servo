@@ -1,0 +1,85 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Translator and Language Detector APIs (https://webmachinelearning.github.io/translation-api/)
+
+[Exposed=Window, SecureContext]
+interface Translator {
+  static Promise<Translator> create(TranslatorCreateOptions options);
+  static Promise<Availability> availability(TranslatorCreateCoreOptions options);
+
+  Promise<DOMString> translate(
+    DOMString input,
+    optional TranslatorTranslateOptions options = {}
+  );
+  ReadableStream translateStreaming(
+    DOMString input,
+    optional TranslatorTranslateOptions options = {}
+  );
+
+  readonly attribute DOMString sourceLanguage;
+  readonly attribute DOMString targetLanguage;
+
+  Promise<double> measureInputUsage(
+    DOMString input,
+    optional TranslatorTranslateOptions options = {}
+  );
+  readonly attribute unrestricted double inputQuota;
+};
+Translator includes DestroyableModel;
+
+dictionary TranslatorCreateCoreOptions {
+  required DOMString sourceLanguage;
+  required DOMString targetLanguage;
+};
+
+dictionary TranslatorCreateOptions : TranslatorCreateCoreOptions {
+  AbortSignal signal;
+  CreateMonitorCallback monitor;
+};
+
+dictionary TranslatorTranslateOptions {
+  AbortSignal signal;
+};
+
+[Exposed=Window, SecureContext]
+interface LanguageDetector {
+  static Promise<LanguageDetector> create(
+    optional LanguageDetectorCreateOptions options = {}
+  );
+  static Promise<Availability> availability(
+    optional LanguageDetectorCreateCoreOptions options = {}
+  );
+
+  Promise<sequence<LanguageDetectionResult>> detect(
+    DOMString input,
+    optional LanguageDetectorDetectOptions options = {}
+  );
+
+  readonly attribute FrozenArray<DOMString>? expectedInputLanguages;
+
+  Promise<double> measureInputUsage(
+    DOMString input,
+    optional LanguageDetectorDetectOptions options = {}
+  );
+  readonly attribute unrestricted double inputQuota;
+};
+LanguageDetector includes DestroyableModel;
+
+dictionary LanguageDetectorCreateCoreOptions {
+  sequence<DOMString> expectedInputLanguages;
+};
+
+dictionary LanguageDetectorCreateOptions : LanguageDetectorCreateCoreOptions {
+  AbortSignal signal;
+  CreateMonitorCallback monitor;
+};
+
+dictionary LanguageDetectorDetectOptions {
+  AbortSignal signal;
+};
+
+dictionary LanguageDetectionResult {
+  DOMString detectedLanguage;
+  double confidence;
+};

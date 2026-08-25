@@ -1,0 +1,295 @@
+<!doctype html>
+<title>HTML Test: dir=auto|rtl with slots, and direction should be RTL</title>
+<meta charset="UTF-8">
+<meta name="author" title="Miyoung Shin" href="mailto:myid.shin@igalia.com">
+<meta name="author" title="L. David Baron" href="mailto:dbaron@chromium.org">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#the-dir-attribute"/>
+<link rel="help" href="https://github.com/whatwg/html/issues/3699">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="dir-shadow-utils.js"></script>
+
+<div></div>
+
+<script>
+
+test(() => {
+  let [tree, shadow] = setup_tree(`
+    <div>
+      <div id="root">
+        <span></span>
+      </div>
+    </div>
+  `,`
+    <slot dir="rtl"></slot>
+  `);
+  let span = tree.querySelector("span");
+  assert_equals(getComputedStyle(span).direction, "rtl");
+  assert_equals(html_direction(span), "ltr");
+  tree.remove();
+}, 'Slots: Directionality: dir=rtl on slot');
+
+test(() => {
+  let [tree, shadow] = setup_tree(`
+    <div>
+      <div id="root" dir="rtl"></div>
+    </div>
+  `,`
+    <span></span>
+  `);
+  let span = shadow.querySelector("span");
+  assert_equals(getComputedStyle(span).direction, "rtl");
+  assert_equals(html_direction(span), "rtl");
+  tree.remove();
+}, 'Slots: Directionality: dir=rtl on host');
+
+test(() => {
+  let [tree, shadow] = setup_tree(`
+    <div>
+      <span id="root" dir="auto"></span>
+    </div>
+  `,`
+    اختبر
+  `);
+  let span = tree.querySelector("span");
+  assert_equals(getComputedStyle(span).direction, "ltr");
+  assert_equals(html_direction(span), "ltr");
+  tree.remove();
+}, 'Slots: Directionality: dir=auto on host with Arabic shadow tree content');
+
+test(() => {
+  let [tree, shadow] = setup_tree(`
+    <div>
+      <div id="root">
+        اختبر
+      </div>
+    </div>
+  `,`
+    <span dir="auto">
+      <slot></slot>
+    </span>
+  `);
+  let span = shadow.querySelector("span");
+  assert_equals(getComputedStyle(span).direction, "ltr");
+  assert_equals(html_direction(span), "ltr");
+  tree.remove();
+}, 'Slots: Directionality: dir=auto in shadow tree with Arabic light tree content');
+
+test(() => {
+  let [tree, shadow] = setup_tree(`
+    <div>
+      <div id="root"></div>
+    </div>
+  `,`
+    <span dir="auto">
+      <slot>
+        اختبر
+      </slot>
+    </span>
+  `);
+  let span = shadow.querySelector("span");
+  assert_equals(getComputedStyle(span).direction, "ltr");
+  assert_equals(html_direction(span), "ltr");
+  tree.remove();
+}, 'Slots: Directionality: dir=auto in shadow tree with Arabic shadow tree content');
+
+test(() => {
+  let [tree, shadow] = setup_tree(`
+    <div>
+      <div id="root">
+        اختبر
+      </div>
+    </div>
+  `,`
+    <slot dir="auto"></slot>
+  `);
+  let slot = shadow.querySelector("slot");
+  assert_equals(getComputedStyle(slot).direction, "rtl");
+  assert_equals(html_direction(slot), "rtl");
+  tree.remove();
+}, 'Slots: Directionality: dir=auto on slot with Arabic light tree content');
+
+test(() => {
+  let [tree, shadow] = setup_tree(`
+    <div>
+      <div id="root" dir="rtl"></div>
+    </div>
+  `,`
+    <section dir="ltr">
+      <div dir="auto">
+        <slot></slot>
+        A
+      </div>
+    </section>
+  `);
+  let div = shadow.querySelector("div");
+  assert_equals(html_direction(div), "rtl");
+  tree.remove();
+}, 'slot provides its directionality (from host) to a dir=auto container');
+
+test(() => {
+  let [tree, shadow] = setup_tree(`
+    <div>
+      <div id="root"></div>
+    </div>
+  `,`
+    <div dir="auto">
+      <span dir="ltr">
+        A
+      </span>
+      \u05D0
+    </div>
+    <slot></slot>
+  `);
+  let div = shadow.querySelector("div");
+  assert_equals(html_direction(div), "rtl");
+  tree.remove();
+}, 'children with dir attribute are skipped by dir=auto');
+
+test(() => {
+  let [tree, shadow] = setup_tree(`
+    <div>
+      <div id="root"></div>
+    </div>
+  `,`
+    <div dir="auto"><slot dir="ltr"></slot>\u05D0</div>
+  `);
+  let div = shadow.querySelector("div");
+  assert_equals(html_direction(div), "rtl");
+  tree.remove();
+}, 'slot with dir attribute is skipped by dir=auto');
+
+test(() => {
+  let [tree, shadow] = setup_tree(`
+    <div>
+      <div id="root" dir="auto">
+        <div dir="ltr">اختبر</div>
+        <span>Text</span>
+      </div>
+    </div>
+  `,`
+    <slot dir="auto"></slot>
+  `);
+  let div = tree.querySelector("#root");
+  assert_equals(html_direction(div), "ltr");
+  let slot = shadow.querySelector("slot");
+  assert_equals(html_direction(slot), "ltr");
+  tree.remove();
+}, 'dir=auto slot ignores assigned nodes with dir attribute');
+
+test(() => {
+  let [tree, shadow] = setup_tree(`
+    <div>
+      <div id="root">
+        <bdi class="name">اختبر</bdi>
+      </div>
+    </div>
+  `, `
+    <slot dir="auto"></slot>
+  `);
+  let slot = shadow.querySelector("slot");
+  assert_equals(html_direction(slot), "ltr");
+  tree.remove();
+}, 'dir=auto slot ignores text in bdi assigned nodes');
+
+test(() => {
+  let [tree, shadow] = setup_tree(`
+    <div>
+      <div id=root>
+        <input value="اختبر">
+      </div>
+    </div>
+  `,`
+    <slot dir=auto></slot>
+  `);
+  let inp = tree.querySelector("input");
+  assert_equals(html_direction(inp), "ltr");
+  let slot = shadow.querySelector("slot");
+  assert_equals(html_direction(slot), "ltr");
+  tree.remove();
+
+  [tree, shadow] = setup_tree(`
+    <div>
+      <div id=root>
+        <input value="a">
+        اختبر
+      </div>
+    </div>
+  `,`
+    <slot dir=auto></slot>
+  `);
+  inp = tree.querySelector("input");
+  assert_equals(html_direction(inp), "ltr");
+  slot = shadow.querySelector("slot");
+  assert_equals(html_direction(slot), "rtl");
+  tree.remove();
+}, 'dir=auto slot ignores text in value of input element children');
+
+test(() => {
+  let [tree, shadow] = setup_tree(`
+    <div>
+      <div id=root>
+        <input value="اختبر">
+        <input type=text value="اختبر">
+        <input type=submit value="اختبر">
+        abc
+      </div>
+    </div>
+  `,`
+    <slot dir=auto></slot>
+  `);
+  let slot = shadow.querySelector("slot");
+  assert_equals(html_direction(slot), "ltr");
+  tree.remove();
+}, 'dir=auto slot is not affected by value of auto-directionality form associated elements');
+
+test(() => {
+  let [tree, shadow] = setup_tree(`
+    <div>
+      <div id=root><div slot="inner">اختبر</div></div>
+    </div>
+  `,`
+    <slot name="outer">
+      <slot name="inner" dir="auto"></slot>
+    </slot>
+  `);
+  let slot = shadow.querySelector("slot[name='inner']");
+  assert_equals(html_direction(slot), "rtl");
+  tree.remove();
+}, 'inner slot is given directionality from slotted content');
+
+test(() => {
+  let [tree, shadow] = setup_tree(`
+    <div>
+      <div id=root><div slot="inner">اختبر</div></div>
+    </div>
+  `,`
+    <slot name="outer" dir=auto>
+    </slot>
+  `);
+  let slot = shadow.querySelector("slot[name='outer']");
+  slot.innerHTML = "<slot name='inner'></slot>";
+  assert_equals(html_direction(slot), "ltr");
+  tree.remove();
+}, 'dir=auto slot is not affected by content inside inner slot (version 1)');
+
+// version 2 of the test is simpler, but initially exposed assertion failures
+// (maybe crashes?) in Chromium, so was added later.
+test(() => {
+  let [tree, shadow] = setup_tree(`
+    <div>
+      <div id=root><div slot="inner">اختبر</div></div>
+    </div>
+  `,`
+    <slot name="outer" dir=auto>
+      <slot name="inner"></slot>
+    </slot>
+  `);
+  let slot = shadow.querySelector("slot[name='outer']");
+  assert_equals(html_direction(slot), "ltr");
+  // do an extra intermediate removal to make sure it doesn't crash/assert:
+  tree.querySelector("div[slot='inner']").remove();
+  tree.remove();
+}, 'dir=auto slot is not affected by content inside inner slot (version 2)');
+
+</script>

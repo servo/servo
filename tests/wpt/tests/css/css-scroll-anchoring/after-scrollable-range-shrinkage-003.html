@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<meta name="viewport" content="width=device-width">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-scroll-anchoring/">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1856088">
+<div style="height: 500vh;"></div>
+<div id="anchor" style="height: 10px; background-color: blue;"></div>
+<div style="height: 200vh;"></div>
+<script>
+promise_test(async t => {
+  assert_equals(window.scrollY, 0);
+
+  let anchorRect = anchor.getBoundingClientRect();
+  // Scroll to the anchor node.
+  window.scrollBy(0, anchorRect.y);
+  assert_equals(window.scrollY, anchorRect.y);
+
+  await new Promise(resolve => t.step_timeout(resolve, 0));
+
+  // Shrink the first element so that scroll anchoring happens.
+  document.querySelectorAll("div")[0].style.height = "200vh";
+  // Flush the change.
+  document.querySelectorAll("div")[0].getBoundingClientRect();
+
+  await new Promise(resolve => window.addEventListener("scroll", resolve));
+
+  // Revert the height change in a scroll event handler.
+  document.querySelectorAll("div")[0].style.height = "500vh";
+
+  await new Promise(resolve => requestAnimationFrame(resolve));
+  await new Promise(resolve => requestAnimationFrame(resolve));
+
+  assert_equals(window.scrollY, anchorRect.y);
+}, "Scroll anchoring properly works after scrollable range shrinkage");
+</script>
+</html>

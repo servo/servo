@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>Test computed values for input-security</title>
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#input-security">
+<link rel="author" title="Apple Inc">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<style>
+  #outer { input-security: none; }
+</style>
+<div id="outer">
+  <div id="target"></div>
+</div>
+<div id="noInputSecurity"></div>
+<script>
+test_computed_value('input-security', 'initial', 'auto');
+test_computed_value('input-security', 'inherit', 'none');
+test_computed_value('input-security', 'auto', 'auto');
+test_computed_value('input-security', 'none', 'none');
+
+// When input-security isn't specified, it should return 'auto'
+assert_equals(getComputedStyle(noInputSecurity).inputSecurity, 'auto');
+</script>

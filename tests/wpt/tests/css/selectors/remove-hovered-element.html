@@ -1,0 +1,40 @@
+<!doctype html>
+<html class="reftest-wait">
+<title>Selectors: :hover style cleared on ancestor when hovered element is removed.</title>
+<link rel="help" href="https://drafts.csswg.org/selectors/#the-hover-pseudo">
+<link rel="match" href="remove-hovered-element-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  div {
+    width: 100px;
+    height: 100px;
+    background: green;
+  }
+  #outer:hover {
+    background-color: red;
+  }
+  #relative {
+    position: relative;
+    left: 150px;
+  }
+</style>
+<p>Clicking the right square should make the left one go green.</p>
+<div id="outer">
+  <div id="relative"><div id="inner">Click me</div></div>
+</div>
+<script>
+  inner.addEventListener("click", () => {
+    relative.style.display = "none";
+    // force layout box removal
+    document.body.offsetTop;
+    relative.remove();
+    takeScreenshot();
+  });
+
+  // Hover #inner and click.
+  var actions = new test_driver.Actions();
+  actions.pointerMove(0, 0, {origin: inner}).pointerDown().pointerUp().send();
+</script>

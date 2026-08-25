@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>MathML and ::first-line/::first-letter pseudo-elements</title>
+<link rel="help" href="https://w3c.github.io/mathml-core/#legacy-mathml-style-attributes">
+<link rel="match" href="first-line-first-letter-pseudo-elements-001-ref.html"/>
+<meta name="assert" content="::first-line and ::first-letter do not apply to MathML elements.">
+<style>
+  .firstline::first-line { background: red; }
+  .firstletter::first-letter { background: red; }
+</style>
+<p>PASS if there is no red.</p>
+<ol>
+  <li>
+    <math>
+      <mtext class="firstline"><span>Hello,<br/>World!</span></mtext>
+    </math>
+  </li>
+  <li>
+    <math>
+      <mtext class="firstletter">Hello, World!</mtext>
+    </math>
+  </li>
+</ol>

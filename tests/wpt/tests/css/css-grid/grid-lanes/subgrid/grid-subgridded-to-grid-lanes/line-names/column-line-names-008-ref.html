@@ -1,0 +1,170 @@
+<!DOCTYPE HTML>
+<html><head>
+  <meta charset="utf-8">
+  <style>
+html,body {
+  color:black; background-color:white; font:12px/1 monospace;
+}
+
+.grid-lanes {
+  display: inline-grid-lanes;
+  grid-template-columns: repeat(10, 30px);
+  border: 1px solid;
+  padding: 0 2px;
+}
+
+.grid-lanes > div {
+  position: relative;
+  display: grid;
+  grid-column: 2 / span 2;
+  grid: auto / subgrid;
+  padding: 4px 0 1px 10px;
+  border: 1px solid black;
+  background: grey;
+}
+
+n {
+  height: 20px;
+}
+
+x {
+  position: absolute;
+  left: 0;
+  right: 0;
+  background: silver;
+}
+
+.hr { writing-mode: horizontal-tb; direction: rtl; }
+  </style>
+</head>
+<body>
+
+<div class="grid-lanes">
+  <n></n><n></n><n></n><n></n><n></n><n></n><n></n><n></n><n></n><n></n>
+  <div>
+    <x style="grid-column: -1">x</x>
+  </div>
+</div>
+<br>
+
+<div class="grid-lanes">
+  <n></n><n></n><n></n><n></n><n></n><n></n><n></n><n></n><n></n><n></n>
+  <div>
+    <x style="grid-column: 2">x</x>
+  </div>
+</div>
+<br>
+
+<div class="grid-lanes" style="grid-template-columns: repeat(9, 30px) [a] 30px;">
+  <n></n><n></n><n></n><n></n><n></n><n></n><n></n><n></n><n></n><n></n>
+  <div style="grid-column-end:span 5">
+    <x style="grid-column: 2">x</x>
+  </div>
+</div>
+<br>
+
+<div class="grid-lanes" style="grid-template-columns: repeat(5, [a] 30px) repeat(5, 30px);">
+  <n></n><n></n><n></n><n></n><n></n><n></n><n></n><n></n><n></n><n></n>
+  <div style="grid-column:2/span 5">
+    <x style="grid-column: 4">x</x>
+  </div>
+</div>
+<br>
+
+<div class="grid-lanes" style="grid-template-columns: repeat(4, 30px) [a] 30px repeat(5, 30px);">
+  <n></n><n></n><n></n><n></n><n></n><n></n><n></n><n></n><n></n><n></n>
+  <div style="grid-column-end:span 6">
+    <x style="grid-column: 2 / 4">x</x>
+  </div>
+</div>
+<br>
+
+<div class="grid-lanes">
+  <n></n><n></n><n></n><n></n><n></n><n></n><n></n><n></n><n></n><n></n>
+  <div style="grid-column-end:span 3">
+    <x style="grid-column: -1">x</x>
+  </div>
+</div>
+<br>
+
+<div class="grid-lanes" style="grid-template-columns: repeat(3, 30px) [a] 30px repeat(7, 30px);">
+  <n></n><n></n><n></n><n></n><n></n><n></n><n></n><n></n><n></n><n></n>
+  <div style="grid-column:2/span 6">
+    <x style="grid-column: 3 / 5">x</x>
+  </div>
+</div>
+<br>
+
+<div class="grid-lanes" style="grid-template-columns: repeat(3, 30px) [a] 30px repeat(7, 30px);">
+  <n></n><n></n><n></n><n></n><n></n><n></n><n></n><n></n><n></n><n></n>
+  <div style="grid-column:2/span 6">
+    <x style="grid-column: 3 / 5">x</x>
+  </div>
+</div>
+<br>
+
+<div class="grid-lanes">
+  <n></n><n></n><n></n><n></n><n></n><n></n><n></n><n></n><n></n><n></n>
+  <div class="hr">
+    <x style="grid-column: 3 / auto">x</x>
+  </div>
+</div>
+<br>
+
+<div class="grid-lanes">
+  <n></n><n></n><n></n><n></n><n></n><n></n><n></n><n></n><n></n><n></n>
+  <div class="hr">
+    <x style="grid-column: 2 / auto">x</x>
+  </div>
+</div>
+<br>
+
+<div class="grid-lanes" style="grid-template-columns: repeat(9, 30px) [a] 30px;">
+  <n></n><n></n><n></n><n></n><n></n><n></n><n></n><n></n><n></n><n></n>
+  <div class="hr" style="grid-column-end:span 5">
+    <x style="grid-column: 2 / auto">x</x>
+  </div>
+</div>
+<br>
+
+<div class="grid-lanes" style="grid-template-columns: repeat(5, [a] 30px) repeat(5, 30px);">
+  <n></n><n></n><n></n><n></n><n></n><n></n><n></n><n></n><n></n><n></n>
+  <div class="hr" style="grid-column:2/span 5">
+    <x style="grid-column: 6 / auto">x</x>
+  </div>
+</div>
+<br>
+
+<div class="grid-lanes" style="grid-template-columns: repeat(4, 30px) [a] 30px repeat(5, 30px);">
+  <n></n><n></n><n></n><n></n><n></n><n></n><n></n><n></n><n></n><n></n>
+  <div class="hr" style="grid-column-end:span 6">
+    <x style="grid-column: 2 / 4">x</x>
+  </div>
+</div>
+<br>
+
+<div class="grid-lanes">
+  <n></n><n></n><n></n><n></n><n></n><n></n><n></n><n></n><n></n><n></n>
+  <div class="hr" style="grid-column-end:span 3">
+    <x style="grid-column: 4 / auto">x</x>
+  </div>
+</div>
+<br>
+
+<div class="grid-lanes" style="grid-template-columns: 30px [a] repeat(2, 30px) [a] 30px repeat(7, 30px);">
+  <n></n><n></n><n></n><n></n><n></n><n></n><n></n><n></n><n></n><n></n>
+  <div class="hr" style="grid-column:2/span 6">
+    <x style="grid-column: 5 / 7">x</x>
+  </div>
+</div>
+<br>
+
+<div class="grid-lanes" style="grid-template-columns: 30px [a] repeat(2, 30px) [a] 30px repeat(7, 30px);">
+  <n></n><n></n><n></n><n></n><n></n><n></n><n></n><n></n><n></n><n></n>
+  <div class="hr" style="grid-column:2/span 6">
+    <x style="grid-column: 5 / 7">x</x>
+  </div>
+</div>
+
+</body>
+</html>

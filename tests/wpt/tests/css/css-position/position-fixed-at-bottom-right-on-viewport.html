@@ -1,0 +1,31 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="viewport" content="width=device-width">
+<link rel="help" href="https://drafts.csswg.org/css-position/#fixed-pos">
+<meta name="assert" content="This test checks that `bottom` and `right` returned by getComputedStyle for position:fixed elements attached to right bottom of the layout viewport expaned to the minimum-scale size">
+<title></title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<style>
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+}
+#target {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  background: green;
+  width: 100px;
+  height: 100px;
+}
+</style>
+<div style="width: 200%; height: 200%;"></div>
+<div id="target"></div>
+<script>
+test(() => {
+  assert_equals(getComputedStyle(target).bottom, "0px");
+  assert_equals(getComputedStyle(target).right, "0px");
+}, "position:fixed ");
+</script>

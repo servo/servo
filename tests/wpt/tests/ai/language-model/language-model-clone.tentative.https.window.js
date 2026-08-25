@@ -1,0 +1,32 @@
+// META: title=Language Model Clone
+// META: script=/resources/testdriver.js
+// META: script=/resources/testdriver-vendor.js
+// META: script=../resources/util.js
+// META: timeout=long
+
+'use strict';
+
+promise_test(async () => {
+  await ensureLanguageModel();
+
+  // Start a new session and test it.
+  const session = await createLanguageModel();
+  const result = await session.prompt(kTestPrompt);
+  assert_equals(typeof result, 'string');
+
+  // Clone a session and test it.
+  const cloned_session = await session.clone();
+  assert_equals(
+      cloned_session.contextWindow, session.contextWindow,
+      'cloned session should have the same contextWindow as the original session.');
+  assert_equals(
+      cloned_session.contextUsage, session.contextUsage,
+      'cloned session should have the same contextUsage as the original session.');
+
+
+  const clone_result = await cloned_session.prompt(kTestPrompt);
+  assert_equals(typeof clone_result, 'string');
+  assert_greater_than(
+      cloned_session.contextUsage, session.contextUsage,
+      'cloned session should have increased contextUsage after prompting.');
+});

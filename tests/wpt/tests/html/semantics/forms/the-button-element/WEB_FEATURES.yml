@@ -1,0 +1,11 @@
+rules:
+- button-checkvalidity.html: [constraint-validation]
+- button-setcustomvalidity.html: [constraint-validation]
+- button-validation.html: [constraint-validation]
+- button-validationmessage.html: [constraint-validation]
+- button-validity.html: [constraint-validation]
+- button-willvalidate-readonly-attribute.html: [constraint-validation]
+- button-willvalidate.html: [constraint-validation]
+- button-click-resets-with-commandfor.html: [invoker-commands, button]
+- button-click-submits-with-commandfor.html: [invoker-commands, button]
+- "*": [button]

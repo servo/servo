@@ -1,0 +1,3 @@
+rules:
+- rel-base-target.html: [base]
+- "*": [form]

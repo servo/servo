@@ -1,0 +1,19 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Gradients with padding</title>
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#gradients">
+<meta name="assert" content="gradients cover element padding">
+<link rel="match" href="gradient-button-ref.html">
+<style>
+#button {
+    width: 300px;
+    height: 80px;
+    padding: 20px 30px;
+    background: linear-gradient(blue, green);
+    border-width: 5px;
+    border-style: solid;
+    border-color: red;
+    border-radius: 10px;
+}
+</style>
+<div id="button"></div>

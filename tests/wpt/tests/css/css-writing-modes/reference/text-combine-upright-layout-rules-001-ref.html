@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Writing Modes: Layout rules of text-combine-upright</title>
+<link rel="author" title="Masataka Yakura" href="https://google.com/+MasatakaYakura">
+<link rel="author" title="Koji Ishii" href="mailto:kojiishi@gmail.com">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+#container {
+  writing-mode: vertical-rl;
+  font: 50px/1 Ahem;
+}
+#container > div {
+  margin:.2em;
+}
+.tcy {
+  text-combine-upright: all;
+  color:transparent;
+}
+</style>
+</head>
+<body>
+<p>Test passes if there are 2 <strong>identical</strong> hollow squares.</p>
+<div id="container">
+  <div>AAA<br>A A<br>AAA</div>
+  <div>AAA<br>A A<br>AAA</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,3 @@
+rules:
+- grid-template-*-repeat-intrinsic-valid.tentative.html: [masonry]
+- grid-template-*-intrinsic-auto-repeat-computed*.tentative.html: [masonry]

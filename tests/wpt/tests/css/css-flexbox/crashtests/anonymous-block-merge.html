@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Removing flex item child should not crash</title>
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=72668">
+<div style="display:flex;"><div id="inner"></div>text</div>
+<script>
+  var inner = document.getElementById('inner');
+  inner.parentNode.removeChild(inner);
+</script>

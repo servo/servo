@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+async function addIframeAndReceiveMessage(path) {
+  let url = new URL('resources/transfer-arraybuffer-to-parent.html', location);
+  url.hostname = '{{hosts[alt][]}}';
+
+  let frame = document.createElement('iframe');
+  try {
+    frame.src = url;
+    document.body.appendChild(frame);
+    return await new Promise((resolve, reject) => {
+      window.addEventListener('message', e => resolve(e));
+      window.addEventListener('messageerror', e => reject(new Error('received messageerror')));
+    });
+  } finally {
+    frame.remove();
+  }
+}
+
+promise_test(async () => {
+  let messageEvent = await addIframeAndReceiveMessage('resources/transfer-arraybuffer-to-parent.html');
+  assert_class_string(messageEvent.data, 'ArrayBuffer');
+  assert_array_equals(new Uint8Array(messageEvent.data), [42, 222]);
+}, "cross-site windows can send transferred ArrayBuffer");
+</script>
+</body>

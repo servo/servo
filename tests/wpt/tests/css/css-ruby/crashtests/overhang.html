@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Ruby overhang in multi-column layout should not crash</title>
+<link rel="help" href="https://crbug.com/393201839">
+<style>
+.CLASS14 {
+  word-break:break-all;
+  -webkit-text-security:disc;
+  column-count:+256;
+}
+</style>
+<table width="1ex">
+<caption class="CLASS14">
+<ruby>***nl*<rt><input/></rt></ruby>
+</caption>
+</table>

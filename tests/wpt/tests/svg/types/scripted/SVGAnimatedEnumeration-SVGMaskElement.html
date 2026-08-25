@@ -1,0 +1,71 @@
+<!DOCTYPE HTML>
+<title>Use of SVGAnimatedEnumeration within SVGMaskElement</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  // This test checks the use of SVGAnimatedEnumeration within SVGMaskElement.
+
+  var maskElement = document.createElementNS("http://www.w3.org/2000/svg", "mask");
+  maskElement.setAttribute("maskUnits", "userSpaceOnUse");
+  maskElement.setAttribute("maskContentUnits", "userSpaceOnUse");
+
+  // maskUnits
+  // Check initial 'maskUnits' value.
+  assert_true(maskElement.maskUnits instanceof SVGAnimatedEnumeration);
+  assert_equals(typeof(maskElement.maskUnits.baseVal), "number");
+  assert_equals(maskElement.maskUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_USERSPACEONUSE);
+
+  // Switch to 'objectBoundingBox'.
+  maskElement.maskUnits.baseVal = SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX;
+  assert_equals(maskElement.maskUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
+  assert_equals(maskElement.getAttribute('maskUnits'), "objectBoundingBox");
+
+  // Try setting invalid values.
+  assert_throws_js(TypeError, function() { maskElement.maskUnits.baseVal = 3; });
+  assert_equals(maskElement.maskUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
+  assert_equals(maskElement.getAttribute('maskUnits'), "objectBoundingBox");
+
+  assert_throws_js(TypeError, function() { maskElement.maskUnits.baseVal = -1; });
+  assert_equals(maskElement.maskUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
+  assert_equals(maskElement.getAttribute('maskUnits'), "objectBoundingBox");
+
+  assert_throws_js(TypeError, function() { maskElement.maskUnits.baseVal = 0; });
+  assert_equals(maskElement.maskUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
+  assert_equals(maskElement.getAttribute('maskUnits'), "objectBoundingBox");
+
+  // Switch to 'userSpaceOnUse'.
+  maskElement.maskUnits.baseVal = SVGUnitTypes.SVG_UNIT_TYPE_USERSPACEONUSE;
+  assert_equals(maskElement.maskUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_USERSPACEONUSE);
+  assert_equals(maskElement.getAttribute('maskUnits'), "userSpaceOnUse");
+
+  // maskContentUnits
+  // Check initial 'maskContentUnits' value.
+  assert_true(maskElement.maskContentUnits instanceof SVGAnimatedEnumeration);
+  assert_equals(typeof(maskElement.maskContentUnits.baseVal), "number");
+  assert_equals(maskElement.maskContentUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_USERSPACEONUSE);
+
+  // Switch to 'objectBoundingBox'.
+  maskElement.maskContentUnits.baseVal = SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX;
+  assert_equals(maskElement.maskContentUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
+  assert_equals(maskElement.getAttribute('maskContentUnits'), "objectBoundingBox");
+
+  // Try setting invalid values.
+  assert_throws_js(TypeError, function() { maskElement.maskContentUnits.baseVal = 3; });
+  assert_equals(maskElement.maskContentUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
+  assert_equals(maskElement.getAttribute('maskContentUnits'), "objectBoundingBox");
+
+  assert_throws_js(TypeError, function() { maskElement.maskContentUnits.baseVal = -1; });
+  assert_equals(maskElement.maskContentUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
+  assert_equals(maskElement.getAttribute('maskContentUnits'), "objectBoundingBox");
+
+  assert_throws_js(TypeError, function() { maskElement.maskContentUnits.baseVal = 0; });
+  assert_equals(maskElement.maskContentUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
+  assert_equals(maskElement.getAttribute('maskContentUnits'), "objectBoundingBox");
+
+  // Switch to 'userSpaceOnUse'.
+  maskElement.maskContentUnits.baseVal = SVGUnitTypes.SVG_UNIT_TYPE_USERSPACEONUSE;
+  assert_equals(maskElement.maskContentUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_USERSPACEONUSE);
+  assert_equals(maskElement.getAttribute('maskContentUnits'), "userSpaceOnUse");
+});
+</script>

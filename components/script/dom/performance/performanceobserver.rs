@@ -1,0 +1,219 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use std::cell::{Cell, RefMut};
+use std::rc::Rc;
+
+use dom_struct::dom_struct;
+use js::context::JSContext;
+use js::rust::{HandleObject, MutableHandleValue};
+use script_bindings::callback::OwnerWindow;
+use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+
+use super::performanceentry::{EntryType, PerformanceEntry};
+use super::performanceobserverentrylist::PerformanceObserverEntryList;
+use crate::dom::bindings::callback::ExceptionHandling;
+use crate::dom::bindings::codegen::Bindings::PerformanceObserverBinding::{
+    PerformanceObserverCallback, PerformanceObserverInit, PerformanceObserverMethods,
+};
+use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::reflector::DomGlobal;
+use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::console::Console;
+use crate::dom::globalscope::GlobalScope;
+
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
+enum ObserverType {
+    Undefined,
+    Single,
+    Multiple,
+}
+
+#[dom_struct]
+pub(crate) struct PerformanceObserver {
+    reflector_: Reflector,
+    #[conditional_malloc_size_of]
+    callback: Rc<PerformanceObserverCallback>,
+    entries: DomRefCell<Vec<Dom<PerformanceEntry>>>,
+    observer_type: Cell<ObserverType>,
+}
+
+impl PerformanceObserver {
+    fn new_inherited(callback: Rc<PerformanceObserverCallback>) -> PerformanceObserver {
+        PerformanceObserver {
+            reflector_: Reflector::new(),
+            callback,
+            entries: Default::default(),
+            observer_type: Cell::new(ObserverType::Undefined),
+        }
+    }
+
+    fn new_with_proto(
+        cx: &mut JSContext,
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        callback: Rc<PerformanceObserverCallback>,
+    ) -> DomRoot<PerformanceObserver> {
+        reflect_dom_object_with_proto(
+            cx,
+            Box::new(PerformanceObserver::new_inherited(callback)),
+            global,
+            proto,
+        )
+    }
+
+    /// Buffer a new performance entry.
+    pub(crate) fn queue_entry(&self, entry: &PerformanceEntry) {
+        self.entries.borrow_mut().push(Dom::from_ref(entry));
+    }
+
+    /// Trigger performance observer callback with the list of performance entries
+    /// buffered since the last callback call.
+    pub(crate) fn notify(&self, cx: &mut JSContext) {
+        if self.entries.borrow().is_empty() {
+            return;
+        }
+        let entries = self
+            .entries
+            .borrow_mut()
+            .drain(..)
+            .map(|entry| entry.as_rooted())
+            .collect();
+        let observer_entry_list = PerformanceObserverEntryList::new(cx, &self.global(), entries);
+        // using self both as thisArg and as the second formal argument
+        let _ = self.callback.Call_(
+            cx,
+            self,
+            &observer_entry_list,
+            self,
+            ExceptionHandling::Report,
+        );
+    }
+
+    pub(crate) fn entries_mut(&self) -> RefMut<'_, Vec<Dom<PerformanceEntry>>> {
+        self.entries.borrow_mut()
+    }
+}
+
+impl PerformanceObserverMethods<crate::DomTypeHolder> for PerformanceObserver {
+    /// <https://w3c.github.io/performance-timeline/#dom-performanceobserver-constructor>
+    fn Constructor(
+        cx: &mut js::context::JSContext,
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        callback: Rc<PerformanceObserverCallback>,
+    ) -> Fallible<DomRoot<PerformanceObserver>> {
+        Ok(PerformanceObserver::new_with_proto(
+            cx, global, proto, callback,
+        ))
+    }
+
+    /// <https://w3c.github.io/performance-timeline/#supportedentrytypes-attribute>
+    fn SupportedEntryTypes(cx: &mut JSContext, global: &GlobalScope, retval: MutableHandleValue) {
+        // While this is exposed through a method of PerformanceObserver,
+        // it is specified as associated with the global scope.
+        global.supported_performance_entry_types(cx, retval)
+    }
+
+    /// <https://w3c.github.io/performance-timeline/#dom-performanceobserver-observe()>
+    fn Observe(&self, cx: &mut JSContext, options: &PerformanceObserverInit) -> Fallible<()> {
+        // Step 1 is self
+
+        // Step 2 is self.global()
+
+        // Step 3
+        if options.entryTypes.is_none() && options.type_.is_none() {
+            return Err(Error::Syntax(None));
+        }
+
+        // Step 4
+        if options.entryTypes.is_some() && (options.buffered.is_some() || options.type_.is_some()) {
+            return Err(Error::Syntax(None));
+        }
+
+        // If this point is reached, then one of options.entryTypes or options.type_
+        // is_some, but not both.
+
+        // Step 5
+        match self.observer_type.get() {
+            ObserverType::Undefined => {
+                if options.entryTypes.is_some() {
+                    self.observer_type.set(ObserverType::Multiple);
+                } else {
+                    self.observer_type.set(ObserverType::Single);
+                }
+            },
+            ObserverType::Single => {
+                if options.entryTypes.is_some() {
+                    return Err(Error::InvalidModification(None));
+                }
+            },
+            ObserverType::Multiple => {
+                if options.type_.is_some() {
+                    return Err(Error::InvalidModification(None));
+                }
+            },
+        }
+
+        // The entryTypes and type paths diverge here
+        const NO_VALID_ENTRY_TYPE: &str = "No valid entry type provided to observe().";
+        if let Some(entry_types) = &options.entryTypes {
+            // Steps 6.1 - 6.2
+            let entry_types = entry_types
+                .iter()
+                .filter_map(|e| EntryType::try_from(&*e.str()).ok())
+                .collect::<Vec<EntryType>>();
+
+            // Step 6.3
+            if entry_types.is_empty() {
+                Console::internal_warn(cx, &self.global(), NO_VALID_ENTRY_TYPE.to_string());
+                return Ok(());
+            }
+
+            // Steps 6.4-6.5
+            // This never pre-fills buffered entries, and
+            // any existing types are replaced.
+            self.global()
+                .performance(cx)
+                .add_multiple_type_observer(self, entry_types);
+            Ok(())
+        } else if let Some(entry_type) = &options.type_ {
+            // Step 7.2
+            let Ok(entry_type) = EntryType::try_from(&*entry_type.str()) else {
+                Console::internal_warn(cx, &self.global(), NO_VALID_ENTRY_TYPE.to_string());
+                return Ok(());
+            };
+
+            // Steps 7.3-7.5
+            // This may pre-fill buffered entries, and
+            // existing types are appended to.
+            self.global().performance(cx).add_single_type_observer(
+                self,
+                entry_type,
+                options.buffered.unwrap_or(false),
+            );
+            Ok(())
+        } else {
+            // Step 7.1
+            unreachable!()
+        }
+    }
+
+    /// <https://w3c.github.io/performance-timeline/#dom-performanceobserver-disconnect>
+    fn Disconnect(&self, cx: &mut JSContext) {
+        self.global().performance(cx).remove_observer(self);
+        self.entries.borrow_mut().clear();
+    }
+
+    /// <https://w3c.github.io/performance-timeline/#takerecords-method>
+    fn TakeRecords(&self) -> Vec<DomRoot<PerformanceEntry>> {
+        let mut entries = self.entries.borrow_mut();
+        let taken = entries.iter().map(|entry| entry.as_rooted()).collect();
+        entries.clear();
+        taken
+    }
+}
+
+impl OwnerWindow<crate::DomTypeHolder> for PerformanceObserver {}

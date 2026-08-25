@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>CSS Pseudo Test: CSSPseudoElement stable identity</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#CSSPseudoElement-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="target"></div>
+<script>
+test(() => {
+  let pseudo = target.pseudo("::before");
+  assert_equals(pseudo.type, "::before");
+  assert_equals(pseudo.parent, target);
+  assert_equals(pseudo.element, target);
+  assert_true(pseudo === target.pseudo("::before"));
+});
+</script>

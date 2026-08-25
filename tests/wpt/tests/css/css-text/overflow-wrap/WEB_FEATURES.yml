@@ -1,0 +1,2 @@
+rules:
+- "**": [overflow-wrap]

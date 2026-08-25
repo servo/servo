@@ -1,0 +1,18 @@
+<!doctype html>
+<title>::backdrop is supported on textarea</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2015488">
+<link rel="match" href="popover-img-backdrop-ref.html">
+<style>
+textarea:popover-open {
+  visibility: hidden;
+  &::backdrop {
+    visibility: visible;
+    background-color: green;
+  }
+}
+</style>
+<textarea popover="" id="a" style="direction: rtl"></textarea>
+<script>
+a.showPopover({ modal: true });
+</script>
+

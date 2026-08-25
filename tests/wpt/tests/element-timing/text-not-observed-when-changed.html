@@ -1,0 +1,52 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Element Timing: text not observed when changed</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/element-timing-helpers.js"></script>
+
+<p id="content" elementtiming="initial-text">This is some text</p>
+<div id="target"></div>
+
+<script>
+  promise_test(async t => {
+    assert_implements(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
+
+    let entries = await new Promise(resolve => {
+      new PerformanceObserver((list, observer) => {
+        resolve(list.getEntries());
+        observer.disconnect();
+      }).observe({type: 'element', buffered: true});
+    });
+
+    assert_equals(
+        entries.length, 1,
+        'Expected exactly one ElementTiming entry for initial text');
+    assert_equals(
+        entries[0].identifier, 'initial-text',
+        'Unexpected ElementTiming entry; expected "initial-text"');
+
+    // Update existing text. We should not get an entry for this.
+    content.innerText = "This is new text for an existing element";
+    // Add new text. We should get an entry for this.
+    target.innerHTML = '<div elementtiming="new-element-text">This is new text for a new element</div>';
+
+    // Wait for the ElementTiming entry. Note: it's okay to kick this off after
+    // after modifying the DOM because paint timing isn't marked until
+    // rendering, which happens in a separate task.
+    entries = await new Promise(resolve => {
+      new PerformanceObserver((list, observer) => {
+        resolve(list.getEntries());
+        observer.disconnect();
+      }).observe({type: 'element'});
+    });
+
+    assert_equals(
+        entries.length, 1,
+        'Expected exactly one ElementTiming entry for additional text');
+    assert_equals(
+        entries[0].identifier, 'new-element-text',
+        'Unexpected ElementTiming entry: expected "new-element-text"');
+  }, 'Changing the text of an already-observed element is not observed');
+</script>

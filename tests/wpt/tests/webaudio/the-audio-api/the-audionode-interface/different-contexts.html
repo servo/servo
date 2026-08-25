@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      Connections and disconnections with different contexts
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/webaudio/resources/audit-util.js"></script>
+  </head>
+  <body>
+    <script>
+      // Different contexts to be used for testing.
+      let c1;
+      let c2;
+
+      test((t) => {
+        c1 = new AudioContext();
+        c2 = new AudioContext();
+      }, 'setup: Contexts for testing');
+
+      test((t) => {
+        const g1 = new GainNode(c1);
+        const g2 = new GainNode(c2);
+        assert_throws_dom('InvalidAccessError', () => g2.connect(g1));
+      }, 'Test 1: Connect nodes between contexts');
+
+      test((t) => {
+        const g1 = new GainNode(c1);
+        const g2 = new GainNode(c2);
+        assert_throws_dom('InvalidAccessError', () => g2.connect(g1.gain));
+      }, 'Test 2: Connect AudioParam between contexts');
+
+      test((t) => {
+        const g1 = new GainNode(c1);
+        const g2 = new GainNode(c2);
+        assert_throws_dom('InvalidAccessError', () => g2.disconnect(g1));
+      }, 'Test 3: Disconnect nodes between contexts');
+
+      test((t) => {
+        const g1 = new GainNode(c1);
+        const g2 = new GainNode(c2);
+        assert_throws_dom('InvalidAccessError', () => g2.disconnect(g1.gain));
+      }, 'Test 4: Disconnect AudioParam between contexts');
+    </script>
+  </body>
+</html>

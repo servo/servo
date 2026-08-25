@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Reference: ::marker pseudo elements styled with 'content' property and display:flex</title>
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<style>
+body { margin-left: 100px; }
+li {
+  list-style-type: 'FAIL';
+  background: grey;
+}
+li::marker {
+  content: "X";
+  display: block;
+  width: 100px;
+  text-align: start;
+  background: lime;
+}
+span { font-size: 32pt; }
+</style>
+</head>
+<body>
+<ol><li></li><li>B</li><li><span>C</span></li></ol>
+</body>
+</html>

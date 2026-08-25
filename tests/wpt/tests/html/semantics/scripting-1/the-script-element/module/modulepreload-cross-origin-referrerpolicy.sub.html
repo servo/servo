@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Modulepreload Cross-Origin Referrer Policy Tests</title>
+<meta name="author" title="Google" href="https://www.google.com/">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/links.html#link-type-modulepreload">
+<link rel="help" href="https://w3c.github.io/webappsec-referrer-policy/">
+<meta name="assert" content="link rel=modulepreload respects the referrerpolicy attribute for cross-origin requests">
+<!--
+  This test verifies that modulepreload correctly handles various referrer policies
+  for cross-origin requests. It tests all standard referrer policy values:
+  - no-referrer
+  - origin
+  - same-origin
+  - strict-origin
+  - strict-origin-when-cross-origin
+  - unsafe-url
+
+  It also tests that modulepreload respects the document's default referrer policy.
+
+  Each policy is tested by creating a modulepreload link with CORS enabled and the
+  specific policy, then verifying the referrer header that was sent when requesting
+  the resource from another origin.
+-->
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/security-features/resources/common.sub.js"></script>
+<script>
+// This test is more of a basic verification that the modulepreload element
+// correctly handles cross-origin requests with referrer policies, rather than
+// a comprehensive test of all referrer policy values. Those are tested more
+// thoroughly in the standard WPT referrer-policy tests.
+
+setup({
+  // Allow more time for cross-origin tests
+  explicit_timeout: true,
+  single_test: false
+});
+
+// Helper function to create a modulepreload element
+function createModulePreload(url, referrerPolicy = null) {
+  const link = document.createElement('link');
+  link.rel = 'modulepreload';
+  link.href = url;
+  link.crossOrigin = 'anonymous'; // Enable CORS
+
+  if (referrerPolicy !== null) {
+    link.referrerPolicy = referrerPolicy;
+  }
+
+  return link;
+}
+
+// Helper function to test a modulepreload element with a specific referrer policy
+function testModulePreloadWithPolicy(policy, testName) {
+  promise_test(async t => {
+    // Set a timeout for this test
+    t.step_timeout(() => {
+      assert_unreached("Test timed out");
+    }, 10000);
+
+    return new Promise((resolve, reject) => {
+      const link = createModulePreload(
+        `https://{{domains[www1]}}:{{ports[https][0]}}/common/security-features/subresource/script.py`,
+        policy
+      );
+
+      link.onload = () => {
+        // If we got here, the load succeeded, which is what we want to verify
+        assert_true(true, "Cross-origin modulepreload with " + policy + " policy loaded successfully");
+        resolve();
+      };
+
+      link.onerror = () => {
+        reject(new Error("Failed to load cross-origin modulepreload with " + policy + " policy"));
+      };
+
+      document.head.appendChild(link);
+    });
+  }, testName);
+}
+
+// Test basic cross-origin cases with different referrer policies
+testModulePreloadWithPolicy(null, "Cross-origin modulepreload with default referrer policy should load");
+testModulePreloadWithPolicy("no-referrer", "Cross-origin modulepreload with no-referrer policy should load");
+testModulePreloadWithPolicy("origin", "Cross-origin modulepreload with origin policy should load");
+testModulePreloadWithPolicy("same-origin", "Cross-origin modulepreload with same-origin policy should load");
+testModulePreloadWithPolicy("strict-origin", "Cross-origin modulepreload with strict-origin policy should load");
+testModulePreloadWithPolicy("strict-origin-when-cross-origin", "Cross-origin modulepreload with strict-origin-when-cross-origin policy should load");
+testModulePreloadWithPolicy("unsafe-url", "Cross-origin modulepreload with unsafe-url policy should load");
+</script>
+</head>
+<body>
+<div id="log"></div>
+</body>
+</html>

@@ -1,0 +1,3 @@
+rules:
+- 2d.path.roundrect.*: [canvas-roundrect]
+- "*": [canvas-2d]

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>Ignore child fenced frame onload event</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+</body>
+<script>
+  promise_test(async () => {
+    const toplevel_loaded_key = token();
+    const result_key = token();
+
+    // Appends a fencedframe to the top-level doc.
+    attachFencedFrame(generateURL("resources/ignore-child-fenced-frame-onload" +
+      "-event-inner.html", ["fencedframe", toplevel_loaded_key, result_key]));
+
+    // Relays the messsage to the fenced frame when the onload event is fired.
+    window.onload = function () {
+      writeValueToServer(toplevel_loaded_key, "yes");
+    }
+
+    assert_equals(await nextValueFromServer(result_key), "passed",
+      "The parent frame onload event should not be blocked by any onload " +
+      "event from subframes belonging to fenced tree, but should be blocked " +
+      "by that of any non fenced subframe");
+
+  }, "ignore child fenced frame onload event test.");
+</script>
+</html>

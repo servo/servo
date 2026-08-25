@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/webxr_util.js"></script>
+<script src="../resources/webxr_test_constants.js"></script>
+<script src="../resources/webxr_test_asserts.js"></script>
+
+<script>
+let testName = "XRFrame.detectedPlanes plumbing works";
+
+xr_session_promise_test(
+  testName,
+  (session, controller, t) => {
+    controller.setWorld({
+      hitTestRegions: [
+        DEFAULT_FLOOR_PLANE,
+        {
+          type: "plane",
+          faces: [
+            { vertices: [{x: -1, y: 1, z: -5}, {x: 1, y: 1, z: -5}, {x: 1, y: 2, z: -5}] }
+          ],
+          planeInfo: {
+            orientation: "vertical",
+            origin: { position: [0, 1.5, -5], orientation: [0, 0, 0, 1] },
+            polygon: [
+              {x: -1, z: -0.5},
+              {x: 1, z: -0.5},
+              {x: 0, z: 0.5}
+            ],
+            semanticLabel: "wall"
+          }
+        }
+      ]
+    });
+
+    return new Promise((resolve) => {
+      session.requestAnimationFrame((time, frame) => {
+        t.step(() => {
+          let planes = frame.detectedPlanes;
+          assert_not_equals(planes, null, "detectedPlanes should not be null");
+          assert_equals(planes.size, 2, "Should detect 2 planes");
+
+          let planeList = [];
+          planes.forEach(p => planeList.push(p));
+
+          // Sort planes by orientation to identify them reliably
+          planeList.sort((a, b) => (a.orientation > b.orientation) ? 1 : -1);
+
+          let horizontalPlane = planeList[0]; // "horizontal"
+          let verticalPlane = planeList[1];   // "vertical"
+
+          assert_equals(horizontalPlane.orientation, "horizontal");
+          assert_equals(horizontalPlane.semanticLabel, "floor");
+          assert_equals(horizontalPlane.polygon.length, 4);
+
+          assert_equals(verticalPlane.orientation, "vertical");
+          assert_equals(verticalPlane.semanticLabel, "wall");
+          assert_equals(verticalPlane.polygon.length, 3);
+        });
+
+        resolve();
+      });
+    });
+  },
+  IMMERSIVE_AR_DEVICE,
+  "immersive-ar",
+  { requiredFeatures: ["plane-detection"] }
+);
+
+</script>

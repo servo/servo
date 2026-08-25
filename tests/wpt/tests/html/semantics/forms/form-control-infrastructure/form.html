@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTMLInputElement#form</title>
+<link rel="author" title="Ms2ger" href="mailto:Ms2ger@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<form id="form">
+<p><button id="button">button</button>
+<p><fieldset id="fieldset">fieldset</fieldset>
+<p><input id="input">
+<p><object id="object">object</object>
+<p><output id="output">output</output>
+<p><select id="select"><option>select</option></select>
+<p><textarea id="textarea">textarea</textarea>
+
+<!-- label is special: label.form is an alias for label.control.form -->
+<p><label id="label">label</label>
+<p><label id="label-form" form="form">label-form</label>
+<p><label id="label-form-form2" form="form2">label-form-form2</label>
+<p><label id="label-with-control">label-with-control <input></label>
+<p><label id="label-for" for="control-for-label">label-for</label> <input id="control-for-label">
+<p>
+ <input id="input-with-form-attr-in-form" form="form2">
+ <label id="label-for-control-form-in-form" for="input-with-form-attr-in-form">label-for-control-form-in-form</label>
+</p>
+</form>
+<form id="form2"></form>
+<p>
+ <input id="input-with-form-attr" form="form2">
+ <label id="label-for-control-form" for="input-with-form-attr">label-for-control-form</label>
+</p>
+<!-- misnested tags where form-association is set by the HTML parser -->
+<table>
+ <form id="form3"><!-- self-closes but sets the form element pointer -->
+ <tr>
+  <td><label id="label-in-table">label-in-table</label>
+  <td><label id="label-in-table-with-control">label-in-table <input></label>
+  <td><label id="label-in-table-for" for="input-in-table">label-in-table-for</label>
+  <td><input id="input-in-table"><!-- is associated with form3 -->
+ </tr>
+ </form>
+</table>
+<script>
+var form;
+setup(function() {
+  form = document.getElementById("form");
+  form2 = document.getElementById("form2");
+  form3 = document.getElementById("form3");
+  if (!form || !form2 || !form3) {
+    throw new TypeError("Didn't find all forms");
+  }
+});
+
+var listedElements = [
+  "button",
+  "fieldset",
+  "input",
+  "object",
+  "output",
+  "select",
+  "textarea",
+];
+
+listedElements.forEach(function(localName) {
+  test(function() {
+    var control = document.getElementById(localName);
+    assert_equals(control.form, form);
+  }, localName + ".form");
+});
+
+// label
+function testLabel(id, expected) {
+  test(function() {
+    var label = document.getElementById(id);
+    assert_equals(label.control && label.control.form, expected, 'Sanity check: label.control.form');
+    assert_equals(label.form, expected, 'label.form');
+  }, id + ".form");
+}
+
+testLabel("label", null);
+testLabel("label-form", null);
+testLabel("label-form-form2", null);
+testLabel("label-with-control", form);
+testLabel("label-for", form);
+testLabel("label-for-control-form-in-form", form2);
+testLabel("label-for-control-form", form2);
+testLabel("label-in-table", null);
+testLabel("label-in-table-with-control", form3);
+testLabel("label-in-table-for", form3);
+</script>

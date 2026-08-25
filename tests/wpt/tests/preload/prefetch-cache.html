@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>Ensures that prefetch respects HTTP cache semantics</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/prefetch-helper.js"></script>
+<body>
+<script>
+
+async function prefetch_and_count(cacheControl, t) {
+    const {href} = await prefetch({
+        "cache-control": cacheControl,
+        "type": "application/javascript",
+        content: "/**/"}, t);
+    const script = document.createElement("script");
+    script.src = href;
+    t.add_cleanup(() => script.remove());
+    const loaded = new Promise(resolve => script.addEventListener("load", resolve));
+    document.body.appendChild(script);
+    await loaded;
+    const info = await get_prefetch_info(href);
+    return info.length;
+}
+
+promise_test(async t => {
+    const result = await prefetch_and_count("max-age=604800", t);
+    assert_equals(result, 1);
+}, "Prefetch should populate the HTTP cache");
+
+for (const cacheControl of ["no-cache", "no-store", "max-age=0"]) {
+    promise_test(async t => {
+        const result = await prefetch_and_count(cacheControl, t);
+        assert_equals(result, 2);
+    }, `Prefetch should respect cache-control: ${cacheControl}`);
+}
+</script>
+</body>

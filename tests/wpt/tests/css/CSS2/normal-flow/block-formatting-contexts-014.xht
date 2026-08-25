@@ -1,0 +1,46 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Overflow set to 'auto' establishes a new block formatting context</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-09-26 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#block-formatting" />
+        <meta name="assert" content="A new block formatting context is established when overflow is set to 'auto'." />
+        <style type="text/css">
+            #div1
+            {
+                height: 200px;
+                width: 200px;
+            }
+            div div
+            {
+                height: 50px;
+                width: 50px;
+            }
+            #div2
+            {
+                background: blue;
+                float: left;
+            }
+            #div3
+            {
+                overflow: auto;
+            }
+            div div div
+            {
+                background: orange;
+                height: 1in;
+                width: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the blue and orange boxes (including any scrolling mechanism) are the same size.</p>
+        <div id="div1">
+            <div id="div2"></div>
+            <div id="div3">
+                <div></div>
+            </div>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="help" href="https://www.w3.org/TR/css-view-transitions-2/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style>
+
+#collider { view-transition-name: foo }
+
+</style>
+</head>
+<body>
+<div id=s1>
+  <div id=s2>
+    <div id=collider>
+    </div>
+  </div>
+</div>
+
+<script>
+
+promise_test(async () => {
+  const t1 = s1.startViewTransition(() => { });
+  await t1.ready;
+  let threw = false;
+  try {
+    const t2 = s2.startViewTransition(() => { });
+    await t2.ready;
+  } catch (e) { threw = true; }
+  assert_true(threw);
+});
+
+</script>
+</body>
+</html>

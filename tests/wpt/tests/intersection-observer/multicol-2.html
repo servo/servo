@@ -1,0 +1,48 @@
+<!doctype html>
+<title>IntersectionObserver with a fragmented intersection root.</title>
+<link rel="help" href="https://bugzil.la/2013439">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.multicol {
+  width: 200px;
+  height: 100px;
+  columns: 2;
+  column-fill: auto;
+  gap: 0;
+  background: grey;
+}
+.io-root {
+  width: 100px;
+  height: 200px;
+}
+.content {
+  width: 100px;
+  height: 90px;
+  background: purple;
+}
+</style>
+<div class=multicol><div id=r class=io-root>
+  <!-- Push the observed box beyond the first column. -->
+  <div style="height: 110px;"></div>
+  <div id=c class=content></div>
+</div></div>
+<script>
+promise_test(async function() {
+  const options = {
+    root: r,
+    threshold: 1.0,
+  };
+  let observer;
+  let entries = await new Promise(resolve => {
+    observer = new IntersectionObserver(entries => {
+      resolve(entries);
+      observer.disconnect();
+    }, options);
+    observer.observe(c);
+  });
+
+  assert_equals(entries.length, 1, "Expect one entry since we observe one element");
+  assert_true(entries[0].isIntersecting, "Should be intersecting the root");
+});
+</script>

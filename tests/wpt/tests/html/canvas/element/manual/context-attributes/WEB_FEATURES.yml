@@ -1,0 +1,8 @@
+rules:
+- initial_color_alpha_false.html: [canvas-2d-alpha]
+- clearRect_alpha_false.html: [canvas-2d-alpha]
+- drawImage_alpha_false.html: [canvas-2d-alpha]
+- fill_alpha_false.html: [canvas-2d-alpha]
+- fillRect_alpha_false.html: [canvas-2d-alpha]
+- reset_color_alpha_false.html: [canvas-2d-alpha]
+- getContextAttributes.html: [canvas-2d]

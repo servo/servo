@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border-collapse and 'display: inline-block' elements</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#propdef-border-collapse" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#borders" />
+        <meta name="assert" content="Border-collapse does not apply to 'display: inline-block' elements." />
+        <style type="text/css">
+            div
+            {
+                border-collapse: collapse;
+                display: inline-block;
+                height: 100px;
+                width: 100px;
+            }
+            #left
+            {
+                border-right: 10px solid blue;
+            }
+            #right
+            {
+                border-left: 10px dotted orange;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if below there is a vertical solid blue line, and to its right side, a dotted orange line.</p>
+        <div id="left"></div>
+        <div id="right"></div>
+    </body>
+</html>

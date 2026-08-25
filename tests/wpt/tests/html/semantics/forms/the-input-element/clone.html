@@ -1,0 +1,150 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Test input value retention upon clone</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<style>form {display: none;} </style>
+<form>
+<p><input type=checkbox> This checkbox is initially unchecked.</p>
+<p><input type=checkbox checked="checked"> This checkbox is initially checked.</p>
+<p><input type=radio name=radio> This radiobutton is initially unchecked.</p>
+<p><input type=radio checked="checked" name=radio> This radiobutton is initially checked.</p>
+<p><input type=hidden value="DEFAULT
+DEFAULT"> This hidden field has the initial value "DEFAULT\nDEFAULT".</p>
+<p><input type=text value=DEFAULT> This text field has the initial value "DEFAULT".</p>
+<p><input type=search value=DEFAULT> This search field has the initial value "DEFAULT".</p>
+<p><input type=tel value=DEFAULT> This phone number field has the initial value "DEFAULT".</p>
+<p><input type=url value=https://default.invalid/> This URL field has the initial value "https://default.invalid/".</p>
+<p><input type=email value=default@default.invalid> This email field has the initial value "default@default.invalid".</p>
+<p><input type=password value=DEFAULT> This password field has the initial value "DEFAULT".</p>
+<p><input type=date value=2015-01-01> This date field has the initial value "2015-01-01".</p>
+<p><input type=month value=2015-01> This month field has the initial value "2015-01".</p>
+<p><input type=week value=2015-W01> This week field has the initial value "2015-W01".</p>
+<p><input type=time value=12:00> This time field has the initial value "12:00".</p>
+<p><input type=datetime-local value=2015-01-01T12:00> This datetime (local) field has the initial value "2015-01-01T12:00".</p>
+<p><input type=number value=1> This number field has the initial value "1".</p>
+<p><input type=range value=1> This range control has the initial value "1".</p>
+<p><input type=color value=#ff0000> This color picker has the initial value "#FF0000".</p>
+<p><input type="button" value="Clone" onclick="clone();"></p>
+</form>
+<script>
+setup(function() {
+    let form = document.getElementsByTagName("form")[0];
+    let inputs = form.getElementsByTagName("input");
+    inputs[0].checked = true;
+    inputs[1].checked = false;
+    inputs[2].checked = true;
+    inputs[4].value = "CHANGED\nCHANGED";
+    inputs[5].value = "CHANGED";
+    inputs[6].value = "CHANGED";
+    inputs[7].value = "CHANGED";
+    inputs[8].value = "https://changed.invalid/";
+    inputs[9].value = "changed@changed.invalid";
+    inputs[10].value = "CHANGED";
+    inputs[11].value = "2016-01-01";
+    inputs[12].value = "2016-01";
+    inputs[13].value = "2016-W01";
+    inputs[14].value = "12:30";
+    inputs[15].value = "2016-01-01T12:30";
+    inputs[16].value = "2";
+    inputs[17].value = "2";
+    inputs[18].value = "#00ff00";
+    let clone = form.cloneNode(true);
+    document.body.appendChild(clone);
+});
+test(function() {
+    let clone = document.getElementsByTagName("form")[1];
+    let inputs = clone.getElementsByTagName("input");
+    assert_true(inputs[0].checked, "Should have retained checked state");
+}, "Checkbox must retain checked state.");
+test(function() {
+    let clone = document.getElementsByTagName("form")[1];
+    let inputs = clone.getElementsByTagName("input");
+    assert_false(inputs[1].checked, "Should have retained unchecked state");
+}, "Checkbox must retain unchecked state.");
+test(function() {
+    let clone = document.getElementsByTagName("form")[1];
+    let inputs = clone.getElementsByTagName("input");
+    assert_true(inputs[2].checked, "Should have retained checked state");
+}, "Radiobutton must retain checked state.");
+test(function() {
+    let clone = document.getElementsByTagName("form")[1];
+    let inputs = clone.getElementsByTagName("input");
+    assert_false(inputs[3].checked, "Should have retained unchecked state");
+}, "Radiobutton must retain unchecked state.");
+test(function() {
+    let clone = document.getElementsByTagName("form")[1];
+    let inputs = clone.getElementsByTagName("input");
+    assert_equals(inputs[4].value, "CHANGED\nCHANGED", "Should have retained the changed value.");
+}, "Hidden field must retain changed value.");
+test(function() {
+    let clone = document.getElementsByTagName("form")[1];
+    let inputs = clone.getElementsByTagName("input");
+    assert_equals(inputs[5].value, "CHANGED", "Should have retained the changed value.");
+}, "Text field must retain changed value.");
+test(function() {
+    let clone = document.getElementsByTagName("form")[1];
+    let inputs = clone.getElementsByTagName("input");
+    assert_equals(inputs[6].value, "CHANGED", "Should have retained the changed value.");
+}, "Search field must retain changed value.");
+test(function() {
+    let clone = document.getElementsByTagName("form")[1];
+    let inputs = clone.getElementsByTagName("input");
+    assert_equals(inputs[7].value, "CHANGED", "Should have retained the changed value.");
+}, "Phone number field must retain changed value.");
+test(function() {
+    let clone = document.getElementsByTagName("form")[1];
+    let inputs = clone.getElementsByTagName("input");
+    assert_equals(inputs[8].value, "https://changed.invalid/", "Should have retained the changed value.");
+}, "URL field must retain changed value.");
+test(function() {
+    let clone = document.getElementsByTagName("form")[1];
+    let inputs = clone.getElementsByTagName("input");
+    assert_equals(inputs[9].value, "changed@changed.invalid", "Should have retained the changed value.");
+}, "Email field must retain changed value.");
+test(function() {
+    let clone = document.getElementsByTagName("form")[1];
+    let inputs = clone.getElementsByTagName("input");
+    assert_equals(inputs[10].value, "CHANGED", "Should have retained the changed value.");
+}, "Password field must retain changed value.");
+test(function() {
+    let clone = document.getElementsByTagName("form")[1];
+    let inputs = clone.getElementsByTagName("input");
+    assert_equals(inputs[11].value, "2016-01-01", "Should have retained the changed value.");
+}, "Date field must retain changed value.");
+test(function() {
+    let clone = document.getElementsByTagName("form")[1];
+    let inputs = clone.getElementsByTagName("input");
+    assert_equals(inputs[12].value, "2016-01", "Should have retained the changed value.");
+}, "Month field must retain changed value.");
+test(function() {
+    let clone = document.getElementsByTagName("form")[1];
+    let inputs = clone.getElementsByTagName("input");
+    assert_equals(inputs[13].value, "2016-W01", "Should have retained the changed value.");
+}, "Week field must retain changed value.");
+test(function() {
+    let clone = document.getElementsByTagName("form")[1];
+    let inputs = clone.getElementsByTagName("input");
+    assert_equals(inputs[14].value, "12:30", "Should have retained the changed value.");
+}, "Time field must retain changed value.");
+test(function() {
+    let clone = document.getElementsByTagName("form")[1];
+    let inputs = clone.getElementsByTagName("input");
+    assert_equals(inputs[15].value, "2016-01-01T12:30", "Should have retained the changed value.");
+}, "Datetime (local) field must retain changed value.");
+test(function() {
+    let clone = document.getElementsByTagName("form")[1];
+    let inputs = clone.getElementsByTagName("input");
+    assert_equals(inputs[16].value, "2", "Should have retained the changed value.");
+}, "Number field must retain changed value.");
+test(function() {
+    let clone = document.getElementsByTagName("form")[1];
+    let inputs = clone.getElementsByTagName("input");
+    assert_equals(inputs[17].value, "2", "Should have retained the changed value.");
+}, "Range control must retain changed value.");
+test(function() {
+    let clone = document.getElementsByTagName("form")[1];
+    let inputs = clone.getElementsByTagName("input");
+    assert_equals(inputs[18].value, "#00ff00", "Should have retained the changed value.");
+}, "Color picker must retain changed value.");
+</script>

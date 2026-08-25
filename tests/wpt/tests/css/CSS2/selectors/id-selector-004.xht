@@ -1,0 +1,21 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Invalid ID selector syntax - white space between # and id</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#id-selectors" />
+        <link rel="match" href="../reference/no-red-filler-text-ref.xht"/>
+        <meta name="flags" content="invalid" />
+        <meta name="assert" content="White space is not allowed between # and identifier for selector." />
+        <style type="text/css">
+            # div1
+            {
+                color: red;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page.</p>
+        <div id="div1">Filler Text</div>
+    </body>
+</html>

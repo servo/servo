@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>legend inline auto margins</title>
+<link rel="author" title="Mats Palmgren" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1488301">
+<link rel="match" href="legend-auto-margins-ref.html">
+<style>
+body, html { padding:0; margin: 0; }
+fieldset {
+  border: 1px solid black;
+  border-width: 10px 17px 7px 23px;
+  padding: 0 17px 0 31px;
+  margin: 0;
+  width: 400px;
+}
+legend {
+  width: 200px;
+  height: 20px;
+  padding: 0;
+  margin: 0;
+  background: grey;
+}
+</style>
+</head>
+<body>
+  <fieldset><legend style="margin-left:auto"></legend></fieldset>
+  <fieldset><legend style="margin-right:auto"></legend></fieldset>
+  <fieldset><legend style="margin:0 auto"></legend></fieldset>
+  <fieldset><legend style="margin:0 15px 0 auto"></legend></fieldset>
+  <fieldset><legend style="margin:0 auto 0 15px"></legend></fieldset>
+</body>
+</html>

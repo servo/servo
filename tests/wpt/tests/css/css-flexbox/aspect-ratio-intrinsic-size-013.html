@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-sizes">
+<link rel="match" href="aspect-ratio-intrinsic-size-013-ref.html">
+<meta name="assert" content="A flex container with multiple items, only one of which has aspect-ratio, must recompute its preferred widths when its parent's height changes.">
+<p>Test passes if there is a filled green 130x100 rectangle.</p>
+<div id="target" style="height: 50px; width: min-content; background: green;">
+  <div style="display: flex; height: 100%; background: green;">
+    <div style="width: 30px;"></div>
+    <div style="aspect-ratio: 1/1;"></div>
+  </div>
+</div>
+<script>
+document.body.offsetTop;
+document.getElementById('target').style.height = '100px';
+</script>

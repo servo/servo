@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://issues.chromium.org/issues/523748081">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  #slider { width: 400px; height: 30px; }
+</style>
+
+<legend id=legend1>legend1</legend>
+
+<fieldset id=fs disabled>
+  <legend id=legend2>
+    <input type=range id=slider min=0 max=100 value=50>
+  </legend>
+</fieldset>
+
+<iframe id=iframe srcdoc="<body>iframe</body>"></iframe>
+
+<script>
+window.onload = async () => {
+  const slider = document.getElementById("slider");
+  const fs = document.getElementById("fs");
+  const legend1 = document.getElementById("legend1");
+  const legend2 = document.getElementById("legend2");
+  const iframe = document.getElementById("iframe");
+
+  await new Promise(requestAnimationFrame);
+
+  slider.addEventListener("change", () => {
+    iframe.remove();
+  }, { once: true });
+
+  slider.addEventListener("input", () => {
+    fs.moveBefore(legend1, legend2);
+    document.body.appendChild(iframe);
+    document.documentElement.classList.remove('test-wait');
+  }, { once: true });
+
+  const rect = slider.getBoundingClientRect();
+  const offsetX = Math.round(rect.width * 0.4);
+  const offsetY = 0;
+
+  await new test_driver.Actions()
+    .pointerMove(offsetX, offsetY, {origin: slider})
+    .pointerDown()
+    .pause(50)
+    .pointerMove(offsetX + 5, offsetY, {origin: slider})
+    .pointerUp()
+    .send();
+};
+</script>

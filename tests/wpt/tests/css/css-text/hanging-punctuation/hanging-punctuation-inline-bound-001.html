@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Text Test: allowed ending hanging-punctuation affect inline box boundary</title>
+
+  <!--
+
+  Issue 4222: [css-text-3] hanging-punctuation effect on inline/block bounds
+  https://github.com/w3c/csswg-drafts/issues/4222
+
+  -->
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-text-3/#hanging">
+  <link rel="match" href="reference/hanging-punctuation-inline-bound-001-ref.html">
+
+  <meta content="This test checks that background of inline boxes includes hanging punctuations and text-selecting (or highlighting) inline boxes will include hanging punctuations." name="assert">
+
+  <style>
+  div
+    {
+      font-family: monospace;
+      font-size: 60px;
+      line-height: 1.5em; /* computes to 90px */
+      hanging-punctuation: allow-end;
+      width: 245px;
+    }
+
+  span
+    {
+      background-color: lime;
+      border: black solid 3px;
+    }
+  </style>
+
+  <body lang="ja">
+
+  <div><span>まだよくています。しかし特</span></div>

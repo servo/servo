@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>KeyframeEffect copy constructor: revert-layer in keyframes stays dynamic</title>
+<link rel="help"
+      href="https://drafts.csswg.org/web-animations/#dom-keyframeeffect-keyframeeffect-source">
+<link rel="help"
+      href="https://drafts.csswg.org/css-cascade-5/#revert-layer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+const KEYFRAMES = [ { width: 'revert-layer' }, { width: '200px' } ];
+
+const TIMING = { duration: 3600 * MS_PER_SEC,
+                 easing: 'steps(2, start)',
+                 fill: 'both' };
+
+function pausedAtStart(effect) {
+  const animation = new Animation(effect, document.timeline);
+  animation.pause();
+  animation.currentTime = 0;
+  return animation;
+}
+
+test(t => {
+  const target = createDiv(t);
+  target.style.width = '100px';
+
+  const effect = new KeyframeEffect(target, KEYFRAMES, TIMING);
+  assert_equals(effect.getKeyframes()[0].width, 'revert-layer',
+                'revert-layer is retained as the first keyframe value');
+
+  pausedAtStart(effect);
+  assert_equals(getComputedStyle(target).width, '150px',
+                'revert-layer resolves to the author value (100px)');
+
+  target.style.width = '120px';
+  assert_equals(getComputedStyle(target).width, '160px',
+                'revert-layer resolves to the new author value (120px)');
+}, 'revert-layer in a keyframe follows the author value as it changes');
+
+test(t => {
+  const target = createDiv(t);
+  target.style.width = '100px';
+
+  const source = new KeyframeEffect(target, KEYFRAMES, TIMING);
+  const sourceAnimation = pausedAtStart(source);
+
+  assert_equals(getComputedStyle(target).width, '150px',
+                'source effect resolves revert-layer to the author value');
+
+  const copy = new KeyframeEffect(source);
+  assert_equals(copy.getKeyframes()[0].width, 'revert-layer',
+                'the copy retains revert-layer as the first keyframe value');
+
+  sourceAnimation.cancel();
+  pausedAtStart(copy);
+  assert_equals(getComputedStyle(target).width, '150px',
+                'copied effect resolves revert-layer to the author value');
+
+  target.style.width = '120px';
+  assert_equals(getComputedStyle(target).width, '160px',
+                'copied effect resolves revert-layer to the new author value');
+}, 'revert-layer in a keyframe stays dynamic through the KeyframeEffect copy constructor');
+
+</script>
+</body>

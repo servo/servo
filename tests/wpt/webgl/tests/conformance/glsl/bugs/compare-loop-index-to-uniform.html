@@ -1,0 +1,52 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Driver bug - Comparing loop index against uniform in a fragment shader should work</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="fshader" type="x-shader/x-fragment">
+precision mediump float;
+uniform int uCount;
+
+void main() {
+    float a = 0.0;
+    for (int i = 0; i < 5; ++i) {
+        if (i < uCount) {
+            a += 0.2;
+        }
+    }
+    gl_FragColor = vec4(1.0 - a, a, 0.0, 1.0);
+}
+</script>
+<script type="application/javascript">
+"use strict";
+description("Comparing loop index to an uniform in a fragment shader should work.");
+
+GLSLConformanceTester.runRenderTests([
+{
+  fShaderId: 'fshader',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Compare a loop index to an uniform',
+  uniforms: [{name: "uCount", functionName: "uniform1i", value: 5}]
+}
+]);
+</script>
+</body>
+</html>
+

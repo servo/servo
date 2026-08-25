@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>&lt;mo&gt; paint lspace rspace</title>
+    <link rel="help" href="https://w3c.github.io/mathml-core/#operator-fence-separator-or-accent-mo">
+    <meta name="assert" content="Verifies values for lspace and rspace for element mo in LTR and RTL modes.">
+    <link rel="match" href="mo-paint-lspace-rspace-ref.html">
+  </head>
+  <body>
+    <h1>LTR case</h1>
+
+    <p>The test passes if the arrow has a leading space of 100px, which is as wide as the black block to the left,
+      and a trailing space of 200px, which is as wide as the black block to the right.</p>
+
+    <math>
+      <mspace width="100px" height="10px" depth="10px" style="background: black"></mspace>
+      <mo lspace="100px" rspace="200px">→</mo>
+      <mspace width="200px" height="10px" depth="10px" style="background: black"></mspace>
+    </math>
+
+    <p>The test passes if the arrow has a leading space of 150px, which is as wide as the black block to the left,
+      and a trailing space of 150px, which is as wide as the black block to the right.</p>
+
+    <math>
+      <mspace width="150px" height="10px" depth="10px" style="background: black"></mspace>
+      <mo lspace="150px" rspace="150px">→</mo>
+      <mspace width="150px" height="10px" depth="10px" style="background: black"></mspace>
+    </math>
+
+    <p>The test passes if the arrow has a leading space of 200px, which is as wide as the black block to the left,
+      and a trailing space of 100px, which is as wide as the black block to the right.</p>
+
+    <math>
+      <mspace width="200px" height="10px" depth="10px" style="background: black"></mspace>
+      <mo lspace="200px" rspace="100px">→</mo>
+      <mspace width="100px" height="10px" depth="10px" style="background: black"></mspace>
+    </math>
+
+    <h1>RTL case</h1>
+
+    <p>The test passes if the arrow has a leading space of 100px, which is as wide as the black block to the right,
+      and a trailing space of 200px, which is as wide as the black block to the left.</p>
+
+    <math dir="rtl">
+      <mspace width="100px" height="10px" depth="10px" style="background: black"></mspace>
+      <mo lspace="100px" rspace="200px">→</mo>
+      <mspace width="200px" height="10px" depth="10px" style="background: black"></mspace>
+    </math>
+
+    <p>The test passes if the arrow has a leading space of 150px, which is as wide as the black block to the right,
+      and a trailing space of 150px, which is as wide as the black block to the left.</p>
+
+    <math dir="rtl">
+      <mspace width="150px" height="10px" depth="10px" style="background: black"></mspace>
+      <mo lspace="150px" rspace="150px">→</mo>
+      <mspace width="150px" height="10px" depth="10px" style="background: black"></mspace>
+    </math>
+
+    <p>The test passes if the arrow has a leading space of 200px, which is as wide as the black block to the right,
+      and a trailing space of 100px, which is as wide as the black block to the left.</p>
+
+    <math dir="rtl">
+      <mspace width="200px" height="10px" depth="10px" style="background: black"></mspace>
+      <mo lspace="200px" rspace="100px">→</mo>
+      <mspace width="100px" height="10px" depth="10px" style="background: black"></mspace>
+    </math>
+    <script src="/mathml/support/feature-detection.js"></script>
+    <script>MathMLFeatureDetection.ensure_for_match_reftest("has_operator_spacing");</script>
+  </body>
+</html>

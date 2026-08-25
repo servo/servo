@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/reporting/resources/report-helper.js"></script>
+</head>
+<body>
+<script>
+const { HTTPS_REMOTE_ORIGIN } = get_host_info();
+const endpoint = "/reporting/resources/report.py";
+const reportID = '0d334af1-1c5c-4e59-9079-065131ff2a44';
+const url = `${HTTPS_REMOTE_ORIGIN}/common/blank-with-cors.html`;
+
+promise_test(async t => {
+  await promise_rejects_js(t, TypeError, fetch(url));
+
+  await wait(5000);
+  const reports = await pollReports(endpoint, reportID);
+
+  const report = reports.find(r => r.type === 'connection-allowlist' && r.body.connection === url);
+  assert_true(!!report, `A report for ${url} should be present. Found ${reports.length} reports: ${JSON.stringify(reports)}`);
+  assert_equals(report.body.disposition, 'enforce');
+}, 'Connection-Allowlist report is delivered to the reporting endpoint for a blocked fetch.');
+</script>
+</body>
+</html>

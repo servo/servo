@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>CSS Test: block-in-inline with large margin-bottom propagates correctly to next sibling</title>
+<link rel="help" href="https://www.w3.org/TR/CSS21/visuren.html#anonymous-block-level">
+<link rel="help" href="https://www.w3.org/TR/CSS21/box.html#collapsing-margins">
+<link rel="match" href="block-in-inline-large-margin-bottom-ref.html">
+<meta name="assert" content="A block-in-inline with a large margin-bottom positions the next sibling at exactly that distance below.">
+<style>
+.container { width: 100px; }
+.first { width: 100px; height: 10px; margin-bottom: 200px; background: blue; }
+.second { width: 100px; height: 10px; background: green; }
+</style>
+<p>Blue rectangle, 200px gap, then green rectangle.</p>
+<div class="container">
+    <span><div class="first"></div></span>
+    <span><div class="second"></div></span>
+</div>

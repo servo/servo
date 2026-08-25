@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <title>Verifies that video poster is shown even if video element has 'preload="auto"' attribute</title>
+  <link rel="match" href="video-poster-shown-preload-auto-ref.html">
+  <video preload="auto" poster="/media/poster.png" src="/media/video.webm" width="100" height="100"></video>
+  <script>
+    const video = document.querySelector("video");
+    video.oncanplaythrough = () => document.documentElement.classList.remove("reftest-wait");
+  </script>
+</html>

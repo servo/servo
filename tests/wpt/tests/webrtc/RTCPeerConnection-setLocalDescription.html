@@ -1,0 +1,152 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection.prototype.setLocalDescription</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
+
+  // The following helper functions are called from RTCPeerConnection-helper.js:
+  //   generateDataChannelOffer
+  //   assert_session_desc_not_similar
+  //   assert_session_desc_similar
+
+  /*
+    4.3.2.  Interface Definition
+      [Constructor(optional RTCConfiguration configuration)]
+      interface RTCPeerConnection : EventTarget {
+        Promise<void>                      setRemoteDescription(
+            RTCSessionDescriptionInit description);
+
+        readonly attribute RTCSessionDescription? remoteDescription;
+        readonly attribute RTCSessionDescription? currentRemoteDescription;
+        readonly attribute RTCSessionDescription? pendingRemoteDescription;
+        ...
+      };
+
+    4.6.2.  RTCSessionDescription Class
+      dictionary RTCSessionDescriptionInit {
+        required RTCSdpType type;
+                 DOMString  sdp = "";
+      };
+
+    4.6.1.  RTCSdpType
+      enum RTCSdpType {
+        "offer",
+        "pranswer",
+        "answer",
+        "rollback"
+      };
+   */
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    const states = [];
+    pc.addEventListener('signalingstatechange', () => states.push(pc.signalingState));
+
+    return generateAudioReceiveOnlyOffer(pc)
+    .then(offer1 =>
+      pc.setLocalDescription(offer1)
+      .then(() => generateAnswer(offer1))
+      .then(answer => pc.setRemoteDescription(answer))
+      .then(() => {
+        pc.createDataChannel('test');
+        return generateVideoReceiveOnlyOffer(pc);
+      })
+      .then(offer2 =>
+        pc.setLocalDescription(offer2)
+        .then(() => {
+          assert_equals(pc.signalingState, 'have-local-offer');
+          assert_session_desc_not_similar(offer1, offer2);
+          assert_session_desc_similar(pc.localDescription, offer2);
+          assert_session_desc_similar(pc.currentLocalDescription, offer1);
+          assert_session_desc_similar(pc.pendingLocalDescription, offer2);
+
+          assert_array_equals(states, ['have-local-offer', 'stable', 'have-local-offer']);
+        })));
+  }, 'Calling createOffer() and setLocalDescription() again after one round of local-offer/remote-answer should succeed');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    const states = [];
+    pc1.addEventListener('signalingstatechange', () => states.push(pc1.signalingState));
+
+    assert_equals(pc1.localDescription, null);
+    assert_equals(pc1.currentLocalDescription, null);
+    assert_equals(pc1.pendingLocalDescription, null);
+
+    pc1.createDataChannel('test');
+    const offer = await pc1.createOffer();
+
+    assert_equals(pc1.localDescription, null);
+    assert_equals(pc1.currentLocalDescription, null);
+    assert_equals(pc1.pendingLocalDescription, null);
+
+    await pc1.setLocalDescription(offer);
+
+    assert_session_desc_similar(pc1.localDescription, offer);
+    assert_equals(pc1.currentLocalDescription, null);
+    assert_session_desc_similar(pc1.pendingLocalDescription, offer);
+
+    await pc2.setRemoteDescription(offer);
+    const answer = await pc2.createAnswer();
+    await pc2.setLocalDescription(answer);
+    await pc1.setRemoteDescription(answer);
+
+    assert_equals(pc1.signalingState, 'stable');
+    assert_session_desc_similar(pc1.localDescription, offer);
+    assert_session_desc_similar(pc1.currentLocalDescription, offer);
+    assert_equals(pc1.pendingLocalDescription, null);
+
+    const stream = await getNoiseStream({audio:true});
+    pc2.addTrack(stream.getTracks()[0], stream);
+
+    const reoffer = await pc2.createOffer();
+    await pc2.setLocalDescription(reoffer);
+    await pc1.setRemoteDescription(reoffer);
+    const reanswer = await pc1.createAnswer();
+    await pc1.setLocalDescription(reanswer);
+
+    assert_session_desc_similar(pc1.localDescription, reanswer);
+    assert_session_desc_similar(pc1.currentLocalDescription, reanswer);
+    assert_equals(pc1.pendingLocalDescription, null);
+  }, 'Switching role from answerer to offerer after going back to stable state should succeed');
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const offer = await pc.createOffer();
+    let eventSequence = '';
+    const signalingstatechangeResolver = new Resolver();
+    pc.onsignalingstatechange = () => {
+      eventSequence += 'onsignalingstatechange;';
+      signalingstatechangeResolver.resolve();
+    };
+    await pc.setLocalDescription(offer);
+    eventSequence += 'setLocalDescription;';
+    await signalingstatechangeResolver;
+    assert_equals(eventSequence, 'onsignalingstatechange;setLocalDescription;');
+  }, 'onsignalingstatechange fires before setLocalDescription resolves');
+
+  /*
+    TODO
+      4.3.2.  setLocalDescription
+        4.  If description.sdp is null and description.type is pranswer, set description.sdp
+            to lastAnswer.
+        7.  If description.type is pranswer and description.sdp does not match lastAnswer,
+            reject the promise with a newly created InvalidModificationError and abort these
+            steps.
+   */
+
+</script>

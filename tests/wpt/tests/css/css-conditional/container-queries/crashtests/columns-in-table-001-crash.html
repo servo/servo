@@ -1,0 +1,10 @@
+<!doctype html>
+<title>CSS Container Queries Test: TR container with multicol TD crashes Chrome</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#size-container">
+<link rel="help" href="https://crbug.com/1291471">
+<p>Pass if test does not crash.</p>
+<table>
+  <tr style="container-type:size;">
+    <td style="columns:2"></td>
+  </tr>
+</table>

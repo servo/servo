@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Reference</title>
+<style>
+    div {
+        font-size: 36px;
+    }
+    span {
+        color: green;
+        background: yellow;
+    }
+</style>
+<body>
+    <p>Test passes if the green-on-yellow text in each line matches the reference.</p>
+    <div><span>(T)</span>est</div>
+    <div><span>&ldquo;T&rdquo;</span>est</div>
+    <div><span>_T_</span>est</div>
+    <div><span>&ndash;T</span>est</div>
+    <div><span>T</span>(rail</div>
+    <div><span>T</span>&ndash;rail</div>
+    <div><span>&laquo;&nbsp;T</span>&nbsp;&raquo;est</div>
+    <div><span>&#x10100;T&#x10100;</span>est</div>
+    <div><span>T&emsp;.</span>est</div>
+    <div><span>T.</span>&emsp;est</div>
+</body>

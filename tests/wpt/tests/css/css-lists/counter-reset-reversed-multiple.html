@@ -1,0 +1,17 @@
+<!doctype html>
+<title>CSS Lists: element with multiple counter-reset: reversed()</title>
+<link rel="help" href="https://drafts.csswg.org/css-lists/#counter-reset">
+<link rel="help" href="https://drafts.csswg.org/css-lists/#instantiating-counters">
+<link rel="author" title="Minseong Kim" href="mailto:jja08111@gmail.com">
+<link rel="match" href="counter-reset-reversed-multiple-ref.html">
+<style>
+  .multi { counter-reset: reversed(c1) reversed(c2); }
+  .item { counter-increment: c1 -1 c2 -2; }
+  .item::before {
+    content: counter(c1) "," counter(c2);
+  }
+</style>
+<div class="multi">
+  <div class="item"></div>
+  <div class="item"></div>
+</div>

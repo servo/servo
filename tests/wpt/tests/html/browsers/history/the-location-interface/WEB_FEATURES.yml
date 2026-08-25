@@ -1,0 +1,11 @@
+rules:
+- assign-*: [location]
+- document_location.html: [location]
+- location-*: [location]
+- location_hashchange_infinite_loop.html: [hashchange]
+- location_*: [location]
+- no-browsing-context.window.js: [location]
+- reload_*: [location]
+- replace-with-nested-iframe.html: [location]
+- same-hash.html: [location]
+- scripted_*: [location]

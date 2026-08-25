@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://crbug.com/1247196">
+<meta name="assert" content="Clip path with content-visibility does not cause an assert">
+
+<svg width="138">
+  <defs>
+    <clipPath id="snowglobe_clipPath">
+      <circle cx="34" />
+    </clipPath>
+  </defs>
+  <circle />
+  <g class="group-snow" clip-path="url(#snowglobe_clipPath)">
+    <g class="snowContainer">
+      <circle class="snow" />
+    </g>
+  </g>
+</svg>
+<script type="text/javascript">
+onload = () => {
+  var test0 = document.getElementById("snowglobe_clipPath");
+  test0.style.setProperty("content-visibility", "auto ", "important");
+  test0.innerHTML = "";
+  test0.offsetHeight;
+
+  requestAnimationFrame(() => document.documentElement.classList.remove('test-wait'));
+};
+</script>
+</html>

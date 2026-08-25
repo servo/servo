@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>Setting selectorText does not detach rule</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-1/#dom-cssstylerule-selectortext">
+<link rel="help" href="https://issues.chromium.org/issues/396612327">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<style id=sheet>
+  span {
+    color: black;
+  }
+</style>
+<div>
+  <span id=span>A</span>
+</div>
+<script>
+  test(() => {
+    let rule = sheet.sheet.cssRules[0];
+    let style = rule.style;
+
+    style.color = 'red';
+    assert_equals(getComputedStyle(span).color, 'rgb(255, 0, 0)');
+
+    rule.selectorText = '#span';
+
+    style.color = 'green';
+    assert_equals(getComputedStyle(span).color, 'rgb(0, 128, 0)');
+  }, 'Modifying property value invalidates style, even after selectorText mutation');
+</script>

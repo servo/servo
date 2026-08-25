@@ -1,0 +1,35 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="author" title="Peng Zhou" href="mailto:zhoupeng.1996@bytedance.com">
+<link rel="help" href="https://github.com/w3c/selection-api/issues/173">
+<link rel="help" href="https://issues.chromium.org/issues/326554272">
+<title>Selection.modify(): move by paragraph cross editing boundary</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div contenteditable style="width: 140px; font-size: 14px;">
+  <p>P1</p>
+  <p>
+    Line 1: Hello World
+    Line 2: <span contenteditable="false">Hello</span> <span id="end">World</span>
+  </p>
+</div>
+<script>
+const selection = getSelection();
+const end = document.querySelector('#end');
+function runTest() {
+  selection.collapse(end.childNodes[0], 5);
+  selection.modify('move', 'backward', 'paragraph');
+  assert_equals(selection.anchorNode.nodeValue, 'P1');
+  assert_equals(selection.anchorOffset, 2);
+}
+
+test(() => {
+  runTest();
+}, 'cross editing boundary');
+
+test(() => {
+  const editable = document.querySelector('span[contenteditable=false]');
+  editable.setAttribute('contenteditable', true);
+  runTest();
+}, 'not cross editing boundary');
+</script>

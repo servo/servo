@@ -1,0 +1,47 @@
+<!doctype html>
+<meta charset=utf-8>
+<script>
+window.addEventListener("message", e => {
+  if (e.data === "check_parent_frame1") {
+    let frame1_result, anythingHere_result;
+
+    try {
+      let x = window.parent.frame1;
+      frame1_result = "No exception";
+    } catch (err) {
+      frame1_result = err.name;
+    }
+
+    try {
+      let x = window.parent.anythingHere;
+      anythingHere_result = "No exception";
+    } catch (err) {
+      anythingHere_result = err.name;
+    }
+
+    window.parent.postMessage({
+      type: "parent_frame1_result",
+      frame1_result,
+      anythingHere_result
+    }, "*");
+  } else if (e.data === "change_name_and_check") {
+    window.name = "new_name";
+
+    let new_name_result;
+    try {
+      let x = window.parent.new_name;
+      new_name_result = "No exception";
+    } catch (err) {
+      new_name_result = err.name;
+    }
+
+    window.parent.postMessage({
+      type: "parent_new_name_result",
+      new_name_result
+    }, "*");
+  }
+});
+
+// Signal to the parent that the cross-origin frame is loaded and ready.
+window.parent.postMessage("child_loaded", "*");
+</script>

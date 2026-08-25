@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Reference Test</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+
+  <style>
+  div.blue
+    {
+      background-color: rgba(0, 0, 255, 0.5);  /* semi-transparent blue */
+      border: black double 18px;
+      height: 36px;
+      margin-bottom: 36px;
+      width: 36px;
+    }
+
+  div#sub-test7-orange
+    {
+      background-color: rgba(255, 165, 0, 0.5);  /* semi-transparent orange */
+      height: 36px;
+      width: 18px;
+    }
+
+  div#sub-test81-orange , div#sub-test83-orange
+    {
+      background-color: rgba(255, 165, 0, 0.5);  /* semi-transparent orange */
+      height: 12px;
+      width: 36px;
+    }
+
+  div#sub-test82-orange
+    {
+      background-color: rgba(255, 165, 0, 0.5);  /* semi-transparent orange */
+      height: 12px;
+      width: 30px;
+    }
+
+  div#sub-test9-orange
+    {
+      background-color: rgba(255, 165, 0, 0.5);  /* semi-transparent orange */
+      height: 36px;
+      width: 12px;
+    }
+  </style>
+
+  <h3>With inset and Npx 0px: 18px 0px</h3>
+
+  <div class="blue"><div id="sub-test7-orange"></div></div>
+
+  <div class="blue"><div id="sub-test81-orange"></div><div id="sub-test82-orange"></div><div id="sub-test83-orange"></div></div>
+
+  <div class="blue"><div id="sub-test9-orange"></div></div>

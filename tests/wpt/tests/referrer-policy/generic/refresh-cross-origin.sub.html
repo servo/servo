@@ -1,0 +1,51 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Cross-Origin Referrer Policy applied to Refresh</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=266554">
+<link rel="help" href="https://w3c.github.io/webappsec-referrer-policy/#determine-requests-referrer">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#populating-a-session-history-entry:concept-request">
+<link rel="help" href="https://github.com/privacycg/proposals/issues/13">
+<link rel="author" title="Zach Hoffman" href="mailto:zach@zrhoffman.net">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/refresh-by-host.js"></script>
+<body>
+<script>
+const ports = {
+  http: "{{ports[http][0]}}",
+  https: "{{ports[https][0]}}",
+};
+
+let scheme;
+const originScheme = location.protocol.slice(0, -1);
+if (originScheme === "http") {
+  scheme = originScheme;
+} else {
+  scheme = "https";
+}
+const port = ports[scheme];
+
+const origin = `${scheme}://{{hosts[alt][]}}:${port}`;
+const path = "resources/referrer-info.sub.html";
+const base = new URL(location.pathname, origin);
+const url = new URL(path, base).href;
+const expectationsByPolicy = {
+  "no-referrer": kExpectEmptyString,
+  // WebKit and Gecko send the origin for no-referrer-when-downgrade Referrer Policy refreshes in an
+  // iframe, but per the spec, the full URL should be sent in this case. Further discussion:
+  // <https://github.com/privacycg/proposals/issues/13>
+  "no-referrer-when-downgrade": kExpectFullURL,
+  "origin": kExpectOrigin,
+  "origin-when-cross-origin": kExpectOrigin,
+  "same-origin": kExpectEmptyString,
+  "strict-origin": kExpectOrigin,
+  "strict-origin-when-cross-origin": kExpectOrigin,
+  // WebKit and Gecko send the origin for unsafe-url Referrer Policy refreshes in an iframe, but per
+  // the spec, the full URL should be sent in this case. Further discussion:
+  // <https://github.com/privacycg/proposals/issues/13>
+  "unsafe-url": kExpectFullURL,
+  "": kExpectOrigin,
+};
+
+refreshWithPoliciesTest(url, expectationsByPolicy);
+</script>

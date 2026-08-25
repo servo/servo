@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow Test: scroll-target-group property invalidation - dynamic creation</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-target-group">
+<link rel="match" href="scroll-target-group-001-ref.html">
+<style>
+  .wrapper {
+    scroll-target-group: auto;
+  }
+
+  #scroller {
+    overflow: auto;
+    height: 130px;
+    width: 100px;
+  }
+
+  #scroller div {
+    width: 100px;
+    height: 100px;
+    background-color: blue;
+    margin: 5px;
+  }
+
+  a {
+    color: red;
+  }
+
+  a:target-current {
+    color: green;
+  }
+</style>
+<div id="target">
+  <a href="#target1">t1</a>
+  <a href="#target2">t2</a>
+  <a href="#target3">t3</a>
+  <a href="#target4">t4</a>
+</div>
+<div id="scroller">
+  <div id="target1"></div>
+  <div id="target2"></div>
+  <div id="target3"></div>
+  <div id="target4"></div>
+</div>
+<script>
+  document.documentElement.offsetTop;
+  target.classList.add("wrapper");
+</script>

@@ -1,0 +1,43 @@
+<!doctype HTML>
+<html class="reftest-wait">
+<meta charset="utf8">
+<title>Content Visibility: pseudo elements</title>
+<link rel="author" title="Rakina Zata Amni" href="mailto:rakina@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<link rel="match" href="container-ref.html">
+<meta name="assert" content="subtree-visiblity hidden doesn't paint ::before or ::after">
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+#container {
+  width: 150px;
+  height: 150px;
+  background: lightblue;
+}
+#container::before {
+  content: "FAIL! ";
+  color: red;
+}
+.hasAfter::after {
+  content: "FAIL!";
+  background: red;
+  color: white;
+}
+.hidden {
+  content-visibility: hidden;
+}
+</style>
+<div id="log"></div>
+<div id="container" style="display:none;"></div>
+
+<script>
+async function runTest() {
+  container.classList.add("hasAfter");
+  container.classList.add("hidden");
+  container.style = "";
+  requestAnimationFrame(takeScreenshot);
+}
+
+window.onload = runTest;
+</script>
+</html>

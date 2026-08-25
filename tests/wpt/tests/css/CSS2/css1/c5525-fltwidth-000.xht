@@ -1,0 +1,54 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: float</title>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-07-03 -->
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#float"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats" title="9.5 Floats"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#the-width-property" title="10.2 Content width: the 'width' property"/>
+
+  <meta name="flags" content="image" />
+
+  <style type="text/css"><![CDATA[
+   p { font-size: 2em; margin: 1em; }
+   div { text-align: justify; }
+   p.end { text-align: right; }
+   .float { float: left; width: 50%; background: blue; color: white; font-variant: small-caps; }
+   .flow { color: silver; background: url(support/ruler-h-50%25.png) bottom center no-repeat; }
+  ]]></style>
+ </head>
+ <body>
+  <!-- This test sucks. -->
+  <p>&#x21E9; The following blue box should be exactly half the width
+  of the viewport, on the left of the 50% ruler mark.</p>
+  <div class="float">
+   ignore this float text ignore this float text ignore this float
+   text ignore this float text ignore this float text ignore this
+   float text ignore this float text ignore this float text ignore
+   this float text ignore this float text ignore this float text
+   ignore this float text ignore this float text ignore this float
+  </div>
+  <div class="flow">
+   this is some dummy text this is some dummy text this is some dummy
+   text this is some dummy text this is some dummy text this is some
+   dummy text this is some dummy text this is some dummy text this is
+   some dummy text this is some dummy text this is some dummy text
+   this is some dummy text this is some dummy text this is some dummy
+   text this is some dummy text this is some dummy text this is some
+   dummy text this is some dummy text this is some dummy text this is
+   some dummy text this is some dummy text this is some dummy text
+   this is some dummy text this is some dummy text this is some dummy
+   text this is some dummy text this is some dummy text this is some
+   dummy text this is some dummy text this is some dummy text this is
+   some dummy text this is some dummy text this is some dummy text
+   this is some dummy text this is some dummy text this is some dummy
+   text this is some dummy text this is some dummy text this is some
+   dummy text this is some dummy text this is some dummy text this is
+   some dummy text this is some dummy text
+  </div>
+  <p class="end">The above gray text should flow around the blue box.
+  &#x21E7;</p>
+ </body>
+</html>

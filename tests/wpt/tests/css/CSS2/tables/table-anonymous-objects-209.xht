@@ -1,0 +1,18 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: CSS table model: nested tables</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/table/002.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#anonymous-boxes" />
+  <style type="text/css">
+   .table { display: table; }
+   div { display: table-cell; }
+  </style>
+ </head>
+ <body class="table">
+  <div class="cell"> This should&nbsp; </div>
+  <div class="table"> be all </div>
+  <div class="cell"> &nbsp;one line. </div>
+ </body>
+</html>

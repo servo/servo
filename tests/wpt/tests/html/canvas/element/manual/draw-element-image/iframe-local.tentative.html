@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Canvas.drawElementImage: same-origin iframe test</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<link rel="author" href="mailto:schenney@chromium.org">
+<link rel="match" href="basic-rect-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+<style>
+#child {
+  width: 100px;
+  height: 100px;
+  background: red;
+  padding: 0px;
+}
+iframe {
+  width: 100px;
+  height: 100px;
+  border-style: none;
+}
+#canvas {
+  background: grey;
+}
+</style>
+
+<canvas id=canvas width="200" height="200" layoutsubtree>
+  <div id=child>
+    <iframe src="resources/iframe-subframe-green.html"></iframe>
+  </div>
+</canvas>
+
+<script>
+onload = async () => {
+  await waitForCanvasPaint(canvas);
+  canvas.getContext("2d").drawElementImage(child, 20, 30);
+  takeScreenshot();
+};
+</script>
+</html>

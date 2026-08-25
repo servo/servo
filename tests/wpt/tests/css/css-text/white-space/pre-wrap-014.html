@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 3 Test: preserved white space at the end of soft-wrapped lines and white-space:pre-wrap with justification</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
+<link rel="match" href="reference/pre-wrap-014-ref.html">
+<meta name="assert" content="When white-space is pre-wrap, spaces at the end of soft-wrapped lines hang, so they do not have any effect when justifying.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+div {
+  font-size: 20px;
+  font-family: Ahem;
+  line-height: 1em;
+  height: 1em;
+  white-space: pre-wrap;
+
+  color: transparent;
+  background: red;
+
+  width: 4ch;
+  text-align: justify;
+}
+span {
+  color: green;
+  background: green;
+}
+</style>
+<body>
+  <p>Test passes if there is a <strong>filled green rectangle</strong> and <strong>no red</strong>.</p>
+  <div><span>X X</span> X</div>
+  <!-- invisible last line, because justification works on non-last lines-->
+</body>

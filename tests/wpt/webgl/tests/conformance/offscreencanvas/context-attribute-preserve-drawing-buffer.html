@@ -1,0 +1,95 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>OffscreenCanavs context attribute preserveDrawingBuffer</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/tests/canvas-tests-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="canvases"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description("This test checks whether OffscreenCanvas webgl context honors the preserveDrawingBuffer flag.");
+const wtu = WebGLTestUtils;
+const pixels = new Uint8Array(4);
+
+function checkPixels(color) {
+  return (color[0] === pixels[0]) &&
+    (color[1] === pixels[1]) &&
+    (color[2] === pixels[2]) &&
+    (color[3] === pixels[3]);
+}
+
+const nextFrame = () => new Promise(r => requestAnimationFrame(r));
+
+async function getPixelsFromOffscreenWebgl(preserveFlag, color, msg) {
+  const canvas = document.createElement("canvas");
+  document.getElementById("canvases").appendChild(canvas);
+  const offscreenCanvas = transferredOffscreenCanvasCreation(canvas, 10, 10);
+  const gl = offscreenCanvas.getContext("webgl", {preserveDrawingBuffer: preserveFlag});
+
+  // Draw some color on gl
+  gl.clearColor(1, 0, 1, 1);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  let t;
+  const t0 = await nextFrame();
+  const timeDuration = preserveFlag ? 500 : 2000;
+  for (;;) {
+    t = await nextFrame();
+
+    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+    if (preserveFlag) {
+      if (!checkPixels(color)) {
+        testFailed(msg + '\nexpected: ' + color.toString() + ' was ' + pixels.toString());
+        return;
+      }
+    } else {
+      if (checkPixels(color)) {
+        testPassed(msg);
+        return;
+      }
+    }
+
+    // Keep checking until it takes up to a certain time.
+    // preserveDrawingBuffer:false seems flaky on Chrome's test bots; run that test for longer.
+    if (t > t0 + timeDuration) {
+      break;
+    }
+  }
+
+  if (preserveFlag) {
+    testPassed(msg);
+  } else {
+    testFailed(msg + '\nafter ' + timeDuration + ' ms, expected: ' + color.toString() + ' was ' + pixels.toString());
+  }
+}
+
+(async () => {
+  if (!window.OffscreenCanvas) {
+      testPassed("No OffscreenCanvas support");
+  } else {
+    // Test if OffscreenCanvas.webgl retains contents if preserveDrawingBuffer is true.
+    await getPixelsFromOffscreenWebgl(true, [255,0,255,255], "should be preserved");
+
+    // Test if OffscreenCanvas.webgl loses contents if preserveDrawingBuffer is false.
+    await getPixelsFromOffscreenWebgl(false, [0, 0, 0, 0], "should not be preserved");
+  }
+  finishTest();
+})();
+
+</script>
+</body>
+</html>

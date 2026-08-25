@@ -1,0 +1,273 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTX codec integrity checks</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+'use strict';
+
+// Test unidirectional codec support.
+//
+// These tests ensure setCodecPreferences() and SDP negotiation work with
+// sendonly and recvonly codecs, i.e. using codec values that exist in
+// RTCRtpSender.getCapabilities() but not RTCRtpReceiver.getCapabilities() or
+// vice versa.
+//
+// While this is not necessarily unique to H264, these tests use H264 because
+// there are many popular devices where support is unidirectional. If the
+// prerequisite capabilities are not available to the test it ends in
+// [PRECONDITION_FAILED] rather than test failures.
+
+function containsCodec(codecs, codec) {
+  return codecs.find(c => c.mimeType == codec.mimeType &&
+                          c.sdpFmtpLine == codec.sdpFmtpLine) != null;
+}
+
+function getCodecsWithDirection(mimeType, direction) {
+  const sendCodecs = RTCRtpSender.getCapabilities('video').codecs.filter(
+      c => c.mimeType == mimeType);
+  const recvCodecs = RTCRtpReceiver.getCapabilities('video').codecs.filter(
+      c => c.mimeType == mimeType);
+  const codecs = [];
+  if (direction == 'sendrecv') {
+    for (const sendCodec of sendCodecs) {
+      if (containsCodec(recvCodecs, sendCodec)) {
+        codecs.push(sendCodec);
+      }
+    }
+  } else if (direction == 'sendonly') {
+    for (const sendCodec of sendCodecs) {
+      if (!containsCodec(recvCodecs, sendCodec)) {
+        codecs.push(sendCodec);
+      }
+    }
+  } else if (direction == 'recvonly') {
+    for (const recvCodec of recvCodecs) {
+      if (!containsCodec(sendCodecs, recvCodec)) {
+        codecs.push(recvCodec);
+      }
+    }
+  }
+  return codecs;
+}
+
+// Returns an array of { mimeType, payloadType, sdpFmtpLine } entries in codec
+// preference order from the first m-section of the SDP.
+function parseCodecsFromSdp(sdp) {
+  const codecs = [];
+  const kMLineRegex = /\r\nm=video \d+ [A-Z\/]+ (?<pts>[\d\s]+)\r\n/;
+  const {groups: {pts}} = kMLineRegex.exec(sdp);
+  for (const pt of pts.split(" ")) {
+    const rtpmapRegex = new RegExp(`\r\na=rtpmap:${pt} (?<name>[^ \/]+)\/`);
+    const {groups: {name}} = rtpmapRegex.exec(sdp);
+    const fmtpRegex = new RegExp(`\r\na=fmtp:${pt} (?<sdpFmtpLine>.*)\r\n`);
+    // Guard against there not being an fmtp line.
+    const {groups: {sdpFmtpLine} = {}} = fmtpRegex.exec(sdp) ?? {};
+    const codec = { mimeType: `video/${name}`, payloadType: pt, sdpFmtpLine };
+    codecs.push(codec);
+  }
+  return codecs;
+}
+
+function replaceCodecInSdp(sdp, oldCodec, newCodec) {
+  // Replace the payload type in the m=video line.
+  sdp = sdp.replace(
+      new RegExp(`(m=video [ \\dA-Z\/]+)${oldCodec.payloadType}`),
+      `$1${newCodec.payloadType}`
+  );
+  // Replace the payload type in all rtpmap, fmtp and rtcp-fb lines.
+  sdp = sdp.replaceAll(
+      new RegExp(`(a=(rtpmap|fmtp|rtcp-fb):)${oldCodec.payloadType}`, "g"),
+      `$1${newCodec.payloadType}`
+  );
+  // Lastly, replace the actual "sdpFmtpLine" string.
+  sdp = sdp.replace(oldCodec.sdpFmtpLine, newCodec.sdpFmtpLine);
+  return sdp;
+}
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  // We need at least one recvonly codec to test "offer to receive".
+  const recvOnlyCodecs = getCodecsWithDirection('video/H264', 'recvonly');
+  // A sendrecv codec is used to ensure `pc2` has something to answer with which
+  // makes modifying the SDP answer easier, but because we cannot send the
+  // recvonly codec we have to fake it with remote SDP munging.
+  const sendRecvCodecs = getCodecsWithDirection('video/H264', 'sendrecv');
+  // If any of the following optional asserts fail the test ends with
+  // [PRECONDITION_FAILED] as opposed to [FAIL].
+  assert_implements_optional(
+      recvOnlyCodecs.length > 0,
+      `There are no recvonly H264 codecs available in getCapabilities.`);
+  assert_implements_optional(
+      sendRecvCodecs.length > 0,
+      `There are no sendrecv H264 codecs available in getCapabilities.`);
+  const recvOnlyCodec = recvOnlyCodecs[0];
+  const sendRecvCodec = sendRecvCodecs[0];
+
+  const pc1Transceiver = pc1.addTransceiver('video', {direction: 'recvonly'});
+  pc1Transceiver.setCodecPreferences([recvOnlyCodec, sendRecvCodec]);
+
+  // Offer to receive.
+  await pc1.setLocalDescription();
+  const offeredCodecs = parseCodecsFromSdp(pc1.localDescription.sdp);
+  assert_equals(offeredCodecs.length, 2, 'Two codecs should be offered');
+  assert_equals(offeredCodecs[0].mimeType, 'video/H264');
+  assert_true(offeredCodecs[0].sdpFmtpLine == recvOnlyCodec.sdpFmtpLine,
+              `The first offered codec's sdpFmtpLine is the recvonly one.`);
+  assert_equals(offeredCodecs[1].mimeType, 'video/H264');
+  assert_true(offeredCodecs[1].sdpFmtpLine == sendRecvCodec.sdpFmtpLine,
+              `The second offered codec's sdpFmtpLine is the sendrecv one.`);
+  await pc2.setRemoteDescription(pc1.localDescription);
+
+  // Answer to send.
+  const pc2Transceiver = pc2.getTransceivers()[0];
+  pc2Transceiver.direction = 'sendonly';
+  await pc2.setLocalDescription();
+  // Verify that because we are not capable of sending the first codec, it has
+  // been removed from the SDP answer.
+  const answeredCodecs = parseCodecsFromSdp(pc2.localDescription.sdp);
+  assert_equals(answeredCodecs.length, 1, 'One codec should be answered');
+  assert_equals(answeredCodecs[0].mimeType, 'video/H264');
+  assert_true(answeredCodecs[0].sdpFmtpLine == sendRecvCodec.sdpFmtpLine,
+              `The answered codec's sdpFmtpLine is the sendrecv one.`);
+  // Trick `pc1` into thinking `pc2` can send the codec by modifying the SDP.
+  // Receiving media is not testable but this ensures that the SDP is accepted.
+  const modifiedSdp = replaceCodecInSdp(
+      pc2.localDescription.sdp, answeredCodecs[0], offeredCodecs[0]);
+  await pc1.setRemoteDescription({type: 'answer', sdp: modifiedSdp});
+}, `Offer to receive a recvonly H264 codec on a recvonly transceiver`);
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+
+  const h264RecvOnlyCodecs = getCodecsWithDirection('video/H264', 'recvonly');
+  const h264SendOnlyCodecs = getCodecsWithDirection('video/H264', 'sendonly');
+  const vp8SendRecvCodecs = getCodecsWithDirection('video/VP8', 'sendrecv');
+  // If any of the following optional asserts fail the test ends with
+  // [PRECONDITION_FAILED] as opposed to [FAIL].
+  assert_implements_optional(
+      h264RecvOnlyCodecs.length > 0,
+      `There are no recvonly H264 codecs available in getCapabilities.`);
+  assert_implements_optional(
+      vp8SendRecvCodecs.length > 0,
+      `There are no sendrecv VP8 codecs available in getCapabilities.`);
+  // Find a recvonly codec with the required level (3.1) for both sending and
+  // receiving, that has a corresponding sendonly codec with the same profile
+  // but a higher level. If there is such a match, we should be able to use the
+  // lower level of the two for sendrecv.
+  const kProfileLevelIdRegex =
+    /profile-level-id=(?<profile_idc>..)(?<profile_iop>..)(?<level_idc>..)/;
+  const kProfileLevelIdReqLevelRegex = /profile-level-id=....1f/;
+  const h264RecvOnlyReqLevelCodecs = h264RecvOnlyCodecs.filter(
+      codec => codec.sdpFmtpLine.match(kProfileLevelIdReqLevelRegex));
+  const h264RecvOnlyCodec = h264RecvOnlyReqLevelCodecs.find(recv => {
+    const {groups: {
+                      profile_idc: recvProfile,
+                      profile_iop: recvConstraints,
+                      level_idc: recvLevelIdc,
+                   }
+          } = kProfileLevelIdRegex.exec(recv.sdpFmtpLine);
+    const recvLevel = parseInt(recvLevelIdc, 16);
+    return h264SendOnlyCodecs.find(send => {
+      const {groups: {
+                      profile_idc: sendProfile,
+                      profile_iop: sendConstraints,
+                      level_idc: sendLevelIdc,
+                     }
+            } = kProfileLevelIdRegex.exec(send.sdpFmtpLine);
+      const sendLevel = parseInt(sendLevelIdc, 16);
+      return sendProfile == recvProfile &&
+             sendConstraints == recvConstraints &&
+             sendLevelIdc > recvLevelIdc;
+    });
+  });
+  assert_implements_optional(
+      h264RecvOnlyCodec != undefined,
+      `No recvonly profile-level-id=....1f that matches a higher level ` +
+      `sendonly codec`);
+  const vp8SendRecvCodec = vp8SendRecvCodecs[0];
+
+  const transceiver = pc.addTransceiver('video', {direction: 'sendrecv'});
+  transceiver.setCodecPreferences([h264RecvOnlyCodec, vp8SendRecvCodec]);
+
+  await pc.setLocalDescription();
+  const offeredCodecs = parseCodecsFromSdp(pc.localDescription.sdp);
+  // Even though this H264 codec with its level ID is recvonly, we should still
+  // offer to sendrecv it due to sender capabilities being even greater.
+  assert_equals(offeredCodecs.length, 2, 'Two codecs are offered (H264, VP8).');
+  assert_equals(offeredCodecs[0].mimeType, 'video/H264',
+                'The first offered codec is H264.');
+  assert_true(offeredCodecs[0].sdpFmtpLine == h264RecvOnlyCodec.sdpFmtpLine,
+              'The offered H264 profile-level-id should match the recvonly ' +
+              'codec since we expect the sender capability to be even higher.');
+  assert_equals(offeredCodecs[1].mimeType, 'video/VP8',
+                'The second offered codec is VP8.');
+}, `Offering a recvonly codec on a sendrecv transceiver`);
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  // We need at least one sendonly codec to test "offer to send".
+  const sendOnlyCodecs = getCodecsWithDirection('video/H264', 'sendonly');
+  // A sendrecv codec is used to ensure `pc2` has something to answer with which
+  // makes modifying the SDP answer easier, but because we cannot receive the
+  // sendonly codec we have to fake it with remote SDP munging.
+  const sendRecvCodecs = getCodecsWithDirection('video/H264', 'sendrecv');
+  // If any of the following optional asserts fail the test ends with
+  // [PRECONDITION_FAILED] as opposed to [FAIL].
+  assert_implements_optional(
+      sendOnlyCodecs.length > 0,
+      `There are no sendonly H264 codecs available in getCapabilities.`);
+  assert_implements_optional(
+      sendRecvCodecs.length > 0,
+      `There are no sendrecv H264 codecs available in getCapabilities.`);
+  const sendOnlyCodec = sendOnlyCodecs[0];
+  const sendRecvCodec = sendRecvCodecs[0];
+
+  const transceiver = pc1.addTransceiver('video', {direction: 'sendonly'});
+  transceiver.setCodecPreferences([sendOnlyCodec, sendRecvCodec]);
+
+  // Offer to send.
+  await pc1.setLocalDescription();
+  const offeredCodecs = parseCodecsFromSdp(pc1.localDescription.sdp);
+  assert_equals(offeredCodecs.length, 2, 'Two codecs should be offered');
+  assert_equals(offeredCodecs[0].mimeType, 'video/H264');
+  assert_true(offeredCodecs[0].sdpFmtpLine == sendOnlyCodec.sdpFmtpLine,
+              `The first offered codec's sdpFmtpLine is the sendonly one.`);
+  assert_equals(offeredCodecs[1].mimeType, 'video/H264');
+  assert_true(offeredCodecs[1].sdpFmtpLine == sendRecvCodec.sdpFmtpLine,
+              `The second offered codec's sdpFmtpLine is the sendrecv one.`);
+  await pc2.setRemoteDescription(pc1.localDescription);
+
+  // Answer to receive.
+  await pc2.setLocalDescription();
+  // Verify that because we are not capable of receiving the first codec, it has
+  // been removed from the SDP answer.
+  const answeredCodecs = parseCodecsFromSdp(pc2.localDescription.sdp);
+  assert_equals(answeredCodecs.length, 1, 'One codec should be answered');
+  assert_equals(answeredCodecs[0].mimeType, 'video/H264');
+  assert_true(answeredCodecs[0].sdpFmtpLine == sendRecvCodec.sdpFmtpLine,
+              `The answered codec's sdpFmtpLine is the sendrecv one.`);
+  // Trick `pc1` into thinking `pc2` can receive the codec by modifying the SDP.
+  const modifiedSdp = replaceCodecInSdp(
+      pc2.localDescription.sdp, answeredCodecs[0], offeredCodecs[0]);
+  await pc1.setRemoteDescription({type: 'answer', sdp: modifiedSdp});
+
+  // The sendonly codec is the only codec in the list of negotiated codecs.
+  const params = transceiver.sender.getParameters();
+  assert_equals(params.codecs.length, 1,
+                `Only one codec should have been negotiated`);
+  assert_equals(params.codecs[0].payloadType, offeredCodecs[0].payloadType,
+                `The sendonly codec's payloadType shows up in getParameters()`);
+  assert_true(params.codecs[0].sdpFmtpLine == offeredCodecs[0].sdpFmtpLine,
+              `The sendonly codec's sdpFmtpLine shows up in getParameters()`);
+}, `Offer to send a sendonly H264 codec on a sendonly transceiver`);
+</script>

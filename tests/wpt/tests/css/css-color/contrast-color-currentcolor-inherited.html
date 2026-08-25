@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>CSS Color 5: Inherit contrast-color(currentcolor) as computed value</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-5/#contrast-color">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #outer { color: black; background-color: contrast-color(currentcolor); }
+  #inner { color: white; background-color: inherit; }
+</style>
+<div id="outer">
+  <div id="inner"></div>
+</div>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(outer).backgroundColor, "rgb(255, 255, 255)",
+                  "white is contrast to black");
+    assert_equals(getComputedStyle(inner).backgroundColor, "rgb(0, 0, 0)",
+                  "inherited contrast-color() re-resolving currentcolor");
+  }, "currentcolor inside contrast-color() computes to the keyword");
+</script>

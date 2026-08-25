@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<title>
+  HTMLMediaElement.played TimeRanges should be preserved across loops
+</title>
+<link
+  rel="help"
+  href="https://html.spec.whatwg.org/multipage/media.html#dom-media-played">
+<link
+  rel="help"
+  href="https://html.spec.whatwg.org/multipage/media.html#dom-media-loop">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/media.js"></script>
+<video></video>
+<script>
+promise_test(async function testPlayedPreservedAcrossLoop(t) {
+  const video = document.querySelector("video");
+  video.src = getVideoURI("/media/test-1s");
+
+  await new Promise(r => video.onloadedmetadata = r);
+
+  assert_true(video.paused, "video initially paused");
+  video.loop = true;
+  video.play();
+
+  // Now wait for seeked event when video loops back to start
+  await new Promise(r => video.onseeked = r);
+
+  const played = video.played;
+  let coveredDuration = 0;
+  for (let i = 0; i < played.length; i++) {
+    coveredDuration += played.end(i) - played.start(i);
+  }
+
+  assert_greater_than(played.length, 0,
+    "played should have at least one range after looping");
+
+  assert_equals(coveredDuration, video.duration,
+    "played ranges should cover the entire video duration after looping");
+
+  video.pause();
+}, "played TimeRanges should be preserved and not reset when video loops");
+</script>

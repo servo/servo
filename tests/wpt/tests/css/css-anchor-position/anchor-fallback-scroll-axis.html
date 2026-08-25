@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning: Fallback evaluation should only consider scroll adjustment axes</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#scroll">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  body {
+    margin: 0;
+  }
+  #scroller {
+    overflow: scroll;
+    width: 400px;
+    height: 400px;
+    border: 1px solid black;
+  }
+  #spacer {
+    height: 1000px;
+    width: 1000px;
+  }
+  #anchor {
+    anchor-name: --anchor;
+    width: 100px;
+    height: 100px;
+    background: blue;
+    margin-top: 150px;
+    margin-left: 150px;
+  }
+  #anchored {
+    position: fixed;
+    position-anchor: --anchor;
+    right: anchor(left);
+    left: auto;
+    top: 150px;
+    width: 100px;
+    height: 100px;
+    background: red;
+    position-try-fallbacks: --fallback;
+
+    display: none; /* Hide initially */
+  }
+  @position-try --fallback {
+    background: green;
+    left: 0px;
+    right: auto;
+  }
+</style>
+
+<div id="scroller">
+  <div id="spacer">
+    <div id="anchor"></div>
+  </div>
+</div>
+<div id="anchored"></div>
+
+<script>
+  promise_test(async () => {
+    const anchored = document.getElementById('anchored');
+    const scroller = document.getElementById('scroller');
+
+    // 1. Scroll scroller to Y=400 first.
+    scroller.scrollTop = 400;
+    await new Promise(resolve => requestAnimationFrame(resolve));
+
+    // 2. Show the element. Layout will happen at Y=400, X=0.
+    anchored.style.display = 'block';
+    await new Promise(resolve => requestAnimationFrame(resolve));
+
+    // Initial state: fits, should be at left 51.
+    assert_equals(anchored.getBoundingClientRect().left, 51, 'Initial left should be 51');
+
+    // 3. Scroll scroller horizontally by 300px.
+    // The anchor moves left, pushing the anchored element off-screen left.
+    // This should trigger the X fallback (move to left 0).
+    scroller.scrollLeft = 300;
+
+    // Wait for scroll and layout
+    await new Promise(requestAnimationFrame);
+    await new Promise(requestAnimationFrame);
+
+    assert_equals(anchored.getBoundingClientRect().left, 0, 'Left after scroll should be 0 (fallback)');
+  }, "Horizontal overflow fallback");
+</script>

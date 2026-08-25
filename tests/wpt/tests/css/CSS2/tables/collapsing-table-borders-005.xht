@@ -1,0 +1,51 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: All of a row group border can be specified</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#collapsing-borders" />
+        <meta name="assert" content="The borders for all four sides of a specific table row group can be specified under the collapsing border model." />
+        <style type="text/css">
+            table
+            {
+                border-collapse: collapse;
+            }
+            td
+            {
+                border: 1px solid black;
+                height: 50px;
+                width: 50px;
+            }
+            #tbody
+            {
+                border: 10px solid blue;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a blue border around the middle row in the three-by-three table below.</p>
+        <table>
+            <tbody>
+                <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            </tbody>
+            <tbody id="tbody">
+                <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            </tbody>
+            <tbody>
+                <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            </tbody>
+        </table>
+    </body>
+</html>

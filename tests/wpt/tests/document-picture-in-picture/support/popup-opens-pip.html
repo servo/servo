@@ -1,0 +1,63 @@
+<script>
+function get_pip_code(channelName) {
+  return `
+  const channel = new BroadcastChannel("${channelName}");
+
+  window.addEventListener("pagehide", () => {
+    channel.postMessage({ type: "pip-pagehide", closed: window.closed });
+  });
+
+  channel.addEventListener("message", async ({data}) => {
+    if (data.type == 'exec') {
+      const { code, args = [] } = data;
+      try {
+        // indirect eval call to evaluate in global scope
+        const fn = (0, eval)('(' + code + ')');
+        const value = await fn(...args);
+        channel.postMessage({ type: "exec-result", value });
+      } catch (err) {
+        channel.postMessage({ type: "error", name: err?.name, message: err?.message, stack: err?.stack });
+      }
+    } else {
+      channel.postMessage({ type: "error", message: "unknown message " + data.type });
+     }
+  });
+
+  channel.postMessage({ type: "pip-ready" });
+  `;
+}
+
+let pipWindow = null;
+
+async function action(data) {
+  if (data.type == 'request-pip') {
+    pipWindow = await documentPictureInPicture.requestWindow();
+
+    const script = pipWindow.document.createElement('script');
+    script.innerHTML = get_pip_code(data.channelName);
+    pipWindow.document.body.append(script);
+  } else if (data.type == 'close-pip') {
+    pipWindow.close();
+  } else if (data.type == 'navigate-pip') {
+    pipWindow.location = data.href;
+  } else if (data.type == 'get-pip-status') {
+    window.opener.postMessage({
+      type: 'pip-status',
+      closed: pipWindow.closed
+    });
+  } else {
+    throw new Error("Unknown message");
+  }
+}
+
+window.addEventListener("message", async ({data}) => {
+  try {
+    await action(data);
+  } catch (e) {
+    window.opener.postMessage({
+      msg: `Unknown error ${e.name}: ${e.message} at ${e.stack}`,
+      type: 'error'
+    })
+  }
+})
+</script>

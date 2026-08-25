@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: line-clamp: none has no effect</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/webkit-line-clamp-001-ref.html">
+<meta name="assert" content="line-clamp: none should have no effect.">
+<style>
+.clamp {
+  line-clamp: none;
+  font: 16px / 32px serif;
+  white-space: pre;
+  background-color: yellow;
+}
+</style>
+<div class="clamp">Line 1
+Line 2
+Line 3
+Line 4
+Line 5</div>

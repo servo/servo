@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>math-script-level: auto and math-style</title>
+    <meta charset="utf-8">
+    <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/3746">
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#the-math-script-level-property">
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#the-math-style-property">
+    <meta name="assert" content="Initial value of math-style is 'normal'">
+    <link rel="match" href="math-script-level-auto-and-math-style-003.tentative-ref.html">
+    <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+    <style>
+      .container {
+          /* Ahem font does not have a MATH table so the font-size scale factor
+             is always 0.71^{computed - inherited math script level} */
+          font: 500px/1 Ahem;
+      }
+    </style>
+  </head>
+  <body>
+    <p>Test passes if you see a square of side 500px.</p>
+    <div class="container">
+      <div style="font-size: math; math-depth: auto-add">X</div>
+    </div>
+  </body>
+</html>

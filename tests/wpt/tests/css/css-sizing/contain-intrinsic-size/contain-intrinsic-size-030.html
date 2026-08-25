@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<meta charset="utf8">
+<title>CSS contain-intrinsic-size: scroll containers</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#scroll-container">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+.test {
+  contain: size;
+  display: inline-block;
+  padding: 0;
+  border: 5px solid;
+}
+.test::before {
+  content: '';
+  display: block;
+  width: 40px;
+  height: 20px;
+}
+.big-contents::before {
+  width: 400px;
+  height: 200px;
+}
+.overflow-auto {
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+.overflow-scroll {
+  overflow: scroll;
+}
+.overflow-hidden {
+  overflow: hidden;
+}
+.cis-none {
+  contain-intrinsic-size: none none;
+}
+.cis-height {
+  contain-intrinsic-size: none 50px;
+}
+.cis-width {
+  contain-intrinsic-size: 100px none;
+}
+.cis-both {
+  contain-intrinsic-size: 100px 50px;
+}
+</style>
+
+<div id="log"></div>
+
+<div class="test small-contents overflow-auto cis-none"
+     data-expected-client-width="0" data-expected-client-height="0"
+     data-expected-scroll-width="40" data-expected-scroll-height="20"></div>
+<div class="test small-contents overflow-auto cis-height"
+     data-expected-client-width="0" data-expected-client-height="50"
+     data-expected-scroll-width="40" data-expected-scroll-height="50"></div>
+<div class="test small-contents overflow-auto cis-width"
+     data-expected-client-width="100" data-expected-client-height="0"
+     data-expected-scroll-width="100" data-expected-scroll-height="20"></div>
+<div class="test small-contents overflow-auto cis-both"
+     data-expected-client-width="100" data-expected-client-height="50"
+     data-expected-scroll-width="100" data-expected-scroll-height="50"></div>
+
+<div class="test small-contents overflow-scroll cis-none"
+     data-expected-client-width="0" data-expected-client-height="0"
+     data-expected-scroll-width="40" data-expected-scroll-height="20"></div>
+<div class="test small-contents overflow-scroll cis-height"
+     data-expected-client-width="0" data-expected-client-height="50"
+     data-expected-scroll-width="40" data-expected-scroll-height="50"></div>
+<div class="test small-contents overflow-scroll cis-width"
+     data-expected-client-width="100" data-expected-client-height="0"
+     data-expected-scroll-width="100" data-expected-scroll-height="20"></div>
+<div class="test small-contents overflow-scroll cis-both"
+     data-expected-client-width="100" data-expected-client-height="50"
+     data-expected-scroll-width="100" data-expected-scroll-height="50"></div>
+
+<div class="test small-contents overflow-hidden cis-none"
+     data-expected-client-width="0" data-expected-client-height="0"
+     data-expected-scroll-width="40" data-expected-scroll-height="20"></div>
+<div class="test small-contents overflow-hidden cis-height"
+     data-expected-client-width="0" data-expected-client-height="50"
+     data-expected-scroll-width="40" data-expected-scroll-height="50"></div>
+<div class="test small-contents overflow-hidden cis-width"
+     data-expected-client-width="100" data-expected-client-height="0"
+     data-expected-scroll-width="100" data-expected-scroll-height="20"></div>
+<div class="test small-contents overflow-hidden cis-both"
+     data-expected-client-width="100" data-expected-client-height="50"
+     data-expected-scroll-width="100" data-expected-scroll-height="50"></div>
+
+
+<div class="test big-contents overflow-auto cis-none"
+     data-expected-client-width="0" data-expected-client-height="0"
+     data-expected-scroll-width="400" data-expected-scroll-height="200"></div>
+<div class="test big-contents overflow-auto cis-height"
+     data-expected-client-width="0" data-expected-client-height="50"
+     data-expected-scroll-width="400" data-expected-scroll-height="200"></div>
+<div class="test big-contents overflow-auto cis-width"
+     data-expected-client-width="100" data-expected-client-height="0"
+     data-expected-scroll-width="400" data-expected-scroll-height="200"></div>
+<div class="test big-contents overflow-auto cis-both"
+     data-expected-client-width="100" data-expected-client-height="50"
+     data-expected-scroll-width="400" data-expected-scroll-height="200"></div>
+
+<div class="test big-contents overflow-scroll cis-none"
+     data-expected-client-width="0" data-expected-client-height="0"
+     data-expected-scroll-width="400" data-expected-scroll-height="200"></div>
+<div class="test big-contents overflow-scroll cis-height"
+     data-expected-client-width="0" data-expected-client-height="50"
+     data-expected-scroll-width="400" data-expected-scroll-height="200"></div>
+<div class="test big-contents overflow-scroll cis-width"
+     data-expected-client-width="100" data-expected-client-height="0"
+     data-expected-scroll-width="400" data-expected-scroll-height="200"></div>
+<div class="test big-contents overflow-scroll cis-both"
+     data-expected-client-width="100" data-expected-client-height="50"
+     data-expected-scroll-width="400" data-expected-scroll-height="200"></div>
+
+<div class="test big-contents overflow-hidden cis-none"
+     data-expected-client-width="0" data-expected-client-height="0"
+     data-expected-scroll-width="400" data-expected-scroll-height="200"></div>
+<div class="test big-contents overflow-hidden cis-height"
+     data-expected-client-width="0" data-expected-client-height="50"
+     data-expected-scroll-width="400" data-expected-scroll-height="200"></div>
+<div class="test big-contents overflow-hidden cis-width"
+     data-expected-client-width="100" data-expected-client-height="0"
+     data-expected-scroll-width="400" data-expected-scroll-height="200"></div>
+<div class="test big-contents overflow-hidden cis-both"
+     data-expected-client-width="100" data-expected-client-height="50"
+     data-expected-scroll-width="400" data-expected-scroll-height="200"></div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script>
+checkLayout(".test");
+</script>

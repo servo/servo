@@ -1,0 +1,5 @@
+Expires: Mon, 26 Jul 1997 05:00:00 GMT
+Cache-Control: no-store, no-cache, must-revalidate
+Pragma: no-cache
+Report-To: { "group": "csp-group", "max_age": 10886400, "endpoints": [{ "url": "https://{{hosts[alt][]}}:{{ports[https][0]}}/reporting/resources/report.py?op=put&reportID={{GET[id]}}" }] }
+Content-Security-Policy: frame-ancestors 'none'; report-to csp-group

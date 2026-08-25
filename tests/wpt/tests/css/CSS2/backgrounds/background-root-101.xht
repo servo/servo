@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" class="reftest-wait">
+ <head class="before">
+  <title>CSS Test: CSS: Changing the background of the BODY element by changing a sibling's class</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/background/dynamic/001.html" type="text/html"/>
+  <meta name="flags" content="dom"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background" />
+  <link rel="match" href="background-root-101-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+    head.before + body { background: red; color: yellow; }
+    head.after + body { background: green; color: white; }
+    p.after { font-weight: bold; }
+  ]]></style>
+  <script type="text/javascript">
+    function test() {
+      document.getElementsByTagName('head')[0].className = 'after';
+      document.getElementsByTagName('p')[0].className = 'after';
+      document.documentElement.className = "";
+    }
+  </script>
+ </head>
+ <body onload="setTimeout(test, 5)">
+  <p class="before">This page should be green (and this text should be bold -- if it isn't bold, something went wrong with the script part of the test).</p>
+ </body>
+</html>

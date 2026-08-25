@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Events during selection drag and drop to url input</title>
+<style type="text/css">
+input[placeholder]
+  {width:300px;
+  height:50px;
+  margin-top:20px;}
+.hidden
+  {visibility:hidden;}
+</style>
+<script type="application/ecmascript">
+function evtChange()
+  {document.querySelectorAll('tt')[0].firstChild.nodeValue = 'PASS'}
+function evtInput()
+  {document.querySelectorAll('tt')[1].firstChild.nodeValue = 'PASS'}
+function evtDrop()
+  {document.querySelectorAll('tt')[2].firstChild.nodeValue = (event.dataTransfer.getData('text/plain') == 'http://example.org')?'PASS':'FAIL (selection is not properly added to data store)'}
+function evtKeypress()
+  {document.querySelectorAll('tt')[3].firstChild.nodeValue = 'FAIL (even is not supposed to fire)'}
+</script>
+</head>
+<body onload="window.getSelection().selectAllChildren(document.querySelector('p'))">
+<p>http://example.org</p>
+<p>Drag selected url to the input below. Follow check results link once you drop selection in the input.</p>
+<p><input type="url" placeholder="Drop selection here" onchange="evtChange()" oninput="evtInput()" onkeypress="evtKeypress()" ondrop="evtDrop()"/></p>
+<p><a href="javascript:document.querySelector('ul').removeAttribute('class')">Check results</a></p>
+<ul class="hidden">
+<li>Change event: <tt>FAIL (even did not fire)</tt></li>
+<li>Input event: <tt>FAIL (even did not fire)</tt></li>
+<li>Drop event: <tt>FAIL (even did not fire)</tt></li>
+<li>Keypress event: <tt>PASS</tt></li>
+</ul>
+</body>
+</html>

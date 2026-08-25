@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<title>SVG text: combining marks on a textPath shape as one typographic character (reference)</title>
+
+<body style="margin:20px">
+
+<!-- Precomposed U+00E9 (LATIN SMALL LETTER E WITH ACUTE), same straight horizontal path. -->
+<svg width="600" height="100">
+  <path id="hline" d="M 50 50 L 550 50" fill="none"/>
+  <text font-size="40px">
+    <textPath href="#hline">caf&#x00e9; expos&#x00e9;</textPath>
+  </text>
+</svg>
+
+</body>
+</html>

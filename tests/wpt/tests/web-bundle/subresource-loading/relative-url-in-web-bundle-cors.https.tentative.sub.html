@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<title>Relative Url in cross origin web bundle</title>
+<link
+  rel="help"
+  href="https://github.com/WICG/webpackage/blob/main/explainers/subresource-loading.md"
+/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/test-helpers.js"></script>
+<body>
+  <script>
+    setup(() => {
+      assert_true(HTMLScriptElement.supports("webbundle"));
+    });
+    const loaded_scripts = [];
+    function scriptLoaded(file) {
+      loaded_scripts.push(file);
+    }
+    const failed_scripts = [];
+    function scriptFailed(file) {
+      failed_scripts.push(file);
+    }
+  </script>
+  <script type="webbundle">
+    {
+      "source": "//{{domains[www1]}}:{{ports[https][0]}}/web-bundle/resources/wbn/relative-url.wbn",
+      "resources": [
+        "//{{domains[www1]}}:{{ports[https][0]}}/web-bundle/resources/wbn/relative-url-file.js",
+        "//{{domains[www1]}}:{{ports[https][0]}}/web-bundle/resources/wbn/relative-url/start-with-double-slash-cors.js",
+        "//{{domains[www1]}}:{{ports[https][0]}}/web-bundle/resources/wbn/relative-url/start-with-slash.js",
+        "//{{domains[www1]}}:{{ports[https][0]}}/web-bundle/resources/wbn/relative-url/subdirectory-path.js",
+        "//{{domains[www1]}}:{{ports[https][0]}}/web-bundle/resources/wbn/starts-with-two-dots.js",
+        "//{{domains[www1]}}:{{ports[https][0]}}/web-bundle/resources/starts-with-two-dots-out-of-scope.js"
+      ]
+    }
+  </script>
+  <script src="//{{domains[www1]}}:{{ports[https][0]}}/web-bundle/resources/wbn/relative-url-file.js"></script>
+  <script src="//{{domains[www1]}}:{{ports[https][0]}}/web-bundle/resources/wbn/relative-url/start-with-double-slash-cors.js"></script>
+  <script src="//{{domains[www1]}}:{{ports[https][0]}}/web-bundle/resources/wbn/relative-url/start-with-slash.js"></script>
+  <script src="//{{domains[www1]}}:{{ports[https][0]}}/web-bundle/resources/wbn/relative-url/subdirectory-path.js"></script>
+  <script src="//{{domains[www1]}}:{{ports[https][0]}}/web-bundle/resources/wbn/starts-with-two-dots.js"></script>
+  <script
+    src="//{{domains[www1]}}:{{ports[https][0]}}/web-bundle/resources/starts-with-two-dots-out-of-scope.js"
+    onerror="scriptFailed('starts-with-two-dots-out-of-scope.js')"
+  ></script>
+  <script>
+    promise_test(async (t) => {
+      assert_array_equals(loaded_scripts, [
+        "relative-url-file.js",
+        "start-with-double-slash-cors.js",
+        "start-with-slash.js",
+        "subdirectory-path.js",
+        "starts-with-two-dots.js",
+      ]);
+      assert_array_equals(failed_scripts, [
+        "starts-with-two-dots-out-of-scope.js",
+      ]);
+    }, "Relative Url in web bundle.");
+  </script>
+</body>

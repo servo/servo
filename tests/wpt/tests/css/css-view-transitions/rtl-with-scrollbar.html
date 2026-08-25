@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html dir="rtl" class=reftest-wait>
+<title>Transition is correctly positioned on RTL page</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:bokan@chromium.org">
+<link rel="match" href="rtl-with-scrollbar-ref.html">
+
+<script src="/common/rendering-utils.js"></script>
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+#target {
+  position: absolute;
+  top: 100px;
+  left: 100px;
+  width: 100px;
+  height: 200px;
+  background: dodgerblue;
+  contain: paint;
+  view-transition-name: target;
+}
+
+#inroot {
+  position: absolute;
+  top: 300px;
+  left: 200px;
+  width: 100px;
+  height: 200px;
+  background: rebeccapurple;
+  contain: paint;
+}
+
+body {
+  margin: 0px;
+  padding: 0px;
+  /* add overflow for scrollbar */
+  height: 200vh;
+}
+
+/* Show the old snapshot for 300s */
+html::view-transition-group(*) {
+  animation-duration: 300s;
+  opacity: 1;
+}
+html::view-transition-new(*) {
+  animation: unset;
+  opacity: 0;
+}
+html::view-transition-old(*) {
+  animation: unset;
+  opacity: 1;
+}
+</style>
+
+<div id=target></div>
+<div id="inroot"></div>
+
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+async function runTest() {
+  await waitForAtLeastOneFrame();
+
+  document.startViewTransition(() => {
+    requestAnimationFrame(() => requestAnimationFrame(takeScreenshot));
+  });
+}
+
+onload = () => requestAnimationFrame(runTest);
+</script>
+
+</html>

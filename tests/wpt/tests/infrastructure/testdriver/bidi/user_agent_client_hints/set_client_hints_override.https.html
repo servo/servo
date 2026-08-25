@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>TestDriver bidi.user_agent_client_hints.set_client_hints_override</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js?feature=bidi"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+    const MOCK_CLIENT_HINTS = {
+        brands: [
+            {
+                brand: "TestBrand",
+                version: "123"
+            }
+        ],
+        mobile: false,
+        platform: "TestPlatform",
+        architecture: "TestArch",
+        bitness: "64",
+        model: "TestModel",
+        platformVersion: "TestVersion",
+        wow64: false
+    };
+
+    promise_test(async t => {
+        await test_driver.bidi.user_agent_client_hints.set_client_hints_override({
+            clientHints: MOCK_CLIENT_HINTS
+        });
+
+        let clientHints = await navigator.userAgentData.getHighEntropyValues([
+            "architecture",
+            "bitness",
+            "model",
+            "platformVersion",
+            "uaFullVersion",
+            "wow64"
+        ]);
+
+        assert_equals(clientHints.architecture, MOCK_CLIENT_HINTS.architecture);
+        assert_equals(clientHints.bitness, MOCK_CLIENT_HINTS.bitness);
+        assert_equals(clientHints.model, MOCK_CLIENT_HINTS.model);
+        assert_equals(clientHints.platformVersion, MOCK_CLIENT_HINTS.platformVersion);
+        assert_equals(clientHints.wow64, MOCK_CLIENT_HINTS.wow64);
+        assert_equals(navigator.userAgentData.platform, MOCK_CLIENT_HINTS.platform);
+        assert_equals(navigator.userAgentData.mobile, MOCK_CLIENT_HINTS.mobile);
+
+        await test_driver.bidi.user_agent_client_hints.set_client_hints_override({
+            clientHints: null
+        });
+
+    }, "test_driver.bidi.user_agent_client_hints.set_client_hints_override");
+</script>

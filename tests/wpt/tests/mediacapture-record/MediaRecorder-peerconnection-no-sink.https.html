@@ -1,0 +1,51 @@
+<!doctype html>
+<html>
+<meta name="timeout" content="long">
+
+<head>
+  <title>MediaRecorder peer connection</title>
+  <link rel="help"
+        href="https://w3c.github.io/mediacapture-record/MediaRecorder.html#dom-mediarecorder-mimeType">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="../mediacapture-streams/permission-helper.js"></script>
+  <script src="utils/peerconnection.js"></script>
+</head>
+
+<body>
+  <script>
+
+promise_setup(async () => {
+  const t = {add_cleanup: add_completion_callback};
+  const [, pc, stream] = await startConnection(t, true, true);
+  const [audio] = stream.getAudioTracks();
+  const [video] = stream.getVideoTracks();
+
+  for (const kinds of [{ audio }, { video }, { audio, video }]) {
+    const tag = `${JSON.stringify(kinds)}`;
+    const stream = new MediaStream([kinds.audio, kinds.video].filter(n => n));
+
+    promise_test(async t => {
+      const recorder = new MediaRecorder(stream);
+      recorder.start(200);
+      let combinedSize = 0;
+      // Wait for a small amount of data to appear. Kept small for mobile tests
+      while (combinedSize < 2000) {
+        const event = await Promise.race([
+          new Promise(r => recorder.ondataavailable = r),
+          new Promise(r => t.step_timeout(r, 5000))
+        ]);
+        assert_not_equals(event, undefined, 'ondataavailable should have fired');
+        combinedSize += event.data.size;
+      }
+      recorder.stop();
+    }, `MediaRecorder records from PeerConnection without sinks, ${tag}`);
+  }
+});
+
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<title>SpeechRecognition Concurrent MediaStreamTracks</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+async function getAudioTrackFromFile(filePath) {
+    const audioContext = new AudioContext();
+    const response = await fetch(filePath);
+    const arrayBuffer = await response.arrayBuffer();
+    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+    const source = audioContext.createBufferSource();
+    source.buffer = audioBuffer;
+
+    const destination = audioContext.createMediaStreamDestination();
+    source.connect(destination);
+    source.start();
+
+    return destination.stream.getAudioTracks()[0];
+}
+
+promise_test(async (t) => {
+    const lang = "en-US";
+    window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    // Create two SpeechRecognition instances
+    const speechRecognition1 = new SpeechRecognition();
+    speechRecognition1.processLocally = false;
+    speechRecognition1.lang = lang;
+    const speechRecognition2 = new SpeechRecognition();
+    speechRecognition2.processLocally = false;
+    speechRecognition2.lang = lang;
+
+    const audioTrack1 = await getAudioTrackFromFile("/media/speech.wav");
+    const audioTrack2 = await getAudioTrackFromFile("/media/speech.wav");
+
+    assert_true(audioTrack1 instanceof MediaStreamTrack, "Audio track 1 should be a valid MediaStreamTrack");
+    assert_true(audioTrack2 instanceof MediaStreamTrack, "Audio track 2 should be a valid MediaStreamTrack");
+
+    const recognitionPromise1 = new Promise((resolve) => {
+        speechRecognition1.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            resolve(transcript);
+        };
+    });
+
+    const recognitionPromise2 = new Promise((resolve) => {
+        speechRecognition2.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            resolve(transcript);
+        };
+    });
+
+    speechRecognition1.start(audioTrack1);
+    speechRecognition2.start(audioTrack2);
+
+    const transcript1 = await recognitionPromise1;
+    const transcript2 = await recognitionPromise2;
+
+    assert_equals(transcript1.toLowerCase(), "this is a sentence in a single segment", "Speech recognition 1 should correctly recognize speech");
+    assert_equals(transcript2.toLowerCase(), "this is a sentence in a single segment", "Speech recognition 2 should correctly recognize speech");
+}, "Two SpeechRecognition instances should simultaneously recognize speech from audio files.");
+</script>
+</html>

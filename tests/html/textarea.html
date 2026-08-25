@@ -1,0 +1,25 @@
+<html>
+<head></head>
+<body>
+<form>
+<textarea id="textarea">Write something here
+and maybe here</textarea>
+<button id=setcontent type=button>setContent</button>
+<button id=setvalue type=button>setValue</button>
+<input type=reset>
+<script>
+var text_area = document.getElementById("textarea");
+var set_c = document.getElementById("setcontent");
+var value = document.getElementById("setvalue");
+var x = 0;
+
+set_c.addEventListener("click", function () {
+    text_area.textContent = x;
+    x++;
+});
+
+value.addEventListener("click", function () {
+    text_area.value = "new value!";
+});
+</script>
+</body>

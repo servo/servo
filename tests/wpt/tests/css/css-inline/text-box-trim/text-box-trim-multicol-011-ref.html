@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  .container {
+    width: 640px;
+    height: 400px;
+    background: yellow;
+  }
+  .multicol {
+    columns: 3;
+    column-fill: auto;
+    height: 500px;
+    gap: 20px;
+    font-family: Ahem;
+    font-size: 50px;
+    line-height: 100px;
+    orphans: 1;
+    widows: 1;
+  }
+  .up-half {
+    position: relative;
+    top: -25px;
+  }
+</style>
+<div class="container">
+  <div class="multicol">
+    <div style="height:225px; background:cyan;"></div>
+    xxx<br>
+    xxx<br>
+    <div style="break-before:column;" class="up-half">
+      xxx<br>
+      xxx<br>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht" />
+<link rel="help" href="https://www.w3.org/TR/CSS22/box.html#collapsing-margins" title="8.3.1 Collapsing margins">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width: 100px; height: 100px; background: green;"></div>
+<div style="width: 0; height: 0; outline: solid red 50px; position: relative; z-index: 1; overflow: clip; margin-left: 50px;">
+  <div id="target"></div>
+</div>
+<script>
+document.body.offsetTop;
+document.getElementById('target').style.marginTop = '-1000px';
+</script>

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Overflow Test: margin-block-end, scrolling area height and scrollTop (complex)</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-overflow-3/#scrollable">
+  <link rel="help" href="https://www.w3.org/TR/cssom-view-1/#dom-element-scrolltop">
+  <link rel="help" href="https://www.w3.org/TR/cssom-view-1/#scrolling-area">
+  <link rel="match" href="reference/ref-if-there-is-no-red.xht">
+
+   <!--
+
+   This test is a slightly modified version of the testcase from
+
+   Morten Stenshorne coming from
+
+   https://bugs.chromium.org/p/chromium/issues/detail?id=750992#c8
+
+  -->
+
+  <meta content="" name="flags">
+  <meta content="This test checks that when the bottom edge of an element's scrolling area is the bottom margin edge of all of the element's descendants' boxes, then the element.scrollTop must reach such bottom edge. In this test, the tested element's scrolling area height must reach the end edge of the margin-bottom of the p element." name="assert">
+
+  <style>
+  div
+    {
+      height: 200px;
+    }
+
+  div#test
+    {
+      font-size: 100px;
+      /*
+      Setting a font-size of 100px is to influence the
+      margin on the P without setting it directly.
+      */
+      overflow: hidden;
+    }
+
+  div#red
+    {
+      background-color: red;
+    }
+
+  div#red > p
+    {
+      height: 1px;
+    }
+  </style>
+
+  <body onload="document.getElementById('test').scrollTop = 200;">
+
+  <p>Test passes if there is <strong>no red</strong>.
+
+  <div id="test">
+
+    <div id="red">
+
+      <div id="filler"></div>
+
+      <p>
+
+    </div>
+
+  </div>

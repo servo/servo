@@ -1,0 +1,46 @@
+<!DOCTYPE HTML>
+<title>Prevent drawing Elements into different canvases</title>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+<style>
+  #child1, #child2 {
+    width: 100px;
+    height: 100px;
+    background: green;
+  }
+</style>
+<canvas id="canvas1" width="200" height="200" layoutsubtree>
+  <div id="child1"></div>
+</canvas>
+<canvas id="canvas2" width="200" height="200" layoutsubtree>
+  <div id="child2"></div>
+</canvas>
+
+<script>
+  'use strict';
+
+  promise_test(async t => {
+    await waitForCanvasPaint(canvas1);
+
+    const ctx2 = canvas2.getContext('2d');
+
+    assert_throws_dom('InvalidStateError', () => {
+      ctx2.drawElementImage(child1, 0, 0);
+    }, 'Drawing an Element from a different canvas must throw InvalidStateError');
+
+    assert_throws_dom('InvalidStateError', () => {
+      canvas2.getElementTransform(child1, new DOMMatrix());
+    }, 'Getting transform for an Element from a different canvas must throw InvalidStateError');
+
+    assert_throws_dom('InvalidStateError', () => {
+      let standaloneCtx = new OffscreenCanvas(200, 200).getContext('2d');
+      standaloneCtx.drawElementImage(child1, 0, 0);
+    }, 'Drawing an Element into a standalone OffscreenCanvas must throw InvalidStateError');
+
+    assert_throws_dom('InvalidStateError', () => {
+      let standalone = new OffscreenCanvas(200, 200);
+      standalone.getElementTransform(child1, new DOMMatrix());
+    }, 'Getting transform for an Element from a standalone OffscreenCanvas must throw InvalidStateError');
+  }, 'Prevent drawing Element into a different canvas');
+</script>

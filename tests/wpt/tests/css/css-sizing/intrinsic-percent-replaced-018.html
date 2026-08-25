@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-sizes">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1909761">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="This test verifies that the outer div's height is NOT used as a percentage basis for the table cell's children when computing their intrinsic size contribution.">
+
+<style>
+.outer {
+  display: table;
+  width: min-content;
+  height: 100px;
+  background: red;
+  border-right: 10px solid red;
+}
+.inner {
+  display: table-cell;
+  height: 100%;
+}
+canvas {
+  vertical-align: top;
+  background: green;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="outer">
+  <div class="inner">
+    <canvas width="10" height="4" style="height: 40%"></canvas>
+    <canvas width="10" height="6" style="height: 60%"></canvas>
+  </div>
+</div>

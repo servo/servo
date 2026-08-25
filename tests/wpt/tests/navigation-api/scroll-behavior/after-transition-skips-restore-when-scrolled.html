@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1">
+<title>Navigation API: scroll restoration is skipped when the document was scrolled during the navigation</title>
+<link rel="help" href="https://html.spec.whatwg.org/#restore-scroll-position-data">
+<link rel="help" href="https://html.spec.whatwg.org/#process-scroll-behavior">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2050964">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div style="height: 200vh; width: 200vw;"></div>
+<div id="frag"></div>
+<script>
+promise_test(async t => {
+  // Wait until after load so the navigation isn't converted into a replace.
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+
+  assert_equals(window.scrollY, 0);
+
+  // Navigate to a fragment so the prior entry (scrollY == 0) has scroll data
+  // that a back-traversal would normally restore.
+  await navigation.navigate("#frag").finished;
+  assert_not_equals(window.scrollY, 0);
+
+  // On the back traversal, intercept and scroll the document during the
+  // handler. This bumps the document's scroll generation after the navigate
+  // event captured it, so "has been scrolled" must be true at restore time.
+  const userScrollY = 50;
+  navigation.onnavigate = e => {
+    e.intercept({
+      scroll: "after-transition",
+      handler: async () => {
+        window.scrollTo(0, userScrollY);
+        assert_equals(window.scrollY, userScrollY);
+      }
+    });
+  };
+
+  await navigation.back().finished;
+
+  // Restoration must be skipped, leaving our scroll position untouched.
+  assert_equals(window.scrollY, userScrollY,
+    "scroll restoration must be skipped when the page was scrolled during the navigation");
+}, "scroll: after-transition should not restore scroll if the document was scrolled during the navigation");
+</script>
+</body>
+</html>

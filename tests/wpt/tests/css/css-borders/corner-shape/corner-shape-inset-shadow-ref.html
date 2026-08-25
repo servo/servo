@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<head>
+<style>
+    .target {
+        width: 200px;
+        height: 200px;
+        box-sizing: border-box;
+        corner-shape: bevel notch squircle scoop;
+        border-radius: 20%;
+        overflow: clip;
+        position: relative;
+    }
+
+    .target::before {
+        content: " ";
+        display: block;
+        background: green;
+        border: 30px solid blue;
+        corner-shape: inherit;
+        border-radius: inherit;
+        position: absolute;
+        left: -5px;
+        top: 5px;
+        width: 100%;
+        height: 100%;
+        box-sizing: border-box;
+    }
+
+    .target::after {
+        content: " ";
+        display: block;
+        border: 20px solid purple;
+        corner-shape: inherit;
+        border-radius: inherit;
+        position: absolute;
+        inset: 0;
+        box-sizing: border-box;
+    }
+</style>
+</head>
+<body>
+    <div class="target"></div>
+</body>

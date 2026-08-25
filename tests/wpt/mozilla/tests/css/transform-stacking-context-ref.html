@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<!-- Tests that `transform` causes a new stacking context to be formed. -->
+<style>
+section {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+}
+
+#a {
+    background: red;
+    top: 0;
+    left: 0;
+    z-index: 2;
+}
+
+#b {
+    background: #00ff00;
+    top: 25px;
+    left: 25px;
+    z-index: 1;
+}
+
+#c {
+    background: blue;
+    top: 50px;
+    left: 50px;
+    z-index: 3;
+}
+</style>
+</head>
+<body>
+<section id=a></section>
+<section id=c></section>
+<section id=b></section>
+</body>
+</html>
+
+

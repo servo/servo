@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Variables - Animation - Overriding Transition</title>
+
+    <meta rel="author" title="Kevin Babbitt">
+    <meta rel="author" title="Greg Whitworth">
+    <link rel="author" title="Microsoft Corporation" href="http://microsoft.com" />
+    <link rel="help" href="http://www.w3.org/TR/css-variables-1/#syntax">
+
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style>
+        @keyframes valueanim
+        {
+            from { --value: blue; }
+            to { --value: green; }
+        }
+
+        /* Start the animation in the paused state and fill at both ends so we can inspect values from both keyframes. */
+        #target
+        {
+            animation-name: valueanim;
+            animation-duration: 1s;
+            animation-play-state: paused;
+            animation-fill-mode: both;
+            transition-property: --value;
+            transition-duration: 1s;
+            --value: red;
+            color: var(--value);
+        }
+        #target.changed
+        {
+            --value: black;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="target">This text should animate from blue to green over a period of 1 second. The transition is not visible because the animation overrides it.</div>
+
+<script type="text/javascript">
+    "use strict";
+
+    // Force an initial layout pass
+    document.documentElement.offsetHeight;
+
+    test(function() {
+        assert_equals(window.getComputedStyle(document.getElementById("target")).getPropertyValue("--value").trim(), "blue", "--value is blue before animation runs");
+        }, "Verify CSS variable value before animation");
+
+    test(function() {
+        assert_equals(window.getComputedStyle(document.getElementById("target")).getPropertyValue("color").trim(), "rgb(0, 0, 255)", "color is blue before animation runs");
+        }, "Verify substituted color value before animation");
+
+    var afterAnimationVariableTest = async_test("Verify CSS variable value after animation");
+    document.getElementById("target").addEventListener("animationend", afterAnimationVariableTest.step_func_done(function() {
+        assert_equals(window.getComputedStyle(document.getElementById("target")).getPropertyValue("--value").trim(), "green", "--value is green after animation runs")
+        }));
+
+    var afterAnimationColorTest = async_test("Verify substituted color value after animation");
+    document.getElementById("target").addEventListener("animationend", afterAnimationColorTest.step_func_done(function() {
+        assert_equals(window.getComputedStyle(document.getElementById("target")).getPropertyValue("color").trim(), "rgb(0, 128, 0)", "color is green after animation runs")
+        }));
+
+    // Trigger animation and transition
+    document.getElementById("target").style.animationPlayState = "running";
+    document.getElementById("target").className = "changed";
+</script>
+
+</body>
+</html>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<title>Test window.prompt</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+  <script>
+    async function runTest(dimension, extra_children) {
+      const window_outer_size_key = token();
+      const window_inner_size_key = token();
+
+      const window_outer_size_from_top_frame = (dimension == "width" ?
+        window.outerWidth : window.outerHeight).toString();
+
+      const frame_url = generateURL(
+        'resources/window-outer-dimensions-inner.html',
+        [window_outer_size_key, window_inner_size_key, dimension, extra_children]);
+      const new_frame = attachFencedFrame(frame_url);
+
+      // Get the outer and inner width/height from either the top level
+      // fencedframe or the nested iframe.
+      const result_outer = await nextValueFromServer(window_outer_size_key);
+      const result_inner = await nextValueFromServer(window_inner_size_key);
+
+      assert_not_equals(result_outer,
+                        window_outer_size_from_top_frame,
+                        "Outer " + dimension + " not read in fenced frame"
+                        + " tree.");
+
+      assert_equals(result_outer,
+                    result_inner,
+                    "Fencedframe's outer/inner " + dimension + " match.");
+    }
+
+    promise_test(async () => {
+      return runTest("width", 0);
+    }, "window.outerWidth");
+
+    promise_test(async () => {
+      return runTest("height", 0);
+    }, "window.outerHeight");
+
+    promise_test(async () => {
+      return runTest("width", 1);
+    }, "window.outerWidth nested iframe");
+
+    promise_test(async () => {
+      return runTest("height", 1);
+    }, "window.outerHeight nested iframe");
+  </script>
+</body>

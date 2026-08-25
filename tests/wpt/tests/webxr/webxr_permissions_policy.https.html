@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+<canvas></canvas>
+
+<script>
+xr_promise_test(
+"Validate isSessionSupported behavior without xr-spatial-tracking policy",
+(t) => {
+  // Inline should never reject.
+  return navigator.xr.isSessionSupported("inline").then((supported) => {
+    t.step(() => {
+      assert_true(supported,
+        "inline should always be supported, even without permissions policy");
+    });
+
+    // It shouldn't matter that there's no device connected, the SecurityError
+    // should reject first.
+    return promise_rejects_dom(t, "SecurityError",
+      navigator.xr.isSessionSupported("immersive-vr"),
+      "Immersive isSessionSupported should reject");
+  });
+});
+
+xr_promise_test(
+"Validate requestSession behavior without xr-spatial-tracking policy",
+(t) => {
+  return navigator.xr.test.simulateDeviceConnection(TRACKED_IMMERSIVE_DEVICE)
+  .then(() => {
+    return new Promise((resolve, reject) => {
+      navigator.xr.test.simulateUserActivation(() => {
+
+        // Technically the first "requestSession" doesn't need either the device
+        // or the activation, but this makes the test code a little cleaner since
+        // the others do, as lacking user activation or a valid backing device
+        // should also cause the session to reject. In order to guarantee that
+        // we're seeing the rejection we want, we eliminate those as possibilities.
+        resolve(Promise.all([
+          navigator.xr.requestSession("inline").then(session => session.end()),
+
+          promise_rejects_dom(t, "NotSupportedError",
+            navigator.xr.requestSession("inline", { requiredFeatures: ["local"] }),
+            "Inline with features should reject without permissions policy"),
+
+          promise_rejects_dom(t, "NotSupportedError",
+            navigator.xr.requestSession("immersive-vr"),
+            "Immersive-vr should reject without permissions policy")
+          ]));
+      });
+    });
+  });
+});
+
+xr_promise_test(
+"Validate devicechange event behavior without xr-spatial-tracking policy",
+(t) => {
+  navigator.xr.addEventListener("devicechange", () => {
+    t.step(() => { assert_unreached("devicechange should not fire"); });
+  })
+
+  // We need to yield a short time to ensure that any event registration has
+  // propagated, as this can take some time.
+  // Note that device connection is not guaranteed to fire per the spec, if it's
+  // the first connection, but disconnect definitely should.
+  t.step_timeout(() => {
+    navigator.xr.test.simulateDeviceConnection(TRACKED_IMMERSIVE_DEVICE)
+    .then((testDeviceController) => {
+       return testDeviceController.disconnect();
+    });
+  }, 100);
+
+  // Wait an even longer time before finishing the test, so that if the event
+  // were to fire, it would've by now.
+  return new Promise((resolve) => {
+    t.step_timeout(() => { resolve(); }, 2000);
+  });
+
+});
+
+xr_promise_test(
+"Validate xr compatibility requests without xr-spatial-tracking policy",
+(t) => {
+  let canvas = document.createElement('canvas');
+  let gl = canvas.getContext('webgl', {xrCompatible: true});
+
+  t.step(() => {
+    assert_false(gl.getContextAttributes().xrCompatible,
+      "xrCompatibility shouldn't be set when requested without permissions policy");
+  });
+
+  return promise_rejects_dom(t, "SecurityError",
+    gl.makeXRCompatible(),
+    "makeXRCompatible should reject without permissions policy");
+});
+</script>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>Prefetching SignedHTTPExchange with payload integrity error should fail</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="./resources/sxg-util.js"></script>
+<body>
+<script>
+promise_test(async (t) => {
+  const sxgUrl = get_host_info().HTTPS_ORIGIN + '/signed-exchange/resources/sxg/sxg-merkle-integrity-error.sxg';
+  await new Promise(resolve => {
+    const link = document.createElement('link');
+    link.rel = 'prefetch';
+    link.href = sxgUrl;
+    link.addEventListener('error', t.step_func(() => {
+        resolve();
+    }));
+    link.addEventListener('load', t.step_func(() => {
+        assert_unreached('Prefetch should fail');
+    }));
+    document.body.appendChild(link);
+  });
+}, "Prefetching SignedHTTPExchange with payload integrity error should fail");
+
+</script>
+</body>

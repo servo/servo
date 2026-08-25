@@ -1,0 +1,27 @@
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="offscreencanvas.filter.js"></script>
+<script>
+var patternCanvas = createPatternCanvas();
+
+var getOffscreenContextForFilter = function(filter, pattern) {
+  var oc = new OffscreenCanvas(80, 80);
+  var offCtx = oc.getContext('2d');
+  offCtx.filter = filter;
+  offCtx.drawImage(pattern, 5, 5);
+  offCtx.drawImage(pattern, 25, 25);
+  offCtx.drawImage(pattern, 45, 45);
+  return offCtx;
+};
+
+var testFilter = function(filter) {
+  var offCtx = getOffscreenContextForFilter(filter, patternCanvas);
+  var ctx = getRegularContextForFilter(filter, patternCanvas);
+  var offImageData = offCtx.getImageData(0, 0, 80, 80).data;
+  var imageData = ctx.getImageData(0, 0, 80, 80).data;
+  matchImageDataResults(offImageData, imageData, filter);
+};
+
+generate_tests(testFilter, [filters]);
+
+</script>

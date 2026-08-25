@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Shadow DOM Test: A_06_00_09</title>
+<link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-20130514/#styles">
+<meta name="assert" content="Styles:the styles of the shadow host are inherited by the children of the shadow root">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../../html/resources/common.js"></script>
+<script src="../../resources/shadow-dom-utils.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+test(unit(function (ctx) {
+    var d = newRenderedHTMLDocument(ctx);
+
+    d.body.innerHTML = '' +
+        '<div id="shHost" style="font-size:10px">' +
+        '<span id="spn1">This is a shadow host child</span>' +
+        '</div>';
+
+    var host = d.querySelector('#shHost');
+
+    var s = host.attachShadow({mode: 'open'});
+
+    var div = d.createElement('div');
+    div.innerHTML ='<span id="spn2">This is a shadow root child</span>';
+    s.appendChild(div);
+
+    assert_equals(d.querySelector('#spn1').offsetTop, 0,
+        'Element should not be rendered');
+    assert_true(s.querySelector('#spn2').offsetTop > 0,
+        'Element should be rendered');
+
+    var oldHeight = s.querySelector('#spn2').offsetHeight;
+
+    host.setAttribute('style', 'font-size:20px');
+
+    assert_true(s.querySelector('#spn2').offsetHeight > oldHeight,
+        'Shadow host style must be aplied to the shadow root children');
+
+}), 'A_06_00_09_T01');
+</script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>CSSOM - CSSNamespaceRule interface</title>
+    <link rel="help" href="https://drafts.csswg.org/cssom/#the-cssnamespacerule-interface">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style>
+        @namespace svg url(http://servo);
+        @namespace url(http://servo1);
+        @namespace svg url("http://servo2");
+    </style>
+
+    <script>
+    test(function () {
+        var rules = document.styleSheets[0].cssRules;
+        assert_equals(rules[0].prefix, "svg", "CSSNamespaceRule prefix attribute");
+        assert_equals(rules[0].namespaceURI, "http://servo", "CSSNamespaceRule namespaceURI attribute");
+        assert_equals(rules[0].cssText, "@namespace svg url(\"http://servo\");", "CSSNamespaceRule cssText attribute");
+
+        assert_equals(rules[1].prefix, "", "CSSNamespaceRule prefix attribute");
+        assert_equals(rules[1].namespaceURI, "http://servo1", "CSSNamespaceRule namespaceURI attribute");
+        assert_equals(rules[1].cssText, "@namespace url(\"http://servo1\");", "CSSNamespaceRule cssText attribute");
+
+        assert_equals(rules[2].prefix, "svg", "CSSNamespaceRule prefix attribute");
+        assert_equals(rules[2].namespaceURI, "http://servo2", "CSSNamespaceRule namespaceURI attribute");
+        assert_equals(rules[2].cssText, "@namespace svg url(\"http://servo2\");", "CSSNamespaceRule cssText attribute");
+    });
+    </script>
+</head>
+</html>

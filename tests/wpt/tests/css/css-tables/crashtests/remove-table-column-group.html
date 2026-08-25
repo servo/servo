@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="https://github.com/servo/servo/issues/39142">
+<meta name="assert" content="Removing a column group should not crash">
+
+<div style="display: table">
+  <div style="display: table-column-group" id="colgroup"></div>
+  <div style="display: table-column-group">
+    <!-- This column is in the 2nd column group. But after removing the
+         original 1st column group, the column needs to be associated with
+         the new 1st column group, since there is no 2nd column group
+         anymore. -->
+    <div style="display: table-column"></div>
+  </div>
+  <div style="display: table-cell"></div>
+</div>
+
+<script>
+window.onload = function() {
+  colgroup.remove();
+  document.documentElement.classList.remove("test-wait")
+};
+</script>
+
+</html>

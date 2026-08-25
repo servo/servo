@@ -1,0 +1,2 @@
+rules:
+- cross-document-traversal-same-document-traversal.html: [hashchange]

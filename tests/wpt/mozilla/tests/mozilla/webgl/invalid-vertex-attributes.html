@@ -1,0 +1,60 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Validation of out-of-bounds vertex attributes</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script id="shader-fs" type="x-shader/x-fragment">
+precision mediump float;
+void main() {
+  gl_FragColor = vec4(0.0, 0.0, 1.0, 1.0);
+}
+</script>
+<script id="shader-vs" type="x-shader/x-vertex">
+void main() {
+
+}
+</script>
+<script type="application/x-javascript">
+  function getShader(gl, id) {
+      var shaderScript = document.getElementById(id);
+      if (!shaderScript)
+          return null;
+      var type = (shaderScript.getAttribute('type') == "x-shader/x-fragment") ?
+                    gl.FRAGMENT_SHADER : gl.VERTEX_SHADER;
+      var shader = gl.createShader(type);
+      gl.shaderSource(shader, shaderScript.textContent);
+      gl.compileShader(shader);
+      assert_true(!!gl.getShaderParameter(shader, gl.COMPILE_STATUS), shaderScript.textContent + '\n' + gl.getShaderInfoLog(shader));
+      return shader;
+  }
+  </script>
+  <canvas id="canvas"></canvas>
+  <script>
+    test(function() {
+      var canvas = document.getElementById("canvas");
+      var gl = canvas.getContext("experimental-webgl");
+      assert_true(!!gl);
+
+      var shaderProgram = gl.createProgram();
+      var vertexShader = getShader(gl, "shader-vs");
+      gl.attachShader(shaderProgram, vertexShader);
+      var fragmentShader = getShader(gl, "shader-fs");
+      gl.attachShader(shaderProgram, fragmentShader);
+      gl.linkProgram(shaderProgram);
+      gl.useProgram(shaderProgram);
+      assert_true(gl.getError() == gl.NO_ERROR);
+
+      // -1 is what it's returned from a not found attribute.
+      gl.enableVertexAttribArray(-1);
+      assert_true(gl.getError() == gl.INVALID_VALUE);
+      assert_true(gl.getError() == gl.NO_ERROR);
+
+      gl.vertexAttribPointer(-1, 2, gl.FLOAT, false, 0, 0);
+      assert_true(gl.getError() == gl.INVALID_VALUE);
+      assert_true(gl.getError() == gl.NO_ERROR);
+
+      gl.vertexAttrib1f(-1, 3.0);
+      assert_true(gl.getError() == gl.INVALID_VALUE);
+    });
+  </script>
+</html>

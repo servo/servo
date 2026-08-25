@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/reporting/resources/report-helper.js"></script>
+</head>
+<body>
+<script>
+const { ORIGIN } = get_host_info();
+const endpoint = "/reporting/resources/report.py";
+const reportID = '95d52093-6c68-4503-9189-9430c0423018';
+
+promise_test(async t => {
+  const url = `${ORIGIN}/common/blank.html`;
+  // This fetch should succeed as ORIGIN is (response-origin).
+  const response = await fetch(url);
+  assert_true(response.ok);
+
+  await wait(5000);
+  const reports = await pollReports(endpoint, reportID);
+
+  const report = reports.find(r => r.type === 'connection-allowlist' && r.body.connection === url);
+  assert_false(!!report, `A report for ${url} should NOT be present. Found: ${JSON.stringify(report)}`);
+}, 'Connection-Allowlist report is NOT delivered for an allowed fetch.');
+</script>
+</body>
+</html>

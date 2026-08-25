@@ -1,0 +1,74 @@
+<!doctype html>
+<title>Range.isPointInRange() with ShadowDOM selection tests</title>
+<link rel="author" title="Sean Feng" href=sefeng@mozilla.com>
+<div id=log></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<span id="start">Start</span>
+<div id="host">
+  <template shadowrootmode="open">
+    <span id="inner1">Inner1</span>
+    <span id="inner2">Inner2</span>
+  </template>
+</div>
+<span id="end">End</span>
+<script>
+"use strict";
+
+test(function() {
+  assert_implements(window.getSelection().getComposedRanges, "GetComposedRanges is not supported");
+  const start = document.getElementById("start");
+  const shadowRoot = document.getElementById("host").shadowRoot;
+
+  const end = shadowRoot.getElementById("inner2");
+  const inner1 = shadowRoot.getElementById("inner1");
+
+  window.getSelection().setBaseAndExtent(start.firstChild, 3, end.firstChild, 3);
+
+  const composedRange = window.getSelection().getComposedRanges({ shadowRoots: [shadowRoot] })[0];
+  // Sanity check to make sure we have selected something across the shadow boundary.
+  assert_true(composedRange.startContainer == start.firstChild);
+  assert_true(composedRange.startOffset == 3);
+  assert_true(composedRange.endContainer == end.firstChild);
+  assert_true(composedRange.endOffset == 3);
+
+  assert_true(window.getSelection().isCollapsed, "Selection should be collapsed");
+
+  const range = window.getSelection().getRangeAt(0);
+  assert_false(range.isPointInRange(inner1, 0), "inner1 is in the shadow tree, should not be in the range");
+  assert_true(range.comparePoint(inner1, 0) == -1, "inner1 is in the shadow tree, should return -1 for comparison");
+}, "isPointInRange() test for collapsed selection");
+
+test(function() {
+  const start = document.getElementById("start");
+  const shadowRoot = document.getElementById("host").shadowRoot;
+
+  const end = document.getElementById("end");
+  const inner1 = shadowRoot.getElementById("inner1");
+
+  window.getSelection().setBaseAndExtent(start.firstChild, 3, end.firstChild, 3);
+
+  const composedRange = window.getSelection().getRangeAt(0);
+  // Sanity check to make sure we have selected something
+  assert_true(composedRange.startContainer == start.firstChild);
+  assert_true(composedRange.startOffset == 3);
+  assert_true(composedRange.endContainer == end.firstChild);
+  assert_true(composedRange.endOffset == 3);
+
+  assert_false(window.getSelection().isCollapsed, "Range should not be collapsed");
+
+  const range = window.getSelection().getRangeAt(0);
+
+  assert_false(range.isPointInRange(inner1, 0), "inner1 is in the shadow tree, should not be in the range");
+
+  // The selection is not collapsed so inner1 is not in the same tree as the selection.
+  assert_throws_dom("WrongDocumentError", function() {
+    range.comparePoint(inner1, 0);
+  });
+
+  const host = document.getElementById("host");
+  assert_true(range.isPointInRange(host, 0), "host is not in the shadow tree, should be in the range");
+  assert_true(range.comparePoint(host, 0) == 0, "host is not in the shadow tree, should return 0 for comparison");
+}, "isPointInRange() test for non-collapsed selection");
+
+</script>

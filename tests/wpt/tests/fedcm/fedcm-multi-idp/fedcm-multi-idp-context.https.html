@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API multi IDP context tests.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+
+<script type="module">
+import {request_options_with_two_idps,
+        fedcm_get_title_promise,
+        fedcm_test,
+        fedcm_select_account_promise} from '../support/fedcm-helper.sub.js';
+
+fedcm_test(async t => {
+  const p = navigator.credentials.get(request_options_with_two_idps());
+  const result = await fedcm_get_title_promise(t);
+  assert_true(result.title.toLowerCase().includes('sign in'));
+  fedcm_select_account_promise(t, 0);
+  return p;
+}, "FedCM multi IDP call defaults to 'signin' context.");
+
+fedcm_test(async t => {
+  const options = request_options_with_two_idps();
+  options.identity.context = "signup";
+  const p = navigator.credentials.get(options);
+  const result = await fedcm_get_title_promise(t);
+  assert_true(result.title.toLowerCase().includes('sign up'));
+  fedcm_select_account_promise(t, 0);
+  return p;
+}, "FedCM multi IDP with non-default context.");
+</script>

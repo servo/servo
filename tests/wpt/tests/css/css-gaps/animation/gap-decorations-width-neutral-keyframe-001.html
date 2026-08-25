@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>gap decorations row-rule-width neutral keyframe</title>
+    <link rel="help" href="https://drafts.csswg.org/css-gaps-1/#column-row-rule-width">
+    <meta name="assert" content="gap decorations row-rule-width supports neutral keyframe.">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/css/support/interpolation-testcommon.js"></script>
+  </head>
+  <body>
+    <div id="target"></div>
+    <script>
+      test(() => {
+        target.style.rowRuleStyle = 'solid';
+        target.style.rowRuleWidth = '10px';
+        var animation = target.animate([{}, {rowRuleWidth: '20px'}], 1000);
+        animation.pause();
+        animation.currentTime = 500;
+        assert_equals(getComputedStyle(target).rowRuleWidth, '15px');
+      }, 'gap decorations row-rule-width supports neutral keyframe.');
+    </script>
+  </body>
+</html>

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script src="../resources/runner.js"></script>
+<script>
+var div = document.createElement("div");
+var childDiv = document.createElement("div");
+
+PerfTestRunner.measureRunsPerSecond({
+    description: "This benchmark covers 'insertBefore' in Dromaeo/dom-modify.html and replaceChild()",
+    setup: function() {
+        div.innerHTML = "";
+        div.appendChild(childDiv);
+    },
+    run: function() {
+        var localDiv = div;
+        var localFirstChildOfDiv = div.firstChild;
+        var localChildDiv = childDiv;
+        for (var i = 0; i < 50000; i++)
+            localDiv.insertBefore(localChildDiv, localFirstChildOfDiv);
+}});
+</script>
+</body>
+</html>

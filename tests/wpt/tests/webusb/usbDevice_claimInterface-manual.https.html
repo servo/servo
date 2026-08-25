@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="resources/manual.js"></script>
+  </head>
+  <body>
+    <p>
+      These tests require a USB device to be connected.
+    </p>
+    <script>
+      manual_usb_test(async (t, device) => {
+        await device.open();
+        const interfacesClaimed = [];
+        t.add_cleanup(async () => {
+          for (const iface of interfacesClaimed) {
+            await device.releaseInterface(iface.interfaceNumber);
+          }
+          await device.close();
+        });
+
+        await device.selectConfiguration(1);
+
+        const promises = [];
+        for (const iface of device.configuration.interfaces) {
+          const promise = device.claimInterface(iface.interfaceNumber);
+          promises.push(promise);
+
+          // Create a subtest for each interface so that success or failure to
+          // claim the interface is visible but does not affect the result of
+          // the overall test.
+          promise_test(async (t) => {
+            await promise;
+
+            interfacesClaimed.push(iface);
+          }, `Can claim interface ${iface.interfaceNumber}`);
+        }
+
+        await Promise.allSettled(promises);
+      }, 'claimInterface() resolves or rejects for all interfaces');
+    </script>
+  </body>
+</html>

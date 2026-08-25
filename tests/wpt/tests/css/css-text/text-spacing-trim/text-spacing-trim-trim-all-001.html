@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-spacing-trim-property">
+<link rel="match" href="text-spacing-trim-trim-all-001-ref.html">
+<meta name="variant" content="?class=halt,htb">
+<meta name="variant" content="?class=chws,htb">
+<meta name="variant" content="?class=halt,vrl">
+<meta name="variant" content="?class=chws,vrl">
+<script src="support/variant-class.js"></script>
+<style>
+@font-face {
+  font-family: halt-font;
+  src: url('/fonts/noto/cjk/NotoSansCJKjp-Regular-subset-halt.otf');
+}
+@font-face {
+  font-family: chws-font;
+  src: url('/fonts/noto/cjk/NotoSansCJKjp-Regular-subset-chws.otf');
+}
+#container {
+  font-family: halt-font;
+  font-size: 20px;
+}
+.chws #container {
+  font-family: chws-font;
+}
+.vrl {
+  writing-mode: vertical-rl;
+}
+</style>
+<div id="container">
+  <div>国（国</div>
+  <div>国）国</div>
+  <div>国、国</div>
+  <div>国・国</div>
+  <div>国。国</div>
+  <div>国「国</div>
+  <div>国」国</div>
+</div>

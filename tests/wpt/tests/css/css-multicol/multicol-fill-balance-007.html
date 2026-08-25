@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-multicol-1/#cf">
+<style>
+  #container {
+      position: relative;
+      columns: 2;
+      width: 100px;
+      column-gap: 0;
+      background: green;
+  }
+</style>
+<p>Test passes if there is a filled green square below.</p>
+<div id="container" data-expected-height="100">
+  <div style="break-after:column; height:10px;"></div>
+  <div style="break-after:column; height:10px;"></div>
+  <div style="break-after:column; height:10px;"></div>
+  <div data-offset-x="150" style="contain:size; height:100px;"></div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script>
+  checkLayout("#container");
+</script>

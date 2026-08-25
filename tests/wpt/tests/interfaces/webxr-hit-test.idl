@@ -1,0 +1,69 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebXR Hit Test Module (https://immersive-web.github.io/hit-test/)
+
+enum XRHitTestTrackableType {
+  "point",
+  "plane",
+  "mesh"
+};
+
+dictionary XRHitTestOptionsInit {
+  required XRSpace space;
+  sequence<XRHitTestTrackableType> entityTypes;
+  XRRay offsetRay;
+};
+
+dictionary XRTransientInputHitTestOptionsInit {
+  required DOMString profile;
+  sequence<XRHitTestTrackableType> entityTypes;
+  XRRay offsetRay;
+};
+
+[SecureContext, Exposed=Window]
+interface XRHitTestSource {
+  undefined cancel();
+};
+
+[SecureContext, Exposed=Window]
+interface XRTransientInputHitTestSource {
+  undefined cancel();
+};
+
+[SecureContext, Exposed=Window]
+interface XRHitTestResult {
+  XRPose? getPose(XRSpace baseSpace);
+};
+
+[SecureContext, Exposed=Window]
+interface XRTransientInputHitTestResult {
+  [SameObject] readonly attribute XRInputSource inputSource;
+  readonly attribute FrozenArray<XRHitTestResult> results;
+};
+
+partial interface XRSession {
+  Promise<XRHitTestSource> requestHitTestSource(XRHitTestOptionsInit options);
+  Promise<XRTransientInputHitTestSource> requestHitTestSourceForTransientInput(XRTransientInputHitTestOptionsInit options);
+};
+
+partial interface XRFrame {
+  sequence<XRHitTestResult> getHitTestResults(XRHitTestSource hitTestSource);
+  sequence<XRTransientInputHitTestResult> getHitTestResultsForTransientInput(XRTransientInputHitTestSource hitTestSource);
+};
+
+dictionary XRRayDirectionInit {
+  double x = 0;
+  double y = 0;
+  double z = -1;
+  double w = 0;
+};
+
+[SecureContext, Exposed=Window]
+interface XRRay {
+  constructor(optional DOMPointInit origin = {}, optional XRRayDirectionInit direction = {});
+  constructor(XRRigidTransform transform);
+  [SameObject] readonly attribute DOMPointReadOnly origin;
+  [SameObject] readonly attribute DOMPointReadOnly direction;
+  [SameObject] readonly attribute Float32Array matrix;
+};

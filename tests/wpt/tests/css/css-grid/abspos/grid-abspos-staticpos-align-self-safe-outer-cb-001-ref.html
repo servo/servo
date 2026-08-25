@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    .container {
+      border: 3px solid blue;
+      width: 200px;
+      height: 25px;
+      margin-bottom: 10px;
+    }
+    .grid {
+      display: grid;
+      padding: 2px 1px;
+      border: 1px solid black;
+      background: yellow;
+      margin-bottom: 5px;
+      margin-right: 5px;
+      width: 30px;
+      height: 25px;
+      grid: 3px 14px 3px / 2px 20px 2px;
+    }
+    br { clear: both }
+    .grid > * {
+      position: absolute;
+      grid-area: 2 / 2 / 3 / 3;
+      background: teal;
+      height: 35px;
+      width: 45px;
+      top:0;
+    }
+    .vertRL {
+      writing-mode: vertical-rl;
+    }
+    .relPos {
+      position: relative;
+    }
+  </style>
+</head>
+<body>
+  <div class="container relPos vertRL"><div class="grid"><div style="right:0;"></div></div></div>
+  <div class="container relPos"><div class="grid"><div style="left:0; top: 6px;"></div></div></div>
+</body>
+</html>

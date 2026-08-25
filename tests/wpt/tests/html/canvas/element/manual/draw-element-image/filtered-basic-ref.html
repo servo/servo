@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<title>Canvas.drawElementImage: filtered green rect (ref)</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<link rel="author" href="mailto:schenney@chromium.org">
+<style>
+#canvas {
+  background: grey;
+}
+</style>
+
+<canvas id=canvas width="200" height="200" layoutsubtree>
+</canvas>
+
+<script>
+function runTest() {
+  var context = canvas.getContext("2d");
+  context.fillStyle = "green";
+  context.filter = "blur(5px)";
+  context.fillRect(20, 30, 100, 100);
+}
+
+onload = () => runTest();
+
+</script>
+</html>

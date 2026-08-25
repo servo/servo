@@ -1,0 +1,56 @@
+<!doctype html>
+<title>XMLHttpRequest: open() during abort event - abort() called from upload.onloadstart</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+async_test(t => {
+  let client = new XMLHttpRequest(),
+      log = [],
+      lastTest = false,
+      expected = [
+        'readyState before abort() 1',
+        "upload.onabort - before open() 4",
+        "readyState after open() 1",
+        "client.onabort 1",
+        "client.onloadend 1",
+        "readyState after abort() 1",
+        "client.onload 4",
+        "client.onloadend 4"
+      ]
+
+  client.upload.onloadstart = t.step_func(() => {
+    log.push('readyState before abort() '+client.readyState)
+    client.abort()
+    log.push('readyState after abort() '+client.readyState)
+  })
+
+  client.upload.onabort = t.step_func(() => {
+    log.push('upload.onabort - before open() ' + client.readyState)
+    client.open("GET", "resources/content.py")
+    log.push('readyState after open() ' + client.readyState)
+    client.send(null)
+  })
+
+  client.onabort = t.step_func(() => {
+    // happens immediately after all of upload.onabort, so readyState is 1
+    log.push('client.onabort ' + client.readyState)
+  })
+
+  client.onloadend = t.step_func(() => {
+    log.push('client.onloadend ' + client.readyState)
+    if(lastTest) {
+      assert_array_equals(log, expected)
+      t.done()
+    }
+    lastTest = true
+  })
+
+  client.onload = t.step_func(() => {
+    log.push('client.onload ' + client.readyState)
+  })
+
+  client.open("POST", "resources/content.py")
+  client.send("non-empty")
+})
+</script>

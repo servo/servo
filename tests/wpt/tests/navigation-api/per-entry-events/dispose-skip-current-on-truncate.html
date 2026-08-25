@@ -1,0 +1,43 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async (t) => {
+  let start_length = navigation.entries().length;
+  let start_index = navigation.currentEntry.index;
+
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  await new Promise(r => window.onload = () => t.step_timeout(r, 0));
+  await navigation.navigate("#1").finished;
+  assert_equals(navigation.entries().length, start_length + 1);
+
+  let iframe = document.createElement("iframe");
+  iframe.src = "/common/blank.html";
+  document.body.appendChild(iframe);
+  await new Promise(r => iframe.onload = () => t.step_timeout(r, 0));
+  assert_equals(iframe.contentWindow.navigation.entries().length, 1);
+
+  // Go back to before the iframe was added. The iframe will still be in the
+  // document, but we will be at a joint session history entry that was created
+  // before the iframe was added to the document.
+  await navigation.back().finished;
+  assert_equals(navigation.entries().length, start_length + 1);
+  assert_equals(iframe.contentWindow.navigation.entries().length, 1);
+  assert_equals(navigation.currentEntry.index, start_index);
+  assert_equals(iframe.contentWindow.navigation.currentEntry.index, 0);
+
+  // A push navigation in the top window will truncate-then-push the joint
+  // session history. This should dispose the forward entry in the top window,
+  // but should not interfere with the currentEntry in the iframe.
+  let dispose_promise = new Promise(r => navigation.entries()[start_index + 1].ondispose = r);
+  iframe.contentWindow.navigation.currentEntry.ondispose = t.unreached_func("iframe entry must not be disposed");
+  await navigation.navigate("#b").finished;
+
+  await dispose_promise;
+  assert_equals(navigation.entries().length, start_length + 1);
+  assert_equals(iframe.contentWindow.navigation.entries().length, 1);
+  assert_equals(navigation.currentEntry.index, start_index + 1);
+  assert_equals(iframe.contentWindow.navigation.currentEntry.index, 0);
+}, "Removing a currentEntry from the joint session history shouldn't dispose it");
+</script>

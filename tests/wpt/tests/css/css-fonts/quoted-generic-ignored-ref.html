@@ -1,0 +1,20 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+<meta charset=utf-8>
+<title>CSS Reference: quoted font-family names must not be treated as generics</title>
+<link rel="author" title="Jonathan Kew" href="mailto:jfkthame@gmail.com"/>
+<style>
+body { font-size: 36px; }
+.test1 { font-family: serif; }
+.test2 { font-family: sans-serif; }
+.test3 { font-family: monospace; }
+</style>
+<body>
+<p>The following lines should be rendered with the generic font-families as named:</p>
+<div class="test1">serif</div>
+<div class="test2">sans-serif</div>
+<div class="test3">monospace</div>
+<div class="test1">serif</div>
+<div class="test2">sans-serif</div>
+<div class="test3">monospace</div>

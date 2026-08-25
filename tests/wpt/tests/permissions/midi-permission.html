@@ -1,0 +1,35 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Test WebIDL conversion when querying the "midi" permission</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id="log"></div>
+
+<script>
+  promise_test(async (test) => {
+    let calledCount = 0;
+    const status = await navigator.permissions.query({
+      get name() {
+        calledCount++;
+        return "midi";
+      },
+    });
+    assert_true(status instanceof PermissionStatus);
+    assert_equals(status.name, "midi", `permission's name should be "midi"`);
+    //
+    // First call should be from:
+    //
+    //     Let rootDesc be the object permissionDesc refers to, converted to an
+    //     IDL value of type PermissionDescriptor.
+    //
+    // Second from:
+    //
+    //     Let typedDescriptor be the object permissionDesc refers to,
+    //     converted to an IDL value of rootDesc's name's permission descriptor
+    //     type.
+    //
+    // See: https://w3c.github.io/permissions/#query-method
+    //
+    assert_equals(calledCount, 2, "midi permission should be converted twice");
+  }, `querying the "midi" permission requires two WebIDL conversions`);
+</script>

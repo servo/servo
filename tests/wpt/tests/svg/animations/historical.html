@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<title>Historical features of SVG Animation</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<svg width="100" height="100" id="test-discard">
+  <rect x="0" y="0" width="50" height="50" fill="black" transform="translate(0, 0)">
+    <animateTransform attributeName="transform" begin="0s" dur="0.1s" from="0, 0" to="50, 50"/>
+    <discard begin="0.1s"/>
+  </rect>
+</svg>
+
+<script>
+async_test(t => {
+  const testDiscardEl = document.getElementById('test-discard');
+  t.step_timeout(() => {
+    for (const tag of ["rect", "animateTransform", "discard"]) {
+      assert_not_equals(testDiscardEl.querySelector(tag), null, tag);
+    }
+    t.done();
+  }, 500);
+}, 'discard element');
+
+test(() => {
+  assert_equals(window.SVGDiscardElement, undefined);
+}, 'SVGDiscardElement');
+</script>

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Color 4: hwb</title>
+<link rel="author" title="Sam Weinig" href="mailto:weinig@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#the-hwb-notation">
+<link rel="match" href="blacksquare-ref.html">
+<meta name="assert" content="hwb() with no alpha">
+<style>
+    .test { background-color: red; width: 12em; height: 12em; }
+    .test { background-color: hwb(0 0% 100%); } /* black (sRGB #000000) converted to hwb */
+</style>
+<body>
+    <p>Test passes if you see a black square, and no red.</p>
+    <div class="test"></div>
+</body>

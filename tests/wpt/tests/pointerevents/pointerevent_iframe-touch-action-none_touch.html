@@ -1,0 +1,49 @@
+<html>
+  <head>
+    <title>iframe touch-action:none does not prevent panning or zooming inside
+    the iframe</title>
+    <meta name="viewport" content="width=device-width">
+    <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="pointerevent_support.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-actions.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+  </head>
+  <style>
+    iframe {
+      touch-action: none;
+    }
+  </style>
+  <body>
+    <h1>iframe touch-action:none attribute</h1>
+    <h2 id="pointerTypeDescription"></h2>
+    <br>
+    <iframe id="target"></iframe>
+  </body>
+  <script>
+    'use strict';
+
+    promise_test(async t => {
+      const target = document.getElementById("target");
+      await loadFrameAndExcecuteScript(
+          document.getElementById('target'),
+          'resources/iframe-touch-action-none-subframe.html');
+
+      const messagePromise =
+          getMessageData('subframe-event', frames[0]);
+
+      await new test_driver.Actions()
+            .addPointer("pointer1", "touch")
+            .pointerMove(0, 0, {origin: target})
+            .pointerDown()
+            .pointerMove(25, 25, {origin: target})
+            .pointerUp()
+            .send();
+
+      const result = await messagePromise;
+      assert_equals(result.eventType, 'pointercancel');
+    }, 'touch iframe received pointercancel');
+  </script>
+</html>

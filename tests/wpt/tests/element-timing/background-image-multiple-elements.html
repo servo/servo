@@ -1,0 +1,88 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Element Timing: background image affecting multiple elements</title>
+<body>
+<style>
+body {
+  margin: 0;
+}
+.my_div {
+  background-image: url('resources/square100.png');
+}
+#div1 {
+  width: 100px;
+  height: 100px;
+}
+#div2 {
+  width: 200px;
+  height: 100px;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/element-timing-helpers.js"></script>
+<script>
+  async_test(function (t) {
+    assert_implements(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
+    let beforeRender = performance.now();
+    let numObservedElements = 0;
+    let observedDiv1 = false;
+    let observedDiv2Img = false;
+    let observedDiv2Txt = false;
+    const pathname = window.location.origin + '/element-timing/resources/square100.png';
+    const observer = new PerformanceObserver(
+      t.step_func(function(entryList) {
+        entryList.getEntries().forEach(entry => {
+          numObservedElements++;
+          if (entry.id == 'div1') {
+            observedDiv1 = true;
+            checkElement(entry, pathname, 'et1', 'div1', beforeRender,
+                document.getElementById('div1'));
+            // Div is in the top left corner.
+            checkRect(entry, [0, 100, 0, 100]);
+            checkNaturalSize(entry, 100, 100);
+          }
+          else if (entry.id == 'div2') {
+            // Check image entry.
+            if (entry.name !== 'text-paint') {
+              observedDiv2Img = true;
+              checkElement(entry, pathname, 'et2', 'div2', beforeRender,
+                  document.getElementById('div2'));
+              // Div is below div1, on the left.
+              checkRect(entry, [0, 200, 100, 200]);
+              checkNaturalSize(entry, 100, 100);
+            }
+            // Check the text entry.
+            else {
+              observedDiv2Txt = true;
+              checkTextElement(entry, 'et2', 'div2', beforeRender,
+                document.getElementById('div2'));
+              assert_greater_than_equal(entry.intersectionRect.right - entry.intersectionRect.left, 50);
+              assert_greater_than_equal(entry.intersectionRect.bottom - entry.intersectionRect.top, 10);
+            }
+          }
+          else {
+            assert_unreached("Should not observe other elements!");
+          }
+          if (numObservedElements === 3) {
+            assert_true(observedDiv1);
+            assert_true(observedDiv2Img);
+            assert_true(observedDiv2Txt);
+            t.done();
+          }
+        });
+      })
+    );
+    observer.observe({entryTypes: ['element']});
+  }, 'Background image affecting various elements is observed.');
+</script>
+<div id="div1" class="my_div" elementtiming="et1">
+  <img width=50 height=50 src='resources/circle.svg'/>
+</div>
+<div width=200 height=100 id="div2" class="my_div" elementtiming="et2">
+  Sample text inside div.
+</div>
+<div id="div3">
+  I am a div that should not be observed!
+</div>
+</body>

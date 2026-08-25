@@ -1,0 +1,13 @@
+<!doctype html>
+<title>Overflowing textarea placeholder should be scrollable</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1239595">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.com">
+<textarea id="t" rows="2" placeholder="line1&#10;line2&#10;line3&#10;line4&#10;line5&#10;line6&#10;line7&#10;line8&#10;line9&#10;line10"></textarea>
+<script>
+test(() => {
+  assert_greater_than(t.scrollHeight, t.clientHeight);
+});
+</script>

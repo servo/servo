@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="help" href="https://drafts.csswg.org/css-inline-3/#alignment-baseline-property">
+  <link rel="match" href="alignment-baseline-vertical-rl-002-ref.html">
+  <link rel="stylesheet" href="/fonts/baseline-diagnostic/baseline-diagnostic-font.css">
+  <script src="support/variant-class.js"></script>
+  <meta name="assert" content="alignment-baseline affects the vertical position of horizontal text with a different baseline set than its parent" />
+  <meta name="flags" content="image" />
+  <meta charset="utf-8">
+  <meta name="variant" content="?class=baseline">
+  <meta name="variant" content="?class=text-bottom">
+  <meta name="variant" content="?class=alphabetic">
+  <meta name="variant" content="?class=ideographic">
+  <meta name="variant" content="?class=middle">
+  <meta name="variant" content="?class=central">
+  <meta name="variant" content="?class=mathematical">
+  <meta name="variant" content="?class=hanging">
+  <meta name="variant" content="?class=text-top">
+  <style>
+    :root {
+      font: 200px/1 'BaselineDiagnostic';
+    }
+
+    #container {
+      writing-mode: vertical-rl;
+    }
+
+    #target {
+      font-size: 0.5rem;
+    }
+
+    img {
+      width: 64px;
+      height: 64px;
+    }
+
+    .baseline     :is(#target, img) { alignment-baseline: baseline; }
+    .text-bottom  :is(#target, img) { alignment-baseline: text-bottom; }
+    .alphabetic   :is(#target, img) { alignment-baseline: alphabetic; }
+    .ideographic  :is(#target, img) { alignment-baseline: ideographic; }
+    .middle       :is(#target, img) { alignment-baseline: middle; }
+    .central      :is(#target, img) { alignment-baseline: central; }
+    .mathematical :is(#target, img) { alignment-baseline: mathematical; }
+    .hanging      :is(#target, img) { alignment-baseline: hanging; }
+    .text-top     :is(#target, img) { alignment-baseline: text-top; }
+  </style>
+</head>
+<body>
+  <span id="container">X<span id="target">X</span><img src="/images/grgr-256x256.png"></span>
+</body>
+</html>

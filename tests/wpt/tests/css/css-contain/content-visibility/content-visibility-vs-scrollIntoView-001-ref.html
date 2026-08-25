@@ -1,0 +1,42 @@
+<!doctype HTML>
+<html class="reftest-wait">
+<meta charset="utf8">
+<title>Nested CSS Content Visibility: auto + scrollIntoView</title>
+<link rel="author" title="Cathie Chen" href="mailto:cathiechen@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<meta name="assert" content="Test if target scrollIntoView is visible when it is inside a nested content-visibility: auto">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+
+    .child {
+        height: 40000px;
+        position: relative;
+    }
+
+    #target {
+        position: absolute;
+        bottom: 0;
+        font: 25px/1 Ahem;
+    }
+
+    .before_target {
+        height: 40000px;
+    }
+</style>
+
+<div id=e1 class="before_target"></div>
+<div id=e2 class="before_target"></div>
+<div id=e3 class="before_target"></div>
+<div id=e4 class="before_target"></div>
+<div id=e5 class=child>
+    <div id=target>PASS</div>
+</div>
+
+<script>
+    window.onload = () => {
+        target.scrollIntoView();
+        requestAnimationFrame(takeScreenshot);
+    }
+</script>

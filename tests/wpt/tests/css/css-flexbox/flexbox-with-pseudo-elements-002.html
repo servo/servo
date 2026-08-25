@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!-- Testcase to ensure we handle ::before and ::after pseudo-elements on
+     a flex container and treat them as flex items (e.g. honoring "order").
+-->
+<html>
+<head>
+  <title>CSS Test: Testing that generated content nodes are treated as a flex items, and honor 'order'</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#flex-items">
+  <link rel="match" href="flexbox-with-pseudo-elements-002-ref.html">
+  <meta charset="utf-8">
+  <style>
+    .flexContainer {
+      display: flex;
+      margin-bottom: 2px;
+      background: lightgray;
+    }
+    .withBefore::before {
+      content: 'b';
+      background: yellow;
+      /* This 'order' value should place us after the other elements, visually,
+         even though we're ::before. */
+      order: 1;
+    }
+    .withAfter::after {
+      content: 'a';
+      background: lightblue;
+      /* This 'order' value should place us before the other elements, visually,
+         even though we're ::after. */
+      order: -1;
+    }
+  </style>
+</head>
+<body>
+  <!-- 'b' should be at end, due to its high 'order' value: -->
+  <div class="flexContainer withBefore">
+    <div>I</div>
+  </div>
+
+  <!-- 'b' should be at beginning, since it's '::before' and the other item has
+        a matching 'order' value: -->
+  <div class="flexContainer withBefore">
+    <div style="order: 1">I</div>
+  </div>
+
+  <!-- 'a' should be at beginning, due to its low 'order' value: -->
+  <div class="flexContainer withAfter">
+    <div>I</div>
+  </div>
+
+  <!-- 'b' should be at beginning, since it's '::after' and the other item has
+        a matching 'order' value: -->
+  <div class="flexContainer withAfter">
+    <div style="order: -1">I</div>
+  </div>
+
+  <!-- As above, the ::after 'a' should be at beginning, and the ::before 'b'
+       should be at end, due to their 'order' values -->
+  <div class="flexContainer withBefore withAfter">
+    <div>I</div>
+  </div>
+
+  <!-- ...but now the normal item "I" has its order increased, so it'll go
+       at the end. -->
+  <div class="flexContainer withBefore withAfter">
+    <div style="order: 1">I</div>
+  </div>
+
+  <!-- ...and now the normal item "I" has its order reduced, so it'll go
+       at the beginning. -->
+  <div class="flexContainer withBefore withAfter">
+    <div style="order: -1">I</div>
+  </div>
+</body>
+</html>

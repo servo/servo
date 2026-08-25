@@ -1,0 +1,1167 @@
+<!doctype html>
+<meta chareset="utf-8">
+<meta name="timeout" content="long">
+<meta name="variant" content="?method=backspace">
+<meta name="variant" content="?method=forwarddelete">
+<title>Not merging attributes at joining elements in contenteditable</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../include/editor-test-utils.js"></script>
+</style>
+<div contenteditable></div>
+<script>
+"use strict";
+
+const testingBackspace =
+  new URLSearchParams(document.location.search).get("method") == "backspace";
+const caretForBackSpace = testingBackspace ? "[]" : "";
+const caretForForwardDelete = testingBackspace ? "" : "[]";
+document.execCommand("defaultParagraphSeparator", false, "div");
+const utils =
+  new EditorTestUtils(document.querySelector("div[contenteditable]"));
+
+// DO NOT USE multi-line comment in this file, then, you can comment out
+// unnecessary tests when you need to attach the browser with a debugger.
+
+// At joining 2 elements, the attributes shouldn't be merged, and from point of
+// view of JS/DOM, both element kept after the join and element deleted from the
+// DOM tree should have attributes as-is.
+promise_test(async t => {
+  utils.setupEditingHost(
+    `<div id="left">abc${caretForForwardDelete}</div><div id="right">${caretForBackSpace}def</div>`
+  );
+  const leftNode = document.getElementById("left");
+  const rightNode = document.getElementById("right");
+
+  await (testingBackspace ? utils.sendBackspaceKey() : utils.sendDeleteKey());
+
+  test(() => {
+    assert_equals(
+      leftNode.getAttribute("id"),
+      "left",
+      `The left node should keep having id=left (isConnected=${leftNode.isConnected}, ${t.name})`
+    );
+  });
+  test(() => {
+    assert_equals(
+      rightNode.getAttribute("id"),
+      "right",
+      `The right node should keep having id=right (isConnected=${rightNode.isConnected}, ${t.name})`
+    );
+  });
+  assert_equals(
+    leftNode.isConnected ^ rightNode.isConnected,
+    1,
+    `One should stay in the document and the other should be disconnected (${utils.editingHost.innerHTML}, ${t.name})`
+  );
+}, "Joining <div id=\"left\"> and <div id=\"right\">");
+
+promise_test(async t => {
+  utils.setupEditingHost(
+    `<div class="left">abc${caretForForwardDelete}</div><div class="right">${caretForBackSpace}def</div>`
+  );
+  const leftNode = utils.editingHost.querySelector(".left");
+  const rightNode = utils.editingHost.querySelector(".right");
+
+  await (testingBackspace ? utils.sendBackspaceKey() : utils.sendDeleteKey());
+
+  test(() => {
+    assert_equals(
+      leftNode.getAttribute("class"),
+      "left",
+      `The left node should keep having class=left (isConnected=${leftNode.isConnected}, ${t.name})`
+    );
+  });
+  test(() => {
+    assert_equals(
+      rightNode.getAttribute("class"),
+      "right",
+      `The right node should keep having class=right (isConnected=${rightNode.isConnected}, ${t.name})`
+    );
+  });
+  assert_equals(
+    leftNode.isConnected ^ rightNode.isConnected,
+    1,
+    `One should stay in the document and the other should be disconnected (${utils.editingHost.innerHTML}, ${t.name})`
+  );
+}, "Joining <div class=\"left\"> and <div class=\"right\">");
+
+promise_test(async t => {
+  utils.setupEditingHost(
+    `<div style="font-size:0.8rem">abc${caretForForwardDelete}</div><div style="font-weight:bold">${caretForBackSpace}def</div>`
+  );
+  const leftNode = utils.editingHost.querySelector("div[style]");
+  const rightNode = leftNode.nextSibling;
+
+  await (testingBackspace ? utils.sendBackspaceKey() : utils.sendDeleteKey());
+
+  // style attribute values shouldn't be touched in this but case, but it's
+  // okay if the values are not merged.
+  test(() => {
+    assert_true(
+      leftNode.getAttribute("style").includes("font-size"),
+      `The left node should keep having style attribute containing font-size (style="${leftNode.getAttribute("style")}", ${t.name})`
+    );
+    assert_false(
+      leftNode.getAttribute("style").includes("font-weight"),
+      `The left node should have font-weight in its style attribute (style="${leftNode.getAttribute("style")}", ${t.name})`
+    );
+  });
+  test(() => {
+    assert_true(
+      rightNode.getAttribute("style").includes("font-weight"),
+      `The right node should keep having style attribute containing font-size (style="${rightNode.getAttribute("style")}", ${t.name})`
+    );
+    assert_false(
+      rightNode.getAttribute("style").includes("font-style"),
+      `The right node should have font-size in its style attribute (style="${rightNode.getAttribute("style")}", ${t.name})`
+    );
+  });
+  assert_equals(
+    leftNode.isConnected ^ rightNode.isConnected,
+    1,
+    `One should stay in the document and the other should be disconnected (${utils.editingHost.innerHTML}, ${t.name})`
+  );
+}, "Joining <div style=\"font-size:0.8rem\"> and <div style=\"font-weight:bold\">");
+
+promise_test(async t => {
+  utils.setupEditingHost(
+    `<div data-foo="left">abc${caretForForwardDelete}</div><div data-bar="right">${caretForBackSpace}def</div>`
+  );
+  const leftNode = utils.editingHost.querySelector("[data-foo=left]");
+  const rightNode = utils.editingHost.querySelector("[data-bar=right]");
+
+  await (testingBackspace ? utils.sendBackspaceKey() : utils.sendDeleteKey());
+
+  test(() => {
+    assert_equals(
+      leftNode.getAttribute("data-foo"),
+      "left",
+      `The left node should keep having class=left (isConnected=${leftNode.isConnected}, ${t.name})`
+    );
+  });
+  test(() => {
+    assert_false(
+      leftNode.hasAttribute("data-bar"),
+      `The left node shouldn't have data-bar attribute (isConnected=${leftNode.isConnected}, ${t.name})`
+    );
+  });
+  test(() => {
+    assert_equals(
+      rightNode.getAttribute("data-bar"),
+      "right",
+      `The right node should keep having class=right (isConnected=${rightNode.isConnected}, ${t.name})`
+    );
+  });
+  test(() => {
+    assert_false(
+      rightNode.hasAttribute("data-foo"),
+      `The right node shouldn't have data-foo attribute (isConnected=${leftNode.isConnected}, ${t.name})`
+    );
+  });
+  assert_equals(
+    leftNode.isConnected ^ rightNode.isConnected,
+    1,
+    `One should stay in the document and the other should be disconnected (${utils.editingHost.innerHTML}, ${t.name})`
+  );
+}, "Joining <div data-foo=\"left\"> and <div data-bar=\"right\">");
+
+// Same tests for list-item elements because they may be handled in a different
+// path.
+promise_test(async t => {
+  utils.setupEditingHost(
+    `<ul><li id="left">abc${caretForForwardDelete}</li><li id="right">${caretForBackSpace}def</li></ul>`
+  );
+  const leftNode = document.getElementById("left");
+  const rightNode = document.getElementById("right");
+
+  await (testingBackspace ? utils.sendBackspaceKey() : utils.sendDeleteKey());
+
+  test(() => {
+    assert_equals(
+      leftNode.getAttribute("id"),
+      "left",
+      `The left node should keep having id=left (isConnected=${leftNode.isConnected}, ${t.name})`
+    );
+  });
+  test(() => {
+    assert_equals(
+      rightNode.getAttribute("id"),
+      "right",
+      `The right node should keep having id=right (isConnected=${rightNode.isConnected}, ${t.name})`
+    );
+  });
+  assert_equals(
+    leftNode.isConnected ^ rightNode.isConnected,
+    1,
+    `One should stay in the document and the other should be disconnected (${utils.editingHost.innerHTML}, ${t.name})`
+  );
+}, "Joining <li id=\"left\"> and <li id=\"right\">");
+
+promise_test(async t => {
+  utils.setupEditingHost(
+    `<ul><li class="left">abc${caretForForwardDelete}</li><li class="right">${caretForBackSpace}def</li></ul>`
+  );
+  const leftNode = utils.editingHost.querySelector(".left");
+  const rightNode = utils.editingHost.querySelector(".right");
+
+  await (testingBackspace ? utils.sendBackspaceKey() : utils.sendDeleteKey());
+
+  test(() => {
+    assert_equals(
+      leftNode.getAttribute("class"),
+      "left",
+      `The left node should keep having class=left (isConnected=${leftNode.isConnected}, ${t.name})`
+    );
+  });
+  test(() => {
+    assert_equals(
+      rightNode.getAttribute("class"),
+      "right",
+      `The right node should keep having class=right (isConnected=${rightNode.isConnected}, ${t.name})`
+    );
+  });
+  assert_equals(
+    leftNode.isConnected ^ rightNode.isConnected,
+    1,
+    `One should stay in the document and the other should be disconnected (${utils.editingHost.innerHTML}, ${t.name})`
+  );
+}, "Joining <li class=\"left\"> and <li class=\"right\">");
+
+promise_test(async t => {
+  utils.setupEditingHost(
+    `<ul><li style="font-size:0.8rem">abc${caretForForwardDelete}</li><li style="font-weight:bold">${caretForBackSpace}def</li></ul>`
+  );
+  const leftNode = utils.editingHost.querySelector("li[style]");
+  const rightNode = leftNode.nextSibling;
+
+  await (testingBackspace ? utils.sendBackspaceKey() : utils.sendDeleteKey());
+
+  // style attribute values shouldn't be touched in this but case, but it's
+  // okay if the values are not merged.
+  test(() => {
+    assert_true(
+      leftNode.getAttribute("style").includes("font-size"),
+      `The left node should keep having style attribute containing font-size (style="${leftNode.getAttribute("style")}", ${t.name})`
+    );
+    assert_false(
+      leftNode.getAttribute("style").includes("font-weight"),
+      `The left node should have font-weight in its style attribute (style="${leftNode.getAttribute("style")}", ${t.name})`
+    );
+  });
+  test(() => {
+    assert_true(
+      rightNode.getAttribute("style").includes("font-weight"),
+      `The right node should keep having style attribute containing font-size (style="${rightNode.getAttribute("style")}", ${t.name})`
+    );
+    assert_false(
+      rightNode.getAttribute("style").includes("font-style"),
+      `The right node should have font-size in its style attribute (style="${rightNode.getAttribute("style")}", ${t.name})`
+    );
+  });
+  assert_equals(
+    leftNode.isConnected ^ rightNode.isConnected,
+    1,
+    `One should stay in the document and the other should be disconnected (${utils.editingHost.innerHTML}, ${t.name})`
+  );
+}, "Joining <li style=\"font-size:0.8rem\"> and <li style=\"font-weight:bold\">");
+
+promise_test(async t => {
+  utils.setupEditingHost(
+    `<ul><li data-foo="left">abc${caretForForwardDelete}</li><li data-bar="right">${caretForBackSpace}def</li></ul>`
+  );
+  const leftNode = utils.editingHost.querySelector("[data-foo=left]");
+  const rightNode = utils.editingHost.querySelector("[data-bar=right]");
+
+  await (testingBackspace ? utils.sendBackspaceKey() : utils.sendDeleteKey());
+
+  test(() => {
+    assert_equals(
+      leftNode.getAttribute("data-foo"),
+      "left",
+      `The left node should keep having class=left (isConnected=${leftNode.isConnected}, ${t.name})`
+    );
+  });
+  test(() => {
+    assert_false(
+      leftNode.hasAttribute("data-bar"),
+      `The left node shouldn't have data-bar attribute (isConnected=${leftNode.isConnected}, ${t.name})`
+    );
+  });
+  test(() => {
+    assert_equals(
+      rightNode.getAttribute("data-bar"),
+      "right",
+      `The right node should keep having class=right (isConnected=${rightNode.isConnected}, ${t.name})`
+    );
+  });
+  test(() => {
+    assert_false(
+      rightNode.hasAttribute("data-foo"),
+      `The right node shouldn't have data-foo attribute (isConnected=${leftNode.isConnected}, ${t.name})`
+    );
+  });
+  assert_equals(
+    leftNode.isConnected ^ rightNode.isConnected,
+    1,
+    `One should stay in the document and the other should be disconnected (${utils.editingHost.innerHTML}, ${t.name})`
+  );
+}, "Joining <li data-foo=\"left\"> and <li data-bar=\"right\">");
+
+// Same tests for <dt> elements because they may be handled in a different
+// path.
+promise_test(async t => {
+  utils.setupEditingHost(
+    `<dl><dt id="left">abc${caretForForwardDelete}</dt><dt id="right">${caretForBackSpace}def</dt></dl>`
+  );
+  const leftNode = document.getElementById("left");
+  const rightNode = document.getElementById("right");
+
+  await (testingBackspace ? utils.sendBackspaceKey() : utils.sendDeleteKey());
+
+  test(() => {
+    assert_equals(
+      leftNode.getAttribute("id"),
+      "left",
+      `The left node should keep having id=left (isConnected=${leftNode.isConnected}, ${t.name})`
+    );
+  });
+  test(() => {
+    assert_equals(
+      rightNode.getAttribute("id"),
+      "right",
+      `The right node should keep having id=right (isConnected=${rightNode.isConnected}, ${t.name})`
+    );
+  });
+  assert_equals(
+    leftNode.isConnected ^ rightNode.isConnected,
+    1,
+    `One should stay in the document and the other should be disconnected (${utils.editingHost.innerHTML}, ${t.name})`
+  );
+}, "Joining <dt id=\"left\"> and <dt id=\"right\">");
+
+promise_test(async t => {
+  utils.setupEditingHost(
+    `<dl><dt class="left">abc${caretForForwardDelete}</dt><dt class="right">${caretForBackSpace}def</dt></dl>`
+  );
+  const leftNode = utils.editingHost.querySelector(".left");
+  const rightNode = utils.editingHost.querySelector(".right");
+
+  await (testingBackspace ? utils.sendBackspaceKey() : utils.sendDeleteKey());
+
+  test(() => {
+    assert_equals(
+      leftNode.getAttribute("class"),
+      "left",
+      `The left node should keep having class=left (isConnected=${leftNode.isConnected}, ${t.name})`
+    );
+  });
+  test(() => {
+    assert_equals(
+      rightNode.getAttribute("class"),
+      "right",
+      `The right node should keep having class=right (isConnected=${rightNode.isConnected}, ${t.name})`
+    );
+  });
+  assert_equals(
+    leftNode.isConnected ^ rightNode.isConnected,
+    1,
+    `One should stay in the document and the other should be disconnected (${utils.editingHost.innerHTML}, ${t.name})`
+  );
+}, "Joining <dt class=\"left\"> and <dt class=\"right\">");
+
+promise_test(async t => {
+  utils.setupEditingHost(
+    `<dl><dt style="font-size:0.8rem">abc${caretForForwardDelete}</dt><dt style="font-weight:bold">${caretForBackSpace}def</dt></dl>`
+  );
+  const leftNode = utils.editingHost.querySelector("dt[style]");
+  const rightNode = leftNode.nextSibling;
+
+  await (testingBackspace ? utils.sendBackspaceKey() : utils.sendDeleteKey());
+
+  // style attribute values shouldn't be touched in this but case, but it's
+  // okay if the values are not merged.
+  test(() => {
+    assert_true(
+      leftNode.getAttribute("style").includes("font-size"),
+      `The left node should keep having style attribute containing font-size (style="${leftNode.getAttribute("style")}", ${t.name})`
+    );
+    assert_false(
+      leftNode.getAttribute("style").includes("font-weight"),
+      `The left node should have font-weight in its style attribute (style="${leftNode.getAttribute("style")}", ${t.name})`
+    );
+  });
+  test(() => {
+    assert_true(
+      rightNode.getAttribute("style").includes("font-weight"),
+      `The right node should keep having style attribute containing font-size (style="${rightNode.getAttribute("style")}", ${t.name})`
+    );
+    assert_false(
+      rightNode.getAttribute("style").includes("font-style"),
+      `The right node should have font-size in its style attribute (style="${rightNode.getAttribute("style")}", ${t.name})`
+    );
+  });
+  assert_equals(
+    leftNode.isConnected ^ rightNode.isConnected,
+    1,
+    `One should stay in the document and the other should be disconnected (${utils.editingHost.innerHTML}, ${t.name})`
+  );
+}, "Joining <dt style=\"font-size:0.8rem\"> and <dt style=\"font-weight:bold\">");
+
+promise_test(async t => {
+  utils.setupEditingHost(
+    `<dl><dt data-foo="left">abc${caretForForwardDelete}</dt><dt data-bar="right">${caretForBackSpace}def</dt></dl>`
+  );
+  const leftNode = utils.editingHost.querySelector("[data-foo=left]");
+  const rightNode = utils.editingHost.querySelector("[data-bar=right]");
+
+  await (testingBackspace ? utils.sendBackspaceKey() : utils.sendDeleteKey());
+
+  test(() => {
+    assert_equals(
+      leftNode.getAttribute("data-foo"),
+      "left",
+      `The left node should keep having class=left (isConnected=${leftNode.isConnected}, ${t.name})`
+    );
+  });
+  test(() => {
+    assert_false(
+      leftNode.hasAttribute("data-bar"),
+      `The left node shouldn't have data-bar attribute (isConnected=${leftNode.isConnected}, ${t.name})`
+    );
+  });
+  test(() => {
+    assert_equals(
+      rightNode.getAttribute("data-bar"),
+      "right",
+      `The right node should keep having class=right (isConnected=${rightNode.isConnected}, ${t.name})`
+    );
+  });
+  test(() => {
+    assert_false(
+      rightNode.hasAttribute("data-foo"),
+      `The right node shouldn't have data-foo attribute (isConnected=${leftNode.isConnected}, ${t.name})`
+    );
+  });
+  assert_equals(
+    leftNode.isConnected ^ rightNode.isConnected,
+    1,
+    `One should stay in the document and the other should be disconnected (${utils.editingHost.innerHTML}, ${t.name})`
+  );
+}, "Joining <dt data-foo=\"left\"> and <dt data-bar=\"right\">");
+
+// Same tests for <dd> elements because they may be handled in a different
+// path.
+promise_test(async t => {
+  utils.setupEditingHost(
+    `<dl><dd id="left">abc${caretForForwardDelete}</dd><dd id="right">${caretForBackSpace}def</dd></dl>`
+  );
+  const leftNode = document.getElementById("left");
+  const rightNode = document.getElementById("right");
+
+  await (testingBackspace ? utils.sendBackspaceKey() : utils.sendDeleteKey());
+
+  test(() => {
+    assert_equals(
+      leftNode.getAttribute("id"),
+      "left",
+      `The left node should keep having id=left (isConnected=${leftNode.isConnected}, ${t.name})`
+    );
+  });
+  test(() => {
+    assert_equals(
+      rightNode.getAttribute("id"),
+      "right",
+      `The right node should keep having id=right (isConnected=${rightNode.isConnected}, ${t.name})`
+    );
+  });
+  assert_equals(
+    leftNode.isConnected ^ rightNode.isConnected,
+    1,
+    `One should stay in the document and the other should be disconnected (${utils.editingHost.innerHTML}, ${t.name})`
+  );
+}, "Joining <dd id=\"left\"> and <dd id=\"right\">");
+
+promise_test(async t => {
+  utils.setupEditingHost(
+    `<dl><dd class="left">abc${caretForForwardDelete}</dd><dd class="right">${caretForBackSpace}def</dd></dl>`
+  );
+  const leftNode = utils.editingHost.querySelector(".left");
+  const rightNode = utils.editingHost.querySelector(".right");
+
+  await (testingBackspace ? utils.sendBackspaceKey() : utils.sendDeleteKey());
+
+  test(() => {
+    assert_equals(
+      leftNode.getAttribute("class"),
+      "left",
+      `The left node should keep having class=left (isConnected=${leftNode.isConnected}, ${t.name})`
+    );
+  });
+  test(() => {
+    assert_equals(
+      rightNode.getAttribute("class"),
+      "right",
+      `The right node should keep having class=right (isConnected=${rightNode.isConnected}, ${t.name})`
+    );
+  });
+  assert_equals(
+    leftNode.isConnected ^ rightNode.isConnected,
+    1,
+    `One should stay in the document and the other should be disconnected (${utils.editingHost.innerHTML}, ${t.name})`
+  );
+}, "Joining <dd class=\"left\"> and <dd class=\"right\">");
+
+promise_test(async t => {
+  utils.setupEditingHost(
+    `<dl><dd style="font-size:0.8rem">abc${caretForForwardDelete}</dd><dd style="font-weight:bold">${caretForBackSpace}def</dd></dl>`
+  );
+  const leftNode = utils.editingHost.querySelector("dd[style]");
+  const rightNode = leftNode.nextSibling;
+
+  await (testingBackspace ? utils.sendBackspaceKey() : utils.sendDeleteKey());
+
+  // style attribute values shouldn't be touched in this but case, but it's
+  // okay if the values are not merged.
+  test(() => {
+    assert_true(
+      leftNode.getAttribute("style").includes("font-size"),
+      `The left node should keep having style attribute containing font-size (style="${leftNode.getAttribute("style")}", ${t.name})`
+    );
+    assert_false(
+      leftNode.getAttribute("style").includes("font-weight"),
+      `The left node should have font-weight in its style attribute (style="${leftNode.getAttribute("style")}", ${t.name})`
+    );
+  });
+  test(() => {
+    assert_true(
+      rightNode.getAttribute("style").includes("font-weight"),
+      `The right node should keep having style attribute containing font-size (style="${rightNode.getAttribute("style")}", ${t.name})`
+    );
+    assert_false(
+      rightNode.getAttribute("style").includes("font-style"),
+      `The right node should have font-size in its style attribute (style="${rightNode.getAttribute("style")}", ${t.name})`
+    );
+  });
+  assert_equals(
+    leftNode.isConnected ^ rightNode.isConnected,
+    1,
+    `One should stay in the document and the other should be disconnected (${utils.editingHost.innerHTML}, ${t.name})`
+  );
+}, "Joining <dd style=\"font-size:0.8rem\"> and <dd style=\"font-weight:bold\">");
+
+promise_test(async t => {
+  utils.setupEditingHost(
+    `<dl><dd data-foo="left">abc${caretForForwardDelete}</dd><dd data-bar="right">${caretForBackSpace}def</dd></dl>`
+  );
+  const leftNode = utils.editingHost.querySelector("[data-foo=left]");
+  const rightNode = utils.editingHost.querySelector("[data-bar=right]");
+
+  await (testingBackspace ? utils.sendBackspaceKey() : utils.sendDeleteKey());
+
+  test(() => {
+    assert_equals(
+      leftNode.getAttribute("data-foo"),
+      "left",
+      `The left node should keep having class=left (isConnected=${leftNode.isConnected}, ${t.name})`
+    );
+  });
+  test(() => {
+    assert_false(
+      leftNode.hasAttribute("data-bar"),
+      `The left node shouldn't have data-bar attribute (isConnected=${leftNode.isConnected}, ${t.name})`
+    );
+  });
+  test(() => {
+    assert_equals(
+      rightNode.getAttribute("data-bar"),
+      "right",
+      `The right node should keep having class=right (isConnected=${rightNode.isConnected}, ${t.name})`
+    );
+  });
+  test(() => {
+    assert_false(
+      rightNode.hasAttribute("data-foo"),
+      `The right node shouldn't have data-foo attribute (isConnected=${leftNode.isConnected}, ${t.name})`
+    );
+  });
+  assert_equals(
+    leftNode.isConnected ^ rightNode.isConnected,
+    1,
+    `One should stay in the document and the other should be disconnected (${utils.editingHost.innerHTML}, ${t.name})`
+  );
+}, "Joining <dd data-foo=\"left\"> and <dd data-bar=\"right\">");
+
+// Same tests for <dt> and <dd> because they may be handled in a different
+// path.
+promise_test(async t => {
+  utils.setupEditingHost(
+    `<dl><dt id="left">abc${caretForForwardDelete}</dt><dd id="right">${caretForBackSpace}def</dd></dl>`
+  );
+  const leftNode = document.getElementById("left");
+  const rightNode = document.getElementById("right");
+
+  await (testingBackspace ? utils.sendBackspaceKey() : utils.sendDeleteKey());
+
+  test(() => {
+    assert_equals(
+      leftNode.getAttribute("id"),
+      "left",
+      `The left node should keep having id=left (isConnected=${leftNode.isConnected}, ${t.name})`
+    );
+  });
+  test(() => {
+    assert_equals(
+      rightNode.getAttribute("id"),
+      "right",
+      `The right node should keep having id=right (isConnected=${rightNode.isConnected}, ${t.name})`
+    );
+  });
+  assert_equals(
+    leftNode.isConnected ^ rightNode.isConnected,
+    1,
+    `One should stay in the document and the other should be disconnected (${utils.editingHost.innerHTML}, ${t.name})`
+  );
+}, "Joining <dt id=\"left\"> and <dd id=\"right\">");
+
+promise_test(async t => {
+  utils.setupEditingHost(
+    `<dl><dt class="left">abc${caretForForwardDelete}</dt><dd class="right">${caretForBackSpace}def</dd></dl>`
+  );
+  const leftNode = utils.editingHost.querySelector(".left");
+  const rightNode = utils.editingHost.querySelector(".right");
+
+  await (testingBackspace ? utils.sendBackspaceKey() : utils.sendDeleteKey());
+
+  test(() => {
+    assert_equals(
+      leftNode.getAttribute("class"),
+      "left",
+      `The left node should keep having class=left (isConnected=${leftNode.isConnected}, ${t.name})`
+    );
+  });
+  test(() => {
+    assert_equals(
+      rightNode.getAttribute("class"),
+      "right",
+      `The right node should keep having class=right (isConnected=${rightNode.isConnected}, ${t.name})`
+    );
+  });
+  assert_equals(
+    leftNode.isConnected ^ rightNode.isConnected,
+    1,
+    `One should stay in the document and the other should be disconnected (${utils.editingHost.innerHTML}, ${t.name})`
+  );
+}, "Joining <dt class=\"left\"> and <dd class=\"right\">");
+
+promise_test(async t => {
+  utils.setupEditingHost(
+    `<dl><dt style="font-size:0.8rem">abc${caretForForwardDelete}</dt><dd style="font-weight:bold">${caretForBackSpace}def</dd></dl>`
+  );
+  const leftNode = utils.editingHost.querySelector("dt[style]");
+  const rightNode = utils.editingHost.querySelector("dd[style]");
+
+  await (testingBackspace ? utils.sendBackspaceKey() : utils.sendDeleteKey());
+
+  // style attribute values shouldn't be touched in this but case, but it's
+  // okay if the values are not merged.
+  test(() => {
+    assert_true(
+      leftNode.getAttribute("style").includes("font-size"),
+      `The left node should keep having style attribute containing font-size (style="${leftNode.getAttribute("style")}", ${t.name})`
+    );
+    assert_false(
+      leftNode.getAttribute("style").includes("font-weight"),
+      `The left node should have font-weight in its style attribute (style="${leftNode.getAttribute("style")}", ${t.name})`
+    );
+  });
+  test(() => {
+    assert_true(
+      rightNode.getAttribute("style").includes("font-weight"),
+      `The right node should keep having style attribute containing font-size (style="${rightNode.getAttribute("style")}", ${t.name})`
+    );
+    assert_false(
+      rightNode.getAttribute("style").includes("font-style"),
+      `The right node should have font-size in its style attribute (style="${rightNode.getAttribute("style")}", ${t.name})`
+    );
+  });
+  assert_equals(
+    leftNode.isConnected ^ rightNode.isConnected,
+    1,
+    `One should stay in the document and the other should be disconnected (${utils.editingHost.innerHTML}, ${t.name})`
+  );
+}, "Joining <dt style=\"font-size:0.8rem\"> and <dd style=\"font-weight:bold\">");
+
+promise_test(async t => {
+  utils.setupEditingHost(
+    `<dl><dt data-foo="left">abc${caretForForwardDelete}</dt><dd data-bar="right">${caretForBackSpace}def</dd></dl>`
+  );
+  const leftNode = utils.editingHost.querySelector("[data-foo=left]");
+  const rightNode = utils.editingHost.querySelector("[data-bar=right]");
+
+  await (testingBackspace ? utils.sendBackspaceKey() : utils.sendDeleteKey());
+
+  test(() => {
+    assert_equals(
+      leftNode.getAttribute("data-foo"),
+      "left",
+      `The left node should keep having class=left (isConnected=${leftNode.isConnected}, ${t.name})`
+    );
+  });
+  test(() => {
+    assert_false(
+      leftNode.hasAttribute("data-bar"),
+      `The left node shouldn't have data-bar attribute (isConnected=${leftNode.isConnected}, ${t.name})`
+    );
+  });
+  test(() => {
+    assert_equals(
+      rightNode.getAttribute("data-bar"),
+      "right",
+      `The right node should keep having class=right (isConnected=${rightNode.isConnected}, ${t.name})`
+    );
+  });
+  test(() => {
+    assert_false(
+      rightNode.hasAttribute("data-foo"),
+      `The right node shouldn't have data-foo attribute (isConnected=${leftNode.isConnected}, ${t.name})`
+    );
+  });
+  assert_equals(
+    leftNode.isConnected ^ rightNode.isConnected,
+    1,
+    `One should stay in the document and the other should be disconnected (${utils.editingHost.innerHTML}, ${t.name})`
+  );
+}, "Joining <dt data-foo=\"left\"> and <dd data-bar=\"right\">");
+
+// Same tests for <dd> and <dt> because they may be handled in a different
+// path.
+promise_test(async t => {
+  utils.setupEditingHost(
+    `<dl><dd id="left">abc${caretForForwardDelete}</dd><dt id="right">${caretForBackSpace}def</dt></dl>`
+  );
+  const leftNode = document.getElementById("left");
+  const rightNode = document.getElementById("right");
+
+  await (testingBackspace ? utils.sendBackspaceKey() : utils.sendDeleteKey());
+
+  test(() => {
+    assert_equals(
+      leftNode.getAttribute("id"),
+      "left",
+      `The left node should keep having id=left (isConnected=${leftNode.isConnected}, ${t.name})`
+    );
+  });
+  test(() => {
+    assert_equals(
+      rightNode.getAttribute("id"),
+      "right",
+      `The right node should keep having id=right (isConnected=${rightNode.isConnected}, ${t.name})`
+    );
+  });
+  assert_equals(
+    leftNode.isConnected ^ rightNode.isConnected,
+    1,
+    `One should stay in the document and the other should be disconnected (${utils.editingHost.innerHTML}, ${t.name})`
+  );
+}, "Joining <dd id=\"left\"> and <dt id=\"right\">");
+
+promise_test(async t => {
+  utils.setupEditingHost(
+    `<dl><dd class="left">abc${caretForForwardDelete}</dd><dt class="right">${caretForBackSpace}def</dt></dl>`
+  );
+  const leftNode = utils.editingHost.querySelector(".left");
+  const rightNode = utils.editingHost.querySelector(".right");
+
+  await (testingBackspace ? utils.sendBackspaceKey() : utils.sendDeleteKey());
+
+  test(() => {
+    assert_equals(
+      leftNode.getAttribute("class"),
+      "left",
+      `The left node should keep having class=left (isConnected=${leftNode.isConnected}, ${t.name})`
+    );
+  });
+  test(() => {
+    assert_equals(
+      rightNode.getAttribute("class"),
+      "right",
+      `The right node should keep having class=right (isConnected=${rightNode.isConnected}, ${t.name})`
+    );
+  });
+  assert_equals(
+    leftNode.isConnected ^ rightNode.isConnected,
+    1,
+    `One should stay in the document and the other should be disconnected (${utils.editingHost.innerHTML}, ${t.name})`
+  );
+}, "Joining <dd class=\"left\"> and <dt class=\"right\">");
+
+promise_test(async t => {
+  utils.setupEditingHost(
+    `<dl><dd style="font-size:0.8rem">abc${caretForForwardDelete}</dd><dt style="font-weight:bold">${caretForBackSpace}def</dt></dl>`
+  );
+  const leftNode = utils.editingHost.querySelector("dd[style]");
+  const rightNode = utils.editingHost.querySelector("dt[style]");
+
+  await (testingBackspace ? utils.sendBackspaceKey() : utils.sendDeleteKey());
+
+  // style attribute values shouldn't be touched in this but case, but it's
+  // okay if the values are not merged.
+  test(() => {
+    assert_true(
+      leftNode.getAttribute("style").includes("font-size"),
+      `The left node should keep having style attribute containing font-size (style="${leftNode.getAttribute("style")}", ${t.name})`
+    );
+    assert_false(
+      leftNode.getAttribute("style").includes("font-weight"),
+      `The left node should have font-weight in its style attribute (style="${leftNode.getAttribute("style")}", ${t.name})`
+    );
+  });
+  test(() => {
+    assert_true(
+      rightNode.getAttribute("style").includes("font-weight"),
+      `The right node should keep having style attribute containing font-size (style="${rightNode.getAttribute("style")}", ${t.name})`
+    );
+    assert_false(
+      rightNode.getAttribute("style").includes("font-style"),
+      `The right node should have font-size in its style attribute (style="${rightNode.getAttribute("style")}", ${t.name})`
+    );
+  });
+  assert_equals(
+    leftNode.isConnected ^ rightNode.isConnected,
+    1,
+    `One should stay in the document and the other should be disconnected (${utils.editingHost.innerHTML}, ${t.name})`
+  );
+}, "Joining <dd style=\"font-size:0.8rem\"> and <dt style=\"font-weight:bold\">");
+
+promise_test(async t => {
+  utils.setupEditingHost(
+    `<dl><dd data-foo="left">abc${caretForForwardDelete}</dd><dt data-bar="right">${caretForBackSpace}def</dt></dl>`
+  );
+  const leftNode = utils.editingHost.querySelector("[data-foo=left]");
+  const rightNode = utils.editingHost.querySelector("[data-bar=right]");
+
+  await (testingBackspace ? utils.sendBackspaceKey() : utils.sendDeleteKey());
+
+  test(() => {
+    assert_equals(
+      leftNode.getAttribute("data-foo"),
+      "left",
+      `The left node should keep having class=left (isConnected=${leftNode.isConnected}, ${t.name})`
+    );
+  });
+  test(() => {
+    assert_false(
+      leftNode.hasAttribute("data-bar"),
+      `The left node shouldn't have data-bar attribute (isConnected=${leftNode.isConnected}, ${t.name})`
+    );
+  });
+  test(() => {
+    assert_equals(
+      rightNode.getAttribute("data-bar"),
+      "right",
+      `The right node should keep having class=right (isConnected=${rightNode.isConnected}, ${t.name})`
+    );
+  });
+  test(() => {
+    assert_false(
+      rightNode.hasAttribute("data-foo"),
+      `The right node shouldn't have data-foo attribute (isConnected=${leftNode.isConnected}, ${t.name})`
+    );
+  });
+  assert_equals(
+    leftNode.isConnected ^ rightNode.isConnected,
+    1,
+    `One should stay in the document and the other should be disconnected (${utils.editingHost.innerHTML}, ${t.name})`
+  );
+}, "Joining <dd data-foo=\"left\"> and <dt data-bar=\"right\">");
+
+// Same tests for <h3> and <div> because they may be handled in a different
+// path.
+promise_test(async t => {
+  utils.setupEditingHost(
+    `<h3 id="left">abc${caretForForwardDelete}</h3><div id="right">${caretForBackSpace}def</div>`
+  );
+  const leftNode = document.getElementById("left");
+  const rightNode = document.getElementById("right");
+
+  await (testingBackspace ? utils.sendBackspaceKey() : utils.sendDeleteKey());
+
+  test(() => {
+    assert_equals(
+      leftNode.getAttribute("id"),
+      "left",
+      `The left node should keep having id=left (isConnected=${leftNode.isConnected}, ${t.name})`
+    );
+  });
+  test(() => {
+    assert_equals(
+      rightNode.getAttribute("id"),
+      "right",
+      `The right node should keep having id=right (isConnected=${rightNode.isConnected}, ${t.name})`
+    );
+  });
+  assert_equals(
+    leftNode.isConnected ^ rightNode.isConnected,
+    1,
+    `One should stay in the document and the other should be disconnected (${utils.editingHost.innerHTML}, ${t.name})`
+  );
+}, "Joining <h3 id=\"left\"> and <div id=\"right\">");
+
+promise_test(async t => {
+  utils.setupEditingHost(
+    `<h3 class="left">abc${caretForForwardDelete}</h3><div class="right">${caretForBackSpace}def</div>`
+  );
+  const leftNode = utils.editingHost.querySelector(".left");
+  const rightNode = utils.editingHost.querySelector(".right");
+
+  await (testingBackspace ? utils.sendBackspaceKey() : utils.sendDeleteKey());
+
+  test(() => {
+    assert_equals(
+      leftNode.getAttribute("class"),
+      "left",
+      `The left node should keep having class=left (isConnected=${leftNode.isConnected}, ${t.name})`
+    );
+  });
+  test(() => {
+    assert_equals(
+      rightNode.getAttribute("class"),
+      "right",
+      `The right node should keep having class=right (isConnected=${rightNode.isConnected}, ${t.name})`
+    );
+  });
+  assert_equals(
+    leftNode.isConnected ^ rightNode.isConnected,
+    1,
+    `One should stay in the document and the other should be disconnected (${utils.editingHost.innerHTML}, ${t.name})`
+  );
+}, "Joining <h3 class=\"left\"> and <div class=\"right\">");
+
+promise_test(async t => {
+  utils.setupEditingHost(
+    `<h3 style="font-size:0.8rem">abc${caretForForwardDelete}</h3><div style="font-weight:bold">${caretForBackSpace}def</div>`
+  );
+  const leftNode = utils.editingHost.querySelector("h3[style]");
+  const rightNode = utils.editingHost.querySelector("div[style]");
+
+  await (testingBackspace ? utils.sendBackspaceKey() : utils.sendDeleteKey());
+
+  // style attribute values shouldn't be touched in this but case, but it's
+  // okay if the values are not merged.
+  test(() => {
+    assert_true(
+      leftNode.getAttribute("style").includes("font-size"),
+      `The left node should keep having style attribute containing font-size (style="${leftNode.getAttribute("style")}", ${t.name})`
+    );
+    assert_false(
+      leftNode.getAttribute("style").includes("font-weight"),
+      `The left node should have font-weight in its style attribute (style="${leftNode.getAttribute("style")}", ${t.name})`
+    );
+  });
+  test(() => {
+    assert_true(
+      rightNode.getAttribute("style").includes("font-weight"),
+      `The right node should keep having style attribute containing font-size (style="${rightNode.getAttribute("style")}", ${t.name})`
+    );
+    assert_false(
+      rightNode.getAttribute("style").includes("font-style"),
+      `The right node should have font-size in its style attribute (style="${rightNode.getAttribute("style")}", ${t.name})`
+    );
+  });
+  assert_equals(
+    leftNode.isConnected ^ rightNode.isConnected,
+    1,
+    `One should stay in the document and the other should be disconnected (${utils.editingHost.innerHTML}, ${t.name})`
+  );
+}, "Joining <h3 style=\"font-size:0.8rem\"> and <div style=\"font-weight:bold\">");
+
+promise_test(async t => {
+  utils.setupEditingHost(
+    `<h3 data-foo="left">abc${caretForForwardDelete}</h3><div data-bar="right">${caretForBackSpace}def</div>`
+  );
+  const leftNode = utils.editingHost.querySelector("[data-foo=left]");
+  const rightNode = utils.editingHost.querySelector("[data-bar=right]");
+
+  await (testingBackspace ? utils.sendBackspaceKey() : utils.sendDeleteKey());
+
+  test(() => {
+    assert_equals(
+      leftNode.getAttribute("data-foo"),
+      "left",
+      `The left node should keep having class=left (isConnected=${leftNode.isConnected}, ${t.name})`
+    );
+  });
+  test(() => {
+    assert_false(
+      leftNode.hasAttribute("data-bar"),
+      `The left node shouldn't have data-bar attribute (isConnected=${leftNode.isConnected}, ${t.name})`
+    );
+  });
+  test(() => {
+    assert_equals(
+      rightNode.getAttribute("data-bar"),
+      "right",
+      `The right node should keep having class=right (isConnected=${rightNode.isConnected}, ${t.name})`
+    );
+  });
+  test(() => {
+    assert_false(
+      rightNode.hasAttribute("data-foo"),
+      `The right node shouldn't have data-foo attribute (isConnected=${leftNode.isConnected}, ${t.name})`
+    );
+  });
+  assert_equals(
+    leftNode.isConnected ^ rightNode.isConnected,
+    1,
+    `One should stay in the document and the other should be disconnected (${utils.editingHost.innerHTML}, ${t.name})`
+  );
+}, "Joining <h3 data-foo=\"left\"> and <div data-bar=\"right\">");
+
+// Same tests for <div> and <h3> because they may be handled in a different
+// path.
+promise_test(async t => {
+  utils.setupEditingHost(
+    `<div id="left">abc${caretForForwardDelete}</div><h3 id="right">${caretForBackSpace}def</h3>`
+  );
+  const leftNode = document.getElementById("left");
+  const rightNode = document.getElementById("right");
+
+  await (testingBackspace ? utils.sendBackspaceKey() : utils.sendDeleteKey());
+
+  test(() => {
+    assert_equals(
+      leftNode.getAttribute("id"),
+      "left",
+      `The left node should keep having id=left (isConnected=${leftNode.isConnected}, ${t.name})`
+    );
+  });
+  test(() => {
+    assert_equals(
+      rightNode.getAttribute("id"),
+      "right",
+      `The right node should keep having id=right (isConnected=${rightNode.isConnected}, ${t.name})`
+    );
+  });
+  assert_equals(
+    leftNode.isConnected ^ rightNode.isConnected,
+    1,
+    `One should stay in the document and the other should be disconnected (${utils.editingHost.innerHTML}, ${t.name})`
+  );
+}, "Joining <div id=\"left\"> and <h3 id=\"right\">");
+
+promise_test(async t => {
+  utils.setupEditingHost(
+    `<div class="left">abc${caretForForwardDelete}</div><h3 class="right">${caretForBackSpace}def</h3>`
+  );
+  const leftNode = utils.editingHost.querySelector(".left");
+  const rightNode = utils.editingHost.querySelector(".right");
+
+  await (testingBackspace ? utils.sendBackspaceKey() : utils.sendDeleteKey());
+
+  test(() => {
+    assert_equals(
+      leftNode.getAttribute("class"),
+      "left",
+      `The left node should keep having class=left (isConnected=${leftNode.isConnected}, ${t.name})`
+    );
+  });
+  test(() => {
+    assert_equals(
+      rightNode.getAttribute("class"),
+      "right",
+      `The right node should keep having class=right (isConnected=${rightNode.isConnected}, ${t.name})`
+    );
+  });
+  assert_equals(
+    leftNode.isConnected ^ rightNode.isConnected,
+    1,
+    `One should stay in the document and the other should be disconnected (${utils.editingHost.innerHTML}, ${t.name})`
+  );
+}, "Joining <div class=\"left\"> and <h3 class=\"right\">");
+
+promise_test(async t => {
+  utils.setupEditingHost(
+    `<div style="font-size:0.8rem">abc${caretForForwardDelete}</div><h3 style="font-weight:bold">${caretForBackSpace}def</h3>`
+  );
+  const leftNode = utils.editingHost.querySelector("div[style]");
+  const rightNode = utils.editingHost.querySelector("h3[style]");
+
+  await (testingBackspace ? utils.sendBackspaceKey() : utils.sendDeleteKey());
+
+  // style attribute values shouldn't be touched in this but case, but it's
+  // okay if the values are not merged.
+  test(() => {
+    assert_true(
+      leftNode.getAttribute("style").includes("font-size"),
+      `The left node should keep having style attribute containing font-size (style="${leftNode.getAttribute("style")}", ${t.name})`
+    );
+    assert_false(
+      leftNode.getAttribute("style").includes("font-weight"),
+      `The left node should have font-weight in its style attribute (style="${leftNode.getAttribute("style")}", ${t.name})`
+    );
+  });
+  test(() => {
+    assert_true(
+      rightNode.getAttribute("style").includes("font-weight"),
+      `The right node should keep having style attribute containing font-size (style="${rightNode.getAttribute("style")}", ${t.name})`
+    );
+    assert_false(
+      rightNode.getAttribute("style").includes("font-style"),
+      `The right node should have font-size in its style attribute (style="${rightNode.getAttribute("style")}", ${t.name})`
+    );
+  });
+  assert_equals(
+    leftNode.isConnected ^ rightNode.isConnected,
+    1,
+    `One should stay in the document and the other should be disconnected (${utils.editingHost.innerHTML}, ${t.name})`
+  );
+}, "Joining <div style=\"font-size:0.8rem\"> and <h3 style=\"font-weight:bold\">");
+
+promise_test(async t => {
+  utils.setupEditingHost(
+    `<div data-foo="left">abc${caretForForwardDelete}</div><h3 data-bar="right">${caretForBackSpace}def</h3>`
+  );
+  const leftNode = utils.editingHost.querySelector("[data-foo=left]");
+  const rightNode = utils.editingHost.querySelector("[data-bar=right]");
+
+  await (testingBackspace ? utils.sendBackspaceKey() : utils.sendDeleteKey());
+
+  test(() => {
+    assert_equals(
+      leftNode.getAttribute("data-foo"),
+      "left",
+      `The left node should keep having class=left (isConnected=${leftNode.isConnected}, ${t.name})`
+    );
+  });
+  test(() => {
+    assert_false(
+      leftNode.hasAttribute("data-bar"),
+      `The left node shouldn't have data-bar attribute (isConnected=${leftNode.isConnected}, ${t.name})`
+    );
+  });
+  test(() => {
+    assert_equals(
+      rightNode.getAttribute("data-bar"),
+      "right",
+      `The right node should keep having class=right (isConnected=${rightNode.isConnected}, ${t.name})`
+    );
+  });
+  test(() => {
+    assert_false(
+      rightNode.hasAttribute("data-foo"),
+      `The right node shouldn't have data-foo attribute (isConnected=${leftNode.isConnected}, ${t.name})`
+    );
+  });
+  assert_equals(
+    leftNode.isConnected ^ rightNode.isConnected,
+    1,
+    `One should stay in the document and the other should be disconnected (${utils.editingHost.innerHTML}, ${t.name})`
+  );
+}, "Joining <div data-foo=\"left\"> and <h3 data-bar=\"right\">");
+
+
+</script>

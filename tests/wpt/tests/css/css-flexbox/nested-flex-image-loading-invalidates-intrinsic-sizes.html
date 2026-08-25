@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/">
+<meta name="assert" content="Loaded image correctly invalidates intrinsic widths of its ancestor chain so that it can be recomputed in flex layout">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
+<style>
+.flexbox {
+  display: flex;
+}
+.green-border {
+  border: 20px solid green;
+}
+.img {
+  max-width: 100%;
+  max-height: 100%;
+}
+</style>
+</head>
+<body>
+  <p>Test passes if there is a filled green square.</p>
+  <div class="flexbox">
+    <div>
+      <div class="flexbox green-border">
+        <img src="/css/support/60x60-green.png" class="img">
+      </div>
+    </div>
+  </div>
+</body>
+</html>

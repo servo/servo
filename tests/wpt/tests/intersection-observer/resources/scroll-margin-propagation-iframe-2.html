@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+
+<script src="/common/get-host-info.sub.js"></script>
+
+<p>Iframe 2</p>
+
+<div style="width: 200px; height: 200px; overflow-y: scroll; outline: 1px solid purple" id="scroller">
+  <!-- Spacer to trigger scrolling -->
+  <div style="height: 300px"></div>
+
+  <iframe id="iframe" width=150 height=200></iframe>
+</div>
+
+<script>
+  iframe.src = get_host_info().ORIGIN + "/intersection-observer/resources/scroll-margin-propagation-iframe-3.html";
+
+  window.addEventListener("message", event => {
+    const data = event.data;
+
+    if (data.msgName === "setScrollTop" && data.target === "iframe2") {
+        scroller.scrollTop = data.scrollTop;
+        window.top.postMessage({ msgName: "scrollEnd", source: "iframe2" }, "*");
+    }
+});
+</script>

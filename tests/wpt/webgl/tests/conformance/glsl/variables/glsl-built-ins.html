@@ -1,0 +1,108 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL GLSL built in variables Conformance Test</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../../resources/glsl-feature-tests.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="example" width="2" height="2"> </canvas>
+<script id="vshader" type="x-shader/x-vertex">
+attribute vec4 a_position;
+void main()
+{
+    gl_Position = a_position;
+}
+</script>
+<script id="vshaderCheck" type="x-shader/x-vertex">
+attribute vec4 a_position;
+varying vec4 v_color;
+void main()
+{
+    gl_Position = a_position;
+    v_color = (gl_$(name) == $(max)) ? vec4(0,1,0,1) : vec4(1,0,0,1);
+}
+</script>
+<script id="fshader" type="x-shader/x-fragment">
+precision mediump float;
+varying vec4 v_color;
+void main()
+{
+    gl_FragColor = v_color;
+}
+</script>
+<script id="fshaderCheck" type="x-shader/x-fragment">
+precision mediump float;
+void main()
+{
+    gl_FragColor = (gl_$(name) == $(max)) ? vec4(0,1,0,1) : vec4(1,0,0,1);
+}
+</script>
+<script>
+"use strict";
+description();
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("example");
+var contextVersion = wtu.getDefault3DContextVersion();
+
+var variables = [
+  { name: 'MaxVertexAttribs',             min:   8, },
+  { name: 'MaxVertexUniformVectors',      min: 128, },
+  { name: 'MaxVaryingVectors',            min:   8, },
+  { name: 'MaxVertexTextureImageUnits',   min:   0, },
+  { name: 'MaxCombinedTextureImageUnits', min:   8, },
+  { name: 'MaxTextureImageUnits',         min:   8, },
+  { name: 'MaxFragmentUniformVectors',    min:  16, },
+];
+
+if (contextVersion <= 1) {
+  variables.push({ name: 'MaxDrawBuffers', min: 1, max: 1});
+} else {
+  variables.push({ name: 'MaxDrawBuffers', min: 1, });
+}
+
+var toUnderscore = function(str) {
+  return str.replace(/([a-z])([A-Z])/g, function (g) { return g[0] + "_" + g[1].toUpperCase() }).toUpperCase();
+};
+
+var shaderPairs = [
+   [wtu.getScript("vshader"), wtu.getScript("fshaderCheck")],
+   [wtu.getScript("vshaderCheck"), wtu.getScript("fshader")],
+];
+
+wtu.setupUnitQuad(gl);
+
+variables.forEach(function(variable) {
+  debug("");
+  debug("Testing gl_" + variable.name);
+  if (!variable.max) {
+    variable.max = gl.getParameter(gl[toUnderscore(variable.name)]);
+    expectTrue(variable.max >= variable.min, "gl.getParameter(gl." + toUnderscore(variable.name) + ") >= " + variable.min);
+  }
+  shaderPairs.forEach(function(pair) {
+    var shaders = [wtu.replaceParams(pair[0], variable), wtu.replaceParams(pair[1], variable)];
+    var program = wtu.setupProgram(gl, shaders, ["a_position"], undefined, true);
+    wtu.clearAndDrawUnitQuad(gl);
+    wtu.checkCanvas(gl, [0, 255, 0, 255], "should be green");
+  });
+});
+
+var successfullyParsed = true;
+</script>
+<script src="../../../js/js-test-post.js"></script>
+</body>
+</html>
+

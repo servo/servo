@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Avar2 GPOS Variable Kerning Test</title>
+    <link rel="author" title="Dominik Röttsches" href="mailto:drott@chromium.org">
+    <link rel="help" href="https://www.iso.org/standard/87621.html">
+    <link rel="match" href="variable-gpos-avar2-ref.html">
+    <style>
+        @font-face {
+            font-family: 'AvarTestFont';
+            src: url('../resources/avar2_kern_test.ttf') format('truetype');
+        }
+
+        .pair {
+            font-family: 'AvarTestFont';
+            font-size: 50px;
+            line-height: 2.3;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- The avar2_kern_test.ttf uses avar2 to drive two axes XKRN and YKRN through an axis CKRN.
+         CKRN, for "circular kerning", drives XKRN and YKRN so that the second U+2316 cross in a
+         kerning pair of two crosses, traverses on a 90 degree arc from horizontally next
+         to the first cross, to vertically above it. This verifies that AVAR2 is working and
+         driving secondary implementation axes, as well as that shaping takes into account
+         GPOS variations that are controlled by an avar2 axis. -->
+
+    <!-- Pair 1: Default (CKRN not specified) -->
+    <div class="pair">&#x2316;&#x2316;</div>
+
+    <!-- Pair 2: CKRN 0.3333 (approx 30 deg) -->
+    <div class="pair" style="font-variation-settings: 'CKRN' 0.333333;">&#x2316;&#x2316;</div>
+
+    <!-- Pair 3: CKRN 0.6667 (approx 60 deg) -->
+    <div class="pair" style="font-variation-settings: 'CKRN' 0.666667;">&#x2316;&#x2316;</div>
+
+    <!-- Pair 4: CKRN 1.0 (90 deg) -->
+    <div class="pair" style="font-variation-settings: 'CKRN' 1.0;">&#x2316;&#x2316;</div>
+
+    <!-- Pair 5: CKRN 1.0 with space in between crosses, no kerning. -->
+    <div class="pair" style="font-variation-settings: 'CKRN' 1.0;">&#x2316; &#x2316;</div>
+</body>
+
+</html>

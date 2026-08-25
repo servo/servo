@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/compression-dictionary-util.sub.js"></script>
+<script>
+compression_dictionary_promise_test(async t => {
+  const link = document.createElement('link');
+  t.add_cleanup(_ => link.remove());
+  link.rel = 'compression-dictionary';
+  link.href = kRegisterDictionaryPath;
+  link.addEventListener("error", t.unreached_func("error event should not be dispatched"));
+  return new Promise(resolve => {
+    link.addEventListener("load", resolve);
+    document.head.appendChild(link);
+  });
+}, 'Load event is dispatched on link with rel=compression-dictionary.');
+
+compression_dictionary_promise_test(async t => {
+  const link = document.createElement('link');
+  t.add_cleanup(_ => link.remove());
+  link.rel = 'compression-dictionary';
+  link.href = "./resources/register-dictionary-network-error.py";
+  link.addEventListener("load", t.unreached_func("load event should not be dispatched"));
+  return new Promise(resolve => {
+    link.addEventListener("error", resolve);
+    document.head.appendChild(link);
+  });
+}, 'Error event is dispatched on link with rel=compression-dictionary returning a network error.');
+</script>

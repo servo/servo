@@ -1,0 +1,49 @@
+<!doctype html>
+<title>Sticky positioned element should reset the scroll position to unshifted position</title>
+<link rel="author" title="Seokho Song"  href="mailto:0xdevssh@gmail.com">
+<link rel="help" href="https://crbug.com/664246">
+<link rel="help" href="https://crbug.com/1178622">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<div id="scrollEl" style="height:100px; overflow-y: auto; scroll-padding:20px 20px 20px 20px;">
+    <input id="stickyEl" type="text" style="position:sticky;top:0" />
+    <div>1</div>
+    <div>2</div>
+    <div>3</div>
+    <div>4</div>
+    <div>5</div>
+    <div>6</div>
+    <div>7</div>
+    <div>8</div>
+    <div>9</div>
+    <div>10</div>
+    <div>11</div>
+    <div>12</div>
+    <div>13</div>
+    <div>14</div>
+    <div>15</div>
+    <div>16</div>
+    <div>17</div>
+</div>
+</div>
+<script>
+
+async_test(t => {
+    var scrollEl = document.getElementById("scrollEl");
+    var stickyEl = document.getElementById("stickyEl");
+    stickyEl.focus()
+    scrollEl.scrollTo(0, scrollEl.scrollHeight);
+    scrollEl.addEventListener('input', ()=> {
+        requestAnimationFrame(t.step_func(()=>{
+            assert_equals(scrollEl.scrollTop, 0,
+            "should reset the scroll to unshifted sticky position");
+            t.done()
+        }))
+    })
+    test_driver.send_keys(stickyEl, "A")
+})
+</script>

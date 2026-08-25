@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<title>SVG anchor ping attribute functionality</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resource-timing/resources/observe-entry.js"></script>
+<svg>
+  <a id="pingAnchor" href="#" ping="/xhr/resources/delay.py?ms=100">Test Link</a>
+</svg>
+<script>
+  promise_test(async t => {
+      const anchor = document.getElementById('pingAnchor');
+      const pingUrl = '/xhr/resources/delay.py?ms=100';
+
+      // Simulate click event
+      const clickEvent = new MouseEvent('click', {
+          view: window,
+          bubbles: true,
+          cancelable: true
+      });
+
+      anchor.dispatchEvent(clickEvent);
+
+      // Wait for the ping request to be sent
+      const entry = await observe_entry(pingUrl);
+      assert_equals(entry.initiatorType, 'ping');
+      assert_greater_than(entry.duration, 99);
+  }, "SVG anchor with ping attribute should send ping on click");
+
+  promise_test(async t => {
+      const svg = document.querySelector('svg');
+      const anchor = document.createElementNS('http://www.w3.org/2000/svg', 'a');
+      const pingUrl = '/xhr/resources/delay.py?ms=200&id=multiple';
+
+      anchor.setAttribute('href', '#');
+      anchor.setAttribute('ping', pingUrl + ' ' + pingUrl + '2');
+      anchor.textContent = 'Multiple Ping Link';
+      svg.appendChild(anchor);
+
+      const clickEvent = new MouseEvent('click', {
+          view: window,
+          bubbles: true,
+          cancelable: true
+      });
+
+      anchor.dispatchEvent(clickEvent);
+
+      // Wait for both ping requests
+      const entry1 = await observe_entry(pingUrl);
+      const entry2 = await observe_entry(pingUrl + '2');
+
+      assert_equals(entry1.initiatorType, 'ping');
+      assert_equals(entry2.initiatorType, 'ping');
+  }, "SVG anchor with multiple ping URLs should send multiple pings");
+
+  test(function() {
+      const anchor = document.createElementNS('http://www.w3.org/2000/svg', 'a');
+      anchor.setAttribute('ping', 'https://example.com/ping1 https://example.com/ping2');
+
+      assert_equals(anchor.ping, 'https://example.com/ping1 https://example.com/ping2');
+
+      anchor.ping = 'https://example.com/ping3';
+      assert_equals(anchor.getAttribute('ping'), 'https://example.com/ping3');
+      assert_equals(anchor.ping, 'https://example.com/ping3');
+  }, "SVG anchor ping attribute should be settable via ping IDL attribute");
+</script>

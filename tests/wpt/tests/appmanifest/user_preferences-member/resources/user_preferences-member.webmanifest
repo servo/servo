@@ -1,0 +1,22 @@
+{
+    "name": "user_preferences member WPT",
+    "icons": [
+        {
+            "src": "icon.png",
+            "sizes": "144x144"
+        }
+    ],
+    "start_url": "../user_preferences-member-manual.html",
+    "display": "fullscreen",
+    "user_preferences": {
+      "color_scheme": {
+        "dark": {
+          "theme_color": "green"
+        },
+        "light": {
+          "theme_color": "green"
+        }
+      }
+    },
+    "theme_color": "red"
+}

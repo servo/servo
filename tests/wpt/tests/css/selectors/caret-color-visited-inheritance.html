@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Divyansh Mangal" href="mailto:dmangal@microsoft.com">
+<link rel="match" href="caret-color-visited-inheritance-ref.html">
+<link rel="help" href="https://developer.mozilla.org/en-US/docs/Web/CSS/Privacy_and_the_:visited_selector">
+<style>
+  :root {
+    font-size: 50px;
+    caret-color: orange;
+  }
+[contenteditable] {
+    outline: none;
+  }
+</style>
+<main>
+<a id="link" contenteditable href="">link</a>
+</main>
+<script>
+  window.onload = function() {
+    document.getElementById("link").focus();
+  }
+</script>

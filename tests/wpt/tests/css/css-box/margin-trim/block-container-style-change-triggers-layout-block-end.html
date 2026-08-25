@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>margin-trim: block-container dynamic block-end</title>
+<link rel="help" href="https://drafts.csswg.org/css-box-4/#margin-trim-block">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="Setting margin-trim: block-end after layout trims the last child's block-end margin.">
+<style>
+.container {
+    background-color: green;
+    width: min-content;
+}
+.outer {
+    background-color: green;
+    width: 100px;
+    height: 50px;
+}
+.child {
+    margin-bottom: 50px;
+    width: 100px;
+    height: 50px;
+}
+</style>
+</head>
+<body>
+    <p>Test passes if there is a filled green square.</p>
+    <div class="container">
+        <div class="child"></div>
+    </div>
+    <div class="outer"></div>
+</body>
+<script>
+// Force an initial layout with margin-trim:none, then turn it on. The child's
+// block-end margin must be trimmed in response for the two green boxes to form
+// a filled 100x100 square.
+document.body.offsetHeight;
+document.querySelector(".container").style["margin-trim"] = "block-end";
+</script>
+</html>

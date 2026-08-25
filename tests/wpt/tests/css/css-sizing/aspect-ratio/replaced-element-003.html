@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>CSS aspect-ratio: video</title>
+<link rel="author" title="Google LLC" href="https://www.google.com/">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht" />
+<!-- The pixel values from the video can be slightly different; allow for
+     fuzzy matching. -->
+<meta name="fuzzy" content="0-30;0-5000">
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div>
+  <video src="support/2x2-green.webm" style="background: green; width: 100px; aspect-ratio: 2/1; vertical-align: bottom;"></video>
+</div>
+<div style="width: 100px; height: 50px; background: green;"></div>

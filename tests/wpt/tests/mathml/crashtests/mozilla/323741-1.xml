@@ -1,0 +1,13 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <div>
+    <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline">
+      <notin>
+        <mspace>
+          <mfenced />
+        </mspace>
+
+        f
+      </notin>
+    </math>
+  </div>
+</html>

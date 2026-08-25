@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="UTF-8">
+
+<title>CSS Conditional Test: Custom Properties in @supports</title>
+<meta name="assert"
+      content="Test passes if custom properties are supported and correctly detected in @supports,
+               or unsupported and correctly detected in @supports.">
+<link rel="help" href="https://www.w3.org/TR/css3-conditional/#at-supports">
+<link rel="help" href="https://www.w3.org/TR/css-variables-1/">
+<link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact">
+<link rel="match" href="at-supports-001-ref.html">
+
+<style>
+  div {
+    background: green;
+    height: 20px;
+    width: 100px;
+  }
+
+  body {
+    --badcolor: red;
+    --goodcolor: green;
+  }
+  div {
+    background: var(--badcolor);
+  }
+  @supports (--foo: whatever) {
+    .test1 { background: green; }
+  }
+
+  @supports (--foo: whatever !important) {
+    .test2 { background: var(--goodcolor); }
+  }
+
+  .test3 { background: green; }
+  @supports (--foo: whatever !bogus) {
+    .test3 { background: red; }
+  }
+
+  @supports (color: var(--anything) invalid-value) {
+    .test4 { background: green; }
+  }
+
+  .test5 { background: red; }
+  @supports not (--goodcolor: green) {
+    .test5 { background: green; }
+  }
+  .test5 { background: var(--goodcolor) }
+</style>
+
+<p>Test passes if there is a <strong>filled green square</strong> and <strong>no red</strong>.</p>
+
+<div class="test1"></div>
+<div class="test2"></div>
+<div class="test3"></div>
+<div class="test4"></div>
+<div class="test5"></div>

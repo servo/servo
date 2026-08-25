@@ -1,0 +1,51 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>CSS Test: text-emphasis-position - under right - basic cases</title>
+		<link rel="author" title="Makoto Kikuchi" href="mailto:kikuchi@est.co.jp" />
+		<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com" />
+		<link rel="help" href="https://drafts.csswg.org/css-text-decor-3/#text-emphasis-position-property" />
+		<link rel="match" href="reference/text-emphasis-position-under-right-001-ref.xht"/>
+		<meta name="flags" content="ahem" />
+		<meta name="assert" content="This property describes where emphasis marks are drawn at." />
+		<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+		<style type="text/css"><![CDATA[
+			.test
+			{
+				text-emphasis-style: filled circle;
+				text-emphasis-position: under right;
+			}
+			/* the CSS below is not part of the test */
+			.parent
+			{
+				background: yellow;
+				border: solid 1px gray;
+				color: blue;
+				font: 20px/1em ahem;
+				width: 6em;
+				padding-top: 1em;
+			}
+			ruby {
+			    ruby-position: under;
+			}
+		]]></style>
+	</head>
+	<body>
+		<div>
+			<p>Test passes if a pair of upper and lower block in the square box is identical.</p>
+			<p>horizontal</p>
+			<div class="parent">
+				<div><span class="test">abc</span> de<br /><br /></div>
+			</div>
+			<br />
+			<div class="parent">
+				<div>
+					<ruby><rb>a</rb><rt>&#x25CF;</rt><rb>b</rb><rt>&#x25CF;</rt><rb>c</rb><rt>&#x25CF;</rt></ruby>
+					 de<br />
+					<br />
+				</div>
+			</div>
+		</div>
+	</body>
+</html>

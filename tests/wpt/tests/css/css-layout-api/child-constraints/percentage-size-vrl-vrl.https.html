@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel="help" href="https://drafts.css-houdini.org/css-layout-api/#dom-layoutconstraintsoptions-percentageblocksize">
+<link rel="match" href="../green-square-ref.html">
+<meta name="assert" content="This test checks that setting the percentage block-size of children works as expected." />
+
+<style>
+.test {
+  writing-mode: vertical-rl;
+  background: red;
+  height: 100px;
+}
+
+.child {
+  writing-mode: vertical-rl;
+  visibility: hidden;
+  height: 10px;
+
+  --percentage-block-size: 20;
+
+  --inline-size-expected: 10px;
+  --block-size-expected: 10px;
+}
+
+@supports (display: layout(test)) {
+  .test {
+    background: green;
+    display: layout(test);
+  }
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+
+<div class="test">
+  <!-- A fixed width shouldn't be affected by the percentage size. -->
+  <div class="child" style="width: 10px;"></div>
+
+  <!-- A percentage width should resolve itself against the percentageBlockSize. -->
+  <div class="child" style="width: 50%;"></div>
+
+  <!-- A percentage max-width should resolve itself against the percentageBlockSize. -->
+  <div class="child" style="width: 15px; max-width: 50%;"></div>
+
+  <!-- A percentage min-width should resolve itself against the percentageBlockSize. -->
+  <div class="child" style="width: 5px; min-width: 50%;"></div>
+
+  <!-- A replaced percentage width should resolve itself against the percentageBlockSize. -->
+  <img class="child" style="width: 50%;" />
+
+  <!-- A replaced percentage max-width should resolve itself against the percentageBlockSize. -->
+  <img class="child" style="width: 15px; max-width: 50%;" />
+
+  <!-- A replaced percentage min-width should resolve itself against the percentageBlockSize. -->
+  <img class="child" style="width: 5px; min-width: 50%;" />
+<script>
+importWorkletAndTerminateTestAfterAsyncPaint(CSS.layoutWorklet, {url: 'support/layout-child-sizes-worklet.js'});
+</script>

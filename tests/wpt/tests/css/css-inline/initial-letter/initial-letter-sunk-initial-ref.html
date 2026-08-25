@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Tests initial letter sunken initial</title>
+<link rel="author" title="Google LLC" href="https://www.google.com/">
+<link rel="help" href="https://drafts.csswg.org/css-inline/#sunk-initial">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" >
+<script src="resources/initial-letter-variants.js"></script>
+<style>
+    .sample {
+        border: solid 1px green;
+        font-family: Ahem;
+        font-size: 20px;
+        line-height: 24px;
+        width: 230px;
+    }
+
+    .fake-initial-letter {
+        background: lime;
+        float: left;
+        --cap: 0.8;
+        --size: calc((24px * 2 + 20px * var(--cap)) / var(--cap));
+        height: var(--size);
+        width: var(--size);
+        margin-top: 2px;
+    }
+
+    .no-ascent .fake-initial-letter {
+        height: calc(var(--size) * (1 - var(--cap)));
+        margin-top: calc(var(--size) * var(--cap) + 2px);
+    }
+    .no-descent .fake-initial-letter {
+        height: calc(var(--size) * var(--cap));
+    }
+    .rtl {
+        direction: rtl;
+        .fake-initial-letter {
+            float: right;
+        }
+    }
+</style>
+</head>
+<body>
+<div class="sample">
+<div class="fake-initial-letter"></div><br>
+bc<br>def<br>ghi<br>jkl<br>mno<br>
+</div>
+</body>
+</html>

@@ -1,0 +1,88 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>A node's creation realm is preserved when its creating frame is removed before adoption</title>
+<link rel=help href="https://dom.spec.whatwg.org/#concept-create-node">
+<link rel=help href="https://dom.spec.whatwg.org/#concept-node-adopt">
+<link rel=help href="https://github.com/whatwg/dom/issues/977">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<body>
+<script>
+// The <p>/<b> nodes are built by the HTML parser and never touched from script
+// before the frame is removed, so no JS object is ever created for them in the
+// inner realm. This checks that the creation realm is recorded on the node when
+// it is created, rather than derived on demand from a pre-existing JS object: by
+// adoption time the inner realm is gone and can no longer be consulted.
+// Interface objects are captured before removal since a detached window can no
+// longer be queried. Each test asserts on both a direct child and a deep
+// descendant so the realm is checked throughout the parsed subtree.
+
+function freshIframe() {
+  const iframe = document.createElement("iframe");
+  document.body.appendChild(iframe);
+  return iframe;
+}
+
+test(() => {
+  const iframe = freshIframe();
+  const inner = iframe.contentWindow;
+  const InnerParagraph = inner.HTMLParagraphElement;
+  const InnerBold = inner.HTMLElement;
+
+  const container = inner.document.createElement("div");
+  container.innerHTML = "<p><b>x</b></p>";
+  inner.document.body.appendChild(container);
+  container.remove();
+  iframe.remove();
+
+  document.body.appendChild(container);
+  const p = container.querySelector("p");
+  const b = container.querySelector("b");
+  assert_equals(p.ownerDocument, document, "adopted into the top-level document");
+  assert_true(p instanceof InnerParagraph, "keeps its creation realm");
+  assert_true(b instanceof InnerBold, "deep descendant keeps its creation realm");
+}, "Never-wrapped node keeps its creation realm: subtree detached, iframe removed, then adopted");
+
+test(() => {
+  const iframe = freshIframe();
+  const inner = iframe.contentWindow;
+  const InnerParagraph = inner.HTMLParagraphElement;
+  const InnerBold = inner.HTMLElement;
+
+  const container = inner.document.createElement("div");
+  container.innerHTML = "<p><b>x</b></p>";
+  inner.document.body.appendChild(container);
+  iframe.remove(); // removed without first detaching the subtree
+
+  document.body.appendChild(container);
+  const p = container.querySelector("p");
+  const b = container.querySelector("b");
+  assert_equals(p.ownerDocument, document, "adopted into the top-level document");
+  assert_true(p instanceof InnerParagraph, "keeps its creation realm");
+  assert_true(b instanceof InnerBold, "deep descendant keeps its creation realm");
+}, "Never-wrapped node keeps its creation realm: iframe removed before adoption (subtree not pre-detached)");
+
+// The tests above reach the adopted nodes through `container`, whose JS object is
+// in the creation realm. The test below reaches them through the adopting
+// document instead, so the realm must be preserved independently of the access
+// path.
+
+test(() => {
+  const iframe = freshIframe();
+  const inner = iframe.contentWindow;
+  const InnerParagraph = inner.HTMLParagraphElement;
+  const InnerBold = inner.HTMLElement;
+
+  const container = inner.document.createElement("div");
+  container.innerHTML = "<p id=frame-removal-node><b id=frame-removal-node-deep>x</b></p>";
+  inner.document.body.appendChild(container);
+  iframe.remove();
+
+  document.body.appendChild(container);
+  const p = document.getElementById("frame-removal-node"); // reached through the top-level document
+  const b = document.getElementById("frame-removal-node-deep");
+  assert_equals(p.ownerDocument, document, "adopted into the top-level document");
+  assert_true(p instanceof InnerParagraph, "keeps its creation realm regardless of access path");
+  assert_true(b instanceof InnerBold, "deep descendant keeps its creation realm regardless of access path");
+}, "Node reached through the adopting document still reports its creation realm (frame removed before adoption)");
+</script>

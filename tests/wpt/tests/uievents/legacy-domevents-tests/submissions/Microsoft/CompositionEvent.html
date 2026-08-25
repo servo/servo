@@ -1,0 +1,69 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <title id='desc'> Composition Event Types: compositionstart, compositionupdate, compositionend </title>
+        <script type="text/javascript">
+            var PassTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "PASS";
+            }
+
+            var FailTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "FAIL";
+            }
+
+            var TARGET;
+            var ExpectResult = ["compositionstart", "compositionupdate", "compositionend"];
+            var ActualResult = [];
+            var count = 0
+
+            window.onload = function(e)
+            {
+                try
+                {
+                    TARGET = document.getElementById("target");
+                    TARGET.addEventListener("compositionstart", TestEvent, true);
+                    TARGET.addEventListener("compositionupdate", TestEvent, true);
+                    TARGET.addEventListener("compositionend", TestEvent, true);
+                }
+                catch(ex)
+                {
+                    FailTest();
+                }
+            }
+
+            function TestEvent(evt)
+            {
+                ActualResult.push(evt.type);
+                TARGET.removeEventListener(evt.type, TestEvent, true);
+
+                if (ExpectResult.toString() == ActualResult.toString())
+                {
+                    PassTest();
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <h3>DOM Events</h3>
+        <h4>
+            Test Description: The composition events occur in a set order relative to one another:
+            1. compositionstart, 2. compositionupdate (multiple events), 3. compositionend.
+        </h4>
+
+        <pre>
+            <input id="target" value=""/>
+
+            Steps:
+            1) Open Japanese Microsoft IME and select Hiragana input method
+            2) Click at the above textbox and then type 'a' using keyboard
+            3) Press the '{Enter}' key to complete the IME composition
+            4) <a href="CompositionEvent.html">Click here</a> to test again if not following the steps exactly
+        </pre>
+
+        <p>Test passes if the word "PASS" appears below and nothing is typed to the textbox after following the above steps.</p>
+        <div>Test result: </div>
+        <div id='testresult'>FAIL</div>
+    </body>
+</html>

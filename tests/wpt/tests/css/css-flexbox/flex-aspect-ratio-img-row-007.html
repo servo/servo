@@ -1,0 +1,15 @@
+<!doctype html>
+<title>Aspect-ratio flex item</title>
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#algo-main-item" title="Part E">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="flex base size is not influenced by specified min-width for aspect ratio items">
+
+<p>Test passes if there is a filled green square.</p>
+
+<!-- Chrome 86 makes the green rectangle be 149.5 x 100. -->
+
+<div style="display: flex; width:200px;">
+  <img style="min-width: 100px; flex: 1 0 auto;" src="support/1x1-green.png">
+  <div style="flex: 1 0 1px;"></div>
+</div>

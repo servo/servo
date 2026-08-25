@@ -1,0 +1,4 @@
+rules:
+- resource-selection-*source*.html: [source]
+- resource-selection-currentSrc.html: [source]
+- resource-selection-candidate-remove-*.html: [source]

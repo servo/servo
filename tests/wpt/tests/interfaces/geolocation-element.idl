@@ -1,0 +1,40 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: The HTML Geolocation Element (https://wicg.github.io/PEPC/geolocation-element.html)
+
+[Exposed=Window]
+interface HTMLGeolocationElement : HTMLElement {
+  [HTMLConstructor] constructor();
+
+  readonly attribute GeolocationPosition? position;
+  readonly attribute GeolocationPositionError? error;
+  [CEReactions, Reflect] attribute boolean autolocate;
+  [CEReactions, Reflect] attribute boolean watch;
+
+  attribute EventHandler onlocation;
+};
+HTMLGeolocationElement includes ActivationBlockersMixin;
+HTMLGeolocationElement includes PowerfulFeatureObserver;
+
+interface mixin ActivationBlockersMixin {
+  readonly attribute boolean isValid;
+  readonly attribute ActivationBlockersMixinBlockerReason invalidReason;
+  attribute EventHandler onvalidationstatuschange;
+};
+
+enum ActivationBlockersMixinBlockerReason {
+  "",   // No blocker reason.
+  "illegal_subframe", "unsuccessful_registration",
+  "recently_attached", "intersection_changed",
+  "intersection_out_of_viewport_or_clipped",
+  "intersection_occluded_or_distorted", "style_invalid",
+  "type_invalid",
+};
+
+interface mixin PowerfulFeatureObserver {
+  readonly attribute PermissionState initialPermissionStatus;
+  readonly attribute PermissionState permissionStatus;
+  attribute EventHandler onpromptaction;
+  attribute EventHandler onpromptdismiss;
+};

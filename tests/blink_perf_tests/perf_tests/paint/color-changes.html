@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<body>
+<script src="../resources/runner.js"></script>
+<script src="resources/paint.js"></script>
+<style>
+  div {
+    /* To ensure consistent line wrapping behavior about empty spans across
+       browsers. */
+    white-space: pre;
+  }
+  span {
+    padding: 1px;
+  }
+  .changeColor {
+    background-color: green;
+  }
+</style>
+<script>
+// This test measures the lifecycle update performance of changing background
+// colors in large trees.
+
+function buildTree(parent, depth, arity, createElementCallback) {
+  for (var child = 0; child < arity; child++) {
+    var element = createElementCallback(depth);
+    parent.appendChild(element);
+    createElementCallback(element, depth);
+    if (depth > 1)
+      buildTree(element, depth - 1, arity, createElementCallback);
+  }
+}
+
+// Build a tall tree that is skinny. A middle layer of
+// the tree should have the changeColor class.
+buildTree(document.body, 15, 2,
+  function(depth) {
+    // Use divs at upper levels to avoid too much layout time.
+    var element = document.createElement(depth > 9 ? 'div' : 'span');
+    element.style.backgroundColor = 'green';
+    if (depth == 5)
+      element.classList.add('changeColor');
+    // Insert new lines to break long lines.
+    if (depth == 12)
+      element.textContent = '\n';
+    return element;
+  }
+);
+
+// Build a short tree that is fat. A middle layer of
+// the tree should have the changeColor class.
+buildTree(document.body, 6, 7,
+  function(depth) {
+    // Use divs at upper levels to avoid too much layout time.
+    var element = document.createElement(depth > 4 ? 'div' : 'span');
+    element.style.backgroundColor = 'orange';
+    if (depth == 3)
+      element.classList.add('changeColor');
+    // Insert new lines to break long lines.
+    if (depth == 6)
+      element.textContent = '\n';
+    return element;
+  }
+);
+
+var runCount = 0;
+var elementsToChange = document.getElementsByClassName('changeColor');
+var colors = [
+ "rgb(128, 18, 237)",
+ "rgb(191, 1, 191)",
+ "rgb(237, 18, 128)",
+ "rgb(255, 64, 64)",
+ "rgb(237, 127, 18)",
+ "rgb(191, 191, 1)",
+ "rgb(128, 237, 18)",
+ "rgb(64, 255, 64)",
+ "rgb(18, 237, 127)",
+ "rgb(1, 191, 191)",
+ "rgb(18, 128, 237)",
+ "rgb(64, 64, 255)"
+];
+measurePaint({
+  run: function() {
+    runCount++;
+    var newColor = colors[runCount % colors.length];
+    for (var index = 0; index < elementsToChange.length; index++)
+      elementsToChange[index].style.backgroundColor = newColor;
+  },
+});
+</script>
+</body>

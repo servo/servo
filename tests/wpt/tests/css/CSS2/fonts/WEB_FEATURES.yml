@@ -1,0 +1,7 @@
+rules:
+- font-0*: [font-shorthand]
+- font-1*: [font-shorthand]
+- font-size-*: [font-size]
+- font-weight-*: [font-weight]
+- font-family-*: [font-family]
+- font-style-*: [font-style]

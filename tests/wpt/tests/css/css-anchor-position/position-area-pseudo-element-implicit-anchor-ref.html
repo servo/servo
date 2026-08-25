@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>CSS Test Reference</title>
+<style>
+body { margin: 0 }
+#target  {
+    margin-top: 100px;
+    margin-left: 50px;
+    width: 100px;
+    height: 100px;
+    background: blue;
+    position: relative;
+}
+#target > div {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    background: green;
+}
+#bottom {
+    top: 100px;
+    left: 0px;
+}
+#right {
+    top: 0px;
+    left: 100px;
+}
+</style>
+<div id=target>
+  <div id=bottom></div>
+  <div id=right></div>
+</div>

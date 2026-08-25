@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html class=test-wait>
+<link rel=help href="https://issues.chromium.org/issues/396475564">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script>
+const select = document.createElement('select');
+document.documentElement.appendChild(select);
+const div = document.createElement('div');
+select.appendChild(div);
+const optgroup = document.createElement('optgroup');
+div.appendChild(optgroup);
+
+(async () => {
+  await test_driver.bless();
+  document.querySelector('select').showPicker();
+  document.documentElement.classList.remove('test-wait');
+})();
+</script>

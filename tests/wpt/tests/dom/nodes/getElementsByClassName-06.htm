@@ -1,0 +1,20 @@
+<!doctype html>
+<html>
+ <head>
+  <title>document.getElementsByClassName(): adding element with class</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+ </head>
+ <body class="a">
+  <div id="log"></div>
+  <script>
+   test(function() {
+          var collection = document.getElementsByClassName("a");
+          var ele = document.createElement("foo");
+          ele.setAttribute("class", "a");
+          document.body.appendChild(ele);
+          assert_array_equals(collection, [document.body, ele]);
+        })
+  </script>
+ </body>
+</html>

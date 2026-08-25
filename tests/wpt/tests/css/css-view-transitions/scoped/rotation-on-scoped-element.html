@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<head>
+  <meta charset="utf-8">
+  <link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+  <link rel="match" href="rotation-on-scoped-element-ref.html">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="fuzzy" content="maxDifference=0-150;totalPixels=0-2000">
+</head>
+<style>
+  #target {
+    background-color: purple;
+    transform: rotate(45deg);
+    width: 200px;
+    height: 200px;
+    margin: 100px;
+  }
+  #target.updated {
+    background: green;
+  }
+</style>
+<body>
+  <div id="target"></div>
+</body>
+<script>
+  window.onload = async () => {
+    const vt = target.startViewTransition(() => {
+      target.classList.add('updated');
+    });
+    await vt.ready;
+    document.getAnimations().forEach(anim => {
+      anim.finish();
+      anim.pause();
+    });
+    requestAnimationFrame(() => {
+      document.documentElement.classList.remove('test-wait');
+    });
+  };
+</script>
+</html>

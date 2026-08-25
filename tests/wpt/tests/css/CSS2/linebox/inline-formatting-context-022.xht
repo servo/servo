@@ -1,0 +1,37 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Inline boxes that are split and the margin, border, padding effect</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-04-04 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#inline-formatting" />
+        <link rel="match" href="inline-formatting-context-022-ref.xht" />
+
+        <meta name="flags" content="ahem image" />
+        <meta name="assert" content="Margins, borders and padding have no visual effect when inline boxes are split." />
+        <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+        <style type="text/css">
+            div
+            {
+                background: url('support/inline-formatting-context-022.png') no-repeat 0 -1.5em;
+                color: blue;
+                font: 15pt/1em Ahem;
+                margin-top: 2em;
+                height: 5em;
+                width: 6.5em;
+            }
+            span
+            {
+                margin: 1em 0;
+                padding: 1em;
+                border: 0.5em solid blue;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is <strong>no red</strong>.</p>
+        <div>
+            <span>XXXXX XXXXX</span>
+        </div>
+    </body>
+</html>

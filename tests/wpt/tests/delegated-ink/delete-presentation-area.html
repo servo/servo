@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<canvas id="canvas"></canvas>
+<script>
+  promise_test(async (t) => {
+      const presenter = await navigator.ink.requestPresenter({presentationArea: canvas});
+      const style = { color: "green", diameter: 6 };
+
+      window.addEventListener("pointermove", evt => {
+        presenter.updateInkTrailStartPoint(evt, style);
+      });
+      document.body.removeChild(canvas);
+      const actions_promise = new test_driver.Actions().pointerMove(10, 10).send();
+      t.add_cleanup(() => actions_promise);
+    }, "No crash when accessing presenter associated with deleted presentation area.");
+</script>

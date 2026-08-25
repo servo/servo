@@ -1,0 +1,6 @@
+{
+  "accounts_endpoint": "accounts.py",
+  "id_assertion_endpoint": "token.py",
+  "disconnect_endpoint": "disconnect.py",
+  "login_url": "login.html"
+}

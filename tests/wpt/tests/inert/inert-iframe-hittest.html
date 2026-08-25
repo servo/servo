@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Hit-testing with inert iframe</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#inert">
+<meta assert="assert" content="Contents of an inert iframe can't be reached by hit-testing">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<style>
+body {
+  padding: 5px;
+}
+</style>
+<div id="wrapper" style="width: min-content">
+  <iframe id="iframe" inert></iframe>
+</div>
+
+<script>
+const events = [
+  "mousedown", "mouseenter", "mousemove", "mouseover",
+  "pointerdown", "pointerenter", "pointermove", "pointerover",
+];
+const iframe = document.getElementById("iframe");
+let iframeDoc;
+let target;
+
+promise_setup(async () => {
+  await new Promise(resolve => {
+    iframe.addEventListener("load", resolve, {once: true});
+    iframe.srcdoc = `
+      <style>#target { position: fixed; inset: 0 }</style>
+      <a id="target" href="#">target</a>
+    `;
+  });
+  iframeDoc = iframe.contentDocument;
+  target = iframeDoc.getElementById("target");
+  target.addEventListener("click", e => {
+    e.preventDefault();
+  });
+});
+
+async function mouseDownAndGetEvents(test) {
+  await new test_driver.Actions()
+    .pointerMove(1, 1, { origin: document.body })
+    .send();
+
+  const receivedEvents = {
+    target: [],
+    wrapper: [],
+  };
+  for (let event of events) {
+    target.addEventListener(event, () => {
+      receivedEvents.target.push(event);
+    }, { once: true, capture: true });
+    wrapper.addEventListener(event, () => {
+      receivedEvents.wrapper.push(event);
+    }, { once: true, capture: true });
+  }
+
+  await new test_driver.Actions()
+     .pointerMove(0, 0, { origin: wrapper })
+     .pointerDown()
+     .send();
+  test.add_cleanup(() => test_driver.click(document.body));
+
+  // Exact order of events is not interoperable.
+  receivedEvents.target.sort();
+  receivedEvents.wrapper.sort();
+  return receivedEvents;
+}
+
+promise_test(async function() {
+  const receivedEvents = await mouseDownAndGetEvents(this);
+  assert_array_equals(receivedEvents.target, [], "target got no event");
+  assert_array_equals(receivedEvents.wrapper, events, "wrapper got all events");
+
+  assert_false(target.matches(":focus"), "target is not focused");
+  assert_false(target.matches(":active"), "target is not active");
+  assert_false(target.matches(":hover"), "target is not hovered");
+  assert_true(wrapper.matches(":hover"), "wrapper is hovered");
+}, "Hit-testing doesn't reach contents of an inert iframe");
+
+promise_test(async function() {
+  iframe.inert = false;
+
+  const receivedEvents = await mouseDownAndGetEvents(this);
+  assert_array_equals(receivedEvents.target, events, "target got all events");
+  if (receivedEvents.wrapper.length === 2) {
+    // Firefox is unstable, sometimes missing the mouse events.
+    assert_array_equals(
+      receivedEvents.wrapper,
+      ["pointerenter", "pointerover"],
+      "wrapper got enter and over pointer events");
+  } else {
+    assert_array_equals(
+      receivedEvents.wrapper,
+      ["mouseenter", "mouseover", "pointerenter", "pointerover"],
+      "wrapper got enter and over events");
+  }
+
+  assert_true(target.matches(":active"), "target is active");
+  assert_true(target.matches(":hover"), "target is hovered");
+  assert_true(wrapper.matches(":hover"), "wrapper is hovered");
+}, "Hit-testing can reach contents of a no longer inert iframe");
+</script>

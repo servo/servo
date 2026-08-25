@@ -1,0 +1,39 @@
+<!doctype HTML>
+<html class="reftest-wait">
+  <meta charset="utf-8">
+  <title>CSS Pseudo-Elements Test: Invalidation on custom property changes</title>
+  <link rel="author" title="Stephen Chenney" href="mailto:schenney@schenney.com">
+  <link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#highlight-styling">
+  <link rel="match" href="highlight-styling-005-ref.html">
+  <meta name="assert" value="Verify that changing a custom property value on the root updates highlights that use the property.">
+  <script src="support/selections.js"></script>
+  <link rel="stylesheet" href="support/highlights.css">
+  <script src="/common/reftest-wait.js"></script>
+  <style>
+    :root {
+      --bg: red;
+    }
+    main::selection {
+      background-color: var(--bg, red);
+    }
+  </style>
+  <body onload="runTest()">
+    <p>Test passes if the text below has green background.</p>
+    <main class="highlight_reftest">
+      <p id="selected">quick</p>
+    </main>
+    <script>
+      function runTest() {
+        selectNodeContents(document.querySelector('main'));
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            document.querySelector(':root').style.setProperty('--bg', 'green');
+            requestAnimationFrame(() => {
+              takeScreenshot();
+            });
+          });
+        });
+      }
+    </script>
+  </body>
+</html>

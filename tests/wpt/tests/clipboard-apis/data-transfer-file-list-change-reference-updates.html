@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Any JS reference DataTransfer.files should contain latest changes done to DataTransfer.items</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<input type=file multiple>
+<script>
+  test(() => {
+    const dt = new DataTransfer();
+    const filelist = dt.files;
+    assert_equals(
+      filelist.length, 0,
+      'Initial filelist should be empty');
+    dt.items.add(new File([0], 'test'));
+    assert_equals(
+      filelist.length, 1,
+      'Filelist should reflect the changes done to items');
+  }, 'expect changed contents');
+</script>

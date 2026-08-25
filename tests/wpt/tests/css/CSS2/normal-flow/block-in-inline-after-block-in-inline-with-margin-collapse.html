@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>CSS Test: A block-level box inside an inline box, following another block-in-inline with margin-bottom, should be positioned with margin-collapse applied</title>
+<link rel="help" href="https://www.w3.org/TR/CSS22/box.html#collapsing-margins">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visuren.html#anonymous-block-level">
+<link rel="match" href="block-in-inline-after-block-in-inline-with-margin-collapse-ref.html">
+<style>
+.container {
+  width: 100px;
+  height: 70px;
+}
+
+.first {
+  margin-bottom: 50px;
+  width: 100px;
+  height: 10px;
+  background-color: green;
+}
+
+.second {
+  width: 100px;
+  height: 10px;
+  background-color: green;
+}
+</style>
+<p>Test passes if there are two green horizontal strips below, separated by a 50px gap, with no extra empty area.</p>
+<div class="container">
+  <span><div class="first"></div></span>
+  <span><div class="second"></div></span>
+</div>

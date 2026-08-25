@@ -1,0 +1,71 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Default Texture Draw Bug Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description("This test attempts to provoke a Chrome bug that occured when drawing with textures when one was never bound. <a href='http://crbug.com/524144'>crbug.com/524144</a>");
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("c");
+var canvas = gl.canvas;
+
+if (!gl) {
+    testFailed("WebGL context does not exist");
+} else {
+    testPassed("WebGL context exists");
+
+    runDrawTests();
+
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors");
+}
+
+function runDrawTests(drawType) {
+    debug("Test that drawing with a texture when no textures have been bound gives the expected black output");
+    canvas.width = 50; canvas.height = 50;
+    gl.viewport(0, 0, canvas.width, canvas.height);
+
+    // Set up a program that will draw with a texture
+    var program = wtu.setupNoTexCoordTextureProgram(gl);
+
+    wtu.setupIndexedQuad(gl);
+    for (var i = 0 ; i < 100 && _bufferedConsoleLogs != null; ++i) {
+        // Clear to white.
+        gl.clearColor(1.0, 1.0, 1.0, 1.0);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+        // Draw without binding any textures.
+        gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+
+        // Check to ensure the entire canvas is black.
+        wtu.checkCanvasRect(gl, 0.0, 0.0, canvas.width, canvas.height,
+                [0.0, 0.0, 0.0], "Draw should pass", 2);
+    }
+}
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

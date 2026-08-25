@@ -1,0 +1,25 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+async_test(t => {
+  navigation.onnavigate = t.unreached_func("navigate must not fire");
+  navigation.onnavigatesuccess = t.unreached_func("navigatesuccess must not fire");
+  navigation.onnavigateerror = t.unreached_func("navigateerror must not fire");
+
+  assert_equals(navigation.currentEntry.getState(), undefined, "Navigation API state starts out as undefined");
+  assert_equals(history.state, null, "history.state starts out as null");
+
+  const newState = { key: "value" };
+
+  navigation.updateCurrentEntry({ state: newState });
+
+  assert_equals(navigation.currentEntry.getState().key, "value");
+  assert_not_equals(navigation.currentEntry.getState(), newState);
+  assert_equals(history.state, null);
+
+  // Wait a tick to make sure no events fire asynchronously.
+  t.step_timeout(() => t.done(), 0);
+}, "updateCurrentEntry() works as expected");
+</script>

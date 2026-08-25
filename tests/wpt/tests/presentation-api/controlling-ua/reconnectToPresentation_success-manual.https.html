@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Reconnect to presentation success manual test</title>
+<link rel="author" title="Marius Wessel" href="http://www.fokus.fraunhofer.de">
+<link rel="author" title="Louay Bassbouss" href="http://www.fokus.fraunhofer.de">
+<link rel="help" href="http://w3c.github.io/presentation-api/#dom-presentationrequest-reconnect">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="common.js"></script>
+<style>iframe { display: none; }</style>
+
+<p>Click the button below to start the manual test. Select a presentation device after the selection dialog is prompted.
+    The test assumes that at least one presentation device is available. The test passes if a "PASS" result appears.</p>
+<button id="startBtn">Start Test</button>
+<iframe id="childFrame" src="support/iframe.html"></iframe>
+
+<script>
+    let receiverStack;
+    add_completion_callback(() => {
+        // overwrite a stack written in the test result
+        if (receiverStack) {
+            document.querySelector('#log pre').textContent = receiverStack;
+        }
+    });
+
+    // disable timeout for manual tests
+    setup({explicit_timeout: true});
+    const startBtn = document.getElementById('startBtn');
+    const childFrame = document.getElementById('childFrame');
+
+    promise_test(t => {
+        const startWatcher = new EventWatcher(t, startBtn, 'click');
+        const messageWatcher = new EventWatcher(t, window, 'message');
+        const request = new PresentationRequest(presentationUrls);
+        let connection, eventWatcher;
+
+        t.add_cleanup(() => {
+            if (connection) {
+                connection.onconnect = () => { connection.terminate(); }
+                if (connection.state === 'closed')
+                    request.reconnect(connection.id);
+                else
+                    connection.terminate();
+            }
+        });
+
+        const waitForMessage = () => {
+            return messageWatcher.wait_for('message').then(evt => {
+                return evt.data.type === 'presentation-api' ? evt : waitForMessage();
+            });
+        };
+
+        // handle a test result received from a nested browsing context
+        const parseValue = value => {
+            let r;
+
+            // String
+            if (r = value.match(/^(\(string\)\s+)?"(.*)"$/))
+                return r[2];
+            // Object
+            else if (r = value.match(/^(\(object\)\s+)?object\s+"\[object\s+(.*)\]"$/))
+                return window[r[2]].prototype;
+            // undefined
+            else if (value === "undefined")
+                return undefined;
+            // Number, boolean, null
+            else {
+                if (r = value.match(/^(\(\S+\)\s+)?(\S+)$/)) {
+                    try {
+                        return JSON.parse(r[2]);
+                    } catch(e) {
+                        return value;
+                    }
+                }
+                else
+                    return value;
+            }
+        };
+
+        const parseResult = t.step_func(evt => {
+            const result = evt.data;
+            if (result.test.status === 0)
+                return evt;
+
+            receiverStack = result.test.stack;
+            const message = result.test.message;
+            let r = message.match(/^(assert_.*):\s+(.*)$/);
+            if (r) {
+                const assertion = r[1];
+                const body = r[2];
+                let args;
+                if (assertion === 'assert_equals') {
+                    if (r = body.match(/^((.*)\s+)?expected\s+((\(\S*\)\s+)?(\S+|(\S+\s+)?\".*\"))\s+but\s+got\s+((\(\S*\)\s+)?(\S+|(\S+\s+)?\".*\"))$/))
+                        args = [parseValue(r[7]), parseValue(r[3]), r[2]];
+                }
+                else if (assertion === 'assert_true') {
+                    if (r = body.match(/^((.*)\s+)?expected\s+(true|false)\s+got\s+(\S+|(\S+\s+)?\".*\")$/)) {
+                        args = [parseValue(r[4]), r[2]];
+                    }
+                }
+                else if (assertion === 'assert_unreached') {
+                    if (r = body.match(/^((.*)\s+)?Reached\s+unreachable\s+code$/))
+                        args = [r[2]];
+                }
+                if (args) {
+                    window[assertion](args[0], args[1], args[2]);
+                    return;
+                }
+            }
+            // default
+            assert_unreached('Test result received from a receiving user agent: ' + message + ': ');
+        });
+
+        return Promise.all([
+            startWatcher.wait_for('click'),
+            messageWatcher.wait_for('message')
+        ]).then(() => {
+            startBtn.disabled = true;
+            let presentationId = null;
+            return request.start();
+        }).then(c => {
+            connection = c;
+            presentationId = connection.id;
+
+            // No more user input needed, re-enable test timeout
+            t.step_timeout(() => {
+                t.force_timeout();
+                t.done();
+            }, 5000);
+
+            eventWatcher = new EventWatcher(t, connection, ['connect', 'close', 'terminate']);
+
+            return Promise.all([
+                // Wait for "connect" event
+                eventWatcher.wait_for('connect'),
+                // Try to reconnect when the connection state is "connecting"
+                request.reconnect(presentationId).then(c => {
+                    assert_equals(c, connection, 'The promise is resolved with the existing presentation connection.');
+                    assert_equals(c.state, "connecting", "The connection state remains 'connecting'.");
+                    assert_equals(c.id, presentationId, "The presentation ID is not changed.");
+                })
+            ]);
+        }).then(() => {
+            // Try to reconnect when the connection state is "connected"
+            return request.reconnect(presentationId);
+        }).then(c => {
+            assert_equals(c, connection, 'The promise is resolved with the existing presentation connection.');
+            assert_equals(c.state, "connected", "The connection state remains 'connected'.");
+            assert_equals(c.id, presentationId, "The presentation ID is not changed.");
+
+            // Close connection and wait for "close" event
+            connection.close();
+            return eventWatcher.wait_for('close');
+        }).then(() => {
+            // Connection now closed, let's reconnect to it
+            return request.reconnect(presentationId);
+        }).then(c => {
+            // Check the presentation connection in "connecting" state
+            assert_equals(c, connection, 'The promise is resolved with the existing presentation connection.');
+            connection = c;
+            assert_equals(connection.state, "connecting", "The connection state is set to 'connecting'.");
+            assert_equals(connection.id, presentationId, "Ids of old and new connections must be equal.");
+
+            return eventWatcher.wait_for('connect');
+        }).then(evt => {
+            // Check the established presentation connection and its associated "connect" event
+            assert_true(evt.isTrusted && !evt.bubbles && !evt.cancelable && evt instanceof Event, 'A simple event is fired.');
+            assert_equals(evt.type, 'connect', 'The event name is "connect".');
+            assert_equals(evt.target, connection, 'event.target is the presentation connection.');
+            assert_equals(connection.state, 'connected', 'The presentation connection state is set to "connected".');
+
+            // Request an iframe to reconnect the presentation with the current presentation ID
+            childFrame.contentWindow.postMessage('reconnect?id=' + presentationId, '*');
+            return waitForMessage().then(parseResult);
+        }).then(() => {
+            // Wait until state of each presentation connection is set to "terminated"
+            connection.terminate();
+            return Promise.all([ eventWatcher.wait_for('terminate'), waitForMessage().then(parseResult) ]);
+        }).then(() => {
+            // Try to reconnect to the presentation, while all presentation connection have already been terminated
+            return promise_rejects_dom(t, 'NotFoundError', request.reconnect(presentationId),
+                'Reconnecting to a terminated presentation rejects a promise with a "NotFoundError" exception.');
+        });
+    });
+</script>

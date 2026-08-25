@@ -1,0 +1,28 @@
+<svg width="500" height="300" xmlns="http://www.w3.org/2000/svg">
+
+    <line class="start" x1="10" y1="50" x2="100" y2="50" stroke="black" />
+    <rect x="10" y="50" width="10" height="10" fill="blue"/>
+    <path class="start" d="M 10 100 L 50 100 L 100 100" stroke="black"/>
+    <rect x="10" y="100" width="10" height="10" fill="blue"/>
+    <polygon class="start" points="10,150 50,150 100,150" stroke="black"/>
+    <rect x="10" y="150" width="10" height="10" fill="blue"/>
+    <polyline class="start" points="10,200 50,200 100,200" stroke="black"/>
+    <rect x="10" y="200" width="10" height="10" fill="blue"/>
+
+    <line class="end" x1="150" y1="50" x2="250" y2="50" stroke="black"/>
+    <rect x="250" y="50" width="10" height="10" fill="blue"/>
+    <path class="end" d="M 150 100 L 200 100 L 250 100" stroke="black"/>
+    <rect x="250" y="100" width="10" height="10" fill="blue"/>
+    <polygon class="end" points="250,150 200,150" stroke="black"/>
+    <rect x="250" y="150" width="10" height="10" fill="blue"/>
+    <polyline class="end" points="150,200 200,200 250,200" stroke="black"/>
+    <rect x="250" y="200" width="10" height="10" fill="blue"/>
+
+    <line class="mid" x1="300" y1="50" x2="400" y2="50" stroke="black"/>
+    <path class="mid" d="M 300 100 L 350 100 L 400 100" stroke="black"/>
+    <rect x="350" y="100" width="10" height="10" fill="blue"/>
+    <polygon class="mid" points="300,150 350,150" stroke="black"/>
+    <rect x="350" y="150" width="10" height="10" fill="blue"/>
+    <polyline class="mid" points="300,200 350,200 400,200" stroke="black"/>
+    <rect x="350" y="200" width="10" height="10" fill="blue"/>
+</svg>

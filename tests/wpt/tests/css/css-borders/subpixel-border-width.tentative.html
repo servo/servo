@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>
+    CSS Border: width computed value
+  </title>
+
+  <link rel="author" title="Traian Captan" href="mailto:tcaptan@chromium.org">
+  <link rel="help" href="https://www.w3.org/TR/css-backgrounds-3/#border-width">
+  <link rel="match" href="reference/subpixel-border-width-ref.tentative.html">
+
+  <meta name="assert" content="border-width computed value after rounding.">
+
+  <style>
+    .square {
+      height: 20px;
+      width: 20px;
+      border: solid gray;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>
+    Test passes if border widths are rounded up
+    when they are greater than 0 and less than 1,
+    and rounded down when they are greater than 1.
+  </h1>
+
+  <div class="square" style="border-width: 0.3px;"></div>
+  <br>
+  <div class="square" style="border-width: 0.5px;"></div>
+  <br>
+  <div class="square" style="border-width: 0.9px;"></div>
+  <br>
+  <div class="square" style="border-width: 1.3px;"></div>
+  <br>
+  <div class="square" style="border-width: 1.5px;"></div>
+  <br>
+  <div class="square" style="border-width: 1.9px;"></div>
+  <br>
+  <div class="square" style="border-width: 3.3px;"></div>
+  <br>
+  <div class="square" style="border-width: 3.5px;"></div>
+  <br>
+  <div class="square" style="border-width: 3.9px;"></div>
+</body>
+</html>

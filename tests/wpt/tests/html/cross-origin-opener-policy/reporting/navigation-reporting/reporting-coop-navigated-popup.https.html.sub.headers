@@ -1,0 +1,2 @@
+Cross-Origin-Opener-Policy: same-origin-allow-popups; report-to="coop-report-endpoint"
+Reporting-Endpoints: coop-report-endpoint="https://{{host}}:{{ports[https][0]}}/reporting/resources/report.py?reportID=df3cde15-b00b-4a59-b6e2-498b67a6146e", coop-report-only-endpoint="https://{{host}}:{{ports[https][0]}}/reporting/resources/report.py?reportID=ebf3a415-7a74-42e1-92d1-e600b1bbe22e"

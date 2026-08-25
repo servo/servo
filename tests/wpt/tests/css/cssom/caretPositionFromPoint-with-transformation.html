@@ -1,0 +1,50 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>getCaretPositionFromPoint should return the correct offset even in iframes with transformation</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view-1/#dom-document-caretpositionfrompoint">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1546612">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #actual {
+    transform: translateX(100px);
+  }
+</style>
+<iframe id="expected"></iframe>
+<br>
+<iframe id="actual"></iframe>
+<script>
+  const expectedFrame = document.getElementById("expected");
+  const actualFrame = document.getElementById("actual");
+
+  const getCaretPositionOffset = frame => {
+    const source = `<!doctype html><meta charset="utf-8"><h1>title</h1><p>paragraph</p>`
+
+    const elementCenter = elem => {
+      const rect = elem.getBoundingClientRect();
+      return [rect.x + rect.width / 2, rect.y + rect.height / 2];
+    };
+
+    return new Promise((resolve, reject) => {
+      frame.srcdoc = source;
+      frame.onload = () => {
+        try {
+          const frameDoc = frame.contentDocument;
+          const {offset} = frameDoc.caretPositionFromPoint(
+            ...elementCenter(frameDoc.querySelector("h1"))
+          );
+          resolve(offset);
+        } catch (error) {
+          reject(error);
+        }
+      };
+    });
+  };
+
+  promise_test(async () => {
+    assert_equals(...await Promise.all([
+      getCaretPositionOffset(expectedFrame),
+      getCaretPositionOffset(actualFrame)
+    ]), "caret offset");
+  }, "iframe's with equal content should report the same caret offset");
+</script>

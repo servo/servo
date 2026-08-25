@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<title>Static position inside inline</title>
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visudet.html#abs-non-replaced-height">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visuren.html#anonymous-block-level">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visuren.html#inline-formatting">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="
+  If the #abspos would have had `position: static`, then it would split the #inline (§9.2.1.1).
+
+  The line box containing the preceding fragment of the #inline would have no text, padding,
+  border, margin, preserved newline nor any atomic in-flow content. Thus, it would be treated
+  as a zero-height line box (§9.4.2).
+
+  Therefore, the #abspos' static position for `top` is at the top of the #wrapper (§10.6.4).
+  This is despite the fact that when the #abspos is actually taken out of flow, the #inline
+  isn't split, so the line box has content and it's no longer a treated as a zero-height.
+">
+
+<style>
+#wrapper {
+  overflow: hidden;
+  width: 100px;
+  height: 100px;
+}
+#inline {
+  line-height: 100px;
+  color: transparent;
+}
+#abspos {
+  position: absolute;
+  background-color: green;
+  width: 100px;
+  height: 100px;
+}
+#red {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  background: red;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="red"></div>
+
+<div id="wrapper">
+  <span id="inline">
+    <div id="abspos"></div>
+    X
+  </span>
+</div>

@@ -1,0 +1,21 @@
+<!DOCTYPE HTML>
+<title>CSS Test (Transforms): Transform with w crossing zero</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Google" href="http://www.google.com/">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1230937">
+<link rel="help" href="https://drafts.csswg.org/css-transforms-2/#processing-of-perspective-transformed-boxes">
+<meta name="assert" content="This should not crash.">
+
+<style>
+#outer {
+  transform-style: preserve-3d;
+}
+#inner {
+  transform: matrix3d(4,947066.75,3,-57.374,1860.6956175,97,2291.191,-8.1785,9,46.047,5.02880,7.198084,2,8,2009,3.2);
+  border: medium solid;
+}
+</style>
+<div id="outer">
+  <div id="inner">
+  </div>
+</div>

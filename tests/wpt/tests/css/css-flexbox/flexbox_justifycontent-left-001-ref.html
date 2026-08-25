@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>flexbox | justify-content: left in rows | reference</title>
+<link rel="author" title="Eric Meyer" href="mailto:emeyer@igalia.com">
+<style>
+div {
+  background: blue;
+  margin: 1em 0;
+  height: 4em;
+  width: 40em;
+}
+span {
+  display: inline-block;
+  background: white;
+  padding: 0 2em;
+  width: 4em;
+  height: 2em;
+}
+span:nth-child(1) {background: yellow;}
+span:nth-child(2) {background: pink;}
+span:nth-child(3) {background: lightblue;}
+#row-reverse span:nth-child(3) {background: yellow;}
+#row-reverse span:nth-child(1) {background: lightblue;}
+</style>
+
+<p>Test passes if the numbered boxes are placed in the top left corner of the first flex container and left-to-right order is 1, 2, 3, and placed in the top left corner of the second flexbox container and left-to-right order is 3, 2, 1.</p>
+
+<div id="row">
+  <span>one</span><span>two</span><span>three</span>
+</div>
+
+<div id="row-reverse">
+  <span>three</span><span>two</span><span>one</span>
+</div>

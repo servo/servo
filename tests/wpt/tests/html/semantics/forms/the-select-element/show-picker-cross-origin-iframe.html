@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<title>Test showPicker() called from cross-origin iframe</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<body>
+<iframe id="iframe1"></iframe>
+<iframe id="iframe2"></iframe>
+<iframe id="iframe3"></iframe>
+<iframe id="iframe4"></iframe>
+</body>
+<script>
+    function waitForSecurityErrors() {
+        return new Promise((resolve) => {
+            window.addEventListener("message", (event) => resolve(event.data), {
+                once: true,
+            });
+        });
+    }
+
+    promise_test(async (t) => {
+        iframe1.src =
+            new URL("resources/", self.location).pathname +
+            "show-picker-child-iframe.html";
+
+        // Wait for the iframe to report security errors when calling showPicker().
+        const securityErrors = await waitForSecurityErrors();
+        assert_equals(
+            securityErrors,
+            "",
+            "In same-origin iframes, showPicker() does not throw a SecurityError."
+        );
+    });
+
+    promise_test(async (t) => {
+        iframe2.src =
+            get_host_info().HTTP_NOTSAMESITE_ORIGIN +
+            new URL("resources/", self.location).pathname +
+            "show-picker-child-iframe.html";
+
+        // Wait for the iframe to report security errors when calling showPicker().
+        const securityErrors = await waitForSecurityErrors();
+        assert_equals(
+            securityErrors,
+            "select",
+            "In cross-origin iframes, showPicker() throws a SecurityError."
+        );
+    });
+
+    promise_test(async (t) => {
+        iframe3.src =
+            new URL("resources/", self.location).pathname +
+            "show-picker-child-iframe.html?documentDomain=" + get_host_info().ORIGINAL_HOST;
+
+        // Wait for the iframe to report security errors when calling showPicker().
+        const securityErrors = await waitForSecurityErrors();
+        assert_equals(
+            securityErrors,
+            "",
+            "In same-origin but cross-origin-domain iframes, showPicker() does not throw a SecurityError."
+        );
+    });
+
+    promise_test(async (t) => {
+        document.domain = get_host_info().ORIGINAL_HOST;
+        iframe4.src =
+            get_host_info().HTTP_REMOTE_ORIGIN +
+            new URL("resources/", self.location).pathname +
+            "show-picker-child-iframe.html?documentDomain=" + get_host_info().ORIGINAL_HOST;
+
+        // Wait for the iframe to report security errors when calling showPicker().
+        const securityErrors = await waitForSecurityErrors();
+        assert_equals(
+            securityErrors,
+            "select",
+            "In cross-origin but same-origin-domain iframes, showPicker() throws a SecurityError."
+        );
+    });
+</script>

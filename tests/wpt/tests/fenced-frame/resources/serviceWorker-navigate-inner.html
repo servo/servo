@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<script src="utils.js"></script>
+<body>
+<script>
+
+(async function() {
+  await navigator.serviceWorker.register('serviceWorker-navigate.js');
+  const registration = await navigator.serviceWorker.ready;
+  const service_worker = registration.active;
+
+  const [navigate_key] = parseKeylist();
+
+  service_worker.postMessage({key:navigate_key, url:location.href});
+})();
+</script>
+</body>

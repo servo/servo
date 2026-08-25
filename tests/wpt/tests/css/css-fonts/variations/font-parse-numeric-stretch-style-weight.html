@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+setup({explicit_done : true});
+
+var styleValidTests = {
+  'weight': [
+    'bold',
+    '700',
+    '900',
+    '850',
+    '850.3',
+    'calc(100 + 300)',
+    'calc(0.2 + 205.5)',
+    'calc(0 - 100)',
+    'calc(200 + 801)',
+  ],
+  'stretch': ['51%', '199%', 'calc(10% + 20%)', '0%'],
+  'style' : [ 'normal', 'italic', 'oblique', 'oblique 50deg', 'oblique -90deg', 'oblique 90deg',
+              'oblique calc(90deg + 20deg)', 'oblique calc(30deg + 20deg)' ]
+};
+
+var styleInvalidTests = {
+  'weight': ['100 400'],
+  'stretch': ['100% 110%', '100% 150%', 'calc(1 + 10%)'],
+  'style' : [ 'normal 10deg', 'italic 10deg', 'oblique -91deg', 'oblique 91deg' ]
+};
+
+function testParseStyle() {
+  for (validStyleTestCategory of Object.keys(styleValidTests)) {
+    for (validStyleTest of styleValidTests[validStyleTestCategory]) {
+      test(
+          function() {
+            assert_true(
+                CSS.supports('font-' + validStyleTestCategory, validStyleTest));
+          },
+          'Valid value ' + validStyleTest + ' for font property ' +
+              validStyleTestCategory + ' used for styling.')
+    }
+  }
+  for (invalidStyleTestCategory of Object.keys(styleInvalidTests)) {
+    for (invalidStyleTest of styleInvalidTests[invalidStyleTestCategory]) {
+      test(
+          function() {
+            assert_false(CSS.supports(
+                'font-' + invalidStyleTestCategory, invalidStyleTest));
+          },
+          'Invalid value ' + invalidStyleTest + ' for font property ' +
+              invalidStyleTestCategory + ' used for styling.')
+    }
+  }
+}
+
+var faceTests = {
+  'weight': [
+    ['100', '100'], ['700', '700'], ['900', '900'], ['bold', 'bold'],
+    ['normal', 'normal'], ['100 400', '100 400'], ['100 101.5', '100 101.5'],
+    ['999.8 999.9', '999.8 999.9'],
+    [ '500 400', '500 400']
+  ],
+  'stretch': [
+    ['0%', '0%'],
+    ['calc(0% - 10%)', 'calc(-10%)' ],
+    ['100%', '100%'],
+    ['110%', '110%'],
+    ['111.5%', '111.5%'],
+    [ "50% 200%", "50% 200%" ],
+    [ "0.1% 1%", "0.1% 1%" ],
+    [ "900% 901%", "900% 901%" ],
+    ['ultra-condensed', 'ultra-condensed'],
+    ['ultra-expanded', 'ultra-expanded'],
+  ],
+  'style' : [
+    [ "normal", "normal" ],
+    [ "italic", "italic" ],
+    [ "oblique", "oblique" ],
+    [ "oblique 10deg", "oblique 10deg" ],
+    [ "oblique 10deg 20deg", "oblique 10deg 20deg" ]
+  ]
+};
+
+var faceInvalidTests = {
+  'weight': [
+    '0',
+    '0.9',
+    '-100 200',
+    '100 -200',
+    '100 1001',
+    '1001',
+    '1000.5',
+    '100 200 300',
+    'a',
+    'a b c',
+  ],
+  'stretch': [
+    '-0.5%', '-1%', '60% 70% 80%', 'a%', 'a b c', '0.1',
+    '-60% 80%', 'ultra-expannnned', '50% 0'
+  ],
+  'style' : [ 'oblique 100deg', 'oblique italic', 'oblique -91deg', 'oblique 0',
+              'oblique 10', 'iiitalic', '90deg', '11', 'italic 90deg' ]
+};
+
+function testParseFace() {
+  for (var theProperty of Object.keys(faceTests)) {
+    for (var faceTest of faceTests[theProperty]) {
+      test(
+          () => {
+            var fontFace = new FontFace('testfont', 'url()');
+            assert_equals(fontFace[theProperty], 'normal');
+            fontFace[theProperty] = faceTest[0];
+            assert_equals(fontFace[theProperty], faceTest[1]);
+          },
+          'Valid value ' + faceTest[0] + ' matches ' + faceTest[1] + ' for ' +
+              theProperty + ' in @font-face.');
+    }
+  }
+
+  for (var theProperty of Object.keys(faceInvalidTests)) {
+    for (var faceTest of faceInvalidTests[theProperty]) {
+      test(
+          () => {
+            var fontFace = new FontFace('testfont', 'url()');
+            assert_throws_dom('SyntaxError', () => {
+              fontFace[theProperty] = faceTest;
+            }, 'Value must not be accepted as weight value.');
+          },
+          'Value ' + faceTest + ' must not be accepted as ' + theProperty +
+              ' in @font-face.')
+    }
+  }
+}
+
+window.addEventListener('load', function() {
+  testParseStyle();
+  testParseFace();
+  done();
+});
+</script>
+</body>
+</html>

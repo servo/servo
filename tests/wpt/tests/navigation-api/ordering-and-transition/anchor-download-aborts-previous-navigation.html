@@ -1,0 +1,35 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="iframe" src="/common/blank.html"></iframe>
+<script>
+  promise_test(async t => {
+    const iframe = document.getElementById("iframe");
+    await new Promise(resolve => window.onload = resolve);
+    const navigate_called = Promise.withResolvers();
+    const { navigation } = iframe.contentWindow;
+    navigation.addEventListener("navigate", e => {
+      if (!e.downloadRequest) {
+        e.intercept({ handler: () => new Promise(resolve => { }) });
+        navigate_called.resolve();
+      }
+    });
+    navigation.navigate("?never");
+    await navigate_called.promise;
+    const events = [];
+    const { transition } = navigation;
+    transition.committed.then(() => events.push("committed")).catch(e => events.push("commit-rejected"));
+    transition.finished.then(() => events.push("finished")).catch(e => events.push("finish-rejected"));
+    navigation.onnavigatesuccess = () => events.push("navigatesuccess");
+    navigation.onnavigateerror = () => events.push("navigateerror");
+
+    await Promise.resolve();
+    let a = iframe.contentDocument.createElement("a");
+    a.href = "?download";
+    a.download = "";
+    iframe.contentDocument.body.appendChild(a);
+    a.click();
+    await Promise.allSettled([transition.finished, transition.committed])
+    assert_array_equals(events, ["committed", "navigateerror", "finish-rejected"]);
+  }, "<a download> aborts previous navigations");
+</script>

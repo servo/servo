@@ -1,0 +1,22 @@
+<!doctype html>
+<title>Event loop pause for beforeunload</title>
+<script>
+var counter = 0;
+
+onload = function count() {
+  document.getElementById("log").textContent = counter++
+  setTimeout(count, 200);
+}
+
+addEventListener("beforeunload",
+function(e) {
+  e.preventDefault()
+},
+false);
+</script>
+<ul>
+<li>Click on the link below. When the prompt appears the counter at the bottom must stop incrementing.
+<li>Opt not to leave the page. The counter must start incrementing again
+</ul>
+<p><a href="">Click here</a>
+<div id="log"></div>

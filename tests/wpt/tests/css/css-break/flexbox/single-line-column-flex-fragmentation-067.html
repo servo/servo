@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Tests that a percentage height is resolved correctly in a flex item in fragmented context.</title>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1744363">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width: 100px; height: 100px; columns: 2; column-gap: 0; column-fill: auto; background: red;">
+  <div style="display: flex; flex-direction: column; height: 200px;">
+    <div style="flex: none;">
+      <div style="width: 50px; height: 100%; background: green;"></div>
+      <div style="contain: size; width: 50px; height: 100px; background: green;"></div>
+    </div>
+  </div>
+</div>

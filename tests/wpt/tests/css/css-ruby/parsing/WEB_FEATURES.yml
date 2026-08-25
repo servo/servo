@@ -1,0 +1,3 @@
+rules:
+- ruby-align-*: [ruby-align]
+- ruby-position-*: [ruby-position]

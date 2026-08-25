@@ -1,0 +1,2 @@
+rules:
+- "**": [intersection-observer-v2]

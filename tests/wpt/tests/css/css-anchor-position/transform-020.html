@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<title>Sticky-positioned anchor in transformed scroller, anchored element on the outside</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://issues.chromium.org/issues/534655508">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+  #scroller {
+    overflow: hidden;
+    width: 250px;
+    height: 250px;
+    transform-origin: top left;
+    transform: scale(2);
+  }
+
+  #anchor {
+    position: sticky;
+    top: 0;
+    anchor-name: --foo;
+    width: 25px;
+    height: 50px;
+    background: green;
+  }
+
+  #positioned {
+    position: absolute;
+    position-anchor: --foo;
+    position-area: right;
+    width: 50px;
+    height: 100px;
+    background: green;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width:100px; height:100px; background:red;">
+  <div id="scroller">
+    <div style="height:150px;"></div>
+    <div id="anchor"></div>
+    <div style="height:1000px;"></div>
+  </div>
+  <div id="positioned"></div>
+</div>
+<script>
+  scroller.scrollTop = 160;
+</script>

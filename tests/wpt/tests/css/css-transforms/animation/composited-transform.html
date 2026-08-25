@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Composition of transform animations</title>
+<link rel="help" href="https://drafts.csswg.org/css-transforms-2/#combining-transform-lists">
+<meta name="assert" content="transform animations should composite correctly">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="target"><div>
+
+<script>
+test(() => {
+  var anim1 = target.animate(
+      { transform: [ 'translateX(0)', 'translateX(100px)' ]},
+      1000
+  );
+  var anim2 = target.animate(
+      { transform: [ 'translateY(0)', 'translateY(100px)' ]},
+      {duration: 1000, composite: 'add'}
+  );
+
+  anim1.pause();
+  anim2.pause();
+
+  anim1.currentTime = 200;
+  anim2.currentTime = 800;
+
+  // The computation here should be:
+  //   underlying_value = 'translateX(0)' --> 'translateX(100px)' @ 0.2
+  //                    = 'translateX(20px)'
+  //   final_value = 0.2 * ('translateX(20px) translateY(0)') +
+  //                 0.8 * ('translateX(20px) translateY(100px)')
+  //               = 'translateX(20px) translateY(80px)'
+  //               = 'matrix(1, 0, 0, 1, 20, 80)'
+  assert_equals(getComputedStyle(target).transform, 'matrix(1, 0, 0, 1, 20, 80)')
+}, 'An additive transform animation on-top of a replace transform animation ' +
+    'should composite correctly');
+</script>

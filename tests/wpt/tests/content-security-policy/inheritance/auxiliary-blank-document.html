@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<head>
+  <meta http-equiv="Content-Security-Policy" content="img-src 'self'">
+<script src=/common/get-host-info.sub.js></script>
+
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <title>CSP inheritance to an auxiliary about:blank</title>
+</head>
+<body>
+  <script>
+    function waitForEvent(target, name) {
+      return new Promise(resolve => {
+        function listener(e) {
+          target.removeEventListener(name, listener);
+          resolve(e);
+        }
+        target.addEventListener(name, listener);
+      });
+    }
+
+    async function testImgBlocked(doc, url) {
+      const img = doc.createElement("img");
+      img.src = url;
+
+      const pViolation = waitForEvent(doc, "securitypolicyviolation");
+      const pLoad = waitForEvent(img, "load");
+
+      // Still return violation event if it occurs on the wrong window
+      // See subtest for the target.
+      const pAbort = waitForEvent(window, "securitypolicyviolation")
+
+      doc.body.append(img);
+      return Promise.race([pViolation, pLoad, pAbort]);
+    }
+
+    const xorigin = get_host_info().REMOTE_ORIGIN;
+
+    promise_test(async t => {
+      const win = window.open("about:blank");
+      t.add_cleanup(() => win.close());
+      win.onload = () => assert_unreached("Should load synchronously");
+      assert_equals(win.document.readyState, "complete");
+
+      const eSelf = await testImgBlocked(win.document, "/content-security-policy/support/pass.png");
+      assert_equals(eSelf.type, "load");
+
+      const eXorig = await testImgBlocked(win.document, xorigin + "/content-security-policy/support/fail.png");
+      assert_equals(eXorig.type, "securitypolicyviolation");
+    }, "window.open() inherits CSPs on initial about:blank.");
+
+    promise_test(async t => {
+      const win = window.open("/common/blank.html");
+      t.add_cleanup(() => win.close());
+      win.stop();
+      assert_equals(win.document.documentURI, "about:blank");
+
+      const eXorig = await testImgBlocked(win.document, xorigin + "/content-security-policy/support/fail.png");
+      assert_equals(eXorig.type, "securitypolicyviolation");
+      assert_equals(eXorig.target, win.document);
+    }, "For transient doc, violation event occurs in auxiliary, not opener window.");
+
+    promise_test(async t => {
+      const win = window.open("/common/blank.html");
+      t.add_cleanup(() => win.close());
+      win.stop();
+      assert_equals(win.document.documentURI, "about:blank");
+
+      const eSelf = await testImgBlocked(win.document, "/content-security-policy/support/pass.png");
+      assert_equals(eSelf.type, "load");
+
+      const eXorig = await testImgBlocked(win.document, xorigin + "/content-security-policy/support/fail.png");
+      assert_equals(eXorig.type, "securitypolicyviolation");
+    }, "window.open() inherits CSPs on transient about:blank.");
+
+  </script>
+</body>
+</html>

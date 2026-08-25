@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>currentColor in color-mix() used in outline repaints properly when parent color changes</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-color/#currentcolor-color">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+    #container {
+        color: red;
+    }
+
+    #container.green {
+        color: green;
+    }
+
+    #target {
+        outline: 50px solid color-mix(in hsl, transparent 0%, currentColor 100%);
+        outline-offset: -50px;
+        width: 100px;
+        height: 100px;
+    }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="container">
+    <div id="target"></div>
+</div>
+
+<script src="/web-animations/testcommon.js"></script>
+<script>
+  addEventListener("load", async () => {
+    // crbug.com/1378671: Screenshot can be taken while compositor commits are
+    // still being deferred for first contentful paint (FCP). Wait for FCP
+    // before starting the test.
+    await waitForCompositorReady();
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        container.classList.add("green");
+        requestAnimationFrame(() => {
+          document.documentElement.classList.remove("reftest-wait");
+        });
+      });
+    });
+  });
+</script>
+</html>

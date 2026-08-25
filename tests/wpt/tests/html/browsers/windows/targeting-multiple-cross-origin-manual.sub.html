@@ -1,0 +1,9 @@
+<meta charset=utf-8>
+<p>Follow this link to open a new browsing context in a separate origin. Follow the instructions
+in that new window, and then come back to this window.
+<a target=first href="{{location[scheme]}}://{{domains[天気の良い日]}}:{{location[port]}}/html/browsers/windows/resources/target-cross-origin.sub.html">link</a>.
+
+<p>Once you come back to this page, follow this link.
+<a target=second href="resources/echo-window-name.html">link</a>.
+
+<p>After clicking that link, you should have three additional windows open.

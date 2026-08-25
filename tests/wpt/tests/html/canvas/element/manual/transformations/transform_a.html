@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset=utf-8>
+<link rel=match href=transform_ref.html>
+<style>
+html, body {
+    margin: 0;
+}
+</style>
+<canvas id=c width=400 height=300></canvas>
+<script>
+var canvas = document.getElementById('c');
+var ctx = canvas.getContext('2d');
+ctx.scale(3, 3);
+ctx.fillStyle = 'rgb(255, 0, 0)';
+ctx.beginPath();
+ctx.moveTo(10, 10);
+ctx.bezierCurveTo(10, 10, 20, 10, 20, 10);
+ctx.bezierCurveTo(20, 10, 20, 20, 20, 20);
+ctx.bezierCurveTo(20, 20, 10, 20, 10, 20);
+ctx.closePath();
+ctx.fill();
+</script>

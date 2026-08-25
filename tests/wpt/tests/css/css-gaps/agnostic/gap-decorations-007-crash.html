@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<title>Crash test found by fuzzer. Multicol, non visible overflow without scrollable container and a visible gap rule
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<div style="columns:2; column-fill:auto; height:100px; column-rule:solid; contain:paint;">
+    <div style="height:101px;"></div>
+</div>

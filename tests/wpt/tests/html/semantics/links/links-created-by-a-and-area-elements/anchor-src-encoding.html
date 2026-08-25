@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>anchor href URL is parsed using document encoding</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+async_test(t => {
+  let frame = document.createElement('iframe');
+  frame.src = "support/anchor-src-encoding-iframe.html";
+  document.body.appendChild(frame);
+
+  let loaded = false;
+  frame.onload = t.step_func(() => {
+    if (!loaded) {
+      loaded = true;
+      let a = frame.contentDocument.createElement('a');
+      a.href = '?\u00DF'; // U+00DF
+      frame.contentDocument.body.appendChild(a);
+      a.click();
+    } else {
+      assert_equals(frame.contentWindow.location.search, "?%DF", "anchor href URL is parsed using document encoding");
+      t.done();
+    }
+  });
+});
+</script>

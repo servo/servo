@@ -1,0 +1,56 @@
+rules:
+- background-3*: [background]
+- background_color_padding_box.htm: [background, background-color]
+- background-clip*: [background-clip]
+- css3-background-clip*: [background-clip]
+- border-image*: [border-image]
+- css3-border-image*: [border-image]
+- background-attachment-*: [background-attachment]
+- local-attachment-content-box-scroll.html: [background-attachment]
+- table-cell-background-local*: [background-attachment]
+- background-color-*: [background-color]
+# The above pattern matches a number of tests which do not use the
+# `background-color` property but which nonetheless test relevant semantics via
+# the `background` shorthand:
+# - background-color-body-propagation-004.html
+# - background-color-body-propagation-005.html
+# - background-color-body-propagation-006.html
+# - background-color-body-propagation-007.html
+# - background-color-root-propagation-001.html
+# - background-color-root-propagation-002.html
+
+- background-none-none-and-color.html: [background-color]
+- bg-color-with-gradient.html: [background-color]
+- color-behind-images.htm: [background-color, background-image]
+
+# The presence of a number of unrelated test files whose name begins with
+# `background-color-` makes the `0` in following pattern the most
+# stable/concise way to express this classifier.
+- background-image-0*: [background-image]
+- background-image-first-letter.html: [background-image]
+- background-image-first-line.html: [background-image]
+- background-image-large-with-auto.html: [background-image, background-size]
+- background-image-shared-stylesheet.html: [background-image]
+- background-image-table-cells-straddling-no-repeat.html: [background-image]
+- background-image-table-cells-zoomed.html: [background-image]
+- none-as-image-layer.htm: [background-image]
+- order-of-images.htm: [background-image]
+- scroll-positioned-multiple-background-images.html: [background-image, background-position]
+- background-origin-*: [background-origin]
+- css3-background-origin-*: [background-origin]
+- background-position-*: [background-position]
+- background-repeat-*: [background-repeat]
+- background_repeat_*: [background-repeat]
+- background-image-cover-zoomed-1.html: [background-size]
+- background-size-*: [background-size]
+- css3-background-size*: [background-size]
+- border-radius-dynamic-from-no-radius-ref.html: [border-radius, border-radius]
+- border-*-radius-*: [border-radius]
+- border-radius-clip*: []
+- border-radius-*: [border-radius]
+- css-border-radius-001.html: [border-radius]
+- border-*radius-*: []
+- border-*: [borders]
+- ttwf-css3background-border-*: [borders]
+- "*box-shadow*": [box-shadow]
+- fieldset-inset-shadow.html: [box-shadow]

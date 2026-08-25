@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>caret-shape block color is the same as what is specified by caret-color property</title>
+<link rel=help href="https://drafts.csswg.org/css-ui/#caret-shape">
+<link rel=match href="caret-shape-block-color-001-ref.html">
+<meta name="assert"
+  content="Test checks that caret-shape block color is the same as the value of caret-color property when specified">
+<style>
+  div {
+    font-size: 5em;
+  }
+
+  #target {
+    caret-color: lime;
+    caret-shape: block;
+    caret-animation: manual;
+  }
+
+  #target:focus {
+    outline: none;
+  }
+</style>
+<div id="target" contenteditable spellcheck="false">abc</div>
+<script>
+  target.focus();
+</script>

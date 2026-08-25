@@ -1,0 +1,13 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async t => {
+  navigation.onnavigate = e => e.intercept();
+
+  await navigation.navigate('/foo', {state: {foo: 1}}).committed;
+  assert_equals(navigation.currentEntry.getState().foo, 1);
+  await navigation.navigate('/foo', {state: {foo: 2}}).committed;
+  assert_equals(navigation.currentEntry.getState().foo, 2);
+}, "navigate() with state should work correctly when called repeatedly - with awaits");
+</script>

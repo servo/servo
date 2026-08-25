@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="utils.js"></script>
+<title>Fenced frame content to report the result of background fetch</title>
+
+<body>
+  <script>
+    (async function () {
+      const [background_fetch_register_key, method] = parseKeylist();
+      const file = 'background-fetch-inner.https.html.headers';
+
+      navigator.serviceWorker.register("empty-worker.js", { scope: location.href });
+      const registration = await navigator.serviceWorker.ready;
+
+      const url = new URL(location.href);
+
+      let promise;
+      switch (method) {
+        case 'fetch':
+          promise = registration.backgroundFetch.fetch('test-fetch', file);
+          break;
+        case 'get':
+          promise = registration.backgroundFetch.get('test-fetch');
+          break;
+        case 'getIds':
+          promise = registration.backgroundFetch.getIds();
+          break
+        default:
+          promise = Promise.resolve();
+      }
+
+      promise
+        .then(() => {
+          writeValueToServer(background_fetch_register_key,
+            `[backgroundFetch.${method}] Unexpectedly started`);
+        })
+        .catch(() => {
+          writeValueToServer(background_fetch_register_key,
+            `[backgroundFetch.${method}] Failed inside fencedframe as expected`);
+        })
+        .finally(() => {
+          registration.unregister();
+        });
+    })();
+  </script>
+</body>

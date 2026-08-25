@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<meta charset="utf-8">
+<title>Neutral keyframes should not crash</title>
+<link rel="help" href="https://crbug.com/41328322">
+<div id="f"></div>
+<script>
+  f.animate([{"marginTop": "auto"}], {iterationStart: 0.5, fill: 'forwards'});
+  requestAnimationFrame(() => {
+    f.animate([{"marginTop": "auto"}], {iterationStart: 0.5, fill: 'forwards'});
+    document.documentElement.classList.remove('test-wait');
+  });
+</script>

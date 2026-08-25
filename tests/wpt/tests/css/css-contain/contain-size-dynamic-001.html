@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Dynamic change to size containment</title>
+<link rel="help" href="https://drafts.csswg.org/css-contain/#contain-property">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1765615">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<meta name="assert" content="Verify size containment is properly updated after dynamic change to the contain property.">
+<style>
+  /* Selectors for contain */
+  #none .wrapper {
+      containt: none;
+  }
+  #size .wrapper {
+      contain: size;
+  }
+  #none_to_size .wrapper {
+      containt: none;
+  }
+  #size_to_none .wrapper {
+      contain: size;
+  }
+
+  /* Selectors for testing sizing as empty */
+  .wrapper {
+      display: inline-block;
+  }
+  .box {
+      display: inline-block;
+      width: 50px;
+      height: 5px;
+      background: black;
+  }
+</style>
+<body>
+  <div id="log"></div>
+
+  <div id="none">
+    <div class="wrapper"><div class="box"></div></div>
+  </div>
+
+  <div id="size">
+    <div class="wrapper"><div class="box"></div></div>
+  </div>
+
+  <div id="none_to_size">
+    <div class="wrapper"><div class="box"></div></div>
+  </div>
+
+  <div id="size_to_none">
+    <div class="wrapper"><div class="box"></div></div>
+  </div>
+
+  <script>
+    function verifySizeContainment(id, applied) {
+        // To verify size containment applies, we test whether it is sized as
+        // if empty i.e. the size of its inner box is ignored.
+        let container = document.getElementById(id);
+        let wrapper = container.getElementsByClassName("wrapper")[0];
+        let wrapperBox = wrapper.getBoundingClientRect();
+        assert_equals(wrapperBox.width == 0, applied, "width is zero");
+        assert_equals(wrapperBox.height == 0, applied, "height is zero");
+    }
+
+    function setContain(id, value) {
+        let container = document.getElementById(id);
+        let wrapper = container.getElementsByClassName("wrapper")[0];
+        wrapper.style.contain = value;
+    }
+
+    promise_test(async () => {
+        verifySizeContainment("none", /*applied=*/false);
+    }, "contain: none");
+
+    promise_test(async () => {
+        verifySizeContainment("size", /*applied=*/true);
+    }, "contain: size");
+
+    promise_test(async () => {
+        setContain("none_to_size", "size");
+        verifySizeContainment("none_to_size", /*applied=*/true);
+    }, "switching contain from none to size");
+
+    promise_test(async () => {
+        setContain("size_to_none", "none");
+        verifySizeContainment("size_to_none", /*applied=*/false);
+    }, "switching contain from size to none");
+  </script>
+</body>

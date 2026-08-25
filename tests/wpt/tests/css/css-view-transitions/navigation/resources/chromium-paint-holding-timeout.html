@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<title>View Transitions: paint holding timeout cancels transition (new page)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<link rel="match" href="chromium-paint-holding-timeout-ref.html">
+<link rel="assert" content="Ensures paint holding timeout cancels transition. Note that this is a Chromium only test">
+<script src="/common/reftest-wait.js"></script>
+<style>
+@view-transition {
+  navigation: auto;
+}
+.right {
+  view-transition-name: target;
+  width: 100px;
+  height: 100px;
+  position: relative;
+  left: 300px;
+  background: green;
+}
+::view-transition-group(*),
+::view-transition-new(*),
+::view-transition-old(*) {
+  animation-play-state: paused;
+}
+</style>
+<link rel=expect href="#target" blocking=render>
+</head>
+
+<!-- delay for 3 seconds, then 1 second, then 1 second, then 1 second -->
+<script src="/loading/resources/dummy.js?pipe=trickle(d3)"></script>
+<script src="/loading/resources/dummy.js?pipe=trickle(d1)"></script>
+<script src="/loading/resources/dummy.js?pipe=trickle(d1)"></script>
+<script src="/loading/resources/dummy.js?pipe=trickle(d1)"></script>
+
+<div id=target class=right></div>
+
+<script>
+takeScreenshot();
+</script>

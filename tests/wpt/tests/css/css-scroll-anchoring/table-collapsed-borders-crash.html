@@ -1,0 +1,25 @@
+<!doctype html>
+<html class="test-wait">
+<link rel="help" href="https://drafts.csswg.org/css-scroll-anchoring/">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=746570">
+<meta name="assert" content="No crash when a table with dirty internal layout is the scroll anchor."/>
+<style>
+body {
+  height:200vh;
+}
+table {
+  height: 200px;
+  width: 200px;
+  background-color: lime;
+  border-collapse: collapse; /* triggers problematic border calculation */
+}
+</style>
+
+<table id=table1></table>
+
+<script>
+  window.scrollBy(0, 10);
+  table1.innerHTML = "<tr><td style='background-color:lightblue'></td></tr>";
+  document.documentElement.classList.remove('test-wait');
+</script>
+</html>

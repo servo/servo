@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>CSS Test: blend an element having an overflowing child.</title>
+        <link rel="author" title="Mirela Budăeș" href="mailto:mbudaes@adobe.com">
+        <link rel="author" title="Mihai Tica" href="mailto:mitica@adobe.com">
+        <link rel="reviewer" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+        <link rel="reviewer" title="Horia Olaru" href="mailto:olaru@adobe.com">
+        <link rel="help" href="https://drafts.fxtf.org/compositing-1/#mix-blend-mode">
+        <meta name="assert" content="Test checks that a group consisting of an element
+            with mix-blend-mode and an overflowing child blends as a whole with the
+            underlying stacking context.">
+        <link rel="match" href="reference/mix-blend-mode-blended-element-with-transparent-pixels-ref.html">
+        <style type="text/css">
+            .parent {
+                position: absolute;
+                z-index: 1;
+                background: #00F;
+                width: 100px;
+                height: 100px;
+                margin: 10px;
+            }
+            .blender {
+                background: #777;
+                width: 120px;
+                height: 120px;
+                margin: -10px;
+                mix-blend-mode: difference;
+            }
+            .child {
+                background: #0FF;
+                width: 120px;
+                height: 120px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if you can see a lime square with aqua borders.<br>
+            If the borders are red, the test fails.</p>
+        <div class="parent">
+            <div class="blender">
+                <div class="child"></div>
+            </div>
+        </div>
+    </body>
+</html>

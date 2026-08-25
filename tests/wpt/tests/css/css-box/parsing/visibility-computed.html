@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS basic box model: getComputedStyle().visibility</title>
+<link rel="help" href="https://www.w3.org/TR/CSS2/visufx.html#visibility">
+<meta name="assert" content="visibility computed value is as specified.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<script>
+test_computed_value("visibility", "visible");
+test_computed_value("visibility", "hidden");
+test_computed_value("visibility", "collapse");
+</script>
+</body>
+</html>

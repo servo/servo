@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: `line-clamp` with only lineless content after clamp</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square.xht">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<meta name="assert" content="If there is content after the clamp point, but it has no lines (e.g. lineless blocks or IFCs), the line-clamp container will still clamp.">
+<style>
+.clamp {
+  line-clamp: 4;
+  font: 25px/1 Ahem;
+}
+.green {
+  color: green;
+}
+.red {
+  background-color: red;
+}
+.lineless {
+  height: 1lh;
+}
+.ifc {
+  display: flow-root;
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="clamp">
+  <div class="green">
+    PASS<br>
+    PASS<br>
+    PASS<br>
+    PAS<br> <!-- intentionally misspelled so the ellipsis doesn't stick out of the square -->
+  </div>
+  <div class="red lineless"></div>
+  <div class="red ifc">FAIL</div>
+</div>

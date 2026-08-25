@@ -1,0 +1,56 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Overflow: scrollbar-gutter on the root, scrolling</title>
+<link rel="author" title="Felipe Erias Morandeira" href="mailto:felipeerias@igalia.com" />
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#scrollbar-gutter-property" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<style>
+  body,
+  html {
+    margin: 0;
+    padding: 0;
+    border: none;
+  }
+
+  :root {
+    scrollbar-gutter: stable;
+  }
+
+  #content {
+    background: green;
+    width: 100%;
+    /* force scrolling */
+    height: 200vh;
+  }
+</style>
+
+<body>
+
+  <div id="content"></div>
+
+  <script type="text/javascript">
+    setup({ explicit_done: true });
+
+    test(function () {
+      let root = document.documentElement;
+      let body = document.body;
+      let content = document.getElementById('content');
+
+      // Note: as per the spec, the clientWidth of the root element is
+      // "viewport width excluding the size of a rendered scroll bar (if any)"
+      // which does not take scrollbar-gutter into account.
+      // Since no such special case exists for offsetWidth, this means that here
+      // root.clientWidth is greater than root.offsetWidth (!!!).
+
+      assert_less_than(root.offsetWidth, window.innerWidth, "viewport has gutter");
+      assert_equals(body.offsetWidth, root.offsetWidth, "body matches root");
+      assert_equals(body.clientWidth, body.offsetWidth, "body has no gutter");
+      assert_equals(content.offsetWidth, body.clientWidth, "content matches body");
+    }, "viewport has gutter, others do not");
+
+    done();
+
+  </script>
+</body>

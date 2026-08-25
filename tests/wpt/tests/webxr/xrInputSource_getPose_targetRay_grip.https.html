@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+<script src="resources/webxr_test_asserts.js"></script>
+
+<script>
+
+const testName = "Poses between targetRaySpace and gripSpace can be obtained and behave correctly";
+
+const fakeDeviceInitParams = TRACKED_IMMERSIVE_DEVICE;
+
+const testFunction =
+  (session, fakeDeviceController, t) => new Promise((resolve) => {
+    const input_source = fakeDeviceController.simulateInputSourceConnection({
+      handedness: "right",
+      targetRayMode: "tracked-pointer",
+      pointerOrigin: IDENTITY_TRANSFORM,  // basespace_from_target_ray_space
+      gripOrigin: VALID_GRIP_TRANSFORM,   // basespace_from_grip_space
+      profiles: []
+    });
+
+    function CheckPoseBetweenTargetRayAndGripSpaces(time, xrFrame) {
+      let source = session.inputSources[0];
+      let target_ray_space_from_grip_space = xrFrame.getPose(source.gripSpace, source.targetRaySpace);
+      // target_ray_space_from_grip_space
+      // = (basespace_from_target_ray_space)^-1 * basespace_from_grip_space
+      //
+      // substituting identity for basespace_from_target_ray_space:
+      // = (identity)^-1 * basespace_from_grip_space
+      // = basespace_from_grip_space
+      // = VALID_GRIP_TRANSFORM, whose matrix is equal to VALID_GRIP
+
+      t.step(() => {
+        assert_not_equals(target_ray_space_from_grip_space, null);
+        assert_matrix_approx_equals(target_ray_space_from_grip_space.transform.matrix, VALID_GRIP);
+      });
+
+      resolve();
+    }
+
+    // Can only request input poses in an xr frame.
+    requestSkipAnimationFrame(session, CheckPoseBetweenTargetRayAndGripSpaces);
+  }); // new Promise((resolve) => {
+
+xr_session_promise_test(
+  testName, testFunction, fakeDeviceInitParams, 'immersive-vr');
+
+</script>

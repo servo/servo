@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<title>CSS Flexbox: multiline column flexboxes and shrink-to-fit.</title>
+<link rel="help" href="https://www.w3.org/TR/css-flexbox-1/#intrinsic-sizes">
+<link rel="match" href="reference/multiline-shrink-to-fit-ref.html">
+<meta name="assert" content="This test ensures that multiline column flexboxes shrink-to-fit works properly."/>
+<style>
+.flexbox {
+  display: flex;
+  background-color: #aaa;
+  position: relative;
+  flex-wrap: wrap;
+  flex-direction: column;
+  float: left;
+  align-content: flex-start;
+}
+.flexbox > * {
+  flex: none;
+}
+.flexbox :nth-child(1) {
+  background-color: lightblue;
+}
+.flexbox :nth-child(2) {
+  background-color: lightgreen;
+}
+.flexbox :nth-child(3) {
+  background-color: pink;
+}
+.flexbox :nth-child(4) {
+  background-color: yellow;
+}
+</style>
+<body>
+
+<div class="flexbox">
+  <div style="width: 100px; height: 20px"></div>
+  <div style="width: 100px; height: 10px"></div>
+  <div style="width: 100px; height: 10px"></div>
+  <div style="width: 100px; height: 20px"></div>
+</div>
+<p style="clear:left">The grey background should be 100px wide.</p>
+
+<div class="flexbox" style="height: 30px">
+  <div style="width: 100px; height: 20px"></div>
+  <div style="width: 100px; height: 10px"></div>
+  <div style="width: 100px; height: 10px"></div>
+  <div style="width: 100px; height: 20px"></div>
+</div>
+<p style="clear:left">The grey background should be 100px wide.</p>
+
+<div style="width: 150px">
+<div class="flexbox">
+  <div style="width: 100px; height: 20px"></div>
+  <div style="width: 100px; height: 10px"></div>
+  <div style="width: 100px; height: 10px"></div>
+  <div style="width: 100px; height: 20px"></div>
+</div>
+</div>
+<p style="clear:left">The grey background should be 100px wide.</p>
+
+<div style="width: 150px">
+<div class="flexbox" style="height: 35px">
+  <div style="width: 100px; height: 20px"></div>
+  <div style="width: 100px; height: 10px"></div>
+  <div style="width: 100px; height: 10px"></div>
+  <div style="width: 100px; height: 20px"></div>
+</div>
+</div>
+<p style="clear:left">The grey background should be 150px wide and 5px should
+  stick out the bottom.</p>
+
+</body>
+</html>

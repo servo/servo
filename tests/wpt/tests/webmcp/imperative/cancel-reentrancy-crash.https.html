@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>WebMCP: Cancel execution reentrancy crash test</title>
+<script src="/webmcp/resources/helpers.js"></script>
+
+<script>
+window.onload = async () => {
+  const controllerA = new AbortController();
+
+  let resolveAStart;
+  const promiseAStart = new Promise(r => resolveAStart = r);
+  await document.modelContext.registerTool({
+    name: "toolA",
+    description: "hangs",
+    execute: async () => {
+      resolveAStart();
+      return new Promise(() => {}); // Never resolves
+    }
+  });
+
+  let resolveBStart;
+  const promiseBStart = new Promise(r => resolveBStart = r);
+  let resolveBCompletion;
+  const promiseBCompletion = new Promise(r => resolveBCompletion = r);
+  await document.modelContext.registerTool({
+    name: "toolB",
+    description: "manual resolve",
+    execute: async () => {
+      resolveBStart();
+      return promiseBCompletion;
+    }
+  });
+
+  window.addEventListener('toolcancel', (event) => {
+    if (event.detail === 'toolA') {
+      // Synchronously resolve toolB promise during toolA cancel.
+      // This will queue the microtask to remove toolB from pending_executions_
+      // and trigger a re-hash.
+      resolveBCompletion("doneB");
+    }
+  });
+
+  const tools = await document.modelContext.getTools();
+  const regA = tools.find(t => t.name === 'toolA');
+  const regB = tools.find(t => t.name === 'toolB');
+
+  document.modelContext.executeTool(regA, '{}', { signal: controllerA.signal });
+  document.modelContext.executeTool(regB, '{}');
+
+  // Wait for both tool execute callbacks to run and return, ensuring they are
+  // inserted into pending_executions_.
+  await Promise.all([promiseAStart, promiseBStart]);
+
+  controllerA.abort();
+};
+</script>

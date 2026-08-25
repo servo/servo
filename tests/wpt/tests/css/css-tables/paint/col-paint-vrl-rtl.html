@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#drawing-cell-backgrounds">
+<link rel="match" href="col-paint-vrl-rtl-ref.html">
+<style>
+table { border: solid 2px; border-spacing: 5px; padding: 5px; }
+col { background: linear-gradient(30deg, red 50%, blue 50%); }
+</style>
+<table style="writing-mode: vertical-rl; direction: rtl;">
+  <col style="height: 50px;"></col>
+  <col style="height: 100px;"></col>
+  <tr style="width: 100px;">
+    <td></td>
+    <td></td>
+  </tr>
+  <tr style="width: 50px;">
+    <td></td>
+    <td></td>
+  </tr>
+</table>

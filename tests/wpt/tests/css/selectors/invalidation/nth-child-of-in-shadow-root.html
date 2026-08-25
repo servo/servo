@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>CSS Selectors Invalidation: :nth-child(... of class) within shadow root</title>
+<link rel="author" title="Steinar H. Gunderson" href="sesse@chromium.org">
+<link rel="match" href="nth-child-of-in-shadow-root-ref.html">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#child-index">
+<div id="host">
+  <template shadowrootmode="open">
+    <style>
+      div:nth-child(even of .foo) {
+        color: green;
+      }
+    </style>
+    <div class="foo" id="toggler">No green</div>
+    <div class="foo">No green</div>
+    <div class="foo">Should be green</div>
+  </template>
+</div>
+<script>
+  host.offsetTop;
+  host.shadowRoot.getElementById('toggler').classList.toggle('foo');
+</script>

@@ -1,0 +1,27 @@
+<style>
+    div {
+        margin: 20px;
+        font-size: 24pt;
+        line-height: 1.5em;
+    }
+
+    .test {
+        border: 10px solid blue;
+    }
+
+    .clone {
+        -webkit-box-decoration-break: clone;
+        box-decoration-break: clone;
+    }
+
+    .slice {
+        -webkit-box-decoration-break: slice;
+        box-decoration-break: slice;
+    }
+</style>
+</head>
+<body>
+<div>AAA<span class="test clone">AAA<br>AA</span>AA</div>
+<div>AAA<span class="test slice">AAA<br>AA</span>AA</div>
+</body>
+</html>

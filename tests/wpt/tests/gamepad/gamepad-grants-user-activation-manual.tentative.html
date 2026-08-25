@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Gamepad interaction grants user activation</title>
+    <link rel="help" href="https://github.com/w3c/gamepad/issues/124">
+    <link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#sticky-activation">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <p>
+      This test requires a gamepad device to be connected. Connect one, then
+      press and release any button on it.
+    </p>
+    <p id="status">Waiting for a gamepad to connect&hellip;</p>
+    <script>
+      async_test(t => {
+        const status = document.getElementById("status");
+        let index = -1;
+
+        assert_false(navigator.userActivation.hasBeenActive,
+          "the test document must not already have user activation");
+
+        window.addEventListener("gamepadconnected", t.step_func(e => {
+          if (index !== -1) {
+            return;
+          }
+          index = e.gamepad.index;
+          status.textContent = "Gamepad connected. Press any button.";
+
+          // A button may already be held down (e.g. the one used to
+          // trigger the connection), so wait for release first to make
+          // the next press unambiguous.
+          if (e.gamepad.buttons.some(b => b.pressed)) {
+            t.step_timeout(waitForRelease, 15);
+          } else {
+            t.step_timeout(waitForPress, 15);
+          }
+        }));
+
+        function waitForRelease() {
+          const gamepad = navigator.getGamepads()[index];
+          assert_true(!!gamepad, "gamepad should still be connected");
+          if (gamepad.buttons.every(b => !b.pressed)) {
+            t.step_timeout(waitForPress, 15);
+          } else {
+            t.step_timeout(waitForRelease, 15);
+          }
+        }
+
+        function waitForPress() {
+          const gamepad = navigator.getGamepads()[index];
+          assert_true(!!gamepad, "gamepad should still be connected");
+          if (gamepad.buttons.some(b => b.pressed)) {
+            assert_true(navigator.userActivation.hasBeenActive,
+              "pressing a gamepad button should grant sticky activation");
+            assert_true(navigator.userActivation.isActive,
+              "pressing a gamepad button should grant transient activation");
+            t.done();
+          } else {
+            t.step_timeout(waitForPress, 15);
+          }
+        }
+      }, "A gamepad button press grants HTML user activation to the page.");
+    </script>
+  </body>
+</html>

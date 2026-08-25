@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<style>
+  @page {
+    margin: 0;
+    size: 500px 400px;
+  }
+  body {
+    margin: 0;
+  }
+</style>
+<div style="display:flex; margin:0 100px; height:100px;">
+  <div style="border:solid; width:20%; height:20%; align-self:flex-end;">20%</div>
+  <div style="border:solid; flex:1;">auto</div>
+</div>
+<div style="display:flex; height:200px;">
+  <div style="display:flex; flex-flow:column; width:100px;">
+    <div style="width:70px; height:70px; border:solid; margin-left:auto;">70px</div>
+    <div style="flex:1; border:solid;">auto</div>
+  </div>
+  <div style="flex:1;"></div>
+  <div style="display:flex; flex-flow:column; width:100px;">
+    <div style="flex:1; border:solid;">auto</div>
+    <div style="width:70%; height:70%; border:solid;">70%</div>
+  </div>
+</div>
+<div style="display:flex; margin:0 100px; height:100px;">
+  <div style="border:solid; flex:1;">auto</div>
+  <div style="border:solid; width:70px; height:70px;">70px</div>
+</div>

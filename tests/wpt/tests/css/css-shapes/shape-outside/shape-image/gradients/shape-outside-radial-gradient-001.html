@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Test: Left float with radial gradient</title>
+    <link rel="author" title="Bear Travis" href="mailto:betravis@adobe.com"/>
+    <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shapes-from-image"/>
+    <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shape-outside-property"/>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="../../supported-shapes/support/rounded-rectangle.js"></script>
+    <script src="../../supported-shapes/support/subpixel-utils.js"></script>
+    <script src="../../supported-shapes/support/test-utils.js"></script>
+    <meta name="flags" content="ahem dom"/>
+    <meta name="assert" content="This test verifies that shape-outside respects a
+                                simple radial gradient."/>
+    <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+    <style type="text/css">
+        body { margin: 0; }
+        .container {
+            width: 200px;
+            height: 200px;
+            font-family: Ahem;
+            font-size: 10px;
+            line-height: 1;
+        }
+        #test {
+            color: green;
+        }
+        #gradient {
+            float: left;
+            width: 100px;
+            height: 100px;
+            shape-outside: radial-gradient(circle, green 0px, transparent 50px);
+        }
+    </style>
+</head>
+<body>
+    <p>
+        The test passes if you see green boxes following the contour of a circle. There should be no red.
+    </p>
+    <div id="test" class="container">
+        x</br>
+        <div id="gradient"></div>
+        <span id='test0'>x</span><br/>
+        <span id='test1'>x</span><br/>
+        <span id='test2'>x</span><br/>
+        <span id='test3'>x</span><br/>
+        <span id='test4'>x</span><br/>
+        <span id='test5'>x</span><br/>
+        <span id='test6'>x</span><br/>
+        <span id='test7'>x</span><br/>
+        <span id='test8'>x</span><br/>
+        <span id='test9'>x</span><br/>
+        x<br/>
+    </div>
+    <div id="log"></div>
+    <script>
+    test(function() {
+      assert_true(
+        verifyTextPoints({
+                roundedRect: {x: 0, y: 10, width: 100, height: 100, rx: 50, ry: 50},
+                containerWidth: 200,
+                containerHeight: 200,
+                lineHeight: 10
+        }, 10, 1.5),
+        "Lines positioned properly around the shape."
+      );
+    });
+     </script>
+</body>
+</html>

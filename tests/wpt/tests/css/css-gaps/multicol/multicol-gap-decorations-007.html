@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<title>
+    CSS Gap Decorations: Multicolumn gap decorations painted with nested fragmented multicol.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="match" href="multicol-gap-decorations-007-ref.html">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+
+    #outer {
+        width: 620px;
+        columns: 2;
+        column-fill: auto;
+        gap: 20px;
+        height: 200px;
+        background: yellow;
+    }
+
+    #inner {
+        columns: 3;
+        border: 2px solid;
+        gap: 20px;
+        column-height: 100px;
+        column-rule-style: solid;
+        column-rule-color: blue;
+        column-rule-width: 10px;
+        row-rule-style: solid;
+        row-rule-color: green;
+        row-rule-width: 10px;
+        column-wrap: wrap;
+        background: cyan;
+    }
+</style>
+
+<div id="outer">
+    <div id="inner">
+        <div style="height:60px; background:hotpink;"></div>
+        <div style="column-span:all; background: grey; opacity: 0.5; height:18px"></div>
+        <div style="height:750px; background:hotpink;"></div>
+    </div>
+</div>

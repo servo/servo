@@ -1,0 +1,123 @@
+﻿<!--
+Copyright (c) 2022 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+
+<script>
+"use strict";
+description("This test verifies getUniformIndices behaviors.");
+
+debug("");
+
+var wtu = WebGLTestUtils;
+
+const e_canvas = document.createElement('canvas');
+const gl = e_canvas.getContext('webgl2');
+
+const VSRC = `\
+  #version 300 es
+  precision mediump float;
+  uniform float u_vert_scalar;
+  uniform float u_vert_arr[3];
+  uniform float u_both_scalar;
+  uniform float u_both_arr[3];
+  void main() {
+    gl_Position = vec4(0, 0, 0, 1);
+    gl_Position.r += u_vert_scalar;
+    gl_Position.r += u_vert_arr[1];
+    gl_Position.r += u_both_scalar;
+    gl_Position.r += u_both_arr[1];
+  }
+`;
+
+const FSRC = `\
+  #version 300 es
+  precision mediump float;
+  uniform float u_frag_scalar;
+  uniform float u_frag_arr[3];
+  uniform float u_both_scalar;
+  uniform float u_both_arr[3];
+  out vec4 o_frag_color;
+  void main() {
+    o_frag_color = vec4(0, 0, 0, 1);
+    o_frag_color.r += u_frag_scalar;
+    o_frag_color.r += u_frag_arr[1];
+    o_frag_color.r += u_both_scalar;
+    o_frag_color.r += u_both_arr[1];
+  }
+`;
+
+(() => {
+  if (!gl) {
+    testFailed("WebGL context does not exist");
+    return;
+  }
+
+  window.prog = wtu.setupProgram(gl, [VSRC, FSRC]);
+  if (!prog) {
+    testFailed("Setting up program failed");
+    return;
+  }
+  let err = gl.getError();
+  if (err) throw err;
+
+  const IS_ACTIVE_BY_NAME = {
+    'u_vert_scalar'   : true,
+    'u_vert_scalar[0]': false,
+    'u_vert_arr'      : true,
+    'u_vert_arr[0]'   : true, // Even if the [0] is unused, the name enumerated
+                              // via getActiveUniforms for this array is 'u_vert_arr[0]'.
+    'u_vert_arr[1]'   : false,
+
+    'u_frag_scalar'   : true,
+    'u_frag_scalar[0]': false,
+    'u_frag_arr'      : true,
+    'u_frag_arr[0]'   : true,
+    'u_frag_arr[1]'   : false,
+
+    'u_both_scalar'   : true,
+    'u_both_scalar[0]': false,
+    'u_both_arr'      : true,
+    'u_both_arr[0]'   : true,
+    'u_both_arr[1]'   : false,
+  };
+  const NAMES = Object.keys(IS_ACTIVE_BY_NAME);
+  const active_ids = gl.getUniformIndices(prog, NAMES);
+
+  err = gl.getError();
+  if (err) throw err;
+
+  NAMES.forEach((name, i) => {
+    const active_id_was = active_ids[i];
+    const is_active_expected = IS_ACTIVE_BY_NAME[name];
+    const is_active_was = active_id_was != gl.INVALID_INDEX;
+    expectTrue(is_active_was == is_active_expected,
+               `getUniformIndices([, '${name}' ,]) -> [, ${active_id_was} ,], should be [, ${is_active_expected ? '0<=N<INVALID_INDEX' : 'INVALID_INDEX'} ,]`);
+    if (is_active_was) {
+      const info = gl.getActiveUniform(prog, active_id_was);
+      expectTrue(info.name.startsWith(name), `'${info.name}'.startsWith('${name}')`);
+    }
+  });
+})();
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

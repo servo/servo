@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<link rel="help" href="https://www.w3.org/TR/css-backgrounds-3/#body-background">
+<link rel="match" href="document-canvas-remove-body-ref.html">
+<body style="background: red"></body>
+<script>
+waitForAtLeastOneFrame().then(() => {
+  document.body.remove();
+  takeScreenshot();
+});
+</script>
+</html>

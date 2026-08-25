@@ -1,0 +1,78 @@
+<!--
+  No DOCTYPE: this test must run in quirks mode.
+
+  https://html.spec.whatwg.org/#link-type-stylesheet
+
+     Quirk: If the document has been set to quirks mode, has the same origin as
+     the URL of the external resource, and the Content-Type metadata of the
+     external resource is not a supported style sheet type, the user agent must
+     instead assume it to be text/css.
+
+  This tests direct cross-origin URLs but also cross-origin to same-origin
+  redirects, which are tainted and already get blocked from e.g. accessing
+  .cssRules across browsers.
+-->
+<meta charset="utf-8">
+<title>CSSOM - Cross-origin redirects and MIME type in quirks mode</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#the-cssstylesheet-interface">
+<link rel="help" href="https://html.spec.whatwg.org/#link-type-stylesheet">
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.com" title="Mozilla">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+assert_equals(document.compatMode, "BackCompat", "must be in quirks mode");
+
+const SAME_ORIGIN = "{{location[scheme]}}://{{location[host]}}";
+const CROSS_ORIGIN = "{{location[scheme]}}://{{hosts[alt][]}}:{{location[port]}}";
+const CSS_FILE = "/css/cssom/stylesheet-same-origin.css";
+const CSS_WRONG_MIME = CSS_FILE + "?pipe=header(Content-Type,text/plain)";
+
+function redirect(origin, target) {
+  return origin + "/common/redirect.py?location=" + encodeURIComponent(target);
+}
+
+function loadStylesheet(href) {
+  return new Promise(resolve => {
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = href;
+    link.onload = () => resolve({ link, event: "load" });
+    link.onerror = () => resolve({ link, event: "error" });
+    document.head.appendChild(link);
+  });
+}
+
+// stylesheet-same-origin.css sets body { padding: 10px }.
+function sheetApplied() {
+  return getComputedStyle(document.body).paddingTop == "10px";
+}
+
+promise_test(async t => {
+  const { link, event } = await loadStylesheet(CROSS_ORIGIN + CSS_WRONG_MIME);
+  t.add_cleanup(() => link.remove());
+  assert_equals(event, "error", "cross-origin with wrong MIME type should fire error");
+  assert_false(sheetApplied(), "styles should not apply");
+}, "Cross-origin stylesheet with wrong MIME type");
+
+promise_test(async t => {
+  const { link, event } = await loadStylesheet(redirect(CROSS_ORIGIN, SAME_ORIGIN + CSS_WRONG_MIME));
+  t.add_cleanup(() => link.remove());
+  assert_equals(event, "error", "cross-origin redirect to same-origin with wrong MIME type should fire error");
+  assert_false(sheetApplied(), "styles should not apply");
+}, "Cross-origin redirect to same-origin with wrong MIME type");
+
+promise_test(async t => {
+  const { link, event } = await loadStylesheet(redirect(SAME_ORIGIN, CROSS_ORIGIN + CSS_WRONG_MIME));
+  t.add_cleanup(() => link.remove());
+  assert_equals(event, "error", "same-origin redirect to cross-origin with wrong MIME type should fire error");
+  assert_false(sheetApplied(), "styles should not apply");
+}, "Same-origin redirect to cross-origin with wrong MIME type");
+
+promise_test(async t => {
+  const { link, event } = await loadStylesheet(redirect(SAME_ORIGIN, redirect(CROSS_ORIGIN, SAME_ORIGIN + CSS_WRONG_MIME)));
+  t.add_cleanup(() => link.remove());
+  assert_equals(event, "error", "double redirect through cross-origin with wrong MIME type should fire error");
+  assert_false(sheetApplied(), "styles should not apply");
+}, "Same-origin redirect to cross-origin redirect back to same-origin with wrong MIME type");
+</script>

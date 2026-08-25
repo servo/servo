@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>text-align: justify with soft-hyphens</title>
+<link rel='author' title='Koji Ishii' href='mailto:kojii@chromium.org'>
+<link rel='help' href='https://drafts.csswg.org/css-text-3/#text-align-property'>
+<link rel='match' href='reference/text-align-justify-shy-ref-001.html'>
+<style>
+div {
+  text-align: justify;
+  width: 10ch;
+}
+</style>
+<div>abc def ghijkl</div>
+<div>ab&shy;c def ghijkl</div>
+<div>ab<span>&shy;</span>c def ghijkl</div>

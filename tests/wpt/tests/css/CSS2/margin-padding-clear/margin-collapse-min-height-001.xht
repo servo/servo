@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS margin: Margin collapsing and elements with min-height</title>
+<link rel="author" title="Bert Bos" href="mailto:bert@w3.org" />
+<link rel="help" href="http://www.w3.org/TR/CSS22/box.html#collapsing-margins" />
+<link rel="help" href="http://www.w3.org/TR/CSS22/changes.html#s.8.3.1c" />
+<link rel="match" href="margin-collapse-min-height-001-ref.xht" />
+<meta name="assert" content="If the top margin of a box with non-zero computed 'min-height' and 'auto' computed 'height' collapses with the bottom margin of its last in-flow child, then the child's bottom margin does not collapse with the parent's bottom margin." />
+<style type="text/css">
+  body {min-width: 17em}
+  div.parent {min-height: 2em; height: auto; margin: 1em 0}
+  div.last-child {margin-bottom: 5em}
+  div.float {float: left}
+</style>
+</head>
+  <body>
+    <div class="parent">
+      <div></div>
+      <div></div>
+      <div class="last-child">
+	<div class="float">There's more space above this line than between this line and the horizontal rule</div>
+      </div>
+    </div>
+    <hr />
+  </body>
+</html>

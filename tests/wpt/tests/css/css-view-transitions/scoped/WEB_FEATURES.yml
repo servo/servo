@@ -1,0 +1,2 @@
+rules:
+- "**": [view-transitions-element-scoped]

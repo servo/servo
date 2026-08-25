@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>history.replaceState() with an empty string URL and base URL different from document's URL</title>
+<link rel="help" href="https://github.com/whatwg/html/issues/9343">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<base href="/the-base">
+
+<script>
+"use strict";
+
+test(() => {
+  const before = location.pathname;
+
+  history.replaceState(null, null, "");
+  assert_equals(location.pathname, before);
+});
+</script>

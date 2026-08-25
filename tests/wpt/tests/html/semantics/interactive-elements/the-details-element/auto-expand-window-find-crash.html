@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=1264704">
+
+<script>
+function runTest() {
+ details2.appendChild(child);
+ document.caretRangeFromPoint();
+}
+</script>
+
+<body onload=runTest()>
+
+<details style="writing-mode: vertical-rl">
+  <div id=child>foo</div>
+</details>
+
+<details id=details2 open=true ontoggle="window.find()">

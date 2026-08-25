@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Switching between hardware and software CSS filters does not crash</title>
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=75130">
+<style>
+.sw { filter: blur(4px); }
+.hw { filter: blur(3px); transform: translateZ(0); }
+</style>
+<img id="test" class="sw" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==">
+<script>
+  document.body.offsetTop;
+  const el = document.getElementById("test");
+  el.className = 'hw';
+  document.body.offsetTop;
+  el.className = 'sw';
+</script>

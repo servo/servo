@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<meta charset="utf-8">
+<title>Transformed scroll height subpixel snapping should not crash</title>
+<link rel="help" href="https://crbug.com/40587031">
+<style>
+  #heightChange {
+    vertical-align: 10%;
+    height: 200px;
+    display: inline-block;
+  }
+  #scroller {
+    overflow: scroll;
+    position: absolute;
+    padding-bottom: 101%;
+    transform: scale(0.9);
+    height: 10px;
+  }
+  #text {
+    vertical-align: 10%;
+  }
+</style>
+<div id="heightChange"></div>
+<div id="scroller"><span id="text">PASS</span></div>
+<script>
+  requestAnimationFrame(function() {
+    heightChange.style.height = '0';
+    document.documentElement.classList.remove('test-wait');
+  });
+</script>
+</html>

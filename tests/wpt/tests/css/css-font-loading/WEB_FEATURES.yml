@@ -1,0 +1,3 @@
+rules:
+- fontface-override-descriptor-getter-setter.sub.html: [font-metric-overrides]
+- "*": [font-loading]

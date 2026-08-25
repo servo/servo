@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+
+<style>
+    .containing-block {
+        position: relative;
+        width: 150px;
+        height: 150px;
+
+        zoom: 2;
+    }
+
+    .cell {
+        width: 50px;
+        height: 50px;
+    }
+
+    #anchor-cell {
+        position: absolute;
+        top: 50px;
+        left: 50px;
+
+        background: green;
+    }
+
+    .anchor-positioned-cell {
+        position: absolute;
+    }
+
+    #top-left {
+        top: 0;
+        left: 0;
+
+        background: cyan;
+    }
+
+    #top-right {
+        top: 0;
+        right: 0;
+
+        background: magenta;
+    }
+
+    #bottom-left {
+        bottom: 0;
+        left: 0;
+
+        background: yellow;
+    }
+
+    #bottom-right {
+        bottom: 0;
+        right: 0;
+
+        background: black;
+    }
+</style>
+
+<body>
+    <div class="containing-block">
+        <div class="cell" id="anchor-cell"></div>
+
+        <div class="cell anchor-positioned-cell" id="top-left"></div>
+        <div class="cell anchor-positioned-cell" id="top-right"></div>
+        <div class="cell anchor-positioned-cell" id="bottom-left"></div>
+        <div class="cell anchor-positioned-cell" id="bottom-right"></div>
+    </div>
+</body>

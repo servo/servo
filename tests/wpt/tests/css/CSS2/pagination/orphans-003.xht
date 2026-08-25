@@ -1,0 +1,53 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: breaks inside elements: orphans - inheritance</title>
+<link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+<link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+<link rel="help" href="http://www.w3.org/TR/CSS21/page.html#break-inside"/>
+<meta name="flags" content="paged" />
+<meta name="assert" content="The 'orphans' property is inherited."/>
+<style type="text/css">
+	html, body {
+		height: 100%;
+		line-height: 1;
+		font-size: 20px;
+	}
+	* {
+		margin:0;
+		padding:0;
+	}
+	div.spacer {
+		height:50%;
+	}
+	div.backup {
+		margin-top: -4em;
+	}
+
+	.test {
+		color: blue;
+		width: 1em;
+	}
+	html {
+		orphans: 5;
+	}
+
+</style>
+</head>
+<body>
+	<div class="spacer">This test requires 2 pages. The blue text must
+		denote accurate page numbers. Lines A-G must appear on the next
+		page.</div>
+
+	<div class="spacer backup"></div>
+	<div class="test">
+		Page&nbsp;2&nbsp;Line&nbsp;A
+		Page&nbsp;2&nbsp;Line&nbsp;B
+		Page&nbsp;2&nbsp;Line&nbsp;C
+		Page&nbsp;2&nbsp;Line&nbsp;D
+		Page&nbsp;2&nbsp;Line&nbsp;E
+		Page&nbsp;2&nbsp;Line&nbsp;F
+		Page&nbsp;2&nbsp;Line&nbsp;G
+	</div>
+</body>
+</html>

@@ -1,0 +1,37 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL compressed texture size limit conformance test</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/tests/webgl-compressed-texture-size-limit.js"></script>
+</head>
+<body>
+<canvas id="example" width="32" height="32" style="width: 40px; height: 40px;"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+enableJSTestPreVerboseLogging();
+description("Checks size limit of the webgl compressed textures")
+
+// ArrayBuffers can be at most 4GB (minus 1 byte), but any allocations larger than 1 GB are unreliable in practice. So limit allocations to 1 GB.
+// Textures that are wide in just one dimension can still be used to test max TEXTURE_2D size limit even if we can't allocate space for huge square textures.
+// Use a fairly conservative limit for positive test cube map size so OOM is avoided.
+runCompressedTextureSizeLimitTest(Math.pow(2, 30), 2048);
+
+var successfullyParsed = true;
+</script>
+</body>
+</html>
+

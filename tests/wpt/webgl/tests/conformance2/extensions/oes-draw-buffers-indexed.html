@@ -1,0 +1,575 @@
+<!--
+Copyright (c) 2020 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL OES_draw_buffers_indexed Conformance Tests</title>
+<LINK rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas width="20" height="20" style="border: 1px solid blue;" id="c"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description("This test verifies the functionality of the OES_draw_buffers_indexed extension, if it is available.");
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("c", null, 2);
+var ext;
+
+const vs = `#version 300 es
+layout(location=0) in vec4 vPosition;
+void main()
+{
+    gl_Position = vPosition;
+}
+`;
+
+const fs = `#version 300 es
+precision lowp float;
+layout(location = 0) out vec4 o_color0;
+layout(location = 1) out vec4 o_color1;
+void main()
+{
+    o_color0 = vec4(1, 0, 0, 0);
+    o_color1 = vec4(1, 0, 0, 0);
+}
+`;
+
+function setup() {
+    const program = wtu.setupProgram(gl, [vs, fs]);
+    gl.useProgram(program);
+    wtu.setupUnitQuad(gl, 0);
+    wtu.glErrorShouldBe(gl, 0, 'No errors from program');
+
+    const tex1 = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex1);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    wtu.glErrorShouldBe(gl, 0, 'Create texture 1 successfully');
+
+    const tex2 = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex2);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    wtu.glErrorShouldBe(gl, 0, 'Create texture 2 successfully');
+
+    const attachments = [gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1];
+
+    const fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, attachments[0], gl.TEXTURE_2D, tex1, 0);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, attachments[1], gl.TEXTURE_2D, tex2, 0);
+    shouldBe('gl.checkFramebufferStatus(gl.FRAMEBUFFER)', 'gl.FRAMEBUFFER_COMPLETE');
+
+    gl.drawBuffers(attachments);
+    wtu.glErrorShouldBe(gl, 0, 'Set draw buffers without errors');
+}
+
+function enableDisableTest() {
+    debug("Testing enableiOES/disableiOES");
+
+    // Invalid input
+    ext.enableiOES(gl.DEPTH_TEST, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, 'target could only be gl.BLEND');
+
+    ext.disableiOES(gl.DEPTH_TEST, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, 'target could only be gl.BLEND');
+
+    gl.disable(gl.BLEND);
+
+    // Valid input
+    ext.enableiOES(gl.BLEND, 0);
+    shouldBe('gl.isEnabled(gl.BLEND)', 'true');
+    ext.disableiOES(gl.BLEND, 0);
+    ext.enableiOES(gl.BLEND, 1);
+    shouldBe('gl.isEnabled(gl.BLEND)', 'false');
+    gl.enable(gl.BLEND);
+    shouldBe('gl.isEnabled(gl.BLEND)', 'true');
+    wtu.glErrorShouldBe(gl, 0, 'No errors from enable and disable draw buffers blend state');
+}
+
+function constantAlphaBlendColorValidationTest() {
+    debug("Testing CONSTANT_COLOR/ALPHA blend functions limit validation");
+    function isConstantColorAndAlphaBlendFunctions(first, second)
+    {
+        return (first == gl.CONSTANT_COLOR || first == gl.ONE_MINUS_CONSTANT_COLOR) &&
+            (second == gl.CONSTANT_ALPHA || second == gl.ONE_MINUS_CONSTANT_ALPHA);
+    }
+
+    function checkBlendFunctions(src, dst)
+    {
+        if (isConstantColorAndAlphaBlendFunctions(src, dst) ||
+            isConstantColorAndAlphaBlendFunctions(dst, src))
+        {
+            wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, 'invalid combinations');
+            return false;
+        }
+        else
+        {
+            wtu.glErrorShouldBe(gl, 0, 'No error');
+            return true;
+        }
+    }
+
+    const srcFunc = [
+        gl.ZERO,
+        gl.ONE,
+        gl.SRC_COLOR,
+        gl.ONE_MINUS_SRC_COLOR,
+        gl.DST_COLOR,
+        gl.ONE_MINUS_DST_COLOR,
+        gl.SRC_ALPHA,
+        gl.ONE_MINUS_SRC_ALPHA,
+        gl.DST_ALPHA,
+        gl.ONE_MINUS_DST_ALPHA,
+        gl.CONSTANT_COLOR,
+        gl.ONE_MINUS_CONSTANT_COLOR,
+        gl.CONSTANT_ALPHA,
+        gl.ONE_MINUS_CONSTANT_ALPHA,
+        gl.SRC_ALPHA_SATURATE,
+    ];
+
+    const dstFunc = [
+        gl.ZERO,           gl.ONE,
+        gl.SRC_COLOR,      gl.ONE_MINUS_SRC_COLOR,
+        gl.DST_COLOR,      gl.ONE_MINUS_DST_COLOR,
+        gl.SRC_ALPHA,      gl.ONE_MINUS_SRC_ALPHA,
+        gl.DST_ALPHA,      gl.ONE_MINUS_DST_ALPHA,
+        gl.CONSTANT_COLOR, gl.ONE_MINUS_CONSTANT_COLOR,
+        gl.CONSTANT_ALPHA, gl.ONE_MINUS_CONSTANT_ALPHA,
+    ];
+
+    let src, dst;
+
+    // CONSTANT_COLOR/ALPHA invalid combination check
+    for (let i = 0, leni = srcFunc.length; i < leni; i++)
+    {
+        src = srcFunc[i];
+        for (let j = 0, lenj = dstFunc.length; j < lenj; j++)
+        {
+            dst = dstFunc[j];
+            ext.blendFunciOES(0, src, dst);
+            checkBlendFunctions(src, dst);
+            ext.blendFuncSeparateiOES(0, src, dst, gl.ONE, gl.ONE);
+            checkBlendFunctions(src, dst);
+        }
+    }
+}
+
+function indexedBlendColorTest() {
+    debug('');
+    debug("Testing blendEquationiOES and blendFunciOES");
+    wtu.glErrorShouldBe(gl, 0, 'top of indexedBlendColorTest');
+
+    gl.clearColor(0, 0, 1, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    ext.blendEquationiOES(0, gl.FUNC_ADD);
+    ext.blendFunciOES(0, gl.ONE, gl.ONE);
+    ext.blendEquationiOES(1, gl.FUNC_ADD);
+    ext.blendFunciOES(1, gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    wtu.glErrorShouldBe(gl, 0, 'Draw quad without errors');
+
+    gl.readBuffer(gl.COLOR_ATTACHMENT0);
+    wtu.checkCanvasRect(gl, 0, 0, 1, 1, [255, 0, 255, 255]);
+
+    gl.readBuffer(gl.COLOR_ATTACHMENT1);
+    wtu.checkCanvasRect(gl, 0, 0, 1, 1, [0, 0, 255, 255]);
+
+    debug("Testing blendEquationSeparateiOES and blendFuncSeparateiOES");
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    ext.blendEquationSeparateiOES(0, gl.FUNC_ADD, gl.FUNC_SUBTRACT);
+    ext.blendFuncSeparateiOES(0, gl.ONE, gl.ONE, gl.ZERO, gl.ZERO);
+    ext.blendEquationSeparateiOES(1, gl.FUNC_ADD, gl.FUNC_SUBTRACT);
+    ext.blendFuncSeparateiOES(1, gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ZERO, gl.ZERO);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    wtu.glErrorShouldBe(gl, 0, 'Draw quad without errors');
+
+    gl.readBuffer(gl.COLOR_ATTACHMENT0);
+    wtu.checkCanvasRect(gl, 0, 0, 1, 1, [255, 0, 255, 0]);
+
+    gl.readBuffer(gl.COLOR_ATTACHMENT1);
+    wtu.checkCanvasRect(gl, 0, 0, 1, 1, [0, 0, 255, 0]);
+
+    debug("Testing colorMaskiOES");
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    ext.colorMaskiOES(0, false, false, false, false);
+    ext.colorMaskiOES(1, true, true, true, true);
+
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    wtu.glErrorShouldBe(gl, 0, 'Draw quad without errors');
+
+    gl.readBuffer(gl.COLOR_ATTACHMENT0);
+    wtu.checkCanvasRect(gl, 0, 0, 1, 1, [0, 0, 255, 255]);
+
+    gl.readBuffer(gl.COLOR_ATTACHMENT1);
+    wtu.checkCanvasRect(gl, 0, 0, 1, 1, [0, 0, 255, 0]);
+
+    debug('');
+    debug(`Testing that new tokens aren't on the extension.`);
+    shouldBe('ext.BLEND_EQUATION_RGB', 'undefined');
+    shouldBe('ext.BLEND_EQUATION_ALPHA', 'undefined');
+    shouldBe('ext.BLEND_SRC_RGB', 'undefined');
+    shouldBe('ext.BLEND_SRC_ALPHA', 'undefined');
+    shouldBe('ext.BLEND_DST_RGB', 'undefined');
+    shouldBe('ext.BLEND_DST_ALPHA', 'undefined');
+    shouldBe('ext.COLOR_WRITEMASK', 'undefined');
+
+    debug("Testing new tokens for getIndexedParameterTest");
+    shouldBe('gl.getIndexedParameter(gl.BLEND_EQUATION_RGB, 0)', 'gl.FUNC_ADD');
+    shouldBe('gl.getIndexedParameter(gl.BLEND_EQUATION_ALPHA, 0)', 'gl.FUNC_SUBTRACT');
+    shouldBe('gl.getIndexedParameter(gl.BLEND_SRC_RGB, 0)', 'gl.ONE');
+    shouldBe('gl.getIndexedParameter(gl.BLEND_DST_RGB, 0)', 'gl.ONE');
+    shouldBe('gl.getIndexedParameter(gl.BLEND_SRC_ALPHA, 0)', 'gl.ZERO');
+    shouldBe('gl.getIndexedParameter(gl.BLEND_DST_ALPHA, 0)', 'gl.ZERO');
+    shouldBe('gl.getIndexedParameter(gl.BLEND_EQUATION_RGB, 1)', 'gl.FUNC_ADD');
+    shouldBe('gl.getIndexedParameter(gl.BLEND_EQUATION_ALPHA, 1)', 'gl.FUNC_SUBTRACT');
+    shouldBe('gl.getIndexedParameter(gl.BLEND_SRC_RGB, 1)', 'gl.SRC_ALPHA');
+    shouldBe('gl.getIndexedParameter(gl.BLEND_DST_RGB, 1)', 'gl.ONE_MINUS_SRC_ALPHA');
+    shouldBe('gl.getIndexedParameter(gl.BLEND_SRC_ALPHA, 1)', 'gl.ZERO');
+    shouldBe('gl.getIndexedParameter(gl.BLEND_DST_ALPHA, 1)', 'gl.ZERO');
+
+    shouldBe('gl.getIndexedParameter(gl.COLOR_WRITEMASK, 0)', '[false, false, false, false]');
+    shouldBe('gl.getIndexedParameter(gl.COLOR_WRITEMASK, 1)', '[true, true, true, true]');
+
+    debug("Testing non-indexed getParamter get state from draw buffer 0");
+    shouldBe('gl.getParameter(gl.BLEND_SRC_RGB)', 'gl.ONE');
+    shouldBe('gl.getParameter(gl.BLEND_DST_RGB)', 'gl.ONE');
+    shouldBe('gl.getParameter(gl.BLEND_SRC_ALPHA)', 'gl.ZERO');
+    shouldBe('gl.getParameter(gl.BLEND_DST_ALPHA)', 'gl.ZERO');
+    shouldBe('gl.getParameter(gl.BLEND_EQUATION_RGB)', 'gl.FUNC_ADD');
+    shouldBe('gl.getParameter(gl.BLEND_EQUATION_ALPHA)', 'gl.FUNC_SUBTRACT');
+    shouldBe('gl.getParameter(gl.COLOR_WRITEMASK)', '[false, false, false, false]');
+
+    debug("Testing non-indexed calls modify all draw buffers state");
+    gl.blendEquationSeparate(gl.FUNC_SUBTRACT, gl.FUNC_ADD);
+    gl.blendFuncSeparate(gl.ONE_MINUS_DST_ALPHA, gl.DST_ALPHA, gl.ONE, gl.ONE);
+    gl.colorMask(true, false, true, false);
+    wtu.glErrorShouldBe(gl, 0, 'Non-indexed state set without errors');
+
+    shouldBe('gl.getParameter(gl.BLEND_EQUATION_RGB)', 'gl.FUNC_SUBTRACT');
+    shouldBe('gl.getParameter(gl.BLEND_EQUATION_ALPHA)', 'gl.FUNC_ADD');
+    shouldBe('gl.getParameter(gl.BLEND_SRC_RGB)', 'gl.ONE_MINUS_DST_ALPHA');
+    shouldBe('gl.getParameter(gl.BLEND_DST_RGB)', 'gl.DST_ALPHA');
+    shouldBe('gl.getParameter(gl.BLEND_SRC_ALPHA)', 'gl.ONE');
+    shouldBe('gl.getParameter(gl.BLEND_DST_ALPHA)', 'gl.ONE');
+    shouldBe('gl.getParameter(gl.COLOR_WRITEMASK)', '[true, false, true, false]');
+
+    shouldBe('gl.getIndexedParameter(gl.BLEND_EQUATION_RGB, 0)', 'gl.FUNC_SUBTRACT');
+    shouldBe('gl.getIndexedParameter(gl.BLEND_EQUATION_ALPHA, 0)', 'gl.FUNC_ADD');
+    shouldBe('gl.getIndexedParameter(gl.BLEND_SRC_RGB, 0)', 'gl.ONE_MINUS_DST_ALPHA');
+    shouldBe('gl.getIndexedParameter(gl.BLEND_DST_RGB, 0)', 'gl.DST_ALPHA');
+    shouldBe('gl.getIndexedParameter(gl.BLEND_SRC_ALPHA, 0)', 'gl.ONE');
+    shouldBe('gl.getIndexedParameter(gl.BLEND_DST_ALPHA, 0)', 'gl.ONE');
+    shouldBe('gl.getIndexedParameter(gl.BLEND_EQUATION_RGB, 1)', 'gl.FUNC_SUBTRACT');
+    shouldBe('gl.getIndexedParameter(gl.BLEND_EQUATION_ALPHA, 1)', 'gl.FUNC_ADD');
+    shouldBe('gl.getIndexedParameter(gl.BLEND_SRC_RGB, 1)', 'gl.ONE_MINUS_DST_ALPHA');
+    shouldBe('gl.getIndexedParameter(gl.BLEND_DST_RGB, 1)', 'gl.DST_ALPHA');
+    shouldBe('gl.getIndexedParameter(gl.BLEND_SRC_ALPHA, 1)', 'gl.ONE');
+    shouldBe('gl.getIndexedParameter(gl.BLEND_DST_ALPHA, 1)', 'gl.ONE');
+
+    shouldBe('gl.getIndexedParameter(gl.COLOR_WRITEMASK, 0)', '[true, false, true, false]');
+    shouldBe('gl.getIndexedParameter(gl.COLOR_WRITEMASK, 1)', '[true, false, true, false]');
+}
+
+function runTestExtension() {
+    setup();
+
+    testInvalidValues();
+
+    enableDisableTest();
+
+    // blending should be enabled for drawBuffers 0 and 1 at this point
+
+    constantAlphaBlendColorValidationTest();
+
+    indexedBlendColorTest();
+
+    testColorMaskDrawNoOp();
+
+    testColorMaskAfterComposite();
+}
+
+function runInvalidEnumsTest() {
+    debug("Testing new enums for getIndexedParameterTest being invalid before requesting the extension");
+    shouldBeNull("gl.getIndexedParameter(0x8009, 0)");  // BLEND_EQUATION_RGB
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, 'BLEND_EQUATION_RGB');
+    shouldBeNull("gl.getIndexedParameter(0x883D, 0)");  // BLEND_EQUATION_ALPHA
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, 'BLEND_EQUATION_ALPHA');
+    shouldBeNull("gl.getIndexedParameter(0x80C9, 0)");  // BLEND_SRC_RGB
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, 'BLEND_SRC_RGB');
+    shouldBeNull("gl.getIndexedParameter(0x80CB, 0)");  // BLEND_SRC_ALPHA
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, 'BLEND_SRC_ALPHA');
+    shouldBeNull("gl.getIndexedParameter(0x80C8, 0)");  // BLEND_DST_RGB
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, 'BLEND_DST_RGB');
+    shouldBeNull("gl.getIndexedParameter(0x80CA, 0)");  // BLEND_DST_ALPHA
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, 'BLEND_DST_ALPHA');
+    shouldBeNull("gl.getIndexedParameter(0x0C23, 0)");  // COLOR_WRITEMASK
+    wtu.glErrorShouldBe(gl, [gl.INVALID_OPERATION, gl.INVALID_ENUM], 'invalid operations or invalid enums for COLOR_WRITEMASK');
+}
+
+function testInvalidValues() {
+    const numDrawBuffers = gl.getParameter(gl.MAX_DRAW_BUFFERS);
+    if (!numDrawBuffers) throw new Error('!numDrawBuffers');
+    wtu.shouldGenerateGLError(gl, gl.INVALID_VALUE, `ext.enableiOES(gl.BLEND, -1)`);
+    wtu.shouldGenerateGLError(gl, gl.INVALID_VALUE, `ext.enableiOES(gl.BLEND, ${numDrawBuffers})`);
+    wtu.shouldGenerateGLError(gl, 0, `ext.enableiOES(gl.BLEND, ${numDrawBuffers-1})`);
+
+    wtu.shouldGenerateGLError(gl, gl.INVALID_VALUE, `ext.disableiOES(gl.BLEND, -1)`);
+    wtu.shouldGenerateGLError(gl, gl.INVALID_VALUE, `ext.disableiOES(gl.BLEND, ${numDrawBuffers})`);
+    wtu.shouldGenerateGLError(gl, 0, `ext.disableiOES(gl.BLEND, ${numDrawBuffers-1})`);
+
+    wtu.shouldGenerateGLError(gl, gl.INVALID_VALUE, `ext.blendEquationiOES(-1, gl.FUNC_ADD)`);
+    wtu.shouldGenerateGLError(gl, gl.INVALID_VALUE, `ext.blendEquationiOES(${numDrawBuffers}, gl.FUNC_ADD)`);
+    wtu.shouldGenerateGLError(gl, 0, `ext.blendEquationiOES(${numDrawBuffers-1}, gl.FUNC_ADD)`);
+
+    wtu.shouldGenerateGLError(gl, gl.INVALID_VALUE, `ext.blendEquationSeparateiOES(-1, gl.FUNC_ADD, gl.FUNC_ADD)`);
+    wtu.shouldGenerateGLError(gl, gl.INVALID_VALUE, `ext.blendEquationSeparateiOES(${numDrawBuffers}, gl.FUNC_ADD, gl.FUNC_ADD)`);
+    wtu.shouldGenerateGLError(gl, 0, `ext.blendEquationSeparateiOES(${numDrawBuffers-1}, gl.FUNC_ADD, gl.FUNC_ADD)`);
+
+    wtu.shouldGenerateGLError(gl, gl.INVALID_VALUE, `ext.blendFunciOES(-1, gl.ONE, gl.ONE)`);
+    wtu.shouldGenerateGLError(gl, gl.INVALID_VALUE, `ext.blendFunciOES(${numDrawBuffers}, gl.ONE, gl.ONE)`);
+    wtu.shouldGenerateGLError(gl, 0, `ext.blendFunciOES(${numDrawBuffers-1}, gl.ONE, gl.ONE)`);
+
+    wtu.shouldGenerateGLError(gl, gl.INVALID_VALUE, `ext.blendFuncSeparateiOES(-1, gl.ONE, gl.ZERO, gl.ONE, gl.ZERO)`);
+    wtu.shouldGenerateGLError(gl, gl.INVALID_VALUE, `ext.blendFuncSeparateiOES(${numDrawBuffers}, gl.ONE, gl.ZERO, gl.ONE, gl.ZERO)`);
+    wtu.shouldGenerateGLError(gl, 0, `ext.blendFuncSeparateiOES(${numDrawBuffers-1}, gl.ONE, gl.ZERO, gl.ONE, gl.ZERO)`);
+
+    wtu.shouldGenerateGLError(gl, gl.INVALID_VALUE, `ext.colorMaskiOES(-1, 1,1,1,1)`);
+    wtu.shouldGenerateGLError(gl, gl.INVALID_VALUE, `ext.colorMaskiOES(${numDrawBuffers}, 1,1,1,1)`);
+    wtu.shouldGenerateGLError(gl, 0, `ext.colorMaskiOES(${numDrawBuffers-1}, 1,1,1,1)`);
+}
+
+function* range(n) {
+  for (let i = 0; i < n; i++) {
+    yield i;
+  }
+}
+
+function testColorMaskDrawNoOp() {
+    debug('');
+    debug('testColorMaskDrawNoOp')
+    // > If any draw buffer with an attachment does not have a defined
+    //   fragment shader output, draws generate INVALID_OPERATION,
+    //   unless all 4 channels of colorMask are set to false.
+    const NUM_OUTPUTS = gl.getParameter(gl.MAX_COLOR_ATTACHMENTS);
+    shouldBeTrue(`${NUM_OUTPUTS} > 1`);
+
+    const fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    gl.viewport(0,0,1,1);
+
+    const DRAW_BUFFERS = [];
+    for (const i of range(NUM_OUTPUTS)) {
+        const tex = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA8, 1, 1);
+        const ca = gl.COLOR_ATTACHMENT0+i;
+        DRAW_BUFFERS.push(ca)
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, ca,
+                                gl.TEXTURE_2D, tex, 0);
+    }
+    shouldBe('gl.checkFramebufferStatus(gl.FRAMEBUFFER)', 'gl.FRAMEBUFFER_COMPLETE');
+
+    gl.drawBuffers(DRAW_BUFFERS);
+    gl.colorMask(1, 1, 1, 1);
+    gl.disable(gl.BLEND);
+
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    for (const i of range(NUM_OUTPUTS)) {
+        gl.readBuffer(gl.COLOR_ATTACHMENT0+i);
+        wtu.checkCanvasRect(gl, 0, 0, 1, 1, [0, 0, 0, 0], `COLOR_ATTACHMENT${i} initially black`);
+    }
+
+    for (const validOutput of range(NUM_OUTPUTS)) {
+        const invalidOutput = validOutput ^ 0b11;
+        debug(`validOutput: ${validOutput}, invalidOutput: ${invalidOutput}`);
+        const prog = wtu.setupProgram(gl, [
+            `\
+#version 300 es
+void main() {
+    gl_Position = vec4(0,0,0,1);
+    gl_PointSize = 1.0f;
+}
+`,
+            `\
+#version 300 es
+precision mediump float;
+layout(location=${validOutput}) out vec4 o_color;
+void main() {
+    o_color = vec4(1,1,1,1);
+}
+`
+        ]);
+        gl.useProgram(prog);
+
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+            'After init.');
+
+        gl.colorMask(1,1,1,1);
+        gl.drawBuffers(DRAW_BUFFERS);
+        gl.drawArrays(gl.POINTS, 0, 1);
+        wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION,
+            'Drawing with unmasked undefined color outputs.');
+
+        gl.colorMask(0,0,0,0);
+        gl.drawBuffers(DRAW_BUFFERS);
+        gl.drawArrays(gl.POINTS, 0, 1);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+            'Drawing with colorMask-masked-out undefined color outputs.');
+
+        gl.colorMask(1,1,1,1);
+        gl.drawBuffers(DRAW_BUFFERS.map((x,i) => (i == invalidOutput) ? x : 0));
+        gl.drawArrays(gl.POINTS, 0, 1);
+        wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION,
+            'Drawing with wrong-id drawBuffer-masked-out undefined color outputs.');
+
+        gl.drawBuffers(DRAW_BUFFERS.map((x,i) => (i == validOutput) ? x : 0));
+        gl.drawArrays(gl.POINTS, 0, 1);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+            'Drawing with drawBuffer-masked-out undefined color outputs.');
+
+        gl.colorMask(0,0,0,0);
+        gl.drawBuffers([]);
+        gl.drawArrays(gl.POINTS, 0, 1);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+            'Drawing with colorMask+drawBuffer-masked-out undefined color outputs.');
+
+        const testMask = (r,g,b,a) => {
+            debug(`testMask(${[r,g,b,a]})`);
+            gl.drawBuffers(DRAW_BUFFERS);
+
+            gl.colorMask(1,1,1,1);
+            gl.clearColor(0, 0, 0, 0);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            gl.colorMask(0,0,0,0);
+            ext.colorMaskiOES(validOutput, r,g,b,a);
+            gl.drawArrays(gl.POINTS, 0, 1);
+            wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+                `Drawing with sole defined color${validOutput} output writemask: ${[r,g,b,a]}.`);
+
+            for (const i of range(NUM_OUTPUTS)) {
+                gl.readBuffer(gl.COLOR_ATTACHMENT0+i);
+                let expect = [0,0,0,0];
+                if (i == validOutput) {
+                    expect = [r,g,b,a].map(x => 0xff*x);
+                }
+                wtu.checkCanvasRect(gl, 0, 0, 1, 1, expect, `COLOR_ATTACHMENT${i}: [${expect}]`);
+            }
+
+            gl.colorMask(1,1,1,1);
+            gl.clearColor(0, 0, 0, 0);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            gl.colorMask(r,g,b,a);
+            for (const i of range(NUM_OUTPUTS)) {
+                if (i == validOutput) continue;
+                ext.colorMaskiOES(i, 0,0,0,0);
+            }
+            gl.drawArrays(gl.POINTS, 0, 1);
+            wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+                `Drawing with sole remaining defined color${validOutput} output writemask: ${[r,g,b,a]}.`);
+
+            for (const i of range(NUM_OUTPUTS)) {
+                gl.readBuffer(gl.COLOR_ATTACHMENT0+i);
+                let expect = [0,0,0,0];
+                if (i == validOutput) {
+                    expect = [r,g,b,a].map(x => 0xff*x);
+                }
+                wtu.checkCanvasRect(gl, 0, 0, 1, 1, expect, `COLOR_ATTACHMENT${i}: [${expect}]`);
+            }
+
+            if (r || g || b || a) {
+                gl.colorMask(0,0,0,0);
+                ext.colorMaskiOES(invalidOutput, r,g,b,a);
+                gl.drawArrays(gl.POINTS, 0, 1);
+                wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION,
+                    `Drawing with wrong-id undefined color output color masked: ${[r,g,b,a]}.`);
+
+                gl.drawBuffers([]);
+                gl.drawArrays(gl.POINTS, 0, 1);
+                wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+                    'Drawing with wrong-id colorMask, but all-off drawBuffers.');
+
+                gl.drawBuffers(DRAW_BUFFERS.map((x,i) => (i == validOutput) ? x : 0));
+                gl.drawArrays(gl.POINTS, 0, 1);
+                wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+                    'Drawing with wrong-id colorMask, but right-id drawBuffers masked.');
+            }
+        };
+
+        testMask(0,0,0,0);
+        testMask(1,0,0,0);
+        testMask(0,1,0,0);
+        testMask(0,0,1,0);
+        testMask(0,0,0,1);
+        testMask(1,1,1,1);
+    }
+}
+
+function testColorMaskAfterComposite() {
+    debug('');
+    debug('testColorMaskAfterComposite')
+
+    const NUM_OUTPUTS = gl.getParameter(gl.MAX_COLOR_ATTACHMENTS);
+    shouldBeTrue(`${NUM_OUTPUTS} > 2`);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    gl.colorMask(0, 0, 1, 0);
+    ext.colorMaskiOES(0, 1, 0, 0, 0);
+    ext.colorMaskiOES(1, 0, 1, 0, 0);
+
+    function check() {
+        gl.clear(gl.COLOR_BUFFER_BIT);
+
+        shouldBe('gl.getIndexedParameter(gl.COLOR_WRITEMASK, 0)', '[true, false, false, false]');
+        shouldBe('gl.getIndexedParameter(gl.COLOR_WRITEMASK, 1)', '[false, true, false, false]');
+        shouldBe('gl.getIndexedParameter(gl.COLOR_WRITEMASK, 2)', '[false, false, true, false]');
+        finishTest();
+    }
+
+    wtu.waitForComposite(check);
+}
+
+function runTest() {
+  if (!gl) {
+    testFailed("context does not exist");
+  } else {
+    testPassed("context exists");
+
+    runInvalidEnumsTest();
+
+    ext = gl.getExtension("OES_draw_buffers_indexed");
+
+    wtu.runExtensionSupportedTest(gl, "OES_draw_buffers_indexed", ext !== null);
+
+    if (ext !== null) {
+      runTestExtension();
+    } else {
+      testPassed("No OES_draw_buffers_indexed support -- this is legal");
+    }
+  }
+}
+
+runTest();
+
+var successfullyParsed = true;
+</script>
+</body>
+</html>

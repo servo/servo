@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>pagereveal event fires and in correct order on new-document navigation in an iframe</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/webappapis.html#update-the-rendering">
+<link rel="author" href="mailto:bokan@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<body>
+<script>
+function message(data) {
+  return new Promise(resolve => {
+    addEventListener('message', e => {
+      if (data == undefined || data === e.data)
+        resolve(e.data);
+    });
+  });
+}
+
+promise_test(async () => {
+  const frameLoaded = message('loaded');
+  const iframe = document.createElement('iframe');
+  iframe.src = `${get_host_info().OTHER_ORIGIN}/html/browsers/browsing-the-web/history-traversal/pagereveal/resources/iframe.html`;
+  document.body.appendChild(iframe);
+  await frameLoaded;
+
+  const event_log_promise = message();
+  iframe.contentWindow.postMessage('getEventLog', '*');
+  const event_log = await event_log_promise;
+
+  // Expect that the events seen are:
+  // pageshow.persisted, pagereveal, rAF, rAF, rAF, ...
+  assert_equals(event_log.slice(0, 3).toString(),'pageshow,pagereveal,rAF');
+});
+</script>
+</body>

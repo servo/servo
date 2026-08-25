@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+  <title>CSS page name change and break-after: page in a nested element.</title>
+  <link rel="author" title="Emily McDonough" href="mailto:emcdonough@mozilla.com"/>
+  <link rel="match" href="page-name-and-break-print-ref.html"/>
+  <link rel="help" href="https://drafts.csswg.org/css-page-3/#page-breaks"/>
+  <meta name="assert" content="Ensure CSS page name change and break-after: page at the same point only causes one page break."/>
+  <body>
+    <div style="page: a">
+      <div style="break-after: page">AAA</div>
+    </div>
+    <div style="page: b">BBB</div>
+  </body>
+</html>

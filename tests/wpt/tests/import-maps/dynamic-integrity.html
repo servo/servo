@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script type="importmap">
+{
+  "imports": {
+    "./resources/log.js?pipe=sub&name=ResolvesToBadHash": "./resources/log.js?pipe=sub&name=BadHash",
+    "./resources/log.js?pipe=sub&name=ResolvesToNoHash": "./resources/log.js?pipe=sub&name=NoHash",
+    "./resources/log.js?pipe=sub&name=GoodHash": "./resources/log.js?pipe=sub&name=GoodHash",
+    "bare": "./resources/log.js?pipe=sub&name=BareURL",
+    "bare2": "./resources/log.js?pipe=sub&name=F"
+  },
+  "integrity": {
+    "./resources/log.js?pipe=sub&name=BadHash": "sha384-foobar",
+    "./resources/log.js?pipe=sub&name=ResolvesToNoHash": "sha384-foobar",
+    "./resources/log.js?pipe=sub&name=GoodHash": "sha384-SwfgBqInhSlLziU454cYhGgwPpae+d3VHZcY+vjZIO/gxRGt2u3Jsfyvure/Ww0u",
+    "./resources/log.js?pipe=sub&name=InvalidExtra": "sha384-WsKk8nzJFPhk/4pWR4LYoPhEu3xaAc6PdIm4vmqoZVWqEgMYmZgOg9XJKxgD1+8v foobar-rOJN8igD0+jW6lwNN3+InhXTgQztVHlq/HJ0riswXp8kMoiIDx5JpmCwuVem6Ll9q2LFNSu1xq23bsBMMQk1rg==",
+    "./resources/log.js?pipe=sub&name=Suffix": "sha384-lbOWldbmji7sCHI/L8iVJ+elmFIMp41p+aYOLxqQfZMqtoFeHFVe/ASRA0IyZ1/9?foobar",
+    "./resources/log.js?pipe=sub&name=Multiple": "sha384-foobar sha512-rOJN8igD0+jW6lwNN3+InhXTgQztVHlq/HJ0riswXp8kMoiIDx5JpmCwuVem6Ll9q2LFNSu1xq23bsBMMQk1rg==",
+    "./resources/log.js?pipe=sub&name=BadHashWithNoImport": "sha384-foobar",
+    "./resources/log.js?pipe=sub&name=BareURL": "sha384-foobar",
+    "./resources/log.js?pipe=sub&name=EventHandlerPass": "sha384-d4yrBK8a55vlyYz2QEnlaU64PPpdKBkblD2KmfozI61mC1ij6RrZJaGCTsVxPuJ2",
+    "./resources/log.js?pipe=sub&name=EventHandlerFail": "sha384-foobar",
+    "bare2": "sha384-foobar",
+    "resources/log.js?pipe=sub&name=Bare": "sha384-foobar"
+  }
+}
+</script>
+<script>
+let log;
+const test_not_loaded = (url, description) => {
+  promise_test(async t => {
+    log = [];
+    await promise_rejects_js(t, TypeError, import(url));
+    assert_array_equals(log, []);
+  }, description);
+};
+
+const test_loaded = (url, log_expectation, description) => {
+  promise_test(async t => {
+    log = [];
+    await import(url);
+    assert_array_equals(log, log_expectation);
+  }, description);
+};
+
+test_not_loaded(
+  "./resources/log.js?pipe=sub&name=ResolvesToBadHash",
+  "script was not loaded, as its resolved URL failed its integrity check"
+);
+test_loaded(
+  "./resources/log.js?pipe=sub&name=ResolvesToNoHash",
+  ["log:NoHash"],
+  "script was loaded, as its resolved URL had no integrity check, despite its specifier having one"
+);
+test_loaded(
+  "./resources/log.js?pipe=sub&name=GoodHash",
+  ["log:GoodHash"],
+  "script was loaded, as its integrity check passed"
+);
+test_not_loaded(
+  "./resources/log.js?pipe=sub&name=BadHashWithNoImport",
+  "Script with no import definition was not loaded, as it failed its integrity check"
+);
+test_not_loaded(
+  "bare",
+  "Bare specifier script was not loaded, as it failed its integrity check"
+);
+test_loaded(
+  "bare2",
+  ["log:F"],
+  "Bare specifier used for integrity loaded, as its definition should have used the URL"
+);
+test_loaded(
+  "./resources/log.js?pipe=sub&name=InvalidExtra",
+  ["log:InvalidExtra"],
+  "script was loaded, as its integrity check passed, despite having an extra invalid hash"
+);
+test_loaded(
+  "./resources/log.js?pipe=sub&name=Suffix",
+  ["log:Suffix"],
+  "script was loaded, as its integrity check passed, despite having an invalid suffix"
+);
+test_loaded(
+  "./resources/log.js?pipe=sub&name=Multiple",
+  ["log:Multiple"],
+  "script was loaded, as its integrity check passed given multiple hashes. This also makes sure that the larger hash is picked"
+);
+test_loaded(
+  "./resources/log.js?pipe=sub&name=Bare",
+  ["log:Bare"],
+  "script was loaded, as its integrity check was ignored, as it was defined using a URL that looks like a bare specifier"
+);
+
+promise_test(async () => {
+  log = [];
+  const img = new Image();
+  const promise = new Promise((resolve, reject) => {
+    img.onload = () => {
+      import('./resources/log.js?pipe=sub&name=EventHandlerPass').then(resolve).catch(reject);
+    };
+    img.src = "/images/green.png?1";
+  });
+
+  await promise;
+  assert_equals(log.length, 1);
+  assert_equals(log[0], "log:EventHandlerPass");
+}, "Script imported inside an event handler was loaded as its valid integrity check passed");
+
+promise_test(async t => {
+  log = [];
+  const img = new Image();
+  const promise = new Promise((resolve, reject) => {
+    img.onload = () => {
+      import('./resources/log.js?pipe=sub&name=EventHandlerFail').then(resolve).catch(reject);
+    };
+    img.src = "/images/green.png?2";
+  });
+
+  await promise_rejects_js(t, TypeError, promise);
+}, "Script imported inside an event handler was not loaded as its integrity check failed");
+</script>
+

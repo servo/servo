@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' 'self' 'unsafe-eval'; connect-src 'self';">
+    <title>worker-set-timeout</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/testharness-helper.js'></script>
+</head>
+
+<body>
+    <script>
+      assert_worker_is_loaded(
+        "./support/worker-with-script-src-none-set-timeout.js",
+        "Dedicated worker delivers its own CSP",
+        "setTimeout blocked");
+
+      assert_shared_worker_is_loaded(
+        "./support/worker-with-script-src-none-set-timeout.js",
+        "Shared worker delivers its own CSP",
+        "setTimeout blocked");
+    </script>
+</body>
+
+</html>

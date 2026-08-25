@@ -1,0 +1,20 @@
+<!doctype html>
+<title>Parsing of accent-color</title>
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#widget-accent">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<div id="target"></div>
+<script>
+test_valid_value('accent-color', 'initial');
+test_valid_value('accent-color', 'inherit');
+test_valid_value('accent-color', 'unset');
+test_valid_value('accent-color', 'revert');
+test_valid_value('accent-color', 'auto');
+test_valid_value('accent-color', 'red');
+test_valid_value('accent-color', 'blue');
+test_valid_value('accent-color', 'currentcolor');
+test_valid_value('accent-color', '#fff', 'rgb(255, 255, 255)');
+
+test_invalid_value('accent-color', 'auto auto');
+</script>

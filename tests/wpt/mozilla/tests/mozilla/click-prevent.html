@@ -1,0 +1,17 @@
+<html>
+<head>
+<script src="./harness.js"></script>
+<a id="foo" href="/nonexistent">test link</a>
+<script>
+async_test(function() {
+  var link = document.getElementById('foo');
+  link.addEventListener('click', this.step_func(function(ev) {
+    ev.preventDefault();
+  }));
+  var ev = new Event('click', {bubbles: true, cancelable: true});
+  link.dispatchEvent(ev);
+  setTimeout(this.step_func_done(), 500);
+});
+</script>
+</head>
+</html>

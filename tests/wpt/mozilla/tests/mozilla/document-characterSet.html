@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<html>
+    <head>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script>
+            test(function() {
+                assert_equals(document.characterSet, "UTF-8", "test1-0, characterSet");
+
+                var xmldoc = new Document;
+                assert_equals(xmldoc.characterSet, "UTF-8", "test2-1, characterSet");
+
+                var htmldoc = document.implementation.createHTMLDocument("title");
+                assert_equals(htmldoc.characterSet, "UTF-8", "test2-2, characterSet");
+            });
+        </script>
+    </head>
+</html>

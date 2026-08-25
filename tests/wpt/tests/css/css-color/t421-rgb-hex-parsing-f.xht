@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>CSS Test: parsing of hexidecimal color values</title>
+		<link rel="author" title="L. David Baron" href="https://dbaron.org/" />
+		<link rel="author" title="Mozilla Corporation" href="http://mozilla.com/" />
+		<link rel="help" href="http://www.w3.org/TR/css3-color/#rgb-color" />
+		<link rel="match" href="t422-rgba-func-no-mixed-f-ref.html" />
+		<meta name="flags" content="invalid" />
+		<meta name="assert" content="Test that hexidecimal values are only accepted if they have 3 or six digits." />
+		<style type="text/css"><![CDATA[
+			p { color: green; }
+			p { color: #f; }
+			p { color: #ff; }
+			p { color: #ff000; }
+			p { color: #ff00000; }
+			p { color: #ff0000000; }
+			p { color: #ff00000000; }
+		]]></style>
+	</head>
+	<body>
+		<p>This text should be green.</p>
+
+		<div>Note: the rules tested by this test may be changed in
+		future levels of the CSS Color Module.</div>
+	</body>
+</html>

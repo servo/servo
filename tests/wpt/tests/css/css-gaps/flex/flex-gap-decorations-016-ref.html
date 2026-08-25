@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+
+    #flexbox {
+        border: 2px solid rgb(96 139 168);
+        display: flex;
+        column-gap: 20px;
+        row-gap: 10px;
+        width: 120px;
+        height: 170px;
+        flex-wrap: wrap;
+        flex-direction: column-reverse;
+    }
+
+    .items {
+        background-color: rgb(96 139 168 / 0.2);
+        flex-shrink: 1;
+        width: 50px;
+        height: 50px;
+    }
+
+    .row-1 {
+        display: flex;
+        position: absolute;
+        left: 2px;
+        top: 52px;
+        column-gap: 20px;
+    }
+
+    .row-2 {
+        display: flex;
+        position: absolute;
+        left: 2px;
+        top: 112px;
+        column-gap: 20px;
+    }
+
+    .row-gap {
+        height: 10px;
+        width: 50px;
+        background: blue;
+    }
+</style>
+
+<div id="flexbox">
+    <div class="items">One</div>
+    <div class="items">Two</div>
+    <div class="items">Three</div>
+    <div class="items">Four</div>
+    <div class="items">Five</div>
+    <div class="items">Six</div>
+</div>
+
+<div class="column-gap" style="top: 2px; height: 170px; position: absolute; width: 20px; left: 52px; background: red;">
+</div>
+
+<div class="row-1">
+    <div class="row-gap">
+    </div>
+    <div class="row-gap">
+    </div>
+</div>
+
+<div class="row-2">
+    <div class="row-gap">
+    </div>
+    <div class="row-gap">
+    </div>
+</div>

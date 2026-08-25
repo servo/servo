@@ -1,0 +1,44 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>Delete editor in a shadow</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../include/editor-test-utils.js"></script>
+<script>
+"use strict";
+
+document.designMode = "on";
+
+addEventListener("load", () => {
+  const div = document.querySelector("div[contenteditable=plaintext-only]");
+  const utils = new EditorTestUtils(div);
+  test(() => {
+    utils.setupEditingHost("[ABC]");
+    document.execCommand("bold");
+    assert_equals(div.outerHTML, `<div contenteditable="plaintext-only"><b>ABC</b></div>`);
+  }, "contenteditable=plaintext-only in the design mode should not prevent the style edit");
+
+  test(() => {
+    utils.setupEditingHost("A[B]C");
+    document.execCommand("insertHTML", false, "<b>b</b>");
+    assert_equals(div.outerHTML, `<div contenteditable="plaintext-only">A<b>b</b>C</div>`);
+  }, "contenteditable=plaintext-only in the design mode should not suppress style of inserting HTML");
+
+  promise_test(async () => {
+    utils.setupEditingHost("<p>A[]B</p>");
+    await utils.sendEnterKey();
+    assert_equals(div.outerHTML, `<div contenteditable="plaintext-only"><p>A</p><p>B</p></div>`);
+  }, "contenteditable=plaintext-only in the design mode should not cause inserting line break at typing Enter");
+}, {once: true});
+</script>
+</head>
+<body>
+  <div contenteditable="plaintext-only"></div>
+</body>
+</html>

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Invalid position property in ::first-letter should not crash</title>
+<link rel="help" href="https://crbug.com/40080662">
+<style>
+div::first-letter {
+  position: inherit;
+}
+div::after {
+  quotes: "a" "b";
+  content: open-quote;
+}
+</style>
+<div></div>
+<div></div>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="helpers.js"></script>
+<!-- Put this page in a sandbox to give it an opaque origin -->
+
+<script>
+promise_test(async t => {
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+
+  navigation.onnavigate = t.unreached_func("onnavigate should not be called");
+  navigation.onnavigatesuccess = t.unreached_func("onnavigatesuccess should not be called");
+  navigation.onnavigateerror = t.unreached_func("onnavigateerror should not be called");
+
+  location.hash = "#1";
+  await new Promise(resolve => window.onhashchange = resolve);
+  location.hash = "#2";
+  await new Promise(resolve => window.onhashchange = resolve);
+  history.back();
+  await new Promise(resolve => window.onhashchange = resolve);
+
+  assert_equals(location.hash, "#1");
+
+  await assertBothRejectDOM(t, navigation.back(), "InvalidStateError");
+  await assertBothRejectDOM(t, navigation.forward(), "InvalidStateError");
+}, "navigation.back()/forward() in an opaque origin iframe");
+</script>

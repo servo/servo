@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+// Here's the set-up for this test:
+// Step 1 (first window) Open new window to try setting cookie and clearing site data.
+// Step 2 (second window) Message first window with cookies present after load.
+// Step 3 (first window) Asserts cookies not present.
+async_test(t => {
+    // Step 3
+    window.addEventListener("message", t.step_func(e => {
+        assert_equals(e.data, "");
+        t.done();
+    }), {once: true});
+
+    // Step 1
+    new_window = window.open("/clear-site-data/support/clear-site-data-cookie.py?location=before");
+    t.add_cleanup(new_window.close);
+}, "Setting a cookie before Clear-Site-Data for all shouldn't allow the cookie to take.");
+</script>
+</body>
+</html>

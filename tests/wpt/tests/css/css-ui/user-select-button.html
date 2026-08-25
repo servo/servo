@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>user-select: auto allows text selection originating from outside of button elements.</title>
+<link rel="author" title="David Shin" href="mailto:dshin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-ui/#propdef-user-select">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2039690">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src='/resources/testdriver-vendor.js'></script>
+
+<style>
+.usa {
+  user-select: auto;
+}
+
+.ust {
+  user-select: text;
+}
+
+.usn {
+  user-select: none;
+}
+
+#empty {
+  width: 50px;
+  height: 50px;
+}
+</style>
+<div id=empty></div>
+<div id=button-auto>A<button class=usa>button</button></div>
+<div id=outer-text class=ust>A<button class=usa>button</button></div>
+<div id=outer-none class=usn>A<button class=usa>button</button></div>
+<script>
+async function drag_across(element) {
+  const rect = element.getBoundingClientRect();
+  const middle = rect.top + rect.height / 2;
+
+  const actions = new test_driver.Actions();
+  return actions.pointerMove(rect.left + 2, middle)
+               .pointerDown()
+               .pointerMove(rect.right - 2, middle)
+               .pointerUp()
+               .send();
+}
+
+async function test(t, element, expected) {
+  t.add_cleanup(() => window.getSelection().removeAllRanges());
+  await drag_across(element);
+  assert_equals(window.getSelection().toString(), expected);
+}
+
+promise_test(async t => test(
+  t,
+  document.getElementById("button-auto").querySelector("button"),
+  ""
+), "the button text should not be selectable from inside.");
+
+promise_test(async t => test(
+  t,
+  document.getElementById("button-auto"),
+  "Abutton"
+), "the button text should be selectable from outside.");
+
+promise_test(async t => test(
+  t,
+  document.getElementById("outer-text").querySelector("button"),
+  ""
+), "the button text should not be selectable from inside when the parent is user-select: text.");
+
+promise_test(async t => test(
+  t,
+  document.getElementById("outer-text"),
+  "Abutton"
+), "the button text should be selectable from outside when the parent is user-select: text.");
+
+promise_test(async t => test(
+  t,
+  document.getElementById("outer-none").querySelector("button"),
+  ""
+), "the button text should not be selectable from inside when the parent is user-select: none.");
+
+promise_test(async t => test(
+  t,
+  document.getElementById("outer-none"),
+  ""
+), "the button text should not be selectable from outside when the parent is user-select: none.");
+</script>

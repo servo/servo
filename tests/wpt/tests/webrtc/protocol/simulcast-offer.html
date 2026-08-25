@@ -1,0 +1,33 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection Simulcast Offer</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+'use strict';
+
+// Tests for the construction of offers with simulcast according to:
+// draft-ietf-mmusic-sdp-simulcast-13
+// draft-ietf-mmusic-rid-15
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const expected_rids = ['foo', 'bar', 'baz'];
+  pc.addTransceiver('video', {
+    sendEncodings: expected_rids.map(rid => ({rid}))
+  });
+
+  const offer = await pc.createOffer();
+  let offer_lines = offer.sdp.split('\r\n');
+  // Check for a RID line for each layer.
+  for (const rid of expected_rids) {
+    let result = offer_lines.find(line => line.startsWith(`a=rid:${rid}`));
+    assert_not_equals(result, undefined, `RID attribute for '${rid}' missing.`);
+  }
+
+  // Check for simulcast attribute with send direction and all RIDs.
+  let result = offer_lines.find(
+      line => line.startsWith(`a=simulcast:send ${expected_rids.join(';')}`));
+  assert_not_equals(result, undefined, "Could not find simulcast attribute.");
+}, 'createOffer() with multiple send encodings should create simulcast offer');
+</script>

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Text Module Test: parsing text-justify with invalid values</title>
+<link rel="help" href="https://www.w3.org/TR/css-text-3/#propdef-text-justify">
+<meta name="assert" content="text-justify supports only the grammar 'auto | none | inter-word | inter-character'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("text-justify", "normal");
+test_invalid_value("text-justify", "auto none");
+test_invalid_value("text-justify", "inter-character inter-word");
+</script>
+</body>
+</html>

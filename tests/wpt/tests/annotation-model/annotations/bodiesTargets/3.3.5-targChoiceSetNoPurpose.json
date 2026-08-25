@@ -1,0 +1,21 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "3.3.5-targChoiceSetNoPurpose.json",
+    "assertionType": "must",
+    "expectedResult": "valid",
+    "onUnexpectedResult" : "failAndContinue",
+    "errorMessage": "A Choice or Set target cannot include an purpose key. purpose key is only valid with Specific Resources and Embedded Textual Bodies.",
+    "title": "If a **Choice or Set** is a target, it does NOT have a **_purpose_ key** - [model 3.3.5](https://www.w3.org/TR/annotation-model/#motivation-and-purpose)",
+    "description": "True when no Choice or Set targets or when none of the Choice or Set targets include the purpose key. (Section 3.3.5)",
+    "type": "object",
+    "properties":
+    {
+        "target":
+        {
+           "allOf": [
+                      { "not": { "$ref": "choiceSet.json#/definitions/choiceSetWithPurpose" } },
+                      { "items": { "not": { "$ref": "choiceSet.json#/definitions/choiceSetWithPurpose" } } }
+                     ]
+         }
+     }
+}

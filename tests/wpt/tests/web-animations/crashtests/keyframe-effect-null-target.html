@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Creating KeyframeEffect with null target should not crash</title>
+<link rel="help" href="https://crbug.com/40387643">
+<div id="target"></div>
+<script>
+  new KeyframeEffect(null, [], {});
+</script>

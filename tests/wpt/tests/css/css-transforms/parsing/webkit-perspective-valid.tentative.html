@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Compatibility: parsing -webkit-perspective with valid values</title>
+<link rel="help" href="https://compat.spec.whatwg.org/#propdef--webkit-perspective">
+<link rel="help" href="https://github.com/whatwg/compat/issues/100">
+<meta name="assert" content="-webkit-perspective also supports '<number [0,∞]>' in addition to 'none | <length [0,∞]>'">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("-webkit-perspective", "initial");
+test_valid_value("-webkit-perspective", "inherit");
+test_valid_value("-webkit-perspective", "unset");
+test_valid_value("-webkit-perspective", "revert");
+test_valid_value("-webkit-perspective", "revert-layer");
+
+test_valid_value("-webkit-perspective", "none");
+test_valid_value("-webkit-perspective", "1000", "1000px");
+test_valid_value("-webkit-perspective", "25", "25px");
+test_valid_value("-webkit-perspective", "12px", "12px");
+test_valid_value("-webkit-perspective", "3.5em", "3.5em");
+</script>
+</body>
+</html>

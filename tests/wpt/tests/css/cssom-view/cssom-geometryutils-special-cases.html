@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<title>CSSOM View - GeometryUtils special cases</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#the-geometryutils-interface">
+<link rel="help" href="https://hacks.mozilla.org/2014/03/introducing-the-getboxquads-api/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/geometry-utils.js"></script>
+<style>
+  html, body {
+    margin: 0;
+  }
+
+  #text-container {
+    position: absolute;
+    left: 30px;
+    top: 25px;
+    width: 95px;
+    font: 20px/1.2 monospace;
+    border: 4px solid black;
+  }
+
+  x-geometry-host {
+    position: absolute;
+    left: 250px;
+    top: 35px;
+    width: 230px;
+    height: 150px;
+    border: 5px solid gray;
+    padding: 10px;
+    transform: rotate(8deg);
+    transform-origin: left top;
+    display: block;
+  }
+
+  #slotted {
+    width: 80px;
+    height: 45px;
+    border: 3px solid black;
+    transform: translate(18px, 12px) rotate(-16deg);
+    background: gold;
+  }
+
+  iframe {
+    position: absolute;
+    left: 60px;
+    top: 260px;
+    width: 260px;
+    height: 170px;
+    border: 8px solid purple;
+    transform: rotate(9deg);
+    transform-origin: left top;
+  }
+</style>
+<div id="text-container">GeometryUtils text fragments wrap here.</div>
+<x-geometry-host>
+  <div id="slotted" slot="content"></div>
+</x-geometry-host>
+<script>
+customElements.define("x-geometry-host", class extends HTMLElement {
+  constructor() {
+    super();
+    const shadow = this.attachShadow({mode: "open"});
+    shadow.innerHTML = `
+      <style>
+        #shadow-target {
+          position: absolute;
+          left: 95px;
+          top: 65px;
+          width: 70px;
+          height: 35px;
+          border: 4px solid blue;
+          transform: rotate(21deg) scale(1.15);
+          transform-origin: center;
+        }
+        slot {
+          position: absolute;
+          left: 20px;
+          top: 18px;
+          display: block;
+        }
+      </style>
+      <slot name="content"></slot>
+      <div id="shadow-target"></div>
+    `;
+  }
+});
+
+function load_iframe(srcdoc) {
+  const frame = document.createElement("iframe");
+  document.body.appendChild(frame);
+  const loaded = new Promise(resolve => frame.onload = resolve);
+  frame.srcdoc = srcdoc;
+  return loaded.then(() => frame);
+}
+
+test(() => {
+  const textNode = document.getElementById("text-container").firstChild;
+  const range = document.createRange();
+  range.selectNodeContents(textNode);
+  const quads = textNode.getBoxQuads();
+  const rects = range.getClientRects();
+
+  assert_greater_than(quads.length, 1, "text node produces fragments");
+  assert_equals(quads.length, rects.length,
+                "text node quads match range fragment count");
+  for (let i = 0; i < quads.length; ++i) {
+    assert_rect_approx_equals(quads[i].getBounds(), rects[i],
+                              `text fragment ${i}`);
+  }
+}, "Text.getBoxQuads() matches Range.getClientRects() fragments");
+
+test(() => {
+  const textNode = document.getElementById("text-container").firstChild;
+  const localPoint = textNode.getBoxQuads({relativeTo: textNode})[0].p1;
+  const convertedPoint = document.convertPointFromNode(localPoint, textNode);
+  assert_point_approx_equals(convertedPoint, textNode.getBoxQuads()[0].p1,
+                             "text local p1");
+}, "convertPointFromNode() converts from a Text node");
+
+test(() => {
+  const host = document.querySelector("x-geometry-host");
+  const shadowTarget = host.shadowRoot.getElementById("shadow-target");
+  assert_quad_bounds_match_bounding_rect(shadowTarget, {},
+                                         "shadow tree element bounds");
+
+  const relativeQuad = shadowTarget.getBoxQuads({relativeTo: host})[0];
+  const convertedQuad = host.convertQuadFromNode(
+    shadowTarget.getBoxQuads({relativeTo: shadowTarget})[0],
+    shadowTarget
+  );
+  assert_quad_approx_equals(relativeQuad, convertedQuad,
+                            "shadow tree element relative to host");
+}, "GeometryUtils follows shadow tree ancestry");
+
+test(() => {
+  const host = document.querySelector("x-geometry-host");
+  const slotted = document.getElementById("slotted");
+  assert_quad_bounds_match_bounding_rect(slotted, {},
+                                         "slotted light DOM element bounds");
+
+  const relativeQuad = slotted.getBoxQuads({relativeTo: host})[0];
+  const convertedQuad = host.convertQuadFromNode(
+    slotted.getBoxQuads({relativeTo: slotted})[0],
+    slotted
+  );
+  assert_quad_approx_equals(relativeQuad, convertedQuad,
+                            "slotted element relative to host");
+}, "GeometryUtils follows flat-tree slot assignment");
+
+promise_test(async () => {
+  const frame = await load_iframe(`<!DOCTYPE html>
+    <style>
+      html, body { margin: 0; }
+      #inner {
+        position: absolute;
+        left: 35px;
+        top: 28px;
+        width: 80px;
+        height: 45px;
+        border: 4px solid black;
+        padding: 6px;
+        transform: rotate(14deg) scale(1.1);
+        transform-origin: 10px 15px;
+      }
+    </style>
+    <div id="inner"></div>`);
+
+  const inner = frame.contentDocument.getElementById("inner");
+  const innerQuad = inner.getBoxQuads()[0];
+  assert_rect_approx_equals(innerQuad.getBounds(),
+                            inner.getBoundingClientRect(),
+                            "iframe-local inner bounds");
+}, "getBoxQuads() works in a same-origin iframe document");
+
+promise_test(async () => {
+  const frame = await load_iframe(`<!DOCTYPE html>
+    <style>
+      html, body { margin: 0; }
+      #inner {
+        position: absolute;
+        left: 35px;
+        top: 28px;
+        width: 80px;
+        height: 45px;
+        border: 4px solid black;
+        transform: rotate(14deg);
+      }
+    </style>
+    <div id="inner"></div>`);
+
+  const inner = frame.contentDocument.getElementById("inner");
+  const localQuad = inner.getBoxQuads({relativeTo: inner})[0];
+  const convertedQuad = document.convertQuadFromNode(localQuad, inner);
+  assert_quad_approx_equals(convertedQuad,
+                            inner.getBoxQuads({relativeTo: document})[0],
+                            "iframe element quad relative to outer document");
+}, "GeometryUtils converts same-origin iframe content to the outer document");
+</script>

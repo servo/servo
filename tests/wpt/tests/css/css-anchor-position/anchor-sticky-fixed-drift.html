@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<title>Tests scroll adjustments of fixed element anchored horizontally to a sticky element</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  body {
+    margin: 0;
+    height: 2000px;
+  }
+  #container {
+    position: relative;
+    top: 200px;
+    height: 500px;
+  }
+  #sticky-anchor {
+    position: sticky;
+    top: 100px;
+    anchor-name: --anchor;
+    width: 50px;
+    height: 50px;
+    background: blue;
+  }
+  #anchored {
+    position: fixed;
+    position-anchor: --anchor;
+    left: anchor(center);
+    bottom: 50px;
+    width: 100px;
+    height: 100px;
+    background: green;
+  }
+</style>
+
+<div id="container">
+  <div id="sticky-anchor"></div>
+</div>
+<div id="anchored"></div>
+
+<script>
+  promise_test(async () => {
+    // Initial check
+    let rect = anchored.getBoundingClientRect();
+    assert_equals(rect.bottom, window.innerHeight - 50, "Initial bottom position");
+
+    // Scroll down
+    window.scrollTo(0, 300);
+
+    // Wait for layout
+    //await new Promise(resolve => requestAnimationFrame(resolve));
+
+    rect = anchored.getBoundingClientRect();
+
+    // The anchored element is position: fixed and bottom: 50px.
+    // Its vertical position should not change when scrolling.
+    assert_equals(rect.bottom, window.innerHeight - 50, "Bottom position after scroll");
+  }, "Fixed anchored element with sticky anchor");
+</script>

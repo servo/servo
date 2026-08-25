@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      Test Constructor: ChannelMerger
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/webaudio/resources/audit-util.js"></script>
+    <script src="/webaudio/resources/audionodeoptions.js"></script>
+  </head>
+  <body>
+    <script>
+      let context;
+
+      test(() => {
+        context = new OfflineAudioContext(1, 1, 48000);
+      }, 'Initialize AudioContext for ChannelMergerNode tests');
+
+      test(() => {
+        testInvalidConstructor_W3CTH('ChannelMergerNode', context);
+      }, 'Invalid constructor behavior for ChannelMergerNode');
+
+      test(() => {
+        const prefix = 'node0';
+        const node =
+            testDefaultConstructor_W3CTH('ChannelMergerNode', context, {
+              prefix: prefix,
+              numberOfInputs: 6,
+              numberOfOutputs: 1,
+              channelCount: 1,
+              channelCountMode: 'explicit',
+              channelInterpretation: 'speakers',
+            });
+      }, 'Default constructor behavior for ChannelMergerNode');
+
+      test(() => {
+        testAudioNodeOptions_W3CTH(context, 'ChannelMergerNode', {
+          channelCount: {
+            value: 1,
+            isFixed: true,
+            exceptionType: 'InvalidStateError',
+          },
+          channelCountMode: {
+            value: 'explicit',
+            isFixed: true,
+            exceptionType: 'InvalidStateError',
+          },
+        });
+      }, 'AudioNodeOptions behavior for ChannelMergerNode');
+
+      test(() => {
+        let node;
+        let options = {
+          numberOfInputs: 3,
+          numberOfOutputs: 9,
+          channelInterpretation: 'discrete',
+        };
+
+        node = new ChannelMergerNode(context, options);
+
+        assert_equals(
+            node.numberOfInputs, options.numberOfInputs,
+            'node1.numberOfInputs');
+        assert_equals(node.numberOfOutputs, 1, 'node1.numberOfOutputs');
+        assert_equals(
+            node.channelInterpretation, options.channelInterpretation,
+            'node1.channelInterpretation');
+
+        options = {numberOfInputs: 99};
+        assert_throws_dom('IndexSizeError', () => {
+          node = new ChannelMergerNode(context, options);
+        }, 'new ChannelMergerNode(c, ' + JSON.stringify(options) + ')');
+
+        options = {channelCount: 3};
+        assert_throws_dom('InvalidStateError', () => {
+          node = new ChannelMergerNode(context, options);
+        }, 'new ChannelMergerNode(c, ' + JSON.stringify(options) + ')');
+
+        options = {channelCountMode: 'max'};
+        assert_throws_dom('InvalidStateError', () => {
+          node = new ChannelMergerNode(context, options);
+        }, 'new ChannelMergerNode(c, ' + JSON.stringify(options) + ')');
+      }, 'Constructor options validation for ChannelMergerNode');
+    </script>
+  </body>
+</html>

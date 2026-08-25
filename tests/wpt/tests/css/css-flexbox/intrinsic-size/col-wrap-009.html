@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#intrinsic-sizes">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<meta name="assert"
+  content="column wrap container's intrinsic width changes when its height changes." />
+
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+  span {
+    width: 50px;
+    height: 100px;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.
+<div id=reference-overlapped-red></div>
+
+<div style="display: flex; height: 200px;" id="target">
+  <div
+    style="display: flex; flex-flow: column wrap; width: max-content; background: green;">
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<script>
+  target.offsetLeft;
+  // With original height of 200px, both items fit in one flex line.
+  // With height 100px, there are two lines and the items are side-by-side.
+  target.style.height = "100px";
+</script>

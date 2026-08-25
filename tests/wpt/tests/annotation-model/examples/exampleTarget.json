@@ -1,0 +1,13 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Check if target feature implemented",
+  "description": "'There must be 1 or more target relationships associated with an Annotation.' (Section 3.1)",
+  "assertionType": "must",
+  "expectedResult": "valid",
+  "errorMessage": "Error: Annotation has no target relationships - at least 1 is required. (Section 3.1)",
+  "type": "object",
+  "properties": {
+    "target": { "type": ["string", "array", "object"] }
+  },
+  "required": ["target"]
+}

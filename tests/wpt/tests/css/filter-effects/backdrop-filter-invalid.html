@@ -1,0 +1,25 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Invalid backdrop-filter doesn't cause element to disappear</title>
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#typedef-filter-value-list">
+<link rel="match" href="filter-invalid-ref.html">
+<style>
+div, rect {
+  width: 100px;
+  height: 100px;
+  backdrop-filter: url(#not-found);
+}
+div {
+  background-color: blue;
+}
+rect {
+  fill: purple;
+}
+</style>
+<div></div>
+<svg>
+  <rect></rect>
+</svg>

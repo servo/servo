@@ -1,0 +1,44 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: CSS clipping test</title>
+<link rel="author" title="David Hyatt" href="mailto:hyatt@netscape.com"/>
+<link rel="help" href="http://www.w3.org/TR/CSS21/visufx.html#clipping" />
+<style type="text/css">
+.green {
+  width: 100px;
+  height: 200px;
+  background-color: green;
+  border: 10px solid red;
+}
+
+.clip {
+  clip: rect(10px 110px 110px 10px);
+}
+
+.positioned {
+  position: absolute;
+  overflow: scroll;
+}
+
+.tall {
+  height: 1000px;
+}
+p
+{
+    height: 40px;
+}
+</style>
+</head>
+<body>
+<p>Test passes if there is <strong>a green square</strong> and <strong>no red</strong>.</p>
+
+<!-- This test is checking to make sure clip applies to the element itself,
+starts from the border edge, and clips out scrollbars.  The bottom
+of the scrolling mechanism should be clipped. -->
+
+<div class="clip green positioned">
+<div class="tall"></div>
+</div>
+</body>
+</html>

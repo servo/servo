@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+
+<style>
+  body {
+    margin: 0;
+  }
+
+  div {
+    width: 100px;
+    height: 100px;
+  }
+
+  #anchor {
+    margin-top: 105vh;
+    background: orange;
+  }
+
+  #anchored {
+    position: absolute;
+    top: calc(105vh - 100px);
+    left: 100px;
+    background: green;
+
+    transform: scale(2);
+  }
+</style>
+
+<body>
+  <div id="anchor"></div>
+  <div id="anchored"></div>
+
+  <script>
+    const anchor = document.getElementById("anchor");
+    anchor.scrollIntoView(false);
+  </script>
+</body>

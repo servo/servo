@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<title>Test Notification</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+promise_test(async () => {
+  // Notification permission must be allowed or we cannot confirm that
+  // "new Notification" failed in a fenced frame.
+  await test_driver.set_permission({name: 'notifications'}, 'granted', true);
+  assert_equals(Notification.permission, 'granted');
+
+  const frame = attachFencedFrameContext();
+  try {
+    await frame.execute(() => {
+      const notification = new Notification('Test notification');
+      return new Promise((resolve, reject) => {
+        // "new Notification" inside the fenced frame should fail even if it is
+        // allowed in the primary main frame.
+        notification.addEventListener('error', resolve);
+        notification.addEventListener('show', reject);
+      });
+    });
+  } catch(e) {
+    assert_unreached('Notification was shown; want not to be shown.' + e);
+  }
+}, 'new Notification should fail inside a fenced frame');
+
+promise_test(async () => {
+  // Notification permission must be allowed or we cannot confirm that
+  // "new Notification" failed in a fenced frame.
+  await test_driver.set_permission({name: 'notifications'}, 'granted', true);
+  assert_equals(Notification.permission, 'granted');
+
+  const frame = attachFencedFrameContext();
+  const message = await frame.execute(async () => {
+    const getController = () => {
+      if (navigator.serviceWorker.controller) {
+        return navigator.serviceWorker.controller;
+      }
+      return new Promise(resolve => {
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          resolve(navigator.serviceWorker.controller);
+        });
+      });
+    };
+
+    await navigator.serviceWorker.register(
+      'notification-sw.js', { scope: location.href });
+    const ctrl = await getController();
+
+    return new Promise(resolve => {
+      ctrl.postMessage('constructor');
+      navigator.serviceWorker.onmessage = e => {
+        resolve(e.data);
+      };
+    });
+  });
+  assert_equals(
+    message, "Failed to construct 'Notification': Illegal constructor.");
+}, 'new Notification should fail from the service worker in a fenced frame');
+
+promise_test(async () => {
+  // Notification permission must be allowed or we cannot confirm that
+  // "new Notification" failed in a fenced frame.
+  await test_driver.set_permission({name: 'notifications'}, 'granted', true);
+  assert_equals(Notification.permission, 'granted');
+
+  const frame = attachFencedFrameContext();
+  const message = await frame.execute(async () => {
+    const getController = () => {
+      if (navigator.serviceWorker.controller) {
+        return navigator.serviceWorker.controller;
+      }
+      return new Promise(resolve => {
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          resolve(navigator.serviceWorker.controller);
+        });
+      });
+    };
+
+    await navigator.serviceWorker.register(
+      'notification-sw.js', { scope: location.href });
+    const ctrl = await getController();
+
+    return new Promise(resolve => {
+      ctrl.postMessage('showNotification');
+      navigator.serviceWorker.onmessage = e => {
+        resolve(e.data);
+      };
+    });
+  });
+  assert_equals(message,
+    "Failed to execute 'showNotification' on 'ServiceWorkerRegistration': " + "showNotification() is not allowed in fenced frames.",);
+}, 'showNotification() should fail from the service worker in a fenced frame');
+</script>
+</body>

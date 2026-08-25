@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML: window.open `features`: non-integer values for feature `height`</title>
+<meta name=timeout content=long>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#apis-for-creating-and-navigating-browsing-contexts-by-name">
+
+<!-- user agents are not required to support open features other than `noopener`
+     and on some platforms position and size features don't make sense -->
+<meta name="flags" content="may" />
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/PrefixedPostMessage.js"></script>
+<script>
+var featuresPrefix = `top=0,left=0,width=401,`;
+var windowURL = 'resources/message-opener.html';
+
+// https://html.spec.whatwg.org/multipage/infrastructure.html#rules-for-parsing-integers
+
+setup (() => {
+  // Before running tests, open a window using features that mimic
+  // what would happen if the feature tested here were set to 0
+  // for comparison later.
+  var featureString = `${featuresPrefix}height=0`;
+  var prefixedMessage = new PrefixedMessageTest();
+  prefixedMessage.onMessage((data, e) => {
+    e.source.close();
+    runWindowTests(data);
+  });
+  var win = window.open(prefixedMessage.url(windowURL), '', featureString);
+});
+
+function runWindowTests (baselineDimensions) {
+  function openWindowAndWaitForDimensions(t, feature, expectedHeight) {
+    return new Promise(resolve => {
+      var prefixedMessage = new PrefixedMessageTest();
+      var win;
+      var url = prefixedMessage.url(windowURL) +
+          '&expected_innerHeight=' + expectedHeight;
+
+      t.add_cleanup(() => {
+        if (win && !win.closed) {
+          win.close();
+        }
+      });
+      prefixedMessage.onMessage((data, e) => {
+        e.source.close();
+        t.step_timeout(() => resolve(data), 0);
+      });
+      win = window.open(url, '', feature);
+    });
+  }
+
+  // The absence of the sizing feature should have the same behavior
+  // as that feature set to 0
+  [ featuresPrefix,
+    'top=0,left=0',
+  ].forEach(feature => {
+    promise_test(async t => {
+      var data = await openWindowAndWaitForDimensions(t, feature, baselineDimensions.height);
+      assert_equals(data.height, baselineDimensions.height);
+    }, `${feature}: absence of feature "height" should be treated same as "height=0"`);
+  });
+
+  // When code point in first position is not an ASCII digit, "+" or "-",
+  // that's an error and the value becomes 0
+  [ 'height=/404',
+    'height=_404',
+    'height=L404'
+  ].forEach(feature => {
+    promise_test(async t => {
+      var featureString = `${featuresPrefix}${feature}`;
+      var data = await openWindowAndWaitForDimensions(t, featureString, baselineDimensions.height);
+      assert_equals(data.height, baselineDimensions.height, `"${feature} begins with an invalid character and should be ignored"`);
+    }, `features "${feature}" should NOT set "height=404"`);
+  });
+
+  // Codepoints that are valid ASCII digits should be collected
+  // Non-ASCII digits and subsequent code points are ignored
+  [ 'height=405.5',
+    'height=405.32',
+    'height=405LLl',
+    'height=405^4',
+    'height=405*3',
+    'height=405/5',
+    'height=405  ',
+    'height=405e1',
+    'height=405e-1'
+  ].forEach(feature => {
+    promise_test(async t => {
+      var featureString = `${featuresPrefix}${feature}`;
+      var data = await openWindowAndWaitForDimensions(t, featureString, 405);
+      assert_equals(data.height, 405, `"${featureString} value after first non-digit will be ignored"`);
+    }, `features "${feature}" should set "height=405"`);
+  });
+
+}
+
+</script>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>Scroll marker group on fieldset</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-group">
+<link rel="help" href="https://html.spec.whatwg.org/#anonymous-fieldset-content-box">
+<link rel="match" href="scroll-marker-group-011-ref.html">
+<style>
+  #scroller {
+    overflow: hidden;
+    height: 100px;
+    scroll-marker-group: before;
+  }
+
+  #scroller::scroll-marker-group {
+    display: flex;
+    height: 200px;
+    background: gray;
+  }
+
+  #scroller>div::scroll-marker {
+    display: block;
+    width: 25px;
+    height: 50%;
+    content: "";
+    background: yellow;
+  }
+</style>
+<p>There should be a yellow square inside a gray box below, and below that, a
+  fieldset with a legend.</p>
+<fieldset id="scroller">
+  <legend>Legend</legend>
+  <div style="height:100px;">first</div>
+  <div style="height:100px;">second</div>
+  <div style="height:100px;">third</div>
+  <div style="height:100px;">fourth</div>
+</fieldset>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<style>
+  dialog {
+    width: 100px;
+    height: 50px;
+    background: green;
+    border: none;
+    outline: none;
+  }
+  #drawn {
+    width: 50px;
+    height: 100px;
+    background: green;
+    position: relative;
+    top: 0;
+    left: 100px;
+  }
+</style>
+
+<dialog id="dialog"></dialog>
+
+<div id="drawn"></div>
+
+<script>
+onload = () => {
+  dialog.showModal();
+}
+</script>

@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script>
+  test(function() {
+    var wildcard_origin = 'https:';
+    assert_array_equals(
+      document.permissionsPolicy.getAllowlistForFeature('fullscreen'),
+      [wildcard_origin]);
+    assert_true(document.permissionsPolicy.allowsFeature('fullscreen'));
+  }, 'Test scheme only policy works as expected');
+  </script>
+</body>

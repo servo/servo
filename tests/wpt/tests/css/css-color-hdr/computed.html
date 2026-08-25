@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<title>Computed value of dynamic-range-limit</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-hdr/#the-dynamic-range-limit-property">
+<meta name="assert" content="Computed value of dynamic-range-limit">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+
+<div id="target"></div>
+
+<script>
+test_computed_value("dynamic-range-limit", "no-limit");
+test_computed_value("dynamic-range-limit", "constrained");
+test_computed_value("dynamic-range-limit", "standard");
+test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(standard 75%, no-limit 25%)");
+test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(standard 25%, no-limit 75%)");
+test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(no-limit 100%, standard 0%)",
+                                           "no-limit");
+test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(no-limit 100%, no-limit 0%)",
+                                           "no-limit");
+test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(no-limit 25%, standard 25%, standard 25%, standard 25%)",
+                                           "dynamic-range-limit-mix(standard 75%, no-limit 25%)");
+test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(no-limit 25%, standard 75%)",
+                                           "dynamic-range-limit-mix(standard 75%, no-limit 25%)");
+test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(no-limit 100%, standard 100%)",
+                                           "dynamic-range-limit-mix(standard 50%, no-limit 50%)");
+test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(no-limit 80%, standard 60%, constrained 60%)",
+                                           "dynamic-range-limit-mix(standard 30%, constrained 30%, no-limit 40%)");
+test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(standard 25%, constrained 75%)");
+test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(constrained 75%, standard 25%)",
+                                           "dynamic-range-limit-mix(standard 25%, constrained 75%)");
+test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(constrained 25%, no-limit 25%)",
+                                           "dynamic-range-limit-mix(constrained 50%, no-limit 50%)");
+test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(standard 25%, constrained 50%, no-limit 25%)");
+test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(standard 10%, constrained 20%, no-limit 20%)",
+                                           "dynamic-range-limit-mix(standard 20%, constrained 40%, no-limit 40%)");
+test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(no-limit 10%, standard 30%)",
+                                           "dynamic-range-limit-mix(standard 75%, no-limit 25%)");
+test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(dynamic-range-limit-mix(standard 10%, no-limit 30%) 20%, standard 80%)",
+                                           "dynamic-range-limit-mix(standard 85%, no-limit 15%)");
+test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(dynamic-range-limit-mix(standard 25%, no-limit 75%) 20%, dynamic-range-limit-mix(standard 25%, constrained 75%) 40%, dynamic-range-limit-mix(constrained 25%, no-limit 75%) 40%)",
+                                           "dynamic-range-limit-mix(standard 15%, constrained 40%, no-limit 45%)");
+test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(no-limit 10%, dynamic-range-limit-mix(standard 25%, constrained 75%) 20%, dynamic-range-limit-mix(constrained 10%, no-limit 30%) 20%)",
+                                           "dynamic-range-limit-mix(standard 10%, constrained 40%, no-limit 50%)");
+test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(standard calc(50% * sign(10em - 1px)), constrained 50%)",
+                                           "dynamic-range-limit-mix(standard 50%, constrained 50%)");
+</script>

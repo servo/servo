@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#sign-funcs">
+<link rel="author" title="sakhapov@chromuim.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/numeric-testcommon.js"></script>
+<style>
+    #target {
+        font-size: 10px;
+    }
+</style>
+<div id="target"></div>
+<script>
+
+test_math_used('skew(calc(sign(1em - 1px) * 2deg), calc(sign(1em - 1px) * 2deg))', 'skew(2deg, 2deg)', {prop:'transform'});
+test_math_used('skewX(calc(sign(1em - 1px) * 2deg))', 'skewX(2deg)', {prop:'transform'});
+test_math_used('skewY(calc(sign(1em - 1px) * 2deg))', 'skewY(2deg)', {prop:'transform'});
+test_math_used('matrix(calc(sign(1em - 1px) * 2), calc(sign(1em - 1px) * 2), calc(sign(1em - 1px) * 2), calc(sign(1em - 1px) * 2), calc(sign(1em - 1px) * 2), calc(sign(1em - 1px) * 2))', 'matrix(2, 2, 2, 2, 2, 2)', {prop:'transform'});
+test_math_used('matrix3d(calc(sign(1em - 1px) * 2), calc(sign(1em - 1px) * 2), calc(sign(1em - 1px) * 2), calc(sign(1em - 1px) * 2), calc(sign(1em - 1px) * 2), calc(sign(1em - 1px) * 2), calc(sign(1em - 1px) * 2), calc(sign(1em - 1px) * 2),calc(sign(1em - 1px) * 2), calc(sign(1em - 1px) * 2), calc(sign(1em - 1px) * 2), calc(sign(1em - 1px) * 2), calc(sign(1em - 1px) * 2), calc(sign(1em - 1px) * 2), calc(sign(1em - 1px) * 2), calc(sign(1em - 1px) * 2))', 'matrix3d(2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2)', {prop:'transform'});
+test_math_used('rotate(calc(sign(1em - 1px) * 2deg))', 'rotate(2deg)', {prop:'transform'});
+test_math_used('rotateX(calc(sign(1em - 1px) * 2deg))', 'rotateX(2deg)', {prop:'transform'});
+test_math_used('rotateY(calc(sign(1em - 1px) * 2deg))', 'rotateY(2deg)', {prop:'transform'});
+test_math_used('rotateZ(calc(sign(1em - 1px) * 2deg))', 'rotateZ(2deg)', {prop:'transform'});
+test_math_used('calc(sign(1em - 1px) * 2) calc(sign(1em - 1px) * 2) calc(sign(1em - 1px) * 2)', '2 2 2', {prop:'scale'});
+test_math_used('calc(sign(1em - 1px) * 2) calc(sign(1em - 1px) * 2) calc(sign(1em - 1px) * 2) calc(sign(1em - 1px) * 2deg)', '2 2 2 2deg', {prop:'rotate'});
+
+</script>

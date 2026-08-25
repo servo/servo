@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<title>CSS Container Queries Test: &lt;q&gt; element as a size container must generate quotes</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#size-container">
+<link rel="match" href="size-container-with-quotes-ref.html">
+<style>
+  q {
+    container-type: inline-size;
+    display: block;
+  }
+</style>
+<q>This text must be quoted.</q>

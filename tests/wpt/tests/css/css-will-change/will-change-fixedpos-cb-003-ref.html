@@ -1,0 +1,31 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test Reference</title>
+<style>
+  body {
+    margin: 0;
+  }
+  .hidden {
+    width: 100px;
+    height: 100px;
+    margin-left: 100px;
+    margin-top: 200px;
+  }
+  .fixedpos {
+    position: fixed;
+    top: 100px;
+    left: 100px;
+    background: green;
+    height: 100px;
+    width: 100px;
+  }
+  .spacer {
+    height: 2000px;
+  }
+</style>
+<div class="hidden"></div>
+<div class="fixedpos"></div>
+<div class="spacer"></div>
+<script>
+  window.onload = function() { window.scrollTo(0, 100); };
+</script>

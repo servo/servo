@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>Intrinsic sizing for &lt;svg&gt;</title>
+<link rel="help" href="https://www.w3.org/TR/SVG2/coords.html">
+<link rel="help" href="https://www.w3.org/TR/css-sizing-3/#intrinsic-sizes">
+<link rel="match"  href="support/abspos-ref.html">
+<!--
+  SVG embedded inside html has no intrinsic size, but has intrinsic
+  aspect ratio. Inline size is computed as available size of containing block,
+  and block size is derived from aspect ratio.
+-->
+<style>
+#container {
+  width: 200px;
+  height: 300px;
+  position: relative;
+  border: 10px solid black;
+}
+#target {
+  fill: green;
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+}
+</style>
+<div id="container">
+  <svg id="target" viewBox="0 0 50 50"><circle cx="50%" cy="50%" r="50%"></circle></svg>
+</div>

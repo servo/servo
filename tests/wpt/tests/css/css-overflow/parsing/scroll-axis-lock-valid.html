@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: parsing scroll-axis-lock property valid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-axis-lock">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<div id="target"></div>
+<script>
+  test_valid_value('scroll-axis-lock', 'initial');
+  test_valid_value('scroll-axis-lock', 'inherit');
+  test_valid_value('scroll-axis-lock', 'unset');
+  test_valid_value('scroll-axis-lock', 'revert');
+
+  test_valid_value("scroll-axis-lock", 'auto');
+  test_valid_value("scroll-axis-lock", 'none');
+</script>

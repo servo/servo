@@ -1,0 +1,27 @@
+[ req ]
+
+default_md = sha256
+encrypt_key = no
+
+prompt = no
+
+distinguished_name = dn
+x509_extensions = ext
+
+[ dn ]
+
+C = "FR"
+L = "Paris"
+O = "Aymeric Augustin"
+CN = "localhost"
+
+[ ext ]
+
+subjectAltName = @san
+
+[ san ]
+
+DNS.1 = localhost
+DNS.2 = overridden
+IP.3 = 127.0.0.1
+IP.4 = ::1

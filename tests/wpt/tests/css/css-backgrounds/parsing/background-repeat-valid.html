@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Backgrounds and Borders Module Level 3: parsing background-repeat with valid values</title>
+<link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds/#background-repeat">
+<meta name="assert" content="background-repeat supports the full grammar '<repeat-style>#'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("background-repeat", "repeat");
+test_valid_value("background-repeat", "repeat-x, repeat-y, repeat", "repeat-x, repeat-y, repeat");
+test_valid_value("background-repeat", "repeat space, round no-repeat, repeat-x");
+test_valid_value("background-repeat", "repeat repeat", ["repeat", "repeat repeat"]);
+</script>
+</body>
+</html>

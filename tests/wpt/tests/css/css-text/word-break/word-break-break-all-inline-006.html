@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>word-break: break-all on inline element</title>
+<meta name="assert" content="word-break: break-all works when specified on inline element">
+<link rel='help' href='https://drafts.csswg.org/css-text-3/#word-break-property'>
+<link rel='match' href='reference/word-break-break-all-inline-006-a-ref.html'>
+<link rel='match' href='reference/word-break-break-all-inline-006-b-ref.html'>
+<link rel='author' title='Jonathan Kew' href='mailto:jkew@mozilla.com'>
+<style>
+div {
+  border: solid 5px;
+  margin: 5px;
+  font-family: monospace;
+  width: 6.1ch;
+  padding: 1px;
+}
+.test { word-break: break-all; }
+.blue { border-color: blue; }
+.orange { border-color: orange; }
+</style>
+<p>Test passes if the black box is identical to either the blue or the orange one.
+<div class="blue">aaaabb<br>bbbbbb<br>bbb<br>ccccc</div>
+<div>aaaa<span class="test">bbbbbbbbbbb</span>ccccc</div>
+<div class="orange">aaaabb<br>bbbbbb<br>bb<br>bccccc</div>

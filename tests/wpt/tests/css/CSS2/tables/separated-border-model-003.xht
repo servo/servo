@@ -1,0 +1,43 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: HTML/XHTML table width equation</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#separated-borders" />
+        <meta name="assert" content="The width of an HTML/XHTML table is the distance between the left and right table border edges." />
+        <style type="text/css">
+            table
+            {
+                border-spacing: 50px 0;
+             }
+            td
+            {
+                width: 100px;
+            }
+            div
+            {
+                background: blue;
+                height: 100px;
+            }
+            table, td
+            {
+                background: black;
+                border: 25px solid black;
+                padding: 25px;
+            }
+            div
+            {
+                width: 400px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the boxes below are the same width.</p>
+        <table>
+            <tr>
+                <td>X</td>
+            </tr>
+        </table>
+        <div></div>
+    </body>
+</html>

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>HTML Canvas testcase: canvas element not in document</title>
+<link rel=match href="canvas.2d.disconnected-ref.html">
+<meta name=fuzzy content="maxDifference=0-23;totalPixels=0-829">
+<body>
+</body>
+<script>
+var d = new Document();
+var c = d.createElementNS("http://www.w3.org/1999/xhtml", "canvas");
+var ctx = c.getContext("2d");
+ctx.font = "50px monospace";
+ctx.fillText("Hello", 50, 75);
+ctx.font = "25px serif";
+ctx.fillText("World", 100, 100);
+c.toBlob((blob) => {
+  var img = document.createElement("img");
+  const url = URL.createObjectURL(blob);
+  img.src = url;
+  img.style.border = "3px solid cyan";
+  document.body.appendChild(img);
+});
+</script>
+

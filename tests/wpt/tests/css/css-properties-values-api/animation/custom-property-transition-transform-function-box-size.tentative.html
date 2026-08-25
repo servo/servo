@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api-1">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#interpolate">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/2854">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/utils.js"></script>
+<div id="target"></div>
+<script>
+
+transition_test({
+  syntax: "<transform-function>",
+  from: "translateX(50%)",
+  to: "scale(4)",
+  expected: "mix(50%; translateX(50%); scale(4))",
+  behavior: 'allow-discrete',
+}, 'A custom property of type <transform-function> yields a CSS Transition using the mix function for a box size dependent matrix interpolation');
+
+</script>

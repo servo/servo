@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Animation.finished</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations/#dom-animation-finished">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+promise_test(t => {
+  const div = createDiv(t);
+  const animation = div.animate({}, 100 * MS_PER_SEC);
+  const previousFinishedPromise = animation.finished;
+  return animation.ready.then(() => {
+    assert_equals(animation.finished, previousFinishedPromise,
+                  'Finished promise is the same object when playing starts');
+    animation.pause();
+    assert_equals(animation.finished, previousFinishedPromise,
+                  'Finished promise does not change when pausing');
+    animation.play();
+    assert_equals(animation.finished, previousFinishedPromise,
+                  'Finished promise does not change when play() unpauses');
+
+    animation.currentTime = 100 * MS_PER_SEC;
+
+    return animation.finished;
+  }).then(() => {
+    assert_equals(animation.finished, previousFinishedPromise,
+                  'Finished promise is the same object when playing completes');
+  });
+}, 'Test pausing then playing does not change the finished promise');
+
+promise_test(t => {
+  const div = createDiv(t);
+  const animation = div.animate({}, 100 * MS_PER_SEC);
+  let previousFinishedPromise = animation.finished;
+  animation.finish();
+  return animation.finished.then(() => {
+    assert_equals(animation.finished, previousFinishedPromise,
+                  'Finished promise is the same object when playing completes');
+    animation.play();
+    assert_not_equals(animation.finished, previousFinishedPromise,
+                  'Finished promise changes when replaying animation');
+
+    previousFinishedPromise = animation.finished;
+    animation.play();
+    assert_equals(animation.finished, previousFinishedPromise,
+                  'Finished promise is the same after redundant play() call');
+
+  });
+}, 'Test restarting a finished animation');
+
+promise_test(t => {
+  const div = createDiv(t);
+  const animation = div.animate({}, 100 * MS_PER_SEC);
+  let previousFinishedPromise;
+  animation.finish();
+  return animation.finished.then(() => {
+    previousFinishedPromise = animation.finished;
+    animation.playbackRate = -1;
+    assert_not_equals(animation.finished, previousFinishedPromise,
+                      'Finished promise should be replaced when reversing a ' +
+                      'finished promise');
+    animation.currentTime = 0;
+    return animation.finished;
+  }).then(() => {
+    previousFinishedPromise = animation.finished;
+    animation.play();
+    assert_not_equals(animation.finished, previousFinishedPromise,
+                      'Finished promise is replaced after play() call on ' +
+                      'finished, reversed animation');
+  });
+}, 'Test restarting a reversed finished animation');
+
+promise_test(t => {
+  const div = createDiv(t);
+  const animation = div.animate({}, 100 * MS_PER_SEC);
+  const previousFinishedPromise = animation.finished;
+  animation.finish();
+  return animation.finished.then(() => {
+    animation.currentTime = 100 * MS_PER_SEC + 1000;
+    assert_equals(animation.finished, previousFinishedPromise,
+                  'Finished promise is unchanged jumping past end of ' +
+                  'finished animation');
+  });
+}, 'Test redundant finishing of animation');
+
+promise_test(t => {
+  const div = createDiv(t);
+  const animation = div.animate({}, 100 * MS_PER_SEC);
+  // Setup callback to run if finished promise is resolved
+  let finishPromiseResolved = false;
+  animation.finished.then(() => {
+    finishPromiseResolved = true;
+  });
+  return animation.ready.then(() => {
+    // Jump to mid-way in interval and pause
+    animation.currentTime = 100 * MS_PER_SEC / 2;
+    animation.pause();
+    return animation.ready;
+  }).then(() => {
+    // Jump to the end
+    // (But don't use finish() since that should unpause as well)
+    animation.currentTime = 100 * MS_PER_SEC;
+    return waitForAnimationFrames(2);
+  }).then(() => {
+    assert_false(finishPromiseResolved,
+                 'Finished promise should not resolve when paused');
+  });
+}, 'Finished promise does not resolve when paused');
+
+promise_test(t => {
+  const div = createDiv(t);
+  const animation = div.animate({}, 100 * MS_PER_SEC);
+  // Setup callback to run if finished promise is resolved
+  let finishPromiseResolved = false;
+  animation.finished.then(() => {
+    finishPromiseResolved = true;
+  });
+  return animation.ready.then(() => {
+    // Jump to mid-way in interval and pause
+    animation.currentTime = 100 * MS_PER_SEC / 2;
+    animation.pause();
+    // Jump to the end
+    animation.currentTime = 100 * MS_PER_SEC;
+    return waitForAnimationFrames(2);
+  }).then(() => {
+    assert_false(finishPromiseResolved,
+                 'Finished promise should not resolve when pause-pending');
+  });
+}, 'Finished promise does not resolve when pause-pending');
+
+promise_test(t => {
+  const div = createDiv(t);
+  const animation = div.animate({}, 100 * MS_PER_SEC);
+  animation.finish();
+  return animation.finished.then(resolvedAnimation => {
+    assert_equals(resolvedAnimation, animation,
+                  'Object identity of animation passed to Promise callback'
+                  + ' matches the animation object owning the Promise');
+  });
+}, 'The finished promise is fulfilled with its Animation');
+
+promise_test(t => {
+  const div = createDiv(t);
+  const animation = div.animate({}, 100 * MS_PER_SEC);
+  const previousFinishedPromise = animation.finished;
+
+  // Set up listeners on finished promise
+  const retPromise = animation.finished.then(() => {
+    assert_unreached('finished promise was fulfilled');
+  }).catch(err => {
+    assert_equals(err.name, 'AbortError',
+                  'finished promise is rejected with AbortError');
+    assert_not_equals(animation.finished, previousFinishedPromise,
+                      'Finished promise should change after the original is ' +
+                      'rejected');
+  });
+
+  animation.cancel();
+
+  return retPromise;
+}, 'finished promise is rejected when an animation is canceled by calling ' +
+   'cancel()');
+
+promise_test(t => {
+  const div = createDiv(t);
+  const animation = div.animate({}, 100 * MS_PER_SEC);
+  const previousFinishedPromise = animation.finished;
+  animation.finish();
+  return animation.finished.then(() => {
+    animation.cancel();
+    assert_not_equals(animation.finished, previousFinishedPromise,
+                      'A new finished promise should be created when'
+                      + ' canceling a finished animation');
+  });
+}, 'canceling an already-finished animation replaces the finished promise');
+
+promise_test(t => {
+  const div = createDiv(t);
+  const animation = div.animate({}, 100 * MS_PER_SEC);
+  const HALF_DUR = 100 * MS_PER_SEC / 2;
+  const QUARTER_DUR = 100 * MS_PER_SEC / 4;
+  let gotNextFrame = false;
+  let currentTimeBeforeShortening;
+  animation.currentTime = HALF_DUR;
+  return animation.ready.then(() => {
+    currentTimeBeforeShortening = animation.currentTime;
+    animation.effect.updateTiming({ duration: QUARTER_DUR });
+    // Below we use gotNextFrame to check that shortening of the animation
+    // duration causes the finished promise to resolve, rather than it just
+    // getting resolved on the next animation frame. This relies on the fact
+    // that the promises are resolved as a micro-task before the next frame
+    // happens.
+    waitForAnimationFrames(1).then(() => {
+      gotNextFrame = true;
+    });
+
+    return animation.finished;
+  }).then(() => {
+    assert_false(gotNextFrame, 'shortening of the animation duration should ' +
+                               'resolve the finished promise');
+    assert_equals(animation.currentTime, currentTimeBeforeShortening,
+                  'currentTime should be unchanged when duration shortened');
+    const previousFinishedPromise = animation.finished;
+    animation.effect.updateTiming({ duration: 100 * MS_PER_SEC });
+    assert_not_equals(animation.finished, previousFinishedPromise,
+                      'Finished promise should change after lengthening the ' +
+                      'duration causes the animation to become active');
+  });
+}, 'Test finished promise changes for animation duration changes');
+
+promise_test(t => {
+  const div = createDiv(t);
+  const animation = div.animate({}, 100 * MS_PER_SEC);
+  const retPromise = animation.ready.then(() => {
+    animation.playbackRate = 0;
+    animation.currentTime = 100 * MS_PER_SEC + 1000;
+    return waitForAnimationFrames(2);
+  });
+
+  animation.finished.then(t.step_func(() => {
+    assert_unreached('finished promise should not resolve when playbackRate ' +
+                     'is zero');
+  }));
+
+  return retPromise;
+}, 'Test finished promise changes when playbackRate == 0');
+
+promise_test(t => {
+  const div = createDiv(t);
+  const animation = div.animate({}, 100 * MS_PER_SEC);
+  return animation.ready.then(() => {
+    animation.playbackRate = -1;
+    return animation.finished;
+  });
+}, 'Test finished promise resolves when reaching to the natural boundary.');
+
+promise_test(t => {
+  const div = createDiv(t);
+  const animation = div.animate({}, 100 * MS_PER_SEC);
+  const previousFinishedPromise = animation.finished;
+  animation.finish();
+  return animation.finished.then(() => {
+    animation.currentTime = 0;
+    assert_not_equals(animation.finished, previousFinishedPromise,
+                      'Finished promise should change once a prior ' +
+                      'finished promise resolved and the animation ' +
+                      'falls out finished state');
+  });
+}, 'Test finished promise changes when a prior finished promise resolved ' +
+   'and the animation falls out finished state');
+
+test(t => {
+  const div = createDiv(t);
+  const animation = div.animate({}, 100 * MS_PER_SEC);
+  const previousFinishedPromise = animation.finished;
+  animation.currentTime = 100 * MS_PER_SEC;
+  animation.currentTime = 100 * MS_PER_SEC / 2;
+  assert_equals(animation.finished, previousFinishedPromise,
+                'No new finished promise generated when finished state ' +
+                'is checked asynchronously');
+}, 'Test no new finished promise generated when finished state ' +
+   'is checked asynchronously');
+
+test(t => {
+  const div = createDiv(t);
+  const animation = div.animate({}, 100 * MS_PER_SEC);
+  const previousFinishedPromise = animation.finished;
+  animation.finish();
+  animation.currentTime = 100 * MS_PER_SEC / 2;
+  assert_not_equals(animation.finished, previousFinishedPromise,
+                    'New finished promise generated when finished state ' +
+                    'is checked synchronously');
+}, 'Test new finished promise generated when finished state ' +
+   'is checked synchronously');
+
+promise_test(t => {
+  const div = createDiv(t);
+  const animation = div.animate({}, 100 * MS_PER_SEC);
+  let resolvedFinished = false;
+  animation.finished.then(() => {
+    resolvedFinished = true;
+  });
+  return animation.ready.then(() => {
+    animation.finish();
+    animation.currentTime = 100 * MS_PER_SEC / 2;
+  }).then(() => {
+    assert_true(resolvedFinished,
+      'Animation.finished should be resolved even if ' +
+      'the finished state is changed soon');
+  });
+
+}, 'Test synchronous finished promise resolved even if finished state ' +
+   'is changed soon');
+
+promise_test(t => {
+  const div = createDiv(t);
+  const animation = div.animate({}, 100 * MS_PER_SEC);
+  let resolvedFinished = false;
+  animation.finished.then(() => {
+    resolvedFinished = true;
+  });
+
+  return animation.ready.then(() => {
+    animation.currentTime = 100 * MS_PER_SEC;
+    animation.finish();
+  }).then(() => {
+    assert_true(resolvedFinished,
+      'Animation.finished should be resolved soon after finish() is ' +
+      'called even if there are other asynchronous promises just before it');
+  });
+}, 'Test synchronous finished promise resolved even if asynchronous ' +
+   'finished promise happens just before synchronous promise');
+
+promise_test(t => {
+  const div = createDiv(t);
+  const animation = div.animate({}, 100 * MS_PER_SEC);
+  animation.finished.then(t.step_func(() => {
+    assert_unreached('Animation.finished should not be resolved');
+  }));
+
+  return animation.ready.then(() => {
+    animation.currentTime = 100 * MS_PER_SEC;
+    animation.currentTime = 100 * MS_PER_SEC / 2;
+  });
+}, 'Test finished promise is not resolved when the animation ' +
+   'falls out finished state immediately');
+
+promise_test(t => {
+  const div = createDiv(t);
+  const animation = div.animate({}, 100 * MS_PER_SEC);
+  return animation.ready.then(() => {
+    animation.currentTime = 100 * MS_PER_SEC;
+    animation.finished.then(t.step_func(() => {
+      assert_unreached('Animation.finished should not be resolved');
+    }));
+    animation.currentTime = 0;
+  });
+
+}, 'Test finished promise is not resolved once the animation ' +
+   'falls out finished state even though the current finished ' +
+   'promise is generated soon after animation state became finished');
+
+promise_test(t => {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  let ready = false;
+  animation.ready.then(
+    t.step_func(() => {
+      ready = true;
+    }),
+    t.unreached_func('Ready promise must not be rejected')
+  );
+
+  const testSuccess = animation.finished.then(
+    t.step_func(() => {
+      assert_true(ready, 'Ready promise has resolved');
+    }),
+    t.unreached_func('Finished promise must not be rejected')
+  );
+
+  const timeout = waitForAnimationFrames(3).then(() => {
+    return Promise.reject('Finished promise did not arrive in time');
+  });
+
+  animation.finish();
+  return Promise.race([timeout, testSuccess]);
+}, 'Finished promise should be resolved after the ready promise is resolved');
+
+promise_test(t => {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  let caught = false;
+  animation.ready.then(
+    t.unreached_func('Ready promise must not be resolved'),
+    t.step_func(() => {
+      caught = true;
+    })
+  );
+
+  const testSuccess = animation.finished.then(
+    t.unreached_func('Finished promise must not be resolved'),
+    t.step_func(() => {
+      assert_true(caught, 'Ready promise has been rejected');
+    })
+  );
+
+  const timeout = waitForAnimationFrames(3).then(() => {
+    return Promise.reject('Finished promise was not rejected in time');
+  });
+
+  animation.cancel();
+  return Promise.race([timeout, testSuccess]);
+}, 'Finished promise should be rejected after the ready promise is rejected');
+
+promise_test(async t => {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+
+  // Ensure the finished promise is created
+  const finished = animation.finished;
+
+  window.addEventListener(
+    'unhandledrejection',
+    t.unreached_func('Should not get an unhandled rejection')
+  );
+
+  animation.cancel();
+
+  // Wait a moment to allow a chance for the event to be dispatched.
+  await waitForAnimationFrames(2);
+}, 'Finished promise does not report an unhandledrejection when rejected');
+
+</script>
+</body>

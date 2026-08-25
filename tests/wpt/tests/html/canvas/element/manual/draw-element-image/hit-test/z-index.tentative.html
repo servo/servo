@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<title>elementFromPoint should respect z-index</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #canvas {
+    width: 200px;
+    height: 200px;
+  }
+  div {
+    width: 100px;
+    height: 100px;
+    background: green;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+</style>
+
+<canvas id=canvas width="200" height="200" layoutsubtree>
+  <div id=a></div>
+  <div id=b></div>
+</canvas>
+
+<script>
+  test(function () {
+    assert_equals(document.elementFromPoint(60, 60), b);
+  }, 'elementFromPoint should hit the last element in dom order.');
+
+  test(function () {
+    a.style.zIndex = 5;
+    assert_equals(document.elementFromPoint(60, 60), a);
+    b.style.zIndex = 6;
+    assert_equals(document.elementFromPoint(60, 60), b);
+  }, 'elementFromPoint should hit the highest z-index element.');
+</script>
+</html>

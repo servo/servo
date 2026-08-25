@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<head>
+  <title>drawElementImage paints CSS backdrop filter with mask image - ref</title>
+  <style>
+    div {
+      width: 100px;
+      height: 100px;
+      background: red;
+    }
+    div > div {
+      background: transparent;
+      backdrop-filter: grayscale();
+      mask-image: linear-gradient(black, transparent);
+    }
+  </style>
+</head>
+<body>
+  <div id="child">
+    <div id="filtered">
+    </div>
+  </div>
+</body>

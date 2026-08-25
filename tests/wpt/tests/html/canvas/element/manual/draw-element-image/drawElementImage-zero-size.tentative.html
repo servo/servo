@@ -1,0 +1,50 @@
+<!DOCTYPE HTML>
+<title>canvas.drawElementImage with zero dimensions does nothing</title>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+<style>
+#child {
+  width: 100px;
+  height: 100px;
+  background: green;
+}
+</style>
+<canvas id="canvas" width="200" height="200" layoutsubtree>
+  <div id="child"></div>
+</canvas>
+
+<script>
+'use strict';
+
+promise_test(async t => {
+  const child = document.getElementById('child');
+  const context = canvas.getContext('2d', { willReadFrequently: true });
+  context.fillStyle = 'red';
+  context.fillRect(0, 0, 200, 200);
+
+  await waitForCanvasPaint(canvas);
+
+  // Draw with zero destination size
+  context.drawElementImage(child, 0, 0, 0, 0);
+  assert_array_equals(context.getImageData(0, 0, 1, 1).data, [255, 0, 0, 255]);
+
+  // Draw with zero source size
+  context.drawElementImage(child, 0, 0, 0, 0, 0, 0, 100, 100);
+  assert_array_equals(context.getImageData(0, 0, 1, 1).data, [255, 0, 0, 255]);
+
+  // Draw with zero box size.
+  child.style.width = '0px';
+  child.style.height = '0px';
+  await waitForCanvasPaint(canvas);
+  context.drawElementImage(child, 0, 0);
+  assert_array_equals(context.getImageData(0, 0, 1, 1).data, [255, 0, 0, 255]);
+
+  // Draw normally to verify it works
+  child.style.width = '100px';
+  child.style.height = '100px';
+  await waitForCanvasPaint(canvas);
+  context.drawElementImage(child, 0, 0);
+  assert_array_equals(context.getImageData(0, 0, 1, 1).data, [0, 128, 0, 255]);
+}, 'drawElementImage with zero size does nothing');
+</script>

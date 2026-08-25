@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="../resources/runner.js"></script>
+    <script src="resources/utils.js"></script>
+</head>
+<style id="sheet">
+.c { cursor: crosshair; }
+</style>
+<body>
+    <script>
+        createDOMTree(document.body, 6, 6);
+        var allElements = document.body.getElementsByTagName("div");
+        for (var i = 0; i < allElements.length; ++i) {
+            allElements[i].className = 'c';
+        }
+
+        PerfTestRunner.measureTime({
+            description: "Measures the performance of inserting/deleting a new rule into an existing stylesheet.",
+            run: function() {
+                let sheet = document.getElementById('sheet').sheet;
+                sheet.insertRule(".doesnotexist { color: red; }", 1);
+                forceStyleRecalc(document.body);
+                sheet.deleteRule(1);
+                forceStyleRecalc(document.body);
+            },
+            tracingCategories: 'blink',
+            traceEventsToMeasure: [
+                'Document::updateStyle',
+                'Document::recalcStyle',
+                'Document::rebuildLayoutTree'
+            ]
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border conflict resolution - borders are collapsed according to the precedence rules (example 2)</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#border-conflict-resolution" />
+        <meta name="flags" content="image" />
+        <meta name="assert" content="Borders are collapsed according to the precedence rules (example from spec section 17.6.2.1)." />
+        <style type="text/css">
+        </style>
+    </head>
+    <body>
+        <table style="border-collapse: collapse; border: solid;">
+            <tr>
+                <td style="border-right: hidden; border-bottom: hidden">foo</td>
+                <td style="border: solid">bar</td>
+            </tr>
+            <tr>
+                <td style="border: none">foo</td>
+                <td style="border: solid">bar</td>
+            </tr>
+        </table>
+        <p>Test passes if the tables above has the same border outlines as the tables below. (Note: border and cell shading may vary between the two tables.)</p>
+        <div>
+            <img alt="Illustration of proper border collapsing (from spec)" src="support/border_conflict_example_002.png" />
+        </div>
+    </body>
+</html>

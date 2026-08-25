@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>drawElementImage with ink overflow.</title>
+<meta charset="utf-8" />
+<link rel="help" href="https://github.com/WICG/html-in-canvas" />
+<link rel="match" href="ink-overflow-ref.html" />
+<link rel="stylesheet" href="/html/canvas/resources/draw-element-image-styles.css" />
+<script src="/html/canvas/resources/color-grid-component.js"></script>
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+  body {
+    display: grid;
+    grid: 256px / 1fr 1fr 1fr;
+    align-items: start;
+    --blur-radius: 20px;
+    --spread: 10px;
+  }
+
+  canvas {
+    width: 256px;
+    height: 256px;
+  }
+
+  color-grid {
+    width: 100px;
+    height: 100px;
+  }
+
+  .box-shadow {
+    box-shadow: 0px 0px var(--blur-radius) var(--spread) hotpink;
+  }
+
+  .outline {
+    outline: 5px solid salmon;
+  }
+</style>
+
+<canvas layoutsubtree>
+  <div class="draw-element-wrapper box-shadow" outset="50" offset="20">
+    <color-grid></color-grid>
+  </div>
+</canvas>
+
+<canvas layoutsubtree>
+  <div class="draw-element-wrapper box-shadow" outset="50" offset="-50">
+    <color-grid></color-grid>
+  </div>
+</canvas>
+
+<canvas layoutsubtree>
+  <div class="draw-element-wrapper outline" xscale="1" yscale="1" outset="10" offset="30">
+    <color-grid></color-grid>
+  </div>
+</canvas>
+
+<canvas layoutsubtree>
+  <div class="draw-element-wrapper outline" outset="10" offset="-10">
+    <color-grid></color-grid>
+  </div>
+</canvas>
+
+<canvas layoutsubtree>
+  <div class="draw-element-wrapper outline" outset="-10" offset="20">
+    <color-grid></color-grid>
+  </div>
+</canvas>
+
+<script type="module">
+  import {
+    computeScaledDestinationSize,
+    resizeToPixelGrid
+  } from "/html/canvas/resources/draw-element-image-utils.js";
+
+  Promise.all(Array.from(document.querySelectorAll("canvas")).map(async cvs => {
+    await resizeToPixelGrid(cvs);
+    await new Promise(setTimeout);
+
+    const target = cvs.firstElementChild;
+    const targetStyle = getComputedStyle(target);
+    const targetWidth = Number.parseFloat(targetStyle.width);
+    const targetHeight = Number.parseFloat(targetStyle.height);
+
+    // `outset` is in CSS pixels, `offset` is in canvas grid
+    const outset = Number.parseFloat(target.getAttribute("outset") || "0");
+    const offset = Number.parseFloat(target.getAttribute("offset") || "0");
+
+    const ctx = cvs.getContext("2d");
+
+    if (target.hasAttribute("xscale") && target.hasAttribute("yscale")) {
+      const scaleX = Number.parseFloat(target.getAttribute("xscale"));
+      const scaleY = Number.parseFloat(target.getAttribute("yscale"));
+      const [destWidth, destHeight] =
+        computeScaledDestinationSize(cvs, target, scaleX, scaleY, 2 * outset, 2 * outset);
+      ctx.drawElementImage(target,
+        -outset, -outset,
+        targetWidth + 2 * outset, targetHeight + 2 * outset,
+        offset, offset, destWidth, destHeight);
+    } else {
+      ctx.drawElementImage(target,
+        -outset, -outset,
+        targetWidth + 2 * outset, targetHeight + 2 * outset,
+        offset, offset);
+    }
+  })).then(takeScreenshot);
+
+</script>

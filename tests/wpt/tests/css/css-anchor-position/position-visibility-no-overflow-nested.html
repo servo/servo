@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<title>CSS Anchor Positioning Test: position-visibility</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#position-visibility">
+<link rel="match" href="position-visibility-no-overflow-nested-ref.html">
+<style>
+.container {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    background: green;
+}
+.outer {
+    position: absolute;
+    top: 10px;
+    width: 100px;
+    height: 100px;
+    background: yellow;
+    position-visibility: no-overflow;
+}
+.inner {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    background: red;
+    position-visibility: no-overflow;
+}
+</style>
+<div class=container>
+    <div class=outer>
+        Outer overflows.
+        <div class=inner>
+            Inner doesn't but still shouldn't be visible.
+        </div>
+    </div>
+</div>

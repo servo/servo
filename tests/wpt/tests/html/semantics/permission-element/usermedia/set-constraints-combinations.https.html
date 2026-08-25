@@ -1,0 +1,71 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="timeout" content="long" />
+<title>HTMLUserMediaElement setConstraints() behavior combinations in Standard Mode</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/pepc-helper.js"></script>
+<body>
+  <script>
+
+    const testCases = [
+      // In standard mode, the element always requests both camera and microphone.
+      // Missing constraints default to enabled.
+      { name: "Case 0: No constraints", video: undefined, audio: undefined },
+      { name: "Case 1: Video set, Audio missing", video: true, audio: undefined },
+      { name: "Case 2: Audio set, Video missing", video: undefined, audio: true },
+      { name: "Case 3: Both set", video: true, audio: true },
+    ];
+
+    for (const testCase of testCases) {
+      promise_test(async (t) => {
+        await test_driver.set_permission({ name: "camera" }, "granted");
+        await test_driver.set_permission({ name: "microphone" }, "granted");
+
+        const usermedia = document.createElement("usermedia");
+        document.body.appendChild(usermedia);
+        t.add_cleanup(() => {
+          if (usermedia.parentNode) {
+            document.body.removeChild(usermedia);
+          }
+        });
+
+        const stream_promise = new Promise((resolve) => {
+          usermedia.onstream = resolve;
+        });
+
+        const constraints = {};
+        if (testCase.video !== undefined) {
+          constraints.video = {};
+        }
+        if (testCase.audio !== undefined) {
+          constraints.audio = {};
+        }
+        usermedia.setConstraints(constraints);
+
+        // Wait until the element is clickable.
+        await new Promise((r) => t.step_timeout(r, PEPC_CLICK_DELAY));
+
+        // In all these cases, we expect success because:
+        // - Standard mode always has both descriptors (camera + mic).
+        // - Missing constraints default to enabled.
+        // - Both permissions are granted.
+        await test_driver.click(usermedia);
+        await stream_promise;
+
+        const stream = usermedia.stream;
+        t.add_cleanup(() => {
+          if (stream) {
+            stream.getTracks().forEach((track) => track.stop());
+          }
+        });
+
+        assert_true(stream instanceof MediaStream, `stream type check`);
+        assert_equals(stream.getVideoTracks().length, 1, `video tracks mismatch`);
+        assert_equals(stream.getAudioTracks().length, 1, `audio tracks mismatch`);
+      }, testCase.name);
+    }
+  </script>
+</body>

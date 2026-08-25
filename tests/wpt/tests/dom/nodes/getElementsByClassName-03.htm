@@ -1,0 +1,18 @@
+<!doctype html>
+<html class="a">
+ <head>
+  <title>document.getElementsByClassName(): changing classes</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+ </head>
+ <body class="a">
+  <div id="log"></div>
+  <script>
+   test(function() {
+          var collection = document.getElementsByClassName("a")
+          document.body.className = "b"
+          assert_array_equals(collection, [document.documentElement])
+        })
+  </script>
+ </body>
+</html>

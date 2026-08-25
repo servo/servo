@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+  <title>Test basic encoded chunk buffering and playback with MediaSource</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="media-source-webcodecs-util.js"></script>
+<script>
+setup(() => {
+  assert_implements(
+      SourceBuffer.prototype.hasOwnProperty('appendEncodedChunks'),
+      'SourceBuffer prototype hasOwnProperty "appendEncodedChunks", used ' +
+          'here to feature detect MSE-for-WebCodecs implementation.');
+});
+
+promise_test(async t => {
+  let buffer = await vp9.buffer();
+  let [ videoElement, mediaSource ] = await getOpenMediaSource(t);
+  videoElement.controls = true;  // Makes early prototype demo playback easier to control manually.
+  let sourceBuffer = mediaSource.addSourceBuffer({ videoConfig: { codec: vp9.codec } });
+  let next_timestamp = 0;
+  let frame_duration = 100 * 1000;  // 100 milliseconds
+  // forEach with async callbacks makes it too easy to have uncaught rejections
+  // that don't fail this promise_test or even emit harness error.
+  // Iterating explicitly instead.
+  for (i = 0; i < vp9.frames.length; i++, next_timestamp += frame_duration) {
+    let frame_metadata = vp9.frames[i];
+    await sourceBuffer.appendEncodedChunks(new EncodedVideoChunk( {
+      type: frame_metadata.type,
+      timestamp: next_timestamp,
+      duration: frame_duration,
+      data: new Uint8Array(buffer, frame_metadata.offset, frame_metadata.size)
+    }));
+  }
+
+  mediaSource.endOfStream();
+
+  return new Promise( (resolve, reject) => {
+    videoElement.onended = resolve;
+    videoElement.onerror = reject;
+    videoElement.play();
+  });
+
+}, "Buffer EncodedVideoChunks (VP9) one-by-one and play them with MSE");
+
+// TODO(crbug.com/1144908): More exhaustive tests (multiple sourcebuffers,
+// varying append patterns, invalid append patterns; eventually more codecs,
+// out-of-order DTS, durations, etc.)
+
+</script>
+</html>

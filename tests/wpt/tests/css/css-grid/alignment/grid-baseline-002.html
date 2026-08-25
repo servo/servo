@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<title>CSS Grid: Grid container baseline</title>
+<link rel="author" title="Javier Fernandez" href="mailto:jfernandez@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid/#grid-baselines">
+<link rel="help" href="https://crbug.com/234191">
+<link rel="match" href="references/grid-baseline-002-ref.html">
+<meta name="assert" content="Check that Baseline Alignment works for 1-dimensional Grid like in Flexible Box, even using margins, paddings and borders."/>
+
+<link href="/css/support/grid.css" rel="stylesheet">
+<style>
+.inline-block { display: inline-block; }
+.grid, .inline-grid {
+   background-color: lightgrey;
+   grid-auto-flow: column;
+}
+.border { border: 11px solid pink; }
+.padding { padding: 13px; }
+.margin { margin: 8px 0; }
+</style>
+<div>
+before text
+<div class="border" style="display: inline-block; background-color: lightgrey">
+<div class="grid" style="height: 30px; margin-top: 7px; padding-top: 10px;">
+  baseline
+</div>
+</div>
+after text
+</div>
+
+<div>
+Should align
+<div class="inline-block border">
+  <div class="grid padding" style="grid-template-columns: 50px; grid-template-rows: 50px; background-color: pink">
+      <div style="background-color: lightgrey"></div>
+  </div>
+</div>
+with the
+<div class="inline-block margin">
+  <div class="grid border" style="grid-template-columns: 50px; grid-template-rows: 50px; background-color: pink">
+      <div style="background-color: lightgrey"></div>
+  </div>
+</div>
+bottom of
+<div class="inline-block padding" style="padding-left: 0; padding-right: 0">
+  <div class="grid margin border" style="grid-template-columns: 50px; grid-template-rows: 50px; background-color: pink">
+      <div style="background-color: lightgrey;"></div>
+  </div>
+</div>
+the grey box.
+</div>
+
+<div>
+Should align with the
+<div class="inline-block">
+  <div class="grid" style="background-color: white">
+      <div class="border padding margin" style="background-color: lightgrey;"></div>
+  </div>
+</div>
+bottom of the pink box.
+</div>
+
+<div>
+Should align 8px
+<div class="inline-grid margin border" style="grid-template-columns: 30px; grid-template-rows: 30px;"></div>
+below the bottom
+<div class="inline-grid margin border padding"></div>
+of the pink box.
+</div>

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Text 6.1. Hyphenation Control: the hyphens property</title>
+<link rel="author" title="Chun-Min (Jeremy) Chen" href="mailto:jeremychen@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<style>
+code {
+  display: block;
+  hyphens: manual;
+  border: 1px solid black;
+  /* Prefer Courier New if available, as otherwise Menlo may be used,
+     and its HYPHEN and HYPHEN-MINUS glyphs don't match. */
+  font-family: Courier New, Courier, monospace;
+}
+</style>
+</head>
+<body lang="en-us">
+<!--
+  Hyphenation opportunities of the texts in this test are as follows,
+
+        frag[A]ilis[A]tic[C]ex[A]pi[A]ali
+
+  where [A] is an automatic hyphen, and [C] is a conditional hyphen.
+
+  In this test, we set width to somewhere after the conditional hyphen,
+  then we see if automatic hyphen breaks are ignored correctly.
+-->
+<code style="width:12ch;">
+fragilistic-<br />expiali
+</code>
+<br />
+<code style="width:14ch;">
+fragilistic-<br />expiali
+</code>
+<br />
+<code style="width:16ch;">
+fragilistic-<br />expiali
+</code>
+</body>
+</html>

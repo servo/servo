@@ -1,0 +1,16 @@
+<!doctype html>
+<script>
+var result = "FAIL";
+if (opener != null) {
+  result = "FAIL (did you open this page in a new tab?)";
+} else {
+  var w = window.open("", "test_name");
+  if (w.location.href !== "about:blank") {
+    result = "FAIL (didn't open an about:blank browsing context)";
+  } else {
+    w.close();
+    result = "PASS";
+  }
+  document.write(result);
+}
+</script>

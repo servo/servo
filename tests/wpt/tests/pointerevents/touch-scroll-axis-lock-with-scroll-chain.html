@@ -1,0 +1,101 @@
+<!doctype html>
+<title>Touch scroll chain: axis lock with direction change on a horizontal scroller</title>
+<meta name="variant" content="?touch">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="help" href="https://w3c.github.io/pointerevents/#determining-supported-direct-manipulation-behavior" />
+<link rel="author" title="Euclid Ye" href="mailto:yezhizhenjiakang@gmail.com">
+<link rel=help href="https://github.com/servo/servo/issues/46954">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="pointerevent_support.js"></script>
+<style>
+  /* A horizontal-only scroller nested in a vertically-scrollable page. */
+  #tall-top { height: 20vh; }
+  #tall-bottom { height: 80vh; }
+  #strip { display: flex; overflow-x: auto; min-height: 200px; }
+  .cell { flex: 0 0 140px; }
+</style>
+<div id="tall-top"></div>
+<div id="strip">
+  <span class="cell">1</span><span class="cell">2</span><span class="cell">3</span>
+  <span class="cell">4</span><span class="cell">5</span><span class="cell">6</span>
+  <span class="cell">7</span><span class="cell">8</span><span class="cell">9</span>
+  <span class="cell">10</span><span class="cell">11</span><span class="cell">12</span>
+</div>
+<div id="tall-bottom"></div>
+
+<script>
+  "use strict";
+  const pointer_type = "touch";
+  const strip = document.getElementById("strip");
+
+  assert_true(location.search.length > 0 &&
+      location.search.substring(1) === pointer_type,
+      "Test URL has 'touch' pointer-type");
+
+  // Build a multi-direction touch swipe. Each entry in `directions` is a
+  // semantic scroll direction matching the convention used by
+  // `touchScrollInTarget` in pointerevent_support.js:
+  //   "down"/"up" => scroll the page down/up (finger moves up/down),
+  //   "right"/"left" => scroll the target right/left (finger moves left/right).
+  const offset = 30;
+  const steps_per_direction = 3;
+  const deltas = {
+    "down":  [0, -offset],
+    "up":    [0, offset],
+    "right": [-offset, 0],
+    "left":  [offset, 0],
+  };
+
+  function swipeChain(target, directions) {
+    const rect = target.getBoundingClientRect();
+    const [startX, startY] = getInViewCenterPoint(rect);
+    let x = startX, y = startY;
+    let actions = new test_driver.Actions()
+      .addPointer("touchPointer1", "touch")
+      .pointerMove(startX, startY, {origin: "viewport"})
+      .pointerDown();
+    for (const direction of directions) {
+      const [dx, dy] = deltas[direction];
+      for (let i = 0; i < steps_per_direction; i++) {
+        x += dx;
+        y += dy;
+        actions = actions.pointerMove(x, y, {origin: "viewport"});
+      }
+    }
+    return actions.pause(100).pointerUp().send();
+  }
+
+  // Subtest 1: start by scrolling the page down (vertical), then try to scroll
+  // the strip right (horizontal). The gesture is locked to its initial
+  // (vertical) dominant axis, so the page scrolls and the strip must not move.
+  promise_test(async () => {
+    window.scrollTo(0, 0);
+    strip.scrollLeft = 0;
+
+    await swipeChain(strip, ["down", "right"]);
+
+    assert_greater_than(window.scrollY, 0,
+        "a vertical-then-horizontal swipe on a horizontal scroller should scroll the page");
+    assert_equals(strip.scrollLeft, 0,
+        "the strip must not scroll horizontally once the gesture is locked to the vertical axis");
+  }, "Vertical-then-horizontal swipe locks to vertical: page scrolls, strip does not");
+
+  // Subtest 2: start by scrolling the strip right (horizontal), then try to
+  // scroll the page down (vertical). The gesture is locked to its initial
+  // (horizontal) dominant axis, so the strip scrolls and the page must not move.
+  promise_test(async () => {
+    window.scrollTo(0, 0);
+    strip.scrollLeft = 0;
+
+    await swipeChain(strip, ["right", "down"]);
+
+    assert_greater_than(strip.scrollLeft, 0,
+        "a horizontal-then-vertical swipe on a horizontal scroller should scroll the strip");
+    assert_equals(window.scrollY, 0,
+        "the page must not scroll vertically once the gesture is locked to the horizontal axis");
+  }, "Horizontal-then-vertical swipe locks to horizontal: strip scrolls, page does not");
+</script>

@@ -1,0 +1,15 @@
+<link rel=help href="https://bugzilla.mozilla.org/show_bug.cgi?id=1935728">
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  document.body.getBoundingClientRect();
+  document.body.parentNode.removeChild(document.body)
+  document.body.getBoundingClientRect();
+})
+</script>
+<style>
+body {
+  display: ruby-text;
+  overflow: scroll;
+}
+</style>
+<body>

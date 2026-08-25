@@ -1,0 +1,20 @@
+<!DOCTYPE HTML>
+<link rel="author" title="jj" href="mailto:jj@imput.net">
+<link rel="help" href="https://issues.chromium.org/issues/40591804">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+button { position: absolute; width: 200px; height: 100px }
+video { background: red; width: 300px; height: 300px }
+</style>
+<button>Button over video</button>
+<video></video>
+<script>
+test(() => {
+    const button = document.querySelector('button');
+    const { x, y } = button.getBoundingClientRect();
+
+    const hit = document.elementFromPoint(x + 1, y + 1);
+    assert_equals(hit, button, "Hit test in the button area should hit the button");
+});
+</script>

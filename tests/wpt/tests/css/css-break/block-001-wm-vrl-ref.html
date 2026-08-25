@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<meta name="flags" content="paged">
+<html>
+<style>
+@page {
+  size: 5in 3in;
+  margin: 0.5in;
+}
+
+html,body {
+  color:black; background-color:white; font:20px/1 monospace; padding:0; margin:0;
+  writing-mode: vertical-rl;
+}
+html { block-size: 40vw; }
+
+.b {
+  box-sizing: border-box;
+  inline-size: 50vh;
+  border: 5px solid black;
+  border-block-start-color: blue;
+  border-inline-start-color: lime;
+  margin-inline-start: 20px;
+}
+
+.b1 {
+  block-size: 100vw;
+  border-block-end-style: none;
+}
+
+.b2 {
+  block-size: 100vw;
+  border-block-start-style: none;
+  border-block-end-style: none;
+}
+
+.b3 {
+  block-size: 10vw;
+  border-block-start-style: none;
+  margin-block-end: -20px;
+}
+</style>
+<body>
+  <div class="b b1"></div>
+  <div class="b b2"></div>
+  <div class="b b3"></div>
+</body>
+</html>

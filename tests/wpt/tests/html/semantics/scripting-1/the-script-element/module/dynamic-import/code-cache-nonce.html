@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+// Regression test for https://crbug.com/979351:
+// This test loads a same script file (`resources/code-cache-nonce.js`)
+// with three different nonces (i.e. different host defined options).
+// Dynamic imports from the script therefore should have different nonces,
+// but when code caching ignores the difference in nonces, the first nonce
+// ('abc') is reused incorrectly for subsequent dynamic imports, causing
+// CSP violation (and thus dynamic import rejection).
+
+function runTest(nonce, description) {
+  // Perform a dynamic import with nonce=`nonce`
+  // from a page (`iframe`) with a matching CSP script-src 'nonce-`nonce`'.
+  // This should be successful.
+  promise_test(t => {
+    return new Promise((resolve, reject) => {
+      const iframe = document.createElement('iframe');
+      iframe.src = 'resources/code-cache-nonce-iframe.sub.html?nonce=' + nonce;
+      iframe.onload = () => {
+        // `globalThis.promise` is set by `resources/code-cache-nonce.js`.
+        // `t.step_timeout()` is workaround for https://crbug.com/1247801.
+        globalThis.promise.then(
+          v => t.step_timeout(() => resolve(v), 0),
+          v => t.step_timeout(() => reject(v), 0)
+        );
+      };
+      document.body.appendChild(iframe);
+      t.add_cleanup(() => iframe.remove());
+    });
+  }, description);
+}
+
+// As `promise_test` are serialized, each iframe is created after previous
+// iframes and scripts are completely loaded.
+runTest('abc', 'First dynamic import should use nonce=abc');
+runTest('def', 'Second dynamic import should use nonce=def');
+runTest('ghi', 'Third dynamic import should use nonce=ghi');
+</script>

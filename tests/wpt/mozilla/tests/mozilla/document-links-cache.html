@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+      </head>
+      <body>
+        <script>
+          test(function() {
+            var links = document.links;
+            assert_equals(links, document.links);
+            assert_equals(links.length, 0);
+
+            var anchor = document.createElement("a");
+            anchor.id = "anchor-with-href";
+            anchor.setAttribute("href", "http://www.google.com");
+            document.body.appendChild(anchor);
+            assert_equals(links.length, 1);
+
+            anchor = document.createElement("a");
+            anchor.id = "anchor-without-href";
+            document.body.appendChild(anchor);
+            assert_equals(links.length, 1);
+
+            anchor.setAttribute("href", "http://www.google.com");
+            assert_equals(links.length, 2);
+
+            anchor.removeAttribute("href", "http://www.google.com");
+            assert_equals(links.length, 1);
+
+            document.body.removeChild(document.getElementById("anchor-without-href"));
+            assert_equals(links.length, 1);
+
+            document.body.removeChild(document.getElementById("anchor-with-href"));
+            assert_equals(links, document.links);
+            assert_equals(links.length, 0);
+          });
+        </script>
+    </body>
+</html>

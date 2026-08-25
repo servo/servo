@@ -1,0 +1,19 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>CSS-content test: first letter with quotes interaction dynamic quotes change</title>
+<link rel="author" title="Daniil Sakhapov" href="sakhapov@google.com">
+<link rel="match" href="reference/quotes-first-letter-001-ref.html">
+<link rel=help href="https://drafts.csswg.org/css-content/#quotes">
+
+<style>
+  #root { quotes: "A" "B"; }
+  #root.xy-quotes { quotes: "'X" "'Y"; }
+  #root::first-letter { color: green; }
+</style>
+
+<div id="root"><q>First letter</q></div>
+
+<script>
+  document.body.offsetTop;
+  root.className = "xy-quotes";
+</script>

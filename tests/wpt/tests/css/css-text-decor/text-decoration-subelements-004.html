@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>Test case for text-decoration with subelements</title>
+<meta name="assert" content="Test when ancestor block has decorations, as in the EXAMPLE 1 of the spec">
+<link rel="author" title="Koji Ishii" href="mailto:kojii@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-3/#text-underline-position-property">
+<link rel="match" href="reference/text-decoration-subelements-004-ref.html">
+<style>
+blockquote {
+  text-decoration: underline;
+  color: blue;
+  font-size: 80px;
+}
+p {
+  font-size: 20px;
+}
+</style>
+<blockquote>
+  <p>
+    <span>
+      From EXAMPLE 1 of the spec,
+      the underlining for the blockquote element is propagated to an anonymous inline box that surrounds the span element.
+    </span>
+  </p>
+</blockquote>

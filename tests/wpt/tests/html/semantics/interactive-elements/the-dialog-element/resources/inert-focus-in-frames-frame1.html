@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script>
+window.onload = parent.parent.frameLoaded;
+</script>
+</head>
+<body>
+<dialog id="dialog">
+    <button id="dialog-button" tabindex="0">Button</button>
+    <iframe id="iframe-in-dialog" srcdoc='
+        <input id="iframe-under-dialog-input" class="target" type="date">
+    '></iframe>
+</dialog>
+<input id="frame1-input" class="target" type="text">
+<iframe id="iframe1" srcdoc='
+    <dialog id="iframe-dialog">
+        <button id="iframe-dialog-button" tabindex="0">Button</button>
+    </dialog>
+    <input id="iframe-input" class="target" type="date">
+    <script>window.onload = parent.parent.parent.frameLoaded;</script>
+'>
+</body>
+</html>

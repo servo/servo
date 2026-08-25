@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<title>focus()/blur()</title>
+<script src="/mathml/support/mathml-fragments.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  annotation, annotation-xml { display: initial; }
+  mphantom { visibility: visible; }
+  .element { background: rgb(0, 0, 255); padding: 50px; }
+  .element:focus { background-color: rgb(0, 255, 0); }
+</style>
+<div id="log"></div>
+<input id="input"></input>
+<div id="container"><math class="element" tabindex="1"></math></div>
+<script>
+  for (tag in MathMLFragments) {
+    container.insertAdjacentHTML("beforeend", `<math>${MathMLFragments[tag]}</math>`);
+    let element = FragmentHelper.element(container.lastElementChild);
+    element.tabIndex = 1;
+  }
+  Array.from(document.getElementsByClassName("element")).forEach(element => {
+    promise_test(async t => {
+      t.add_cleanup(_ => window.scrollTo(0, 0));
+
+      await new Promise(resolve => {
+        input.addEventListener("focus", resolve, {once: true});
+        input.focus({preventScroll: true});
+      });
+      assert_equals(document.activeElement, input, "input initally selected");
+
+      await new Promise(resolve => {
+        element.addEventListener("focus", resolve, {once: true});
+        element.focus();
+      });
+      assert_equals(document.activeElement, element, "element selected after focus()");
+      assert_equals(getComputedStyle(element).backgroundColor, "rgb(0, 255, 0)", ":focus applied on element after focus()");
+
+      await new Promise(resolve => {
+        element.addEventListener("blur", resolve, {once: true});
+        element.blur();
+      });
+      assert_equals(document.activeElement, document.body, "element unselected after blur()");
+      assert_equals(getComputedStyle(element).backgroundColor, "rgb(0, 0, 255)", ":focus not applied on element after blur()");
+    }, `focus()/blur() works on the ${element.tagName} element.`);
+  });
+</script>

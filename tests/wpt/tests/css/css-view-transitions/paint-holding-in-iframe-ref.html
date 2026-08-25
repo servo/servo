@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: display old paint during update callback (ref)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<style>
+  .new {
+    border: 5px solid orange;
+  }
+</style>
+
+<iframe id="inner" class="new" srcdoc="
+  <style>
+    body {
+      background: blue;
+    }
+  </style>
+  <body>
+    This is old content
+  </body>
+"></iframe>
+</html>

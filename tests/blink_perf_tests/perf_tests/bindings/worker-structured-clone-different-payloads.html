@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<body>
+<script src="../resources/runner.js"></script>
+<script src="resources/worker-structured-clone-different-payloads-perf-test.js"></script>
+<script>
+WorkerStructuredCloneDifferentPayloadsPerfTestRunner.measureTimeAsync({
+  description: "Measures performance of worker round-trip with structured clone, for JSON-like data where different payloads are sent back and forth.",
+  data: JSON.parse(PerfTestRunner.loadFile("resources/data/preact-to-worker.json")),
+  measure: "roundtrip",
+});
+</script>
+</body>

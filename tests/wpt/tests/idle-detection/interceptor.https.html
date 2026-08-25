@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<link rel="help" href="https://github.com/samuelgoto/idle-detection">
+<title>Tests the Idle Detection API</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/test-only-api.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/idle-detection-helper.js"></script>
+<script>
+'use strict';
+
+promise_setup(async t => {
+  await test_driver.set_permission({ name: 'idle-detection' }, 'granted');
+  if (isChromiumBased) {
+    await loadChromiumResources();
+  }
+})
+
+promise_test(async t => {
+  // Basic test that expects start() to call internally
+  // addMonitor, which in turn return an ACTIVE state.
+  expect(addMonitor).andReturn(async (monitorPtr) => {
+      return {
+        error: IdleDetectorError.SUCCESS,
+        state: {
+          idleTime: null,
+          screenLocked: true
+        }
+      };
+  });
+
+  const controller = new AbortController();
+  const detector = new IdleDetector();
+  const watcher = new EventWatcher(t, detector, ["change"]);
+  const initial_state = watcher.wait_for("change");
+
+  await detector.start({ signal: controller.signal });
+  await initial_state;
+
+  assert_equals(detector.userState, "active");
+  assert_equals(detector.screenState, "locked");
+
+  controller.abort();
+}, 'start()');
+
+promise_test(async t => {
+  // Verifies that an event is thrown when a change of state from IDLE to ACTIVE
+  // is detected.
+  expect(addMonitor).andReturn(async (monitorPtr) => {
+      const first = {
+        error: IdleDetectorError.SUCCESS,
+        state: {
+          idleTime: null,
+          screenLocked: false
+        }
+      };
+
+      t.step_timeout(() => {
+        monitorPtr.update(
+          {
+            idleTime: { milliseconds: 0 },
+            screenLocked: false
+          },
+          /*is_overridden_by_devtools=*/true
+        );
+      }, 0);
+
+      return first;
+    });
+
+  const controller = new AbortController();
+  const detector = new IdleDetector();
+  const watcher = new EventWatcher(t, detector, ["change"]);
+  const initial_state = watcher.wait_for("change");
+
+  await detector.start({ signal: controller.signal });
+  await initial_state;
+  assert_equals(detector.userState, "active");
+  assert_equals(detector.screenState, "unlocked");
+
+  // Wait for the first change in state.
+  await watcher.wait_for("change");
+
+  assert_equals(detector.userState, "idle");
+  assert_equals(detector.screenState, "unlocked");
+
+  controller.abort();
+}, 'updates once');
+
+promise_test(async t => {
+  // Simulates the user being active, going idle and then going back active
+  // again.
+  expect(addMonitor).andReturn(async (monitorPtr) => {
+      const first = {
+        error: IdleDetectorError.SUCCESS,
+        state: {
+          idleTime: null,
+          screenLocked: false
+        }
+      };
+
+      // Updates the client once with the user idle.
+      t.step_timeout(() => {
+        monitorPtr.update(
+          {
+            idleTime: { milliseconds: 0 },
+            screenLocked: false
+          },
+          /*is_overridden_by_devtools=*/true
+        );
+      }, 0);
+
+      // Updates the client a second time with the user active.
+      t.step_timeout(() => {
+        monitorPtr.update(
+          {
+            idleTime: null,
+            screenLocked: false
+          },
+          /*is_overridden_by_devtools=*/true
+        );
+      }, 1);
+
+      return first;
+    });
+
+  const controller = new AbortController();
+  const detector = new IdleDetector();
+  const watcher = new EventWatcher(t, detector, ["change"]);
+  const initial_state = watcher.wait_for("change");
+
+  await detector.start({ signal: controller.signal });
+  await initial_state;
+
+  // Waits for the first event.
+  await watcher.wait_for("change");
+  assert_equals(detector.userState, "idle");
+
+  // Waits for the second event.
+  await watcher.wait_for("change");
+  assert_equals(detector.userState, "active");
+
+  controller.abort();
+}, 'updates twice');
+
+promise_test(async t => {
+  // Simulates a locked screen.
+  expect(addMonitor).andReturn(async (monitorPtr) => {
+      return {
+        error: IdleDetectorError.SUCCESS,
+        state: {
+          idleTime: null,
+          screenLocked: true
+        }
+      };
+    });
+
+  const controller = new AbortController();
+  const detector = new IdleDetector();
+  const watcher = new EventWatcher(t, detector, ["change"]);
+  const initial_state = watcher.wait_for("change");
+
+  await detector.start({ signal: controller.signal });
+  await initial_state;
+
+  assert_equals(detector.screenState, "locked");
+
+  controller.abort();
+}, 'locked screen');
+
+promise_test(async t => {
+  expect(addMonitor).andReturn(async (monitorPtr) => {
+      return {
+        error: IdleDetectorError.SUCCESS,
+        state: {
+          idleTime: null,
+          screenLocked: true
+        }
+      };
+  });
+
+  const controller = new AbortController();
+  const detector = new IdleDetector();
+
+  let event = new Promise((resolve, reject) => {
+    detector.onchange = resolve;
+  });
+
+  await detector.start({ signal: controller.signal });
+
+  // Waits for the first event.
+  await event;
+
+  assert_equals(detector.userState, "active");
+  assert_equals(detector.screenState, "locked");
+
+  controller.abort();
+}, 'IdleDetector.onchange');
+
+promise_test(async t => {
+  expect(addMonitor).andReturn(async (monitorPtr) => {
+      return {
+        error: IdleDetectorError.SUCCESS,
+        state: {
+          idleTime: null,
+          screenLocked: false
+        }
+      };
+    });
+
+  const controller = new AbortController();
+  const detector = new IdleDetector({ signal: controller.signal });
+
+  const watcher = new EventWatcher(t, detector, ["change"]);
+  const initial_state = watcher.wait_for("change");
+
+  // Only the first call to start() is allowed.
+  const start_promise = detector.start({ signal: controller.signal });
+  await promise_rejects_dom(t, 'InvalidStateError', detector.start());
+  await start_promise;
+
+  await initial_state;
+  assert_equals(detector.userState, "active");
+  assert_equals(detector.screenState, "unlocked");
+
+  // Calling abort() multiple times is safe.
+  controller.abort();
+  controller.abort();
+  controller.abort();
+  controller.abort();
+}, 'Calling start() and abort() multiple times');
+
+promise_test(async t => {
+  expect(addMonitor).andReturn(async (monitorPtr) => {
+      return {
+        error: IdleDetectorError.SUCCESS,
+        state: {
+          idleTime: null,
+          screenLocked: false
+        }
+      };
+    });
+
+  const controller = new AbortController();
+  const detector = new IdleDetector();
+
+  controller.abort();
+
+  await promise_rejects_dom(
+      t, 'AbortError', detector.start({ signal: controller.signal }));
+}, 'Calling abort() before start() makes it fail');
+
+promise_test(async t => {
+  expect(addMonitor).andReturn(async (monitorPtr) => {
+      return {
+        error: IdleDetectorError.SUCCESS,
+        state: {
+          idleTime: null,
+          screenLocked: false
+        }
+      };
+    });
+
+  const controller = new AbortController();
+  const detector = new IdleDetector();
+
+  const promise = promise_rejects_dom(
+      t, 'AbortError', detector.start({ signal: controller.signal }))
+  controller.abort();
+
+  await promise;
+}, 'Calling abort() after start() makes it fail');
+
+promise_test(async t => {
+  expect(addMonitor).andReturn(async (monitorPtr) => {
+      return {
+        error: IdleDetectorError.SUCCESS,
+        state: {
+          idleTime: null,
+          screenLocked: false
+        }
+      };
+    });
+
+  const detector = new IdleDetector();
+  const watcher = new EventWatcher(t, detector, ["change"]);
+
+  let controller = new AbortController();
+  const first_start = promise_rejects_dom(
+      t, 'AbortError', detector.start({ signal: controller.signal }))
+  controller.abort();
+
+  controller = new AbortController();
+  const initial_state = watcher.wait_for("change");
+  const second_start = detector.start({ signal: controller.signal });
+
+  await first_start;
+  await second_start;
+  await initial_state;
+  assert_equals(detector.userState, "active");
+  assert_equals(detector.screenState, "unlocked");
+
+  controller.abort();
+}, 'A start() that has been aborted can be retried');
+
+promise_test(async t => {
+  expect(addMonitor).andReturn(async (monitorPtr) => {
+      return {
+        error: IdleDetectorError.SUCCESS,
+        state: {
+          idleTime: null,
+          screenLocked: false
+        }
+      };
+    });
+
+  let controller = new AbortController();
+  const detector = new IdleDetector();
+  const watcher = new EventWatcher(t, detector, ["change"]);
+  let initial_state = watcher.wait_for("change");
+
+  await detector.start({ signal: controller.signal });
+  await initial_state;
+  assert_equals(detector.userState, "active");
+  assert_equals(detector.screenState, "unlocked");
+
+  controller.abort();
+
+  expect(addMonitor).andReturn(async (monitorPtr) => {
+      return {
+        error: IdleDetectorError.SUCCESS,
+        state: {
+          idleTime: { milliseconds: 0 },
+          screenLocked: true
+        }
+      };
+    });
+
+  // Restarting the monitor.
+  controller = new AbortController();
+
+  initial_state = watcher.wait_for("change");
+  await detector.start({ signal: controller.signal });
+  await initial_state;
+  assert_equals(detector.userState, "idle");
+  assert_equals(detector.screenState, "locked");
+
+  // Abort in a new task and restart the monitor again.
+  const p = new Promise((resolve) => {
+    t.step_timeout(resolve, 1);
+  });
+  await p;
+  controller.abort();
+
+  expect(addMonitor).andReturn(async (monitorPtr) => {
+      return {
+        error: IdleDetectorError.SUCCESS,
+        state: {
+          idleTime: { milliseconds: 0 },
+          screenLocked: false
+        }
+      };
+    });
+
+  // Restarting the monitor.
+  controller = new AbortController();
+
+  initial_state = watcher.wait_for("change");
+  await detector.start({ signal: controller.signal });
+  await initial_state;
+  assert_equals(detector.userState, "idle");
+  assert_equals(detector.screenState, "unlocked");
+
+  controller.abort();
+}, 'Calling start() after abort(): re-starting monitor.');
+
+</script>

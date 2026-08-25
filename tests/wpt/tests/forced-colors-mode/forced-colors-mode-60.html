@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>font-variant-emoji resolved to text at computed value time in forced-colors mode</title>
+<link rel="author" title="Sejal Anand" href="sejalanand@microsoft.com">
+<link rel="help" href="https://www.w3.org/TR/css-fonts-4/#font-variant-emoji-prop">
+<link rel="help" href="https://www.w3.org/TR/css-color-adjust-1/#forced-colors-properties">
+<meta name="assert" content="In forced-colors mode, font-variant-emoji should resolve to 'text' at computed value time.">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  /* These elements declare different emoji variants,
+     but in forced-colors mode, they should all compute to 'text'. */
+  @media (forced-colors: active) {
+    .normal {
+      font-variant-emoji: normal;
+    }
+
+    .unicode {
+      font-variant-emoji: unicode;
+    }
+
+    .text {
+      font-variant-emoji: text;
+    }
+
+    .emoji {
+      font-variant-emoji: emoji;
+    }
+  }
+</style>
+
+<div id="normal" class="normal">&#x1f600; 😀</div>
+<div id="text" class="text">&#x1f600; 😀</div>
+<div id="unicode" class="unicode">&#x1f600; 😀</div>
+<div id="emoji" class="emoji">&#x1f600; 😀</div>
+
+<script>
+  test(() => {
+    const normal = getComputedStyle(document.getElementById("normal")).fontVariantEmoji;
+    const text = getComputedStyle(document.getElementById("text")).fontVariantEmoji;
+    const unicode = getComputedStyle(document.getElementById("unicode")).fontVariantEmoji;
+    const emoji = getComputedStyle(document.getElementById("emoji")).fontVariantEmoji;
+
+    assert_equals(normal, "text", "In forced-colors mode, 'normal' should compute to 'text'.");
+    assert_equals(text, "text", "In forced-colors mode, 'text' should remain 'text'.");
+    assert_equals(unicode, "text", "In forced-colors mode, 'unicode' should compute to 'text'.");
+    assert_equals(emoji, "emoji", "In forced-colors mode, 'emoji' should remain 'emoji'");
+  }, "font-variant-emoji should resolve to 'text' at computed value time in forced-colors mode");
+</script>

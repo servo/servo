@@ -1,0 +1,32 @@
+<!doctype html>
+<script>
+parent.postMessage(document.readyState, "*");
+let f = document.createElement("iframe");
+f.onload = function() {
+  parent.postMessage("stop", "*");
+  window.stop();
+};
+document.documentElement.appendChild(f);
+
+window.addEventListener("load", (event) => {
+    parent.postMessage("load", "*");
+});
+window.addEventListener("error", (event) => {
+    parent.postMessage("error", "*");
+});
+window.addEventListener("abort", (event) => {
+    parent.postMessage("abort", "*");
+});
+window.addEventListener("pageshow", (event) => {
+    parent.postMessage("pageshow", "*");
+});
+window.addEventListener("DOMContentLoaded", (event) => {
+    parent.postMessage("DOMContentLoaded", "*");
+});
+document.addEventListener("readystatechange", (event) => {
+    if (document.readyState === "complete") {
+        parent.postMessage("complete", "*");
+    }
+});
+
+</script>

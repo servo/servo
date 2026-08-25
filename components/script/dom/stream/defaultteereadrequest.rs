@@ -1,0 +1,265 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+use std::cell::Cell;
+use std::rc::Rc;
+
+use dom_struct::dom_struct;
+use js::context::JSContext;
+use js::jsapi::Heap;
+use js::jsval::{JSVal, UndefinedValue};
+use js::rust::HandleValue as SafeHandleValue;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+
+use crate::dom::bindings::error::ErrorToJsval;
+use crate::dom::bindings::reflector::DomGlobal;
+use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::structuredclone;
+use crate::dom::bindings::trace::RootedTraceableBox;
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::promise::Promise;
+use crate::dom::stream::defaultteeunderlyingsource::DefaultTeeUnderlyingSource;
+use crate::dom::stream::readablestream::ReadableStream;
+use crate::realms::enter_auto_realm;
+use crate::runtime::microtask::MicrotaskRunnable;
+
+#[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, expect(crown::unrooted_must_root))]
+pub(crate) struct DefaultTeeReadRequestMicrotask {
+    #[ignore_malloc_size_of = "mozjs"]
+    chunk: Box<Heap<JSVal>>,
+    tee_read_request: Dom<DefaultTeeReadRequest>,
+}
+
+impl MicrotaskRunnable for DefaultTeeReadRequestMicrotask {
+    fn handler(&self, cx: &mut JSContext) {
+        let mut realm = enter_auto_realm(cx, &*self.tee_read_request);
+        self.tee_read_request.chunk_steps(&mut realm, &self.chunk);
+    }
+}
+
+#[dom_struct]
+/// <https://streams.spec.whatwg.org/#ref-for-read-request%E2%91%A2>
+pub(crate) struct DefaultTeeReadRequest {
+    reflector_: Reflector,
+    stream: Dom<ReadableStream>,
+    branch_1: Dom<ReadableStream>,
+    branch_2: Dom<ReadableStream>,
+    #[conditional_malloc_size_of]
+    reading: Rc<Cell<bool>>,
+    #[conditional_malloc_size_of]
+    read_again: Rc<Cell<bool>>,
+    #[conditional_malloc_size_of]
+    canceled_1: Rc<Cell<bool>>,
+    #[conditional_malloc_size_of]
+    canceled_2: Rc<Cell<bool>>,
+    #[conditional_malloc_size_of]
+    clone_for_branch_2: Rc<Cell<bool>>,
+    #[conditional_malloc_size_of]
+    cancel_promise: Rc<Promise>,
+    tee_underlying_source: Dom<DefaultTeeUnderlyingSource>,
+}
+impl DefaultTeeReadRequest {
+    #[expect(clippy::too_many_arguments)]
+    pub(crate) fn new(
+        cx: &mut JSContext,
+        stream: &ReadableStream,
+        branch_1: &ReadableStream,
+        branch_2: &ReadableStream,
+        reading: Rc<Cell<bool>>,
+        read_again: Rc<Cell<bool>>,
+        canceled_1: Rc<Cell<bool>>,
+        canceled_2: Rc<Cell<bool>>,
+        clone_for_branch_2: Rc<Cell<bool>>,
+        cancel_promise: Rc<Promise>,
+        tee_underlying_source: &DefaultTeeUnderlyingSource,
+    ) -> DomRoot<Self> {
+        reflect_dom_object_with_cx(
+            Box::new(DefaultTeeReadRequest {
+                reflector_: Reflector::new(),
+                stream: Dom::from_ref(stream),
+                branch_1: Dom::from_ref(branch_1),
+                branch_2: Dom::from_ref(branch_2),
+                reading,
+                read_again,
+                canceled_1,
+                canceled_2,
+                clone_for_branch_2,
+                cancel_promise,
+                tee_underlying_source: Dom::from_ref(tee_underlying_source),
+            }),
+            &*stream.global(),
+            cx,
+        )
+    }
+    /// Call into cancel of the stream,
+    /// <https://streams.spec.whatwg.org/#readable-stream-cancel>
+    pub(crate) fn stream_cancel(
+        &self,
+        cx: &mut JSContext,
+        global: &GlobalScope,
+        reason: SafeHandleValue,
+    ) {
+        self.stream.cancel(cx, global, reason);
+    }
+    /// Enqueue a microtask to perform the chunk steps
+    /// <https://streams.spec.whatwg.org/#ref-for-read-request-chunk-steps%E2%91%A2>
+    pub(crate) fn enqueue_chunk_steps(
+        &self,
+        cx: &mut JSContext,
+        chunk: RootedTraceableBox<Heap<JSVal>>,
+    ) {
+        // Queue a microtask to perform the following steps:
+        let tee_read_request_chunk = DefaultTeeReadRequestMicrotask {
+            chunk: Heap::boxed(*chunk.handle()),
+            tee_read_request: Dom::from_ref(self),
+        };
+        self.stream
+            .global()
+            .enqueue_microtask(cx, Box::new(tee_read_request_chunk));
+    }
+    /// <https://streams.spec.whatwg.org/#ref-for-read-request-chunk-steps%E2%91%A2>
+    #[expect(clippy::borrowed_box)]
+    pub(crate) fn chunk_steps(&self, cx: &mut JSContext, chunk: &Box<Heap<JSVal>>) {
+        let global = &self.stream.global();
+        // Set readAgain to false.
+        self.read_again.set(false);
+        // Let chunk1 and chunk2 be chunk.
+        rooted!(&in(cx) let chunk1_value = chunk.get());
+        rooted!(&in(cx) let mut chunk2_value = chunk.get());
+        // If canceled_2 is false and cloneForBranch2 is true,
+        if !self.canceled_2.get() && self.clone_for_branch_2.get() {
+            // Let cloneResult be StructuredClone(chunk2).
+            let data = match structuredclone::write(cx, chunk2_value.handle(), None) {
+                Ok(data) => data,
+                Err(error) => {
+                    // If cloneResult is an abrupt completion,
+                    rooted!(&in(cx) let mut error_value = UndefinedValue());
+                    error.to_jsval(cx, global, error_value.handle_mut());
+                    // Perform ! ReadableStreamDefaultControllerError(branch_1.[[controller]], cloneResult.[[Value]]).
+                    self.readable_stream_default_controller_error(
+                        cx,
+                        &self.branch_1,
+                        error_value.handle(),
+                    );
+
+                    // Perform ! ReadableStreamDefaultControllerError(branch_2.[[controller]], cloneResult.[[Value]]).
+                    self.readable_stream_default_controller_error(
+                        cx,
+                        &self.branch_2,
+                        error_value.handle(),
+                    );
+                    // Resolve cancelPromise with ! ReadableStreamCancel(stream, cloneResult.[[Value]]).
+                    self.stream_cancel(cx, global, error_value.handle());
+                    // Return.
+                    return;
+                },
+            };
+            // If cloneResult is an abrupt completion,
+            if let Err(error) = structuredclone::read(cx, global, data, chunk2_value.handle_mut()) {
+                rooted!(&in(cx) let mut error_value = UndefinedValue());
+                error.to_jsval(cx, global, error_value.handle_mut());
+                // Perform ! ReadableStreamDefaultControllerError(branch_1.[[controller]], cloneResult.[[Value]]).
+                self.readable_stream_default_controller_error(
+                    cx,
+                    &self.branch_1,
+                    error_value.handle(),
+                );
+
+                // Perform ! ReadableStreamDefaultControllerError(branch_2.[[controller]], cloneResult.[[Value]]).
+                self.readable_stream_default_controller_error(
+                    cx,
+                    &self.branch_2,
+                    error_value.handle(),
+                );
+                // Resolve cancelPromise with ! ReadableStreamCancel(stream, cloneResult.[[Value]]).
+                self.stream_cancel(cx, global, error_value.handle());
+                // Return.
+                return;
+            }
+        }
+        // If canceled_1 is false, perform ! ReadableStreamDefaultControllerEnqueue(branch_1.[[controller]], chunk1).
+        if !self.canceled_1.get() {
+            self.readable_stream_default_controller_enqueue(
+                cx,
+                &self.branch_1,
+                chunk1_value.handle(),
+            );
+        }
+        // If canceled_2 is false, perform ! ReadableStreamDefaultControllerEnqueue(branch_2.[[controller]], chunk2).
+        if !self.canceled_2.get() {
+            self.readable_stream_default_controller_enqueue(
+                cx,
+                &self.branch_2,
+                chunk2_value.handle(),
+            );
+        }
+        // Set reading to false.
+        self.reading.set(false);
+        // If readAgain is true, perform pullAlgorithm.
+        if self.read_again.get() {
+            self.pull_algorithm(cx);
+        }
+    }
+    /// <https://streams.spec.whatwg.org/#read-request-close-steps>
+    pub(crate) fn close_steps(&self, cx: &mut JSContext) {
+        // Set reading to false.
+        self.reading.set(false);
+        // If canceled_1 is false, perform ! ReadableStreamDefaultControllerClose(branch_1.[[controller]]).
+        if !self.canceled_1.get() {
+            self.readable_stream_default_controller_close(cx, &self.branch_1);
+        }
+        // If canceled_2 is false, perform ! ReadableStreamDefaultControllerClose(branch_2.[[controller]]).
+        if !self.canceled_2.get() {
+            self.readable_stream_default_controller_close(cx, &self.branch_2);
+        }
+        // If canceled_1 is false or canceled_2 is false, resolve cancelPromise with undefined.
+        if !self.canceled_1.get() || !self.canceled_2.get() {
+            self.cancel_promise.resolve_native(cx, &());
+        }
+    }
+    /// <https://streams.spec.whatwg.org/#read-request-error-steps>
+    pub(crate) fn error_steps(&self) {
+        // Set reading to false.
+        self.reading.set(false);
+    }
+    /// Call into enqueue of the default controller of a stream,
+    /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-enqueue>
+    fn readable_stream_default_controller_enqueue(
+        &self,
+        cx: &mut JSContext,
+        stream: &ReadableStream,
+        chunk: SafeHandleValue,
+    ) {
+        stream
+            .get_default_controller()
+            .enqueue(cx, chunk)
+            .expect("enqueue failed for stream controller in DefaultTeeReadRequest");
+    }
+
+    /// Call into close of the default controller of a stream,
+    /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-close>
+    fn readable_stream_default_controller_close(
+        &self,
+        cx: &mut JSContext,
+        stream: &ReadableStream,
+    ) {
+        stream.get_default_controller().close(cx);
+    }
+
+    /// Call into error of the default controller of stream,
+    /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-error>
+    fn readable_stream_default_controller_error(
+        &self,
+        cx: &mut JSContext,
+        stream: &ReadableStream,
+        error: SafeHandleValue,
+    ) {
+        stream.get_default_controller().error(cx, error);
+    }
+
+    pub(crate) fn pull_algorithm(&self, cx: &mut JSContext) {
+        self.tee_underlying_source.pull_algorithm(cx);
+    }
+}

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#intrinsic-sizes">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+
+<meta name="assert"
+  content="During the container's intrinsic sizing pass, the item has the correct available size when it is laid out during flex basis calculation." />
+
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+
+  .grandchild {
+    float: left;
+    width: 50px;
+    height: 50px;
+  }
+
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.
+</p>
+<div id=reference-overlapped-red></div>
+
+<div
+  style="display: flex; flex-flow: column wrap; width: max-content; height: 100px; background: green;">
+  <div style="width: 100%; flex: 0 0 auto; min-height: 0px;">
+    <div class="grandchild"></div>
+    <div class="grandchild"></div>
+  </div>
+  <!-- This item will end up in the next flex line if the first item's available width is < 100. If the first item's available width is insufficient, its flex base size would be 100px, leaving no room for the second 50px item. The extra flex line would mean the max-content width of the container would be 140px. -->
+  <div style="width: 90px; height: 50px; flex: 0 0 auto; min-height: 0px;">
+  </div>
+</div>

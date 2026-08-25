@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>Changing rel attribute clears previous link relation state</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<body>
+<script>
+const supportURL = "support/target_blank_implicit_noopener.html";
+
+// Helper: click a link and get the opener status from the opened window.
+function clickAndGetOpener(element, channelName) {
+  return new Promise(resolve => {
+    const bc = new BroadcastChannel(channelName);
+    bc.addEventListener("message", e => {
+      bc.close();
+      resolve(e.data.hasOpener);
+    }, { once: true });
+    element.click();
+  });
+}
+
+// Unique channel names to avoid collisions.
+let counter = 0;
+function uid() {
+  return "rel-clearing-" + (++counter);
+}
+
+async_test(t => {
+  const a = document.createElement("a");
+  a.target = "_blank";
+  a.rel = "noopener";
+  document.body.appendChild(a);
+  t.add_cleanup(() => a.remove());
+
+  const id1 = uid();
+  a.href = supportURL + "?" + id1;
+
+  const bc1 = new BroadcastChannel(id1);
+  bc1.addEventListener("message", t.step_func(e => {
+    bc1.close();
+    assert_false(e.data.hasOpener, "First click with rel=noopener should not have opener");
+
+    // Now clear the rel attribute and click again.
+    a.rel = "";
+    // target=_blank with no rel implies noopener per spec, so use rel=opener.
+    a.rel = "opener";
+    const id2 = uid();
+    a.href = supportURL + "?" + id2;
+
+    const bc2 = new BroadcastChannel(id2);
+    bc2.addEventListener("message", t.step_func_done(e2 => {
+      bc2.close();
+      assert_true(e2.data.hasOpener, "After changing rel to opener, noopener should be cleared");
+    }), { once: true });
+    a.click();
+  }), { once: true });
+  a.click();
+}, "Anchor: changing rel from noopener to opener clears noopener");
+
+async_test(t => {
+  const a = document.createElement("a");
+  a.target = "_blank";
+  a.rel = "noreferrer";
+  document.body.appendChild(a);
+  t.add_cleanup(() => a.remove());
+
+  const id1 = uid();
+  a.href = supportURL + "?" + id1;
+
+  const bc1 = new BroadcastChannel(id1);
+  bc1.addEventListener("message", t.step_func(e => {
+    bc1.close();
+    assert_false(e.data.hasOpener, "First click with rel=noreferrer should not have opener");
+
+    // Change to opener only.
+    a.rel = "opener";
+    const id2 = uid();
+    a.href = supportURL + "?" + id2;
+
+    const bc2 = new BroadcastChannel(id2);
+    bc2.addEventListener("message", t.step_func_done(e2 => {
+      bc2.close();
+      assert_true(e2.data.hasOpener, "After changing rel to opener, noreferrer should be cleared");
+    }), { once: true });
+    a.click();
+  }), { once: true });
+  a.click();
+}, "Anchor: changing rel from noreferrer to opener clears noreferrer");
+
+async_test(t => {
+  const a = document.createElement("a");
+  a.target = "_blank";
+  a.rel = "noopener noreferrer";
+  document.body.appendChild(a);
+  t.add_cleanup(() => a.remove());
+
+  const id1 = uid();
+  a.href = supportURL + "?" + id1;
+
+  const bc1 = new BroadcastChannel(id1);
+  bc1.addEventListener("message", t.step_func(e => {
+    bc1.close();
+    assert_false(e.data.hasOpener, "First click with rel='noopener noreferrer' should not have opener");
+
+    // Clear all relations by setting to opener.
+    a.rel = "opener";
+    const id2 = uid();
+    a.href = supportURL + "?" + id2;
+
+    const bc2 = new BroadcastChannel(id2);
+    bc2.addEventListener("message", t.step_func_done(e2 => {
+      bc2.close();
+      assert_true(e2.data.hasOpener, "After changing rel to opener, both noopener and noreferrer should be cleared");
+    }), { once: true });
+    a.click();
+  }), { once: true });
+  a.click();
+}, "Anchor: changing rel from 'noopener noreferrer' to opener clears both");
+
+async_test(t => {
+  const area = document.createElement("area");
+  area.target = "_blank";
+  area.rel = "noopener";
+  area.shape = "default";
+  document.body.appendChild(area);
+  t.add_cleanup(() => area.remove());
+
+  const id1 = uid();
+  area.href = supportURL + "?" + id1;
+
+  const bc1 = new BroadcastChannel(id1);
+  bc1.addEventListener("message", t.step_func(e => {
+    bc1.close();
+    assert_false(e.data.hasOpener, "First click with rel=noopener should not have opener");
+
+    area.rel = "opener";
+    const id2 = uid();
+    area.href = supportURL + "?" + id2;
+
+    const bc2 = new BroadcastChannel(id2);
+    bc2.addEventListener("message", t.step_func_done(e2 => {
+      bc2.close();
+      assert_true(e2.data.hasOpener, "After changing rel to opener, noopener should be cleared");
+    }), { once: true });
+    area.click();
+  }), { once: true });
+  area.click();
+}, "Area: changing rel from noopener to opener clears noopener");
+</script>
+</body>

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset=utf-8>
+<title>Canvas EditContext should still accept text input when selection is outside of its associated element.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../include/editor-test-utils.js"></script>
+</head>
+<body>
+<canvas></canvas>
+<div></div>
+<span>Selection is here</span>
+<script>
+'use strict';
+const canvasHost = document.querySelector('canvas');
+const domHost = document.querySelector('div');
+canvasHost.editContext = new EditContext();
+domHost.editContext = new EditContext();
+const selectionSpan = document.querySelector('span');
+const originalText = selectionSpan.textContent;
+
+for (const host of [domHost, canvasHost]) {
+  const type = host === domHost ? 'DOM' : 'canvas';
+  let firedTextUpdate = false;
+  host.editContext.addEventListener('textupdate', () => {
+    firedTextUpdate = true;
+  });
+  function reset() {
+    firedTextUpdate = false;
+    host.editContext.updateText(0, host.editContext.text.length, '');
+  }
+  function selectionAsStr() {
+    return `${host.editContext.selectionStart}-${host.editContext.selectionEnd}`;
+  }
+
+  promise_test(async t => {
+    t.add_cleanup(reset);
+    host.focus();
+    getSelection().collapse(selectionSpan);
+    await test_driver.send_keys(host, 'a');
+    assert_true(firedTextUpdate, 'Should fire textupdate.');
+    assert_equals(document.activeElement, host, 'Focused element should not change.');
+    assert_equals(host.editContext.text, 'a', 'EditContext.text should be updated.');
+    assert_equals(selectionAsStr(), '1-1', 'EditContext.selectionStart/End should be updated.');
+    assert_equals(selectionSpan.textContent, originalText, 'DOM should be unchanged.');
+  }, `Inserting into ${type} EditContext when selection is in non-editable content.`);
+
+  promise_test(async t => {
+    t.add_cleanup(reset);
+    host.focus();
+    getSelection().collapse(selectionSpan);
+    host.editContext.updateText(0, 0, 'hi');
+    host.editContext.updateSelection(1, 1);
+    await test_driver.send_keys(host, '\uE003'); // backspace
+    assert_true(firedTextUpdate, 'Should fire textupdate.');
+    assert_equals(document.activeElement, host, 'Focused element should not change.');
+    assert_equals(host.editContext.text, 'i', 'EditContext.text should be updated.');
+    assert_equals(selectionAsStr(), '0-0', 'EditContext.selectionStart/End should be updated.');
+    assert_equals(selectionSpan.textContent, originalText, 'DOM should be unchanged.');
+  }, `Deleting from ${type} EditContext when selection is in non-editable content.`);
+
+  const utils = new EditorTestUtils(host);
+  async function testSelectionMovement(movement) {
+    // Collapse somewhere in the middle of the text
+    getSelection().collapse(selectionSpan.firstChild, 5);
+    await utils[movement]();
+    assert_equals(getSelection().rangeCount, 1, 'DOM selection should still have 1 range.');
+    const range = getSelection().getRangeAt(0);
+    assert_equals(range.startContainer, selectionSpan.firstChild,
+      'DOM selection start container should be unchanged.');
+    assert_equals(range.endContainer, selectionSpan.firstChild,
+      'DOM selection end container should be unchanged.');
+    assert_equals(`${range.startOffset}-${range.endOffset}`, '5-5',
+      'DOM selection offsets should be unchanged.');
+  }
+
+  if (host === canvasHost) {
+    for (let movement of ['sendArrowLeftKey', 'sendArrowRightKey',
+      'sendMoveWordLeftKey', 'sendMoveWordRightKey',
+      'sendHomeKey', 'sendEndKey']) {
+      promise_test(t => {
+        t.add_cleanup(reset);
+        return testSelectionMovement(movement);
+      }, `Test that DOM selection is not changed when keyboard shortcut ${movement} is used with canvas EditContext focused.`);
+    }
+  }
+}
+
+</script>
+</body>
+</html>

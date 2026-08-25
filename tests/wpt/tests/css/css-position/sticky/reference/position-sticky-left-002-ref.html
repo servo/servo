@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+
+  <style>
+  div.scrolling-container
+    {
+      height: 150px;
+      margin-bottom: 30px;
+      overflow-y: hidden;
+      position: static;
+      white-space: nowrap;
+      width: 250px;
+    }
+
+  div.horizontal-spacer-200
+    {
+      display: inline-block;
+      height: 100%;
+      width: 200px;
+    }
+
+  div.sticky
+    {
+      background-color: green;
+      display: inline-block;
+      height: 100px;
+      position: relative;
+      vertical-align: top;
+      width: 100px;
+    }
+
+  div#first-sticky
+    {
+      left: 0px;
+    }
+
+  div#second-sticky
+    {
+      left: 50px;
+    }
+
+  div#third-sticky
+    {
+      left: 100px;
+    }
+  </style>
+
+  <body onload="document.getElementById(&quot;first-scrolling-container&quot;).scrollLeft = 50; document.getElementById(&quot;second-scrolling-container&quot;).scrollLeft = 150; document.getElementById(&quot;third-scrolling-container&quot;).scrollLeft = 300;">
+
+  <p>Test passes if there are 3 filled green squares and <strong>no red</strong>.
+
+  <div id="first-scrolling-container" class="scrolling-container">
+
+    <div class="horizontal-spacer-200"></div><div id="first-sticky" class="sticky"></div><div class="horizontal-spacer-200"></div>
+
+  </div>
+
+
+  <div id="second-scrolling-container" class="scrolling-container">
+
+    <div class="horizontal-spacer-200"></div><div id="second-sticky" class="sticky"></div><div class="horizontal-spacer-200"></div>
+
+  </div>
+
+  <div id="third-scrolling-container" class="scrolling-container">
+
+    <div class="horizontal-spacer-200"></div><div id="third-sticky" class="sticky"></div><div class="horizontal-spacer-200"></div>
+
+  </div>

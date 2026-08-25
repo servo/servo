@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<title>CSSOM View - convertRectFromNode()</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#the-geometryutils-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/geometry-utils.js"></script>
+<style>
+  html, body {
+    margin: 0;
+  }
+
+  #target {
+    position: absolute;
+    left: 18px;
+    top: 22px;
+    width: 260px;
+    height: 170px;
+    margin: 8px 12px 16px 20px;
+    border: solid;
+    border-width: 5px 7px 9px 11px;
+    padding: 4px 6px 8px 10px;
+  }
+
+  #source {
+    position: absolute;
+    left: 60px;
+    top: 48px;
+    width: 96px;
+    height: 52px;
+    margin: 11px 15px 19px 23px;
+    border: solid;
+    border-width: 2px 6px 8px 10px;
+    padding: 4px 8px 10px 12px;
+    transform: translate(10px, 5px) scale(1.2, 0.9) rotate(10deg);
+    transform-origin: right bottom;
+  }
+</style>
+<div id="target">
+  <div id="source"></div>
+</div>
+<script>
+const source = document.getElementById("source");
+const target = document.getElementById("target");
+const boxes = ["margin", "border", "padding", "content"];
+
+for (const fromBox of boxes) {
+  for (const toBox of boxes) {
+    test(() => {
+      const size = box_size(source, fromBox);
+      const rect = new DOMRect(0, 0, size.width, size.height);
+      const actual = target.convertRectFromNode(rect, source, {fromBox, toBox});
+      const expected = expected_quad_in_target_box(source, target, fromBox,
+                                                   toBox);
+      assert_quad_approx_equals(actual, expected,
+                                `${fromBox} rect to ${toBox} coordinates`);
+    }, `convertRectFromNode() maps ${fromBox} rect to ${toBox} coordinates`);
+  }
+}
+
+test(() => {
+  const rect = new DOMRect(3, 4, 20, 15);
+  const rectQuad = target.convertRectFromNode(rect, source);
+  const equivalentQuad = target.convertQuadFromNode(quad_from_rect(rect),
+                                                   source);
+  assert_quad_approx_equals(rectQuad, equivalentQuad,
+                            "converted rect and equivalent quad");
+}, "convertRectFromNode() matches convertQuadFromNode() for the same rectangle");
+
+test(() => {
+  const rect = new DOMRect(5, 6, 21, 17);
+  const targetQuad = target.convertRectFromNode(rect, source);
+  const roundTripped = source.convertQuadFromNode(targetQuad, target);
+  assert_quad_approx_equals(roundTripped, quad_from_rect(rect),
+                            "rect after round-trip conversion");
+}, "convertRectFromNode() output round-trips as a DOMQuad");
+</script>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>SVG root as flex item</title>
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#algo-main-item" title="Part E">
+<!-- The note refers to CSS2§10, but I didn't include that here because items in flex formatting contexts aren't included. -->
+<link rel="help" href="https://www.w3.org/TR/css-sizing-3/#intrinsic-sizes" title="first Note">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<link rel="bookmark" href="https://crbug.com/1065134">
+<meta name="assert" content="Honor SVG root's aspect ratio for flex layout." />
+
+<style>
+#reference-overlapped-red {
+  position: absolute;
+  background-color: red;
+  width: 100px;
+  height: 100px;
+  z-index: -1;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="reference-overlapped-red"></div>
+
+<div style="display: flex;">
+  <svg viewBox="0 0 200 200" style="height: 100px">
+    <rect width="200" height="200" fill="green" />
+  </svg>
+</div>

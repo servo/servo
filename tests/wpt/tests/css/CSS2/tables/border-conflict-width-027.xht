@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border Conflict Resolution (by border width): 'double' vs. 'none' - a border style of 'none' is never the dominant border</title>
+        <link rel="author" title="W3C" href="http://www.w3c.org/" />
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#border-conflict-resolution" />
+        <meta name="assert" content="The widest border is dominant when two , except when border style is 'none'. If border style is 'none' any other non-none border style is dominant border." />
+        <style type="text/css">
+            table
+            {
+                border-collapse: collapse;
+            }
+            td
+            {
+                border: 5px double black;
+                height: 3em;
+            }
+            #cell1
+            {
+                border: 10px none red;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page.</p>
+        <table>
+            <tr>
+                <td>double</td>
+                <td>double</td>
+                <td>double</td>
+            </tr>
+            <tr>
+                <td>double</td>
+                <td id="cell1">none</td>
+                <td>double</td>
+            </tr>
+            <tr>
+                <td>double</td>
+                <td>double</td>
+                <td>double</td>
+            </tr>
+        </table>
+    </body>
+</html>

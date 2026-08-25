@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>audiobuffersource-channels.html</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/webaudio/resources/audit-util.js"></script>
+</head>
+<body>
+  <script>
+    test(() => {
+      const context = new AudioContext();
+      const source = new AudioBufferSourceNode(context);
+
+      // Make sure we can't set to something which isn't an AudioBuffer.
+      assert_throws_js(TypeError, () => {
+        source.buffer = 57;
+      }, 'source.buffer = 57');
+
+      // It's ok to set the buffer to null.
+      source.buffer = null;
+
+      // Set the buffer to a valid AudioBuffer
+      const buffer = new AudioBuffer({
+        length: 128,
+        sampleRate: context.sampleRate});
+
+      source.buffer = buffer;
+
+      // The buffer has been set; we can't set it again.
+      assert_throws_dom('InvalidStateError', () => {
+        source.buffer = new AudioBuffer({
+          length: 128,
+          sampleRate: context.sampleRate});
+      }, 'source.buffer = new buffer');
+
+      // The buffer has been set; it's ok to set it to null.
+      source.buffer = null;
+
+      // The buffer was already set (and set to null). Can't set it again.
+      assert_throws_dom('InvalidStateError', () => {
+        source.buffer = buffer;
+      }, 'source.buffer = buffer again');
+
+      // But setting to null is ok.
+      source.buffer = null;
+
+      // Check that mono buffer can be set.
+      {
+        const monoBuffer = new AudioBuffer({
+          numberOfChannels: 1,
+          length: 1024,
+          sampleRate: context.sampleRate});
+        const testSource = new AudioBufferSourceNode(context);
+        testSource.buffer = monoBuffer;
+      }
+
+      // Check that stereo buffer can be set.
+      {
+        const stereoBuffer = new AudioBuffer({
+          numberOfChannels: 2,
+          length: 1024,
+          sampleRate: context.sampleRate});
+        const testSource = new AudioBufferSourceNode(context);
+        testSource.buffer = stereoBuffer;
+      }
+
+      // Check buffers with more than two channels.
+      for (let i = 3; i < 10; ++i) {
+        const buffer = new AudioBuffer({
+          numberOfChannels: i,
+          length: 1024,
+          sampleRate: context.sampleRate});
+        const testSource = new AudioBufferSourceNode(context);
+        testSource.buffer = buffer;
+      }
+    }, 'validate .buffer: Validation of AudioBuffer in ' +
+        '.buffer attribute setter');
+  </script>
+</body>
+</html>

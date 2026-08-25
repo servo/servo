@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Include display:contents elements recursively when calculating bounding rect for a ranges</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view-1/#dom-range-getboundingclientrect">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="container">
+  <div id="spacerBefore">spacer before</div>
+  <div style="display:contents">
+    <div style="height:30px; background:lightblue">
+      HEIGHT: 30px
+    </div>
+    <div style="display:contents">
+      <div style="display:contents">
+        <div style="height:30px; background:lightblue">
+          HEIGHT: 30px
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="spacerAfter">spacer after</div>
+</div>
+<script>
+  test(function () {
+    const spacerBefore = document.getElementById("spacerBefore");
+    const spacerAfter = document.getElementById("spacerAfter");
+
+    const expected = spacerAfter.getBoundingClientRect().top - spacerBefore.getBoundingClientRect().bottom;
+
+    const rangeBetweenSpacers = document.createRange();
+    rangeBetweenSpacers.setStartAfter(spacerBefore);
+    rangeBetweenSpacers.setEndBefore(spacerAfter);
+
+    const actual = rangeBetweenSpacers.getBoundingClientRect().height;
+
+    assert_true(actual > 0, "range has vertical height");
+    assert_equals(expected, actual, "range.getBoundingClientRect().height");
+  }, "the space between elements using a range should be the same as using another method")
+</script>

@@ -1,0 +1,32 @@
+<!doctype html>
+<html class="reftest-wait">
+<head>
+<meta charset=utf-8>
+<title>The effect value of consecutive animations targeting 'opacity'</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations/">
+<link rel="match" href="effect-value-opacity-replaced-effect-ref.html">
+<style>
+div {
+  width: 100px;
+  height: 100px;
+  background: green;
+  will-change: opacity;
+}
+</style>
+</head>
+<body>
+<div></div>
+<script>
+'use strict';
+
+(async function () {
+  const div = document.querySelector('div');
+
+  await div.animate({ opacity: [1, 0] }, { duration: 10, fill: 'both' }).finished;
+  await div.animate({ opacity: [0, 1] }, { duration: 10, fill: 'both' }).finished;
+
+  document.documentElement.classList.remove("reftest-wait");
+})();
+</script>
+</body>
+</html>

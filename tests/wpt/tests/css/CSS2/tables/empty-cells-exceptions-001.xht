@@ -1,0 +1,43 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Cells containing floating content are not considered empty</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#empty-cells" />
+        <meta name="assert" content="Cells that contain floating content, including empty elements, are not considered to be empty cells. The table under test actually contains two tests. The first cell tests floating content, and the second cell tests a floating empty element." />
+        <style type="text/css">
+            table
+            {
+                background: red;
+                border-spacing: 0;
+                empty-cells: hide;
+            }
+            td
+            {
+                background: green;
+                color: green;
+            }
+            .float
+            {
+                float: right;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page.</p>
+        <table>
+            <tr>
+                <td>
+                    <div class="float">&nbsp;</div>
+                </td>
+                <td>FillerTextFillerText</td>
+            </tr>
+            <tr>
+                <td>FillerTextFillerText</td>
+                <td>
+                    <div class="float"></div>
+                </td>
+            </tr>
+        </table>
+    </body>
+</html>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<title>
+  Suppress row flexbox gaps: row gaps should be suppressed if it's split across
+  fragmentainer breaks or is the last content before a break. Tests when rows are spaced out.
+</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/11520">
+<link rel="help" href="https://crbug.com/429645370">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<style>
+  .multicol {
+    position: relative;
+    column-width: 50px;
+    column-fill: auto;
+    column-gap: 0px;
+
+    height: 100px;
+    width: 100px;
+
+    background: red;
+  }
+  .flexContainer {
+    display: flex;
+    flex-wrap: wrap;
+    background: red;
+    block-size: 200px;
+  }
+  .abspos {
+    position: absolute;
+    left: 0px;
+    top: 10px;
+    width: 100px;
+    height: 90px;
+    background: green;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="multicol">
+  <div class="flexContainer" style="row-gap: 10px">
+    <div style="background: green; width: 50px; height: 10px;"></div>
+    <div style="background: green; width: 50px; height: 10px;"></div>
+  </div>
+  <div class="abspos"></div>
+</div>

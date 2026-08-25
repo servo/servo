@@ -1,0 +1,127 @@
+<!doctype html>
+<html>
+<head>
+<meta charset=utf-8>
+<title>CSS Transitions Test: Transitions do not run for an element that is not being rendered</title>
+<link rel="help" title="Starting transitions"
+  href="https://drafts.csswg.org/css-transitions/#starting">
+
+<script src="/resources/testharness.js" type="text/javascript"></script>
+<script src="/resources/testharnessreport.js" type="text/javascript"></script>
+<script src="./support/helper.js" type="text/javascript"></script>
+
+</head>
+<body>
+<div id="log"></div>
+
+<script>
+promise_test(async t => {
+  // Create element that is not rendered
+  const div = addDiv(t, {
+    style:
+      'transition: background-color 100s;' +
+      'background-color: red;' +
+      'display: none',
+  });
+
+  // Attach event listeners
+  div.addEventListener(
+    'transitionrun',
+    t.step_func(() => {
+      assert_unreached('transitionrun event should not be fired');
+    })
+  );
+
+  // Resolve before-change style
+  getComputedStyle(div).backgroundColor;
+
+  // Set up and resolve after-change style
+  div.style.backgroundColor = 'green';
+  getComputedStyle(div).backgroundColor;
+
+  // There should be no events received for the triggered transition.
+  await waitForFrame();
+  await waitForFrame();
+}, 'Transitions do not run on an element not being rendered');
+
+test(t => {
+  // Create element that is not rendered
+  const div = addDiv(t, {
+    style:
+      'transition: background-color 100s;' +
+      'background-color: red;' +
+      'display: none',
+  });
+
+  // Resolve before-change style
+  getComputedStyle(div).backgroundColor;
+
+  // Make it rendered
+  div.style.display = 'block';
+
+  // Set up and resolve after-change style
+  div.style.backgroundColor = 'green';
+  getComputedStyle(div).backgroundColor;
+
+  // We should have jumped immediately to the after-change style rather than
+  // transitioning to it.
+  assert_equals(
+    getComputedStyle(div).backgroundColor,
+    'rgb(0, 128, 0)',
+    'No transition should run'
+  );
+}, 'Transitions do not run for an element newly rendered');
+
+promise_test(async t => {
+  // Create element
+  const div = addDiv(t, {
+    style: 'transition: background-color 100s; background-color: red',
+  });
+
+  // Attach event listeners
+  div.addEventListener('transitionrun', t.step_func(() => {
+    assert_unreached('transitionrun event should not be fired');
+  }));
+
+  // Resolve before-change style
+  getComputedStyle(div).backgroundColor;
+
+  // Set up after-change style
+  div.style.backgroundColor = 'green';
+
+  // But make the element non-rendered
+  div.style.display = 'none';
+
+  // There should be no events received for the triggered transition.
+  await waitForFrame();
+  await waitForFrame();
+}, 'Transitions do not run for an element newly made not rendered');
+
+promise_test(async t => {
+  // Create element
+  const div = addDiv(t, {
+    style: 'transition: background-color 100s; background-color: red',
+  });
+
+  // Attach event listeners
+  const eventWatcher = new EventWatcher(t, div, [
+    'transitionrun',
+    'transitioncancel',
+  ]);
+
+  // Trigger transition
+  getComputedStyle(div).backgroundColor;
+  div.style.backgroundColor = 'green';
+  getComputedStyle(div).backgroundColor;
+
+  await eventWatcher.wait_for('transitionrun');
+
+  // Make the element no longer rendered
+  div.style.display = 'none';
+
+  await eventWatcher.wait_for('transitioncancel');
+}, 'Transitions are canceled when an element is no longer rendered');
+</script>
+
+</body>
+</html>

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="UTF-8">
+<title>drawElementImage draws selection</title>
+<link rel="help" href="https://drafts.csswg.org/css-highlight-api-1/">
+<link rel="match" href="selection-alone-with-decorations-painted-ref.html">
+<meta name="assert" value="When preserving privacy for readback, draw selection when it has decorations and shadows.">
+<script src="/common/reftest-wait.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+<style>
+  :focus {
+    outline: none;
+  }
+  #child {
+    width: 100px;
+    height: 100px;
+    background: green;
+  }
+  #canvas {
+    background: grey;
+  }
+  ::selection {
+    background-color: lime;
+    color: green;
+    text-decoration: 2px blue underline;
+    text-shadow: pink 2px 5px;
+  }
+</style>
+<canvas id=canvas width="200" height="200" layoutsubtree>
+  <div id="child">
+    <div id="editable" contenteditable="true">Many things can happen.</div>
+  </div>
+</canvas>
+<script>
+  function setSelection(element, start, end) {
+    const textNode = element.firstChild;
+    if (element.childNodes.length != 1 || textNode.nodeName != '#text') {
+      throw new Error('element must contain a single #text node only');
+    }
+    const range = document.createRange();
+    range.setStart(textNode, start);
+    range.setEnd(textNode, end);
+
+    const selection = getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }
+
+  onload = async () => {
+    setSelection(editable, 5, 11)
+
+    await waitForCanvasPaint(canvas);
+
+    canvas.getContext("2d").drawElementImage(child, 0, 0);
+    takeScreenshot();
+  };
+</script>
+</html>

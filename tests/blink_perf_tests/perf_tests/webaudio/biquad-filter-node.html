@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      Test performance of 100 BiquadFilterNodes.
+    </title>
+    <script src="../resources/runner.js"></script>
+    <script src="resources/webaudio-perf-utils.js"></script>
+  </head>
+  <body>
+    <script>
+      function graphBuilder() {
+        const context = new OfflineAudioContext(1, 48000, 48000);
+        const source = new ConstantSourceNode(context);
+        const testNodes =
+            createAndConnectNodesInSeries(context, 'BiquadFilterNode', 100);
+        source.connect(testNodes.head);
+        testNodes.tail.connect(context.destination);
+        source.start();
+        return context;
+      }
+
+      RunWebAudioPerfTest({
+        description: 'Test performance of 100 BiquadFilterNodes',
+        graphBuilder: graphBuilder,
+        tracingOptions: {
+          targetCategory: 'disabled-by-default-webaudio.audionode',
+          targetEvents: ['BiquadFilterHandler::Process'],
+        }
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<style>
+  .multicol {
+    column-count: 2;
+    column-fill: auto;
+    column-gap: 0px;
+  }
+  #outer {
+    height: 120px;
+    width: 100px;
+  }
+  #inner {
+    width: 50px;
+    column-gap: 16px;
+    height: 100px;
+    padding: 10px;
+  }
+  #ref {
+    height: 400px;
+    width: 25px;
+    background-color: green;
+  }
+</style>
+<div class="multicol" id="outer">
+  <div class="multicol" id="inner">
+    <div id="ref"></div>
+  </div>
+</div>

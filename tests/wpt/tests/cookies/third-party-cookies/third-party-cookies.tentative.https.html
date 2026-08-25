@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8"/>
+<meta name="timeout" content="long">
+<title>Test third-party cookies</title>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/cookies/resources/cookie-helper.sub.js"></script>
+<script src="/cookies/third-party-cookies/resources/test-helpers.js"></script>
+
+<body>
+<script>
+
+document.body.onload = async () => {
+  // Open a cross-site window.
+  const crossSiteUrl = new URL(
+    `./resources/third-party-cookies-cross-site-embedder-opener.html`,
+    get_host_info().HTTPS_NOTSAMESITE_ORIGIN + self.location.pathname);
+  const popup = window.open(crossSiteUrl);
+  fetch_tests_from_window(popup);
+};
+
+</script>
+</body>

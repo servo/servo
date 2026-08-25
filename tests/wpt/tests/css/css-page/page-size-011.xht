@@ -1,0 +1,20 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: @page size JIS-B5</title>
+  <link rel="author" title="Felipe Erias Morandeira" href="mailto:felipeerias@gmail.com"/>
+  <link rel="help" href="https://www.w3.org/TR/css-page-3/#typedef-page-size-page-size"/>
+  <meta name="flags" content="paged" />
+  <meta name="assert" content="The 'JIS-B5' value of the 'size' property specifies that the page box's width be 182mm and its height 257mm."/>
+  <style type="text/css"><![CDATA[
+	@page {
+		size: JIS-B5;
+		border: 2pt solid black;
+		margin: 20mm;
+	}
+  ]]></style>
+ </head>
+ <body>
+  <div>If JIS B5 (182mm x 257mm) or larger paper is available, this content should be printed in a black box that has a width of 142mm and a height of 217mm.</div>
+ </body>
+</html>

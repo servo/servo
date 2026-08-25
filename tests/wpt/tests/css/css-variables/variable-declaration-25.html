@@ -1,0 +1,25 @@
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!DOCTYPE html>
+<title>CSS Test: Test declaring a variable that contains a CDC token.</title>
+<link rel="author" title="Cameron McCormack" href="mailto:cam@mcc.id.au">
+<link rel="help" href="http://www.w3.org/TR/css-variables-1/#syntax">
+<link rel="match" href="support/color-green-ref.html">
+<style>
+body {
+  color: green;
+}
+p {
+  color: red;
+}
+p {
+  color: orange;
+  --a: red;
+  --b: crimson;
+  --a: --> var(--b); /* valid at parse */
+  color: var(--a);   /* but IACVT at substitution */
+}
+</style>
+<p>This text must be green.</p>

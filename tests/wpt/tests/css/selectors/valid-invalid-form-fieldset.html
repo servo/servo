@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/w3c/csswg-drafts/issues/9257">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<form>
+  <fieldset>
+    <input type=email>
+    <input type=submit>
+  </fieldset>
+</form>
+
+<script>
+promise_test(async () => {
+  const form = document.querySelector('form');
+  const fieldset = document.querySelector('fieldset');
+  const input = document.querySelector('input[type=email]');
+
+  assert_false(form.matches(':invalid'), 'form should not initially match :invalid.');
+  assert_true(form.matches(':valid'), 'form should initialy match :valid.');
+  assert_false(form.matches(':user-valid'), 'initial state: form should never match :user-valid.');
+  assert_false(form.matches(':user-invalid'), 'initial state: form should never match :user-invalid.');
+
+  assert_false(fieldset.matches(':invalid'), 'fieldset should not initially match :invalid.');
+  assert_true(fieldset.matches(':valid'), 'fieldset should initialy match :valid.');
+  assert_false(fieldset.matches(':user-valid'), 'initial state: fieldset should never match :user-valid.');
+  assert_false(fieldset.matches(':user-invalid'), 'initial state: fieldset should never match :user-invalid.');
+
+  assert_false(input.matches(':invalid'), 'input should not initially match :invalid.');
+  assert_true(input.matches(':valid'), 'input should initialy match :valid.');
+  assert_false(input.matches(':user-valid'), 'input should not initialy match :user-valid.');
+  assert_false(input.matches(':user-invalid'), 'input should not initialy match :user-invalid.');
+
+  await test_driver.click(input);
+  await test_driver.send_keys(input, 'user');
+  input.blur();
+
+  assert_true(form.matches(':invalid'), 'form should match :invalid after invalid text was entered.');
+  assert_false(form.matches(':valid'), 'form should not match :valid after invalid text was entered.');
+  assert_false(form.matches(':user-valid'), 'after text was entered: form should never match :user-valid.');
+  assert_false(form.matches(':user-invalid'), 'after text was entered: form should never match :user-invalid.');
+
+  assert_true(fieldset.matches(':invalid'), 'fieldset should match :invalid after invalid text was entered.');
+  assert_false(fieldset.matches(':valid'), 'fieldset should not match :valid after invalid text was entered.');
+  assert_false(fieldset.matches(':user-valid'), 'after invalid text was entered: fieldset should never match :user-valid.');
+  assert_false(fieldset.matches(':user-invalid'), 'after ininvalid text was entered: fieldset should never match :user-invalid.');
+
+  assert_true(input.matches(':invalid'), 'input should match :invalid after invalid text was entered.');
+  assert_false(input.matches(':valid'), 'input should not match :valid after invalid text was entered.');
+  assert_false(input.matches(':user-valid'), 'input should not match :user-valid after invalid text was entered.');
+  assert_true(input.matches(':user-invalid'), 'input should match :user-invalid after invalid text was entered.');
+
+  await test_driver.click(input);
+  await test_driver.send_keys(input, '@example.com');
+  await input.blur();
+
+  assert_false(form.matches(':invalid'), 'form should not match :invalid after valid text was entered.');
+  assert_true(form.matches(':valid'), 'form should match :valid after valid text was entered.');
+  assert_false(form.matches(':user-valid'), 'after valid text was entered: form should never match :user-valid.');
+  assert_false(form.matches(':user-invalid'), 'after invalid text was entered: form should never match :user-invalid.');
+
+  assert_false(fieldset.matches(':invalid'), 'fieldset should not match :invalid after valid text was entered.');
+  assert_true(fieldset.matches(':valid'), 'fieldset should match :valid after valid text was entered.');
+  assert_false(fieldset.matches(':user-valid'), 'after valid text was entered: fieldset should never match :user-valid.');
+  assert_false(fieldset.matches(':user-invalid'), 'after invalid text was entered: fieldset should never match :user-invalid.');
+
+  assert_false(input.matches(':invalid'), 'input should not match :invalid after valid text was entered.');
+  assert_true(input.matches(':valid'), 'input should match :valid after valid text was entered.');
+  assert_true(input.matches(':user-valid'), 'input should match :user-valid after valid text was entered.');
+  assert_false(input.matches(':user-invalid'), 'input should not match :user-invalid after invalid text was entered.');
+}, 'form and fieldset elements should match :valid/:invalid but not :user-valid/:user-invalid.');
+</script>

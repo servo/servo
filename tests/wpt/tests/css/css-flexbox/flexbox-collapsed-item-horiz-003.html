@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+<head>
+  <title>CSS Test: Testing that strut formation (from visibility:collapse) happens *after* lines have been stretched</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#algo-visibility">
+  <link rel="match" href="flexbox-collapsed-item-horiz-003-ref.html">
+  <meta charset="utf-8">
+  <style>
+    .flexContainer {
+      display: flex;
+      flex-wrap: wrap;
+      align-content: stretch; /* Initial value; just here for emphasis */
+      width: 25px;
+      height: 60px;
+      background: yellow;
+      border: 1px dotted black;
+      float: left;
+      margin: 5px;
+    }
+    .collapsedItem {
+      visibility: collapse;
+      width: 10px;
+    }
+    .shortItem {
+      width: 25px;
+      height: 10px;
+      background: purple;
+    }
+    .tallItem {
+      width: 10px;
+      height: 30px;
+      background: olive;
+    }
+  </style>
+</head>
+<body>
+  <!-- In this testcase, the first flex line initially has a cross-size of
+       10px, and the second flex line has a cross-size of 30px. Both lines are
+       stretched by 10px each (to hit the container's total cross-size, 60px).
+       Then, we handle "visibility:collapse" and convert the collapsed item
+       into a strut with the second line's stretched cross-size (40px), and we
+       restart flex layout. This strut then ends up in the *first* line (since
+       it has 0 main-size), which means both flex lines end up being 40px tall.
+    -->
+  <div class="flexContainer">
+    <div class="shortItem"></div>
+    <div class="collapsedItem"></div>
+    <div class="tallItem"></div>
+  </div>
+</body>
+</html>

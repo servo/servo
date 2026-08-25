@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#background-color">
+<link rel="match" href="background-color-animation-ref.html">
+<style>
+.container {
+  width: 100px;
+  height: 100px;
+  background-color: green;
+  animation: bgcolorwithtf 20s steps(2, jump-end) -9.99s;
+}
+/* without an offset-path, this should do absolutely nothing */
+.offset-position {
+    offset-position: left top;
+}
+@keyframes bgcolorwithtf {
+  0% {
+    background-color: rgb(0, 200, 0);
+    transform: translate(-10%, -10%);
+  }
+  100% {
+    background-color: rgb(200, 0, 0);
+    transform: translate(10%, 10%);
+  }
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="/web-animations/resources/timing-utils.js"></script>
+<body>
+<div id="target" class="container"></div>
+
+<script>
+  async function runTest() {
+    await waitForCompositorReady();
+    await document.getAnimations()[0].ready;
+
+    document.querySelector("#target").classList.add("offset-position");
+
+    waitForAnimationTime(document.getAnimations()[0], 10).then(takeScreenshot);
+  }
+  window.addEventListener('load', runTest);
+</script>
+</body>
+</html>

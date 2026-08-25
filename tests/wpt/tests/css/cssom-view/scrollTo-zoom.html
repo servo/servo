@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-scrollto">
+<link rel="match" href="../reference/ref-nothing-below.xht" />
+<meta name="assert" content="This test checks scrollTo() with different zoom levels.">
+<style>
+  .container {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    overflow: scroll;
+    background: red;
+    scrollbar-width: none;
+  }
+  .container > div {
+    position: absolute;
+    left: 13px;
+    top: 27px;
+    width: 100px;
+    height: 100px;
+    background: white;
+  }
+</style>
+<body style="background: white;">
+  <p>Test passes if there is nothing below.</p>
+  <div class="container" style="zoom: 0.9;">
+    <div></div>
+  </div>
+  <div class="container" style="zoom: 1;">
+    <div></div>
+  </div>
+  <div class="container" style="zoom: 1.11;">
+    <div></div>
+  </div>
+  <div class="container" style="zoom: 1.5;">
+    <div></div>
+  </div>
+  <script>
+    Array.prototype.forEach.call(document.getElementsByClassName("container"), (el) => {
+      el.scrollTo(13, 27);
+    });
+  </script>
+</body>

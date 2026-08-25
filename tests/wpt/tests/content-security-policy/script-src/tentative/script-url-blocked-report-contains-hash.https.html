@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>script-url-blocked-and-sends-hash</title>
+  <script src="/common/get-host-info.sub.js"></script>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="support/util.js"></script>
+</head>
+
+<body>
+  <script>
+    const { ORIGIN } = get_host_info();
+    const scriptUrl = new URL("./support/externalScript.js", document.location).toString();
+    const otherUrl = new URL("./support/add_dynamic_script.js", document.location).toString();
+
+    promise_test(async t => {
+      const expectedHash = await sha256ofURL(scriptUrl);
+
+      return new Promise(resolve => {
+        document.addEventListener("securitypolicyviolation", function (e) {
+          if (e.blockedURI === scriptUrl) {
+            // sha256ofURL removes the '=' at the end of the hash, so we need to remove it from urlHash.
+            assert_equals(e.urlHash.replace(/=+$/, ''), `url-sha256-${expectedHash}`);
+            assert_equals(e.evalHash, "");
+            resolve();
+          }
+        });
+
+        const meta = document.createElement('meta');
+        meta.httpEquiv = 'Content-Security-Policy';
+        meta.content = "script-src 'unsafe-eval' 'unsafe-inline' 'nonce-abc' 'url-sha256-dummy'";
+        document.head.appendChild(meta);
+
+        const script = document.createElement('script');
+        script.src = scriptUrl;
+        document.body.appendChild(script);
+      });
+    }, "script-specific violation report contains correct urlHash");
+  </script>
+</body>
+
+</html>

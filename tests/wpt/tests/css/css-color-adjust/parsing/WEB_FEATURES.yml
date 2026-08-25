@@ -1,0 +1,3 @@
+rules:
+- color-scheme-*: [color-scheme]
+- print-color-adjust.html: [print-color-adjust]

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/456164629">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=padding style="padding-top: 100px;">
+  <div id=perspective style="perspective: 1px;">
+    <div id=overflow style="border-radius: 5px; overflow: hidden;">
+      <div id=target style="position: relative; background: green; width: 100px; height: 100px;"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  test(()=> {
+    assert_equals(document.elementFromPoint(50, 150), target);
+  }, "Hit testing should work on elements under perspective and border radius");
+</script>

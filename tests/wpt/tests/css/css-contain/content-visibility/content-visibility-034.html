@@ -1,0 +1,44 @@
+<!doctype HTML>
+<html class="reftest-wait">
+<meta charset="utf8">
+<title>Content Visibility: hidden element shifted down</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<link rel="match" href="content-visibility-034-ref.html">
+<meta name="assert" content="content-visibility hidden element participates in layout">
+
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+#container {
+  width: 150px;
+  height: 150px;
+  border: 1px solid blue;
+  content-visibility: hidden;
+}
+#spacer {
+  width: 100px;
+  height: 50px;
+  background: orange;
+}
+#checker {
+  width: 100px;
+  height: 50px;
+  background: blue;
+}
+</style>
+
+<p>There should be a square blank box (with a blue border) between an orange square and a blue rectangle.
+<div id="spacer"></div>
+<div id="container">Fail</div>
+<div id="checker"></div>
+
+<script>
+function runTest() {
+  document.getElementById("spacer").style.height = "100px";
+  requestAnimationFrame(takeScreenshot);
+}
+
+window.onload = requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+</html>

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>Block inside inline, trim block-end</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-box-4/#margin-trim">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="position:relative; width:100px; height:100px;">
+  <div style="position:absolute; width:100px; height:20px; background:green;"></div>
+  <div style="display:flow-root; background:red;">
+    <div style="margin-trim:block-end; margin-top:10px;">
+      <span>
+        <div style="margin-top:20px; margin-bottom:100px; height:80px; background:green;"></div>
+      </span>
+    </div>
+  </div>
+</div>

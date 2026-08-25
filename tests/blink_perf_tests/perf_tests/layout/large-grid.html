@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <script src="../resources/runner.js"></script>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<style>
+html, body { height: 100% }
+ui-pane#main {
+    contain: strict;
+    min-width: 100% !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 100% !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    overflow: hidden
+}
+
+
+[row1] {
+    grid-row-start: 1;
+    grid-row-end: auto
+}
+
+[row2] {
+    grid-row-start: 2;
+    grid-row-end: auto
+}
+
+
+[col2] {
+    grid-column-start: 2;
+    grid-column-end: auto
+}
+
+ui-pane {
+    display: grid;
+    height: 100%;
+    contain: content
+}
+
+[hgrid] {
+    grid-template-rows: 1fr
+}
+
+[vgrid] {
+    grid-template-columns: 1fr
+}
+
+ui-icon {
+    display: inline-block;
+}
+
+[collapsed ] { display: none; }
+
+.eventChildrenWrap {
+    grid-column: 1/span 3;
+    contain: content
+}
+
+.eventChildrenContainer {
+    display: grid;
+    grid-template-columns: 3em 0px 1fr;
+    contain: content;
+}
+
+.actionBlockWrap {
+    grid-column: 3;
+    align-self: start;
+    contain: layout style;
+    position: relative
+}
+
+.actionBlock {
+    display: grid;
+    grid-template-columns: 1fr;
+    overflow: hidden;
+    contain: content
+}
+
+</style>
+
+</head>
+
+<body>
+    <pre id="log"></pre>
+
+    <ui-pane id="main" vgrid="" style="grid-template-rows: 1fr;">
+        <ui-pane id="middle" row1="" hgrid="" style="grid-template-columns: 320px 1fr 300px;">
+            <ui-pane col2="">
+                <ui-body row2="">
+                    <ui-pane class="eventSheetViewPane">
+                        <ui-body row2="" class="eventSheetView">
+                                <div id="thisistheone" class="eventChildrenWrap">
+                                    <div class="eventChildrenContainer">
+                                        <div class="actionBlockWrap">
+                                            <div class="actionBlock" id="inserthere">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </ui-body>
+                    </ui-pane>
+                </ui-body>
+            </ui-pane>
+
+        </ui-pane>
+    </ui-pane>
+
+
+    <script>
+        var target = document.getElementById('thisistheone');
+
+        function setup() {
+          let insert = document.getElementById('inserthere');
+          for (let i = 0; i < 2750; ++i) {
+            let name = document.createElement('div');
+            name.className = 'actionNameCell';
+            name.innerHTML = '<ui-icon style="width: 20px; height: 20px; "></ui-icon><span class="actionObjectNameSpan">Button</span>';
+            let desc = document.createElement('div');
+            desc.className = 'actionDescCell';
+            desc.innerHTML = 'Set position to <event-parameter data-index="0"> <ui-icon class="objectParameterIcon" style="width: 20px; height: 20px; "></ui-icon><span class="objectParameterObjectName">Sprite</span> </event-parameter> <em>(image point <event-parameter data-index="1">3213213</event-parameter>)</em>';
+            insert.appendChild(name);
+            insert.appendChild(desc);
+          }
+        }
+
+        function test() {
+            target.setAttribute('collapsed', '');
+            PerfTestRunner.forceLayout();
+            target.removeAttribute('collapsed');
+            PerfTestRunner.forceLayout();
+        }
+
+        setup();
+        PerfTestRunner.measureRunsPerSecond({
+            description: "Measures performance of laying out a large grid.",
+            run: test
+        });
+    </script>
+</body>
+
+</html>

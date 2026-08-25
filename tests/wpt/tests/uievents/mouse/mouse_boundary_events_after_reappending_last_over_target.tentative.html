@@ -1,0 +1,609 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Temporary removal of "mouseover" target should not be considered as the last over element is changed</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-actions.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script>
+"use strict";
+
+function stringifyEvents(eventArray) {
+  if (!eventArray.length) {
+    return "[]";
+  }
+  let result = "";
+  eventArray.forEach(event => {
+    if (result != "") {
+      result += ", ";
+    }
+    result += `${event.type}@${
+      event.target?.nodeType == Node.ELEMENT_NODE
+        ? `${event.target.localName}${
+            event.target.id ? `#${event.target.id}` : ""
+          }`
+        : event.target?.localName
+    }`;
+  });
+  return result;
+}
+
+addEventListener("load", () => {
+  function promiseTick() {
+    return new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  }
+
+  function append3NestedDivElementsToBody() {
+    const div1 = document.createElement("div");
+    div1.setAttribute("id", "grandparent");
+    div1.setAttribute("style", "width: 32px; height: 32px; margin: 32px");
+    const div2 = document.createElement("div");
+    div2.setAttribute("id", "parent");
+    div2.setAttribute("style", "width: 32px; height: 32px");
+    const div3 = document.createElement("div");
+    div3.setAttribute("id", "child");
+    div3.setAttribute("style", "width: 32px; height: 32px");
+    div1.appendChild(div2);
+    div2.appendChild(div3);
+    document.body.appendChild(div1);
+    return { div1, div2, div3 };
+  }
+
+  promise_test(async () => {
+    const {div1, div2, div3} = append3NestedDivElementsToBody();
+    const bodyRect = document.body.getBoundingClientRect();
+    const div3Rect = div3.getBoundingClientRect();
+    let events = [];
+    for (const type of ["mouseenter", "mouseleave", "mouseover", "mouseout", "mousemove"]) {
+      for (const node of [document.body, div1, div2, div3]) {
+        node.addEventListener(type, event => {
+          if (event.target == node) {
+            events.push({type: event.type, target: event.target});
+          }
+        }, {capture: true});
+      }
+    }
+    let firstMouseOver = true;
+    div3.addEventListener("mouseover", event => {
+      // Temporarily remove div3 from div2, but append to the same position.
+      div2.appendChild(div3);
+      events = [];
+      events.push({type: event.type, target: event.target});
+    }, {once: true});
+    await new test_driver.Actions()
+      .pointerMove(1, 1, {})
+      .pointerMove(div3Rect.x + 10, div3Rect.y + 10, {})
+      .send();
+    const expectedEvents = [
+      { type: "mouseover", target: div3 },
+      { type: "mouseenter", target: document.body },
+      { type: "mouseenter", target: div1 },
+      { type: "mouseenter", target: div2 },
+      { type: "mouseenter", target: div3 },
+      { type: "mousemove", target: div3 },
+      // Removing the node temporarily should not cause mouse boundary events.
+    ];
+    assert_equals(
+      stringifyEvents(events),
+      stringifyEvents(expectedEvents),
+    );
+    div1.remove();
+    await new test_driver.Actions()
+      .pointerMove(1, 1, {})
+      .send();
+  },
+  "After re-appending the last over element at mouseover, " +
+  "mouse boundary events should be fired as just over on the target");
+
+  promise_test(async () => {
+    const {div1, div2, div3} = append3NestedDivElementsToBody();
+    const bodyRect = document.body.getBoundingClientRect();
+    const div3Rect = div3.getBoundingClientRect();
+    let events = [];
+    for (const type of ["mouseenter", "mouseleave", "mouseover", "mouseout", "mousemove"]) {
+      for (const node of [document.body, div1, div2, div3]) {
+        node.addEventListener(type, event => {
+          if (event.target == node) {
+            events.push({type: event.type, target: event.target});
+          }
+        }, {capture: true});
+      }
+    }
+    div3.addEventListener("mouseover", event => {
+      div3.addEventListener("mouseenter", () => {
+        // Temporarily remove div3 from div2, but append to the same position.
+        div2.appendChild(div3);
+      }, {once: true});
+      events = [];
+      events.push({type: event.type, target: event.target});
+    }, {once: true});
+    await new test_driver.Actions()
+      .pointerMove(1, 1, {})
+      .pointerMove(div3Rect.x + 10, div3Rect.y + 10, {})
+      .send();
+    const expectedEvents = [
+      { type: "mouseover", target: div3 },
+      { type: "mouseenter", target: document.body },
+      { type: "mouseenter", target: div1 },
+      { type: "mouseenter", target: div2 },
+      { type: "mouseenter", target: div3 },
+      { type: "mousemove", target: div3 },
+      // Removing the node temporarily should not cause mouse boundary events.
+    ];
+    assert_equals(
+      stringifyEvents(events),
+      stringifyEvents(expectedEvents),
+    );
+    div1.remove();
+    await new test_driver.Actions()
+      .pointerMove(1, 1, {})
+      .send();
+  },
+  "After re-appending the last over element at mouseenter, " +
+  "mouse boundary events should not be fired");
+
+  promise_test(async () => {
+    const {div1, div2, div3} = append3NestedDivElementsToBody();
+    const bodyRect = document.body.getBoundingClientRect();
+    const div3Rect = div3.getBoundingClientRect();
+    let events = [];
+    for (const type of ["mouseenter", "mouseleave", "mouseover", "mouseout", "mousemove"]) {
+      for (const node of [document.body, div1, div2, div3]) {
+        node.addEventListener(type, event => {
+          if (event.target == node) {
+            events.push({type: event.type, target: event.target});
+          }
+        }, {capture: true});
+      }
+    }
+    div3.addEventListener("mouseover", event => {
+      events = [];
+      events.push({type: event.type, target: event.target});
+    }, {once: true});
+    await new test_driver.Actions()
+      .pointerMove(1, 1, {})
+      .pointerMove(div3Rect.x + 10, div3Rect.y + 10, {})
+      .send();
+    await promiseTick();
+    div2.appendChild(div3);
+    await promiseTick();
+    const expectedEvents = [
+      { type: "mouseover", target: div3 },
+      { type: "mouseenter", target: document.body },
+      { type: "mouseenter", target: div1 },
+      { type: "mouseenter", target: div2 },
+      { type: "mouseenter", target: div3 },
+      { type: "mousemove", target: div3 },
+      // Removing the node temporarily should not cause mouse boundary events.
+    ];
+    assert_equals(
+      stringifyEvents(events),
+      stringifyEvents(expectedEvents),
+    );
+    div1.remove();
+    await new test_driver.Actions()
+      .pointerMove(1, 1, {})
+      .send();
+  },
+  "After re-appending the last over element after mouseover, " +
+  "mouse boundary events should not be fired");
+
+  promise_test(async () => {
+    const {div1, div2, div3} = append3NestedDivElementsToBody();
+    const bodyRect = document.body.getBoundingClientRect();
+    const div3Rect = div3.getBoundingClientRect();
+    let events = [];
+    for (const type of ["mouseenter", "mouseleave", "mouseover", "mouseout", "mousemove"]) {
+      for (const node of [document.body, div1, div2, div3]) {
+        node.addEventListener(type, event => {
+          if (event.target == node) {
+            events.push({type: event.type, target: event.target});
+          }
+        }, {capture: true});
+      }
+    }
+    let firstMouseOver = true;
+    div3.addEventListener("mouseover", event => {
+      div1.insertBefore(div3, div2);
+      events = [];
+      events.push({type: event.type, target: event.target});
+    }, {once: true});
+    await new test_driver.Actions()
+      .pointerMove(1, 1, {})
+      .pointerMove(div3Rect.x + 10, div3Rect.y + 10, {})
+      .send();
+    await promiseTick();
+    const expectedEvents = [
+      { type: "mouseover", target: div3 },
+      { type: "mouseenter", target: document.body },
+      { type: "mouseenter", target: div1 },
+      { type: "mouseenter", target: div2 },
+      { type: "mouseenter", target: div3 },
+      { type: "mousemove", target: div3 },
+      // The "mouseover" target was moved to outside the deepest "mouseenter"
+      // target after the node is removed.  Therefore, mouse boundary events
+      // should be fired on the original "mouseover" target again.
+      { type: "mouseleave", target: div2 },
+      { type: "mouseover", target: div3 },
+      { type: "mouseenter", target: div3 },
+    ];
+    assert_equals(
+      stringifyEvents(events),
+      stringifyEvents(expectedEvents),
+    );
+    div1.remove();
+    await new test_driver.Actions()
+      .pointerMove(1, 1, {})
+      .send();
+  },
+  "After re-appending the last over element to outside the deepest mouseenter target (but keeps it as under the cursor) at mouseover, " +
+  "mouse boundary events should be fired on it again to correct the following mouseleave targets");
+
+  promise_test(async () => {
+    const {div1, div2, div3} = append3NestedDivElementsToBody();
+    const bodyRect = document.body.getBoundingClientRect();
+    const div3Rect = div3.getBoundingClientRect();
+    let events = [];
+    for (const type of ["mouseenter", "mouseleave", "mouseover", "mouseout", "mousemove"]) {
+      for (const node of [document.body, div1, div2, div3]) {
+        node.addEventListener(type, event => {
+          if (event.target == node) {
+            events.push({type: event.type, target: event.target});
+          }
+        }, {capture: true});
+      }
+    }
+    let firstMouseOver = true;
+    div3.addEventListener("mouseover", event => {
+      div1.append(div3);
+      events = [];
+      events.push({type: event.type, target: event.target});
+    }, {once: true});
+    await new test_driver.Actions()
+      .pointerMove(1, 1, {})
+      .pointerMove(div3Rect.x + 10, div3Rect.y + 10, {})
+      .send();
+    await promiseTick();
+    const expectedEvents = [
+      { type: "mouseover", target: div3 },
+      { type: "mouseenter", target: document.body },
+      { type: "mouseenter", target: div1 },
+      { type: "mouseenter", target: div2 },
+      { type: "mouseenter", target: div3 },
+      { type: "mousemove", target: div3 },
+      // Now, div2 (id=parent) should be under the mouse cursor.  However,
+      // the "mouseover" target was once removed and not reconnected under the
+      // deepest "mouseenter" target.  Therefore, mouse boundary events should
+      // not be fired on the div3, but should be fired on the div2.
+      { type: "mouseover", target: div2},
+    ];
+    assert_equals(
+      stringifyEvents(events),
+      stringifyEvents(expectedEvents),
+    );
+    div1.remove();
+    await new test_driver.Actions()
+      .pointerMove(1, 1, {})
+      .send();
+  },
+  "After re-appending the last over element to outside the deepest mouseenter target at mouseover, " +
+  "mouse boundary events should be fired only on the element under the cursor");
+
+  promise_test(async () => {
+    const {div1, div2, div3} = append3NestedDivElementsToBody();
+    const bodyRect = document.body.getBoundingClientRect();
+    const div3Rect = div3.getBoundingClientRect();
+    let events = [];
+    for (const type of ["mouseenter", "mouseleave", "mouseover", "mouseout", "mousemove"]) {
+      for (const node of [document.body, div1, div2, div3]) {
+        node.addEventListener(type, event => {
+          if (event.target == node) {
+            events.push({type: event.type, target: event.target});
+          }
+        }, {capture: true});
+      }
+    }
+    let firstMouseOver = true;
+    div3.addEventListener("mouseover", event => {
+      div2.remove();
+      div1.appendChild(div3);
+      events = [];
+      events.push({type: event.type, target: event.target});
+    }, {once: true});
+    await new test_driver.Actions()
+      .pointerMove(1, 1, {})
+      .pointerMove(div3Rect.x + 10, div3Rect.y + 10, {})
+      .send();
+    await promiseTick();
+    const expectedEvents = [
+      { type: "mouseover", target: div3 },
+      { type: "mouseenter", target: document.body },
+      { type: "mouseenter", target: div1 },
+      { type: "mouseenter", target: div2 },
+      { type: "mouseenter", target: div3 },
+      { type: "mousemove", target: div3 },
+      // Reconnecting the last "mouseover" target to a grandparent, div3, (i.e.,
+      // without parent, div2) immediately should be treated as a temporary
+      // removal because browsers can store only the deepest last "mouseenter"
+      // target instead of the full path of the event targets.  Therefore,
+      // "mouseover" nor "mouseenter" should not be fired again on div3.
+    ];
+    assert_equals(
+      stringifyEvents(events),
+      stringifyEvents(expectedEvents),
+    );
+    div1.remove();
+    await new test_driver.Actions()
+      .pointerMove(1, 1, {})
+      .send();
+  },
+  "After re-appending the last over element to the deepest mouseenter target without the original parent at mouseover, " +
+  "mouse boundary events should not be fired");
+
+  promise_test(async () => {
+    const {div1, div2, div3} = append3NestedDivElementsToBody();
+    const bodyRect = document.body.getBoundingClientRect();
+    const div3Rect = div3.getBoundingClientRect();
+    let events = [];
+    for (const type of ["mouseenter", "mouseleave", "mouseover", "mouseout", "mousemove"]) {
+      for (const node of [document.body, div1, div2, div3]) {
+        node.addEventListener(type, event => {
+          if (event.target == node) {
+            events.push({type: event.type, target: event.target});
+          }
+        }, {capture: true});
+      }
+    }
+    let firstMouseOver = true;
+    div3.addEventListener("mouseover", event => {
+      events = [];
+      events.push({type: event.type, target: event.target});
+    }, {once: true});
+    await new test_driver.Actions()
+      .pointerMove(1, 1, {})
+      .pointerMove(div3Rect.x + 10, div3Rect.y + 10, {})
+      .send();
+    await promiseTick();
+    div1.insertBefore(div3, div2);
+    await promiseTick();
+    const expectedEvents = [
+      { type: "mouseover", target: div3 },
+      { type: "mouseenter", target: document.body },
+      { type: "mouseenter", target: div1 },
+      { type: "mouseenter", target: div2 },
+      { type: "mouseenter", target: div3 },
+      { type: "mousemove", target: div3 },
+      // The "mouseover" target was moved to outside the deepest "mouseenter"
+      // target after the node is removed.  Therefore, mouse boundary events
+      // should be fired on the original "mouseover" target again.
+      { type: "mouseleave", target: div2 },
+      { type: "mouseover", target: div3 },
+      { type: "mouseenter", target: div3 },
+    ];
+    assert_equals(
+      stringifyEvents(events),
+      stringifyEvents(expectedEvents),
+    );
+    div1.remove();
+    await new test_driver.Actions()
+      .pointerMove(1, 1, {})
+      .send();
+  },
+  "After re-appending the last over element to outside the deepest mouseenter target (but keeps under the cursor) after mouseover, " +
+  "mouse boundary events should be fired on it again to correct the following mouseleave event targets");
+
+  promise_test(async () => {
+    const {div1, div2, div3} = append3NestedDivElementsToBody();
+    const bodyRect = document.body.getBoundingClientRect();
+    const div3Rect = div3.getBoundingClientRect();
+    let events = [];
+    for (const type of ["mouseenter", "mouseleave", "mouseover", "mouseout", "mousemove"]) {
+      for (const node of [document.body, div1, div2, div3]) {
+        node.addEventListener(type, event => {
+          if (event.target == node) {
+            events.push({type: event.type, target: event.target});
+          }
+        }, {capture: true});
+      }
+    }
+    let firstMouseOver = true;
+    div3.addEventListener("mouseover", event => {
+      events = [];
+      events.push({type: event.type, target: event.target});
+    }, {once: true});
+    await new test_driver.Actions()
+      .pointerMove(1, 1, {})
+      .pointerMove(div3Rect.x + 10, div3Rect.y + 10, {})
+      .send();
+    await promiseTick();
+    div1.append(div3);
+    await promiseTick();
+    const expectedEvents = [
+      { type: "mouseover", target: div3 },
+      { type: "mouseenter", target: document.body },
+      { type: "mouseenter", target: div1 },
+      { type: "mouseenter", target: div2 },
+      { type: "mouseenter", target: div3 },
+      { type: "mousemove", target: div3 },
+      // Now, div2 (id=parent) should be under the mouse cursor.  However,
+      // the "mouseover" target was once removed and not reconnected under the
+      // deepest "mouseenter" target.  Therefore, mouse boundary events should
+      // not be fired on the div3, but should be fired on the div2.
+      { type: "mouseover", target: div2},
+    ];
+    assert_equals(
+      stringifyEvents(events),
+      stringifyEvents(expectedEvents),
+    );
+    div1.remove();
+    await new test_driver.Actions()
+      .pointerMove(1, 1, {})
+      .send();
+  },
+  "After re-appending the last over element to outside the deepest mouseenter target after mouseover, " +
+  "mouse boundary events should be fired only on the element under the cursor");
+
+  promise_test(async () => {
+    const {div1, div2, div3} = append3NestedDivElementsToBody();
+    const bodyRect = document.body.getBoundingClientRect();
+    const div3Rect = div3.getBoundingClientRect();
+    let events = [];
+    for (const type of ["mouseenter", "mouseleave", "mouseover", "mouseout", "mousemove"]) {
+      for (const node of [document.body, div1, div2, div3]) {
+        node.addEventListener(type, event => {
+          if (event.target == node) {
+            events.push({type: event.type, target: event.target});
+          }
+        }, {capture: true});
+      }
+    }
+    let firstMouseOver = true;
+    div3.addEventListener("mouseover", event => {
+      div2.remove();
+      div1.appendChild(div3);
+      events = [];
+      events.push({type: event.type, target: event.target});
+    }, {once: true});
+    await new test_driver.Actions()
+      .pointerMove(1, 1, {})
+      .pointerMove(div3Rect.x + 10, div3Rect.y + 10, {})
+      .send();
+    await promiseTick();
+    div2.remove();
+    div1.appendChild(div3);
+    await promiseTick();
+    const expectedEvents = [
+      { type: "mouseover", target: div3 },
+      { type: "mouseenter", target: document.body },
+      { type: "mouseenter", target: div1 },
+      { type: "mouseenter", target: div2 },
+      { type: "mouseenter", target: div3 },
+      { type: "mousemove", target: div3 },
+      // Reconnecting the last "mouseover" target to a grandparent, div3, (i.e.,
+      // without parent, div2) immediately should be treated as a temporary
+      // removal because browsers can store only the deepest last "mouseenter"
+      // target instead of the full path of the event targets.  Therefore,
+      // "mouseover" nor "mouseenter" should not be fired again on div3.
+    ];
+    assert_equals(
+      stringifyEvents(events),
+      stringifyEvents(expectedEvents),
+    );
+    div1.remove();
+    await new test_driver.Actions()
+      .pointerMove(1, 1, {})
+      .send();
+  },
+  "After re-appending the last over element to the deepest mouseenter target without the original parent after mouseover, " +
+  "mouse boundary events should not be fired");
+
+  promise_test(async () => {
+    const {div1, div2, div3} = append3NestedDivElementsToBody();
+    const bodyRect = document.body.getBoundingClientRect();
+    const div3Rect = div3.getBoundingClientRect();
+    let events = [];
+    for (const type of ["mouseenter", "mouseleave", "mouseover", "mouseout", "mousemove"]) {
+      for (const node of [document.body, div1, div2, div3]) {
+        node.addEventListener(type, event => {
+          if (event.target == node) {
+            events.push({type: event.type, target: event.target});
+          }
+        }, {capture: true});
+      }
+    }
+    div3.addEventListener("mouseover", event => {
+      events = [];
+      events.push({type: event.type, target: event.target});
+    }, {once: true});
+    await new test_driver.Actions()
+      .pointerMove(1, 1, {})
+      .pointerMove(div3Rect.x + 10, div3Rect.y + 10, {})
+      .send();
+    await promiseTick();
+    div3.remove();
+    div2.getBoundingClientRect();  // maybe refresh the layout
+    div2.appendChild(div3);
+    await promiseTick();
+    const expectedEvents = [
+      { type: "mouseover", target: div3 },
+      { type: "mouseenter", target: document.body },
+      { type: "mouseenter", target: div1 },
+      { type: "mouseenter", target: div2 },
+      { type: "mouseenter", target: div3 },
+      { type: "mousemove", target: div3 },
+      // Removing the node temporarily should not cause mouse boundary events.
+    ];
+    assert_equals(
+      stringifyEvents(events),
+      stringifyEvents(expectedEvents),
+    );
+    div1.remove();
+    await new test_driver.Actions()
+      .pointerMove(1, 1, {})
+      .send();
+  },
+  "After removing and re-appending the last over element with flushing layout after mouseover, " +
+  "mouse boundary events should not be fired");
+
+  promise_test(async () => {
+    const {div1, div2, div3} = append3NestedDivElementsToBody();
+    const bodyRect = document.body.getBoundingClientRect();
+    const div3Rect = div3.getBoundingClientRect();
+    let events = [];
+    for (const type of ["mouseenter", "mouseleave", "mouseover", "mouseout", "mousemove"]) {
+      for (const node of [document.body, div1, div2, div3]) {
+        node.addEventListener(type, event => {
+          if (event.target == node) {
+            events.push({type: event.type, target: event.target});
+          }
+        }, {capture: true});
+      }
+    }
+    div3.addEventListener("mouseover", event => {
+      events = [];
+      events.push({type: event.type, target: event.target});
+    }, {once: true});
+    await new test_driver.Actions()
+      .pointerMove(1, 1, {})
+      .pointerMove(div3Rect.x + 10, div3Rect.y + 10, {})
+      .send();
+    await promiseTick();
+    div3.remove();
+    await new Promise(resolve => requestAnimationFrame(resolve));
+    div2.appendChild(div3);
+    await promiseTick();
+    const expectedEvents = [
+      { type: "mouseover", target: div3 },
+      { type: "mouseenter", target: document.body },
+      { type: "mouseenter", target: div1 },
+      { type: "mouseenter", target: div2 },
+      { type: "mouseenter", target: div3 },
+      { type: "mousemove", target: div3 },
+      // Removing the node and appending it occurred in different animation
+      // frames.  Therefore, it shouldn't be treated as a temporary removal
+      // since user may have seen the layout change.
+      { type: "mouseover", target: div2 }, // no mouseout on div3 because it's not connected at this moment
+      { type: "mouseout", target: div2 },
+      { type: "mouseover", target: div3 },
+      { type: "mouseenter", target: div3 },
+    ];
+    assert_equals(
+      stringifyEvents(events),
+      stringifyEvents(expectedEvents),
+    );
+    div1.remove();
+    await new test_driver.Actions()
+      .pointerMove(1, 1, {})
+      .send();
+  },
+  "After removing after mouseover and re-appending the last over element at next animation frame, " +
+  "mouse boundary events should be fired");
+}, {once: true});
+</script>
+</head>
+<body style="padding-top: 32px"></body>
+</html>

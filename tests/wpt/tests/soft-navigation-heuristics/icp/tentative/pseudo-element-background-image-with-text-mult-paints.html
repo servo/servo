@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/soft-navigation-heuristics/resources/soft-navigation-test-helper.js"></script>
+
+<style>
+  .content::before {
+    content: "";
+    display: block;
+    width: 256px;
+    height: 256px;
+    background-image: url(/images/lcp-256x256.png);
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+  }
+</style>
+
+<button id="testButton">Click here!</button>
+<div id="container"></div>
+
+<script>
+  promise_test(async t => {
+    const imageUrl = '/images/lcp-256x256.png';
+    const helper = new SoftNavigationTestHelper(t);
+
+    testButton.addEventListener('click', async () => {
+      container.innerHTML = `<div><div id="content">Text</div></div>`;
+
+      // After the ICP entry for the text is produced, add the 'content' class
+      // to cause an image paint for the same node. We expect an ICP entry for
+      // this as well.
+      await helper.withTimeoutMessage(
+          SoftNavigationTestHelper.getPerformanceEntries('interaction-contentful-paint'),
+          'Timed out waiting for initial ICP', /*timeout=*/ 3000);
+      content.classList.add('content');
+    }, {once: true});
+
+    const icpPromise = SoftNavigationTestHelper.getPerformanceEntries(
+        'interaction-contentful-paint',
+        /*minNumEntries=*/ 2);
+
+    if (test_driver) {
+      test_driver.click(testButton);
+    }
+
+    // Check that we get two ICP entries, one for the text and one for the image.
+    const icps = await helper.withTimeoutMessage(
+        icpPromise, 'ICPs not detected.', /*timeout=*/ 3000);
+    assert_equals(icps.length, 2, 'Expected exactly two ICP entries.');
+
+    assert_equals(
+        icps[0].largestContentfulPaint.id, 'content',
+        'Expected first ICP candidate to be "content"');
+    assert_equals(
+        icps[0].largestContentfulPaint.url, '',
+        'Expected first ICP url to be empty');
+
+    assert_equals(
+        icps[1].largestContentfulPaint.id, 'content',
+        'Expected second ICP candidate to be "content"');
+    assert_true(
+        icps[1].largestContentfulPaint.url.endsWith(imageUrl),
+        'Expected second ICP url to be the image url');
+  }, 'InteractionContentfulPaint considers image pseudo elements and the associated nodes as candidates');
+</script>

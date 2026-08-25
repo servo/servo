@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<div id=target>light dismiss target</div>
+<div id=popover popover>popover</div>
+
+<script>
+const target = document.getElementById('target');
+const popover = document.getElementById('popover');
+
+promise_test(async () => {
+  popover.showPopover();
+  assert_true(popover.matches(':popover-open'),
+    'popover should be open at the start of the test.');
+
+  target.addEventListener('pointerdown', () => {
+    target.remove();
+  });
+
+  await (new test_driver.Actions()
+    .pointerMove(0, 0, {origin: target})
+    .pointerDown()
+    .pointerUp())
+    .send();
+
+  assert_true(popover.matches(':popover-open'),
+    'popover should not be light dismissed after removing the target during pointerdown.');
+}, 'Light dismiss should still happen if the clicked element is removed during pointerdown.');
+</script>

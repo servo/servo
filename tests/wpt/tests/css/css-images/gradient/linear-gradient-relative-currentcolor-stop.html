@@ -1,0 +1,26 @@
+<!doctype html>
+<title>linear-gradient() with relative color stops referencing currentcolor</title>
+<link rel="help" href="https://drafts.csswg.org/css-images/#linear-gradients">
+<link rel="help" href="https://drafts.csswg.org/css-color-5/#typedef-color">
+<link rel="match" href="../reference/100x100-blue-green.html">
+<meta name="fuzzy" content="maxDifference=1; totalPixels=0-5000">
+<style>
+  .g {
+      background-image: linear-gradient(rgb(from currentcolor r g b), rgb(from currentcolor r g b));
+      width: 50px;
+      height: 100px;
+  }
+  .a {
+      color: blue;
+  }
+  .b {
+      color: green;
+      position: absolute;
+      left: 50px;
+      top: 0;
+  }
+</style>
+<div style="position: relative">
+  <div class="g a"></div>
+  <div class="g b"></div>
+</div>

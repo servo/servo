@@ -1,0 +1,2 @@
+rules:
+- "**": [document-modelcontext]

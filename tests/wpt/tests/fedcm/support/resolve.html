@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<script>
+async function doResolve() {
+  let params = new URLSearchParams(document.location.search);
+  let options = {};
+  if (params.get("accountId")) {
+    options.accountId = params.get("accountId");
+  }
+  let token = "resolved token";
+  if (params.get("selected")) {
+    token = "account=" + params.get("selected");
+  }
+  if (params.get("redirect")) {
+    IdentityProvider.resolve("redirect_post.py", {redirect: true, method: "POST", body: "redirect_post"});
+  } else {
+    IdentityProvider.resolve(token, options);
+  }
+}
+window.onload = doResolve;
+</script>

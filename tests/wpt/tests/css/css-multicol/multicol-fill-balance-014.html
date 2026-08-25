@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-multicol-1/#cf">
+<p>Test passes if there is a filled green square below.</p>
+<div id="mc" style="columns:4; width:100px; background:green;">
+  <div style="margin-top:30px; height:70px; break-inside:avoid;"></div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(()=> {
+    assert_equals(mc.offsetHeight, 100);
+  });
+</script>

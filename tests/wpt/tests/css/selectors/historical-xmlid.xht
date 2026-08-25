@@ -1,0 +1,22 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>No xml:id support</title>
+    <link rel="help" href="https://drafts.csswg.org/selectors-4/#id-selectors"/>
+    <link rel="help" href="https://dom.spec.whatwg.org/#concept-id"/>
+    <link rel="match" href="../reference/ref-filled-green-100px-square.xht"/>
+    <style type="text/css"><![CDATA[
+      div {
+        background: green;
+        height: 100px;
+        width: 100px;
+      }
+      #a {
+        background: red;
+      }
+    ]]></style>
+  </head>
+  <body>
+    <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+    <div xml:id="a"></div>
+  </body>
+</html>

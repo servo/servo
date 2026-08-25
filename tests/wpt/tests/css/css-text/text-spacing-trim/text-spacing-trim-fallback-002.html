@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-spacing-trim-property">
+<link rel="match" href="text-spacing-trim-fallback-002-ref.html">
+<meta name="variant" content="?class=halt,htb">
+<meta name="variant" content="?class=chws,htb">
+<meta name="variant" content="?class=halt,vrl">
+<meta name="variant" content="?class=chws,vrl">
+<script src="support/variant-class.js"></script>
+<style>
+@font-face {
+  font-family: halt-font;
+  font-display: block;
+  src: url('/fonts/noto/cjk/NotoSansCJKjp-Regular-subset-halt.otf');
+}
+@font-face {
+  font-family: chws-font;
+  font-display: block;
+  src: url('/fonts/noto/cjk/NotoSansCJKjp-Regular-subset-chws.otf');
+}
+#container {
+  font-family: Arial, halt-font;
+  font-size: 20px;
+}
+.chws #container {
+  font-family: Arial, chws-font;
+}
+:root.vrl {
+  writing-mode: vertical-rl;
+}
+</style>
+<div id="container" lang="ja">
+  <div>（1）。</div>
+  <div>（?）、</div>
+  <div>（1））</div>
+  <div>（1。。</div>
+</div>

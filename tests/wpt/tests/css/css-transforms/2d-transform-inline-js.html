@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>JS test: Inline renderer must return the correct computed transform</title>
+    <link rel="author" title="Joone Hur" href="https://joone.github.io">
+    <link rel="help" href="https://drafts.csswg.org/css-transforms-1/#serialization-of-the-computed-value">
+    <link rel="help" href="https://drafts.csswg.org/css-transforms-1/#serialization-of-transform-functions">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <meta name="assert" content="Asserting that you can apply transform to an inline element and it show up in CSS computed values as a matrix">
+    <style>
+      .container {
+      height: 100px;
+      width: 200px;
+      margin: 30px;
+      outline: 1px solid black;
+    }
+    .box {
+      height: 100%;
+      width: 100%;
+      padding: 5px;
+      margin: 5px;
+      border: 5px solid gray;
+      transform-origin: 20% 50%;
+    }
+    #test-div {
+      background-color: blue;
+    }
+
+    #test-span {
+      background-color: red;
+    }
+    </style>
+
+  </head>
+  <body>
+    <h1>Transform values should be indentical between
+      the blue box(block element) and red box(inline element) </h1>
+    <div class="container">
+      <div id="test-div" class="box"></div>
+    </div>
+    <span id="test-span" class="box"></span>
+    <script>
+      const testCases = [
+        { 'transform' : 'translate(80px, 90px)',  'result' : 'matrix(1, 0, 0, 1, 80, 90)' },
+        { 'transform' : 'scale(1.2, 0.8)',        'result' : 'matrix(1.2, 0, 0, 0.8, 0, 0)' },
+        { 'transform' : 'skew(-0.7rad, 20deg)',   'result' : 'matrix(1, 0.36397, -0.842288, 1, 0, 0)' },
+        { 'transform' : 'rotate(45deg)',          'result' : 'matrix(0.707107, 0.707107, -0.707107, 0.707107, 0, 0)' },
+      ];
+
+      test(function() {
+        var testBox = document.getElementById('test-div');
+        var testSpan = document.getElementById('test-span');
+
+        testCases.forEach(function(curTest) {
+          // set one of our test transforms
+          testBox.style.transform = curTest.transform;
+          testSpan.style.transform = curTest.transform;
+
+          // read back computed style
+          var computedTransform = window.getComputedStyle(testBox).transform;
+          var computedSpanTransform = window.getComputedStyle(testSpan).transform;
+
+          assert_equals(computedTransform, curTest.result);
+          assert_equals(computedSpanTransform, curTest.result);
+        });
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Borders: border-right-width: thick equals 5px</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#border-width">
+<link rel="match" href="reference/border-right-width-5px-ref.html">
+<meta name="assert" content="The 'thick' keyword for 'border-right-width' is 5px." />
+<style>
+  div { display: inline-block; height: 100px; }
+  .red-if-too-thin { width: 5px; background: red; }
+  .cb { position: relative; }
+  .red-if-too-thick { width: 20px; background: red; }
+  .overlap-red-if-too-thick { width: 20px; background: white; position: absolute; left: 0; }
+  .border-test { border-right-style: solid; border-right-width: thick; margin-left: -5px; }
+</style>
+</head>
+<body>
+  <p>There should be a black line below and no red.</p>
+  <div class=red-if-too-thin></div><!--
+  --><div class=cb><!--
+    --><div class=border-test></div><!--
+    --><div class=red-if-too-thick></div><!--
+    --><div class=overlap-red-if-too-thick></div><!--
+  --></div>
+</body>
+</html>

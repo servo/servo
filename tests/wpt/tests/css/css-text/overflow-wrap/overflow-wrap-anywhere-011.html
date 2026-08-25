@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS Text Test: overflow-wrap: anywhere</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+  <link rel="help" href="https://drafts.csswg.org/css-text-3/#valdef-overflow-wrap-anywhere">
+  <link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
+  <link rel="match" href="overflow-wrap-anywhere-011-ref.html">
+  <meta name="assert" content="End-of line space glyph (U+0020 and U+0009)'s width shouldn't contribute to container's min-content width with 'white-space: normal', and non-collapsible spaces should wrap with 'overflow-wrap: anywhere'.">
+
+  <style>
+  div {
+    /* Use sans-serif fonts to ensure the width of `&nbsp` is larger than `i`. */
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 100px;
+    width: min-content;
+    overflow-wrap: anywhere;
+    border: 5px solid blue;
+    margin-bottom: 5px; /* To separate <div>s visually. */
+  }
+  </style>
+
+  <p>The first three div should have the same width, but the fourth one should be wider.</p>
+  <div>i</div>
+  <div>i&#x20;</div>
+  <div>i&#x09;</div>
+  <div>i&nbsp;</div>
+</html>

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#comp-func">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#angles">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#calc-serialize">
+<link rel="author" title="Xiaocheng Hu" href="mailto:xiaochengh@chromium.org">
+<link rel="author" title="Tab Atkins-Bittner" href="https://xanthir.com/contact">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/serialize-testcommon.js"></script>
+<div id=target></div>
+<script>
+function test_serialization(t,s,c,u, {prop="transform"}={}) {
+	t = `rotate(${t})`;
+    test_specified_serialization(prop, t, `rotate(${s})`);
+    test_computed_serialization(prop, t, c);
+    if(u) test_used_serialization(prop, t, u);
+}
+
+// Browsers aren't perfectly interoperable about how a 90deg rotation is serialized,
+// but that's not the focus of this test,
+// so just capture *whatever* the browser does and expect that.
+const rotateMatrix = (()=>{
+    const el = document.querySelector("#target");
+    el.style.transform = "rotate(90deg)";
+    const ret = getComputedStyle(el).transform;
+    el.removeAttribute('style');
+    return ret;
+})();
+
+test_serialization(
+    'min(90deg)',
+    'calc(90deg)',
+    rotateMatrix);
+test_serialization(
+    'min(.25turn)',
+    'calc(90deg)',
+    rotateMatrix);
+test_serialization(
+    'min(100grad)',
+    'calc(90deg)',
+    rotateMatrix);
+test_serialization(
+    'max(90deg)',
+    'calc(90deg)',
+    rotateMatrix);
+test_serialization(
+    'max(.25turn)',
+    'calc(90deg)',
+    rotateMatrix);
+test_serialization(
+    'max(100grad)',
+    'calc(90deg)',
+    rotateMatrix);
+// No way to test 'rad' serialization without depending heavily on numeric serialization
+// and the precision used for radians...
+
+test_serialization(
+    'min(90deg, 92deg, 93deg)',
+    'calc(90deg)',
+    rotateMatrix);
+test_serialization(
+    'min(93deg, 92deg, 90deg)',
+    'calc(90deg)',
+    rotateMatrix);
+test_serialization(
+    'min(90deg, 1.58rad, 0.25turn)',
+    'calc(90deg)',
+    rotateMatrix);
+test_serialization(
+    'min(0.25turn, 1.58rad, 90deg)',
+    'calc(90deg)',
+    rotateMatrix);
+test_serialization(
+    'max(81deg, 82deg, 90deg)',
+    'calc(90deg)',
+    rotateMatrix);
+test_serialization(
+    'max(83deg, 82deg, 90deg)',
+    'calc(90deg)',
+    rotateMatrix);
+test_serialization(
+    'max(90deg, 1.57rad, 0.25turn)',
+    'calc(90deg)',
+    rotateMatrix);
+test_serialization(
+    'max(0.25turn, 1.57rad, 90deg)',
+    'calc(90deg)',
+    rotateMatrix);
+
+test_serialization(
+    'calc(min(30deg) + max(60deg))',
+    'calc(90deg)',
+    rotateMatrix);
+test_serialization(
+    'calc(50grad + min(45deg))',
+    'calc(90deg)',
+    rotateMatrix);
+test_serialization(
+    'calc(min(45deg) + 50grad)',
+    'calc(90deg)',
+    rotateMatrix);
+test_serialization(
+    'calc(50grad + max(45deg))',
+    'calc(90deg)',
+    rotateMatrix);
+test_serialization(
+    'calc(max(45deg) + 50grad)',
+    'calc(90deg)',
+    rotateMatrix);
+
+</script>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: block-ellipsis after hanging whitespacce</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#block-ellipsis">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="Preserved tabs are properly taken into account when clamping. In particular, if the last line before clamp is also the last line of the line-clamp container, and it ends in a tab that doesn't cause it to overflow, then that shouldn't cause it to have an ellipsis.">
+<style>
+.clamp {
+  line-clamp: 2;
+  font: 25px/25px Ahem;
+  width: 100px;
+  tab-size: 4;
+}
+.test1 {
+  background-color: red;
+  color: red;
+}
+.test2 {
+  color: transparent;
+  background:
+    linear-gradient(green, green) 25px 25px / 75px 25px no-repeat,
+    red;
+}
+.green {
+  color: green;
+  background-color: green;
+}
+.red {
+  color: red;
+  background-color: red;
+}
+.tab {
+  white-space: pre;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div class="clamp test1">
+  <span class="green">
+    XXXX
+    X X<span class="tab">&Tab;</span>
+  </span>
+</div>
+
+<div class="clamp test2">
+  <span class="green">
+    XXXX
+    X
+  </span>
+  <span class="red">
+    <span class="tab">&Tab;</span> X
+  </span>
+</div>

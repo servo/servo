@@ -1,0 +1,31 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS.supports() for ::picker() and ::picker-icon pseudo-elements</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-3/#the-css-namespace">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(function() {
+    assert_equals(CSS.supports("selector(select::picker-icon)"), true);
+  }, "::picker-icon pseudo-element is supported");
+
+  test(function() {
+    assert_equals(CSS.supports("selector(select::picker(select))"), true);
+  }, "::picker(select) pseudo-element is supported");
+
+  test(function() {
+    assert_equals(CSS.supports("selector(::picker-icon)"), true);
+  }, "::picker-icon without element is supported");
+
+  test(function() {
+    assert_equals(CSS.supports("selector(::picker(select))"), true);
+  }, "::picker(select) without element is supported");
+
+  test(function() {
+    assert_equals(CSS.supports("selector(select::picker)"), false);
+  }, "::picker without argument is not supported");
+
+  test(function() {
+    assert_equals(CSS.supports("selector(select::picker())"), false);
+  }, "::picker with empty argument is not supported");
+</script>

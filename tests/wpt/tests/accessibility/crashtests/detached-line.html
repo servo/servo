@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<style>
+div:before { position: absolute; content: 'x';  }
+</style>
+<!--
+<img usemap="#map1">
+  <map>
+    <caption>
+      <map name=child-map>
+        yz
+      </map>
+    </caption>
+  </map>
+-->
+<script>
+window.addEventListener('load', () => {
+  const caption = document.createElement('caption');
+  const childMap = document.createElement('map');
+  childMap.setAttribute('name', 'child-map');
+  const map2 = document.createElement('map');
+  document.documentElement.appendChild(map2);
+  const img = document.createElement('img');
+  img.setAttribute('usemap', '#child-map');
+  childMap.appendChild(document.createTextNode('yz'));
+  document.documentElement.appendChild(img);
+  caption.appendChild(childMap);
+  map2.appendChild(caption);
+});
+</script>

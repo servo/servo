@@ -1,0 +1,41 @@
+<!doctype html>
+<title>Test piping data through MediaStreamTrackGenerator in a worker</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script id="workerCode" type="javascript/worker">
+self.onmessage = (e) => {
+  try {
+    const generator = new MediaStreamTrackGenerator({kind: 'video'});
+    e.data.readable.pipeTo(generator.writable);
+    self.postMessage({result: 'Success'});
+  } catch (e) {
+    self.postMessage({result: 'Failure', error: e});
+  }
+}
+</script>
+<script>
+'use strict';
+
+promise_test(async t => {
+    const workerBlob = new Blob([document.querySelector('#workerCode').textContent],
+        { type: "text/javascript" });
+    const workerUrl = window.URL.createObjectURL(workerBlob);
+    const worker = new Worker(workerUrl);
+    window.URL.revokeObjectURL(workerUrl);
+    const result = new Promise((resolve, reject) => {
+        worker.onmessage = (e) => {
+            if (e.data.result === 'Failure') {
+                reject('Failed with error ' + e.data.error);
+            } else {
+                resolve();
+            }
+        };
+    });
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    const track = stream.getVideoTracks()[0];
+    const processor = new MediaStreamTrackProcessor({ track: track });
+    worker.postMessage({ readable: processor.readable },
+        [processor.readable]);
+    return result;
+}, 'A worker is able to pipe data through a MediaStreamTrackGenerator without crashing');
+</script>

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>CSS Selectors Invalidation: :modal pseudo class in :has()</title>
+<link rel="author" title="Luke Warlow" href="mailto:lwarlow@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/selectors/#relational">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#open-state">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  #subject:has(#dialog:open) { color: green; }
+  #subject:has(#details:open) { color: blue; }
+  #subject:has(#select:open) { color: red; }
+</style>
+<div id="subject">
+  This is some text.
+  <dialog id="dialog">This is a dialog</dialog>
+  <details id="details">This is a details</details>
+  <select id="select"><option>1</option></select>
+</div>
+<script>
+    // Dialog tests
+  test(function() {
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 0, 0)",
+                  "ancestor should be black");
+    dialog.show();
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 128, 0)",
+                  "ancestor should be green since dialog is open");
+    dialog.close();
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 0, 0)",
+                  "ancestor should be black since dialog is closed");
+  }, ":open pseudo-class invalidation with dialog.show() + dialog.close()");
+  test(function() {
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 0, 0)",
+                  "ancestor should be black ");
+    dialog.show();
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 128, 0)",
+                  "ancestor should be green since dialog is open");
+    dialog.requestClose();
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 0, 0)",
+                  "ancestor should be black since dialog is closed");
+  }, ":open pseudo-class invalidation with dialog.show() + dialog.requestClose()");
+  test(function(t) {
+    t.add_cleanup(() => {
+      dialog.open = true;
+      dialog.close();
+    });
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 0, 0)",
+                  "ancestor should be black");
+    dialog.show();
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 128, 0)",
+                  "ancestor should be green since dialog is open");
+    dialog.open = false;
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 0, 0)",
+                  "ancestor should be black since dialog is closed");
+  }, ":open pseudo-class invalidation with dialog.show() + dialog.open = false");
+  test(function() {
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 0, 0)",
+                  "ancestor should be black");
+    dialog.showModal();
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 128, 0)",
+                  "ancestor should be green since dialog is open");
+    dialog.close();
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 0, 0)",
+                  "ancestor should be black since dialog is closed");
+  }, ":open pseudo-class invalidation with dialog.showModal() + dialog.close()");
+  test(function() {
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 0, 0)",
+                  "ancestor should be black");
+    dialog.showModal();
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 128, 0)",
+                  "ancestor should be green since dialog is shown modally");
+    dialog.requestClose();
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 0, 0)",
+                  "ancestor should be black since dialog is closed");
+  }, ":open pseudo-class invalidation with dialog.showModal() + dialog.requestClose()");
+  test(function(t) {
+    t.add_cleanup(() => {
+      dialog.open = true;
+      dialog.close();
+    });
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 0, 0)",
+                  "ancestor should be black");
+    dialog.showModal();
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 128, 0)",
+                  "ancestor should be green since dialog is open");
+    dialog.open = false;
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 0, 0)",
+                  "ancestor should be black since dialog is closed");
+  }, ":open pseudo-class invalidation with dialog.showModal() + dialog.open = false");
+  test(function(t) {
+    t.add_cleanup(() => {
+      dialog.open = true;
+      dialog.close();
+    });
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 0, 0)",
+                  "ancestor should be black");
+    dialog.open = true;
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 128, 0)",
+                  "ancestor should be green since dialog is open");
+    dialog.open = false;
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 0, 0)",
+                  "ancestor should be black since dialog is closed");
+  }, ":open pseudo-class invalidation with dialog.open = true/false");
+  // Details tests
+  test(function() {
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 0, 0)",
+                  "ancestor should be black");
+    details.open = true;
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 0, 255)",
+                  "ancestor should be green since details is open");
+      details.open = false;
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 0, 0)",
+                  "ancestor should be black since details is closed");
+  }, ":open pseudo-class invalidation with details.open = true/false");
+  // Select tests
+  promise_test(async t => {
+    assert_equals(getComputedStyle(subject).color, "rgb(0, 0, 0)",
+                  "ancestor should be black");
+    await test_driver.bless('show picker');
+    select.showPicker();
+    assert_equals(getComputedStyle(subject).color, "rgb(255, 0, 0)",
+                  "ancestor should be green since select is open");
+  }, ":open pseudo-class invalidation with select.showPicker()");
+</script>

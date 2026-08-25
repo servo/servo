@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Transforms Test: SVG transform attribute with units on skewX</title>
+    <link rel="author" title="Philip Rogers" href="mailto:pdr@chromium.org">
+    <link rel="help" href="https://www.w3.org/TR/css-transforms-1/#svg-syntax">
+    <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/2623">
+    <link rel="match" href="reference/svg-skewx-ref.html">
+    <meta name="assert" content="The skewX transform function should not support the CSS transform syntax with units. The green rects in this test should have no transform applied.">
+</head>
+<body>
+    <p>The test passes if there is a green square and no red.</p>
+    <svg width="250" height="250" style="background: green">
+       <rect width="100" height="100" fill="red"/>
+       <rect y="0" width="100" height="50" fill="green" transform="skewX(45deg)"/>
+       <rect y="50" width="100" height="50" fill="green" transform="skewX(45rad)"/>
+    </svg>
+</body>
+</html>

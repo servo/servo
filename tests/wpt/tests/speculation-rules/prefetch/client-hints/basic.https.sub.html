@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../../resources/utils.js"></script>
+<script src="../resources/utils.sub.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/client-hints/accept-ch-stickiness/resources/accept-ch-test.js"></script>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+function doTest(description, hostname) {
+  // Just to calculate the origin of `finalUrl` here.
+  const url_for_origin = new URL(location.href);
+  url_for_origin.hostname = hostname;
+
+  // First, verify the initial state to make sure that the browser does not
+  // have client hints preferences cached from a previous run of the test.
+  verify_initial_state(url_for_origin.origin + echo, description);
+
+  // Then, set Accept-CH cache.
+  attempt_set('navigation', url_for_origin.origin + accept, description, '');
+
+  promise_test(async t => {
+    const agent = await spawnWindow(t);
+    const finalUrl = agent.getExecutorURL({ page: 2, hostname: hostname });
+
+    await agent.forceSinglePrefetch(finalUrl);
+    await agent.navigate(finalUrl);
+
+    const headers = await agent.getRequestHeaders();
+    assert_prefetched(headers);
+
+    if (description === 'cross-site') {
+      // Chromium doesn't send non-default Client Hints to cross-site
+      // prefetches.
+      assert_equals(headers['sec-ch-device-memory'], undefined,
+          'sec-ch-device-memory');
+    } else {
+      assert_not_equals(headers['sec-ch-device-memory'], undefined,
+          'sec-ch-device-memory');
+    }
+  }, 'Client Hints headers (' + description + ')');
+}
+
+doTest('same-origin', location.hostname);
+doTest('same-site', '{{hosts[][www]}}');
+doTest('cross-site', '{{hosts[alt][www]}}');
+</script>

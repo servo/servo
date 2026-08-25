@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>background-clip:text on inline elements</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-4/#valdef-background-clip-text">
+<link rel="match" href="clip-text-inline-ref.html">
+<style>
+body {
+  font-size: 40px;
+}
+.text-clip {
+  background: blue;
+  background-clip: text;
+  color: rgba(255,0,0,0.5);
+}
+</style>
+<!-- Passes if all texts below are purple. -->
+<!-- The &nbsp;s are to avoid glyph overflows. -->
+<span class="text-clip">&nbsp;Text1&nbsp;</span><span class="text-clip">&nbsp;Text2&nbsp;</span>
+<br>
+<span class="text-clip">&nbsp;Text3&nbsp;</span><span class="text-clip">&nbsp;Text4&nbsp;</span>
+

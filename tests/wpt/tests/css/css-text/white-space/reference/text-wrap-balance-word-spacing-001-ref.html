@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>CSS Text level 4 Test: text-wrap-style should account for word-spacing</title>
+    <link rel="author" title="Yulun Wu">
+    <link rel="help" href="https://www.w3.org/TR/css-text-4/#word-spacing-property">
+    <link rel="help" href="https://www.w3.org/TR/css-text-4/#text-wrap-style">
+    <link rel="stylesheet" type="text/css" href="/fonts/ahem.css"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      body {
+        font-family: "Ahem";
+        font-size: 12px;
+        width: 500px;
+      }
+      .spacing-10 {
+        word-spacing: 10px;
+      }
+      .spacing-30 {
+        word-spacing: 30px;
+      }
+      .balance-first-line-spacing-30::first-line {
+        word-spacing: 30px;
+      }
+      .img1 {
+        background-color: green;
+        width: 20px;
+        height: 10px;
+      }
+      .img2 {
+        background-color: green;
+        width: 20px;
+        height: 10px;
+        margin-left: 30px;
+        margin-right: 30px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="spacing-10">This passes if this div is one line </div>
+    <div class="spacing-30">This passes if this<br> div has the exact<br> correct breaking points</div>
+    <div class="spacing-30">This passes if this div has<br> the exact correct breaking<br> points</div>
+    <div class="balance-first-line-spacing-30">This passes if this div<br> has the exact correct breaking points</div>
+    <div>test<img class="img1">test <img class="img2"> test</div>
+  </body>
+</html>

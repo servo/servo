@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/intersection-observer-test-utils.js"></script>
+
+<style>
+pre, #log {
+  position: absolute;
+  top: 0;
+  left: 200px;
+}
+#target {
+  background-color: lightblue;
+}
+#occluder {
+  margin-top: -1rem;
+  opacity: 0;
+  will-change: opacity;
+  width: 100px;
+  height: 100px;
+  background-color: pink;
+}
+@keyframes fadein {
+  0% { opacity: 0 }
+  30% { opacity: 0 }
+  31% { opacity: 0.5 }
+  100% { opacity: 0.5 }
+}
+</style>
+
+<div id="target">Hello, world!</div>
+<div id="occluder"></div>
+
+<script>
+promise_test(t => {
+  return new Promise(async function(resolve, reject) {
+    let entries = [];
+    let target = document.getElementById("target");
+    let observer = new IntersectionObserver(function(changes) {
+      entries = entries.concat(changes);
+      changes.forEach(entry => {
+        if (!entry.isVisible) {
+          resolve("Received not-visible notification before animationend.");
+        }
+      });
+    }, { trackVisibility: true, delay: 100 });
+    assert_true(observer.trackVisibility);
+    observer.observe(target);
+    await waitForNotification();
+    assert_equals(entries.length, 1);
+    assert_true(entries[0].isVisible);
+    let occluder = document.getElementById("occluder");
+    occluder.style.animation = "3s linear fadein";
+    setTimeout(() => {
+      reject("Did not get a not-visible notification within 2 seconds.");
+    }, 2000);
+  });
+}, "IntersectionObserver generates notifications when "
+  + "an opacity animation changes occlusion state.");
+</script>

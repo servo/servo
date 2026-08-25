@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>
+  Multi-line row flex fragmentation: Row expansion and stretching with item overflow.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<style>
+  #flex {
+    display: flex;
+    flex-wrap: wrap;
+  }
+  #flex > div {
+    background: green;
+    width: 50%;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width: 100px; height: 100px; columns: 5; column-gap: 0; column-fill: auto; position: relative; background: red;">
+  <div id="flex">
+    <div>
+      <div style="height: 30px;"></div>
+      <div style="height: 50px; break-before: column;"></div> <!-- The break-before forces the grid-item into the next column, and grows the row. -->
+    </div>
+    <div></div>
+    <div>
+      <div style="height: 30px;"></div>
+      <div style="height: 10px; break-before: column;"></div> <!-- The break-before forces the grid-item into the next column, and grows the row. -->
+    </div>
+    <div></div>
+    <div></div>
+    <div style="height: 100px;">
+      <div style="height: 200px;"></div>
+    </div>
+    <div style="height: 190px;"></div>
+    <div></div>
+  </div>
+</div>

@@ -1,0 +1,142 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="587" height="382">
+    <style>
+        text {
+            font-family: 'Consolas', 'Menlo', 'DejaVu Sans Mono', 'Bitstream Vera Sans Mono', monospace;
+            dominant-baseline: middle;
+            text-anchor: middle;
+            fill: #062886;
+            font-size: medium;
+            alignment-baseline: center;
+        }
+        ellipse.fixture, rect.test {
+            fill: #eeffcc;
+            stroke: #007020;
+            stroke-width: 2;
+        }
+        text.fixture {
+            color: #06287e;
+        }
+        circle.class, circle.module, circle.package, circle.plugin {
+            fill: #c3e0ec;
+            stroke: #0e84b5;
+            stroke-width: 2;
+        }
+        text.class, text.module, text.package, text.plugin {
+            fill: #0e84b5;
+        }
+        line, path {
+            stroke: black;
+            stroke-width: 2;
+            fill: none;
+        }
+    </style>
+
+    <!-- plugin_a.py scope -->
+    <circle class="plugin" r="85" cx="486" cy="86" />
+    <!-- plugin name -->
+    <defs>
+        <path d="M 411,86 A 75 75 0 0 1 561 86" id="pluginA"/>
+    </defs>
+    <text class="plugin">
+        <textPath xlink:href="#pluginA" startOffset="50%">plugin_a</textPath>
+    </text>
+    <!-- scope order number -->
+    <mask id="pluginAOrderMask">
+        <rect x="0" y="0" width="100%" height="100%" fill="white"/>
+        <circle fill="black" stroke="white" stroke-width="2" r="85" cx="486" cy="86" />
+    </mask>
+    <circle class="module" r="15" cx="571" cy="86" mask="url(#pluginAOrderMask)"/>
+    <text class="module" x="571" y="86">4</text>
+
+    <!-- plugin_b.py scope -->
+    <circle class="plugin" r="85" cx="486" cy="296" />
+    <!-- plugin name -->
+    <defs>
+        <path d="M 411,296 A 75 75 0 0 1 561 296" id="pluginB"/>
+    </defs>
+    <text class="plugin">
+        <textPath xlink:href="#pluginB" startOffset="50%">plugin_b</textPath>
+    </text>
+    <!-- scope order number -->
+    <mask id="pluginBOrderMask">
+        <rect x="0" y="0" width="100%" height="100%" fill="white"/>
+        <circle fill="black" stroke="white" stroke-width="2" r="85" cx="486" cy="296" />
+    </mask>
+    <circle class="module" r="15" cx="571" cy="296" mask="url(#pluginBOrderMask)"/>
+    <text class="module" x="571" y="296">4</text>
+
+    <!-- main scope -->
+    <circle class="package" r="190" cx="191" cy="191" />
+    <!-- scope name -->
+    <defs>
+        <path d="M 11,191 A 180 180 0 0 1 371 191" id="testp"/>
+    </defs>
+    <text class="package">
+        <textPath xlink:href="#testp" startOffset="50%">tests</textPath>
+    </text>
+    <!-- scope order number -->
+    <mask id="mainOrderMask">
+        <rect x="0" y="0" width="100%" height="100%" fill="white"/>
+        <circle fill="black" stroke="white" stroke-width="2" r="190" cx="191" cy="191" />
+    </mask>
+    <circle class="module" r="15" cx="381" cy="191" mask="url(#mainOrderMask)"/>
+    <text class="module" x="381" y="191">3</text>
+
+    <!-- subpackage -->
+    <circle class="package" r="140" cx="191" cy="231" />
+    <!-- scope name -->
+    <defs>
+        <path d="M 61,231 A 130 130 0 0 1 321 231" id="subpackage"/>
+    </defs>
+    <text class="package">
+        <textPath xlink:href="#subpackage" startOffset="50%">subpackage</textPath>
+    </text>
+    <!-- scope order number -->
+    <mask id="subpackageOrderMask">
+        <rect x="0" y="0" width="100%" height="100%" fill="white"/>
+        <circle fill="black" stroke="white" stroke-width="2" r="140" cx="191" cy="231" />
+    </mask>
+    <circle class="module" r="15" cx="331" cy="231" mask="url(#subpackageOrderMask)"/>
+    <text class="module" x="331" y="231">2</text>
+
+    <!-- test_subpackage.py -->
+    <circle class="module" r="90" cx="191" cy="271" />
+    <!-- scope name -->
+    <defs>
+        <path d="M 111,271 A 80 80 0 0 1 271 271" id="testSubpackage"/>
+    </defs>
+    <text class="module">
+        <textPath xlink:href="#testSubpackage" startOffset="50%">test_subpackage.py</textPath>
+    </text>
+    <!-- scope order number -->
+    <mask id="testSubpackageOrderMask">
+        <rect x="0" y="0" width="100%" height="100%" fill="white"/>
+        <circle fill="black" stroke="white" stroke-width="2" r="90" cx="191" cy="271" />
+    </mask>
+    <circle class="module" r="15" cx="281" cy="271" mask="url(#testSubpackageOrderMask)"/>
+    <text class="module" x="281" y="271">1</text>
+
+    <!-- innermost -->
+    <line x1="191" x2="191" y1="231" y2="311"/>
+    <!-- mid -->
+    <path d="M 191 306 L 101 306 L 91 296 L 91 156 L 101 146 L 191 146" />
+    <!-- order -->
+    <path d="M 191 316 L 91 316 L 81 306 L 81 61 L 91 51 L 191 51" />
+    <!-- a_fix -->
+    <path d="M 191 306 L 291 306 L 301 296 L 301 96 L 311 86 L 486 86" />
+    <!-- b_fix -->
+    <path d="M 191 316 L 316 316 L 336 296 L 486 296" />
+    <ellipse class="fixture" rx="50" ry="25" cx="191" cy="231" />
+    <text x="191" y="231">inner</text>
+    <rect class="test" width="110" height="50" x="136" y="286" />
+    <text x="191" y="311">test_order</text>
+    <ellipse class="fixture" rx="50" ry="25" cx="191" cy="146" />
+    <text x="191" y="146">mid</text>
+    <ellipse class="fixture" rx="50" ry="25" cx="191" cy="51" />
+    <text x="191" y="51">order</text>
+
+    <ellipse class="fixture" rx="50" ry="25" cx="486" cy="86" />
+    <text x="486" y="86">a_fix</text>
+    <ellipse class="fixture" rx="50" ry="25" cx="486" cy="296" />
+    <text x="486" y="296">b_fix</text>
+</svg>

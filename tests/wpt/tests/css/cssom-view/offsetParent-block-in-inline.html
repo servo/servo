@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/cssom-view-1/#extensions-to-the-htmlelement-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<span id="parent" style="position:relative;">
+    <div id="target"></div>
+</span>
+<script>
+test(function() {
+  const target = document.getElementById('target');
+  const parent = document.getElementById('parent');
+  assert_equals(target.offsetParent, parent);
+});
+</script>

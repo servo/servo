@@ -1,0 +1,54 @@
+// Copyright 2018 the V8 project authors. All rights reserved.
+// Copyright 2020 Apple Inc. All rights reserved.
+// This code is governed by the BSD license found in the LICENSE file.
+
+/*---
+esid: sec-Intl.Segmenter.prototype.segment
+description: Verifies the behavior for the "segment" function of the Segmenter prototype object.
+info: |
+    Intl.Segmenter.prototype.segment( string )
+includes: [compareArray.js]
+features: [Intl.Segmenter]
+---*/
+
+const seg = new Intl.Segmenter([], {granularity: "word"})
+for (const text of [
+    "Hello world!", // English
+    " Hello world! ",  // English with space before/after
+    " Hello world? Foo bar!", // English
+    "Jedovatou mambu objevila žena v zahrádkářské kolonii.", // Czech
+    "Việt Nam: Nhất thể hóa sẽ khác Trung Quốc?",  // Vietnamese
+    "Σοβαρές ενστάσεις Κομισιόν για τον προϋπολογισμό της Ιταλίας", // Greek
+    "Решение Индии о покупке российских С-400 расценили как вызов США",  // Russian
+    "הרופא שהציל נשים והנערה ששועבדה ע",  // Hebrew,
+    "ترامب للملك سلمان: أنا جاد للغاية.. عليك دفع المزيد", // Arabic
+    "भारत की एस 400 मिसाइल के मुकाबले पाक की थाड, जानें कौन कितना ताकतवर",  //  Hindi
+    "ரெட் அலர்ட் எச்சரிக்கை; புதுச்சேரியில் நாளை அரசு விடுமுறை!", // Tamil
+    "'ఉత్తర్వులు అందే వరకు ఓటర్ల తుది జాబితాను వెబ్‌సైట్లో పెట్టవద్దు'", // Telugu
+    "台北》抹黑柯P失敗？朱學恒酸：姚文智氣pupu嗆大老闆", // Chinese
+    "วัดไทรตีระฆังเบาลงช่วงเข้าพรรษา เจ้าอาวาสเผยคนร้องเรียนรับผลกรรมแล้ว",  // Thai
+    "九州北部の一部が暴風域に入りました(日直予報士 2018年10月06日) - 日本気象協会 tenki.jp",  // Japanese
+    "법원 “다스 지분 처분권·수익권 모두 MB가 보유”", // Korean
+    ]) {
+  let segments = [];
+  for (const v of seg.segment(text)) {
+    assert.sameValue("string", typeof v.segment);
+    assert.sameValue(true, v.segment.length > 0, "length > 0");
+
+    assert.sameValue("number", typeof v.index);
+    assert.sameValue(true, v.index >= 0, "index >= 0");
+    assert.sameValue(true, v.index < text.length, "index < input.length");
+
+    assert.sameValue("string", typeof v.input);
+    assert.sameValue(text, v.input);
+
+    assert.sameValue("boolean", typeof v.isWordLike);
+    assert.sameValue(true, v.hasOwnProperty("isWordLike"));
+
+    assert.sameValue(text.slice(v.index, v.index + v.segment.length), v.segment);
+    assert.compareArray(Object.getOwnPropertyNames(v), ["segment", "index", "input", "isWordLike"]);
+
+    segments.push(v.segment);
+  }
+  assert.sameValue(text, segments.join(''));
+}

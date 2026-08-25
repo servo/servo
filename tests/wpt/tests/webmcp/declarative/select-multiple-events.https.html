@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<title>WebMCP: executeTool on &lt;select multiple&gt; dispatches events</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/webmcp/resources/helpers.js"></script>
+
+<!-- We'll submit the form to this frame. -->
+<iframe name=hidden_iframe style="display:none"></iframe>
+
+<form
+  toolname=select_fruits
+  tooldescription="Select fruits you like"
+  toolautosubmit
+  target=hidden_iframe
+  action="about:blank">
+  <select id=fruits name=fruits multiple>
+    <option value=apple>Apple</option>
+    <option value=orange>Orange</option>
+    <option value=banana>Banana</option>
+  </select>
+  <input type=submit>
+</form>
+
+<script>
+promise_test(async t => {
+  const tool = await waitForTool('select_fruits');
+  assert_true(!!tool, 'Tool should be registered');
+
+  let fruits = document.getElementById('fruits');
+  let inputEventCount = 0;
+  let changeEventCount = 0;
+
+  fruits.addEventListener('input', () => {
+    inputEventCount++;
+  });
+  fruits.addEventListener('change', () => {
+    changeEventCount++;
+  });
+
+  let inputArgs = JSON.stringify({ fruits: ['apple', 'banana'] });
+
+  // This should dispatch events.
+  await document.modelContext.executeTool(tool, inputArgs);
+
+  assert_true(fruits.options[0].selected);
+  assert_false(fruits.options[1].selected);
+  assert_true(fruits.options[2].selected);
+
+  assert_equals(inputEventCount, 1);
+  assert_equals(changeEventCount, 1);
+
+  // Executing with the same arguments again does not trigger events.
+  await document.modelContext.executeTool(tool, inputArgs);
+
+  assert_equals(inputEventCount, 1);
+  assert_equals(changeEventCount, 1);
+}, 'executeTool() on a <select multiple> dispatches input and change events');
+
+</script>

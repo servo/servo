@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html class="test-wait">
+    <head>
+        <link rel="help" href="https://github.com/servo/servo/issues/36722">
+    </head>
+    <body>
+        <audio id="audio" controls></audio>
+        <script>
+          window.addEventListener("load", () => {
+              document.createElement("div").prepend(audio);
+              document.documentElement.classList.remove("test-wait");
+          });
+        </script>
+    </body>
+</html>

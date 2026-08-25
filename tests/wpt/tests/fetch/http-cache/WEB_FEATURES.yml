@@ -1,0 +1,6 @@
+rules:
+# The classifier for "http-authentication" intentionally overlaps with the
+# below classifier for "fetch" because the boundary between the two features is
+# somewhat subjective.
+- basic-auth-cache-test.html: [http-authentication, fetch]
+- "**": [fetch]

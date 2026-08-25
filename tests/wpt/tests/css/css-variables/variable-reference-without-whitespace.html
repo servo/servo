@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<title>Variable reference without whitespace</title>
+<link rel=match href=reference/variable-reference-without-whitespace-ref.html>
+<link rel=help href=http://www.w3.org/TR/css-variables-1/#syntax>
+<link rel=author title="Simon Sapin" href=http://exyr.org/about/>
+<meta rel=assert content="
+    A variable reference followed by something without whitespace in between
+    must not be interpreted together as a single identifier.
+    Custom property values are sequences of tokens, not strings.">
+<style>
+p {
+    counter-reset: -- --a -a;
+    --dash:-;
+}
+
+#test_1 span::before {
+    counter-increment: var(--dash)-;
+    content: counter(--);
+}
+#test_2 span::before {
+    counter-increment: var(--dash)-a;
+    content: counter(--a);
+}
+#test_3 span::before {
+    counter-increment: var(--dash)a;
+    content: counter(-a);
+}
+
+#control_1 span::before {
+    counter-increment: --;
+    content: counter(--);
+}
+#control_2 span::before {
+    counter-increment: --a;
+    content: counter(--a);
+}
+#control_3 span::before {
+    counter-increment: -a;
+    content: counter(-a);
+}
+</style>
+<p>The next four lines must be identical, containing only zeroes:
+<p id="test_1"><span></span> <span></span> <span></span>
+<p id="test_2"><span></span> <span></span> <span></span>
+<p id="test_3"><span></span> <span></span> <span></span>
+<p>0 0 0
+
+<p>The next four lines must be identical, containing increasing integers:
+<p id="control_1"><span></span> <span></span> <span></span>
+<p id="control_2"><span></span> <span></span> <span></span>
+<p id="control_3"><span></span> <span></span> <span></span>
+<p>1 2 3

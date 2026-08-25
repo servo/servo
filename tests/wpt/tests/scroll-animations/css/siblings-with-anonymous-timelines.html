@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#scroll-timelines-anonymous">
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#view-timelines-anonymous">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/scroll-animations/scroll-timelines/testcommon.js"></script>
+<title>The "animation-timeline" CSS property yields a unique anonymous timeline for siblings matching the same CSS rules</title>
+<style>
+
+  @keyframes anim {
+    from { opacity: 0 }
+  }
+
+  .scroller {
+    overflow-y: scroll;
+    width: 100px;
+    height: 100px;
+  }
+
+  .scroller > div {
+    width: 100%;
+    height: 100%;
+
+    animation: anim auto linear;
+  }
+
+  .scroller.scroll > div {
+    animation-timeline: scroll();
+  }
+
+  .scroller.view > div {
+    animation-timeline: view();
+  }
+
+</style>
+</head>
+<body>
+
+  <div class="scroller scroll">
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+  </div>
+
+  <div class="scroller view">
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+  </div>
+
+  <script>
+
+const types = ["scroll", "view"];
+
+types.forEach(type => {
+  test(t => {
+    const scroller = document.querySelector(`.scroller.${type}`);
+
+    const animations = scroller.getAnimations({ subtree: true });
+    const numberOfChildren = scroller.childElementCount;
+    assert_equals(animations.length, numberOfChildren, "There are as many animations as there are children");
+
+    const timelines = new Set;
+    for (const animation of animations)
+      timelines.add(animation.timeline);
+    assert_equals(timelines.size, numberOfChildren, `There are as many ${type} timelines as there are children`);
+  }, `Setting "animation-timeline: ${type}()" yields a unique ${type} timeline for siblings matching the same CSS rules`);
+});
+
+  </script>
+</body>
+</html>

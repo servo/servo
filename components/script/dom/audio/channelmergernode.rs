@@ -1,0 +1,110 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use dom_struct::dom_struct;
+use js::context::JSContext;
+use js::rust::HandleObject;
+use script_bindings::reflector::reflect_dom_object_with_proto;
+use servo_media::audio::audio_node::AudioNodeInit;
+use servo_media::audio::channel_node::ChannelNodeOptions;
+
+use crate::conversions::Convert;
+use crate::dom::audio::audionode::{AudioNode, AudioNodeOptionsHelper, MAX_CHANNEL_COUNT};
+use crate::dom::audio::baseaudiocontext::BaseAudioContext;
+use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
+    ChannelCountMode, ChannelInterpretation,
+};
+use crate::dom::bindings::codegen::Bindings::ChannelMergerNodeBinding::{
+    ChannelMergerNodeMethods, ChannelMergerOptions,
+};
+use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::window::Window;
+
+#[dom_struct]
+pub(crate) struct ChannelMergerNode {
+    node: AudioNode,
+}
+
+impl ChannelMergerNode {
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
+    pub(crate) fn new_inherited(
+        cx: &mut JSContext,
+        _: &Window,
+        context: &BaseAudioContext,
+        options: &ChannelMergerOptions,
+    ) -> Fallible<ChannelMergerNode> {
+        let node_options = options.parent.unwrap_or(
+            1,
+            ChannelCountMode::Explicit,
+            ChannelInterpretation::Speakers,
+        );
+
+        if node_options.count != 1 || node_options.mode != ChannelCountMode::Explicit {
+            return Err(Error::InvalidState(None));
+        }
+
+        if options.numberOfInputs < 1 || options.numberOfInputs > MAX_CHANNEL_COUNT {
+            return Err(Error::IndexSize(None));
+        }
+
+        let num_inputs = options.numberOfInputs;
+        let node = AudioNode::new_inherited(
+            cx,
+            AudioNodeInit::ChannelMergerNode(options.convert()),
+            context,
+            node_options,
+            num_inputs, // inputs
+            1,          // outputs
+        )?;
+        Ok(ChannelMergerNode { node })
+    }
+
+    pub(crate) fn new(
+        cx: &mut JSContext,
+        window: &Window,
+        context: &BaseAudioContext,
+        options: &ChannelMergerOptions,
+    ) -> Fallible<DomRoot<ChannelMergerNode>> {
+        Self::new_with_proto(cx, window, None, context, options)
+    }
+
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
+    fn new_with_proto(
+        cx: &mut JSContext,
+        window: &Window,
+        proto: Option<HandleObject>,
+        context: &BaseAudioContext,
+        options: &ChannelMergerOptions,
+    ) -> Fallible<DomRoot<ChannelMergerNode>> {
+        let node = ChannelMergerNode::new_inherited(cx, window, context, options)?;
+        Ok(reflect_dom_object_with_proto(
+            cx,
+            Box::new(node),
+            window,
+            proto,
+        ))
+    }
+}
+
+impl ChannelMergerNodeMethods<crate::DomTypeHolder> for ChannelMergerNode {
+    /// <https://webaudio.github.io/web-audio-api/#dom-channelmergernode-channelmergernode>
+    fn Constructor(
+        cx: &mut JSContext,
+        window: &Window,
+        proto: Option<HandleObject>,
+        context: &BaseAudioContext,
+        options: &ChannelMergerOptions,
+    ) -> Fallible<DomRoot<ChannelMergerNode>> {
+        ChannelMergerNode::new_with_proto(cx, window, proto, context, options)
+    }
+}
+
+impl Convert<ChannelNodeOptions> for ChannelMergerOptions {
+    fn convert(self) -> ChannelNodeOptions {
+        ChannelNodeOptions {
+            channels: self.numberOfInputs as u8,
+        }
+    }
+}

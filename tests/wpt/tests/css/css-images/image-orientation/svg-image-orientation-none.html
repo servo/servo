@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Images Module Level 3: svg image ignores orientation with image-orientation:none</title>
+<link rel="author" title="Stephen Chenney" href="mailto:schenney@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#propdef-image-orientation">
+<link rel="match" href="reference/svg-image-orientation-none-ref.html">
+<meta name=fuzzy content="0-5;0-100">
+</head>
+<body>
+    <svg style="width: 500px; height: 650px; image-orientation: none;">
+        <image xlink:href="support/exif-orientation-1-ul.jpg" X="0" Y="0"></image>
+        <image xlink:href="support/exif-orientation-2-ur.jpg" X="125" Y="0"></image>
+        <image xlink:href="support/exif-orientation-3-lr.jpg" X="250" Y="0"></image>
+        <image xlink:href="support/exif-orientation-4-lol.jpg" X="375" Y="0"></image>
+        <image xlink:href="support/exif-orientation-5-lu.jpg" X="0" Y="125"></image>
+        <image xlink:href="support/exif-orientation-6-ru.jpg" X="125" Y="125"></image>
+        <image xlink:href="support/exif-orientation-7-rl.jpg" X="250" Y="125"></image>
+        <image xlink:href="support/exif-orientation-8-llo.jpg" X="375" Y="125"></image>
+        <image xlink:href="support/exif-orientation-9-u.jpg" X="0" Y="250"></image>
+    </svg>
+</body>
+</html>

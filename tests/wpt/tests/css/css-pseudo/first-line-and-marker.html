@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Interaction of ::first-line and ::marker</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com" />
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#first-line-pseudo">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#marker-pseudo">
+<link rel="match" href="first-line-and-marker-ref.html">
+<meta name="assert" content="Tests ::marker interaction with ::first-line pseudo element">
+<style>
+li::first-line {
+  background: cyan;
+}
+.inside {
+  list-style-position: inside;
+}
+.string {
+  list-style-type: "2. ";
+}
+.content::marker {
+  content: "3. ";
+}
+</style>
+<ol class="inside">
+  <li class="decimal">inside decimal</li>
+  <li class="string">inside string</li>
+  <li class="content">inside content</li>
+</ol>
+<ol class="outside">
+  <li class="decimal">outside decimal</li>
+  <li class="string">outside string</li>
+  <li class="content">outside content</li>
+</ol>

@@ -1,0 +1,7 @@
+<!DOCTYPE html>
+<script src="/common/get-host-info.sub.js"></script>
+<iframe scrolling="no" frameborder="0" id="iframe"></iframe>
+<script>
+iframe.src =
+  get_host_info().ORIGIN + "/intersection-observer/resources/same-origin-grand-child-iframe.html";
+</script>

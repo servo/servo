@@ -1,0 +1,47 @@
+<!doctype html>
+<html class="reftest-wait">
+<head>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<script>
+"use strict";
+
+const testFile =
+`<script>
+addEventListener("DOMContentLoaded", () => {
+  window.focus();
+  const tabbableDiv = document.querySelector("div[tabindex]");
+  tabbableDiv.focus();
+  tabbableDiv.addEventListener("focusout", () => {
+    document.designMode = "on";
+  });
+  const textarea = document.querySelector("textarea");
+  textarea.reportValidity();
+});
+</` + `script>
+<body>
+<textarea required></textarea>
+<div tabindex="-1"></div>
+</body>
+`;
+
+addEventListener("DOMContentLoaded", async () => {
+  const iframe = document.querySelector("iframe");
+  let loadCount = 0;
+  iframe.focus();
+  for (const i = 0; i < 20; i++) {
+    const waitForLoad = new Promise(
+      resolve => iframe.addEventListener("load", resolve, {once: true})
+    );
+    iframe.srcdoc = testFile;
+    await waitForLoad;
+    iframe.srcdoc = "";
+  }
+  document.documentElement.removeAttribute("class");
+}, {once: true});
+</script>
+</head>
+<body>
+<iframe></iframe>
+</body>
+</html>

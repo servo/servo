@@ -1,0 +1,97 @@
+<!doctype html>
+<title>Selection.deleteFromDocument() tests</title>
+<link rel=author title="Aryeh Gregor" href=ayg@aryeh.name>
+<p>To debug test failures, add a query parameter with the test id (like
+"?5").  Only that test will be run.  Then you can look at the resulting
+iframes in the DOM.
+<div id=log></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=common.js></script>
+<script>
+"use strict";
+
+// We need to use explicit_done, because in Chrome 16 dev and Opera 12.00, the
+// second iframe doesn't block the load event -- even though it is added before
+// the load event.
+setup({explicit_done: true});
+
+// Specified by WebIDL
+test(function() {
+    assert_equals(Selection.prototype.deleteFromDocument.length, 0,
+        "Selection.prototype.deleteFromDocument.length must equal 0");
+}, "Selection.prototype.deleteFromDocument.length must equal 0");
+
+testDiv.parentNode.removeChild(testDiv);
+
+// Test an empty selection too
+testRanges.unshift("empty");
+
+var actualIframe = document.createElement("iframe");
+
+var expectedIframe = document.createElement("iframe");
+
+var referenceDoc = document.implementation.createHTMLDocument("");
+referenceDoc.removeChild(referenceDoc.documentElement);
+
+actualIframe.onload = function() {
+    expectedIframe.onload = function() {
+        for (var i = 0; i < testRanges.length; i++) {
+            if (location.search && i != Number(location.search)) {
+                continue;
+            }
+
+            test(function() {
+                initializeIframe(actualIframe, testRanges[i]);
+                initializeIframe(expectedIframe, testRanges[i]);
+
+                var actualRange = actualIframe.contentWindow.testRange;
+                var expectedRange = expectedIframe.contentWindow.testRange;
+
+                assert_equals(actualIframe.contentWindow.unexpectedException, null,
+                    "Unexpected exception thrown when setting up Range for actual deleteFromDocument");
+                assert_equals(expectedIframe.contentWindow.unexpectedException, null,
+                    "Unexpected exception thrown when setting up Range for simulated deleteFromDocument");
+
+                actualIframe.contentWindow.getSelection().removeAllRanges();
+                if (testRanges[i] != "empty") {
+                    assert_equals(typeof actualRange, "object",
+                        "Range produced in actual iframe must be an object");
+                    assert_equals(typeof expectedRange, "object",
+                        "Range produced in expected iframe must be an object");
+                    assert_true(actualRange instanceof actualIframe.contentWindow.Range,
+                        "Range produced in actual iframe must be instanceof Range");
+                    assert_true(expectedRange instanceof expectedIframe.contentWindow.Range,
+                        "Range produced in expected iframe must be instanceof Range");
+                    actualIframe.contentWindow.getSelection().addRange(actualIframe.contentWindow.testRange);
+                    expectedIframe.contentWindow.testRange.deleteContents();
+                }
+                actualIframe.contentWindow.getSelection().deleteFromDocument();
+
+                assertNodesEqual(actualIframe.contentDocument, expectedIframe.contentDocument, "DOM contents");
+            }, "Range " + i + ": " + testRanges[i]);
+        }
+        actualIframe.style.display = "none";
+        expectedIframe.style.display = "none";
+        done();
+    };
+    expectedIframe.src = "test-iframe.html";
+    document.body.appendChild(expectedIframe);
+    referenceDoc.appendChild(actualIframe.contentDocument.documentElement.cloneNode(true));
+};
+actualIframe.src = "test-iframe.html";
+document.body.appendChild(actualIframe);
+
+function initializeIframe(iframe, endpoints) {
+    while (iframe.contentDocument.firstChild) {
+        iframe.contentDocument.removeChild(iframe.contentDocument.lastChild);
+    }
+    iframe.contentDocument.appendChild(iframe.contentDocument.implementation.createDocumentType("html", "", ""));
+    iframe.contentDocument.appendChild(referenceDoc.documentElement.cloneNode(true));
+    iframe.contentWindow.setupRangeTests();
+    if (endpoints != "empty") {
+        iframe.contentWindow.testRangeInput = endpoints;
+        iframe.contentWindow.run();
+    }
+}
+</script>

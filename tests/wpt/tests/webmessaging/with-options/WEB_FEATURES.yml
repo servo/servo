@@ -1,0 +1,3 @@
+rules:
+- message-channel-transferable.html: [channel-messaging]
+- "*": [postmessage]

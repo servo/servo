@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<title>Test named frame navigation of ancestors.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+promise_test(async () => {
+  // This test uses the following layout:
+  // A: Top-level frame
+  //   B: iframe
+  //     C: fencedframe
+  //       D: fencedframe
+  //       E: iframe
+  //
+  // The purpose is to test that name resolution of navigation targets ignores
+  // ancestors beyond fence boundaries.
+
+  // Create an iframe B.
+  const B = attachIFrameContext();
+  await B.execute(async () => {
+    window.name = "B";
+
+    // Create a fenced frame C inside of it.
+    window.C = attachFencedFrameContext();
+    await window.C.execute(async () => {
+      window.name = "C";
+
+      // Navigate the target "B" from inside the fenced frame.
+      // It should open in a new tab due to fenced name lookup.
+      window.open("resources/dummy.html", "B");
+    });
+  });
+
+  // Observe that it created a new window, and the frame B is still here.
+  await B.execute(async () => {
+    // Create a nested iframe and fenced frame.
+    await window.C.execute(async () => {
+      window.D = attachFencedFrameContext();
+      window.E = attachIFrameContext();
+
+      // Navigate the target "C" from inside the nested fenced frame.
+      // It should open in a new tab due to fenced name lookup.
+      await window.D.execute(async () => {
+        window.open("resources/dummy.html", "C");
+      });
+    });
+    // Observe that it created a new window, and the frame C is still here.
+    await window.C.execute(async () => {
+      // Now attempt to navigate the target "C" from inside the iframe.
+      // It should open in a new tab with a console error, because sandboxed
+      // iframes (inherited from the fenced frame) are not allowed to navigate
+      // their ancestors.
+      await window.E.execute(() => {
+        window.open("resources/dummy.html", "C");
+      });
+    });
+
+    // Observe that C is still here.
+    await window.C.execute(() => {});
+  });
+}, 'navigate named ancestors');
+</script>
+</body>

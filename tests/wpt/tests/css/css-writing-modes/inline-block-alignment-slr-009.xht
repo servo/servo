@@ -1,0 +1,60 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Writing Modes Test: inline block alignment - alphabetical alignment with vertical layout</title>
+  <link rel="author" title="Hajime Shiozawa" href="mailto:hajime.shiozawa@gmail.com" />
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2015-12-12 -->
+  <link rel="help" title="CSS3 Writing modes: 4.3. Atomic Inline Baseline" href="http://www.w3.org/TR/css-writing-modes-4/#replaced-baselines" />
+  <link rel="help" title="CSS2.1 9.2.2 Inline-level elements and inline boxes" href="http://www.w3.org/TR/CSS21/visuren.html#inline-boxes" />
+  <link rel="match" href="inline-block-alignment-slr-009-ref.xht" />
+  <meta name="assert" content="This test checks the generation of inline-block baseline. When 'writing-mode' is 'sideways-lr', then the alphabetic baseline is used as the dominant baseline." />
+  <meta name="flags" content="ahem" />
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+  <style type="text/css"><![CDATA[
+    div#slr
+  {
+    color: teal;
+    font: 60px/1 Ahem; /* computes to 60px/60px */
+    writing-mode: sideways-lr;
+  }
+
+  div#inline-block
+  {
+    display: inline-block;
+    padding-left: 0.5em; /* computes to 60px */
+    font-size: 2em; /* computes to 120px */
+    /*
+      such padding-left declaration is arbitrary and only serve to make the
+      test a bit more challenging.
+    */
+  }
+
+  span.block-descendant
+  {
+    display: block;
+  }
+
+  span#fuchsia30
+  {
+    padding-right: 4em; /* computes to 120px */
+    font-size: 0.5em; /* computes to 30px */
+    /*
+      such padding-right declaration is arbitrary and only serve to make the
+      test a bit more challenging.
+    */
+  }
+  ]]></style>
+
+</head>
+
+<body>
+
+<p>Test passes if the <strong>right edge</strong> of an irregular polygon is straight and unbroken.</p>
+
+<div id="slr">É<div id="inline-block">
+  <span class="block-descendant">B</span>
+  <span class="block-descendant last-line-box">É</span>
+</div><span id="fuchsia30">É</span></div>
+
+</body>
+</html>

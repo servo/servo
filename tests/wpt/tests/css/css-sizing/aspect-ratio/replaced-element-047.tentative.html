@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#valdef-width-max-content">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/12333">
+<link rel="help" href="https://github.com/servo/servo/issues/37433">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht" />
+
+<style>
+.red {
+  position: absolute;
+  z-index: -1;
+  width: 100px;
+  height: 100px;
+  background: red;
+}
+canvas {
+  display: block;
+  width: max-content;
+  height: 0px;
+  min-height: max-content;
+  aspect-ratio: 1;
+  background: green;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div class="red"></div>
+<canvas width="100" height="50"></canvas>

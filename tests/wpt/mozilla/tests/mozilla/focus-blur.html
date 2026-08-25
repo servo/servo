@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <input id="a">
+  <input id="b">
+  <script>
+  test(function() {
+    var a = document.getElementById("a");
+    var b = document.getElementById("b");
+
+    assert_equals(document.activeElement, document.body);
+    a.focus();
+    assert_equals(document.activeElement, a);
+    b.focus();
+    assert_equals(document.activeElement, b);
+    a.blur();
+    assert_equals(document.activeElement, b);
+    b.blur();
+    assert_equals(document.activeElement, document.body);
+  });
+  </script>
+</body>
+</html>

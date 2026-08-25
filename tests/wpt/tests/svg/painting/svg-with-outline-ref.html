@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+<title>CSS outline (ref)</title>
+<link rel="stylesheet" href="/fonts/ahem.css"/>
+
+<style>
+body { margin: 0; padding: 0; }
+</style>
+
+<svg height=500>
+  <rect x="8" y="8" width="24" height="24" fill="blue"/>
+  <rect x="10" y="10" width="20" height="20" fill="green"/>
+
+  <rect x="7.5" y="47.5" width="25" height="25" fill="none" stroke="blue"/>
+  <rect x="10" y="50" width="20" height="20" fill="green"/>
+
+  <text id="text" font-family="Ahem" font-size="100px" x="10" y="200">X</text>
+
+  <script>
+    const floatBounds = text.getBBox();
+    const bounds = {
+      x : Math.round(floatBounds.x),
+      y : Math.round(floatBounds.y),
+      width : Math.round(floatBounds.width),
+      height : Math.round(floatBounds.height)
+    };
+
+
+    const outline = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    outline.setAttribute("x", bounds.x - 1);
+    outline.setAttribute("y", bounds.y - 1);
+    outline.setAttribute("width", bounds.width + 2);
+    outline.setAttribute("height", bounds.height + 2);
+    outline.setAttribute("fill", "none");
+    outline.setAttribute("stroke", "blue");
+    outline.setAttribute("stroke-width", "2");
+
+    text.parentNode.insertBefore(outline, text);
+  </script>
+</svg>

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="help" href="https://drafts.csswg.org/web-animations-2#animation-trigger">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/web-animations/testcommon.js"></script>
+  </head>
+  <body>
+    <style>
+      .scroller {
+        overflow-y: scroll;
+        border: solid 1px;
+        place-self: center;
+        height: 300px;
+        width: 200px;
+      }
+      @keyframes slide-in {
+        from {
+          transform: translateX(-50px);
+        }
+      }
+      #subject {
+        height: 100px;
+        width: 100px;
+        background-color: purple;
+        timeline-trigger: --trigger view() contain 0% contain 100%;
+      }
+      .target {
+        height: 100px;
+        width: 100%;
+        background-color: blue;
+        animation: slide-in 3s;
+        color: white;
+      }
+      .space {
+        height: 250px;
+        width: 50%;
+      }
+
+      .active {
+        animation-fill-mode: both;
+      }
+      .idle {
+        animation-fill-mode: none;
+      }
+
+      .valid {
+        animation-trigger: --trigger play-once;
+      }
+      .invalid {
+        animation-trigger: --nonexistent-trigger play-once;
+      }
+
+    </style>
+    <div id="scroller" class="scroller">
+      <div class="space"></div>
+      <div id="subject"></div>
+      <div class="space"></div>
+      <div id="active_target" class="active valid target">Active</div>
+      <div id="idle_target" class="idle valid target">Idle</div>
+      <div id="invalid_target" class="invalid target">Invalid</div>
+    </div>
+    <script>
+      promise_test(async () => {
+        for (const target of document.querySelectorAll(".target")) {
+          assert_equals(target.getAnimations().length, 1,
+            `animation on ${target.id} is exposed`);
+        }
+      }, "getAnimations includes an untriggered " +
+         "'fill-mode: none' and 'fill-mode: both' animations.");
+    </script>
+  </body>
+</html>

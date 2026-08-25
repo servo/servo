@@ -1,0 +1,141 @@
+<!doctype html>
+<title>volumechange event</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+function volumechange_test(tagName) {
+  async_test(function(t) {
+    var e = document.createElement(tagName);
+    assert_equals(e.volume, 1);
+    e.volume = 0.5;
+    assert_equals(e.volume, 0.5);
+    e.onvolumechange = t.step_func(function() {
+      assert_equals(e.volume, 0.5);
+      e.volume = 1;
+      assert_equals(e.volume, 1);
+      e.onvolumechange = t.step_func(function() {
+        assert_equals(e.volume, 1);
+        t.done();
+      });
+    });
+  }, "setting " + tagName + ".volume fires volumechange");
+
+  async_test(function(t) {
+    var e = document.createElement(tagName);
+    assert_false(e.muted);
+    e.muted = true;
+    assert_true(e.muted);
+    e.onvolumechange = t.step_func(function() {
+      assert_true(e.muted);
+      e.muted = false;
+      assert_false(e.muted);
+      e.onvolumechange = t.step_func(function() {
+        assert_false(e.muted);
+        t.done();
+      });
+    });
+  }, "setting " + tagName + ".muted fires volumechange");
+
+  async_test(function(t) {
+    var e = document.createElement(tagName);
+    e.volume = e.volume;
+    e.muted = e.muted;
+    e.onvolumechange = t.step_func(function() {
+      assert_unreached();
+    });
+    var e2 = document.createElement(tagName);
+    e2.muted = !e2.muted;
+    e2.onvolumechange = t.step_func(function() {
+      t.done();
+    });
+  }, "setting " + tagName + ".volume/muted to the same value does not fire volumechange");
+
+  async_test(function(t) {
+    var e = document.createElement(tagName);
+    e.muted = !e.muted;
+    e.volume = 1 - e.volume;
+    e.muted = !e.muted;
+    e.volume = 1 - e.volume;
+    var volumechange_count = 0;
+    e.onvolumechange = t.step_func(function() {
+      volumechange_count++;
+      if (volumechange_count == 4) {
+        t.done();
+      }
+    });
+  }, "setting " + tagName + ".volume/muted repeatedly fires volumechange repeatedly");
+
+  async_test(function(t) {
+    var e = document.createElement(tagName);
+    e.muted = !e.muted;
+    e.volume = 1 - e.volume;
+    e.load();
+    e.onvolumechange = t.unreached_func();
+    t.step_timeout(() => {
+      t.done();
+    }, 1000);
+  }, "setting " + tagName + ".volume/muted before load will not fire volumechange");
+
+  async_test(function(t) {
+    var e = document.createElement(tagName);
+    e.onvolumechange = t.unreached_func();
+    assert_false(e.muted);
+    e.setAttribute('muted', '');
+    assert_true(e.muted);
+    e.removeAttribute('muted');
+    assert_false(e.muted);
+    // Despite e.muted changing (twice), no volumechange event.
+    t.step_timeout(() => {
+      t.done();
+    }, 1000);
+  }, "adding/removing " + tagName + " muted content attribute will not fire volumechange");
+
+  async_test(function(t) {
+    var e = document.createElement(tagName);
+    document.body.appendChild(e);
+    t.add_cleanup(function() { e.remove(); });
+    e.onvolumechange = t.unreached_func();
+    assert_false(e.muted);
+    e.setAttribute('muted', '');
+    assert_true(e.muted);
+    e.removeAttribute('muted');
+    assert_false(e.muted);
+    // muted changed twice, but content-attribute changes never fire
+    // volumechange, even when the element is connected to a document.
+    t.step_timeout(() => {
+      t.done();
+    }, 1000);
+  }, "adding/removing " + tagName + " muted content attribute on a connected element will not fire volumechange");
+
+  async_test(function(t) {
+    var e = document.createElement(tagName);
+    e.onvolumechange = t.unreached_func();
+    // This changes the internal muted state from default to false, but the IDL
+    // attribute value doesn't change, so no volumechange event.
+    assert_false(e.muted);
+    e.muted = false;
+    assert_false(e.muted);
+    t.step_timeout(() => {
+      t.done();
+    }, 1000);
+  }, "setting " + tagName + ".muted to false when false by default will not fire volumechange");
+
+  async_test(function(t) {
+    var e = document.createElement(tagName);
+    e.onvolumechange = t.unreached_func();
+    e.setAttribute('muted', '');
+    // This changes the internal muted state from default to true, but the IDL
+    // attribute value doesn't change, so no volumechange event.
+    assert_true(e.muted);
+    e.muted = true;
+    assert_true(e.muted);
+    t.step_timeout(() => {
+      t.done();
+    }, 1000);
+  }, "setting " + tagName + ".muted to true when true by default will not fire volumechange");
+}
+
+volumechange_test("audio");
+volumechange_test("video");
+</script>

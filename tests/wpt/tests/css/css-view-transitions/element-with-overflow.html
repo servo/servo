@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: element with overflow</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<link rel="match" href="element-with-overflow-ref.html">
+
+<script src="/common/reftest-wait.js"></script>
+<style>
+  .hidden {
+    width: 10px;
+    height: 10px;
+    view-transition-name: hidden;
+    background: green;
+  }
+
+  .target {
+    width: 100px;
+    height: 100px;
+    background: lightblue;
+    view-transition-name: target;
+  }
+  .inner {
+    width: 100px;
+    height: 100px;
+    position: relative;
+    top: 50px;
+    left: 50px;
+    border: 5px solid black;
+  }
+
+  html::view-transition-group(hidden) { animation-duration: 300s; }
+  html::view-transition-image-pair(hidden) { animation: unset; opacity: 0; }
+
+  html::view-transition-new(*), html::view-transition-old(*) {
+    opacity: 1;
+    animation: unset;
+  }
+
+  html::view-transition-old(target) {
+    top: 0px;
+    left: 0px;
+  }
+
+  html::view-transition-new(target) {
+    top: 200px;
+    left: 0px;
+  }
+</style>
+
+<div class="target">
+  <div class="inner"></div>
+</div>
+<div class="hidden"></div>
+
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+async function runTest() {
+  document.startViewTransition(() => {
+    document.getElementsByClassName("target")[0].style.background="lightgreen";
+    document.getElementsByClassName("inner")[0].style.border="5px solid blue";
+    requestAnimationFrame(() => requestAnimationFrame(() =>
+      requestAnimationFrame(() => requestAnimationFrame(takeScreenshot))
+    ));
+  });
+}
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+

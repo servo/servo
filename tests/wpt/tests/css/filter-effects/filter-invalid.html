@@ -1,0 +1,24 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Invalid filter draws unfiltered frame</title>
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#typedef-filter-url">
+<link rel="match" href="filter-invalid-ref.html">
+<style>
+div, rect {
+  width: 100px;
+  height: 100px;
+  filter: url(#not-found);
+}
+div {
+  background-color: blue;
+}
+rect {
+  fill: purple;
+}
+</style>
+<div></div>
+<svg>
+  <rect></rect>
+</svg>

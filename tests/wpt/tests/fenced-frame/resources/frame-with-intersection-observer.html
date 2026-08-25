@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="utils.js"></script>
+<div id="target" style="width: 100px; height: 100px; position: fixed; top: 0px; left: 0px"></div>
+<script>
+let next_token = 0;
+function init() {
+  const tokens = parseKeylist();
+  let observer = new IntersectionObserver((entries) => {
+    assert_equals(entries.length, 1);
+    let rect = entries[0].intersectionRect.x + "," +
+               entries[0].intersectionRect.y + "," +
+               entries[0].intersectionRect.width + "," +
+               entries[0].intersectionRect.height + "," +
+               entries[0].isVisible;
+    writeValueToServer(tokens[next_token], rect);
+    next_token = next_token + 1;
+
+    if (next_token == tokens.length) {
+      observer.disconnect();
+    }
+  }, {trackVisibility: true, delay: 100, threshold: [0.6, 0.75]});
+  observer.observe(document.getElementById("target"));
+}
+
+init();
+</script>
+</html>

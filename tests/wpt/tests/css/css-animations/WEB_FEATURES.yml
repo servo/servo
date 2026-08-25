@@ -1,0 +1,11 @@
+rules:
+- animation-composition.html: [animation-composition]
+- animation-composition-*: [animation-composition]
+- display-interpolation.html: [display-animation]
+- animation-base-response-*: [steps-easing]
+- animation-important-*: [steps-easing]
+- animation-timing-function-009-manual.html: [steps-easing]
+- animation-timing-function-010-manual.html: [steps-easing]
+- dialog-backdrop-animation.html: [backdrop]
+- empty-pseudo-class-with-animation.html: [empty]
+- "*": [animations-css]

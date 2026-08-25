@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<style>
+.grid {
+    display: grid;
+    grid-template-rows: repeat(6, 50px);
+}
+</style>
+<body>
+  <p>Ensure that row dense-packing honors flow-tolerance for multi-span items with track-reverse. The yellow item should use the first preferred opening in the reversed track direction, spanning tracks 4-5 (running position 0), not tracks 1-2.</p>
+  <div class="grid">
+    <div style="background: lightskyblue; width: 5px; grid-row: 1 / span 2; grid-column: 1;">1</div>
+    <div style="background: lightblue; width: 60px; grid-row: 3; grid-column: 1;">2</div>
+    <div style="background: darkblue; width: 60px; grid-row: 6; grid-column: 1;">3</div>
+    <div style="background: lightsteelblue; width: 20px; grid-row: 1 / span 6; grid-column: 1; transform: translateX(60px);">4</div>
+    <div style="background: yellow; width: 20px; grid-row: 4 / span 2; grid-column: 1;">5</div>
+  </div>
+</body>
+</html>

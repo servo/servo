@@ -1,0 +1,15 @@
+<link rel="help" href="https://github.com/servo/servo/issues/16515">
+<body>
+<script>
+  /*
+    Create an element with a compiled event handler in one realm.
+    Adopt it into another realm and cause the event handler to be invoked.
+    It will not be recompiled against the new realm, but it also should not
+    trigger any assertions.
+   */
+  let i = document.createElement('iframe');
+  document.body.appendChild(i);
+  let i2 = document.createElement('iframe');
+  i2.onload = () => {};
+  i.contentDocument.body.appendChild(i2);
+</script>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<style>
+  .base {
+    appearance: base-select;
+  }
+  select::picker(select) {
+    background: red;
+    border: none;
+    padding: 0;
+    flex: 1;
+  }
+  select {
+    display: inline-flex;
+    height: 100px;
+    width: 100px;
+    border: none;
+    padding: 0;
+  }
+</style>
+<select class=base size=2>
+  <option style="height: 20px; margin: 0; background: blue;">one</option>
+</select>

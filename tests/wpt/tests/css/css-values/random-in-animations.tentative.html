@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<title>CSS Values and Units Test: random() in animations</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#random">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+
+<style>
+  @property --number {
+    syntax: "<number>";
+    inherits: true;
+    initial-value: 0;
+  }
+</style>
+
+<body>
+  <div id="target"></div>
+</body>
+
+<script>
+test_interpolation({
+  property: '--number',
+  from: '100',
+  to: 'random(300, 100)',
+}, [
+  {at: -0.5, expect: '0'},
+  {at: 0, expect: '100'},
+  {at: 0.5, expect: '200'},
+  {at: 1, expect: '300'},
+  {at: 1.5, expect: '400'},
+]);
+
+test_interpolation({
+  property: 'font-weight',
+  from: '100',
+  to: 'random(300, 100)',
+}, [
+  {at: -0.5, expect: '1'},
+  {at: 0, expect: '100'},
+  {at: 0.5, expect: '200'},
+  {at: 1, expect: '300'},
+  {at: 1.5, expect: '400'},
+]);
+
+test(t => {
+  var target = document.getElementById('target');
+  target.animate(
+    { '--number': ['random(0, 100, 1)', '300'] },
+    {
+      duration: 1000
+    }
+  );
+  document.getAnimations().forEach((animation) => {
+    animation.pause();
+    animation.currentTime = 0;
+  });
+
+  let from = parseInt(getComputedStyle(target).getPropertyValue('--number'));
+  let expected = from + (300 - from) / 2;
+
+  document.getAnimations().forEach((animation) => {
+    animation.pause();
+    animation.currentTime = 500;
+  });
+  assert_equals(parseFloat(getComputedStyle(target).getPropertyValue('--number')), expected);
+}, "Test custom property animation with random() endpoints");
+
+
+test(t => {
+  var target = document.getElementById('target');
+  target.animate(
+    { fontWeight: ['random(100, 200, 1)', '300'] },
+    {
+      duration: 1000
+    }
+  );
+  document.getAnimations().forEach((animation) => {
+    animation.pause();
+    animation.currentTime = 0;
+  });
+
+  let from = parseInt(getComputedStyle(target).getPropertyValue('font-weight'));
+  let expected = from + (300 - from) / 2;
+
+  document.getAnimations().forEach((animation) => {
+    animation.pause();
+    animation.currentTime = 500;
+  });
+  assert_equals(parseFloat(getComputedStyle(target).getPropertyValue('font-weight')), expected);
+}, "Test font-weight animation with random() endpoints");
+
+
+</script>

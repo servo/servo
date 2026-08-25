@@ -1,0 +1,132 @@
+<!doctype html>
+<meta charset=utf-8>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+const url = new URL("./", self.location);
+
+function httpWorkerIncrementerTest(name) {
+  return `
+promise_test(t => {
+  const worker = new Worker("${url.href}resources/incrementer-worker.js");
+
+  return testSharingViaIncrementerScript(t, worker, "parent worker", worker, "sub-worker");
+}, "${name}: postMessaging to a dedicated HTTP sub-worker allows them to see each others' modifications");
+`;
+}
+
+function blobWorkerIncrementerTest(name, origin = "null") {
+  return `
+promise_test(t => {
+  const worker = new Worker(URL.createObjectURL(new Blob([\`
+const view = new Uint8Array(new SharedArrayBuffer(1));
+self.onmessage = () => {
+  const succeeded = (view[0] === 1);
+  self.postMessage({ succeeded });
+};
+self.postMessage({ origin: self.origin, view });
+\`], { type: "text/javascript" })));
+
+  return new Promise((resolve, reject) => {
+    /* Initially the sub-worker gives us an object containing an origin and a view on a shared
+    // buffer. We then modify the shared buffer through the buffer and tell the sub-worker to
+    // "continue". The sub-worker verifies the modification and relays whether it succeeded.
+    */
+    worker.onmessage = t.step_func(({ data }) => {
+      if ("succeeded" in data) {
+        assert_true(data.succeeded);
+        resolve();
+      } else {
+        assert_equals(data.origin, "${origin}");
+        assert_equals(data.view[0], 0);
+        data.view[0] = 1;
+        worker.postMessage("continue");
+      }
+    });
+    worker.onmessageerror = reject;
+  });
+}, "${name}: postMessaging to a dedicated blob sub-worker allows them to see each others' modifications");
+`;
+}
+
+function propertyTests(name, crossOriginIsolated) {
+  return `
+test(() => {
+  assert_equals(self.origin, self.location.origin);
+}, "${name}: self.origin");
+
+test(() => {
+  assert_equals(self.crossOriginIsolated, ${crossOriginIsolated});
+}, "${name}: self.crossOriginIsolated");
+
+test(() => {
+  assert_true(self.isSecureContext);
+}, "${name}: self.isSecureContext");
+`;
+}
+
+const workerScript = `
+importScripts("${url.origin}/resources/testharness.js");
+importScripts("${url.href}resources/test-incrementer.js");
+
+${httpWorkerIncrementerTest("blob worker")}
+
+${blobWorkerIncrementerTest("blob worker", self.location.origin)}
+
+${propertyTests("blob worker", true)}
+
+done();
+`;
+
+fetch_tests_from_worker(new Worker(URL.createObjectURL(new Blob([workerScript], { type: "text/javascript" }))));
+
+const frameScript = `
+<!doctype html>
+<script src=${url.origin}/resources/testharness.js><\/script>
+<script src=${url.href}resources/test-incrementer.js><\/script>
+<script>
+${httpWorkerIncrementerTest("blob frame")}
+
+${blobWorkerIncrementerTest("blob frame", self.location.origin)}
+
+${propertyTests("blob frame", true)}
+<\/script>
+`;
+
+const frame = document.body.appendChild(document.createElement("iframe"));
+frame.src = URL.createObjectURL(new Blob([frameScript], { type: "text/html" }));
+frame.style = "display:none";
+fetch_tests_from_window(frame.contentWindow);
+
+const dataWorkerScript = `
+importScripts("${url.origin}/resources/testharness.js?pipe=header(Cross-Origin-Resource-Policy,cross-origin)");
+
+/* Cannot use httpWorkerIncrementerTest() here as the HTTP URL is not same origin. */
+
+${blobWorkerIncrementerTest("data worker")}
+
+${propertyTests("data worker", false)}
+
+done();
+`;
+
+fetch_tests_from_worker(new Worker(`data:,${dataWorkerScript}`));
+
+const dataFrameScript = `
+<!doctype html>
+<script src=${url.origin}/resources/testharness.js?pipe=header(Cross-Origin-Resource-Policy,cross-origin)><\/script>
+<script>
+/* Cannot use httpWorkerIncrementerTest() here as the HTTP URL is not same origin. */
+
+${blobWorkerIncrementerTest("data frame")}
+
+${propertyTests("data frame", true)}
+<\/script>
+`;
+
+const dataFrame = document.body.appendChild(document.createElement("iframe"));
+dataFrame.src = `data:text/html,${dataFrameScript}`;
+dataFrame.style = "display:none";
+fetch_tests_from_window(dataFrame.contentWindow);
+</script>

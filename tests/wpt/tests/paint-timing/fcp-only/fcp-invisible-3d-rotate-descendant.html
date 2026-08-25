@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<head>
+<title>Performance Paint Timing Test: FCP due to 3d revealing of descendants</title>
+<style>
+    #main {
+        width: 100px;
+        height: 100px;
+        left: 0px;
+        position: relative;
+        top: 0;
+        transform: rotateX(45deg);
+        transform-style: preserve-3d;
+    }
+
+    /*
+       This tests that given multiplication effect of 3d transforms on bounding rect,
+       An element counts as contentful/paintable only when its bounding rect is truly non-empty */
+    #child {
+        transform: rotateX(45deg);
+    }
+
+    /* contentful class is defined in test_fcp script. */
+    #main.contentful {
+        transform: none;
+    }
+</style>
+</head>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/utils.js"></script>
+<div id="main">
+    <div id="child">Text</div>
+</div>
+<script>
+    test_fcp("First contentful paint fires due to its ancestor getting rotating into view.");
+</script>
+</body>
+</html>

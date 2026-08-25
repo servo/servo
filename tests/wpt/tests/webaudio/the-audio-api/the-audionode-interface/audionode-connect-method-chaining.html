@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>AudioNode.connect() Method Chaining and Validation Tests</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/webaudio/resources/audit-util.js"></script>
+  </head>
+  <body>
+    <script>
+      // Dictionary of AudioNode types and their constructor arguments
+      const audioNodeTypesToTest = [
+        { name: 'Analyser' }, { name: 'BiquadFilter' },
+        { name: 'BufferSource' }, { name: 'ChannelMerger', args: [6] },
+        { name: 'ChannelSplitter', args: [6] }, { name: 'Convolver' },
+        { name: 'Delay' }, { name: 'DynamicsCompressor' }, { name: 'Gain' },
+        { name: 'Oscillator' }, { name: 'Panner' },
+        { name: 'ScriptProcessor', args: [512, 1, 1] },
+        { name: 'StereoPanner' }, { name: 'WaveShaper' }
+      ];
+
+      // Verifies that AudioNode.connect() returns the destination node.
+      function verifyConnectReturnValue(
+          t, { sourceNode, destinationNode, returnedValue, description }) {
+            assert_equals(
+              returnedValue,
+              destinationNode,
+              `${description} should return the destination node`
+            );
+      }
+
+      // Creates a source node and tests .connect() chaining with:
+      //  - a simple GainNode
+      //  - a BiquadFilterNode with output index
+      //  - a ChannelMergerNode with both output and input index
+      function testConnectChainingForNodeType(t, audioContext, nodeInfo) {
+        const sourceNode =
+            audioContext[`create${nodeInfo.name}`].apply(audioContext,
+                nodeInfo.args || []);
+        const sourceTypeName = sourceNode.constructor.name;
+
+        const gainNode = audioContext.createGain();
+        verifyConnectReturnValue(t, {
+          sourceNode,
+          destinationNode: gainNode,
+          returnedValue: sourceNode.connect(gainNode),
+          description: `${sourceTypeName}.connect(GainNode)`
+        });
+
+        const biquadNode = audioContext.createBiquadFilter();
+        verifyConnectReturnValue(t, {
+          sourceNode,
+          destinationNode: biquadNode,
+          returnedValue: sourceNode.connect(biquadNode, 0),
+          description: `${sourceTypeName}.connect(BiquadFilterNode, 0)`
+        });
+
+        const channelMergerNode = audioContext.createChannelMerger();
+        verifyConnectReturnValue(t, {
+          sourceNode,
+          destinationNode: channelMergerNode,
+          returnedValue: sourceNode.connect(channelMergerNode, 0, 1),
+          description: `${sourceTypeName}.connect(ChannelMergerNode, 0, 1)`
+        });
+      }
+
+      test(t => {
+        const audioContext = new AudioContext();
+
+        for (const nodeInfo of audioNodeTypesToTest) {
+          testConnectChainingForNodeType(t, audioContext, nodeInfo);
+        }
+      }, 'Verify connect() method chaining for common AudioNode types ' +
+          'returns destination');
+
+      test(t => {
+        const audioContext = new AudioContext();
+
+        const audioElement = document.createElement('audio');
+        testConnectChainingForNodeType(t, audioContext, {
+          name: 'MediaElementSource',
+          args: [audioElement]
+        });
+
+        const mediaStreamDestination =
+            audioContext.createMediaStreamDestination();
+        const mediaStream = mediaStreamDestination.stream;
+
+        testConnectChainingForNodeType(t, audioContext, {
+          name: 'MediaStreamSource',
+          args: [mediaStream]
+        });
+      }, 'Verify connect() method chaining for MediaElementSourceNode ' +
+          'and MediaStreamSourceNode');
+
+      test(t => {
+        const contextA = new AudioContext();
+        const contextB = new AudioContext();
+        const gainA1 = contextA.createGain();
+        const gainA2 = contextA.createGain();
+
+        assert_throws_dom(
+          'IndexSizeError',
+          () => {
+            gainA1.connect(gainA2, 1).connect(contextA.destination);
+          },
+          'Connecting to an invalid output index should throw IndexSizeError'
+        );
+
+        assert_throws_dom(
+          'InvalidAccessError',
+          () => {
+            gainA1.connect(gainA2).connect(contextB.destination);
+          },
+          'Connecting nodes across different AudioContexts should ' +
+              'throw InvalidAccessError'
+        );
+      }, 'Test exceptions thrown by invalid connect() chaining');
+
+      promise_test(async t => {
+        const context = new OfflineAudioContext(1, 128, 8000);
+
+        const constantBuffer = createConstantBuffer(context, 1, 1.0);
+        const bufferSource = context.createBufferSource();
+        bufferSource.buffer = constantBuffer;
+        bufferSource.loop = true;
+
+        const gainNode1 = context.createGain();
+        gainNode1.gain.value = 0.5;
+
+        const gainNode2 = context.createGain();
+        gainNode2.gain.value = 0.25;
+        bufferSource.connect(gainNode1)
+            .connect(gainNode2)
+                .connect(context.destination);
+        bufferSource.start();
+
+        const renderedBuffer = await context.startRendering();
+
+        assert_array_approx_equals(
+          renderedBuffer.getChannelData(0),
+          new Float32Array(renderedBuffer.length).fill(0.125),
+          1e-6,
+          'Output of chained gain nodes should be input * 0.5 * 0.25 = 0.125'
+        );
+      }, 'Test correct signal flow and output value after chaining ' +
+          '.connect() on gain nodes');
+    </script>
+  </body>
+</html>

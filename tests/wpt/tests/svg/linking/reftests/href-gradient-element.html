@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>href - gradient element</title>
+<meta name="assert" content="The gradient element should accept href">
+<link rel="match" href="href-gradient-element-ref.html">
+<body>
+  <svg width="300" height="300" viewBox="0 0 300 300"
+       xmlns:xlink="http://www.w3.org/1999/xlink">
+    <linearGradient id="MyGradient">
+      <stop offset="5%"  stop-color="green"/>
+      <stop offset="95%" stop-color="gold"/>
+    </linearGradient>
+    <linearGradient id="MyGradient2">
+      <stop offset="5%"  stop-color="red"/>
+      <stop offset="95%" stop-color="blue"/>
+    </linearGradient>
+    <linearGradient id="CopiedGradient" href="#MyGradient"
+                    xlink:href="#MyGradient2">
+    </linearGradient>
+    <rect fill="url(#CopiedGradient)" stroke="black" x="0" y="0"
+          width="100" height="100"/>
+
+    <radialGradient id="MyRadialGradient">
+      <stop offset="0%" stop-color="red"/>
+      <stop offset="100%" stop-color="blue"/>
+    </radialGradient>
+    <radialGradient id="CopiedRadialGradient" href="#MyRadialGradient"/>
+    <rect x="110" y="0" rx="15" ry="15" width="100" height="100"
+          fill="url(#CopiedRadialGradient)"/>
+  </svg>
+</body>

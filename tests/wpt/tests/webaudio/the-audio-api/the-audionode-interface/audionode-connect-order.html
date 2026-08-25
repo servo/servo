@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      AudioNode: Connection Order Robustness
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/webaudio/resources/audit-util.js"></script>
+  </head>
+  <body>
+    <script>
+      const sampleRate = 44100.0;
+      const renderLengthSeconds = 0.125;
+      const delayTimeSeconds = 0.1;
+
+      const createSinWaveBuffer = (lengthInSeconds, frequency) => {
+        const audioBuffer = new AudioBuffer({
+          numberOfChannels: 1,
+          length: Math.floor(lengthInSeconds * sampleRate),
+          sampleRate
+        });
+
+        let channelData = audioBuffer.getChannelData(0);
+
+        for (let i = 0; i < audioBuffer.length; ++i) {
+          channelData[i] = Math.sin(frequency * 2 * Math.PI * i / sampleRate);
+        }
+
+        return audioBuffer;
+      }
+
+      promise_test(async () => {
+        const context = new OfflineAudioContext(
+            1, sampleRate * renderLengthSeconds, sampleRate);
+
+        const bufferSource = new AudioBufferSourceNode(context, {
+          buffer: createSinWaveBuffer(renderLengthSeconds, 880)
+        });
+        bufferSource.connect(context.destination);
+
+        const delay = new DelayNode(context, {
+          delayTime: delayTimeSeconds
+        });
+
+        // We connect delay node to gain node before anything is connected
+        // to delay node itself.  We do this because we try to trigger the
+        // ASSERT which might be fired due to AudioNode connection order,
+        // especially when gain node and delay node is involved e.g.
+        // https://bugs.webkit.org/show_bug.cgi?id=76685.
+
+        // This should not throw an exception.
+        const gain = new GainNode(context);
+        gain.connect(context.destination);
+        delay.connect(gain);
+
+        bufferSource.start();
+
+        await context.startRendering();
+      }, `Test connections: AudioNode connection order doesn't `+
+          `trigger assertion errors`);
+    </script>
+  </body>
+</html>

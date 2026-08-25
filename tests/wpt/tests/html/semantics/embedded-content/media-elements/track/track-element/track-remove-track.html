@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+        <script src="/common/media.js"></script>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+    </head>
+    <body>
+        <script>
+            async_test(function(test)
+            {
+                var video = document.createElement("video");
+                var track;
+
+                function trackRemoved()
+                {
+                    assert_equals(event.target, video.textTracks);
+                    assert_equals(event instanceof window.TrackEvent, true);
+                    assert_equals(event.track, track);
+                    test.done();
+                }
+
+                var trackElement = document.createElement('track');
+                video.appendChild(trackElement);
+
+                trackElement.src = 'resources/webvtt-file.vtt';
+                trackElement.track.mode = 'hidden';
+
+                assert_equals(video.textTracks.length, 1);
+
+                track = video.textTracks[0];
+                video.removeChild(trackElement);
+                video.textTracks.addEventListener("removetrack", test.step_func(trackRemoved));
+            }, "Tests that the 'removetrack' event is fired when an out-of-band TextTrack is removed.");
+        </script>
+    </body>
+</html>

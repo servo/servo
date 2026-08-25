@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Navigation Timing 2 WPT</title>
+        <link rel="author" title="Google" href="http://www.google.com/" />
+        <link rel="help" href="http://www.w3.org/TR/navigation-timing-2/#sec-PerformanceNavigationTiming"/>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/common/get-host-info.sub.js"></script>
+    </head>
+    <body>
+        <h1>Description</h1>
+        <p>This test validates that the values of nav timing 2 instance's timing-related attributes are in certain order and the others are of expected values.</p>
+
+        <script>
+        // Host names and ports may be configured at test execution time. The
+        // web-platform-tests server offers two mechanisms for retrieving these
+        // values dynamically: direct text substitution and the `get-host-info`
+        // script. The former is inapproprate for this test because it
+        // influences the size of the document, and this test includes static
+        // assertions for that value.
+        var host_info = get_host_info();
+        var expectedUrl = "http://" + host_info.ORIGINAL_HOST + ":" +
+            host_info.HTTP_PORT +
+          "/navigation-timing/nav2-test-attributes-values.html";
+        var navTiming2EventOrder1 = [
+            'startTime',
+            'redirectStart',
+            //'unloadEventStart',
+            'redirectEnd',
+            //'unloadEventEnd',
+            'fetchStart',
+            'domainLookupStart',
+            'domainLookupEnd',
+            'connectStart',
+            //'secureConnectionStart',
+            'connectEnd',
+            'requestStart',
+            'responseStart',
+            'responseEnd',
+            'domInteractive',
+            'domContentLoadedEventStart',
+            'domContentLoadedEventEnd',
+            'domComplete',
+            'loadEventStart',
+            'loadEventEnd'
+        ];
+
+        var navTiming2EventOrder2 = [
+            'redirectStart',
+            'unloadEventStart',
+            'redirectEnd',
+            'unloadEventEnd',
+            'fetchStart'
+        ];
+
+        var navTiming2EventOrder3 = [
+            'connectStart',
+            'secureConnectionStart',
+            'connectEnd'
+        ];
+
+        // Navigation Timing attributes for comparison.
+        var navTiming1EventOrder = [
+            'fetchStart',
+            'domainLookupStart',
+            'domainLookupEnd',
+            'connectStart',
+            'connectEnd',
+            'requestStart',
+            'responseStart',
+            'responseEnd',
+            'domInteractive',
+            'domContentLoadedEventStart',
+            'domContentLoadedEventEnd',
+            'domComplete',
+            'loadEventStart',
+            'loadEventEnd'
+        ];
+
+        function verifyTimingEventOrder(eventOrder, timingEntry) {
+            for (var i = 0; i < eventOrder.length - 1; i++) {
+                assert_true(timingEntry[eventOrder[i]] <= timingEntry[eventOrder[i + 1]],
+                    "Expected " + eventOrder[i] + " to be no greater than " + eventOrder[i + 1] + ".");
+            }
+        }
+
+        async_test(function (t) {
+            var observer = new PerformanceObserver(
+                t.step_func(function (entryList) {
+                    var entries = entryList.getEntries();
+                    assert_equals(entries[0].entryType, "navigation",
+                        "Expected entryType to be: navigation.");
+                    assert_equals(entries[0].name, expectedUrl);
+                    assert_equals(entries[0].startTime, 0,
+                        "Expected startTime to be: 0.");
+                    assert_equals(entries[0].duration, entries[0].loadEventEnd,
+                        "Expected duration to be equal to loadEventEnd.");
+                    assert_equals(entries[0].initiatorType, "navigation",
+                        "Expected initiatorType to be: navigation.");
+                    assert_equals(entries[0].nextHopProtocol, "http/1.1");
+                    // This test may fail when response is from cach. Disable or clean cach before
+                    // running this test.
+                    assert_true(entries[0].transferSize > entries[0].encodedBodySize,
+                        "Expected transferSize to be greater than encodedBodySize in uncached navigation.");
+                  assert_equals(entries[0].encodedBodySize, 5949);
+                  assert_equals(entries[0].decodedBodySize, 5949);
+                    verifyTimingEventOrder(entries[0], navTiming2EventOrder1);
+                    // Verify if the reported timing is not that different
+                    // from what is reported by Navigation Timing 1.
+                    navTiming1EventOrder.forEach(
+                      function(event) {
+                        if (window.performance.timing[event] -
+                            window.performance.timing.navigationStart > 0) {
+                          assert_greater_than(entries[0][event], 0,
+                              "Expected " + event + " to be greater than 0");
+                        }
+                    });
+                    // When unloadEvent happens
+                    if (entries[0]["unloadEventStart"] != 0) {
+                        verifyTimingEventOrder(entries[0], navTiming2EventOrder2);
+                    }
+                    // When a secure transport is used
+                    if (entries[0]["secureConnectionStart"] != 0) {
+                        verifyTimingEventOrder(entries[0], navTiming2EventOrder3);
+                    }
+                    observer.disconnect();
+                    t.done();
+                })
+            );
+            observer.observe({entryTypes: ["navigation"]});
+
+        }, "Performance navigation timing instance's value is reasonable.");
+        </script>
+    </body>
+</html>

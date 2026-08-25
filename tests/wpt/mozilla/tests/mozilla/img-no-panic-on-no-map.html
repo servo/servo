@@ -1,0 +1,18 @@
+<!doctype html>
+    <meta charset="utf-8">
+    <title>Test for issue #15884</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <body>
+        <img usemap="#img_no_map" src="2x2.png" id="img_no">
+        <script>
+            var noMapTest = async_test("Image should not panic when no map is found");
+            var img_no = document.getElementById('img_no');
+            var img_no_map_clicked = false;
+            img_no.onclick = noMapTest.step_func_done();
+            document.addEventListener("DOMContentLoaded", noMapTest.step(function() {
+                img_no.click();
+            }));
+        </script>
+    </body>
+</html>

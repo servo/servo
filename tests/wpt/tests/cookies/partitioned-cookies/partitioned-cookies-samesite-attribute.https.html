@@ -1,0 +1,59 @@
+<!doctype html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="timeout" content="long" />
+  <meta
+    name="help"
+    href="https://github.com/WICG/CHIPS#chips-cookies-having-independent-partitioned-state"
+  />
+  <script src="/common/get-host-info.sub.js"></script>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/cookies/resources/testharness-helpers.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <title>Test SameSite attribute behavior for partitioned cookies</title>
+</head>
+<body>
+  <script>
+    document.body.onload = async () => {
+      const iframe = document.createElement("iframe");
+      iframe.src = new URL(
+        "resources/partitioned-cookies-samesite-attributes-embed.html",
+        get_host_info().HTTPS_NOTSAMESITE_ORIGIN + self.location.pathname,
+      );
+      document.body.appendChild(iframe);
+      await new Promise(r => iframe.onload = r);
+      await fetch_tests_from_window(iframe.contentWindow);
+    };
+
+    promise_test(async (t) => {
+      t.add_cleanup(test_driver.delete_all_cookies);
+
+      document.cookie = "testPartitioned=0; Secure; Partitioned;";
+      document.cookie = "testUnpartitioned=1; Secure;";
+      const partitionedCookie = await test_driver.get_named_cookie("testPartitioned");
+      const unpartitionedCookie = await test_driver.get_named_cookie("testUnpartitioned");
+
+      // Browsers have not aligned on a common SameSite attribute default yet.
+      assert_any(assert_equals, partitionedCookie["sameSite"], ["Strict", "Lax", "None"]);
+      assert_equals(partitionedCookie["sameSite"], unpartitionedCookie["sameSite"]);
+    }, "In top-level contexts, partitioned cookies default to the same SameSite attribute as unpartitioned cookies.");
+
+    promise_test(async (t) => {
+      t.add_cleanup(test_driver.delete_all_cookies);
+
+      document.cookie = "testStrict=0; Secure; Partitioned; SameSite=Strict;";
+      let cookie = await test_driver.get_named_cookie("testStrict");
+      assert_equals(cookie["sameSite"], "Strict");
+
+      document.cookie = "testLax=0; Secure; Partitioned; SameSite=Lax;";
+      cookie = await test_driver.get_named_cookie("testLax");
+      assert_equals(cookie["sameSite"], "Lax");
+
+      document.cookie = "testNone=0; Secure; Partitioned; SameSite=None;";
+      cookie = await test_driver.get_named_cookie("testNone");
+      assert_equals(cookie["sameSite"], "None");
+    }, "In top-level contexts, partitioned cookies can be set with all SameSite attributes.");
+  </script>
+</body>

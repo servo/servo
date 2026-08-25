@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test setting EventHandler attributes</title>
+<link rel="help" href="https://w3c.github.io/encrypted-media/#attributes-3">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<audio id="testElement"
+       onencrypted="window.onencryptedHandlerSetFromParserWasFired()"
+       onwaitingforkey="window.onwaitingforkeyHandlerSetFromParserWasFired()">
+</audio>
+<script>
+  ["encrypted", "waitingforkey"].forEach(eventName => {
+    promise_test(() => {
+      return new Promise(resolve => {
+        window[`on${eventName}HandlerSetFromParserWasFired`] = resolve;
+        testElement.dispatchEvent(new Event(eventName));
+      });
+    }, `on${eventName} handler set from parser`);
+
+    promise_test(() => {
+      const el = document.createElement("audio");
+      el.setAttribute(`on${eventName}`, `window.on${eventName}HandlerSetViaSetAttributeWasFired()`);
+      document.body.append(el);
+
+      return new Promise(resolve => {
+        window[`on${eventName}HandlerSetViaSetAttributeWasFired`] = resolve;
+        el.dispatchEvent(new Event(eventName));
+      });
+    }, `on${eventName} handler set via setAttribute()`);
+  });
+</script>

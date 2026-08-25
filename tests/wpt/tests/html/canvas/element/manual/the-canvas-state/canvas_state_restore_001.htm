@@ -1,0 +1,42 @@
+<!doctype HTML>
+<html>
+    <head>
+        <title>HTML5 Canvas Test: restore() pops top entry in drawing state stack</title>
+        <link rel="match" href="canvas_state_restore_001-ref.htm">
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com" />
+        <link rel="help" href="http://www.w3.org/TR/2dcontext/#the-canvas-state" />
+        <meta name="assert" content="restore() pops the top entry in the drawing state stack." />
+        <script type="text/javascript">
+            function runTest()
+            {
+                var canvas = document.getElementById("canvas1");
+                var ctx = canvas.getContext("2d");
+                ctx.fillStyle = "rgba(255, 0, 0, 1.0)";
+                ctx.fillRect(0, 0, 99, 50);
+
+                // Save colors to the stack as separate drawing states.
+                ctx.fillStyle = "rgba(255, 255, 0, 1.0)";
+                ctx.save();
+                ctx.fillStyle = "rgba(0, 0, 255, 1.0)";
+                ctx.save();
+                ctx.fillStyle = "rgba(0, 255, 0, 1.0)";
+                ctx.save();
+
+                // Modify the current fillStyle.
+                ctx.fillStyle = "rgba(255, 0, 0, 1.0)";
+
+                // Restore the drawing states previously saved and draw with them.
+                ctx.restore();
+                ctx.fillRect(66, 0, 33, 50);
+                ctx.restore();
+                ctx.fillRect(33, 0, 33, 50);
+                ctx.restore();
+                ctx.fillRect(0, 0, 33, 50);
+            }
+        </script>
+    </head>
+    <body onload="runTest()">
+        <p>Description: restore() pops the top entry in the drawing state stack.</p>
+        <canvas id="canvas1" width="300" height="150">Browser does not support HTML5 Canvas.</canvas>
+    </body>
+</html>

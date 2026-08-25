@@ -1,0 +1,193 @@
+<!doctype html>
+<title>IDB Offline Google Docs Load Runner</title>
+<div id="content"></div>
+<script src="resources/shared.js"></script>
+<script src="resources/idb-load-docs-shared.js"></script>
+<script>
+  let openRequest = window.indexedDB.open(databaseName);
+  openRequest.onsuccess = async () => {
+    let db = openRequest.result;
+
+    // https://docs.google.com/document/d/1JC1RgMyxBAjUPSHjm2Bd1KPzcqpPPvxRomKevOkMPm0/edit
+    // contiains information about each transaction and their ordering.
+    let txn1 = () => {
+      let txn = db.transaction("Users", "readonly");
+      txn.onabort = reportError;
+      let users = txn.objectStore("Users");
+
+      let get = users.get("ufa1a865c6eb48d97");
+      get.onsuccess = () => {
+        logToDocumentBody(["Txn1 got user ", get.result.emailAddress]);
+      }
+      return transactionCompletePromise(txn).then(() => {
+        logToDocumentBody("Txn1 done");
+      });
+    };
+
+    let txn2 = () => {
+      let txn = db.transaction(["DocumentLocks"], "readwrite");
+      txn.onabort = reportError;
+      let locks = txn.objectStore("DocumentLocks");
+
+      let get = locks.get([docId1]);
+      get.onsuccess = () => {
+        logToDocumentBody(["Txn2 got lock", get.result.e]);
+      }
+      t2_DocumentLocksValues.forEach((value) => (locks.put(value)));
+      return transactionCompletePromise(txn).then(() => {
+        logToDocumentBody("Txn2 done.");
+      });
+    };
+
+    let txn3 = () => {
+      let txn = db.transaction(["Documents"], "readonly");
+      txn.onabort = reportError;
+      let documents = txn.objectStore("Documents");
+
+      let get = documents.get(docId1);
+      get.onsuccess = () => {
+        var div = logToDocumentBody(
+            "Txn3 done, got the document, with image: ");
+        let img = document.createElement("img");
+        div.appendChild(img);
+        img.src = get.result.docosKeyData[8][2];
+      }
+      return transactionCompletePromise(txn).then(() => {
+        logToDocumentBody("Txn3 done.");
+      });
+    };
+
+    let txn4 = () => {
+      let txn = db.transaction(["PendingQueues"], "readonly");
+      txn.onabort = reportError;
+      let queues = txn.objectStore("PendingQueues");
+
+      let get = queues.get(docId1);
+      get.onsuccess = () => {
+        logToDocumentBody(["Txn4 got queue: ", get.result.r]);
+      }
+      return transactionCompletePromise(txn).then(() => {
+        logToDocumentBody("Txn4 done.");
+      });
+    };
+
+    let txn5 = () => {
+      let txn = db.transaction(["SyncObjects"], "readwrite");
+      txn.onabort = reportError;
+      let syncs = txn.objectStore("SyncObjects");
+
+      t5_SyncObjectsValues.forEach((value) => { syncs.put(value); });
+
+      return transactionCompletePromise(txn).then(() => {
+        logToDocumentBody(
+          ["Txn5 done, set ", t5_SyncObjectsValues.length, " values."]);
+      });
+    };
+
+    let txn6_15 = () => {
+      let promises = [];
+      for (let i = 0; i < 9; ++i) {
+        let txn = db.transaction("FontMetadata", "readonly");
+        txn.onabort = reportError;
+        let get = txn.objectStore("FontMetadata").get("Cambria"); 
+        let name = "Txn " + (i + 6);
+        get.onsuccess = () => {
+          logToDocumentBody([name, " got font with ",
+                             get.result.fontFaces.length, " faces."]);
+        }
+        promises.push(transactionCompletePromise(txn).then(() => {
+          logToDocumentBody([name, " done."]);
+        }));
+      }
+      return Promise.all(promises);
+    };
+
+    let txn16 = () => {
+      let txn = db.transaction("BlobMetadata", "readonly");
+      txn.onabort = reportError;
+      let request = txn.objectStore("BlobMetadata")
+          .openCursor(IDBKeyRange.only("test"));
+      request.onsuccess = function(event) {
+        logToDocumentBody("Checked blob metadata.");
+      }
+      return transactionCompletePromise(txn).then(() => {
+        logToDocumentBody("Txn16 done.");
+      });
+    };
+
+    let txn17 = (docGetCallback) => {
+      let txn = db.transaction(["DocumentLocks", "Documents", "PendingQueues",
+                                "BlobMetadata", "DocumentCommands"],
+                               "readwrite");
+      txn.onabort = reportError;
+      let locks = txn.objectStore("DocumentLocks");
+      let documents = txn.objectStore("Documents");
+      let documentCommands = txn.objectStore("DocumentCommands");
+
+      let queues = txn.objectStore("PendingQueues");
+
+      let lockGet;
+      let documentGet;
+      let commandsDelete;
+      let queuesGet;
+      let gets_done = () => {
+        logToDocumentBody(["Starting edit, got lock: ", lockGet.result.e]);
+
+        let div = logToDocumentBody("Document with picture: ");
+        let img = document.createElement("img");
+        div.appendChild(img);
+        img.src = documentGet.result.docosKeyData[8][2];
+
+        logToDocumentBody(["And the queue: ", queuesGet.result.r]);
+
+        locks.put(t17_DocumentLocksValue);
+        documents.put(t17_DocumentsValue);
+        documentCommands.put(t17_DocumentCommandsValue);
+        queues.put(t17_PendingQueuesValue);
+      };
+      let incrementBarrier = createIncrementalBarrier(gets_done);
+
+      lockGet = locks.get([docId1]);
+      documentGet = documents.get(docId1);
+      queuesGet = queues.get(docId1);
+      commandsDelete = documentCommands.delete(
+            IDBKeyRange.bound([docId1], [docId1, []], false, false));
+
+      lockGet.onsuccess = incrementBarrier();
+      let docGetBarrier = incrementBarrier();
+      let docGetCallbackPromise;
+      documentGet.onsuccess = () => {
+        docGetCallbackPromise = docGetCallback();
+        docGetBarrier();
+      };
+      commandsDelete.onsuccess = incrementBarrier();
+      queuesGet.onsuccess = incrementBarrier();
+
+      return transactionCompletePromise(txn).then(async () => {
+        await docGetCallbackPromise;
+        logToDocumentBody("Txn17 done.");
+      });
+    };
+
+    let txn18 = () => {
+      let txn = db.transaction(["Documents"], "readonly");
+      txn.onabort = reportError;
+      let documents = txn.objectStore("Documents");
+
+      documents.get(docId1).onsuccess = () => {
+        logToDocumentBody("Got final document!");
+      }
+
+      return transactionCompletePromise(txn).then(() => {
+        logToDocumentBody("Txn18 done");
+      });
+    };
+
+    // https://docs.google.com/document/d/1JC1RgMyxBAjUPSHjm2Bd1KPzcqpPPvxRomKevOkMPm0/edit
+    // has an explanation of transaction order.
+    await txn1();
+    await Promise.all([txn2(), txn3(), txn4()]);
+    await Promise.all([txn5(), txn6_15(), txn16(), txn17(txn18)]);
+    reportDone();
+  };
+</script>

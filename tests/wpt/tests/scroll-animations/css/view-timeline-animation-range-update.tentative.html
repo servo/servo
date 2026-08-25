@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Change animation-range after creation</title>
+<link rel="help" src="https://www.w3.org/TR/scroll-animations-1/#named-range-animation-declaration">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="support/testcommon.js"></script>
+<style>
+  @keyframes anim {
+    from { z-index: 0; background-color: skyblue;}
+    to { z-index: 100; background-color: coral; }
+  }
+  #scroller {
+    border:  10px solid lightgray;
+    overflow-y: scroll;
+    width: 200px;
+    height: 200px;
+  }
+  /* Reset specificity to allow animation-range-* from .restrict-range to win. */
+  :where(#target) {
+    margin: 800px 0px;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+    background-color: green;
+    animation:  anim auto both linear;
+    animation-timeline: --t1;
+    view-timeline:  --t1 block;
+  }
+  .restrict-range {
+    animation-range-start:  contain 0%;
+    animation-range-end:  contain 100%;
+  }
+</style>
+<body>
+  <div id=scroller>
+    <div id=target></div>
+  </div>
+</body>
+<script type="text/javascript">
+  setup(assert_implements_animation_timeline);
+
+  async function scrollTop(e, value) {
+    e.scrollTop = value;
+    await waitForNextFrame();
+  }
+  async function waitForAnimationReady(target) {
+    await waitForNextFrame();
+    await Promise.all(target.getAnimations().map(x => x.promise));
+  }
+  async function assertValueAt(scroller, target, position, expected) {
+    await waitForAnimationReady(target);
+    await scrollTop(scroller, position);
+    assert_equals(getComputedStyle(target).zIndex, expected.toString());
+  }
+
+  promise_test(async t => {
+    const scroller = document.getElementById('scroller');
+    const target = document.getElementById('target');
+    waitForAnimationReady(target);
+
+    await assertValueAt(scroller, target, 600, 0);
+    await assertValueAt(scroller, target, 700, 33);
+    await assertValueAt(scroller, target, 750, 50);
+    await assertValueAt(scroller, target, 800, 67);
+
+    target.classList.toggle('restrict-range');
+    await waitForNextFrame();
+
+    await assertValueAt(scroller, target, 700, 0);
+    await assertValueAt(scroller, target, 750, 50);
+    await assertValueAt(scroller, target, 800, 100);
+  }, 'Ensure that animation is updated on a style change');
+</script>
+</html>

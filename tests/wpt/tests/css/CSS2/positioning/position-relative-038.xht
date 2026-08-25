@@ -1,0 +1,35 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Relative positioning with over-constained situation and direction right-to-left</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+		<link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-07-09 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#relative-positioning" />
+		<link rel="match" href="position-relative-038-ref.xht" />
+
+        <meta name="assert" content="Relative positioning with left and right values and over-constrained situations when direction is right-to-left." />
+        <style type="text/css">
+            #div1
+            {
+                border: solid 3px;
+                direction: rtl;
+                width: 2in;
+            }
+            div div
+            {
+                background: blue;
+                height: 1in;
+                left: 2in;
+                position: relative;
+                right: 1in;
+                width: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the left side of the hollow rectangle is blue.</p>
+        <div id="div1">
+            <div></div>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Borders and Box Decorations 4 Test: Hit testing 'corner-shape'</title>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#corner-shaping">
+<meta name="assert" content="Check that hit-testing takes corner-shape into account.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+    body {
+        margin: 0;
+    }
+    #target {
+        box-sizing: border-box;
+        width: 100px;
+        height: 100px;
+        border-radius: 50px;
+        corner-shape: bevel;
+        background: green;
+    }
+</style>
+<div id="target"></div>
+
+<script>
+    test(t => {
+        const target = document.getElementById("target");
+        const bounding_rect = target.getBoundingClientRect();
+        const [hit_test_top_left] = document.elementsFromPoint(bounding_rect.x + 20, bounding_rect.y + 20);
+        const [hit_test_top_right] = document.elementsFromPoint(bounding_rect.x + 80, bounding_rect.y + 20);
+        const [hit_test_bottom_right] = document.elementsFromPoint(bounding_rect.x + 80, bounding_rect.y + 80);
+        const [hit_test_bottom_left] = document.elementsFromPoint(bounding_rect.x + 20, bounding_rect.y + 80);
+        assert_equals(hit_test_top_left, document.body);
+        assert_equals(hit_test_top_right, document.body);
+        assert_equals(hit_test_bottom_right, document.body);
+        assert_equals(hit_test_bottom_left, document.body);
+    })
+</script>

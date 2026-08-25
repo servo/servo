@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>The effect value of a keyframe effect: Calculating the transformed
+  distance between keyframes</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations/#the-effect-value-of-a-keyframe-animation-effect">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<script src="../../resources/easing-tests.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+// Test that applying easing to keyframes is applied as expected
+
+for (const params of gEasingTests) {
+  test(t => {
+    const target = createDiv(t);
+    const anim   = target.animate([ { width: '0px' },
+                                    // We put the easing on the second keyframe
+                                    // so we can test that it is only applied
+                                    // to the specified keyframe.
+                                    { width: '100px', easing: params.easing },
+                                    { width: '200px' } ],
+                                  { duration: 2000,
+                                    fill: 'forwards' });
+
+    for (const sampleTime of [0, 999, 1000, 1100, 1500, 2000]) {
+      anim.currentTime = sampleTime;
+
+      const portion = (sampleTime - 1000) / 1000;
+      const expectedWidth = sampleTime < 1000
+                            ? sampleTime / 10 // first segment is linear
+                            : 100 + params.easingFunction(portion) * 100;
+      assert_approx_equals(parseFloat(getComputedStyle(target).width),
+                           expectedWidth,
+                           0.02,
+                           'The width should be approximately ' +
+                           `${expectedWidth} at ${sampleTime}ms`);
+    }
+  }, `A ${params.desc} on a keyframe affects the resulting style`);
+}
+
+// Test that a linear-equivalent cubic-bezier easing applied to a keyframe does
+// not alter (including clamping) the result.
+
+for (const params of gEasingTests) {
+  const linearEquivalentEasings = [ 'cubic-bezier(0, 0, 0, 0)',
+                                    'cubic-bezier(1, 1, 1, 1)' ];
+  test(t => {
+    for (const linearEquivalentEasing of linearEquivalentEasings) {
+      const timing = { duration: 1000,
+                       fill: 'forwards',
+                       easing: params.easing };
+
+      const linearTarget = createDiv(t);
+      const linearAnim = linearTarget.animate([ { width: '0px' },
+                                                { width: '100px' } ],
+                                              timing);
+
+      const equivalentTarget = createDiv(t);
+      const equivalentAnim =
+        equivalentTarget.animate([ { width: '0px',
+                                     easing: linearEquivalentEasing },
+                                   { width: '100px' } ],
+                                 timing);
+
+      for (const sampleTime of [0, 250, 500, 750, 1000]) {
+        linearAnim.currentTime = sampleTime;
+        equivalentAnim.currentTime = sampleTime;
+
+        assert_equals(getComputedStyle(linearTarget).width,
+                      getComputedStyle(equivalentTarget).width,
+                      `The 'width' of the animated elements should be equal ` +
+                      `at ${sampleTime}ms`);
+      }
+    }
+  }, 'Linear-equivalent cubic-bezier keyframe easing applied to an effect ' +
+     `with a ${params.desc} does not alter the result`);
+}
+
+</script>
+</body>

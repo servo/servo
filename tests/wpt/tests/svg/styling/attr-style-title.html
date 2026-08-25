@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>Title - SVG Style element</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<svg>
+<style id=style1></style>
+<style id=style2 title="some-title"></style>
+</svg>
+
+<script>
+  test(() => {
+    assert_equals(style1.title, "", "missing title reflects as empty string IDL attribute on the style element");
+    assert_equals(style2.title, "some-title", "title reflects correctly IDL attribute on the style element");
+  }, "title attribute on SVG <style> elements should reflect correctly");
+
+  test(() => {
+    const style = document.createElementNS("http://www.w3.org/2000/svg", "style");
+    style.title = "My Style Sheet";
+    assert_equals(style.title, "My Style Sheet",
+                  "IDL setter round-trips through the IDL getter");
+    assert_equals(style.getAttribute("title"), "My Style Sheet",
+                  "IDL setter writes to the content attribute");
+  }, "Setting title via the IDL attribute updates the content attribute");
+
+  test(() => {
+    const style = document.createElementNS("http://www.w3.org/2000/svg", "style");
+    style.setAttribute("title", "My Style Sheet");
+    assert_equals(style.title, "My Style Sheet",
+                  "IDL getter reflects the content attribute");
+  }, "Setting the content attribute updates the IDL attribute (title)");
+</script>

@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script>
+window.onload = function() {
+  try {
+    top.location = "iframe-that-send-message-to-the-opener.html";
+  } catch(e) {
+    top.postMessage("cannot navigate", "*");
+  }
+}
+</script>
+</body>
+</html>

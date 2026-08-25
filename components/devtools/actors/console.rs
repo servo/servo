@@ -1,0 +1,510 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+//! Liberally derived from the [Firefox JS implementation](https://searchfox.org/firefox-main/source/devtools/server/actors/webconsole.js).
+//! Mediates interaction between the remote web console and equivalent functionality (object
+//! inspection, JS evaluation, autocompletion) in Servo.
+
+use std::collections::HashMap;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
+
+use atomic_refcell::AtomicRefCell;
+use devtools_traits::{
+    ConsoleMessage, ConsoleMessageFields, DevtoolScriptControlMsg, GetEnvironmentRequest,
+    PageError, StackFrame, get_time_stamp,
+};
+use malloc_size_of_derive::MallocSizeOf;
+use serde::Serialize;
+use serde_json::{self, Map, Value};
+use servo_base::generic_channel::{self, GenericSender, channel};
+use servo_base::id::{PipelineId, TEST_PIPELINE_ID};
+use uuid::Uuid;
+
+use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::actors::browsing_context::BrowsingContextActor;
+use crate::actors::environment::EnvironmentActor;
+use crate::actors::worker::WorkerTargetActor;
+use crate::protocol::{ClientRequest, DevtoolsConnection, JsonPacketStream};
+use crate::resource::{ResourceArrayType, ResourceAvailable};
+use crate::{EmptyReplyMsg, StreamId, UniqueId, debugger_value_to_json};
+
+#[derive(Clone, Serialize, MallocSizeOf)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct DevtoolsConsoleMessage {
+    #[serde(flatten)]
+    fields: ConsoleMessageFields,
+    #[ignore_malloc_size_of = "Currently no way to have serde_json::Value"]
+    arguments: Vec<Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    stacktrace: Option<Vec<StackFrame>>,
+    // Not implemented in Servo
+    // inner_window_id
+    // source_id
+}
+
+impl DevtoolsConsoleMessage {
+    pub(crate) fn new(message: ConsoleMessage, registry: &ActorRegistry) -> Self {
+        Self {
+            fields: message.fields,
+            arguments: message
+                .arguments
+                .into_iter()
+                .map(|argument| debugger_value_to_json(registry, argument))
+                .collect(),
+            stacktrace: message.stacktrace,
+        }
+    }
+}
+
+#[derive(Clone, Serialize, MallocSizeOf)]
+#[serde(rename_all = "camelCase")]
+struct DevtoolsPageError {
+    #[serde(flatten)]
+    page_error: PageError,
+    category: String,
+    error: bool,
+    warning: bool,
+    info: bool,
+    private: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    stacktrace: Option<Vec<StackFrame>>,
+    // Not implemented in Servo
+    // inner_window_id
+    // source_id
+    // has_exception
+    // exception
+}
+
+impl From<PageError> for DevtoolsPageError {
+    fn from(page_error: PageError) -> Self {
+        Self {
+            page_error,
+            category: "script".to_string(),
+            error: true,
+            warning: false,
+            info: false,
+            private: false,
+            stacktrace: None,
+        }
+    }
+}
+#[derive(Clone, Serialize, MallocSizeOf)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct PageErrorWrapper {
+    page_error: DevtoolsPageError,
+}
+
+impl From<PageError> for PageErrorWrapper {
+    fn from(page_error: PageError) -> Self {
+        Self {
+            page_error: page_error.into(),
+        }
+    }
+}
+
+#[derive(Clone, Serialize, MallocSizeOf)]
+#[serde(untagged)]
+pub(crate) enum ConsoleResource {
+    ConsoleMessage(DevtoolsConsoleMessage),
+    PageError(PageErrorWrapper),
+}
+
+impl ConsoleResource {
+    pub fn resource_type(&self) -> String {
+        match self {
+            ConsoleResource::ConsoleMessage(_) => "console-message".into(),
+            ConsoleResource::PageError(_) => "error-message".into(),
+        }
+    }
+}
+
+#[derive(Serialize)]
+pub struct ConsoleClearMessage {
+    pub level: String,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct AutocompleteReply {
+    from: String,
+    matches: Vec<String>,
+    match_prop: String,
+    is_element_access: bool,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct EvaluateJSReply {
+    from: String,
+    input: String,
+    result: Value,
+    timestamp: u64,
+    exception: Value,
+    exception_message: Option<String>,
+    has_exception: bool,
+    helper_result: Value,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct EvaluateJSEvent {
+    from: String,
+    #[serde(rename = "type")]
+    type_: String,
+    input: String,
+    result: Value,
+    timestamp: u64,
+    #[serde(rename = "resultID")]
+    result_id: String,
+    exception: Value,
+    exception_message: Option<String>,
+    has_exception: bool,
+    helper_result: Value,
+}
+
+#[derive(Serialize)]
+struct EvaluateJSAsyncReply {
+    from: String,
+    #[serde(rename = "resultID")]
+    result_id: String,
+}
+
+#[derive(Serialize)]
+struct SetPreferencesReply {
+    from: String,
+    updated: Vec<String>,
+}
+
+#[derive(MallocSizeOf)]
+pub(crate) enum Root {
+    BrowsingContext(String),
+    DedicatedWorker(String),
+}
+
+#[derive(MallocSizeOf)]
+pub(crate) struct ConsoleActor {
+    name: String,
+    root: Root,
+    cached_events: AtomicRefCell<HashMap<UniqueId, Vec<ConsoleResource>>>,
+    /// Used to control whether to send resource array messages from
+    /// `handle_console_resource`. It starts being false, and it only gets
+    /// activated after the client requests `console-message` or `error-message`
+    /// resources for the first time. Otherwise we would be sending messages
+    /// before the client is ready to receive them.
+    client_ready_to_receive_messages: AtomicBool,
+}
+
+impl ConsoleActor {
+    pub fn register(registry: &ActorRegistry, name: String, root: Root) -> Arc<Self> {
+        let actor = Self {
+            name,
+            root,
+            cached_events: Default::default(),
+            client_ready_to_receive_messages: false.into(),
+        };
+        registry.register::<Self>(actor)
+    }
+
+    fn script_chan(&self, registry: &ActorRegistry) -> GenericSender<DevtoolScriptControlMsg> {
+        match &self.root {
+            Root::BrowsingContext(browsing_context_name) => registry
+                .find::<BrowsingContextActor>(browsing_context_name)
+                .script_chan(),
+            Root::DedicatedWorker(worker_name) => registry
+                .find::<WorkerTargetActor>(worker_name)
+                .script_sender
+                .clone(),
+        }
+    }
+
+    fn current_unique_id(&self, registry: &ActorRegistry) -> UniqueId {
+        match &self.root {
+            Root::BrowsingContext(browsing_context_name) => UniqueId::Pipeline(
+                registry
+                    .find::<BrowsingContextActor>(browsing_context_name)
+                    .pipeline_id(),
+            ),
+            Root::DedicatedWorker(worker_name) => {
+                UniqueId::Worker(registry.find::<WorkerTargetActor>(worker_name).worker_id)
+            },
+        }
+    }
+
+    fn pipeline_id(&self, registry: &ActorRegistry) -> PipelineId {
+        // FIXME: Redesign messages so we don't have to fake pipeline ids when communicating with workers.
+        match self.current_unique_id(registry) {
+            UniqueId::Pipeline(p) => p,
+            UniqueId::Worker(_) => TEST_PIPELINE_ID,
+        }
+    }
+
+    fn evaluate_js(
+        &self,
+        registry: &ActorRegistry,
+        msg: &Map<String, Value>,
+    ) -> Result<EvaluateJSReply, ()> {
+        let input = msg.get("text").unwrap().as_str().unwrap().to_owned();
+        let frame_actor_id = msg
+            .get("frameActor")
+            .and_then(|v| v.as_str())
+            .map(String::from);
+        let (chan, port) = generic_channel::channel().unwrap();
+        self.script_chan(registry)
+            .send(DevtoolScriptControlMsg::Eval(
+                input.clone(),
+                self.pipeline_id(registry),
+                frame_actor_id,
+                chan,
+            ))
+            .unwrap();
+
+        let eval_result = port.recv().map_err(|_| ())?;
+        let has_exception = eval_result.has_exception;
+        let (result, exception) = if has_exception {
+            (
+                Value::Null,
+                debugger_value_to_json(registry, eval_result.value),
+            )
+        } else {
+            (
+                debugger_value_to_json(registry, eval_result.value),
+                Value::Null,
+            )
+        };
+        let reply = EvaluateJSReply {
+            from: self.name().into(),
+            input,
+            result,
+            timestamp: get_time_stamp(),
+            exception,
+            exception_message: eval_result.exception_message,
+            has_exception,
+            helper_result: Value::Null,
+        };
+        Ok(reply)
+    }
+
+    pub(crate) fn handle_console_resource(
+        &self,
+        resource: ConsoleResource,
+        id: UniqueId,
+        registry: &ActorRegistry,
+        stream: &mut DevtoolsConnection,
+    ) {
+        self.cached_events
+            .borrow_mut()
+            .entry(id.clone())
+            .or_default()
+            .push(resource.clone());
+        if !self
+            .client_ready_to_receive_messages
+            .load(Ordering::Relaxed)
+        {
+            return;
+        }
+        let resource_type = resource.resource_type();
+        if id == self.current_unique_id(registry) &&
+            let Root::BrowsingContext(browsing_context_name) = &self.root
+        {
+            registry
+                .find::<BrowsingContextActor>(browsing_context_name)
+                .resource_array(
+                    resource,
+                    resource_type,
+                    ResourceArrayType::Available,
+                    stream,
+                )
+        };
+    }
+
+    pub(crate) fn send_clear_message(
+        &self,
+        id: UniqueId,
+        registry: &ActorRegistry,
+        stream: &mut DevtoolsConnection,
+    ) {
+        if id == self.current_unique_id(registry) &&
+            let Root::BrowsingContext(browsing_context_name) = &self.root
+        {
+            registry
+                .find::<BrowsingContextActor>(browsing_context_name)
+                .resource_array(
+                    ConsoleClearMessage {
+                        level: "clear".to_owned(),
+                    },
+                    "console-message".into(),
+                    ResourceArrayType::Available,
+                    stream,
+                )
+        };
+    }
+
+    pub(crate) fn get_cached_messages(
+        &self,
+        registry: &ActorRegistry,
+        resource: &str,
+    ) -> Vec<ConsoleResource> {
+        let id = self.current_unique_id(registry);
+        let cached_events = self.cached_events.borrow();
+        let Some(events) = cached_events.get(&id) else {
+            return vec![];
+        };
+        events
+            .iter()
+            .filter(|event| event.resource_type() == resource)
+            .cloned()
+            .collect()
+    }
+
+    pub(crate) fn received_first_message_from_client(&self) {
+        self.client_ready_to_receive_messages
+            .store(true, Ordering::Relaxed);
+    }
+
+    /// Matching function with conditional case-sensitivity as per:
+    /// <https://searchfox.org/firefox-main/rev/7fa9b602777418732e08b26d1ef6c9945c4bbd72/devtools/shared/webconsole/js-property-provider.js#617-622>
+    pub(crate) fn autocomplete_match(prefix: &str, identifier: &str) -> bool {
+        let is_insensitive = prefix.chars().next().is_some_and(|c| c.is_lowercase());
+        if is_insensitive {
+            identifier
+                .to_lowercase()
+                .starts_with(&prefix.to_lowercase())
+        } else {
+            identifier.starts_with(prefix)
+        }
+    }
+}
+
+impl Actor for ConsoleActor {
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    fn handle_message(
+        &self,
+        request: ClientRequest,
+        registry: &ActorRegistry,
+        msg_type: &str,
+        msg: &Map<String, Value>,
+        _id: StreamId,
+    ) -> Result<(), ActorError> {
+        match msg_type {
+            "clearMessagesCacheAsync" => {
+                self.cached_events
+                    .borrow_mut()
+                    .remove(&self.current_unique_id(registry));
+                let msg = EmptyReplyMsg {
+                    from: self.name().into(),
+                };
+                request.reply_final(&msg)?
+            },
+
+            "autocomplete" => {
+                let Some((tx, rx)) = channel() else {
+                    return Err(ActorError::Internal);
+                };
+
+                let env_request = if let Some(frame_actor) = msg
+                    .get("frameActor")
+                    .and_then(|v| v.as_str())
+                    .map(String::from)
+                {
+                    GetEnvironmentRequest::Frame(frame_actor)
+                } else {
+                    GetEnvironmentRequest::Global(self.pipeline_id(registry))
+                };
+
+                self.script_chan(registry)
+                    .send(DevtoolScriptControlMsg::GetEnvironment(env_request, tx))
+                    .map_err(|_| ActorError::Internal)?;
+
+                let environment_name = rx.recv().map_err(|_| ActorError::Internal)?;
+                let environment_actor = registry.find::<EnvironmentActor>(&environment_name);
+
+                let prompt = msg
+                    .get("text")
+                    .and_then(|v| v.as_str())
+                    .map(String::from)
+                    .ok_or(ActorError::Internal)?;
+
+                let identifiers = environment_actor.search_identifiers_recursive(registry, &prompt);
+
+                let matches: Vec<String> = identifiers
+                    .into_iter()
+                    .filter(|name| ConsoleActor::autocomplete_match(&prompt, name))
+                    .collect();
+
+                let msg = if matches.is_empty() {
+                    AutocompleteReply {
+                        from: self.name().into(),
+                        matches: vec![],
+                        match_prop: "".to_owned(),
+                        is_element_access: false,
+                    }
+                } else {
+                    AutocompleteReply {
+                        from: self.name().into(),
+                        matches,
+                        match_prop: prompt,
+                        is_element_access: false,
+                    }
+                };
+                request.reply_final(&msg)?
+            },
+
+            "evaluateJS" => {
+                let msg = self.evaluate_js(registry, msg);
+                request.reply_final(&msg)?
+            },
+
+            "evaluateJSAsync" => {
+                let result_id = Uuid::new_v4().to_string();
+                let early_reply = EvaluateJSAsyncReply {
+                    from: self.name().into(),
+                    result_id: result_id.clone(),
+                };
+                // Emit an eager reply so that the client starts listening
+                // for an async event with the resultID
+                let mut stream = request.reply(&early_reply)?;
+
+                if msg.get("eager").and_then(|v| v.as_bool()).unwrap_or(false) {
+                    // We don't support the side-effect free evaluation that eager evaluation
+                    // really needs.
+                    return Ok(());
+                }
+
+                let reply = self.evaluate_js(registry, msg).unwrap();
+                let msg = EvaluateJSEvent {
+                    from: self.name().into(),
+                    type_: "evaluationResult".to_owned(),
+                    input: reply.input,
+                    result: reply.result,
+                    timestamp: reply.timestamp,
+                    result_id,
+                    exception: reply.exception,
+                    exception_message: reply.exception_message,
+                    has_exception: reply.has_exception,
+                    helper_result: reply.helper_result,
+                };
+                // Send the data from evaluateJS along with a resultID
+                stream.write_json_packet(&msg)?
+            },
+
+            "setPreferences" => {
+                let msg = SetPreferencesReply {
+                    from: self.name().into(),
+                    updated: vec![],
+                };
+                request.reply_final(&msg)?
+            },
+
+            // NOTE: Do not handle `startListeners`, it is a legacy API.
+            // Instead, enable the resource in `WatcherActor::supported_resources`
+            // and handle the messages there.
+            _ => return Err(ActorError::UnrecognizedPacketType),
+        };
+        Ok(())
+    }
+}

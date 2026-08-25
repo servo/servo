@@ -1,0 +1,12 @@
+rules:
+- starting-style-*: [starting-style]
+- transition-behavior*: [transition-behavior]
+- transition-timing-function-010-manual.html: [steps-easing]
+- transition-timing-function-002-manual.html: [cubic-bezier-easing]
+- transition-timing-function-003-manual.html: [cubic-bezier-easing]
+- transition-timing-function-004-manual.html: [cubic-bezier-easing]
+- transition-timing-function-005-manual.html: [cubic-bezier-easing]
+- transition-timing-function-006-manual.html: [cubic-bezier-easing]
+- transition-property-017-manual.html: [clip]
+- currentcolor-animation-001.html: [currentcolor]
+- "*": [transitions]

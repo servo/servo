@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Containment Test: 'contain: strict' does not turn on style containment</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://drafts.csswg.org/css-contain/#contain-property">
+  <link rel="match" href="reference/contain-strict-011-ref.html">
+
+  <meta name="assert" content="'contain: strict' turns on style containment. So, in this test, the counter of spans should not be reset and must not be reset.">
+
+  <style>
+  body
+    {
+      counter-reset: counter-of-span 17;
+    }
+
+    /*
+    This creates a new counter identified as "counter-of-span"
+    and initially sets such counter to 17 (an entirely
+    arbitrary number)
+    */
+
+  div
+    {
+      contain: strict;
+    }
+
+  div > span
+    {
+      background-color: yellow;
+      color: red;
+      counter-increment: counter-of-span 3;
+    }
+
+    /*
+    This increments the counter identified as "counter-of-span"
+    of the step value of 3 (an entirely arbitrary number) each
+    and every time there is a <span> child within the subtree
+    of div
+    */
+
+  p#test::after
+    {
+      content: counter(counter-of-span);
+      font-size: 3em;
+    }
+
+    /*
+    Now, the generated content is set to the current
+    value of the counter identified as "counter-of-span":
+    17 + 3 * 3 == 26
+    */
+  </style>
+
+  <body>
+
+  <div><span>FAIL1</span> <span>FAIL2</span> <span>FAIL3</span></div>
+
+  <p id="pass-fail-conditions-sentence">Test passes if there is the number 17.
+
+  <p id="test">

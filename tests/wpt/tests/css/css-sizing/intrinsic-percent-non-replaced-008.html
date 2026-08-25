@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>Percentage max-width with aspect-ratio resolves against correct axis in perpendicular writing mode</title>
+<link rel="help" href="https://www.w3.org/TR/css-sizing-3/#cyclic-percentage-contribution">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<link rel="match" href="intrinsic-percent-non-replaced-008-ref.html">
+<style>
+.container {
+  writing-mode: vertical-rl;
+  width: 300px;
+  height: 200px;
+}
+
+.child {
+  writing-mode: horizontal-tb;
+  aspect-ratio: 4 / 1;
+  height: 50px;
+  max-width: 50%;
+  background: green;
+  font: 20px/1 Ahem;
+}
+</style>
+<p>Test passes if there is a 150x50 green rectangle.</p>
+<div class="container">
+  <div class="child"></div>
+</div>

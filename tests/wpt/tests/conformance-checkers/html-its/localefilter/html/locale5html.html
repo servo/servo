@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <meta charset=utf-8> 
+  <title>Locale filter</title>
+ </head>  
+ <body> 
+  <div its-locale-filter-list="*-ca">
+   <p>Text for Canadian locales.</p>
+  </div>
+  <div its-locale-filter-list="*-ca" its-locale-filter-type="exclude">
+   <p>Text for non-Canadian locales.</p>
+  </div>
+  <div its-locale-filter-list="*" its-locale-filter-type="ExCluDE">
+   <p>Text for no locales.</p>
+  </div>
+  <div its-locale-filter-list="" its-locale-filter-type="EXCLude">
+   <p>Text for all locales.</p>
+  </div>
+ </body>
+</html>

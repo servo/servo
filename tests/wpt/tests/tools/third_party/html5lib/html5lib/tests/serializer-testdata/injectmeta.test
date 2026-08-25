@@ -1,0 +1,350 @@
+{
+    "tests": [
+        {
+            "expected": [
+                ""
+            ],
+            "input": [
+                [
+                    "StartTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "head",
+                    {}
+                ],
+                [
+                    "EndTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "head"
+                ]
+            ],
+            "description": "no encoding",
+            "options": {
+                "inject_meta_charset": true
+            }
+        },
+        {
+            "expected": [
+                "<meta charset=utf-8>"
+            ],
+            "input": [
+                [
+                    "StartTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "head",
+                    {}
+                ],
+                [
+                    "EndTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "head"
+                ]
+            ],
+            "description": "empytag head",
+            "options": {
+                "encoding": "utf-8",
+                "inject_meta_charset": true
+            }
+        },
+        {
+            "expected": [
+                "<meta charset=utf-8><title>foo</title>"
+            ],
+            "input": [
+                [
+                    "StartTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "head",
+                    {}
+                ],
+                [
+                    "StartTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "title",
+                    {}
+                ],
+                [
+                    "Characters",
+                    "foo"
+                ],
+                [
+                    "EndTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "title"
+                ],
+                [
+                    "EndTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "head"
+                ]
+            ],
+            "description": "head w/title",
+            "options": {
+                "encoding": "utf-8",
+                "inject_meta_charset": true
+            }
+        },
+        {
+            "expected": [
+                "<meta charset=utf-8>"
+            ],
+            "input": [
+                [
+                    "StartTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "head",
+                    {}
+                ],
+                [
+                    "EmptyTag",
+                    "meta",
+                    [
+                        {
+                            "namespace": null,
+                            "name": "charset",
+                            "value": "ascii"
+                        }
+                    ]
+                ],
+                [
+                    "EndTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "head"
+                ]
+            ],
+            "description": "head w/meta-charset",
+            "options": {
+                "encoding": "utf-8",
+                "inject_meta_charset": true
+            }
+        },
+        {
+            "expected": [
+                "<meta charset=utf-8><meta charset=utf-8>",
+                "<head><meta charset=utf-8><meta charset=ascii>"
+            ],
+            "input": [
+                [
+                    "StartTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "head",
+                    {}
+                ],
+                [
+                    "EmptyTag",
+                    "meta",
+                    [
+                        {
+                            "namespace": null,
+                            "name": "charset",
+                            "value": "ascii"
+                        }
+                    ]
+                ],
+                [
+                    "EmptyTag",
+                    "meta",
+                    [
+                        {
+                            "namespace": null,
+                            "name": "charset",
+                            "value": "ascii"
+                        }
+                    ]
+                ],
+                [
+                    "EndTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "head"
+                ]
+            ],
+            "description": "head w/ two meta-charset",
+            "options": {
+                "encoding": "utf-8",
+                "inject_meta_charset": true
+            }
+        },
+        {
+            "expected": [
+                "<meta charset=utf-8><meta content=noindex name=robots>"
+            ],
+            "input": [
+                [
+                    "StartTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "head",
+                    {}
+                ],
+                [
+                    "EmptyTag",
+                    "meta",
+                    [
+                        {
+                            "namespace": null,
+                            "name": "name",
+                            "value": "robots"
+                        },
+                        {
+                            "namespace": null,
+                            "name": "content",
+                            "value": "noindex"
+                        }
+                    ]
+                ],
+                [
+                    "EndTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "head"
+                ]
+            ],
+            "description": "head w/robots",
+            "options": {
+                "encoding": "utf-8",
+                "inject_meta_charset": true
+            }
+        },
+        {
+            "expected": [
+                "<meta content=noindex name=robots><meta charset=utf-8>"
+            ],
+            "input": [
+                [
+                    "StartTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "head",
+                    {}
+                ],
+                [
+                    "EmptyTag",
+                    "meta",
+                    [
+                        {
+                            "namespace": null,
+                            "name": "name",
+                            "value": "robots"
+                        },
+                        {
+                            "namespace": null,
+                            "name": "content",
+                            "value": "noindex"
+                        }
+                    ]
+                ],
+                [
+                    "EmptyTag",
+                    "meta",
+                    [
+                        {
+                            "namespace": null,
+                            "name": "charset",
+                            "value": "ascii"
+                        }
+                    ]
+                ],
+                [
+                    "EndTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "head"
+                ]
+            ],
+            "description": "head w/robots & charset",
+            "options": {
+                "encoding": "utf-8",
+                "inject_meta_charset": true
+            }
+        },
+        {
+            "expected": [
+                "<meta content=\"text/html; charset=utf-8\" http-equiv=content-type>"
+            ],
+            "input": [
+                [
+                    "StartTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "head",
+                    {}
+                ],
+                [
+                    "EmptyTag",
+                    "meta",
+                    [
+                        {
+                            "namespace": null,
+                            "name": "http-equiv",
+                            "value": "content-type"
+                        },
+                        {
+                            "namespace": null,
+                            "name": "content",
+                            "value": "text/html; charset=ascii"
+                        }
+                    ]
+                ],
+                [
+                    "EndTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "head"
+                ]
+            ],
+            "description": "head w/ charset in http-equiv content-type",
+            "options": {
+                "encoding": "utf-8",
+                "inject_meta_charset": true
+            }
+        },
+        {
+            "expected": [
+                "<meta content=noindex name=robots><meta content=\"text/html; charset=utf-8\" http-equiv=content-type>"
+            ],
+            "input": [
+                [
+                    "StartTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "head",
+                    {}
+                ],
+                [
+                    "EmptyTag",
+                    "meta",
+                    [
+                        {
+                            "namespace": null,
+                            "name": "name",
+                            "value": "robots"
+                        },
+                        {
+                            "namespace": null,
+                            "name": "content",
+                            "value": "noindex"
+                        }
+                    ]
+                ],
+                [
+                    "EmptyTag",
+                    "meta",
+                    [
+                        {
+                            "namespace": null,
+                            "name": "http-equiv",
+                            "value": "content-type"
+                        },
+                        {
+                            "namespace": null,
+                            "name": "content",
+                            "value": "text/html; charset=ascii"
+                        }
+                    ]
+                ],
+                [
+                    "EndTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "head"
+                ]
+            ],
+            "description": "head w/robots & charset in http-equiv content-type",
+            "options": {
+                "encoding": "utf-8",
+                "inject_meta_charset": true
+            }
+        }
+    ]
+}

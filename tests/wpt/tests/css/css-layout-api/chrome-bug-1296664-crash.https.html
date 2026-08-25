@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1296664">
+<div id="container">
+  <div style="position:relative; margin-top:8px;">
+    <div style="display:layout(foo); position:absolute; width:100px; height:100px;"></div>
+    <div style="column-span:all;"></div>
+  </div>
+  <span style="columns:1;">
+    <div style="display:flex;"></div>
+    <div style="display:grid;"></div>
+    <div style="display:table;"></div>
+  </span>
+</div>
+<script>
+  document.body.offsetTop;
+  container.style.columns = "1";
+</script>

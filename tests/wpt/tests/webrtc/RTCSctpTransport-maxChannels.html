@@ -1,0 +1,117 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="variant" content="?interop-2026">
+<meta name="variant" content="?rest">
+<title>RTCSctpTransport.prototype.maxChannels</title>
+<link rel="help" href="https://w3c.github.io/webrtc-pc/#rtcsctptransport-interface">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+const rest = !new URLSearchParams(location.search).has("interop-2026");
+const interop2026 = !new URLSearchParams(location.search).has("rest");
+
+if (interop2026) {
+promise_test(async (t) => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+
+  assert_equals(pc.sctp, null, 'RTCSctpTransport must be null');
+  pc.createDataChannel('test');
+  const offer = await pc.createOffer();
+  assert_equals(pc.sctp, null, 'RTCSctpTransport must be null ahead of have-local-offer');
+  await pc.setRemoteDescription(offer);
+  const answer = await pc.createAnswer();
+  await pc.setLocalDescription(answer);
+
+  assert_not_equals(pc.sctp, null, 'RTCSctpTransport must be available');
+  assert_true(pc.sctp instanceof RTCSctpTransport, 'RTCSctpTransport type is correct');
+  assert_equals(pc.sctp.maxChannels, null, 'maxChannels must not be set');
+}, 'An unconnected peerconnection must not have maxChannels set');
+}
+if (rest) {
+
+promise_test(async (t) => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  pc.createDataChannel('test');
+  assert_equals(pc.sctp, null, 'pc.sctp is null ahead of local offer');
+  await pc.setLocalDescription();
+  assert_true(pc.sctp instanceof RTCSctpTransport, 'pc.sctp in have-local-offer');
+  assert_equals(pc.sctp.maxChannels, null, 'maxChannels must be null');
+  assert_equals(pc.sctp.maxMessageSize, 65536, 'maxMessageSize must be 65536');
+}, 'Sctp transport has null maxChannels and 65536 maxMessageSize in have-local-offer');
+
+promise_test(async (t) => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  pc.createDataChannel('test');
+  const offer = await pc.createOffer();
+  assert_equals(pc.sctp, null, 'pc.sctp is null ahead of remote offer');
+  await pc.setRemoteDescription(offer);
+  assert_true(pc.sctp instanceof RTCSctpTransport, 'pc.sctp in have-remote-offer');
+}, 'Sctp transport has null maxChannels and maxMessageSize in have-remote-offer');
+}
+
+if (interop2026) {
+promise_test(async (t) => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+  exchangeIceCandidates(pc1, pc2);
+  pc1.createDataChannel('');
+  const offer = await pc1.createOffer();
+  await pc1.setLocalDescription(offer);
+  assert_true(pc1.sctp instanceof RTCSctpTransport, 'pc1.sctp');
+  const pc1ConnectedWaiter = waitForState(pc1.sctp, 'connected');
+  await pc2.setRemoteDescription(offer);
+  assert_true(pc2.sctp instanceof RTCSctpTransport, 'pc2.sctp');
+  const pc2ConnectedWaiter = waitForState(pc2.sctp, 'connected');
+  const answer = await pc2.createAnswer();
+  await pc2.setLocalDescription(answer);
+  await pc1.setRemoteDescription(answer);
+  assert_equals(null, pc1.sctp.maxChannels);
+  assert_equals(null, pc2.sctp.maxChannels);
+  await pc1ConnectedWaiter;
+  await pc2ConnectedWaiter;
+  assert_not_equals(null, pc1.sctp.maxChannels);
+  assert_not_equals(null, pc2.sctp.maxChannels);
+  assert_equals(pc1.sctp.maxChannels, pc2.sctp.maxChannels);
+}, 'maxChannels gets instantiated after connecting');
+}
+if (rest) {
+
+promise_test(async (t) => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  pc.createDataChannel('test');
+  assert_equals(pc.sctp, null, 'pc.sctp is null ahead of local offer');
+  await pc.setLocalDescription();
+  assert_true(pc.sctp instanceof RTCSctpTransport, 'pc.sctp in have-local-offer');
+  await pc.setLocalDescription({type: "rollback"});
+  assert_equals(pc.sctp, null, 'pc.sctp is null after rollback');
+  await pc.setLocalDescription();
+  assert_true(pc.sctp instanceof RTCSctpTransport, 'pc.sctp in have-local-offer again');
+  assert_equals(pc.sctp.maxChannels, null, 'maxChannels must be null');
+  assert_equals(pc.sctp.maxMessageSize, 65536, 'maxMessageSize must be 65536');
+}, 'Sctp transport has null maxChannels and 65536 maxMessageSize in have-local-offer after rollback');
+
+promise_test(async (t) => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  pc.createDataChannel('test');
+  const offer = await pc.createOffer();
+  assert_equals(pc.sctp, null, 'pc.sctp is null ahead of remote offer');
+  await pc.setRemoteDescription(offer);
+  assert_true(pc.sctp instanceof RTCSctpTransport, 'pc.sctp in have-remote-offer');
+  await pc.setRemoteDescription({type: "rollback"});
+  assert_equals(pc.sctp, null, 'pc.sctp is null after rollback');
+  await pc.setRemoteDescription(offer);
+  assert_true(pc.sctp instanceof RTCSctpTransport, 'pc.sctp in have-remote-offer again');
+  assert_equals(pc.sctp.maxChannels, null, 'maxChannels must be null');
+  assert_equals(pc.sctp.maxMessageSize, 65536, 'maxMessageSize must be 65536');
+}, 'Sctp transport has null maxChannels and 65536 maxMessageSize in have-remote-offer after rollback');
+}
+</script>

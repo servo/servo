@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>window.requestIdleCallback max idle period deadline (requestAnimationFrame).</title>
+<meta name="timeout" content="long">
+<link rel="author" title="Noam Rosenthal" href="mailto:noam@webkit.org" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/ric-utils.js"></script>
+<script>
+
+function runRAFLoop()
+{
+  requestAnimationFrame(runRAFLoop);
+}
+
+promise_test(async done => {
+  runRAFLoop();
+  for (let i = 0; i < getRICRetryCount(); ++i) {
+    assert_less_than_equal(await getDeadlineForNextIdleCallback(), getPendingRenderDeadlineCap())
+  }
+}, 'Check that the deadline is less than 16ms when there is a pending animation frame.');
+</script>
+<h1>Test of requestIdleCallback deadline behavior</h1>
+<p>The test can pass accidentally as idle deadlines have a maximum but they can always be shorter.
+It runs multiple times to expose potential failures.</p>
+<div id="log"></div>

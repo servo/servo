@@ -1,0 +1,54 @@
+<!doctype html>
+<html>
+<head>
+<title>Test that mediastreamtrack are properly ended</title>
+<link rel="author" title="Dominique Hazael-Massieux" href="mailto:dom@w3.org"/>
+<link rel="help" href="http://w3c.github.io/mediacapture-main/getusermedia.html#mediastreamtrack">
+</head>
+<body>
+<p class="instructions">When prompted, accept to share your video and audio
+stream, and then revoke that permission.</p>
+<h1 class="instructions">Description</h1>
+<p class="instructions">This test checks that the video and audio tracks of
+MediaStream object returned by the success callback in getUserMedia are
+correctly set into inactive state when permission is revoked.</p>
+
+<div id='log'></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=permission-helper.js></script>
+<script>
+'use strict';
+promise_test(async t => {
+  await setMediaPermission();
+  const stream = await navigator.mediaDevices.getUserMedia({
+    audio: true,
+    video: true,
+  });
+
+  const vidTrack = stream.getVideoTracks()[0];
+  assert_equals(vidTrack.readyState, "live",
+    "The video track object is in live state");
+  const vidEnded = new Promise(r => vidTrack.onended = r);
+  const audTrack = stream.getAudioTracks()[0];
+  assert_equals(audTrack.readyState, "live",
+    "The audio track object is in live state");
+  const audEnded = new Promise(r => audTrack.onended = r);
+
+  await Promise.race([vidEnded, audEnded]);
+  assert_equals(stream.getTracks().filter(t => t.readyState == "ended").length,
+    1, "Only one track is ended after first track's ended event");
+  assert_equals(stream.getTracks().filter(t => t.readyState == "live").length,
+    1, "One track is still live after first track's ended event");
+  assert_true(stream.active, "MediaStream is still active");
+
+  await Promise.all([vidEnded, audEnded]);
+  assert_equals(vidTrack.readyState, "ended", "Video track ended as expected");
+  assert_equals(audTrack.readyState, "ended", "Audio track ended as expected");
+  assert_false(stream.active, "MediaStream has become inactive as expected");
+}, "Tests that MediaStreamTracks end properly on permission revocation");
+</script>
+</body>
+</html>

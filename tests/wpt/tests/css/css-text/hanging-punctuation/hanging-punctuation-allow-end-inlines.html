@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Text: hanging-punctuation allow-end with inline elements</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#hanging-punctuation-property">
+<link rel="match" href="reference/hanging-punctuation-allow-end-inlines-ref.html">
+<meta name="assert" content="hanging-punctuation: allow-end causes punctuation to hang even when followed by an empty inline or a zero-width inline. Punctuation preceded by a non-zero-width inline border does not hang.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+    body { font-family: 'Ahem'; color:green }
+    .hang { hanging-punctuation: allow-end; margin:1em; width:5em; border:2px solid black }
+</style>
+<div style="float:left; width:auto" class="hang">12 34,</div>
+<div style="clear:both">
+<div class="hang">12 34,<span></span> 1234,</div>
+<div class="hang">12 34,<span style="border-left:1em solid black"></span> 1234,</div>
+<div class="hang">12 34,<span style="border-right:1em solid black"></span> 1234,</div>
+<div class="hang"><span style="border-right:1em solid black">12 34,</span> 2345</div>
+<div class="hang">12 34<span style="border-left:1em solid black">,</span> 2345</div>

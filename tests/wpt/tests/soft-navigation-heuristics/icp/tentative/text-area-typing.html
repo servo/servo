@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/soft-navigation-heuristics/resources/soft-navigation-test-helper.js"></script>
+
+<textarea id="target"></textarea>
+
+<script>
+  promise_test(async t => {
+    const helper = new SoftNavigationTestHelper(t);
+
+    const BACKSPACE = '\uE003';
+    const keys = ['a', 'B', '1', BACKSPACE];
+
+    for (let key of keys) {
+      const icpPromise = helper.waitForIcp();
+
+      if (test_driver) {
+        await test_driver.send_keys(target, key);
+      }
+
+      const icps = await icpPromise;
+      assert_equals(icps.length, 1, 'Expected exactly one ICP entry');
+      assert_equals(
+          icps[0].largestContentfulPaint.element, null,
+          'Expected the LCP element to be null (UA shadow DOM)');
+    }
+  }, 'InteractionContentfulPaint supports textarea typing');
+</script>

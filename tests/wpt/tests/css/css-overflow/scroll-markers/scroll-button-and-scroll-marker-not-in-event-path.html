@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<title>CSS Overflow Test: ::scroll-button and ::scroll-marker pseudo-elements are not present in event path</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-buttons">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  body {
+    margin: 0;
+  }
+
+  #scroller {
+    height: 100px;
+    width: 100px;
+    overflow: scroll;
+    scroll-marker-group: before;
+  }
+
+  #scroller::scroll-marker-group {
+    height: 10px;
+  }
+
+  #target {
+    height: 100px;
+    width: 200px;
+  }
+
+  #scroller::scroll-button(right) {
+    content: "";
+    height: 10px;
+    width: 10px;
+  }
+
+  #target::scroll-marker {
+    content: "";
+    height: 10px;
+    width: 10px;
+    display: block;
+  }
+</style>
+<div id="scroller">
+  <div id="target"></div>
+</div>
+<script>
+  const scrollButtonHalfHeight = 5;
+  const scrollButtonHalfWidth = 5;
+  const scrollMarkerHalfHeight = 5;
+  const scrollMarkerHalfWidth = 5;
+  const scrollerBottom = scroller.getBoundingClientRect().bottom;
+
+  let scrollerActualEventPath = null;
+  scroller.addEventListener("click", (e) => {
+    scrollerActualEventPath = e.composedPath();
+  });
+
+  const scrollerExpectedEventPath = [scroller, document.body, document.documentElement, document, window];
+  promise_test(async t => {
+    // Click on the ::scroll-button pseudo-element.
+    const scrollButtonX = scrollButtonHalfWidth;
+    const scrollButtonY = scrollerBottom + scrollButtonHalfHeight;
+    await new test_driver.Actions()
+      .pointerMove(scrollButtonX, scrollButtonY)
+      .pointerDown()
+      .pointerUp()
+      .send();
+    assert_array_equals(scrollerActualEventPath, scrollerExpectedEventPath, "::scroll-button pseudo-element should not be in the event path");
+  });
+
+  let targetActualEventPath = null;
+  target.addEventListener("click", (e) => {
+    targetActualEventPath = e.composedPath();
+  });
+
+  const targetExpectedEventPath = [target, scroller, document.body, document.documentElement, document, window];
+  promise_test(async t => {
+    // Click on the ::scroll-marker pseudo-element.
+    const scrollMarkerX = scrollMarkerHalfWidth;
+    const scrollMarkerY = scrollMarkerHalfHeight;
+    await new test_driver.Actions()
+      .pointerMove(scrollMarkerX, scrollMarkerY)
+      .pointerDown()
+      .pointerUp()
+      .send();
+    assert_array_equals(targetActualEventPath, targetExpectedEventPath, "::scroll-marker pseudo-element should not be in the event path");
+  });
+</script>

@@ -1,0 +1,39 @@
+<meta charset="utf-8">
+<title>'outline-width' property</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#dom-stylepropertymap-get">
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#dom-stylepropertymap-set">
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#property-stle-value-normalization">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../resources/testhelper.js"></script>
+<script src="resources/testsuite.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+function assert_is_keyword_width(result, expected) {
+  assert_style_value_equals(result, new CSSUnitValue(expected, 'px'));
+}
+
+runPropertyTests('outline-width', [
+  // Computed value is independent of outline-style.
+  {
+    syntax: 'thin',
+    computed: (_, result) => assert_is_keyword_width(result, 1)
+  },
+  {
+    syntax: 'medium',
+    computed: (_, result) => assert_is_keyword_width(result, 3)
+  },
+  {
+    syntax: 'thick',
+    computed: (_, result) => assert_is_keyword_width(result, 5)
+  },
+  {
+    syntax: '<length>',
+    specified: assert_is_equal_with_range_handling,
+  },
+]);
+
+</script>

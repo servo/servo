@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+  <head>
+
+    <title>CSS Background and Borders Test:background-clip_pending-box</title>
+    <link rel="author" title="anping" href="mailto:zhuanping123@163.com" />
+    <meta content="Check if the border-clip works.">
+    <style>
+      div{
+          position:absolute;
+         }
+
+       #outside{
+
+        border: blue dotted 5px;
+        height: 120px;
+        left: 10px;
+        top: 10px;
+        width: 120px;
+        background-color:transparent;
+
+       }
+      #inside{
+
+        border: transparent;
+        height: 100px;
+        left: 25px;
+        top: 25px;
+        width: 100px;
+        background-color:red;
+
+       }
+
+    </style>
+  </head>
+ <body>
+  <p>
+   "Test passes if the border is blue dotted without red."
+  </p>
+  <div id="container">
+
+   <div id="outside"></div>
+   <div id="inside"></div>
+  </div>
+ </body>
+
+</html>

@@ -1,0 +1,28 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="timeout" content="long">
+  <script src="/resources/testharness.js"></script>
+  <script src="../../nested-testharness.js"></script>
+  <title>promise_setup - timeout</title>
+</head>
+<body>
+<script>
+'use strict';
+promise_test(() => {
+  return makeTest(
+      () => {
+        test(() => {}, 'before');
+        promise_setup(() => new Promise(() => {}));
+        promise_test(() => Promise.resolve(), 'after');
+      }
+    ).then(({harness, tests}) => {
+      assert_equals(harness, 'TIMEOUT');
+      assert_equals(tests.before, 'PASS');
+      assert_equals(tests.after, 'NOTRUN');
+    });
+}, 'timeout when returned promise does not settle');
+</script>
+</body>
+</html>

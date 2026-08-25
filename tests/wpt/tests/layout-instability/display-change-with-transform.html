@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>Layout Instability: change display type with transform</title>
+<link rel="help" href="https://wicg.github.io/layout-instability/" />
+<style>
+  div {
+    width: 100px;
+    height: 100px;
+    background: blue;
+  }
+  #target {
+    transform: translateX(0);
+  }
+</style>
+<div id=target>
+  <div id=shift>test</div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/util.js"></script>
+<script>
+
+promise_test(async () => {
+  const watcher = new ScoreWatcher;
+  await waitForAnimationFrames(2);
+
+  target.style.display = 'flex';
+
+  await waitForAnimationFrames(1);
+
+  assert_equals(watcher.score, 0);
+}, 'Shift accompanied by body display change.');
+
+</script>

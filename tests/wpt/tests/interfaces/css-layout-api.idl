@@ -1,0 +1,144 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: CSS Layout API Level 1 (https://drafts.css-houdini.org/css-layout-api-1/)
+
+partial namespace CSS {
+    [SameObject] readonly attribute Worklet layoutWorklet;
+};
+
+[Global=(Worklet,LayoutWorklet),Exposed=LayoutWorklet]
+interface LayoutWorkletGlobalScope : WorkletGlobalScope {
+    undefined registerLayout(DOMString name, VoidFunction layoutCtor);
+};
+
+dictionary LayoutOptions {
+  ChildDisplayType childDisplay = "block";
+  LayoutSizingMode sizing = "block-like";
+};
+
+enum ChildDisplayType {
+    "block", // default - "blockifies" the child boxes.
+    "normal",
+};
+
+enum LayoutSizingMode {
+    "block-like", // default - Sizing behaves like block containers.
+    "manual", // Sizing is specified by the web developer.
+};
+
+[Exposed=LayoutWorklet]
+interface LayoutChild {
+    readonly attribute StylePropertyMapReadOnly styleMap;
+
+    Promise<IntrinsicSizes> intrinsicSizes();
+    Promise<LayoutFragment> layoutNextFragment(LayoutConstraintsOptions constraints, ChildBreakToken breakToken);
+};
+
+[Exposed=LayoutWorklet]
+interface LayoutFragment {
+    readonly attribute double inlineSize;
+    readonly attribute double blockSize;
+
+    attribute double inlineOffset;
+    attribute double blockOffset;
+
+    readonly attribute any data;
+
+    readonly attribute ChildBreakToken? breakToken;
+};
+
+[Exposed=LayoutWorklet]
+interface IntrinsicSizes {
+  readonly attribute double minContentSize;
+  readonly attribute double maxContentSize;
+};
+
+[Exposed=LayoutWorklet]
+interface LayoutConstraints {
+    readonly attribute double availableInlineSize;
+    readonly attribute double availableBlockSize;
+
+    readonly attribute double? fixedInlineSize;
+    readonly attribute double? fixedBlockSize;
+
+    readonly attribute double percentageInlineSize;
+    readonly attribute double percentageBlockSize;
+
+    readonly attribute double? blockFragmentationOffset;
+    readonly attribute BlockFragmentationType blockFragmentationType;
+
+    readonly attribute any data;
+};
+
+enum BlockFragmentationType { "none", "page", "column", "region" };
+
+dictionary LayoutConstraintsOptions {
+    double availableInlineSize;
+    double availableBlockSize;
+
+    double fixedInlineSize;
+    double fixedBlockSize;
+
+    double percentageInlineSize;
+    double percentageBlockSize;
+
+    double blockFragmentationOffset;
+    BlockFragmentationType blockFragmentationType = "none";
+
+    any data;
+};
+
+[Exposed=LayoutWorklet]
+interface ChildBreakToken {
+    readonly attribute BreakType breakType;
+    readonly attribute LayoutChild child;
+};
+
+[Exposed=LayoutWorklet]
+interface BreakToken {
+    readonly attribute FrozenArray<ChildBreakToken> childBreakTokens;
+    readonly attribute any data;
+};
+
+dictionary BreakTokenOptions {
+    sequence<ChildBreakToken> childBreakTokens;
+    any data = null;
+};
+
+enum BreakType { "none", "line", "column", "page", "region" };
+
+[Exposed=LayoutWorklet]
+interface LayoutEdges {
+  readonly attribute double inlineStart;
+  readonly attribute double inlineEnd;
+
+  readonly attribute double blockStart;
+  readonly attribute double blockEnd;
+
+  // Convenience attributes for the sum in one direction.
+  readonly attribute double inline;
+  readonly attribute double block;
+};
+
+// This is the final return value from the author defined layout() method.
+dictionary FragmentResultOptions {
+    double inlineSize = 0;
+    double blockSize = 0;
+    double autoBlockSize = 0;
+    sequence<LayoutFragment> childFragments = [];
+    any data = null;
+    BreakTokenOptions breakToken = null;
+};
+
+[Exposed=LayoutWorklet]
+interface FragmentResult {
+    constructor(optional FragmentResultOptions options = {});
+    readonly attribute double inlineSize;
+    readonly attribute double blockSize;
+};
+
+dictionary IntrinsicSizesResultOptions {
+    double maxContentSize;
+    double minContentSize;
+};

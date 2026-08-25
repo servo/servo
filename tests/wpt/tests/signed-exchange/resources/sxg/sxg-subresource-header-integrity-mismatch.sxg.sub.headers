@@ -1,0 +1,1 @@
+Link: <https://{{hosts[alt][]}}:{{ports[https][0]}}/signed-exchange/resources/sxg/sxg-subresource-script.sxg>;rel=alternate;type="application/signed-exchange;v=b3";anchor="https://127.0.0.1:8444/signed-exchange/resources/sxg-subresource-script.js";

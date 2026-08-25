@@ -1,0 +1,4 @@
+rules:
+- box-sizing-*: [box-sizing]
+- width-*: [width-height]
+- height-*: [width-height]

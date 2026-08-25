@@ -1,0 +1,26 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>implicit port number matching fails with a different port</title>
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' www.{{host}} 'unsafe-inline';">
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+    <script src='negativeTests.js'></script>
+    <script>
+      var t_spv = async_test("Should fire violation events for every failed violation");
+      window.addEventListener("securitypolicyviolation", t_spv.step_func_done(function(e) {
+          assert_equals(e.violatedDirective, "script-src-elem");
+      }));
+
+      var head = document.getElementsByTagName('head')[0];
+      var script = document.createElement('script');
+      script.type = 'text/javascript';
+      script.src = "http://www." + location.hostname + ":{{ports[http][1]}}/content-security-policy/generic/unreached.js";
+      head.appendChild(script);
+    </script>
+</head>
+<body>
+    <h1>implicit port number matching fails with a different port</h1>
+    <div id='log'></div>
+</body>
+</html>

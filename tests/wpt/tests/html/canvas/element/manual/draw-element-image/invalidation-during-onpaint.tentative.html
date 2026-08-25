@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Rendering invalidations in onpaint callback don't affect current rendering update</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<link rel="author" href="mailto:szager@chromium.org">
+<link rel="match" href="invalidation-during-onpaint-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+#opacity {
+  width: 100px;
+  height: 100px;
+  background: green;
+  position: relative;
+  left: 20px;
+  top: 30px;
+  will-change: opacity;
+}
+#container {
+  width: 200px;
+  height: 200px;
+  background: grey;
+}
+</style>
+
+<div id=container>
+  <div id=opacity style="opacity:.9"></div>
+</div>
+
+<canvas id=canvas width="1" height="1"></canvas>
+
+<script>
+function runTest() {
+  canvas.onpaint = () => {
+    // This will run on every rendering update, but at the point of execution
+    // cc property trees have already been copied off for commit so any
+    // modification to main thread property trees will *not* be included in the
+    // display of this update. The rAF callback below ensures that #opacity is
+    // always painted and drawn with opacity:.9.
+    opacity.style.opacity = '.1';
+    const forceLayer = document.elementsFromPoint(50, 50);
+    requestAnimationFrame(() => {
+      opacity.style.opacity = '.9';
+      takeScreenshot();
+    });
+    canvas.requestPaint();
+  };
+  canvas.requestPaint();
+}
+
+onload = runTest;
+</script>
+</html>

@@ -1,0 +1,182 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Viewport: Scroll Event</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, minimum-scale=1">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="viewport_support.js"></script>
+        <script>
+           setup({explicit_timeout: true, explicit_done: true})
+        </script>
+        <style>
+          html {
+            width: 100%;
+            height: 100%;
+          }
+        </style>
+    </head>
+    <body>
+    <h1>Viewport: Scroll Event</h1>
+    <h4>
+        Test Description: This test checks that a scroll event is fired against
+        the window.visualViewport object when the viewport is scrolled.
+    </h4>
+    <h2 style="color: red">THIS IS A MANUAL TEST</h2>
+    <p id="skip">
+        <button id="skipbtn" onclick="skipManualTest();">Skip Test</button>
+    </p>
+    <h4>Instruction</h4>
+    <p id="instruction"></p>
+    <button id="continue">Start Test</button>
+    <div id="log"></div>
+    </body>
+    <script>
+        var continueBtn = document.getElementById("continue");
+
+        function continueTest() {
+          nextStep(function(instructionText) {
+            var instruction = document.getElementById("instruction");
+            continueBtn.innerText = "Continue";
+            instruction.innerText = instructionText;
+          });
+        }
+
+        continueBtn.addEventListener('click', continueTest);
+
+        var didGetScrollEvent = false;
+        var cancelable = undefined;
+        var bubbles = undefined;
+
+        function resetValues() {
+            didGetScrollEvent = false;
+            cancelable = undefined;
+            bubbles = undefined;
+        }
+
+        addManualTestStep(
+            function() {
+                window.visualViewport.addEventListener('scroll', function(e) {
+                    didGetScrollEvent = true;
+                    cancelable = e.cancelable;
+                    bubbles = e.bubbles;
+                });
+                document.documentElement.style.overflow = "hidden";
+            },
+            null,
+            '1. Pinch-zoom a little near the "Continue" button but don\'t ' +
+            'perform any scrolling.');
+
+        addManualTestStep(
+            function() {
+                requestAnimationFrame(continueTest);
+                assert_true(didGetScrollEvent, "Got event");
+                assert_false(cancelable, "Event is not cancelable");
+                assert_false(bubbles, "Event does not bubble");
+             },
+            'Got scroll event while pinch-zooming',
+            '');
+
+        addManualTestStep(
+            resetValues,
+            null,
+            '2. Scroll in any direction.');
+
+        addManualTestStep(
+            function() {
+                requestAnimationFrame(continueTest);
+                assert_true(didGetScrollEvent, "Got event");
+                assert_false(cancelable, "Event is not cancelable");
+                assert_false(bubbles, "Event does not bubble");
+            },
+            'Panning viewport fires a scroll event',
+            '');
+
+        addManualTestStep(
+            function() {
+                continueBtn.style.position = "absolute";
+                continueBtn.style.right = "10px";
+                continueBtn.style.bottom = "10px";
+            },
+            null,
+            '3. Scroll fully to the bottom right and click the continue ' +
+            'button.');
+
+        var offsetLeft;
+        var offsetTop;
+        addManualTestStep(
+            function() {
+                resetValues();
+                document.documentElement.style.overflow = "";
+                document.body.style.width = "500%";
+                document.body.style.height = "500%";
+                continueBtn.style.position = "";
+                continueBtn.style.left = "";
+                continueBtn.style.top = "";
+
+                offsetLeft = window.visualViewport.offsetLeft;
+                offsetTop = window.visualViewport.offsetTop;
+
+                // The visual viewport should be fully scrolled so even if
+                // scrollTo does normally "push" the layout viewport with the
+                // visual, there should be no change to either offsetValue
+                window.scrollTo(10000, 10000);
+
+                requestAnimationFrame(continueTest);
+                assert_equals(window.visualViewport.offsetLeft, offsetLeft,
+                    "OffsetLeft Unchanged");
+                assert_equals(window.visualViewport.offsetTop, offsetTop,
+                    "OffsetTop Unchanged");
+                assert_false(didGetScrollEvent,
+                    "Should not get view scroll event");
+            },
+            'scrollTo down and right on a fully scrolled visual viewport ' +
+            'shouldn\'t change offsets',
+            '');
+
+        addManualTestStep(
+            function() {
+                requestAnimationFrame(continueTest);
+                assert_false(didGetScrollEvent,
+                    "Should not get view scroll event");
+                resetValues();
+            },
+            'scrollTo without changing offsets shouldn\'t fire scroll event ' +
+            'on view',
+            '');
+
+        addManualTestStep(
+            function() {
+              requestAnimationFrame(continueTest);
+              resetValues();
+              window.scrollTo(0, 0);
+            },
+            null,
+            '');
+
+        addManualTestStep(
+            function() {
+                // How scrollTo behaves in this case isn't fully spec'd but
+                // make sure it's at least rational if it does change the
+                // offset values.
+                var scrollChangedOffset =
+                  offsetLeft != window.visualViewport.offsetLeft ||
+                  offsetTop != window.visualViewport.offsetTop;
+
+                document.body.style.width = "";
+                document.body.style.height = "";
+
+                assert_equals(didGetScrollEvent, scrollChangedOffset,
+                    'If the scrollTo changed offsets it must have fired a ' +
+                    'scroll event');
+            },
+            'scrollTo must fire scroll event if it changes visualViewport.offsetLeft|Top',
+            '6. Pinch-zoom out fully');
+
+        addManualTestStep(
+            function() { continueBtn.remove(); },
+            null,
+            'Test Complete');
+    </script>
+</html>

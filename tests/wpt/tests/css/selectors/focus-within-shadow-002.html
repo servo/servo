@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang=en class="reftest-wait">
+<meta charset="utf-8">
+<title>Selectors Level 4: focus-within with shadow DOM</title>
+<link rel="author" title="Keyong Li" href="mailto:kli79@bloomberg.net">
+<link rel="author" title="Florian Rivoal" href="mailto:florian@rivoal.net">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#focus-within-pseudo">
+<link rel="match" href="focus-within-shadow-001-ref.html">
+<meta name="flags" content="dom">
+<meta name="assert" content="Test that :focus-within applies to a shadow host containing a focused element.">
+<style>
+div:focus-within {
+  border: solid 15px green;
+}
+</style>
+<body>
+<p>Test passes if there is a green rectangle below.</p>
+<div id="shadow-host"><strong>Skip this test, shadow DOM is not supported.</strong></div>
+
+<template id="shadow-template">
+<style>
+/* Suppress things that cannot be reproduced in the reference file */
+:focus {
+  outline: none;
+}
+</style>
+<div id="focusme" tabindex="1"></div>
+</template>
+
+<script>
+var shadow = document.getElementById('shadow-host').attachShadow({mode: 'open'});
+var template = document.getElementById('shadow-template');
+var instance = document.importNode(template.content, true);
+shadow.appendChild(instance);
+var focusme = shadow.getElementById('focusme');
+focusme.focus();
+document.documentElement.classList.remove('reftest-wait');
+</script>
+</body>
+</html>

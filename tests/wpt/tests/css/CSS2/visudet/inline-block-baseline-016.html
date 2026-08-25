@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<title>Vertical-align: baseline of inline-block with only forced line break</title>
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css2/#leading">
+<link rel="help" href="https://drafts.csswg.org/css2/#inline-formatting">
+<link rel="match" href="../../reference/ref-filled-green-200px-square.html">
+<meta name="assert" content="
+  From https://drafts.csswg.org/css2/#leading
+  > The baseline of an inline-block is the baseline of its last line box in the normal flow,
+  > unless it has either no in-flow line boxes or if its overflow property has a computed
+  > value other than visible, in which case the baseline is the bottom margin edge.
+
+  Here we have 2 inline-blocks. The 1st one is has some zero-sized text, so its baseline is
+  at its top content edge. The 2nd one only has a preserved line break.
+
+  From https://drafts.csswg.org/css2/#inline-formatting
+  > Line boxes that contain no text, no preserved white space, no inline elements with
+  > non-zero margins, padding, or borders, and no other in-flow content (such as images,
+  > inline blocks or inline tables), and do not end with a preserved newline must be
+  > treated as zero-height line boxes for the purposes of determining the positions of
+  > any elements inside of them, and must be treated as not existing for any other purpose.
+
+  The forced line break prevents the line box from being phantom, so the baseline of the
+  2nd inline-block is also at its top content edge. If it weren't for the forced line break,
+  the line would be phanthom and then the baseline would be at the bottom margin edge.
+
+  Therefore, the inline-blocks should have their top content edges aligned.
+">
+
+<style>
+.wrapper {
+  width: 200px;
+  font-size: 0;
+  line-height: 0;
+  background: red;
+}
+.inline-block {
+  display: inline-block;
+  width: 100px;
+  height: 200px;
+  background: green;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div class="wrapper">
+  <div class="inline-block">text</div>
+  <div class="inline-block" style="white-space: pre">&#10;</div>
+</div>

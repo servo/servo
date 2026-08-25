@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>ref for nested iframes with css zoom</title>
+<link rel="author" title="Yotam Hacohen" href="mailto:yotha@chromium.org">
+<link rel="author" title="Stefan Zager" href="mailto:szager@chromium.org">
+<link rel="author" title="Google" href="http://www.google.com/">
+<link rel="help" href="https://drafts.csswg.org/css-viewport/">
+
+<style>
+body {
+  columns: 2;
+  --iframe-width: 256px;
+  --iframe-height: 128px;
+  --scale: 1;
+}
+iframe {
+  border: none;
+  width: calc(var(--iframe-width) * var(--scale));
+  height: calc(var(--iframe-height) * var(--scale));
+}
+.scale {
+  --scale: 1.5;
+}
+</style>
+
+<iframe id="baseline-ref" src="../resources/nested-iframe.html" scrolling="no"></iframe>
+<iframe id="zoom-child-ref" src="../resources/nested-iframe.html?subscale=2" scrolling="no"></iframe>
+<iframe id="zoom-top-ref" class="scale" src="../resources/nested-iframe.html?topscale=1.5" scrolling="no"></iframe>
+<iframe id="zoom-top-child-ref" class="scale" src="../resources/nested-iframe.html?topscale=1.5&subscale=2" scrolling="no"></iframe>

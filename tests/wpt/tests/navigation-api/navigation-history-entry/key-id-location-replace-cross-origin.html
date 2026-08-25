@@ -1,0 +1,17 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<iframe id="i" src="/common/blank.html"></iframe>
+<script>
+async_test(t => {
+  window.onload = t.step_func(() => {
+    let key_before_replace = i.contentWindow.navigation.currentEntry.key;
+    window.onmessage = t.step_func_done(e => assert_not_equals(key_before_replace, e.data));
+
+    let cross_origin_url = new URL("resources/post-key-to-top.html", location.href);
+    cross_origin_url.hostname = get_host_info().REMOTE_HOST;
+    i.contentWindow.location.replace(cross_origin_url.href);
+  });
+}, "NavigationHistoryEntry's key and id after location.replace()");
+</script>

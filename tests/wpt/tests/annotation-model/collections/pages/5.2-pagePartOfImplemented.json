@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "5.2-pagePartOfImplemented.json",
+  "assertionType": "should",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "passAndContinue",
+  "errorMessage": "Annotation Page has no partOf key.",
+  "title": "Implements **Annotation Page _partOf_ key** with valid value of string of format uri - [model 5.2](https://www.w3.org/TR/annotation-model/#annotation-page)",
+  "oneOf": [
+      { "$ref": "collections.json#/definitions/partOfFound" },
+      { "type": "object",
+        "properties":
+         {"first":
+           { "$ref": "collections.json#/definitions/partOfFound" }
+         },
+        "required": [ "first" ]
+      }
+  ]
+}

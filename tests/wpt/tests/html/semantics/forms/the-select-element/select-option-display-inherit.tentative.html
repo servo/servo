@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>select option: display:inherit computes to contents</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://bugzil.la/2028130">
+<link rel="help" href="https://github.com/whatwg/html/issues/3748">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<select id="single">
+  <option id="single-option" style="display: inherit">Option</option>
+</select>
+
+<select id="multiple" multiple>
+  <option id="multiple-option" style="display: inherit">Option</option>
+</select>
+
+<script>
+test(function() {
+  assert_equals(getComputedStyle(document.getElementById("single-option")).display, "contents");
+}, "display:inherit on option in single select computes to contents");
+
+test(function() {
+  assert_equals(getComputedStyle(document.getElementById("multiple-option")).display, "contents");
+}, "display:inherit on option in multiple select computes to contents");
+
+test(function() {
+  const rect = document.getElementById("single-option").getBoundingClientRect();
+  assert_equals(rect.width, 0, "width");
+  assert_equals(rect.height, 0, "height");
+  assert_equals(rect.top, 0, "top");
+  assert_equals(rect.left, 0, "left");
+}, "option in closed single select has zero bounding client rect");
+</script>

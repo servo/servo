@@ -1,0 +1,127 @@
+<meta charset="utf-8">
+<title>CSSNumericValue.parse tests</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#dom-cssnumericvalue-parse">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../resources/testhelper.js"></script>
+<script>
+'use strict';
+
+test(() => {
+  assert_throws_dom("SyntaxError", () => CSSNumericValue.parse('%#('));
+}, 'Parsing an invalid string throws SyntaxError');
+
+test(() => {
+  assert_throws_dom("SyntaxError", () => CSSNumericValue.parse('auto'));
+}, 'Parsing a string with a non numeric token throws SyntaxError');
+
+test(() => {
+  assert_throws_dom("SyntaxError", () => CSSNumericValue.parse('1 2'));
+}, 'Parsing a string with left over numeric tokens throws SyntaxError');
+
+test(() => {
+  assert_throws_dom("SyntaxError", () => CSSNumericValue.parse('calc(calc(1px * 2s) + 3%)'));
+}, 'Parsing a calc with incompatible units throws a SyntaxError');
+
+test(() => {
+  assert_throws_dom("SyntaxError", () => CSSNumericValue.parse('1xyz'));
+}, 'Parsing a <dimension-token> with invalid units throws a SyntaxError');
+
+test(() => {
+  assert_style_value_equals(CSSNumericValue.parse(' 1px  '), new CSSUnitValue(1, 'px'));
+}, 'Parsing ignores surrounding spaces');
+
+test(() => {
+  assert_style_value_equals(CSSNumericValue.parse('1'), CSS.number(1));
+}, 'Parsing a number is successful');
+
+test(() => {
+  assert_style_value_equals(CSSNumericValue.parse('25%'), CSS.percent(25));
+}, 'Parsing a percentage is successful');
+
+test(() => {
+  assert_style_value_equals(CSSNumericValue.parse('10deg'), CSS.deg(10));
+}, 'Parsing an angle unit is successful');
+
+test(() => {
+  assert_style_value_equals(CSSNumericValue.parse('2s'), CSS.s(2));
+}, 'Parsing a time unit is successful');
+
+test(() => {
+  const expected = new CSSMathSum(CSS.px(10));
+  assert_style_value_equals(CSSNumericValue.parse('calc(10px)'), expected);
+}, 'Parsing calc() with a length unit is successful');
+
+test(() => {
+  const expected = new CSSMathSum(CSS.px(97));
+  assert_style_value_equals(CSSNumericValue.parse('calc(1px + 1in)'), expected);
+}, 'Parsing calc() with compatible length units simplifies the expression');
+
+test(() => {
+  const expected = new CSSMathSum(CSS.px(1), CSS.em(2));
+  assert_style_value_equals(CSSNumericValue.parse('calc(1px + 2em)'), expected);
+}, 'Parsing calc() with incompatible length units does not simplify the expression');
+
+test(() => {
+  const expected = new CSSMathSum(CSS.em(9), new CSSMathNegate(CSS.px(8)), CSS.vh(1));
+  assert_style_value_equals(CSSNumericValue.parse('calc(9em - 8px + 1vh)'), expected);
+}, 'Parsing calc() with subtraction is successful');
+
+test(() => {
+  const expected = new CSSMathProduct(
+    CSS.number(2),
+    new CSSMathMin(CSS.px(10), CSS.percent(20))
+  );
+  assert_style_value_equals(
+    CSSNumericValue.parse('calc(2 * min(10px, 20%))'),
+    expected
+  );
+}, 'Parsing calc() with multiplication is successful');
+
+test(() => {
+  const expected = new CSSMathSum(
+    CSS.em(9),
+    new CSSMathNegate(CSS.px(8)),
+    CSS.vh(1),
+    new CSSMathProduct(
+      CSS.number(2),
+      new CSSMathMin(CSS.px(10), CSS.percent(20))
+    )
+  );
+  assert_style_value_equals(
+    CSSNumericValue.parse('calc(9em - 8px + 1vh + (2 * min(10px, 20%)))'),
+    expected
+  );
+}, 'Parsing calc() with complex expression is successful');
+
+test(() => {
+  const expected = new CSSMathMin(CSS.px(10), CSS.percent(10));
+  assert_style_value_equals(CSSNumericValue.parse('min(10px, 10%)'), expected);
+}, 'Parsing min() is successful');
+
+test(() => {
+  const expected = new CSSMathMax(CSS.px(10), CSS.percent(10));
+  assert_style_value_equals(CSSNumericValue.parse('max(10px, 10%)'), expected);
+}, 'Parsing max() is successful');
+
+test(() => {
+  const expected = new CSSMathClamp(CSS.px(10), CSS.percent(10), CSS.px(20));
+  assert_style_value_equals(CSSNumericValue.parse('clamp(10px, 10%, 20px)'), expected);
+}, 'Parsing clamp() is successful');
+
+test(() => {
+  const expected = new CSSMathSum(...[1, 2, 3].map(x => new CSSMathMin(CSS.number(x))));
+  assert_style_value_equals('calc(min(1) + min(2) + min(3))', expected.toString());
+}, 'Parsing sum of multiple min() is successful');
+
+test(() => {
+  const expected = new CSSMathProduct(...[1, 2, 3].map(x => new CSSMathMin(CSS.number(x))));
+  assert_style_value_equals('calc(min(1) * min(2) * min(3))', expected.toString());
+}, 'Parsing product of multiple min() is successful');
+
+test(() => {
+  assert_throws_dom("SyntaxError", () => CSSNumericValue.parse("calc(1 / sign(10em - 10rem))"));
+  assert_throws_dom("SyntaxError", () => CSSNumericValue.parse("calc(sign(10em - 10rem))"));
+  assert_throws_dom("SyntaxError", () => CSSNumericValue.parse("calc(sign(10rem - 1px) / 0)"));
+}, 'Parsing division with unsupported sign() function throws a SyntaxError instead of crashing');
+</script>

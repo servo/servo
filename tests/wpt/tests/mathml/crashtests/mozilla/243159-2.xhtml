@@ -1,0 +1,25 @@
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:mathml="http://www.w3.org/1998/Math/MathML">
+      <body onload="run()">
+      <mathml:math id="test" style="display: block">
+      </mathml:math>
+<script>
+  function run() {
+    var t1 = document.createElementNS("http://www.w3.org/1998/Math/MathML",
+                                      "mtable");
+    var t2 = document.createElementNS("http://www.w3.org/1998/Math/MathML",
+                                      "mtable");
+    var r1 = document.createElementNS("http://www.w3.org/1998/Math/MathML",
+                                      "mtr");
+    var r2 = document.createElementNS("http://www.w3.org/1998/Math/MathML",
+                                      "mtr");
+    var test =
+      document.getElementsByTagNameNS("http://www.w3.org/1998/Math/MathML", "math")[0];
+    t1.appendChild(r1);
+    test.appendChild(t1);
+    test.appendChild(t2);
+    t2.appendChild(r2);
+  }
+</script>
+</body>
+</html>

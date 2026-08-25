@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>text-box-trim rejects invalid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#leading-trim">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+
+<script>
+test_invalid_value('text-box-trim', 'trim-start trim-end');
+test_invalid_value('text-box-trim', 'auto');
+test_invalid_value('text-box-trim', 'normal');
+test_invalid_value('text-box-trim', 'start');
+test_invalid_value('text-box-trim', 'end');
+test_invalid_value('text-box-trim', 'both');
+</script>

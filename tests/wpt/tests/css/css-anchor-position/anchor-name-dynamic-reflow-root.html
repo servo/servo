@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>Dynamic changes to anchor-name and reflow roots</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#anchor-name">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2003593">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.com">
+<link rel="match" href="anchor-name-dynamic-reflow-root-ref.html">
+<style>
+body { margin: 0 }
+.tabs {
+  display: flex;
+}
+.tab {
+  height: 20px;
+  width: 100px;
+}
+.cur {
+  anchor-name: --current-tab;
+}
+.highlight {
+  position: absolute;
+  width: anchor-size(width);
+  left: anchor(left);
+  right: anchor(right);
+  height: 100px;
+  background: green;
+  top: anchor(bottom);
+  position-anchor: --current-tab;
+  transform: scaleY(1); /* This is important to test the bug */
+}
+</style>
+<div class=tabs>
+  <div id=t1 class="tab cur"></div>
+  <div id=t2 class="tab"></div>
+  <div class=highlight></div>
+</div>
+<script>
+document.addEventListener("TestRendered", function() {
+  t1.classList.remove('cur');
+  t2.classList.add('cur');
+  document.documentElement.className = "";
+});
+</script>

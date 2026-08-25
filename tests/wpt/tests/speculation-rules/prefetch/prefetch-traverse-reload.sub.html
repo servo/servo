@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/websockets/constants.sub.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.sub.js"></script>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+promise_test(async t => {
+  let agent = await spawnWindow(t, { protocol: 'https', pipe: 'header(Cache-Control, no-store)' });
+  let previousUrl = await agent.execute_script(() => location.href);
+  await agent.execute_script(async () => {
+    window.preventBfcache = new WebSocket('wss://{{ports[wss][0]}}/echo');
+  });
+
+  let nextUrl = agent.getExecutorURL({ protocol: 'https', page: 2 });
+  await agent.navigate(nextUrl);
+
+  await agent.forceSinglePrefetch(previousUrl);
+  await agent.execute_script(() => {
+    window.executor.suspend(() => history.go(-1));
+  });
+
+  assert_equals(previousUrl, await agent.execute_script(() => location.href));
+  assert_prefetched(await agent.getRequestHeaders(), "traversal should use prefetch");
+}, "prefetches can be used for traversal navigations");
+
+promise_test(async t => {
+  let agent = await spawnWindow(t, { protocol: 'https', pipe: 'header(Cache-Control, no-store)' });
+  let previousUrl = await agent.execute_script(() => location.href);
+  await agent.execute_script(async () => {
+    window.preventBfcache = new WebSocket('wss://{{ports[wss][0]}}/echo');
+  });
+
+  let nextUrl = agent.getExecutorURL({ protocol: 'https', page: 2 });
+  await agent.navigate(nextUrl);
+
+  await agent.forceSinglePrefetch(previousUrl);
+  // In https://html.spec.whatwg.org/multipage/nav-history-apis.html#delta-traverse,
+  // `sourceDocument` is `History`'s relevant global object's associated
+  // Document. In this case, it's `iframe.contentDocument`, and thus the
+  // prefetch from `win`'s Document (iframe's parent Document) isn't used.
+  await agent.execute_script(() => {
+    window.executor.suspend(() => {
+      const iframe = document.createElement('iframe');
+      document.body.appendChild(iframe);
+      iframe.contentWindow.history.go(-1);
+    });
+  });
+
+  assert_equals(previousUrl, await agent.execute_script(() => location.href));
+  assert_not_prefetched(await agent.getRequestHeaders(),
+      "prefetch from different Document should not be used");
+}, "History's Document is used for traversal navigations");
+
+promise_test(async t => {
+  let agent = await spawnWindow(t, { protocol: 'https', pipe: 'header(Cache-Control, no-store)' });
+  let previousUrl = await agent.execute_script(() => location.href);
+  await agent.forceSinglePrefetch(previousUrl);
+  await agent.execute_script(() => {
+    window.executor.suspend(() => location.reload());
+  });
+
+  assert_equals(previousUrl, await agent.execute_script(() => location.href));
+  assert_prefetched(await agent.getRequestHeaders(), "reload should use prefetch");
+}, "prefetches can be used for reload navigations");
+</script>

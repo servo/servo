@@ -1,0 +1,10 @@
+<!doctype html>
+<div contenteditable>hello world</div>
+<script>
+'use strict';
+const host = document.querySelector('div');
+host.editContext = new EditContext();
+host.focus();
+host.editContext = null;
+getSelection().collapse(host.firstChild, 5);
+</script>

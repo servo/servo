@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<!-- Any copyright is dedicated to the Public Domain.
+   - https://creativecommons.org/publicdomain/zero/1.0/ -->
+<meta charset="utf-8">
+<title>Test how images are stretched with different align/justify flags.</title>
+<link rel="author" href="mailto:emcdonough@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#algo-stretch">
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#algo-single-span-items">
+<link rel="match" href="grid-item-minmax-img-002-ref.html">
+<style>
+.grid {
+    display: inline-grid;
+    grid-template-columns: minmax(auto, 0);
+    grid-template-rows: minmax(auto, 0);
+    border: 5px solid goldenrod;
+}
+.spacer{
+    height: 10px;
+}
+img {
+    border: 2px solid indigo;
+}
+.stretch {
+    align-self: stretch;
+    justify-self: stretch;
+}
+.start {
+    align-self: start;
+    justify-self: start;
+}
+</style>
+<div class="grid">
+  <img src="support/100x100-green.png">
+</div>
+<div class="spacer"></div>
+<div class="grid">
+  <img class="stretch" src="support/100x100-green.png">
+</div>
+<div class="spacer"></div>
+<div class="grid">
+  <img class="start" src="support/100x100-green.png">
+</div>

@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<title>Test storage partitioning in fenced frames</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+
+// `getter(key)` : reads the value of `key`, null if not set
+// `setter(key, value)`: sets `key` to `value`
+async function runTest(getter, setter) {
+  const key = "key";
+  const outer_value = "outer";
+  const inner_value = "inner";
+
+  // Set the value in the top-level frame, and check that it worked.
+  await setter(key, outer_value);
+  assert_equals(await getter(key), outer_value,
+      "Stored the value in the top-level frame.");
+
+  // Attach a fenced frame.
+  const frame = attachFencedFrameContext();
+
+  // Check that the outer value isn't visible.
+  const inner_before_set = await frame.execute(getter, [key]);
+  assert_equals(inner_before_set, null,
+      "The outer value isn't visible inside the fenced frame.");
+
+  // Set the value inside the fenced frame, and check that it worked.
+  await frame.execute(setter, [key, inner_value]);
+  const inner_after_set = await frame.execute(getter, [key]);
+  assert_equals(inner_after_set, inner_value,
+      "Stored the value in the fenced frame.");
+
+  // Check that the inner value isn't visible in the top-level frame.
+  assert_equals(await getter(key), outer_value,
+      "The inner value isn't visible outside the fenced frame.");
+
+  // Perform an embedder-initiated navigation that will fail.
+  const original_config = frame.config;
+  frame.config = new FencedFrameConfig("resources/response-204.py");
+  await step_timeout(() => {}, 1000);
+
+  // Check that the failed navigation didn't change the storage partition.
+  // (The partition nonce should be reinitialized on navigation commit.)
+  const inner_after_failure = await frame.execute(getter, [key]);
+  assert_equals(inner_after_failure, inner_value,
+      "The inner value is still present after the failed navigation.");
+
+  // Refresh the fenced frame from within.
+  await frame.execute(() => {
+    window.executor.suspend(() => { location.href = location.href; });
+  });
+
+  // Check that the storage partition is the same.
+  const inner_after_inner_refresh = await frame.execute(getter, [key]);
+  assert_equals(inner_after_inner_refresh, inner_value,
+      "The inner value is the same after a fencedframe-initiated refresh.");
+
+  // Refresh the fenced frame from the embedder.
+  await frame.execute(() => window.executor.suspend(() => {}));
+  frame.element.config = original_config;
+
+  // Check that there is a blank slate.
+  const inner_after_embedder_refresh = await frame.execute(getter, [key]);
+  assert_equals(inner_after_embedder_refresh, null,
+      "The inner value is gone after an embedder-initiated refresh.");
+}
+
+promise_test(async () => {
+  return runTest(
+    (_) => { return document.cookie || null; },
+    (_, value) => { document.cookie = value;}
+  );
+}, 'document.cookie');
+
+promise_test(async () => {
+  return runTest(
+    (key) => { return localStorage.getItem(key); },
+    (key, value) => { return localStorage.setItem(key, value); }
+  );
+}, 'localStorage');
+
+promise_test(async () => {
+  return runTest(
+    (key) => { return sessionStorage.getItem(key); },
+    (key, value) => { return sessionStorage.setItem(key, value); }
+  );
+}, 'sessionStorage');
+
+promise_test(async () => {
+  return runTest(
+    async (key) => {
+      const newCache = await caches.open('test-cache');
+      const response = await newCache.match(key);
+      if (!response) {
+        return null;
+      }
+      return response.text();
+    },
+    async (key, value) => {
+      const newCache = await caches.open('test-cache');
+      return newCache.put(key, new Response(value));
+    }
+  );
+}, 'Cache API');
+
+promise_test(async () => {
+  return runTest(
+    async (key) => {
+      const root = await navigator.storage.getDirectory();
+      const draftHandle = await root.getFileHandle(key, { create: true });
+      const file = await draftHandle.getFile();
+      const text = await file.text();
+      return text || null;
+    },
+    async (key, value) => {
+      const root = await navigator.storage.getDirectory();
+      const draftHandle = await root.getFileHandle(key, { create: true });
+      const writable = await draftHandle.createWritable()
+      await writable.truncate(0);
+      await writable.write(value);
+      await writable.close();
+    }
+  );
+}, 'File System Access API');
+
+promise_test(async () => {
+  return runTest(
+    async (key) => {
+      const openRequest = indexedDB.open('test-db', 2);
+      const db = await new Promise((resolve) => {
+        openRequest.onsuccess = (event) => {
+          resolve(event.target.result);
+        };
+        openRequest.onupgradeneeded = (event) => {
+          const db = event.target.result;
+          const objStore = db.createObjectStore('test-tbl', {keyPath: 'key'});
+          objStore.transaction.oncomplete = (event) => {
+            resolve(db);
+          };
+        };
+      });
+      const readRequest = db.transaction(['test-tbl'])
+                            .objectStore('test-tbl')
+                            .get(key);
+      return new Promise((resolve) => {
+        readRequest.onsuccess = (event) => {
+          if (!event.target.result) {
+            resolve(null);
+          } else {
+            resolve(event.target.result['value']);
+          }
+        };
+      });
+    },
+    async (key, value) => {
+      const openRequest = indexedDB.open('test-db', 2);
+      const db = await new Promise((resolve) => {
+        openRequest.onsuccess = (event) => {
+          resolve(event.target.result);
+        };
+        openRequest.onupgradeneeded = (event) => {
+          const db = event.target.result;
+          const objStore = db.createObjectStore('test-tbl', {keyPath: 'key'});
+          objStore.transaction.oncomplete = (event) => {
+            resolve(db);
+          };
+        };
+      });
+      const writeRequest = db.transaction(['test-tbl'], 'readwrite')
+                             .objectStore('test-tbl')
+                             .add({'key': key, 'value': value});
+      return new Promise((resolve) => {
+        writeRequest.onsuccess = (event) => {
+          resolve(event.target.result);
+        };
+      });
+    }
+  );
+}, 'IndexedDB');
+
+</script>
+</body>

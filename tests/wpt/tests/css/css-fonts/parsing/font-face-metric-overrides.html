@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>CSS Fonts 4 test: parsing @font-face metric override descriptors</title>
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#font-metrics-override-desc">
+<meta name="assert" content="@font-face metric override descriptors accept normal and non-negative percentages, and reject other values.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style id="testStyle">
+</style>
+<script>
+  const sheet = testStyle.sheet;
+  const descriptors = ["ascent-override", "descent-override", "line-gap-override"];
+  const values = [
+    { value: "normal", valid: true, expected: "normal" },
+    { value: "0%", valid: true, expected: "0%" },
+    { value: "50%", valid: true, expected: "50%" },
+    { value: "110%", valid: true, expected: "110%" },
+    { value: "100000000000%", valid: true, expected: "100000000000%" },
+    { value: "-1%", valid: false },
+    { value: "10px", valid: false },
+  ];
+
+  for (const descriptor of descriptors) {
+    for (const { value, valid, expected } of values) {
+      test(() => {
+        assert_equals(sheet.cssRules.length, 0, "test sheet should initially be empty");
+        sheet.insertRule(`@font-face { ${descriptor}: ${value} }`);
+
+        try {
+          assert_equals(sheet.cssRules[0].style.getPropertyValue(descriptor), valid ? expected : "");
+        } finally {
+          sheet.deleteRule(0);
+        }
+      }, `Check that ${descriptor}: ${value} is ${valid ? "valid" : "invalid"}`);
+    }
+  }
+</script>

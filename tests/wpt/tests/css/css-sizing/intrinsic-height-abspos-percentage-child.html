@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Abspos with intrinsic block size and percentage child height</title>
+<link rel="author" title="WebKit" href="https://webkit.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#valdef-width-max-content">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#cyclic-percentage-contribution">
+<link rel="match" href="intrinsic-height-abspos-percentage-child-ref.html">
+<meta name="assert" content="
+  An absolutely positioned element with an intrinsic sizing keyword for height
+  (max-content, min-content, fit-content) should not collapse to zero when a
+  child uses max-height: 100%. The intrinsic height creates a circular dependency
+  with the percentage, so the percentage should behave as none.
+">
+
+<style>
+.container {
+    position: relative;
+    width: 400px;
+    height: 100px;
+}
+.abspos {
+    position: absolute;
+    background: green;
+    width: 100px;
+    top: 0;
+}
+.child {
+    max-height: 100%;
+    height: 100px;
+}
+.ref {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    background: red;
+    top: 0;
+}
+</style>
+<p>Test passes if there are three filled green squares and <strong>no red</strong>.</p>
+
+<div class="container">
+    <div class="ref" style="left: 0"></div>
+    <div class="abspos" style="height: max-content; left: 0">
+        <div class="child"></div>
+    </div>
+
+    <div class="ref" style="left: 110px"></div>
+    <div class="abspos" style="height: min-content; left: 110px">
+        <div class="child"></div>
+    </div>
+
+    <div class="ref" style="left: 220px"></div>
+    <div class="abspos" style="height: fit-content; left: 220px">
+        <div class="child"></div>
+    </div>
+</div>

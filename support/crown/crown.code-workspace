@@ -1,0 +1,22 @@
+{
+    "folders": [
+        {
+            "name": "crown",
+            "path": "."
+        },
+    ],
+    "settings": {
+        "rust-analyzer.check.command": "clippy",
+        "rust-analyzer.rustc.source": "discover",
+        "rust-analyzer.rustfmt.extraArgs": [
+            "--config",
+            "unstable_features=true",
+            "--config",
+            "binop_separator=Back",
+            "--config",
+            "imports_granularity=Module",
+            "--config",
+            "group_imports=StdExternalCrate"
+        ]
+    },
+}

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Element.remove</title>
+<link rel=help href="https://dom.spec.whatwg.org/#dom-childnode-remove">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="ChildNode-remove.js"></script>
+<div id=log></div>
+<script>
+var node, parentNode;
+setup(function() {
+  node = document.createElement("div");
+  parentNode = document.createElement("div");
+});
+testRemove(node, parentNode, "element");
+</script>

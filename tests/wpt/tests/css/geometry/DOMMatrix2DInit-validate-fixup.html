@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<title>Geometry Interfaces: DOMMatrix2DInit validate and fixup</title>
+<link rel="help" href="https://drafts.fxtf.org/geometry/#dommatrixinit-dictionary">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-context-2d-settransform">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/dommatrix-test-util.js"></script>
+<canvas id=canvas hidden></canvas>
+<script>
+setup(() => {
+  window.canvas = document.getElementById('canvas');
+  window.ctx = canvas.getContext('2d');
+  window.ctx.fillStyle = '#000';
+});
+
+function clearCanvas(ctx) {
+  ctx.resetTransform();
+  ctx.clearRect(0, 0, window.canvas.width, window.canvas.height);
+}
+
+function drawRectWithSetTransform(ctx, transform) {
+  clearCanvas(ctx);
+  ctx.setTransform(transform);
+  ctx.fillRect(20, 20, 30, 30);
+  return window.canvas.toDataURL();
+}
+
+function drawRectWithAddPathTransform(ctx, transform) {
+  clearCanvas(ctx);
+  var path = new Path2D();
+  path.rect(20, 20, 30, 30);
+  var transformedPath = new Path2D();
+  if (transform === undefined) {
+    transformedPath.addPath(path);
+  } else {
+    transformedPath.addPath(path, transform);
+  }
+  ctx.fill(transformedPath);
+  return window.canvas.toDataURL();
+}
+
+var emptyCanvasURL = window.canvas.toDataURL();
+
+[
+  {a: 1, m11: 2},
+  {b: 0, m12: -1},
+  {c: Infinity, m21: -Infinity},
+  {d: 0, m22: NaN},
+  {e: 1, m41: 1.00000001},
+  {f: 0, m42: Number.MIN_VALUE},
+].forEach(dict => {
+  test(() => {
+    ctx.resetTransform();
+    assert_throws_js(TypeError, () => ctx.setTransform(dict));
+  }, `setTransform(${format_dict(dict)}) (invalid)`);
+
+  test(() => {
+    assert_throws_js(TypeError, () => drawRectWithAddPathTransform(ctx, dict));
+  }, `addPath(${format_dict(dict)}) (invalid)`);
+});
+
+test(() => {
+  ctx.resetTransform();
+  ctx.setTransform(1, 2, 3, 4, 5, 6);
+  const matrix = ctx.getTransform();
+  checkMatrix(matrix, matrix2D({m11: 1, m12: 2, m21: 3, m22: 4, m41: 5, m42: 6}));
+}, `setTransform (Sanity check without dictionary)`);
+
+test(() => {
+  var ident = matrix2D({});
+  var expectedResultURL = drawRectWithSetTransform(ctx, ident);
+  var actualResultURL = drawRectWithAddPathTransform(ctx);
+  assert_equals(actualResultURL, expectedResultURL);
+}, `addPath (Sanity check without second parameter)`);
+
+[
+  // Input dict that are 2D
+  [{},                             matrix2D({})],
+  [{is2D: undefined},              matrix2D({})],
+  [{a: 1, m11: 1},                 matrix2D({m11: 1})],
+  [{b: 0, m12: undefined},         matrix2D({m12: 0})],
+  [{c: 0, m21: 0},                 matrix2D({m21: 0})],
+  [{c: 0, m21: -0},                matrix2D({m21: -0})],
+  [{c: -0, m21: 0},                matrix2D({m21: 0})],
+  [{c: -0, m21: -0},               matrix2D({m21: -0})],
+  [{d: Infinity, m22: Infinity},   null], // setTransform: silently ignore / addPath: silently halt
+  [{e: -Infinity, m41: -Infinity}, null], // setTransform: silently ignore / addPath: silently halt
+  [{f: NaN, m42: NaN},             null], // setTransform: silently ignore / addPath: silently halt
+  [{f: NaN, m42: NaN, is2D: true}, null], // setTransform: silently ignore / addPath: silently halt
+  [{f: 0, m42: null},              matrix2D({m42: 0})], // null is converted to 0
+  [{f: -0, m42: null},             matrix2D({m42: 0})], // null is converted to 0
+  [{a: 2},                         matrix2D({m11: 2})],
+  [{b: 2},                         matrix2D({m12: 2})],
+  [{c: 2},                         matrix2D({m21: 2})],
+  [{d: 2},                         matrix2D({m22: 2})],
+  [{e: 2},                         matrix2D({m41: 2})],
+  [{f: 2},                         matrix2D({m42: 2})],
+  [{a: -0, b: -0, c: -0, d: -0, e: -0, f: -0},
+                                   matrix2D({m11: -0, m12: -0, m21: -0, m22: -0, m41: -0, m42: -0})],
+  [{a: -0, b: -0, c: -0, d: -0, e: -0, f: -0, is2D: true},
+                                   matrix2D({m11: -0, m12: -0, m21: -0, m22: -0, m41: -0, m42: -0})],
+  [{m11:2},                        matrix2D({m11: 2})],
+  [{m12:2},                        matrix2D({m12: 2})],
+  [{m21:2},                        matrix2D({m21: 2})],
+  [{m22:2},                        matrix2D({m22: 2})],
+  [{m41:2},                        matrix2D({m41: 2})],
+  [{m42:2},                        matrix2D({m42: 2})],
+  [{m11: -0, m12: -0, m21: -0, m22: -0, m41: -0, m42: -0},
+                                   matrix2D({m11: -0, m12: -0, m21: -0, m22: -0, m41: -0, m42: -0})],
+  [{m11: -0, m12: -0, m21: -0, m22: -0, m41: -0, m42: -0, is2D: true},
+                                   matrix2D({m11: -0, m12: -0, m21: -0, m22: -0, m41: -0, m42: -0})],
+  [{m13: 0, is2D: true},           matrix2D({})],
+  [{m13: -0, is2D: true},          matrix2D({})],
+  [{m14: 0, is2D: true},           matrix2D({})],
+  [{m14: -0, is2D: true},          matrix2D({})],
+  [{m23: 0, is2D: true},           matrix2D({})],
+  [{m23: -0, is2D: true},          matrix2D({})],
+  [{m24: 0, is2D: true},           matrix2D({})],
+  [{m24: -0, is2D: true},          matrix2D({})],
+  [{m31: 0, is2D: true},           matrix2D({})],
+  [{m31: -0, is2D: true},          matrix2D({})],
+  [{m32: 0, is2D: true},           matrix2D({})],
+  [{m32: -0, is2D: true},          matrix2D({})],
+  [{m33: 1, is2D: true},           matrix2D({})],
+  [{m34: 0, is2D: true},           matrix2D({})],
+  [{m34: -0, is2D: true},          matrix2D({})],
+  [{m43: 0, is2D: true},           matrix2D({})],
+  [{m43: -0, is2D: true},          matrix2D({})],
+  [{m44: 1, is2D: true},           matrix2D({})],
+  [{is2D: true},                   matrix2D({})],
+].forEach(([dict, expected]) => {
+  test(() => {
+    ctx.resetTransform();
+    ctx.setTransform(dict);
+    const matrix = ctx.getTransform();
+    checkMatrix(matrix, expected || matrix2D({}));
+  }, `setTransform(${format_dict(dict)})`);
+
+  test(() => {
+    var expectedResultURL = expected ?
+      drawRectWithSetTransform(ctx, expected) :
+      emptyCanvasURL;
+    var actualResultURL = drawRectWithAddPathTransform(ctx, dict);
+    assert_equals(actualResultURL, expectedResultURL);
+  }, `addPath(${format_dict(dict)})`);
+ });
+</script>

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+#grow-consistent {
+  font: 40px/2 Ahem;
+  width: 160px;
+  white-space: pre;
+  border: 1px solid gray;
+}
+#grow-line {
+  font: 40px/2 Ahem;
+  width: 160px;
+  white-space: pre;
+  border: 1px solid gray;
+}
+#shrink-consistent {
+  font: 8px/2 Ahem;
+  width: 64px;
+  white-space: pre;
+  border: 1px solid gray;
+}
+#shrink-line {
+  font: 8px/2 Ahem;
+  line-height: 2;
+  width: 64px;
+  white-space: pre;
+  border: 1px solid gray;
+}
+
+::highlight(my-highlight) {
+  background-color: rgba(255,128,128,0.5);
+}
+</style>
+
+<div id="grow-consistent">ppp
+pppp</div>
+
+<div id="grow-line"><span style="font-size:80px">pp
+</span>pppp</div>
+
+<div id="shrink-consistent">ppp
+pppppppp</div>
+
+<div id="shrink-line"><span style="font-size:16px">pppp</span>
+pppppppp</div>
+
+<script>
+document.fonts.ready.then(() => {
+  getSelection().selectAllChildren(document.querySelector('#grow-consistent'));
+
+  const container2 = document.querySelector('#grow-line');
+  const r2 = new StaticRange({startContainer:container2.firstChild.firstChild,
+                              startOffset:1,
+                              endContainer:container2.lastChild,
+                              endOffset:container2.lastChild.length-1});
+
+  const text3 = document.querySelector('#shrink-consistent').firstChild;
+  const r3 = new StaticRange({startContainer:text3, startOffset:2,
+                              endContainer:text3, endOffset:text3.length-2});
+
+  const container4 = document.querySelector('#shrink-line');
+  const r4 = new StaticRange({startContainer:container4.firstChild.firstChild,
+                              startOffset:3,
+                              endContainer:container4.lastChild,
+                              endOffset:container4.lastChild.length-3});
+
+  CSS.highlights.set('my-highlight', new Highlight(r2, r3, r4));
+  document.documentElement.classList.remove('reftest-wait');
+});
+</script>

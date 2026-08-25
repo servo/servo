@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel=stylesheet href="resources/customizable-select-styles.css">
+
+<style>
+.customizable-select-option::before {
+  color: green;
+}
+</style>
+
+<p>Click me to start test. PASS if you see a green checkmark.</p>
+
+<button class=customizable-select-button popovertarget=popover id=button>
+  <span class=customizable-select-selectedcontent>option</span>
+</button>
+<div id=popover popover=auto class=customizable-select-popover>
+  <div class="customizable-select-option selected">option</div>
+</div>
+
+<script>
+document.getElementById("popover").showPopover({ source: button });
+</script>

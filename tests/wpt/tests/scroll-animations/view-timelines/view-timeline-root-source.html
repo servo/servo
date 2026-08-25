@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html id="top">
+<meta charset="utf-8">
+<title>View timeline delay</title>
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#viewtimeline-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="/scroll-animations/scroll-timelines/testcommon.js"></script>
+<script src="/scroll-animations/view-timelines/testcommon.js"></script>
+<style>
+  #target {
+    margin:  200vh;
+    background-color:  green;
+    height:  100px;
+    width:  100px;
+  }
+</style>
+<body>
+  <div id="target"></div>
+</body>
+<script type="text/javascript">
+  promise_test(async t => {
+    const timeline = new ViewTimeline({ subject: target });
+    const anim = target.animate({ opacity: [0, 1 ] },
+                                { timeline: timeline,
+                                  rangeStart: "entry 0%",
+                                  rangeEnd: "entry 100%",
+                                  fill: "both" });
+    const scroller = document.scrollingElement;
+    const scrollRange = scroller.scrollHeight - scroller.clientHeight;
+
+    await anim.ready;
+
+    await waitForNextFrame();
+    scroller.scrollTop = scrollRange / 2;
+    await waitForNextFrame();
+
+    assert_equals(getComputedStyle(target).opacity, "1");
+  }, 'Test view-timeline with document scrolling element.');
+</script>

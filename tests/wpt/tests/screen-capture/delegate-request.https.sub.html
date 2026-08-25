@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<title>Display-capture request delegation test</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<div>
+  Verifies that getDisplayMedia() calls from a cross-origin subframe without user activation
+  works if and only if the top frame has user activation and it delegates the capability to the
+  subframe.
+</div>
+
+<iframe allow="display-capture" width="300px" height="50px"
+        src="https://{{hosts[alt][www]}}:{{ports[https][0]}}/screen-capture/resources/delegate-request-subframe.sub.html">
+</iframe>
+
+<script>
+  // Returns a |Promise| that gets resolved with |event.data| when |window|
+  // receives from |source| a "message" event whose |event.data.type| matches the string
+  // |message_data_type|.
+  function getMessageData(message_data_type, source) {
+      return new Promise(resolve => {
+          function waitAndRemove(e) {
+              if (e.source != source || !e.data || e.data.type != message_data_type)
+                  return;
+              window.removeEventListener("message", waitAndRemove);
+              resolve(e.data);
+          }
+          window.addEventListener("message", waitAndRemove);
+      });
+  }
+
+  promise_setup(async () => {
+      // Make sure the iframe has loaded.
+      await getMessageData("subframe-loaded", frames[0]);
+  });
+
+  const target_origin = "https://{{hosts[alt][www]}}:{{ports[https][0]}}";
+  const request = {"type": "make-display-capture-request"};
+
+  promise_test(async () => {
+      let result_promise = getMessageData("result", frames[0]);
+      frames[0].postMessage(request, {targetOrigin: target_origin});
+      let data = await result_promise;
+
+      assert_equals(data.result, "failure");
+  }, "Display-capture request from a subframe fails without delegation when the top frame has no user activation");
+
+  promise_test(async () => {
+      let result_promise = getMessageData("result", frames[0]);
+      await test_driver.bless();
+      frames[0].postMessage(request, {targetOrigin: target_origin});
+      let data = await result_promise;
+
+      assert_equals(data.result, "failure");
+  }, "Display-capture request from a subframe fails without delegation when the top frame has user activation");
+
+  promise_test(async () => {
+      {
+          let result_promise = getMessageData("result", frames[0]);
+          await test_driver.bless();
+          frames[0].postMessage(request, {targetOrigin: target_origin,
+                                          delegate: "display-capture"});
+          let data = await result_promise;
+
+          assert_equals(data.result, "success");
+      }
+      {
+          // Check display-capture request can be consumed only once.
+          let result_promise = getMessageData("result", frames[0]);
+          frames[0].postMessage(request, {targetOrigin: target_origin});
+          let data = await result_promise;
+
+          assert_equals(data.result, "failure");
+      }
+  }, "Display-capture request from a subframe succeeds with delegation when the top frame has user activation");
+
+</script>

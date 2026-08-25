@@ -1,0 +1,16 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: MathML Core (https://w3c.github.io/mathml-core/)
+
+[Exposed=Window]
+interface MathMLElement : Element { };
+MathMLElement includes GlobalEventHandlers;
+MathMLElement includes HTMLOrSVGOrMathMLElement;
+
+[Exposed=Window]
+interface MathMLAnchorElement : MathMLElement {
+  [ReflectSetter] attribute USVString href;
+  [Reflect] attribute DOMString target;
+};
+MathMLAnchorElement includes HyperlinkElementUtils;

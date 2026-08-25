@@ -1,0 +1,33 @@
+<!doctype html>
+<title>unload event properties</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+var t = async_test();
+var do_test;
+
+onload = function() {setTimeout(function() {
+  var iframe = document.getElementsByTagName("iframe")[0]
+
+  iframe.onload = function() {
+                    setTimeout(function() {
+                                 iframe.contentWindow.location="002-2.html";
+                               }, 100);
+                    iframe.onload = t.step_func(function() {t.done()});
+                  };
+
+  do_test = function(e) {
+    assert_equals(e.type, "unload");
+    assert_equals(e.target, iframe.contentDocument);
+    assert_equals(e.currentTarget, iframe.contentWindow);
+    assert_false(e.bubbles, "bubbles");
+    assert_false(e.cancelable, "cancelable");
+  }
+
+  iframe.src = "003-1.html?" + Math.random();
+
+}, 100)};
+
+</script>
+<iframe></iframe>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>CSS Display: reading-flow with value grid-order in nested grids</title>
+<link rel="help" href="https://drafts.csswg.org/css-display-4/#reading-flow">
+<link rel="author" title="Di Zhang" href="mailto:dizhangg@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src='../../resources/shadow-dom.js'></script>
+<script src="../../resources/focus-utils.js"></script>
+
+<style>
+.box {
+  display: grid;
+  reading-flow: grid-order;
+  border-radius: 5px;
+  padding: 20px;
+  border-style: dashed;
+}
+
+</style>
+
+<div class="test-case" data-expect="w,d3,b3a,b3b,d2,b2,d1,b1a,b1b"
+      data-description="Grid items are not grid containers.">
+  <div class="box" id="w" tabindex="0">
+    <div style="order: 2" id="d1" tabindex="0">Div 1
+      <button id="b1a" style="order: 3">Button 1A</button>
+      <button id="b1b">Button 1B</button>
+    </div>
+    <div id="d2" tabindex="0">Div 2
+      <button id="b2">Button 2</button>
+    </div>
+    <div id="d3" style="order: -1" tabindex="0">Div 3
+      <button id="b3a" style="order: 2">Button 3A</button>
+      <button id="b3b">Button 3B</button>
+    </div>
+  </div>
+</div>
+
+<div class="test-case"
+      data-expect="wrapper,div3,button3b,button3a,div2,button2,div1,button1b,button1a"
+      data-description="Grid items are grid containers.">
+  <div class="box" id="wrapper" tabindex="0">
+    <div class="box" style="order: 2" id="div1" tabindex="0">Div 1
+      <button id="button1a" style="order: 3">Button 1A</button>
+      <button id="button1b">Button 1B</button>
+    </div>
+    <div class="box" id="div2" tabindex="0">Div 2
+      <button id="button2">Button 2</button>
+    </div>
+    <div class="box" id="div3" style="order: -1" tabindex="0">Div 3
+      <button id="button3a" style="order: 2">Button 3A</button>
+      <button id="button3b">Button 3B</button>
+    </div>
+  </div>
+</div>
+
+<div class="test-case" data-expect="a,b,d,c"
+      data-description="Only has grid containers.">
+  <div class="box" id="a" tabindex="0">A
+    <div class="box" id="b" tabindex="0">B
+      <div class="box" id="c" tabindex="0" style="order: 2">C</div>
+      <div class="box" id="d" tabindex="0">D</div>
+    </div>
+  </div>
+</div>
+
+<script>
+runFocusTestCases();
+</script>

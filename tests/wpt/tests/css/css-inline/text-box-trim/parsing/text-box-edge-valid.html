@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>text-box-edge parses valid values according to its grammar</title>
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-edges">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script src="values.js"></script>
+
+<script>
+for (let value of text_box_edge_values) {
+  if (Array.isArray(value)) {
+    test_valid_value('text-box-edge', ...value);
+  } else {
+    test_valid_value('text-box-edge', value);
+  }
+}
+</script>

@@ -1,0 +1,41 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+ <head>
+  <title>CSS Test: inline-block: width</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/inline-block/005.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#inlineblock-width" />
+  <meta name="flags" content="interact"/>
+  <style type="text/css">
+   p { text-indent: 5em; }
+   span { display: inline-block;
+          border: blue solid; color: silver;
+          margin: 0.5em; padding: 0.5em 5em 0.5em 0;; }
+  </style>
+ </head>
+ <body>
+  <p> Make your window an inch or two bigger than than the width of
+  one inline-block. All inline-blocks should be the same size. Try
+  resizing the window so that inline-blocks wrap in one or two
+  columns. </p>
+  <p>The first line is indented. Therefore, the first block on the first line, if the
+  line is short enough, should end up wrapping onto two lines internally. In addition
+  each inline-block has 5em indentation on the left and 5em padding on the right,
+  which should make no difference except that the boxes should be slightly wider than
+   <a href="002.html">before</a>. They shouldn't wrap particularily more than before.</p>
+  <p>
+   <span>this is an inline-block this is an inline-block</span>
+   <span>this is an inline-block this is an inline-block</span>
+   <span>this is an inline-block this is an inline-block</span>
+   <span>this is an inline-block this is an inline-block</span>
+   <span>this is an inline-block this is an inline-block</span>
+   <span>this is an inline-block this is an inline-block</span>
+   <span>this is an inline-block this is an inline-block</span>
+   <span>this is an inline-block this is an inline-block</span>
+   <span>this is an inline-block this is an inline-block</span>
+   <span>this is an inline-block this is an inline-block</span>
+   <span>this is an inline-block this is an inline-block</span>
+   <span>this is an inline-block this is an inline-block</span>
+  </p>
+ </body>
+</html>

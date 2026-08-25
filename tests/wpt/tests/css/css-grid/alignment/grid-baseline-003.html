@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>CSS Grid: Grid container baseline</title>
+<link rel="author" title="Manuel Rego" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid/#grid-baselines">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#synthesize-baseline">
+<link rel="help" href="https://crbug.com/234191">
+<link rel="match" href="references/grid-baseline-003-ref.html">
+<meta name="assert" content="Check that grid container baseline should be synthesized from the border edges when it has no baseline."/>
+
+<link href="/css/support/grid.css" rel="stylesheet">
+<style>
+.inline-block { display: inline-block; }
+.grid, .inline-grid {
+   background-color: lightgrey;
+   grid-auto-flow: column;
+}
+.border { border: 11px solid pink; }
+.padding { padding: 13px; }
+.margin { margin: 8px 0; }
+</style>
+
+<div>
+Should align with the bottom
+<div class="inline-block border margin padding" style="background-color: pink">
+  <div class="grid border margin padding" style="grid-template-columns: 100px; grid-template-rows: 100px; background-color: pink">
+      <div style="overflow: scroll; background-color: lightgrey; margin: 10px 0px; border-top: 10px solid pink;"></div>
+  </div>
+</div>
+of the horizontal scrollbar.
+</div>
+
+<div>
+Should align 10px below the
+<div class="inline-block" style="background-color: pink">
+  <div class="grid" style="grid-template-columns: 100px; grid-template-rows: 100px; background-color: pink">
+      <div style="overflow: scroll; padding-bottom: 10px; background-color: lightgrey; margin: 10px 0px; border-top: 10px solid pink; border-bottom: 10px solid pink;"></div>
+  </div>
+</div>
+horizontal scrollbar, if one is visible.
+</div>

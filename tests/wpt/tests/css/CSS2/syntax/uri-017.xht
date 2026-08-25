@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Unclosed URI Token at EOF (in declaration)</title>
+  <link rel="author" title="Bert Bos" href="mailto:bert@w3.org"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#parsing-errors"/>
+  <link rel="match" href="uri-017-ref.xht"/>
+  <meta name="flags" content="invalid image" />
+  <meta name="assert" content="User agents must close open URI constructs and style rules at the end of the style sheet." />
+  <style type="text/css">
+    .import { color: red; }
+    .one { background: url("support/swatch-red.png"); color: white;
+           background: url("support/swatch-green.png</style>
+  <style type="text/css">
+    .two { background: url(support/swatch-red.png); color: white;
+           background: url(support/swatch-green.png</style>
+ </head>
+ <body>
+  <p class="one">This sentence must have a green background.</p>
+  <p class="two">This sentence must have a green background.</p>
+ </body>
+</html>

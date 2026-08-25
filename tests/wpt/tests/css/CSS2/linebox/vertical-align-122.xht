@@ -1,0 +1,62 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: vertical-align on inline-block</title>
+  <link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#line-height" />
+  <link rel="help" href="https://github.com/servo/servo/issues/31604" />
+  <link rel="help" href="https://github.com/servo/servo/issues/31634" />
+  <link rel="match" href="vertical-align-122-ref.xht" />
+  <meta name="assert" content="When vertical-align is used on an inline-block, it aligns the inline-block itself, not the contents inside it." />
+
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+  <style type="text/css">
+  <![CDATA[
+  body {
+    font: 20px/1 Ahem;
+  }
+  .wrapper {
+    display: inline-block;
+    border: 1em solid;
+  }
+  .wrapper > div {
+    display: inline-block;
+    height: 2em;
+    width: 2em;
+    background: currentcolor;
+  }
+  .wrapper > canvas {
+    width: 4em;
+    height: 2em;
+  }
+  ]]>
+  </style>
+ </head>
+ <body>
+  <div class="wrapper" style="vertical-align: baseline">
+    X<div></div><span>X</span>
+  </div>
+  <div class="wrapper" style="vertical-align: top">
+    X<div></div><span>X</span>
+  </div>
+  <div class="wrapper" style="vertical-align: middle">
+    X<div></div><span>X</span>
+  </div>
+  <div class="wrapper" style="vertical-align: bottom">
+    X<div></div><span>X</span>
+  </div>
+  <br />
+  <div class="wrapper" style="vertical-align: baseline">
+    <canvas></canvas>
+  </div>
+  <div class="wrapper" style="vertical-align: top">
+    <canvas></canvas>
+  </div>
+  <div class="wrapper" style="vertical-align: middle">
+    <canvas></canvas>
+  </div>
+  <div class="wrapper" style="vertical-align: bottom">
+    <canvas></canvas>
+  </div>
+ </body>
+</html>

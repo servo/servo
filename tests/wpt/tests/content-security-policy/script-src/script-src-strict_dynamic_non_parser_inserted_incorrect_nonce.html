@@ -1,0 +1,29 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <title>Scripts without a correct nonce should not run with `strict-dynamic` in the script-src directive.</title>
+    <script src='/resources/testharness.js' nonce='dummy'></script>
+    <script src='/resources/testharnessreport.js' nonce='dummy'></script>
+
+    <!-- CSP served: script-src 'strict-dynamic' 'nonce-dummy' -->
+</head>
+
+<body>
+    <h1>Scripts without a correct nonce should not run with `strict-dynamic` in the script-src directive.</h1>
+    <div id='log'></div>
+
+    <script nonce='dummy'>
+        async_test(function(t) {
+            window.addEventListener('securitypolicyviolation', t.step_func_done(function(e) {
+                assert_equals(e.effectiveDirective, 'script-src-elem');
+            }));
+        }, 'All the expected CSP violation reports have been fired.');
+    </script>
+
+    <script nonce='wrong'>
+        assert_unreached('Inline script with an incorrect nonce should not be executed.');
+    </script>
+</body>
+
+</html>

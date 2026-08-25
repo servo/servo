@@ -1,0 +1,74 @@
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="ED" author="CL" status="accepted"
+    version="$Revision: 1.5 $" testname="$RCSfile: types-basic-01-f.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/types.html#BasicDataTypes">
+      <p>
+        Tests scientific notation in attribute values; in particular, that numbers
+        of the form .n with a leading decimal point, are supported
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test is passed if all the coloured rectangles are of the same height
+        and line up with each other and
+        with the grey marker lines. If any red is visible, the test fails.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: types-basic-01-f.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+
+    <polyline points="20,75 380,75" stroke="#999" stroke-width="1"/>
+    <polyline points="20,125 380,125" stroke="#999" stroke-width="1"/>
+
+    <rect width="300" height="50" x="50" y="75" fill="red"/>
+
+    <polyline points="50,100 150,100" stroke-width="50" stroke="#6F3"/>
+    <polyline points="150,100 250,100" stroke-width="5e1" stroke="#6C6"/>
+    <polyline points="250,100 350,100" stroke-width=".5e2" stroke="#39F"/>
+
+    <text x="50" y="200" font-size="20">Different forms of the &lt;number&gt; type</text>
+
+    <g text-anchor="middle" fill="#555">
+      <text x="100" y="110" font-size="20">50</text>
+      <text x="200" y="110" font-size="20" >5e1</text>
+      <text x="300" y="110" font-size="20">.5e2</text>
+    </g>
+
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.5 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

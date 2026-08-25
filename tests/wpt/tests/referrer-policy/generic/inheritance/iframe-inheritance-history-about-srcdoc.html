@@ -1,0 +1,73 @@
+<!doctype html>
+<title>Referrer Policy: navigating back to an about:srcdoc iframe reuses the original referrer policy</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/make-html-script.js"></script>
+<meta name="referrer" content="no-referrer">
+<div id="log"></div>
+<script>
+  let reportedReferrer = () => {
+    return new Promise(resolve => {
+      window.addEventListener("message", function listener(msg) {
+        window.removeEventListener("message", listener, false);
+        resolve(msg.data.referrer);
+      });
+    });
+  };
+
+  let iframeLoaded = iframe => {
+    return new Promise(resolve => {
+      iframe.onload = resolve;
+    });
+  };
+
+  promise_test(async t => {
+    // 1. Create an about:srcdoc iframe.
+    const iframe = document.createElement("iframe");
+    iframe.name = 'test_frame';
+    let iframe_load_1 = iframeLoaded(iframe);
+    let referrer_1 = reportedReferrer();
+    iframe.srcdoc = createScriptString(get_host_info().REMOTE_ORIGIN,
+                                       location.origin + "/custom");
+    document.body.appendChild(iframe);
+    await iframe_load_1;
+    let referrer_1_result = await referrer_1;
+
+    // 2. Change the referrer policy of the main document.
+    document.getElementsByTagName('meta')[0].content = "unsafe-url";
+
+    // 3. Navigate the iframe elsewhere.
+    let iframe_load_2 = iframeLoaded(iframe);
+    window.open('/referrer-policy', 'test_frame');
+    await iframe_load_2;
+
+    // 4. Navigate the iframe back.
+    let iframe_load_3 = iframeLoaded(iframe);
+    let referrer_2 = reportedReferrer();
+    iframe.contentWindow.history.back();
+    await iframe_load_3;
+
+    // Despite the main document has changed its referrer policy in (2), the
+    // reported referrer for the history navigation to about:srcdoc in (4) must
+    // match with the one originally reported in (1).
+    assert_equals(referrer_1_result, undefined,
+                  "First navigation uses correct policy.");
+    assert_equals(await referrer_2, undefined,
+                  "History navigation reuses original policy.");
+  }, "History navigation reuses original policy.");
+
+  promise_test(async t => {
+    // If we initiate a new about:srcdoc navigation, the new referrer policy
+    // should apply.
+    const new_iframe = document.createElement("iframe");
+    let new_iframe_load = iframeLoaded(new_iframe);
+    let new_iframe_referrer = reportedReferrer();
+    new_iframe.srcdoc = createScriptString(get_host_info().REMOTE_ORIGIN,
+                                           location.origin + "/custom");
+    document.body.appendChild(new_iframe);
+    await new_iframe_load;
+
+    assert_equals(await new_iframe_referrer, self.origin + '/custom');
+  }, "New srcdoc iframe uses new policy.");
+</script>

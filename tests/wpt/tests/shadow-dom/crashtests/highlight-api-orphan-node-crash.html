@@ -1,0 +1,14 @@
+<!doctype html>
+<title>Custom Highlight with range anchored in orphan shadow node can be registered without crashing</title>
+<meta name="author" title="Fernando Fiori" href="mailto:ffiori@microsoft.com">
+<script>
+  const host = document.createElement("div");
+  const shadow = host.attachShadow({ mode: "open" });
+  const spanInShadowDOM = document.createElement("span");
+  spanInShadowDOM.textContent = "Hello, world.";
+  shadow.appendChild(spanInShadowDOM);
+  let range = new Range();
+  range.setStart(spanInShadowDOM.childNodes[0], 0);
+  range.setEnd(spanInShadowDOM.childNodes[0], 5);
+  CSS.highlights.set("example-highlight", new Highlight(range));
+</script>

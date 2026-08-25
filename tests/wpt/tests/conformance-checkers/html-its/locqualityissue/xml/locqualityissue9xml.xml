@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<doc xmlns:its="http://www.w3.org/2005/11/its" its:version="2.0">
+<para><span its:locQualityIssueComment="Sentence without capitalization" its:locQualityIssueSeverity="50" its:locQualityIssueProfileRef="http://example.org/qaMovel/v1">transport</span> or transportation is the movement of people, animals and goods from one location to another.Modes of <span its:locQualityIssueComment="should be 'transport include'" its:locQualityIssueSeverity="75" its:locQualityIssueProfileRef="http://example.org/qaMovel/v1">tranport inc.</span> air, rail, road, water, cable, pipeline, and space.</para>
+</doc>

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en" >
+<meta charset="utf-8">
+<title>Ruby Markup Content Model: implicit ruby base unit is *maximal* DOM range, annotation with rt, adding rp in all the places where it's allowed by the content model</title>
+<!-- Same markup pattern as -012 -->
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel="help" href="https://www.w3.org/TR/html-ruby-extensions/#the-ruby-element">
+<link rel="help" href="https://www.w3.org/TR/html-ruby-extensions/#the-rb-element">
+<link rel="help" href="https://www.w3.org/TR/html-ruby-extensions/#the-rt-element">
+<link rel="help" href="https://www.w3.org/TR/html-ruby-extensions/#the-rp-element">
+<link rel="help" href="https://www.w3.org/TR/html-ruby-extensions/#ruby-pairing">
+<link rel="mismatch" href="reference/html-ruby-012-a-ref.html">
+<link rel="mismatch" href="reference/html-ruby-012-b-ref.html">
+<link rel="mismatch" href="reference/html-ruby-012-c-ref.html">
+<link rel="mismatch" href="reference/html-ruby-012-d-ref.html">
+<link rel="mismatch" href="reference/html-ruby-012-e-ref.html">
+<link rel="mismatch" href="reference/html-ruby-012-y-ref.html">
+<link rel="mismatch" href="reference/html-ruby-012-z-ref.html">
+<body>
+<p>The example below consists of 2 base characters (今日), jointly annotated with their pronunciation (きょう).
+For ease of comparison, it is preceded by some context text: “例文は”.
+This test passes if:
+<ul>
+    <li>the base characters are presented inline with and similarly to the context text, as if they are all part of the same sentence, and
+    <li>the annotation is presented as an annotation, and
+    <li>the annotation is jointly associated with the whole base, not just part of it.
+</ul>
+
+<p>Note: This is not a layout or rendering test.
+The precise appearance is not specified,
+and implementations may therefore validly vary.
+
+<hr>
+例文は<ruby><span>今</span>日<rp>!<rt>きょう<rp>!</ruby>

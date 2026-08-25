@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS zoom on deeply nested elements should not crash</title>
+<link rel="help" href="https://crbug.com/40402005">
+<style>
+span { zoom: .1%; }
+</style>
+<span><span><span><span><span><span><span><span><span><span>
+<span><span><span><span><span><span><span><span><span><span>
+<span><span><span><span><span><span><span><span><span><span>
+<span><span><span><span><span><span><span><span><span><span>

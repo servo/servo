@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+</head>
+<style type=''>
+html {
+  font-family: helvetica, sans-serif;
+}
+
+canvas, img {
+  margin: 10px;
+  border: 1px solid grey;
+}
+
+.example {
+  display: inline-block;
+  width: 280px;
+  margin-top: 50px;
+  margin-right: 50px;
+}
+
+.title {
+  text-align: center;
+}
+
+.description {
+  width: 100%;
+}
+
+.description div {
+  display: inline-block;
+  text-align: center;
+  font-size: 13px;
+}
+
+.description .source {
+  width: 100px;
+}
+
+.description .target {
+  width: 130px;
+}
+
+.example-title {
+  text-align: center;
+  font-size: 16px;
+}
+
+.error {
+  color: red;
+}
+
+</style>
+<body>
+  <h1 class="title">DrawImage canvas to canvas</h1>
+</body>
+
+<script type="text/javascript">
+
+var smoothingEnabled = false;
+var examplesNum = 0;
+
+var imageSource = {
+  width: 100,
+  height: 100
+};
+
+var destCanvas = {
+  width: 100,
+  height: 100
+};
+
+// 2 arguments, the dest origin is 0,0
+// The source canvas will copied to the 0,0 position of the destination canvas
+drawImage(0, 0);
+// 2 arguments, the dest origin is not 0,0
+// The source canvas will copied to the 25, 25 position of the destination canvas
+drawImage(25, 25);
+// 4 arguments, the source origin is not 0,0, the dest size is provided
+// The source canvas will copied to the 50, 50 position of the destination canvas and
+// on an area of 50x50 pixels
+drawImage(50, 50, 50, 50);
+// 4 arguments, the dest origin is not 0,0 and the dest size is provided but
+// does not match the size of the source. The image will be distorted
+// The source canvas will copied to the 50,50 position of the destination canvas
+// and it will be shrunk to a and area of 25x25
+drawImage(50, 50, 25, 25);
+// The source canvas will copied to the 50,50 position of the destination canvas
+// over an area of 50x25 pixels
+// The copied image will be distorted along the x axis
+drawImage(50, 50, 50, 25);
+// 8 arguments, both destination and source origins are 0, 0
+// An area of 25x25 pixels of the source image will be copied to
+// an area of 25x25 pixels of the destination canvas
+drawImage(0, 0, 25, 25, 0, 0, 25, 25);
+// 8 arguments the destination origin is not 0,0
+// An area of 25x25 pixels of the source image will be copied to
+// an area of 25x25 pixels of the destination canvas in the position 25,25
+drawImage(0, 0, 25, 25, 25, 25, 25, 25);
+// The source rectangle overflows the source image
+// The source area is clipped to fit the source image
+// and the destination are is clipped in the same proportion
+drawImage(25, 25, 50, 50, 0, 0, 50, 50);
+// The destination rectangle has negative width and height
+// An exception is raised and nothing is drawn
+drawImage(25, 25, 50, 50, 0, 0, -100, -100);
+// The destination rectangle is larger thant the destination canvas
+// When the destination rectangle is outside the destination image (the scratch bitmap), the pixels
+// that land outside the scratch bitmap are discarded, as if the destination was an infinite canvas
+// whose rendering was clipped to the dimensions of the scratch bitmap.
+drawImage(0, 0, 50, 50, 0, 0, 200, 200);
+// The source rectangle is larger than the source canvas
+// The source area is clipped to fit the source image
+// and the destination are is clipped in the same proportion
+drawImage(0, 0, 100, 100, 0, 0, 50, 50);
+// Negative coorditanes of the source rectangle
+// The source area is clipped to fit the source image
+// and the destination are is clipped in the same proportion
+drawImage(-25, -25, 50, 50, 0, 0, 50, 50);
+
+// Example with non squared origin and source canvases
+imageSource = {
+  width: 100,
+  height: 50
+};
+
+destCanvas = {
+  width: 100,
+  height: 50
+};
+
+//drawImage(0, 0);
+
+function renderExample(title) {
+  var container = document.createElement('div');
+  container.id = 'example' + examplesNum++;
+  container.setAttribute('class', 'example');
+
+  var h2 = document.createElement('h2');
+  h2.textContent = title;
+  h2.setAttribute('class', 'example-title');
+  container.appendChild(h2);
+
+  var div1 = document.createElement('div');
+  var canvas1 = document.createElement('canvas');
+  var img = document.createElement('img');
+  img.src = 'rust-0.png';
+  div1.appendChild(img);
+  div1.appendChild(canvas1);
+  container.appendChild(div1);
+
+  var div2 = document.createElement('div');
+  div2.setAttribute('class', 'description');
+  var source = document.createElement('div');
+  source.textContent = ' Source (' + imageSource.width + ',' + imageSource.height + ')';
+  source.setAttribute('class', 'source');
+
+  var arrow = document.createElement('div');
+  arrow.textContent = ' -> ';
+  arrow.setAttribute('class', 'arrow');
+
+  var target = document.createElement('div');
+  target.textContent = 'Target (' + destCanvas.width + ',' + destCanvas.height + ')';
+  target.setAttribute('class', 'target');
+
+  div2.appendChild(source);
+  div2.appendChild(arrow);
+  div2.appendChild(target);
+  container.appendChild(div2);
+
+  return container;
+}
+
+function drawImage() {
+  var args = Array.prototype.slice.call(arguments);
+
+  var div = renderExample('drawImage(' + args.toString() + ')');
+  var canvas = div.querySelectorAll('canvas')[0];
+  var img = div.querySelectorAll('img')[0];
+  img.width = imageSource.width;
+  img.height = imageSource.height;
+
+  canvas.width = destCanvas.width;
+  canvas.height = destCanvas.height;
+
+  var ctx = canvas.getContext('2d');
+  ctx.fillStyle = "#FF0000";
+  ctx.fillRect(0, 0,  destCanvas.width, destCanvas.height);
+  ctx.imageSmoothingEnabled = smoothingEnabled;
+
+  args.unshift(img);
+  try {
+    ctx.drawImage.apply(ctx, args);
+  }
+  catch(err) {
+    var title = div.querySelector('.example-title');
+    var error = document.createElement('h2');
+    error.setAttribute('class', 'example-title error');
+    div.insertBefore(error, title);
+    error.textContent += "Call Failed: " + err.message;
+  }
+
+  document.body.appendChild(div);
+}
+
+</script>
+</body>
+</html>

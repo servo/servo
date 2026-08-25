@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Text input selection drag and drop and history navigation roundtrip</title>
+</head>
+<body onload="document.querySelector('input').select()">
+<p><input value="Drag me" ondragstart="window.location = 'helper-drag-selection-dont-drop.xhtml'" ondragenter="event.preventDefault()" ondragover="return false" ondrop="event.preventDefault();this.value = (event.dataTransfer.getData('text/plain') == 'Drag me')?'PASS':'FAIL'"/></p>
+<p>Drag selected text around. You will be redirected to new page. When you return back drop selection on itself. You should see word PASS once you drop it.</p>
+</body>
+</html>

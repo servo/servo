@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>link rel=modulepreload for a URL already in the module map fires the right event</title>
+<meta name="timeout" content="long">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/webappapis.html#fetch-a-single-module-script">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+// When a <link rel=modulepreload> targets a URL that is already present in the
+// module map (because a previous import()/<script type=module> fetched it, or
+// is still fetching it), it must fire the same event a fresh preload would:
+// "load" when fetching produces a (non-null) module script - even one with a
+// parse error - and "error" when fetching fails.
+
+// NOTE: crossorigin is what makes these tests exercise the "already in the
+// module map" path in implementations that key their preload cache on the CORS
+// mode: the preload and the import() of the same URL then don't share a preload
+// entry, so the preload has to be satisfied from the module map. Keep it.
+//
+// The still-fetching tests below append the link in the same task as the
+// import() call, relying on "fetch a single module script" having put the URL in
+// the module map as fetching before import() returns.
+function makeModulePreload(url) {
+  const link = document.createElement("link");
+  link.rel = "modulepreload";
+  link.as = "script";
+  link.crossOrigin = "";
+  link.href = url;
+  return link;
+}
+
+function attachAndWaitForLoad(link) {
+  return new Promise((resolve, reject) => {
+    link.addEventListener("load", resolve, { once: true });
+    link.addEventListener("error", () => reject(new Error("fired error")),
+                          { once: true });
+    document.head.appendChild(link);
+  });
+}
+
+function attachAndWaitForError(link) {
+  return new Promise((resolve, reject) => {
+    link.addEventListener("error", resolve, { once: true });
+    link.addEventListener("load", () => reject(new Error("fired load")),
+                          { once: true });
+    document.head.appendChild(link);
+  });
+}
+
+async function expectRejection(promise, description) {
+  await promise.then(
+    () => assert_unreached(description),
+    () => {});
+}
+
+promise_test(async _ => {
+  const url = "./resources/dummy-module.js?already-fetched-load";
+  await import(url);
+  await attachAndWaitForLoad(makeModulePreload(url));
+}, "already-fetched module fires load");
+
+promise_test(async _ => {
+  const url = "./resources/syntax-error.js?already-fetched-syntax-error";
+  await expectRejection(import(url), "import of a syntax-error module rejects");
+  // A parse error still produces a module script, so the preload succeeds and
+  // fires load; the error only surfaces when the module is evaluated.
+  await attachAndWaitForLoad(makeModulePreload(url));
+}, "already-fetched module with a syntax error fires load");
+
+promise_test(async _ => {
+  const url = "./resources/not-exist.js?already-fetched-network-error";
+  await expectRejection(import(url), "import of a missing module rejects");
+  await attachAndWaitForError(makeModulePreload(url));
+}, "already-fetched module that failed to fetch fires error");
+
+promise_test(async _ => {
+  const url = "./resources/dummy-module.js?fetching-load";
+  // Do not await: the modulepreload is appended while the import is still
+  // fetching the same URL.
+  const importPromise = import(url);
+  await attachAndWaitForLoad(makeModulePreload(url));
+  await importPromise;
+}, "module still fetching that succeeds fires load");
+
+promise_test(async _ => {
+  const url = "./resources/not-exist.js?fetching-network-error";
+  const importPromise = import(url).catch(() => {});
+  await attachAndWaitForError(makeModulePreload(url));
+  await importPromise;
+}, "module still fetching that fails fires error");
+</script>
+</body>

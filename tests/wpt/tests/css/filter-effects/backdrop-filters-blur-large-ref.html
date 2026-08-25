@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>CSS Backdrop Filters: Blur over large element - Reference</title>
+<style>
+    .background {
+        position: fixed;
+        width: 200px;
+        height: 2160px;
+        left: 100px;
+        top: 50px;
+        background: red;
+    }
+    .filter {
+        position: fixed;
+        width: 200px;
+        height: 2160px;
+        left: 80px;
+        top: 50px;
+        backdrop-filter: blur(10px);
+    }
+</style>
+<p>You should see a blurred red bar going to the bottom of the page.</p>
+<div class="background"></div>
+<div class="filter"></div>

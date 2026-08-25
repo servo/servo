@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<title>
+  navigateEvent.deferPageSwap: deferring is not allowed for cross-document traverse
+  navigations
+</title>
+
+<script>
+  switch (new URLSearchParams(location.search).get("phase") || "test") {
+    case "test":
+      promise_test(async (t) => {
+        await new Promise((resolve) => {
+          window.onload = resolve;
+        });
+        window.step_timeout = t.step_timeout;
+        const done = Promise.withResolvers();
+        window.did_load = done.resolve;
+        const popup = window.open("?phase=initial");
+        const events = await done.promise;
+        assert_array_equals(events, ["navigate", "pagehide"]);
+      });
+      break;
+    case "initial":
+      window.onload = () => {
+        // Changing the URL synchronously to avoid an infinite loop when going back in case there is
+        // no BFCache.
+        history.replaceState(null, "", "?phase=done");
+        navigation.navigate("?phase=next", { history: "push" });
+      }
+      break;
+    case "next":
+      window.onload = () => {
+        const events = [];
+        navigation.addEventListener("navigate", (navigate_event) => {
+          events.push("navigate");
+          assert_throws_dom("SecurityError", () =>
+            navigate_event.deferPageSwap({
+              handler: () =>
+                new Promise((resolve) => {
+                  events.push("handler");
+                  window.opener.step_timeout(() => {
+                    events.push("preview");
+                    resolve();
+                  });
+                }),
+            })
+          );
+        });
+        window.addEventListener("pagehide", () => {
+          events.push("pagehide");
+          window.opener.did_load(events);
+        });
+        window.navigation.back();
+      }
+      break;
+    case "done":
+      break;
+  }
+</script>

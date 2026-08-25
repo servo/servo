@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>CSS Display: reading-flow with value flex-flow on carousel container</title>
+<link rel="help" href="https://drafts.csswg.org/css-display-4/#reading-flow">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-next-focus">
+<link rel="author" title="Di Zhang" href="mailto:dizhangg@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src='../../resources/shadow-dom.js'></script>
+<script src="../../resources/focus-utils.js"></script>
+
+<style>
+  #scroller {
+    width: 120px;
+    height: 100px;
+    overflow-x: auto;
+    scroll-marker-group: before;
+    white-space: nowrap;
+    display: grid;
+    grid-auto-flow: column;
+    reading-flow: grid-order;
+  }
+
+  #scroller div {
+    display: inline-block;
+    width: 100px;
+    height: 100px;
+  }
+
+  #scroller div::scroll-marker {
+    content: "#";
+    background: white;
+  }
+
+</style>
+
+
+
+<div class="test-case" data-expect="scroller,C,A,B"
+      data-description="Grid items in carousel should follow grid-order reading flow">
+  <div id="scroller">
+    <div id="A" tabindex="0" style="order: 2; background: red"></div>
+    <div id="B" tabindex="0" style="order: 3; background: yellow"></div>
+    <div id="C" tabindex="0" style="order: 1; background: blue"></div>
+  </div>
+</div>
+
+<script>
+runFocusTestCases();
+</script>

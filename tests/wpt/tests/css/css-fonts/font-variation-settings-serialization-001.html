@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>CSS Test: font-variation-settings serialization</title>
+        <link rel="author" title="Greg Whitworth" href="mailto:gwhit@microsoft.com">
+        <link rel="help" href="http://www.w3.org/TR/css-fonts-4/#propdef-font-variation-settings">
+        <link rel="issue" href="https://github.com/w3c/csswg-drafts/issues/1959#issuecomment-360864254">
+        <meta name="description" content="It was decided in issue 1959 that font-variation-settings is a map, therefore duplicates should be removed">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+    </head>
+    <body>
+        <div id="test1" style='font-variation-settings: "bldA" 1, "bldA" 2'></div>
+
+        <script>
+            const test1_canEqual = ['"bldA" 2', "'bldA' 2"];
+            test(function() {
+                assert_in_array(getComputedStyle(document.getElementById('test1')).fontVariationSettings, test1_canEqual);
+            }, "font-variation-settings should be serialized to not include duplicates");
+        </script>
+    </body>
+</html>
+

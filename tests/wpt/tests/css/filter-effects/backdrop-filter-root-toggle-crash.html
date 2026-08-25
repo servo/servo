@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<head>
+  <style>
+    #container {
+      view-transition-name: arandomname;
+      width: 100px;
+      height: 100px;
+      background: blue;
+    }
+
+    #overlay {
+      width: 100%;
+      height: 100%;
+    }
+
+    #overlay.blur {
+      backdrop-filter: blur(8px);
+    }
+
+  </style>
+</head>
+<body>
+
+  <div id="container">
+    <div id="overlay"></div>
+  </div>
+
+  <script>
+    async function doTest() {
+      let itersLeft = 10;
+      while (itersLeft-- > 0) {
+        await new Promise(resolve => window.requestAnimationFrame(resolve));
+        await new Promise(resolve => window.requestAnimationFrame(resolve));
+        document.getElementById('overlay').classList.toggle('blur');
+      }
+      document.documentElement.removeAttribute("class");
+    }
+
+    document.documentElement.addEventListener("TestRendered", doTest);
+    //window.addEventListener("load", doTest);
+  </script>
+
+</body>
+</html>

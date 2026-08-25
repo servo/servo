@@ -1,0 +1,38 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Reference File</title>
+    <link rel="author" title="Bert Bos" href="mailto:bert@w3.org" />
+
+    <style type="text/css">
+      div {width: 5em; height: 2em}
+
+      /* absolute with 'z-index: auto' does not create a stacking context */
+      #absolute {position: absolute; left: 1em; top: 3em; background: green}
+      #absolute div {position: absolute}
+      #absolute div div {position: absolute; z-index: -1; background: green}
+
+      /* fixed with 'z-index: auto' *does* create a stacking context */
+      #fixed {position: fixed; left: 10em; top: 3em; background: green}
+      #fixed div {position: absolute}
+      #fixed div div {position: absolute; z-index: -1; background: green}
+    </style>
+  </head>
+
+  <body>
+    <p>There should be no red.</p>
+
+    <div id="absolute">
+      <div>
+	<div></div>
+      </div>
+    </div>
+
+    <div id="fixed">
+      <div>
+	<div></div>
+      </div>
+    </div>
+  </body>
+</html>

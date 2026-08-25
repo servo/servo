@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>::first-letter depending on size container query with changing list-style-type</title>
+<link rel="help" href="https://crbug.com/1505250">
+<style>
+  div::first-letter{
+    color: green;
+  }
+  div:only-of-type {
+    container-type: size;
+    list-style: my-circle inside;
+  }
+</style>
+<div>X
+  <div></div>
+  <script>document.body.offsetTop</script>
+</div>

@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "3.3.6-annotationRightsImplemented.json",
+  "assertionType": "may",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "passAndContinue",
+  "errorMessage": "Annotatoin-level rights key having string value(s) of format uri not found. Annotation may have zero or more rights key values.",
+  "title": "Implements Annotation-level **_rights_** key which has one or more values, each of which is a **string of format uri** - [model 3.3.6](https://www.w3.org/TR/annotation-model/#rights-information)",
+  "description": "True when the Annotation implements rights key with with string(s) of format uri value(s) (Section 3.3.6)",
+  "allOf":
+    [
+    { "$ref": "otherProperties.json#/definitions/rightsPropertyFound"}
+    ]
+}

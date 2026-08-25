@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+.spacer {
+  height: 50px;
+  background: lightgray;
+}
+.target {
+  font: 40px/1 Ahem;
+  position: relative;
+}
+.target::first-letter {
+  initial-letter: 2 1;
+}
+</style>
+<div class="spacer"></div>
+<div class="target">ApÉx</div>
+<script>
+// The font size of raised initial letters is undefined[1].
+// Implementations, especially when using Ahem as a web font, don't match.
+// To test the `text-box-trim` behavior by ignoring such differences, compute
+// the expected position of the `target` dynamically.
+// [1] https://drafts.csswg.org/css-inline-3/#sizing-initial-letter
+const spacer = document.getElementsByClassName('spacer')[0];
+const target = document.getElementsByClassName('target')[0];
+const spacer_bottom = spacer.getBoundingClientRect().bottom;
+const target_bottom = target.getBoundingClientRect().bottom;
+target.style.top = `${spacer_bottom - target_bottom + 40}px`;
+</script>

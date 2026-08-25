@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>
+  Multi-line column flex fragmentation with forced break and negative margin.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<style>
+  .multicol {
+    column-count: 5;
+    column-fill: auto;
+    column-gap: 0px;
+    height: 100px;
+    width: 100px;
+    position: relative;
+    background: red;
+    z-index: -1;
+  }
+  #flex {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    height: 500px;
+    position: relative;
+  }
+  #flex > div {
+    background: green;
+    width: 10px;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="multicol">
+  <div id="flex">
+    <div style="height: 150px;"></div>
+    <div style="height: 350px; break-before: column; margin-top: -50px;"></div>
+    <div style="height: 150px;"></div>
+    <div style="height: 300px; break-before: column;"></div>
+  </div>
+  <div style="position: absolute; top: 50px; left: 20px; width: 20px; height: 50px; background: green;"></div>
+  <div style="position: absolute; top: -50px; left: 40px; width: 10px; height: 50px; background: white;"></div>
+</div>

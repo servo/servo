@@ -1,0 +1,9 @@
+rules:
+- rotate-animation-on-svg.html: [individual-transforms]
+- rotate-animation-with-will-change-transform-001.html: [individual-transforms]
+- scale-and-rotate-both-specified-on-animation-keyframes.html: [individual-transforms]
+- scale-animation-on-svg.html: [individual-transforms]
+- translate-animation-on-svg.html: [individual-transforms]
+- backface-visibility-*: [transforms3d]
+- perspective-*: [transforms3d]
+- "*": [transforms2d]

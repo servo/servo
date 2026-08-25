@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://issues.chromium.org/issues/357889498">
+<link rel=match href="user-invalid-form-submission-invalidation-ref.html">
+
+<style>
+input:user-invalid {
+  border: 3px solid red;
+}
+input:user-valid {
+  border: 3px solid green;
+}
+</style>
+
+<form>
+  <input required>
+  <input required>
+  <input>
+  <button>submit</button>
+</form>
+
+<script>
+requestAnimationFrame(() => {
+  document.querySelector('button').click();
+  document.documentElement.classList.remove('reftest-wait');
+});
+</script>

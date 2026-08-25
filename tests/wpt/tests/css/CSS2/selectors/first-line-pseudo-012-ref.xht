@@ -1,0 +1,73 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  .reference
+  {
+  border: solid black;
+  margin-top: 50px;
+  width: 50px;
+  }
+
+  .aqua40
+  {
+  background-color: aqua;
+  height: 40px;
+  }
+
+  .fuchsia10
+  {
+  background-color: fuchsia;
+  height: 10px;
+  }
+
+  .yellow40
+  {
+  background-color: yellow;
+  height: 40px;
+  }
+
+  .aqua50
+  {
+  background-color: aqua;
+  height: 50px;
+  }
+  ]]>
+  </style>
+
+ </head>
+
+ <body>
+
+  <p>The next three boxes should be pixel-perfect identical.</p>
+
+  <div class="reference">
+	<div class="aqua40"></div>
+	<div class="fuchsia10"></div>
+	<div class="yellow40"></div>
+	<div class="aqua50"></div>
+  </div>
+
+  <div class="reference">
+    <div class="aqua40"></div>
+    <div class="fuchsia10"></div>
+    <div class="yellow40"></div>
+    <div class="aqua50"></div>
+  </div>
+
+  <div class="reference">
+    <div class="aqua40"></div>
+    <div class="fuchsia10"></div>
+    <div class="yellow40"></div>
+    <div class="aqua50"></div>
+  </div>
+
+ </body>
+</html>

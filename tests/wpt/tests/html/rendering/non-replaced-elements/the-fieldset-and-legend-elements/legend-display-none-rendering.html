@@ -1,0 +1,11 @@
+<!doctype html>
+<title>Rendering of display: none legend</title>
+<link rel=match href=legend-display-none-rendering-ref.html>
+<style>
+ fieldset { border: 2em solid lime; width: 0; margin: 0; padding: 0; }
+ legend { display: none; background: red; }
+</style>
+<p>There should be a green box below.</p>
+<fieldset>
+ <legend>FAIL</legend>
+</fieldset>

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/10553">
+<meta name="assert" content="Test how an abspos contained by a block with cloned box decoration behaves.">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="columns:2; column-fill:auto; gap:0; width:100px; height:100px; background:red;">
+  <!-- The expectation here (which might not be correct), is that the abspos
+       will start at the block-start padding edge of #container, and overlap
+       with cloned borders, although it fragments. Should it rather steer clear
+       of the cloned borders? -->
+  <div id="container" style="position:relative; box-decoration-break:clone; border:solid green; border-width:20px 0; border-bottom-color:red; padding:10px; height:80px;">
+    <div style="position:absolute; top:0; left:0; width:100%; height:180px; background:green;"></div>
+  </div>
+</div>

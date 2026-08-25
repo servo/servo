@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<title>Canvas paint events should fire in reverse tree order (descendants before ancestors)</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+
+<style>
+  div, canvas {
+    background: blue;
+  }
+</style>
+
+<div id="container">
+  <!-- Branch A: outer_a -> inner_a -->
+  <canvas id="outer_a" width="200" height="200" layoutsubtree>
+    <div id="target_a" style="width: 150px; height: 150px;">
+      <canvas id="inner_a" width="100" height="100" layoutsubtree>
+        <div id="target_a_child" style="width: 50px; height: 50px; background: blue;"></div>
+      </canvas>
+    </div>
+  </canvas>
+  <!-- Branch B: outer_b -> [inner_b_1, inner_b_2] -->
+  <canvas id="outer_b" width="200" height="200" layoutsubtree>
+    <div id="target_b" style="width: 150px; height: 150px;">
+      <canvas id="inner_b_1" width="100" height="100" layoutsubtree>
+        <div id="target_b_1_child" style="width: 50px; height: 50px; background: blue;"></div>
+      </canvas>
+      <canvas id="inner_b_2" width="100" height="100" layoutsubtree>
+        <div id="target_b_2_child" style="width: 50px; height: 50px; background: blue;"></div>
+      </canvas>
+    </div>
+  </canvas>
+  <!-- Branch C: outer_c -> inner_c -->
+  <canvas id="outer_c" width="200" height="200" layoutsubtree>
+    <div id="target_c" style="width: 150px; height: 150px;">
+      <canvas id="inner_c" width="100" height="100" layoutsubtree>
+        <div id="target_c_child" style="width: 50px; height: 50px; background: blue;"></div>
+      </canvas>
+    </div>
+  </canvas>
+</div>
+
+<script>
+  'use strict';
+
+  function waitForOneFrame() {
+    return new Promise(resolve => {
+      requestAnimationFrame(() => {
+        setTimeout(resolve, 0);
+      });
+    });
+  }
+
+  promise_test(async t => {
+    let paint_order = [];
+
+    inner_a.addEventListener('paint', () => paint_order.push('inner_a'));
+    outer_a.addEventListener('paint', () => paint_order.push('outer_a'));
+    inner_b_1.addEventListener('paint', () => paint_order.push('inner_b_1'));
+    inner_b_2.addEventListener('paint', () => paint_order.push('inner_b_2'));
+    outer_b.addEventListener('paint', () => paint_order.push('outer_b'));
+    inner_c.addEventListener('paint', () => paint_order.push('inner_c'));
+    outer_c.addEventListener('paint', () => paint_order.push('outer_c'));
+
+    // Step 1: Request initial paint of all canvases.
+    await Promise.all([
+      waitForCanvasPaint(inner_a),
+      waitForCanvasPaint(outer_a),
+      waitForCanvasPaint(inner_b_1),
+      waitForCanvasPaint(inner_b_2),
+      waitForCanvasPaint(outer_b),
+      waitForCanvasPaint(inner_c),
+      waitForCanvasPaint(outer_c),
+    ]);
+
+    // Tree order (pre-order) in DOM is:
+    // outer_a, inner_a, outer_b, inner_b_1, inner_b_2, outer_c, inner_c.
+    // Reverse tree order is exact reverse:
+    // inner_c, outer_c, inner_b_2, inner_b_1, outer_b, inner_a, outer_a.
+    assert_array_equals(
+        paint_order,
+        ['inner_c', 'outer_c', 'inner_b_2', 'inner_b_1', 'outer_b', 'inner_a', 'outer_a'],
+        'Initial paint should run in reverse tree order');
+  }, 'Initial paint of all canvases across multiple branches and sibling inner canvases runs in reverse tree order');
+
+  promise_test(async t => {
+    await waitForOneFrame();
+    let paint_order = [];
+    inner_b_1.addEventListener('paint', () => paint_order.push('inner_b_1'));
+    inner_b_2.addEventListener('paint', () => paint_order.push('inner_b_2'));
+    outer_b.addEventListener('paint', () => paint_order.push('outer_b'));
+
+    // Trigger change in inner_b_1 only.
+    target_b_1_child.style.background = '#0f0';
+    await Promise.all([
+      waitForCanvasPaint(inner_b_1),
+      waitForCanvasPaint(outer_b),
+    ]);
+    assert_array_equals(paint_order, ['inner_b_1', 'outer_b'],
+                        'Changing inner_b_1 triggers paint on inner_b_1 then outer_b');
+  }, 'Repainting inner_b_1 fires paint events in reverse tree order (inner_b_1 before outer_b)');
+
+  promise_test(async t => {
+    await waitForOneFrame();
+    let paint_order = [];
+    inner_b_1.addEventListener('paint', () => paint_order.push('inner_b_1'));
+    inner_b_2.addEventListener('paint', () => paint_order.push('inner_b_2'));
+    outer_b.addEventListener('paint', () => paint_order.push('outer_b'));
+
+    // Trigger change in both inner_b_1 and inner_b_2 simultaneously.
+    target_b_1_child.style.background = '#f00';
+    target_b_2_child.style.background = '#f00';
+    await Promise.all([
+      waitForCanvasPaint(inner_b_1),
+      waitForCanvasPaint(inner_b_2),
+      waitForCanvasPaint(outer_b),
+    ]);
+    assert_array_equals(paint_order, ['inner_b_2', 'inner_b_1', 'outer_b'],
+                        'Changing both sibling inner canvases triggers paint on inner_b_2, inner_b_1, then outer_b');
+  }, 'Repainting sibling inner canvases in outer_b fires in reverse tree order');
+
+  promise_test(async t => {
+    await waitForOneFrame();
+    let paint_order = [];
+    inner_a.addEventListener('paint', () => paint_order.push('inner_a'));
+    outer_a.addEventListener('paint', () => paint_order.push('outer_a'));
+    inner_b_2.addEventListener('paint', () => paint_order.push('inner_b_2'));
+    outer_b.addEventListener('paint', () => paint_order.push('outer_b'));
+
+    // Trigger change in both inner_a and inner_b_2 across disjoint branches simultaneously.
+    target_a_child.style.background = '#ff0';
+    target_b_2_child.style.background = '#ff0';
+    await Promise.all([
+      waitForCanvasPaint(inner_a),
+      waitForCanvasPaint(outer_a),
+      waitForCanvasPaint(inner_b_2),
+      waitForCanvasPaint(outer_b),
+    ]);
+    assert_array_equals(paint_order, ['inner_b_2', 'outer_b', 'inner_a', 'outer_a'],
+                        'Simultaneous repaints across branches fire in reverse tree order');
+  }, 'Simultaneous repaints across disjoint branches fire in reverse tree order');
+</script>

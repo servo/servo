@@ -1,0 +1,52 @@
+regions, id
+<link rel="help" href="https://w3c.github.io/webvtt/#collect-webvtt-region-settings">
+
+assert_equals(cues.length, 4);
+
+var region1 = cues[0].region;
+assert_equals(region1.lines, 2);
+
+var region2 = cues[1].region;
+assert_equals(region2.lines, 1);
+
+var region3 = cues[2].region;
+assert_equals(region3.lines, 3);
+
+var region4 = cues[3].region;
+assert_equals(region4.lines, 4);
+
+===
+WEBVTT
+
+NOTE No API for accessing region ids, so using lines to uniquely identify regions
+
+REGION
+id:foo
+id:bar
+lines:1
+
+REGION
+id:bar id:foo
+lines:2
+
+REGION
+id:id
+id: foo
+id :bar
+lines:3
+
+REGION
+id:\v
+lines:4
+
+00:00:00.000 --> 00:00:01.000 region:foo
+valid
+
+00:00:00.000 --> 00:00:01.000 region:bar
+valid
+
+00:00:00.000 --> 00:00:01.000 region:id
+valid
+
+00:00:00.000 --> 00:00:01.000 region:\v
+valid

@@ -1,0 +1,20 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>WebGLContextEvent getSupportedExtensions test</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  var gl = document.createElement("canvas").getContext("webgl");
+
+  if (!gl)
+    return;
+
+  var extensions = gl.getSupportedExtensions();
+  assert_true(Array.isArray(extensions), "getSupportedExtensions should return an array");
+
+  for (var i = 0; i < extensions.length; ++i)
+    assert_true(typeof(extensions[i]) === "string", "Extensions should be strings, got " + typeof(extensions[i]));
+
+});
+</script>

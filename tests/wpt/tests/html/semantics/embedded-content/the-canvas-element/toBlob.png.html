@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>Canvas test: toBlob.png</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<canvas id="c"></canvas>
+<script>
+async_test(function() {
+    on_event(window, "load", this.step_func(function() {
+        var canvas = document.getElementById('c');
+        var ctx = canvas.getContext('2d');
+        canvas.toBlob(this.step_func_done(function(data) {
+            assert_equals(data.type, "image/png");
+        }), 'image/png');
+    }));
+}, "toBlob with image/png returns a PNG Blob");
+</script>

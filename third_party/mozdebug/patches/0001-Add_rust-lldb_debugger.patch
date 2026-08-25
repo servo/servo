@@ -1,0 +1,12 @@
+diff --git a/mozdebug/mozdebug.py b/mozdebug/mozdebug.py
+index 4cb18ccca6dd..51af36c78fa2 100644
+--- a/mozdebug/mozdebug.py
++++ b/mozdebug/mozdebug.py
+@@ -36,6 +36,7 @@
+     "cgdb": {"interactive": True, "args": ["-q", "--args"]},
+     "rust-gdb": {"interactive": True, "args": ["-q", "--args"]},
+     "lldb": {"interactive": True, "args": ["--"], "requiresEscapedArgs": True},
++    "rust-lldb": {"interactive": True, "args": ["--"], "requiresEscapedArgs": True},
+     # Visual Studio Debugger Support.
+     "devenv.exe": {"interactive": True, "args": ["-debugexe"]},
+     # Visual C++ Express Debugger Support.

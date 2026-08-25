@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: The embed element represents nothing when its type and src attributs are removed</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#the-embed-element">
+<link rel="match" href="embed-represent-nothing-ref.html">
+<meta name="assert" content="Check if the embed element represents nothing when its src and type attributes are removed">
+<style>
+  embed {
+    background-color: red;
+    height: 100px;
+    width: 100px;
+  }
+</style>
+<body>
+  <p>Test passes if there is <strong>no red</strong>.</p>
+  <embed id="embed" src="/images/red-16x16.png" type="image/png">
+  <script>
+    document.getElementById("embed").removeAttribute("src");
+    document.getElementById("embed").removeAttribute("type");
+  </script>
+</body>

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Forced colors mode - highlighted text.</title>
+<link rel="help" href="https://www.w3.org/TR/css-color-adjust-1/#forced-colors-properties">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  body {
+    color: red;
+  }
+
+  #a {
+    background-color: purple;
+    color: orange;
+    forced-color-adjust: auto;
+  }
+  #b {
+    background-color: purple;
+    color: orange;
+    forced-color-adjust: none;
+  }
+  #c {
+    background-color: purple;
+    color: orange;
+    forced-color-adjust: preserve-parent-color;
+  }
+  #d {
+    background-color: purple;
+    color: currentColor;
+    forced-color-adjust: preserve-parent-color;
+  }
+  #e {
+    background-color: purple;
+    color: inherit;
+    forced-color-adjust: preserve-parent-color;
+  }
+  #f {
+    background-color: currentColor;
+    forced-color-adjust: preserve-parent-color;
+  }
+  #g::visited {
+    color: orange;
+  }
+  #h, #i {
+    forced-color-adjust: preserve-parent-color;
+  }
+  #h:visited {
+    color: inherit;
+  }
+  #link_div {
+    color: LinkText;
+  }
+</style>
+<body>
+  This is regular body text. It should be CanvasText in forced colors mode.
+  <br>
+  <mark id="a">
+    This text should be black in forced colors mode because forced-color-adjust
+    is auto. The background color should be yellow because the default
+    highlighted colors should not be overridden in forced colors mode.
+  </mark>
+  <br>
+  <mark id="b">
+    This text should be orange in forced colors mode because
+    forced-color-adjust is none. The background color should be purple because
+    forced-color-adjust is none.
+  </mark>
+  <br>
+  <mark id="c">
+    This text should be orange in forced colors mode because
+    although forced-color-adjust is preserve-parent-color, the color value is
+    neither currentColor nor inherited. The background color should be purple
+    because preserve-parent-color behaves like none for all properties except
+    color.
+  </mark>
+  <br>
+  <mark id="d">
+    This text should be CanvasText in forced colors mode because
+    forced-color-adjust is preserve-parent-color and we are inheriting from its
+    parent. The background color should be purple because preserve-parent-color
+    behaves like none for all properties except color.
+  </mark>
+  <br>
+  <mark id="e">
+    This text should be CanvasText in forced colors mode because
+    forced-color-adjust is preserve-parent-color and we are inheriting from its
+    parent. The background color should be purple because preserve-parent-color
+    behaves like none for all properties except color.
+  </mark>
+  <br>
+  <mark id="f">
+    This text should be CanvasText in forced colors mode because
+    forced-color-adjust is preserve-parent-color and we are inheriting from its
+    parent. The background color should also be CanvasText because although
+    forced-color-adjust behaves like none, the computed value of currentColor is
+    CanvasText.
+  </mark>
+  <br>
+  <div id="link_div"></div>
+  <a href="" id="g">
+    Should be use VisitedText, and not orange. However, `getComputedStyle()` will
+    return LinkText for privacy reasons.
+    <a href="" id="h">
+      This won't pick up color from nested parent as it gets reparented to the
+      body. It should use the parent's color i.e. CanvasText, and not orange,
+      because forced-color-adjust is preserve-parent-color and we are inheriting
+      from its parent. However, `getComputedStyle()` returns the unvisited link
+      color for privacy reasons, so we should expect this to be the UA's default
+      link color.
+    </a>
+    <a href="" id="i">
+      This won't pick up color from nested parent as the it gets reparented to the
+      body. It should use the visited link color as though we were not in forced
+      colors because although forced-color-adjust is preserve-parent-color, the
+      color value is neither currentColor nor inherited. However,
+      `getComputedStyle()` returns the unvisited link color for privacy reasons,
+      so we should expect this to be the UA's default link color.
+    </a>
+  </a>
+</body>
+
+<script>
+  test(function(){
+    let body = document.querySelector('body');
+
+    assert_equals(getComputedStyle(a).color, "rgb(0, 0, 0)");
+
+    assert_equals(getComputedStyle(b).color, "rgb(255, 165, 0)");
+
+    assert_equals(getComputedStyle(c).color, "rgb(255, 165, 0)");
+
+    assert_equals(getComputedStyle(d).color, getComputedStyle(body).color);
+
+    assert_equals(getComputedStyle(e).color, getComputedStyle(body).color);
+
+    assert_equals(getComputedStyle(f).color, getComputedStyle(body).color);
+
+    assert_equals(getComputedStyle(g).color, getComputedStyle(link_div).color);
+
+    assert_equals(getComputedStyle(h).color, "rgb(0, 0, 238)");
+
+    assert_equals(getComputedStyle(i).color, "rgb(0, 0, 238)");
+
+    assert_equals(getComputedStyle(a).backgroundColor, "rgb(255, 255, 0)");
+
+    assert_equals(getComputedStyle(b).backgroundColor, "rgb(128, 0, 128)");
+
+    assert_equals(getComputedStyle(c).backgroundColor, "rgb(128, 0, 128)")
+
+    assert_equals(getComputedStyle(d).backgroundColor, "rgb(128, 0, 128)");
+
+    assert_equals(getComputedStyle(e).backgroundColor, "rgb(128, 0, 128)");
+
+    assert_equals(getComputedStyle(f).backgroundColor, getComputedStyle(f).color);
+  }, "Checks that default highlighted text style does not get overridden in forced colors mode.");
+</script>

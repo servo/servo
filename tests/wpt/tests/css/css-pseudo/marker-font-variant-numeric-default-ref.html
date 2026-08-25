@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>CSS Reftest Reference</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com" />
+<link rel="mismatch" href="marker-font-variant-numeric-normal-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+@font-face {
+  /* This font looks different with 'font-variant-numeric: tabular-nums' */
+  font-family: 'Exo 2';
+  src: local('Exo 2'),
+       url('/css/css-fonts/support/fonts/Exo2-SemiBold.otf') format("opentype");
+}
+ol {
+  float: left;
+  width: 50px;
+  line-height: 25px;
+  list-style-position: inside;
+  font-family: "Exo 2";
+}
+li:first-child::after {
+  content: 'X X X X X X X X X';
+  display: inline-block;
+  font: 25px/1 Ahem;
+  vertical-align: top;
+  height: 0;
+  width: 25px;
+}
+</style>
+<ol>
+  <li></li>
+  <li></li>
+  <li></li>
+  <li></li>
+  <li></li>
+  <li></li>
+  <li></li>
+  <li></li>
+  <li></li>
+</ol>
+<ol>
+  <li></li>
+  <li></li>
+  <li></li>
+  <li></li>
+  <li></li>
+  <li></li>
+  <li></li>
+  <li></li>
+  <li></li>
+</ol>
+<ol>
+  <li></li>
+  <li></li>
+  <li></li>
+  <li></li>
+  <li></li>
+  <li></li>
+  <li></li>
+  <li></li>
+  <li></li>
+</ol>
+<ol>
+  <li></li>
+  <li></li>
+  <li></li>
+  <li></li>
+  <li></li>
+  <li></li>
+  <li></li>
+  <li></li>
+  <li></li>
+</ol>
+<ol>
+  <li></li>
+  <li></li>
+  <li></li>
+  <li></li>
+  <li></li>
+  <li></li>
+  <li></li>
+  <li></li>
+  <li></li>
+</ol>

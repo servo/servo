@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1/#scroll-padding">
+<title>Scroll padding percentage is computed relative to the scrollport</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.container {
+  position: relative;
+  height: 400px;
+  width: 800px;
+  margin: 50px;
+  outline: 1px solid black;
+}
+
+#scroller {
+  height: 100%;
+  width: 100%;
+  border: 100px solid silver;
+  padding: 20px;
+  scroll-padding: 0 20%;
+  scrollbar-width: none;
+  overflow: auto;
+  box-sizing: border-box;
+}
+
+.scroll-padding-indicator {
+  position: absolute;
+  background-color: rgba(128, 0, 0, 0.2);
+  top: 0;
+  width: calc(600px * 0.2);
+  height: 100%;
+  pointer-events: none;
+}
+
+.scroll-padding-indicator.left {
+  left: 100px;
+}
+
+.scroll-padding-indicator.right {
+  right: 100px;
+}
+
+.wide {
+  width: 2000px;
+}
+
+#target {
+  width: 10px;
+  height: 10px;
+  margin: 10px;
+  margin-left: 600px;
+  background-color: silver;
+}
+</style>
+
+<div class="container">
+  <div class="scroll-padding-indicator left"></div>
+  <div class="scroll-padding-indicator right"></div>
+  <div id="scroller">
+    <div class="wide">
+        <div id="target" tabindex="-1" style="background-color: green"></div>
+    </div>
+  </div>
+</div>
+<div id="other-focus" tabindex="-1">Other focus</div>
+<script>
+function tick() {
+  return new Promise(resolve => {
+    requestAnimationFrame(() => requestAnimationFrame(resolve));
+  });
+}
+
+function reset()
+{
+  document.getElementById('other-focus').focus();
+}
+
+let scroller = document.getElementById("scroller");
+promise_test(async t => {
+  scroller.scrollTo(160, 0);
+  reset();
+  await tick();
+  const target = document.getElementById("target");
+  target.focus();
+  await tick(); // Work around WebKit bug.
+  assert_equals(scroller.scrollLeft, 160, "The target should aleady be outside the left scrollpardding area");
+}, 'No need to scroll to avoid percentage scroll padding left');
+
+promise_test(async t => {
+  scroller.scrollTo(490, 0);
+  reset();
+  await tick();
+  const target = document.getElementById("target");
+  target.focus();
+  await tick(); // Work around WebKit bug.
+  assert_equals(scroller.scrollLeft, 490, "The target should aleady be outside the right scrollpardding area");
+}, 'No need to scroll to avoid percentage scroll padding right');
+</script>

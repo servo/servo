@@ -1,0 +1,70 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: Shadows on highlights vertical text - reference</title>
+<link rel="author" name="Stephen Chenney" href="mailto:schenney@igalia.com">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+    :root {
+        font-family: Ahem;
+        writing-mode: vertical-lr;
+        line-height: 1;
+        white-space: break-spaces;
+    }
+    #originating_shadow {
+        color: transparent;
+        text-shadow: 0.1em 0.1em rgba(0,0,0,0.5);
+        position: absolute;
+        z-index: 0;
+        top: 10px;
+        left: 10px;
+    }
+    #originating_text {
+        color: black;
+        position: absolute;
+        z-index: 7;
+        top: 10px;
+        left: 10px;
+    }
+    #selection_only {
+        color: green;
+        text-shadow: -0.25em -0.25em rgba(0,128,0,0.5), 0.1em 0.1em rgba(0,0,0,0.5);
+        position: absolute;
+        z-index: 5;
+        left: 10px;
+    }
+    #target {
+        color: blue;
+        text-shadow: 0.25em 0.25em rgba(0,0,128,0.5), 0.1em 0.1em rgba(0,0,0,0.5);
+        position: absolute;
+        z-index: 3;
+        left: 10px;
+    }
+    #both_text {
+        color: green;
+        position: absolute;
+        z-index: 4;
+        left: 10px;
+    }
+    #both_shadow {
+        color: transparent;
+        text-shadow: 0.25em 0.25em rgba(0,0,128,0.5), -0.25em -0.25em rgba(0,128,0,0.5), 0.1em 0.1em rgba(0,0,0,0.5);
+        position: absolute;
+        z-index: 2;
+        left: 10px;
+    }
+</style>
+<p id="originating_shadow">part</p>
+<p id="originating_text">part</p>
+<p id="selection_only">ially selected </p>
+<p id="both_text">ta</p>
+<p id="both_shadow">ta</p>
+<p id="target">rget</p>
+<script>
+    originatingCS = getComputedStyle(originating_text);
+    selection_only.style.top = (parseFloat(originatingCS.height) + parseFloat(originatingCS.top)).toString() + "px";
+    selectionCS = getComputedStyle(selection_only);
+    both_text.style.top = (parseFloat(selectionCS.height) + parseFloat(selectionCS.top)).toString() + "px";
+    both_shadow.style.top =  both_text.style.top;
+    bothCS = getComputedStyle(both_text);
+    target.style.top = (parseFloat(bothCS.height) + parseFloat(bothCS.top)).toString() + "px";
+</script>

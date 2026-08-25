@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>HTMLElement#click</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+test(function() {
+  var element = document.createElement("div");
+  var received = false;
+  element.addEventListener("click", this.step_func(function(e) {
+    received = true;
+    assert_false(e.isTrusted, "Event should not be trusted")
+  }));
+  element.click();
+  assert_true(received, "click event should have been dispatched synchronously");
+})
+</script>

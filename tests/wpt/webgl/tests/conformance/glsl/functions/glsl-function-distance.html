@@ -1,0 +1,90 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>GLSL distance function test</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../../resources/glsl-feature-tests.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"> </script>
+<script src="../../../js/glsl-generator.js"> </script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+
+GLSLGenerator.runFeatureTest({
+  feature: "distance",
+  args: "$(type) p1, $(type) p2",
+  baseArgs: "value$(field)",
+  testFunc: "$(func)($(type),$(type))",
+  emuFuncs: [
+    { type: "float",
+      code: [
+        "float $(func)_emu($(args)) {",
+        "   return abs(p1 - p2);",
+        "}"].join("\n")
+    },
+    { type: "vec2",
+      code: [
+        "float $(func)_emu($(args)) {",
+        "   return length(p1 - p2);",
+        "}"].join("\n")
+    },
+    { type: "vec3",
+      code: [
+        "float $(func)_emu($(args)) {",
+        "   return length(p1 - p2);",
+        "}"].join("\n")
+    },
+    { type: "vec4",
+      code: [
+        "float $(func)_emu($(args)) {",
+        "   return length(p1 - p2);",
+        "}"].join("\n")
+    }
+  ],
+  gridRes: 8,
+  tests: [
+    ["$(output) = vec4(",
+     "    $(func)(",
+     "        $(input).x * 8.0 - 4.0,",
+     "        $(input).y * 8.0 - 4.0) / 8.0,",
+     "    0,",
+     "    0,",
+     "    1);"].join("\n"),
+    ["$(output) = vec4(",
+     "    0,",
+     "    $(func)(",
+     "        $(input).xy * 8.0 - 4.0,",
+     "        $(input).wz * 8.0 - 4.0) / 8.0,",
+     "    0, 1);"].join("\n"),
+    ["$(output) = vec4(",
+     "    0, 0,",
+     "    $(func)(",
+     "        $(input).xyz * 8.0 - 4.0,",
+     "        $(input).yzw * 8.0 - 4.0) / 8.0,",
+     "    1);"].join("\n"),
+    ["$(output) = vec4(",
+     "    $(func)(",
+     "        vec4($(input).xyz, 0) * 8.0 - 4.0,",
+     "        vec4(0, $(input).wzy) * 8.0 - 4.0) / 8.0,",
+     "    0, 0, 1);",
+    ].join("\n")
+  ]
+});
+var successfullyParsed = true;
+</script>
+</body>
+</html>
+

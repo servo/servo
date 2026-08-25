@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Text modules: UTF-8 decoding</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script type="module" onerror="unreachable()">
+  import text from "../serve-with-content-type.py?fn=text-module/utf-8.txt&ct=text/plain%3Bcharset=utf-8" with { type: "text" };
+  test(() => {
+    assert_true(text.startsWith("śćążź"));
+  }, "Text module should be loaded as utf-8 when charset=utf8 is specified");
+</script>
+<script type="module" onerror="unreachable()">
+  import text from "../serve-with-content-type.py?fn=text-module/utf-8.txt&ct=text/plain%3Bcharset=shift-jis" with { type: "text" };
+  test(() => {
+    assert_true(text.startsWith("śćążź"));
+  }, "Text module should be loaded as utf-8 when charset=shift-jis is specified");
+</script>
+<script type="module" onerror="unreachable()">
+  import text from "../serve-with-content-type.py?fn=text-module/utf-8.txt&ct=text/plain%3Bcharset=windows-1252" with { type: "text" };
+  test(() => {
+    assert_true(text.startsWith("śćążź"));
+  }, "Text module should be loaded as utf-8 when charset=windows-1252 is specified");
+</script>
+<script type="module" onerror="unreachable()">
+  import text from "../serve-with-content-type.py?fn=text-module/utf-8.txt&ct=text/plain%3Bcharset=utf-7" with { type: "text" };;
+  test(() => {
+    assert_true(text.startsWith("śćążź"));
+  }, "Text module should be loaded as utf-8 when charset=utf-7 is specified");
+</script>
+<script type="module" onerror="unreachable()">
+  import text from "../serve-with-content-type.py?fn=text-module/windows-1250.txt&ct=text/plain%3Bcharset=windows-1250" with { type: "text" };
+  test(() => {
+    assert_false(text.startsWith("śćążź"), 'Should be decoded as UTF-8');
+  }, "Text module should be loaded as utf-8 even if it is encoded in windows-1250 and served with a windows-1250 charset response header");
+</script>

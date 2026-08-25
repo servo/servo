@@ -1,0 +1,83 @@
+<!doctype html>
+<title>Reference: display:contents on fieldset/legend</title>
+<link rel="author" title="Mats Palmgren" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1694459">
+<style>
+  body { font-size: 10px; }
+  fieldset {
+    border:1px solid;
+    padding: 1px 0;
+  }
+</style>
+<fieldset>
+<fieldset id='test1'>
+<legend>LEGEND</legend>
+</fieldset>
+</fieldset>
+
+<fieldset>
+<fieldset id='test2'>
+<legend>LEGEND</legend>
+</fieldset>
+</fieldset>
+
+<fieldset>
+<legend>OUTER LEGEND</legend>
+<fieldset id='test3'>
+<legend>INNER LEGEND</legend>
+</fieldset>
+</fieldset>
+
+<fieldset>
+<legend id='test4'>LEGEND</legend>
+<legend>NOT LEGEND</legend>
+</fieldset>
+
+<fieldset>
+<legend>LEGEND</legend>
+<legend id='test5'>NOT LEGEND</legend>
+</fieldset>
+
+<fieldset>
+<legend id='test6'>LEGEND</legend>
+<legend>NOT LEGEND</legend>
+</fieldset>
+
+<fieldset>
+<legend>LEGEND</legend>
+<legend>NOT LEGEND</legend>
+</fieldset>
+
+<fieldset>
+<legend>LEGEND</legend>
+</fieldset>
+
+<fieldset>
+<div id='test9'><legend>NOT LEGEND</legend></div>
+</fieldset>
+
+<fieldset>
+<legend>LEGEND</legend>
+<div>NOT LEGEND</div>
+</fieldset>
+
+<fieldset id='test11'>
+<legend>LEGEND</legend>
+<legend>NOT LEGEND</legend>
+</fieldset>
+
+<fieldset>
+<legend id='test12'>LEGEND</legend>
+</fieldset>
+
+<fieldset>
+<legend id='test13'>LEGEND</legend>
+</fieldset>
+
+<fieldset>
+    <legend>LEGEND</legend>
+    <legend>NOT LEGEND</legend>
+</fieldset>
+
+<fieldset>
+    <legend>LEGEND</legend>
+</fieldset>

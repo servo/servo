@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+.backdrop {
+    position: absolute;
+    height: 100px;
+    width: 100px;
+    background: green;
+}
+</style>
+</head>
+<body>
+Test ::backdrop used in descendant selectors. The test passes if there are two green boxes and no red.
+<div class="backdrop" style="top: 100px; left: 100px"></div>
+<div class="backdrop" style="top: 100px; left: 300px"></div>
+</body>
+</html>

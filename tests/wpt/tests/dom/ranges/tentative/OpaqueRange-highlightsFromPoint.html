@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body></body>
+<script>
+const controls = ['input', 'textarea'];
+
+function setupControl(type, value) {
+  CSS.highlights.clear();
+  document.body.innerHTML = (type === 'input')
+      ? '<input type="text">'
+      : '<textarea></textarea>';
+  const element = document.body.firstElementChild;
+  element.value = value;
+  return element;
+}
+
+controls.forEach(controlType => {
+  test(t => {
+    const el = setupControl(controlType, 'Hello World');
+    const range = el.createValueRange(0, 11);
+    const highlight = new Highlight(range);
+    CSS.highlights.set('test-highlight', highlight);
+
+    // Use the OpaqueRange's own bounding rect to get exact text coordinates.
+    const textRect = range.getBoundingClientRect();
+    assert_not_equals(textRect.width, 0, 'OpaqueRange has non-zero width');
+    const x = textRect.left + textRect.width / 2;
+    const y = textRect.top + textRect.height / 2;
+
+    const results = CSS.highlights.highlightsFromPoint(x, y);
+    assert_equals(results.length, 1,
+        'highlightsFromPoint returns the highlight over the OpaqueRange');
+    assert_equals(results[0].highlight, highlight);
+    assert_equals(results[0].ranges.length, 1);
+    assert_equals(results[0].ranges[0], range);
+  }, `highlightsFromPoint returns OpaqueRange highlight (${controlType})`);
+
+  test(t => {
+    const el = setupControl(controlType, 'Hello World');
+    const range = el.createValueRange(0, 5);
+    const highlight = new Highlight(range);
+    CSS.highlights.set('test-highlight', highlight);
+
+    // Hit a point well outside the control.
+    const rect = el.getBoundingClientRect();
+    const x = rect.right + 100;
+    const y = rect.top + rect.height / 2;
+
+    const results = CSS.highlights.highlightsFromPoint(x, y);
+    assert_equals(results.length, 0,
+        'highlightsFromPoint returns nothing when point is outside the control');
+  }, `highlightsFromPoint returns empty outside control (${controlType})`);
+
+  test(t => {
+    const el = setupControl(controlType, 'Hello World');
+    const range = el.createValueRange(0, 11);
+    const highlight = new Highlight(range);
+    CSS.highlights.set('test-highlight', highlight);
+
+    const textRect = range.getBoundingClientRect();
+    const x = textRect.left + textRect.width / 2;
+    const y = textRect.top + textRect.height / 2;
+
+    range.disconnect();
+    const results = CSS.highlights.highlightsFromPoint(x, y);
+    assert_equals(results.length, 0,
+        'highlightsFromPoint returns nothing after disconnect');
+  }, `highlightsFromPoint returns empty for disconnected OpaqueRange (${controlType})`);
+
+  test(t => {
+    const el = setupControl(controlType, 'Hello World');
+    const range1 = el.createValueRange(0, 5);
+    const range2 = el.createValueRange(6, 11);
+    const h1 = new Highlight(range1);
+    const h2 = new Highlight(range2);
+    CSS.highlights.set('highlight-1', h1);
+    CSS.highlights.set('highlight-2', h2);
+
+    // Non-overlapping: hit "Hello" (only h1 highlight).
+    const rect1 = range1.getBoundingClientRect();
+    let results = CSS.highlights.highlightsFromPoint(
+        rect1.left + rect1.width / 2,
+        rect1.top + rect1.height / 2);
+    assert_equals(results.length, 1, 'hit on "Hello" returns one highlight');
+    assert_equals(results[0].highlight, h1);
+
+    // Non-overlapping: hit "World" (only h2 highlight).
+    const rect2 = range2.getBoundingClientRect();
+    results = CSS.highlights.highlightsFromPoint(
+        rect2.left + rect2.width / 2,
+        rect2.top + rect2.height / 2);
+    assert_equals(results.length, 1, 'hit on "World" returns one highlight');
+    assert_equals(results[0].highlight, h2);
+
+    // Add an overlapping range covering the full value.
+    const range3 = el.createValueRange(0, 11);
+    const h3 = new Highlight(range3);
+    CSS.highlights.set('highlight-3', h3);
+
+    // Hit "Hello":  h1 and h3 overlap. h3 was registered last with the same
+    // priority, so it should appear first in the results.
+    results = CSS.highlights.highlightsFromPoint(
+        rect1.left + rect1.width / 2,
+        rect1.top + rect1.height / 2);
+    assert_equals(results.length, 2,
+        'hit on overlapping region returns both highlights');
+    assert_equals(results[0].highlight, h3,
+        'highlight registered last comes first (same priority)');
+    assert_equals(results[1].highlight, h1,
+        'highlight registered first comes last (same priority)');
+  }, `highlightsFromPoint with multiple and overlapping OpaqueRanges (${controlType})`);
+});
+
+test(t => {
+  CSS.highlights.clear();
+  document.body.innerHTML =
+      '<input type="text">' +
+      '<span id="text">Regular text</span>';
+  const input = document.querySelector('input');
+  input.value = 'Hello';
+  const span = document.getElementById('text');
+
+  const opaqueRange = input.createValueRange(0, 5);
+  const domRange = new Range();
+  domRange.selectNodeContents(span);
+
+  const highlight = new Highlight(opaqueRange, domRange);
+  CSS.highlights.set('test-highlight', highlight);
+
+  // Hit the OpaqueRange text.
+  const inputTextRect = opaqueRange.getBoundingClientRect();
+  assert_not_equals(inputTextRect.width, 0, 'OpaqueRange has non-zero width');
+  let results = CSS.highlights.highlightsFromPoint(
+      inputTextRect.left + inputTextRect.width / 2,
+      inputTextRect.top + inputTextRect.height / 2);
+  assert_equals(results.length, 1, 'hit on input returns highlight');
+  assert_equals(results[0].ranges.length, 1);
+  assert_equals(results[0].ranges[0], opaqueRange,
+      'hit on input returns the OpaqueRange');
+
+  // Hit the DOM Range text.
+  const spanRect = span.getBoundingClientRect();
+  results = CSS.highlights.highlightsFromPoint(
+      spanRect.left + spanRect.width / 2,
+      spanRect.top + spanRect.height / 2);
+  assert_equals(results.length, 1, 'hit on span returns highlight');
+  assert_equals(results[0].ranges.length, 1);
+  assert_equals(results[0].ranges[0], domRange,
+      'hit on span returns the DOM Range');
+}, 'highlightsFromPoint with mixed OpaqueRange and DOM Range in one Highlight');
+
+test(t => {
+  CSS.highlights.clear();
+  document.body.innerHTML = '<div id="host"></div>';
+  const host = document.getElementById('host');
+  const shadow = host.attachShadow({ mode: 'open' });
+  shadow.innerHTML = '<textarea></textarea>';
+  const textarea = shadow.querySelector('textarea');
+  textarea.value = 'Shadow text';
+
+  const range = textarea.createValueRange(0, 11);
+  const highlight = new Highlight(range);
+  CSS.highlights.set('test-highlight', highlight);
+
+  const textRect = range.getBoundingClientRect();
+  assert_not_equals(textRect.width, 0, 'OpaqueRange has non-zero width');
+  const x = textRect.left + textRect.width / 2;
+  const y = textRect.top + textRect.height / 2;
+
+  // Without passing the shadow root, the highlight should not be returned
+  // because the text control is inside an unlisted shadow root.
+  let results = CSS.highlights.highlightsFromPoint(x, y);
+  assert_equals(results.length, 0,
+      'no highlight returned without shadowRoots option');
+
+  // Passing the shadow root should return the highlight.
+  results = CSS.highlights.highlightsFromPoint(x, y,
+      { shadowRoots: [shadow] });
+  assert_equals(results.length, 1,
+      'OpaqueRange highlight returned with shadowRoots option');
+  assert_equals(results[0].highlight, highlight);
+}, 'highlightsFromPoint for textarea inside an author shadow root');
+
+test(t => {
+  CSS.highlights.clear();
+  document.body.innerHTML = '<div id="host"></div>';
+  const host = document.getElementById('host');
+  const shadow = host.attachShadow({ mode: 'open' });
+  shadow.innerHTML = '<textarea></textarea><span>Span text</span>';
+  const textarea = shadow.querySelector('textarea');
+  textarea.value = 'Textarea text';
+  const span = shadow.querySelector('span');
+
+  const opaqueRange = textarea.createValueRange(0, 13);
+  const domRange = new Range();
+  domRange.selectNodeContents(span);
+
+  const h1 = new Highlight(opaqueRange);
+  const h2 = new Highlight(domRange);
+  CSS.highlights.set('opaque-highlight', h1);
+  CSS.highlights.set('dom-highlight', h2);
+
+  const textareaRect = opaqueRange.getBoundingClientRect();
+  assert_not_equals(textareaRect.width, 0, 'OpaqueRange has non-zero width');
+  const spanRect = span.getBoundingClientRect();
+
+  // Without shadowRoots, neither highlight should be returned.
+  let results = CSS.highlights.highlightsFromPoint(
+      textareaRect.left + textareaRect.width / 2,
+      textareaRect.top + textareaRect.height / 2);
+  assert_equals(results.length, 0, 'OpaqueRange highlight not returned without shadowRoots');
+
+  results = CSS.highlights.highlightsFromPoint(
+      spanRect.left + spanRect.width / 2,
+      spanRect.top + spanRect.height / 2);
+  assert_equals(results.length, 0, 'DOM Range highlight not returned without shadowRoots');
+
+  // With shadowRoots, both highlights should be returned.
+  results = CSS.highlights.highlightsFromPoint(
+      textareaRect.left + textareaRect.width / 2,
+      textareaRect.top + textareaRect.height / 2,
+      { shadowRoots: [shadow] });
+  assert_equals(results.length, 1, 'OpaqueRange highlight returned with shadowRoots');
+  assert_equals(results[0].highlight, h1);
+
+  results = CSS.highlights.highlightsFromPoint(
+      spanRect.left + spanRect.width / 2,
+      spanRect.top + spanRect.height / 2,
+      { shadowRoots: [shadow] });
+  assert_equals(results.length, 1, 'DOM Range highlight returned with shadowRoots');
+  assert_equals(results[0].highlight, h2);
+}, 'OpaqueRange and DOM Range in same shadow root behave consistently');
+</script>

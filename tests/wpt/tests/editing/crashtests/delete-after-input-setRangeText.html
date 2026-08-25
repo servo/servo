@@ -1,0 +1,30 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+addEventListener("DOMContentLoaded", () => {
+  document.getElementById("input").setRangeText("A", 6, 134);
+  document.getElementById("center").replaceChild(
+    document.getElementById("label"),
+    document.getElementById("center").firstChild
+  );
+  document.designMode = "on";
+  document.execCommand("delete");
+}, {once: true});
+</script>
+</head>
+<body>
+<h5>
+AA
+<ruby>
+<rt hidden="">
+<label>
+</ruby>
+<label id="label" contenteditable="true">
+<input id="input" pattern="^\d+$">
+</h5>
+<center id="center">
+
+</body>
+</html>

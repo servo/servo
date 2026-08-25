@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<style>
+section {
+  margin-bottom: 1px;
+}
+.outer {
+  display: inline-block;
+  background: orange;
+  padding-bottom: 20px;
+}
+.inner {
+  width: 30px;
+  height: 30px;
+  overflow: hidden;
+  background: blue;
+}
+.inline-block {
+  display: inline-block;
+}
+.margin-bottom {
+  margin-bottom: 30px;
+}
+</style>
+<body>
+  <section>
+    <div class="outer">
+      <div class="inner inline-block">
+      </div>
+    </div>
+    XX
+  </section>
+  <section>
+    <div class="outer" style="height: 30px">
+      <div class="inner inline-block">
+      </div>
+    </div>
+    XX
+  </section>
+  <section>
+    <div class="outer" style="height: 30px">
+      <div class="inner inline-block">
+        XX
+      </div>
+    </div>
+    XX
+  </section>
+  <section>
+    <div class="outer">
+      <div class="inner margin-bottom inline-block">
+        XX
+      </div>
+    </div>
+    XX
+  </section>
+  <section class="margin-bottom">
+    <div class="outer" style="height: 60px">
+      <div class="inner margin-bottom inline-block">
+        XX
+      </div>
+    </div>
+    XX
+  </section>
+</body>

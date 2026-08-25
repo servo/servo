@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/css-tables/#width-distribution" />
+<style>
+div {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  background: blue;
+}
+</style>
+Passes if each row has two blue squares.
+<table>
+  <tr>
+    <td class='target' style="padding: 0 0.8px"><div></div> <div></div></td>
+    <td style="padding: 0 0.8px; width: 30px"></td>
+  </tr>
+</table>
+<table>
+  <tr>
+    <td class='target' style="padding: 0 1px"><div></div> <div></div></td>
+    <td style="padding: 0 1px; width: 30px"></td>
+  </tr>
+</table>
+<table>
+  <tr>
+    <td class='target' style="padding: 0 1.3px"><div></div> <div></div></td>
+    <td style="padding: 0 1.3px; width: 30px"></td>
+  </tr>
+</table>
+<table>
+  <tr>
+    <td class='target' style="padding: 0 1.5px"><div></div> <div></div></td>
+    <td style="padding: 0 1.5px; width: 30px"></td>
+  </tr>
+</table>
+<table>
+  <tr>
+    <td class='target' style="padding: 0 1.7px"><div></div> <div></div></td>
+    <td style="padding: 0 1.7px; width: 30px"></td>
+  </tr>
+</table>
+<script>
+test(() => {
+  var targets = document.getElementsByClassName('target');
+  for (var i = 0; i < targets.length; ++i) {
+    var divs = targets[i].getElementsByTagName('div');
+    assert_equals(divs.length, 2);
+    assert_equals(divs[0].offsetTop, divs[1].offsetTop, 'Contents of td.target[' + i + '] should not wrap');
+  }
+});
+</script>

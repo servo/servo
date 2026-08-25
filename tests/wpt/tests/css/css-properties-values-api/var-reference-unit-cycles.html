@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Properties and Values: var() references to a property in a font-relative unit cycle</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api-1/#dependency-cycles">
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#cyclic-substitution-contexts">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  @property --x {
+    syntax: "<length>";
+    inherits: false;
+    initial-value: 3px;
+  }
+
+  /* Because --x is a registered custom property using em, it depends on font-size,
+     forming the cycle `font-size -> --y -> --x -> font-size` which invalidates
+     everything in the chain. */
+  #foo {
+    --x: 3em;
+    --y: var(--x);
+    font-size: var(--y);
+    --zx: var(--x, 5px);
+    --zy: var(--y, 5px);
+  }
+</style>
+
+<div id="foo"></div>
+
+<script>
+  test(() => {
+    let style = getComputedStyle(document.getElementById("foo"));
+    assert_equals(style.getPropertyValue("--zx"), "3px");
+  }, "Registered property invalidated by a non-custom cycle uses its initial value");
+
+  test(() => {
+    let style = getComputedStyle(document.getElementById("foo"));
+    assert_equals(style.getPropertyValue("--zy"), "5px");
+  }, "Unregistered property invalidated by a non-custom cycle uses its fallback");
+</script>

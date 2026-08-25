@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<title>document: fg/bg/link/vlink/alink-color</title>
+<link rel="author" title="Ms2ger" href="mailto:ms2ger@gmail.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-document-fgcolor">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-body-text">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+function setColorAttributes(doc, color) {
+  doc.fgColor = color;
+  doc.bgColor = color;
+  doc.linkColor = color;
+  doc.vlinkColor = color;
+  doc.alinkColor = color;
+}
+
+function checkColorAttributes(doc, expected) {
+  assert_equals(document.fgColor, expected);
+  assert_equals(document.bgColor, expected);
+  assert_equals(document.linkColor, expected);
+  assert_equals(document.vlinkColor, expected);
+  assert_equals(document.alinkColor, expected);
+}
+
+test(function() {
+  setColorAttributes(document, 'green');
+
+  var body = document.documentElement.removeChild(document.body);
+  this.add_cleanup(function() {
+    // Re-add body and reset color attributes.
+    document.body = body;
+    setColorAttributes(document, '');
+  });
+  // When there is no body element, the color attributes return an
+  // empty string upon getting.
+  checkColorAttributes(document, '');
+}, "getting document color attributes with no body");
+
+test(function() {
+  var body = document.documentElement.removeChild(document.body);
+  this.add_cleanup(function() {
+    document.body = body;
+  });
+
+  // When there is no body element, setting the color attributes has no effect.
+  setColorAttributes(document, 'red');
+  checkColorAttributes(document, '');
+}, "setting document color attributes with no body");
+
+function testBogusRootElement(doc) {
+  doc.replaceChild(doc.createElement('test'), doc.documentElement);
+  var new_body = doc.createElement('body');
+  doc.documentElement.appendChild(new_body);
+
+  setColorAttributes(doc, 'red');
+
+  assert_equals(new_body.attributes.length, 0, 'new_body.attributes.length');
+  checkColorAttributes(doc, '');
+}
+
+function createIframeDoc(markup) {
+  var iframe = document.createElement('iframe');
+  document.body.appendChild(iframe);
+  var doc = iframe.contentDocument;
+  doc.open();
+  doc.write(markup);
+  doc.close();
+  return doc;
+}
+
+test(function() {
+  // Use standards mode for doc
+  var doc = createIframeDoc('<!doctype html>');
+  testBogusRootElement(doc);
+}, "document color attributes when the root element is a test element (iframe)");
+
+test(function() {
+  var doc = document.implementation.createHTMLDocument();
+  testBogusRootElement(doc);
+}, "document color attributes when the root element is a test element (createHTMLDocument)");
+
+test(function() {
+  var doc = createIframeDoc('<!doctype html><frameset text=red link=red vlink=red alink=red bgcolor=red>');
+  assert_equals(doc.body.attributes.length, 5, 'attributes.length on the frameset');
+  checkColorAttributes(doc, '');
+}, "getting document color attributes when document.body is a frameset");
+
+test(function() {
+  var doc = createIframeDoc('<!doctype html><frameset>');
+  setColorAttributes(doc, 'red');
+  assert_equals(doc.body.attributes.length, 0, 'attributes.length on the frameset');
+  checkColorAttributes(doc, '');
+}, "setting document color attributes when document.body is a frameset");
+</script>

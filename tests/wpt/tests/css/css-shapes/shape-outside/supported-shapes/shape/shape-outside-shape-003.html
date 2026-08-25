@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>CSS Test: left float, shape() with curve commands approximating a circle</title>
+<link rel="author" title="Jason Leo" href="mailto:cgqaq@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-shapes-2/#shape-function">
+<link rel="help" href="https://www.w3.org/TR/css-shapes-1/#shape-outside-property">
+<link rel="match" href="reference/shape-outside-shape-003-ref.html">
+<meta name="assert" content="The test verifies that text wraps around a
+                             left float with a shape-outside defined as
+                             a shape() using curve commands to approximate
+                             a circle.">
+<meta name="fuzzy" content="maxDifference=255;totalPixels=0-200">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  body {
+    margin: 0;
+  }
+  #test-container {
+    font: 20px/1 Ahem;
+    width: 200px;
+    height: 200px;
+    color: green;
+  }
+  #test-shape {
+    float: left;
+    width: 200px;
+    height: 200px;
+    /* circle(45px at 45px 100px) approximated with cubic bezier curves */
+    shape-outside: shape(from 45px 55px, curve to 90px 100px with 69.8528px 55px / 90px 75.1472px, curve to 45px 145px with 90px 124.8528px / 69.8528px 145px, curve to 0px 100px with 20.1472px 145px / 0px 124.8528px, curve to 45px 55px with 0px 75.1472px / 20.1472px 55px, close);
+  }
+</style>
+<p>The test passes if there is no red.</p>
+<div id="test-container">
+  <div id="test-shape"></div>
+  XXXXX XXXXX XXXXX XXXXX XXXXX XXXXX XXXXX XXXXX XXXXX XXXXX
+</div>

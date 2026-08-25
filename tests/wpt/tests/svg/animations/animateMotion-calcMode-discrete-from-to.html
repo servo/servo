@@ -1,0 +1,46 @@
+<!doctype html>
+<title>Test animateMotion with calcMode="discrete" and from-to animation</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+
+<svg xmlns="http://www.w3.org/2000/svg">
+  <rect width="10" height="10">
+    <animateMotion id="anim" calcMode="discrete" dur="4s" fill="freeze"
+      from="0,0" to="200,100" />
+  </rect>
+</svg>
+
+<script>
+// From-to animation with calcMode="discrete" and dur=4s.
+// With 2 values (from and to), the transition occurs at the midpoint:
+//   t in [0, 2): position = from = (0, 0)
+//   t in [2, 4]: position = to = (200, 100)
+
+const rootSVGElement = document.querySelector("svg");
+const rect = document.querySelector("rect");
+
+function sample1() {
+    // First half of animation, at "from" position (0, 0)
+    assert_equals(rect.getCTM().e, 0, "x (from)");
+    assert_equals(rect.getCTM().f, 0, "y (from)");
+}
+function sample2() {
+    // Second half / freeze, at "to" position (200, 100)
+    assert_equals(rect.getCTM().e, 200, "x (to)");
+    assert_equals(rect.getCTM().f, 100, "y (to)");
+}
+
+smil_async_test((t) => {
+    const expectedValues = [
+        ["anim", 0.0,   sample1],
+        ["anim", 1.0,   sample1],
+        ["anim", 1.99,  sample1],
+        ["anim", 2.0,   sample2],
+        ["anim", 3.0,   sample2],
+        ["anim", 4.0,   sample2],
+    ];
+    runAnimationTest(t, expectedValues);
+});
+</script>
+</html>

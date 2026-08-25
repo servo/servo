@@ -1,0 +1,2 @@
+Supports-Loading-Mode: fenced-frame
+Content-Security-Policy: img-src 'none'

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: object-view-box with larger overflow</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<link rel="match" href="old-content-object-view-box-overflow-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+.target {
+  color: red;
+  width: 100px;
+  height: 100px;
+  contain: paint;
+  overflow-clip-margin: 1000px;
+  position: relative;
+  top: 50px;
+  left: 50px;
+  view-transition-name: target;
+}
+.child {
+  width: 123px;
+  height: 150px;
+  background: lightblue;
+  position: relative;
+  top: -10px;
+  left: -20px;
+}
+.grandchild {
+  width: 25px;
+  height: 25px;
+  position: relative;
+  top: 20px;
+  left: 40px;
+  background: green;
+}
+
+html::view-transition-group(target) { animation-duration: 300s; }
+html::view-transition-new(target) { animation: unset; opacity: 0; }
+html::view-transition-old(target) {
+  animation: unset;
+  opacity: 1;
+  /* clip overflow, and verify inner contents only */
+  overflow: hidden;
+  height: 100%;
+}
+
+html::view-transition-group(root) { animation: unset; opacity: 0; }
+html::view-transition { background: lightpink; }
+</style>
+
+<div class=target>
+  <div class=child>
+    <div class=grandchild></div>
+  </div>
+</div>
+
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+async function runTest() {
+  document.startViewTransition(() =>
+    requestAnimationFrame(() => requestAnimationFrame(takeScreenshot)));
+}
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Test playback after waiting for audio</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="mediasource-util.js"></script>
+</head>
+<body>
+</body>
+<script>
+// This test was designed to reproduce a bug in Gecko that occurred when a
+// queue of decoded buffered video data was drained quickly and buffered audio
+// was considered insufficient after playback was resumed.  The frame
+// durations are set very short to support this.
+// https://bugzilla.mozilla.org/show_bug.cgi?id=1915045
+'use strict';
+
+// Overwrite the timescales of a single segment resource to adjust frame
+// durations.
+function adjust_resource_for_timescale(resource) {
+  MediaSourceUtil.WriteBigEndianInteger32ToUint8Array(
+    resource.timescale,
+    resource.data.subarray(resource.media_timescale_start));
+  MediaSourceUtil.WriteBigEndianInteger32ToUint8Array(
+    resource.timescale,
+    resource.data.subarray(resource.segment_index_timescale_start));
+}
+
+async function append_resource_to_source_buffer(resource) {
+  const source_buffer = resource.buffer;
+  // Adjust so that the first video frame aligns with the end of the previous
+  // append, or with zero if there has been no previous append.
+  source_buffer.timestampOffset -= resource.initial_offset;
+
+  source_buffer.appendBuffer(resource.data);
+  await source_buffer.watcher.wait_for('updateend');
+  assert_approx_equals(
+    source_buffer.buffered.end(0),
+    source_buffer.timestampOffset + resource.initial_offset + resource.duration,
+    2e-6,
+    `${resource.type} source_buffer.buffered.end()`);
+  source_buffer.timestampOffset = source_buffer.buffered.end(0);
+}
+
+promise_test(async t => {
+  const frames_per_keyframe = 8;
+  const video = await new Promise(
+    r => MediaSourceUtil.fetchManifestAndData(
+      t,
+      `mp4/test-v-128k-320x240-24fps-${frames_per_keyframe}kfr-manifest.json`,
+      (type, data) => r({type, data})));
+  {
+    // Truncate at the end of the first segment, which is also the end of 8
+    // frames.  At least 11 frames need to be available for decoding to
+    // reproduce the Gecko bug.
+    const first_segment_end = 0x1b1a;
+    video.data = video.data.subarray(0, first_segment_end);
+    // Video frame duration is 100 microseconds, short so that buffered frames
+    // are drained quickly.  The audio and video timescales are easily
+    // representable with unsigned 32-bit integers.
+    const video_fps = 10e3;
+    const default_sample_duration = 512;
+    video.timescale = default_sample_duration * video_fps;
+    video.duration = frames_per_keyframe / video_fps;
+    const earliest_presentation_time = 1024;
+    video.initial_offset =
+      earliest_presentation_time / video.timescale;
+    // Overwrite timescale to adjust frame durations.
+    video.media_timescale_start = 0x182;
+    video.segment_index_timescale_start = 0x353;
+    adjust_resource_for_timescale(video);
+  }
+  const audio = await new Promise(
+    r => MediaSourceUtil.fetchManifestAndData(
+      t,
+      `mp4/test-a-128k-44100Hz-1ch-manifest.json`,
+      (type, data) => r({type, data})));
+  {
+    // Truncate at end of first segment, which is also the end of 10240 samples.
+    const first_segment_end = 0x0830;
+    audio.data = audio.data.subarray(0, first_segment_end);
+
+    // The audio sample rate is increased so that Gecko considers a single
+    // audio segment to be not enough, which is necessary to trigger the bug.
+    audio.duration = video.duration;
+    const subsegment_duration = 10240;
+    audio.timescale = subsegment_duration / audio.duration;
+    assert_equals(audio.timescale, Math.round(audio.timescale),
+                  'integer timescale');
+    audio.initial_offset = 0;
+    // Overwrite timescale to adjust segment duration.
+    audio.media_timescale_start = 0x17e;
+    audio.segment_index_timescale_start = 0x30b;
+    adjust_resource_for_timescale(audio);
+  }
+
+  const v = document.createElement('video');
+  // Muting the audio output allows Gecko's playback position to advance a
+  // little beyond the decoded audio, making the bug more likely to reproduce.
+  v.volume = 0;
+  v.watcher = new EventWatcher(t, v, ['waiting', 'error', 'ended']);
+  document.body.appendChild(v);
+  const media_source = new MediaSource();
+  media_source.watcher = new EventWatcher(t, media_source, ['sourceopen']);
+  v.src = URL.createObjectURL(media_source);
+  await media_source.watcher.wait_for('sourceopen');
+
+  function add_source_buffer(resource) {
+    assert_implements_optional(MediaSource.isTypeSupported(resource.type),
+                             `${resource.type} supported`);
+
+    resource.buffer = media_source.addSourceBuffer(resource.type);
+    assert_equals(resource.buffer.mode, 'segments',
+                  `${resource.type} buffer.mode`);
+    resource.buffer.watcher =
+      new EventWatcher(t, resource.buffer, ['updateend']);
+  }
+  add_source_buffer(video);
+  add_source_buffer(audio);
+
+  async function append_until_canplay() {
+    // Ensure 2 video segments to make available at least the 11 frames to
+    // reproduce the Gecko bug.
+    while (video.buffer.buffered.length == 0 ||
+           video.buffer.buffered.end(0) <
+           v.currentTime + 2 * video.duration) {
+      await append_resource_to_source_buffer(video);
+    }
+
+    while (true) {
+      if (audio.buffer.buffered.length == 0 ||
+          audio.buffer.buffered.end(0) <
+          video.buffer.buffered.end(0)) {
+        await append_resource_to_source_buffer(audio);
+      } else {
+        await append_resource_to_source_buffer(video);
+      }
+
+      if (v.readyState >= v.HAVE_FUTURE_DATA) {
+        return;
+      }
+      // A single append might not be sufficient because either
+      // 1. the playback position had already advanced beyond the end of the
+      //    newly appended data, or
+      // 2. Chrome (as of version 131.0.6778.24) does not transition to
+      //    >= HAVE_FUTURE_DATA / canplay on the first frame beyond
+      //    currentTime, but on some additional number of extra frames.
+      //
+      // Or the v.readyState change might still be pending while the browser
+      // is processing the newly appended data.  Instead of waiting an
+      // arbitrary length of time to find out, append more data and try again.
+    }
+  }
+
+  // Three iterations checks that playback resumes after the Gecko bug would
+  // have occurred.
+  for (const i of Array(3).keys()) {
+    await append_until_canplay();
+
+    audio.buffer.remove(0, Number.POSITIVE_INFINITY);
+    await audio.buffer.watcher.wait_for('updateend');
+    audio.buffer.timestampOffset = 0;
+
+    v.play().catch(e => {});
+    await v.watcher.wait_for('waiting');
+    assert_less_than(v.readyState, v.HAVE_FUTURE_DATA,
+                     `waiting ${i} at ${v.currentTime}`);
+
+    v.pause();
+  }
+}, 'playback after waiting for audio');
+</script>
+</html>

@@ -1,0 +1,3 @@
+rules:
+- polygon-with-filtered-marker.html: [svg-filters]
+- "*": [svg]

@@ -1,0 +1,13 @@
+<!doctype html>
+<link rel="help" href="https://html.spec.whatwg.org/#dom-dialog-requestclose" />
+
+<!-- This test passes if it does not crash. -->
+
+<dialog id=d></dialog>
+
+<script>
+d.showModal();
+d.oncancel = e => e.preventDefault();
+d.requestClose('first');
+d.requestClose('second');
+</script>

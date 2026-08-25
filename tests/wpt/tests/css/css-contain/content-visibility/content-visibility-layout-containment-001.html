@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>content-visibility and layout containment</title>
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1765615">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<meta name="assert" content="content-visibility: auto and elements skipping their content change the used value of the contain property to turn on layout containment.">
+<style>
+  /* Selectors for content-visibility */
+  #spacer_for_far_to_viewport {
+      height: 300vh;
+  }
+  .content_visibility {
+      /* Dynamic modification of content-visibility may change whether style
+         containment is applied, which in turn may cause drastic invalidations
+         (e.g. rebuilding counters). Make the test more robust by forcing
+         style containment to always apply. */
+      contain: style;
+  }
+  #visible .content_visibility {
+      content-visibility: visible;
+  }
+  #hidden .content_visibility {
+      content-visibility: hidden;
+  }
+  #auto_far .content_visibility {
+      content-visibility: auto;
+  }
+  #auto_close .content_visibility {
+      content-visibility: auto;
+  }
+  #visible_to_hidden .content_visibility {
+      content-visibility: visible;
+  }
+  #hidden_to_visible .content_visibility {
+      content-visibility: hidden;
+  }
+  #visible_to_auto .content_visibility {
+      content-visibility: visible;
+  }
+  #auto_to_visible .content_visibility {
+      content-visibility: auto;
+  }
+
+  /* Selectors for testing baseline */
+  .flex {
+      display: inline-flex;
+      align-items: baseline;
+  }
+  .rect {
+      background: black;
+      width: 50px;
+      height: 100px;
+  }
+</style>
+<body>
+  <div id="log"></div>
+
+  <div id="visible">
+    <div class="flex">
+      <div class="rect"></div>
+      <div class="content_visibility rect">X</div>
+    </div>
+  </div>
+
+  <div id="hidden">
+    <div class="flex">
+      <div class="rect"></div>
+      <div class="content_visibility rect">X</div>
+    </div>
+  </div>
+
+  <div id="auto_close">
+    <div class="flex">
+      <div class="rect"></div>
+      <div class="content_visibility rect">X</div>
+    </div>
+  </div>
+
+  <div id="visible_to_hidden">
+    <div class="flex">
+      <div class="rect"></div>
+      <div class="content_visibility rect">X</div>
+    </div>
+  </div>
+
+  <div id="hidden_to_visible">
+    <div class="flex">
+      <div class="rect"></div>
+      <div class="content_visibility rect">X</div>
+    </div>
+  </div>
+
+  <div id="visible_to_auto">
+    <div class="flex">
+      <div class="rect"></div>
+      <div class="content_visibility rect">X</div>
+    </div>
+  </div>
+
+  <div id="auto_to_visible">
+    <div class="flex">
+      <div class="rect"></div>
+      <div class="content_visibility rect">X</div>
+    </div>
+  </div>
+
+  <div id="spacer_for_far_to_viewport"></div>
+
+  <div id="auto_far">
+    <div class="flex">
+      <div class="rect"></div>
+      <div class="content_visibility rect">X</div>
+    </div>
+  </div>
+
+  <script>
+    function layoutContainmentApplied(id) {
+        let container = document.getElementById(id);
+        let content_visibility = container.getElementsByClassName("content_visibility")[0];
+
+        // To verify layout containment, we test baseline suppression.
+        // See contain-layout-dynamic-001.html for more details.
+        let item1 = content_visibility;
+        let item2 = item1.previousElementSibling;
+        return Math.abs(item1.getBoundingClientRect().top - item2.getBoundingClientRect().top) <= 1;
+    }
+
+    function setContentVisibility(id, value) {
+        let container = document.getElementById(id);
+        let content_visibility = container.getElementsByClassName("content_visibility")[0];
+        content_visibility.style.contentVisibility = value;
+    }
+
+    promise_test(async () => {
+        await document.fonts.ready;
+        assert_false(layoutContainmentApplied("visible"));
+    }, "content-visibility: visible");
+
+    promise_test(async () => {
+        await document.fonts.ready;
+        assert_true(layoutContainmentApplied("hidden"));
+    }, "content-visibility: hidden");
+
+    promise_test(async () => {
+        await document.fonts.ready;
+        await waitForAtLeastOneFrame();
+        assert_true(layoutContainmentApplied("auto_far"));
+    }, "content-visibility: auto (far from viewport)");
+
+    promise_test(async () => {
+        await document.fonts.ready;
+        await waitForAtLeastOneFrame();
+        assert_true(layoutContainmentApplied("auto_close"));
+    }, "content-visibility: auto (close from viewport)");
+
+    promise_test(async () => {
+        await document.fonts.ready;
+        setContentVisibility("visible_to_hidden", "hidden");
+        assert_true(layoutContainmentApplied("visible_to_hidden"));
+    }, "switching content-visibility from visible to hidden");
+
+    promise_test(async () => {
+        await document.fonts.ready;
+        setContentVisibility("hidden_to_visible", "visible");
+        assert_false(layoutContainmentApplied("hidden_to_visible"));
+    }, "switching content-visibility from hidden to visible");
+
+    promise_test(async () => {
+        await document.fonts.ready;
+        setContentVisibility("visible_to_auto", "auto");
+        await waitForAtLeastOneFrame();
+        assert_true(layoutContainmentApplied("visible_to_auto"));
+    }, "switching content-visibility from visible to auto");
+
+    promise_test(async () => {
+        await document.fonts.ready;
+        setContentVisibility("auto_to_visible", "visible");
+        assert_false(layoutContainmentApplied("auto_to_visible"));
+    }, "switching content-visibility from auto to visible");
+  </script>
+</body>

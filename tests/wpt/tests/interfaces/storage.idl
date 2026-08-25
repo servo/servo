@@ -1,0 +1,25 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Storage Standard (https://storage.spec.whatwg.org/)
+
+[SecureContext]
+interface mixin NavigatorStorage {
+  [SameObject] readonly attribute StorageManager storage;
+};
+Navigator includes NavigatorStorage;
+WorkerNavigator includes NavigatorStorage;
+
+[SecureContext,
+ Exposed=(Window,Worker)]
+interface StorageManager {
+  Promise<boolean> persisted();
+  [Exposed=Window] Promise<boolean> persist();
+
+  Promise<StorageEstimate> estimate();
+};
+
+dictionary StorageEstimate {
+  unsigned long long usage;
+  unsigned long long quota;
+};

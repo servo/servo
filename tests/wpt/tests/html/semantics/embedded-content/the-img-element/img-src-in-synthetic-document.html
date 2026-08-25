@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/whatwg/html/issues/9855">
+<link rel=help href="https://html.spec.whatwg.org/#reflecting-content-attributes-in-idl-attributes">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+test(() => {
+  const doc = document.implementation.createHTMLDocument('');
+  const img = doc.createElement('img');
+  img.setAttribute('src', '/test');
+  doc.body.appendChild(img);
+  assert_equals(img.src, '/test');
+}, 'HTMLImageElement.src should return the string from the attribute in about:blank documents.');
+</script>

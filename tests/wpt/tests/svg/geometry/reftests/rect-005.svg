@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml" width="200" height="200">
+  <title>A rect with negative width is not rendered</title>
+  <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/geometry.html#Sizing"/>
+  <h:link rel="match" href="not-rendered-200-ref.svg"/>
+  <h:meta name="assert" content="A negative width is invalid; on a rect it is treated as auto and resolves to 0, so the rect is not rendered."/>
+  <rect x="20" y="20" width="-100" height="100" fill="blue"/>
+</svg>

@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<dialog id="target">Dialog contents</dialog>
+<style>
+#target::backdrop {
+  opacity: 0.1;
+  background-color: green;
+}
+</style>
+<script>
+const target = document.getElementById("target");
+target.showModal();
+</script>

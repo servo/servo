@@ -1,0 +1,18 @@
+<!doctype html>
+<title>cookies work in default browse settings</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="help" href="https://html.spec.whatwg.org/#dom-document-cookie">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+  test(t => {
+    t.add_cleanup(() => {
+      let date = new Date();
+      date.setTime(date.getTime() - 10000);
+      document.cookie = "name=''; expires=" + date.toGMTString();
+    });
+    document.cookie = "name=test_cookie";
+    assert_not_equals(document.cookie.match(/name=test_cookie/), null);
+  });
+</script>

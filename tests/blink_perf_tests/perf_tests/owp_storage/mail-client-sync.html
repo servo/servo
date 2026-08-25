@@ -1,0 +1,20 @@
+<!doctype html>
+<title>Mail Client Sync</title>
+<script src="../resources/runner.js"></script>
+<script src="resources/shared.js"></script>
+<script src="resources/mail-client-config.js"></script>
+<script src="resources/mail-client-sync-setup.js"></script>
+<script src="resources/mail-client-write-setup.js"></script>
+<script>
+    deleteThenOpen(databaseName, populateFakeMailClientSyncDatabase, function () {
+        var test = {
+            description: 'Benchmark modeling the IndexedDB activity for a Mail Client Sync Scenario.',
+            unit: 'ms',
+            iterationCount: 20,
+            tracingCategories: 'IndexedDB',
+            traceEventsToMeasure: ['IndexedDBTransaction::lifetime', 'IDBObjectStore::get', 'IDBObjectStore::put', 'IDBObjectStore::delete', 'IDBFactory::open'],
+            path: "resources/mail-client-sync-runner.html"
+        };
+        PerfTestRunner.measurePageLoadTimeAfterDoneMessage(test);
+    });
+</script>

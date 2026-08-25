@@ -1,0 +1,18 @@
+<!doctype html>
+<script>
+  navigation.onnavigate = e => {
+    e.intercept({ handler: async () => {} });
+  };
+
+  onload = async () => {
+    // We trigger a same-document navigation. This will be intercepted.
+    // The empty intercept handler resolves immediately, triggering focus reset.
+    // This should not focus the autofocus element if the frame lacks permission.
+    await navigation.navigate('#test').finished;
+    // Yield to the event loop to allow any asynchronous focus updates to propagate
+    requestAnimationFrame(() => {
+      parent.postMessage("done", "*");
+    });
+  };
+</script>
+<input id="autofocus-input" autofocus>

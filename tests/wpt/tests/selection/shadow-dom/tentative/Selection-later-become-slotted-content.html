@@ -1,0 +1,33 @@
+<!doctype html>
+<meta charset=utf-8>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id="host">
+  <span id="slotted">slotted</span>
+</div>
+<span id="outer">outer</span>
+<script>
+test(function(t) {
+  const sel = window.getSelection();
+  sel.setBaseAndExtent(slotted.firstChild, 3, outer.firstChild, 2);
+  host.attachShadow({mode: "open"}).innerHTML = "<slot></slot><span>inner</span>";
+
+  assert_equals(sel.anchorNode, slotted.firstChild);
+  assert_equals(sel.anchorOffset, 3);
+  assert_equals(sel.focusNode, outer.firstChild);
+  assert_equals(sel.focusOffset, 2);
+
+  const composedRange = sel.getComposedRanges({ shadowRoots: [host.shadowRoot] })[0];
+  assert_equals(composedRange.startContainer, slotted.firstChild);
+  assert_equals(composedRange.startOffset, 3);
+  assert_equals(composedRange.endContainer, outer.firstChild);
+  assert_equals(composedRange.endOffset, 2);
+
+  sel.empty();
+
+  assert_equals(sel.anchorNode, null);
+  assert_equals(sel.anchorOffset, 0);
+  assert_equals(sel.focusNode, null);
+  assert_equals(sel.focusOffset, 0);
+}, "test to select a light DOM element and it becomes a slotted content after the selection");
+</script>

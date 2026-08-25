@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>scrollHeight on a flex column scroll container includes block-axis padding when items overflow the content edge</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-scrollheight">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#scrollable">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/129">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/8660">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+.scroller {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  width: 100px;
+  height: 206px;
+  padding: 100px 0;
+}
+.scroller > .item {
+  flex-shrink: 0;
+  height: 38px;
+  background: blue;
+}
+</style>
+
+<div class="scroller" id="column">
+  <div class="item"></div>
+  <div class="item"></div>
+</div>
+
+<div class="scroller" id="column-reverse" style="flex-direction: column-reverse">
+  <div class="item"></div>
+  <div class="item"></div>
+</div>
+
+<script>
+// box-sizing:border-box + height:206 + padding:100px 0 => content-box height = 6.
+// Two 38px flex items (76px total) overflow the content edge. The scrollable
+// overflow area is the union of the items' margin boxes with the container's
+// content area, then extended by the container's block-axis padding.
+//   Expected scrollHeight: 100 (padding-top) + 38 + 38 + 100 (padding-bottom) = 276.
+//   Expected clientHeight: padding-box height = 206.
+for (const id of ["column", "column-reverse"]) {
+  test(() => {
+    const el = document.getElementById(id);
+    assert_equals(el.clientHeight, 206, "clientHeight");
+    assert_equals(el.scrollHeight, 276, "scrollHeight");
+  }, `flex-direction:${id} scrollHeight includes block-axis padding around overflowing items`);
+}
+</script>

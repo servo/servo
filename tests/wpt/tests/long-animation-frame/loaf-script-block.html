@@ -1,0 +1,82 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Long Animation Frame Timing: script blocks</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/utils.js"></script>
+<script>
+  window.generate_loaf_now = window.busy_wait
+</script>
+<script src="resources/busy.js?from-parser"></script>
+<script>
+  delete window.generate_loaf_now;
+</script>
+<body>
+<h1>Long Animation Frame: script blocks</h1>
+<div id="log"></div>
+<script>
+promise_test(async t => {
+  await new Promise(resolve => {
+    new PerformanceObserver((list, observer) => {
+      if (list.getEntries().find(loaf => loaf.scripts.some(script =>
+        script.invoker === new URL("resources/busy.js?from-parser", location.href).href))) {
+        observer.disconnect();
+        resolve();
+      }
+    }).observe({type: "long-animation-frame", buffered: true});
+  })
+}, "Parser-inserted classic script should generate a long script");
+
+test_self_script_block(t => {
+    const script = document.createElement("script");
+    script.type = "module";
+    script.innerHTML = `window.generate_loaf_now()`;
+    document.body.appendChild(script);
+}, location.href, "module-script");
+
+test_self_script_block(t => {
+    const script = document.createElement("script");
+    script.src = "resources/busy.js";
+    document.body.appendChild(script);
+}, new URL("resources/busy.js", location.href).href, "classic-script");
+
+test_self_script_block(t => {
+    const uid = token();
+    const script = document.createElement("script");
+    script.src = `resources/busy.js?token=${uid}`;
+    script.type = "module";
+    document.body.appendChild(script);
+}, new URL("resources/busy.js", location.href).href, "module-script");
+
+test_self_script_block(t => {
+    const uid = token();
+    const script = document.createElement("script");
+    script.type = "module";
+    script.innerHTML = `import("./resources/busy.js?import=${uid}");`;
+    document.body.appendChild(script);
+}, new URL("resources/busy.js?import", location.href).href, "module-script");
+
+const busy_wait_str = `  (function() {
+      generate_loaf_now();
+  })()
+`;
+
+const data_url = `data:text/javascript;charset=utf-8,${encodeURIComponent(busy_wait_str)}`;
+
+test_self_script_block(t => {
+    const script = document.createElement("script");
+    script.src = data_url;
+    document.body.appendChild(script);
+}, "data:", "classic-script");
+
+const blob_url = URL.createObjectURL(new Blob([busy_wait_str], {type: "text/javascript"}));
+
+test_self_script_block(t => {
+    const script = document.createElement("script");
+    script.src = blob_url;
+    document.body.appendChild(script);
+}, blob_url, "classic-script");
+</script>
+</body>

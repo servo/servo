@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 3 Test: text-transform:fullwidth and collapsed spaces</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+<link rel="help" href="https://www.w3.org/TR/css-text-3/#text-transform-property">
+<link rel="match" href="reference/text-transform-fullwidth-006-ref.html">
+<meta name="assert" content="full-width does not transform collapsed U+0020 spaces to U+3000, only the remaining one after collapsing.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+div { font: 50px/1 Ahem; }
+#test {
+  color: green;
+}
+span {
+  text-transform: full-width;
+}
+#ref {
+  color: red;
+  position: absolute;
+  z-index: -1;
+}
+</style>
+
+<p>Test passes if there are two green squares and no red.
+<div id=ref>x&#x3000;x</div>
+<div id=test>x<span>   </span>x</div>

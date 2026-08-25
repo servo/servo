@@ -1,0 +1,69 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>CSSAnimation.startTime</title>
+<!-- TODO: Add a more specific link for this once it is specified. -->
+<link rel="help" href="https://drafts.csswg.org/css-animations-2/#cssanimation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/testcommon.js"></script>
+<style>
+
+.animated-div {
+  margin-left: 10px;
+  /* Make it easier to calculate expected values: */
+  animation-timing-function: linear ! important;
+}
+
+@keyframes anim {
+  from { margin-left: 100px; }
+  to { margin-left: 200px; }
+}
+
+</style>
+<div id="log"></div>
+<script type="text/javascript">
+
+'use strict';
+
+test(t => {
+  const div = addDiv(t, { 'class': 'animated-div' });
+  div.style.animation = 'anim 100s 100s';
+  const animation = div.getAnimations()[0];
+
+  const timelineTime = animation.timeline.currentTime;
+  animation.startTime = timelineTime;
+
+  assert_times_equal(animation.startTime, timelineTime,
+    'Check setting of startTime actually works');
+}, 'The start time of a CSS animation can be set');
+
+promise_test(async t => {
+  const div = addDiv(t, { 'class': 'animated-div' });
+  div.style.animation = 'anim 100s 100s';
+  const animation = div.getAnimations()[0];
+
+  // Seek to the half-way point
+  animation.startTime = animation.timeline.currentTime - 150 * MS_PER_SEC;
+
+  assert_equals(getComputedStyle(div).marginLeft, '150px');
+}, 'The start time can be set to seek a CSS animation');
+
+promise_test(async t => {
+  const div = addDiv(t, { class: 'animated-div' });
+  const eventWatcher = new EventWatcher(t, div, [
+    'animationstart',
+    'animationend',
+  ]);
+  div.style.animation = 'anim 100s 100s';
+  const animation = div.getAnimations()[0];
+
+  await animation.ready;
+
+  animation.startTime = animation.timeline.currentTime - 100 * MS_PER_SEC;
+  await eventWatcher.wait_for('animationstart');
+
+  animation.startTime = animation.timeline.currentTime - 200 * MS_PER_SEC;
+  await eventWatcher.wait_for('animationend');
+}, 'Seeking a CSS animation using the start time dispatches animation events');
+
+</script>

@@ -1,0 +1,4 @@
+Reporting-Endpoints: dummy-endpoint="/reporting/resources/report.py?reportID=6d7c5a9e-8fe0-11f1-930d-5f24093adacc"
+Content-Security-Policy: connect-src *:*/allowedRegistration; report-to dummy-endpoint
+Link: </blockedRegistration?blockedFromHeader> ; rel="compression-dictionary"
+Link: </allowedRegistration?allowedFromHeader> ; rel="compression-dictionary"

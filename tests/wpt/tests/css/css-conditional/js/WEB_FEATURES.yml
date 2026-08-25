@@ -1,0 +1,5 @@
+rules:
+- supports-at-rule.html: [supports-at-rule]
+- supports-*.html: [supports]
+- 001.html: [supports]
+- CSS-supports-*: [css-supports]

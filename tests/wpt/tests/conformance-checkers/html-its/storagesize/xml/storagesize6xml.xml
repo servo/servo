@@ -1,0 +1,5 @@
+<messages xmlns:its="http://www.w3.org/2005/11/its" its:version="2.0">
+  <var num="panelA1_Continue" its:storageSize="8" its:storageEncoding="UTF-16" its:lineBreakType="lf">CONTINUE</var>
+  <var num="panelA1_Stop" its:storageSize="8" its:storageEncoding="UTF-16" its:lineBreakType="lf">STOP</var>
+  <var num="panelB5_Cancel" its:storageSize="12" its:storageEncoding="UTF-16" its:lineBreakType="lf">CANCEL</var>
+</messages>

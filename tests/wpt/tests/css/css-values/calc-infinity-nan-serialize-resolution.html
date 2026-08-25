@@ -1,0 +1,54 @@
+<!DOCTYPE HTML>
+<title>Infinity and NaN: calc() serialization for time values.</title>
+<link rel="author" title="Seokho Song"  href="mailto:0xdevssh@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-values/#calc-type-checking">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/serialize-testcommon.js"></script>
+<div id="target"></div>
+<div id="log"></div>
+<script>
+// There's no css property that takes a raw <resolution>, so we use image-set() to test it.
+function test_serialization(t,s, {prop="backgroundImage"}={}) {
+    test_specified_serialization(prop, t, s)
+}
+//TEST CASE                                          | EXPECTED
+var test_map = {
+    "1x * NaN"                                           :"calc(NaN * 1dppx)",
+    "1x * nan"                                           :"calc(NaN * 1dppx)",
+    "1dppx * NaN"                                        :"calc(NaN * 1dppx)",
+    "1dppx * infinity / infinity"                        :"calc(NaN * 1dppx)",
+    "1dppx * 0 * infinity"                               :"calc(NaN * 1dppx)",
+    "1dppx * (infinity + -infinity)"                     :"calc(NaN * 1dppx)",
+    "1dppx * (-infinity + infinity)"                     :"calc(NaN * 1dppx)",
+    "1dppx * (infinity - infinity)"                      :"calc(NaN * 1dppx)",
+    "1dppx * infinity"                                   :"calc(infinity * 1dppx)",
+    "1dppx * -infinity"                                  :"calc(-infinity * 1dppx)",
+    "1dppx * iNFinIty"                                   :"calc(infinity * 1dppx)",
+    "1dppx * (infinity + infinity)"                      :"calc(infinity * 1dppx)",
+    "1dppx * (-infinity + -infinity)"                    :"calc(-infinity * 1dppx)",
+    "1dppx * 1/infinity"                                 :"calc(0dppx)",
+    "1dppx * infinity * infinity"                        :"calc(infinity * 1dppx)",
+    "1dppx * -infinity * -infinity"                      :"calc(infinity * 1dppx)",
+    "1 * max(INFinity*3dppx, 0dppx)"                     :"calc(infinity * 1dppx)",
+    "1 * min(inFInity*4dppx, 0dppx)"                     :"calc(0dppx)",
+    "1 * max(nAn*2dppx, 0dppx)"                          :"calc(NaN * 1dppx)",
+    "1 * min(nan*3dppx, 0dppx)"                          :"calc(NaN * 1dppx)",
+    "1 * clamp(-INFINITY*20dppx, 0dppx, infiniTY*10dppx)"  :"calc(0dppx)",
+
+    "1dppx * max(NaN, min(0,10))"                        :"calc(NaN * 1dppx)",
+    "1dppx * clamp(NaN, 0, 10)"                          :"calc(NaN * 1dppx)",
+
+    "1dppx * max(0, min(10, NaN))"                       :"calc(NaN * 1dppx)",
+    "1dppx * clamp(0, 10, NaN)"                          :"calc(NaN * 1dppx)",
+
+    "1dppx * max(0, min(NaN, 10))"                       :"calc(NaN * 1dppx)",
+    "1dppx * clamp(0, NaN, 10)"                          :"calc(NaN * 1dppx)",
+
+    "1dppx * clamp(-Infinity, 0, infinity)"              :"calc(0dppx)",
+    "1dppx * clamp(-inFinity, infinity, 10)"             :"calc(10dppx)",
+};
+
+for (const exp in test_map)
+  test_serialization(`image-set(url("") calc(${exp}))`, `image-set(url("") ${test_map[exp]})`);
+</script>

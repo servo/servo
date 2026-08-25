@@ -1,0 +1,41 @@
+yply.py
+
+This example implements a program yply.py that converts a UNIX-yacc
+specification file into a PLY-compatible program.  To use, simply
+run it like this:
+
+   % python yply.py [-nocode] inputfile.y >myparser.py
+
+The output of this program is Python code. In the output,
+any C code in the original file is included, but is commented out.
+If you use the -nocode option, then all of the C code in the
+original file is just discarded.
+
+To use the resulting grammer with PLY, you'll need to edit the
+myparser.py file. Within this file, some stub code is included that
+can be used to test the construction of the parsing tables. However,
+you'll need to do more editing to make a workable parser.
+
+Disclaimer:  This just an example I threw together in an afternoon.
+It might have some bugs.  However, it worked when I tried it on
+a yacc-specified C++ parser containing 442 rules and 855 parsing
+states.
+
+Comments:
+
+1. This example does not parse specification files meant for lex/flex.
+   You'll need to specify the tokenizer on your own.
+
+2. This example shows a number of interesting PLY features including
+    
+     - Parsing of literal text delimited by nested parentheses
+     - Some interaction between the parser and the lexer.
+     - Use of literals in the grammar specification
+     - One pass compilation.  The program just emits the result,
+       there is no intermediate parse tree.
+
+3. This program could probably be cleaned up and enhanced a lot.
+   It would be great if someone wanted to work on this (hint).
+
+-Dave
+       

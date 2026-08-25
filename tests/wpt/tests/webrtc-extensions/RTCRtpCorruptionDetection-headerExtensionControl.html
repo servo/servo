@@ -1,0 +1,176 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Coruption Detection Header Extension</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../webrtc/RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+// If the `corruption-detection` header does not exists among the header
+// extensions, it does not do anything.
+function enableCorruptionDetectionIfExists(transceiver) {
+  const extensions = transceiver.getHeaderExtensionsToNegotiate();
+  for (let i = 0; i < extensions.length; ++i) {
+    if (extensions[i].uri.includes('corruption-detection')) {
+      extensions[i].direction = 'sendrecv';
+    }
+  }
+  transceiver.setHeaderExtensionsToNegotiate(extensions);
+}
+
+// Adds corruption detection RTP header extension to both peers' video section.
+async function doSdpNegotiationWithCorruptionDetection(pc1, pc2) {
+  // Create offer with corruption-detection.
+  pc1.getTransceivers().forEach((transceiver) => {
+    enableCorruptionDetectionIfExists(transceiver);
+  });
+  await pc1.setLocalDescription();
+  await pc2.setRemoteDescription(pc1.localDescription);
+
+  // Create answer with corruption-detection.
+  pc2.getTransceivers().forEach((transceiver) => {
+    enableCorruptionDetectionIfExists(transceiver);
+  });
+  await pc2.setLocalDescription();
+  await pc1.setRemoteDescription(pc2.localDescription);
+}
+
+// Returns the inbound stats based on the kind.
+// @param {string} [kind] - Either 'video' or 'audio'.
+async function getInboundRtpStats(t, pc, kind) {
+  while (true) {
+    const stats = await pc.getStats();
+    const values = [...stats.values()];
+    const inboundRtp = values.find(s => s.type == 'inbound-rtp' && s.kind == kind);
+    // If video is transmitted, expect the corruption metrics to be populated.
+    if (inboundRtp && kind == 'video' &&
+        (inboundRtp.corruptionMeasurements ??0 > 0)) {
+      return inboundRtp;
+    }
+
+    // If video is not transmitted, expect anything in the stream to be populated,
+    // to indicated that something is flowing in the pipeline.
+    if (inboundRtp && kind == 'audio' &&
+        (inboundRtp.audioLevel ??0 > 0)) {
+      return inboundRtp;
+    }
+
+    await new Promise(r => t.step_timeout(r, 1000));
+  }
+}
+
+async function createAudioVideoTracksWithCleanUp(t) {
+  const stream = await getNoiseStream({video: true, audio: true});
+  const audioTrack = stream.getAudioTracks()[0];
+  const videoTrack = stream.getVideoTracks()[0];
+  t.add_cleanup(() => audioTrack.stop());
+  t.add_cleanup(() => videoTrack.stop());
+  return [audioTrack, videoTrack, stream];
+}
+
+promise_test(async t => {
+  const pc1 = createPeerConnectionWithCleanup(t);
+  const pc2 = createPeerConnectionWithCleanup(t);
+
+  pc1.onicecandidate = e => pc2.addIceCandidate(e.candidate);
+  pc2.onicecandidate = e => pc1.addIceCandidate(e.candidate);
+
+  // Only add a video track to pc1.
+  const [audioTrack, videoTrack, stream] =
+    await createAudioVideoTracksWithCleanUp(t);
+  pc1.addTrack(videoTrack, stream);
+
+  doSdpNegotiationWithCorruptionDetection(pc1, pc2);
+
+  // Corruption score is calculated on receive side (`pc2`).
+  const inboundRtp = await getInboundRtpStats(t, pc2, 'video');
+  assert_not_equals(inboundRtp.totalCorruptionProbability, undefined);
+  assert_not_equals(inboundRtp.totalSquaredCorruptionProbability, undefined);
+  assert_not_equals(inboundRtp.corruptionMeasurements, undefined);
+}, 'If the corruption-detection header extension is present in the RTP packets,' +
+   'corruption metrics must be present.');
+
+promise_test(async t => {
+  const pc1 = createPeerConnectionWithCleanup(t);
+  const pc2 = createPeerConnectionWithCleanup(t);
+
+  pc1.onicecandidate = e => pc2.addIceCandidate(e.candidate);
+  pc2.onicecandidate = e => pc1.addIceCandidate(e.candidate);
+
+  // Add audio and video tracks to both pc1 and pc2.
+  const [audioTrack, videoTrack, stream] =
+    await createAudioVideoTracksWithCleanUp(t);
+  pc1.addTrack(audioTrack, stream);
+  pc1.addTrack(videoTrack, stream);
+  pc2.addTrack(audioTrack, stream);
+  pc2.addTrack(videoTrack, stream);
+
+  doSdpNegotiationWithCorruptionDetection(pc1, pc2);
+
+  function checkInboundRtpStats(inboundRtp) {
+    assert_not_equals(inboundRtp.totalCorruptionProbability, undefined);
+    assert_not_equals(inboundRtp.totalSquaredCorruptionProbability, undefined);
+    assert_not_equals(inboundRtp.corruptionMeasurements, undefined);
+  }
+
+  const inboundRtpPc1 = await getInboundRtpStats(t, pc1, 'video');
+  const inboundRtpPc2 = await getInboundRtpStats(t, pc2, 'video');
+  checkInboundRtpStats(inboundRtpPc1);
+  checkInboundRtpStats(inboundRtpPc2);
+}, 'If the corruption-detection header extension is present in the RTP packets,' +
+   'corruption metrics must be present, both ways.');
+
+promise_test(async t => {
+  const pc1 = createPeerConnectionWithCleanup(t);
+  const pc2 = createPeerConnectionWithCleanup(t);
+
+  pc1.onicecandidate = e => pc2.addIceCandidate(e.candidate);
+  pc2.onicecandidate = e => pc1.addIceCandidate(e.candidate);
+
+  // Only add a video track to pc1.
+  const [audioTrack, videoTrack, stream] =
+    await createAudioVideoTracksWithCleanUp(t);
+  pc1.addTrack(videoTrack, stream);
+
+  doSdpNegotiationWithCorruptionDetection(pc1, pc2);
+
+  const inboundRtp = await getInboundRtpStats(t, pc2, 'video');
+
+  // This check does not guarantee that each measurement is in the range [0, 1].
+  // But it is the best we can do.
+  const mean = inboundRtp.totalCorruptionProbability / inboundRtp.corruptionMeasurements;
+  assert_less_than_equal(mean, 1);
+  assert_greater_than_equal(mean, 0);
+}, 'Each measurement added to totalCorruptionProbability MUST be in the range [0.0, 1.0].');
+
+promise_test(async t => {
+  const pc1 = createPeerConnectionWithCleanup(t);
+  const pc2 = createPeerConnectionWithCleanup(t);
+
+  pc1.onicecandidate = e => pc2.addIceCandidate(e.candidate);
+  pc2.onicecandidate = e => pc1.addIceCandidate(e.candidate);
+
+  // Only add an audio track to pc1.
+  const [audioTrack, videoTrack, stream] =
+    await createAudioVideoTracksWithCleanUp(t);
+  pc1.addTrack(audioTrack, stream);
+
+  // Some browsers need an audio element attached to the DOM.
+  pc2.ontrack = (e) => {
+    const element = document.createElement('audio');
+    element.autoplay = true;
+    element.srcObject = e.streams[0];
+    document.body.appendChild(element);
+    t.add_cleanup(() => { document.body.removeChild(element) });
+  };
+
+  doSdpNegotiationWithCorruptionDetection(pc1, pc2);
+
+  const inboundRtp = await getInboundRtpStats (t, pc2, 'audio');
+  assert_equals(inboundRtp.totalCorruptionProbability, undefined);
+  assert_equals(inboundRtp.totalSquaredCorruptionProbability, undefined);
+  assert_equals(inboundRtp.corruptionMeasurements, undefined);
+}, 'Corruption metrics must not exists for audio.');
+
+</script>

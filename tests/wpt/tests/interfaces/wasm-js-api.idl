@@ -1,0 +1,150 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebAssembly JavaScript Interface (https://webassembly.github.io/spec/js-api/)
+
+dictionary WebAssemblyInstantiatedSource {
+    required Module module;
+    required Instance instance;
+};
+
+dictionary WebAssemblyCompileOptions {
+    USVString? importedStringConstants;
+    sequence<USVString> builtins;
+};
+
+[Exposed=*]
+namespace WebAssembly {
+    boolean validate([AllowResizable] AllowSharedBufferSource bytes, optional WebAssemblyCompileOptions options = {});
+    Promise<Module> compile([AllowResizable] AllowSharedBufferSource bytes, optional WebAssemblyCompileOptions options = {});
+
+    Promise<WebAssemblyInstantiatedSource> instantiate(
+        [AllowResizable] AllowSharedBufferSource bytes, optional object importObject, optional WebAssemblyCompileOptions options = {});
+
+    Promise<Instance> instantiate(
+        Module moduleObject, optional object importObject);
+
+    readonly attribute Tag JSTag;
+};
+
+enum ImportExportKind {
+  "function",
+  "table",
+  "memory",
+  "global",
+  "tag"
+};
+
+enum AddressType {
+  "i32",
+  "i64",
+};
+
+typedef any AddressValue;
+
+dictionary ModuleExportDescriptor {
+  required USVString name;
+  required ImportExportKind kind;
+  // Note: Other fields such as signature may be added in the future.
+};
+
+dictionary ModuleImportDescriptor {
+  required USVString module;
+  required USVString name;
+  required ImportExportKind kind;
+};
+
+[LegacyNamespace=WebAssembly, Exposed=*]
+interface Module {
+  constructor([AllowResizable] AllowSharedBufferSource bytes, optional WebAssemblyCompileOptions options = {});
+  static sequence<ModuleExportDescriptor> exports(Module moduleObject);
+  static sequence<ModuleImportDescriptor> imports(Module moduleObject);
+  static sequence<ArrayBuffer> customSections(Module moduleObject, DOMString sectionName);
+};
+
+[LegacyNamespace=WebAssembly, Exposed=*]
+interface Instance {
+  constructor(Module module, optional object importObject);
+  readonly attribute object exports;
+};
+
+dictionary MemoryDescriptor {
+  required AddressValue initial;
+  AddressValue maximum;
+  AddressType address;
+};
+
+[LegacyNamespace=WebAssembly, Exposed=*]
+interface Memory {
+  constructor(MemoryDescriptor descriptor);
+  AddressValue grow(AddressValue delta);
+  ArrayBuffer toFixedLengthBuffer();
+  ArrayBuffer toResizableBuffer();
+  readonly attribute ArrayBuffer buffer;
+};
+
+enum TableKind {
+  "externref",
+  "anyfunc",
+  // Note: More values may be added in future iterations,
+  // e.g., typed function references, typed GC references
+};
+
+dictionary TableDescriptor {
+  required TableKind element;
+  required AddressValue initial;
+  AddressValue maximum;
+  AddressType address;
+};
+
+[LegacyNamespace=WebAssembly, Exposed=*]
+interface Table {
+  constructor(TableDescriptor descriptor, optional any value);
+  AddressValue grow(AddressValue delta, optional any value);
+  any get(AddressValue index);
+  undefined set(AddressValue index, optional any value);
+  readonly attribute AddressValue length;
+};
+
+enum ValueType {
+  "i32",
+  "i64",
+  "f32",
+  "f64",
+  "v128",
+  "externref",
+  "anyfunc",
+};
+
+dictionary GlobalDescriptor {
+  required ValueType value;
+  boolean mutable = false;
+};
+
+[LegacyNamespace=WebAssembly, Exposed=*]
+interface Global {
+  constructor(GlobalDescriptor descriptor, optional any v);
+  any valueOf();
+  attribute any value;
+};
+
+dictionary TagType {
+  required sequence<ValueType> parameters;
+};
+
+[LegacyNamespace=WebAssembly, Exposed=(Window,Worker,Worklet)]
+interface Tag {
+  constructor(TagType type);
+};
+
+dictionary ExceptionOptions {
+  boolean traceStack = false;
+};
+
+[LegacyNamespace=WebAssembly, Exposed=(Window,Worker,Worklet)]
+interface Exception {
+  constructor(Tag exceptionTag, sequence<any> payload, optional ExceptionOptions options = {});
+  any getArg(Tag exceptionTag, [EnforceRange] unsigned long index);
+  boolean is(Tag exceptionTag);
+  readonly attribute (DOMString or undefined) stack;
+};

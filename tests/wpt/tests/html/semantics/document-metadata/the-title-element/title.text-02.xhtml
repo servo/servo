@@ -1,0 +1,30 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>title.text with comment and element children.</title>
+<link rel="author" title="Ms2ger" href="mailto:ms2ger@gmail.com"/>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-title-text"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+try {
+  var title = document.getElementsByTagName("title")[0];
+  while (title.childNodes.length)
+    title.removeChild(title.childNodes[0]);
+  title.appendChild(document.createComment("COMMENT"));
+  title.appendChild(document.createTextNode("TEXT"));
+  title.appendChild(document.createElement("a"))
+       .appendChild(document.createTextNode("ELEMENT"))
+} catch (e) {
+}
+</script>
+<script>
+test(function() {
+  assert_equals(title.text, "TEXT");
+  assert_equals(title.textContent, "TEXTELEMENT");
+})
+</script>
+</body>
+</html>

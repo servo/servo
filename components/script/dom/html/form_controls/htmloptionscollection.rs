@@ -1,0 +1,270 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use std::cmp::Ordering;
+
+use dom_struct::dom_struct;
+use html5ever::{QualName, local_name, ns};
+use js::context::{JSContext, NoGC};
+use script_bindings::reflector::reflect_dom_object_with_cx;
+
+use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLOptionsCollectionBinding::HTMLOptionsCollectionMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
+use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
+use crate::dom::bindings::codegen::UnionTypes::{
+    HTMLElementOrLong, HTMLOptionElementOrHTMLOptGroupElement,
+};
+use crate::dom::bindings::error::{Error, ErrorResult};
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
+use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
+use crate::dom::html::htmlcollection::{CollectionFilter, HTMLCollection};
+use crate::dom::html::htmloptionelement::HTMLOptionElement;
+use crate::dom::html::htmlselectelement::HTMLSelectElement;
+use crate::dom::node::{Node, NodeTraits};
+use crate::dom::window::Window;
+
+#[dom_struct]
+pub(crate) struct HTMLOptionsCollection {
+    collection: HTMLCollection,
+}
+
+impl HTMLOptionsCollection {
+    fn new_inherited(
+        select: &HTMLSelectElement,
+        filter: Box<dyn CollectionFilter + 'static>,
+    ) -> HTMLOptionsCollection {
+        HTMLOptionsCollection {
+            collection: HTMLCollection::new_inherited(select.upcast(), filter),
+        }
+    }
+
+    pub(crate) fn new(
+        cx: &mut JSContext,
+        window: &Window,
+        select: &HTMLSelectElement,
+        filter: Box<dyn CollectionFilter + 'static>,
+    ) -> DomRoot<HTMLOptionsCollection> {
+        reflect_dom_object_with_cx(
+            Box::new(HTMLOptionsCollection::new_inherited(select, filter)),
+            window,
+            cx,
+        )
+    }
+
+    fn add_new_elements(&self, cx: &mut JSContext, count: u32) -> ErrorResult {
+        let root = self.upcast().root_node();
+        let document = root.owner_document();
+
+        for _ in 0..count {
+            let element = Element::create(
+                cx,
+                QualName::new(None, ns!(html), local_name!("option")),
+                None,
+                &document,
+                ElementCreator::ScriptCreated,
+                CustomElementCreationMode::Asynchronous,
+                None,
+            );
+            let node = element.upcast::<Node>();
+            root.AppendChild(cx, node)?;
+        }
+        Ok(())
+    }
+}
+
+impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollection {
+    // FIXME: This shouldn't need to be implemented here since HTMLCollection (the parent of
+    // HTMLOptionsCollection) implements NamedGetter.
+    // https://github.com/servo/servo/issues/5875
+    //
+    /// <https://dom.spec.whatwg.org/#dom-htmlcollection-nameditem>
+    fn NamedGetter(&self, cx: &JSContext, name: DOMString) -> Option<DomRoot<Element>> {
+        self.upcast().NamedItem(cx, name)
+    }
+
+    /// <https://heycam.github.io/webidl/#dfn-supported-property-names>
+    fn SupportedPropertyNames(&self, no_gc: &NoGC) -> Vec<DOMString> {
+        self.upcast().SupportedPropertyNames(no_gc)
+    }
+
+    // FIXME: This shouldn't need to be implemented here since HTMLCollection (the parent of
+    // HTMLOptionsCollection) implements IndexedGetter.
+    // https://github.com/servo/servo/issues/5875
+    //
+    /// <https://dom.spec.whatwg.org/#dom-htmlcollection-item>
+    fn IndexedGetter(&self, cx: &JSContext, index: u32) -> Option<DomRoot<Element>> {
+        self.upcast().IndexedGetter(cx, index)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-setter>
+    fn IndexedSetter(
+        &self,
+        cx: &mut JSContext,
+        index: u32,
+        value: Option<&HTMLOptionElement>,
+    ) -> ErrorResult {
+        if let Some(value) = value {
+            // Step 2
+            let length = self.upcast().Length(cx);
+
+            // Step 3
+            let n = index as i32 - length as i32;
+
+            // Step 4
+            if n > 0 {
+                self.add_new_elements(cx, n as u32)?;
+            }
+
+            // Step 5
+            let node = value.upcast::<Node>();
+            let root = self.upcast().root_node();
+            if n >= 0 {
+                Node::pre_insert(cx, node, &root, None).map(|_| ())
+            } else {
+                let child = self.upcast().IndexedGetter(cx, index).unwrap();
+                let child_node = child.upcast::<Node>();
+
+                root.ReplaceChild(cx, node, child_node).map(|_| ())
+            }
+        } else {
+            // Step 1
+            self.Remove(cx, index as i32);
+            Ok(())
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-length>
+    fn Length(&self, cx: &JSContext) -> u32 {
+        self.upcast().Length(cx)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-length>
+    fn SetLength(&self, cx: &mut JSContext, length: u32) {
+        // Step 1. Let current be the number of nodes represented by the collection.
+        let current = self.upcast().Length(cx);
+
+        match length.cmp(&current) {
+            // Step 2. If the given value is greater than current, then:
+            Ordering::Greater => {
+                // Step 2.1 If the given value is greater than 100,000, then return.
+                if length > 100_000 {
+                    return;
+                }
+
+                // Step 2.2 Let n be value − current.
+                let n = length - current;
+
+                // Step 2.3 Append n new option elements with no attributes and no child
+                // nodes to the select element on which this is rooted.
+                self.add_new_elements(cx, n).unwrap();
+            },
+            // Step 3. If the given value is less than current, then:
+            Ordering::Less => {
+                // Step 3.1. Let n be current − value.
+                // Step 3.2 Remove the last n nodes in the collection from their parent nodes.
+                for index in (length..current).rev() {
+                    self.Remove(cx, index as i32)
+                }
+            },
+            _ => {},
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-add>
+    fn Add(
+        &self,
+        cx: &mut JSContext,
+        element: HTMLOptionElementOrHTMLOptGroupElement,
+        before: Option<HTMLElementOrLong>,
+    ) -> ErrorResult {
+        let root = self.upcast().root_node();
+
+        let node: &Node = match element {
+            HTMLOptionElementOrHTMLOptGroupElement::HTMLOptionElement(ref element) => {
+                element.upcast()
+            },
+            HTMLOptionElementOrHTMLOptGroupElement::HTMLOptGroupElement(ref element) => {
+                element.upcast()
+            },
+        };
+
+        // Step 1: If element is an ancestor of the select element on which the
+        // HTMLOptionsCollection is rooted, then throw a "HierarchyRequestError"
+        // DOMException.
+        if node.is_ancestor_of(&root) {
+            return Err(Error::HierarchyRequest(Some(
+                "Added element is an ancestor of the collection's associated select element".into(),
+            )));
+        }
+
+        if let Some(HTMLElementOrLong::HTMLElement(ref before_element)) = before {
+            // Step 2: If before is an element, but that element isn't a descendant
+            // of the select element on which the HTMLOptionsCollection is rooted,
+            // then throw a "NotFoundError" DOMException.
+            let before_node = before_element.upcast::<Node>();
+            if !root.is_ancestor_of(before_node) {
+                return Err(Error::NotFound(Some(
+                    "`before` element is not a descendant of the collection's associated select element".into(),
+                )));
+            }
+
+            // Step 3: If element and before are the same element, then return.
+            if node == before_node {
+                return Ok(());
+            }
+        }
+
+        // Step 4: If before is a node, then let reference be that node. Otherwise,
+        // if before is an integer, and there is a beforeth node in the collection,
+        // let reference be that node. Otherwise, let reference be null.
+        let reference_node = before.and_then(|before| match before {
+            HTMLElementOrLong::HTMLElement(element) => Some(DomRoot::upcast::<Node>(element)),
+            HTMLElementOrLong::Long(index) => self
+                .upcast()
+                .IndexedGetter(cx, index as u32)
+                .map(DomRoot::upcast::<Node>),
+        });
+
+        // Step 5: If reference is not null, let parent be the parent node of
+        // reference. Otherwise, let parent be the select element on which the
+        // HTMLOptionsCollection is rooted.
+        let parent = if let Some(ref reference_node) = reference_node {
+            reference_node.GetParentNode().unwrap()
+        } else {
+            root
+        };
+
+        // Step 6: Pre-insert element into parent node before reference.
+        Node::pre_insert(cx, node, &parent, reference_node.as_deref()).map(|_| ())
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-remove>
+    fn Remove(&self, cx: &mut JSContext, index: i32) {
+        if let Some(element) = self.upcast().IndexedGetter(cx, index as u32) {
+            element.Remove(cx);
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-selectedindex>
+    fn SelectedIndex(&self, cx: &JSContext) -> i32 {
+        self.upcast()
+            .root_node()
+            .downcast::<HTMLSelectElement>()
+            .expect("HTMLOptionsCollection not rooted on a HTMLSelectElement")
+            .SelectedIndex(cx)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-selectedindex>
+    fn SetSelectedIndex(&self, cx: &mut JSContext, index: i32) {
+        self.upcast()
+            .root_node()
+            .downcast::<HTMLSelectElement>()
+            .expect("HTMLOptionsCollection not rooted on a HTMLSelectElement")
+            .SetSelectedIndex(cx, index)
+    }
+}

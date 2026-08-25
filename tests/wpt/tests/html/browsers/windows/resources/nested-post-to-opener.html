@@ -1,0 +1,12 @@
+<body>
+<script>
+  var i = document.createElement("iframe");
+  i.name = "nested1";
+  document.body.appendChild(i);
+
+  window.opener.postMessage({
+    "name": window.name,
+    "isTop": window.top === window
+  }, "*");
+</script>
+</body>

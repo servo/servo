@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/import-maps/resources/test-helper.js"></script>
+</head>
+<body>
+<script type="module">
+const log = [];
+// Import specifiers that were not yet mapped.
+try {
+  await import("../resources/importer.sub.js?name=a")
+} catch (error) {
+  // Import failed because "a" is not yet defined as a specifier.
+}
+try {
+  await import("../resources/importer.sub.js?name=foo/bar")
+} catch (error) {
+  // Import failed because "foo/bar" is not yet defined as a specifier.
+}
+// Try to define the previous failed-to-resolve specifiers.
+const importMapScript = document.createElement('script');
+importMapScript.type = 'importmap';
+importMapScript.textContent =
+`{
+  "imports": {
+    "a": "../resources/log.sub.js?name=B",
+    "foo/bar": "../resources/log.sub.js?name=OtherFoobar",
+    "foo/": "../resources/log.sub.js?name=OtherFoo/",
+    "foo": "../resources/log.sub.js?name=foo"
+  }
+}`;
+document.head.appendChild(importMapScript);
+
+// Testing that the resolution is correct using `resolve`, as you can't import
+// the same module twice.
+test(() => {
+  assert_true(import.meta.resolve("a").endsWith("/resources/log.sub.js?name=B"));
+}, "Resolution after import map should not be redefined");
+
+test(() => {
+  assert_true(import.meta.resolve("foo/bar").endsWith("/resources/log.sub.js?name=OtherFoobar"));
+}, "Resolution after import map should not be redefined for bare prefixes or exact matches");
+
+test(() => {
+  assert_true(import.meta.resolve("foo").endsWith("/resources/log.sub.js?name=foo"));
+}, "Resolution after import map should be redefined for non-prefixes");
+
+test_loaded(
+  "../resources/log.sub.js?name=a",
+  ["log:a"],
+  "Rules for failed resolution are not dropped"
+);
+</script>
+</body>
+</html>
+
+
+

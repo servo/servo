@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>
+  Multi-line column flex fragmentation: the flex container consumes the
+  remaining fragmentainer space if an item breaks before.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<style>
+  .multicol {
+    column-count: 2;
+    column-fill: auto;
+    column-gap: 0px;
+    height: 100px;
+    width: 100px;
+    position: relative;
+    background: red;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="multicol">
+  <div style="display: flex; flex-direction: column; flex-wrap: wrap; width: 50px; height: 200px; background: green;">
+    <div style="height: 10px; width: 25px;"></div>
+    <div style="height: 100px; width: 25px; break-before: column;"></div>
+    <div style="height: 50px; width: 25px;"></div>
+    <div style="height: 100px; width: 25px; break-before: column;"></div>
+  </div>
+</div>

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<body>
+<h1 id="id" class="class"></h1>
+<script src="../resources/runner.js"></script>
+<script>
+PerfTestRunner.measureRunsPerSecond({
+    description: "This benchmark tests querySelector() for an element that appears near the head of the document",
+    run: function() {
+        for (var i = 0; i < 1000; i++) {
+            document.querySelector("h1");
+            document.querySelector("#id");
+            document.querySelector(".class");
+        }
+    }});
+</script>
+</body>
+</html>

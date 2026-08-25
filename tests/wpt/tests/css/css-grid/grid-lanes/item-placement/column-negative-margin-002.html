@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link rel="match" href="column-negative-margin-002-ref.html">
+<link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+<style>
+.grid-lanes {
+    display: grid-lanes;
+    flow-tolerance: 0;
+    grid-template-columns: repeat(3, 50px);
+}
+</style>
+<body>
+  <p>If an item's negative margin is clamped to its own size, and it will never cause the running position to regress.</p>
+  <div class="grid-lanes">
+    <div style="background: aquamarine; height: 50px;" >
+      item 1
+    </div>
+    <!-- This should have a running position of 0. -->
+    <div style="background: lightsteelblue; height: 50px; margin-bottom: -60px; margin-top: -40px;" >
+      item 2
+    </div>
+    <!-- This should be placed in track 2 because track 2 has a running position of 0 from item 2. -->
+    <div style="background: aquamarine; grid-column: 2; height: 50px;" >
+      item 3
+    </div>
+    <div style="background: lightblue; height: 30px;" >
+      item 4
+    </div>
+    <div style="background: lightpink; height: 20px; margin-top: -50px;">
+      item 5
+    </div>
+    <!-- This should visually be below item 4, because even though item 5 is placed high, the running position should not have regressed in the track. -->
+    <div style="background: yellow; height: 20px;">
+      item 6
+    </div>
+    <div style="background: orange; height: 40px; margin-top: -10px; margin-bottom: -30px;">
+      item 7
+    </div>
+    <div style="background: lightblue; height: 20px;">
+      item 8
+    </div>
+  </div>
+</body>
+</html>

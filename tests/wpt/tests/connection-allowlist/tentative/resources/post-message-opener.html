@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<script>
+  if (window.opener) {
+    window.opener.postMessage("loaded", "*");
+  }
+  if (window.parent && window.parent !== window) {
+    window.parent.postMessage("loaded", "*");
+  }
+</script>

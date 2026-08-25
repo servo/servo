@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<title>CSS reference: text-transform:uppercase + letter-spacing + es-zett</title>
+
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+
+<style>
+.ref {
+  font: 25px Ahem;  /* Note that Ahem does not include a glyph for U+1E9E;
+                       the only option for uppercasing "ß" is as "SS". */
+  letter-spacing: 0.5em;
+}
+</style>
+
+<p>Both lines should have the same spacing:</p>
+
+<p class="ref">STRASSE</p>
+<p class="ref">STRASSE</p>

@@ -1,0 +1,67 @@
+<!DOCTYPE HTML>
+<html>
+<meta charset="utf-8">
+<title>CSS Grid Lanes Test: Subgrid with no grid items accommodates gutter size and padding</title>
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+<link rel="match" href="row-subgrid-extra-margin-006-ref.html">
+<style>
+.wrapper {
+  width: 110px;
+  height: 104px;
+  background: red;
+}
+.grid-lanes {
+  display: inline-grid-lanes;
+  grid-template-rows: repeat(2, auto);
+  background: red;
+}
+.subgrid {
+  display: grid;
+  grid-template: subgrid / auto;
+  grid-template-columns: auto auto auto;
+  background: green;
+  padding: 9px 3px 11px 7px;
+}
+</style>
+</head>
+<body>
+<p>Test passes if there is a filled green rectangle and <strong>no red</strong>.</p>
+<div class="wrapper">
+<!--
+  Grid lanes container height = 104px (2 rows of 52px each).
+
+  Same nested structure as row-006 but with pad-T and pad-B swapped
+  (pad-T = 9, pad-B = 11). The dominant leaf is the mirror leaf:
+    leaf's pad-B (11) + inner's pad-B (11) + outer's pad-B (11) on
+    the end side, plus leaf's pad-T (9) and half of outer's row-gap
+    (20/2 = 10) on the start side, for a total of 52.
+
+  Per the WG resolution at
+  https://github.com/w3c/csswg-drafts/issues/10926, in a grid-lanes
+  container every subgrid in an auto-placed chain must accommodate
+  its margin contribution at every row it could land in. Because the
+  dominant leaf's total is invariant under pad-T/pad-B swap (the
+  chain is symmetric), this test produces the same uniform per-row
+  size as row-006:
+    2 rows * 52px = 104px.
+-->
+  <div class="grid-lanes">
+    <div class="subgrid" style="grid-row: span 2; gap: 20px 10px">
+      <div class="subgrid" style="grid-row: span 2;">
+        <div class="subgrid"></div>
+        <div class="subgrid"></div>
+        <div class="subgrid"></div>
+        <div class="subgrid"></div>
+      </div>
+      <div class="subgrid" style="grid-row: span 2;">
+        <div class="subgrid"></div>
+        <div class="subgrid"></div>
+        <div class="subgrid"></div>
+        <div class="subgrid"></div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Invalid origins in exposedTo array</title>
+<link rel="author" href="mailto:dom@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+const test_cases = [
+  {success: false, origin: '/'},
+  {success: false, origin: '*'},
+  {success: false, origin: 'https://example:bogus'},
+  {success: false, origin: 'https://\ud800.com'},
+  {success: false, origin: 'http://example.com'},
+  {success: false, origin: 'ftp://example.com'},
+  {success: false, origin: 'about:blank'},
+  {success: false, origin: 'about:srcdoc'},
+
+  {success: true, origin: 'https://example.com'},
+  {success: true, origin: 'http://localhost:3000'},
+];
+
+for (const test of test_cases) {
+  promise_test(async t => {
+    const register = () => {
+      return document.modelContext.registerTool({
+        name: 'test_tool_' + Math.random(),
+        description: 'Test tool',
+        execute: async () => 'hello'
+      }, { exposedTo: [test.origin] });
+    };
+
+    if (!test.success) {
+      return promise_rejects_dom(t, 'SecurityError', register(), `Should throw SecurityError for origin: ${test.origin}`);
+    } else {
+      try {
+        await register();
+      } catch (e) {
+        throw new Error(`Should not have thrown for ${test.origin}`);
+      }
+  }}, `registerTool() throws SecurityError for invalid or ` +
+  `non-potentially-trustworthy origins like ${test.origin} in exposedTo`);
+}
+
+promise_test(async t => {
+  const signal = AbortSignal.abort('aborted');
+  return promise_rejects_exactly(t, 'aborted', document.modelContext.registerTool({
+    name: "name",
+    description: "description",
+    execute: () => {}
+  }, { signal, exposedTo: ['about:blank#invalidOrigin']}) )
+}, "registerTool() with abort signal reason because signal is processed before `exposedTo`");
+
+promise_test(async t => {
+  const ac1 = new AbortController();
+
+  // 1. Attempt an invalid tool registration whose promise rejects with SecurityError.
+  const p1 = document.modelContext.registerTool({
+    name: 'target_tool',
+    description: 'Target tool',
+    execute: async () => 'callback1'
+  }, { signal: ac1.signal, exposedTo: ['http://insecure.example'] });
+  await promise_rejects_dom(t, 'SecurityError', p1, 'First registration should fail with SecurityError');
+
+  // 2. Valid tool registration with callback2 under the same tool name.
+  const ac2 = new AbortController();
+  await document.modelContext.registerTool({
+    name: 'target_tool',
+    description: 'Target tool',
+    execute: async () => 'callback2'
+  }, { signal: ac2.signal });
+
+  // 3. Cache the RegisteredTool object.
+  const [tool] = await document.modelContext.getTools();
+  assert_true(!!tool, 'target_tool should be registered');
+
+  // 4. Abort the signal from the first (rejected) registration.
+  ac1.abort();
+
+  // 5. Attempt to register a replacement callback3 under the same name.
+  // Since ac1.abort() must not unregister target_tool, this duplicate registration must reject with InvalidStateError.
+  const p3 = document.modelContext.registerTool({
+    name: 'target_tool',
+    description: 'Target tool replacement',
+    execute: async () => 'callback3'
+  });
+  await promise_rejects_dom(t, 'InvalidStateError', p3, 'Duplicate registration should reject with InvalidStateError');
+
+  // 6. Execute the cached RegisteredTool.
+  // This must execute callback2 and resolve to 'callback2', not callback3.
+  const result = await document.modelContext.executeTool(tool, '{}');
+  assert_equals(result, 'callback2', 'Executing the cached RegisteredTool must run callback2');
+}, 'Aborting a signal from a rejected registration must not unregister a later valid tool with the same name');
+</script>
+</body>
+</html>

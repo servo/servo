@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="fr" class="reftest-wait">
+<link rel="author" title="Ryosuke Niwa" href="mailto:rniwa@webkit.org"/>
+<link rel="help" href="https://drafts.csswg.org/selectors/#relational">
+<link rel="help" href="https://drafts.csswg.org/selectors/#lang-pseudo">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<body>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div><span></span></div>
+<script>
+const test = document.querySelector('div').matches('*:has(:lang(fr))') ? 'PASS' : 'FAIL';
+
+const newDocumentElement = document.createElement('html');
+newDocumentElement.lang = 'en';
+document.replaceChild(newDocumentElement, document.documentElement);
+document.documentElement.innerHTML = `
+<head>
+<style>
+    div { width: 100px; height: 100px; }
+    div:has(*:lang(fr)) { background: red; }
+    div:has(*:lang(en)) { background: green; }
+    span.pass { color: green; }
+    span.fail { color: red; }
+</style>
+</head>
+<body>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div><span class="${test.toLowerCase()}">${test}</span></div>
+</body>`;
+</script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>z-index, will-change, mix-blend-mode on overlapping layers</title>
+<link rel="match" href="z-index-blend-will-change-overlapping-layers-ref.html">
+<link rel="help" href="https://www.w3.org/TR/CSS2/visuren.html#propdef-z-index">
+<link rel="help" href="https://drafts.csswg.org/css-will-change/#will-change">
+<link rel="help" href="https://www.w3.org/TR/compositing-1/#mix-blend-mode">
+<meta name="assert" content="Tests z-index, will-change and mix-blend-mode on overlapping layers.
+Passes if there is a green bar when the page is scrolled to the bottom.">
+<script src="/common/reftest-wait.js"></script>
+<div style="z-index: 1; position: relative; height: 100vh">
+  <div style="mix-blend-mode: multiply"></div>
+  <div style="will-change: transform; position: absolute; bottom: -100px; width: 100px; height: 100px; background: red">
+  </div>
+</div>
+<div style="z-index: 1; position: relative; background: green; height: 100px"></div>
+<script>
+requestAnimationFrame(()=>{
+  requestAnimationFrame(()=>{
+    window.scrollBy(0, 100);
+    takeScreenshot();
+  });
+});
+</script>
+</html>

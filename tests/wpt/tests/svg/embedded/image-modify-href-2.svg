@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:xlink="http://www.w3.org/1999/xlink"
+     xmlns:h="http://www.w3.org/1999/xhtml" viewBox="0 0 4 4" width="200" height="200" class="reftest-wait">
+  <metadata>
+    <title>removing href from an SVG image that has a modified xlink:href</title>
+    <h:link rel="match" href="reference/green-rect-100x100.svg"/>
+  </metadata>
+  <script href="/common/reftest-wait.js"></script>
+  <script href="/common/rendering-utils.js"></script>
+  <image width="2" onload="test()"
+         href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' width='50' height='50' &gt;&lt;rect width='50' height='50' fill='red'/&gt;&lt;/svg&gt;"
+         xlink:href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' width='50' height='50' &gt;&lt;rect width='50' height='50' fill='orange'/&gt;&lt;/svg&gt;"/>
+  <script>
+    const XLINK_NS = "http://www.w3.org/1999/xlink";
+    const GREEN_DATA_URI = "data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' width='50' height='50' &gt;&lt;rect width='50' height='50' fill='green'/&gt;&lt;/svg&gt;";
+    // Our 'image' elem fires its load event twice: first for its 'href'
+    // data-URI, and then again for its 'xlink:href' data-URI (after
+    // our dynamic attribute-removal makes it switch to load that one).
+    // But we only want test() to run for the first load, so we use
+    // 'didStartTest' to nerf any invocations after the first.
+    let didStartTest = false;
+    async function test() {
+      if (didStartTest) {
+        return;
+      }
+      didStartTest = true;
+      await waitForAtLeastOneFrame();
+      let image = document.querySelector('image');
+      image.setAttributeNS(XLINK_NS, 'href', GREEN_DATA_URI);
+      await waitForAtLeastOneFrame();
+      image.removeAttribute('href');
+
+      /* Note: the xlink:href attribute should be left behind, intact. */
+      await waitForAtLeastOneFrame();
+      takeScreenshot();
+    }
+  </script>
+</svg>

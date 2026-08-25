@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Test: descriptor pad</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org/">
+<link rel="help" href="https://drafts.csswg.org/css-counter-styles-3/#counter-style-pad">
+<link rel="match" href="descriptor-pad-ref.html">
+<link rel="stylesheet" href="support/test-common.css">
+<style type="text/css">
+  @counter-style a {
+    system: extends upper-roman;
+    range: infinite 5;
+    pad: 3 '*';
+  }
+  @counter-style b {
+    system: extends decimal;
+    negative: '(' ')';
+    pad: 3 '0';
+  }
+  @counter-style c {
+    system: alphabetic;
+    symbols: a\0304  a\0301  a\030c  a\0300;
+    pad: 3 o;
+    suffix: '';
+  }
+  @counter-style d {
+    system: extends decimal;
+    pad: '0' 3;
+  }
+</style>
+<ol start="-3" style="list-style-type: a">
+  <li><li><li><li><li>
+  <li><li><li><li><li>
+</ol>
+<ol start="-2" style="list-style-type: b">
+  <li><li><li><li><li>
+</ol>
+<ol style="list-style-type: c">
+  <li><li>
+  <li value="6"><li value="16">
+  <li value="27"><li value="70">
+</ol>
+<ol style="list-style-type: d">
+  <li>
+</ol>

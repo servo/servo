@@ -1,0 +1,18 @@
+<!doctype html>
+<title>Absolutely positioned descendants of a listbox select render</title>
+<link rel="match" href="listbox-abspos-descendant-ref.html">
+<link rel="help" href="https://bugzil.la/2056610">
+<style>
+  select {
+    appearance: none;
+    border: 1px solid black;
+    padding: 0;
+    background: white;
+    width: 60px;
+    border-radius: 0;
+  }
+</style>
+<select size="2" style="position:relative">
+  <option>a</option>
+  <div style="position:absolute; inset:0; background:green"></div>
+</select>

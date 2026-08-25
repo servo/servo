@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Animation.pause</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations/#dom-animation-pause">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+promise_test(t => {
+  const div = createDiv(t);
+  const animation = div.animate({}, 1000 * MS_PER_SEC);
+  let previousCurrentTime = animation.currentTime;
+
+  return animation.ready.then(waitForAnimationFrames(1)).then(() => {
+    assert_true(animation.currentTime >= previousCurrentTime,
+                'currentTime is initially increasing');
+    animation.pause();
+    return animation.ready;
+  }).then(() => {
+    previousCurrentTime = animation.currentTime;
+    return waitForAnimationFrames(1);
+  }).then(() => {
+    assert_equals(animation.currentTime, previousCurrentTime,
+                  'currentTime does not increase after calling pause()');
+  });
+}, 'pause() a running animation');
+
+promise_test(t => {
+  const div = createDiv(t);
+  const animation = div.animate({}, 1000 * MS_PER_SEC);
+
+  // Go to idle state then pause
+  animation.cancel();
+  animation.pause();
+
+  assert_equals(animation.currentTime, 0, 'currentTime is set to 0');
+  assert_equals(animation.startTime, null, 'startTime is not set');
+  assert_equals(animation.playState, 'paused', 'in paused play state');
+  assert_true(animation.pending, 'initially pause-pending');
+
+  // Check it still resolves as expected
+  return animation.ready.then(() => {
+    assert_false(animation.pending, 'no longer pending');
+    assert_equals(animation.currentTime, 0,
+                  'keeps the initially set currentTime');
+  });
+}, 'pause() from idle');
+
+promise_test(t => {
+  const div = createDiv(t);
+  const animation = div.animate({}, 1000 * MS_PER_SEC);
+  animation.cancel();
+  animation.playbackRate = -1;
+  animation.pause();
+
+  assert_equals(animation.currentTime, 1000 * MS_PER_SEC,
+                'currentTime is set to the effect end');
+
+  return animation.ready.then(() => {
+    assert_equals(animation.currentTime, 1000 * MS_PER_SEC,
+                  'keeps the initially set currentTime');
+  });
+}, 'pause() from idle with a negative playbackRate');
+
+test(t => {
+  const div = createDiv(t);
+  const animation = div.animate({}, {duration: 1000 * MS_PER_SEC,
+                                   iterations: Infinity});
+  animation.cancel();
+  animation.playbackRate = -1;
+
+  assert_throws_dom('InvalidStateError',
+                    () => { animation.pause(); },
+                    'Expect InvalidStateError exception on calling pause() ' +
+                    'from idle with a negative playbackRate and ' +
+                'infinite-duration animation');
+}, 'pause() from idle with a negative playbackRate and endless effect');
+
+promise_test(t => {
+  const div = createDiv(t);
+  const animation = div.animate({}, 1000 * MS_PER_SEC);
+  return animation.ready
+    .then(animation => {
+      animation.finish();
+      animation.pause();
+      return animation.ready;
+    }).then(animation => {
+      assert_equals(animation.currentTime, 1000 * MS_PER_SEC,
+                    'currentTime after pausing finished animation');
+    });
+}, 'pause() on a finished animation');
+
+</script>
+</body>

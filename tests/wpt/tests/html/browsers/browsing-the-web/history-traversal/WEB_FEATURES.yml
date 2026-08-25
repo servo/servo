@@ -1,0 +1,3 @@
+rules:
+- hashchange_event.html: [hashchange]
+- "*": [history]

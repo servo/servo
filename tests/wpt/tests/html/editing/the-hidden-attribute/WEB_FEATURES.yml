@@ -1,0 +1,5 @@
+rules:
+- beforematch-scroll-to-text-fragment.html: [scroll-to-text-fragment, hidden-until-found]
+- beforematch-*: [hidden-until-found]
+- hidden-until-found-text-fragment.html: [scroll-to-text-fragment, hidden-until-found]
+- hidden-until-found-*: [hidden-until-found]

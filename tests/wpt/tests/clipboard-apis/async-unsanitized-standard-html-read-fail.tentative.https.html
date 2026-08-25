@@ -1,0 +1,46 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Async Clipboard unsanitized HTML read validation tests</title>
+<link rel="help" href="https://w3c.github.io/clipboard-apis/#async-clipboard-api">
+<body>Body needed for test_driver.click()</body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/user-activation.js"></script>
+<script>
+'use strict';
+
+promise_test(async t => {
+  await tryGrantReadPermission();
+
+  await waitForUserActivation();
+  await promise_rejects_dom(t, 'NotAllowedError',
+      navigator.clipboard.read({unsanitized: ['text/html', 'text/plain']}));
+}, 'navigator.clipboard.read() fails for multiple unsanitized formats requested.');
+
+promise_test(async t => {
+  await tryGrantReadPermission();
+
+  await waitForUserActivation();
+  await promise_rejects_dom(t, 'NotAllowedError',
+      navigator.clipboard.read({unsanitized: ['text/plain']}));
+}, 'navigator.clipboard.read() fails for unsanitized text/plain requested.');
+
+promise_test(async t => {
+  await tryGrantReadPermission();
+
+  await waitForUserActivation();
+  await promise_rejects_dom(t, 'NotAllowedError',
+      navigator.clipboard.read({unsanitized: ['image/png']}));
+}, 'navigator.clipboard.read() fails for unsanitized image/png requested.');
+
+promise_test(async t => {
+  await tryGrantReadPermission();
+
+  await waitForUserActivation();
+  await promise_rejects_dom(t, 'NotAllowedError',
+      navigator.clipboard.read({unsanitized: ['image/svg+xml']}));
+}, 'navigator.clipboard.read() fails for unsanitized image/svg+xml requested.');
+
+</script>

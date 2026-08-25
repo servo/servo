@@ -1,0 +1,65 @@
+<!doctype HTML>
+<html>
+<meta charset="utf8">
+<title>Content Visibility: ContentVisibilityAutoStateChange event.</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<meta name="assert" content="ContentVisibilityAutoStateChange fires once when element is inserted">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+.spacer {
+  height: 10000px;
+}
+</style>
+
+<div id=topdiv></div>
+<div class=spacer></div>
+<div id=bottomdiv></div>
+
+<script>
+promise_test(t => new Promise(async (resolve, reject) => {
+  await new Promise((waited, _) => {
+    requestAnimationFrame(() => requestAnimationFrame(waited));
+  });
+
+  let observed = false;
+  let div = document.createElement("div");
+  div.addEventListener("contentvisibilityautostatechange", (e) => {
+    if (observed)
+      reject("already observed");
+    if (e.skipped)
+      reject("unexpected skipped");
+    observed = true;
+    // Wait a couple of frames to ensure no other signal comes in
+    requestAnimationFrame(() => requestAnimationFrame(resolve));
+  });
+
+  div.style.contentVisibility = "auto";
+  topdiv.appendChild(div);
+}), "ContentVisibilityAutoStateChange fires once when added (not skipped)");
+
+promise_test(t => new Promise(async (resolve, reject) => {
+  await new Promise((waited, _) => {
+    requestAnimationFrame(() => requestAnimationFrame(waited));
+  });
+
+  let observed = false;
+  let div = document.createElement("div");
+  div.addEventListener("contentvisibilityautostatechange", (e) => {
+    if (observed)
+      reject("already observed");
+    if (!e.skipped)
+      reject("unexpected not skipped");
+    observed = true;
+    // Wait a couple of frames to ensure no other signal comes in
+    requestAnimationFrame(() => requestAnimationFrame(resolve));
+  });
+
+  div.style.contentVisibility = "auto";
+  bottomdiv.appendChild(div);
+}), "ContentVisibilityAutoStateChange fires once when added (skipped)");
+</script>
+

@@ -1,0 +1,37 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+/*
+ * The origin of this IDL file is:
+ * https://dom.spec.whatwg.org/#interface-shadowroot
+ */
+
+[Exposed=Window]
+interface ShadowRoot : DocumentFragment {
+  readonly attribute ShadowRootMode mode;
+  readonly attribute boolean delegatesFocus;
+  readonly attribute SlotAssignmentMode slotAssignment;
+  readonly attribute boolean clonable;
+  readonly attribute boolean serializable;
+  readonly attribute Element host;
+  attribute EventHandler onslotchange;
+};
+
+
+enum ShadowRootMode { "open", "closed"};
+enum SlotAssignmentMode { "manual", "named" };
+
+ShadowRoot includes DocumentOrShadowRoot;
+
+// https://html.spec.whatwg.org/multipage/#dom-parsing-and-serialization
+partial interface ShadowRoot {
+  [CEReactions, Throws] undefined setHTMLUnsafe((TrustedHTML or DOMString) html, optional SetHTMLUnsafeOptions options = {});
+  DOMString getHTML(optional GetHTMLOptions options = {});
+
+  [CEReactions, Throws] attribute (TrustedHTML or [LegacyNullToEmptyString] DOMString) innerHTML;
+};
+
+// https://wicg.github.io/sanitizer-api/#sanitizer-api
+partial interface ShadowRoot {
+  [CEReactions, Throws] undefined setHTML(DOMString html, optional SetHTMLOptions options = {});
+};

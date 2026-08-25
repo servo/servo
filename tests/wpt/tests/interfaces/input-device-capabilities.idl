@@ -1,0 +1,24 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Input Device Capabilities (https://wicg.github.io/input-device-capabilities/)
+
+[Exposed=Window]
+interface InputDeviceCapabilities {
+  constructor(optional InputDeviceCapabilitiesInit deviceInitDict = {});
+  readonly attribute boolean firesTouchEvents;
+  readonly attribute boolean pointerMovementScrolls;
+};
+
+dictionary InputDeviceCapabilitiesInit {
+  boolean firesTouchEvents = false;
+  boolean pointerMovementScrolls = false;
+};
+
+partial interface UIEvent {
+  readonly attribute InputDeviceCapabilities? sourceCapabilities;
+};
+
+partial dictionary UIEventInit {
+  InputDeviceCapabilities? sourceCapabilities = null;
+};

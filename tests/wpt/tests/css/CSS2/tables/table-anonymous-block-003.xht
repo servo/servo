@@ -1,0 +1,55 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: The anonymous block box around a table is as wide as the border edge of the table</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#model" />
+        <meta name="assert" content="The anonymous block around the table and caption is as wide as the border edge of the table box." />
+        <style type="text/css">
+            div
+            {
+                color: blue;
+            }
+            #table
+            {
+                background: black;
+                display: table;
+                float: left;
+                width: 100px;
+            }
+            #caption
+            {
+                background: blue;
+                color: blue;
+                display: table-caption;
+                width: 200px;
+            }
+            #tr
+            {
+                display: table-row;
+            }
+            #td
+            {
+                color: black;
+                display: table-cell;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the blue box below is wider, and thus overhangs the black box and "Filler Text" appears immediately after the end (right side) of the black box.</p>
+        <div>Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text
+            Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text
+            Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text
+            <span id="table">
+                <span id="caption">Filler Text Filler Text</span>
+                <span id="tr">
+                    <span id="td">Filler Text</span>
+                </span>
+            </span>
+            Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text
+            Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text
+            Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text
+            Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text Filler Text
+        </div>
+    </body>
+</html>

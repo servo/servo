@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>MessageChannel transfer of VideoFrame</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async t => {
+    const canvas = new OffscreenCanvas(2, 2);
+    const ctx = canvas.getContext("2d");
+    ctx.fillRect(0, 0, 2, 2);
+    const frame = new VideoFrame(canvas, { timestamp: 0 });
+
+    const channel = new MessageChannel();
+    const received = new Promise(resolve => {
+        channel.port2.onmessage = e => resolve(e.data);
+    });
+
+    channel.port1.postMessage(frame, [frame]);
+
+    const copy = await received;
+    assert_true(copy instanceof VideoFrame);
+    assert_equals(copy.codedWidth, 2);
+    assert_equals(copy.codedHeight, 2);
+    copy.close();
+}, "VideoFrame can be transferred through a MessageChannel");
+</script>

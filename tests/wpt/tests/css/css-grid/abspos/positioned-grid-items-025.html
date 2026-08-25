@@ -1,0 +1,34 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>CSS Grid Layout Test: Positioned grid items</title>
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#abspos">
+<link rel="match" href="positioned-grid-items-025-ref.html">
+<meta name="assert" content="Checks that absolutely positioned items are properly placed and sized.">
+<style>
+  #grid {
+    display: grid;
+    grid-template-columns: 50px 100px;
+    height: 100px;
+    width: 150px;
+    direction: rtl;
+    padding-left: 50px;
+    padding-right: 80px;
+    position: absolute;
+  }
+
+  #grid > div {
+    top: 0px;
+    right: 0px;
+    bottom: 0px;
+    left: 0px;
+    position: absolute;
+    background-color: blue;
+  }
+</style>
+
+</head><body><div id="grid">
+  <div style="grid-column: auto / 1;"></div>
+  <div style="grid-column: -1 / auto;"></div>
+</div>
+</body></html>

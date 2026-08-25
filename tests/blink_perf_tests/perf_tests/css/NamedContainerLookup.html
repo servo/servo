@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<script src="../resources/runner.js"></script>
+<script src="./resources/utils.js"></script>
+<style>
+  #root {
+    container-type: size;
+    width: 64px;
+    height: 64px;
+  }
+  #root.name {
+    container-name: root;
+  }
+</style>
+<div id=root class=name></div>
+
+<!-- Populated with result of `makeContainerQueries(N)` -->
+<style id=query></style>
+
+<script>
+// Returns `ruleCount` @container rules which all query 'root':
+//
+//  @container root (width > 1px) { #dependent { } }
+//  @container root (width > 1px) { #dependent { } }
+//  @container root (width > 1px) { #dependent { } }
+//  ...
+//  @container root (width > 1px) { #dependent { } }
+// }
+function makeContainerQueries(ruleCount) {
+  let rules = [];
+  for (let i = 0; i < ruleCount; i++)
+    rules.push(`@container root (width > 1px) { #dependent { } }`);
+  return rules.join('\n');
+}
+
+function setup() {
+  query.textContent = makeContainerQueries(10000);
+
+  createDOMTree(root, 1 /* siblings */, 1000 /* depth */);
+  let inner = root.querySelector('div:empty');
+  inner.textContent = 'Test';
+  inner.setAttribute('id', 'dependent');
+  inner.parentElement.style.container = 'other / size';
+}
+
+setup();
+
+PerfTestRunner.measureTime({
+    description: 'Looking up the same named container many times',
+    run: () => {
+      root.classList.toggle('name');
+      root.offsetHeight;
+    },
+    done: () => {
+      root.remove();
+    }
+});
+
+</script>
+</body>
+</html>

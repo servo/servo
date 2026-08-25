@@ -1,0 +1,7 @@
+Reporting-Endpoints: csp-endpoint="/reporting/resources/report.py?reportID={{$id:uuid()}}"
+Content-Security-Policy: script-src-elem 'self' {{hosts[alt][www]}}:{{ports[https][0]}} 'unsafe-inline' 'report-sha256'; report-to csp-endpoint
+Reporting-Endpoints: csp-endpoint2="/reporting/resources/report.py?reportID={{$id2:uuid()}}"
+Content-Security-Policy: script-src-elem 'self' {{hosts[alt][www]}}:{{ports[https][0]}} 'unsafe-inline' 'report-sha512'; report-to csp-endpoint2
+Server-Timing: uuid;desc="{{$id}}",hash;desc="sha256-1XF/E08XndkoxwN6eIa5J89hYn3OVZ/UyB8BrU5jgzk="
+Server-Timing: uuid2;desc="{{$id2}}",hash2;desc="sha512-hG4x56V5IhUUepZdYU/lX7UOQJ2M7f6ud2EI7os4JV3OwXSZ002P3zkb9tXQkjpOO8UbtjuEufvdcU67Qt2tlw=="
+

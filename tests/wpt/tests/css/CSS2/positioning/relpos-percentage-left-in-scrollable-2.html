@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visuren.html#propdef-left">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visuren.html#relative-positioning">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visuren.html#anonymous-block-level">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1002485">
+<p>There should be no red, and no scrollbar.</p>
+<div id="container" style="overflow:auto; width:500px; background:red;">
+  <div style="padding-right:90%; background:yellow;">
+    <div style="position:relative; left:900%; background:cyan;">
+      <div></div>
+      &nbsp;
+    </div>
+  </div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  container.scrollLeft = 123456;
+  test(()=> {
+      assert_equals(container.scrollLeft, 0);
+  }, "Left percentage resolved correctly for overflow contribution");
+</script>

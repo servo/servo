@@ -1,0 +1,128 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL WEBGL_compressed_texture_etc Conformance Tests</title>
+<LINK rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/tests/compressed-texture-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description("This test verifies the functionality of the WEBGL_compressed_texture_etc extension, if it is available.");
+
+debug("");
+
+var validFormats = {
+  COMPRESSED_R11_EAC                        : 0x9270,
+  COMPRESSED_SIGNED_R11_EAC                 : 0x9271,
+  COMPRESSED_RG11_EAC                       : 0x9272,
+  COMPRESSED_SIGNED_RG11_EAC                : 0x9273,
+  COMPRESSED_RGB8_ETC2                      : 0x9274,
+  COMPRESSED_SRGB8_ETC2                     : 0x9275,
+  COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2  : 0x9276,
+  COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2 : 0x9277,
+  COMPRESSED_RGBA8_ETC2_EAC                 : 0x9278,
+  COMPRESSED_SRGB8_ALPHA8_ETC2_EAC          : 0x9279
+};
+
+function expectedByteLength(width, height, format) {
+  var blockSizeInBytes = 8;
+
+  var largerBlockFormats = [
+    validFormats.COMPRESSED_RG11_EAC,
+    validFormats.COMPRESSED_SIGNED_RG11_EAC,
+    validFormats.COMPRESSED_RGBA8_ETC2_EAC,
+    validFormats.COMPRESSED_SRGB8_ALPHA8_ETC2_EAC];
+
+  if (largerBlockFormats.indexOf(format) >= 0) {
+    blockSizeInBytes = 16;
+  }
+
+  return Math.floor((width + 3) / 4) * Math.floor((height + 3) / 4) * blockSizeInBytes;
+}
+
+function getBlockDimensions(format) {
+  return {width: 4, height: 4};
+}
+
+var wtu = WebGLTestUtils;
+var ctu = CompressedTextureUtils;
+var contextVersion = wtu.getDefault3DContextVersion();
+var gl = wtu.create3DContext();
+var WEBGL_compressed_texture_etc;
+
+var formats = null;
+
+function runTest() {
+  if (!gl) {
+    testFailed("context does not exist");
+  } else {
+    testPassed("context exists");
+
+    ctu.testCompressedFormatsUnavailableWhenExtensionDisabled(gl, validFormats, expectedByteLength, 4);
+
+    WEBGL_compressed_texture_etc = gl.getExtension("WEBGL_compressed_texture_etc");
+
+    wtu.runExtensionSupportedTest(gl, "WEBGL_compressed_texture_etc", WEBGL_compressed_texture_etc !== null);
+
+    var isPositive = WEBGL_compressed_texture_etc !== null;
+
+    if (isPositive) {
+      // Test that enum values are listed correctly in supported formats and in the extension object.
+      ctu.testCompressedFormatsListed(gl, validFormats);
+      ctu.testCorrectEnumValuesInExt(WEBGL_compressed_texture_etc, validFormats);
+      // Test that texture upload buffer size is validated correctly.
+      ctu.testFormatRestrictionsOnBufferSize(gl, validFormats, expectedByteLength, getBlockDimensions);
+
+      var tex = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+
+      for (var name in validFormats) {
+        if (validFormats.hasOwnProperty(name)) {
+          var format = validFormats[name];
+          wtu.shouldGenerateGLError(gl, gl.NO_ERROR, "gl.compressedTexImage2D(gl.TEXTURE_2D, 0, " + format + ", 4, 4, 0, new Uint8Array(" + expectedByteLength(4, 4, format) + "))");
+          wtu.shouldGenerateGLError(gl, gl.NO_ERROR, "gl.compressedTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 4, 4, " + format + ", new Uint8Array(" + expectedByteLength(4, 4, format) + "))");
+        }
+      }
+    }
+
+    var tex2 = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex2);
+
+    debug("");
+    if (contextVersion >= 2) {
+      var expectedError = isPositive ? gl.INVALID_OPERATION: [gl.INVALID_ENUM, gl.INVALID_OPERATION];
+      // `null` coerces into `0` for the PBO entrypoint, yielding INVALID_OP due to no PBO bound.
+      wtu.shouldGenerateGLError(gl, expectedError, "gl.compressedTexImage2D(gl.TEXTURE_2D, 0, validFormats.COMPRESSED_R11_EAC, 4, 4, 0, 0, null)");
+      wtu.shouldGenerateGLError(gl, expectedError, "gl.compressedTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 0, 0, validFormats.COMPRESSED_R11_EAC, 0, null)");
+      wtu.shouldGenerateGLError(gl, expectedError, "gl.compressedTexImage3D(gl.TEXTURE_2D_ARRAY, 0, validFormats.COMPRESSED_R11_EAC, 4, 4, 4, 0, 0, null)");
+      wtu.shouldGenerateGLError(gl, expectedError, "gl.compressedTexSubImage3D(gl.TEXTURE_2D_ARRAY, 0, 0, 0, 0, 0, 0, 0, validFormats.COMPRESSED_R11_EAC, 0, null)");
+    } else {
+      shouldThrow("gl.compressedTexImage2D(gl.TEXTURE_2D, 0, validFormats.COMPRESSED_R11_EAC, 4, 4, 0, null)");
+      shouldThrow("gl.compressedTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 0, 0, validFormats.COMPRESSED_R11_EAC, null)");
+      shouldThrow("gl.compressedTexImage3D(gl.TEXTURE_2D_ARRAY, 0, validFormats.COMPRESSED_R11_EAC, 4, 4, 4, 0, null)");
+      shouldThrow("gl.compressedTexSubImage3D(gl.TEXTURE_2D_ARRAY, 0, 0, 0, 0, 0, 0, 0, validFormats.COMPRESSED_R11_EAC, null)");
+    }
+  }
+}
+
+runTest();
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<title>Test named frame navigation of descendants</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/common/utils.js"></script>
+
+<body>
+  <!-- This anchor element is clicked via script to navigate a target frame by
+       name. The target frame will always exist inside a fenced frame tree, and
+       therefore shouldn't actually work. The expected behavior is that the
+       navigation should end up in a new top-level browsing context, as per [1],
+       which will communicate back to the main page (via the server stash)
+       letting us know that the navigation succeeded, and did not successfully
+       target a frame inside the fenced frame boundary.
+
+       [1]: https://html.spec.whatwg.org/C/#the-rules-for-choosing-a-browsing-context-given-a-browsing-context-name
+  -->
+<script>
+  const kAssertion = "The anchor element did not navigate a frame inside the " +
+                     "fenced frame boundary: ";
+  // This is used by `navigate-by-name-reporting-helper.html` to let us know if
+  // the navigation correctly opened a new top-level popup window, or
+  // incorrectly targeted a browsing context inside the fenced frame boundary.
+  const navigation_success_key = token();
+  // This is sent by the `navigate-by-name-inner.html` to indicate that it has
+  // set up a frame whose name is `target_frame`, that we are supposed to try
+  // and navigate by name.
+  const ready_for_navigation_key = token();
+
+  const a = document.createElement("a");
+  a.href = generateURL('resources/navigate-by-name-reporting-helper.html',
+      [navigation_success_key]);
+  a.innerText = "Click to navigate target frame";
+  a.target = "target_frame";
+  document.body.append(a);
+
+async function runTest(test_type) {
+  const fenced_frame =
+    attachFencedFrame(generateURL(
+        `resources/navigate-by-name-inner.html`,
+        [ready_for_navigation_key, test_type]));
+
+  // Wait for the fenced frame to say it is ready for us (the outer page) to
+  // initiate a named frame navigation, targeting a frame inside the fence.
+  let result = await nextValueFromServer(ready_for_navigation_key);
+  assert_equals(result, "READY", "The top-level fenced frame is ready for " +
+                                 "us to navigate");
+
+  // Now that the fenced frame has a frame whose name is `target_frame`, let's
+  // try and navigate it.
+  a.click();
+  result = await nextValueFromServer(navigation_success_key);
+  assert_equals(result, "PASS", kAssertion + test_type);
+
+  // Get a reference to the window opened up by the anchor navigation, and
+  // close it.
+  const win = window.open("", "target_frame");
+  win.close();
+
+  // Clean up the fenced frame
+  document.body.removeChild(fenced_frame);
+}
+
+promise_test(async() => {
+  // First just test that when we have no real target frame to navigate,
+  // everything works as expected.
+  a.click();
+  const result = await nextValueFromServer(navigation_success_key);
+  assert_equals(result, "PASS", "The initial test works");
+
+  // Get a reference to the already-opened window and close it.
+  const win = window.open("", "target_frame");
+  win.close();
+}, "setup");
+
+promise_test(async () => {
+  return runTest("top-level fenced frame");
+}, "navigate top-level fenced frame by name");
+
+promise_test(async () => {
+  return runTest("nested iframe");
+}, "navigate iframe nested in a fenced frame by name");
+
+promise_test(async () => {
+  return runTest("nested fenced frame");
+}, "navigate nested fenced frame by name");
+
+</script>
+</body>

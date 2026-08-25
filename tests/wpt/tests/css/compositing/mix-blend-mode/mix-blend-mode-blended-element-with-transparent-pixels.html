@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>CSS Test: blending between an element with transparent pixels and a child element</title>
+        <link rel="author" title="Mirela Budăeș" href="mailto:mbudaes@adobe.com">
+        <link rel="author" title="Mihai Tica" href="mailto:mitica@adobe.com">
+        <link rel="reviewer" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+        <link rel="reviewer" title="Horia Olaru" href="mailto:olaru@adobe.com">
+        <link rel="help" href="https://drafts.fxtf.org/compositing-1/#mix-blend-mode">
+        <meta name="assert" content="Test checks that blending is performed with a parent
+            that creates a stacking context, but not with any of its underlying content.
+            The element, including its children, must blend with the parent as a whole.">
+        <link rel="match" href="reference/mix-blend-mode-blended-element-with-transparent-pixels-ref.html">
+        <style type="text/css">
+            .parent {
+                position: absolute;
+                z-index: 1;
+                background: #00F;
+                width: 100px;
+                height: 100px;
+                margin: 10px;
+            }
+            .blender {
+                width: 120px;
+                height: 120px;
+                background: transparent;
+                mix-blend-mode: difference;
+                margin: -10px;
+            }
+            .blendedChild {
+                width: 120px;
+                height: 120px;
+                background: #0FF;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if you can see a lime square with aqua borders.<br>
+            If the borders are red, the test fails.</p>
+        <div class="parent">
+            <div class="blender">
+                <div class="blendedChild"></div>
+            </div>
+        </div>
+    </body>
+</html>

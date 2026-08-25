@@ -1,0 +1,13 @@
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  async_test(t => {
+    window.addEventListener("message", t.step_func_done(e => {
+      assert_equals(e.data, "img blocked",
+                    "Img should be blocked by CSP img-src 'none'");
+    }));
+
+    w = window.open("./support/navigate-self-to-javascript.html");
+    t.add_cleanup(w.close);
+  }, "Executing Javascript URL keeps enforcing previous CSPs of the document.");
+</script>

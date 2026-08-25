@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Containment Test: Reference file</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<style>
+  div.inline-block {
+    display: inline-block;
+    height: 100px;
+    width: 100px;
+  }
+
+  div#blue-test {
+    background-color: blue;
+    color: transparent;
+    font-size: 100px;
+    padding: 50px;
+    box-sizing: border-box;
+  }
+
+  div#orange-reference {
+    background-color: orange;
+  }
+</style>
+
+<p>This test passes if the painted blue area is <strong>exactly as wide as</strong> the orange square.
+
+<div>
+  <div id="blue-test" class="inline-block">B</div>
+</div>
+
+<div>
+  <div id="orange-reference" class="inline-block"></div>
+</div>

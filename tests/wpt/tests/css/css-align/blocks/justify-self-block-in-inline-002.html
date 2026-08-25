@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-align/#justify-self-property">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/11462">
+<link rel="match" href="../../reference/ref-filled-green-200px-square.html">
+<meta name="assert" content="
+  On a block-level box with an inline parent, `justify-self: auto` behaves as
+  `justify-self: normal`. So in this case it should stretch.
+  The `justify-items: center` on the parent has no effect because `justify-items`
+  doesn't apply to inline boxes. The `justify-items: right` on the containing
+  block has no effect becasue it's not the parent box.
+">
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div style="width: 200px; justify-items: right; background: red">
+  <span style="justify-items: center">
+    <div style="min-width: 50px; height: 200px; background: green"></div>
+  </span>
+</div>

@@ -1,0 +1,5 @@
+rules:
+- tabindex-focus-flag.html: [tabindex]
+- focus-file-input.html: [input-file]
+- focus-01.html: [keyboard-events]
+- focus-02.html: [keyboard-events]

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src=/common/get-host-info.sub.js></script>
+<title>Page containing two nested iframes, with the inner iframe trying to navigate its top</title>
+<script>
+addEventListener('load', async () => {
+  const { OTHER_ORIGIN } = get_host_info();
+  const origin = OTHER_ORIGIN;
+
+  const path = new URL("page-with-top-navigating-iframe.html?same_origin=true" , window.location).pathname;
+
+  const iframe = document.createElement('iframe');
+  iframe.src = origin + path;
+  document.body.appendChild(iframe);
+});
+</script>
+

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Writing Modes Test: alternate text should display in the writing mode of associated element</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-writing-modes-3/#block-flow">
+
+  <meta content="should" name="flags">
+
+  <style>
+  .vrl
+    {
+      float: right;
+      writing-mode: vertical-rl;
+    }
+
+  .vlr
+    {
+      float: left;
+      writing-mode: vertical-lr;
+    }
+  </style>
+
+  <h3><img class="vrl" src="support/does-not-exist.png" alt="Test passes if this text is rotated 90°"></h3>
+
+  <h3><img class="vlr" src="support/does-not-exist.png" alt="Test passes if this text is rotated 90°"></h3>
+
+  <h3 class="vrl"><img src="support/does-not-exist.png" alt="Test passes if this text is rotated 90°"></h3>
+
+  <h3 class="vlr"><img src="support/does-not-exist.png" alt="Test passes if this text is rotated 90°"></h3>

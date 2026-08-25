@@ -1,0 +1,17 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+promise_test(async (t) => {
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  await new Promise(r => window.onload = () => t.step_timeout(r, 0));
+
+  navigation.currentEntry.ondispose = t.unreached_func("dispose must not happen for reloads");
+
+  navigation.addEventListener("navigate", e => e.intercept());
+
+  await navigation.reload().finished;
+}, "dispose events are not fired when doing a same-document reload using navigation.reload() and intercept()");
+</script>

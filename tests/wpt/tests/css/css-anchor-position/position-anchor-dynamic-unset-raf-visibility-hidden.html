@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Anchor Positioning: element is visible after position-anchor is dynamically set then unset via rAF</title>
+<link rel="author" title="Peng Zhou" href="mailto:zhoupeng.1996@bytedance.com">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#position-anchor">
+<link rel="match" href="position-anchor-dynamic-unset-visibility-hidden-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+#anchor {
+  position: fixed;
+  left: 50px;
+  top: 50px;
+  width: 50px;
+  height: 50px;
+  anchor-name: --a1;
+  visibility: hidden;
+}
+#popover {
+  position: fixed;
+  left: anchor(left, 100px);
+  top: anchor(bottom, 100px);
+  width: 50px;
+  height: 50px;
+  background: green;
+}
+</style>
+<div id="anchor"></div>
+<div id="popover"></div>
+<script>
+// rAF 1: Anchor to the hidden element.
+requestAnimationFrame(() => {
+  popover.style.positionAnchor = '--a1';
+  // rAF 2: Remove the anchor, `kAnchorsCssVisible` should be reset so the popover remains visible.
+  requestAnimationFrame(() => {
+    popover.style.positionAnchor = '';
+    requestAnimationFrame(() => takeScreenshot());
+  });
+});
+</script>
+</html>

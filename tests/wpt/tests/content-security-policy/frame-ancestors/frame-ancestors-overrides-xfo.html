@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+    <script>
+        async_test(function (t) {
+            var i = document.createElement('iframe');
+            i.src = "support/frame-ancestors-and-x-frame-options.sub.html?policy='self'&xfo=DENY";
+            i.onload = t.step_func_done(function () {
+                assert_equals(i.contentWindow.origin, window.origin, "The same-origin page loaded.");
+            });
+            document.body.appendChild(i);
+        }, "A 'frame-ancestors' CSP directive overrides an 'x-frame-options' header which would block the page.");
+
+        async_test(function (t) {
+            var i = document.createElement('iframe');
+            i.src = "support/frame-ancestors-and-x-frame-options.sub.html?policy=other-origin.com&xfo=SAMEORIGIN";
+            checkDone = t.step_func(function() {
+                clearTimeout(timer);
+                try {
+                    if (i.contentWindow.location.href === "about:blank" ||
+                        (i.contentDocument && i.contentDocument.readyState !== "complete")) {
+                        timer = t.step_timeout(checkDone, 10);
+                        return;
+                    }
+                } catch(e) {}
+                assert_equals(i.contentDocument, null);
+                t.done();
+            });
+            i.onload = checkDone;
+            let timer = t.step_timeout(checkDone, 10);
+            document.body.appendChild(i);
+        }, "A 'frame-ancestors' CSP directive overrides an 'x-frame-options' header which would allow the page.");
+    </script>
+</body>
+</html>

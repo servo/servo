@@ -1,0 +1,3 @@
+rules:
+- z-index.svg: [z-index]
+- clip-path-filter-order.svg: [svg-filters]

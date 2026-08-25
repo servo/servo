@@ -1,0 +1,11 @@
+{
+  "name": "WPT browser.bookmarks Test",
+  "version": "1.0",
+  "manifest_version": 3,
+  "permissions": ["bookmarks"],
+  "background": {
+    "scripts": [ "background.js" ],
+    "service_worker": "background.js",
+    "type": "module"
+  }
+}

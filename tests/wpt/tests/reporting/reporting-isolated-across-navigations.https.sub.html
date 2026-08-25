@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Bug test page 1</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/report-helper.js"></script>
+<script>
+promise_test(async t => {
+  await new Promise(resolve => {
+    window.addEventListener("message", resolve);
+  });
+  // At this point, the reporting endpoint should have received all three
+  // reports. Ensure that reports from the first page are not batched with
+  // those from the second, or sent to its endpoint.
+  const csp1_uuid = "112868aa-4b59-57c7-a388-db909ef24295";
+  const csp2_uuid = "612bf2ee-b9b8-5f8d-a239-0981c6ff057e";
+  const reports1 = await pollReports('/reporting/resources/report.py', csp1_uuid);
+  const reports2 = await pollReports('/reporting/resources/report.py', csp2_uuid);
+
+  const url_prefix = "https://{{location[host]}}/reporting/resources/";
+
+  // Validate that both received reports were CSP img-src violations from the
+  // same reporting source. Each image should be represented once, although the
+  // order does not matter.
+
+  assert_equals(reports1.length, 2, "First endpoint should receive two reports");
+
+  assert_equals(reports1[0].type, "csp-violation");
+  assert_equals(reports1[0].url, url_prefix + "first-csp-report.https.sub.html");
+  assert_equals(reports1[0].body.disposition, "enforce");
+  assert_equals(reports1[0].body.effectiveDirective, "img-src");
+
+  assert_equals(reports1[1].type, "csp-violation");
+  assert_equals(reports1[1].url, url_prefix + "first-csp-report.https.sub.html");
+  assert_equals(reports1[1].body.disposition, "enforce");
+  assert_equals(reports1[1].body.effectiveDirective, "img-src");
+
+  var image_sources = [reports1[0].body.blockedURL, reports1[1].body.blockedURL].sort();
+  assert_equals(image_sources[0], url_prefix + "missing1.png");
+  assert_equals(image_sources[1], url_prefix + "missing2.png");
+
+  // Validate that the report received from the second endpoint was also a CSP
+  // img-source violation, from a different URL.
+
+  assert_equals(reports2.length, 1, "Second endpoint should reecive one report");
+  assert_equals(reports2[0].type, "csp-violation");
+  assert_equals(reports2[0].url, url_prefix + "second-csp-report.https.sub.html");
+  assert_equals(reports2[0].body.disposition, "enforce");
+  assert_equals(reports2[0].body.effectiveDirective, "img-src");
+  assert_equals(reports2[0].body.blockedURL, url_prefix + "missing3.png");
+}, "Reports should be sent to the correct endpoints");
+</script>
+<body>
+<h1>Bug test main frame</h1>
+<iframe id="frame" src="resources/first-csp-report.https.sub.html"></iframe>
+</body>

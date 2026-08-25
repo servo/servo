@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>variable definition cascading tests</title>
+
+    <meta rel="author" title="Kevin Babbitt">
+    <meta rel="author" title="Greg Whitworth">
+    <link rel="author" title="Microsoft Corporation" href="http://microsoft.com" />
+    <link rel="help" href="http://www.w3.org/TR/css-variables-1/#using-variables">
+
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style>
+        * {
+            --var0:x;
+        }
+    </style>
+</head>
+<body>
+    <!-- test global selector -->
+    <div id="t0"></div>
+
+    <!-- multiple unique variables cascading together -->
+    <div id="t1a" style="--var1:a">
+        <div id="t1b" style="--var2:b">
+            <div id="t1c" style="--var3:c"></div>
+            <div id="t1d" style="--var4:d"></div>
+        </div>
+    </div>
+
+    <!-- testing overwriting -->
+    <div id="t2a" style="--var0:a">
+        <div id="t2b" style="--var0:b;--var1:c">
+            <div id="t2c" style="--var0:d;--var1:e"></div>
+            <div id="t2d" style="--var2:f"></div>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        "use strict";
+
+        var tests = [
+            {"divid": "t0",     "expectedValues":["x"]},
+            {"divid": "t1a",    "expectedValues":["x","a"]},
+            {"divid": "t1b",    "expectedValues":["x","a","b"]},
+            {"divid": "t1c",    "expectedValues":["x","a","b","c"]},
+            {"divid": "t1d",    "expectedValues":["x","a","b","","d"]},
+            {"divid": "t2a",    "expectedValues":["a"]},
+            {"divid": "t2b",    "expectedValues":["b","c"]},
+            {"divid": "t2c",    "expectedValues":["d","e"]},
+            {"divid": "t2d",    "expectedValues":["x","c","f"]}
+        ];
+
+        let maxVariables = 5;
+
+        tests.forEach(function (testCase) {
+            test( function () {
+                let div = document.getElementById(testCase.divid);
+                let computedStyle = window.getComputedStyle(div);
+                for (var i = 0; i < maxVariables; ++i) {
+                    let testVar = "--var" + i;
+                    let actualValue = computedStyle.getPropertyValue(testVar);
+                    let expectedValue = testCase.expectedValues[i];
+                    if (expectedValue === undefined){
+                        expectedValue = "";
+                    }
+                    assert_equals(actualValue, expectedValue, "Actual Value for '" + testVar + "' should match expected value");
+
+                }
+            }, "testing cascaded CSS Variables on div '" + testCase.divid + "'");
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>KeyframeEffect.iterationComposite</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations/#dom-keyframeeffect-iterationcomposite">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../testcommon.js"></script>
+<div id="log"></div>
+<script>
+'use strict';
+
+test(t => {
+  const div = createDiv(t);
+  const anim = div.animate({ marginLeft: ['0px', '10px'] },
+                           { duration: 100 * MS_PER_SEC,
+                             easing: 'linear',
+                             iterations: 10,
+                             iterationComposite: 'accumulate' });
+  anim.pause();
+
+  anim.currentTime =
+    anim.effect.getComputedTiming().duration * 2 +
+    anim.effect.getComputedTiming().duration / 2;
+  assert_equals(getComputedStyle(div).marginLeft, '25px',
+    'Animated style at 50s of the third iteration');
+
+  anim.effect.iterationComposite = 'replace';
+  assert_equals(getComputedStyle(div).marginLeft, '5px',
+    'Animated style at 50s of the third iteration');
+
+  anim.effect.iterationComposite = 'accumulate';
+  assert_equals(getComputedStyle(div).marginLeft, '25px',
+    'Animated style at 50s of the third iteration');
+}, 'iterationComposite can be updated while an animation is in progress');
+
+</script>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<style>
+html, body { margin: 0; padding: 0; }
+</style>
+<body>
+<canvas id ="canvas" width="200" height="200" style="position:relative; top:10px; left:10px"></canvas>
+<script>
+var canvas = document.getElementById('canvas');
+var context = canvas.getContext("2d");
+// The test geometry-border-image1.html has a paint canvas with width=200 and
+// height=200, as well as a border-width=10 and border-image-slice: fill. All of
+// them combined meaning that it draws to the (200+10*2)*(200+10*2) area, but
+// stretch it to fit into the 200*200 area.
+// So in this reftest, we create a 200*200 canvas. We draw to a 220*220 area
+// and scale it to fit the 200*200 canvas.
+context.scale(200/220, 200/220);
+context.fillStyle = 'green';
+context.fillRect(0, 0, 220, 220);
+</script>
+</body>
+</html>

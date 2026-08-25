@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<title>Animate non-accelerated property using worklet animation</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-animationworklet/">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="common.js"></script>
+
+<div id="target"></div>
+<div id="target2"></div>
+
+<script>
+  promise_test(async t => {
+    await registerConstantLocalTimeAnimator(1000);
+    const target = document.getElementById("target");
+    const effect = new KeyframeEffect(
+        target,
+        [
+          { background: 'green' },
+          { background: 'blue' },
+        ],
+        { duration: 2000 }
+    );
+
+    const target2 = document.getElementById("target2");
+    const effect2 = new KeyframeEffect(
+        target2,
+        [
+          { boxShadow: '4px 4px 25px blue' },
+          { boxShadow: '4px 4px 25px green' }
+        ],
+        { duration: 2000 }
+    );
+    const animation = new WorkletAnimation('constant_time', effect);
+    animation.play();
+    const animation2 = new WorkletAnimation('constant_time', effect2);
+    animation2.play();
+
+    await waitForAsyncAnimationFrames(1);
+    assert_equals(getComputedStyle(target).backgroundColor, "rgb(0, 64, 128)");
+    assert_equals(getComputedStyle(target2).boxShadow, "rgb(0, 64, 128) 4px 4px 25px 0px");
+  }, "Individual worklet animation should output values at specified local time for corresponding targets and effects");
+</script>

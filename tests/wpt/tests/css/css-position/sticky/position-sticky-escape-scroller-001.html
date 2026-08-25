@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>CSS Positioned Layout Test: a sticky element contained by fixed under a scroller not containing fixed</title>
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#sticky-pos">
+<link rel="help" href="https://crbug.com/881555">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/3185">
+<link rel="match" href="position-sticky-escape-scroller-001-ref.html">
+<div id="scroller" style="width: 200px; height: 100px; overflow: hidden">
+  <div style="height: 100px; background: red"></div>
+  <div style="position: fixed; height: 400px">
+    <div style="position: sticky; top: 0; width: 200px; height: 100px; background: green"></div>
+  </div>
+  <div style="height: 100px; background: red"></div>
+  <div style="height: 100px; background: green"></div>
+  <div style="height: 1000px; background: red"></div>
+</div>
+<script>
+scroller.scrollTop = 200;
+</script>

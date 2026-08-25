@@ -1,0 +1,8 @@
+<!doctype html>
+<meta charset="utf-8">
+<p id="referrer">{{header_or_default(referer, )}}</p>
+<script>
+const documentReferrer = document.referrer;
+const data = {referrer: referrer.textContent, documentReferrer, url: location.href};
+window.parent.postMessage(data, "*");
+</script>

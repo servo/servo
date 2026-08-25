@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<meta charset="utf8">
+<title>Attr.prefix</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="attributes.js"></script>
+<div id="log"></div>
+<div id="test" xml:lang="value with prefix" class="value without prefix"></div>
+<svg><g xlink:href="value with prefix" class="value without prefix"/></svg>
+<math xml:lang="value with prefix" class="value without prefix"></math>
+<script>
+test(function() {
+  var element = document.getElementById("test");
+  attr_is(
+    element.getAttributeNodeNS(null, "xml:lang"),
+    "value with prefix",
+    "xml:lang",
+    null,
+    null,
+    "xml:lang",
+    "Parser-inserted attribute with prefix"
+  );
+}, "Attr.prefix present (HTML)");
+
+test(function() {
+  var element = document.getElementById("test");
+  attr_is(
+    element.getAttributeNodeNS(null, "class"),
+    "value without prefix",
+    "class",
+    null,
+    null,
+    "class",
+    "Parser-inserted attribute without prefix"
+  );
+}, "Attr.prefix absent (HTML)");
+
+test(function() {
+  var element = document.getElementsByTagName("g")[0];
+  attr_is(
+    element.getAttributeNodeNS("http://www.w3.org/1999/xlink", "href"),
+    "value with prefix",
+    "href",
+    "http://www.w3.org/1999/xlink",
+    "xlink",
+    "xlink:href",
+    "Parser-inserted attribute with prefix"
+  );
+}, "Attr.prefix present (SVG)");
+
+test(function() {
+  var element = document.getElementsByTagName("g")[0];
+  attr_is(
+    element.getAttributeNodeNS(null, "class"),
+    "value without prefix",
+    "class",
+    null,
+    null,
+    "class",
+    "Parser-inserted attribute without prefix"
+  );
+}, "Attr.prefix absent (SVG)");
+
+test(function() {
+  var element = document.getElementsByTagName("math")[0];
+  attr_is(
+    element.getAttributeNodeNS("http://www.w3.org/XML/1998/namespace", "lang"),
+    "value with prefix",
+    "lang",
+    "http://www.w3.org/XML/1998/namespace",
+    "xml",
+    "xml:lang",
+    "Parser-inserted attribute with prefix"
+  );
+}, "Attr.prefix present (MathML)");
+
+test(function() {
+  var element = document.getElementsByTagName("g")[0];
+  attr_is(
+    element.getAttributeNodeNS(null, "class"),
+    "value without prefix",
+    "class",
+    null,
+    null,
+    "class",
+    "Parser-inserted attribute without prefix"
+  );
+}, "Attr.prefix absent (MathML)");
+</script>
+</body>
+</html>

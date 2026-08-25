@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>contentEncoding in resource timing</title>
+  <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+  <link rel="help" href="https://www.w3.org/TR/resource-timing-2/#sec-performanceresourcetiming" />
+  <script src="/common/get-host-info.sub.js"></script>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="resources/entry-invariants.js"></script>
+  <script src="resources/resource-loaders.js"></script>
+  <script>
+
+    const { ORIGIN, REMOTE_ORIGIN } = get_host_info();
+
+    const run_same_origin_test = (path, contentEncoding) => {
+      const url = new URL(path, ORIGIN);
+      attribute_test(
+        fetch, url,
+        entry => {
+          assert_equals(entry.contentEncoding, contentEncoding,
+            `run_same_origin_test failed, unexpected contentEncoding value.`);
+        });
+    }
+
+    run_same_origin_test("/resource-timing/resources/compressed-data.py?content_encoding=dcb", "dcb");
+    run_same_origin_test("/resource-timing/resources/compressed-data.py?content_encoding=dcz", "dcz");
+    run_same_origin_test("/resource-timing/resources/gzip_xml.py", "gzip");
+    run_same_origin_test("/resource-timing/resources/foo.text.br", "br");
+    run_same_origin_test("/resource-timing/resources/foo.text.gz", "gzip");
+    run_same_origin_test("/resource-timing/resources/foo.text.zst", "zstd");
+    run_same_origin_test("/resource-timing/resources/compressed-js.py?content_encoding=deflate", "deflate");
+    run_same_origin_test("/resource-timing/resources/compressed-js.py?content_encoding=gzip", "gzip");
+    // Unrecognized content encoding value should be transformed to "@unknown".
+    run_same_origin_test("/resource-timing/resources/compressed-js.py?content_encoding=unrecognizedname", "@unknown");
+    // "identity" is not allowed in response header and should be transformed to "@unknown".
+    run_same_origin_test("/resource-timing/resources/compressed-js.py?content_encoding=identity", "@unknown");
+    // Mult-encodinging and formatting tests.
+    run_same_origin_test("/resource-timing/resources/content-encoding-headers.py?content_encoding=gzip, deflate,Apple", "multiple");
+    run_same_origin_test("/resource-timing/resources/content-encoding-headers.py?content_encoding=gzip, ", "multiple");
+    run_same_origin_test("/resource-timing/resources/content-encoding-headers.py?content_encoding=gZip ", "gzip");
+    // Empty value test.
+    run_same_origin_test("/resource-timing/resources/content-encoding-headers.py?content_encoding=", "");
+
+    const run_cross_origin_test = (path) => {
+      const url = new URL(path, REMOTE_ORIGIN);
+      attribute_test(
+        load.xhr_async, url,
+        entry => {
+          assert_equals(entry.contentEncoding, "",
+            `run_cross_origin_test failed, contentEncoding should be empty.`);
+        });
+    }
+
+    run_cross_origin_test("/resource-timing/resources/compressed-data.py?content_encoding=dcb");
+    run_cross_origin_test("/resource-timing/resources/gzip_xml.py");
+    run_cross_origin_test("/resource-timing/resources/compressed-data.py?content_encoding=dcz");
+    run_cross_origin_test("/resource-timing/resources/foo.text.br");
+    run_cross_origin_test("/resource-timing/resources/foo.text.gz");
+    run_cross_origin_test("/resource-timing/resources/foo.text.zst");
+    run_cross_origin_test("/resource-timing/resources/compressed-js.py?content_encoding=deflate");
+    run_cross_origin_test("/resource-timing/resources/compressed-js.py?content_encoding=gzip");
+
+    const run_cross_origin_allowed_test = (path, contentEncoding) => {
+      const url = new URL(path, REMOTE_ORIGIN);
+      url.searchParams.set("allow_origin", ORIGIN);
+      attribute_test(
+        load.xhr_async, url,
+        entry => {
+          assert_equals(entry.contentEncoding, contentEncoding,
+            `run_cross_origin_allowed_test failed, unexpected contentEncoding value.`);
+        });
+    }
+
+    run_cross_origin_allowed_test("/resource-timing/resources/compressed-data.py?content_encoding=dcb", "dcb");
+    run_cross_origin_allowed_test("/resource-timing/resources/compressed-data.py?content_encoding=dcz", "dcz");
+    run_cross_origin_allowed_test("/resource-timing/resources/gzip_xml.py", "gzip");
+    run_cross_origin_allowed_test("/resource-timing/resources/compressed-js.py?content_encoding=deflate", "deflate");
+    run_cross_origin_allowed_test("/resource-timing/resources/compressed-js.py?content_encoding=gzip", "gzip");
+
+    // Content-Encoding for iframes is empty when cross origin redirects are present.
+    const multiRedirect = new URL(`${ORIGIN}/resource-timing/resources/multi_redirect.py`);
+    multiRedirect.searchParams.append("page_origin", ORIGIN);
+    multiRedirect.searchParams.append("cross_origin", REMOTE_ORIGIN);
+    multiRedirect.searchParams.append("final_resource", "/resource-timing/resources/compressed-js.py?content_encoding=gzip");
+    attribute_test(load.iframe, multiRedirect, (entry) => {
+      assert_equals(entry.contentEncoding, "",
+        `content-encoding should be empty for iframes having cross origin redirects`);
+    });
+
+
+    // Content-Encoding for iframes is exposed for same origin redirects.
+    const redirectCORS = new URL(`${ORIGIN}/resource-timing/resources/redirect-cors.py`);
+    const dest = `${ORIGIN}/resource-timing/resources/compressed-js.py?content_encoding=gzip`;
+    redirectCORS.searchParams.append("location", dest)
+    attribute_test(load.iframe, redirectCORS, (entry) => {
+      assert_equals(entry.contentEncoding, "gzip",
+        `content-encoding should be exposed for iframes having only same origin redirects`);
+    });
+
+  </script>
+</head>
+
+<body>
+  <h1>
+    Description</h1>
+  <p>
+    This test validates contentEncoding in resource timing.</p>
+</body>
+
+</html>

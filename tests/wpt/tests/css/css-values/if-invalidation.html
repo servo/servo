@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>CSS Values and Units Test: if() invalidation</title>
+<meta name="assert" content="Test if() invalidation">
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#if-notation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  html {
+    --x: 3;
+  }
+  #test {
+    --prop: if(style(--x: 3): true_value; else: false_value;);
+  }
+</style>
+
+<html>
+  <body>
+    <div id="test"></div>
+  </body>
+</html>
+
+<script>
+  setup({ single_test: true });
+  let elem = document.getElementById('test');
+  let old_value = window.getComputedStyle(elem).getPropertyValue('--prop');
+  assert_equals(old_value, "true_value");
+
+  document.documentElement.style.setProperty('--x', '0');
+  let new_value = window.getComputedStyle(elem).getPropertyValue('--prop');
+  assert_equals( new_value, "false_value");
+  assert_not_equals(new_value, old_value);
+  done();
+</script>

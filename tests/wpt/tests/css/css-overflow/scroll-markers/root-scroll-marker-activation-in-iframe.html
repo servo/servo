@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<html class="reftest-wait">
+<title>CSS Overflow: ::scroll-marker with ::scroll-marker-group on root element doesn't propagate scrolling</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-pseudo">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+<style>
+  body {
+    margin: 0;
+  }
+
+  #container {
+    overflow: auto;
+    height: 600px;
+    position: relative;
+  }
+
+  iframe {
+    width: 600px;
+    height: 400px;
+    position: absolute;
+    top: 500px;
+    border: 2px solid black;
+  }
+</style>
+<div id="container">
+  <iframe id="target" onload="run_test()" src="resources/root-scroll-marker-activation-iframe.html"></iframe>
+</div>
+<script>
+  function run_test() {
+    promise_test(async t => {
+      const iframe = document.getElementById("target");
+      const container = document.getElementById("container");
+      const target = iframe.contentWindow;
+      const scrollEndPromise = waitForScrollEndFallbackToDelayWithoutScrollEvent(target);
+      await new test_driver.Actions()
+        .pointerMove(140, 510)
+        .pointerDown()
+        .pointerUp()
+        .send();
+      await scrollEndPromise;
+      assert_equals(container.scrollTop, 0, "scrolling is not propagated from iframe to the main frame");
+      assert_greater_than(target.scrollY, 0, "scroll marker activation scrolls iframe");
+      document.documentElement.classList.remove("reftest-wait");
+    });
+  }
+</script>
+</html>

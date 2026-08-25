@@ -1,0 +1,34 @@
+<!doctype html>
+<script>
+  let current = new URL(window.location.href);
+  let navigateTo = current.searchParams.get("to");
+  let channelName = current.searchParams.get("channelName");
+  let postMessageTo = current.searchParams.get("postMessageTo");
+  current.search = "";
+  if (navigateTo) {
+    let next = new URL(navigateTo, current);
+    window.addEventListener("load", () => {
+      window.location.href = next.href;
+    });
+  }
+
+  let target = undefined;
+  if (channelName) {
+    target = new BroadcastChannel(channelName);
+  } else if (postMessageTo) {
+    target = eval(postMessageTo);
+  }
+
+  if (target) {
+    // Broadcast only once the DOM is loaded, so that the caller can
+    // access reliably this document's body.
+    window.addEventListener("DOMContentLoaded", () =>
+      target.postMessage("loaded", "*"));
+
+    // The page can also be restored from the back-forward cache:
+    window.addEventListener('pageshow', function(event) {
+      if (event.persisted)
+        target.postMessage("loaded", "*");
+    });
+  }
+</script>

@@ -1,0 +1,16 @@
+<!doctype html>
+
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+  test_driver.set_test_context(top.opener);
+  window.onload = async function () {
+    await test_driver.bless("Gain user activation");
+
+    try {
+      top.location = "navigation-changed-iframe.html";
+    } catch (e) {
+      top.opener.postMessage("ERROR", "*");
+    }
+  };
+</script>

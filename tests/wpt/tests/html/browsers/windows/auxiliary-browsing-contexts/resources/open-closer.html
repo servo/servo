@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset="utf-8">
+<html>
+<body onload="openAuxiliary()">
+<a rel="opener" target="_blank">Open auxiliary context that will close this window (its opener)</a>
+<script src="/common/PrefixedLocalStorage.js"></script>
+<script>
+function openAuxiliary () {
+  var prefixedLocalStorage = new PrefixedLocalStorageResource();
+  var a = document.body.querySelector('a');
+  a.href = prefixedLocalStorage.url('close-opener.html');
+  document.body.append(a);
+  a.click();
+}
+</script>
+</body>
+</html>

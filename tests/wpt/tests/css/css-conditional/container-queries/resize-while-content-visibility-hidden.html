@@ -1,0 +1,53 @@
+<!doctype html>
+<html class="reftest-wait">
+<title>CSS Container Queries Test: condition change while content-visibility: hidden</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#container-queries">
+<link rel="help" href="https://drafts.csswg.org/css-contain-2/#content-visibility">
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="match" href="resize-while-content-visibility-hidden-ref.html">
+<link rel="assert" content="Container query applies even if container is content-visibility: hidden">
+
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+#container {
+  container-name: container;
+  container-type: size;
+  width: 300px;
+  height: 300px;
+}
+
+#child {
+  width: 200px;
+  height: 200px;
+  background: red;
+}
+
+#container.wide { width: 500px; }
+.locked { content-visibility: hidden; }
+
+@container container (min-width: 400px) { #child { background: green; } }
+</style>
+
+<div id=container>
+  <div id=child></div>
+</div>
+
+<script>
+async function runTest() {
+  await new Promise(requestAnimationFrame);
+  container.classList.add("locked");
+
+  await new Promise(requestAnimationFrame);
+  container.classList.add("wide");
+
+  await new Promise(requestAnimationFrame);
+  container.classList.remove("locked");
+
+  await new Promise(requestAnimationFrame);
+  takeScreenshot();
+}
+
+requestAnimationFrame(() => { requestAnimationFrame(() => runTest()) });
+
+</script>

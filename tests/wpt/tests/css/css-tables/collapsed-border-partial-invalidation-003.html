@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="author" title="David Shin" href="dshin@mozilla.com">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1871609">
+<link rel="match" href="collapsed-border-partial-invalidation-003-ref.html">
+<meta name="assert" content="Invalidating part of a border-collapsed table keeps border styling correctly.">
+<style>
+table {
+  border-collapse: collapse;
+}
+tr {
+  border: 1px solid grey;
+}
+
+.foo {
+  border-right: 20px solid black;
+}
+
+</style>
+<table>
+  <tr>
+    <td id="cell" class="foo">X</td>
+    <td>X</td>
+  </tr>
+</table>
+<script>
+onload = function () {
+  cell.classList.remove("foo");
+  document.documentElement.className = "";
+}
+</script>
+</html>

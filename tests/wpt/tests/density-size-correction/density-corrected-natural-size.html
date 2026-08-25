@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./third_party/piexif/piexif.js"></script>
+<script src="./resources/exify.js"></script>
+<link rel="author" title="Noam Rosenthal" href="noam@webkit.org">
+<script>
+    async function test_valid(input) {
+        const image = await createImageWithMetadata(input)
+        assert_equals(image.naturalWidth, input.preferredWidth)
+        assert_equals(image.naturalHeight, input.preferredHeight)
+    }
+    async function test_invalid(input) {
+        const image = await createImageWithMetadata(input)
+        assert_equals(image.naturalWidth, input.width)
+        assert_equals(image.naturalHeight, input.height)
+    }
+
+    async function test() {
+        await test_valid({width: 10, height: 20, preferredWidth: 20, preferredHeight: 40, resolutionX: 36, resolutionY: 36, resolutionUnit: 2})
+        await test_valid({width: 10, height: 20, preferredWidth: 2, preferredHeight: 4, resolutionX: 360, resolutionY: 360, resolutionUnit: 2})
+        await test_valid({width: 10, height: 20, preferredWidth: 20, preferredHeight: 10, resolutionX: 36, resolutionY: 144, resolutionUnit: 2})
+        await test_valid({width: 10, height: 20, preferredWidth: 10, preferredHeight: 40, resolutionX: 72, resolutionY: 36, resolutionUnit: 2})
+        await test_valid({width: 30, height: 30, preferredWidth: 90, preferredHeight: 30, resolutionX: 24, resolutionY: 72, resolutionUnit: 2})
+        await test_valid({width: 10, height: 20, preferredWidth: 20, preferredHeight: 40, resolutionX: [72 * 1000000, 2 * 1000000], resolutionY: [72 * 10000000, 2 * 10000000], resolutionUnit: 2})
+
+        await test_invalid({width: 10, height: 20, preferredWidth: 20, preferredHeight: 30, resolutionX: 36, resolutionY: 36, resolutionUnit: 2})
+        await test_invalid({width: 10, height: 20, preferredWidth: 33, preferredHeight: 40, resolutionX: 36, resolutionY: 36, resolutionUnit: 2})
+        await test_invalid({width: 10, height: 20, preferredHeight: 40, resolutionX: 36, resolutionY: 36, resolutionUnit: 2})
+        await test_invalid({width: 10, height: 20, preferredWidth: 20, resolutionX: 36, resolutionY: 36, resolutionUnit: 2})
+        await test_invalid({width: 30, height: 30, preferredWidth: 90, preferredHeight: 30, resolutionY: 72, resolutionUnit: 2})
+        await test_invalid({width: 30, height: 30, preferredWidth: 90, preferredHeight: 30, resolutionX: 24, resolutionUnit: 2})
+        await test_invalid({width: 30, height: 30, preferredWidth: 90, preferredHeight: 30, resolutionX: 24, resolutionY: 72, resolutionUnit: 1})
+        await test_invalid({width: 3, height: 3, preferredHeight: 2000000, preferredWidth: 50})
+    }
+
+    promise_test(test)
+</script>
+</body>
+</html>

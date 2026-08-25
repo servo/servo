@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Backgrounds and Borders Test: background-size with &lt;percent&gt; value and 'auto' and image with no intrinsic size and no intrinsic ratio</title>
+
+  <!--
+  Credit should go to Henrik Andersson
+  for originally reporting this issue.
+  -->
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="http://www.w3.org/TR/css3-background/#the-background-size">
+
+  <!--
+
+  [css-backgrounds] [css-images] Interop for sizing gradients with only width
+  http://lists.w3.org/Archives/Public/www-style/2017Apr/0029.html
+
+  Issue 935057: background-size with only one [ <length | <percent> ] value with SVG image with no intrinsic ratio incorrect
+  https://bugs.chromium.org/p/chromium/issues/detail?id=935057
+
+  Bug 170834: background-size with 2nd value is 'auto' and the image has no intrinsic size and no intrinsic ratio incorrectly rendered
+  https://bugs.webkit.org/show_bug.cgi?id=170834
+
+  -->
+
+  <link rel="match" href="reference/background-size-043-ref.html">
+
+  <meta content="This test checks that when one 'background-size' is 'auto' and the image has no intrinsic size and no intrinsic ratio, then it should use 100%. In this test, the 'auto' value should use 100% of the height of the background positioning area of the div, which is 400px." name="assert">
+
+  <style>
+  div
+    {
+      background-clip: border-box;
+      background-image: url("support/orange-intrinsic-none.svg");
+      background-origin: content-box;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-size: 50% auto;
+      border: solid 40px;
+      border-color: transparent black;
+      height: 400px;
+      width: 400px;
+    }
+  </style>
+
+  <div></div>

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Navigation Type Post Back Forward</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+
+<body>
+  <script>
+    function execute_helper(fn, args) {
+      return new Promise(resolve => {
+        frame.addEventListener('load', () => {
+          resolve(frame);
+        }, { once: true });
+        fn.apply(null, args);
+      });
+    }
+
+    // Create an iframe.
+    function create_iframe(url) {
+      const frame = document.createElement('iframe');
+      frame.src = url;
+      return frame;
+    }
+
+    // Attach an iframe.
+    function attach_iframe(frame) {
+      document.body.appendChild(frame);
+    }
+
+    // Post by submit method.
+    function submit_form(frame) {
+      frame.contentWindow.document.getElementsByTagName("form")[0].submit();
+    }
+
+    // Navigate away by simulating a click on the link.
+    function navigate_away(frame) {
+      frame.contentWindow.document.getElementsByTagName("a")[0].click();
+    }
+
+    // Navigate back.
+    function navigate_back(frame) {
+      frame.contentWindow.history.back();
+    }
+
+    promise_test(async t => {
+      // Add an iframe and Load page in the iframe.
+      let url = 'resources/navigation-type-post-back.html';
+
+      frame = create_iframe(url);
+      await execute_helper(attach_iframe, [frame]);
+      await execute_helper(submit_form, [frame]);
+      await execute_helper(navigate_away, [frame]);
+      await execute_helper(navigate_back, [frame]);
+
+      assert_equals(frame.contentWindow.performance.getEntriesByType('navigation')[0].type,
+        'back_forward');
+    }, "Navigation type after posting and navigating away and back should be back_forward.");
+  </script>
+</body>
+
+</html>

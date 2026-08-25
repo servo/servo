@@ -1,0 +1,27 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Detect simple soft navigation.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/soft-navigation-helper.js"></script>
+</head>
+<body>
+  <a id=link>Click me!</a>
+  <main id=main>
+    <img src="/images/lcp-96x96.png">
+  </main>
+  <script>
+    testSoftNavigation({
+      testName: "Multiple soft navigations.",
+      addContent: () => addImageToMain(),
+      // Clear because if you add too much if might go outside viewport.
+      clearContent: () => main.innerHTML = '',
+      numClicks: 2,
+    });
+  </script>
+</body>
+</html>

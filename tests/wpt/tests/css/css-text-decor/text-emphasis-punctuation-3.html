@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS text decoration test: emphasis marks and punctuation</title>
+<link rel="match" href="text-emphasis-punctuation-3-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-text-decor/#text-emphasis-style-property">
+<meta name="assert" content="emphasis marks are not drawn for punctuation (with a small set of exceptions)">
+
+<style>
+p { line-height: 2; }
+.emph { text-emphasis: filled dot; }
+</style>
+
+<p>A few punctuation marks <b>do</b> get emphasis marks:</p>
+<p lang="ja" class="emph">
+  [abc
+  <!-- list from https://drafts.csswg.org/css-text-decor/#text-emphasis-style-property -->
+  &#x0023; <!-- #  NUMBER SIGN -->
+  &#x0025; <!-- %  PERCENT SIGN -->
+  &#x0026; <!-- &  AMPERSAND -->
+  &#x0040; <!-- @  COMMERCIAL AT -->
+  &#x00A7; <!-- §  SECTION SIGN -->
+  &#x00B6; <!-- ¶  PILCROW SIGN -->
+  &#x0609; <!-- ؉  ARABIC-INDIC PER MILLE SIGN -->
+  &#x060A; <!-- ؊  ARABIC-INDIC PER TEN THOUSAND SIGN -->
+  &#x066A; <!-- ٪  ARABIC PERCENT SIGN -->
+  &#x2030; <!-- ‰  PER MILLE SIGN -->
+  &#x2031; <!-- ‱  PER TEN THOUSAND SIGN -->
+  &#x204A; <!-- ⁊  TIRONIAN SIGN ET -->
+  &#x204B; <!-- ⁋  REVERSED PILCROW SIGN -->
+  &#x2053; <!-- ⁓  SWUNG DASH -->
+  &#x303D; <!-- 〽️  PART ALTERNATION MARK -->
+  <br>
+  <!-- characters with NFKD equivalence to the above, from UnicodeData.txt -->
+  &#xFE5F; <!-- SMALL NUMBER SIGN;Po;0;ET;<small> 0023;;;;N;;;;; -->
+  &#xFE60; <!-- SMALL AMPERSAND;Po;0;ON;<small> 0026;;;;N;;;;; -->
+  &#xFE6A; <!-- SMALL PERCENT SIGN;Po;0;ET;<small> 0025;;;;N;;;;; -->
+  &#xFE6B; <!-- SMALL COMMERCIAL AT;Po;0;ON;<small> 0040;;;;N;;;;; -->
+  &#xFF03; <!-- FULLWIDTH NUMBER SIGN;Po;0;ET;<wide> 0023;;;;N;;;;; -->
+  &#xFF05; <!-- FULLWIDTH PERCENT SIGN;Po;0;ET;<wide> 0025;;;;N;;;;; -->
+  &#xFF06; <!-- FULLWIDTH AMPERSAND;Po;0;ON;<wide> 0026;;;;N;;;;; -->
+  &#xFF20; <!-- FULLWIDTH COMMERCIAL AT;Po;0;ON;<wide> 0040;;;;N;;;;; -->
+  xyz]
+</p>

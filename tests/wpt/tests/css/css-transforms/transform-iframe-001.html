@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test (Transforms): Iframe</title>
+    <link rel="author" title="Clint Talbert" href="mailto:ctalbert@mozilla.com">
+    <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-rendering">
+    <meta name="assert" content='This test ensures that transforms cannot move
+    the contents of an iframe onto the parent page.  The iframe here contains a
+    red box shifted 500px down and to the right, outside the iframe&apos;s
+    visible area.  overflow: hidden ensures that scrollbars are not tested.'>
+    <link rel="match" href="transform-iframe-ref.html">
+    <style>
+      iframe {
+        overflow: hidden;
+        height: 200px;
+        width: 300px;
+      }
+    </style>
+    <iframe src="support/transform-iframe-001-contents.html"></iframe>
+  </body>
+</html>

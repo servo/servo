@@ -1,0 +1,56 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>sendrecv transceiver is matched to remote recvonly m-section over sendonly</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+'use strict';
+
+promise_test(async t => {
+  const ac = new AudioContext();
+  t.add_cleanup(() => ac.close());
+  const track = ac.createMediaStreamDestination().stream.getAudioTracks()[0];
+  t.add_cleanup(() => track.stop());
+
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+
+  pc.addTrack(track);
+  assert_equals(pc.getTransceivers().length, 1);
+  assert_equals(pc.getTransceivers()[0].direction, 'sendrecv');
+
+  const transceiver = pc.getTransceivers()[0];
+
+  // Remote offer: sendonly first, then recvonly, both audio.
+  // Per JSEP, a sendrecv transceiver should match the recvonly section
+  // (where the remote wants to receive our track) rather than the sendonly section.
+  const sdp = `v=0
+o=- 0 3 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=fingerprint:sha-256 A7:24:72:CA:6E:02:55:39:BA:66:DF:6E:CC:4C:D8:B0:1A:BF:1A:56:65:7D:F4:03:AD:7E:77:43:2A:29:EC:93
+a=ice-ufrag:ETEn
+a=ice-pwd:OtSK0WpNtpUjkY4+86js7Z/l
+m=audio 9 UDP/TLS/RTP/SAVPF 111
+c=IN IP4 0.0.0.0
+a=rtcp-mux
+a=sendonly
+a=mid:1
+a=rtpmap:111 opus/48000/2
+a=setup:actpass
+m=audio 9 UDP/TLS/RTP/SAVPF 111
+c=IN IP4 0.0.0.0
+a=rtcp-mux
+a=recvonly
+a=mid:2
+a=rtpmap:111 opus/48000/2
+a=setup:actpass
+`;
+
+  await pc.setRemoteDescription({type: 'offer', sdp});
+  await pc.setLocalDescription();
+
+  assert_equals(transceiver.mid, '2',
+    'sendrecv transceiver should be bound to the recvonly m-section');
+}, 'sendrecv transceiver is matched to remote recvonly m-section when offer has sendonly before recvonly');
+</script>

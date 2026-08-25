@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Tests that CORS-safelisted request headers are permitted in cross-origin request</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/get-host-info.sub.js"></script>
+  </head>
+  <body>
+    <script type="text/javascript">
+    test(function() {
+      const xhr = new XMLHttpRequest;
+
+      xhr.open("POST", get_host_info().HTTP_REMOTE_ORIGIN + "/xhr/resources/access-control-basic-cors-safelisted-request-headers.py", false);
+
+      xhr.setRequestHeader("Accept", "*");
+      xhr.setRequestHeader("Accept-Language", "ru");
+      xhr.setRequestHeader("Content-Language", "ru");
+      xhr.setRequestHeader("Content-Type", "text/plain");
+
+      xhr.send();
+
+      assert_equals(xhr.responseText,
+          "Accept: *\n" +
+          "Accept-Language: ru\n" +
+          "Content-Language: ru\n" +
+          "Content-Type: text/plain\n");
+    }, "Request with CORS-safelisted headers");
+    </script>
+  </body>
+</html>

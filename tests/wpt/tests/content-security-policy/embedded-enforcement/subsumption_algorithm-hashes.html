@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Embedded Enforcement: Subsumption Algorithm - Hashes.</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="support/testharness-helper.sub.js"></script>
+</head>
+<body>
+  <script>
+    var tests = [
+      { "name": "'sha256-abc123' is properly subsumed.",
+        "required_csp": "style-src 'sha256-abc123'",
+        "returned_csp_1": "style-src 'sha256-abc123'",
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Returned should not include hashes not present in required csp.",
+        "required_csp": "style-src http://example.com",
+        "returned_csp_1": "style-src 'sha256-abc123'",
+        "expected": IframeLoad.EXPECT_BLOCK },
+      { "name": "'sha256-abc123' is properly subsumed with other sources.",
+        "required_csp": "style-src http://example1.com/foo/ 'self' 'unsafe-hashed-attributes' 'strict-dynamic' 'sha256-abc123'",
+        "returned_csp_1": "style-src http://example1.com/foo/bar.html 'sha256-abc123'",
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Hashes do not have to be present in returned csp.",
+        "required_csp": "style-src http://example1.com/foo/ 'self' 'sha256-abc123'",
+        "returned_csp_1": "style-src http://example1.com/foo/",
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Hashes do not have to be present in returned csp but must not allow all inline behavior.",
+        "required_csp": "style-src http://example1.com/foo/ 'self' 'sha256-abc123'",
+        "returned_csp_1": "style-src http://example1.com/foo/ 'unsafe-inline'",
+        "expected": IframeLoad.EXPECT_BLOCK },
+      { "name": "Other expressions have to be subsumed.",
+        "required_csp": "style-src http://example1.com/foo/ 'self' 'sha256-abc123'",
+        "returned_csp_1": "style-src http://example1.com/foo/ 'unsafe-eval' 'sha256-abc123'",
+        "expected": IframeLoad.EXPECT_BLOCK },
+      { "name": "Other expressions have to be subsumed but 'unsafe-inline' gets ignored.",
+        "required_csp": "style-src http://example1.com/foo/ 'self' 'sha256-abc123'",
+        "returned_csp_1": "style-src http://example1.com/foo/ 'unsafe-inline' 'sha256-abc123'",
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Effective policy is properly found.",
+        "required_csp": "style-src http://example1.com/foo/ 'self'  'sha256-abc123'",
+        "returned_csp_1": "style-src http://example1.com/foo/ 'unsafe-hashed-attributes' 'sha256-abc123'",
+        "returned_csp_2": "style-src http://example1.com/foo/ 'self' 'sha256-abc123'",
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Required csp must allow 'sha256-abc123'.",
+        "required_csp": "style-src http://example1.com/foo/ 'self'",
+        "returned_csp_1": "style-src http://example1.com/foo/ 'self'  'sha256-abc123'",
+        "expected": IframeLoad.EXPECT_BLOCK },
+      { "name": "Effective policy is properly found where 'sha256-abc123' is not subsumed.",
+        "required_csp": "style-src http://example1.com/foo/ 'self'",
+        "returned_csp_1": "style-src 'unsafe-hashed-attributes' 'sha256-abc123'",
+        "returned_csp_2": "style-src 'sha256-abc123' 'unsafe-inline'",
+        "expected": IframeLoad.EXPECT_BLOCK },
+      { "name": "'sha256-abc123' is not subsumed by 'sha256-abc456'.",
+        "required_csp": "style-src http://example1.com/foo/ 'self' 'sha256-abc456'",
+        "returned_csp_1": "style-src 'unsafe-hashed-attributes' 'sha256-abc123'",
+        "returned_csp_2": "style-src 'sha256-abc123' 'unsafe-inline'",
+        "expected": IframeLoad.EXPECT_BLOCK },
+      { "name": "Effective policy now does not allow 'sha256-abc123'.",
+        "required_csp": "style-src http://example1.com/foo/ 'self' 'sha256-abc456'",
+        "returned_csp_1": "style-src 'unsafe-hashed-attributes' 'sha256-abc123' 'sha256-abc456'",
+        "returned_csp_2": "style-src 'sha256-abc456' 'unsafe-inline'",
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Effective policy is properly found where 'sha256-abc123' is not part of it.",
+        "required_csp": "style-src http://example1.com/foo/ 'self'",
+        "returned_csp_1": "style-src 'unsafe-hashed-attributes' 'self'",
+        "returned_csp_2": "style-src 'sha256-abc123' 'self'",
+        "expected": IframeLoad.EXPECT_LOAD },
+    ];
+    tests.forEach(test => {
+      async_test(t =>  {
+        var url = generateUrlWithPolicies(Host.CROSS_ORIGIN, test.returned_csp_1);
+        if (test.returned_csp_2)
+          url.searchParams.append("policy2", test.returned_csp_2);
+        assert_iframe_with_csp(t, url, test.required_csp, test.expected, test.name, null);
+      }, test.name);
+    });
+  </script>
+</body>
+</html>

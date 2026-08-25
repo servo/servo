@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<title>Canvas position-anchor crash test</title>
+<head>
+<style>
+  #scroll-container {
+    overflow: hidden scroll;
+    width: 300px;
+    height: 100px;
+  }
+
+  #anchor {
+    anchor-name: --a1;
+    width: 100px;
+    height: 100px;
+    background: orange;
+  }
+
+  #spacer {
+    height: 100px;
+  }
+
+  #target {
+    position-anchor: --a1;
+    position-area: bottom right;
+    width: 100px;
+    height: 100px;
+    background: red;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+</style>
+</head>
+<body>
+  <p>This test passes if it does not crash.</p>
+
+  <canvas id="canvas" layoutsubtree="true">
+    <div id="el">
+      <div id="scroll-container">
+        <div id="anchor">anchor</div>
+        <div id="spacer"></div>
+        <div id="target">target</div>
+      </div>
+    </div>
+  </canvas>
+  <script>
+    const scroller = document.getElementById('scroll-container');
+    scroller.scrollTop = 100;
+  </script>
+</body>
+</html>

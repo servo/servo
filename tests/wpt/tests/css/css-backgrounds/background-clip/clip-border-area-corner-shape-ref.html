@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+    .test {
+        display: inline-block;
+        margin: 20px;
+        width: 300px;
+        height: 150px;
+        box-sizing: border-box;
+        border: 50px solid blue;
+        border-radius: 40%;
+    }
+
+    .round {
+        corner-shape: round;
+    }
+
+    .squircle {
+        corner-shape: squircle;
+    }
+
+    .bevel {
+        corner-shape: bevel;
+    }
+
+    .scoop {
+        corner-shape: scoop;
+    }
+
+    .notch {
+        corner-shape: notch;
+    }
+
+    .mixed {
+        corner-top-left-shape: squircle;
+        corner-top-right-shape: bevel;
+        corner-bottom-right-shape: scoop;
+        corner-bottom-left-shape: notch;
+    }
+</style>
+</head>
+<body>
+
+<div class="test round"></div>
+<div class="test squircle"></div>
+<div class="test bevel"></div>
+<div class="test scoop"></div>
+<div class="test notch"></div>
+<div class="test mixed"></div>
+
+</body>
+</html>

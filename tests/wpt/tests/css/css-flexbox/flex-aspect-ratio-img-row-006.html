@@ -1,0 +1,15 @@
+<!doctype html>
+<title>Aspect-ratio items with definite cross sizes from stretching</title>
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#algo-main-item" title="Section B">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#definite-sizes" title="1.">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="Flex base size is derived from aspect ratio when item has definite cross size due to stretching.">
+
+<p>Test passes if there is a filled green square.</p>
+
+<!-- Firefox 80 and Chrome 86 fail this test identically. They both show a 150x100 green rectangle. -->
+
+<div style="display: flex; width: 150px; height: 100px;">
+  <img src="support/200x200-green.png" style="min-width: 0px; flex-shrink: 0;">
+</div>

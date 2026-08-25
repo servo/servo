@@ -1,0 +1,337 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL uniform samplers with incompatible texture formats tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script id="vshader" type="x-shader/x-vertex">#version 300 es
+in vec4 a_vertex;
+void main(void) {
+  gl_Position = a_vertex;
+  gl_PointSize = 1.0;
+}
+</script>
+</head>
+<body>
+<canvas id="example" width="100", height="100"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+debug("");
+
+description("Test that using an incompatible texture type generates INVALID_OPERATION at draw time");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("example", undefined, 2);
+
+function makeFragmentShader(samplerType, uvType) {
+   return `#version 300 es
+     precision mediump float;
+     uniform mediump ${samplerType} u_tex;
+     out vec4 color;
+     void main() {
+       color = vec4(texture(u_tex, ${uvType}));
+     }
+   `;
+}
+
+// Sampler types.
+const FLOAT = 1;
+const SIGNED = 2;
+const UNSIGNED = 3;
+const SHADOW = 4;
+
+const textureInternalFormatInfo = {};
+{
+  const t = textureInternalFormatInfo;
+  // unsized formats
+  t[gl.ALPHA]              = { textureFormat: gl.ALPHA,           samplerType: FLOAT,    depth: false, bytesPerElement: [1, 2, 2, 4],        type: [gl.UNSIGNED_BYTE, gl.HALF_FLOAT, gl.HALF_FLOAT_OES, gl.FLOAT], };
+  t[gl.LUMINANCE]          = { textureFormat: gl.LUMINANCE,       samplerType: FLOAT,    depth: false, bytesPerElement: [1, 2, 2, 4],        type: [gl.UNSIGNED_BYTE, gl.HALF_FLOAT, gl.HALF_FLOAT_OES, gl.FLOAT], };
+  t[gl.LUMINANCE_ALPHA]    = { textureFormat: gl.LUMINANCE_ALPHA, samplerType: FLOAT,    depth: false, bytesPerElement: [2, 4, 4, 8],        type: [gl.UNSIGNED_BYTE, gl.HALF_FLOAT, gl.HALF_FLOAT_OES, gl.FLOAT], };
+  t[gl.RGB]                = { textureFormat: gl.RGB,             samplerType: FLOAT,    depth: false, bytesPerElement: [3, 6, 6, 12, 2],    type: [gl.UNSIGNED_BYTE, gl.HALF_FLOAT, gl.HALF_FLOAT_OES, gl.FLOAT, gl.UNSIGNED_SHORT_5_6_5], };
+  t[gl.RGBA]               = { textureFormat: gl.RGBA,            samplerType: FLOAT,    depth: false, bytesPerElement: [4, 8, 8, 16, 2, 2], type: [gl.UNSIGNED_BYTE, gl.HALF_FLOAT, gl.HALF_FLOAT_OES, gl.FLOAT, gl.UNSIGNED_SHORT_4_4_4_4, gl.UNSIGNED_SHORT_5_5_5_1], };
+
+  // sized formats
+  t[gl.R8]                 = { textureFormat: gl.RED,             samplerType: FLOAT,    depth: false, bytesPerElement: [1],                 type: [gl.UNSIGNED_BYTE], };
+  t[gl.R8_SNORM]           = { textureFormat: gl.RED,             samplerType: FLOAT,    depth: false, bytesPerElement: [1],                 type: [gl.BYTE], };
+  t[gl.R16F]               = { textureFormat: gl.RED,             samplerType: FLOAT,    depth: false, bytesPerElement: [4, 2],              type: [gl.FLOAT, gl.HALF_FLOAT], };
+  t[gl.R32F]               = { textureFormat: gl.RED,             samplerType: FLOAT,    depth: false, bytesPerElement: [4],                 type: [gl.FLOAT], };
+  t[gl.R8UI]               = { textureFormat: gl.RED_INTEGER,     samplerType: UNSIGNED, depth: false, bytesPerElement: [1],                 type: [gl.UNSIGNED_BYTE], };
+  t[gl.R8I]                = { textureFormat: gl.RED_INTEGER,     samplerType: SIGNED,   depth: false, bytesPerElement: [1],                 type: [gl.BYTE], };
+  t[gl.R16UI]              = { textureFormat: gl.RED_INTEGER,     samplerType: UNSIGNED, depth: false, bytesPerElement: [2],                 type: [gl.UNSIGNED_SHORT], };
+  t[gl.R16I]               = { textureFormat: gl.RED_INTEGER,     samplerType: SIGNED,   depth: false, bytesPerElement: [2],                 type: [gl.SHORT], };
+  t[gl.R32UI]              = { textureFormat: gl.RED_INTEGER,     samplerType: UNSIGNED, depth: false, bytesPerElement: [4],                 type: [gl.UNSIGNED_INT], };
+  t[gl.R32I]               = { textureFormat: gl.RED_INTEGER,     samplerType: SIGNED,   depth: false, bytesPerElement: [4],                 type: [gl.INT], };
+  t[gl.RG8]                = { textureFormat: gl.RG,              samplerType: FLOAT,    depth: false, bytesPerElement: [2],                 type: [gl.UNSIGNED_BYTE], };
+  t[gl.RG8_SNORM]          = { textureFormat: gl.RG,              samplerType: FLOAT,    depth: false, bytesPerElement: [2],                 type: [gl.BYTE], };
+  t[gl.RG16F]              = { textureFormat: gl.RG,              samplerType: FLOAT,    depth: false, bytesPerElement: [8, 4],              type: [gl.FLOAT, gl.HALF_FLOAT], };
+  t[gl.RG32F]              = { textureFormat: gl.RG,              samplerType: FLOAT,    depth: false, bytesPerElement: [8],                 type: [gl.FLOAT], };
+  t[gl.RG8UI]              = { textureFormat: gl.RG_INTEGER,      samplerType: UNSIGNED, depth: false, bytesPerElement: [2],                 type: [gl.UNSIGNED_BYTE], };
+  t[gl.RG8I]               = { textureFormat: gl.RG_INTEGER,      samplerType: SIGNED,   depth: false, bytesPerElement: [2],                 type: [gl.BYTE], };
+  t[gl.RG16UI]             = { textureFormat: gl.RG_INTEGER,      samplerType: UNSIGNED, depth: false, bytesPerElement: [4],                 type: [gl.UNSIGNED_SHORT], };
+  t[gl.RG16I]              = { textureFormat: gl.RG_INTEGER,      samplerType: SIGNED,   depth: false, bytesPerElement: [4],                 type: [gl.SHORT], };
+  t[gl.RG32UI]             = { textureFormat: gl.RG_INTEGER,      samplerType: UNSIGNED, depth: false, bytesPerElement: [8],                 type: [gl.UNSIGNED_INT], };
+  t[gl.RG32I]              = { textureFormat: gl.RG_INTEGER,      samplerType: SIGNED,   depth: false, bytesPerElement: [8],                 type: [gl.INT], };
+  t[gl.RGB8]               = { textureFormat: gl.RGB,             samplerType: FLOAT,    depth: false, bytesPerElement: [3],                 type: [gl.UNSIGNED_BYTE], };
+  t[gl.SRGB8]              = { textureFormat: gl.RGB,             samplerType: FLOAT,    depth: false, bytesPerElement: [3],                 type: [gl.UNSIGNED_BYTE], };
+  t[gl.RGB565]             = { textureFormat: gl.RGB,             samplerType: FLOAT,    depth: false, bytesPerElement: [3, 2],              type: [gl.UNSIGNED_BYTE, gl.UNSIGNED_SHORT_5_6_5], };
+  t[gl.RGB8_SNORM]         = { textureFormat: gl.RGB,             samplerType: FLOAT,    depth: false, bytesPerElement: [3],                 type: [gl.BYTE], };
+  t[gl.R11F_G11F_B10F]     = { textureFormat: gl.RGB,             samplerType: FLOAT,    depth: false, bytesPerElement: [12, 6, 4],          type: [gl.FLOAT, gl.HALF_FLOAT, gl.UNSIGNED_INT_10F_11F_11F_REV], };
+  t[gl.RGB9_E5]            = { textureFormat: gl.RGB,             samplerType: FLOAT,    depth: false, bytesPerElement: [12, 6, 4],          type: [gl.FLOAT, gl.HALF_FLOAT, gl.UNSIGNED_INT_5_9_9_9_REV], };
+  t[gl.RGB16F]             = { textureFormat: gl.RGB,             samplerType: FLOAT,    depth: false, bytesPerElement: [12, 6],             type: [gl.FLOAT, gl.HALF_FLOAT], };
+  t[gl.RGB32F]             = { textureFormat: gl.RGB,             samplerType: FLOAT,    depth: false, bytesPerElement: [12],                type: [gl.FLOAT], };
+  t[gl.RGB8UI]             = { textureFormat: gl.RGB_INTEGER,     samplerType: UNSIGNED, depth: false, bytesPerElement: [3],                 type: [gl.UNSIGNED_BYTE], };
+  t[gl.RGB8I]              = { textureFormat: gl.RGB_INTEGER,     samplerType: SIGNED,   depth: false, bytesPerElement: [3],                 type: [gl.BYTE], };
+  t[gl.RGB16UI]            = { textureFormat: gl.RGB_INTEGER,     samplerType: UNSIGNED, depth: false, bytesPerElement: [6],                 type: [gl.UNSIGNED_SHORT], };
+  t[gl.RGB16I]             = { textureFormat: gl.RGB_INTEGER,     samplerType: SIGNED,   depth: false, bytesPerElement: [6],                 type: [gl.SHORT], };
+  t[gl.RGB32UI]            = { textureFormat: gl.RGB_INTEGER,     samplerType: UNSIGNED, depth: false, bytesPerElement: [12],                type: [gl.UNSIGNED_INT], };
+  t[gl.RGB32I]             = { textureFormat: gl.RGB_INTEGER,     samplerType: SIGNED,   depth: false, bytesPerElement: [12],                type: [gl.INT], };
+  t[gl.RGBA8]              = { textureFormat: gl.RGBA,            samplerType: FLOAT,    depth: false, bytesPerElement: [4],                 type: [gl.UNSIGNED_BYTE], };
+  t[gl.SRGB8_ALPHA8]       = { textureFormat: gl.RGBA,            samplerType: FLOAT,    depth: false, bytesPerElement: [4],                 type: [gl.UNSIGNED_BYTE], };
+  t[gl.RGBA8_SNORM]        = { textureFormat: gl.RGBA,            samplerType: FLOAT,    depth: false, bytesPerElement: [4],                 type: [gl.BYTE], };
+  t[gl.RGB5_A1]            = { textureFormat: gl.RGBA,            samplerType: FLOAT,    depth: false, bytesPerElement: [4, 2, 4],           type: [gl.UNSIGNED_BYTE, gl.UNSIGNED_SHORT_5_5_5_1, gl.UNSIGNED_INT_2_10_10_10_REV], };
+  t[gl.RGBA4]              = { textureFormat: gl.RGBA,            samplerType: FLOAT,    depth: false, bytesPerElement: [4, 2],              type: [gl.UNSIGNED_BYTE, gl.UNSIGNED_SHORT_4_4_4_4], };
+  t[gl.RGB10_A2]           = { textureFormat: gl.RGBA,            samplerType: FLOAT,    depth: false, bytesPerElement: [4],                 type: [gl.UNSIGNED_INT_2_10_10_10_REV], };
+  t[gl.RGBA16F]            = { textureFormat: gl.RGBA,            samplerType: FLOAT,    depth: false, bytesPerElement: [16, 8],             type: [gl.FLOAT, gl.HALF_FLOAT], };
+  t[gl.RGBA32F]            = { textureFormat: gl.RGBA,            samplerType: FLOAT,    depth: false, bytesPerElement: [16],                type: [gl.FLOAT], };
+  t[gl.RGBA8UI]            = { textureFormat: gl.RGBA_INTEGER,    samplerType: UNSIGNED, depth: false, bytesPerElement: [4],                 type: [gl.UNSIGNED_BYTE], };
+  t[gl.RGBA8I]             = { textureFormat: gl.RGBA_INTEGER,    samplerType: SIGNED,   depth: false, bytesPerElement: [4],                 type: [gl.BYTE], };
+  t[gl.RGB10_A2UI]         = { textureFormat: gl.RGBA_INTEGER,    samplerType: UNSIGNED, depth: false, bytesPerElement: [4],                 type: [gl.UNSIGNED_INT_2_10_10_10_REV], };
+  t[gl.RGBA16UI]           = { textureFormat: gl.RGBA_INTEGER,    samplerType: UNSIGNED, depth: false, bytesPerElement: [8],                 type: [gl.UNSIGNED_SHORT], };
+  t[gl.RGBA16I]            = { textureFormat: gl.RGBA_INTEGER,    samplerType: SIGNED,   depth: false, bytesPerElement: [8],                 type: [gl.SHORT], };
+  t[gl.RGBA32I]            = { textureFormat: gl.RGBA_INTEGER,    samplerType: SIGNED,   depth: false, bytesPerElement: [16],                type: [gl.INT], };
+  t[gl.RGBA32UI]           = { textureFormat: gl.RGBA_INTEGER,    samplerType: UNSIGNED, depth: false, bytesPerElement: [16],                type: [gl.UNSIGNED_INT], };
+
+  // Sized Internal
+  // Note that samplerType is FLOAT for depth formats, not SHADOW. Shadow
+  // samplers are handled as a special case in the test code because they have
+  // special rules about TEXTURE_COMPARE_MODE.
+  t[gl.DEPTH_COMPONENT16]  = { textureFormat: gl.DEPTH_COMPONENT, samplerType: FLOAT,    depth: true,  bytesPerElement: [2, 4],              type: [gl.UNSIGNED_SHORT, gl.UNSIGNED_INT], };
+  t[gl.DEPTH_COMPONENT24]  = { textureFormat: gl.DEPTH_COMPONENT, samplerType: FLOAT,    depth: true,  bytesPerElement: [4],                 type: [gl.UNSIGNED_INT], };
+  t[gl.DEPTH_COMPONENT32F] = { textureFormat: gl.DEPTH_COMPONENT, samplerType: FLOAT,    depth: true,  bytesPerElement: [4],                 type: [gl.FLOAT], };
+  t[gl.DEPTH24_STENCIL8]   = { textureFormat: gl.DEPTH_STENCIL,   samplerType: FLOAT,    depth: true,  bytesPerElement: [4],                 type: [gl.UNSIGNED_INT_24_8], };
+  t[gl.DEPTH32F_STENCIL8]  = { textureFormat: gl.DEPTH_STENCIL,   samplerType: FLOAT,    depth: true,  bytesPerElement: [4],                 type: [gl.FLOAT_32_UNSIGNED_INT_24_8_REV], };
+
+  // TODO: Compressed formats.
+
+  Object.keys(t).forEach(function(internalFormat) {
+    const info = t[internalFormat];
+    info.bytesPerElementMap = {};
+    info.bytesPerElement.forEach(function(bytesPerElement, ndx) {
+      const type = info.type[ndx];
+      info.bytesPerElementMap[type] = bytesPerElement;
+    });
+  });
+}
+
+const floatSamplerTypes = [
+  { type: 'sampler2D',            uvType: 'vec2(0)', target: gl.TEXTURE_2D, },
+  { type: 'sampler3D',            uvType: 'vec3(0)', target: gl.TEXTURE_3D, },
+  { type: 'samplerCube',          uvType: 'vec3(0)', target: gl.TEXTURE_CUBE_MAP, },
+  { type: 'sampler2DArray',       uvType: 'vec3(0)', target: gl.TEXTURE_2D_ARRAY, },
+];
+
+const signedIntSamplerTypes = [
+  { type: 'isampler2D',           uvType: 'vec2(0)', target: gl.TEXTURE_2D, },
+  { type: 'isampler3D',           uvType: 'vec3(0)', target: gl.TEXTURE_3D, },
+  { type: 'isamplerCube',         uvType: 'vec3(0)', target: gl.TEXTURE_CUBE_MAP, },
+  { type: 'isampler2DArray',      uvType: 'vec3(0)', target: gl.TEXTURE_2D_ARRAY, },
+];
+
+const unsignedIntSamplerTypes = [
+  { type: 'usampler2D',           uvType: 'vec2(0)', target: gl.TEXTURE_2D, },
+  { type: 'usampler3D',           uvType: 'vec3(0)', target: gl.TEXTURE_3D, },
+  { type: 'usamplerCube',         uvType: 'vec3(0)', target: gl.TEXTURE_CUBE_MAP, },
+  { type: 'usampler2DArray',      uvType: 'vec3(0)', target: gl.TEXTURE_2D_ARRAY, },
+];
+
+const shadowSamplerTypes = [
+  { type: 'sampler2DShadow',      uvType: 'vec3(0)', target: gl.TEXTURE_2D, },
+  { type: 'samplerCubeShadow',    uvType: 'vec4(0)', target: gl.TEXTURE_CUBE_MAP, },
+  { type: 'sampler2DArrayShadow', uvType: 'vec4(0)', target: gl.TEXTURE_2D_ARRAY, },
+]
+
+/**
+ * Gets the number of bytes per element for a given internalFormat / type
+ * @param {number} internalFormat The internalFormat parameter from texImage2D etc..
+ * @param {number} type The type parameter for texImage2D etc..
+ * @return {number} the number of bytes per element for the given internalFormat, type combo
+ * @memberOf module:twgl/textures
+ */
+function getBytesPerElementForInternalFormat(internalFormat, type) {
+  const info = textureInternalFormatInfo[internalFormat];
+  if (!info) {
+    throw "unknown internal format";
+  }
+  const bytesPerElement = info.bytesPerElementMap[type];
+  if (bytesPerElement === undefined) {
+    throw "unknown internal format";
+  }
+  return bytesPerElement;
+}
+
+function make2DTexture(target, internalFormat, format, type) {
+  gl.texImage2D(target, 0, internalFormat, 1, 1, 0, format, type, null);
+}
+
+function make3DTexture(target, internalFormat, format, type) {
+  gl.texImage3D(target, 0, internalFormat, 1, 1, 1, 0, format, type, null);
+}
+
+function makeCubeMapTexture(target, internalFormat, format, type) {
+  [
+    gl.TEXTURE_CUBE_MAP_POSITIVE_X,
+    gl.TEXTURE_CUBE_MAP_NEGATIVE_X,
+    gl.TEXTURE_CUBE_MAP_POSITIVE_Y,
+    gl.TEXTURE_CUBE_MAP_NEGATIVE_Y,
+    gl.TEXTURE_CUBE_MAP_POSITIVE_Z,
+    gl.TEXTURE_CUBE_MAP_NEGATIVE_Z,
+  ].forEach(function(target) {
+    gl.texImage2D(target, 0, internalFormat, 1, 1, 0, format, type, null);
+  });
+}
+
+function runTest() {
+    const targets = {};
+    targets[gl.TEXTURE_2D]       = { fn: make2DTexture, },
+    targets[gl.TEXTURE_3D]       = { fn: make3DTexture, },
+    targets[gl.TEXTURE_CUBE_MAP] = { fn: makeCubeMapTexture, },
+    targets[gl.TEXTURE_2D_ARRAY] = { fn: make3DTexture, },
+
+    Object.keys(targets).forEach(function(target) {
+        target = parseInt(target);
+        const targetInfo = targets[target];
+        targetInfo.textures = [];
+        Object.keys(textureInternalFormatInfo).forEach(function(internalFormat) {
+            internalFormat = parseInt(internalFormat);
+            const isDepthFormat = textureInternalFormatInfo[internalFormat].depth;
+            if (target === gl.TEXTURE_3D && isDepthFormat) {
+              return;
+            }
+            const info = textureInternalFormatInfo[internalFormat];
+            const texture = gl.createTexture();
+            gl.bindTexture(target, texture);
+            targetInfo.fn(target, internalFormat, info.textureFormat, info.type[0]);
+            targetInfo.textures.push({
+                internalFormat: internalFormat,
+                texture: texture,
+            });
+            gl.texParameteri(target, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+            gl.texParameteri(target, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+            gl.texParameteri(target, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(target, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(target, gl.TEXTURE_WRAP_R, gl.CLAMP_TO_EDGE);
+            wtu.glErrorShouldBe(gl, gl.NO_ERROR, `No errors from setup for ${wtu.glEnumToString(gl, target)} ${wtu.glEnumToString(gl, internalFormat)}`);
+        });
+    });
+
+    const samplerObject = gl.createSampler();
+    gl.samplerParameteri(samplerObject, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.samplerParameteri(samplerObject, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.samplerParameteri(samplerObject, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.samplerParameteri(samplerObject, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.samplerParameteri(samplerObject, gl.TEXTURE_WRAP_R, gl.CLAMP_TO_EDGE);
+
+    // The rules implemented here are:
+
+    // Float samplers accept only float textures and normalized integer textures
+    // (signed or unsigned) and depth textures with TEXTURE_COMPARE_MODE set to
+    // NONE.
+
+    // Signed samplers accept only signed unnormalized integer textures.
+
+    // Unsigned samplers accept only unsigned unnormalized integer textures.
+
+    // Shadow samplers accept only depth textures with
+    // TEXTURE_COMPARE_MODE set to COMPARE_REF_TO_TEXTURE.
+
+    testSamplerType(FLOAT, floatSamplerTypes);
+    testSamplerType(SIGNED, signedIntSamplerTypes);
+    testSamplerType(UNSIGNED, unsignedIntSamplerTypes);
+    testSamplerType(SHADOW, shadowSamplerTypes);
+
+    function testSamplerType(samplerType, samplerInfos) {
+        samplerInfos.forEach(function(samplerInfo) {
+            debug(`\nchecking ${samplerInfo.type}`);
+            const program = wtu.setupProgram(gl, ['vshader', makeFragmentShader(samplerInfo.type, samplerInfo.uvType)], [], console.log.bind(console));
+            if (!program) {
+                testFailed("Loading program failed");
+                return;
+            }
+            testPassed("Loading program succeeded");
+
+            const target = samplerInfo.target;
+            const targetInfo = targets[target];
+            targetInfo.textures.forEach(function(textureInfo) {
+                const internalFormat = textureInfo.internalFormat;
+                const desc = wtu.glEnumToString(gl, internalFormat);
+                const info = textureInternalFormatInfo[internalFormat];
+
+                // The texture object can have two values of TEXTURE_COMPARE_MODE: NONE or
+                // COMPARE_REF_TO_TEXTURE. However, the sampler can have three states:
+                // No sampler object bound, sampler object with NONE, and sampler object with
+                // COMPARE_REF_TO_TEXTURE. When a sampler object is bound, it overrides the
+                // texture object's state. We test 2*3=6 possible combinations of state.
+
+                // First test the three states that result in TEXTURE_COMPARE_MODE being NONE.
+                let expected = samplerType == info.samplerType ? gl.NONE : gl.INVALID_OPERATION;
+                gl.bindTexture(target, textureInfo.texture);
+                gl.drawArrays(gl.POINTS, 0, 1);
+                wtu.glErrorShouldBe(gl, expected, `${desc} texture state NONE, no sampler object`);
+
+                gl.bindSampler(0, samplerObject);
+                gl.samplerParameteri(samplerObject, gl.TEXTURE_COMPARE_MODE, gl.NONE);
+                gl.drawArrays(gl.POINTS, 0, 1);
+                wtu.glErrorShouldBe(gl, expected, `${desc} texture state NONE, sampler state NONE`);
+
+                gl.texParameteri(target, gl.TEXTURE_COMPARE_MODE, gl.COMPARE_REF_TO_TEXTURE);
+                gl.drawArrays(gl.POINTS, 0, 1);
+                wtu.glErrorShouldBe(gl, expected, `${desc} texture state COMPARE_REF_TO_TEXTURE, sampler state NONE`);
+
+                // Now test test the three states that result in TEXTURE_COMPARE_MODE being COMPARE_REF_TO_TEXTURE.
+                if (info.depth) {
+                  expected = samplerType == SHADOW ? gl.NONE : gl.INVALID_OPERATION;
+                }
+                gl.bindSampler(0, null);
+                gl.drawArrays(gl.POINTS, 0, 1);
+                wtu.glErrorShouldBe(gl, expected, `${desc} texture state COMPARE_REF_TO_TEXTURE, no sampler object`);
+
+                gl.bindSampler(0, samplerObject);
+                gl.samplerParameteri(samplerObject, gl.TEXTURE_COMPARE_MODE, gl.COMPARE_REF_TO_TEXTURE);
+                gl.drawArrays(gl.POINTS, 0, 1);
+                wtu.glErrorShouldBe(gl, expected, `${desc} texture state COMPARE_REF_TO_TEXTURE, sampler state COMPARE_REF_TO_TEXTURE`);
+
+                gl.texParameteri(target, gl.TEXTURE_COMPARE_MODE, gl.NONE);
+                gl.drawArrays(gl.POINTS, 0, 1);
+                wtu.glErrorShouldBe(gl, expected, `${desc} texture state NONE, sampler state COMPARE_REF_TO_TEXTURE`);
+                gl.bindSampler(0, null);
+            });
+        });
+    };
+}
+
+if (!gl) {
+    testFailed("WebGL context creation failed");
+} else {
+    testPassed("WebGL context creation succeeded");
+    runTest();
+}
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

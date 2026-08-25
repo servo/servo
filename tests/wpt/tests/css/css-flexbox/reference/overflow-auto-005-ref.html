@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+.test-row {
+    display: flex;
+    margin-bottom: 5px;
+}
+.test-row > div {
+    flex: none;
+}
+
+.container {
+    margin-right: 5px;
+    border: 5px solid lightgreen;
+    width: 100px;
+}
+
+.flexbox {
+    display: block;
+    height: 100px;
+    width: 100px;
+    overflow: auto;
+}
+
+.flexbox > div {
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(at right 60%, red, yellow, green);
+}
+
+.vertical-rl {
+  writing-mode: vertical-rl;
+}
+
+</style>
+</head>
+<body>
+    <p>Scrollbars should work in all the flexboxes.</p>
+</body>
+<script>
+var results = [
+    'left top', 'left top', 'right top', 'left bottom',
+    'right top', 'right top', 'right bottom', 'left top',
+    'left top', 'left top', 'left bottom', 'right top'];
+
+var testContents = '';
+for (var i = 0; i < results.length; ++i) {
+    if (!(i % 4))
+        testContents += "<div class='test-row'>";
+
+    var containerClass = 'container ' + results[i];
+
+    // Use vertical-rl here because Firefox and WebKit put vertical scrollbars
+    // on the left in the vertical-rl test cases, and this is the easiest way to
+    // match that.
+    let maybe_vertical = "";
+    if (i > 3 && i < 8)
+      maybe_vertical = " vertical-rl";
+
+    testContents +=
+        "<div class='" + containerClass + "'>" +
+        "<div class='flexbox" + maybe_vertical + "'>" +
+        "<div></div>" +
+        "</div>" +
+        "</div>";
+    if (i % 4 == 3)
+        testContents += "</div>";
+}
+
+document.body.innerHTML += testContents;
+
+Array.prototype.forEach.call(document.querySelectorAll(".left"), function(element) {
+    element.firstChild.scrollLeft = -1000;
+});
+
+Array.prototype.forEach.call(document.querySelectorAll(".right"), function(element) {
+    element.firstChild.scrollLeft = 1000;
+});
+
+Array.prototype.forEach.call(document.querySelectorAll(".bottom"), function(element) {
+    element.firstChild.scrollTop = 1000;
+});
+
+</script>
+</body>
+</html>

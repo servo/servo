@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+  <polygon points="0 0, 150 0, 150 150, 0 150, 0 25, 125 25, 125 125, 25 125, 25 25, 0 25" fill-rule="evenodd" fill="green"/>
+  <polygon points="50 50, 200 50, 200 200, 50 200, 50 75, 175 75, 175 175, 75 175, 75 75, 50 75" fill-rule="evenodd" fill="green"/>
+</svg>

@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL ANGLE_base_vertex_base_instance Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/desktop-gl-constants.js"></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/tests/compositing-test.js"></script>
+<script src="../../js/tests/invalid-vertex-attrib-test.js"></script>
+</head>
+<body>
+<script id="vshaderBaseInstanceWithoutExt" type="x-shader/x-vertex">#version 300 es
+layout(location = 0) in vec2 vPosition;
+out vec4 color;
+void main()
+{
+  color = vec4(1.0, 0.0, 0.0, 1.0);
+  gl_Position = vec4(vPosition * 2.0 - 1.0, gl_BaseInstance, 1);
+}
+</script>
+<!-- Check gl_InstanceID starts at 0 regardless of gl_BaseInstance -->
+<script id="vshaderInstanceIDCheck" type="x-shader/x-vertex">#version 300 es
+layout(location = 0) in vec2 vPosition;
+out vec4 color;
+void main()
+{
+  if (gl_InstanceID == 0) {
+    color = vec4(0, 1, 0, 1);
+  } else {
+    color = vec4(1, 0, 0, 1);
+  }
+  gl_Position = vec4(vPosition * 2.0 - 1.0, 0, 1);
+}
+</script>
+<script id="vshaderBaseVertexWithoutExt" type="x-shader/x-vertex">#version 300 es
+layout(location = 0) in vec2 vPosition;
+out vec4 color;
+void main()
+{
+  color = vec4(1.0, 0.0, 0.0, 1.0);
+  gl_Position = vec4(vPosition * 2.0 - 1.0, gl_BaseVertex, 1);
+}
+</script>
+<script id="vshaderWithExt" type="x-shader/x-vertex">#version 300 es
+#extension GL_ANGLE_base_vertex_base_instance : require
+layout(location = 0) in vec2 vPosition;
+out vec4 color;
+void main()
+{
+  color = vec4(0, 1, 0, 1);
+  gl_Position = vec4(vPosition * 2.0 - 1.0, 0, 1);
+}
+</script>
+<!-- Check gl_VertexID starts at gl_BaseVertex -->
+<script id="vshaderVertexIDCheck" type="x-shader/x-vertex">#version 300 es
+layout(location = 0) in vec2 vPosition;
+out vec4 color;
+void main()
+{
+  if (gl_VertexID >= 3) {
+    color = vec4(0, 1, 0, 1);
+  } else {
+    color = vec4(1, 0, 0, 1);
+  }
+  gl_Position = vec4(vPosition * 2.0 - 1.0, 0, 1);
+}
+</script>
+<script id="vshaderSimple" type="x-shader/x-vertex">#version 300 es
+  layout(location = 0) in vec2 vPosition;
+  layout(location = 1) in float vInstance;
+  out vec4 color;
+  void main()
+  {
+    if (vInstance <= 0.0) {
+      color = vec4(1.0, 0.0, 0.0, 1.0);
+    } else if (vInstance <= 1.0) {
+      color = vec4(0.0, 1.0, 0.0, 1.0);
+    } else if (vInstance <= 2.0) {
+      color = vec4(0.0, 0.0, 1.0, 1.0);
+    } else {
+      color = vec4(0.0, 0.0, 0.0, 1.0);
+    }
+
+    gl_Position = vec4(vec3(vPosition, 1.0) * 2.0 - 1.0, 1);
+  }
+</script>
+<script id="fshader" type="x-shader/x-fragment">#version 300 es
+  precision mediump float;
+  in vec4 color;
+  out vec4 oColor;
+  void main() {
+    oColor = color;
+  }
+</script>
+<div id="description"></div>
+<canvas id="canvas" width="128" height="128"> </canvas>
+<div id="console"></div>
+
+<script>
+"use strict";
+description("This test verifies the functionality of the WEBGL_[multi]_draw_basevertex_base_instance extension, if it is available.");
+
+const wtu = WebGLTestUtils;
+const canvas = document.getElementById("canvas");
+canvas.style.backgroundColor = '#000';
+canvas.style.imageRendering = 'pixelated'; // Because Chrome doesn't support crisp-edges.
+canvas.style.imageRendering = 'crisp-edges';
+const attribs = {
+  antialias: false,
+};
+const gl = wtu.create3DContext(canvas, attribs, 2);
+
+const width = gl.canvas.width;
+const height = gl.canvas.height;
+const x_count = 8;
+const y_count = 8;
+const quad_count = x_count * y_count;
+const tri_count = quad_count * 2;
+const tileSize = [ 1/x_count, 1/y_count ];
+const tilePixelSize = [ Math.floor(width / x_count), Math.floor(height / y_count) ];
+const quadRadius = [ 0.25 * tileSize[0], 0.25 * tileSize[1] ];
+const pixelCheckSize = [ Math.floor(quadRadius[0] * width), Math.floor(quadRadius[1] * height) ];
+const bufferUsageSet = [ gl.STATIC_DRAW, gl.DYNAMIC_DRAW ];
+
+function getTileCenter(x, y) {
+  return [ tileSize[0] * (0.5 + x), tileSize[1] * (0.5 + y) ];
+}
+
+function getQuadVertices(x, y) {
+  const center = getTileCenter(x, y);
+  return [
+    [center[0] - quadRadius[0], center[1] - quadRadius[1], 0],
+    [center[0] + quadRadius[0], center[1] - quadRadius[1], 0],
+    [center[0] + quadRadius[0], center[1] + quadRadius[1], 0],
+    [center[0] - quadRadius[0], center[1] + quadRadius[1], 0],
+  ];
+}
+
+const indicesData = [];
+let verticesData = [];
+let nonIndexedVerticesData = [];
+const instanceIDsData = Array.from(Array(x_count).keys());
+const is = new Uint16Array([0, 1, 2, 0, 2, 3]);
+// Rects in the same column are within a vertex array, testing gl_VertexID, gl_BaseVertex
+// Rects in the same row are drawn by instancing, testing gl_InstanceID, gl_BaseInstance
+for (let y = 0; y < y_count; ++y) {
+  // v3 ---- v2
+  // |       |
+  // |       |
+  // v0 ---- v1
+
+  // Get only one column of quad vertices as our geometry
+  // Rely on BaseInstance to duplicate on x axis
+  const vs = getQuadVertices(0, y);
+
+  for (let i = 0; i < vs.length; ++i) {
+    verticesData = verticesData.concat(vs[i]);
+  }
+
+  for (let i = 0; i < is.length; ++i) {
+    nonIndexedVerticesData = nonIndexedVerticesData.concat(vs[is[i]]);
+  }
+}
+
+// Build the indicesData used by drawElements*
+for (let i = 0; i < y_count; ++i) {
+  let oi = 6 * i;
+  let ov = 4 * i;
+  for (let j = 0; j < is.length; ++j) {
+    indicesData[oi + j] = is[j] + ov;
+  }
+}
+
+const indices = new Uint16Array(indicesData);
+const vertices = new Float32Array(verticesData);
+const nonIndexedVertices = new Float32Array(nonIndexedVerticesData);
+const instanceIDs = new Float32Array(instanceIDsData);
+
+const indexBuffer = gl.createBuffer();
+const vertexBuffer = gl.createBuffer();
+const nonIndexedVertexBuffer = gl.createBuffer();
+const instanceIDBuffer = gl.createBuffer();
+
+const drawArraysDrawCount = x_count / 2;
+let drawArraysParams = {
+  drawCount: drawArraysDrawCount,
+  firsts: new Uint32Array(drawArraysDrawCount).fill(0),
+  counts: new Uint32Array(drawArraysDrawCount).fill(y_count * 6),
+  instances: new Uint32Array(drawArraysDrawCount).fill(2),
+  baseInstances: new Uint32Array(drawArraysDrawCount)
+};
+
+for (let i = 0; i < x_count / 2; ++i) {
+  drawArraysParams.baseInstances[i] = i * 2;
+}
+
+const drawElementsDrawCount = x_count * y_count / 2;
+let drawElementsParams = {
+  drawCount: drawElementsDrawCount,
+  offsets: new Uint32Array(drawElementsDrawCount).fill(0),
+  counts: new Uint32Array(drawElementsDrawCount).fill(6),
+  instances: new Uint32Array(drawElementsDrawCount).fill(2),
+  baseVertices: new Uint32Array(drawElementsDrawCount),
+  baseInstances: new Uint32Array(drawElementsDrawCount)
+};
+
+let b = 0;
+for (let v = 0; v < y_count; ++v) {
+  for (let i = 0; i < x_count; i+=2) {
+    drawElementsParams.baseVertices[b] = v * 4;
+    drawElementsParams.baseInstances[b] = i;
+    ++b;
+  }
+}
+
+function setupGeneralBuffers(bufferUsage) {
+  gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, vertices, bufferUsage);
+
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, bufferUsage);
+
+  gl.bindBuffer(gl.ARRAY_BUFFER, nonIndexedVertexBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, nonIndexedVertices, bufferUsage);
+
+  gl.bindBuffer(gl.ARRAY_BUFFER, instanceIDBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, instanceIDs, bufferUsage);
+}
+
+// Check if the extension is either both enabled and supported or
+// not enabled and not supported.
+function runSupportedTest(extensionName, extensionEnabled) {
+  const supported = gl.getSupportedExtensions();
+  if (supported.indexOf(extensionName) >= 0) {
+    if (extensionEnabled) {
+      testPassed(extensionName + ' listed as supported and getExtension succeeded');
+      return true;
+    } else {
+      testFailed(extensionName + ' listed as supported but getExtension failed');
+    }
+  } else {
+    if (extensionEnabled) {
+      testFailed(extensionName + ' not listed as supported but getExtension succeeded');
+    } else {
+      testPassed(extensionName + ' not listed as supported and getExtension failed -- this is legal');
+    }
+  }
+  return false;
+}
+
+function runTest() {
+  if (!gl) {
+    return function() {
+      testFailed('WebGL context does not exist');
+    }
+  }
+
+  doTest('WEBGL_draw_instanced_base_vertex_base_instance', false);
+  doTest('WEBGL_multi_draw_instanced_base_vertex_base_instance', true);
+
+  testGlslBuiltins();
+}
+
+// -
+
+function* range(n) {
+  for (let i = 0; i < n; i++) {
+    yield i;
+  }
+}
+
+function crossCombine(...args) {
+  function crossCombine2(listA, listB) {
+    const listC = [];
+    for (const a of listA) {
+      for (const b of listB) {
+        const c = Object.assign({}, a, b);
+        listC.push(c);
+      }
+    }
+    return listC;
+  }
+
+  let res = [{}];
+  while (args.length) {
+    const next = args.shift();
+    next[0].defined;
+    res = crossCombine2(res, next);
+  }
+  return res;
+}
+
+// -
+
+const PASSTHROUGH_FRAG_SRC = `\
+#version 300 es
+precision mediump float;
+in vec4 v_color;
+out vec4 o_color;
+
+void main() {
+  o_color = v_color;
+}
+`;
+
+function testGlslBuiltins() {
+  const EXT = gl.getExtension('WEBGL_draw_instanced_base_vertex_base_instance');
+
+  const vertid_prog = (() => {
+      const vert_src = `\
+#version 300 es
+#line 405
+layout(location = 0) in int a_vertex_id; // Same as gl_VertexID
+out vec4 v_color;
+
+void main() {
+  gl_Position = vec4(0,0,0,1);
+  gl_PointSize = 1.0;
+  v_color = vec4(float(gl_VertexID), float(a_vertex_id),0,0);
+  v_color /= 255.0;
+}
+`;
+      const prog = wtu.setupProgram(gl, [vert_src, PASSTHROUGH_FRAG_SRC],
+              undefined, undefined, /*logShaders*/ true);
+      expectTrue(!!prog, `make_vertid_prog failed`);
+      return prog;
+    })();
+
+  const instid_prog = (() => {
+      const vert_src = `\
+#version 300 es
+#line 425
+layout(location = 0) in int a_vertex_id; // Same as gl_VertexID
+layout(location = 1) in int a_instance_div1; // Same as base_instance+gl_InstanceID
+layout(location = 2) in int a_instance_div2; // Same as base_instance+floor(gl_InstanceID/2)
+layout(location = 3) in int a_instance_div3; // Same as base_instance+floor(gl_InstanceID/3)
+out vec4 v_color;
+
+void main() {
+  gl_Position = vec4(0,0,0,1);
+  gl_PointSize = 1.0;
+  v_color = vec4(float(gl_InstanceID), float(a_instance_div1),
+                 float(a_instance_div2), float(a_instance_div3));
+  v_color /= 255.0;
+}
+`;
+      const prog = wtu.setupProgram(gl, [vert_src, PASSTHROUGH_FRAG_SRC],
+              undefined, undefined, /*logShaders*/ true);
+      expectTrue(!!prog, `make_instid_prog failed`);
+      return prog;
+    })();
+
+  const COUNT_UP_DATA = new Int32Array(1000);
+  for (const i in COUNT_UP_DATA) {
+    COUNT_UP_DATA[i] = i;
+  }
+
+  const vertex_id_buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, vertex_id_buf);
+  gl.bufferData(gl.ARRAY_BUFFER, COUNT_UP_DATA, gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0);
+  gl.vertexAttribIPointer(0, 1, gl.INT, 0, 0);
+
+  gl.enableVertexAttribArray(1);
+  gl.vertexAttribIPointer(1, 1, gl.INT, 0, 0);
+  gl.vertexAttribDivisor(1, 1);
+
+  gl.enableVertexAttribArray(2);
+  gl.vertexAttribIPointer(2, 1, gl.INT, 0, 0);
+  gl.vertexAttribDivisor(2, 2);
+
+  gl.enableVertexAttribArray(3);
+  gl.vertexAttribIPointer(3, 1, gl.INT, 0, 0);
+  gl.vertexAttribDivisor(3, 3);
+
+  const index_buf = gl.createBuffer();
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_buf);
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, COUNT_UP_DATA, gl.STATIC_DRAW);
+
+  gl.canvas.width = gl.canvas.height = 1;
+  gl.canvas.style.width = gl.canvas.style.height = '1em';
+  gl.viewport(0, 0, 1, 1);
+
+  const expect_pixel = (() => {
+    const was = new Uint8Array(4);
+    return (desc, subtest, expected) => {
+      gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, was);
+      if (!areArraysEqual(was, expected)) {
+        testFailed(`${subtest}: Expected [${expected}], was [${was}]. desc: ${JSON.stringify(desc)}`);
+      } else {
+        debug(`${subtest}: Was [${was}] as expected.`);
+      }
+    };
+  })();
+
+  // Common setup complete
+  // -
+  // Create testcases
+
+  const DRAW_FUNC_COMBINER = [{
+    name: 'drawArraysInstanced',
+    draw: desc => {
+      if (desc.base_vert) return false;
+      if (desc.base_inst) return false;
+      gl.drawArraysInstanced(gl[desc.mode], desc.first_vert,
+          desc.vert_count, desc.inst_count);
+      return true;
+    },
+  }, {
+    name: 'drawElementsInstanced',
+    draw: desc => {
+      if (desc.base_vert) return false;
+      if (desc.base_inst) return false;
+      gl.drawElementsInstanced(gl[desc.mode], desc.vert_count,
+          gl.UNSIGNED_INT, 4*desc.first_vert, desc.inst_count);
+      return true;
+    },
+  }, {
+    name: 'drawArraysInstancedBaseInstanceWEBGL',
+    draw: desc => {
+      if (desc.base_vert) return false;
+      if (!EXT) return false;
+      EXT.drawArraysInstancedBaseInstanceWEBGL(gl[desc.mode],
+        desc.first_vert, desc.vert_count, desc.inst_count,
+        desc.base_inst);
+      return true;
+    },
+  }, {
+    name: 'drawElementsInstancedBaseVertexBaseInstanceWEBGL',
+    draw: desc => {
+      if (!EXT) return false;
+      EXT.drawElementsInstancedBaseVertexBaseInstanceWEBGL(
+          gl[desc.mode], desc.vert_count, gl.UNSIGNED_INT, 4*desc.first_vert,
+          desc.inst_count, desc.base_vert, desc.base_inst);
+      return true;
+    },
+  }];
+
+  // -
+
+  function make_key_combiner(key, vals) {
+    const ret = [];
+    for (const v of vals) {
+      const cur = {};
+      cur[key] = v;
+      ret.push(cur);
+    }
+    return ret;
+  }
+
+  const TEST_DESCS = crossCombine(
+    DRAW_FUNC_COMBINER,
+    make_key_combiner('base_vert', [0,1,2]),
+    make_key_combiner('vert_count', [0,1,2]),
+    make_key_combiner('base_inst', [0,1,2]),
+    make_key_combiner('inst_count', range(10)),
+    make_key_combiner('first_vert', [0,1,2]),
+  );
+  console.log('TEST_DESCS', TEST_DESCS);
+
+  // -
+  // Run testcases
+
+  gl.disable(gl.DEPTH_TEST);
+  gl.disable(gl.STENCIL_TEST);
+  gl.disable(gl.BLEND);
+
+  for (const desc of TEST_DESCS) {
+    gl.disable(gl.SCISSOR_TEST);
+    gl.clearBufferfv(gl.COLOR, 0, [1,0,0,1]);
+
+    // From OpenGL ES 3.2 spec section 10.5
+    // https://www.khronos.org/registry/OpenGL/specs/es/3.2/es_spec_3.2.pdf
+    // The index of any element transferred to the GL by DrawArraysOneInstance
+    // is referred to as its vertex ID, and may be read by a vertex shader as gl_VertexID.
+    // The vertex ID of the ith element transferred is first + i.
+    const last_gl_vert_id = desc.base_vert + desc.first_vert + desc.vert_count - 1;
+    const last_vert_id = last_gl_vert_id;
+    const last_inst_id = desc.inst_count - 1;
+    const last_inst_div1 = desc.base_inst + last_inst_id;
+    const last_inst_div2 = desc.base_inst + Math.floor(last_inst_id / 2);
+    const last_inst_div3 = desc.base_inst + Math.floor(last_inst_id / 3);
+
+    gl.useProgram(vertid_prog);
+    if (!desc.draw(desc)) continue;
+    debug('\ndesc: ' + JSON.stringify(desc));
+
+    wtu.glErrorAssert(gl, 0);
+    if (!desc.vert_count || !desc.inst_count) {
+      expect_pixel(desc, 'vertid_prog', [255, 0, 0, 255]);
+      continue;
+    }
+
+    expect_pixel(desc, 'vertid_prog', [last_gl_vert_id, last_vert_id, 0, 0]);
+
+    gl.useProgram(instid_prog);
+    desc.draw(desc);
+    expect_pixel(desc, 'instid_prog', [last_inst_id, last_inst_div1, last_inst_div2, last_inst_div3]);
+  }
+}
+
+// -
+
+function doTest(extensionName, multiDraw) {
+  const ext = gl.getExtension(extensionName);
+  if (!runSupportedTest(extensionName, ext)) {
+    return;
+  }
+
+  function getShaderSource(countX, countY, config) {
+    const vs = [
+      '#version 300 es',
+      config.isMultiDraw ? '#extension GL_ANGLE_multi_draw : require' : '',
+      '#define kCountX ' + countX.toString(),
+      '#define kCountY ' + countY.toString(),
+      'layout(location = 0) in vec2 vPosition;',
+      'layout(location = 1) in float vInstanceID;',
+      'out vec4 color;',
+      'void main()',
+      '{',
+      '  const float xStep = 1.0 / float(kCountX);',
+      '  const float yStep = 1.0 / float(kCountY);',
+      '  float xID = vInstanceID;',
+      '  float xColor = 1.0 - xStep * xID;',
+      '  float yID = floor(float(gl_VertexID) / ' + (config.isDrawArrays ? '6.0' : '4.0') + ' + 0.01);',
+      '  color = vec4(xColor, 1.0 - yStep * yID, 1.0',
+      '  , 1.0);',
+      '  mat3 transform = mat3(1.0);',
+      '  transform[2][0] = xID * xStep;',
+      '  gl_Position = vec4(transform * vec3(vPosition, 1.0) * 2.0 - 1.0, 1.0);',
+      '}'
+    ].join('\n');
+
+    const fs = document.getElementById('fshader').text.trim();
+
+    return [vs, fs];
+  }
+
+  function runValidationTests(bufferUsage) {
+    const vertexBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([ 0.2,0.2, 0.8,0.2, 0.5,0.8 ]), bufferUsage);
+
+    const indexBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint8Array([ 0, 1, 2 ]), bufferUsage);
+
+    const instanceBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, instanceBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([ 0, 1, 2 ]), bufferUsage);
+
+    const program = wtu.setupProgram(gl, ['vshaderSimple', 'fshader'], ['vPosition, vInstanceID'], [0, 1], true);
+    expectTrue(program != null, "can compile simple program");
+
+    function setupInstanced() {
+      gl.bindBuffer(gl.ARRAY_BUFFER, instanceBuffer);
+      gl.enableVertexAttribArray(1);
+      gl.vertexAttribPointer(1, 1, gl.FLOAT, false, 0, 0);
+      gl.vertexAttribDivisor(1, 1);
+    }
+
+    setupInstanced();
+
+    function setupDrawArrays() {
+      gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+      gl.enableVertexAttribArray(0);
+      gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    }
+
+    function setupDrawElements() {
+      gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+      gl.enableVertexAttribArray(0);
+      gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    }
+
+    function makeDrawValidationCheck(drawFunc, setup) {
+      if (!drawFunc) {
+        return function() {};
+      }
+      return function(f_args, expect, msg) {
+        setup();
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        drawFunc.apply(ext, f_args);
+        wtu.glErrorShouldBe(gl, expect, drawFunc.name + " " + msg);
+        gl.disableVertexAttribArray(0);
+      }
+    }
+
+    if (!multiDraw) {
+      const checkDrawArraysInstancedBaseInstance = makeDrawValidationCheck(
+        ext.drawArraysInstancedBaseInstanceWEBGL, setupDrawArrays);
+      const checkDrawElementsInstancedBaseVertexBaseInstance = makeDrawValidationCheck(
+        ext.drawElementsInstancedBaseVertexBaseInstanceWEBGL, setupDrawElements);
+      checkDrawArraysInstancedBaseInstance(
+        [gl.TRIANGLES, 0, 3, 1, 1],
+        gl.NO_ERROR, "with gl.TRIANGLES"
+      );
+      checkDrawElementsInstancedBaseVertexBaseInstance(
+        [gl.TRIANGLES, 3, gl.UNSIGNED_BYTE, 0, 1, 0, 0],
+        gl.NO_ERROR, "with gl.TRIANGLES"
+      );
+
+      checkDrawArraysInstancedBaseInstance(
+        [gl.TRIANGLES, 0, 3, 1, 3],
+        [gl.NO_ERROR, gl.INVALID_OPERATION],
+        "with baseInstance leading to out of bounds"
+      );
+      checkDrawElementsInstancedBaseVertexBaseInstance(
+        [gl.TRIANGLES, 3, gl.UNSIGNED_BYTE, 0, 1, 2, 0],
+        [gl.NO_ERROR, gl.INVALID_OPERATION],
+        "with baseVertex leading to out of bounds"
+      );
+      checkDrawElementsInstancedBaseVertexBaseInstance(
+        [gl.TRIANGLES, 3, gl.UNSIGNED_BYTE, 0, 1, 0, 3],
+        [gl.NO_ERROR, gl.INVALID_OPERATION],
+        "with baseInstance leading to out of bounds"
+      );
+      checkDrawElementsInstancedBaseVertexBaseInstance(
+        [gl.TRIANGLES, 3, gl.UNSIGNED_BYTE, 0, 1, 2, 3],
+        [gl.NO_ERROR, gl.INVALID_OPERATION],
+        "with both baseVertex and baseInstance leading to out of bounds"
+      );
+    } else {
+      const checkMultiDrawArraysInstancedBaseInstance = makeDrawValidationCheck(
+        ext.multiDrawArraysInstancedBaseInstanceWEBGL, setupDrawArrays);
+      const checkMultiDrawElementsInstancedBaseVertexBaseInstance = makeDrawValidationCheck(
+        ext.multiDrawElementsInstancedBaseVertexBaseInstanceWEBGL, setupDrawElements);
+
+      // Check that drawing a single triangle works
+      checkMultiDrawArraysInstancedBaseInstance(
+        [gl.TRIANGLES, [0], 0, [3], 0, [1], 0, [0], 0, 1],
+        gl.NO_ERROR, "with gl.TRIANGLES"
+      );
+      checkMultiDrawElementsInstancedBaseVertexBaseInstance(
+        [gl.TRIANGLES, [3], 0, gl.UNSIGNED_BYTE, [0], 0, [1], 0, [0], 0, [0], 0, 1],
+        gl.NO_ERROR, "with gl.TRIANGLES"
+      );
+
+      checkMultiDrawArraysInstancedBaseInstance(
+        [gl.TRIANGLES, [0], 0, [3], 0, [1], 0, [3], 0, 1],
+        [gl.NO_ERROR, gl.INVALID_OPERATION], "with baseInstance leads to out of bounds"
+      );
+      checkMultiDrawElementsInstancedBaseVertexBaseInstance(
+        [gl.TRIANGLES, [3], 0, gl.UNSIGNED_BYTE, [0], 0, [1], 0, [2], 0, [0], 0, 1],
+        [gl.NO_ERROR, gl.INVALID_OPERATION], "with baseVertex leads to out of bounds"
+      );
+      checkMultiDrawElementsInstancedBaseVertexBaseInstance(
+        [gl.TRIANGLES, [3], 0, gl.UNSIGNED_BYTE, [0], 0, [1], 0, [0], 0, [3], 0, 1],
+        [gl.NO_ERROR, gl.INVALID_OPERATION], "with baseInstance leads to out of bounds"
+      );
+      checkMultiDrawElementsInstancedBaseVertexBaseInstance(
+        [gl.TRIANGLES, [3], 0, gl.UNSIGNED_BYTE, [0], 0, [1], 0, [2], 0, [3], 0, 1],
+        [gl.NO_ERROR, gl.INVALID_OPERATION],
+        "with both baseVertex and baseInstance lead to out of bounds"
+      );
+
+      // Zero drawcount permitted
+      checkMultiDrawArraysInstancedBaseInstance(
+        [gl.TRIANGLES, [0], 0, [3], 0, [1], 0, [0], 0, 0],
+        gl.NO_ERROR, "with drawcount == 0"
+      );
+      checkMultiDrawElementsInstancedBaseVertexBaseInstance(
+        [gl.TRIANGLES, [3], 0, gl.UNSIGNED_BYTE, [0], 0, [1], 0, [0], 0, [0], 0, 0],
+        gl.NO_ERROR, "with drawcount == 0"
+      );
+
+      // Check negative drawcount
+      checkMultiDrawArraysInstancedBaseInstance(
+        [gl.TRIANGLES, [0], 0, [3], 0, [1], 0, [0], 0, -1],
+        gl.INVALID_VALUE, "with drawcount < 0"
+      );
+      checkMultiDrawElementsInstancedBaseVertexBaseInstance(
+        [gl.TRIANGLES, [3], 0, gl.UNSIGNED_BYTE, [0], 0, [1], 0, [0], 0, [0], 0, -1],
+        gl.INVALID_VALUE, "with drawcount < 0"
+      );
+
+      // Check offsets greater than array length
+      checkMultiDrawArraysInstancedBaseInstance(
+        [gl.TRIANGLES, [0], 1, [3], 0, [1], 0, [0], 0, 1],
+        gl.INVALID_OPERATION, "with firstsStart >= firstsList.length"
+      );
+      checkMultiDrawArraysInstancedBaseInstance(
+        [gl.TRIANGLES, [0], 0, [3], 1, [1], 0, [0], 0, 1],
+        gl.INVALID_OPERATION, "with countsStart >= countsList.length"
+      );
+      checkMultiDrawArraysInstancedBaseInstance(
+        [gl.TRIANGLES, [0], 0, [3], 0, [1], 1, [0], 0, 1],
+        gl.INVALID_OPERATION, "with instanceCountsStart >= instanceCountsList.length"
+      );
+      checkMultiDrawArraysInstancedBaseInstance(
+        [gl.TRIANGLES, [0], 0, [3], 0, [1], 0, [0], 1, 1],
+        gl.INVALID_OPERATION, "with baseInstancesStart >= baseInstancesList.length"
+      );
+
+      checkMultiDrawElementsInstancedBaseVertexBaseInstance(
+        [gl.TRIANGLES, [3], 1, gl.UNSIGNED_BYTE, [0], 0, [1], 0, [0], 0, [0], 0, 1],
+        gl.INVALID_OPERATION, "with countsStart >= countsList.length"
+      );
+      checkMultiDrawElementsInstancedBaseVertexBaseInstance(
+        [gl.TRIANGLES, [3], 0, gl.UNSIGNED_BYTE, [0], 1, [1], 0, [0], 0, [0], 0, 1],
+        gl.INVALID_OPERATION, "with offsetsStart >= offsetsList.length"
+      );
+      checkMultiDrawElementsInstancedBaseVertexBaseInstance(
+        [gl.TRIANGLES, [3], 0, gl.UNSIGNED_BYTE, [0], 0, [1], 1, [0], 0, [0], 0, 1],
+        gl.INVALID_OPERATION, "with instanceCountsStart >= instanceCountsList.length"
+      );
+      checkMultiDrawElementsInstancedBaseVertexBaseInstance(
+        [gl.TRIANGLES, [3], 0, gl.UNSIGNED_BYTE, [0], 0, [1], 0, [0], 1, [0], 0, 1],
+        gl.INVALID_OPERATION, "with baseVerticesStart >= baseVerticesList.length"
+      );
+      checkMultiDrawElementsInstancedBaseVertexBaseInstance(
+        [gl.TRIANGLES, [3], 0, gl.UNSIGNED_BYTE, [0], 0, [1], 0, [0], 0, [0], 1, 1],
+        gl.INVALID_OPERATION, "with baseInstancesStart >= baseInstancesList.length"
+      );
+    }
+  }
+
+  function runShaderTests(bufferUsage) {
+    let badProgram;
+
+    badProgram = wtu.setupProgram(gl, ["vshaderBaseInstanceWithoutExt", "fshader"]);
+    expectTrue(!badProgram, "cannot compile program with gl_BaseInstance but no extension directive");
+    badProgram = wtu.setupProgram(gl, ["vshaderBaseVertexWithoutExt", "fshader"]);
+    expectTrue(!badProgram, "cannot compile program with gl_BaseVertex but no extension directive");
+
+    badProgram = wtu.setupProgram(gl, ["vshaderWithExt", "fshader"]);
+    expectTrue(!badProgram, "cannot compile program with #extension GL_ANGLE_base_vertex_base_instance");
+
+    const x = Math.floor(width * 0.4);
+    const y = Math.floor(height * 0.4);
+    const xSize = Math.floor(width * 0.2);
+    const ySize = Math.floor(height * 0.2);
+
+    // gl_InstanceID
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([ 0,0, 1,0, 0.5,1, 0,1, 0.5,0, 1,1 ]), bufferUsage);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
+    const instanceIDProgram = wtu.setupProgram(gl, ["vshaderInstanceIDCheck", "fshader"], ["vPosition"], [0]);
+    expectTrue(instanceIDProgram !== null, "can compile program with gl_InstanceID");
+    gl.useProgram(instanceIDProgram);
+
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    if (!multiDraw) {
+      ext.drawArraysInstancedBaseInstanceWEBGL(gl.TRIANGLES, 0, 6, 1, 5);
+    } else {
+      ext.multiDrawArraysInstancedBaseInstanceWEBGL(gl.TRIANGLES, [0], 0, [6], 0, [1], 0, [5], 0, 1);
+    }
+
+    wtu.checkCanvasRect(gl, x, y, xSize, ySize, [0, 255, 0, 255], "gl_InstanceID should always starts from 0");
+
+    // gl_VertexID
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([ 0,0, 1,0, 0.5,1, 0,1, 0.5,0, 1,1, 0,0, 1,0, 0.5,1, 0,1 ]), bufferUsage);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer());
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint8Array([0, 1, 2, 3, 4, 5]), bufferUsage);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
+    const vertexIDProgram = wtu.setupProgram(gl, ["vshaderVertexIDCheck", "fshader"], ["vPosition"], [0]);
+    expectTrue(vertexIDProgram !== null, "can compile program with gl_VertexID");
+    gl.useProgram(vertexIDProgram);
+
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    if (!multiDraw) {
+      ext.drawElementsInstancedBaseVertexBaseInstanceWEBGL(gl.TRIANGLES, 6, gl.UNSIGNED_BYTE, 0, 1, 3, 0);
+    } else {
+      ext.multiDrawElementsInstancedBaseVertexBaseInstanceWEBGL(gl.TRIANGLES, [6], 0, gl.UNSIGNED_BYTE, [0], 0, [1], 0, [3], 0, [0], 0, 1);
+    }
+
+    wtu.checkCanvasRect(gl, x, y, xSize, ySize, [0, 255, 0, 255], "gl_VertexID should always starts from 0");
+  }
+
+  function runPixelTests() {
+
+    function checkResult(config) {
+      const rects = [];
+      const expected = [
+        [255, 0, 0, 255],
+        [0, 255, 0, 255],
+        [0, 0, 255, 255],
+      ];
+      const msg = config.drawFunc.name + (
+        config.useBaseVertexBuiltin ? ' gl_BaseVertex' : ''
+      ) + (
+        config.useBaseInstanceBuiltin ? ' gl_BaseInstance' : ' InstanceIDArray'
+      );
+      for (let y = 0; y < y_count; ++y) {
+        for (let x = 0; x < x_count; ++x) {
+          const center_x = x * tilePixelSize[0] + Math.floor(tilePixelSize[0] / 2);
+          const center_y = y * tilePixelSize[1] + Math.floor(tilePixelSize[1] / 2);
+
+          rects.push(wtu.makeCheckRect(
+            center_x - Math.floor(pixelCheckSize[0] / 2),
+            center_y - Math.floor(pixelCheckSize[1] / 2),
+            pixelCheckSize[0],
+            pixelCheckSize[1],
+            [
+              256.0 * (1.0 - x / x_count),
+              256.0 * (1.0 - y / y_count),
+              (!config.isDrawArrays && config.useBaseVertexBuiltin) ? 256.0 * (1.0 - y / y_count) : 255.0,
+              255.0
+            ],
+            msg + ' (' + x + ',' + y + ')', 1.0
+          ));
+        }
+      }
+      wtu.checkCanvasRects(gl, rects);
+    }
+
+    // Draw functions variations
+
+    function drawArraysInstancedBaseInstance() {
+      const countPerDraw = y_count * 6;
+      for (let x = 0; x < x_count; x += 2) {
+        ext.drawArraysInstancedBaseInstanceWEBGL(gl.TRIANGLES, 0, countPerDraw, 2, x);
+      }
+    }
+
+    function multiDrawArraysInstancedBaseInstance() {
+      ext.multiDrawArraysInstancedBaseInstanceWEBGL(gl.TRIANGLES, drawArraysParams.firsts, 0, drawArraysParams.counts, 0, drawArraysParams.instances, 0, drawArraysParams.baseInstances, 0, drawArraysParams.drawCount);
+    }
+
+    function drawElementsInstancedBaseVertexBaseInstance() {
+      const countPerDraw = 6;
+      for (let v = 0; v < y_count; ++v) {
+        for (let x = 0; x < x_count; x += 2) {
+          ext.drawElementsInstancedBaseVertexBaseInstanceWEBGL(gl.TRIANGLES, countPerDraw, gl.UNSIGNED_SHORT, 0, 2, v * 4, x);
+        }
+      }
+    }
+
+    function multiDrawElementsInstancedBaseVertexBaseInstance() {
+      ext.multiDrawElementsInstancedBaseVertexBaseInstanceWEBGL(gl.TRIANGLES, drawElementsParams.counts, 0, gl.UNSIGNED_SHORT, drawElementsParams.offsets, 0, drawElementsParams.instances, 0, drawElementsParams.baseVertices, 0, drawElementsParams.baseInstances, 0, drawElementsParams.drawCount);
+    }
+
+    function checkDraw(config) {
+      const program = wtu.setupProgram(
+        gl,
+        getShaderSource(x_count, y_count, config),
+        !config.useBaseInstanceBuiltin ? ['vPosition'] : ['vPosition', 'vInstanceID']
+      );
+
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+      if (config.isDrawArrays) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, nonIndexedVertexBuffer);
+        gl.enableVertexAttribArray(0);
+        gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+      } else {
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+        gl.enableVertexAttribArray(0);
+        gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+      }
+
+      if (!config.useBaseInstanceBuiltin) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, instanceIDBuffer);
+        gl.enableVertexAttribArray(1);
+        gl.vertexAttribPointer(1, 1, gl.FLOAT, false, 0, 0);
+        gl.vertexAttribDivisor(1, 1);
+      }
+
+      config.drawFunc();
+      wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors");
+
+      checkResult(config);
+    }
+
+    checkDraw({
+      drawFunc: multiDraw ? multiDrawArraysInstancedBaseInstance : drawArraysInstancedBaseInstance,
+      isDrawArrays: true,
+      isMultiDraw: multiDraw,
+      useBaseVertexBuiltin: false,
+      useBaseInstanceBuiltin: false
+    });
+
+    checkDraw({
+      drawFunc: multiDraw ? multiDrawElementsInstancedBaseVertexBaseInstance : drawElementsInstancedBaseVertexBaseInstance,
+      isDrawArrays: false,
+      isMultiDraw: multiDraw,
+      useBaseVertexBuiltin: false,
+      useBaseInstanceBuiltin: false
+    });
+  }
+
+  for (let i = 0; i < bufferUsageSet.length; i++) {
+    let bufferUsage = bufferUsageSet[i];
+    debug("Testing with BufferUsage = " + bufferUsage);
+    setupGeneralBuffers(bufferUsage);
+    runValidationTests(bufferUsage);
+    runShaderTests(bufferUsage);
+    runPixelTests();
+  }
+}
+
+
+async function runDrawTests(testFn) {
+    function drawArrays(gl) {
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+    }
+
+    function drawElements(gl) {
+      gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_BYTE, 0);
+    }
+
+    function drawArraysInstanced(gl) {
+      gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, 1);
+    }
+
+    function drawElementsInstanced(gl) {
+      gl.drawElementsInstanced(gl.TRIANGLES, 6, gl.UNSIGNED_BYTE, 0, 1);
+    }
+
+    function drawArraysInstancedBaseInstanceWEBGL(gl) {
+      const ext = gl.getExtension('WEBGL_draw_instanced_base_vertex_base_instance');
+      if (!ext) {
+        throw 'Should not have run this test without WEBGL_draw_instanced_base_vertex_base_instance';
+      }
+
+      ext.drawArraysInstancedBaseInstanceWEBGL(gl.TRIANGLES, 0, 6, 1, 0);
+    }
+
+    function drawElementsInstancedBaseVertexBaseInstanceWEBGL(gl) {
+      const ext = gl.getExtension('WEBGL_draw_instanced_base_vertex_base_instance');
+      if (!ext) {
+        throw 'Should not have run this test without WEBGL_draw_instanced_base_vertex_base_instance';
+      }
+
+      ext.drawElementsInstancedBaseVertexBaseInstanceWEBGL(gl.TRIANGLES, 6, gl.UNSIGNED_BYTE, 0, 1, 0, 0);
+    }
+
+    function multiDrawArraysInstancedBaseInstanceWEBGL(gl) {
+      const ext = gl.getExtension('WEBGL_multi_draw_instanced_base_vertex_base_instance');
+      if (!ext) {
+        throw 'Should not have run this test without WEBGL_multi_draw_instanced_base_vertex_base_instance';
+      }
+      ext.multiDrawArraysInstancedBaseInstanceWEBGL(gl.TRIANGLES, [0], 0, [6], 0, [1], 0, [0], 0, 1);
+    }
+
+    function multiDrawElementsInstancedBaseVertexBaseInstanceWEBGL(gl) {
+      const ext = gl.getExtension('WEBGL_multi_draw_instanced_base_vertex_base_instance');
+      if (!ext) {
+        throw 'Should not have run this test without WEBGL_multi_draw_instanced_base_vertex_base_instance';
+      }
+      ext.multiDrawElementsInstancedBaseVertexBaseInstanceWEBGL(
+          gl.TRIANGLES,
+          [6], 0,   // counts
+          gl.UNSIGNED_BYTE,
+          [0], 0,   // offsets
+          [1], 0,   // instances
+          [0], 0,   // baseVerts
+          [0], 0,   // baseInstances
+          1,        // drawCount
+      );
+    }
+
+    await testFn(drawArrays);             // sanity check
+    await testFn(drawElements);           // sanity check
+    await testFn(drawArraysInstanced);    // sanity check
+    await testFn(drawElementsInstanced);  // sanity check
+
+    // It's only legal to call testFn if the extension is supported,
+    // since the invalid vertex attrib tests, in particular, expect the
+    // draw function to have an effect.
+    if (gl.getExtension('WEBGL_draw_instanced_base_vertex_base_instance')) {
+      await testFn(drawArraysInstancedBaseInstanceWEBGL);
+      await testFn(drawElementsInstancedBaseVertexBaseInstanceWEBGL);
+    }
+    if (gl.getExtension('WEBGL_multi_draw_instanced_base_vertex_base_instance')) {
+      await testFn(multiDrawArraysInstancedBaseInstanceWEBGL);
+      await testFn(multiDrawElementsInstancedBaseVertexBaseInstanceWEBGL);
+    }
+}
+
+async function runCompositingTests() {
+    const compositingTestFn = createCompositingTestFn({
+      webglVersion: 2,
+      shadersFn(gl) {
+        const vs = `\
+        #version 300 es
+        layout(location = 0) in vec4 position;
+        void main() {
+          gl_Position = position;
+        }
+        `;
+        const fs = `\
+        #version 300 es
+        precision highp float;
+        out vec4 fragColor;
+        void main() {
+          fragColor = vec4(1, 0, 0, 1);
+        }
+        `;
+        return [vs, fs];
+      },
+    });
+    await runDrawTests(compositingTestFn);
+}
+
+async function runInvalidAttribTests(gl) {
+  const invalidAttribTestFn = createInvalidAttribTestFn(gl);
+  await runDrawTests(invalidAttribTestFn);
+}
+
+async function main() {
+  runTest();
+  await runInvalidAttribTests(gl);
+  await runCompositingTests();
+  finishTest();
+}
+main();
+
+var successfullyParsed = true;
+</script>
+</body>
+</html>

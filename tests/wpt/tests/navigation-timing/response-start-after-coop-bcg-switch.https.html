@@ -1,0 +1,53 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Navigation Timing responseStart after a COOP browsing context group switch</title>
+<link rel="help" href="https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-responsestart">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/origin.html#cross-origin-opener-policies">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script>
+const redirectTo = destination => {
+  const url = new URL("/common/redirect-opt-in.py", location.href);
+  url.searchParams.set("location", destination);
+  return url;
+};
+
+promise_test(async t => {
+  const responseToken = token();
+  const iframeToken = token();
+  const popup = window.open("/common/blank.html", token());
+  assert_not_equals(popup, null, "Popup should be opened");
+
+  t.add_cleanup(async () => {
+    await send(iframeToken, "close");
+    popup.close();
+  });
+
+  await new EventWatcher(t, popup, "load").wait_for("load");
+
+  const postbackURL = new URL(make_absolute_url({ path: "/html/cross-origin-opener-policy/resources/postback.html" }));
+  postbackURL.searchParams.set("channel", "null");
+  postbackURL.searchParams.set("responseToken", responseToken);
+  postbackURL.searchParams.set("iframeToken", iframeToken);
+
+  const finalURL = new URL(make_absolute_url({
+    subdomain: "www",
+    path: "/navigation-timing/resources/coop-response-start.html",
+  }));
+  finalURL.searchParams.set("postback", postbackURL.href);
+
+  const firstRedirectURL = redirectTo(finalURL.href);
+  const secondRedirectURL = redirectTo(firstRedirectURL.href);
+
+  popup.location = secondRedirectURL.href;
+
+  const navigationTiming = JSON.parse(await receive(responseToken));
+  assert_equals(navigationTiming.name, finalURL.href, "The popup should report the final navigation URL");
+  assert_equals(navigationTiming.redirectCount, 0, "The cross-origin navigation should not expose the redirect count");
+  assert_greater_than(navigationTiming.responseStart, 0, "responseStart should not be clamped to zero after the COOP browsing context group switch");
+  assert_greater_than_equal(navigationTiming.responseStart, navigationTiming.requestStart, "responseStart should be after requestStart");
+  assert_greater_than_equal(navigationTiming.responseEnd, navigationTiming.responseStart, "responseEnd should be after responseStart");
+}, "Navigation responseStart is not clamped to zero after a cross-origin COOP browsing context group switch");
+</script>

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <meta http-equiv="Content-Security-Policy" content="connect-src 'self'; script-src 'self' 'unsafe-inline';">
+    <title>connect-src-xmlhttprequest-redirect-to-blocked</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["PASS XMLHttpRequest.send() did not follow the disallowed redirect.","TEST COMPLETE","violated-directive=connect-src"]'></script>
+    <script src="../support/alertAssert.sub.js?alerts=[]"></script>
+    <script id="inject_here"></script>
+</head>
+
+<body>
+    <script>
+        window.addEventListener('securitypolicyviolation', function(e) {
+            log("violated-directive=" + e.violatedDirective);
+        });
+
+        var xhr = new XMLHttpRequest;
+        try {
+            xhr.open("GET", "/common/redirect.py?location=http://www1.{{host}}:{{ports[http][0]}}/content-security-policy/support/fail.asis", true);
+        } catch (e) {
+            log("FAIL " + "XMLHttpRequest.open() should not throw an exception.");
+        }
+        xhr.onload = function() {
+            if(xhr.responseText == "FAIL") {
+                log("FAIL " + "XMLHttpRequest.send() should fail to follow the disallowed redirect.");
+            } else {
+                log("PASS " + "XMLHttpRequest.send() did not follow the disallowed redirect.");
+            }
+            log("TEST COMPLETE");
+        };
+        xhr.onerror = function() {
+            log("PASS " + "XMLHttpRequest.send() did not follow the disallowed redirect.");
+            log("TEST COMPLETE");
+        };
+        xhr.send();
+
+    </script>
+    <div id="log"></div>
+</body>
+
+</html>

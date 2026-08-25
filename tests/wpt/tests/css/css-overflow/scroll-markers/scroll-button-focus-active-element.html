@@ -1,0 +1,48 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: document.activeElement for ::scroll-button is scroller</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-buttons">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  body {
+    margin: 0;
+  }
+
+  #scroller {
+    width: 600px;
+    height: 300px;
+    overflow: auto;
+    white-space: nowrap;
+  }
+
+  #scroller div {
+    display: inline-block;
+    width: 600px;
+    height: 270px;
+  }
+
+  #scroller::scroll-button(right) {
+    content: ">";
+    width: 100px;
+    height: 20px;
+    background-color: blue;
+  }
+</style>
+<div id="scroller">
+  <div></div>
+  <div></div>
+</div>
+<script>
+  promise_test(async t => {
+    await new test_driver.Actions()
+      .pointerMove(15, 310)
+      .pointerDown()
+      .pointerUp()
+      .send();
+    assert_equals(document.activeElement, scroller, "document.activeElement for ::scroll-button is scroller");
+  });
+</script>

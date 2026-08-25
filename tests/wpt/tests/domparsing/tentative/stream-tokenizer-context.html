@@ -1,0 +1,166 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Context-dependent tokenizer initialization for streamHTML variants</title>
+<link rel="help" href="https://github.com/WICG/declarative-partial-updates">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div id="container"></div>
+<script>
+  // 1. RCDATA context: <title> and <textarea>
+  // In RCDATA, tags are not parsed as elements, but character references (&amp;) ARE expanded.
+  for (const method of ["streamHTML", "streamAppendHTML", "streamPrependHTML", "streamHTMLUnsafe", "streamAppendHTMLUnsafe", "streamPrependHTMLUnsafe"]) {
+    promise_test(async (t) => {
+      const container = document.getElementById("container");
+      t.add_cleanup(() => container.replaceChildren());
+
+      const textarea = document.createElement("textarea");
+      container.appendChild(textarea);
+
+      const writer = textarea[method]().getWriter();
+      await writer.write("<b>Hello &l");
+      await writer.write("t;world&gt; &amp; test</b>");
+      await writer.close();
+
+      assert_equals(textarea.childNodes.length, 1, "Only one text node child should exist");
+      assert_equals(textarea.firstChild.nodeType, Node.TEXT_NODE, "Child is a text node, not <b> element");
+      assert_equals(textarea.value, "<b>Hello <world> & test</b>");
+    }, `${method} on <textarea> initializes tokenizer in RCDATA state (expands char refs, suppresses tags across writes)`);
+
+    promise_test(async (t) => {
+      const container = document.getElementById("container");
+      t.add_cleanup(() => container.replaceChildren());
+
+      const title = document.createElement("title");
+      container.appendChild(title);
+
+      const writer = title[method]().getWriter();
+      await writer.write("<p>Title &a");
+      await writer.write("mp; text</p>");
+      await writer.close();
+
+      assert_equals(title.childNodes.length, 1);
+      assert_equals(title.firstChild.nodeType, Node.TEXT_NODE);
+      assert_equals(title.textContent, "<p>Title & text</p>");
+    }, `${method} on <title> initializes tokenizer in RCDATA state`);
+  }
+
+  // 2. RAWTEXT context: <style>
+  // In RAWTEXT, tags are not parsed as elements, and character references (&amp;) are NOT expanded.
+  for (const method of ["streamHTML", "streamAppendHTML", "streamPrependHTML", "streamHTMLUnsafe", "streamAppendHTMLUnsafe", "streamPrependHTMLUnsafe"]) {
+    promise_test(async (t) => {
+      const container = document.getElementById("container");
+      t.add_cleanup(() => container.replaceChildren());
+
+      const style = document.createElement("style");
+      container.appendChild(style);
+
+      const writer = style[method]().getWriter();
+      await writer.write("body { content: '<b>&a");
+      await writer.write("mp;</b>'; }");
+      await writer.close();
+
+      assert_equals(style.childNodes.length, 1);
+      assert_equals(style.firstChild.nodeType, Node.TEXT_NODE);
+      assert_equals(style.textContent, "body { content: '<b>&amp;</b>'; }", "Char refs must not be expanded in RAWTEXT");
+    }, `${method} on <style> initializes tokenizer in RAWTEXT state (does not expand char refs across writes)`);
+  }
+
+  // 3. PLAINTEXT context: <plaintext>
+  // In PLAINTEXT, everything is raw text forever, tags and char refs are preserved verbatim.
+  for (const method of ["streamHTML", "streamAppendHTML", "streamPrependHTML", "streamHTMLUnsafe", "streamAppendHTMLUnsafe", "streamPrependHTMLUnsafe"]) {
+    promise_test(async (t) => {
+      const container = document.getElementById("container");
+      t.add_cleanup(() => container.replaceChildren());
+
+      const plaintext = document.createElement("plaintext");
+      container.appendChild(plaintext);
+
+      const writer = plaintext[method]().getWriter();
+      await writer.write("line 1 <b>&a");
+      await writer.write("mp;</b> </plaintext> <script>var x=1;</" + "script>");
+      await writer.close();
+
+      assert_equals(plaintext.childNodes.length, 1);
+      assert_equals(plaintext.firstChild.nodeType, Node.TEXT_NODE);
+      assert_equals(plaintext.textContent, "line 1 <b>&amp;</b> </plaintext> <script>var x=1;</" + "script>");
+    }, `${method} on <plaintext> initializes tokenizer in PLAINTEXT state`);
+  }
+
+  // 4. Script data context: unsafe <script> target
+  for (const method of ["streamHTMLUnsafe", "streamAppendHTMLUnsafe", "streamPrependHTMLUnsafe"]) {
+    promise_test(async (t) => {
+      const container = document.getElementById("container");
+      t.add_cleanup(() => container.replaceChildren());
+
+      const script = document.createElement("script");
+      container.appendChild(script);
+
+      const writer = script[method]().getWriter();
+      await writer.write("var str = '<b>&a");
+      await writer.write("mp;</b>';");
+      await writer.close();
+
+      assert_equals(script.childNodes.length, 1);
+      assert_equals(script.firstChild.nodeType, Node.TEXT_NODE);
+      assert_equals(script.textContent, "var str = '<b>&amp;</b>';");
+    }, `${method} on <script> initializes tokenizer in Script data state`);
+  }
+
+  // 5. <noscript> context with scripting enabled (RAWTEXT)
+  for (const method of ["streamHTMLUnsafe", "streamAppendHTMLUnsafe", "streamPrependHTMLUnsafe"]) {
+    promise_test(async (t) => {
+      const container = document.getElementById("container");
+      t.add_cleanup(() => container.replaceChildren());
+
+      const noscript = document.createElement("noscript");
+      container.appendChild(noscript);
+
+      const writer = noscript[method]().getWriter();
+      await writer.write("<b>hello &a");
+      await writer.write("mp; world</b>");
+      await writer.close();
+
+      assert_equals(noscript.querySelectorAll("b").length, 0, "No <b> element should be created in scripting-enabled noscript");
+      assert_equals(noscript.textContent, "<b>hello &amp; world</b>");
+    }, `${method} on <noscript> with scripting enabled treats input as RAWTEXT`);
+  }
+
+  // 6. <noscript> context with scripting disabled (Data state)
+  promise_test(async (t) => {
+    const doc = document.implementation.createHTMLDocument("");
+    const noscript = doc.createElement("noscript");
+    doc.body.appendChild(noscript);
+
+    const writer = noscript.streamHTMLUnsafe().getWriter();
+    await writer.write("<b>hello &a");
+    await writer.write("mp; world</b>");
+    await writer.close();
+
+    assert_equals(noscript.querySelectorAll("b").length, 1, "<b> element should be created when scripting is disabled");
+    assert_equals(noscript.querySelector("b").textContent, "hello & world", "Char refs must be expanded in Data state");
+  }, "streamHTMLUnsafe on <noscript> in scripting-disabled document (createHTMLDocument) initializes tokenizer in Data state");
+
+  promise_test(async (t) => {
+    const iframe = document.createElement("iframe");
+    iframe.setAttribute("sandbox", "allow-same-origin");
+    const loadPromise = new Promise(resolve => iframe.addEventListener("load", resolve, { once: true }));
+    iframe.src = "about:blank";
+    document.body.appendChild(iframe);
+    t.add_cleanup(() => iframe.remove());
+    await loadPromise;
+
+    const doc = iframe.contentDocument;
+    const noscript = doc.createElement("noscript");
+    doc.body.appendChild(noscript);
+
+    const writer = noscript.streamHTMLUnsafe().getWriter();
+    await writer.write("<b>hello &a");
+    await writer.write("mp; world</b>");
+    await writer.close();
+
+    assert_equals(noscript.querySelectorAll("b").length, 1, "<b> element should be created when scripting is disabled in sandboxed iframe");
+    assert_equals(noscript.querySelector("b").textContent, "hello & world", "Char refs must be expanded in Data state");
+  }, "streamHTMLUnsafe on <noscript> in sandboxed iframe initializes tokenizer in Data state");
+</script>
+</body>

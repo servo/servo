@@ -1,0 +1,9 @@
+<!doctype html>
+<title>Filter Effects: mutating feDropShadow stdDeviation updates both x and y components (reference)</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#feDropShadowElement">
+<svg width="300" height="200">
+  <filter id="shadow" filterUnits="userSpaceOnUse" x="0" y="0" width="300" height="200">
+    <feDropShadow id="drop" dx="120" dy="0" stdDeviation="20 20" flood-color="black" flood-opacity="1"/>
+  </filter>
+  <rect x="20" y="80" width="40" height="40" fill="green" filter="url(#shadow)"/>
+</svg>

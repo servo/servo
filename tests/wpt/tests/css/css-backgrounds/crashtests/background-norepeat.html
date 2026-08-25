@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>No crash when reading background shorthand with no-repeat and multiple url layers</title>
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=49055">
+<body style="background: url(), url(); background-repeat: no-repeat;">
+<script>
+  document.body.style.getPropertyValue("background");
+</script>

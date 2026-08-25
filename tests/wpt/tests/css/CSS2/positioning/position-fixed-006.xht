@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html id="test" xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Non-static position on the root element</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#propdef-position" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#choose-position" />
+        <meta name="flags" content="dom may" />
+        <meta name="assert" content="Root elements may treat non-static positions as 'static'." />
+        <style type="text/css">
+            html
+            {
+                position: fixed;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the word "fixed" or "static" is below this text.</p>
+        <script type="text/javascript">
+            var el = document.getElementById('test');
+            document.body.appendChild(document.createTextNode(window.getComputedStyle(el, null).position));
+        </script>
+    </body>
+</html>

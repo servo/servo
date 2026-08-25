@@ -1,0 +1,102 @@
+<!doctype html>
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src="/common/get-host-info.sub.js"></script>
+</head>
+<body>
+<audio controls loop id=audio></audio>
+<script>
+let port;
+
+function waitForState(test, worker, state)
+{
+    if (!worker || worker.state == undefined)
+        return Promise.reject(new Error('waitForState must be passed a ServiceWorker'));
+
+    if (worker.state === state)
+        return Promise.resolve(state);
+
+    return new Promise(function(resolve, reject) {
+      worker.addEventListener('statechange', function() {
+          if (worker.state === state)
+            resolve(state);
+        });
+        test.step_timeout(() => reject("waitForState timed out, worker state is " + worker.state), 5000);
+    });
+}
+
+promise_test(async test => {
+    let registration = await navigator.serviceWorker.getRegistration("");
+    let worker;
+    if (!registration) {
+       registration = await navigator.serviceWorker.register("media-session-artwork-fetch-service-worker.js", { scope: "" });
+       worker = registration.installing;
+       await waitForState(test, worker, "activated");
+    } else
+        worker = registration.active;
+
+    const channel = new MessageChannel();
+    worker.postMessage({ port: channel.port1 }, [channel.port1]);
+    port = channel.port2;
+
+    const result = await new Promise(resolve => port.onmessage = e => resolve(e.data));
+    assert_equals(result, "Ready");
+}, "Setup service worker");
+
+promise_test(async test => {
+    audio.src = "/media/sound_5.mp3";
+    if (window.testRunner && window.test_driver) {
+       let promise;
+       test_driver.bless("audio playback", () => {
+           promise = audio.play();
+       });
+       await promise;
+    } else
+       await audio.play();
+}, "Play some audio");
+
+const artworkResource = "/media/2048x1360-random.jpg";
+
+promise_test(async test => {
+    navigator.mediaSession.metadata = new MediaMetadata({title: "title", artist: "artist", album: "album", artwork: [{src: artworkResource}]});
+    const message = await new Promise(resolve => port.onmessage = e => resolve(e.data));
+
+    assert_equals(message.type, "fetch");
+
+    const request = message.info;
+    assert_equals(request.destination, "image");
+    assert_equals(request.mode, "no-cors");
+    assert_equals(request.redirect, "follow");
+    assert_equals(request.referrerPolicy, "strict-origin-when-cross-origin");
+    assert_equals(request.credentials, "include");
+
+    const url = new URL(artworkResource, window.location.href);
+    assert_equals(request.url, url + "");
+}, "Set same origin media metadata");
+
+promise_test(async test => {
+    // We make sure the previous test artwork is not loaded again.
+    navigator.mediaSession.metadata = new MediaMetadata({title: "title", artist: "artist", album: "album"});
+    await new Promise(resolve => test.step_timeout(resolve, 100));
+
+    const artworkSrc = get_host_info().HTTPS_REMOTE_ORIGIN + artworkResource;
+    navigator.mediaSession.metadata = new MediaMetadata({title: "title", artist: "artist", album: "album", artwork: [{src: artworkSrc}]});
+    const message = await new Promise(resolve => port.onmessage = e => resolve(e.data));
+
+    assert_equals(message.type, "fetch");
+
+    const request = message.info;
+    assert_equals(request.destination, "image");
+    assert_equals(request.mode, "no-cors");
+    assert_equals(request.redirect, "follow");
+    assert_equals(request.referrerPolicy, "strict-origin-when-cross-origin");
+    assert_equals(request.credentials, "include");
+    assert_equals(request.url, artworkSrc);
+}, "Set cross origin media metadata");
+</script>
+</body>
+</html>

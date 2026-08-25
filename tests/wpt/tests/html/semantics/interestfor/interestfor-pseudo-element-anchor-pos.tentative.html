@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://open-ui.org/components/interest-invokers.explainer">
+<link rel="match" href="interestfor-pseudo-element-anchor-pos-ref.html">
+
+<div class=example>
+  <button interestfor=target>Button</button>
+</div>
+<div class=example>
+  <a href=# interestfor=target>Button</a>
+</div>
+
+<div id=target></div>
+
+<style>
+  [interestfor]::interest-button {
+    content: "";
+    display: block;
+    width: 50px;
+    height: 50px;
+    background-color: green;
+    position: absolute;
+    position-anchor: auto;
+    position-area: right;
+    margin-left: 10px;
+  }
+
+  .example {
+    position: relative;
+    width: 400px;
+    height: 50px;
+    margin: 50px;
+  }
+</style>

@@ -1,0 +1,123 @@
+﻿<!--
+Copyright (c) 2021 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Conformance Tests: Verify getFragDataLocation</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/desktop-gl-constants.js"></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<canvas id="canvas" style="width: 4px; height: 4px;"> </canvas>
+<div id="console"></div>
+<script id="vs" type="x-shader/x-vertex">#version 300 es
+void main() {
+  gl_Position = vec4(0, 0, 0, 1);
+}
+</script>
+
+<script id="fs" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+layout(location = 2) out vec4 fragColor0;
+layout(location = 0) out vec4 fragColor1;
+void main() {
+  fragColor0 = vec4(0, 1, 0, 1);
+  fragColor1 = vec4(1, 0, 0, 1);
+}
+</script>
+
+<script id="fs-array" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+out vec4 fragColor[2];
+void main() {
+  fragColor[0] = vec4(0, 1, 0, 1);
+  fragColor[1] = vec4(1, 0, 0, 1);
+}
+</script>
+
+<script id="vs-es2" type="x-shader/x-vertex">
+void main() {
+  gl_Position = vec4(0, 0, 0, 1);
+}
+</script>
+<script id="fs-es2" type="x-shader/x-fragment">
+precision mediump float;
+void main() {
+  gl_FragColor = vec4(0, 1, 0, 1);
+}
+</script>
+
+<script>
+"use strict";
+description("This test verifies getFragDataLocation behaviors.");
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+var gl = wtu.create3DContext(canvas, null, 2);
+
+if (!gl) {
+  testFailed("WebGL context does not exist");
+} else {
+  testPassed("WebGL context exists");
+  runTests();
+}
+
+function runTests() {
+  window.program = wtu.setupProgram(gl, ["vs", "fs"]);
+  window.programArray = wtu.setupProgram(gl, ["vs", "fs-array"]);
+  window.programEs2 = wtu.setupProgram(gl, ["vs-es2", "fs-es2"]);
+  if (!program || !programArray || !programEs2) {
+    testFailed("Set up program failed");
+    return;
+  }
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "No GL error from set up");
+
+  shouldBe("gl.getFragDataLocation(program, 'gl_FragColor')", "-1");
+  shouldBe("gl.getFragDataLocation(programArray, 'gl_FragColor')", "-1");
+  shouldBe("gl.getFragDataLocation(programEs2, 'gl_FragColor')", "-1");
+  shouldBe("gl.getFragDataLocation(program, 'gl_FragData')", "-1");
+  shouldBe("gl.getFragDataLocation(programArray, 'gl_FragData')", "-1");
+  shouldBe("gl.getFragDataLocation(programEs2, 'gl_FragData')", "-1");
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "No GL error from gl_* queries");
+
+  var loc0 = gl.getFragDataLocation(program, "fragColor0");
+  var loc1 = gl.getFragDataLocation(program, "fragColor1");
+  if (loc0 != 2 || loc1 != 0) {
+    testFailed("Fail to query scalar output variable locations, " +
+               "expected: fragColor0->2, fragColor1->0, " +
+               "got: fragColor0->" + loc0 + ", fragColor1->" + loc1);
+  } else {
+    testPassed("getFragDataLocation on scalar variables works fine");
+  }
+
+  var loc = gl.getFragDataLocation(programArray, "fragColor");
+  loc0 = gl.getFragDataLocation(programArray, "fragColor[0]");
+  loc1 = gl.getFragDataLocation(programArray, "fragColor[1]");
+  if (loc < 0 || loc0 < 0 || loc1 < 0 || loc != loc0 || loc0 + 1 != loc1) {
+    testFailed("Fail to query scalar output variable locations, " +
+               "expected: fragColor->0, fragColor[0]->0, fragColor[1]->1, " +
+               "got: fragColor->" + loc + ", fragColor[0]->" + loc0 + ", fragColor[1]->" + loc1);
+  } else {
+    testPassed("getFragDataLocation on variable arrays works fine");
+  }
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "No GL error from testing");
+}
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,30 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Counter scope and nesting</title>
+  <link rel="author" title="L. David Baron" href="https://dbaron.org/"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#scope"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#counters"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#propdef-content"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#counter"/>
+  <style type="text/css">
+
+  body { white-space: nowrap; }
+
+
+  .reset { counter-reset: c; }
+  .rb:before { counter-reset: c; content: "R"; }
+  .use { counter-increment: c; }
+  .use:before { content: counters(c, ".") " "; }
+
+  </style>
+ </head>
+ <body>
+
+ <p>The next two lines should be the same:</p>
+
+ <div><span class="reset"></span><span class="use"></span><span class="reset"></span><span class="use"></span><span class="rb"><span class="use"></span><span class="reset"></span><span class="use"></span></span></div>
+ <div>1 1 R1.1 1.1</div>
+
+ </body>
+</html>

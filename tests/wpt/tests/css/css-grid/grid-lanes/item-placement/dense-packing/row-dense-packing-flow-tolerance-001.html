@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#placement-tolerance">
+<link rel="match" href="row-dense-packing-flow-tolerance-001-ref.html">
+<link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+<style>
+html, body {
+    font: 15px/1 monospace;
+    margin: 0;
+}
+.grid-lanes {
+    display: grid-lanes;
+    grid-template-rows: repeat(4, 100px);
+    gap: 20px;
+    flow-tolerance: 20px;
+    grid-auto-flow: dense;
+    grid-lanes-pack: dense;
+    grid-lanes-direction: row;
+}
+</style>
+<body>
+  <p>Ensure that row dense-packing honors flow-tolerance. The second pink item (Item 4a) should stack after Item 1 in the first row, not in the last row.</p>
+  <div class="grid-lanes">
+    <div style="background: lightblue; width: 90px;">Item 1</div>
+    <div style="background: lightgreen; width: 180px;">Item 2</div>
+    <div style="background: lightgray; width: 80px;">Item 3</div>
+    <div style="background: pink; width: 70px;">Item 4</div>
+    <div style="background: pink; width: 70px;">Item 4a</div>
+    <div style="background: yellow; width: 15px;">Item 5</div>
+  </div>
+</body>
+</html>

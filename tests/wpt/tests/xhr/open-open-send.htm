@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>XMLHttpRequest: open() - open() - send()</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-open()-method" data-tested-assertations="following::ol/li[14]/ul/li[1] following::ol/li[14]/ul/li[2] following::ol/li[15]/ol/li[1] following::ol/li[15]/ol/li[2]" />
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      var test = async_test()
+      test.step(function() {
+        var client = new XMLHttpRequest(),
+            result = [],
+            expected = [1,2,3,4]
+        client.onreadystatechange = function() {
+          test.step(function() {
+            result.push(client.readyState)
+            if(4 == client.readyState) {
+              assert_array_equals(result, expected)
+              assert_equals(client.responseText, 'top\n')
+              test.done()
+            }
+          })
+        }
+        client.open("GET", "resources/folder.txt")
+        client.open("GET", "folder.txt")
+        client.send(null)
+      })
+    </script>
+  </body>
+</html>

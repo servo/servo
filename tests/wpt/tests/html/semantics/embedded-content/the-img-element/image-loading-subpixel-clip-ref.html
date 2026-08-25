@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<style>
+* {
+  margin: 0;
+}
+</style>
+<html class="reftest-wait" style="overflow: hidden">
+  <head>
+    <title>Images with loading='lazy' load under subpixel-offset clips</title>
+    <link rel="author" title="Chris Harrelson" href="mailto:chrishtr@chromium.org">
+    <link rel="help" href="https://html.spec.whatwg.org/#lazy-loading-attributes">
+  </head>
+  <div style="height: 44.5px"></div>
+  <div style="position: relative; font-size: 0; background: lightblue">
+    <img id=target loading="lazy" data-sizes="auto">
+  </div>
+</html>
+<script src="/common/reftest-wait.js"></script>
+<script>
+  target.onload = takeScreenshot;
+  target.src = "resources/image.png";
+</script>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>View transitions: backdrop filter while promise pending</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<link rel="match" href="backdrop-filter-while-promise-pending-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+body {
+  background: lightblue;
+}
+iframe {
+  border: none;
+}
+</style>
+<iframe src="support/backdrop-filter-while-promise-pending-iframe.html"></iframe>
+<script>
+  window.addEventListener("message", (e) => {
+    if (e.data === "capture") {
+      document.querySelector("iframe").contentWindow.postMessage("start", "*");
+      window.addEventListener("message", (e) => {
+        if (e.data === "promise_pending") {
+          takeScreenshot();
+        }
+      });
+    }
+  });
+</script>

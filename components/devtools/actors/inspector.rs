@@ -1,0 +1,131 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+//! Liberally derived from the [Firefox JS implementation](http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/inspector.js).
+
+use std::sync::Arc;
+
+use malloc_size_of_derive::MallocSizeOf;
+use serde::Serialize;
+use serde_json::{self, Map, Value};
+
+use crate::actor::{Actor, ActorError, ActorRegistry, new_actor_name};
+use crate::actors::inspector::highlighter::HighlighterActor;
+use crate::actors::inspector::page_style::{PageStyleActor, PageStyleMsg};
+use crate::actors::inspector::walker::{WalkerActor, WalkerMsg};
+use crate::protocol::ClientRequest;
+use crate::{ActorMsg, StreamId};
+
+pub mod accessibility;
+pub mod accessible_walker;
+pub mod css_properties;
+pub mod highlighter;
+pub mod layout;
+pub mod node;
+pub mod page_style;
+pub mod simulator;
+pub mod style_rule;
+pub mod walker;
+
+#[derive(Serialize)]
+struct GetHighlighterReply {
+    from: String,
+    highlighter: ActorMsg,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct GetPageStyleReply {
+    from: String,
+    page_style: PageStyleMsg,
+}
+
+#[derive(Serialize)]
+struct GetWalkerReply {
+    from: String,
+    walker: WalkerMsg,
+}
+
+#[derive(Serialize)]
+struct SupportsHighlightersReply {
+    from: String,
+    value: bool,
+}
+
+#[derive(MallocSizeOf)]
+pub(crate) struct InspectorActor {
+    name: String,
+    highlighter_name: String,
+    page_style_name: String,
+    pub(crate) walker_name: String,
+}
+
+impl Actor for InspectorActor {
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    fn handle_message(
+        &self,
+        request: ClientRequest,
+        registry: &ActorRegistry,
+        msg_type: &str,
+        _msg: &Map<String, Value>,
+        _id: StreamId,
+    ) -> Result<(), ActorError> {
+        match msg_type {
+            "getPageStyle" => {
+                let msg = GetPageStyleReply {
+                    from: self.name().into(),
+                    page_style: registry.encode::<PageStyleActor, _>(&self.page_style_name),
+                };
+                request.reply_final(&msg)?
+            },
+
+            "getHighlighterByType" => {
+                let msg = GetHighlighterReply {
+                    from: self.name().into(),
+                    highlighter: registry.encode::<HighlighterActor, _>(&self.highlighter_name),
+                };
+                request.reply_final(&msg)?
+            },
+
+            "getWalker" => {
+                let msg = GetWalkerReply {
+                    from: self.name().into(),
+                    walker: registry.encode::<WalkerActor, _>(&self.walker_name),
+                };
+                request.reply_final(&msg)?
+            },
+
+            "supportsHighlighters" => {
+                let msg = SupportsHighlightersReply {
+                    from: self.name().into(),
+                    value: true,
+                };
+                request.reply_final(&msg)?
+            },
+
+            _ => return Err(ActorError::UnrecognizedPacketType),
+        };
+        Ok(())
+    }
+}
+
+impl InspectorActor {
+    pub fn register(registry: &ActorRegistry, browsing_context_name: String) -> Arc<Self> {
+        let highlighter_actor = HighlighterActor::register(registry, browsing_context_name.clone());
+        let page_style_actor = PageStyleActor::register(registry);
+        let walker_actor = WalkerActor::register(registry, browsing_context_name);
+
+        let actor = Self {
+            name: new_actor_name::<InspectorActor>(),
+            highlighter_name: highlighter_actor.name().into(),
+            page_style_name: page_style_actor.name().into(),
+            walker_name: walker_actor.name().into(),
+        };
+
+        registry.register::<Self>(actor)
+    }
+}

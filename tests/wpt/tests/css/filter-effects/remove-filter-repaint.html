@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<html>
+<head>
+  <title>CSS Filters: Repaint a compositing layer</title>
+  <link rel="author" title="Simon Fraser" href="mailto:simon.fraser@apple.com>">
+  <link rel="help" href="https://drafts.fxtf.org/filter-effects/#dropshadowEquivalent">
+  <link rel="issue" href="https://bugs.webkit.org/show_bug.cgi?id=120135">
+  <link rel="issue" href="https://chromiumcodereview.appspot.com/23526037">
+  <link rel="match" href="reference/remove-filter-repaint-ref.html">
+  <meta name="assert" content="This test ensures that we can repaint the compositing layer when removing a filter on an inline child of a compositing layer.">
+  <script src="/common/reftest-wait.js"></script>
+  <style>
+    .backdrop {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100px;
+      width: 100px;
+      background-color: silver;
+    }
+    .overlay {
+      position: absolute;
+      top: 50px;
+      left: 50px;
+      width: 400px;
+      height: 100px;
+      background: gray;
+      box-shadow: 0 0 4px black;
+    }
+    .play {
+      font-size: 36pt;
+      background-color: navy;
+      color: white;
+    }
+    .play.changed {
+      filter: drop-shadow(black 0 0 5px);
+    }
+    .composited {
+      will-change: transform;
+    }
+    </style>
+    <script>
+      function doTest() {
+        requestAnimationFrame(function() {
+          requestAnimationFrame(function() {
+            document.getElementById('play').classList.remove('changed');
+            takeScreenshot();
+          });
+        });
+      }
+      window.addEventListener('load', doTest, false);
+  </script>
+</head>
+<body>
+  <div class="composited backdrop"></div>
+  <div class="overlay">
+    <span id="play" class="play changed">this should be visible</span>
+  </div>
+</body>
+</html>

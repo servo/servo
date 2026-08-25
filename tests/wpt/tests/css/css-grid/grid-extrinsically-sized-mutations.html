@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#layout-algorithm">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<meta name="assert" content="Tests that an extrinsically sized grid responds to various changes to both the grid and its constraints.">
+<style>
+.container {
+  width: 50px;
+}
+.grid {
+  display: grid;
+  grid-template-columns: 100%;
+  grid-template-rows: 50px;
+  height: 50px;
+  outline: 1px solid blue;
+  font: 10px/1 Ahem;
+}
+
+.alignStart {
+  align-items: start;
+}
+
+.fixedHeight {
+  height: 100px;
+}
+
+.percentHeight {
+  height: 100%;
+}
+
+.percentRow {
+  grid-template-rows: 100%;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+function mutateContent() {
+  document.getElementById("one").style.width = "10px";
+  document.getElementById("two").style.alignItems = "stretch";
+  document.getElementById("three").style.gridTemplateRows = "30px";
+  document.getElementById("four").style.height = "10px";
+  document.getElementById("five").innerHTML += " x x x x x x";
+  document.getElementById("six").style.height = "50px";
+  document.getElementById("seven").style.gridTemplateColumns = "20%";
+
+  document.getElementById("eight").innerHTML += "<div class='test' data-expected-height='40'>x x x x</div>";
+}
+</script>
+</head>
+<body>
+
+<!-- Inline constraint on the grid changes -->
+<div class="container" id="one">
+  <div class="grid alignStart">
+    <div class="test" data-expected-height="40">x x x x</div>
+  </div>
+</div>
+
+<!-- Alignment of grid items changes -->
+<div class="container">
+  <div id="two" class="grid alignStart">
+    <div class="test" data-expected-height="50">x x x</div>
+  </div>
+</div>
+
+<!-- grid-template-rows changes to different fixed size. -->
+<div id="three" class="grid">
+  <div class="test" data-expected-height="30">xx</div>
+</div>
+
+<!-- Grid block size changes with % based rows -->
+<div id="four" class="grid percentRow">
+  <div class="test" data-expected-height="10">xx</div>
+</div>
+
+<!-- Grid item content changes -->
+<div class="container">
+  <div class="grid alignStart">
+    <div id="five" class="test" data-expected-height="30">x x x</div>
+  </div>
+</div>
+
+<!-- Grid with % height and rows has fixed block constraint changed -->
+<div class="container fixedHeight" id="six">
+  <div class="grid percentRow percentHeight">
+    <div class="test" data-expected-height="50">xx</div>
+  </div>
+</div>
+
+<!-- grid-template-columns changes to different % value -->
+<div class="container">
+  <div id="seven" class="grid alignStart">
+    <div class="test" data-expected-height="30">x x x</div>
+  </div>
+</div>
+
+<!-- Grid has new item added -->
+<div class="container">
+  <div id="eight" class="grid alignStart" style="grid-template-columns: 50% 50%;">
+    <div>xx xx</div>
+  </div>
+</div>
+</body>
+<script>
+setup({ explicit_done: true });
+document.fonts.ready.then(() => {
+  document.body.offsetHeight;
+  mutateContent();
+  document.body.offsetHeight;
+
+  let tests = document.querySelectorAll(".test");
+  tests.forEach((element) => {
+    test(function() {
+      let expectedHeight = element.getAttribute("data-expected-height");
+      assert_equals(element.offsetHeight, Number(expectedHeight), "height");
+    });
+  });
+  done();
+})
+</script>
+</html>
+

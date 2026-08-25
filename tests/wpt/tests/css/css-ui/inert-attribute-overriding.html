@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/12049">
+<link rel="help" href="https://github.com/whatwg/html/pull/10956">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<div id="buttons">
+    <button data-expect="normal">normal button</button>
+    <button data-expect="inert" inert>just inert</button>
+    <button data-expect="inert" inert style="interactivity: auto">interactivity: auto</button>
+    <button data-expect="inert" inert style="all: initial">all: initial</button>
+</div>
+
+<script>
+async function clickOn(element) {
+  // Because the button is disabled, we need to click at its coordinates.
+  let rect = element.getBoundingClientRect();
+  let actions = new test_driver.Actions();
+  await actions
+      .pointerMove(Math.round(rect.x + rect.width / 2), Math.round(rect.y + rect.height / 2), {})
+      .pointerDown({button: actions.ButtonType.LEFT})
+      .pointerUp({button: actions.ButtonType.LEFT})
+      .send();
+}
+document.querySelectorAll('#buttons>*').forEach(button => {
+  const expectInert = button.dataset.expect === 'inert';
+  button.removeAttribute('data-expect');
+  promise_test(async (t) => {
+    let clicked = false;
+    button.addEventListener('click',() => (clicked = true),{signal: t.get_signal()});
+    await clickOn(button);
+    assert_equals(clicked, !expectInert);
+  }, `Expect ${button.outerHTML} to be ${expectInert ? 'inert' : 'non-inert'}`);
+});
+</script>

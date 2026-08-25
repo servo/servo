@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>CSS Images Test: Invalidate currentcolor in gradient with contrast-color() color stop</title>
+<link rel="help" href="https://drafts.csswg.org/css-images/#gradients">
+<link rel="help" href="https://drafts.csswg.org/css-color-5/#contrast-color">
+<link rel="match" href="/css/reference/pass_if_square_96px_black.html">
+<meta name="assert" content="contrast-color() returns black for white and white for black">
+<script src="/common/reftest-wait.js"></script>
+<style>
+  .test {
+    color: black;
+    width: 96px;
+    height: 48px;
+  }
+  #t1 {
+    background-image: linear-gradient(contrast-color(currentColor) 0 0);
+  }
+  #t2 {
+    background-image: conic-gradient(contrast-color(currentColor) 0 0);
+  }
+</style>
+<p>Test passes if there is a square below.</p>
+<div id="t1" class="test"></div>
+<div id="t2" class="test"></div>
+<script>
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    t1.style.color = "white";
+    t2.style.color = "white";
+    takeScreenshot();
+  }));
+</script>

@@ -1,0 +1,14 @@
+<!doctype html>
+<title>CSS Container Queries Test: No crash when ::after is a container</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#query-container">
+<link rel="help" href="https://crbug.com/1225381">
+<style>
+  div::after {
+    container-type: size;
+    content: '';
+    display: block;
+  }
+</style>
+<div>
+  PASS if no crash
+</div>

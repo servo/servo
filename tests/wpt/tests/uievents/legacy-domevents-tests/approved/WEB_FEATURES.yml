@@ -1,0 +1,2 @@
+rules:
+- dispatchEvent.click.checkbox.html: [mouse-events]

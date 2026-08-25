@@ -1,0 +1,27 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:math="http://www.w3.org/1998/Math/MathML">
+<head>
+<script>
+
+function boom()
+{
+  var ms = document.createElementNS("http://www.w3.org/1998/Math/MathML", "ms");
+  var textNode = document.getElementById("emptyset").firstChild;
+  var mrow = document.getElementById("mrow");
+
+  ms.appendChild(textNode); // *move* the text node from one place to another!
+  mrow.appendChild(ms);
+}
+
+</script>
+</head>
+
+<body onload="boom();">
+
+<math xmlns="http://www.w3.org/1998/Math/MathML">
+<merror><emptyset id="emptyset">
+  <mrow id="mrow"></mrow></emptyset></merror>
+</math>
+
+</body>
+
+</html>

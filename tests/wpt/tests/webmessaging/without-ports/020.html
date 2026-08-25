@@ -1,0 +1,32 @@
+<!doctype html>
+<title>cross-origin test</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe src="../without-ports/020-1.html"></iframe>
+<div id="log"></div>
+<script>
+setup({ single_test: true });
+
+var iframe = document.createElement('iframe');
+var url_prefix = location.href.replace('://', '://www1.').replace(/\/with(out)?-ports\/[^\/]+$/, '');
+var url = url_prefix + '/without-ports/020-1.html';
+iframe.src = url;
+document.body.appendChild(iframe);
+</script>
+<div id=log></div>
+<script>
+onload = function() {
+  window[0].postMessage(1, location.href);
+  window[1].postMessage(2, url);
+  var i = 0;
+  onmessage = function(e) {
+    i++;
+    assert_equals(e.data[0], i);
+    assert_equals(e.data[1], location.protocol + '//' + location.host);
+    if (i == 2) {
+      done();
+    }
+  };
+};
+</script>
+

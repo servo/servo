@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>DeviceMotionEvent: A device in free-fall, with the screen horizontal and upmost</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="author' title='Mosquito FP7">
+    <link rel="reviewer author" title="Zhiqiang Zhang" href="mailto:zhiqiang.zhang@intel.com"> <!-- 2013-10-14 -->
+  </head>
+  <body>
+    <p>Free fall the device to run the test, with the screen horizontal and upmost.</p>
+    <div id="log"></div>
+    <script>
+      var t = async_test();
+      var run = false;
+
+      /*
+       * A device in free-fall, with the screen horizontal and upmost,
+       * has an accelerationIncludingGravity of zero and
+       * the following value for acceleration:
+       * {
+       *   x: 0,
+       *   y: 0,
+       *   z: -9.81
+       * };
+       */
+      window.addEventListener("devicemotion", function(e) {
+        if (!run) {
+          run = true;
+          t.step(function() {
+            var gvt = e.accelerationIncludingGravity;
+            var acc = e.acceleration;
+
+            assert_approx_equals(gvt.x, 0, 1);
+            assert_approx_equals(gvt.y, 0, 1);
+            assert_approx_equals(gvt.z, 0, 1);
+
+            assert_approx_equals(acc.x, 0, 1);
+            assert_approx_equals(acc.y, 0, 1);
+            assert_approx_equals(acc.z, -9.81, 1.5);
+          });
+          t.done();
+        }
+      }, false);
+    </script>
+  </body>
+</html>
+

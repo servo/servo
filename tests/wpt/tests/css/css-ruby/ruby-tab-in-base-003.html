@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Ruby Test: tabulation inside a nested ruby base</title>
+<link rel="author" title="Minseong Kim" href="mailto:jja08111@gmail.com">
+<link rel="help" href="https://www.w3.org/TR/css-text-3/#white-space-phase-2">
+<link rel="help" href="https://drafts.csswg.org/css-ruby-1/#line-breaks">
+<link rel="match" href="ruby-tab-in-base-003-ref.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+div.test {
+  font: 25px/1 Ahem;
+  white-space: pre;
+  tab-size: 100px;
+}
+</style>
+<body>
+<div class="test">A<ruby>B<ruby>&#9;X<rt>y</rt></ruby><rt>z</rt></ruby></div>
+</body>

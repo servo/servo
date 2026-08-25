@@ -1,0 +1,73 @@
+<!DOCTYPE html> <meta charset="utf-8" />
+<title>Validates PaymentMethodData's data member during construction</title>
+<link
+  rel="help"
+  href="https://w3c.github.io/browser-payment-api/#constructor"
+/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  const details = {
+    total: {
+      label: "Total",
+      amount: {
+        currency: "USD",
+        value: "0.00",
+      },
+    },
+  };
+
+  test(() => {
+    new PaymentRequest([{ supportedMethods: "basic-card" }], details);
+    new PaymentRequest(
+      [{ supportedMethods: "https://apple.com/apple-pay" }],
+      details
+    );
+  }, "Smoke test.");
+
+  const knownPMIs = ["basic-card", "https://apple.com/apple-pay"];
+  const unknownPMIs = ["fake-pmi", "https://does-not.exist"];
+
+  promise_test(async t => {
+    for (const supportedMethods of [].concat(knownPMIs).concat(unknownPMIs)) {
+      const method = { supportedMethods };
+      const request = new PaymentRequest([method], details);
+      assert_throws_js(
+        TypeError,
+        () => {
+          const badMethod = Object.assign(
+            {},
+            method,
+            { data: 123 } // <- this will throw
+          );
+          new PaymentRequest([badMethod], details);
+        },
+        "PaymentMethodData.data can't be converted to an Object."
+      );
+    }
+  }, "Tries to convert data member during Payment Request construction, irrespective of PMI.");
+
+  promise_test(async t => {
+    for (const supportedMethods of knownPMIs) {
+      const method = { supportedMethods };
+      const request = new PaymentRequest([method], details);
+
+      // Only check the PMIs that are actually supported
+      if (!(await request.canMakePayment())) continue;
+
+      assert_throws_js(
+        TypeError,
+        () => {
+          const badMethod = Object.assign(
+            {},
+            method,
+            /* This is invalid in both Apple Pay and Basic Card */
+            { data: { supportedNetworks: "this will throw" } }
+          );
+          new PaymentRequest([badMethod], details);
+        },
+        "PaymentMethodData.data is invalid."
+      );
+    }
+  }, "Converts PaymentMethodData's data to mandated IDL type during PaymentRequest construction.");
+</script>

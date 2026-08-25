@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>href - filter element</title>
+<meta name="assert" content="The filter element should accept href">
+<link rel="match" href="href-filter-element-ref.html">
+<body>
+  <svg width="300" height="300" viewBox="0 0 300 300"
+       xmlns:xlink="http://www.w3.org/1999/xlink">
+    <filter id="blurMe">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="5" />
+    </filter>
+    <filter id="dropShadow">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3" />
+      <feOffset dx="2" dy="4" />
+      <feMerge>
+        <feMergeNode />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+    <filter id="Copied" href="#blurMe" xlink:href="#dropShadow">
+    </filter>
+    <circle cx="60" cy="60" r="50" fill="green" filter="url(#Copied)"/>
+  </svg>
+</body>

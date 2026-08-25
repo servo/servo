@@ -1,0 +1,15 @@
+<!--
+We currently assume the devicePixelRatio is 1; however,
+this assumption may change in the future: see
+<https://github.com/web-platform-tests/rfcs/issues/220>
+
+This acts both as a pointer to that issue (comments very
+welcome!) and as a warning for those running tests in other
+configurations.
+-->
+<!doctype html>
+<link rel=match href=devicePixelRatio-ref.html>
+<p><code>window.devicePixelRatio: <span id=dpr></span></code></p>
+<script>
+document.querySelector("#dpr").textContent = window.devicePixelRatio;
+</script>

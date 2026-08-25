@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>HTTPS Upgrades: HTTP URL redirecting to HTTPS</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/get-host-info.sub.js"></script>
+
+  </head>
+  <body>
+    <script>
+      setup({ single_test: true });
+      // Loads an HTTP URL that redirects to an HTTPS URL. HTTPS upgrading
+      // should upgrade the initial URL.
+      //
+      // HTTPS upgrading doesn't change custom ports, so this will load
+      // correctly if an HTTPS upgrade is performed, and will fail to load
+      // otherwise (since the port will be wrong for http).
+      var final_url = "https://{{host}}:{{ports[https][0]}}/https-upgrades/resources/pass.html";
+      var url = new URL("http://{{host}}:{{ports[https][0]}}/fetch/api/resources/redirect.py?location=" + final_url);
+      window.onmessage = function(event) {
+          if (event.data === "pass") {
+              done();
+          }
+      }
+      win = window.open(url)
+    </script>
+  </body>
+</html>

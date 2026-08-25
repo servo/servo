@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>Test baseline alignment of checkboxes in vertical-lr writing mode.</title>
+<meta charset="utf-8">
+<style>
+
+label {
+    color: red;
+    background-color: red;
+    margin-top: -30px;
+}
+
+input {
+    visibility: hidden;
+}
+
+</style>
+<p>The checkbox should be center-aligned with the label it since text is non-alphabetic.</p>
+<div style="writing-mode: vertical-lr">
+    <input type="checkbox" id="checkbox" checked>
+    <label for="checkbox">こんにちわ</label>
+</div>
+
+<br>
+
+<p>The checkbox should be left-aligned with the label text since it has text-orientation sideways.</p>
+<div style="writing-mode: vertical-lr; text-orientation: sideways;">
+  <input type="checkbox" id="checkbox" checked>
+  <label for="checkbox">Baseline</label>
+</div>

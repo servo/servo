@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<title>CSS aspect-ratio: out-of-flow replaced element</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht" />
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="position: relative;">
+  <div style="position: absolute; aspect-ratio: 1/1; height: 100px; min-width: 0; background: green;">
+    <div style="width: 200px;"></div>
+  </div>
+</div>

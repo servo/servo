@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/test-only-api.js"></script>
+<script src="resources/fake-devices.js"></script>
+<script src="resources/usb-helpers.js"></script>
+<script>
+'use strict';
+
+async function sleep(timeout) {
+  return new Promise(resolve => {
+    step_timeout(() => {
+      resolve();
+    }, timeout);
+  });
+}
+
+async function connectInIframe() {
+  let iframe = document.createElement('iframe');
+  let opened = false;
+
+  iframe.src = 'resources/open-in-iframe.html';
+  document.body.appendChild(iframe);
+
+  await navigator.usb.test.attachToContext(iframe);
+  function nextIFrameMessage() {
+    return new Promise(resolve => window.addEventListener(
+        'message', e => resolve(e.data)));
+  }
+  iframe.contentWindow.postMessage('ConnectEvent', '*');
+
+  assert_equals('Ready', (await nextIFrameMessage()));
+  let fakeDevice = navigator.usb.test.addFakeDevice(fakeDeviceInit);
+  let closedPromise = new Promise(resolve => fakeDevice.onclose = resolve)
+      .then(() => assert_true(opened));
+
+  assert_equals('Success', (await nextIFrameMessage()));
+  opened = true;
+  return { iframe, closedPromise };
+}
+
+usb_test(async () => {
+  let { iframe, closedPromise } = await connectInIframe();
+  document.body.removeChild(iframe);
+  await closedPromise;
+}, 'detaching iframe disconnects device.');
+
+usb_test(async () => {
+  let { iframe, closedPromise } = await connectInIframe();
+  iframe.src = 'about:blank';
+  await closedPromise;
+}, 'navigating iframe disconnects device.');
+
+usb_test(async (t) => {
+  let iframe = document.createElement('iframe');
+  iframe.src = 'resources/open-in-iframe.html';
+  iframe.allow = 'usb \'none\'';
+
+  await Promise.all([
+    new Promise(resolve => {
+      document.body.appendChild(iframe);
+      iframe.addEventListener('load', resolve);
+    }),
+    // This will wait for ReadyForAttachment event from iframe loading.
+    navigator.usb.test.attachToContext(iframe),
+  ]);
+
+  let messageWatcher = new EventWatcher(t, window, 'message');
+  iframe.contentWindow.postMessage('ConnectEvent', '*');
+  let messageEvent = await messageWatcher.wait_for('message');
+  assert_equals(messageEvent.data, 'Ready');
+
+  // This isn't necessary as the expected scenario shouldn't send any mojo
+  // request. However, in order to capture a bug that doesn't reject adding
+  // event listener, time delay here is to allow mojo request to be intercepted
+  // after iframe adding connect event listener.
+  await sleep(100);
+
+  // If device connect event fires, EventWatcher will assert for an unexpected
+  // event.
+  navigator.usb.test.addFakeDevice(fakeDeviceInit);
+  // Time delay here is to allow event to be fired if any.
+  await sleep(100);
+}, 'Connect event is not fired in iframe with usb disallowed.');
+
+</script>

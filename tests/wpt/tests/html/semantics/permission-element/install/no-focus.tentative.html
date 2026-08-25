@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<link rel="help" href="https://github.com/WICG/PEPC/blob/main/explainer.md#locking-the-pepc-style">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+<!-- The install element should not be focusable by script.
+-->
+<install tabindex="0" id="valid_install_element"></install>
+
+<span tabindex="0" id="focusable_span">This is some text</span>
+
+<script>
+  promise_test(async() => {
+    focusable_span.focus();
+    valid_install_element.focus();
+    assert_equals(document.activeElement, focusable_span,
+      "Install element should not be focused.");
+
+    focusable_span.focus();
+    await test_driver.bless('Focus with user activation', () => {
+      valid_install_element.focus();
+    });
+    assert_equals(document.activeElement, valid_install_element,
+      "Focus is allowed with user activation");
+
+    focusable_span.focus();
+    actions = new test_driver.Actions()
+       .pointerMove(1, 1, {origin: valid_install_element})
+       .pointerDown()
+       .addTick();
+    await actions.send();
+    assert_equals(document.activeElement, valid_install_element,
+      "Users can focus the element");
+
+    focusable_span.focus();
+    assert_equals(document.activeElement, focusable_span,
+        "Other element should be focused");
+}, "Install element is not focusable by script without user activation");
+</script>
+</body>

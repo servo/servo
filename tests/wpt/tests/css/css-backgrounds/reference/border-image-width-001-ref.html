@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Reftest reference</title>
+
+  <style>
+  div.subtest
+    {
+      background-color: green;
+      height: 120px;
+      margin: 8px auto 8px 0px;
+      width: 120px;
+    }
+
+  div > div
+    {
+      background-color: lime;
+      position: relative;
+    }
+
+  div#subtest1 > div
+    {
+      height: 75px;
+      left: 15px;
+      top: 30px;
+      width: 80px;
+    }
+
+  div#subtest2 > div
+    {
+      height: 60px;
+      left: 10px;
+      top: 30px;
+      width: 100px;
+    }
+
+  div#subtest3 > div
+    {
+      height: 75px;
+      left: 15px;
+      top: 30px;
+      width: 80px;
+    }
+
+  div#subtest4 > div
+    {
+      height: 90px;
+      left: 25px;
+      top: 15px;
+      width: 70px;
+    }
+  </style>
+
+  <div class="subtest" id="subtest1"><div></div></div>
+
+  <div class="subtest" id="subtest2"><div></div></div>
+
+  <div class="subtest" id="subtest3" style="height: 135px; width: 110px;"><div></div></div>
+
+  <div class="subtest" id="subtest4"><div></div></div>

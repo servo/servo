@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>CSS Test: wrapped multi-line text before block-in-inline</title>
+<link rel="help" href="https://www.w3.org/TR/CSS21/visuren.html#anonymous-block-level">
+<link rel="help" href="https://www.w3.org/TR/CSS21/visuren.html#inline-formatting">
+<link rel="match" href="block-in-inline-margin-with-multi-line-text-before-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<meta name="assert" content="Multiple wrapped lines of text before a block-in-inline form their own lines, with the block following on a new line.">
+<style>
+.container { width: 60px; font: 20px/1 Ahem; color: green; }
+.inner { width: 60px; height: 20px; margin-bottom: 40px; background: green; }
+.sibling { width: 60px; height: 20px; background: green; }
+</style>
+<p>'XX' on three lines, green square, 40px gap, then a green square.</p>
+<div class="container">
+    <span>XX XX XX<div class="inner"></div></span>
+</div>
+<div class="sibling"></div>

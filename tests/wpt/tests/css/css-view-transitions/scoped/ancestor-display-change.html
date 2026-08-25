@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    Accommodate slight color mismatch due to mix-blend-mode in cross fade and
+    rounding.
+  -->
+  <meta name="fuzzy" content="maxDifference=0-6;totalPixels=0-10000">
+  <link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+  <link rel="match" href="ancestor-display-change-ref.html">
+</head>
+<style>
+  .block {
+    background-color: blue;
+    margin: 10px;
+    height: 100px;
+    width: 100px;
+  }
+  #target {
+    view-transition-name: target;
+  }
+  .fade-out {
+    opacity: 0;
+  }
+  .flex {
+    display: flex;
+  }
+  ::view-transition-group(*),
+  ::view-transition-image-pair(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    /* freeze all animations at mid-point */
+    animation-duration: 100000s;
+    animation-delay: -50000s;
+    animation-timing-function: cubic-bezier(0, 1, 1, 0);
+  }
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<body>
+  <div id="ancestor">
+    <div id="scope" class="block"></div>
+    <div class="block"></div>
+  </div>
+</body>
+<script>
+  const scope = document.getElementById("scope");
+  failIfNot(scope.startViewTransition, "Missing element.startViewTransition");
+
+  window.onload = async () => {
+    await waitForCompositorReady();
+    const vt = scope.startViewTransition(() => {
+      scope.classList.add('fade-out');
+    });
+    await vt.ready;
+    ancestor.classList.add('flex');
+    requestAnimationFrame(takeScreenshot);
+  };
+</script>
+</html>

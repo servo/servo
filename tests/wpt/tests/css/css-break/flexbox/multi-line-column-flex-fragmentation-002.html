@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<title>
+  Multi-line column flex fragmentation with item overflow.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<style>
+  .multicol {
+    column-count: 2;
+    column-fill: auto;
+    column-gap: 0px;
+    height: 100px;
+    width: 100px;
+  }
+  .flex {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    height: 200px;
+    width: 50px;
+  }
+  .flex > div {
+    height: 100px;
+    width: 25px;
+  }
+  .flex > div > div {
+    height: 50px;
+    background: green;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="multicol">
+  <div class="flex">
+    <div>
+      <div style="height: 100px;"></div>
+      <div style="background: red;"></div>
+      <div></div>
+    </div>
+    <div>
+      <div></div>
+    </div>
+    <div>
+      <div style="height: 100px;"></div>
+      <div style="background: red;"></div>
+      <div></div>
+    </div>
+    <div>
+      <div></div>
+    </div>
+  </div>
+</div>

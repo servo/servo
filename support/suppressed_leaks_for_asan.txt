@@ -1,0 +1,11 @@
+# intentional Box::leak, introduced here: https://github.com/servo/stylo/blob/f4cde5d89d03db92d111eaa4b4b34e622b6eecac/style/sharing/mod.rs#L481
+leak:style::sharing::SHARING_CACHE_KEY::__init
+# intentional Box::leak, introduced here: https://github.com/servo/stylo/blob/80292f83789ec9d0c66f73ee7e6e142f7478d167/style/bloom.rs#L22
+leak:style::bloom::BLOOM_KEY::__init
+
+# std::sync::LazyLock never frees memory because it never runs destructors, see https://doc.rust-lang.org/std/sync/struct.LazyLock.html#examples
+leak:std::sync::LazyLock
+
+# lazy_static never frees memory because it never runs destructors, see https://docs.rs/lazy_static/1.4.0/lazy_static/index.html#semantics
+# Needed because transitive dependency are still using it
+leak:lazy_static::lazy::Lazy*::get

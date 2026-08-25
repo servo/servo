@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Embedded Enforcement: Subsumption Algorithm - Nonces.</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="support/testharness-helper.sub.js"></script>
+</head>
+<body>
+  <script>
+    var tests = [
+      { "name": "Exact nonce subsumes.",
+        "required_csp": "style-src 'nonce-abc'",
+        "returned_csp_1": "style-src 'nonce-abc'",
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Any nonce subsumes.",
+        "required_csp": "style-src 'nonce-abc'",
+        "returned_csp_1": "style-src 'nonce-xyz'",
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "A nonce has to be returned if required by the embedder.",
+        "required_csp": "style-src 'nonce-abc'",
+        "returned_csp_1": "style-src http://example1.com/foo",
+        "expected": IframeLoad.EXPECT_BLOCK },
+      { "name": "Multiples nonces returned subsume.",
+        "required_csp": "style-src 'nonce-abc'",
+        "returned_csp_1": "style-src 'nonce-xyz' 'nonce-abc'",
+        "expected": IframeLoad.EXPECT_LOAD },
+      // nonce intersection
+      { "name": "Nonce intersection is still done on exact match - non-matching nonces.",
+        "required_csp": "style-src 'none'",
+        "returned_csp_1": "style-src 'nonce-def'",
+        "returned_csp_2": "style-src 'nonce-xyz'",
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Nonce intersection is still done on exact match - matching nonces.",
+        "required_csp": "style-src 'none'",
+        "returned_csp_1": "style-src 'nonce-def'",
+        "returned_csp_2": "style-src 'nonce-def' 'nonce-xyz'",
+        "expected": IframeLoad.EXPECT_BLOCK },
+      // other expressions still have to work
+      { "name": "Other expressions still have to be subsumed - positive test.",
+        "required_csp": "style-src http://example1.com/foo/ 'nonce-abc'",
+        "returned_csp_1": "style-src http://example1.com/foo/ 'nonce-xyz'",
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Other expressions still have to be subsumed - negative test",
+        "required_csp": "style-src http://example1.com/foo/ 'nonce-abc'",
+        "returned_csp_1": "style-src http://not-example1.com/foo/ 'nonce-xyz'",
+        "expected": IframeLoad.EXPECT_BLOCK },
+    ];
+    tests.forEach(test => {
+      async_test(t =>  {
+        var url = generateUrlWithPolicies(Host.CROSS_ORIGIN, test.returned_csp_1);
+        if (test.returned_csp_2)
+          url.searchParams.append("policy2", test.returned_csp_2);
+        assert_iframe_with_csp(t, url, test.required_csp, test.expected, test.name, null);
+      }, test.name);
+    });
+  </script>
+</body>
+</html>

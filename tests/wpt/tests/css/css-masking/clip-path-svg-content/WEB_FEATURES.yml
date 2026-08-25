@@ -1,0 +1,6 @@
+rules:
+- clip-path-inset-stroke-001.svg: [clip-path-boxes]
+- clip-path-inset-stroke-002.svg: [clip-path-boxes]
+- clip-path-shape-circle-003.svg: [clip-path-boxes]
+- clip-path-shape-circle-004.svg: [clip-path-boxes]
+- clip-path-shape-circle-005.svg: [clip-path-boxes]

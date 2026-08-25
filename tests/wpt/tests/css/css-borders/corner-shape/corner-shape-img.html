@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#corner-shaping">
+<link rel="match" href="corner-shape-img-ref.html">
+<meta name="fuzzy" content="maxDifference=0-64;totalPixels=0-100">
+<style>
+    img {
+        width: 100px;
+        height: 100px;
+        border-radius: 25px;
+        box-sizing: border-box;
+        corner-shape: notch superellipse(3) bevel scoop;
+    }
+</style>
+<img src="/images/green.png">

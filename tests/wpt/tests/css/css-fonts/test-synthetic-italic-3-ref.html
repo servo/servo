@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+     <head>
+        <title>CSS Reference file</title>
+        <meta charset="utf-8" />
+        <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+        <style type="text/css">
+            div {
+              /* use Ahem font which has no italic/oblique face, so that the oblique
+                 will be synthesized with the given angle */
+              font: 50px/1 Ahem;
+              position: absolute;
+            }
+            /* test elements will use Ahem with various values of obliqueness */
+            .test {
+              writing-mode: vertical-rl;
+              -webkit-text-orientation: upright;
+              text-orientation: upright;
+              color: green;
+            }
+            /* check that the sheared glyphs are still correct when transforms are
+               also in effect */
+            #test3 {
+              font-style: oblique 25deg;
+              top: 150px;
+              left: 100px;
+              transform: scale(1.5) rotate(45deg) skew(30deg);
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if no red shows, just a sheared green block:</p>
+        <div id=test3 class=test>ABC</div>
+    </body>
+</html>

@@ -1,0 +1,88 @@
+<!DOCTYPE HTML>
+<title>CSS Test (Transforms): Filter on an element in a preserve-3d scene</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Google" href="http://www.google.com/">
+<link rel="help" href="http://www.w3.org/TR/css-transforms-2/#3d-transform-rendering">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#FilterProperty">
+<meta name="assert" content="The filtered element is rendered correctly without clipping, despite the interesting transform.">
+<link rel="match" href="preserve3d-and-filter-with-perspective-ref.html">
+<meta name="fuzzy" content="maxDifference=0-4;totalPixels=0-26">
+
+
+<style>
+
+  .scene {
+    width: 400px;
+    height: 400px;
+    position: absolute;
+    left: 100px;
+    top: 100px;
+    perspective:1300px;
+  }
+
+  .chair {
+    width: 400px;
+    height: 400px;
+    transform: rotateY(88deg);
+    transform-style: preserve-3d;
+    transform-origin: 50% 50% 50%;
+  }
+
+  .shadow {
+    position: absolute;
+    top: 250px;
+    left: 0;
+    width: 200px;
+    height: 200px;
+    filter: blur(1px);
+    background: black;
+    transform: rotateX(90deg) translate3d(0,-60px,0);
+  }
+
+  svg.cover {
+    position: absolute;
+    z-index: 1;
+    top: 0;
+    left: 0;
+    width: 500px;
+    height: 500px;
+  }
+
+</style>
+
+<!--
+
+The overall transform here from the viewport to the
+<div class="shadow"></div> is:
+
+translate(100px, 100px) translate(200px, 200px) perspective(1300px) translate(-200px, -200px) translate(200px, 200px) rotateY(88deg) translate(-200px, -200px) translateY(250px) translate(100px, 100px) rotateX(90deg) translate3d(0, -60px, 0) translate(-100px, -100px)
+
+which according to https://codepen.io/milosdjakonovic/pen/QyqJyp
+is equivalent to the matrix:
+
+matrix3d(0.265528, 0.230629, -0.999391, 0.000768762,
+         0.991337, -0.00805373, 0.0348995, -2.68458e-05,
+         6.07019e-17, -1, 2.13698e-18, -1.64383e-21,
+         88.2804, 405.163, 194.294, 0.850543)
+
+[ 0.265528 0.991337 6.07019e-17 88.2804 ]
+[ 0.230629 -0.00805373 -1 405.163 ]
+[ -0.999391 0.0348995 2.13698e-18 194.294 ]
+[ 0.000768762 -2.68458e-05 -1.64383e-21 0.850543 ]
+
+-->
+
+<div class="scene">
+ <div class="chair">
+  <div class="shadow"></div>
+ </div>
+</div>
+
+<!-- cover the blurred edge so we can match to a reference -->
+<svg class="cover">
+  <polygon fill="transparent" stroke="blue" stroke-width="11"
+           points="103.793,476.3579
+                   140.7813,449.3585
+                   340.0185,450.1613
+                   339.0401,477.4783" />
+</svg>

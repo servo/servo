@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS Reference: Dynamic change to the inline-size of a container containing a inline-flex child</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+
+  <style>
+  #container {
+    border: 1px solid black;
+    font: 30px monospace;
+    width: 400px;
+  }
+  .inline-flex {
+    display: inline-flex;
+    width: 100px;
+    border: 1px solid gray;
+  }
+
+  .small {
+    display: flex;
+    align-items: flex-end;
+    font: 8px monospace;
+    background: pink;
+  }
+  </style>
+
+  <body>
+    <div id="container">
+      abc
+      <div class="inline-flex">
+        <div class="small">D</div>
+        <div>efg</div>
+      </div>
+    </div>
+  </body>
+</html>

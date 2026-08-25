@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body>
+<script>
+
+const host = document.createElement('div');
+host.setAttribute('dir', 'auto');
+document.body.appendChild(host);
+
+const shadow = host.attachShadow({ mode: 'open' });
+
+// Two slots with same name - when slot1 is removed, assigned nodes
+// move to slot2, calling SlotStateChanged on slot1 after unbinding
+const slot1 = document.createElement('slot');
+slot1.setAttribute('dir', 'auto');
+const slot2 = document.createElement('slot');
+slot2.setAttribute('dir', 'auto');
+
+shadow.appendChild(slot1);
+shadow.appendChild(slot2);
+
+for (let i = 0; i < 3; i++) {
+  const child = document.createElement('span');
+  child.textContent = '\u0645\u0631\u062D\u0628\u0627'; // RTL text
+  host.appendChild(child);
+}
+
+// Trigger: removing slot1 causes SlotStateChanged while detached
+shadow.removeChild(slot1);
+</script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#auto-margins">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.content {
+  background-color: green;
+}
+.grid {
+  display: grid;
+  width: 100px;
+  font: 25px/1 Ahem;
+  color: green;
+}
+.subgrid {
+  grid-template-columns: subgrid;
+  display: grid;
+  margin-left: auto;
+}
+</style>
+</head>
+<body>
+<p>Test passes if there is a filled green square.</p>
+<div class="grid">
+  <div class="subgrid">
+    <div class="content">X X X X X X X X</div>
+  </div>
+</div>
+</body>
+</html>

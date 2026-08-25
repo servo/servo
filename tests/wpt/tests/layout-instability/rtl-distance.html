@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>Layout Instability: movement distance uses starting corner</title>
+<link rel="help" href="https://wicg.github.io/layout-instability/" />
+<style>
+
+#shifter { position: relative; width: 100px; height: 100px; direction: rtl; background: blue; }
+
+</style>
+<div id='shifter'></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/util.js"></script>
+<script>
+
+promise_test(async () => {
+  const watcher = new ScoreWatcher;
+
+  // Wait for the initial render to complete.
+  await waitForAnimationFrames(2);
+
+  // Move the left edge rightward by 10px and the right edge leftward by 20px.
+  document.querySelector("#shifter").style = "width: 70px; left: 10px";
+
+  // The movement distance should use the displacement of the right edge.
+  const expectedScore = computeExpectedScore(100 * 100, 20);
+
+  await watcher.promise;
+  assert_equals(watcher.score, expectedScore);
+}, 'RTL element.');
+
+</script>

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<title>HTMLTrackElement 'src' attribute mutations</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<video>
+    <track src="resources/settings.vtt" default>
+    <script>
+    async_test(function(t) {
+        var cues = null;
+        var testTrack = document.querySelector("track");
+        var stage = 0;
+        var timer = null;
+        function step_onLoad() {
+            switch (stage) {
+                case 0:
+                    cues = testTrack.track.cues;
+                    assert_equals(testTrack.readyState, HTMLTrackElement.LOADED, "readyState after first loading of the track");
+                    assert_equals(cues.length, 4, "Number of cues after first loading of the track");
+                    ++stage;
+                    testTrack.src = "resources/non-existing-file.vtt"; // this should fail
+                    break;
+                case 1:
+                case 3:
+                case 4:
+                    assert_unreached("'error' event did not fire, stage = " + stage);
+                    break;
+                case 2:
+                    assert_equals(testTrack.readyState, HTMLTrackElement.LOADED, "readyState after loading of the second track");
+                    assert_equals(cues.length, 4, "Number of cues after loading of the second track");
+                    assert_equals(cues[cues.length-1].text, 'I said Bear is coming now!!!! Tab separators.', "Last cue content check");
+                    ++stage;
+                    testTrack.src = ""; // this should fail
+                    assert_equals(cues.length, 0, "cues list is reset immediately after 'src' mutation with the new URL");
+                    // This should raise onError event. If no, we'll know about this after some time.
+                    timer = t.step_timeout(t.unreached_func("'error' event is not fired when an empty URL is set"), 100);
+                    break;
+                default:
+                    assert_unreached("unexpected stage number = " + stage);
+                    break;
+            }
+        }
+
+        function step_onError() {
+            switch (stage) {
+                case 0:
+                case 2:
+                    assert_unreached("'error' event fired, stage = " + stage);
+                    break;
+                case 1:
+                    assert_equals(cues, testTrack.track.cues, ".cues object are the same after 'src' attr mutation");
+                    assert_equals(cues.length, 0, "Number of cues after trying to load non-existing url");
+                    assert_equals(testTrack.readyState, HTMLTrackElement.ERROR, "readyState after trying to load non-existing url");
+                    ++stage;
+                    testTrack.src = "resources/settings.vtt";
+                    break;
+                case 3:
+                    clearTimeout(timer);
+                    assert_equals(testTrack.readyState, HTMLTrackElement.ERROR, "readyState after setting an empty URL");
+                    assert_equals(cues, testTrack.track.cues, ".cues object are the same after 'src' attr mutation");
+                    assert_equals(cues.length, 0, "Number of cues with an empty URL set");
+                    ++stage;
+                    testTrack.src = "resources/settings.vtt";
+                    // error should happen when we remove `src` during loading, so we have to wait a task because loading starts asynchronously.
+                    t.step_timeout(() => {
+                        testTrack.removeAttribute('src');
+                        // This should raise onError event, so we'll wait for it for some time
+                        timer = t.step_timeout(t.unreached_func("'error' event is not fired when an empty URL is set"), 100);
+                    }, 0);
+                    break;
+                case 4:
+                    clearTimeout(timer);
+                    assert_equals(testTrack.readyState, HTMLTrackElement.ERROR, "readyState after removing 'src' attr");
+                    assert_equals(cues.length, 0, "Number of cues after removing 'src' attr");
+                    t.done();
+                    break;
+                default:
+                    assert_unreached("unexpected stage number = " + stage);
+                    break;
+            }
+        }
+
+        testTrack.onload = t.step_func(step_onLoad);
+        testTrack.onerror = t.step_func(step_onError);
+    });
+    </script>
+</video>

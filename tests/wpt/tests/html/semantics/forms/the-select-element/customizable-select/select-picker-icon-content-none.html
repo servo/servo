@@ -1,0 +1,51 @@
+<!doctype html>
+<html class="reftest-wait">
+  <link rel="author" href="mailto:wpt@keithcirkel.co.uk" />
+  <link rel="help" href="https://drafts.csswg.org/css-forms/#picker-icon" />
+  <link rel="match" href="select-picker-icon-content-none-ref.html" />
+  <meta
+    name="assert"
+    content="::picker-icon with content:none removes the icon, including after dynamic mutation"
+  />
+
+  <style>
+    body {
+      font-family: monospace;
+      font-size: 16px;
+    }
+    select {
+      appearance: base-select;
+    }
+    select.one::picker-icon {
+      content: none;
+    }
+    .no-gap {
+      gap: 0; /* TODO: Chrome is inconsistent with gap and content:none */
+    }
+    select.two::picker-icon {
+      content: "";
+    }
+    select.hide::picker-icon {
+      content: none;
+    }
+  </style>
+
+  <select class="one no-gap">
+    <option>One</option>
+  </select>
+
+  <select class="two">
+    <option>One</option>
+  </select>
+
+  <select class="three no-gap">
+    <option>One</option>
+  </select>
+
+  <script>
+    requestAnimationFrame(() => {
+      document.querySelector(".three").classList.add("hide");
+      document.documentElement.classList.remove("reftest-wait");
+    });
+  </script>
+</html>

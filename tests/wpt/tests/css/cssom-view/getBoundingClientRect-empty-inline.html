@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-getboundingclientrect">
+<link rel="author" title="Koji Ishii" href="mailto:kojii@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+div {
+  font: 10px/1 Ahem;
+}
+.inline-block {
+  display: inline-block;
+  height: 100px;
+}
+</style>
+<body>
+  <div>
+    <span id="empty"></span>
+    <span class="inline-block"></span>
+  </div>
+<script>
+document.fonts.ready.then(() => {
+run(document.getElementById('empty'));
+function run(element) {
+  test(() => {
+    let rect = element.getBoundingClientRect();
+    let cb = element.parentElement;
+    let cb_rect = cb.getBoundingClientRect();
+    assert_equals(rect.y - cb_rect.y, 92, "y");
+    assert_equals(rect.height, 10, "height");
+  });
+}
+});
+</script>
+</body>

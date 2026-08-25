@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+</head>
+<script type="text/javascript">
+  const targetWindow = window.top.a;
+  const element = targetWindow.document.getElementById('target');
+  const keyframes = { opacity: [1, 0.2] };
+  const options = {
+    duration: 1000,
+    // Use this document's timeline rather then the timeline of the
+    // element's document.
+    timeline: document.timeline,
+    fill: 'forwards'
+  };
+  element.animate(keyframes, options);
+  targetWindow.runTest();
+</script>
+</html>

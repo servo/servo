@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <title>HTML Test: draggable_attribute</title>
+    <link rel='author' title='Intel' href='http://www.intel.com'>
+    <link rel='help' href='https://html.spec.whatwg.org/multipage/#the-draggable-attribute'>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+    <script src='/html/semantics/interfaces.js'></script>
+  </head>
+
+  <body>
+    <div id='log'> </div>
+
+    <script>
+      elements.forEach(function(a) {
+        test(function() {
+          var eElement = document.createElement(a[0]);
+          assert_inherits(eElement, 'draggable', 'Element ' + a[0] +' should have draggable property');
+        }, 'Element ' + a[0] +' should have draggable property');
+      });
+
+      function run_test(element, element_name, exp) {
+        if (exp) {
+          assert_true(element.draggable, 'Element ' + element_name +' should be draggable');
+        } else {
+          assert_false(element.draggable, 'Element ' + element_name +' should not be draggable');
+        }
+      }
+
+      function run_idl_test(element, element_name, exp) {
+        if (exp) {
+          assert_equals(element.getAttribute('draggable'), 'true', 'Element ' + element_name +' should be draggable');
+        } else {
+          assert_equals(element.getAttribute('draggable'), 'false', 'Element ' + element_name +' should not be draggable');
+        }
+      }
+
+      elements.forEach(function(a) {
+
+        test(function() {
+          //Default values for elements
+          //If the element is an img element, or, if the element is an a element with an href content attribute,
+          //the draggable IDL attribute must return true.
+          var eElement = document.createElement(a[0]);
+          switch (a[0]) {
+            case 'a':
+              eElement.setAttribute('href', 'http://w3.org');
+              run_test(eElement, 'a', true);
+              break;
+            case 'img':
+              run_test(eElement, 'img', true);
+              break;
+            default:
+              run_test(eElement, a[0], false);
+          }
+
+          //If an element's draggable content attribute has the state true,
+          //the draggable IDL attribute must return true.
+          eElement.setAttribute('draggable', 'true');
+          run_test(eElement, a[0] + ' draggable=\'true\'', true);
+
+          //If an element's draggable content attribute has the state false,
+          //the draggable IDL attribute must return false.
+          eElement.setAttribute('draggable', 'false');
+          run_test(eElement, a[0] + ' draggable=\'false\'', false);
+
+          //auto values for elements
+          //The element's draggable content attribute has the state auto.
+          //If the element is an img element, or, if the element is an a element with an href content attribute,
+          //the draggable IDL attribute must return true.
+          switch (a[0]) {
+            case 'a':
+              eElement.setAttribute('href', 'http://w3.org');
+              eElement.setAttribute('draggable', 'auto');
+              run_test(eElement, 'Element ' + 'a' + ' draggable=\'auto\'', true);
+              break;
+            case 'img':
+              eElement.setAttribute('draggable', 'auto');
+              run_test(eElement, 'Element ' + 'img' + ' draggable=\'auto\'', true);
+              break;
+            default:
+              run_test(eElement, 'Element ' + a[0] + ' draggable=\'auto\'', false);
+          }
+
+          //Foo values for elements
+          //The element's draggable content attribute value is not enumerated (true, false, auto) but unexpected.
+          //Fallback to defaults
+          switch (a[0]) {
+            case 'a':
+              eElement.setAttribute('href', 'http://w3.org');
+              eElement.setAttribute('draggable', 'foo');
+              run_test(eElement, 'Element ' + 'a' + ' draggable=\'foo\'', true);
+              break;
+            case 'img':
+              eElement.setAttribute('draggable', 'foo');
+              run_test(eElement, 'Element ' + 'img' + ' draggable=\'foo\'', true);
+              break;
+            default:
+              run_test(eElement, 'Element ' + a[0] + ' draggable=\'foo\'', false);
+          }
+
+          //An element with a draggable attribute should also have a title attribute
+          //that names the element for the purpose of non-visual interactions.
+          eElement.setAttribute('title', 'foo as title value');
+          assert_equals(typeof eElement.title, 'string', '<' + a[0] + '> draggable block has title attribute');
+
+          //If the draggable IDL attribute is set to the value false,
+          //the draggable content attribute must be set to the literal value false.
+          eElement.draggable = false;
+          run_idl_test(eElement, a[0] + '.getAttribute(\'draggable\') is \'false\'', false);
+
+          //If the draggable IDL attribute is set to the value true,
+          //the draggable content attribute must be set to the literal value true.
+          eElement.draggable = true;
+          run_idl_test(eElement, a[0] + '.getAttribute(\'draggable\') is \'true\'', true);
+          }, 'Element ' + a[0] +' draggable attribute test');
+
+        });
+    </script>
+  </body>
+</html>

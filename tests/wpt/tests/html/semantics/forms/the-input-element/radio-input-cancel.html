@@ -1,0 +1,79 @@
+<!DOCTYPE HTML>
+<title>Radio input cancel behavior reverts state</title>
+<link rel="author" title="jeffcarp" href="mailto:gcarpenterv@gmail.com">
+<link rel="help" href="https://html.spec.whatwg.org/#radio-button-state-(type=radio)">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+"use strict";
+
+test(() => {
+  const input = document.createElement("input");
+  input.type = "radio";
+  document.body.appendChild(input);
+  const events = [];
+
+  input.addEventListener("change", () => {
+    events.push("change");
+  });
+  input.addEventListener("click", e => {
+    // cancel click event
+    e.preventDefault();
+    events.push("click");
+  });
+  input.addEventListener("input", () => {
+    events.push("input");
+  });
+
+  assert_false(input.checked);
+
+  input.click();
+
+  assert_false(input.checked);
+
+  // only click event called
+  assert_array_equals(events, ["click"]);
+
+}, "radio input cancel behavior reverts state");
+
+test(() => {
+  const form = document.createElement("form");
+  form.innerHTML = `
+    <input id="radio1" type="radio" name="radiogroup" checked>
+    <input id="radio2" type="radio" name="radiogroup">
+  `;
+  document.body.appendChild(form);
+
+  const inputs = form.querySelectorAll("input[type=radio]");
+  const events = [];
+
+  inputs.forEach(input => {
+    input.addEventListener("change", () => {
+      events.push(`${input.id} change`);
+    });
+    input.addEventListener("click", e => {
+      // cancel click event
+      e.preventDefault();
+      events.push(`${input.id} click`);
+    });
+    input.addEventListener("input", () => {
+      events.push(`${input.id} input`);
+    });
+  });
+
+  assert_true(inputs[0].checked);
+  assert_false(inputs[1].checked);
+
+  inputs[1].click();
+
+  assert_true(inputs[0].checked);
+  assert_false(inputs[1].checked);
+
+  // only click event called
+  assert_array_equals(events, ["radio2 click"]);
+
+}, "radio input cancel behavior reverts previous selected radio input state");
+</script>

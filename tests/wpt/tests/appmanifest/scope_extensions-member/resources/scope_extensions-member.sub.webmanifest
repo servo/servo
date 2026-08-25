@@ -1,0 +1,23 @@
+{
+  "name": "Scope Extensions WPT",
+  "id": "https://{{host}}:{{ports[https][0]}}/appmanifest/scope_extensions-member/scope_extensions-member-manual.sub.tentative.html",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "144x144"
+    }
+  ],
+  "start_url": "../scope_extensions-member-manual.sub.tentative.html",
+  "display": "standalone",
+  "scope": "../../scope_extensions-member/",
+  "scope_extensions": [
+    {
+      "type": "origin",
+      "origin": "https://127.0.0.1:{{ports[https][0]}}"
+    },
+    {
+      "type": "origin",
+      "origin": "https://127.0.0.1:{{ports[https][1]}}"
+    }
+  ]
+}

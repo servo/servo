@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="helper.js" type="module"></script>
+
+<script type="module">
+  import { expireCookie, waitForCookie, addCookieAndSessionCleanup, configureServer, setupShardedServerState, postJson, documentHasCookie } from "./helper.js";
+
+  async function runMultipleRegistrationsTest(t, useSingleHeader) {
+    await setupShardedServerState();
+    const expectedCookieAndValue1 = "auth_cookie=abcdef0123";
+    const expectedCookieAndAttributes1 = `${expectedCookieAndValue1};Domain=${location.hostname};Path=/device-bound-session-credentials`;
+    const expectedCookieAndValue2 = "other_cookie=ghijkl4567";
+    const expectedCookieAndAttributes2 = `${expectedCookieAndValue2};Domain=${location.hostname};Path=/device-bound-session-credentials`;
+    addCookieAndSessionCleanup(t);
+
+    // Configure server to configure cookies for next two created sessions.
+    await configureServer({
+      cookieDetailsForNextRegisteredSessions: [[{ nameAndValue: expectedCookieAndValue1 }], [{ nameAndValue: expectedCookieAndValue2 }]]
+    });
+
+    // Prompt starting one session, and wait until registration completes.
+    const loginResponse = await postJson('login.py', { numSessions: 2, useSingleHeader });
+    assert_equals(loginResponse.status, 200);
+    await waitForCookie(expectedCookieAndValue1, /*expectCookie=*/true);
+    await waitForCookie(expectedCookieAndValue2, /*expectCookie=*/true);
+
+    async function triggerRefreshAndCheckBothCookies() {
+      const authResponse = await fetch('verify_authenticated.py');
+      assert_equals(authResponse.status, 200);
+      assert_true(documentHasCookie(expectedCookieAndValue1))
+      assert_true(documentHasCookie(expectedCookieAndValue2))
+    }
+    // Trigger a refresh for the first session, and confirm we have both cookies.
+    expireCookie(expectedCookieAndAttributes1);
+    await triggerRefreshAndCheckBothCookies();
+    // Trigger a refresh for the second session, and confirm we have both cookies.
+    expireCookie(expectedCookieAndAttributes2);
+    await triggerRefreshAndCheckBothCookies();
+    // Trigger a refresh for both sessions, and confirm we have both cookies.
+    expireCookie(expectedCookieAndAttributes1);
+    expireCookie(expectedCookieAndAttributes2);
+    await triggerRefreshAndCheckBothCookies();
+  }
+
+  promise_test(async t => {
+    await runMultipleRegistrationsTest(t, /*useSingleHeader=*/true);
+  }, "Multiple registrations can be triggered in one response (single header)");
+
+  promise_test(async t => {
+    await runMultipleRegistrationsTest(t, /*useSingleHeader=*/false);
+  }, "Multiple registrations can be triggered in one response (multiple headers)");
+</script>

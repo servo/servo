@@ -1,0 +1,210 @@
+import pytest
+import uuid
+from tests.support.sync import AsyncPoll
+from webdriver.error import TimeoutException
+
+from webdriver.bidi.modules.script import ContextTarget
+
+from ... import (any_int, any_string, recursive_compare)
+
+pytestmark = pytest.mark.asyncio
+
+CONTENT = "SOME_FILE_CONTENT"
+DOWNLOAD_END = "browsingContext.downloadEnd"
+DOWNLOAD_WILL_BEGIN = "browsingContext.downloadWillBegin"
+NAVIGATION_STARTED = "browsingContext.navigationStarted"
+
+
+@pytest.fixture
+def filename():
+    return str(uuid.uuid4()) + '.txt'
+
+
+@pytest.fixture(params=['data', 'http'])
+def download_link(request, filename, inline):
+    if request.param == 'data':
+        return f"data:text/plain;charset=utf-8,{CONTENT}"
+    return inline(CONTENT,
+                  # Doctype `html_quirks` is required to avoid wrapping content.
+                  doctype="html_quirks")
+
+
+async def test_unsubscribe(bidi_session, inline, new_tab, wait_for_event,
+        wait_for_future_safe, download_link, filename):
+    url = inline(
+        f"""<a id="download_link" href="{download_link}" download="{filename}">download</a>""")
+
+    await bidi_session.browsing_context.navigate(
+        context=new_tab["context"], url=url, wait="complete"
+    )
+
+    await bidi_session.session.subscribe(events=[DOWNLOAD_END])
+    await bidi_session.session.unsubscribe(events=[DOWNLOAD_END])
+
+    # Track all received events in the events array
+    events = []
+
+    async def on_event(method, data):
+        events.append(data)
+
+    remove_listener = bidi_session.add_event_listener(DOWNLOAD_END,
+                                                      on_event)
+
+    await bidi_session.script.evaluate(
+        expression=
+        "download_link.click()",
+        target=ContextTarget(new_tab["context"]),
+        await_promise=True,
+        user_activation=True)
+
+    wait = AsyncPoll(bidi_session, timeout=0.5)
+    with pytest.raises(TimeoutException):
+        await wait.until(lambda _: len(events) > 0)
+
+    remove_listener()
+
+
+async def test_download_attribute(bidi_session, subscribe_events, new_tab, inline,
+        wait_for_event, wait_for_future_safe, download_link, filename):
+    url = inline(
+        f"""<a id="download_link" href="{download_link}" download="{filename}">download</a>""")
+
+    await bidi_session.browsing_context.navigate(
+        context=new_tab["context"], url=url, wait="complete"
+    )
+
+    await subscribe_events(events=[DOWNLOAD_END])
+    on_entry = wait_for_event(DOWNLOAD_END)
+
+    await bidi_session.script.evaluate(
+        expression=
+        "download_link.click()",
+        target=ContextTarget(new_tab["context"]),
+        await_promise=True,
+        user_activation=True)
+
+    event = await wait_for_future_safe(on_entry)
+    recursive_compare(
+        {
+            'filepath': any_string,
+            'context': new_tab["context"],
+            'download': any_string,
+            'navigation': None,
+            'status': 'complete',
+            'timestamp': any_int,
+            'url': download_link,
+            **({"userContext": new_tab["userContext"]} if "userContext" in event else {}),
+        }, event)
+
+    # Assert file content is available.
+    with open(event['filepath'], mode='r', encoding='utf-8') as file:
+        file_content = file.read()
+    assert file_content == CONTENT
+
+
+@pytest.mark.parametrize(
+    "target", ["_self", "_blank"], ids=["in the same page", "in the other page"]
+)
+async def test_content_disposition_header(
+    bidi_session,
+    subscribe_events,
+    new_tab,
+    url,
+    inline,
+    wait_for_event,
+    wait_for_future_safe,
+    filename,
+    target,
+):
+    content_disposition_link = url(
+        "/webdriver/tests/support/http_handlers/headers.py?"
+        + f"content={CONTENT}"
+        + f"&header=Content-Disposition:attachment;%20filename={filename}"
+    )
+    page_url = inline(
+        f"""<a id="content_disposition_link" target={target} href="{content_disposition_link}">contentdisposition</a>"""
+    )
+
+    await bidi_session.browsing_context.navigate(
+        context=new_tab["context"], url=page_url, wait="complete"
+    )
+
+    # In some cases Firefox sends an extra navigation event in the temporary browsing context,
+    # to filter them out subscribe only in the observed context.
+    await subscribe_events(
+        events=[DOWNLOAD_END, NAVIGATION_STARTED], contexts=[new_tab["context"]]
+    )
+    on_navigation_started = wait_for_event(NAVIGATION_STARTED)
+    on_download_end = wait_for_event(DOWNLOAD_END)
+
+    await bidi_session.script.evaluate(
+        expression="content_disposition_link.click()",
+        target=ContextTarget(new_tab["context"]),
+        await_promise=True,
+        user_activation=True,
+    )
+
+    download_event = await wait_for_future_safe(on_download_end)
+    recursive_compare(
+        {
+            "filepath": any_string,
+            "context": new_tab["context"],
+            "download": any_string,
+            "navigation": any_string,
+            "status": "complete",
+            "timestamp": any_int,
+            "url": content_disposition_link,
+            **({"userContext": new_tab["userContext"]} if "userContext" in download_event else {}),
+        },
+        download_event,
+    )
+
+    navigation_event = await wait_for_future_safe(on_navigation_started)
+
+    # Check that the navigation id and url are identical for navigationStarted
+    # and downloadWillBegin.
+    assert download_event["navigation"] == navigation_event["navigation"]
+    assert download_event["url"] == navigation_event["url"]
+
+    # Assert file content is available.
+    with open(download_event["filepath"], mode="r", encoding="utf-8") as file:
+        file_content = file.read()
+    assert file_content == CONTENT
+
+
+async def test_download_id(
+        bidi_session,
+        subscribe_events,
+        new_tab,
+        inline,
+        wait_for_event,
+        wait_for_future_safe,
+        download_link,
+        filename
+):
+    url = inline(
+        f"""<a id="download_link" href="{download_link}" download="{filename}">download</a>""")
+
+    await bidi_session.browsing_context.navigate(
+        context=new_tab["context"], url=url, wait="complete"
+    )
+
+    await subscribe_events(events=[DOWNLOAD_WILL_BEGIN, DOWNLOAD_END])
+    on_download_will_begin = wait_for_event(DOWNLOAD_WILL_BEGIN)
+    on_download_end = wait_for_event(DOWNLOAD_END)
+
+    await bidi_session.script.evaluate(
+        expression="download_link.click()",
+        target=ContextTarget(new_tab["context"]),
+        await_promise=True,
+        user_activation=True
+    )
+
+    download_will_begin_event = await wait_for_future_safe(on_download_will_begin)
+    download_end_event = await wait_for_future_safe(on_download_end)
+
+    # The download id should be a non-empty string, identical for the
+    # downloadWillBegin and downloadEnd events of the same download.
+    assert isinstance(download_will_begin_event["download"], str)
+    assert download_will_begin_event["download"] != ""
+    assert download_will_begin_event["download"] == download_end_event["download"]

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<title>Sequential focus navigation starting from a non-sequentially focusable element</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+
+<input class="text" tabindex=1 id="input1">
+<input class="text" tabindex=100 id="input2">
+<input class="text" tabindex=1 id="input3">
+<input class="text" tabindex=100 id="input4">
+<input class="text" tabindex=1 id="input5">
+
+<script>
+promise_test(async test => {
+    let tabKey = "\uE004";
+    let shiftKey = "\uE008";
+
+    input3.focus();
+    assert_equals(document.activeElement, input3);
+
+    // input3 has a tab index set so sequential focus should respect the sequential focus order.
+    await new test_driver.Actions()
+        .keyDown(tabKey)
+        .keyUp(tabKey)
+        .send();
+    assert_equals(document.activeElement, input5);
+
+    input3.focus();
+    assert_equals(document.activeElement, input3);
+
+    // After making input3 non-sequentially focusable, sequential focus navigation should follow
+    // DOM order.
+    input3.tabIndex = "-1";
+    await new test_driver.Actions()
+        .keyDown(tabKey)
+        .keyUp(tabKey)
+        .send();
+    assert_equals(document.activeElement, input4);
+});
+</script>

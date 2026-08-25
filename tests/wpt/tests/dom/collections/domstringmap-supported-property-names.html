@@ -1,0 +1,54 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>DOMStringMap Test: Supported property names</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+
+<div id="edge1" data-="012">Simple</div>
+
+<div id="edge2" data-id-="012">Simple</div>
+
+<div id="user" data-id="1234567890" data-user="johndoe" data-date-of-birth>
+    John Doe
+</div>
+
+<div id="user2" data-unique-id="1234567890"> Jane Doe </div>
+
+<div id="user3" data-unique-id="4324324241"> Jim Doe </div>
+
+<script>
+
+test(function() {
+    var element = document.querySelector('#edge1');
+    assert_array_equals(Object.getOwnPropertyNames(element.dataset),
+        [""]);
+}, "Object.getOwnPropertyNames on DOMStringMap, empty data attribute");
+
+test(function() {
+    var element = document.querySelector('#edge2');
+    assert_array_equals(Object.getOwnPropertyNames(element.dataset),
+        ["id-"]);
+}, "Object.getOwnPropertyNames on DOMStringMap, data attribute trailing hyphen");
+
+test(function() {
+    var element = document.querySelector('#user');
+    assert_array_equals(Object.getOwnPropertyNames(element.dataset),
+        ['id', 'user', 'dateOfBirth']);
+}, "Object.getOwnPropertyNames on DOMStringMap, multiple data attributes");
+
+test(function() {
+    var element = document.querySelector('#user2');
+    element.dataset.middleName = "mark";
+    assert_array_equals(Object.getOwnPropertyNames(element.dataset),
+        ['uniqueId', 'middleName']);
+}, "Object.getOwnPropertyNames on DOMStringMap, attribute set on dataset in JS");
+
+test(function() {
+    var element = document.querySelector('#user3');
+    element.setAttribute("data-age", 30);
+    assert_array_equals(Object.getOwnPropertyNames(element.dataset),
+        ['uniqueId', 'age']);
+}, "Object.getOwnPropertyNames on DOMStringMap, attribute set on element in JS");
+
+</script>

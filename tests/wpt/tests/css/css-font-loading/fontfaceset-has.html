@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head id="head">
+<meta charset="utf-8">
+<link rel="author" title="Myles C. Maxfield" href="mmaxfield@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-font-loading-3/#dom-fontfaceset-has">
+<meta name="assert" content="Ensure that calling FontFaceSet.has() works properly." />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style id="style">
+@font-face {
+    font-family: "WebFont";
+    src: url("resources/Rochester.otf") format("opentype");
+}
+</style>
+</head>
+<body>
+<script>
+test(function(t) {
+    let fonts = document.fonts;
+    let font = [...fonts.keys()][0];
+    let font2 = new FontFace("WebFont2", "url('resources/GenR102.woff2') format('woff2')");
+    assert_true(fonts.has(font));
+    assert_false(fonts.has(font2));
+    fonts.add(font2);
+    assert_true(fonts.has(font));
+    assert_true(fonts.has(font2));
+    document.getElementById("head").removeChild(document.getElementById("style"));
+    assert_false(fonts.has(font));
+    assert_true(fonts.has(font2));
+    fonts.delete(font2);
+    assert_false(fonts.has(font));
+    assert_false(fonts.has(font2));
+});
+</script>
+</body>
+</html>

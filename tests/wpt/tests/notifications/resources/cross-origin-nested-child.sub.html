@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Notification nested iframe first party child</title>
+<body>
+<script type="module">
+import { permissionTest } from "./permission-helper.js"
+
+permissionTest('https://{{hosts[][]}}:{{ports[https][0]}}', "child");
+</script>

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+
+  <style>
+  div
+    {
+      bottom: 8px;
+      left: auto;
+      position: absolute;
+    }
+
+  img
+    {
+      vertical-align: bottom;
+    }
+
+  img + img
+    {
+      padding-left: 1em;
+    }
+  </style>
+
+  <div><img src="support/swatch-teal.png" width="100" height="100" alt="Image download support must be enabled"><img src="support/wm-propagation-body-035-exp-res.png" width="322" height="38" alt="Image download support must be enabled"></div>
+
+  <!--
+  The image says:
+  Test passes if there is a teal square in
+  the <strong>lower-left corner</strong> of the page.
+  -->

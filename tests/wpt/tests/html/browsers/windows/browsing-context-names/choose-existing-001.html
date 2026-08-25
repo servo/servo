@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: Choose browsing context - the given name is same as an existing browsing context's name</title>
+<link rel="author" title="Intel" href="http://www.intel.com/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<iframe src="resources/choose-existing-001-iframe.html" style="display:none"></iframe>
+<iframe name="iExist" style="display:none"></iframe>
+<script>
+async_test(t => {
+  window.addEventListener('message', t.step_func_done(e => {
+    assert_equals(e.data.name, 'iExist');
+  }), false);
+
+}, 'An existing browsing context must be chosen if the given name is the same as its name');
+</script>

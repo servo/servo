@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <title>WebGPU canvas_composite_alpha_rgba8unorm_premultiplied</title>
+  <meta charset="utf-8" />
+  <link rel="help" href="https://gpuweb.github.io/gpuweb/" />
+  <meta
+    name="assert"
+    content="WebGPU canvas should have correct orientation, components, scaling, filtering, color space"
+  />
+  <link rel="match" href="./ref/canvas_composite_alpha_premultiplied-ref.html" />
+  <meta name=fuzzy content="maxDifference=0-2;totalPixels=0-9999999">
+  <style>
+    body { background-color: #F0E68C; }
+    #c-canvas { background-color: #8CF0E6; }
+  </style>
+  <canvas id="c-body" width="20" height="20" style="width: 20px; height: 20px;"></canvas>
+  <canvas id="c-canvas" width="20" height="20" style="width: 20px; height: 20px;"></canvas>
+  <script type="module">
+    import { run } from './canvas_composite_alpha.html.js';
+    run('rgba8unorm', 'premultiplied', 'draw');
+  </script>
+</html>

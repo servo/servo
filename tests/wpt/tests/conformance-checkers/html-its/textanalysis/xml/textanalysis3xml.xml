@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<text>
+  <its:rules xmlns:its="http://www.w3.org/2005/11/its" version="2.0">
+    <its:param name="taCityParam">dublin</its:param>
+    <its:param name="taCapitalParam">capital</its:param>
+    <its:textAnalysisRule selector="/text/body/p/*[@id='dublin']"
+      taClassRefPointer="@classref"
+      taIdentRefPointer="@identref"/>
+    <its:textAnalysisRule selector="/text/body/p/*[@id='capital']"
+      taClassRefPointer="@classref"
+      taSourcePointer="@source"
+      taIdentPointer="@ident"/>
+  </its:rules>
+  <body>
+    <p><span classref="http://nerd.eurecom.fr/ontology#Location" id="dublin" identref="http://dbpedia.org/resource/Dublin">Dublin</span> is the <span id="capital" classref="http://nerd.eurecom.fr/ontology#City" source="Wordnet3.0" ident="301467919">capital</span> of Ireland.</p>
+  </body>
+</text>

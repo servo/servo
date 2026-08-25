@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>WebMCP: executeTool dictionary member validation checks</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+promise_test(async t => {
+  // Register a legitimate tool first to retrieve a valid template.
+  await document.modelContext.registerTool({
+    name: "legit_tool",
+    description: "Legitimate tool description",
+    execute: async (args) => "success"
+  });
+
+  const tools = await document.modelContext.getTools();
+  const legit = tools.find(t => t.name === "legit_tool");
+  assert_true(!!legit, "Legitimate tool must be successfully discovered");
+
+  // Construct a dictionary containing all required members except the required 'origin' member.
+  const invalidTool = {
+    name: legit.name,
+    description: legit.description,
+    window: legit.window
+    // 'origin' is intentionally omitted!
+  };
+
+  // Invoking executeTool() must return a Promise rejected with TypeError.
+  await promise_rejects_js(
+    t,
+    TypeError,
+    document.modelContext.executeTool(invalidTool, '{}'),
+    "executeTool() must reject with TypeError if 'origin' member is omitted"
+  );
+}, "executeTool() rejects with TypeError when the required 'origin' dictionary member is omitted");
+
+promise_test(async t => {
+  await document.modelContext.registerTool({
+    name: "json-test-tool",
+    description: "Tool for JSON tests",
+    execute: async (args) => "success"
+  });
+
+  const tools = await document.modelContext.getTools();
+  const tool = tools.find(t => t.name === "json-test-tool");
+  assert_true(!!tool, "Legitimate tool must be successfully discovered");
+
+  await promise_rejects_dom(
+    t,
+    "UnknownError",
+    document.modelContext.executeTool(tool, "invalid-json"),
+    "executeTool() must reject with UnknownError for invalid JSON input"
+  );
+}, "executeTool() rejects with UnknownError for invalid JSON arguments");
+
+promise_test(async t => {
+  const dummyTool = {
+    name: "non-existent-tool",
+    description: "dummy description",
+    window: window,
+    origin: self.origin
+  };
+
+  await promise_rejects_dom(
+    t,
+    "UnknownError",
+    document.modelContext.executeTool(dummyTool, "{}"),
+    "executeTool() must reject with UnknownError for non-existent tool object"
+  );
+}, "executeTool() rejects with UnknownError when a non-existent tool object is supplied");
+</script>
+</body>
+</html>

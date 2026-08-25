@@ -1,0 +1,21 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSSOM - CSSCounterStyleRule interface</title>
+<link rel="help" href="https://drafts.csswg.org/css-counter-styles-3/#csscounterstylerule">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  @counter-style foo {
+    system: cyclic;
+    symbols: ‣;
+    suffix: " ";
+  }
+</style>
+<script>
+test(function() {
+  // TODO: The exact serialization isn't well specified (the ordering of the
+  // descriptors isn't defined).
+  let rule = document.styleSheets[0].cssRules[0];
+  assert_false(rule.cssText.includes('\n'));
+}, "CSSCounterStyleRule.cssText doesn't serialize with newlines");
+</script>

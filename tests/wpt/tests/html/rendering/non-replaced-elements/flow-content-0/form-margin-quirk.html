@@ -1,0 +1,20 @@
+<!-- quirks -->
+<title>form margin quirk</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<style>
+form { writing-mode: vertical-lr; }
+#ref { margin: 0 1em 0 0; }
+</style>
+<form id=form></form>
+<div id=ref></div>
+<script>
+test(() => {
+  const formStyle = getComputedStyle(document.getElementById('form'));
+  const refStyle = getComputedStyle(document.getElementById('ref'));
+  assert_equals(formStyle.marginTop, refStyle.marginTop, 'marginTop');
+  assert_equals(formStyle.marginRight, refStyle.marginRight, 'marginRight');
+  assert_equals(formStyle.marginBottom, refStyle.marginBottom, 'marginBottom');
+  assert_equals(formStyle.marginLeft, refStyle.marginLeft, 'marginLeft');
+});
+</script>

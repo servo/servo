@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<title>CSS Cascade: all:unset in :visited</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade/#all-shorthand">
+<link rel="match" href="all-prop-unset-visited-ref.html">
+<style>
+  :root { color: green; }
+  a:visited { color: red; }
+  a:visited { all: unset; }
+</style>
+<a href="">Test passes if this text is green.</a>

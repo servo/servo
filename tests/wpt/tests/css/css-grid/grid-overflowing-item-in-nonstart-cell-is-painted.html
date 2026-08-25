@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-grid/">
+<link rel="help" href="https://drafts.csswg.org/css-overflow/#scrollable">
+<link rel="match" href="grid-overflowing-item-in-nonstart-cell-is-painted-ref.html">
+<meta name="assert" content="A grid item placed in a non-start row and column of a zero-width, zero-height grid overflows both the right and bottom edges and must still be painted.">
+<style>
+  body {
+    margin: 0;
+  }
+  .grid {
+    width: 0;
+    height: 0;
+    display: grid;
+    grid-template-columns: 40px 40px;
+    grid-template-rows: 40px 40px;
+  }
+  .item {
+    grid-column: 2 / 3;
+    grid-row: 2 / 3;
+    width: 100px;
+    height: 100px;
+    background-color: green;
+  }
+</style>
+<div class="grid">
+  <div class="item"></div>
+</div>

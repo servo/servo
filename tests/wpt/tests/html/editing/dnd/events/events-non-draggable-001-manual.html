@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<meta charset='utf-8'>
+<title>drag &amp; drop – events should not fire with non-draggable elements – 001</title>
+<style type="text/css">
+  div {
+    height: 200px;
+    width: 200px;
+    background-color: orange;
+    position: absolute;
+    top: 8px;
+    left: 8px;
+  }
+  div + p {
+    margin-top: 220px;
+  }
+</style>
+
+<script>
+window.onload = function() {
+
+  var elem = document.getElementsByTagName('div')[0];
+  var pass = true;
+
+  function fail() {
+    pass = false;
+  }
+
+  elem.addEventListener('drag',fail,false);
+  elem.addEventListener('dragend',fail,false);
+  elem.addEventListener('dragenter',fail,false);
+  elem.addEventListener('dragleave',fail,false);
+  elem.addEventListener('dragover',fail,false);
+  elem.addEventListener('dragstart',fail,false);
+  elem.addEventListener('drop',fail,false);
+
+  elem.ondrag = fail;
+  elem.ondragend = fail;
+  elem.ondragenter = fail;
+  elem.ondragleave = fail;
+  elem.ondragover = fail;
+  elem.ondragstart = fail;
+  elem.ondrop = fail;
+
+  elem.onmouseup = function () {
+    setTimeout(function () {
+      if (pass == true) {
+        document.body.innerHTML = 'PASS';
+      } else {
+        document.body.innerHTML = 'FAIL';
+      }
+    }, 100 );
+  };
+
+}
+</script>
+
+<div></div>
+
+<p>Click once on the orange box above, without moving the mouse while
+clicking. The word &quot;PASS&quot; should appear.</p>

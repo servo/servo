@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.css-houdini.org/css-paint-api/">
+<link rel="match" href="paint2d-conicGradient-ref.html">
+<style>
+    #output {
+        width: 100px;
+        height: 100px;
+        background-image: paint(rects);
+    }
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+<body>
+<div id="output"></div>
+
+<script id="code" type="text/worklet">
+registerPaint('rects', class {
+    paint(ctx, geom) {
+        const g = ctx.createConicGradient(3*Math.PI/2, 30, 30);
+        g.addColorStop(0, "#f0f");
+        g.addColorStop(0.25, "#0ff");
+        g.addColorStop(0.50, "#ff0");
+        g.addColorStop(0.75, "#f0f");
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, 100, 100);
+    }
+});
+</script>
+
+<script>
+    importWorkletAndTerminateTestAfterAsyncPaint(CSS.paintWorklet, document.getElementById('code').textContent);
+</script>
+</body>
+</html>

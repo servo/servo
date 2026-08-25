@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<meta charset="utf-8">
+<link rel="author" title="Brandon Stewart" href="mailto:brandonstewart@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1">
+<link rel="match" href="grid-relayout-with-nested-grid-ref.html">
+<meta name="assert" content="Ensure text does not overflow upon re-layout of grid">
+</head>
+<style>
+.grid {
+  display: grid;
+  grid-template-columns: minmax(min-content, 100px) auto;
+}
+.nested_grid {
+  border: 5px solid;
+  display: grid;
+  justify-items: baseline;
+  overflow-wrap: break-word;
+}
+</style>
+<body>
+<div class=grid>
+  <div id="extra_div1">
+    <div>
+      <div class=nested_grid><p>This content will overflow.</p></div>
+    </div>
+  </div>
+</div>
+</body>
+<script>
+/* Force a re-layout */
+document.body.offsetHeight;
+document.getElementById("extra_div1").appendChild(document.createElement("p"));
+document.documentElement.classList.remove("reftest-wait");
+forceLayout();
+</script>
+</html>
+

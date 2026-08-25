@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<title>
+  navigateEvent.deferPageSwap: deferring is not allowed for same-document navigations
+</title>
+
+<script>
+  switch (new URLSearchParams(location.search).get("phase") || "test") {
+    case "test":
+      promise_test(async (t) => {
+        await new Promise((resolve) => {
+          window.onload = resolve;
+        });
+        window.step_timeout = t.step_timeout;
+        const done = Promise.withResolvers();
+        window.did_load = done.resolve;
+        const popup = window.open("?phase=initial");
+        const events = await done.promise;
+        assert_array_equals(events, ["navigate"]);
+      });
+      break;
+    case "initial":
+      window.onload = () => {
+        const events = [];
+        navigation.addEventListener("navigate", (navigate_event) => {
+          events.push("navigate");
+          assert_throws_dom("InvalidStateError", () =>
+            navigate_event.deferPageSwap({
+              handler: () =>
+                new Promise((resolve) => {
+                  events.push("handler");
+                  window.opener.step_timeout(() => {
+                    events.push("preview");
+                    resolve();
+                  });
+                }),
+            })
+          );
+          window.opener.did_load(events);
+        });
+        history.pushState(null, "", "?phase=next");
+      }
+      break;
+    case "done":
+      break;
+  }
+</script>

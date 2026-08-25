@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
+  <text font-size="32" y="50">
+  foo<tspan>bar</tspan>baz
+  </text>
+</svg>

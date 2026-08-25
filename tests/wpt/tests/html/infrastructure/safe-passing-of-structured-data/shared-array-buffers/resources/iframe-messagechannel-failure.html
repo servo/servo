@@ -1,0 +1,7 @@
+<!DOCTYPE html>
+<script>
+  const channel = new MessageChannel();
+  window.parent.postMessage(channel.port2, '*', [channel.port2]);
+  channel.port1.onmessage = e => { alert(e.data); channel.port1.postMessage("message event received") };
+  channel.port1.onmessageerror = () => channel.port1.postMessage("messageerror event received");
+</script>

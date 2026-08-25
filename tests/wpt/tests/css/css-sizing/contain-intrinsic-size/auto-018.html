@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>contain-intrinsic-height: auto length in vertical writing mode</title>
+<link rel="author" title="Rob Buis" href="mailto:rbuis@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override">
+<meta name="assert" content="Tests that 'contain-intrinsic-height: auto length' respects the auto keyword in vertical writing mode">
+
+<style>
+#target {
+  width: max-content;
+  height: max-content;
+}
+.cis-auto {
+  contain-intrinsic-height: auto 2px;
+}
+.skip-contents {
+  content-visibility: hidden;
+}
+.size-100-50 {
+  inline-size: 100px;
+  block-size: 50px;
+}
+.size-75-25 {
+  inline-size: 75px;
+  block-size: 25px;
+}
+.vertical {
+  writing-mode: vertical-lr;
+}
+</style>
+
+<div id="log"></div>
+
+<div id="parent">
+  <div id="target">
+    <div id="contents"></div>
+  </div>
+</div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const parent = document.getElementById("parent");
+const target = document.getElementById("target");
+const contents = document.getElementById("contents");
+
+function checkSize(expectedWidth, expectedHeight, msg) {
+  assert_equals(target.clientWidth, expectedWidth, msg + " - clientWidth");
+  assert_equals(target.clientHeight, expectedHeight, msg + " - clientHeight");
+}
+
+function nextRendering() {
+  return new Promise(resolve => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+  });
+}
+
+function cleanup() {
+  parent.className = "";
+  target.className = "";
+  contents.className = "";
+  checkSize(0, 0, "Sizing after cleanup");
+}
+
+promise_test(async function() {
+  this.add_cleanup(cleanup);
+  parent.classList.add("vertical");
+  target.className = "cis-auto skip-contents";
+  contents.classList.add("size-100-50");
+  checkSize(0, 2, "Size containment with no last remembered heigth");
+
+  target.classList.remove("skip-contents");
+  checkSize(50, 100, "Sizing normally");
+
+  await nextRendering();
+  target.classList.add("skip-contents");
+  checkSize(0, 100, "Using last remembered heigth");
+
+  contents.classList.remove("size-100-50");
+  contents.classList.add("size-75-25");
+  checkSize(0, 100, "Still using last remembered heigth");
+
+  target.classList.remove("skip-contents");
+  checkSize(25, 75, "Sizing normally with different size");
+
+  target.classList.add("skip-contents");
+  checkSize(0, 100, "Going back to last remembered heigth");
+
+  target.classList.remove("skip-contents");
+  await nextRendering();
+  target.classList.add("skip-contents");
+  checkSize(0, 75, "Using the new last remembered heigth");
+}, "Basic usage");
+</script>

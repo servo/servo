@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Table rules attribute: computed borders on the table, row groups, rows, cells and column groups</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#tables-2">
+<link rel="author" title="Karl Dubost" href="mailto:karlcow@apple.com">
+<link rel="author" title="Apple" href="https://www.apple.com/">
+<meta name="assert" content="The rules attribute puts the rule between rows on the row itself and the rule between columns on the cells, and gives the cells no border where the rule is not theirs.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!--
+  The rendering section gives the rules attribute five presentational hints. The
+  part that is easy to get wrong, and that no test covered before this one, is
+  WHICH ELEMENT owns each rule:
+
+    table[rules=rows i] > tr, table[rules=rows i] > thead > tr,
+    table[rules=rows i] > tbody > tr, table[rules=rows i] > tfoot > tr {
+      border-block-width: 1px;
+      border-block-style: solid;
+    }
+
+  while the cells of rules=none, rules=groups and rules=rows are explicitly
+  given no border:
+
+    ... table[rules=rows i] > tbody > tr > td, ... {
+      border-width: 1px;
+      border-style: none;
+    }
+
+  so under rules=rows the horizontal rule belongs to the ROW and the cells have
+  no border, whereas under rules=cols the vertical rule belongs to the CELLS.
+
+  Two things worth knowing before reading the expectations below:
+
+  * The spec says border-width: 1px even on sides whose style is none. A computed
+    border width is 0px whenever the style is none, so those sides are asserted
+    as 0px. That is not a contradiction with the spec text.
+  * The rules are written with the flow-relative border properties
+    (border-block-*, border-inline-*), so they follow the writing mode. These
+    tests read the same flow-relative properties, and the vertical-rl section at
+    the end pins the mapping explicitly.
+-->
+
+<div id="log"></div>
+<div id="container"></div>
+
+<script>
+const SOLID = { style: "solid", width: "1px" };
+const NONE = { style: "none", width: "0px" };
+
+// Build an expectation for all four flow-relative sides.
+function borders(block, inline) {
+  return {
+    "block-start": block, "block-end": block,
+    "inline-start": inline, "inline-end": inline,
+  };
+}
+const NO_BORDER = borders(NONE, NONE);
+const BLOCK_ONLY = borders(SOLID, NONE);
+const INLINE_ONLY = borders(NONE, SOLID);
+const ALL_SIDES = borders(SOLID, SOLID);
+
+function assertBorders(element, expected, label) {
+  const style = getComputedStyle(element);
+  for (const side of ["block-start", "block-end", "inline-start", "inline-end"]) {
+    assert_equals(style.getPropertyValue(`border-${side}-style`), expected[side].style,
+                  `${label}: border-${side}-style`);
+    assert_equals(style.getPropertyValue(`border-${side}-width`), expected[side].width,
+                  `${label}: border-${side}-width`);
+  }
+}
+
+const container = document.getElementById("container");
+
+// One table per case, with a column group, all three row groups, and both cell
+// element types. Nothing here styles the elements under test, and the cells are
+// deliberately empty: these tests only read computed values, and text in the
+// cells would otherwise be dumped into implementations' text baselines.
+function buildTable(rulesAttribute) {
+  const html = `
+    <table${rulesAttribute}>
+      <colgroup><col><col></colgroup>
+      <thead><tr><th></th><th></th></tr></thead>
+      <tbody><tr><td></td><td></td></tr></tbody>
+      <tfoot><tr><td></td><td></td></tr></tfoot>
+    </table>`;
+  const host = document.createElement("div");
+  host.innerHTML = html;
+  container.append(host);
+  const table = host.querySelector("table");
+  return {
+    table,
+    colgroup: host.querySelector("colgroup"),
+    thead: host.querySelector("thead"),
+    tbody: host.querySelector("tbody"),
+    tfoot: host.querySelector("tfoot"),
+    headerRow: host.querySelector("thead > tr"),
+    bodyRow: host.querySelector("tbody > tr"),
+    footerRow: host.querySelector("tfoot > tr"),
+    th: host.querySelector("th"),
+    td: host.querySelector("tbody td"),
+  };
+}
+
+// The rule between rows lives on the row; the rule between columns lives on the
+// cells; the rule between groups lives on the row groups and column groups.
+const CASES = [
+  {
+    value: "none",
+    cells: NO_BORDER, rows: NO_BORDER, rowGroups: NO_BORDER, columnGroups: NO_BORDER,
+  },
+  {
+    value: "groups",
+    cells: NO_BORDER, rows: NO_BORDER, rowGroups: BLOCK_ONLY, columnGroups: INLINE_ONLY,
+  },
+  {
+    value: "rows",
+    cells: NO_BORDER, rows: BLOCK_ONLY, rowGroups: NO_BORDER, columnGroups: NO_BORDER,
+  },
+  {
+    value: "cols",
+    cells: INLINE_ONLY, rows: NO_BORDER, rowGroups: NO_BORDER, columnGroups: NO_BORDER,
+  },
+  {
+    value: "all",
+    cells: ALL_SIDES, rows: NO_BORDER, rowGroups: NO_BORDER, columnGroups: NO_BORDER,
+  },
+];
+
+for (const testCase of CASES) {
+  const value = testCase.value;
+
+  test(() => {
+    const parts = buildTable(` rules="${value}"`);
+    // table[rules=...] { border-style: hidden; border-collapse: collapse; }
+    assert_equals(getComputedStyle(parts.table).borderCollapse, "collapse",
+                  "border-collapse on the table");
+    for (const side of ["top", "right", "bottom", "left"]) {
+      assert_equals(getComputedStyle(parts.table).getPropertyValue(`border-${side}-style`),
+                    "hidden", `border-${side}-style on the table`);
+    }
+  }, `rules=${value} collapses the table's borders and hides its own border`);
+
+  test(() => {
+    const parts = buildTable(` rules="${value}"`);
+    assertBorders(parts.td, testCase.cells, "td");
+    assertBorders(parts.th, testCase.cells, "th");
+  }, `rules=${value} gives the cells the expected border`);
+
+  test(() => {
+    const parts = buildTable(` rules="${value}"`);
+    assertBorders(parts.bodyRow, testCase.rows, "tbody > tr");
+    assertBorders(parts.headerRow, testCase.rows, "thead > tr");
+    assertBorders(parts.footerRow, testCase.rows, "tfoot > tr");
+  }, `rules=${value} gives the rows the expected border`);
+
+  test(() => {
+    const parts = buildTable(` rules="${value}"`);
+    assertBorders(parts.thead, testCase.rowGroups, "thead");
+    assertBorders(parts.tbody, testCase.rowGroups, "tbody");
+    assertBorders(parts.tfoot, testCase.rowGroups, "tfoot");
+  }, `rules=${value} gives the row groups the expected border`);
+
+  test(() => {
+    const parts = buildTable(` rules="${value}"`);
+    assertBorders(parts.colgroup, testCase.columnGroups, "colgroup");
+  }, `rules=${value} gives the column group the expected border`);
+}
+
+// table[rules=rows i] > tr is its own selector in the spec. The parser always
+// inserts a tbody, so this shape has to be built with DOM calls.
+test(() => {
+  const table = document.createElement("table");
+  table.setAttribute("rules", "rows");
+  const row = document.createElement("tr");
+  const cell = document.createElement("td");
+  row.append(cell);
+  table.append(row);
+  container.append(table);
+
+  assertBorders(row, BLOCK_ONLY, "table > tr");
+  assertBorders(cell, NO_BORDER, "table > tr > td");
+}, "rules=rows applies to a row that is a direct child of the table");
+
+// The attribute value is matched ASCII case-insensitively.
+test(() => {
+  const parts = buildTable(` rules="ROWS"`);
+  assert_equals(getComputedStyle(parts.table).borderCollapse, "collapse");
+  assertBorders(parts.bodyRow, BLOCK_ONLY, "tbody > tr");
+  assertBorders(parts.td, NO_BORDER, "td");
+}, "rules=ROWS is matched ASCII case-insensitively");
+
+// Case-insensitive matching is ASCII-only, so U+017F LATIN SMALL LETTER LONG S
+// must not match the "s" of "rows".
+for (const { label, attribute } of [
+  { label: "an unrecognised value", attribute: ` rules="rowz"` },
+  { label: "U+017F, which is not an ASCII case match for s", attribute: ` rules="rowſ"` },
+  { label: "the empty string", attribute: ` rules=""` },
+  { label: "no value", attribute: ` rules` },
+  { label: "no attribute at all", attribute: `` },
+]) {
+  test(() => {
+    const parts = buildTable(attribute);
+    assert_equals(getComputedStyle(parts.table).borderCollapse, "separate",
+                  "border-collapse on the table");
+    for (const side of ["top", "right", "bottom", "left"]) {
+      assert_equals(getComputedStyle(parts.table).getPropertyValue(`border-${side}-style`),
+                    "none", `border-${side}-style on the table`);
+    }
+    assertBorders(parts.bodyRow, NO_BORDER, "tbody > tr");
+    assertBorders(parts.td, NO_BORDER, "td");
+    assertBorders(parts.tbody, NO_BORDER, "tbody");
+    assertBorders(parts.colgroup, NO_BORDER, "colgroup");
+  }, `rules with ${label} sets no rule`);
+}
+
+// The hints use the flow-relative properties, so in a vertical writing mode the
+// rule between rows runs down the page rather than across it. Reading the
+// physical properties as well pins which way round the mapping goes: in
+// vertical-rl the block axis is horizontal, so block-start is the right edge.
+test(() => {
+  const parts = buildTable(` rules="rows"`);
+  parts.table.style.writingMode = "vertical-rl";
+
+  assertBorders(parts.bodyRow, BLOCK_ONLY, "tbody > tr in vertical-rl");
+
+  const rowStyle = getComputedStyle(parts.bodyRow);
+  assert_equals(rowStyle.borderRightStyle, "solid", "physical right edge is the block-start edge");
+  assert_equals(rowStyle.borderLeftStyle, "solid", "physical left edge is the block-end edge");
+  assert_equals(rowStyle.borderTopStyle, "none", "physical top edge is an inline edge");
+  assert_equals(rowStyle.borderBottomStyle, "none", "physical bottom edge is an inline edge");
+}, "rules=rows follows the writing mode: the rule is on the row's block edges");
+
+test(() => {
+  const parts = buildTable(` rules="cols"`);
+  parts.table.style.writingMode = "vertical-rl";
+
+  assertBorders(parts.td, INLINE_ONLY, "td in vertical-rl");
+
+  const cellStyle = getComputedStyle(parts.td);
+  assert_equals(cellStyle.borderTopStyle, "solid", "physical top edge is the inline-start edge");
+  assert_equals(cellStyle.borderBottomStyle, "solid", "physical bottom edge is the inline-end edge");
+  assert_equals(cellStyle.borderRightStyle, "none", "physical right edge is a block edge");
+  assert_equals(cellStyle.borderLeftStyle, "none", "physical left edge is a block edge");
+}, "rules=cols follows the writing mode: the rule is on the cells' inline edges");
+
+test(() => {
+  const parts = buildTable(` rules="groups"`);
+  parts.table.style.writingMode = "vertical-rl";
+
+  assertBorders(parts.tbody, BLOCK_ONLY, "tbody in vertical-rl");
+  assertBorders(parts.colgroup, INLINE_ONLY, "colgroup in vertical-rl");
+
+  const groupStyle = getComputedStyle(parts.tbody);
+  assert_equals(groupStyle.borderRightStyle, "solid", "row group: physical right edge is the block-start edge");
+  assert_equals(groupStyle.borderTopStyle, "none", "row group: physical top edge is an inline edge");
+
+  const columnGroupStyle = getComputedStyle(parts.colgroup);
+  assert_equals(columnGroupStyle.borderTopStyle, "solid", "column group: physical top edge is the inline-start edge");
+  assert_equals(columnGroupStyle.borderRightStyle, "none", "column group: physical right edge is a block edge");
+}, "rules=groups follows the writing mode: the rules are on the groups' block and inline edges");
+</script>

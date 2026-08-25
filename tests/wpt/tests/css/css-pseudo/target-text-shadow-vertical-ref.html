@@ -1,0 +1,20 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: Shadows on vertical target text - reference</title>
+<link rel="author" name="Stephen Chenney" href="mailto:schenney@igalia.com">
+<style>
+    :root {
+        line-height: 1;
+        writing-mode: vertical-lr;
+    }
+    p {
+        font-size: 2em;
+        color: black;
+        text-shadow: 0.1em 0.1em 3px rgba(0,0,0,0.5);
+    }
+    span {
+        color: green;
+        text-shadow: 0.25em 0.25em 3px rgba(0,0,128,0.5), 0.1em 0.1em 3px rgba(0,0,0,0.5);
+    }
+</style>
+<p>the <span>target</span> should have a shadow</p>

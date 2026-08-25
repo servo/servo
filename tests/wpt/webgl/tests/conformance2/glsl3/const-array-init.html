@@ -1,0 +1,100 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Constant array initialization test</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="fshaderGlobalConstArray" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+out vec4 my_FragColor;
+
+const vec4 constants[2] = vec4[] (
+    vec4(0.6, 0.3, 0.0, 3.0),
+    vec4(-0.6, 0.7, 0.0, -2.0)
+);
+
+void main()
+{
+    my_FragColor = constants[0] + constants[1];
+    return;
+}
+</script>
+<script id="fshaderGlobalConstArrayWithReferenceToConstArray" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+out vec4 my_FragColor;
+
+const vec4 constants[2] = vec4[] (
+    vec4(0.6, 0.3, 0.0, 3.0),
+    vec4(-0.6, 0.7, 0.0, -2.0)
+);
+
+const vec4 constants2[2] = vec4[] (
+    constants[1],
+    constants[0]
+);
+
+void main()
+{
+    my_FragColor = constants2[0] + constants2[1];
+    return;
+}
+</script>
+<script id="fshaderGlobalConstArrayInitializedToConstArray" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+out vec4 my_FragColor;
+
+const vec4 constants[2] = vec4[] (
+    vec4(0.6, 0.3, 0.0, 3.0),
+    vec4(-0.6, 0.7, 0.0, -2.0)
+);
+
+const vec4 constants2[2] = constants;
+
+void main()
+{
+    my_FragColor = constants2[0] + constants2[1];
+    return;
+}
+</script>
+<script type="text/javascript">
+"use strict";
+description("Test initializing a constant global array");
+
+GLSLConformanceTester.runRenderTests([
+{
+  fShaderId: 'fshaderGlobalConstArray',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: "Global constant array with vec4 constructors and literals in the initializer"
+},
+{
+  fShaderId: 'fshaderGlobalConstArrayWithReferenceToConstArray',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: "Global constant array which indexes another global constant array in the initializer"
+},
+{
+  fShaderId: 'fshaderGlobalConstArrayInitializedToConstArray',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: "Global constant array initialized to another global constant array"
+}
+], 2);
+</script>
+</body>
+</html>

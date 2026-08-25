@@ -1,0 +1,113 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "4.2.2-cssSelector.json",
+    "assertionType": "may",
+    "expectedResult": "valid",
+    "onUnexpectedResult" : "passAndContinue",
+    "errorMessage": "The description of a Specific Resource may include cssSelector .",
+    "title": "Implements **Specific Resource CSS Selector** - [model 4.2.2](https://www.w3.org/TR/annotation-model/#css-selector)",
+    "description": "True when Annotation includes one or more Specific Resources, one or more of which includes a cssSelector. (Section 4.2.2)",
+    "type": "object",
+    "anyOf":
+     [
+      { "properties":
+         { "body":
+            { "oneOf":
+               [
+                 { "type": "object",
+                   "oneOf":
+                    [
+                      { "$ref": "#/definitions/selectorSchema" },
+                      { "$ref": "#/definitions/itemSchema" }
+                    ]
+                 },
+                 { "type": "array",
+                   "minItems": 1,
+                   "not":
+                    { "items":
+                       { "not":
+                          { "oneOf":
+                             [
+                               { "$ref": "#/definitions/selectorSchema" },
+                               { "$ref": "#/definitions/itemSchema" }
+                             ]
+                          }
+                       }
+                    }
+                 }
+               ]
+            }
+         },
+         "required": [ "body" ]
+      },
+      { "properties":
+         { "target":
+            { "oneOf":
+               [
+                 { "type": "object",
+                   "oneOf":
+                    [
+                      { "$ref": "#/definitions/selectorSchema" },
+                      { "$ref": "#/definitions/itemSchema" }
+                    ]
+                 },
+                 { "type": "array",
+                   "minItems": 1,
+                   "not":
+                    { "items":
+                        { "not":
+                           { "oneOf":
+                              [
+                                { "$ref": "#/definitions/selectorSchema" },
+                                { "$ref": "#/definitions/itemSchema" }
+                              ]
+                           }
+                        }
+                    }
+                 }
+               ]
+            }
+         },
+     "required": [ "target" ]
+       }
+     ],
+     "definitions":
+      {
+        "selectorSchema":
+         { "type": "object",
+           "properties":
+            { "selector":
+               { "oneOf":
+                  [
+                    { "type": "object",
+                      "$ref": "specificResource.json#/definitions/cssSelectorDetected"
+                    },
+                    { "type": "array",
+                      "minItems": 1,
+                      "not":
+                       { "items":
+                          { "not": { "$ref": "specificResource.json#/definitions/cssSelectorDetected" } }
+                       }
+                    }
+                  ]
+               }
+            },
+            "required": [ "selector" ]
+         },
+
+        "itemSchema":
+         { "type": "object",
+           "properties":
+            { "items":
+               { "type": "array",
+                 "minItems": 1,
+                 "not":
+                  { "items":
+                      { "not": { "$ref": "#/definitions/selectorSchema" } }
+                  }
+               }
+            },
+            "required": [ "items" ]
+         }
+      }
+}

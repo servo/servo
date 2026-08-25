@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>XML document.contentType === 'application/xml'</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+async_test(function() {
+  var iframe = document.createElement('iframe');
+  iframe.addEventListener('load', this.step_func_done(function() {
+    assert_equals(iframe.contentDocument.contentType, "application/xml");
+  }), false);
+  iframe.src = "../resources/blob.xml";
+  document.body.appendChild(iframe);
+});
+</script>

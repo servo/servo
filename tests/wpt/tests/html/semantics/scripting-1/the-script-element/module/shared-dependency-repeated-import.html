@@ -1,0 +1,141 @@
+<!doctype html>
+<head>
+  <meta charset="utf-8">
+  <title>Shared dependency imports</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/common/utils.js"></script>
+</head>
+
+<body>
+<script>
+  const base = key => `../serve-custom-response.py?key=${key}`;
+
+  function setServer(key, params) {
+    return fetch(`${base(key)}&action=set&${params}`, { cache: 'no-cache' });
+  }
+
+  function resetStat(key) {
+    return fetch(`${base(key)}&action=reset-stat`, { cache: 'no-cache' });
+  }
+
+  async function getStat(key) {
+    const response = await fetch(`${base(key)}&action=stat`, { cache: 'no-cache' });
+    const stat = await response.text();
+    return stat.trim();
+  }
+
+  function createModuleScript(src) {
+    const script = document.createElement('script');
+
+    const promise = new Promise((resolve, reject) => {
+      script.type = 'module';
+      script.src = src;
+      script.onload = () => resolve();
+      script.onerror = (e) => reject(e);
+      document.body.appendChild(script);
+    });
+    return [promise, () => document.body.removeChild(script)];
+  }
+</script>
+
+<script type="module">
+  // shared-dependency-a.js and shared-dependency-b.js both import serve-custom-response.py
+  //
+  // shared-dependency-a.js -> shared-dependency-b.js -> serve-custom-response.py
+  //        |
+  //        *----------------> serve-custom-response.py
+  //
+  // The tests below verify that the shared dependency is requested even if prior imports fail,
+  // and that it is cached after a successful import.
+  //
+  // Three failure scenarios will be tested: network error, 404 response, and wrong MIME type.
+
+  const token = '19d6d819-3932-416a-b66f-f5924a25685f';
+
+  promise_test(async (t) => {
+    // Step 1: network error on shared dependency import
+    await resetStat(token);
+    await setServer(token, 'network-error=true');
+
+    let errorCaught = false;
+    const [promiseNetworkError, removeScriptNetworkError] = createModuleScript('./shared-dependency-a.js');
+    try {
+      await promiseNetworkError;
+    } catch (e) {
+      errorCaught = true;
+    }
+    assert_true(errorCaught, 'Expected error was caught during module import');
+    removeScriptNetworkError();
+
+    const stat = await getStat(token);
+    // some browsers may request multiple times on network error
+    assert_not_equals(stat, '0', 'Shared dependency should be requested only once');
+
+    // Step 2: 404 on shared dependency import
+    await resetStat(token);
+    await setServer(token, 'network-error=false&code=404');
+
+    errorCaught = false;
+    const [promise404, removeScript404] = createModuleScript('./shared-dependency-a.js');
+    try {
+      await promise404;
+    } catch (e) {
+      errorCaught = true;
+    }
+    assert_true(errorCaught, 'Expected error was caught during module import');
+    removeScript404();
+
+    const stat404 = await getStat(token);
+    assert_equals(stat404, '1', 'Shared dependency should be requested only once');
+
+    // Step 3: wrong MIME type on shared dependency import
+    await resetStat(token);
+    await setServer(token, 'network-error=false&code=200&content-type=text/plain');
+
+    errorCaught = false;
+    const [promiseWrongMIME, removeScriptWrongMIME] = createModuleScript('./shared-dependency-a.js');
+    try {
+      await promiseWrongMIME;
+    } catch (e) {
+      errorCaught = true;
+    }
+    assert_true(errorCaught, 'Expected error was caught during module import');
+    removeScriptWrongMIME();
+
+    const statWrongMIME = await getStat(token);
+    assert_equals(statWrongMIME, '1', 'Shared dependency should be requested only once');
+
+    // Step 4: successful import
+    await resetStat(token);
+    await setServer(token, 'network-error=false&code=200&content-type=application/javascript');
+    errorCaught = false;
+    const [promiseSuccess, removeScriptSuccess] = createModuleScript('./shared-dependency-a.js');
+    try {
+      await promiseSuccess;
+    } catch (e) {
+      errorCaught = true;
+    }
+    assert_false(errorCaught, 'No error should be caught during module import');
+    removeScriptSuccess();
+
+    const statSuccess = await getStat(token);
+    assert_equals(statSuccess, '1', 'Shared dependency should be requested only once');
+
+    // Step 5: re-import to verify caching
+    await resetStat(token);
+    errorCaught = false;
+    const [promiseReimport, removeScriptReimport] = createModuleScript('./shared-dependency-a.js');
+    try {
+      await promiseReimport;
+    } catch (e) {
+      errorCaught = true;
+    }
+    assert_false(errorCaught, 'No error should be caught during module re-import');
+    removeScriptReimport();
+
+    const statReimport = await getStat(token);
+    assert_equals(statReimport, '0', 'Shared dependency should be cached and not requested again');
+  }, 'Module shared dependency import');
+</script>
+</body>

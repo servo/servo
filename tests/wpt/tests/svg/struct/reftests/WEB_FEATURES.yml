@@ -1,0 +1,6 @@
+rules:
+- use-external-resource-target-pseudo-*: [target]
+- currentScale*: [svg]
+- gradient-in-symbol.svg: [svg]
+- inner-svg-*: [svg]
+- outer-svg-transform.svg: [svg]

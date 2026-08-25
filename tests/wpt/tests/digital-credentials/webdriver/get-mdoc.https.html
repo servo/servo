@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<title>Digital Credential API: get() webdriver tests for org-iso-mdoc.</title>
+<link rel="help" href="https://wicg.github.io/digital-credentials/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js?feature=bidi"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body></body>
+<script type="module">
+  import { makeGetOptions } from "../support/helper.js";
+
+  promise_test(async (t) => {
+    const responseData = "test-response-data";
+    await test_driver.set_virtual_wallet_behavior("respond", "org-iso-mdoc", { "value": responseData });
+    t.add_cleanup(() => test_driver.set_virtual_wallet_behavior("clear"));
+    await test_driver.bless("user activation");
+
+    const options = makeGetOptions({ protocol: "org-iso-mdoc" });
+    const result = await navigator.credentials.get(options);
+
+    assert_equals(result.protocol, "org-iso-mdoc");
+    assert_equals(result.data.value, responseData);
+  }, "navigator.credentials.get() with respond mode should resolve with the specified data.");
+
+  promise_test(async (t) => {
+    const complexData = { "a": 1, "b": [2, 3], "c": { "d": 4 } };
+    await test_driver.set_virtual_wallet_behavior("respond", "org-iso-mdoc", complexData);
+    t.add_cleanup(() => test_driver.set_virtual_wallet_behavior("clear"));
+    await test_driver.bless("user activation");
+
+    const options = makeGetOptions({ protocol: "org-iso-mdoc" });
+    const result = await navigator.credentials.get(options);
+
+    assert_equals(result.protocol, "org-iso-mdoc");
+    assert_equals(result.data.a, 1);
+    assert_array_equals(result.data.b, [2, 3]);
+    assert_equals(result.data.c.d, 4);
+  }, "navigator.credentials.get() with complex data response should resolve with structured data.");
+
+  promise_test(async (t) => {
+    await test_driver.set_virtual_wallet_behavior("decline");
+    t.add_cleanup(() => test_driver.set_virtual_wallet_behavior("clear"));
+    await test_driver.bless("user activation");
+
+    const options = makeGetOptions({ protocol: "org-iso-mdoc" });
+    await promise_rejects_dom(t, "NotAllowedError", navigator.credentials.get(options));
+  }, "navigator.credentials.get() with decline mode should reject with NotAllowedError.");
+
+  promise_test(async (t) => {
+    await test_driver.set_virtual_wallet_behavior("wait");
+    t.add_cleanup(() => test_driver.set_virtual_wallet_behavior("clear"));
+    await test_driver.bless("user activation");
+
+    const controller = new AbortController();
+    const options = makeGetOptions({ protocol: "org-iso-mdoc", signal: controller.signal });
+    const promise = navigator.credentials.get(options);
+
+    const reason = new Error("aborted by test");
+    controller.abort(reason);
+    await promise_rejects_exactly(t, reason, promise);
+  }, "navigator.credentials.get() with wait mode should reject with the abort reason when aborted.");
+</script>

@@ -1,0 +1,6 @@
+rules:
+- clear-0*: [float-clear]
+- clear-applies-to-*: [float-clear]
+- clear-default-inheritance-001.xht: [float-clear]
+- clear-initial-001.xht: [float-clear]
+- float-applies-to-*: [float-clear]

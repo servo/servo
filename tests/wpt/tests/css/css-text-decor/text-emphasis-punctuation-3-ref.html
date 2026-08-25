@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS text decoration test: emphasis marks and punctuation</title>
+
+<style>
+p { line-height: 2; }
+</style>
+
+<p>A few punctuation marks <b>do</b> get emphasis marks:</p>
+<p lang="ja">
+  [<ruby>a<rt>&#x2022;</rt>b<rt>&#x2022;</rt>c<rt>&#x2022;</rt></ruby>
+  <!-- list from https://drafts.csswg.org/css-text-decor/#text-emphasis-style-property -->
+  <ruby>&#x0023;<rt>&#x2022;</rt></ruby> <!-- #  NUMBER SIGN -->
+  <ruby>&#x0025;<rt>&#x2022;</rt></ruby> <!-- %  PERCENT SIGN -->
+  <ruby>&#x0026;<rt>&#x2022;</rt></ruby> <!-- &  AMPERSAND -->
+  <ruby>&#x0040;<rt>&#x2022;</rt></ruby> <!-- @  COMMERCIAL AT -->
+  <ruby>&#x00A7;<rt>&#x2022;</rt></ruby> <!-- §  SECTION SIGN -->
+  <ruby>&#x00B6;<rt>&#x2022;</rt></ruby> <!-- ¶  PILCROW SIGN -->
+  <ruby>&#x0609;<rt>&#x2022;</rt></ruby> <!-- ؉  ARABIC-INDIC PER MILLE SIGN -->
+  <ruby>&#x060A;<rt>&#x2022;</rt></ruby> <!-- ؊  ARABIC-INDIC PER TEN THOUSAND SIGN -->
+  <ruby>&#x066A;<rt>&#x2022;</rt></ruby> <!-- ٪  ARABIC PERCENT SIGN -->
+  <ruby>&#x2030;<rt>&#x2022;</rt></ruby> <!-- ‰  PER MILLE SIGN -->
+  <ruby>&#x2031;<rt>&#x2022;</rt></ruby> <!-- ‱  PER TEN THOUSAND SIGN -->
+  <ruby>&#x204A;<rt>&#x2022;</rt></ruby> <!-- ⁊  TIRONIAN SIGN ET -->
+  <ruby>&#x204B;<rt>&#x2022;</rt></ruby> <!-- ⁋  REVERSED PILCROW SIGN -->
+  <ruby>&#x2053;<rt>&#x2022;</rt></ruby> <!-- ⁓  SWUNG DASH -->
+  <ruby>&#x303D;<rt>&#x2022;</rt></ruby> <!-- 〽️  PART ALTERNATION MARK -->
+  <br>
+  <!-- characters with NFKD equivalence to the above, from UnicodeData.txt -->
+  <ruby>&#xFE5F;<rt>&#x2022;</rt></ruby> <!-- SMALL NUMBER SIGN;Po;0;ET;<small> 0023;;;;N;;;;; -->
+  <ruby>&#xFE60;<rt>&#x2022;</rt></ruby> <!-- SMALL AMPERSAND;Po;0;ON;<small> 0026;;;;N;;;;; -->
+  <ruby>&#xFE6A;<rt>&#x2022;</rt></ruby> <!-- SMALL PERCENT SIGN;Po;0;ET;<small> 0025;;;;N;;;;; -->
+  <ruby>&#xFE6B;<rt>&#x2022;</rt></ruby> <!-- SMALL COMMERCIAL AT;Po;0;ON;<small> 0040;;;;N;;;;; -->
+  <ruby>&#xFF03;<rt>&#x2022;</rt></ruby> <!-- FULLWIDTH NUMBER SIGN;Po;0;ET;<wide> 0023;;;;N;;;;; -->
+  <ruby>&#xFF05;<rt>&#x2022;</rt></ruby> <!-- FULLWIDTH PERCENT SIGN;Po;0;ET;<wide> 0025;;;;N;;;;; -->
+  <ruby>&#xFF06;<rt>&#x2022;</rt></ruby> <!-- FULLWIDTH AMPERSAND;Po;0;ON;<wide> 0026;;;;N;;;;; -->
+  <ruby>&#xFF20;<rt>&#x2022;</rt></ruby> <!-- FULLWIDTH COMMERCIAL AT;Po;0;ON;<wide> 0040;;;;N;;;;; -->
+  <ruby>x<rt>&#x2022;</rt>y<rt>&#x2022;</rt>z<rt>&#x2022;</rt></ruby>]
+</p>

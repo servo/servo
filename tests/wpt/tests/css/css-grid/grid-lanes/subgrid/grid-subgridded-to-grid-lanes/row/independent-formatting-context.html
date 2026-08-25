@@ -1,0 +1,104 @@
+<!DOCTYPE HTML>
+<html><head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes Test: containment on a row-axis subgrid of a grid-lanes container</title>
+  <link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+  <link rel="help" href="https://drafts.csswg.org/css-contain/#containment">
+  <link rel="match" href="independent-formatting-context-ref.html">
+  <style>
+  html,body {
+    font:16px/1 monospace; padding:0; margin:0; line-height: 0;
+  }
+
+  .grid-lanes {
+    position: relative;
+    display: inline grid-lanes;
+    grid-template-rows: 0px 100px;
+    width: 100px;
+    margin-right: 20px;
+    margin-bottom: 20px;
+    vertical-align: top;
+  }
+
+  .subgrid {
+    display: grid;
+    grid-template-rows: subgrid;
+    grid-row: 1 / 3;
+    width: 100px;
+    height: 100px;
+    background-color: red;
+  }
+
+  .first {
+    grid-row: 1;
+    background-color: green;
+  }
+
+  .second {
+    grid-row: 2;
+    background-color: green;
+  }
+  </style>
+</head>
+<body>
+<!-- The subgrid's style attribute establishes an independent formatting
+     context and makes them no longer eligible as subgrids.-->
+<div class="grid-lanes">
+  <div class="subgrid" style="contain: layout">
+    <div class="first"></div>
+  </div>
+</div>
+
+<div class="grid-lanes">
+  <div class="subgrid" style="contain: paint">
+    <div class="first"></div>
+  </div>
+</div>
+
+<div class="grid-lanes">
+  <div class="subgrid" style="contain: strict">
+    <div class="first"></div>
+  </div>
+</div>
+
+<div class="grid-lanes">
+  <div class="subgrid" style="contain: content">
+    <div class="first"></div>
+  </div>
+</div>
+
+<div class="grid-lanes">
+  <div class="subgrid" style="container-type: size">
+    <div class="first"></div>
+  </div>
+</div>
+
+<div class="grid-lanes">
+  <div class="subgrid" style="container-type: inline-size">
+    <div class="first"></div>
+  </div>
+</div>
+
+<!-- Only layout and paint containment establish an independent formatting
+     context. These tests validate that other types of containment maintain
+     subgrid layout.-->
+<div class="grid-lanes">
+  <div class="subgrid" style="contain: none">
+    <div class="second"></div>
+  </div>
+</div>
+
+<div class="grid-lanes">
+  <div class="subgrid" style="contain: size">
+    <div class="second"></div>
+  </div>
+</div>
+
+<div class="grid-lanes">
+  <div class="subgrid" style="contain: style">
+    <div class="second"></div>
+  </div>
+</div>
+</body>
+</html>

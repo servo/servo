@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.container {
+    position: relative;
+    width: 800px;
+    height: 600px;
+}
+</style>
+
+<div class="container">
+    <!-- border + aspect-ratio 1/1 -->
+    <div id="t1" style="position: absolute; height: 100px; aspect-ratio: 1/1; border: 150px solid;"></div>
+
+    <!-- padding + aspect-ratio 1/1 -->
+    <div id="t2" style="position: absolute; height: 100px; aspect-ratio: 1/1; padding: 150px;"></div>
+
+    <!-- border + padding + aspect-ratio 1/1 -->
+    <div id="t3" style="position: absolute; height: 80px; aspect-ratio: 1/1; border: 50px solid; padding: 30px;"></div>
+
+    <!-- aspect-ratio 2/1 with border -->
+    <div id="t4" style="position: absolute; height: 100px; aspect-ratio: 2/1; border: 50px solid;"></div>
+
+    <!-- box-sizing: border-box with border -->
+    <div id="t5" style="position: absolute; height: 100px; aspect-ratio: 1/1; border: 20px solid; box-sizing: border-box;"></div>
+
+    <!-- no border (sanity check) -->
+    <div id="t6" style="position: absolute; height: 100px; aspect-ratio: 1/1;"></div>
+</div>
+
+<script>
+function dims(id) {
+    var el = document.getElementById(id);
+    return { w: el.offsetWidth, h: el.offsetHeight };
+}
+
+test(function() {
+    var d = dims("t1");
+    assert_equals(d.w, d.h, "Should be a square (border 150px, content 100px)");
+    assert_equals(d.w, 400, "100 content + 150*2 border = 400");
+}, "aspect-ratio 1/1 with border on abspos");
+
+test(function() {
+    var d = dims("t2");
+    assert_equals(d.w, d.h, "Should be a square (padding 150px, content 100px)");
+    assert_equals(d.w, 400, "100 content + 150*2 padding = 400");
+}, "aspect-ratio 1/1 with padding on abspos");
+
+test(function() {
+    var d = dims("t3");
+    assert_equals(d.w, d.h, "Should be a square (border 50px + padding 30px, content 80px)");
+    assert_equals(d.w, 240, "80 content + (50+30)*2 = 240");
+}, "aspect-ratio 1/1 with border and padding on abspos");
+
+test(function() {
+    var d = dims("t4");
+    assert_equals(d.h, 200, "100 content + 50*2 border = 200");
+    assert_equals(d.w, 300, "200 content + 50*2 border = 300");
+}, "aspect-ratio 2/1 with border on abspos");
+
+test(function() {
+    var d = dims("t5");
+    assert_equals(d.w, d.h, "Should be a square with box-sizing: border-box");
+    assert_equals(d.w, 100, "border-box: 100px total");
+}, "aspect-ratio 1/1 with border-box sizing on abspos");
+
+test(function() {
+    var d = dims("t6");
+    assert_equals(d.w, 100, "No border: just 100px content");
+    assert_equals(d.h, 100);
+}, "aspect-ratio 1/1 without border on abspos (sanity)");
+</script>

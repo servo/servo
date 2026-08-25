@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>text-group-align: right</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-group-align-property">
+<link rel="match" href="text-group-align-right-vlr-ref.html">
+<link rel="stylesheet" href="support/test-helpers.css">
+<body>
+<script src="support/test-helpers.js"></script>
+<script>
+for (let direction of ["ltr", "rtl"]) {
+    for (let textAlign of ["start", "end", "left", "right", "center"]) {
+        generateSimpleTest({ textGroupAlign: "right", writingMode: "vertical-lr", direction, textAlign });
+    }
+    document.body.append(document.createElement("br"));
+}
+</script>
+</body>

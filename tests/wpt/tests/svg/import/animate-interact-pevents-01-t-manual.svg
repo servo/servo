@@ -1,0 +1,285 @@
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="ED" status="accepted"
+    version="$Revision: 1.3 $" testname="$RCSfile: animate-interact-pevents-01-t.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/interact.html#PointerEventsProperty">
+      <p>
+        This test tests 'pointer-events' on text. Initially you should see four big rects with black stroke.
+        In the uppermost rect there should be 10 'O':s with black fill.
+        In the second rect from the top there should be 10 'O':s with no fill but with black stroke.
+        In the third and fourth rects there should be no visible 'O':s at all.
+        In the fourth rect there should be two green rects, and in each of the other three rects there should be one green rect.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Using the pointer device move the cursor over each of the four black-stroked rectangles from left to right.
+        As the mouseover event triggers, the 'O':s will become visible and marked
+        in either green (a pass) or red (an immediate fail).  Some 'O':s will not
+        change when the pointer is moved over them.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The test has passed if after moving the cursor over all the rects:
+      </p>
+      <ol>
+        <li>all the 'O':s in the green rects have green fill</li>
+        <li>there are no red 'O':s visible</li>
+        <li>there are 9 green 'O':s in the first and second rect, 4 in the third rect and 6 in the fourth rect</li>
+      </ol>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: animate-interact-pevents-01-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <g font-family="sans-serif" font-size="40" text-rendering="geometricPrecision">
+      <text x="240" y="40" text-anchor="middle" font-size="20">Test pointer-events on text</text>
+      <g transform="translate(40, -10)">
+        <g id="first-line">
+          <text x="50" y="100">
+            O
+            <set attributeName="fill" to="green" begin="mouseover" dur="indefinite"/>
+          </text>
+          <text x="80" y="100" pointer-events="visiblePainted">
+            O
+            <set attributeName="fill" to="green" begin="mouseover" dur="indefinite"/>
+          </text>
+          <text x="110" y="100" pointer-events="visibleFill">
+            O
+            <set attributeName="fill" to="green" begin="mouseover" dur="indefinite"/>
+          </text>
+          <text x="140" y="100" pointer-events="visibleStroke">
+            O
+            <set attributeName="fill" to="green" begin="mouseover" dur="indefinite"/>
+          </text>
+          <text x="170" y="100" pointer-events="visible">
+            O
+            <set attributeName="fill" to="green" begin="mouseover" dur="indefinite"/>
+          </text>
+          <text x="200" y="100" pointer-events="painted">
+            O
+            <set attributeName="fill" to="green" begin="mouseover" dur="indefinite"/>
+          </text>
+          <text x="230" y="100" pointer-events="fill">
+            O
+            <set attributeName="fill" to="green" begin="mouseover" dur="indefinite"/>
+          </text>
+          <text x="260" y="100" pointer-events="stroke">
+            O
+            <set attributeName="fill" to="green" begin="mouseover" dur="indefinite"/>
+          </text>
+          <text x="290" y="100" pointer-events="all">
+            O
+            <set attributeName="fill" to="green" begin="mouseover" dur="indefinite"/>
+          </text>
+          <text x="320" y="100" pointer-events="none">
+            O
+            <set attributeName="fill" to="red" begin="mouseover" dur="indefinite"/>
+          </text>
+
+          <g pointer-events="none">
+            <rect x="50" y="65" height="40" width="270" fill="green" fill-opacity="0.5" visibility="visible"/>
+
+            <rect x="50" y="65" height="40" width="300" fill="none" stroke="black" visibility="visible"/>
+          </g>
+        </g>
+
+        <g id="second-line" transform="translate(0 60)" fill="none" stroke="black">
+          <text x="50" y="100">
+            O
+            <set attributeName="fill" to="green" begin="mouseover" dur="indefinite"/>
+          </text>
+          <text x="80" y="100" pointer-events="visiblePainted">
+            O
+            <set attributeName="fill" to="green" begin="mouseover" dur="indefinite"/>
+          </text>
+          <text x="110" y="100" pointer-events="visibleFill">
+            O
+            <set attributeName="fill" to="green" begin="mouseover" dur="indefinite"/>
+          </text>
+          <text x="140" y="100" pointer-events="visibleStroke">
+            O
+            <set attributeName="fill" to="green" begin="mouseover" dur="indefinite"/>
+          </text>
+          <text x="170" y="100" pointer-events="visible">
+            O
+            <set attributeName="fill" to="green" begin="mouseover" dur="indefinite"/>
+          </text>
+          <text x="200" y="100" pointer-events="painted">
+            O
+            <set attributeName="fill" to="green" begin="mouseover" dur="indefinite"/>
+          </text>
+          <text x="230" y="100" pointer-events="fill">
+            O
+            <set attributeName="fill" to="green" begin="mouseover" dur="indefinite"/>
+          </text>
+          <text x="260" y="100" pointer-events="stroke">
+            O
+            <set attributeName="fill" to="green" begin="mouseover" dur="indefinite"/>
+          </text>
+          <text x="290" y="100" pointer-events="all">
+            O
+            <set attributeName="fill" to="green" begin="mouseover" dur="indefinite"/>
+          </text>
+          <text x="320" y="100" pointer-events="none">
+            O
+            <set attributeName="fill" to="red" begin="mouseover" dur="indefinite"/>
+          </text>
+
+          <g pointer-events="none">
+            <rect x="50" y="65" height="40" width="270" fill="green" fill-opacity="0.5" visibility="visible" stroke="none"/>
+
+            <rect x="50" y="65" height="40" width="300" fill="none" stroke="black" visibility="visible"/>
+          </g>
+        </g>
+
+        <g id="third-line" transform="translate(0 120)" visibility="hidden">
+          <text x="50" y="100">
+            O
+            <set attributeName="visibility" to="visible" begin="mouseover" dur="indefinite"/>
+            <set attributeName="fill" to="red" begin="mouseover" dur="indefinite"/>
+          </text>
+          <text x="80" y="100" pointer-events="visiblePainted">
+            O
+            <set attributeName="visibility" to="visible" begin="mouseover" dur="indefinite"/>
+            <set attributeName="fill" to="red" begin="mouseover" dur="indefinite"/>
+          </text>
+          <text x="110" y="100" pointer-events="visibleFill">
+            O
+            <set attributeName="visibility" to="visible" begin="mouseover" dur="indefinite"/>
+            <set attributeName="fill" to="red" begin="mouseover" dur="indefinite"/>
+          </text>
+          <text x="140" y="100" pointer-events="visibleStroke">
+            O
+            <set attributeName="visibility" to="visible" begin="mouseover" dur="indefinite"/>
+            <set attributeName="fill" to="red" begin="mouseover" dur="indefinite"/>
+          </text>
+          <text x="170" y="100" pointer-events="visible">
+            O
+            <set attributeName="visibility" to="visible" begin="mouseover" dur="indefinite"/>
+            <set attributeName="fill" to="red" begin="mouseover" dur="indefinite"/>
+          </text>
+          <text x="200" y="100" pointer-events="painted">
+            O
+            <set attributeName="visibility" to="visible" begin="mouseover" dur="indefinite"/>
+            <set attributeName="fill" to="green" begin="mouseover" dur="indefinite"/>
+          </text>
+          <text x="230" y="100" pointer-events="fill">
+            O
+            <set attributeName="visibility" to="visible" begin="mouseover" dur="indefinite"/>
+            <set attributeName="fill" to="green" begin="mouseover" dur="indefinite"/>
+          </text>
+          <text x="260" y="100" pointer-events="stroke">
+            O
+            <set attributeName="visibility" to="visible" begin="mouseover" dur="indefinite"/>
+            <set attributeName="fill" to="green" begin="mouseover" dur="indefinite"/>
+          </text>
+          <text x="290" y="100" pointer-events="all">
+            O
+            <set attributeName="visibility" to="visible" begin="mouseover" dur="indefinite"/>
+            <set attributeName="fill" to="green" begin="mouseover" dur="indefinite"/>
+          </text>
+          <text x="320" y="100" pointer-events="none">
+            O
+            <set attributeName="visibility" to="visible" begin="mouseover" dur="indefinite"/>
+            <set attributeName="fill" to="red" begin="mouseover" dur="indefinite"/>
+          </text>
+
+          <g pointer-events="none">
+            <rect x="200" y="65" height="40" width="120" fill="green" fill-opacity="0.5" visibility="visible"/>
+
+            <rect x="50" y="65" height="40" width="300" fill="none" stroke="black" visibility="visible"/>
+          </g>
+        </g>
+
+        <g id="fourth-line" transform="translate(0 180)" fill="none" stroke="none">
+          <text x="50" y="100">
+            O
+            <set attributeName="visibility" to="visible" begin="mouseover" dur="indefinite"/>
+            <set attributeName="fill" to="red" begin="mouseover" dur="indefinite"/>
+          </text>
+          <text x="80" y="100" pointer-events="visiblePainted">
+            O
+            <set attributeName="visibility" to="visible" begin="mouseover" dur="indefinite"/>
+            <set attributeName="fill" to="red" begin="mouseover" dur="indefinite"/>
+          </text>
+          <text x="110" y="100" pointer-events="visibleFill">
+            O
+            <set attributeName="visibility" to="visible" begin="mouseover" dur="indefinite"/>
+            <set attributeName="fill" to="green" begin="mouseover" dur="indefinite"/>
+          </text>
+          <text x="140" y="100" pointer-events="visibleStroke">
+            O
+            <set attributeName="visibility" to="visible" begin="mouseover" dur="indefinite"/>
+            <set attributeName="fill" to="green" begin="mouseover" dur="indefinite"/>
+          </text>
+          <text x="170" y="100" pointer-events="visible">
+            O
+            <set attributeName="visibility" to="visible" begin="mouseover" dur="indefinite"/>
+            <set attributeName="fill" to="green" begin="mouseover" dur="indefinite"/>
+          </text>
+          <text x="200" y="100" pointer-events="painted">
+            O
+            <set attributeName="visibility" to="visible" begin="mouseover" dur="indefinite"/>
+            <set attributeName="fill" to="red" begin="mouseover" dur="indefinite"/>
+          </text>
+          <text x="230" y="100" pointer-events="fill">
+            O
+            <set attributeName="visibility" to="visible" begin="mouseover" dur="indefinite"/>
+            <set attributeName="fill" to="green" begin="mouseover" dur="indefinite"/>
+          </text>
+          <text x="260" y="100" pointer-events="stroke">
+            O
+            <set attributeName="visibility" to="visible" begin="mouseover" dur="indefinite"/>
+            <set attributeName="fill" to="green" begin="mouseover" dur="indefinite"/>
+          </text>
+          <text x="290" y="100" pointer-events="all">
+            O
+            <set attributeName="visibility" to="visible" begin="mouseover" dur="indefinite"/>
+            <set attributeName="fill" to="green" begin="mouseover" dur="indefinite"/>
+          </text>
+          <text x="320" y="100" pointer-events="none">
+            O
+            <set attributeName="visibility" to="visible" begin="mouseover" dur="indefinite"/>
+            <set attributeName="fill" to="red" begin="mouseover" dur="indefinite"/>
+          </text>
+
+          <g pointer-events="none">
+            <rect x="110" y="65" height="40" width="90" fill="green" fill-opacity="0.5" visibility="visible"/>
+            <rect x="230" y="65" height="40" width="90" fill="green" fill-opacity="0.5" visibility="visible"/>
+
+            <rect x="50" y="65" height="40" width="300" fill="none" stroke="black" visibility="visible"/>
+          </g>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.3 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

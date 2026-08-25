@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>Style invalidation for ::slotted(select)::picker(select)</title>
+<link rel=match href="picker-and-slotted-invalidation-ref.html">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<div id="host">
+  <select>
+    <option>one</option>
+    <option>two</option>
+  </select>
+</div>
+
+<script>
+const select = document.querySelector("select");
+const root = host.attachShadow({mode: "open"});
+root.innerHTML = `
+  <style>
+    ::slotted(select), ::slotted(select)::picker(select) {
+      appearance: base-select;
+    }
+    .active ::slotted(select)::picker(select) {
+      border: thick solid blue;
+      background: lime;
+      color: maroon;
+    }
+  </style>
+  <div id="wrapper"><slot></slot></div>
+`;
+
+(async () => {
+  await test_driver.bless();
+  select.showPicker();
+  root.querySelector("#wrapper").className = "active";
+  document.documentElement.classList.remove('reftest-wait');
+})();
+</script>

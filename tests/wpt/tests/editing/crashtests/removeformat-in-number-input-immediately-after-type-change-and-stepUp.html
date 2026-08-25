@@ -1,0 +1,20 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const input = document.querySelector("input");
+  input.select();
+  input.type = "number";
+  document.querySelector("switch").scrollIntoView(true);
+  input.stepUp(1);
+  document.execCommand("removeFormat");
+});
+</script>
+</head>
+<body>
+<input>
+<switch>
+</body>
+</html>

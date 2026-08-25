@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html style="reftest-wait">
+<head>
+    <title>Scroll position transform should be the last one to be applied</title>
+    <link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+    <link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+    <link rel="match" href="transformed-element-scroll-transform-ref.html">
+    <style>
+        :root {
+            view-transition-name: none;
+        }
+
+        ::view-transition-group(*) {
+            animation-duration: 10s;
+        }
+
+        #target {
+            width: 100px;
+            height: 100px;
+            background: green;
+            margin: 300px;
+            view-transition-name: target;
+            rotate: 90deg;
+        }
+    </style>
+</head>
+<body>
+    <div id="target"></div>
+    <div style="height: 1000px"></div>
+    <script>
+        function scrollBy(y) {
+            return new Promise(resolve => {
+                addEventListener("scroll", () => {
+                    requestAnimationFrame(() => {
+                        requestAnimationFrame(resolve);
+                    });
+                }, { once: true, capture: true });
+                document.documentElement.scrollBy({
+                    top: y,
+                    behavior: "instant"
+                });
+            });
+        }
+        addEventListener("load", async () => {
+            await scrollBy(200);
+            const transition = document.startViewTransition();
+            await transition.ready;
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    document.documentElement.classList.remove("reftest-wait");
+                });
+            });
+        });
+    </script>
+</body>
+</html>

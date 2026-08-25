@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<link rel=help href="https://html.spec.whatwg.org/multipage/form-elements.html#the-option-element">
+<link rel=match href="standalone-option-no-shadow-tree-ref.html">
+<meta name=assert content="An option element moved out of a select element should not render a UA shadow tree and should render its child text content.">
+
+<select><option label="label attribute">child text</option></select>
+<script>
+const select = document.querySelector("select");
+const option = document.querySelector("option");
+select.offsetTop;
+document.body.appendChild(option);
+select.remove();
+</script>

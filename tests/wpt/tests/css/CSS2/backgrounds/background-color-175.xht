@@ -1,0 +1,36 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Background-color set to inherit</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2013-04-08 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#propdef-background-color" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background-properties" />
+        <link rel="match" href="background-color-175-ref.xht" />
+
+        <meta name="assert" content="Background-color set to inherit causes the background-color of the box to be the background-color designated on the parent element." />
+        <style type="text/css">
+            div
+            {
+                height: 100px;
+                width: 100px;
+            }
+            #wrapper
+            {
+                background-color: green;
+            }
+            #test
+            {
+                border: 10px solid;
+                background-color: red;
+                background-color: inherit;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the hollow black square is filled completely by a green background.</p>
+        <div id="wrapper">
+            <div id="test"></div>
+        </div>
+    </body>
+</html>

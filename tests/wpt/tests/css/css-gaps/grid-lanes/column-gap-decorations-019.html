@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: column and row rules with full-width spanners below a ragged row in grid-lanes</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/">
+<link rel="match" href="column-gap-decorations-019-ref.html">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-columns: repeat(3, 86px);
+    gap: 10px;
+    background: #cdd5e0;
+    width: max-content;
+    column-rule: 4px solid blue;
+    row-rule: 4px solid gold;
+  }
+  .lanes > div {
+    background: #5b8def;
+    color: #fff;
+    font: 600 12px/1 sans-serif;
+    text-align: center;
+  }
+  .lanes > div.hi { background: #1f9d6b; }
+  .lanes > div.i1 { height: 150px; }
+  .lanes > div.i2 { height: 90px; }
+  .lanes > div.i3 { height: 75px; }
+  .lanes > div.i4 { grid-column: 1 / -1; height: 100px; }
+  .lanes > div.i5 { grid-column: 1 / -1; height: 90px; }
+</style>
+<div class="lanes">
+  <div class="i1">1</div>
+  <div class="i2">2</div>
+  <div class="i3">3</div>
+  <div class="i4 hi">4 (span 3)</div>
+  <div class="i5 hi">5 (span 3)</div>
+</div>

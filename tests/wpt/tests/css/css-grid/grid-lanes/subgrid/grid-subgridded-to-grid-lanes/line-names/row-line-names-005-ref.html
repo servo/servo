@@ -1,0 +1,125 @@
+<!DOCTYPE HTML>
+<html><head>
+  <meta charset="utf-8">  <link rel="help" href="https://drafts.csswg.org/css-grid-3">
+  <style>
+html,body {
+  color:black; background-color:white; font:12px/1 monospace; padding:0; margin:0;
+}
+
+.grid-lanes {
+  display: inline-grid-lanes;
+  grid-template-rows: [a] 30px [b] 30px [c] 30px [] 30px [e-start] 30px [] 30px [x] 30px [h] 30px [i] 30px [j] 30px [k];
+  place-content: start;
+  border: 1px solid;
+  height: 500px;
+  grid-auto-rows: 100px;
+}
+
+.subgrid {
+  display: grid;
+  grid: subgrid / auto;
+  background: lightgrey;
+  grid-row: 2 / span 8;
+  grid-column: 2 / span 2;
+  min-width: 0;
+  min-height: 0;
+}
+
+.subgrid2 {
+  display: grid;
+  grid: subgrid [] [] [] [b] / auto;
+  grid-row: span 10;
+}
+
+.subgrid#s1 {
+  grid-template-areas: "." "e" "e" "." "." "." ".";
+}
+
+x {
+  min-width: 10px;
+  min-height: 20px;
+  background: silver;
+}
+
+.vl { writing-mode: vertical-lr; direction: ltr; }
+.vr { writing-mode: vertical-rl; direction: rtl; }
+  </style>
+</head>
+<body>
+
+<div class="grid-lanes">
+  <div class="subgrid" id="s1">
+    <x style="grid-row:10 / span 4">x</x>
+  </div>
+</div>
+
+<div class="grid-lanes vr">
+  <div class="subgrid vl" id="s2">
+    <x style="grid-row:10 / span 4">x</x>
+  </div>
+</div>
+
+<div class="grid-lanes">
+  <div class="subgrid vr" id="s2">
+    <x style="grid-row:10 / span 4">x</x>
+  </div>
+</div>
+
+<div style="display:inline-grid-lanes; height:500px; grid-template-rows: repeat(10, 50px);">
+  <div class="subgrid2">
+    <x style="grid-row:1 / 4">x</x>
+  </div>
+</div>
+
+<div style="display:inline-grid-lanes; height:500px; grid-template-rows: repeat(10, 50px);">
+  <div class="subgrid2">
+    <x style="grid-row:10 / span 4">x</x>
+  </div>
+</div>
+
+<div style="display:inline-grid-lanes; height:500px; grid-template-rows: repeat(10, 50px);">
+  <div class="subgrid2">
+    <x style="grid-row:1 / -1">x</x>
+  </div>
+</div>
+
+<div style="display:inline-grid-lanes; height:500px; grid-template-rows: repeat(10, 50px);">
+  <div class="subgrid2">
+    <x style="grid-column:2; grid-row:1 / -1">x</x>
+  </div>
+</div>
+
+<div style="display:inline-grid-lanes; height:500px; grid-template-rows: repeat(10, 50px);">
+  <div class="subgrid2">
+    <x style="grid-row:span 3 / 11">x</x>
+  </div>
+</div>
+
+<div style="display:inline-grid-lanes; height:500px; grid-template-rows: repeat(20, [a] 50px) [a]">
+  <div class="subgrid2" style="grid-column:2">
+    <x style="grid-row:10 / 11">x</x>
+  </div>
+</div>
+
+<div style="display:inline-grid-lanes; grid-template-rows: repeat(10, 50px) repeat(10, [a] 50px) [a]">
+  <div style="display:grid; grid:subgrid/auto; grid-row: span 10; grid-column:2">
+    <x style="grid-row:10 / 11">x</x>
+  </div>
+</div>
+
+<div style='display:inline-grid-lanes; grid-template-rows: repeat(10, 50px); grid-template-areas: "a" "a" "a" "a" "a" "a" "a" "a" "a" "a";'>
+  <div style="display:grid; grid:subgrid/auto; grid-row: 6 / span 5; grid-column:2">
+    <x style="grid-row:1 / 6">x</x>
+  </div>
+</div>
+
+<div style='display:inline-grid-lanes; grid-template-rows: repeat(10, 50px); grid-template-areas: "." "." "." "." "." "." "a" "a" "a" "a";'>
+  <div style='display:grid; grid-template-areas: "." "." "." "." "." "." "." "a" "a" "."; grid-template-rows:subgrid; grid-row:span 10;'>
+    <div style="display:grid; grid:subgrid/auto; grid-row: 6 / span 5; grid-column:2">
+      <x style="grid-row:2 / 5">x</x>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

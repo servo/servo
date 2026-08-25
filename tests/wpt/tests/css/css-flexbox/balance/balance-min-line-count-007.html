@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-2/#algo-balance">
+<link rel="match" href="balance-min-line-count-007-ref.html">
+<meta name="assert" content="flex-line-count, should have no affect on a non-balanced flexbox.">
+<style>
+#flex {
+  display: flex;
+  flex-wrap: wrap;
+  flex-line-count: 10000;
+  width: 100px;
+  gap: 20px;
+  padding: 20px;
+  border: solid 3px;
+}
+div > div {
+  background: green;
+  width: 20px;
+  height: 20px;
+}
+</style>
+<p>There should be 2 flex-lines.</p>
+<div id="flex">
+  <div></div>
+  <div></div>
+  <div></div>
+  <div></div>
+</div>

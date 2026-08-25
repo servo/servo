@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+
+<script>
+function createNodeIterator() {
+    function filter() {
+        nodeIterator.dummyFilterCalled = true;
+        return true;
+    }
+    const nodeIterator = parent.document.createNodeIterator(parent.document.body, NodeFilter.SHOW_ELEMENT, filter);
+    nodeIterator.dummyFilterCalled = false;
+    return nodeIterator;
+}
+</script>

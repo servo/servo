@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html class=test-wait>
+<link rel=author href="mailto:dom@chromium.org">
+<link rel=help href="https://crbug.com/517345069">
+<title>Node.moveBefore: iframe ancestor subframe count consistency</title>
+<body>
+<script>
+// This is a regression test for a Chromium bug where the Blink internal
+// subframe count consistency checker gets out-of-sync due to `moveBefore()`.
+// See https://crbug.com/517345069.
+const oldParent = document.createElement('div');
+document.body.append(oldParent);
+
+const moveTarget = document.createElement('div');
+oldParent.append(moveTarget);
+
+const iframe = document.createElement('iframe');
+moveTarget.append(iframe);
+
+// Perform a state-preserving atomic move of `moveTarget` to `document.body`.
+// In Blink, previously this would result in `moveTarget`'s subframe count
+// getting over-incremented (becoming 2 instead of 1).
+document.body.moveBefore(moveTarget, null);
+
+// In Blink, this triggers the subframe count consistency checker, making the
+// above desynchronization cause a crash.
+moveTarget.remove();
+document.documentElement.classList.remove('test-wait');
+</script>
+</body>

@@ -1,0 +1,48 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+ <head>
+
+  <title>CSS Test: RLO/PDF bidi reordering across closing inline element boundary + opening inline boundary</title>
+  <meta name="assert"
+        content="Tests that RLO + closing inline element boundary + opening inline element boundary + PDF
+                 reorders text, splitting inlines and rendering their borders and padding appropriately."/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/inline/bidi/003.html" type="text/html"/>
+
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#bidi-box-model"/>
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#bidi-control-codes"/>
+
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#bidi-box-model"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#direction"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#white-space-model"/>
+  <link rel="help" href="http://unicode.org/reports/tr9/"/>
+
+  <link rel="match" href="bidi-003-ref.xht" />
+
+  <style type="text/css">
+   div p { white-space: nowrap; border: solid; margin: 1em; padding: 0.5em; background: #FFFFCC; color: black; }
+   .test { border: solid; padding: 0.4em 1em; line-height: 3em; }
+   .control { line-height: 3em; }
+   .control.start { border-style: solid none solid solid; padding: 0.4em 0 0.4em 1em;  }
+   .control.end { border-style: solid solid solid none; padding: 0.4em 1em 0.4em 0;  }
+   .a { color: navy; }
+   .b { color: orange; }
+  </style>
+ </head>
+ <body>
+  <p> The following two blocks should be identical, including overflow. (Force bidi: &#x05D0;) </p>
+  <div>
+   <p>
+    <span class="control a start"> aaa bbb ccc </span>
+    <span class="control b start"> ddd eee fff </span>
+                                   ggg hhh iii
+    <span class="control a end">   jjj kkk lll </span>
+    <span class="control b end">   mmm nnn ooo </span>
+   </p>
+   <p>
+    <span class="test a"> aaa bbb ccc &#x202E; lll kkk jjj </span> iii hhh ggg <span class="test b"> fff eee ddd &#x202C; mmm nnn ooo </span>
+   </p>
+  </div>
+ </body>
+</html>

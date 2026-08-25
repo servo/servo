@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<style>
+  .containing-block {
+    border: 1px solid black;
+
+    position: relative;
+    width: 500px;
+    height: 200px;
+  }
+
+  .box-before::before, .box-after::after {
+    position: absolute;
+    background-color: green;
+    content: "";
+  }
+
+  #box1::before, #box1::after {
+    width: 50px;
+    height: 60px;
+  }
+
+  #box2::before, #box2::after {
+    left: 60px;
+    width: 60px;
+    height: 80px;
+  }
+
+  #box3::before, #box3::after {
+    left: 130px;
+    width: 70px;
+    height: 100px;
+  }
+
+  #box4::before, #box4::after {
+    left: 210px;
+    width: 80px;
+    height: 120px;
+  }
+
+  #box5::before, #box5::after {
+    left: 300px;
+    width: 90px;
+    height: 140px;
+  }
+</style>
+
+<p>You should see a row of five rectangles growing in size.</p>
+
+<div class="containing-block">
+  <div class="box-after" id="box1"></div>
+  <div class="box-before" id="box2"></div>
+  <div class="box-before" id="box3"></div>
+  <div class="box-after" id="box4"></div>
+  <div class="box-before" id="box5"></div>
+</div>

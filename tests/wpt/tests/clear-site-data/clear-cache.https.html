@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="support/clear-cache-helper.sub.js"></script>
+<script>
+
+promise_test(test => {
+    const TEST_SITE = {
+        cache: true,
+        clearFirst: "cache",
+    };
+    return testCacheClear(test, [TEST_SITE, TEST_SITE], assert_not_equals);
+}, "clear cache: Document with clear-cache header doesn't get cached");
+
+promise_test(test => {
+    const TEST_SITE = {
+        cache: true,
+        clearFirst: "all",
+    };
+    return testCacheClear(test, [TEST_SITE, TEST_SITE], assert_not_equals);
+}, "clear all: Document with clear-cache header doesn't get cached");
+
+promise_test(test => {
+    const TEST_SITE_INITAL = {
+        response: "html_embed_json",
+        clear: "cache",
+    };
+    const TEST_SITE_FINAL = {
+        response: "html_embed_json",
+    };
+    // Clear-Cache header doesn't affect fetch on document due to clear-cache
+    // being initiated in a point of time. The fetch happens later and stays
+    // in the cache.
+    return testCacheClear(test, [TEST_SITE_INITAL, TEST_SITE_FINAL], assert_equals);
+}, "clear cache: Fetch on docment with clear-cache header is unaffected");
+
+promise_test(test => {
+    const TEST_SITE_INITAL = {
+        response: "html_embed_json",
+        clear: "all",
+    };
+    const TEST_SITE_FINAL = {
+        response: "html_embed_json",
+    };
+    // same as above
+    return testCacheClear(test, [TEST_SITE_INITAL, TEST_SITE_FINAL], assert_equals);
+}, "clear all: Fetch on docment with clear-cache header is unaffected");
+
+promise_test(test => {
+    const TEST_SITE_INITAL = {
+        response: "html_embed_json",
+    };
+    const TEST_SITE_FINAL = {
+        response: "html_embed_json",
+        clear: "cache",
+    };
+    return testCacheClear(test, [TEST_SITE_INITAL, TEST_SITE_FINAL], assert_not_equals);
+}, "clear cache: Previously cached fetch gets cleared");
+
+promise_test(test => {
+    const TEST_SITE_INITAL = {
+        response: "html_embed_json",
+    };
+    const TEST_SITE_FINAL = {
+        response: "html_embed_json",
+        clear: "all",
+    };
+    return testCacheClear(test, [TEST_SITE_INITAL, TEST_SITE_FINAL], assert_not_equals);
+}, "clear all: Previously cached fetch gets cleared");
+
+promise_test(test => {
+    const TEST_SITE = {
+        response: "html_embed_json",
+    };
+    const TEST_SITE_CLEAR = {
+        clear: "cache",
+    };
+    return testCacheClear(test, [TEST_SITE, TEST_SITE_CLEAR, TEST_SITE], assert_not_equals);
+}, "clear cache: Clear fetch on intermediate navigation");
+
+promise_test(test => {
+    const TEST_SITE = {
+        response: "html_embed_json",
+    };
+    const TEST_SITE_CLEAR = {
+        clear: "all",
+    };
+    return testCacheClear(test, [TEST_SITE, TEST_SITE_CLEAR, TEST_SITE], assert_not_equals);
+}, "clear all: Clear fetch on intermediate navigation");
+
+promise_test(test => {
+    const TEST_SITE = {
+        cache: true,
+    };
+    const TEST_SITE_CLEAR = {
+        clear: "cache",
+    };
+    return testCacheClear(test, [TEST_SITE, TEST_SITE_CLEAR, TEST_SITE], assert_not_equals);
+}, "clear cache: Clear document in intermediate load");
+
+promise_test(test => {
+    const TEST_SITE = {
+        cache: true,
+    };
+    const TEST_SITE_CLEAR = {
+        clear: "all",
+    };
+    return testCacheClear(test, [TEST_SITE, TEST_SITE_CLEAR, TEST_SITE], assert_not_equals);
+}, "clear all: Clear document in intermediate load");
+
+promise_test(test => {
+    const TEST_SITE = {
+        response: "html_embed_image",
+    };
+    const TEST_SITE_CLEAR = {
+        clear: "cache",
+    };
+    return testCacheClear(test, [TEST_SITE, TEST_SITE_CLEAR, TEST_SITE], assert_not_equals);
+}, "clear cache: Image-Cache gets cleared");
+
+promise_test(test => {
+    const TEST_SITE_INITAL = {
+        response: "html_embed_css",
+    };
+    const TEST_SITE_FINAL = {
+        response: "html_embed_css",
+        clear: "cache",
+    };
+    return testCacheClear(test, [TEST_SITE_INITAL, TEST_SITE_FINAL], assert_not_equals);
+}, "clear cache: CSS-Cache gets cleared");
+
+promise_test(test => {
+    const TEST_SITE_INITAL = {
+        response: "html_embed_js",
+    };
+    const TEST_SITE_FINAL = {
+        response: "html_embed_js",
+        clear: "cache",
+    };
+    return testCacheClear(test, [TEST_SITE_INITAL, TEST_SITE_FINAL], assert_not_equals);
+}, "clear cache: JS-Cache gets cleared");
+
+</script>
+</body>
+</html>

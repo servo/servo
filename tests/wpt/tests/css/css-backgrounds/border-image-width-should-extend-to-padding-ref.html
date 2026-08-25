@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>
+  `border-image-width` should extend into padding given an empty border area via `border-style: none`
+</title>
+<style>
+    div {
+        width: 136px;
+        height: 136px;
+        margin: 20px;
+        background-color: silver;
+        border-image-source: linear-gradient(blue, orange);
+        border-image-slice: 32;
+        border-image-repeat: repeat;
+        border-style: solid;
+        border-width: 32px;
+    }
+</style>
+
+Test passes if a 200x200px (content + padding + border) box with a 32px border-image is rendered.
+<div></div>
+

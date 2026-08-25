@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Remove Ancestor Clip to SVG Reference Text Clip-Path</title>
+    <link rel="author" title="Claire Chambers" href="mailto:clchambers@microsoft.com">
+    <style>
+      #container {
+        display: inline-block;
+        width: 100px;
+        height: 100px;
+        background-color: black;
+        /* ensure #container creates a stacking context */
+        will-change: transform;
+        /* for positioning the outset */
+        position: relative;
+      }
+      #clipped-element {
+        display: inline-block;
+        width: 100px;
+        height: 100px;
+        background-color: purple;
+        clip-path: url(#svg-text-clip);
+        /* inherited clip must be expanded by 1px for the filter backdrop */
+        filter: blur(1px);
+      }
+      #clipped-element-outset {
+        left: -10px;
+        top: -10px;
+        position: absolute;
+        border: 10px solid green;
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <p>
+      Test passes if there is a green outset around a black square.
+    </p>
+    <div id="container">
+      <div id="clipped-element">
+        <div id="clipped-element-outset"></div>
+      </div>
+    </div>
+    <svg width="0" height="0" viewBox="0 0 100 100">
+      <clipPath id="svg-text-clip" clipPathUnits="objectBoundingBox">
+        <text x="0.1" y="0.6" font-size="0.2">SVG Clip</text>
+        <!-- Include a 10% outset around the clipped element -->
+        <path clip-rule="evenodd" d="
+            M -0.1 -0.1  L 1.1 -0.1  L 1.1 1.1  L -0.1 1.1
+             M  0    0    L 1    0    L 1   1    L  0   1
+          "/>
+      </clipPath>
+    </svg>
+  </body>
+</html>

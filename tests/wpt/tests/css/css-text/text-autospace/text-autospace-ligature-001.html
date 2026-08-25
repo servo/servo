@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-autospace-property">
+<link rel="match" href="text-autospace-ligature-001-ref.html">
+<style>
+@font-face {
+  font-family: ligature-font;
+  src: url('/fonts/Lato-Medium-Liga.ttf');
+}
+#test-container {
+  font-family: ligature-font;
+  font-size: 40px;
+  text-autospace: normal;
+}
+.base {
+  text-autospace: no-autospace;
+}
+</style>
+<div id="test-container">
+  <div>国fi</div>
+  <div class="base">国fi</div>
+  <div>fi国</div>
+  <div class="base">fi国</div>
+  <div>国fi国</div>
+  <div class="base">国fi国</div>
+</div>

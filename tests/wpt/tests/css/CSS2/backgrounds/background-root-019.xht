@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: Canvas background - position</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/background/16.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background"/>
+  <link rel="match" href="background-root-019-ref.xht" />
+
+<style type="text/css"><![CDATA[
+   body { border: solid lime; background: green; color: white; }
+   html { border: 1em solid blue; background: navy url(support/diamond.png) -2em -2em no-repeat; color: yellow; }
+   :link, :visited { color: inherit; background: transparent; }
+   * { margin: 1em; padding: 1em; }
+]]></style>
+
+</head>
+<body>
+<p> This time, there should be a single purple diamond at the upper left
+hand corner of the viewport. It should be bathed in blue. In this sea
+of blue there should be a bright thick blue border, containing more
+blue and a thin bright green border, which itself contains only green
+and this text.</p>
+
+
+</body>
+</html>

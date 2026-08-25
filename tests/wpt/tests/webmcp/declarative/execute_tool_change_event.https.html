@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/webmcp/resources/helpers.js"></script>
+
+<form toolname="fill_text" tooldescription="Fill some text"
+  toolautosubmit target="hidden_iframe" action="about:blank">
+  <input id="myinput" name="text" type="text">
+  <input id="mynumber" name="number" type="number">
+  <input id="mycheckbox" name="checkbox" type="checkbox" value="check1">
+  <input id="myradio" name="radio" type="radio" value="radio1">
+  <input id="myradio2" name="radio" type="radio" value="radio2">
+  <textarea id="mytextarea" name="textarea"></textarea>
+  <select id="myselect" name="select">
+    <option value="opt1">Opt 1</option>
+    <option value="opt2">Opt 2</option>
+  </select>
+</form>
+<iframe name=hidden_iframe style="display:none"></iframe>
+
+<script>
+promise_test(async t => {
+  const tool = await waitForTool('fill_text');
+  assert_true(!!tool, 'Tool should be registered');
+
+  let form = document.querySelector('form');
+  let inputs = form.querySelectorAll('input, textarea, select');
+  let events = {};
+
+  for (let el of inputs) {
+    if (el.id) {
+      events[el.id] = { inputFired: false, changeFired: false };
+      el.addEventListener('change', () => { events[el.id].changeFired = true; });
+      el.addEventListener('input', () => { events[el.id].inputFired = true; });
+    }
+  }
+
+  let inputArgs = JSON.stringify({
+    text: "regular text",
+    number: 42,
+    checkbox: true,
+    radio: "radio2",
+    textarea: "some text area content",
+    select: "opt2"
+  });
+
+  await document.modelContext.executeTool(tool, inputArgs);
+
+  assert_equals(document.getElementById('myinput').value, 'regular text');
+  assert_true(events['myinput'].inputFired, 'text input event should fire');
+  assert_true(events['myinput'].changeFired, 'text change event should fire');
+
+  assert_equals(document.getElementById('mynumber').value, '42');
+  assert_true(events['mynumber'].inputFired, 'number input event should fire');
+  assert_true(events['mynumber'].changeFired, 'number change event should fire');
+
+  assert_true(document.getElementById('mycheckbox').checked);
+  assert_true(events['mycheckbox'].inputFired, 'checkbox input event should fire');
+  assert_true(events['mycheckbox'].changeFired, 'checkbox change event should fire');
+
+  assert_false(document.getElementById('myradio').checked);
+  assert_true(document.getElementById('myradio2').checked);
+  assert_true(events['myradio2'].inputFired, 'radio input event should fire');
+  assert_true(events['myradio2'].changeFired, 'radio change event should fire');
+
+  assert_equals(document.getElementById('mytextarea').value, 'some text area content');
+  assert_true(events['mytextarea'].inputFired, 'textarea input event should fire');
+  assert_true(events['mytextarea'].changeFired, 'textarea change event should fire');
+
+  assert_equals(document.getElementById('myselect').value, 'opt2');
+  assert_true(events['myselect'].inputFired, 'select input event should fire');
+  assert_true(events['myselect'].changeFired, 'select change event should fire');
+}, 'executeTool triggers input and change events');
+</script>

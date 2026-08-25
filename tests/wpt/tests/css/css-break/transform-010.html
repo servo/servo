@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-break/#transforms">
+<div id="container" style="width:300px; overflow-x:scroll;">
+  <div style="columns:3; column-gap:0; column-fill:auto; height:100px;">
+    <div>
+      <div id="target" style="transform:translateX(0); width:100px; height:150px;"></div>
+    </div>
+  </div>
+</div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(()=> {
+    // We have three columns. The column width is 100px.
+    // #target occurs in the first two columns.
+    assert_equals(container.scrollWidth, 300);
+
+    // This shouldn't affect the size of the scrollable area, since everything
+    // still fits within the scrollport.
+    target.style.transform = "translateX(100px)";
+    assert_equals(container.scrollWidth, 300);
+
+    // #target should now overflow the scrollport.
+    target.style.transform = "translateX(200px)";
+    assert_equals(container.scrollWidth, 400);
+
+    // Check that we're not stuck with the overflow.
+    target.style.transform = "translateX(100px)";
+    assert_equals(container.scrollWidth, 300);
+  }, "Changing a transformed element should update overflow area.");
+</script>

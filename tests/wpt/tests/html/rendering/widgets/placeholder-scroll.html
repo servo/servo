@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Placeholder overflow behavior for input and textarea</title>
+<link rel="help" href="https://html.spec.whatwg.org/#the-input-element-as-a-text-entry-widget">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+::placeholder {
+  white-space: nowrap;
+}
+</style>
+<input id=i placeholder="something very very very very long">
+<textarea id=t placeholder="something very very very very long"></textarea>
+<script>
+test(() => {
+  assert_equals(i.scrollWidth, i.clientWidth);
+}, "Placeholder does not cause overflow on input");
+
+test(() => {
+  assert_greater_than(t.scrollWidth, t.clientWidth);
+}, "Placeholder causes overflow on textarea");
+</script>

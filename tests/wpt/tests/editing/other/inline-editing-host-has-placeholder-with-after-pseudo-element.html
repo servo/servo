@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Basic test for inline editing host which has placeholder text with pseudo-element</title>
+<style>
+[contenteditable]:empty::after {
+  content: "Type something";
+}
+</style>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+"use strict";
+
+addEventListener("load", () => {
+  const editingHost = document.querySelector("span[contenteditable]");
+  editingHost.focus();
+  test(() => {
+    document.execCommand("insertText", false, "X");
+    assert_equals(editingHost.innerHTML, "X");
+  }, "The editing host should have inserted text");
+  test(() => {
+    document.execCommand("delete");
+    assert_equals(editingHost.innerHTML, "");
+  }, "The editing host should have no text");
+}, {once: true});
+</script>
+</head>
+<body>
+  <span id="container">
+    <span contenteditable="true"></span>
+  </span>
+</body>
+</html>

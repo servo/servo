@@ -1,0 +1,3 @@
+rules:
+- clip-path-animation-unset.html: [unset-value, clip-path-animatable]
+- "**": [clip-path-animatable]

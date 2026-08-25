@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://issues.chromium.org/issues/521434907">
+<link rel=match href="select-base-overflow-ref.html">
+
+<style>
+select {
+  appearance: base-select;
+  width: 50px;
+  height: 20px;
+  min-block-size: unset;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: min-content 1fr;
+  gap: 1.5em;
+}
+</style>
+
+<div class=grid>
+  <div>default</div>
+  <div>
+    <select>
+      <option>hello world</option>
+    </select>
+  </div>
+  <div>overflow:visible</div>
+  <div>
+    <select style="overflow:visible">
+      <option>hello world</option>
+    </select>
+  </div>
+  <div>overflow:hidden</div>
+  <div>
+    <select style="overflow:hidden">
+      <option>hello world</option>
+    </select>
+  </div>
+  <div>overflow:clip</div>
+  <div>
+    <select style="overflow:clip">
+      <option>hello world</option>
+    </select>
+  </div>
+</div>

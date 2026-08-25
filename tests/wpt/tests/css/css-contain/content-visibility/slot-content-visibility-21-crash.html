@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=1269743">
+
+<script>
+  const selection = window.getSelection();
+  document.execCommand("SelectAll");
+  document.documentElement.innerHTML = '<map><rt></rt><b></b></map><article>foo</article><details></details>';
+  const range = selection.getRangeAt(0);
+  const details = document.querySelector('details');
+  range.insertNode(details)
+  selection.modify('extend', 'forward', 'paragraph')
+  selection.collapseToEnd()
+</script>

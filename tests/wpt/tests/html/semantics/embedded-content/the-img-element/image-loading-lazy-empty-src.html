@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<title>Lazy loaded Images handle correctly when setting src to empty</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/images.html#update-the-image-data">
+<div id=log></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<img id="image" loading="lazy" src="resources/image.png">
+
+<script>
+  const image = document.querySelector('#image');
+
+async_test(function(t) {
+    image.onerror = t.step_func(function(e) {
+        assert_equals(e.type, "error", "null image source check failed");
+        image.onload = t.step_func(function() {
+            t.done();
+        });
+        image.src = "resources/image.png";
+    });
+    image.src = "";
+}, "lazy loaded image and empty src");
+
+</script>

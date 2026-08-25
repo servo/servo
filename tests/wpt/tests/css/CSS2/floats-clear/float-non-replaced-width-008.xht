@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: 'shrink-to-fit' width of floating, non-replaced elements - max-width</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="author" title="Daniel Schattenkirchner" href="mailto:crazy-daniel@gmx.de" />
+  <link rel="help" title="Section 10.3.5 Width of floating, non-replaced elements" href="http://www.w3.org/TR/CSS21/visudet.html#float-width" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#the-width-property" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#min-max-widths" />
+  <link rel="match" href="../positioning/absolute-non-replaced-width-017-ref.xht" />
+  <meta content="If 'width' of a floating, non-replaced element computes to 'auto', then the used value of 'width' is given by 'shrink-to-fit' width calculation. If 'width' of a floating, non-replaced element is given by 'shrink-to-fit' width calculation, then such calculated width can be furthermore constrained, reduced by a max-width declaration. If 'width' of a floating, non-replaced element computes to 'auto' but its own child uses a constrained length resulting from a max-width declaration, then such constrained length will define the preferred width in 'shrink-to-fit' width calculation." name="assert" />
+  <meta content="ahem" name="flags" />
+
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+  <style type="text/css"><![CDATA[
+  div
+  {
+  background-color: red;
+  float: left;
+  font: 30px/4 Ahem;
+  width: auto;
+  }
+
+  span
+  {
+  background-color: green;
+  float: left;
+  max-width: 4em;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Below there should be a green square. In the middle of such green square, a black horizontal stripe should be traversing it and protruding out of it toward the right. There should be no red in this page.</p>
+
+  <div><span>12345678</span></div>
+
+ </body>
+</html>

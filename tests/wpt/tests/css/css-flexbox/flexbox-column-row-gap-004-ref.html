@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0
+-->
+<html>
+<head>
+  <title>Reference: Testing percentage gap resolution in flex containers</title>
+  <link rel="author" title="Mihir Iyer" href="mailto:miyer@mozilla.com">
+  <meta charset="utf-8">
+  <style>
+    .flexContainer {
+      display: flex;
+      border: 2px solid black;
+      column-gap: 10px;
+      align-content: start;
+      justify-content: start;
+      margin-top: 20px;
+    }
+    .item {
+      border: 1px solid blue;
+      background: yellow;
+      width: 48px;
+      height: 48px;
+      flex: none;
+    }
+    .vertLR {
+      writing-mode: vertical-lr;
+    }
+    .rowWrap {
+      flex-flow: row wrap;
+    }
+    .colWrap {
+      flex-flow: column wrap;
+    }
+    .w50 {
+      width: 50px;
+    }
+    .h100 {
+      height: 100px;
+    }
+    .w100 {
+      width: 100px;
+    }
+    .noWrap {
+      flex-wrap: nowrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="flexContainer rowWrap w50 h100">
+    <div class="item"></div>
+    <div class="item"></div>
+  </div>
+  <div class="flexContainer colWrap w50 h100 noWrap">
+    <div class="item"></div>
+    <div class="item"></div>
+  </div>
+  <div class="flexContainer vertLR rowWrap h100 w100">
+    <div class="item"></div>
+    <div class="item"></div>
+  </div>
+  <div class="flexContainer vertLR colWrap w100 noWrap">
+    <div class="item"></div>
+    <div class="item"></div>
+  </div>
+</body>
+</html>

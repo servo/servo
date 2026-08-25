@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=author href="mailto:skobes@chromium.org">
+<link rel=help href="https://html.spec.whatwg.org/multipage/interactive-elements.html#the-dialog-element">
+<link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=403136">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+body {
+  margin: 0;
+}
+.spacer {
+  height: 500px;
+}
+dialog {
+  border: 0;
+  margin: 0;
+  padding: 1px;
+}
+</style>
+<div class="spacer"></div>
+<dialog>
+  <div class="spacer"></div>
+</dialog>
+
+<script>
+test(() => {
+  document.querySelector('dialog').showModal();
+  assert_equals(document.scrollingElement.scrollHeight, window.innerHeight);
+}, 'dialogs should be centered before computing overflow.');
+</script>

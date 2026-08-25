@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>CSS Test: block-in-inline negative margin-bottom collapses with positive margin-top of following sibling</title>
+<link rel="help" href="https://www.w3.org/TR/CSS21/visuren.html#anonymous-block-level">
+<link rel="help" href="https://www.w3.org/TR/CSS21/box.html#collapsing-margins">
+<link rel="match" href="block-in-inline-negative-mb-collapses-with-positive-mt-ref.html">
+<meta name="assert" content="When a block-in-inline has negative margin-bottom and the following sibling has positive margin-top, the collapsed margin is positive_max - negative_max.">
+<style>
+.container { width: 100px; }
+.first { width: 100px; height: 20px; margin-bottom: -20px; background: blue; }
+.second { width: 100px; height: 20px; margin-top: 50px; background: green; }
+</style>
+<p>Blue rectangle, 30px gap (50 - 20), green rectangle.</p>
+<div class="container">
+    <span><div class="first"></div></span>
+    <span><div class="second"></div></span>
+</div>

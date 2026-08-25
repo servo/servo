@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>WebVTT rendering, basic</title>
+<link rel="match" href="basic-ref.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<link rel="stylesheet" href="support/webvtt-test.css">
+<script src="/common/reftest-wait.js"></script>
+<video autoplay>
+    <source src="/media/white.webm" type="video/webm">
+    <source src="/media/white.mp4" type="video/mp4">
+    <track src="support/test.vtt">
+    <script>
+    document.getElementsByTagName('track')[0].track.mode = 'showing';
+    waitForActiveCueAndTakeScreenshot();
+    </script>
+</video>
+</html>

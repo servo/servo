@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>CSS Test: border-block and border-inline logical properties in different writing modes</title>
+<link rel="author" title="Manish Goregaokar" href="mailto:manishearth@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#logical-to-physical">
+<link rel="match" href="logical-physical-mapping-001-ref.html">
+<style>
+#block-start div.outer div {
+  border-block-start: dotted 2px orange;
+}
+#block-end div.outer div {
+  border-block-end: dotted 2px orange;
+}
+#inline-start div.outer div {
+  border-inline-start: dotted 2px orange;
+}
+#inline-end div.outer div {
+  border-inline-end: dotted 2px orange;
+}
+
+#body tr td:nth-child(2) div {
+  writing-mode: horizontal-tb;
+}
+#body tr td:nth-child(3) div {
+  writing-mode: horizontal-tb;
+}
+#body tr td:nth-child(4) div {
+  writing-mode: vertical-rl;
+}
+#body tr td:nth-child(5) div {
+  writing-mode: vertical-rl;
+}
+#body tr td:nth-child(6) div {
+  writing-mode: vertical-lr;
+}
+#body tr td:nth-child(7) div {
+  writing-mode: vertical-lr;
+}
+#body tr td:nth-child(8) div {
+  writing-mode: sideways-lr;
+}
+#body tr td:nth-child(9) div {
+  writing-mode: sideways-lr;
+}
+
+
+#body tr td:nth-child(2n+2) div {
+  direction: ltr;
+}
+#body tr td:nth-child(2n+3) div {
+  direction: rtl;
+}
+
+
+td {
+  padding: 5px;
+  font-size: 13px;
+  background-color: silver;
+  width: 70px;
+  height: 70px;
+}
+
+
+.top {
+  border-bottom: 2px dotted blue;
+}
+.right {
+  border-left: 2px dotted blue;
+}
+
+.bottom {
+  border-top: 2px dotted blue;
+}
+.left {
+  border-right: 2px dotted blue;
+}
+</style>
+</head>
+<body>
+<p>
+  Test passes if orange dots are opposite to the blue dots in each cell. Orange dots should be on the (physical) side specified by the text in the cell.
+</p>
+<table>
+<thead>
+  <tr><th>writing mode</th><th colspan=2>horizontal-tb</th><th colspan=2>vertical-rl</th><th colspan=2>vertical-lr</th><th colspan=2>sideways-lr</th></tr>
+  <tr><th>direction</th><th>ltr</th><th>rtl</th><th>ltr</th><th>rtl</th><th>ltr</th><th>rtl</th><th>ltr</th><th>rtl</th></tr>
+</thead>
+<tbody id=body>
+  <tr id=block-start><th>block-start</th>   <td><div class=outer><div class=top>top</div></div></td><td><div class=outer><div class=top>top</div></div></td><td><div class=outer><div class=right>right</div></div></td><td><div class=outer><div class=right>right</div></div></td><td><div class=outer><div class=left>left</div></div></td><td><div class=outer><div class=left>left</div></div></td><td><div class=outer><div class=left>left</div></div></td><td><div class=outer><div class=left>left</div></div></td></tr>
+  <tr id=block-end><th>block-end</th>       <td><div class=outer><div class=bottom>bottom</div></div></td><td><div class=outer><div class=bottom>bottom</div></div></td><td><div class=outer><div class=left>left</div></div></td><td><div class=outer><div class=left>left</div></div></td><td><div class=outer><div class=right>right</div></div></td><td><div class=outer><div class=right>right</div></div></td><td><div class=outer><div class=right>right</div></div></td><td><div class=outer><div class=right>right</div></div></td></tr>
+  <tr id=inline-start><th>inline-start</th> <td><div class=outer><div class=left>left</div></div></td><td><div class=outer><div class=right>right</div></div></td><td><div class=outer><div class=top>top</div></div></td><td><div class=outer><div class=bottom>bottom</div></div></td><td><div class=outer><div class=top>top</div></div></td><td><div class=outer><div class=bottom>bottom</div></div></td><td><div class=outer><div class=bottom>bottom</div></div></td><td><div class=outer><div class=top>top</div></div></td></tr>
+  <tr id=inline-end><th>inline-end</th>     <td><div class=outer><div class=right>right</div></div></td><td><div class=outer><div class=left>left</div></div></td><td><div class=outer><div class=bottom>bottom</div></div></td><td><div class=outer><div class=top>top</div></div></td><td><div class=outer><div class=bottom>bottom</div></div></td><td><div class=outer><div class=top>top</div></div></td><td><div class=outer><div class=top>top</div></div></td><td><div class=outer><div class=bottom>bottom</div></div></td></tr>
+</tbody>
+</table>
+
+</body>
+</html>

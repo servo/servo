@@ -1,0 +1,2 @@
+Permissions-Policy: camera=();report-to=camera-endpoint, microphone=();report-to=microphone-endpoint
+Reporting-Endpoints: camera-endpoint="https://{{host}}:{{ports[https][0]}}/reporting/resources/report.py?reportID=6e0f343f-0a7a-4fee-82d9-00eb64531c26", microphone-endpoint="https://{{host}}:{{ports[https][0]}}/reporting/resources/report.py?reportID=c63eecea-490b-4c38-8c4b-d72ecccd4e31"

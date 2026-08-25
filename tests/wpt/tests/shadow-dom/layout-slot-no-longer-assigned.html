@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>Layout using slot elements</title>
+<link rel="author" title="Hayato Ito" href="mailto:hayato@google.com"/>
+<link rel="help" href="https://dom.spec.whatwg.org/#shadow-tree-slots">
+<link rel="match" href="reference/empty.html"/>
+<div id="host"></div>
+<script>
+const host = document.querySelector('#host');
+const sr = host.attachShadow({ mode: 'open' });
+sr.innerHTML = '<slot name=s1></slot>'
+host.innerHTML = '<div id=d1 slot=s1></div>';
+
+document.body.offsetLeft;
+document.querySelector('#d1').setAttribute('slot', 's2');
+</script>

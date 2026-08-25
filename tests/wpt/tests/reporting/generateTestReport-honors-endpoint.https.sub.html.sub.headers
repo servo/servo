@@ -1,0 +1,1 @@
+Reporting-Endpoints: default="https://{{host}}:{{ports[https][0]}}/reporting/resources/report.py?reportID=41534b09-65b2-498a-9fd3-104281ed63ce"

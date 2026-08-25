@@ -1,0 +1,3 @@
+rules:
+- string-compilation-base-url-*: [base]
+- "*": [js-modules]

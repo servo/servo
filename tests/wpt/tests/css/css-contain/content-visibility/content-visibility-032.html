@@ -1,0 +1,27 @@
+<!doctype HTML>
+<html class="reftest-wait">
+<meta charset="utf8">
+<title>Content Visibility: hidden iframe, size changes</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<link rel="match" href="content-visibility-032-ref.html">
+<meta name="assert" content="content-visibility hidden iframes can change size.">
+
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+.hidden {
+  content-visibility: hidden;
+}
+</style>
+<p>Test fails if the box below is square.</p>
+<iframe class=hidden id=frame width=200 height=200 srcdoc='Lorem ipsum'></iframe>
+
+<script>
+async function runTest() {
+  document.getElementById("frame").height = 300;
+  requestAnimationFrame(takeScreenshot);
+}
+
+onload = () => { requestAnimationFrame(runTest); };
+</script>

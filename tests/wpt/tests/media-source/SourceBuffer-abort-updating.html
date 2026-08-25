@@ -1,0 +1,92 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset='utf-8'>
+  <title>Check SourceBuffer#abort() when the updating attribute is true</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id="log"></div>
+
+<script>
+var contents = {'/media/white.webm': 'video/webm; codecs="vorbis,vp8"',
+                '/media/white.mp4' : 'video/mp4'};
+
+function GET(url, processBody) {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', url, true);
+    xhr.responseType = 'arraybuffer';
+    xhr.send();
+    xhr.onload = function(e) {
+        if (xhr.status != 200) {
+            alert("Unexpected status code " + xhr.status + " for " + url);
+            return false;
+        }
+        processBody(new Uint8Array(xhr.response));
+    };
+}
+//check the browser supports the MIME used in this test
+function isTypeSupported(mime) {
+    if(!MediaSource.isTypeSupported(mime)) {
+        this.step(function() {
+            assert_unreached("Browser doesn't support the MIME used in this test: " + mime);
+        });
+        this.done();
+        return false;
+    }
+    return true;
+}
+function mediaTest(file, mime) {
+    async_test(function(t) {
+        if(!isTypeSupported.bind(t)(mime)) {
+            return;
+        }
+        GET(file, function(data) {
+            var mediaSource = new MediaSource();
+            var num_updateend = 0;
+            var events = [];
+            mediaSource.addEventListener('sourceopen', t.step_func(function(e) {
+                var sourceBuffer = mediaSource.addSourceBuffer(mime);
+                assert_equals(sourceBuffer.updating, false);
+                sourceBuffer.addEventListener('updatestart', t.step_func(function(e) {
+                    events.push('updatestart');
+                    //abort when sourceBuffer#updating is true
+                    sourceBuffer.abort();
+
+                    assert_equals(sourceBuffer.updating, false,
+                                  'Check updating value after calling abort.');
+                    assert_equals(sourceBuffer.appendWindowStart, 0);
+                    assert_equals(sourceBuffer.appendWindowEnd, Number.POSITIVE_INFINITY);
+                }));
+                sourceBuffer.addEventListener('update', t.step_func(function(e) {
+                    assert_unreached("Can't touch this");
+                }));
+                sourceBuffer.addEventListener('updateend', function(e) {
+                    events.push('updateend');
+                    mediaSource.endOfStream();
+                });
+                sourceBuffer.addEventListener('abort', function(e) {
+                    events.push('abort');
+                });
+                sourceBuffer.addEventListener('error', t.step_func(function(e) {
+                    assert_unreached("Can't touch this");
+                }));
+                sourceBuffer.appendBuffer(data);
+            }));
+            mediaSource.addEventListener('sourceended', t.step_func_done(function(e) {
+                assert_array_equals(events,
+                                    ['updatestart', 'abort', 'updateend'],
+                                    'Check the sequence of fired events.');
+            }));
+            var video = document.createElement('video');
+            video.src = window.URL.createObjectURL(mediaSource);
+        });
+    }, 'SourceBuffer#abort() (' + mime + ') : Check the algorithm when the updating attribute is true.');
+}
+for(var file in contents) {
+    mediaTest(file, contents[file]);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,2 @@
+rules:
+- "**": [local-network-access]

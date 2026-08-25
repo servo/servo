@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>CSS Flexbox: column-* properties are ignored.</title>
+<link rel="stylesheet" href="support/flexbox.css">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#flex-containers">
+<link rel="help" href="https://drafts.csswg.org/css-multicol-1/#propdef-column-count">
+<link rel="match" href="reference/flexbox-with-multi-column-property-ref.html">
+<meta name="assert" content="This test ensures that column-* properties (in the Multicol module) have no effect on a flex container."/>
+<style>
+.flexbox, .inline-flexbox {
+    column-count: 2;
+    column-gap: 100px;
+    width: 20em;
+    font-kerning: none;
+}
+</style>
+<div class="flexbox">
+AAAAAAAAAA BBBBBBBBBB CCCCCCCCCC DDDDDDDDDD
+</div>
+
+<div class="inline-flexbox">
+AAAAAAAAAA BBBBBBBBBB CCCCCCCCCC DDDDDDDDDD
+</div>

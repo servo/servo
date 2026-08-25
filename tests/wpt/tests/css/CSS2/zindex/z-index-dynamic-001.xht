@@ -1,0 +1,57 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: Z-index - dynamically setting z-index to bring an element from back to in front of</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" title="Section 9.9.1 Specifying the stack level: the 'z-index' property" href="http://www.w3.org/TR/CSS21/visuren.html#z-index" />
+  <link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+  <meta http-equiv="Content-Script-Type" content="text/javascript" />
+  <meta content="dom" name="flags" />
+  <meta content="Setting the 'z-index' property of a positioned element can bring it from behind the surface on a lower stack level to a greater stack level passing it in front of another element painted on the surface." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  #test
+  {
+  background-color: green;
+  display: block;
+  z-index: -1;
+  }
+
+  #red-layer
+  {
+  background-color: red;
+  top: -100px;
+  z-index: auto;
+  }
+
+  #test, #red-layer
+  {
+  height: 100px;
+  position: relative;
+  width: 100px;
+  }
+  ]]></style>
+
+  <script type="text/javascript"><![CDATA[
+  function fromBottomToTopOfStack()
+  {
+  document.getElementById("test").style.zIndex = 1;
+  }
+  ]]></script>
+
+ </head>
+
+ <body onload="fromBottomToTopOfStack();">
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+  <div><span id="test"></span></div>
+
+  <div id="red-layer"></div>
+
+ </body>
+</html>

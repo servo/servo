@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+async_test(t => {
+  function workerCode(origin) {
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', origin + '/xhr/resources/image.gif?pipe=trickle(100:d2)', true);
+    xhr.responseType = 'blob';
+    xhr.send();
+    postMessage('sent');
+  }
+
+  const workerBlob = new Blob([workerCode.toString() + ";workerCode('" + location.origin + "');"], {type:"application/javascript"});
+  const w = new Worker(URL.createObjectURL(workerBlob));
+  w.onmessage = t.step_func(e => {
+    assert_equals(e.data, 'sent');
+    t.step_timeout(t.step_func(() => {
+      w.terminate();
+      t.step_timeout(t.step_func_done(() => {}), 500);
+    }, 100));
+  });
+}, 'Terminating a worker with a XHR in progress doesn\'t crash');
+</script>

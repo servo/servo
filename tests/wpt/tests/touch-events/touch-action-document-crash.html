@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html style="touch-action: pan-down">
+<video></video>
+<script>
+  // This test passes if it does not crash.
+  window.onload = () => {
+    document.open();
+    document.write('Done');
+    document.close();
+  }
+</script>

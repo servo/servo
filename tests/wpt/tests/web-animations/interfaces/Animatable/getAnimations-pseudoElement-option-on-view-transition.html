@@ -1,0 +1,109 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>getAnimations pseudoElement option on view transition pseudos</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations-1/#dom-animatable-getanimations">
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../css-animations/support/testcommon.js"></script>
+<style>
+@keyframes css-anim {}
+
+/* Override UA stylesheet to avoid any impact on our tests */
+:root {
+  view-transition-name: none;
+}
+:root::view-transition,
+:root::view-transition-group(*),
+:root::view-transition-image-pair(*),
+:root::view-transition-old(*),
+:root::view-transition-new(*) {
+  animation: unset;
+}
+
+:root::view-transition,
+:root::view-transition-group(test),
+:root::view-transition-image-pair(test) {
+  animation: css-anim 10s;
+}
+
+:root::before {
+  animation: css-anim 10s; content: '';
+}
+</style>
+<script>
+"use strict";
+
+promise_test(async t => {
+  document.documentElement.style.viewTransitionName = "test";
+
+  let viewTransition = document.startViewTransition(() => {});
+  t.add_cleanup(() => {
+    if (viewTransition) {
+      viewTransition.skipTransition();
+    }
+    document.documentElement.style.viewTransitionName = "none";
+  });
+
+  await viewTransition.ready;
+
+  const anims1 = document.documentElement.getAnimations({
+    pseudoElement: "::view-transition"
+  });
+  assert_equals(
+    anims1.length,
+    1,
+    "Returns view transition animation when pseudoElement is specified with pseudo"
+  );
+  assert_equals(
+    anims1[0].effect.pseudoElement,
+    "::view-transition",
+    "The returned animation targets ::view-transition"
+  );
+
+  const anims2 = document.documentElement.getAnimations({
+    pseudoElement: "::view-transition-group(test)"
+  });
+  assert_equals(
+    anims2.length,
+    1,
+    "Returns view transition animation when pseudoElement is specified with functional pseudo"
+  );
+  assert_equals(
+    anims2[0].effect.pseudoElement,
+    "::view-transition-group(test)",
+    "The returned animation targets ::view-transition-group(test)"
+  );
+
+  // If the result is 1, it failed to capture all the animations of subtree.
+  // If the result is 3, it captured all the animations of view transition pseudo elements.
+  // If the result is 4, it included animations on ::before as well.
+  const anims3 = document.documentElement.getAnimations({
+    pseudoElement: "::view-transition-group(test)", subtree: true
+  });
+  assert_equals(
+    anims3.length,
+    2,
+    "Returns view transition subtree's animations when the pseudo element and subtree: true are both specified"
+  );
+
+  const div = document.createElement('div');
+  const anims4 = div.getAnimations({
+    pseudoElement: "::view-transition-group(test)"
+  });
+  assert_equals(
+    anims4.length,
+    0,
+    "Returns no animation when view transition pseudo element is specified but it's called on not document root"
+  );
+  const anims5 = div.getAnimations({
+    pseudoElement: "::view-transition-group(test)",
+    subtree: true,
+  });
+  assert_equals(
+    anims5.length,
+    0,
+    "Returns no animation when view transition pseudo element and subtree: true are specified but it's called on not document root"
+  );
+}, "Returns view transition animations with pseudoElement option");
+</script>

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<!-- Copyright © 2016 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<html>
+    <head>
+        <title>WebM muxed audio &amp; video with a video frame size change.</title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="mediasource-util.js"></script>
+        <script src="mediasource-config-changes.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script>
+            mediaSourceConfigChangeTest("webm", "av-384k-44100Hz-1ch-320x240-30fps-10kfr", "av-384k-44100Hz-1ch-640x480-30fps-10kfr", "Tests webm frame size changes in multiplexed content.");
+        </script>
+    </body>
+</html>

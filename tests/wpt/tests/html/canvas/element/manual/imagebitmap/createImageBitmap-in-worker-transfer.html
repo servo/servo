@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>createImageBitmap in worker and transfer</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+promise_test(function(t) {
+    return new Promise(function(resolve, reject) {
+        var worker = new Worker("createImageBitmap-worker.js");
+        worker.addEventListener("message", function(evt) {
+            var bitmap = evt.data;
+            assert_equals(bitmap.width, 20);
+            assert_equals(bitmap.height, 20);
+            resolve();
+        });
+        worker.postMessage('test');
+    });
+}, 'Transfer ImageBitmap created in worker');
+</script>

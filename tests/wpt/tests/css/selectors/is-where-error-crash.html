@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<title>CSS Selectors: :is() and :where() error crash</title>
+<link rel="help" href="https://crbug.com/464739072">
+<style>
+:is(c|l:i) {}
+:where(c|l:i) {}
+</style>
+<p>Test passes if page does not crash.</p>

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<head>
+<title>A loading=lazy image in a below-viewport cross-origin iframe loads only
+       when the cross-origin iframe is scrolled into view</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/urls-and-fetching.html#lazy-loading-attributes">
+<link rel="author" title="Dom Farolino" href="mailto:dom@chromium.org">
+<link rel="author" title="Rob Buis" href="mailto:rbuis@igalia.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+</head>
+
+<div style="height:1000vh;"></div>
+<iframe id="iframe" width="500px" height="500px"></iframe>
+
+<script>
+promise_test(t => {
+  iframe.src =
+    get_host_info().HTTP_NOTSAMESITE_ORIGIN +
+    new URL("resources/", self.location).pathname +
+    "image-loading-lazy-in-viewport.html";
+
+  // Wait for the frame to report that its window load event fired.
+  return new Promise(resolve => {
+    window.addEventListener("message",
+                            event => resolve(event.data), {once: true});
+  }).then(iframe_message => {
+    assert_equals(iframe_message, "window_loaded",
+                  "The loading=lazy image should not block the iframe's load " +
+                  "event");
+
+    // Scroll the iframe into view, which also puts the image into view.
+    iframe.scrollIntoView();
+
+    return new Promise(resolve => {
+      window.addEventListener("message", event => resolve(event.data));
+    });
+  }).then(iframe_message => {
+    assert_equals(iframe_message, "image_loaded",
+                  "The below-viewport loading=lazy image should load only " +
+                  "once scrolled into the viewport");
+
+  }); // new Promise().
+
+}); // promise_test().
+</script>

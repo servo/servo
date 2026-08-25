@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>linear-gradient() mask-image on &lt;rect> in zoomed SVG</title>
+<link rel="match" href="../../reference/ref-filled-green-100px-square-only.html">
+<link rel="help" href="https://drafts.fxtf.org/css-masking/#svg-masks">
+<style>
+  svg {
+    zoom: 2;
+  }
+</style>
+<p>Test passes if there is a filled green square.</p>
+<svg>
+  <rect width="50" height="100" fill="green"
+        style="mask-image: linear-gradient(black 50px, transparent 50px)"/>
+</svg>

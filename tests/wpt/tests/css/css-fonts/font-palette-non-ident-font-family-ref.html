@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Tests that a non-ident font family name is handled correctly</title>
+<link rel="help" href="https://drafts.csswg.org/css-fonts/#font-family-2-desc">
+<style>
+@font-face {
+    font-family: "COLR-test-font";
+    src: url("resources/COLR-palettes-test-font.ttf") format("truetype");
+}
+
+@font-palette-values --MyPalette {
+    font-family: "COLR-test-font";
+    base-palette: 1;
+}
+</style>
+</head>
+<body>
+<div style="font: 48px 'COLR-test-font'; font-palette: --MyPalette;">A</div>
+</body>
+</html>

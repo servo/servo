@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<div id="target"></div>
+<iframe id="i" srcdoc="<html><body>Hello</body></html>"></iframe>
+<script>
+
+assert_true(document.prerendering);
+
+const params = new URLSearchParams(location.search);
+const uid = params.get('uid');
+
+i.contentWindow.onbeforeunload = function(e) {
+  // Call preventDefault() or set `returnValue` to trigger the prompt
+  // on beforeunload event.
+  // The prompt actually doesn't show up in a prerendered page and
+  // unload proceeds.
+  e.preventDefault();
+  e.returnValue = 'You have a return value.';
+}
+
+async function navigateWindowLocation() {
+  const bc = new PrerenderChannel('inner-channel', uid);
+  const promise = new Promise(resolve => {
+    bc.addEventListener('message', e => {
+      resolve(e.data);
+      bc.close();
+    }, {
+      once: true
+    });
+  });
+  i.contentWindow.location.href = `prompt-by-before-unload-inner-frame.html?uid=${uid}`;
+  return promise;
+}
+
+async function asyncPromptOnBeforeUnload() {
+  const bc = new PrerenderChannel('prerender-channel', uid);
+  try {
+    const result = await navigateWindowLocation();
+    if (result == 'a new page is loaded')
+      bc.postMessage('unloaded without the prompt by beforeunload.');
+    else
+      bc.postMessage('unexpected result.');
+  } catch (err) {
+    bc.postMessage(err);
+  } finally {
+    bc.close();
+  }
+}
+
+asyncPromptOnBeforeUnload();
+</script>

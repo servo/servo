@@ -1,0 +1,71 @@
+// Copyright 2009 the Sputnik authors.  All rights reserved.
+// This code is governed by the BSD license found in the LICENSE file.
+
+/*---
+info: |
+    0, null, undefined, false, empty string, NaN in expression is evaluated
+    to false
+es5id: 12.5_A1.1_T2
+description: Using "if/else" construction
+---*/
+
+var c=0;
+//////////////////////////////////////////////////////////////////////////////
+//CHECK#1
+if(0)
+	throw new Test262Error('#1.1: 0 in expression is evaluated to false ');
+else
+  c++;
+if (c!=1) throw new Test262Error('#1.2: else branch don`t execute');
+//
+//////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+//CHECK#2
+if(false)
+    throw new Test262Error('#2.1: false in expression is evaluated to false ');
+else
+  c++;
+if (c!=2) throw new Test262Error('#2.2: else branch don`t execute');
+//
+//////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+//CHECK#3
+if(null)
+	throw new Test262Error('#3.1: null in expression is evaluated to false ');
+else
+  c++;
+if (c!=3) throw new Test262Error('#3.2: else branch don`t execute');
+//
+//////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+//CHECK#4
+if(undefined)
+	throw new Test262Error('#4.1: undefined in expression is evaluated to false ');
+else
+  c++;
+if (c!=4) throw new Test262Error('#4.2: else branch don`t execute');
+//
+//////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+//CHECK#5
+if("")
+    throw new Test262Error('#5.1: empty string in expression is evaluated to false ');
+else
+  c++;
+if (c!=5) throw new Test262Error('#5.2: else branch don`t execute');
+//
+//////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+//CHECK#6
+if(NaN)
+    throw new Test262Error('#6.1: NaN in expression is evaluated to false ');
+else
+  c++;
+if (c!=6) throw new Test262Error('#6.2: else branch don`t execute');
+//
+//////////////////////////////////////////////////////////////////////////////

@@ -1,0 +1,4 @@
+rules:
+- custom-property-rule-ambiguity.html: [nesting]
+- trailing-braces.html: [nesting]
+- var-with-blocks.html: [nesting]

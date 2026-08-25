@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<title>anchor-center overflow adjustments (anchored < inset area)</title>
+<link rel="help" href="https://www.w3.org/TR/css-anchor-position-1/#anchor-center">
+<link rel="help" href="https://www.w3.org/TR/css-align-3/#auto-safety">
+<link rel="match" href="anchor-center-overflow-001-ref.html">
+<link rel="author" name="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact">
+
+<style>
+  .container {
+    width: 80px; height: 80px;
+    border: solid gray;
+    margin: 6px;
+    position: relative;
+    anchor-scope: --tl, --tr, --br, --bt;
+    float: left;
+  }
+
+  .anchor {
+    border: solid;
+    margin: 16px;
+    position: absolute;
+  }
+  .anchor.tl { anchor-name: --tl; top: 0; left: 0; }
+  .anchor.tr { anchor-name: --tr; top: 0; right: 0; }
+  .anchor.bl { anchor-name: --bl; bottom: 0; left: 0; }
+  .anchor.br { anchor-name: --br; bottom: 0; right: 0; }
+
+  .anchored {
+    width: 40px; height: 40px;
+    border: solid;
+    position: absolute;
+    place-self: anchor-center;
+    margin: 2px;
+    inset: 6px;
+  }
+  .anchored.tl { position-anchor: --tl; }
+  .anchored.tr { position-anchor: --tr; }
+  .anchored.bl { position-anchor: --bl; }
+  .anchored.br { position-anchor: --br; }
+
+  .tl { border-color: blue; }
+  .tr { border-color: aqua; }
+  .bl { border-color: fuchsia; }
+  .br { border-color: orange; }
+
+  body > div { clear: both; }
+  .mix .anchored.tl { writing-mode: horizontal-tb; direction: rtl; }
+  .mix .anchored.tr { writing-mode: vertical-rl; direction: ltr; }
+  .mix .anchored.bl { writing-mode: vertical-lr; direciton: rtl; }
+  .mix .anchored.br { writing-mode: sideways-lr; direction: ltr; }
+</style>
+
+<div class=straight>
+  <div class=container style="writing-mode: horizontal-tb; direction: ltr">
+    <div class="anchor tl"></div><div class="anchored tl"></div>
+    <div class="anchor tr"></div><div class="anchored tr"></div>
+    <div class="anchor bl"></div><div class="anchored bl"></div>
+    <div class="anchor br"></div><div class="anchored br"></div>
+  </div>
+
+  <div class=container style="writing-mode: horizontal-tb; direction: rtl">
+    <div class="anchor tl"></div><div class="anchored tl"></div>
+    <div class="anchor tr"></div><div class="anchored tr"></div>
+    <div class="anchor bl"></div><div class="anchored bl"></div>
+    <div class="anchor br"></div><div class="anchored br"></div>
+  </div>
+
+  <div class=container style="writing-mode: vertical-lr; direction: ltr">
+    <div class="anchor tl"></div><div class="anchored tl"></div>
+    <div class="anchor tr"></div><div class="anchored tr"></div>
+    <div class="anchor bl"></div><div class="anchored bl"></div>
+    <div class="anchor br"></div><div class="anchored br"></div>
+  </div>
+
+  <div class=container style="writing-mode: vertical-lr; direction: rtl">
+    <div class="anchor tl"></div><div class="anchored tl"></div>
+    <div class="anchor tr"></div><div class="anchored tr"></div>
+    <div class="anchor bl"></div><div class="anchored bl"></div>
+    <div class="anchor br"></div><div class="anchored br"></div>
+  </div>
+
+  <div class=container style="writing-mode: vertical-rl; direction: ltr">
+    <div class="anchor tl"></div><div class="anchored tl"></div>
+    <div class="anchor tr"></div><div class="anchored tr"></div>
+    <div class="anchor bl"></div><div class="anchored bl"></div>
+    <div class="anchor br"></div><div class="anchored br"></div>
+  </div>
+
+  <div class=container style="writing-mode: vertical-rl; direction: rtl">
+    <div class="anchor tl"></div><div class="anchored tl"></div>
+    <div class="anchor tr"></div><div class="anchored tr"></div>
+    <div class="anchor bl"></div><div class="anchored bl"></div>
+    <div class="anchor br"></div><div class="anchored br"></div>
+  </div>
+</div>
+
+<div class=mix>
+  <div class=container style="writing-mode: horizontal-tb; direction: ltr">
+    <div class="anchor tl"></div><div class="anchored tl"></div>
+    <div class="anchor tr"></div><div class="anchored tr"></div>
+    <div class="anchor bl"></div><div class="anchored bl"></div>
+    <div class="anchor br"></div><div class="anchored br"></div>
+  </div>
+
+  <div class=container style="writing-mode: horizontal-tb; direction: rtl">
+    <div class="anchor tl"></div><div class="anchored tl"></div>
+    <div class="anchor tr"></div><div class="anchored tr"></div>
+    <div class="anchor bl"></div><div class="anchored bl"></div>
+    <div class="anchor br"></div><div class="anchored br"></div>
+  </div>
+
+  <div class=container style="writing-mode: vertical-lr; direction: ltr">
+    <div class="anchor tl"></div><div class="anchored tl"></div>
+    <div class="anchor tr"></div><div class="anchored tr"></div>
+    <div class="anchor bl"></div><div class="anchored bl"></div>
+    <div class="anchor br"></div><div class="anchored br"></div>
+  </div>
+
+  <div class=container style="writing-mode: vertical-lr; direction: rtl">
+    <div class="anchor tl"></div><div class="anchored tl"></div>
+    <div class="anchor tr"></div><div class="anchored tr"></div>
+    <div class="anchor bl"></div><div class="anchored bl"></div>
+    <div class="anchor br"></div><div class="anchored br"></div>
+  </div>
+
+  <div class=container style="writing-mode: vertical-rl; direction: ltr">
+    <div class="anchor tl"></div><div class="anchored tl"></div>
+    <div class="anchor tr"></div><div class="anchored tr"></div>
+    <div class="anchor bl"></div><div class="anchored bl"></div>
+    <div class="anchor br"></div><div class="anchored br"></div>
+  </div>
+
+  <div class=container style="writing-mode: vertical-rl; direction: rtl">
+    <div class="anchor tl"></div><div class="anchored tl"></div>
+    <div class="anchor tr"></div><div class="anchored tr"></div>
+    <div class="anchor bl"></div><div class="anchored bl"></div>
+    <div class="anchor br"></div><div class="anchored br"></div>
+  </div>
+</div>
+

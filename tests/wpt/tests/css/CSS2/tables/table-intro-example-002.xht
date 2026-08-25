@@ -1,0 +1,50 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Introduction to Tables (vertical-align)</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#tables-intro" />
+        <meta name="assert" content="'vertical-align' can be set on table cells (example from section 17.1)." />
+        <style type="text/css">
+            caption
+            {
+                color: blue;
+            }
+            td
+            {
+                border: 1px solid blue;
+                height: 5em;
+                vertical-align: middle;
+                width: 10em;
+            }
+            th
+            {
+                border: 1px solid blue;
+                height: 5em;
+                vertical-align: baseline;
+                width: 10em;
+             }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the text in the left-most box column is at the very top of the column and text in the other two columns is vertically centered.</p>
+        <table>
+            <caption>This is a simple 3x3 table</caption>
+            <tr id="row1">
+                <th>Header 1</th>
+                <td>Cell 1</td>
+                <td>Cell 2</td>
+            </tr>
+            <tr id="row2">
+                <th>Header 2</th>
+                <td>Cell 3</td>
+                <td>Cell 4</td>
+            </tr>
+            <tr id="row3">
+                <th>Header 3</th>
+                <td>Cell 5</td>
+                <td>Cell 6</td>
+            </tr>
+        </table>
+    </body>
+ </html>

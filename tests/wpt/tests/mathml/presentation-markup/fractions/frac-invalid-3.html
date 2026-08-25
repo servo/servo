@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>mfrac with three children</title>
+<link rel="help" href="https://w3c.github.io/mathml-core/#mfrac">
+<meta name="assert" content="An mfrac with no children should render using an empty mrow.">
+<link rel="match" href="frac-invalid-3-ref.html">
+</head>
+<body>
+  <p>This test passes if you see a single rectangle.</p>
+  <math>
+    <mfrac>
+      <mspace width="50px" height="200px" style="background: green"></mspace>
+      <mspace width="50px" height="200px" style="background: green"></mspace>
+      <mspace width="100px" height="200px" style="background: green"></mspace>
+    </mfrac>
+  </math>
+</body>
+</html>

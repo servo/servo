@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<title>Layout Instability: shift in pointerdown becoming scroll</title>
+<link rel="help" href="https://wicg.github.io/layout-instability/" />
+<style>
+
+body { margin: 0; height: 2000px; }
+#box {
+  left: 0px;
+  top: 0px;
+  width: 400px;
+  height: 500px;
+  background: yellow;
+  position: relative;
+}
+
+</style>
+<div id="box"></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/util.js"></script>
+<script>
+
+const box = document.querySelector("#box");
+box.addEventListener("pointerdown", (e) => {
+  // Generate a layout shift before we know what type of input this pointer
+  // event sequence will become.
+  box.style.top = "100px";
+  e.preventDefault();
+});
+
+generateScrollSequence = () => new test_driver.Actions()
+    .addPointer("tp1", "touch")
+    .pointerMove(0, 100, {sourceName: "tp1"})
+    .pointerDown({sourceName: "tp1"})
+    .pointerMove(0, 0, {sourceName: "tp1"})
+    .pause(100)
+    .pointerUp({sourceName: "tp1"})
+    .pause(100);
+
+promise_test(async () => {
+  const watcher = new ScoreWatcher;
+
+  // Wait for the initial render to complete.
+  await waitForAnimationFrames(2);
+
+  // Send pointer events for a touch scroll.
+  await generateScrollSequence().send();
+
+  // The box is 400 x 500 and moves by 100px.
+  const expectedScore = computeExpectedScore(400 * (500 + 100), 100);
+
+  // Both scores should increase (scroll doesn't count as input for the purpose
+  // of the LayoutShift.hadRecentInput bit).
+  assert_equals(watcher.score, expectedScore);
+  assert_equals(watcher.scoreWithInputExclusion, expectedScore);
+
+}, "Shift in pointerdown reported when it becomes a scroll.");
+
+</script>

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<title>CSS Positioned Layout Module Test: 'overlay' is transitioned in and out of 'auto'</title>
+<link rel="help" href="https://drafts.csswg.org/css-position-4/#overlay">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/popover.html">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #transition-in, #transition-out {
+    /* Force display:block both popover open or closed to not rely on
+       @starting-style or display transitions. */
+    display: block;
+  }
+  .enable-transitions :is(#transition-in, #transition-out) {
+    transition: overlay 60s step-end;
+    transition-behavior: allow-discrete;
+  }
+</style>
+<div id="container">
+  <div id="transition-in" popover></div>
+  <div id="transition-out" popover></div>
+</div>
+<script>
+  let transition_in = document.querySelector("#transition-in");
+  let transition_out = document.querySelector("#transition-out");
+
+  test(() => {
+    transition_out.showPopover();
+    assert_equals(getComputedStyle(transition_in).overlay, "none");
+    assert_equals(getComputedStyle(transition_out).overlay, "auto");
+  }, "Open the popover to be closed and verify computed overlay for both popovers");
+
+  container.className = "enable-transitions";
+
+  test(() => {
+    assert_true(transition_out.matches(':popover-open'));
+    assert_false(transition_in.matches(':popover-open'));
+    transition_in.showPopover();
+    assert_true(transition_in.matches(':popover-open'));
+    assert_false(transition_out.matches(':popover-open'));
+    assert_equals(getComputedStyle(transition_in).overlay, "none",
+       'Transition in should be delayed');
+    assert_equals(getComputedStyle(transition_out).overlay, "auto",
+       'Transition out should be delayed');
+  }, "Transition overlays");
+</script>

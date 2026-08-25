@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>JPEG XL integration reference: embed object iframe</title>
+
+<style>
+  .row {
+    display: flex;
+    gap: 8px;
+  }
+  embed,
+  object,
+  iframe {
+    width: 60px;
+    height: 60px;
+    border: 0;
+    image-rendering: pixelated;
+  }
+</style>
+
+<div class="row">
+  <embed src="resources/3x3_srgb_lossless.png" type="image/png">
+  <object data="resources/3x3_srgb_lossless.png" type="image/png"></object>
+  <iframe src="resources/3x3_srgb_lossless.png"></iframe>
+</div>

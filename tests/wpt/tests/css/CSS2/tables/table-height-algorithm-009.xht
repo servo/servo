@@ -1,0 +1,50 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Height value of 'auto' on a cell assigns it its content minimum height</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#height-layout" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="A 'height' value of 'auto' on a cell assigns it its content minimum height." />
+        <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+        <style type="text/css">
+            #reference
+            {
+                background: blue;
+                font: 20px/1em Ahem;
+                height: 10em;
+                width: 10em;
+            }
+            table
+            {
+                background: black;
+                border-spacing: 0;
+            }
+            td
+            {
+                height: auto;
+                padding: 0;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the boxes below are the same height.</p>
+        <div id="reference">
+            <table>
+                <tr>
+                    <td>XXXXX<br />
+                        XXXXX<br />
+                        XXXXX<br />
+                        XXXXX<br />
+                        XXXXX<br />
+                        XXXXX<br />
+                        XXXXX<br />
+                        XXXXX<br />
+                        XXXXX<br />
+                        XXXXX<br />
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </body>
+</html>

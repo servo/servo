@@ -1,0 +1,70 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes/#block-flow">
+<title>Button appearance native writing mode computed style</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<button id="horizontal-button">あいなき あいなき</button>
+<button id="horizontal-button-multiline">あいなき あいなき<br>あいなき</button>
+
+<input type="button" id="horizontal-input" value="あいなき あいなき">
+<input type="button" id="horizontal-input-multiline" value="あいなき あいなき&#10;あいなき">
+
+<button id="vertical-lr-button" style="writing-mode: vertical-lr">あいなき あいなき</button>
+<button id="vertical-rl-button" style="writing-mode: vertical-rl">あいなき あいなき</button>
+<button id="vertical-lr-button-multiline" style="writing-mode: vertical-lr">あいなき あいなき<br>あいなき</button>
+<button id="vertical-rl-button-multiline" style="writing-mode: vertical-rl">あいなき あいなき<br>あいなき</button>
+
+<input type="button" id="vertical-lr-input" style="writing-mode: vertical-lr" value="あいなき あいなき">
+<input type="button" id="vertical-rl-input" style="writing-mode: vertical-rl" value="あいなき あいなき">
+<input type="button" id="vertical-lr-input-multiline" style="writing-mode: vertical-lr" value="あいなき あいなき&#10;あいなき">
+<input type="button" id="vertical-rl-input-multiline" style="writing-mode: vertical-rl" value="あいなき あいなき&#10;あいなき">
+
+<script>
+for (const element of document.querySelectorAll("[id^='horizontal-']")) {
+    test(() => {
+        const style = getComputedStyle(element);
+        const blockSize = parseInt(style.blockSize, 10);
+        const inlineSize = parseInt(style.inlineSize, 10);
+        assert_not_equals(blockSize, 0);
+        assert_not_equals(inlineSize, 0);
+        assert_greater_than(inlineSize, blockSize);
+        assert_equals(style.blockSize, style.height);
+        assert_equals(style.inlineSize, style.width);
+    }, `${element.id} block size should match height and inline size should match width`);
+    if (!element.matches("[id$='-multiline']")) {
+        test(() => {
+            const multiline = document.querySelector(`#${element.id}-multiline`);
+            const style = getComputedStyle(element);
+            const multilineStyle = getComputedStyle(multiline);
+            assert_greater_than(parseInt(multilineStyle.height, 10), parseInt(style.height, 10));
+            assert_equals(multilineStyle.width, style.width);
+        }, `${element.id}'s height is less than its multi-line counterpart, but width is identical.`);
+    }
+}
+
+for (const element of document.querySelectorAll("[id^='vertical-']")) {
+    test(() => {
+        const style = getComputedStyle(element);
+        const blockSize = parseInt(style.blockSize, 10);
+        const inlineSize = parseInt(style.inlineSize, 10);
+        assert_not_equals(blockSize, 0);
+        assert_not_equals(inlineSize, 0);
+        assert_greater_than(inlineSize, blockSize);
+        assert_equals(style.blockSize, style.width);
+        assert_equals(style.inlineSize, style.height);
+    }, `${element.id} block size should match width and inline size should match height`);
+
+    if (!element.matches("[id$='-multiline']")) {
+        test(() => {
+            const multiline = document.querySelector(`#${element.id}-multiline`);
+            const style = getComputedStyle(element);
+            const multilineStyle = getComputedStyle(multiline);
+            assert_greater_than(parseInt(multilineStyle.width, 10), parseInt(style.width, 10));
+            assert_equals(multilineStyle.height, style.height);
+        }, `${element.id}'s width is less than its multi-line counterpart, but height is identical.`);
+    }
+}
+</script>

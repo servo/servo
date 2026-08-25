@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>WebMCP: getTools() retrieves declarative schema at registration time</title>
+<link rel="author" href="mailto:dom@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/helpers.js"></script>
+<body>
+
+<form toolname="search_tool" tooldescription="Search the web">
+  <input type="text" name="query" required toolparamdescription="The search query">
+  <input type="number" name="limit" toolparamdescription="Max results count">
+  <input type="checkbox" name="safe_search" toolparamdescription="Enable safe search filtering">
+</form>
+
+<script>
+  promise_test(async t => {
+    let expected_schema_obj = {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description: "The search query"
+        },
+        limit: {
+          type: "number",
+          multipleOf: 1,
+          description: "Max results count"
+        },
+        safe_search: {
+          type: "boolean",
+          description: "Enable safe search filtering"
+        }
+      },
+      required: ["query"]
+    };
+
+    const tool = await waitForFormToolSchemaToMatch(JSON.stringify(expected_schema_obj));
+
+    assert_equals(tool.name, "search_tool", "Tool name matches");
+    assert_equals(tool.description, "Search the web", "Tool description matches");
+  }, "WebMCP: getTools() retrieves declarative schema at registration time");
+</script>
+</body>

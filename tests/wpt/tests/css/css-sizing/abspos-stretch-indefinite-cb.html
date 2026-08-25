@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>position:absolute with height:stretch falls back when abs-pos containing block is indefinite</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#valdef-width-stretch">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#stretch-fit-sizing">
+<link rel="match" href="abspos-stretch-indefinite-cb-ref.html">
+<meta name="assert" content="When an out-of-flow element has height:stretch but its abs-pos containing block has an indefinite height, stretch does not resolve and the element falls back to its content size.">
+<style>
+html, body {
+    margin: 0;
+}
+.outer {
+    position: absolute;
+}
+.inner {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 200px;
+    height: stretch;
+    background: red;
+}
+img {
+    display: block;
+    height: 100%;
+}
+</style>
+<p>Test passes if there is no red rectangle visible.</p>
+<div class="outer">
+    <div class="inner"><img></div>
+</div>

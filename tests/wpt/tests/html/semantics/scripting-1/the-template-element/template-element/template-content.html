@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>HTML Templates: HTML elements in template content</title>
+<meta name="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
+<meta name="author" title="Aleksei Yu. Semenov" href="a.semenov@unipro.ru">
+<meta name="assert" content="Template may contain any element, except the html element, the head element, the body element, or the frameset element">
+<link rel="help" href="http://www.w3.org/TR/2013/WD-html-templates-20130214/#template-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src='/html/resources/common.js'></script>
+</head>
+<body>
+<div id="log"></div>
+<script type="text/javascript">
+
+HTML5_ELEMENTS.forEach(function(value) {
+    if (value !== 'body' && value !== 'html' && value !== 'head' && value !== 'frameset') {
+
+        test(function() {
+            var doc = newHTMLDocument();
+            var template = doc.createElement('template');
+            var element = doc.createElement(value);
+            template.content.appendChild(element);
+            var valueToTest = template.content.querySelector(value);
+
+            doc.body.appendChild(template);
+
+            assert_not_equals(valueToTest, null);
+        }, 'Template may contain ' + value + ' element');
+
+    }
+});
+
+
+
+var parameters = [];
+
+HTML5_ELEMENTS.forEach(function(value) {
+    if (value !== 'body' && value !== 'html' && value !== 'head' && value !== 'frameset') {
+
+        test(function() {
+            var doc = newHTMLDocument();
+
+            if (isVoidElement(value)) {
+                doc.body.innerHTML = '<template><' + value + '/></template>';
+            } else {
+                doc.body.innerHTML = '<template><' + value + '></' + value + '></template>';
+            }
+
+            var template = doc.querySelector('template');
+            var element = template.content.querySelector(value);
+
+            assert_not_equals(element, null);
+        }, 'Template may contain ' + value + ' element. '
+             + 'The template element and contents are added via body.innerHTML');
+
+    }
+});
+
+</script>
+</body>
+</html>

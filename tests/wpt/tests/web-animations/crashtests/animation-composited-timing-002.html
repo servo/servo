@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<meta charset="utf-8">
+<title>Animation with composited timing and large currentTime should not crash</title>
+<link rel="help" href="https://crbug.com/40166637">
+<div id="target"></div>
+<script>
+  const animation =
+      target.animate({ transform: ['scale(1)', 'scale(100)'] },
+                     { iterations: Infinity, duration: 1000 });
+  animation.ready.then(() => {
+    animation.currentTime = 1e30;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.documentElement.classList.remove('test-wait');
+      });
+    });
+  });
+</script>
+</html>

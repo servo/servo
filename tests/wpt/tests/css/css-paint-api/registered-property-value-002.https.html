@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Inherited values reach worklet</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-paint-api/">
+<link rel="match" href="parse-input-arguments-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+<script src="./resources/utils.js"></script>
+<body>
+<div id="outer">
+  <div id="target"></div>
+</div>
+<script>
+    try {
+      CSS.registerProperty({
+        name: '--prop',
+        syntax: '<length>',
+        initialValue: '0px',
+        inherits: true
+      });
+
+      outer.style.setProperty('--prop', '13px');
+
+      expectWorkletValue(target, '--prop', '[CSSUnitValue 13px]');
+    } catch(e) {
+      document.body.textContent = e;
+      takeScreenshot();
+    }
+</script>
+</body>
+</html>

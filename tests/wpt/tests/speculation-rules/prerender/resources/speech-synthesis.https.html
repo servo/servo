@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script src="/speculation-rules/prerender/resources/deferred-promise-utils.js"></script>
+<script src="webspeech.js"></script>
+
+<script>
+const params = new URLSearchParams(location.search);
+
+// The main test page (restriction-speech-synthesis.https.html) loads the
+// initiator page, then the initiator page will prerender itself with the
+// `prerendering` parameter.
+const isPrerendering = params.has('prerendering');
+
+if (!isPrerendering) {
+  loadInitiatorPage();
+} else {
+  const method = params.get('method');
+  const prerenderEventCollector = new PrerenderEventCollector();
+  const promise = new Promise((resolve, reject) => {
+    switch(method) {
+      case 'speak': {
+        const utter = new SpeechSynthesisUtterance('1');
+        // https://wicg.github.io/speech-api/#tts-methods
+        // This tests that speak() is completed after prerendering activation.
+        utter.onend = () => { resolve(); }
+        speechSynthesis.speak(utter);
+        break;
+      }
+      case 'cancel': {
+        const utter = new SpeechSynthesisUtterance('1');
+        // https://wicg.github.io/speech-api/#speechsynthesiserrorevent-attributes
+        // A cancel method call causes 'canceled' or 'interrupted'.
+        // This tests if one of them happens after prerendering activation.
+        utter.onerror = (e) => {
+          if (e.error == 'canceled' || e.error == 'interrupted')
+            resolve();
+        }
+        speechSynthesis.speak(utter);
+        speechSynthesis.cancel();
+        break;
+      }
+      case 'pause': {
+        const utter = new SpeechSynthesisUtterance('1');
+        utter.onpause = () => { resolve(); }
+        speechSynthesis.speak(utter);
+        speechSynthesis.pause();
+        // To reset the current status for the next test, it calls cancel().
+        speechSynthesis.cancel();
+        break;
+      }
+      case 'resume': {
+        const utter = new SpeechSynthesisUtterance('1');
+        utter.onresume = () => { resolve(); }
+        speechSynthesis.speak(utter);
+        speechSynthesis.pause();
+        speechSynthesis.resume();
+        break;
+      }
+    }
+  });
+  prerenderEventCollector.start(promise, `speechSynthesis.${method}`);
+}
+</script>

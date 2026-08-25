@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>flex-grow interpolation</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#flex-grow-property">
+<meta name="assert" content="flex-grow supports animation by computed value type">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+
+<style>
+.parent {
+  display: flex;
+  flex-grow: 3;
+}
+.target {
+  height: 10px;
+  background: black;
+  flex-grow: 1;
+}
+.filler {
+  height: 10px;
+  flex-grow: 1;
+}
+.expected {
+  background: green;
+}
+</style>
+
+<body>
+<template id="target-template">
+  <div class="parent">
+    <div class="target"></div>
+    <div class="filler"></div>
+  </div>
+</template>
+</body>
+
+<script>
+test_interpolation({
+  property: 'flex-grow',
+  from: neutralKeyframe,
+  to: '2',
+}, [
+  {at: -0.3, expect: '0.7'},
+  {at: 0, expect: '1'},
+  {at: 0.3, expect: '1.3'},
+  {at: 0.6, expect: '1.6'},
+  {at: 1, expect: '2'},
+  {at: 1.5, expect: '2.5'},
+]);
+
+test_interpolation({
+  property: 'flex-grow',
+  from: 'initial',
+  to: '2',
+}, [
+  {at: -0.3, expect: '0'},
+  {at: 0, expect: '0'},
+  {at: 0.3, expect: '0.6'},
+  {at: 0.6, expect: '1.2'},
+  {at: 1, expect: '2'},
+  {at: 1.5, expect: '3'},
+]);
+
+test_interpolation({
+  property: 'flex-grow',
+  from: 'inherit',
+  to: '2',
+}, [
+  {at: -0.3, expect: '3.3'},
+  {at: 0, expect: '3'},
+  {at: 0.3, expect: '2.7'},
+  {at: 0.6, expect: '2.4'},
+  {at: 1, expect: '2'},
+  {at: 1.5, expect: '1.5'},
+]);
+
+test_interpolation({
+  property: 'flex-grow',
+  from: 'unset',
+  to: '2',
+}, [
+  {at: -0.3, expect: '0'},
+  {at: 0, expect: '0'},
+  {at: 0.3, expect: '0.6'},
+  {at: 0.6, expect: '1.2'},
+  {at: 1, expect: '2'},
+  {at: 1.5, expect: '3'},
+]);
+
+test_interpolation({
+  property: 'flex-grow',
+  from: '1',
+  to: '2',
+}, [
+  {at: -5, expect: '0'},
+  {at: -0.3, expect: '0.7'},
+  {at: 0, expect: '1'},
+  {at: 0.3, expect: '1.3'},
+  {at: 0.6, expect: '1.6'},
+  {at: 1, expect: '2'},
+  {at: 1.5, expect: '2.5'},
+]);
+
+test_interpolation({
+  property: 'flex-grow',
+  from: '0',
+  to: '1',
+}, [
+  {at: -5, expect: '0'},
+  {at: -0.3, expect: '0'},
+  {at: 0, expect: '0'},
+  {at: 0.3, expect: '0.3'},
+  {at: 0.6, expect: '0.6'},
+  {at: 1, expect: '1'},
+  {at: 1.5, expect: '1.5'},
+]);
+</script>

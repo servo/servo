@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://html.spec.whatwg.org/multipage/semantics.html#the-style-element" />
+<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/ShadowDOM/explainer.md" />
+<script nonce="abc123" src="/resources/testharness.js"></script>
+<script nonce="abc123" src="/resources/testharnessreport.js"></script>
+
+<!-- The style nonce matches script-src but not style-src. -->
+<meta http-equiv="Content-Security-Policy" content="script-src 'nonce-abc123'; style-src 'nonce-style456';">
+
+<script nonce="abc123">
+  const t1 = async_test("securitypolicyviolation event fires when nonce satisfies script-src but not style-src");
+  document.documentElement.addEventListener("securitypolicyviolation",
+    t1.step_func(function(e) {
+      if (e.violatedDirective.startsWith("style-src")) {
+        t1.done();
+      }
+    }));
+
+  const t2 = async_test("error event fires when nonce satisfies script-src but not style-src");
+</script>
+
+<style id="blocked-style" nonce="abc123" type="module" specifier="foo">
+    #test {color:blue}
+</style>
+
+<script nonce="abc123">
+  document.getElementById("blocked-style").addEventListener("error", t2.step_func_done());
+</script>
+
+</head>
+<body>
+
+<div id="test">Test content</div>
+
+<script nonce="abc123">
+  test(function (t) {
+    const test_element = document.getElementById("test");
+    assert_equals(getComputedStyle(test_element)
+              .color, "rgb(0, 0, 0)",
+              "Declarative styles were blocked when nonce only satisfies script-src.");
+
+  }, "A nonce matching only script-src does not satisfy style-src CSP for style modules.");
+</script>
+</body>
+</html>

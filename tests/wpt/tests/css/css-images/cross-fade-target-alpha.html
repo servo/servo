@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>cross-fade() with less than 100% total percentage gets faded correctly</title>
+    <link rel="author" title="Steinar H. Gunderson" href="mailto:sesse@chromium.org">
+    <link rel="help" href="https://drafts.csswg.org/css-images-4/#cross-fade-function">
+    <link rel="match" href="cross-fade-target-alpha-ref.html">
+    <!-- Implementations compositing in 8-bit may get fairly strong accuracy issues here,
+         so the fuzz needs to be set pretty liberally. -->
+    <meta name="fuzzy" content="0-8;0-300000">
+    <style>
+      .outer {
+        display:block;
+        width: 500px;
+        height: 500px;
+        padding: 50px;
+        background: linear-gradient(90deg, red, green);
+      }
+      .inner {
+        display: block;
+        width: 100%;
+        height: 100%;
+        color: white;
+        /* NOTE: The same gradient several times, so that we can easily simulate this using opacity. */
+        background: cross-fade(
+          10% linear-gradient(#e66465, #9198e5),
+          10% linear-gradient(#e66465, #9198e5),
+          10% linear-gradient(#e66465, #9198e5),
+          10% linear-gradient(#e66465, #9198e5),
+          10% linear-gradient(#e66465, #9198e5),
+          10% linear-gradient(#e66465, #9198e5)
+        );
+      }
+    </style>
+  </head>
+  <p>The inner gradient should be (in total) 60% covering over the outer.</p>
+  <div class="outer">
+    <div class="inner">
+    </div>
+  </div>
+</html>

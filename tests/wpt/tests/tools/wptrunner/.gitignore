@@ -1,0 +1,8 @@
+*.py[co]
+*~
+*#
+\#*
+_virtualenv
+test/test.cfg
+test/metadata/MANIFEST.json
+wptrunner.egg-info

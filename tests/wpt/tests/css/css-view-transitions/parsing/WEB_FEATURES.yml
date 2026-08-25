@@ -1,0 +1,2 @@
+rules:
+- view-transition-class-*: [view-transition-class]

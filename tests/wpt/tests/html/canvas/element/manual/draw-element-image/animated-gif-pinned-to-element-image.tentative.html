@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<title>Canvas.drawElementImage: animated gif advances and repaints the canvas</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#child {
+  width: 300px;
+  height: 100px;
+}
+#canvas {
+  background: grey;
+}
+img {
+    width: 100px;
+    height: 100px;
+}
+</style>
+<canvas id=canvas width="300" height="100" layoutsubtree>
+  <div id=child>
+     <img id=image src="resources/rgb100.gif"/>
+  </div>
+</canvas>
+<script>
+let canvas = document.getElementById("canvas");
+let ctx = canvas.getContext("2d");
+let child = document.getElementById("child");
+
+promise_test(() => new Promise((resolve, reject) => {
+  window.onload = () => {
+    let colorEquals = (a, b) => {
+      return a[0] == b[0] && a[1] == b[1] && a[2] == b[2] && a[3] == b[3];
+    };
+    // We keep a rotating set of three ElementImage's, taken on successive paint
+    // events. All three are drawn into the canvas
+    let snapshots = [];
+    canvas.onpaint = (evt) => {
+      if (evt.changedElements.length != 1 || evt.changedElements[0] != child) {
+        reject("Canvas paint event 'changedElements' should contain just " +
+               "the child element.");
+      }
+      snapshots.push(canvas.captureElementImage(child));
+      if (snapshots.length == 3) {
+        ctx.drawElementImage(snapshots[0], 0, 0);
+        ctx.drawElementImage(snapshots[1], 100, 0);
+        ctx.drawElementImage(snapshots[2], 200, 0);
+        const imageData = ctx.getImageData(0, 25, 300, 1);
+        let sawRed = false, sawGreen = false, sawBlue = false;
+        const checkPixel = (x) => {
+          const pixel = imageData.data.slice(x*4, (x+1)*4);
+          if (colorEquals(pixel, [255, 0, 0, 255])) {
+            sawRed = true;
+          } else if (colorEquals(pixel, [0, 153, 0, 255])) {
+            sawGreen = true;
+          } else if (colorEquals(pixel, [0, 0, 255, 255])) {
+            sawBlue = true;
+          }
+        }
+        checkPixel(25);
+        checkPixel(125);
+        checkPixel(225);
+        if (sawRed && sawGreen && sawBlue) {
+          resolve("Saw red, green, and blue animated image frames.");
+        } else {
+          reject("Did not see red, green, and blue in three successive " +
+                 "ElementImage snapshots.");
+        }
+      }
+    };
+  }
+}));
+</script>
+</html>

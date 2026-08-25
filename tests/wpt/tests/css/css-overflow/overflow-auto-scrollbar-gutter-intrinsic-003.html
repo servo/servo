@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS Overflow Test: scrollbar-gutter size doesn't contribute to the scroll container's intrinsic size with "overflow:auto" and "scrollbar-width: none"</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="help" href="https://drafts.csswg.org/css-overflow-4/#scrollbar-gutter-property">
+  <link rel="help" href="https://drafts.csswg.org/css-scrollbars/#scrollbar-width">
+  <link rel="match" href="overflow-auto-scrollbar-gutter-intrinsic-003-ref.html">
+  <meta name="fuzzy" content="maxDifference=0-70; totalPixels=0-10" />
+
+  <style>
+  .line {
+    display: flex;
+  }
+  .container {
+    block-size: 50px;
+    border: 5px solid black;
+    overflow: auto;
+    scrollbar-gutter: stable;
+    scrollbar-width: none;
+    margin: 10px;
+  }
+  .tall {
+    /* trigger overflow */
+    block-size: 5000px;
+  }
+  </style>
+
+  <div class="line">
+    <div class="container">
+      <div>I should not wrap</div>
+    </div>
+
+    <div class="container">
+      <div class="tall">I should not wrap</div>
+    </div>
+  </div>
+
+  <div class="line">
+    <div class="container" style="writing-mode: vertical-rl">
+      <div>I should not wrap</div>
+    </div>
+
+    <div class="container" style="writing-mode: vertical-rl">
+      <div class="tall">I should not wrap</div>
+    </div>
+
+    <div class="container" style="writing-mode: vertical-lr">
+      <div>I should not wrap</div>
+    </div>
+
+    <div class="container" style="writing-mode: vertical-lr">
+      <div class="tall">I should not wrap</div>
+    </div>
+  </div>
+</html>

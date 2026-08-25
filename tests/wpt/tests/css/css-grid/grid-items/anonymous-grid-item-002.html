@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<title>Tests merging of anonymous grid-items</title>
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#grid-items">
+<link rel="match" href="anonymous-grid-items-002-ref.html">
+<p>There should be a space between "two" and "words" below.</p>
+<div style="display:grid">two <span id="remove"></span>words</div>
+<script>
+document.body.offsetTop;
+remove.remove();
+</script>

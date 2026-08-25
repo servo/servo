@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name=fuzzy content="maxDifference=0-150; totalPixels=0-400">
+<title>backdrop-filter with 3D transform and perspective in nested context</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty">
+<link rel="match" href="backdrop-filter-nested-3d-transform-perspective-ref.html">
+
+<!--
+  Expected: A yellow box containing a perspective-transformed shape filled
+  with blue (the inverted yellow backdrop). The backdrop-filter: invert(1)
+  should apply correctly when the element is inside a nested 3D transform
+  context where a parent provides perspective.
+-->
+
+<style>
+  .backdrop {
+    width: 150px;
+    height: 150px;
+    background: yellow;
+  }
+  .scene {
+    perspective: 300px;
+    padding: 20px;
+  }
+  .card {
+    width: 100px;
+    height: 100px;
+    backdrop-filter: invert(1);
+    transform: rotateY(45deg);
+  }
+</style>
+
+<div class="backdrop">
+  <div class="scene">
+    <div class="card"></div>
+  </div>
+</div>

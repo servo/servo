@@ -1,0 +1,8 @@
+--min-version 2.0.1 gl-bindAttribLocation-aliasing-inactive.html
+gl-vertex-attrib.html
+gl-vertex-attrib-i-render.html
+--min-version 2.0.1 gl-vertex-attrib-normalized-int.html
+gl-vertexattribipointer.html
+gl-vertexattribipointer-offsets.html
+--min-version 2.0.1 invalid-vertex-attribs.html
+--min-version 2.0.1 render-no-enabled-attrib-arrays.html

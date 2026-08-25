@@ -1,0 +1,115 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use std::ptr;
+
+use dom_struct::dom_struct;
+use js::context::JSContext;
+use js::jsapi::JSObject;
+use js::rust::HandleObject;
+use js::typedarray::{ArrayBufferU8, HeapArrayBuffer};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use script_bindings::trace::RootedTraceableBox;
+
+use crate::dom::bindings::buffer_source::create_buffer_source;
+use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
+use crate::dom::bindings::codegen::Bindings::FileReaderSyncBinding::FileReaderSyncMethods;
+use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
+use crate::dom::blob::Blob;
+use crate::dom::filereader::FileReaderSharedFunctionality;
+use crate::dom::globalscope::GlobalScope;
+
+#[dom_struct]
+pub(crate) struct FileReaderSync {
+    reflector: Reflector,
+}
+
+impl FileReaderSync {
+    pub(crate) fn new_inherited() -> FileReaderSync {
+        FileReaderSync {
+            reflector: Reflector::new(),
+        }
+    }
+
+    fn new(
+        cx: &mut JSContext,
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+    ) -> DomRoot<FileReaderSync> {
+        reflect_dom_object_with_proto(cx, Box::new(FileReaderSync::new_inherited()), global, proto)
+    }
+
+    fn get_blob_bytes(blob: &Blob) -> Result<Vec<u8>, Error> {
+        blob.get_bytes().map_err(|_| Error::NotReadable(None))
+    }
+}
+
+impl FileReaderSyncMethods<crate::DomTypeHolder> for FileReaderSync {
+    /// <https://w3c.github.io/FileAPI/#filereadersyncConstrctr>
+    fn Constructor(
+        cx: &mut JSContext,
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+    ) -> Fallible<DomRoot<FileReaderSync>> {
+        Ok(FileReaderSync::new(cx, global, proto))
+    }
+
+    /// <https://w3c.github.io/FileAPI/#readAsBinaryStringSyncSection>
+    fn ReadAsBinaryString(&self, blob: &Blob) -> Fallible<DOMString> {
+        // step 1
+        let blob_contents = FileReaderSync::get_blob_bytes(blob)?;
+
+        // step 2.
+        Ok(FileReaderSharedFunctionality::binary_string_for_bytes(
+            &blob_contents,
+        ))
+    }
+
+    /// <https://w3c.github.io/FileAPI/#readAsTextSync>
+    fn ReadAsText(&self, blob: &Blob, label: Option<DOMString>) -> Fallible<DOMString> {
+        // step 1
+        let blob_contents = FileReaderSync::get_blob_bytes(blob)?;
+
+        // step 2
+        let blob_label = label.map(String::from);
+        let blob_type = String::from(blob.Type());
+
+        Ok(FileReaderSharedFunctionality::text_for_bytes(
+            &blob_contents,
+            &blob_type,
+            &blob_label,
+        ))
+    }
+
+    /// <https://w3c.github.io/FileAPI/#readAsDataURLSync-section>
+    fn ReadAsDataURL(&self, blob: &Blob) -> Fallible<DOMString> {
+        // step 1
+        let blob_contents = FileReaderSync::get_blob_bytes(blob)?;
+
+        // step 2. package data.
+        // https://w3c.github.io/FileAPI/#blob-package-data
+        let output =
+            FileReaderSharedFunctionality::dataurl_for_bytes(&blob_contents, &blob.Type().str());
+
+        Ok(output)
+    }
+
+    /// <https://w3c.github.io/FileAPI/#readAsArrayBufferSyncSection>
+    fn ReadAsArrayBuffer(
+        &self,
+        cx: &mut JSContext,
+        blob: &Blob,
+    ) -> Fallible<RootedTraceableBox<HeapArrayBuffer>> {
+        // step 1
+        let blob_contents = FileReaderSync::get_blob_bytes(blob)?;
+
+        // step 2
+        rooted!(&in(cx) let mut array_buffer = ptr::null_mut::<JSObject>());
+
+        create_buffer_source::<ArrayBufferU8>(cx, &blob_contents, array_buffer.handle_mut())
+            .map_err(|_| Error::JSFailed)
+    }
+}

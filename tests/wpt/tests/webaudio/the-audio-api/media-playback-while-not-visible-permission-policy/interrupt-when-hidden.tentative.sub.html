@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>
+  AudioContext interrupts when a non-rendered iframe is hidden
+  (media-playback-while-not-visible permission policy)
+</title>
+<link rel="help" href="https://wicg.github.io/iframe-media-pausing/">
+<meta name="variant" content="?origin=same-origin&frame=direct&visibility=display">
+<meta name="variant" content="?origin=same-origin&frame=direct&visibility=visibility">
+<meta name="variant" content="?origin=same-origin&frame=direct&visibility=zero-size">
+<meta name="variant" content="?origin=same-origin&frame=nested&visibility=display">
+<meta name="variant" content="?origin=same-origin&frame=nested&visibility=visibility">
+<meta name="variant" content="?origin=same-origin&frame=nested&visibility=zero-size">
+<meta name="variant" content="?origin=cross-origin&frame=direct&visibility=display">
+<meta name="variant" content="?origin=cross-origin&frame=direct&visibility=visibility">
+<meta name="variant" content="?origin=cross-origin&frame=direct&visibility=zero-size">
+<meta name="variant" content="?origin=cross-origin&frame=nested&visibility=display">
+<meta name="variant" content="?origin=cross-origin&frame=nested&visibility=visibility">
+<meta name="variant" content="?origin=cross-origin&frame=nested&visibility=zero-size">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/media-playback-while-not-visible-utils.js"></script>
+<body>
+<script>
+const SAME_ORIGIN_BASE = new URL('resources/', location.href).href;
+const CROSS_ORIGIN_BASE =
+    'http://{{hosts[alt][]}}:{{ports[http][0]}}/webaudio/the-audio-api/' +
+    'media-playback-while-not-visible-permission-policy/resources/';
+
+const params = new URLSearchParams(location.search);
+const origin = params.get('origin');
+const visibility = params.get('visibility');
+const frame = params.get('frame');
+const base = origin === 'cross-origin' ? CROSS_ORIGIN_BASE : SAME_ORIGIN_BASE;
+
+// Scenario: a running AudioContext in a non-rendered iframe should be
+// interrupted when the iframe is hidden, then resume when it is shown again.
+promise_test(
+    async t => {
+      const iframe = await createIframe(t, frame, base);
+
+      let statechange_promise = expectIframeAudioContextStateChangeEvent(t);
+      hideFrame(iframe, visibility);
+
+      // For cross-origin frames, visibility propagation may take time, so poll
+      // until the AudioContext is interrupted.
+      await t.step_wait(
+          async () => await queryAudioContextState(iframe) === 'interrupted',
+          'waiting for AudioContext to be interrupted');
+      assert_equals(await statechange_promise, 'interrupted');
+
+      statechange_promise = expectIframeAudioContextStateChangeEvent(t);
+      showFrame(iframe, visibility);
+      await t.step_wait(
+          async () => await queryAudioContextState(iframe) === 'running',
+          'waiting for AudioContext to resume');
+      assert_equals(await statechange_promise, 'running');
+    },
+    `${origin} ${frame}: hide/show an iframe with a running AudioContext ` +
+        `(visibility=${visibility})`);
+</script>
+</body>

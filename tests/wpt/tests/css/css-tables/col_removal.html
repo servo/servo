@@ -1,0 +1,31 @@
+<!doctype html>
+<title>Table grid syncs after COL removal</title>
+<link rel="author" href="mailto:atotic@google.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://crbug.com/1191940">
+
+<style>
+  main td {
+    width:30px;
+    height:30px;
+    padding:0;
+  }
+</style>
+<main>
+  <table style="border-collapse: collapse;">
+    <col style="border: 2px solid green;"></col>
+    <col id="target" style="border: 50px solid red;"></col>
+    <td>x</td>
+    <td>x</td>
+  </table>
+</main>
+<script>
+  test(() => {
+    let table = document.querySelector("main table");
+    document.body.offsetTop;
+    assert_equals(table.offsetWidth, 162);
+    document.getElementById('target').remove();
+    assert_equals(table.offsetWidth, 64, "table shrinks after column is removed");
+  });
+</script>

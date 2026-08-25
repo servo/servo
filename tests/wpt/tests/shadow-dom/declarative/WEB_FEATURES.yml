@@ -1,0 +1,3 @@
+rules:
+- gethtml*: [gethtml, declarative-shadow-dom]
+- "**": [declarative-shadow-dom]

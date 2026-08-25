@@ -1,0 +1,62 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>overscroll-behavior for keyboard scroll in child frame</title>
+<meta name="timeout" content="long">
+<link rel="help" href="https://drafts.csswg.org/css-overscroll-behavior">
+<link rel="author" title="Peng Zhou" href="mailto:zhoupeng.1996@bytedance.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+<script src="/css/css-scroll-snap/support/common.js"></script>
+<style>
+body {
+  margin: 0;
+}
+
+#container {
+  overflow: auto;
+  height: 600px;
+  position: relative;
+}
+
+iframe {
+  width: 600px;
+  height: 400px;
+  position: absolute;
+  top: 500px;
+}
+</style>
+<div id="container">
+  <iframe id="iframe" src="resources/keyboard-scroll-child-frame-iframe.html"></iframe>
+</div>
+<script>
+window.addEventListener('load', () => {
+  promise_test(async () => {
+    const target = iframe.contentWindow;
+    let scrollEndPromise = waitForScrollEndFallbackToDelayWithoutScrollEvent(container);
+    container.scrollTop = 300;
+    await scrollEndPromise;
+
+    scrollEndPromise = waitForScrollEndFallbackToDelayWithoutScrollEvent(target);
+    target.scrollTo(0, 50);
+    await scrollEndPromise;
+    assert_equals(target.scrollY, 50);
+
+    await new test_driver.Actions()
+      .pointerMove(200, 300)
+      .pointerDown()
+      .pointerUp()
+      .send();
+    assert_equals(document.activeElement, iframe);
+
+    scrollEndPromise = waitForScrollEndOrTimeout(target, 1000);
+    await scrollElementByKeyboard('ArrowUp');
+    await scrollEndPromise;
+    assert_equals(container.scrollTop, 300);
+    assert_equals(target.scrollY, 0);
+  }, 'scrolling is not propagated from iframe to the main frame');
+});
+</script>

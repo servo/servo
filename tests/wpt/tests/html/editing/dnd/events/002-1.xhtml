@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Cross frame drag and drop: helper file</title>
+<style type="text/css">
+div
+  {width:0;
+  height:0;
+  border:solid 50px silver;
+  border-radius:50px;
+  margin-left:auto;}
+</style>
+<script type="application/ecmascript">
+var step = 1;
+function start(event)
+  {if(step++ == 1)
+    {setColor('green silver silver silver');}
+  else
+    {step = 0;
+    setColor('maroon');
+    say('Dragstart should be first event to fire.')}
+  }
+function leavePage(event)
+  {if(step++ > 1)
+    {setColor('green green silver silver')}
+  else
+    {step = 0;
+    setColor('maroon');
+    say('Dragleave should fire after dragstart.')}
+  }
+function endDrag(event)
+  {if(step++ > 2)
+    {setColor('green')}
+  else
+    {step = 0;
+    setColor('maroon');
+    say('Dragend should fire after dragstart and dragleave.')}
+  }
+function say(it)
+  {document.querySelector('pre').appendChild(document.createTextNode(it + '\n'))}
+function setColor(c)
+  {document.querySelector('div').setAttribute('style','border-color:' + c)}
+</script>
+</head>
+<body onload="document.querySelector('input').select()" ondragleave="leavePage(event)">
+<p ondragstart="start(event)" ondragend="endDrag(event)"><input value="Drag me"/></p>
+<p>Drag selected text to the frame below and drop it there. Both circles should turn green once text is dropped into lower frame.</p>
+<div/>
+<pre/>
+</body>
+</html>

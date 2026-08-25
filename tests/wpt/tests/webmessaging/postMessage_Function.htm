@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title> postMessage with Function object </title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id=log></div>
+
+<div style="display:none">
+    <iframe width="70%" onload="PostMessageTest()" src="./support/ChildWindowPostMessage.htm"></iframe>
+</div>
+
+<script>
+
+
+    var description = "Test Description: " +
+                      "postMessage with Function object: Throw a DataCloneError if message could not be cloned.";
+
+    var DATA = new Function();
+    var TARGET = document.querySelector("iframe");
+
+    function PostMessageTest()
+    {
+        test(function()
+        {
+            assert_throws_dom("DATA_CLONE_ERR", TARGET.contentWindow.DOMException, function()
+            {
+                TARGET.contentWindow.postMessage(DATA, "*");
+            });
+        }, description);
+    }
+</script>
+</body>
+</html>

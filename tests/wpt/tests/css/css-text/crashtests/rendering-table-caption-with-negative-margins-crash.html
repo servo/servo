@@ -1,0 +1,11 @@
+<!doctype html>
+<title>CSS Text Test: Crash rendering a table caption with empty span and negative margins</title>
+<link rel="author" title="Javier Fernandez" href="mailto:jfernandez@igalia.com" />
+<link rel="help" href="https://crbug.com/1197974">
+<meta name="assert" content="The test doesn't crash in debug"/>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+    table { font: 20px/1 Ahem; }
+    span { margin: -40px; }
+</style>
+<table><caption>X<span></span><input></input><textarea></textarea></caption></table>

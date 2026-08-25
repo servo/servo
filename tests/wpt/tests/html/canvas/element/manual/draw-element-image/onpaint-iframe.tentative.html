@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<title>canvas.onpaint should fire for changes in an iframe</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  #child {
+    width: 100px;
+    height: 100px;
+    background: lightblue;
+  }
+</style>
+
+<canvas id="canvas" width="200" height="200" layoutsubtree>
+  <div id="child">
+    <iframe id="iframe" srcdoc="<!doctype html>"></iframe>
+  </div>
+</canvas>
+
+<script>
+  'use strict';
+
+  async function waitForLoad() {
+    if (document.readyState === 'complete') return;
+    await new Promise(resolve => window.addEventListener('load', resolve));
+  }
+
+  async function waitForOneFrame() {
+    await new Promise(requestAnimationFrame);
+    await new Promise(setTimeout);
+  }
+
+  promise_test(async t => {
+    await waitForLoad();
+    await waitForOneFrame();
+
+    let onPaintCount = 0;
+    let lastChanged = [];
+    canvas.onpaint = (event) => {
+      onPaintCount++;
+      lastChanged = event.changedElements;
+    };
+
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 0, 'Without changes, onpaint should not fire.');
+
+    // Make a change in the grandchild iframe and assert that onpaint fires.
+    const iframeDocElement = iframe.contentDocument.documentElement;
+    iframeDocElement.style.background = 'lightgreen';
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 1,
+      'onpaint should fire after a grandchild iframe changes.');
+    assert_array_equals(lastChanged, [child],
+      'Grandchild iframe changes should report #child changed.');
+
+    // Wait a frame and assert that onpaint doesn't fire without changes.
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 1, 'onpaint should not fire without changes.');
+
+    // Make a change in the grandchild iframe and assert that onpaint fires
+    // again.
+    iframeDocElement.style.background = 'darkgreen';
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 2,
+      'onpaint should fire again after a grandchild iframe changes.');
+    assert_array_equals(lastChanged, [child],
+      'Grandchild iframe changes should again report #child changed.');
+
+    // Wait a frame and assert that onpaint doesn't fire without changes.
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 2, 'onpaint should not fire without changes.');
+
+    // Make the iframe a child of the canvas, and assert that onpaint fires.
+    // We use `moveBefore` instead of `appendChild` to preserve the state of
+    // the iframe (e.g., we don't want to capture changes due to reloading).
+    canvas.moveBefore(iframe, null);
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 3, 'onpaint should fire after moving dom.');
+    assert_equals(lastChanged.length, 2,
+      'Two elements should be changed when moving dom.');
+    assert_true(lastChanged.includes(child),
+      '#child should be changed if an iframe is removed from it.');
+    assert_true(lastChanged.includes(iframe),
+      '#iframe should be changed if it moves out from #child.');
+
+    // Wait another frame and assert that onpaint doesn't fire without changes.
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 3, 'onpaint should not fire without changes.');
+
+    // Make a change to the child iframe and assert that onpaint fires.
+    iframeDocElement.style.background = 'green';
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 4,
+      'onpaint should fire after a direct child iframe changes.');
+    assert_array_equals(lastChanged, [iframe],
+      'Child iframe changes should report #iframe changed.');
+  }, 'onpaint should fire after iframe changes.');
+</script>

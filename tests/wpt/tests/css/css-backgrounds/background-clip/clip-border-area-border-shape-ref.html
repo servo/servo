@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  .test {
+    display: inline-block;
+    margin: 20px;
+    width: 160px;
+    height: 120px;
+    box-sizing: border-box;
+    border: 24px solid blue;
+  }
+
+  .single-shape {
+    border-shape: polygon(50% -8%, 108% 50%, 50% 108%, -8% 50%) half-border-box;
+  }
+
+  .double-shape {
+    border-shape: circle(50%) circle(35%);
+  }
+</style>
+</head>
+<body>
+
+<div class="test single-shape"></div>
+<div class="test double-shape"></div>
+
+</body>
+</html>

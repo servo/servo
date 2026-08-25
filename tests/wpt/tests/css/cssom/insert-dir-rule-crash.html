@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>CSSOM Test: Chrome crash inserting :dir rule</title>
+<link rel="help" href="https://crbug.com/1486351">
+<p>PASS if no crash.</p>
+<style id="sheet"> </style>
+<div id="host"></div>
+<script>
+  let root = host.attachShadow({mode:"open"});
+  root.innerHTML = "<slot></slot>";
+  host.offsetTop;
+  host.innerHTML = "<span>Green</span>";
+  sheet.sheet.insertRule("html:dir(ltr) { color: green; }");
+  document.fonts.size();
+</script>

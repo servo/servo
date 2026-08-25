@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Prerender while prerendering test: outer prerendered page</title>
+<script src="utils.js"></script>
+
+<script type="module">
+const params = new URLSearchParams(location.search);
+const uid = params.get("uid");
+const innerURL = `prerender-while-prerender-inner.html?uid=${uid}`;
+
+startPrerendering(innerURL);
+// Wait 5 seconds for any potential prerender to start and get to the point
+// where it would send a message that would cause a failure.
+await new Promise(r => setTimeout(r, 5_000));
+
+document.addEventListener("prerenderingchange", () => {
+  location.href = innerURL;
+});
+
+const channel = new PrerenderChannel("start-test", uid);
+channel.postMessage("ready to start");
+channel.close();
+</script>

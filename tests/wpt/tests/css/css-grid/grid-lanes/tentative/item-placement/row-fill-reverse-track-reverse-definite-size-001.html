@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes: Row fill-reverse and track-reverse with definite size</title>
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3">
+  <link rel="match" href="row-fill-reverse-track-reverse-definite-size-001-ref.html">
+  <link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+  <style>
+    .grid-lanes {
+      display: grid-lanes;
+      flow-tolerance: 0;
+      grid-template-rows: repeat(3, 50px);
+      gap: 10px;
+      width: 200px;
+      border: solid blue;
+      grid-lanes-direction: row fill-reverse track-reverse;
+    }
+  </style>
+</head>
+<body>
+  <p>Test that grid-lanes items with fill-reverse and track-reverse placement are correctly positioned
+     within a definite-size row container.</p>
+  <div class="grid-lanes">
+    <div style="background: lavender; width: 20px;">1</div>
+    <div style="background: lightskyblue; width: 30px;">2</div>
+    <div style="background: lightgreen; width: 20px;">3</div>
+    <div style="background: lightpink; grid-row: span 2; width: 25px;">4</div>
+    <div style="background: lavender; width: 20px; margin-left: 10px;">5</div>
+    <div style="background: lightskyblue; width: 35px;">6</div>
+    <div style="background: lightgreen; width: 20px;">7</div>
+    <div style="background: lightpink; width: 40px;">8</div>
+    <div style="background: coral; width: 30px; margin-left: -10px;">9</div>
+    <div style="background: gold; width: 30px; margin-right: -10px;">10</div>
+    <div style="background: tomato; width: 15px; margin-left: -25px;">11</div>
+    <div style="background: orchid; width: 15px; margin-right: -110px;">12</div>
+  </div>
+</body>
+</html>

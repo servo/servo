@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Images Test: conic-gradient color stops with calc() mixing angle and percentage</title>
+<link rel="author" title="Jason Leo" href="mailto:cgqaq@chromium.org">
+<link rel="author" title="一丝" href="mailto:yiorsi@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#conic-gradients">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#typedef-angle-percentage">
+<link rel="match" href="conic-gradient-calc-angle-percentage-ref.html">
+<style>
+  div {
+    display: inline-block;
+    width: 100px;
+    height: 100px;
+    background-color: red;
+  }
+  .test1 {
+    background-image: conic-gradient(lime, calc(0deg + 100%), blue);
+  }
+  .test2 {
+    background-image: conic-gradient(lime calc(0deg + 100%), blue);
+  }
+  .test3 {
+    background-image: conic-gradient(lime calc(90deg + 0%), blue 0);
+  }
+</style>
+<div class="test1"></div>
+<div class="test2"></div>
+<div class="test3"></div>

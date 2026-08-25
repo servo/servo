@@ -1,0 +1,68 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>Click event should be fired when touchend opens synchronous XHR</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+"use strict";
+
+addEventListener("load", () => {
+  promise_test(async () => {
+    const div = document.querySelector("div");
+    const waitForSyncXHR = new Promise(resolve => {
+      addEventListener("touchend", event => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("GET", "../xhr/resources/delay.py?ms=2000", false);
+        xhr.send();
+        resolve();
+      });
+    });
+    const events = [];
+    for (const type of ["touchend", "mousedown", "mouseup", "click"]) {
+      addEventListener(type, event => events.push({type: event.type, target: event.target}));
+    }
+    await new test_driver.Actions()
+      .addPointer("touchPointer", "touch")
+      .setPointer("touchPointer")
+      .pointerMove(0, 0, {origin: div})
+      .pointerDown()
+      .pointerUp()
+      .send();
+    await waitForSyncXHR;
+
+    function stringifyEvents(arrayOfEvents) {
+      function stringifyEvent(event) {
+        return `${event.type}@${event.target.localName}`
+      }
+      let str = "";
+      for (const event of arrayOfEvents) {
+        if (str) {
+          str += ", ";
+        }
+        str += stringifyEvent(event);
+      }
+      return str;
+    }
+    assert_equals(
+      stringifyEvents(events),
+      stringifyEvents([
+        {type: "touchend", target: div},
+        {type: "mousedown", target: div},
+        {type: "mouseup", target: div},
+        {type: "click", target: div},
+      ])
+    );
+  });
+}, {once: true});
+</script>
+</head>
+<body>
+<div style="width: 100px; height: 100px">Tap me!</div>
+</body>
+</html>

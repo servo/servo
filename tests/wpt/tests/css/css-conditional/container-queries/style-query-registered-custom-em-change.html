@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>CSS Container Queries Test: style() query with em unit for registered custom property.</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#style-container">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  @property --length {
+    syntax: "<length>";
+    initial-value: 0px;
+    inherits: false;
+  }
+
+  #container {
+    font-size: 16px;
+    --length: 20px;
+  }
+
+  #target { color: red; }
+  @container style(--length: calc(1em + 10px)) {
+    #target { color: green; }
+  }
+</style>
+<div id="container">
+  <div id="target">Should be green</div>
+</div>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(target).color, "rgb(255, 0, 0)");
+  }, "Initially, 1em (16px) + 10px evaluates to 26px. Target does not match.");
+
+  test(() => {
+    container.style.fontSize = "10px";
+    assert_equals(getComputedStyle(target).color, "rgb(0, 128, 0)");
+  }, "Changing the container's font-size to 10px makes 1em (10px) + 10px evaluate to 20px. Target matches.");
+</script>

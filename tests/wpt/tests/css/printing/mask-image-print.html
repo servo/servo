@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>mask-image must be applied to the masked group when printing</title>
+<link rel="help" href="https://drafts.fxtf.org/css-masking-1/#the-mask-image">
+<link rel="mismatch" href="mask-image-print-notref.html">
+<!--
+  A print backend that drops the group's mask paints the box unmasked, which is
+  exactly what the reference draws.
+-->
+<div style="width: 100px; height: 100px; background: green;
+            mask-image: linear-gradient(black, transparent)"></div>

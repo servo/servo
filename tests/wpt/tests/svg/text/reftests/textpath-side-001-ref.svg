@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg width="400" height="300" viewBox="0 0 400 300"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <html:link rel="stylesheet" type="text/css" href="/fonts/ahem.css"/>
+  <style>
+    text { font-family: Ahem; font-size: 16px; }
+  </style>
+  <defs>
+    <path id="path" d="M 50,80 Q 200,20 350,80"/>
+    <!-- Reversed path: geometrically equivalent to side="right" on the forward path -->
+    <path id="path-reversed" d="M 350,80 Q 200,20 50,80"/>
+  </defs>
+  <!-- Row 1: no side attribute (default = left) -->
+  <g transform="translate(0,0)">
+    <use href="#path" style="fill:none;stroke:lightblue"/>
+    <text>
+      <textPath href="#path">ABCD</textPath>
+    </text>
+  </g>
+  <!-- Row 2: same as row 1 (side="left" == default) -->
+  <g transform="translate(0,80)">
+    <use href="#path" style="fill:none;stroke:lightblue"/>
+    <text>
+      <textPath href="#path">ABCD</textPath>
+    </text>
+  </g>
+  <!-- Row 3: reversed path = equivalent to side="right" -->
+  <g transform="translate(0,160)">
+    <use href="#path" style="fill:none;stroke:lightblue"/>
+    <text>
+      <textPath href="#path-reversed">ABCD</textPath>
+    </text>
+  </g>
+</svg>

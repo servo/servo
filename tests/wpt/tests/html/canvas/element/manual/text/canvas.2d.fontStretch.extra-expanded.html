@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>Canvas test: 2d.text.fontStretch</title>
+<link rel="match" href="canvas.2d.fontStretch-ref.html">
+<canvas id="c" class="output"><p class="fallback">FAIL (fallback content)</p></canvas>
+<script>
+
+var canvas = document.getElementById("c");
+var ctx = canvas.getContext('2d');
+
+// P shows as Pass for fontStretch = extra-expanded and shows as fail for
+// fontStretch = fail.
+function draw() {
+    ctx.font = '25px test';
+    ctx.fontStretch = "extra-expanded";
+    ctx.fillText("P", 10, 40);
+}
+
+var f = new FontFace('test', 'url(/fonts/pass.woff)');
+f.stretch = "extra-expanded";
+document.fonts.add(f);
+
+var f2 = new FontFace('test', 'url(/fonts/fail.woff)');
+document.fonts.add(f2);
+
+Promise.all([f.load(), f2.load()]).then(draw);
+
+</script>

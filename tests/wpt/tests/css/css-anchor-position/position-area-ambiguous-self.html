@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning: position-area with writing-mode and direction</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position/#position-area">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #abs-container {
+    writing-mode: vertical-lr;
+    position: absolute;
+    width: 400px;
+    height: 400px;
+  }
+  #anchor {
+    anchor-name: --a;
+    width: 100px;
+    height: 100px;
+  }
+  #anchored {
+    position: absolute;
+    writing-mode: horizontal-tb;
+    direction: rtl;
+    position-anchor: --a;
+    position-area: self-end self-start;
+    width: 100px;
+    height: 100px;
+  }
+</style>
+<div id="abs-container">
+  <div id="anchor"></div>
+  <div id="anchored"></div>
+</div>
+<script>
+  test(() => {
+    assert_equals(anchored.offsetTop, 100, "positioned below the anchor");
+    assert_equals(anchored.offsetLeft, 100, "positioned to the right of the anchor");
+  }, "'self-end self-start' of horizontal-tb/rtl is physically 'bottom right'");
+</script>

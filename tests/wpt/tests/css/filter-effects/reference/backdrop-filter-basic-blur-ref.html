@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<title>'backdrop-filter'</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty">
+<script src="../support/simulate-backdrop-blur.js"></script>
+<div>
+  <p>Expected: A red box with three blurred boxes on top of it.</p>
+  <p>All three should have similar levels of blur and opacity applied.</p>
+</div>
+<div class="colorbox">
+  <div class="filterbox box1"></div>
+  <div class="filterbox box2"></div>
+  <div class="filterbox box3"></div>
+</div>
+
+<style>
+.colorbox {
+    width: 200px; height: 200px;
+    background: red;
+    position: absolute;
+    left: 150px;
+    top: 150px;
+}
+.filterbox {
+    display: block;
+    position: absolute;
+    left: 100px;
+    width: 150px;
+    height: 100px;
+    margin: 0px auto;
+    border: 1px solid blue;
+}
+.box1 {
+    top: -50px;
+    background: #0000ff7f;
+}
+.box2 {
+    top: 150px;
+}
+.box3 {
+    top: 50px;
+    left: -100px;
+    opacity: 0.6;
+}
+</style>
+<script>
+  for (let box of document.querySelectorAll('.filterbox')) {
+    simulateBackdropBlur(box, [document.querySelector('.colorbox')], 10);
+  }
+</script>

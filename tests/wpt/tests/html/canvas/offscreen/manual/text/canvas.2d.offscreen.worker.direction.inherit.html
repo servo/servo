@@ -1,0 +1,44 @@
+<!doctype HTML>
+<html class="reftest-wait">
+  <meta charset="utf-8">
+  <title>HTML5 Canvas Test:  The direction attribute is inherited in offscreen worker canvas</title>
+  <link rel="match" href="canvas.2d.offscreen.worker.direction-ref.html" />
+  <link rel="author" href="mailto:schenney@chromium.org"/>
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/canvas.html#text-styles"/>
+  <meta name="assert" content="An offscreen canvas in a worker inherits the direction text attribute." />
+  <script src="/common/reftest-wait.js"></script>
+  <script type="text/javascript">
+    function runTest() {
+      const placeholder_canvas = document.createElement('canvas');
+      placeholder_canvas.setAttribute('width', '300');
+      placeholder_canvas.setAttribute('height', '150');
+      placeholder_canvas.setAttribute('dir', 'rtl');
+      const offscreen = placeholder_canvas.transferControlToOffscreen();
+
+      const worker = new Worker('text-direction-worker-inherit.js');
+      worker.postMessage({canvas: offscreen}, [offscreen]);
+
+      const canvas = document.getElementById('canvas1');
+      const ctx = canvas.getContext('2d', {willReadFrequently: true});
+      function checkResult() {
+        // Wait until frame propagates.
+        ctx.drawImage(placeholder_canvas, 0, 0);
+        const pixel = ctx.getImageData(0, 0, 1, 1).data;
+
+        if (pixel[3] == 0) {
+          // Result not available, wait longer.
+          requestAnimationFrame(checkResult);
+        } else {
+          takeScreenshot();
+        }
+      }
+      requestAnimationFrame(checkResult);
+    }
+  </script>
+  <body onload="runTest()">
+    <canvas id="canvas1" width="300" height="150">
+      Browser does not support HTML5 Canvas.
+    </canvas>
+  </body>
+</html>
+

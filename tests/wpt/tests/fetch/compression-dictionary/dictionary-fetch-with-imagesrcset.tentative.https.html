@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8">
+<meta name="timeout" content="long"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/compression-dictionary-util.sub.js"></script>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/semantics.html#link-options-source-set">
+<link rel="help" href="https://github.com/whatwg/html/pull/11620">
+<link rel="preload" as="image" imagesrcset="/common/square.png?imagesrcsetPreloadWithoutHref 1x">
+<link rel="preload" as="image" href="/common/square.png?hrefPreload" imagesrcset="/common/square.png?imagesrcsetPreloadWithHref 1x">
+<link rel="compression-dictionary" imagesrcset="/common/square.png?imagesrcsetCompressionDictionaryWithoutHref 1x">
+<link rel="compression-dictionary" href="./resources/register-dictionary.py?hrefCompressionDictionary" imagesrcset="/common/square.png?imagesrcsetCompressionDictionaryWithHref 1x">
+<body>
+  <script>
+    let fetchedDictionaries = [];
+    const observer = new PerformanceObserver((list) => {
+      list.getEntries().forEach(entry => {
+        const url = new URL(entry.name);
+        if (url.pathname.endsWith("square.png") || url.pathname.endsWith("register-dictionary.py")) {
+          fetchedDictionaries.push(url.search);
+        }
+      });
+    });
+    observer.observe({ type: "resource", buffered: true });
+
+    compression_dictionary_promise_test(async t => {
+      let expectedEntries = [
+        "?hrefCompressionDictionary",
+        "?imagesrcsetPreloadWithHref",
+        "?imagesrcsetPreloadWithoutHref",
+      ];
+      await t.step_wait(_ => fetchedDictionaries.length >= expectedEntries.length, `Expected fetches [${expectedEntries}] should have happened within 5s.`, 5000);
+      assert_array_equals(fetchedDictionaries.toSorted(), expectedEntries, "All <link rel=preload as=image> elements should fetch the image from imagesrcset and all <link rel=compression-dictionary> should fetch the dictionary specified by href.");
+
+      fetchedDictionaries = [];
+      await new Promise(resolve => t.step_timeout(resolve, 1000));
+      assert_equals(fetchedDictionaries.length, 0, "no more dictionary fetched.");
+    }, "imagesrcset is not supported on <link rel=compression-dictionary>");
+  </script>
+</body>

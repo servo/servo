@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>writing mode:vertical-lr, table cell order</title>
+<link rel="author" title="Richard Ishida" href="mailto:ishida@w3.org"/>
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#block-flow"/>
+<meta name="assert" content="writing-mode:vertical-lr will display table columns horizontally, with the top of the table on the left."/>
+<style type="text/css">
+.test { font-size: 34px; }
+</style>
+<!-- this is the test -->
+<style type="text/css">
+.test { writing-mode: vertical-lr; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the numbers increase top-to-bottom, starting on the left.</p>
+<div class="test">
+<table><tbody>
+<tr><th>1</th><th>2</th></tr>
+<tr><td>3</td><td>4</td></tr>
+</tbody></table>
+</div>
+</body>
+</html>

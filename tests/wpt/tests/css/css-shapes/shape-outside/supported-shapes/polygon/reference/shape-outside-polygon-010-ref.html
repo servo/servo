@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>CSS Reference File</title>
+        <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+    </head>
+    <style>
+       body {
+            margin: 0;
+        }
+       #green-square {
+          position: absolute;
+          top: 50px;
+          left: 10px;
+          width: 240px;
+          height: 240px;
+          background-color: green;
+      }
+    </style>
+    <body>
+        <p>The test passes if there is green square and no red.</p>
+        <div id="green-square"></div>
+    </body>
+</html>

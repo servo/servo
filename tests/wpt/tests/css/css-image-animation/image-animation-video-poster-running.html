@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>image-animation: running creates per-element timeline for video poster</title>
+<link rel="help" href="https://drafts.csswg.org/css-image-animation-1/">
+<meta charset="utf-8" />
+<link rel="match" href="image-animation-video-poster-running-ref.html" />
+<script src="/common/reftest-wait.js"></script>
+<script src="resources/image-animation-utils.js"></script>
+<script>
+  function start() {
+    document.getElementById('video1').style.imageAnimation = 'running';
+    waitForFrameTime(125).then(() => {
+      document.getElementById('video2').poster = '../../images/anim-gr.gif';
+      document.getElementById('video2').style.imageAnimation = 'running';
+      requestAnimationFrame(() => {
+        document.getElementById('video1').style.imageAnimation = 'paused';
+        document.getElementById('video2').style.imageAnimation = 'paused';
+        requestAnimationFrame(() => {
+          takeScreenshot();
+        });
+      });
+    });
+  }
+</script>
+
+<style>
+  video {
+    width:20px;
+    height:10px;
+    object-fit:fill;
+    image-animation: paused;
+  }
+</style>
+
+<body onload="start()">
+<video id="video1" poster="../../images/anim-gr.gif"></video>
+<video id="video2"></video>
+</body>
+
+</html>

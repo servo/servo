@@ -1,0 +1,6 @@
+{
+  "dom_webxr_test": true,
+  "editing_caret_blink_time": 0,
+  "gfx_text_antialiasing_enabled": false,
+  "dom_testutils_enabled": true
+}

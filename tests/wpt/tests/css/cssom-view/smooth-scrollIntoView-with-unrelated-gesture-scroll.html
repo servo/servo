@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSSOM View - Unrelated scroll gesture while scrollIntoView is ongoing</title>
+    <link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-scrollintoview">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-actions.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script src="/dom/events/scrolling/scroll_support.js"></script>
+  </head>
+  <body>
+    <style>
+      .scroller {
+        overflow-y: scroll;
+        height: 200px;
+        width: 200px;
+        background-color: teal;
+        border: solid 1px black;
+        position: relative;
+        display: inline-block;
+      }
+      .space {
+        height: 200vh;
+        width: 200vw;
+      }
+      .box {
+        height: 50px;
+        width: 50px;
+        background-color: purple;
+      }
+      .target {
+        position: absolute;
+        top: 150%;
+      }
+    </style>
+    <div id="programmatic_scroller" class="scroller">
+      <div class="space"></div>
+      <div class="box target" id="target"></div>
+    </div>
+    <div id="gesture_scroller" class="scroller">
+      <div class="space"></div>
+    </div>
+    <script>
+      const programmatic_scroller =
+        document.getElementById("programmatic_scroller");
+      const gesture_scroller = document.getElementById("gesture_scroller");
+      const target = document.getElementById("target");
+
+      promise_test(async (t) => {
+        await waitForCompositorCommit();
+
+        const scrollend_promises = [
+          waitForScrollEndFallbackToDelayWithoutScrollEvent(programmatic_scroller),
+          waitForScrollEndFallbackToDelayWithoutScrollEvent(gesture_scroller)
+        ]
+        // As soon as we observe a scroll event, begin a gesture scroll on the
+        // second scroll container.
+        programmatic_scroller.addEventListener("scroll", async () => {
+          await new test_driver.Actions().scroll(0, 0, 0, 100,
+                                             { origin: gesture_scroller })
+                                         .send();
+        }, { once: true });
+
+        target.scrollIntoView({ behavior: "smooth" });
+
+        await Promise.all(scrollend_promises);
+
+        assert_equals(gesture_scroller.scrollTop, 100,
+          "gesture scroll completed");
+        assert_approx_equals(programmatic_scroller.scrollTop, target.offsetTop,
+          1, "scrollIntoView completed");
+      }, "scrollIntoView is not interrupted by unrelated gesture scroll");
+    </script>
+  </body>
+</html>

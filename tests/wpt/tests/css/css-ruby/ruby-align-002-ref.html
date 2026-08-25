@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>Tests for ruby-align</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<link rel="stylesheet" href="support/ruby-common.css">
+<style>
+  ruby { line-height: 0; }
+  rt { font-size: 100%; }
+  rb { font-size: 0; }
+  rt > div { width: 160px; box-sizing: border-box; }
+</style>
+<body style="font: 16px/3 Ahem">
+<ruby>
+  <rb></rb><rt><div>X X X</div></rt>
+</ruby><br>
+<ruby>
+  <rb></rb><rt><div style="text-align: center">X X X</div></rt>
+</ruby><br>
+<ruby>
+  <rb></rb><rt><div style="text-align-last: justify">X X X</div></rt>
+</ruby>

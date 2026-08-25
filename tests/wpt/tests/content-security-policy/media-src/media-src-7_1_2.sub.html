@@ -1,0 +1,57 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>Video element src attribute must match src list - negative test</title>
+    <meta http-equiv="Content-Security-Policy" content="script-src * 'unsafe-inline'; media-src 'self';">
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+</head>
+<body>
+    <h1>Video element src attribute must match src list - negative test</h1>
+    <div id='log'></div>
+
+  <script>
+      var src_test = async_test("Disallowed async video src");
+      var source_test = async_test("Disallowed async video source element");
+      var t_spv = async_test("Test that securitypolicyviolation events are fired");
+      var test_count = 2;
+      window.addEventListener("securitypolicyviolation", t_spv.step_func(function(e) {
+          assert_equals(e.violatedDirective, "media-src");
+          assert_equals(e.blockedURI, mediaURL);
+          if (--test_count <= 0) {
+              t_spv.done();
+          }
+      }));
+
+      // we assume tests are run from 'hostname' and 'www.hostname' or 'www2.hostname' is a valid alias
+      var mediaURL = location.protocol + "//{{domains[www2]}}:{{ports[http][0]}}/media/A4.webm";
+
+    function media_loaded(t) {
+      t.step( function () {
+          assert_unreached("Media error handler should be triggered for non-allowed domain.");
+      });
+      t.done();
+    }
+
+    function media_error_handler(t) {
+      t.done();
+    }
+  </script>
+
+    <video id="videoObject" width="320" height="240" controls
+           onloadeddata="media_loaded(source_test)">
+        <source id="videoSourceObject"
+                type="video/webm"
+                onerror="media_error_handler(source_test)">
+    </video>
+    <video id="videoObject2" width="320" height="240" controls
+           onerror="media_error_handler(src_test)"
+           onloadeddata="media_loaded(src_test)">
+
+    <script>
+        document.getElementById("videoSourceObject").src = mediaURL;
+        document.getElementById("videoObject2").src = mediaURL;
+    </script>
+
+</body>
+</html>

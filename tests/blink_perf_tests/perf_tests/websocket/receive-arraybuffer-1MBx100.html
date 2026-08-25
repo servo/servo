@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="../resources/runner.js"></script>
+</head>
+<body>
+<script>
+// To run this perf test, you need to run the web socket server:
+// $ cd third_party/blink/perf_tests/websocket
+// $ npm install
+// $ npm start
+// $ python ../../../../tools/perf/run_benchmark run blink_perf --browser=canary --test-path=websocket\receive-arraybuffer-1MBx100.html
+
+const params = (new URL(document.location)).searchParams;
+const server = params.get("server") || "ws://127.0.0.1:8001/";
+PerfTestRunner.log("Connect to " + server);
+const iteration = params.get("iteration") || 6;
+
+async function runTestCase() {
+  const ws = new WebSocket(server);
+  ws.binaryType = "arraybuffer";
+  const onOpen = new Promise(resolve => {
+    ws.onopen = () => {
+      PerfTestRunner.addRunTestStartMarker();
+      resolve(PerfTestRunner.now());
+    };
+  });
+  const onClose = new Promise(resolve => {
+    ws.onclose = () => {
+      PerfTestRunner.addRunTestEndMarker();
+      resolve(PerfTestRunner.now());
+    }
+  });
+  const [openTime, closeTime] = await Promise.all([onOpen, onClose]);
+  const executeTimeInSeconds = (closeTime - openTime) / 1000;
+  const downloadSpeedInMegaBytesPerSecond = 100 / executeTimeInSeconds;
+  PerfTestRunner.measureValueAsync(downloadSpeedInMegaBytesPerSecond);
+}
+
+let isDone = false;
+PerfTestRunner.startMeasureValuesAsync({
+  description: "Measure performance of receiving 1MB array 100 times.",
+  unit: 'MB/s',
+  done: function () {
+    isDone = true;
+  },
+  run: async function() {
+    while (!isDone) await runTestCase();
+  },
+  iterationCount: iteration,
+});
+</script>
+</body>
+</html>

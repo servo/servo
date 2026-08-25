@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>
+  CSS Gap Decorations: Renderer doesn't crash when gap decorations is used on grid with no rows/columns.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+  .grid-container {
+    display: grid;
+
+    column-rule: solid blue;
+    row-rule: dotted red;
+  }
+</style>
+
+<div class="grid-container"></div>

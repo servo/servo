@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<link rel="author" title="Squarespace" href="https://www.squarespace.com/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+  async_test(t => {
+    const audio = document.createElement("audio");
+    audio.loading = "lazy";
+    audio.src = "/media/sine440.mp3";
+
+    audio.addEventListener("loadstart", t.unreached_func(
+      "Disconnected audio with loading=lazy should not load."
+    ));
+
+    t.step_timeout(t.done, 2000);
+  }, "Audio with loading=lazy does not load when not connected to document");
+</script>
+</body>

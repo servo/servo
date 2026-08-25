@@ -1,0 +1,13 @@
+rules:
+- ref_func.wast.js.html: [wasm-reference-types]
+- ref_is_null.wast.js.html: [wasm-reference-types]
+- ref_null.wast.js.html: [wasm-reference-types]
+- table_get.wast.js.html: [wasm-reference-types]
+- table_set.wast.js.html: [wasm-reference-types]
+- return_call.wast.js.html: [wasm-tail-call-optimization]
+- return_call_indirect.wast.js.html: [wasm-tail-call-optimization]
+- br_on_non_null.wast.js.html: [wasm-typed-fun-refs]
+- br_on_null.wast.js.html: [wasm-typed-fun-refs]
+- call_ref.wast.js.html: [wasm-typed-fun-refs]
+- ref_as_non_null.wast.js.html: [wasm-typed-fun-refs]
+- return_call_ref.wast.js.html: [wasm-typed-fun-refs]

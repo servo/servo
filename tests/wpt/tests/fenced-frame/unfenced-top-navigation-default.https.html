@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>Test '_unfencedTop' navigation from a default-mode fenced frame</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+
+<body>
+<script>
+
+// This is not our actual test file; instead, this file performs an
+// unfenced top navigation to resources/unfenced-top-target.html, which
+// contains the actual promise_test. The test should automatically pass if the
+// navigation succeeds. See ./automatic-beacon-unfenced-top.https.html for
+// another example of this pattern.
+async function init() {
+  let fencedframe = await attachFencedFrameContext();
+
+  await fencedframe.execute(() => {
+    window.onclick = () => {
+      let opened_url = new URL('unfenced-top-target.html', location.href);
+      window.open(opened_url, '_unfencedTop');
+    }
+  });
+
+  await multiClick(10, 10, fencedframe.element);
+};
+
+init();
+
+</script>
+</body>

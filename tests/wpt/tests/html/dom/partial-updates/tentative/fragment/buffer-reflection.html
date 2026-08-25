@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Declarative Fragment: buffer attribute reflection</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+test(() => {
+  const template = document.createElement('template');
+
+  // Verify default value is false
+  assert_equals(template.buffer, false, "default buffer value should be false");
+  assert_false(template.hasAttribute('buffer'), "default state should not have buffer attribute");
+
+  // Verify setting property to true sets attribute
+  template.buffer = true;
+  assert_equals(template.buffer, true, "setting buffer to true should update property");
+  assert_true(template.hasAttribute('buffer'), "setting buffer to true should add buffer attribute");
+  assert_equals(template.getAttribute('buffer'), '', "buffer attribute should be empty string (boolean attribute)");
+
+  // Verify setting property to false removes attribute
+  template.buffer = false;
+  assert_equals(template.buffer, false, "setting buffer to false should update property");
+  assert_false(template.hasAttribute('buffer'), "setting buffer to false should remove buffer attribute");
+
+  // Verify setting attribute updates property
+  template.setAttribute('buffer', '');
+  assert_equals(template.buffer, true, "setting buffer attribute should update property to true");
+
+  template.removeAttribute('buffer');
+  assert_equals(template.buffer, false, "removing buffer attribute should update property to false");
+}, "HTMLTemplateElement.buffer IDL attribute reflects the buffer content attribute");
+</script>
+</body>

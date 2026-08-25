@@ -1,0 +1,128 @@
+name: Build Docker image and push to GitHub Packages
+
+# This workflow file is adapted from the example at https://docs.github.com/en/packages/managing-github-packages-using-github-actions-workflows/publishing-and-installing-a-package-with-github-actions#upgrading-a-workflow-that-accesses-a-registry-using-a-personal-access-token
+on:
+  push:
+    branches:
+      - main
+    # Only rebuild if the Dockerfile or dependencies change.
+    paths: &container-paths
+      - '.devcontainer/**'
+      - 'python/servo/platform/linux_packages/**'
+      - '.github/workflows/docker.yml'
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths: *container-paths
+
+env:
+  IMAGE_NAME: devcontainer-ubuntu
+  IMAGE_DOWNLOAD_PATH: docker-image-artifacts
+  # AMD64 and ARM64 label names are what docker chose
+  AMD64_IMAGE_ARCHIVE: devcontainer-ubuntu-amd64.tar
+  ARM64_IMAGE_ARCHIVE: devcontainer-ubuntu-arm64.tar
+  AMD64_IMAGE_ARTIFACT_NAME: devcontainer-ubuntu-image-amd64
+  ARM64_IMAGE_ARTIFACT_NAME: devcontainer-ubuntu-image-arm64
+
+jobs:
+  devcontainer_ubuntu_build:
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            platform: linux/amd64
+            runner: ubuntu-24.04
+            image_archive: devcontainer-ubuntu-amd64.tar
+            image_artifact_name: devcontainer-ubuntu-image-amd64
+          - arch: arm64
+            platform: linux/arm64
+            runner: ubuntu-24.04-arm
+            image_archive: devcontainer-ubuntu-arm64.tar
+            image_artifact_name: devcontainer-ubuntu-image-arm64
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Build ${{ matrix.arch }} image
+        run: |
+          docker build . \
+            --file .devcontainer/Ubuntu.Dockerfile \
+            --platform ${{ matrix.platform }} \
+            --tag ${{ env.IMAGE_NAME }}:${{ matrix.arch }} \
+            --label "runnumber=${GITHUB_RUN_ID}"
+
+      - name: Save ${{ matrix.arch }} image
+        if: github.event_name != 'pull_request'
+        run: docker save --output "${{ matrix.image_archive }}" "${{ env.IMAGE_NAME }}:${{ matrix.arch }}"
+
+      - name: Upload ${{ matrix.arch }} image artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.image_artifact_name }}
+          path: ${{ matrix.image_archive }}
+          archive: false
+          if-no-files-found: error
+
+  devcontainer_ubuntu_publish:
+    runs-on: ubuntu-24.04
+    needs:
+      - devcontainer_ubuntu_build
+    # Use manual workflow dispatch in your fork to test changes.
+    if: (github.event_name == 'push' && github.repository_owner == 'servo') || github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: ${{ env.IMAGE_DOWNLOAD_PATH }}
+          merge-multiple: true
+
+      - name: List downloaded image artifacts
+        run: ls -R "${{ env.IMAGE_DOWNLOAD_PATH }}"
+
+      - name: Derive image metadata
+        id: image_meta
+        run: |
+          IMAGE_ID=ghcr.io/${{ github.repository_owner }}/servo/${{ env.IMAGE_NAME }}
+
+          # This changes all uppercase characters to lowercase.
+          IMAGE_ID=$(echo "$IMAGE_ID" | tr '[A-Z]' '[a-z]')
+          # This strips the git ref prefix from the version.
+          VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
+
+          # This uses the Docker `latest` tag convention.
+          [ "$VERSION" = "main" ] && VERSION=latest
+          
+          echo "IMAGE_ID=$IMAGE_ID"
+          echo "VERSION=$VERSION"
+
+          echo "image_id=$IMAGE_ID" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "multiarch_tag=$IMAGE_ID:$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Push platform images and publish manifest list
+        run: |
+          for archive in "${{ env.AMD64_IMAGE_ARCHIVE }}" "${{ env.ARM64_IMAGE_ARCHIVE }}"; do
+            docker load --input "${{ env.IMAGE_DOWNLOAD_PATH }}/$archive"
+          done
+
+          IMAGE_TAGS=()
+
+          for arch in amd64 arm64; do
+            IMAGE=${{ steps.image_meta.outputs.image_id }}:$arch-${{ steps.image_meta.outputs.version }}
+            IMAGE_TAGS+=("$IMAGE")
+            docker tag ${{ env.IMAGE_NAME }}:$arch "$IMAGE"
+            docker push "$IMAGE"
+          done
+
+          # This pushes to the registry
+          docker buildx imagetools create --tag ${{ steps.image_meta.outputs.multiarch_tag }} "${IMAGE_TAGS[@]}"

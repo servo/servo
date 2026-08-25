@@ -1,0 +1,5 @@
+rules:
+- ruby-align-*: [ruby-align]
+- ruby-position*: [ruby-position]
+- ruby-overhang*: [ruby-overhang]
+- "*": [display-ruby]

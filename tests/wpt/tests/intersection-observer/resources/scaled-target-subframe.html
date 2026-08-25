@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<style>
+html, body {
+  margin: 0;
+}
+#target {
+  width: 100px;
+  height: 100px;
+}
+</style>
+
+<div id="target">target</div>
+
+<script>
+var delay = 100;
+var results = [];
+
+function waitForNotification(f) {
+  setTimeout(() => {
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        setTimeout(f)
+      })
+    })
+  }, delay)
+}
+
+window.addEventListener("message", event => {
+  waitForNotification(() => {
+    window.parent.postMessage(results.map(e => e.isVisible), "*");
+    results = [];
+  });
+});
+
+onload = () => {
+  var target = document.getElementById("target");
+  var observer = new IntersectionObserver(entries => {
+    results = entries;
+  }, {trackVisibility: true, delay: delay});
+  observer.observe(document.getElementById("target"));
+  window.parent.postMessage("", "*");
+};
+</script>

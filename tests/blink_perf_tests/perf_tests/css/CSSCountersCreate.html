@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<script src="../resources/runner.js"></script>
+<style>
+  div {
+    counter-increment: my-counter;
+  }
+  div::before {
+    content: counter(my-counter);
+  }
+</style>
+<body></body>
+<script>
+  function createTree(root, num_elements, depth) {
+    if (!depth) {
+      return;
+    }
+    for (let i = 0; i < num_elements; ++i) {
+      const div = document.createElement('div');
+      root.append(div);
+      createTree(div, num_elements, depth - 1);
+    }
+  }
+
+  PerfTestRunner.measureTime({
+    description: 'Measure the time of the css counters creation',
+    run: function() {
+      document.body.innerHTML = '';
+      createTree(document.body, 5, 6);
+    },
+    iterationCount: 5,
+  });
+</script>

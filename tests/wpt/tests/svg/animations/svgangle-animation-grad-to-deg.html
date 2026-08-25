@@ -1,0 +1,93 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<title>Tests SVGAngle animation from grad to deg.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+
+<svg>
+</svg>
+
+<script>
+var rootSVGElement = document.querySelector("svg");
+var epsilon = 1.0;
+
+// Setup test document
+var defs = createSVGElement("defs");
+
+var marker = createSVGElement("marker");
+marker.setAttribute("id", "marker");
+marker.setAttribute("viewBox", "0 0 10 10");
+marker.setAttribute("markerWidth", "4");
+marker.setAttribute("markerHeight", "3");
+marker.setAttribute("markerUnits", "strokeWidth");
+marker.setAttribute("refX", "1");
+marker.setAttribute("refY", "5");
+marker.setAttribute("orient", "0deg");
+defs.appendChild(marker);
+
+var polyline = createSVGElement("polyline");
+polyline.setAttribute("id", "polyline");
+polyline.setAttribute("points", "0,0 10,5 0,10 1,5");
+polyline.setAttribute("fill", "green");
+marker.appendChild(polyline);
+
+var path = createSVGElement("path");
+path.setAttribute("id", "path");
+path.setAttribute("d", "M45,50 L55,50");
+path.setAttribute("stroke-width","10");
+path.setAttribute("stroke", "green");
+path.setAttribute("marker-end", "url(#marker)");
+path.setAttribute("onclick", "executeTest()");
+
+var animate = createSVGElement("animate");
+animate.setAttribute("id", "animation");
+animate.setAttribute("attributeName", "orient");
+animate.setAttribute("begin", "0s");
+animate.setAttribute("dur", "4s");
+animate.setAttribute("from", "0grad");
+animate.setAttribute("to", "180deg");
+marker.appendChild(animate);
+rootSVGElement.appendChild(defs);
+rootSVGElement.appendChild(path);
+
+// Setup animation test
+function sample1() {
+    // Check initial/end conditions
+    assert_approx_equals(marker.orientAngle.animVal.value, 0, epsilon);
+    assert_equals(marker.orientAngle.baseVal.value, 0);
+
+    assert_equals(marker.orientType.animVal, SVGMarkerElement.SVG_MARKER_ORIENT_ANGLE);
+    assert_equals(marker.orientType.baseVal, SVGMarkerElement.SVG_MARKER_ORIENT_ANGLE);
+}
+
+function sample2() {
+    assert_approx_equals(marker.orientAngle.animVal.value, 90, epsilon);
+    assert_equals(marker.orientAngle.baseVal.value, 0);
+
+    assert_equals(marker.orientType.animVal, SVGMarkerElement.SVG_MARKER_ORIENT_ANGLE);
+    assert_equals(marker.orientType.baseVal, SVGMarkerElement.SVG_MARKER_ORIENT_ANGLE);
+}
+
+function sample3() {
+    assert_approx_equals(marker.orientAngle.animVal.value, 180, epsilon);
+    assert_equals(marker.orientAngle.baseVal.value, 0);
+
+    assert_equals(marker.orientType.animVal, SVGMarkerElement.SVG_MARKER_ORIENT_ANGLE);
+    assert_equals(marker.orientType.baseVal, SVGMarkerElement.SVG_MARKER_ORIENT_ANGLE);
+}
+
+smil_async_test((t) => {
+    const expectedValues = [
+        // [animationId, time, sampleCallback]
+        ["animation", 0.0,   sample1],
+        ["animation", 2.0,   sample2],
+        ["animation", 3.999, sample3],
+        ["animation", 4.001, sample1]
+    ];
+
+    runAnimationTest(t, expectedValues);
+});
+
+</script>

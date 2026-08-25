@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>CSSNestedDeclarationBlock cssom interactions</title>
+<link rel="help" href="https://drafts.csswg.org/css-nesting/#the-cssnestrule">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style id="s1">
+.parent {
+  color: red;
+  .child { background: blue; }
+  font-size: 20px;
+}
+</style>
+<div class="parent"><div class="child">C</div></div>
+<script>
+test(function() {
+  const sheet = document.getElementById('s1').sheet;
+  const nested = sheet.cssRules[0].cssRules[1];
+  assert_true(nested instanceof CSSNestedDeclarations, "Should be a nested declarations rule");
+  nested.style.color = "green";
+  assert_equals(
+    getComputedStyle(document.querySelector(".parent")).color,
+    "rgb(0, 128, 0)",
+    "Parent should be green now"
+  );
+});
+</script>

@@ -1,0 +1,476 @@
+<!--
+Copyright (c) 2023 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL OES_sample_variables Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas width="32" height="32" id="c"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description("This test verifies the functionality of the OES_sample_variables extension, if it is available.");
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("c", { antialias: false }, 2);
+var ext;
+
+function runShaderTests(extensionEnabled) {
+    debug("");
+    debug("Testing various shader compiles with extension " + (extensionEnabled ? "enabled" : "disabled"));
+
+    const macro = `#version 300 es
+        precision highp float;
+        out vec4 my_FragColor;
+        void main() {
+        #ifdef GL_OES_sample_variables
+            my_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+        #else
+            #error no GL_OES_sample_variables;
+        #endif
+        }`;
+
+    // Expect the macro shader to succeed ONLY if enabled
+    if (wtu.setupProgram(gl, [wtu.simpleVertexShaderESSL300, macro])) {
+        if (extensionEnabled) {
+            testPassed("Macro defined in shaders when extension is enabled");
+        } else {
+            testFailed("Macro defined in shaders when extension is disabled");
+        }
+    } else {
+        if (extensionEnabled) {
+            testFailed("Macro not defined in shaders when extension is enabled");
+        } else {
+            testPassed("Macro not defined in shaders when extension is disabled");
+        }
+    }
+
+    const missing = `#version 300 es
+        precision highp float;
+        out vec4 my_FragColor;
+        void main() {
+            gl_SampleMask[0] = gl_SampleMaskIn[0] & 0x55555555;
+            my_FragColor = vec4(gl_SamplePosition.yx, float(gl_SampleID), float(gl_MaxSamples + gl_NumSamples));
+        }`;
+
+    // Always expect the shader missing the #extension pragma to fail (whether enabled or not)
+    if (wtu.setupProgram(gl, [wtu.simpleVertexShaderESSL300, missing])) {
+        testFailed("Sample variables allowed without #extension pragma");
+    } else {
+        testPassed("Sample variables disallowed without #extension pragma");
+    }
+
+    const valid = `#version 300 es
+        #extension GL_OES_sample_variables : enable
+        precision highp float;
+        out vec4 my_FragColor;
+        void main() {
+            gl_SampleMask[0] = gl_SampleMaskIn[0] & 0x55555555;
+            my_FragColor = vec4(gl_SamplePosition.yx, float(gl_SampleID), float(gl_MaxSamples + gl_NumSamples));
+        }`;
+
+    // Try to compile a shader using sample variables that should only succeed if enabled
+    if (wtu.setupProgram(gl, [wtu.simpleVertexShaderESSL300, valid])) {
+        if (extensionEnabled) {
+            testPassed("Sample variables compiled successfully when extension enabled");
+        } else {
+            testFailed("Sample variables compiled successfully when extension disabled");
+        }
+    } else {
+        if (extensionEnabled) {
+            testFailed("Sample variables failed to compile when extension enabled");
+        } else {
+            testPassed("Sample variables failed to compile when extension disabled");
+        }
+    }
+
+    debug("");
+}
+
+function runMaxSamplesTest() {
+    debug("");
+    debug("Testing gl_MaxSamples");
+
+    const frag = `#version 300 es
+        #extension GL_OES_sample_variables : require
+        precision highp float;
+        out vec4 color;
+        void main() {
+            color = vec4(float(gl_MaxSamples * 4) / 255.0, 0.0, 0.0, 1.0);
+        }`;
+    gl.useProgram(wtu.setupProgram(gl, [wtu.simpleVertexShaderESSL300, frag]));
+
+    wtu.setupUnitQuad(gl);
+    wtu.drawUnitQuad(gl);
+
+    wtu.checkCanvas(gl, [gl.getParameter(gl.MAX_SAMPLES) * 4, 0, 0, 255], "should match MAX_SAMPLES", 1);
+}
+
+function runNumSamplesTest() {
+    debug("");
+    debug("Testing gl_NumSamples");
+
+    const rbo = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, rbo);
+    gl.renderbufferStorageMultisample(gl.RENDERBUFFER, 4, gl.RGBA8, 32, 32);
+
+    const fbo = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, rbo);
+
+    wtu.framebufferStatusShouldBe(gl, gl.FRAMEBUFFER, gl.FRAMEBUFFER_COMPLETE);
+
+    const frag = `#version 300 es
+        #extension GL_OES_sample_variables : require
+        precision highp float;
+        out vec4 color;
+        void main() {
+            if (gl_NumSamples == 4) {
+                color = vec4(0.0, 1.0, 0.0, 1.0);
+            } else {
+                color = vec4(1.0, 0.0, 0.0, 1.0);
+            }
+        }`;
+    gl.useProgram(wtu.setupProgram(gl, [wtu.simpleVertexShaderESSL300, frag]));
+
+    wtu.setupUnitQuad(gl);
+    wtu.drawUnitQuad(gl);
+
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+    gl.blitFramebuffer(0, 0, 32, 32, 0, 0, 32, 32, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+    wtu.checkCanvas(gl, [0, 255, 0, 255], "should be green");
+}
+
+function runSampleIDTest() {
+    debug("");
+    debug("Testing gl_SampleID");
+
+    const frag = `#version 300 es
+        #extension GL_OES_sample_variables : require
+        precision highp float;
+        out vec4 color;
+        uniform int id;
+        void main() {
+            // Special value when the selected sample is processed, 0.0 otherwise
+            float r = float(gl_SampleID == id ? (1 << gl_SampleID) : 0) * 32.0 / 255.0;
+            // Must always be 0.0
+            float g = float(gl_SampleID < 0 || gl_SampleID >= gl_NumSamples);
+            color = vec4(r, g, 0.0, 1.0);
+        }`;
+    const program = wtu.setupProgram(gl, [wtu.simpleVertexShaderESSL300, frag]);
+    gl.useProgram(program);
+
+    wtu.setupUnitQuad(gl);
+
+    const rbo = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, rbo);
+    gl.renderbufferStorageMultisample(gl.RENDERBUFFER, 4, gl.RGBA8, 32, 32);
+
+    const fbo = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, rbo);
+
+    wtu.framebufferStatusShouldBe(gl, gl.FRAMEBUFFER, gl.FRAMEBUFFER_COMPLETE);
+
+    for (let sample = 0; sample < 4; sample++) {
+        debug(`Sample ${sample} is selected`);
+
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo);
+        gl.uniform1i(gl.getUniformLocation(program, "id"), sample);
+        wtu.drawUnitQuad(gl);
+
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo);
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+        gl.blitFramebuffer(0, 0, 32, 32, 0, 0, 32, 32, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+        wtu.checkCanvas(gl, [(1 << sample) * 8, 0, 0, 255], undefined, 1);
+    }
+}
+
+function runSampleMaskInTest() {
+    debug("");
+    debug("Testing gl_SampleMaskIn");
+
+    const frag = `#version 300 es
+        #extension GL_OES_sample_variables : require
+        precision highp float;
+        out vec4 color;
+        uint popcount(uint v) {
+            uint c = 0u;
+            for (; v != 0u; v >>= 1) c += v & 1u;
+            return c;
+        }
+        void main() {
+            float r = float(popcount(uint(gl_SampleMaskIn[0])));
+            color = vec4(r * 4.0 / 255.0, 0, 0, 1);
+        }`;
+
+    const program = wtu.setupProgram(gl, [wtu.simpleVertexShaderESSL300, frag]);
+    gl.useProgram(program);
+
+    // Use a triangle instead of the WTU's quad
+    // to avoid artifacts along the diagonal
+    const vertices = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertices);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+      -1.0,  1.0,
+       1.0, -1.0,
+      -1.0, -1.0]), gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
+    function test(sampleCount, sampleCoverageEnabled, coverage) {
+        if (sampleCoverageEnabled) {
+            gl.enable(gl.SAMPLE_COVERAGE);
+        } else {
+            gl.disable(gl.SAMPLE_COVERAGE);
+        }
+
+        gl.sampleCoverage(coverage, false);
+
+        const rbo = gl.createRenderbuffer();
+        gl.bindRenderbuffer(gl.RENDERBUFFER, rbo);
+        gl.renderbufferStorageMultisample(gl.RENDERBUFFER, sampleCount, gl.RGBA8, 32, 32);
+
+        const fbo = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, rbo);
+
+        wtu.framebufferStatusShouldBe(gl, gl.FRAMEBUFFER, gl.FRAMEBUFFER_COMPLETE);
+
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo);
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+        gl.blitFramebuffer(0, 0, 32, 32, 0, 0, 32, 32, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+
+        // Shader scales up the number of input samples to increase precision in unorm8 space.
+        let expected = Math.max(sampleCount, 1) * 4;
+
+        // Sample coverage must not affect single sampled buffers
+        if (sampleCoverageEnabled && sampleCount > 0) {
+            // The number of samples in gl_SampleMaskIn must be affected by the sample
+            // coverage GL state and then the resolved value must be scaled down again.
+            expected *= coverage * coverage;
+        }
+
+        // Check only the red channel
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+        const pixel = new Uint8Array(4);
+        gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+        const message = `Expected: ${expected}, Actual: ${pixel[0]}, ` +
+                        `Samples: ${sampleCount}, Sample Coverage: ${sampleCoverageEnabled}, Coverage: ${coverage}`;
+        if (Math.abs(pixel[0] - expected) > 2) {
+            testFailed(message);
+        } else {
+            testPassed(message);
+        }
+    }
+
+    // Include all exposed sample counts and additionally test single-sampled rendering
+    const sampleCounts = [...gl.getInternalformatParameter(gl.RENDERBUFFER, gl.RGBA8, gl.SAMPLES), 0];
+
+    for (const sampleCount of sampleCounts) {
+        if (sampleCount > 32) {
+            // This test will not work with more than 32 samples.
+            continue;
+        }
+
+        for (const sampleCoverageEnabled of [false, true]) {
+            for (const coverage of [0.0, 0.5, 1.0]) {
+                if (sampleCount == 1 && coverage != 0.0 && coverage != 1.0) {
+                    continue;
+                }
+                test(sampleCount, sampleCoverageEnabled, coverage);
+            }
+        }
+    }
+}
+
+function runSampleMaskInPerSampleTest() {
+    debug("");
+    debug("Testing gl_SampleMaskIn with per-sample shading");
+
+    const frag = `#version 300 es
+        #extension GL_OES_sample_variables : require
+        precision highp float;
+        out vec4 color;
+        void main() {
+            float r = float(gl_SampleMaskIn[0] == (1 << gl_SampleID));
+            color = vec4(r, 0, 0, 1);
+        }`;
+    const program = wtu.setupProgram(gl, [wtu.simpleVertexShaderESSL300, frag]);
+    gl.useProgram(program);
+
+    wtu.setupUnitQuad(gl);
+
+    // Include all exposed sample counts and additionally test single-sampled rendering
+    const sampleCounts = [...gl.getInternalformatParameter(gl.RENDERBUFFER, gl.RGBA8, gl.SAMPLES), 0];
+    for (const sampleCount of sampleCounts) {
+        if (sampleCount > 32) {
+            // This test will not work with more than 32 samples.
+            continue;
+        }
+
+        const rbo = gl.createRenderbuffer();
+        gl.bindRenderbuffer(gl.RENDERBUFFER, rbo);
+        gl.renderbufferStorageMultisample(gl.RENDERBUFFER, sampleCount, gl.RGBA8, 32, 32);
+
+        const fbo = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, rbo);
+
+        wtu.framebufferStatusShouldBe(gl, gl.FRAMEBUFFER, gl.FRAMEBUFFER_COMPLETE);
+
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo);
+        wtu.drawUnitQuad(gl);
+
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo);
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+        gl.blitFramebuffer(0, 0, 32, 32, 0, 0, 32, 32, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+        wtu.checkCanvas(gl, [255, 0, 0, 255], `Samples: ${sampleCount}`, 1);
+    }
+}
+
+function runSampleMaskTest() {
+    debug("");
+    debug("Testing gl_SampleMask");
+
+    const frag = `#version 300 es
+        #extension GL_OES_sample_variables : require
+        precision highp float;
+        uniform highp int sampleMask;
+        out vec4 color;
+        void main() {
+            gl_SampleMask[0] = sampleMask;
+            color = vec4(1, 0, 0, 1);
+        }`;
+    const program = wtu.setupProgram(gl, [wtu.simpleVertexShaderESSL300, frag]);
+    gl.useProgram(program);
+
+    // Use a triangle instead of the WTU's quad
+    // to avoid artifacts along the diagonal
+    const vertices = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertices);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+      -1.0,  1.0,
+       1.0, -1.0,
+      -1.0, -1.0]), gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
+    function test(sampleCount, sampleMask) {
+        const rbo = gl.createRenderbuffer();
+        gl.bindRenderbuffer(gl.RENDERBUFFER, rbo);
+        gl.renderbufferStorageMultisample(gl.RENDERBUFFER, sampleCount, gl.RGBA8, 32, 32);
+
+        const fbo = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, rbo);
+
+        wtu.framebufferStatusShouldBe(gl, gl.FRAMEBUFFER, gl.FRAMEBUFFER_COMPLETE);
+
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.uniform1i(gl.getUniformLocation(program, "sampleMask"), sampleMask);
+        gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo);
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+        gl.blitFramebuffer(0, 0, 32, 32, 0, 0, 32, 32, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+
+        let expected = 1.0;
+        if (sampleCount > 0) {
+            let mask = sampleMask & ((1 << Math.max(sampleCount, 1)) - 1);
+            let bits = 0;
+            for (; mask != 0; mask >>= 1) bits += mask & 1;
+            expected = bits / Math.max(sampleCount, 1);
+        }
+        expected *= 255;
+
+        // Check only the red channel
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+        const pixel = new Uint8Array(4);
+        gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+        const message = `Samples: ${sampleCount}, `
+                        + `gl_SampleMask[0]: 0x${sampleMask.toString(16).padStart(8, "0").toUpperCase()}, `
+                        + `Actual: ${pixel[0]}, Expected: ${expected}`;
+        if (Math.abs(pixel[0] - expected) > 2) {
+            testFailed(message);
+        } else {
+            testPassed(message);
+        }
+    }
+
+    // Include all exposed sample counts and additionally test single-sampled rendering
+    const sampleCounts = [...gl.getInternalformatParameter(gl.RENDERBUFFER, gl.RGBA8, gl.SAMPLES), 0];
+
+    for (const sampleCount of sampleCounts) {
+        if (sampleCount > 31) {
+            // This test will not work with more than 31 samples.
+            continue;
+        }
+
+        for (const sampleMask of [0xFFFFFFFF, 0x55555555, 0xAAAAAAAA, 0x00000000]) {
+            test(sampleCount, sampleMask);
+        }
+    }
+}
+
+function runTest() {
+    if (!gl) {
+        testFailed("WebGL context does not exist");
+        return;
+    }
+    testPassed("WebGL context exists");
+
+    runShaderTests(false);
+
+    ext = gl.getExtension("OES_sample_variables");
+    wtu.runExtensionSupportedTest(gl, "OES_sample_variables", ext !== null);
+
+    if (!ext) {
+        testPassed("No OES_sample_variables support -- this is legal");
+    } else {
+        testPassed("Successfully enabled OES_sample_variables extension");
+        runShaderTests(true);
+
+        debug("Testing sample variables");
+        runMaxSamplesTest();
+        runNumSamplesTest();
+        runSampleIDTest();
+        runSampleMaskInTest();
+        runSampleMaskInPerSampleTest();
+        runSampleMaskTest();
+    }
+}
+
+runTest();
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

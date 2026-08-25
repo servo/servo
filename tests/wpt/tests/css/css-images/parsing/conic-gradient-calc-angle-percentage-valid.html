@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Images Module Level 4: parsing conic-gradient() color stops with calc() mixing angle and percentage</title>
+<link rel="author" title="Jason Leo" href="mailto:cgqaq@chromium.org">
+<link rel="author" title="一丝" href="mailto:yiorsi@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#typedef-angular-color-stop-list">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#typedef-angle-percentage">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<div id="target"></div>
+<script>
+// Color hint position
+test_valid_value("background-image",
+  "conic-gradient(red, calc(0deg + 100%), blue)",
+  "conic-gradient(red, calc(100% + 0deg), blue)");
+
+// Color stop position
+test_valid_value("background-image",
+  "conic-gradient(red calc(0deg + 100%), blue)",
+  "conic-gradient(red calc(100% + 0deg), blue)");
+
+test_valid_value("background-image",
+  "conic-gradient(red calc(90deg + 50%), blue)",
+  "conic-gradient(red calc(50% + 90deg), blue)");
+
+// Zero percentage term is preserved, not dropped.
+test_valid_value("background-image",
+  "conic-gradient(red calc(90deg + 0%), blue)",
+  "conic-gradient(red calc(0% + 90deg), blue)");
+
+// Subtraction between percentage and angle.
+test_valid_value("background-image",
+  "conic-gradient(red calc(100% - 45deg), blue)");
+
+// Same rules apply to repeating-conic-gradient().
+test_valid_value("background-image",
+  "repeating-conic-gradient(red calc(90deg + 50%), blue)",
+  "repeating-conic-gradient(red calc(50% + 90deg), blue)");
+</script>

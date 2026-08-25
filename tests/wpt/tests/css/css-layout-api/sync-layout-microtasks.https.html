@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.css-houdini.org/css-layout-api/#invoke-a-layout-callback">
+<meta name="assert" content="This test checks running the microtask queue for a layout() class won't run the main world's microtask queue." />
+<style>
+#test {
+  display: layout(child-layout);
+  width: 100px;
+}
+
+#test > div {
+  height: 100px;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+
+<div id="test">
+  <div></div>
+</div>
+
+<script id="code" type="text/worklet">
+registerLayout('child-layout', class {
+  async intrinsicSizes() {}
+  async layout([child]) {
+    const fragment = await child.layoutNextFragment();
+    return {autoBlockSize: 50, childFragments: [fragment]};
+  }
+});
+</script>
+
+<script>
+promise_test(async t => {
+  if (typeof CSS.layoutWorklet === 'undefined') {
+    throw Error('CSS Layout API not supported.');
+  }
+
+  await importWorklet(CSS.layoutWorklet, document.getElementById('code').textContent);
+
+  let resolved = false;
+  let p = Promise.resolve().then(() => {
+    resolved = true;
+  });
+  assert_false(resolved);
+
+  // Running the layout-worklet's microtask queue shouldn't trigger the main
+  // world's microtask queue.
+  assert_equals(document.getElementById('test').clientHeight, 50);
+  assert_false(resolved);
+
+  await p;
+  assert_true(resolved);
+});
+</script>
+</html>

@@ -1,0 +1,88 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Fenced Frame (https://wicg.github.io/fenced-frame/)
+
+[Exposed=Window]
+interface HTMLFencedFrameElement : HTMLElement {
+  [HTMLConstructor] constructor();
+
+  [CEReactions] attribute FencedFrameConfig? config;
+  [CEReactions] attribute DOMString width;
+  [CEReactions] attribute DOMString height;
+  [SameObject, PutForwards=value] readonly attribute DOMTokenList sandbox;
+  [CEReactions] attribute DOMString allow;
+};
+
+enum OpaqueProperty {"opaque"};
+
+[Exposed=Window, Serializable]
+interface FencedFrameConfig {
+  constructor(USVString url);
+  undefined setSharedStorageContext(DOMString contextString);
+};
+
+typedef (USVString or FencedFrameConfig) UrnOrConfig;
+
+partial interface Navigator {
+  Promise<undefined> deprecatedReplaceInURN(
+    UrnOrConfig urnOrConfig, record<USVString, USVString> replacements);
+  Promise<USVString> deprecatedURNtoURL(
+    UrnOrConfig urnOrConfig, optional boolean send_reports = false);
+  sequence<USVString> adAuctionComponents(unsigned short numAdComponents);
+};
+
+enum FenceReportingDestination {
+  "buyer",
+  "seller",
+  "component-seller",
+  "direct-seller",
+  "shared-storage-select-url",
+};
+
+dictionary FenceEvent {
+  // This dictionary has two mutually exclusive modes that aren’t represented as
+  // distinct IDL types due to distinguishability issues:
+  //
+  // When reporting to a preregistered destination (specified by enum), the following
+  // properties are used:
+  DOMString eventType;
+  DOMString eventData;
+  sequence<FenceReportingDestination> destination;
+
+  // Determines if this data can be sent in a reportEvent() beacon or automatic
+  // beacon that originates from a document that is cross-origin to the mapped
+  // URL of the fenced frame config that loaded this frame tree.
+  // Note that automatic beacon data can only be set from documents that are
+  // same-origin to the fenced frame config’s mapped URL, so this effectively
+  // opts in the data to being used in a cross-origin subframe.
+  boolean crossOriginExposed = false;
+
+  // When setting event data to be used later in an automatic beacon, the
+  // following properties are used:
+  boolean once = false;
+
+  // When reporting to a custom destination URL (with substitution of macros defined by
+  // the Protected Audience buyer), the following property is used:
+  USVString destinationURL;
+};
+
+typedef (FenceEvent or DOMString) ReportEventType;
+
+[Exposed=Window]
+interface Fence {
+    undefined reportEvent(optional ReportEventType event = {});
+    undefined setReportEventDataForAutomaticBeacons(optional FenceEvent event = {});
+    sequence<FencedFrameConfig> getNestedConfigs();
+    Promise<undefined> disableUntrustedNetwork();
+    undefined notifyEvent(Event event);
+};
+
+partial interface Window {
+  // Collection of fenced frame APIs
+  readonly attribute Fence? fence;
+};
+
+partial interface mixin GlobalEventHandlers {
+  attribute EventHandler onfencedtreeclick;
+};

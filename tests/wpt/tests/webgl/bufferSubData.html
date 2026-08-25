@@ -1,0 +1,26 @@
+<!doctype html>
+<title>bufferSubData</title>
+<link rel=author href=mailto:Ms2ger@gmail.com title=Ms2ger>
+<link rel=help href=https://www.khronos.org/registry/webgl/specs/latest/#5.14.5>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=common.js></script>
+
+<div id=log></div>
+<script>
+test(function() {
+  var gl = getGl();
+  assert_equals(gl.getError(), WebGLRenderingContext.NO_ERROR);
+
+  var b = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, b);
+
+  var a = new Float32Array(1);
+  gl.bufferData(gl.ARRAY_BUFFER, a, gl.STATIC_DRAW);
+
+  var nan = 0 / 0;
+  gl.bufferSubData(gl.ARRAY_BUFFER, nan, a);
+
+  assert_equals(gl.getError(), WebGLRenderingContext.NO_ERROR);
+});
+</script>

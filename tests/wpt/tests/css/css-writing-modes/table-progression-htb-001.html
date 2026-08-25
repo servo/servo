@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: horizontal-tb Table Row/Rowgroup/Cell Ordering</title>
+<link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact">
+<link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/"> <!-- 2016-01-15 -->
+<link rel="match" href="table-progression-htb-001-ref.html">
+<meta name="assert" content="This test checks that horizontal-tb tables order rows/rowgroups top to bottom and cells left-to-right (LTR) or right-to-left (RTL) per 'direction'. This test also checks that 'writing-mode' and 'direction' do not apply to table rows and row groups.">
+<link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#block-flow" title="3.1 Block Flow Direction: the 'writing-mode' property">
+<link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#direction" title="2.1 Specifying Directionality: the 'direction' property">
+
+<style>
+  [dir=rtl] {
+    direction: rtl;
+  }
+
+  table {
+    border-spacing: 0;
+    margin: 1em;
+    float: left;
+  }
+  td {
+    width: 1em;
+    height: 1em;
+    border: solid gray;
+  }
+
+  .navy { background: navy}
+  .blue { background: blue }
+  .aqua { background: aqua }
+  .teal { background: teal }
+  .purp { background: purple }
+  .pink { background: fuchsia }
+  .yllw { background: yellow }
+  .orng { background: orange }
+
+  /* These rules must have no effect. */
+  .test thead,
+  .test tfoot,
+  .test tbody,
+  .test tr,
+  .test td {
+    writing-mode: vertical-rl;
+    direction: rtl;
+  }
+  .test[dir=rtl] thead,
+  .test[dir=rtl] tfoot,
+  .test[dir=rtl] tbody,
+  .test[dir=rtl] tr,
+  .test[dir=rtl] td {
+    writing-mode: vertical-lr;
+    direction: ltr;
+  }
+</style>
+
+<p>Test passes if the following three tables look identical.
+
+<table class="test">
+  <thead>
+    <tr>
+      <td class="navy">
+      <td class="blue">
+      <td colspan=2>
+  <tfoot>
+    <tr>
+      <td colspan=2>
+      <td class="aqua">
+      <td class="teal">
+  <tbody>
+    <tr>
+      <td rowspan=3>
+      <td colspan=2>
+      <td class="purp">
+    <tr>
+      <td class="pink">
+      <td rowspan=2 colspan=2>
+    <tr>
+      <td class="yllw">
+  <tbody>
+    <tr>
+      <td class="orng">
+      <td colspan=3>
+</table>
+
+<table dir=rtl class="test">
+  <thead>
+    <tr>
+      <td colspan=2>
+      <td class="blue">
+      <td class="navy">
+  <tfoot>
+    <tr>
+      <td class="teal">
+      <td class="aqua">
+      <td colspan=2>
+  <tbody>
+    <tr>
+      <td class="purp">
+      <td colspan=2>
+      <td rowspan=3>
+    <tr>
+      <td rowspan=2 colspan=2>
+      <td class="pink">
+    <tr>
+      <td class="yllw">
+  <tbody>
+    <tr>
+      <td colspan=3>
+      <td class="orng">
+</table>
+
+<table class="reference">
+  <thead>
+    <tr>
+      <td class="navy">
+      <td class="blue">
+      <td colspan=2>
+  <tfoot>
+    <tr>
+      <td colspan=2>
+      <td class="aqua">
+      <td class="teal">
+  <tbody>
+    <tr>
+      <td rowspan=3>
+      <td colspan=2>
+      <td class="purp">
+    <tr>
+      <td class="pink">
+      <td rowspan=2 colspan=2>
+    <tr>
+      <td class="yllw">
+  <tbody>
+    <tr>
+      <td class="orng">
+      <td colspan=3>
+</table>

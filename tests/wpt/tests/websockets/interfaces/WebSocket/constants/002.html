@@ -1,0 +1,24 @@
+<!doctype html>
+<title>WebSockets: setting constants</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../../../constants.sub.js></script>
+<meta name="variant" content="?default">
+<meta name="variant" content="?wss">
+<div id=log></div>
+<script>
+// this test is testing WebIDL stuff
+var ws = new WebSocket(SCHEME_DOMAIN_PORT+'/');
+var constants = ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'];
+for (var i = 0; i < constants.length; ++i) {
+  test(function() {
+    WebSocket[constants[i]] = 5; // should be ignored, has { ReadOnly }
+    WebSocket.prototype[constants[i]] = 5; // should be ignored, has { ReadOnly }
+    ws[constants[i]] = 5; // should be ignored, { ReadOnly } is inherited from prototype
+    assert_equals(WebSocket[constants[i]], i, 'WebSocket.'+constants[i]);
+    assert_equals(WebSocket.prototype[constants[i]], i, 'WebSocket.prototype.'+constants[i]);
+    assert_equals(ws[constants[i]], i, 'ws.'+constants[i]);
+  }, "Readonly constants " + constants[i]);
+};
+</script>
+

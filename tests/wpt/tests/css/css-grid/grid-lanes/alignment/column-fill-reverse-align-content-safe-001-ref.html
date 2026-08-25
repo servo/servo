@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    html, body {
+      font: 16px/1 monospace;
+      background: white;
+    }
+
+    body {
+      padding: 40px;
+    }
+
+    .container {
+      display: grid;
+      grid-template-columns: 80px;
+      gap: 4px;
+      width: 100px;
+      height: 60px;
+      border: 1px solid;
+      margin-bottom: 40px;
+    }
+
+    item {
+      display: block;
+      width: 40px;
+      height: 40px;
+      color: white;
+      background: #2ca02c;
+    }
+  </style>
+</head>
+<body>
+  <div class="container" style="align-content: end;">
+    <item>2</item>
+    <item>1</item>
+  </div>
+
+  <div class="container" style="align-content: end;">
+    <item>2</item>
+    <item>1</item>
+  </div>
+
+  <div class="container" style="align-content: end;">
+    <item>2</item>
+    <item>1</item>
+  </div>
+</body>
+</html>

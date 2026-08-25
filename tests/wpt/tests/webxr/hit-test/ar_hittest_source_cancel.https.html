@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/webxr_util.js"></script>
+<script src="../resources/webxr_test_asserts.js"></script>
+<script src="../resources/webxr_test_constants.js"></script>
+<script src="../resources/webxr_test_constants_fake_world.js"></script>
+
+<script>
+
+// at world origin.
+const VIEWER_ORIGIN_TRANSFORM = {
+  position: [0, 0, 0],
+  orientation: [0, 0, 0, 1],
+};
+
+// at world origin.
+const FLOOR_ORIGIN_TRANSFORM = {
+  position: [0, 0, 0],
+  orientation: [0, 0, 0, 1],
+};
+
+const fakeDeviceInitParams = {
+  supportedModes: ["immersive-ar"],
+  views: VALID_VIEWS,
+  floorOrigin: FLOOR_ORIGIN_TRANSFORM,    // aka mojo_from_floor
+  viewerOrigin: VIEWER_ORIGIN_TRANSFORM,  // aka mojo_from_viewer
+  supportedFeatures: ALL_FEATURES,
+  world: createFakeWorld(5.0, 2.0, 5.0),  // webxr_test_constants_fake_world.js has detailed description of the fake world
+};
+
+const test_function_generator = function(isTransientTest, isSessionEndedTest) {
+  return function(session, fakeDeviceController, t) {
+
+    let done = false;
+
+    return session.requestReferenceSpace('local').then((localSpace) => {
+      const validation_function = (hitTestSource) => {
+
+        const rAFcb = function(time, frame) {
+          if(isSessionEndedTest) {
+            // Session is marked as "ended" synchronously, there is no need to
+            // wait for the promise it returns to settle.
+            session.end();
+
+            // Currently, the specification does not say what happen
+            // when a hit test source gets cancelled post-session-end.
+            hitTestSource.cancel();
+            done = true;
+          } else {
+            hitTestSource.cancel();
+            t.step(() => {
+              assert_throws_dom("InvalidStateError", () => hitTestSource.cancel());
+            });
+            done = true;
+          }
+        };
+
+        session.requestAnimationFrame(rAFcb);
+
+        return t.step_wait(() => done);
+      };
+
+      // Same validation will happen both in transient and non-transient variant
+      if(isTransientTest) {
+        return session.requestHitTestSourceForTransientInput({
+          profile: "generic-touchscreen",
+          offsetRay: new XRRay(),
+        }).then(validation_function);
+      } else {
+        return session.requestHitTestSource({
+          space: localSpace,
+          offsetRay: new XRRay(),
+        }).then(validation_function);
+      }
+    }); // return session.requestReferenceSpace('local').then((localSpace) => { ...
+  };  // return function(session, fakeDeviceController, t) { ...
+}
+
+xr_session_promise_test("Ensures hit test source cancellation works when the session has not ended.",
+  test_function_generator(/*isTransientTest=*/false, /*isSessionEndedTest=*/false),
+  fakeDeviceInitParams,
+  'immersive-ar', { 'requiredFeatures': ['hit-test'] });
+
+xr_session_promise_test("Ensures transient input hit test source cancellation works when the session has not ended.",
+  test_function_generator(/*isTransientTest=*/true, /*isSessionEndedTest=*/false),
+  fakeDeviceInitParams,
+  'immersive-ar', { 'requiredFeatures': ['hit-test'] });
+
+xr_session_promise_test("Ensures hit test source cancellation works when the session has ended",
+  test_function_generator(/*isTransientTest=*/false, /*isSessionEndedTest=*/true),
+  fakeDeviceInitParams,
+  'immersive-ar', { 'requiredFeatures': ['hit-test'] });
+
+xr_session_promise_test("Ensures transient input hit test source cancellation works when the session has ended",
+  test_function_generator(/*isTransientTest=*/true, /*isSessionEndedTest=*/true),
+  fakeDeviceInitParams,
+  'immersive-ar', { 'requiredFeatures': ['hit-test'] });
+
+</script>

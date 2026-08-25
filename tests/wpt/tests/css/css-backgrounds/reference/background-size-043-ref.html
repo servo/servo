@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+
+  <style>
+  div#black-walls
+    {
+      border: solid 40px;
+      border-color: transparent black;
+      height: 400px;
+      width: 400px;
+    }
+
+  div#inner-orange
+    {
+      background-color: orange;
+      border: blue solid 16px;
+      height: 368px; /*  400px - 2 * 16px == 368px  */
+      margin: 0px auto;
+      /* the orange block is horizontally centered inside div#black-walls */
+      width: 168px;  /*  200px - 2 * 16px == 168px  */
+    }
+  </style>
+
+  <div id="black-walls"><div id="inner-orange"></div></div>

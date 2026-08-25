@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>image-animation: normal sync the timeline</title>
+<link rel="help" href="https://drafts.csswg.org/css-image-animation-1/">
+<meta charset="utf-8" />
+<link rel="match" href="image-animation-img-running-to-normal-ref.html" />
+<script src="/common/reftest-wait.js"></script>
+<script src="resources/image-animation-utils.js"></script>
+<script>
+  let count = 0;
+  function loaded() {
+    count++;
+    if (count === 1) {
+      waitForFrameTime(20).then(() => {
+        document.getElementById('img2').src = "../../images/anim-gr.gif"
+        document.getElementById('img2').style.imageAnimation = "running"
+        document.getElementById('img1').style.imageAnimation = "normal"
+      });
+    }
+    if (count === document.querySelectorAll('img').length) {
+      document.getElementById('img2').style.imageAnimation = "normal"
+      requestAnimationFrame(()=> {
+        document.getElementById('img1').style.imageAnimation = "paused"
+        document.getElementById('img2').style.imageAnimation = "paused"
+        requestAnimationFrame(()=>{
+          takeScreenshot();
+        })
+      })
+    }
+  }
+</script>
+
+<style>
+  img {
+    image-animation: paused;
+  }
+</style>
+
+<img id="img1" src="../../images/anim-gr.gif" onload="loaded()" />
+<img id="img2" onload="loaded()" />
+
+</html>

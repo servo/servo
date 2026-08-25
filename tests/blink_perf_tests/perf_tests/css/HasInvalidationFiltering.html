@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="../resources/runner.js"></script>
+<style>
+  div { color: grey }
+  .a:has(.b) { color: red }
+  .c:has(.d) { color: green }
+  .e:has(.f) .g { color: blue }
+  .e:has(.h) .i { color: navy }
+  .e:has(.f.h) .j { color: lightgreen }
+</style>
+</head>
+<body>
+<div id=container class="a e"></div>
+<script>
+
+function addChildren(element, numChildren, idPrefix)
+{
+  for (var i = 0; i < numChildren; i++) {
+    var child = document.createElement("div");
+    child.id = idPrefix  + i;
+    element.appendChild(child);
+  }
+}
+
+function makeTree(element, depth, fanOut, idPrefix)
+{
+  if (depth <= 0)
+    return;
+  addChildren(element, fanOut, idPrefix);
+  for (var child = element.firstChild; child.nextSibling; child = child.nextSibling)
+    makeTree(child, depth - 1, fanOut, child.id);
+  if (child)
+    makeTree(child, depth - 1, fanOut, child.id);
+}
+
+makeTree(container, 3, 5, "child");
+
+child21.classList.add('g');
+child22.classList.add('i')
+child23.classList.add('j');
+container.offsetHeight; // force recalc style
+
+var runFunction = function()
+{
+  // this should not invalidate any element.
+  child22.classList.toggle('d');
+  container.offsetHeight; // force recalc style
+  child22.classList.toggle('d');
+  container.offsetHeight; // force recalc style
+
+  // this should invalidate only #child21
+  child22.classList.toggle('f');
+  container.offsetHeight; // force recalc style
+  child22.classList.toggle('f');
+  container.offsetHeight; // force recalc style
+}
+
+PerfTestRunner.measureRunsPerSecond({
+  description: "Measures performance of the :has() pseudo class invalidation filtering.",
+  run: runFunction
+});
+
+</script>
+</body>
+</html>

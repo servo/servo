@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSSOM - removeRule doesn't assert when removing a particular set of rules</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#cssstylesheet">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1659718">
+<style>
+@media all {
+  * { color: red; }
+
+  #foobar { color: blue }
+}
+</style>
+<script>
+  document.documentElement.getBoundingClientRect();
+  document.styleSheets[0].deleteRule(0);
+</script>

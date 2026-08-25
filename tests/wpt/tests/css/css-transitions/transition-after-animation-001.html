@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<title>Starting transition after animation has ended</title>
+<link rel="help" href="https://drafts.csswg.org/css-transitions/">
+<link rel="help" href="https://crbug.com/1261155">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./support/helper.js"></script>
+<style>
+  @keyframes anim {
+    from { left: 100px }
+    to { left: 200px }
+  }
+  #div {
+    left: 0px;
+    position: relative;
+    width: 50px;
+    height: 50px;
+    background-color: green;
+  }
+  #div.animate {
+    animation: anim 0.1s linear;
+  }
+  #div.transition {
+    left: 300px;
+    transition: left 1000s steps(2, start);
+  }
+</style>
+<div id=div>
+</div>
+<script>
+
+promise_test(async t => {
+    const watcher = new EventWatcher(t, div, ['animationend']);
+
+    assert_equals(getComputedStyle(div).left, '0px');
+
+    div.classList.toggle('animate');
+    assert_equals(getComputedStyle(div).left, '100px');
+
+    await watcher.wait_for('animationend');
+    assert_equals(getComputedStyle(div).left, '0px');
+
+    div.classList.toggle('transition');
+    assert_equals(getComputedStyle(div).left, '150px');
+}, 'Starting transition after animation has ended');
+
+</script>

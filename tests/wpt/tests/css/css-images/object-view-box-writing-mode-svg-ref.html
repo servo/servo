@@ -1,0 +1,31 @@
+<!-- This is an autogen file. Run support/generate_object_view_box_tests.py to update -->
+<!DOCTYPE html>
+<html>
+<title>CSS object-view-box with vertical writing mode : ref</title>
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<script src="support/testHelper.js"></script>
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#the-object-view-box">
+
+<body>
+<style>
+html {
+  writing-mode: vertical-lr;
+}
+.container_view_box_subset {
+  width: 50px;
+  height: 75px;
+  overflow: hidden;
+  display: inline-block;
+}
+.view_box_subset {
+  position: relative;
+  top: -25px;
+}
+</style>
+<div class="container_view_box_subset">
+  <img class="view_box_subset"></img>
+</div>
+</body>
+<script>
+  populateElements("support/blue-green-red-yellow-50x100.svg");
+</script>

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2019912">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+#scroller {
+  overflow: scroll;
+  width: 100px;
+  height: 100px;
+  background: blue;
+}
+
+.filler {
+  height: 90px;
+  margin: 0;
+}
+
+.sticky {
+  position: sticky;
+  top: 50px;
+}
+
+#target {
+  width: 25px;
+  height: 10px;
+  background: purple;
+}
+
+.dest {
+  width: 100px;
+  height: 100px;
+  background: green;
+}
+</style>
+<div id=scroller>
+  <div class=sticky><div id=target></div></div>
+  <div class=filler></div>
+  <div class=dest></div>
+</div>
+<script>
+scroller.onscroll = () => {
+  target.scrollIntoView({
+    behavior: "smooth",
+    inline: "center",
+    block: "nearest",
+  });
+};
+
+promise_test(async function() {
+  await new Promise(r => window.addEventListener("load", r, { once: true }));
+  const bounds = scroller.getBoundingClientRect();
+  // Before the fix, the scrolling attempt below would be interrupted.
+  await new test_driver.Actions()
+    .scroll(Math.round(bounds.left + bounds.width / 2),
+            Math.round(bounds.top + bounds.height/ 2), 0, 100)
+    .send();
+});
+</script>

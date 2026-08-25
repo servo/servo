@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<link rel="author" href="mailto:bokan@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.target {
+  width: 100px;
+  height: 100px;
+  background-color: dodgerblue;
+}
+</style>
+<script>
+function jank() {
+  let start = performance.now();
+  let x = 0;
+  while(performance.now() - start < 100) {
+    x++;
+  }
+}
+
+function target1() { return document.querySelector('#target1'); }
+function target2() { return document.querySelector('#target2'); }
+function spinner() { return document.querySelector('#spinner'); }
+
+function firstFrame() {
+  target1().animate([{transform: 'translateX(400px)'}], {id: "target1", duration: 10000});
+  target2().animate([{transform: 'translateX(400px)'}], {id: "target2", duration: 10000});
+  requestAnimationFrame(secondFrame);
+
+  // Simulate some jank so that, if the above animations are started
+  // asynchronously, the next rendering opportunity is likely to start
+  // immediately after this one and without the animations having started yet.
+  jank();
+}
+
+function secondFrame() {
+  // Modify the style to invalidate the starting keyframe on the first target
+  // only.
+  target1().style.transform = `translateY(-1px)`;
+
+  // The spinner is used to avoid a specific Chrome behavior (bug?). It ensures
+  // a new animation is pushed to the compositor in this frame and prevents the
+  // #target1 animation being started from the main thread in
+  // PendingAnimations::Update when `started_synchronized_on_compositor` is
+  // false.
+  spinner().animate([{transform: 'rotateZ(90deg)'}], {id: 'spinner', duration: 1000});
+
+  requestAnimationFrame(finishTestCb);
+}
+
+let finishTestCb = null;
+const finishTest = new Promise(resolve => { finishTestCb = resolve; });
+
+promise_test(async (t) => {
+  onload = () => requestAnimationFrame(firstFrame);
+  await finishTest;
+
+  anim1 = target1().getAnimations()[0];
+  anim2 = target2().getAnimations()[0];
+
+  await Promise.all([anim1.ready, anim2.ready]);
+  assert_not_equals(anim1.startTime, 0);
+  assert_equals(anim1.startTime, anim2.startTime);
+}, "Animation invalidated before startTime is set doesn't affect startTime");
+</script>
+<!-- This text is necessary in Chrome in order to trigger a first contentful
+paint which unblocks compositor commits. -->
+The blue boxes below should stay aligned in the x-axis.
+<div id="target1" class="target"></div>
+<div id="target2" class="target"></div>
+<div id="spinner" class="target" style="background:limegreen"></div>

@@ -1,0 +1,23 @@
+<!doctype HTML>
+<link rel="author" title="Chris Harrelson">
+<link rel="help" href="https://drafts.csswg.org/css-transforms-2/">
+<link rel="match" href="css-scale-of-clip-path-ref.html">
+<meta name=fuzzy content="maxDifference=0-40;totalPixels=0-3000">
+<style>
+.tile {
+  width: 620px;
+  height: 671px;
+  position: absolute;
+  clip-path: circle(50%);
+  background-color: lightblue;
+}
+#container {
+  transform: scale(0.25);
+  position: relative;
+  left: -200px;
+}
+</style>
+<div id=container>
+  <div class="tile" style="top: 520px;"></div>
+  <div class="tile" style="top: 688px; left: 390px;"></div>
+</div>

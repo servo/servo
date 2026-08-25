@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+"use strict";
+
+addEventListener("DOMContentLoaded", () => {
+  document.addEventListener("selectstart", () => {
+    window.find("A");
+    document.body.prepend(document.getElementById("br"));
+  });
+  document.querySelector("picture").addEventListener("focusin", () => {
+    document.body.prepend(document.getElementById("br"));
+  });
+  document.execCommand("selectAll");
+}, {once: true});
+</script>
+</head>
+<body>
+  A
+  <picture>
+    <keygen tabindex="-1" autofocus>
+    <q contenteditable>
+      A
+      <br id="br">
+      <table></table>
+    </q>
+  </picture>
+</body>
+</html>

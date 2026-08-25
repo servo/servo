@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Properties and Values API: registered color custom property referenced via var() fallback</title>
+<link rel="help" href="https://drafts.csswg.org/css-variables/#substitute-a-var">
+<link rel="help" href="https://drafts.csswg.org/css-variables/#cycles">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2048804">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  @property --registered-color {
+    syntax: "<color>";
+    inherits: false;
+    initial-value: #0000;
+  }
+  div {
+    --registered-color: blue;
+    --registered-color-ref: var(--registered-color-override, var(--registered-color));
+    background-image: linear-gradient(var(--registered-color-ref));
+  }
+</style>
+<div id="plain"></div>
+<div id="prioritary" style="color-scheme: unset"></div>
+<script>
+const EXPECTED = "linear-gradient(rgb(0, 0, 255))";
+test(() => {
+  assert_equals(getComputedStyle(document.getElementById("plain")).backgroundImage, EXPECTED);
+}, "registered color resolves through a var() fallback");
+test(() => {
+  assert_equals(getComputedStyle(document.getElementById("prioritary")).backgroundImage, EXPECTED);
+}, "registered color resolves through a var() fallback when a prioritary property forces early resolution");
+</script>

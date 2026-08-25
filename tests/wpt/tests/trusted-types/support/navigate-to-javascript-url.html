@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<script src="csp-violations.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<script src="navigation-support.js"></script>
+<script>
+  window.addEventListener("load", async _ => {
+    const params = new URLSearchParams(location.search);
+    const msg = await setLocationToJavaScriptURL(params.get("defaultpolicy"));
+    let receiver = window.opener ? window.opener : window.top;
+    receiver.postMessage(msg, "*");
+  });
+</script>

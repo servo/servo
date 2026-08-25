@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 4 Test: word-space-transform: ideographic-space auto-phrase and outermost placement</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#word-space-transform">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#word-phrase-detection">
+<link rel="match" href="reference/word-space-transform-019-a-ref.html">
+<link rel="match" href="reference/word-space-transform-019-b-ref.html">
+<meta name="assert" content="If a phrase boundary is found at the same position as one or more inline box boundaries, the virtual word separator must be inserted in the outermost element that participates in this inline box boundary.">
+<style>
+div {
+  font-size: 2em;
+  border: solid black;
+  margin: 5px;
+  width: 30ch;
+}
+#test {
+  word-space-transform: ideographic-space auto-phrase;
+}
+#ref1 {
+  border-color: blue;
+}
+#ref2 {
+  border-color: orange;
+}
+u {  background: silver; }
+b {  background: green; }
+em { background: gray; }
+</style>
+
+<p>Test passes if the black box is identical to either the blue or orange one.
+
+<div id=ref1 lang=ja>東京<b><u>へ</u>　<em>行きましょ</em></b>う。</div>
+<div id=test lang=ja>東京<b><u>へ</u><em>行きましょ</em></b>う。</div>
+<div id=ref2 lang=ja>東京　<b><u>へ</u>　<em>行きましょ</em></b>う。</div>

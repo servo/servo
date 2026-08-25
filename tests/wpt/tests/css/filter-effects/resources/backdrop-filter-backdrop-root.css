@@ -1,0 +1,30 @@
+.container {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  width: 250px;
+  height: 100px;
+  align-content: flex-start;
+  background:#00ffff;
+}
+.testcase {
+  width: 100px;
+  height: 50px;
+}
+.testcase div {
+  width: 50px;
+  height: 50px;
+  position: relative;
+}
+.testcase>div {
+  background: green;
+}
+.testcase>div>div {
+  left: 50px;
+  backdrop-filter: invert(1);
+  background: transparent;
+  border: 1px solid black;
+}
+* {
+  box-sizing: border-box;
+}

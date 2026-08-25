@@ -1,0 +1,79 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Scroll position restore on shadow tree</title>
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  scroll-box {
+    display: block;
+    width: 100px;
+    height: 100px;
+    margin: 10px;
+    border: 1px solid;
+
+    &::part(box) {
+      width: 100px;
+      height: 100px;
+      overflow: auto;
+    }
+
+    > .content {
+      height: 500px;
+      background-image: linear-gradient(blue, green);
+    }
+  }
+  #wrapper {
+    position: relative;
+    display: inline-block;
+    border: 1px solid;
+    &.change {
+      /* Changing display rebuilds the layout tree */
+      display: block;
+      position: absolute;
+    }
+  }
+</style>
+<!-- It's important that the shadow trees below are the same -->
+<div id="wrapper">
+  <scroll-box>
+    <template shadowrootmode="open">
+      <div part="box"><slot></slot></div>
+    </template>
+    <div class="content"></div>
+  </scroll-box>
+  <scroll-box>
+    <template shadowrootmode="open">
+      <div part="box"><slot></slot></div>
+    </template>
+    <div class="content"></div>
+  </scroll-box>
+</div>
+<script>
+promise_test(async function() {
+  let wrapper = document.getElementById("wrapper");
+  let [sb1, sb2] = wrapper.querySelectorAll("scroll-box");
+  sb1 = sb1.shadowRoot.querySelector("div[part=box]");
+  sb2 = sb2.shadowRoot.querySelector("div[part=box]");
+
+  sb1.scrollTop = 100;
+  sb2.scrollTop = 200;
+
+  assert_equals(sb1.scrollTop, 100, "scrollTop 1 is reasonable");
+  assert_equals(sb2.scrollTop, 200, "scrollTop 2 is reasonable");
+
+  wrapper.classList.add("change");
+
+  assert_equals(sb1.scrollTop, 100, "scrollTop 1 hasn't changed");
+  assert_equals(sb2.scrollTop, 200, "scrollTop 2 hasn't changed");
+
+  await new Promise(r => {
+    requestAnimationFrame(() => requestAnimationFrame(r));
+  });
+
+  // For good measure
+  assert_equals(sb1.scrollTop, 100, "scrollTop 1 hasn't changed after rAF");
+  assert_equals(sb2.scrollTop, 200, "scrollTop 2 hasn't changed after rAF");
+});
+</script>

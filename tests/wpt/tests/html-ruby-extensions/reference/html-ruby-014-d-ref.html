@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en" >
+<meta charset="utf-8">
+<title>test reference</title>
+<link rel='author' title='Florian Rivoal' href='https://florian.rivoal.net'>
+<style>
+.r1 { color: orange; }
+.r2 { color: blue; }
+.r3 { color: purple; }
+.hide { color: transparent; }
+</style>
+<body>
+<p>The example below consists of 3 base characters, two of which carry visible annotations.
+“<span class=r1>A</span>” is annotated by “<span class=r1>1</span>”.
+“<span class=r2>B</span>” is annotated by “<span class=r2>2</span>”.
+“<span class=r3>C</span>” is not annotated.
+For ease of comparison, it is preceded by some context text: “This is a sample”.
+This test passes if:
+<ul>
+    <li>each base character is presented inline with and similarly to the context text, as if they are all part of the same sentence, and
+    <li>each annotation is presented as an annotation, and
+    <li>the correct annotation is presented clearly as being associated with the correct base.
+</ul>
+
+<p>Note: The colors are not part of the test,
+they are merely provided as help to the person running the test,
+to make it easier to recognize the various parts of the text.
+
+<p>Note: This is not a layout or rendering test.
+The precise appearance is not specified,
+and implementations may therefore validly vary.
+
+<hr> <!-- incorrect rendering: first annotation spanning by all 3 bases, remaining annotations floating over nothing -->
+This is a sample <ruby> <rb class=r1>A</rb><span> </span><rb class=r2>B</rb><rb class=r3>C</rb><rt class=r1>1</rt></ruby><ruby>&#x200B;<rt class=hide>x</ruby><ruby>&#x200B;<rt class=r2>2</rt></ruby>

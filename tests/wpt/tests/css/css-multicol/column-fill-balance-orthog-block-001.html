@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+
+<meta charset="UTF-8">
+
+  <title>CSS Writing Modes Test: 'column-fill: balance' of a vertical writing mode block in orthogonal context</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css3-multicol/#cf">
+  <link rel="help" href="https://www.w3.org/TR/css-writing-modes-4/#auto-multicol">
+  <link rel="match" href="reference/column-fill-balance-orthog-block-001-ref.html">
+
+  <!--
+
+  Issue 719014: column-fill: balance of a vertical block in orthogonal context incorrectly rendered
+  https://bugs.chromium.org/p/chromium/issues/detail?id=719014
+
+  -->
+
+  <meta content="" name="flags">
+  <meta name="assert" content="This test checks if a multi-column container with 'column-fill' set to 'balance' will not break an unbreakable run of text and will honor min-content inline size of a block that has its writing mode set to 'vertical-rl'. In this test, the word 'TEXT' should not break, even if div#multi-col's 'height' is set to '49px'.">
+
+  <style>
+  div#multi-col
+    {
+      background-color: yellow; /* Not part of the test */
+      columns: 2 auto;
+      column-fill: balance; /* Balance content equally between columns, if possible. */
+      height: 250px; /* more than enough to display "TEXT" */
+    }
+
+  div#unbreakable-block
+    {
+      background-color: lime; /* Not part of the test */
+      font-size: 50px;
+      line-height: 1.2; /* Not part of the test */
+      writing-mode: vertical-rl;
+    }
+  </style>
+
+  <p>Test passes if the word "TEXT" is unbroken and rotated 90 degrees clock-wise.
+
+  <div id="multi-col">
+    <div id="unbreakable-block">TEXT</div>
+  </div>

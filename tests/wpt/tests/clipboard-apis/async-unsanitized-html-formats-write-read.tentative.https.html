@@ -1,0 +1,74 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Async Clipboard unsanitized HTML write -> Async Clipboard unsanitized HTML read test</title>
+<link rel="help" href="https://w3c.github.io/clipboard-apis/#async-clipboard-api">
+<body>Body needed for test_driver.click()</body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/user-activation.js"></script>
+<script>
+'use strict';
+
+// This function removes extra spaces between tags in html. For example, the
+// following html: "<p> Hello </p>   <body> World </body>" would turn into this
+//           html: "<p> Hello </p> <body> World </body>"
+// We remove the extra spaces because in html they are considered equivalent,
+// but when we are comparing for equality the spaces make a difference.
+function reformatHtml(html) {
+  const parser = new DOMParser();
+  const htmlString =
+        parser.parseFromString(html, 'text/html').documentElement.innerHTML;
+  const reformattedString = htmlString.replace(/\>\s*\</g, '> <');
+  return reformattedString;
+}
+
+// Writes a payload with custom content and checks to ensure the correct data
+// was written successfully.
+promise_test(async t => {
+  await tryGrantReadPermission();
+  await tryGrantWritePermission();
+
+  // Create and write unsanitized version of standard HTML and custom formats.
+  const format1 = 'text/html';
+  const format2 = 'web text/html';
+  const textInput = '<style>p {color:blue}</style><p>Hello World</p>';
+  const blobInput1 = new Blob([textInput], {type: format1});
+  const blobInput2 = new Blob([textInput], {type: format2});
+  const clipboardItemInput = new ClipboardItem(
+      {[format1]: blobInput1, [format2]: blobInput2});
+  await waitForUserActivation();
+  await navigator.clipboard.write([clipboardItemInput]);
+
+  // Read unsanitized version of HTML format.
+  await waitForUserActivation();
+  const clipboardItems = await navigator.clipboard.read();
+
+  assert_equals(clipboardItems.length, 1);
+  const clipboardItem = clipboardItems[0];
+  assert_true(clipboardItem instanceof ClipboardItem);
+
+  const blobOutput1 = await clipboardItem.getType(format1);
+  assert_equals(blobOutput1.type, format1);
+  const data1 = await (new Response(blobOutput1)).text();
+  const outputHtml = reformatHtml(data1);
+  const expectedHtml = '<p style="color: blue; font-size: medium; font-style: normal; ' +
+                       'font-variant-ligatures: normal; font-variant-caps: normal; ' +
+                       'font-weight: 400; letter-spacing: normal; orphans: 2; ' +
+                       'text-align: start; text-indent: 0px; text-transform: none; '+
+                       'widows: 2; word-spacing: 0px; ' +
+                       '-webkit-text-stroke-width: 0px; ' +
+                       'white-space: normal; ' +
+                       'text-decoration-thickness: initial; ' +
+                       'text-decoration-style: initial; text-decoration-color: initial;">' +
+                       'Hello World</p>';
+  const inputHtml = reformatHtml(expectedHtml);
+  assert_equals(outputHtml, inputHtml);
+
+  const blobOutput2 = await clipboardItem.getType(format2);
+  assert_equals(blobOutput2.type, format2);
+  const data2 = await (new Response(blobOutput2)).text();
+  assert_equals(data2, textInput);
+}, 'Verify write and read unsanitized content to the clipboard given text/html format as input');
+</script>

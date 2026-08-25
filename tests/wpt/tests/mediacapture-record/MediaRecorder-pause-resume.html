@@ -1,0 +1,127 @@
+<!doctype html>
+<html>
+<head>
+    <title>MediaRecorder Pause and Resume</title>
+    <meta name=timeout content=long>
+    <meta name=variant content="?mimeType=''">
+    <meta name=variant content="?mimeType=video/webm;codecs=vp8,opus">
+    <meta name=variant content="?mimeType=video/webm;codecs=vp9,opus">
+    <meta name=variant content="?mimeType=video/webm;codecs=av1,opus">
+    <meta name=variant content="?mimeType=video/mp4;codecs=avc1.64003E,mp4a.40.2">
+    <meta name=variant content="?mimeType=video/mp4;codecs=avc3.64003E,mp4a.40.2">
+    <meta name=variant content="?mimeType=video/mp4;codecs=avc1.64003E,opus">
+    <meta name=variant content="?mimeType=video/mp4;codecs=avc3.64003E,opus">
+    <meta name=variant content="?mimeType=video/mp4;codecs=vp9,opus">
+    <meta name=variant content="?mimeType=video/mp4;codecs=vp9,mp4a.40.2">
+    <meta name=variant content="?mimeType=video/mp4;codecs=av01,opus">
+    <meta name=variant content="?mimeType=video/mp4;codecs=av01,mp4a.40.2">
+    <meta name=variant content="?mimeType=video/mp4;codecs=hvc1.1.6.L186.B0,opus">
+    <meta name=variant content="?mimeType=video/mp4;codecs=hev1.1.6.L186.B0,opus">
+    <meta name=variant content="?mimeType=video/mp4;codecs=hvc1.1.6.L186.B0,mp4a.40.2">
+    <meta name=variant content="?mimeType=video/mp4;codecs=hev1.1.6.L186.B0,mp4a.40.2">
+    <meta name=variant content="?mimeType=video/x-matroska;codecs=hvc1.1.6.L186.B0,opus">
+    <meta name=variant content="?mimeType=video/x-matroska;codecs=hev1.1.6.L186.B0,opus">
+    <meta name=variant content="?mimeType=video/mp4">
+    <link rel="help" href="https://w3c.github.io/mediacapture-record/MediaRecorder.html#mediarecorder">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="utils/sources.js"></script>
+</head>
+<body>
+<script>
+    function recordEvents(target, events) {
+        let arr = [];
+        for (let ev of events) {
+            target.addEventListener(ev, _ => arr.push(ev));
+        }
+        return arr;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const mimeType = params.get('mimeType');
+    const tag = `mimeType "${mimeType}"`;
+    promise_test(async t => {
+      const { stream: video } = createFlowingVideoStream(t);
+      if (mimeType && !MediaRecorder.isTypeSupported(mimeType)) {
+          promise_test(async t => {
+              assert_throws_dom('NotSupportedError',
+                              () => new MediaRecorder(video, { mimeType }));
+          }, `MediaRecorder constructor throws on no support 1st, ${mimeType}`);
+          return;
+      }
+
+      const recorder = new MediaRecorder(video, {mimeType});
+      const events = recordEvents(recorder,
+          ["start", "stop", "dataavailable", "pause", "resume", "error"]);
+
+      recorder.start();
+      assert_equals(recorder.state, "recording", "MediaRecorder has been started successfully");
+      await new Promise(r => recorder.onstart = r);
+
+      recorder.pause();
+      assert_equals(recorder.state, "paused", "MediaRecorder should be paused immediately following pause()");
+
+      // A second call to pause should be idempotent
+      recorder.pause();
+      assert_equals(recorder.state, "paused", "MediaRecorder should be paused immediately following pause()");
+
+      let event = await new Promise(r => recorder.onpause = r);
+      assert_equals(event.type, "pause", "the event type should be pause");
+      assert_true(event.isTrusted, "isTrusted should be true when the event is created by C++");
+
+      recorder.resume();
+      assert_equals(recorder.state, "recording", "MediaRecorder state should be recording immediately following resume() call");
+
+      // A second call to resume should be idempotent
+      recorder.resume();
+      assert_equals(recorder.state, "recording", "MediaRecorder state should be recording immediately following resume() call");
+
+      event = await new Promise(r => recorder.onresume = r);
+      assert_equals(event.type, "resume", "the event type should be resume");
+      assert_true(event.isTrusted, "isTrusted should be true when the event is created by C++");
+
+      recorder.stop();
+      await new Promise(r => recorder.onstop = r);
+
+      assert_array_equals(events, ["start", "pause", "resume", "dataavailable", "stop"],
+          "Should have gotten expected events");
+    }, `MediaRecorder handles pause() and resume() state and events, ${tag}`);
+
+    promise_test(async t => {
+      const { stream: video } = createFlowingVideoStream(t);
+      if (mimeType && !MediaRecorder.isTypeSupported(mimeType)) {
+          promise_test(async t => {
+              assert_throws_dom('NotSupportedError',
+                              () => new MediaRecorder(video, { mimeType }));
+          }, `MediaRecorder constructor throws on no support 2nd, ${mimeType}`);
+          return;
+      }
+      const recorder = new MediaRecorder(video, {mimeType});
+      const events = recordEvents(recorder,
+          ["start", "stop", "dataavailable", "pause", "resume", "error"]);
+
+      recorder.start();
+      assert_equals(recorder.state, "recording", "MediaRecorder has been started successfully");
+      await new Promise(r => recorder.onstart = r);
+
+      recorder.pause();
+      assert_equals(recorder.state, "paused", "MediaRecorder should be paused immediately following pause()");
+      let event = await new Promise(r => recorder.onpause = r);
+      assert_equals(event.type, "pause", "the event type should be pause");
+      assert_true(event.isTrusted, "isTrusted should be true when the event is created by C++");
+
+      recorder.stop();
+      assert_equals(recorder.state, "inactive", "MediaRecorder should be inactive after being stopped");
+      await new Promise(r => recorder.onstop = r);
+
+      recorder.start();
+      assert_equals(recorder.state, "recording", "MediaRecorder has been started successfully");
+      await new Promise(r => recorder.onstart = r);
+
+      assert_array_equals(events, ["start", "pause", "dataavailable", "stop", "start"],
+          "Should have gotten expected events");
+    }, `MediaRecorder handles stop() in paused state appropriately, ${tag}`);
+
+</script>
+</body>
+</html>

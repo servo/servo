@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Canvas.drawElementImage: Canvas inside a custom element using drawElementImage</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<link rel="author" href="mailto:schenney@chromium.org">
+<link rel="match" href="canvas-in-custom-element-multiple-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="resources/CanvasWidget.js"></script>
+
+<script>
+  var event_count = 0;
+
+  document.addEventListener('paint-received', (event) => {
+    event_count++;
+    if (event_count == 2) {
+      takeScreenshot();
+    }
+  });
+</script>
+
+
+<style>
+  #greenCanvas {
+    --rect-color: green;
+  }
+  #blueCanvas {
+    --rect-color: blue;
+  }
+</style>
+
+<canvas-widget id=greenCanvas></canvas-widget>
+
+<canvas-widget id=blueCanvas></canvas-widget>
+
+</html>

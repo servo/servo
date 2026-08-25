@@ -1,0 +1,42 @@
+<!doctype html>
+<html
+<meta charset=utf-8>
+<title>Viewport units respond to page margins</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#viewport-relative-lengths">
+<link rel="match" href="reference/viewport-page-print-ref.html">
+<link rel="mismatch" href="reference/viewport-page-print-no-ref.html">
+<meta name="assert" content="When the height or width of the initial containing block is changed, viewport units are scaled accordingly, including in paginated mode, when the thing that makes the ICB change is @page margins.">
+<!--
+    This test passes if, when printed,
+    the page is fully green,
+    with no red nor white at the edges.
+
+    If there is no green,
+    it likely means background colors have been disabled for printing.
+
+    If there is white,
+    it likely means that '@page { margin: 0; }' did not take effect.
+
+    If there is red,
+    it likely means that '@page { margin: 0; }' did take effect,
+    but that the 'vh' and 'vw' units were not recomputed accordingly.
+-->
+<style>
+body {
+    margin: 0;
+}
+:root {
+    background: red;
+}
+@page {
+    margin: 0;
+}
+div {
+    background: green;
+    width: 100vw;
+    height: 100vh;
+}
+</style>
+
+<div></div>

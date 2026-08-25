@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>Adding cues to a disabled text track</title>
+<script src="/common/media.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+async_test(function(t) {
+    var cueDuration = 0.1;
+    var video = document.createElement("video");
+    var track = video.addTextTrack("subtitles");
+    track.mode = "disabled";
+
+    for (var i = 0; i < 10; ++i) {
+        var start = i * cueDuration;
+        var end = start + cueDuration;
+        track.addCue(new VTTCue(start, end, "Test Cue " + i));
+    }
+
+    // Waiting for 2 cue durations to elapse.
+    video.ontimeupdate = t.step_func(function(event) {
+        if (event.target.currentTime < (2 * cueDuration))
+            return;
+
+        // End test after at least 2 cueDurations to make sure the test
+        // would have gone through the period where the first 2 cues would
+        // have been rendered if the track was not disabled.
+        t.done();
+    });
+
+    video.src = getVideoURI("/media/test");
+    video.play();
+});
+</script>

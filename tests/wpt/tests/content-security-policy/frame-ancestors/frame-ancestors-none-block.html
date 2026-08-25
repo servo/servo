@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="support/frame-ancestors-test.sub.js"></script>
+</head>
+<body>
+  <script>
+    async_test(t => {
+      window.addEventListener('securitypolicyviolation', t.step_func(function(e) {
+        if (e.violatedDirective === 'frame-ancestors')
+          assert_unreached('No securitypolicyviolation event shoud be raised in the parent.');
+      }));
+      t.step_timeout(function() { t.done(); }, 2000);
+    });
+
+    test = async_test("A 'frame-ancestors' CSP directive with a value 'none' should block rendering.");
+
+    sameOriginFrameShouldBeBlocked("'none'");
+  </script>
+</body>
+</html>

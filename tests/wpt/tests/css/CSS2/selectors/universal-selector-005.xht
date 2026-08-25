@@ -1,0 +1,35 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: universal selector - list-style-image</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="author" title="James Hopkins" href="http://idreamincode.co.uk/css21testsuite" />
+  <link rel="author" title="Mark McKenzie-Bell" href="mailto:info@temerity.co.uk" />
+  <link rel="author" title="Alexander Dawson" href="mailto:alexander_dawson@hotmail.com" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#universal-selector" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#propdef-list-style-image" />
+  <link rel="match" href="universal-selector-005-ref.xht"/>
+  <meta name="flags" content="image" />
+  <meta name="assert" content="The universal selector matches the name of any element type. 'list-style-image' applies to elements with 'display: list-item'." />
+
+  <style type="text/css"><![CDATA[
+  body {margin-left: 100px;}
+  * {list-style-image: url("support/cat.png");}
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a <strong>cat image</strong>.</p>
+
+  <ul>
+    <li>&nbsp;</li>
+  </ul>
+
+ </body>
+</html>

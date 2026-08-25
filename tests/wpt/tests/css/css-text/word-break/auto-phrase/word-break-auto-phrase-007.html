@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 4 Test: word-break: auto-phrase forbidden</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#word-break-property">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#word-phrase-detection">
+<link rel="match" href="reference/word-break-auto-phrase-007-ref.html">
+<meta name="assert" content="UAs must not suppress wrapping opportunities introduced by wbr or ZWSP">
+<style>
+div {
+  border: solid black;
+  margin: 5px;
+  width: min-content;
+}
+#test {
+  word-break: auto-phrase;
+}
+</style>
+
+<p>Test passes if the two boxes below are identical.
+
+<div id=test lang=ja>東<wbr>京<wbr>へ<wbr>行<wbr>き<wbr>ま&#x200B;し&#x200B;ょ&#x200B;う&#x200B;。</div>
+<div id=ref lang=ja>東<wbr>京<wbr>へ<wbr>行<wbr>き<wbr>ま&#x200B;し&#x200B;ょ&#x200B;う&#x200B;。</div>

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Validate that we deal correctly with rowspans.</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<table focusgroup="grid">
+  <tr>
+    <td id=r1c1 tabindex=0>r1c1</td>
+    <td id=r1c2 tabindex=0>r1c2</td>
+    <td id=r1c3 tabindex=0>r1c3</td>
+  </tr>
+  <tr>
+    <td id=r2c1 tabindex=0>r2c1</td>
+    <td id=r2c2 tabindex=0 rowspan=3>r2c2</td>
+    <td id=r2c3 tabindex=0>r3c3</td>
+  </tr>
+  <tr>
+    <td id=r3c1 tabindex=0>r3c1</td>
+    <td id=r3c3 tabindex=0>r3c3</td>
+  </tr>
+  <tr>
+    <td id=r4c1 tabindex=0>r4c1</td>
+    <td id=r4c3 tabindex=0>r4c3</td>
+  </tr>
+  <tr>
+    <td id=r5c1 tabindex=0>r5c1</td>
+    <td id=r5c2 tabindex=0>r5c2</td>
+    <td id=r5c3 tabindex=0>r5c3</td>
+  </tr>
+</table>
+
+<script>
+
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(r2c1, kRight);
+    assert_equals(document.activeElement, r2c2);
+
+    await focusAndSendDirectionalInput(r2c2, kRight);
+    assert_equals(document.activeElement, r2c3);
+
+    await focusAndSendDirectionalInput(r3c1, kRight);
+    assert_equals(document.activeElement, r2c2);
+
+    await focusAndSendDirectionalInput(r4c1, kRight);
+    assert_equals(document.activeElement, r2c2);
+
+    await focusAndSendDirectionalInput(r5c1, kRight);
+    assert_equals(document.activeElement, r5c2);
+  }, "Navigating right should move the focus to the next column, dealing correctly with rowspans.");
+
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(r1c2, kDown);
+    assert_equals(document.activeElement, r2c2);
+
+    await focusAndSendDirectionalInput(r1c3, kDown);
+    assert_equals(document.activeElement, r2c3);
+
+    await focusAndSendDirectionalInput(r2c2, kDown);
+    assert_equals(document.activeElement, r5c2);
+
+    await focusAndSendDirectionalInput(r2c3, kDown);
+    assert_equals(document.activeElement, r3c3);
+
+    await focusAndSendDirectionalInput(r3c3, kDown);
+    assert_equals(document.activeElement, r4c3);
+
+    await focusAndSendDirectionalInput(r4c3, kDown);
+    assert_equals(document.activeElement, r5c3);
+  }, "Navigating down should move the focus to the right cell on the next row, dealing correctly with rowspans.");
+
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(r2c3, kLeft);
+    assert_equals(document.activeElement, r2c2);
+
+    await focusAndSendDirectionalInput(r2c2, kLeft);
+    assert_equals(document.activeElement, r2c1);
+
+    await focusAndSendDirectionalInput(r3c3, kLeft);
+    assert_equals(document.activeElement, r2c2);
+
+    await focusAndSendDirectionalInput(r4c3, kLeft);
+    assert_equals(document.activeElement, r2c2);
+
+    await focusAndSendDirectionalInput(r5c3, kLeft);
+    assert_equals(document.activeElement, r5c2);
+  }, "Navigating left should move to the previous column, dealing correctly with the rowspans.");
+
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(r5c2, kUp);
+    assert_equals(document.activeElement, r2c2);
+
+    await focusAndSendDirectionalInput(r5c3, kUp);
+    assert_equals(document.activeElement, r4c3);
+
+    await focusAndSendDirectionalInput(r2c2, kUp);
+    assert_equals(document.activeElement, r1c2);
+
+    await focusAndSendDirectionalInput(r4c3, kUp);
+    assert_equals(document.activeElement, r3c3);
+
+    await focusAndSendDirectionalInput(r3c3, kUp);
+    assert_equals(document.activeElement, r2c3);
+
+    await focusAndSendDirectionalInput(r2c3, kUp);
+    assert_equals(document.activeElement, r1c3);
+  }, "Navigating up should move the focus to the right cell on the previous row, dealing correctly with rowspans.");
+
+</script>

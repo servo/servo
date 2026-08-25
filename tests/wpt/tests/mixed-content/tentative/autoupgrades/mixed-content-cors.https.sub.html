@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Test mixed content autoupgrade behavior for CORS request</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/get-host-info.sub.js"></script>
+  </head>
+  <body>
+    <script>
+      // Test that request with CORS get upgraded for audio elements
+      async_test(
+        (t) => assert_other_host_audio_loads(t),
+        "Cross-Origin audio should get upgraded even if CORS is set"
+      );
+
+      function assert_other_host_audio_loads(test) {
+        // Since autoupgrades don't upgrade custom ports, we use the https port with an HTTP scheme. A successful autoupgrade will result in the right URL loading (and no autoupgrade will result in failure).
+        var otherHost = get_host_info().HTTP_NOTSAMESITE_ORIGIN.slice(0, -4); // cut of http port
+        var url =
+          otherHost +
+          "{{ports[https][0]}}/mixed-content/tentative/resources/test.wav?pipe=header(Access-Control-Allow-Origin,*)";
+        var i = document.createElement("audio");
+        i.oncanplaythrough = test.step_func_done((_) => {
+          assert_equals(i.duration, 1, "Length of other host audio is correct");
+        });
+        i.onerror = test.unreached_func(
+          "Audio of other host should load successfully from " + url
+        );
+        i.crossOrigin = "anonymous";
+        i.src = url;
+      }
+
+      // Test that request with CORS get upgraded for image elements
+      async_test(
+        (t) => assert_other_host_image_loads(t),
+        "Cross-Origin image should get upgraded even if CORS is set"
+      );
+
+      function assert_other_host_image_loads(test) {
+        // Since autoupgrades don't upgrade custom ports, we use the https port with an HTTP scheme. A successful autoupgrade will result in the right URL loading (and no autoupgrade will result in failure).
+        var otherHost = get_host_info().HTTP_NOTSAMESITE_ORIGIN.slice(0, -4); // cut of http port
+        var url = new URL(
+          otherHost +
+            "{{ports[https][0]}}/mixed-content/tentative/resources/pass.png?pipe=header(Access-Control-Allow-Origin,*)"
+        );
+        var i = document.createElement("img");
+        i.onload = test.step_func_done((_) => {
+          assert_equals(i.naturalHeight, 64, "Height.");
+          assert_equals(i.naturalWidth, 168, "Width.");
+        });
+        i.crossOrigin = "anonymous";
+        i.onerror = test.unreached_func(
+          "image of other host should load successfully from " + url
+        );
+        i.src = url;
+      }
+
+      // Test that request with CORS get upgraded for video elements
+      async_test(
+        (t) => assert_other_host_video_loads(t),
+        "Cross-Origin video should get upgraded even if CORS is set"
+      );
+
+      function assert_other_host_video_loads(test) {
+        // Since autoupgrades don't upgrade custom ports, we use the https port with an HTTP scheme. A successful autoupgrade will result in the right URL loading (and no autoupgrade will result in failure).
+        var otherHost = get_host_info().HTTP_NOTSAMESITE_ORIGIN.slice(0, -4); // cut of http port
+        var url = new URL(
+          otherHost +
+            "{{ports[https][0]}}/mixed-content/tentative/resources/test.webm?pipe=header(Access-Control-Allow-Origin,*)"
+        );
+        var i = document.createElement("video");
+        i.oncanplaythrough = test.step_func_done((_) => {
+          assert_equals(Math.floor(i.duration), 1, "Length. Other host");
+        });
+        i.crossOrigin = "anonymous";
+        i.onerror = test.unreached_func(
+          "Video of other host should load successfully from " + url
+        );
+        i.src = url;
+      }
+    </script>
+  </body>
+</html>

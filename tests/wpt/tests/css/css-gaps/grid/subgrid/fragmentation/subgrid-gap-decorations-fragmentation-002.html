@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<title>
+  Suppress row grid gaps: row gaps should be suppressed if it's split across
+  fragmentainer breaks or is the last content before a break. Tests a grid subgridded
+  only on the column axes and has a row gap that is split across a fragmentainer break.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="match" href="../../../../reference/ref-filled-green-100px-square.xht">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+  .multi-col {
+    position: relative;
+    columns: 3;
+    column-fill: auto;
+    width: 100px;
+    height: 100px;
+    background: green;
+    column-gap: 0px;
+  }
+  .grid-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(3, 90px);
+    row-gap: 15px;
+    column-gap: 15px;
+  }
+  .subgrid {
+    display: grid;
+    grid-template-columns: subgrid;
+    grid-template-rows: repeat(3, 50px);
+    grid-column: 1 / -1;
+    grid-row: 1 / -1;
+    column-rule: green solid 15px;
+    row-gap: 75px;
+    row-rule: yellow solid 75px;
+    background: red;
+  }
+  .subgrid-item {
+    background: green;
+  }
+  .abspos {
+    background: green;
+    position: absolute;
+    height: 50px;
+    top: 50px;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="multi-col">
+  <div class="grid-container">
+    <div class="subgrid">
+      <div class="subgrid-item"></div>
+      <div class="subgrid-item"></div>
+      <div class="subgrid-item"></div>
+      <div class="subgrid-item"></div>
+      <div class="subgrid-item"></div>
+      <div class="subgrid-item"></div>
+    </div>
+  </div>
+
+  <!-- Abspos elements to cover container space present as a result of row gap supprssion -->
+  <div class="abspos" style="width: 9px; left: 0;"></div>
+  <div class="abspos" style="width: 18px; left: 24.33px;"></div>
+  <div class="abspos" style="width: 42.33px; left: 57.33px;"></div>
+</div>

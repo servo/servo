@@ -1,0 +1,3 @@
+rules:
+- box-decoration-break-*: [box-decoration-break]
+- break-*: [column-breaks]

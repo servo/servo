@@ -1,0 +1,33 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<body>
+
+<script>
+async_test(t => {
+  const iframeURL = new URL("resources/cross-origin-iframe-helper.html", location.href);
+  iframeURL.hostname = get_host_info().REMOTE_HOST;
+  const iframe = document.createElement("iframe")
+  iframe.src = iframeURL;
+  iframe.name = "windowname";
+  document.body.append(iframe);
+
+  window.onmessage = t.step_func_done(e => {
+    assert_equals(e.data.navigationType, "push", "navigationType");
+    assert_true(e.data.cancelable, "cancelable");
+    assert_true(e.data.canIntercept, "canIntercept");
+    assert_false(e.data.userInitiated, "userInitiated");
+    assert_true(e.data.hashChange, "hashChange");
+    assert_equals(e.data.formData, null, "formData");
+    assert_equals(e.data.destination.url, iframe.src + "#foo", "destination.url");
+    assert_true(e.data.destination.sameDocument, "destination.sameDocument");
+    assert_equals(e.data.destination.key, "", "destination.key");
+    assert_equals(e.data.destination.id, "", "destination.id");
+    assert_equals(e.data.destination.index, -1, "destination.index");
+  });
+
+  navigation.onnavigate = t.unreached_func("onnavigate must not fire in the source window");
+  window.onload = t.step_func(() => window.open(iframeURL + "#foo", "windowname"));
+}, "using window.open() to navigate same-document targeting a cross-origin window");
+</script>

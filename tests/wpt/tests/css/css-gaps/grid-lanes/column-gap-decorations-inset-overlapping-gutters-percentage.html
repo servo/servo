@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: a percentage junction inset on a grid-axis rule resolves against the union of overlapping stacking-axis gutters in grid-lanes</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#inset">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/">
+<link rel="match" href="column-gap-decorations-inset-overlapping-gutters-percentage-ref.html">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-columns: repeat(2, 80px);
+    gap: 20px;
+    background: #cdd5e0;
+    width: max-content;
+    column-rule: 4px solid blue;
+    row-rule: 4px solid gold;
+    column-rule-break: intersection;
+    column-rule-inset-junction-start: 50%;
+    column-rule-inset-junction-end: 50%;
+  }
+  .lanes > div { background: #5b8def; }
+  .a { grid-column: 1; height: 60px; }
+  .b { grid-column: 1; height: 60px; }
+  .c { grid-column: 2; height: 70px; }
+  .d { grid-column: 2; height: 50px; }
+</style>
+<div class="lanes">
+  <div class="a"></div>
+  <div class="b"></div>
+  <div class="c"></div>
+  <div class="d"></div>
+</div>

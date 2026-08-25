@@ -1,0 +1,13 @@
+<!DOCTYPE HTML>replace.html
+<script>
+  let pageshowCount = 0;
+  onpageshow = parent.t.step_func(() => {
+      pageshowCount += 1;
+      if (pageshowCount == 2) {
+          location.replace("resources/iframe_location_replace3.html");
+      }
+  });
+  onload = parent.t.step_func(() => {
+      location.href = "resources/iframe_location_replace2.html";
+  });
+</script>

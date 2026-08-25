@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<body>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+<canvas></canvas>
+<script>
+
+  const testName = "Validate enabledFeatures on XRSession";
+
+  const supportedFeatureList = [
+    'viewer',
+    'local',
+    'local-floor',
+    'anchors',
+    'hit-test',
+    'dom-overlay'
+  ];
+
+  const fakeDeviceInitParams = {
+    supportsImmersive: true,
+    supportedModes: ["inline", "immersive-vr"],
+    views: VALID_VIEWS,
+    viewerOrigin: IDENTITY_TRANSFORM,
+    supportedFeatures: supportedFeatureList
+  };
+
+  // NOTE: We explicit don't ask for the 'default' features of viewer/local to
+  // verify that they are being added here.
+  const requestFeatures = [
+    'local-floor',
+    'anchors',
+    'secondary-views',
+    'camera-access',
+  ];
+
+const testFunction = function(session, fakeDeviceController, t) {
+  return new Promise((resolve,reject) => {
+    const unsupportedRequestedFeatures = [];
+
+    for (const feature of requestFeatures) {
+      if (!supportedFeatureList.includes(feature))
+      unsupportedRequestedFeatures.push(feature);
+    }
+
+    const enabledFeatures = session.enabledFeatures;
+    const modeDefaultFeatures = DEFAULT_FEATURES[session.mode];
+
+    t.step(() => {
+      // Whether they were requested or not, all Default features should be
+      // enabled.
+      for (const feature of modeDefaultFeatures) {
+        assert_true(enabledFeatures.includes(feature),
+          "Did not support default feature: " + feature);
+      }
+
+      // Assert that we asked for everything that was included apart from the
+      // default features
+      for (const feature of enabledFeatures) {
+        assert_true(requestFeatures.includes(feature) ||
+                    modeDefaultFeatures.includes(feature),
+                    "Enabled unrequested feature: " + feature);
+      }
+
+      // Assert that all of the features we asked are either excluded because
+      // they were unsupported, or included because they were supported.
+      for (const feature of requestFeatures) {
+        if (unsupportedRequestedFeatures.includes(feature)) {
+          assert_false(enabledFeatures.includes(feature),
+            "Enabled supposedly unsupported feature: " + feature);
+        } else {
+          assert_true(enabledFeatures.includes(feature),
+            "Did not enable supposedly supported feature: " + feature);
+        }
+      }
+    });
+
+    resolve();
+  });
+};
+
+xr_session_promise_test(testName, testFunction,
+  fakeDeviceInitParams, 'immersive-vr', { optionalFeatures: requestFeatures });
+
+</script>
+</body>

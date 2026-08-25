@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Video drag and drop</title>
+<style type="text/css">
+canvas
+  {background-color:silver;}
+</style>
+<script type="application/ecmascript">
+var draggedFrame = 'data:text/plain,FAIL';
+function dropIt(event)
+  {document.querySelector('p + p').firstChild.nodeValue = (draggedFrame == event.dataTransfer.getData('text/uri-list'))?'PASS':'FAIL';}
+function start(event)
+  {event.dataTransfer.effectAllowed = 'copy';
+  var canvas = document.querySelector('canvas'),
+  c = canvas.getContext('2d');
+  c.drawImage(document.querySelector('video'),0,0,640,360);
+  draggedFrame = canvas.toDataURL('image/png');
+  event.dataTransfer.setData('text/uri-list',draggedFrame);}
+</script>
+<script src="/common/media.js"></script>
+</head>
+<body dropzone="copy string:text/uri-list" ondrop="dropIt(event)">
+<p>
+  <video draggable="true" ondragstart="start(event)" controls="true"/>
+  <script>
+    var video = document.querySelector('video');
+    video.src = getVideoURI('/media/movie_5');
+  </script>
+</p>
+<p>Drag video and drop it somewhere on the page. Dragged frame should be copied to the canvas below and you should see word PASS once you drop video.</p>
+<p>
+  <canvas width="640" height="360">Canvas</canvas>
+</p>
+</body>
+</html>

@@ -1,0 +1,38 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/_mozilla/bluetooth/bluetooth-helpers.js"></script>
+<script>
+
+let test_specs = [{
+    optionalServices: [wrong.service],
+    filters: [{services: [heart_rate.name]}]
+}, {
+    optionalServices: [wrong.service],
+    filters: [{ services: [heart_rate.name], name: 'Name'}]
+}, {
+    optionalServices: [wrong.service],
+    filters: [{ services: [heart_rate.name], namePrefix: 'Pre'}]
+}, {
+    optionalServices: [wrong.service],
+    filters: [{ services: [heart_rate.name], name: 'Name', namePrefix: 'Pre'}]
+}, {
+    optionalServices: [wrong.service],
+    filters: [{ name: 'Name'}]
+}, {
+    optionalServices: [wrong.service],
+    filters: [{ name: 'Name', namePrefix: 'Pre'}]
+}, {
+    optionalServices: [wrong.service],
+    filters: [{ namePrefix: 'Pre'}]
+}];
+
+promise_test(t => {
+    window.testRunner.setBluetoothMockDataSet(adapter_type.empty);
+    let promises = [];
+    test_specs.forEach(args => {
+        promises.push(promise_rejects_js(t, TypeError, window.navigator.bluetooth.requestDevice(args)));
+    });
+    return Promise.all(promises);
+}, 'Invalid optional service must reject the promise.');
+</script>

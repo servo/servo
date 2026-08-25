@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body></body>
+<script>
+
+function setupTextarea(value) {
+  document.body.innerHTML = '<textarea></textarea>';
+  const el = document.body.firstElementChild;
+  el.value = value;
+  el.style.fontFamily = 'monospace';
+  el.style.padding = '0';
+  el.style.border = '0';
+  return el;
+}
+
+test(t => {
+  const el = setupTextarea('Hello\nWorld');
+  const range = el.createValueRange(0, 5);
+  const rect = range.getBoundingClientRect();
+
+  assert_greater_than(rect.width, 0, 'First line range should have non-zero width');
+  assert_greater_than(rect.height, 0, 'First line range should have non-zero height');
+}, 'OpaqueRange on first line of multiline textarea');
+
+test(t => {
+  const el = setupTextarea('Hello\nWorld');
+  const range = el.createValueRange(6, 11);
+  const rect = range.getBoundingClientRect();
+
+  assert_greater_than(rect.width, 0, 'Second line range should have non-zero width');
+  assert_greater_than(rect.height, 0, 'Second line range should have non-zero height');
+}, 'OpaqueRange on second line of textarea');
+
+test(t => {
+  const el = setupTextarea('Line1\nLine2\nLine3');
+  const range = el.createValueRange(12, 17);
+  const rect = range.getBoundingClientRect();
+
+  assert_greater_than(rect.width, 0, 'Third line range should have non-zero width');
+  assert_greater_than(rect.height, 0, 'Third line range should have non-zero height');
+}, 'OpaqueRange on third line of textarea');
+
+test(t => {
+  const el = setupTextarea('Hello\nWorld');
+  const range = el.createValueRange(3, 8);
+  const rects = range.getClientRects();
+
+  assert_greater_than(rects.length, 0, 'Cross-line range should have client rects');
+
+  const boundingRect = range.getBoundingClientRect();
+  assert_greater_than(boundingRect.width, 0, 'Bounding rect should have non-zero width');
+  assert_greater_than(boundingRect.height, 0, 'Bounding rect should have non-zero height');
+}, 'OpaqueRange spanning newline in textarea');
+
+test(t => {
+  const el = setupTextarea('\nHello');
+  const range = el.createValueRange(1, 6);
+  const rect = range.getBoundingClientRect();
+
+  assert_greater_than(rect.width, 0, 'Range after leading newline should have non-zero width');
+  assert_greater_than(rect.height, 0, 'Range after leading newline should have non-zero height');
+}, 'OpaqueRange after leading newline in textarea');
+
+test(t => {
+  const el = setupTextarea('Hello\nWorld');
+  const firstLine = el.createValueRange(0, 5);
+  const secondLine = el.createValueRange(6, 11);
+  const firstRect = firstLine.getBoundingClientRect();
+  const secondRect = secondLine.getBoundingClientRect();
+
+  assert_greater_than(secondRect.y, firstRect.y,
+    'Second line range should be below the first line range');
+  assert_greater_than(secondRect.width, 0,
+    'Second line range should have non-zero width');
+}, 'OpaqueRange at exact newline boundary resolves to correct line');
+
+test(t => {
+  const el = setupTextarea('first line\nSECOND LINE\nthird');
+  const firstLine = 'first line';
+  const range = el.createValueRange(firstLine.length - 4, firstLine.length + 5);
+  const rect = range.getBoundingClientRect();
+
+  assert_greater_than(rect.width, 0, 'Partial hard-newline range should have non-zero width');
+  assert_greater_than(rect.height, 0, 'Partial hard-newline range should have non-zero height');
+  assert_greater_than_equal(range.getClientRects().length, 1, 'Should have at least one client rect');
+}, 'Partial hard-newline selection in textarea');
+
+test(t => {
+  const el = setupTextarea('line1\n\nline3');
+  const range = el.createValueRange(0, el.value.length);
+  const rect = range.getBoundingClientRect();
+
+  assert_greater_than(rect.height, 0,
+    'Selection spanning a blank line should have non-zero height');
+  assert_greater_than(rect.width, 0,
+    'Selection spanning a blank line should have non-zero width');
+}, 'Full multiline selection containing a blank line has non-zero geometry');
+
+test(t => {
+  const el = setupTextarea('ABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789 abcdefghijklmnopqrstuvwxyz');
+  el.style.whiteSpace = 'pre-wrap';
+  el.style.width = '160px';
+  const range = el.createValueRange(0, el.value.length);
+
+  assert_greater_than_equal(range.getClientRects().length, 2, 'Soft wrap should produce multiple rects');
+}, 'Soft-wrapped long single line in textarea');
+
+test(t => {
+  const el = setupTextarea('123456\n789012');
+  const caretBeforeNewline = el.createValueRange(6, 6);
+  const caretNextLine = el.createValueRange(7, 7);
+  const beforeRect = caretBeforeNewline.getBoundingClientRect();
+  const nextRect = caretNextLine.getBoundingClientRect();
+
+  assert_greater_than_equal(beforeRect.x + 0.5, nextRect.x,
+    'Caret before newline at or to the right of next line start');
+  assert_less_than_equal(beforeRect.y, nextRect.y,
+    'Next line caret should be at same or lower y');
+}, 'Collapsed caret across newline parity in textarea');
+
+test(t => {
+  const el = setupTextarea('a\n\n\nb');
+  const range = el.createValueRange(4, 5);
+  const rect = range.getBoundingClientRect();
+
+  assert_greater_than(rect.width, 0, 'Range after consecutive newlines should have non-zero width');
+  assert_greater_than(rect.height, 0, 'Range after consecutive newlines should have non-zero height');
+}, 'OpaqueRange on text after consecutive newlines');
+
+test(t => {
+  const el = setupTextarea('Hello\nWorld');
+  const range = el.createValueRange(3, 8);
+  const rects = range.getClientRects();
+
+  assert_greater_than_equal(rects.length, 2,
+    'Cross-line range should produce at least two client rects (one per line)');
+}, 'Cross-line range produces multiple client rects');
+
+test(t => {
+  const el = setupTextarea('Hello\n');
+  const range = el.createValueRange(0, 6);
+  const rect = range.getBoundingClientRect();
+
+  assert_greater_than(rect.width, 0, 'Trailing newline range should have non-zero width');
+  assert_greater_than(rect.height, 0, 'Trailing newline range should have non-zero height');
+}, 'Trailing newline range has non-zero geometry');
+</script>

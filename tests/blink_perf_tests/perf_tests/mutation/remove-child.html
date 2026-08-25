@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<body>
+<pre id="log"></pre>
+<script src="../resources/runner.js"></script>
+<div id="sandbox" style="display:none"></div>
+<script>
+var sandbox = document.getElementById('sandbox');
+var observing = false;
+
+var observer = new WebKitMutationObserver(listener);
+var tickledSpan = document.createElement('span');
+observer.observe(tickledSpan, {attributes: true});
+
+function resetState() {
+    window.start = null;
+    window.numRuns = 25;
+    window.times = [];
+}
+
+function runAgain() {
+    tickledSpan.setAttribute('data-foo', numRuns);
+}
+
+function hideFromObservation(func) {
+    if (observing)
+        observer.disconnect()
+    func();
+    if (observing)
+        observer.observe(sandbox, {childList: true});
+}
+
+function listener(mutations) {
+    if (start) {
+        var time = Date.now() - start;
+        times.push(time);
+        PerfTestRunner.log(time);
+    }
+    if (numRuns-- >= 0) {
+        runAgain();
+        hideFromObservation(function() {
+            for (var i = 0; i < 50000; ++i)
+                sandbox.appendChild(document.createElement('div'));
+        });
+        start = Date.now();
+        while (sandbox.firstChild)
+            sandbox.removeChild(sandbox.firstChild);
+    } else {
+        PerfTestRunner.logStatistics(times);
+        if (!observing) {
+            observer.observe(sandbox, {childList: true});
+            observing = true;
+            resetState();
+            PerfTestRunner.log('\n------------\n');
+            PerfTestRunner.log('Running ' + numRuns + ' times with observation');
+            setTimeout(runAgain, 0);
+        }
+    }
+}
+
+resetState();
+PerfTestRunner.log('Running ' + numRuns + ' times without observation');
+window.addEventListener('load', runAgain);
+</script>
+</body>

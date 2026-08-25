@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Image fallback respect max-width</title>
+<link rel="author" href="mailto:zhoupeng.1996@bytedance.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#images-3">
+<link rel="match" href="image-fallback-respect-max-width-ref.html">
+<style>
+  div {
+    max-width: 200px;
+  }
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+</style>
+<body>
+  <div>
+    <img src="" width="10000" height="100">
+    <img src="" width="10000" height="100"
+      alt="Lorem ipsum dolor sit amet, consectetur adipisicing elit.">
+    <img src="" width="1000" height="100">
+  </div>
+</body>

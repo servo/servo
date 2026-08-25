@@ -1,0 +1,19 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel=help href="https://html.spec.whatwg.org/multipage/interactive-elements.html#dom-dialog-request-close">
+<link rel=help href="https://github.com/whatwg/html/issues/12482">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="author" href="mailto:lwarlow@igalia.com" />
+
+<dialog id="dialog" closedby="any"></dialog>
+<script>
+  test(() => {
+      dialog.show();
+      dialog.oncancel = () => {
+          dialog.removeAttribute('closedby');
+      }
+      dialog.requestClose();
+      assert_false(dialog.open);
+  }, "requestClose() should close the dialog even when computed closedby becomes none");
+</script>

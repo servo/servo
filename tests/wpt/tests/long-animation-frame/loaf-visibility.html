@@ -1,0 +1,26 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>Long Animation Frame Timing: iframes</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/page-visibility/resources/window_state_context.js"></script>
+<script src="resources/utils.js"></script>
+<body>
+    <div id="log"></div>
+<script>
+
+promise_test(async t => {
+    const {minimize, restore} = window_state_context(t);
+    await minimize();
+    expect_no_long_frame(busy_wait, t);
+    await restore();
+    expect_long_frame(busy_wait, t);
+}, 'Invisible windows do not report long animation frames');
+
+</script>
+</body>

@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang=en>
+  <meta charset=utf-8>
+  <title>CSS-contain test: size containment and fragmentation</title>
+  <link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+  <meta name=flags content="ahem">
+  <meta name=assert content="size containment makes element monolithic">
+  <link rel="match" href="reference/contain-size-breaks-001-ref.html">
+  <link rel=help href="https://drafts.csswg.org/css-contain-1/#containment-size">
+  <link rel=help href="https://drafts.csswg.org/css-break-3/#monolithic">
+
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+article {
+  height: 2.5em;
+  column-gap: 0;
+  columns: 3 1em;
+  width: 3em;
+
+  font-size: 40px;
+  font-family: ahem;
+  line-height: 1;
+}
+div {
+  contain: size;
+  height: 5em;
+  color: orange;
+}
+</style>
+
+<p>This test passes if there is an orange rectangle below. If the shape is not a rectangle, the test fails.
+
+<article>
+<div>A B C D E</div>
+</article>
+
+<!--
+As the element is monolithic it should either:
+* Overflow vertically, appearing as a single 1x5 em rectangle:
+    -----
+    | A |
+    | B |
+    | C |
+    | D |
+    | E |
+    -----
+
+* Be sliced, with one slice in each column, appearing as a single 2x2.5 em rectangle:
+    ----------
+    | A |' ◟ '
+    | B || D |
+    ' ◜ '| E |
+    ----------
+
+Either way, it will always appear as a single rectangle.
+
+If the element is not monolithic, it will fit 2 letters (A & B) in the first column,
+2 (C & D) in the second column, and the fifth (E) will be overflowing the div,
+either into the third column, or into the bottom of the second one.
+Either way, this will not look like a rectangle.
+
+Note: We use some UTF-8 characters to simulate the sliced C on the ASCII diagrams:
+* U+25DC: ◜ Upper left quadrant circular arc
+* U+25DF: ◟ Lower left quadrant circular arc
+-->

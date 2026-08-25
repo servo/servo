@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<title>Chrome issue 40925697: animatestart / animateend incorrectly called on load</title>
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#events">
+<link rel="help" href="https://crbug.com/40925697">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style>
+  @keyframes scale-up {
+    from {
+      scale: 0;
+    }
+  }
+  #target {
+    display: block;
+    width: 400px;
+    height: 400px;
+    margin: 150vh auto;
+    animation: scale-up linear forwards;
+    animation-timeline: view();
+    animation-range: entry 0% cover 50%;
+  }
+</style>
+<img id="target" src="data:image/svg,">
+<script>
+  promise_test(async t => {
+    let start_count = 0;
+    let end_count = 0;
+    target.addEventListener("animationend", () => end_count++);
+    target.addEventListener("animationstart", () => start_count++);
+
+    const anim = target.getAnimations()[0];
+    await anim.ready;
+    await waitForNextFrame();
+    await waitForNextFrame();
+
+    assert_equals(start_count, 0, "animationstart not triggered before scrolling");
+    assert_equals(end_count, 0, "animationend not triggered before scrolling");
+
+    target.scrollIntoView();
+    await waitForNextFrame();
+    await waitForNextFrame();
+    assert_equals(start_count, 1, "animationstart triggered by scroll");
+    assert_equals(end_count, 1, "animationend triggered after scroll");
+  }, "Animation events triggered correctly");
+
+</script>

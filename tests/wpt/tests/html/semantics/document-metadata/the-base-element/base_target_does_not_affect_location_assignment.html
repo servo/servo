@@ -1,0 +1,10 @@
+<base id="base" target="_blank">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="i" src="about:blank"></iframe>
+<script>
+async_test(function(t) {
+  window.onmessage = () => t.done();
+  i.contentWindow.location = "data:text/html,This should navigate the iframe<script>top.postMessage('done', '*');</sc" + "ript>";
+});
+</script>

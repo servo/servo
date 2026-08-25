@@ -1,0 +1,15 @@
+<html style="background: #88F; color: #88F;" xmlns="http://www.w3.org/1999/xhtml" xmlns:m="http://www.w3.org/1998/Math/MathML">
+  <head>
+    <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=393760"/>
+    <link rel="match" href="mozilla-393760-2-ref.xml"/>
+  </head>
+<body>
+
+<!-- Test that text that should be invisible is invisible (assuming text is drawn at all) -->
+<p>This should be invisible.</p>
+
+<!-- Test that color inherits into MathML (assuming MathML text is drawn at all) -->
+<p><m:math><m:mi>x</m:mi></m:math></p>
+
+</body>
+</html>

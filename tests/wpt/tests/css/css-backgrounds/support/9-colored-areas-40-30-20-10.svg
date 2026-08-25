@@ -1,0 +1,32 @@
+
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+
+  <!--
+
+  Author: Gérard Talbot
+
+  Created: August 9th 2023
+
+  Last modified: October 5th 2023
+
+  -->
+
+    <rect x="0" y="0" width="10" height="40" fill="yellow" />
+
+    <rect x="10" y="0" width="60" height="40" fill="blue" />
+
+    <rect x="70" y="0" width="30" height="40" fill="aqua" />
+
+    <rect x="0" y="40" width="10" height="40" fill="orange" />
+
+    <rect x="10" y="40" width="60" height="40" fill="red" />
+
+    <rect x="70" y="40" width="30" height="40" fill="teal" />
+
+    <rect x="0" y="80" width="10" height="20" fill="fuchsia" />
+
+    <rect x="10" y="80" width="60" height="20" fill="purple" />
+
+    <rect x="70" y="80" width="30" height="20" fill="black" />
+
+</svg>

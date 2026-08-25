@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>XHR should respect access-control-expose-headers header on redirect</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+</head>
+<body>
+<script type="text/javascript">
+async_test((test) => {
+  const xhr = new XMLHttpRequest;
+
+  xhr.onerror = test.unreached_func("Unexpected error.");
+
+  xhr.onload = test.step_func_done(() => {
+    assert_equals(xhr.status, 200);
+    assert_equals(xhr.getResponseHeader('foo'), 'bar');
+    assert_equals(xhr.getResponseHeader('hoge'), null);
+  });
+
+  const destination = get_host_info().HTTP_REMOTE_ORIGIN +
+    '/common/blank.html?pipe=header(access-control-allow-origin,*)|' +
+    'header(access-control-expose-headers,foo)|' +
+    'header(foo,bar)|header(hoge,fuga)';
+  const url =
+    'resources/redirect.py?location=' + encodeURIComponent(destination);
+  xhr.open('GET', url);
+  xhr.send();
+});
+</script>
+</body>
+</html>

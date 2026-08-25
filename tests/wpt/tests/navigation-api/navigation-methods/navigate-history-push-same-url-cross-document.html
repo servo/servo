@@ -1,0 +1,25 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/helpers.js"></script>
+<iframe id="i" src="/common/blank.html"></iframe>
+<script>
+promise_test(async t => {
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation due to onload not having completed.
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+  assert_equals(i.contentWindow.navigation.entries().length, 1);
+
+  i.contentWindow.navigation.onnavigatesuccess = t.unreached_func("onnavigatesuccess should not be called");
+  i.contentWindow.navigation.onnavigateerror = t.unreached_func("onnavigateerror should not be called");
+
+  let navigateEventType;
+  i.contentWindow.navigation.onnavigate = e => navigateEventType = e.navigationType;
+
+  i.contentWindow.navigation.navigate(i.contentWindow.location, { history: "push" });
+  await new Promise(resolve => i.onload = resolve);
+  assert_equals(navigateEventType, "push");
+  assert_equals(i.contentWindow.navigation.entries().length, 2);
+  assert_equals(i.contentWindow.navigation.currentEntry.index, 1);
+}, "navigate() to the current URL with history: 'push' and allow it to go cross document");
+</script>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+    <link rel="author" title="Ryosuke Niwa" href="mailto:rniwa@webkit.org"/>
+    <link rel="help" href="https://drafts.csswg.org/selectors/#relational">
+    <link rel="help" href="https://drafts.csswg.org/selectors/#lang-pseudo">
+    <link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+</head>
+<body>
+    <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+    <section class="lang"><div lang="en"></div></section>
+    <section class="lang" id="fr" lang="fr"><div></div></section>
+    <section class="lang" id="ja" lang="ja" style="-webkit-locale: 'en'"><div></div></section>
+    <div><section class="lang" id="zh" lang="zh" style="-webkit-locale: 'en'"><span></span></section></div>
+    <div id="kr" class="lang" lang="kr"></div>
+    <style>
+        div { width: 100px; height: 20px; }
+        .lang div:lang(en) { background: green; }
+        .lang div:lang(fr) { background: red; }
+        .lang div:lang(ja) { background: red; }
+        div:has(.lang :lang(zh)) { background: red; }
+        div:has(.lang :lang(en)) { background: green; }
+        .lang:lang(kr) { background: red; }
+        .lang div:lang(kr) { background: green; }
+    </style>
+    <script>
+        requestAnimationFrame(() => {
+            setTimeout(() => {
+                fr.lang = 'en';
+                ja.lang = 'en';
+                zh.lang = 'en';
+                kr.appendChild(document.createElement('div'));
+                document.documentElement.className = '';
+            }, 0);
+        });
+    </script>
+</body>
+</html>

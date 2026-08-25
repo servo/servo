@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>legacy scriptminsize attribute (reference)</title>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  math {
+      /* Ahem font does not have a MATH table so the font-size scale factor
+         is always 0.71^{computed - inherited math script level} */
+      font: 100px/1 Ahem;
+  }
+</style>
+</head>
+<body>
+  <p>Test passes if you see a square of size 71px.</p>
+  <div>
+    <math>
+      <mstyle>
+        <mstyle scriptlevel="1">
+          <mn>X</mn>
+        </mstyle>
+      </mstyle>
+    </math>
+  </div>
+</body>
+</html>

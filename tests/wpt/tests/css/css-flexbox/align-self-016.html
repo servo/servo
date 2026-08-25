@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Flexbox: shrink-to-fit item in multi-line column container</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#propdef-align-self">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/11784">
+<link rel="match" href="../reference/ref-filled-green-200px-square.html">
+<meta assert="
+  #item has `align-self: start`, which sizes it as `fit-content`.
+  Therefore, we initially shrink-to-fit it into the container (100px),
+  thus getting a cross size of 100px and a main size of 200px.
+  However, we have another item which is 200px wide, so the flex line
+  grows to that size.
+  Once we know the final cross size of the line, we shrink-to-fit #item
+  into the line (200px), thus getting a final cross size of 200px.
+  Now both floats fit side by side into these 200px, so vertically they
+  only need 100px, but the main size of #item remains as 200px.
+">
+
+<style>
+#container {
+  display: flex;
+  flex-flow: column wrap;
+  width: 100px;
+  border-right: 100px solid red;
+}
+#item{
+  align-self: start;
+  background: linear-gradient(to bottom, red 50%, green 50%);
+}
+.float {
+  float: left;
+  width: 100px;
+  height: 100px;
+  background: green;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="container">
+  <div id="item">
+    <div class="float"></div>
+    <div class="float"></div>
+  </div>
+  <div style="width: 200px"></div>
+</div>

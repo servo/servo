@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>text-underline-offset test case</title>
+    <meta name="assert" content="zero-position for text-underline-offset is at the alphabetic baseline">
+    <link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+    <link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#line-offset-zero">
+    <link rel="match" href="reference/text-underline-offset-zero-position-ref.html">
+    <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+    <style>
+        .green {
+            color: green;
+        }
+        .red {
+            color: red;
+        }
+        #test {
+            font: 100px Ahem;
+            color: green;
+            -webkit-text-decoration-skip: none;
+            text-decoration-skip-ink: none;
+        }
+        u {
+            text-decoration: underline;
+            text-decoration-color: red;
+            text-decoration-thickness: 20px;
+            text-underline-position: auto;
+            text-underline-offset: 0px;  /* at the alphabetic baseline, per spec */
+        }
+    </style>
+</head>
+<body>
+    <p class="instructions">Test passes if there is a <span class=green>green</span> line and <span class=red>no red</span>.</p>
+    <div id="test">
+        <!-- At 100px, the "p" in Ahem will be a box with its top at the baseline,
+             and its bottom 20px (0.2em) below the baseline. -->
+        <u>ppp</u>
+    </div>
+</body>
+</html>

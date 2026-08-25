@@ -1,0 +1,12 @@
+<!doctype html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-scrollheight">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1876745">
+<div id="target" style="display: table-cell; height: 100px; overflow: hidden"></div>
+<script>
+  test(() => {
+    assert_equals(target.scrollHeight, 100);
+  }, `scrollHeight on scrollable table cell`);
+</script>

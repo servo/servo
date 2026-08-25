@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Flexbox: gaps adjacent to a collapsed (visibility:collapse) flex item are not counted</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#algo-visibility">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#gaps">
+<link rel="match" href="gap-collapse-ref.html">
+<style>
+  .flex {
+    display: flex;
+    gap: 50px;
+    outline: 1px solid purple;
+  }
+  .intrinsic {
+    width: max-content;
+  }
+  .flex > div {
+    width: 50px;
+    height: 50px;
+    background: blue;
+  }
+  .collapse {
+    visibility: collapse;
+  }
+</style>
+
+<!-- Collapsed item in the middle. -->
+<div class="flex">
+  <div></div>
+  <div class="collapse"></div>
+  <div></div>
+  <div></div>
+</div>
+
+<!-- Collapsed item at the beginning. -->
+<div class="flex">
+  <div class="collapse"></div>
+  <div></div>
+  <div></div>
+  <div></div>
+</div>
+
+<!-- Collapsed item at the end. -->
+<div class="flex">
+  <div></div>
+  <div></div>
+  <div></div>
+  <div class="collapse"></div>
+</div>
+
+<!-- Collapsed item in the middle. -->
+<div class="flex intrinsic">
+  <div></div>
+  <div class="collapse"></div>
+  <div></div>
+  <div></div>
+</div>
+
+<!-- Collapsed item at the beginning. -->
+<div class="flex intrinsic">
+  <div class="collapse"></div>
+  <div></div>
+  <div></div>
+  <div></div>
+</div>
+
+<!-- Collapsed item at the end. -->
+<div class="flex intrinsic">
+  <div></div>
+  <div></div>
+  <div></div>
+  <div class="collapse"></div>
+</div>

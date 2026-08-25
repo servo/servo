@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <title>WebGPU canvas_image_rendering (ref)</title>
+  <meta charset="utf-8" />
+  <link rel="help" href="https://gpuweb.github.io/gpuweb/" />
+  <img id="elem1" width="64" height="64" style="width: 128px; height: 128px;">
+  <img id="elem2" width="64" height="64" style="width: 128px; height: 128px; image-rendering: pixelated;">
+  <img id="elem3" width="64" height="64" style="width: 128px; height: 128px; image-rendering: crisp-edges">
+  <img id="elem4" width="64" height="64" style="width: 128px; height: 128px;">
+  <img id="elem5" width="64" height="64" style="width: 128px; height: 128px; image-rendering: pixelated;">
+  <img id="elem6" width="64" height="64" style="width: 128px; height: 128px; image-rendering: crisp-edges">
+  <script type="module">
+    import { takeScreenshotDelayed } from '../../../../common/util/wpt_reftest_wait.js';
+
+    (async () => {
+      const dataURL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAAXNSR0IArs4c6QAAAKdJREFUeF7t28kJwDAQA0Cp/6I3hJAqNK/kazDr2atJ7u7S9v3Z+76nnz18m7oBboAYIAZMRv//1fMKcAAHkCAJLuYAXoEv8ZMLcAAHcAAHcAAHjBZEOeBSDuAADuAADuAADtjrCqsIqQh98xAkSIIkSIIkSIIkSIKrYzJ6gyRIgiRIgiRIgiRIgiRoZ2hwYcp8gKqwSVF9AXuD9gbtDdobXGWw7nCbB5+MQQlHipKKAAAAAElFTkSuQmCC';
+      await Promise.all([...document.querySelectorAll('img')].map(img => {
+        img.src = dataURL;
+        return img.decode();
+      }));
+
+      takeScreenshotDelayed(50);
+    })();
+  </script>
+</html>

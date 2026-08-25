@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel="author" title="David Shin" href="mailto:dshin@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#invisible-line-boxes">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1946899">
+<style>
+body {
+  margin: 0;
+}
+.filler {
+  height: 3000px;
+  background: red;
+}
+.good {
+  height: 100vh;
+  background: green;
+}
+</style>
+<span><div class="filler"></div></span>
+<span><div id="target" class="good"></div></span>
+<span><div class="filler"></div></span>
+<script>
+target.scrollIntoView();
+document.documentElement.className = "";
+</script>

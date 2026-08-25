@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/permissions-policy/resources/permissions-policy.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<body></body>
+<script type="module">
+    import { makeGetOptions, makeCreateOptions } from "./support/helper.js";
+    const { HTTPS_REMOTE_ORIGIN } = get_host_info();
+    const get_same_origin_src =
+        "/digital-credentials/permissions-policy/get.html";
+    const get_cross_origin_src = new URL(get_same_origin_src, HTTPS_REMOTE_ORIGIN).href;
+
+    const create_same_origin_src =
+        "/digital-credentials/permissions-policy/create.html";
+    const create_cross_origin_src = new URL(create_same_origin_src, HTTPS_REMOTE_ORIGIN).href;
+
+    promise_test(async (test) => {
+        await test_driver.bless("user activation");
+        await promise_rejects_js(
+            test,
+            TypeError,
+            navigator.credentials.get(makeGetOptions({protocol: []}))
+        );
+
+        await test_feature_availability({
+            feature_description: "Digital Credential API",
+            test,
+            src: get_same_origin_src,
+            expect_feature_available: expect_feature_available_default,
+            is_promise_test: true,
+        });
+
+        await test_feature_availability({
+            feature_description: "Digital Credential API",
+            test,
+            src: get_cross_origin_src,
+            expect_feature_available: expect_feature_unavailable_default,
+            feature_name: "digital-credentials-get",
+            is_promise_test: true,
+        });
+    }, "Permissions-Policy is by default 'self' for get().");
+
+    promise_test(async (test) => {
+        await test_driver.bless("user activation");
+        await promise_rejects_js(
+            test,
+            TypeError,
+            navigator.credentials.create(makeCreateOptions({protocol: []}))
+        );
+
+        await test_feature_availability({
+            feature_description: "Digital Credential API",
+            test,
+            src: create_same_origin_src,
+            expect_feature_available: expect_feature_available_default,
+            is_promise_test: true,
+        });
+
+        await test_feature_availability({
+            feature_description: "Digital Credential API",
+            test,
+            src: create_cross_origin_src,
+            expect_feature_available: expect_feature_unavailable_default,
+            feature_name: "digital-credentials-create",
+            is_promise_test: true,
+        });
+    }, "Permissions-Policy is by default 'self' for create().");
+</script>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="500" height="500"
+     xmlns="http://www.w3.org/2000/svg"
+     xmlns:xlink="http://www.w3.org/1999/xlink"
+     xmlns:h="http://www.w3.org/1999/xhtml">
+  <!-- getIntersectionList causes transforms to be recalculated in SVG -->
+  <h:link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=77179"/>
+  <h:link rel="match" href="reference/green-100x100.svg"/>
+  <script>
+    onload = function() {
+      const root = document.documentElement;
+      root.appendChild(document.createElementNS("http://www.w3.org/2000/svg", "text"));
+      root.getIntersectionList(root.createSVGRect(), null);
+    }
+  </script>
+  <!-- This test passes if there is a green non-rotated square visible on the top-left corner of the page. -->
+  <g transform="translate(100, 100) rotate(135)">
+    <rect width="100" height="100" fill="green" transform="rotate(45)" />
+  </g>
+</svg>
+

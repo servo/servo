@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Viewport Segments: viewport.segments</title>
+<link rel="help" href="https://drafts.csswg.org/css-viewport-1/"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+
+test(() => {
+  assert_true('segments' in viewport, "`segments` must be a property of viewport.");
+  assert_equals(viewport.segments[0].innerWidth, viewport.innerWidth,
+    "For a viewport not segmented, there should only one segment with the viewport size.");
+    assert_equals(viewport.segments[0].innerHeight, viewport.innerHeight,
+    "For a viewport not segmented, there should only one segment with the viewport size.");
+});
+</script>

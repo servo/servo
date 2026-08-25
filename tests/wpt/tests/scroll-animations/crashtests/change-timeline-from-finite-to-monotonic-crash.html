@@ -1,0 +1,16 @@
+<style>
+@keyframes anim {}
+</style>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const a = document.createElement("style")
+  const b = document.createTextNode("* { animation-play-state: paused; animation-timeline: scroll(), none, --")
+  a.appendChild(b)
+  document.documentElement.appendChild(a)
+  const c = document.createElementNS("http://www.w3.org/2000/svg", "font-face")
+  document.documentElement.appendChild(c)
+  c.style.animationName = '"anim", none, none'
+  self.scroll({"left": 4096})
+  b.data = ""
+})
+</script>

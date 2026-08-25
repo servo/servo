@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<link rel="help" href="https://www.w3.org/TR/css-gaps-1/">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+     .multi-column {
+        columns: 2;
+        height: 87px;
+        column-width: 140px;
+        width: 290px;
+        gap: 10px;
+    }
+
+    body {
+        margin: 0px;
+    }
+
+    #flexbox {
+        width: 140px;
+        background-color: #fff;
+        display: flex;
+        flex-wrap: wrap;
+        height: 180px;
+        align-content: space-between;
+    }
+
+    .item {
+        width: 70px;
+        height: 50px;
+        background-color: #007bff;
+        color: white;
+        display: flex;
+    }
+
+    .rule {
+        position: absolute;
+        top: 55px;
+        height: 5px;
+        background: gold;
+        width: 140px;
+    }
+</style>
+<div class="rule"></div>
+<div class="rule" style="left: 150px; top: 33px;"></div>
+<div class="multi-column">
+<div id="flexbox">
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+</div>
+</div>

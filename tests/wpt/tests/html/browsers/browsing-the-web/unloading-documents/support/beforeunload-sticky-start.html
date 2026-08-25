@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Beforeunload must be gated behind sticky activation: start page</title>
+
+<p>This page will immediately navigate. If a beforeunload dialog pops up, the test fails.</p>
+
+<script>
+window.onbeforeunload = e => e.preventDefault();
+location.href = 'beforeunload-sticky-destination.html';
+</script>

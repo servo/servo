@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Nested Orthogonal Flows vertical-rl Block Container Auto-Sizing with Contained Ancestor within Scroll Container</title>
+<link rel="match" href="reference/available-size-022-ref.html">
+<link rel="help" href="https://www.w3.org/TR/css-writing-modes-3/#orthogonal-auto">
+<link rel="help" href="https://www.w3.org/TR/css-contain-1/">
+<meta name="assert" content="Test passes if vertical-rl block container orthogonal to parent which is itself orthogonal to the ICB is sized to fit into the smaller of scroll container’s fixed-size constraints or the ICB even when there is a contained intervening ancestor.">
+<style>
+/* Set up orthogonal flows */
+html    { writing-mode: vertical-lr; word-break: break-all; font: 15px/1 sans-serif; }
+article { writing-mode: horizontal-tb; margin-left: 0.5em; overflow: hidden; }
+aside   { writing-mode: vertical-rl; width: 2em; overflow: hidden; color: blue;
+          margin: 4em 0; padding: 2em 0; border: solid 4px silver; }
+/* Limits on scroll container block trump ICB */
+.fixed-parent     { min-height:  30vh; height:  50vh; max-height:  60vh; }
+.min-fixed-parent { min-height:  50vh; height:  30vh; max-height:  60vh; }
+.max-fixed-parent { min-height:  30vh; height:  60vh; max-height:  50vh; }
+.max-parent       { min-height:  30vh;                max-height:  50vh; }
+.min-max-parent   { min-height:  50vh;                max-height:  30vh; }
+/* But not if they're larger than ICB */
+.large-parent     {                    height: 120vh;                    }
+.min-large-parent { min-height: 120vh;                max-height:  30vh; }
+/* Auto height should have no effect, only fixed height */
+.auto             { min-height:  30vh;                                   }
+
+/* Highlight truncated cases for visual verification */
+.max-parent aside, .auto aside, em { border-color: blue; color: blue }
+
+/* References */
+.fixed { height: 50vh; }
+.full  { height: 100vh; }
+html { overflow: hidden; /* avoid scrollbar variance */ }
+
+div {
+  /* Test intervening reflow root */
+  contain: layout size;
+  /* We're not testing widths; let's just match a nice reference. */
+  width: calc(2em + 8px);
+}
+</style>
+
+<p style="position: absolute; writing-mode: horizontal-tb; word-break: normal">Test passes if the <strong>contents</strong> of the first five boxes are identical, and of the last four boxes are identical,
+except that <em>blue</em> boxes are truncated.
+
+<article class="fixed">
+  <div>
+    <aside>abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde</aside>
+  </div>
+</article>
+
+<article class="fixed-parent">
+  <div>
+    <aside>abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde</aside>
+  </div>
+</article>
+
+<article class="min-fixed-parent">
+  <div>
+    <aside>abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde</aside>
+  </div>
+</article>
+
+<article class="max-parent">
+  <div>
+    <aside>abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde</aside>
+  </div>
+</article>
+
+<article class="min-max-parent">
+  <div>
+    <aside>abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde</aside>
+  </div>
+</article>
+
+<article class="large-parent">
+  <div>
+    <aside>abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde</aside>
+  </div>
+</article>
+
+<article class="min-large-parent">
+  <div>
+    <aside>abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde</aside>
+  </div>
+</article>
+
+<article class="auto">
+  <div>
+    <aside>abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde</aside>
+  </div>
+</article>
+
+
+<article class="full">
+  <div>
+    <aside>abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde fghijk lmnop qrstu vwxyz abcde</aside>
+  </div>
+</article>

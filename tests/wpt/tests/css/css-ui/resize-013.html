@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: resizing canvas</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net">
+<link rel="help" href="https://drafts.csswg.org/css-ui-3/#resize">
+<meta name="flags" content="interact may">
+<meta name="assert" content="UAs may apply the resize property to <canvas> regardless of the value of the overflow property.">
+<style>
+canvas { resize: both; }
+</style>
+
+<p>Test passes if both <strong>width</strong> and <strong>height</strong> of the orange box below can be adjusted (for instance by dragging the bottom-right corner).</p>
+
+<canvas id="test" width="100" height="100">
+  &lt;canvas&gt; is not supported. This test is non conclusive.
+</canvas>
+<script>
+var canvas = document.getElementById('test');
+if (canvas.getContext) {
+  var ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#FFA500';
+    ctx.fillRect (0, 0, 100, 100);
+}
+</script>

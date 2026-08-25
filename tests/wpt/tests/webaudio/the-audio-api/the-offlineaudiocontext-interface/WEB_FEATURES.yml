@@ -1,0 +1,2 @@
+rules:
+- "**": [offline-audio-context]

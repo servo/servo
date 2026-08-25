@@ -1,0 +1,15 @@
+// Explainers:
+// https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/VirtualKeyboardPolicy/explainer.md
+// https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/VirtualKeyboardAPI/explainer.md
+
+partial interface Navigator {
+  [SecureContext, SameObject] readonly attribute VirtualKeyboard virtualKeyboard;
+};
+
+[SecureContext, Exposed=Window] interface VirtualKeyboard : EventTarget {
+    undefined show();
+    undefined hide();
+    readonly attribute DOMRect boundingRect;
+    attribute boolean overlaysContent;
+    attribute EventHandler ongeometrychange;
+};

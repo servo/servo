@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+
+<meta charset="utf-8">
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="author" title="He Yue" href="mailto:yue.he@intel.com">
+<link rel="author" title="Tomoyuki Shimizu" href="https://github.com/tomoyukilabs/">
+<link rel="help" href="http://w3c.github.io/presentation-api/#interface-presentationconnectionlist">
+<script src="../common.js"></script>
+<script src="stash.js"></script>
+<script>
+  const message1 = '1st';
+  const message2 = '2nd';
+  const message3 = new Uint8Array([51, 114, 100]);      // "3rd"
+  const message4 = new Uint8Array([52, 116, 104]);      // "4th"
+  const message5 = new Uint8Array([108, 97, 115, 116]); // "last"
+
+  const toUint8Array = buf => {
+    return buf instanceof ArrayBuffer ? new Uint8Array(buf) : buf;
+  }
+
+  // convert ArrayBuffer or Uint8Array into string
+  const toText = buf => {
+    const arr = toUint8Array(buf);
+    return !buf ? null : arr.reduce((result, item) => {
+      return result + String.fromCharCode(item);
+    }, '');
+  }
+
+  // compare two ArrayBuffer or Uint8Array
+  const compare = (a, b) => {
+    const p = toUint8Array(a);
+    const q = toUint8Array(b);
+    return !!p && !!q && p.every((item, index) => { return item === q[index]; });
+  };
+
+  const stash = new Stash(stashIds.toReceiver, stashIds.toController);
+
+  let connection, count = 0;
+
+  const addConnection = c => {
+    let result = [], testCase;
+    connection = c;
+    count++;
+
+    connection.onmessage = event => {
+      // PresentationConnection_send-manual.https.html
+      if (testCase === 'send') {
+        if (typeof event.data === 'string') {
+          result.push({ type: 'text', data: event.data });
+        }
+        // default value of connection.binaryType is "arraybuffer"
+        else if(event.data instanceof ArrayBuffer) {
+          result.push({ type: 'binary', data: toText(event.data) });
+          if (compare(event.data, message5)) {
+            stash.send(JSON.stringify(result));
+          }
+        }
+        else {
+          result.push({ type: 'error' });
+        }
+      }
+    };
+
+    stash.receive().then(data => {
+      testCase = data;
+
+      // PresentationConnection_send-manual.https.html
+      if (testCase === 'send') {
+        stash.send('ok');
+      }
+      // PresentationConnection_onmessage-manual.https.html
+      else if (testCase === 'onmessage') {
+        connection.send(message1);              // string
+        connection.send(message2);              // string
+        connection.send(new Blob([message3]));  // Blob
+        connection.send(message4.buffer);       // ArrayBuffer
+        connection.send(message5);              // ArrayBufferView
+        stash.receive().then(data => {
+          connection.send(message5);
+        });
+      }
+      // PresentationConnection_onclose-manual.https.html
+      else if (testCase === 'close') {
+        connection.close();
+      }
+    });
+  };
+
+  navigator.presentation.receiver.connectionList
+    .then(list => {
+      list.onconnectionavailable = evt => {
+        addConnection(evt.connection);
+      };
+      list.connections.map(connection => {
+        addConnection(connection);
+      });
+    });
+</script>

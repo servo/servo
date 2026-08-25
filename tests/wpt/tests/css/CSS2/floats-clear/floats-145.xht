@@ -1,0 +1,41 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Bottom margins on floats</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/float/045.html" type="text/html"/>
+  <link rel="bookmark" href="https://github.com/servo/servo/pull/10458#issuecomment-210204244" />
+  <link rel="bookmark" href="http://lists.w3.org/Archives/Public/public-css-testsuite/2016Apr/0028.html" title="About floats-145" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats" />
+  <link rel="match" href="floats-145-ref.xht" />
+
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+  <style type="text/css"><![CDATA[
+  div
+    {
+      background-color: blue;
+      float: left;
+      font: 30px/3 Ahem; /* computes to 30px/90px */
+    }
+
+  span
+    {
+      background-color: white;
+      color: white;
+      float: left;
+      margin-bottom: 1em;
+    }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a blue bar.</p>
+
+  <div><span>Text sample</span></div>
+
+ </body>
+</html>
+

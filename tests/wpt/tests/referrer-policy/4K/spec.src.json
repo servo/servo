@@ -1,0 +1,52 @@
+{
+  "excluded_tests": [
+    {
+      // expectation=stripped-referrer only
+      "expansion": "*",
+      "source_scheme": "*",
+      "source_context_list": "*",
+      "redirection": "*",
+      "delivery_type": "*",
+      "delivery_value": "*",
+      "origin": "*",
+      "subresource": "*",
+      "expectation": [
+        "omitted",
+        "origin"
+      ]
+    },
+    {
+      // Only on the top context
+      "expansion": "*",
+      "source_scheme": "*",
+      "source_context_list": [
+        "req",
+        "srcdoc-inherit",
+        "srcdoc",
+        "iframe",
+        "worker-classic",
+        "worker-classic-data",
+        "worker-module",
+        "worker-module-data"
+      ],
+      "redirection": "*",
+      "delivery_type": "*",
+      "delivery_value": "*",
+      "origin": "*",
+      "subresource": "*",
+      "expectation": "*"
+    },
+    {
+      // subresources not yet tested.
+      "expansion": "*",
+      "source_scheme": "*",
+      "source_context_list": "*",
+      "redirection": "*",
+      "delivery_type": "*",
+      "delivery_value": "*",
+      "origin": "*",
+      "subresource": "sharedworker-module",
+      "expectation": "*"
+    }
+  ]
+}

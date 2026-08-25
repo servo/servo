@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>Align-self applies to OOF elements of inline elements when statically positioned.</title>
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#valdef-align-self-normal">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#valdef-justify-self-normal">
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#abspos-alignment">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#align-abspos">
+<link rel="help" href="https://issues.chromium.org/issues/409806799">
+<link rel="match" href="align-self-static-position-005-ref.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.container {
+  position: relative;
+  border: 1px solid;
+}
+
+.abs {
+  position: absolute;
+  background: purple;
+  align-self: end;
+  opacity: 0.5;
+}
+</style>
+<div class="container">
+  <span style="font: 20px/1 Ahem;">hello
+    <span class="abs">hello</span>
+    <span style="vertical-align: top; font-size: 50px;">world</span>
+  </span>
+</div>

@@ -1,0 +1,98 @@
+<!doctype html>
+<html>
+  <head>
+    <title>aria-checked=true on menuitemradio</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+    <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/wai-aria/scripts/ATTAcomm.js"></script>
+    <script>
+    setup({explicit_timeout: true, explicit_done: true });
+
+    var theTest = new ATTAcomm(
+    {
+   "steps" : [
+      {
+         "element" : "test",
+         "test" : {
+            "ATK" : [
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "STATE_CHECKABLE"
+               ],
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "STATE_CHECKED"
+               ]
+            ],
+            "AXAPI" : [
+               [
+                  "property",
+                  "AXValue",
+                  "is",
+                  "1"
+               ],
+               [
+                  "property",
+                  "AXMenuItemMarkChar",
+                  "is",
+                  "✓"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "checkable:true"
+               ]
+            ],
+            "MSAA" : [
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "STATE_SYSTEM_CHECKED"
+               ]
+            ],
+            "UIA" : [
+               [
+                  "property",
+                  "Toggle.ToggleState",
+                  "is",
+                  "On (1)"
+               ],
+               [
+                  "property",
+                  "SelectionItem.IsSelected",
+                  "is",
+                  "True"
+               ]
+            ]
+         },
+         "title" : "step 1",
+         "type" : "test"
+      }
+   ],
+   "title" : "aria-checked=true on menuitemradio"
+}
+
+    ) ;
+    </script>
+  </head>
+  <body>
+  <p>This test examines the ARIA properties for aria-checked=true on menuitemradio.</p>
+    <div role='menu'>
+    <div role='menuitemradio' id='test' aria-checked='true'>content</div>
+  </div>
+
+  <div id="manualMode"></div>
+  <div id="log"></div>
+  <div id="ATTAmessages"></div>
+  </body>
+</html>

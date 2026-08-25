@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<meta name="assert" content="This ensures that floats block-end margin contributes to the scrollable overflow.">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#scrollable" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="checkLayout('#target')">
+  <div id="target" style="width: 100px; height: 100px; overflow: scroll;" data-expected-scroll-height="220">
+    <div style="float: left; width: 50px; height: 200px; margin: 10px; background: lime;"></div>
+  </div>
+  <div id=log></div>
+</body>

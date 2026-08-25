@@ -1,0 +1,13 @@
+rules:
+- clip-*: [clip]
+- clipping-001.xht: [clip]
+- clipping-009.xht: [clip]
+- clipping-010.xht: [clip]
+- clipping-011.xht: [clip]
+- clipping-012.xht: [clip]
+- clipping-013.xht: [clip]
+- clipping-014.xht: [clip]
+- clipping-016.xht: [clip]
+- clipping-017.xht: [clip]
+- shape-spaces-001.xht: [clip]
+- visibility-*: [visibility]

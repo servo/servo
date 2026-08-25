@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset=utf-8>
+  <title>&lt;param&gt;</title>
+</head>
+<body>
+  <!-- param is not block or inline -->
+  <param name="foo">
+  <p>para<param name="foo"></p>
+  <p><dfn>strictly<param name="foo"></dfn></p>
+
+  <!-- param must be empty -->
+  <object><param name="foo"><p>yo</p></object>
+  <p><object><param name="foo"><em>some</em> text</object></p>
+
+  <!-- name is required -->
+  <object><param></object>
+
+  <!-- param data value cannot have type attr -->
+  <object><param name="foo" value="!@#$%$ ^&amp;)"
+              type="application/octet-stream"></object>
+  <object><param name="foo" valuetype="data" value="!@#$%$ ^&amp;)"
+              type="application/octet-stream"></object>
+
+  <!-- param ref value must be URI -->
+  <object><param name="foo" valuetype="ref" value="&lt;"></object>
+  <object><param name="foo" valuetype="ref" value="&lt;"
+              type="application/octet-stream"></object>
+
+  <!-- param object value must be IDREF, cannot have type attr -->
+  <object><param name="foo" valuetype="object" value="sth"></object>
+  <object><param name="foo" valuetype="object" value="#"></object>
+  <object><param name="foo" valuetype="object" value="#"
+              type="application/octet-stream"></object>
+
+  <!-- valuetype can't take any other values -->
+  <object><param name="foo" valuetype="sth"></object>
+</body>
+</html>

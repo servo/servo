@@ -1,0 +1,114 @@
+<!doctype html>
+<html>
+<head>
+  <title>Pointer lock: wheel event forwarded when cursor is outside locked element</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+</head>
+<body>
+<!--
+  Wheel events must be forwarded to JS while the pointer is locked, even when
+  the cursor position is outside the locked element's bounds.
+  Per spec, the pointer-lock target is the target of all wheel events, so it is
+  also the target from which scrolling should chain.
+  https://w3c.github.io/pointerlock/
+-->
+<div id="target" style="position:absolute;left:0;top:0;width:50px;height:50px;overflow:scroll;">
+  <div style="height:1000px;"></div>
+</div>
+<div id="toggle" style="position:absolute;left:200px;top:200px;width:100px;height:100px;overflow:scroll;">
+  <div style="height:1000px;"></div>
+</div>
+<script>
+  const target = document.getElementById('target');
+  const toggle = document.getElementById('toggle');
+
+  // {passive: false} is required to prevent false pass caused by wheel event
+  // forwarding due to a passive wheel event handler.
+  let wheelCount = 0;
+  let preventDefaultOnWheel = false;
+
+  target.addEventListener('wheel', (e) => {
+    wheelCount++;
+    if (preventDefaultOnWheel) e.preventDefault();
+  }, {passive: false});
+
+  async function clickToAcquireLock(origin) {
+    let lockPromise;
+    origin.addEventListener('click', () => {
+      lockPromise = target.requestPointerLock();
+    }, {once: true});
+    await new test_driver.Actions()
+      .pointerMove(0, 0, {origin})
+      .pointerDown()
+      .pointerUp()
+      .send();
+    await lockPromise;
+  }
+
+  function waitForAnimationFrames(n) {
+    return new Promise(resolve => {
+      function tick() { if (--n <= 0) resolve(); else requestAnimationFrame(tick); }
+      requestAnimationFrame(tick);
+    });
+  }
+
+  function cleanupTest() {
+    wheelCount = 0;
+    preventDefaultOnWheel = false;
+    target.scrollTop = 0;
+    toggle.scrollTop = 0;
+    document.exitPointerLock();
+  }
+
+  function checkAll(...checks) {
+    const errors = [];
+    for (const [condition, message] of checks) {
+      if (!condition) errors.push(message);
+    }
+    assert_equals(errors.length, 0, errors.join('; '));
+  }
+
+  promise_test(async (t) => {
+    t.add_cleanup(cleanupTest);
+    wheelCount = 0;
+    preventDefaultOnWheel = false;
+
+    // Click toggle to acquire pointer lock on target. The cursor remains at
+    // toggle's position, which is outside target's bounds.
+    await clickToAcquireLock(toggle);
+    await new test_driver.Actions()
+      .scroll(0, 0, 0, 100, {origin: toggle})
+      .send();
+    await waitForAnimationFrames(4);
+    checkAll(
+      [wheelCount > 0, 'Wheel event should be dispatched'],
+      [target.scrollTop > 0, `target should have scrolled (target.scrollTop: ${target.scrollTop})`],
+      [toggle.scrollTop === 0, `toggle should not have scrolled (toggle.scrollTop: ${toggle.scrollTop})`],
+    );
+  }, 'acquire pointer lock and scroll when the cursor is not on locked element');
+
+  promise_test(async (t) => {
+    t.add_cleanup(cleanupTest);
+    wheelCount = 0;
+    preventDefaultOnWheel = true;
+
+    // Click toggle to acquire pointer lock on target. The cursor remains at
+    // toggle's position, which is outside target's bounds.
+    await clickToAcquireLock(toggle);
+    await new test_driver.Actions()
+      .scroll(0, 0, 0, 100, {origin: toggle})
+      .send();
+    await waitForAnimationFrames(4);
+    checkAll(
+      [wheelCount > 0, 'Wheel event should be dispatched'],
+      [target.scrollTop === 0, `target should be prevented (target.scrollTop: ${target.scrollTop})`],
+      [toggle.scrollTop === 0, `toggle should not have scrolled (toggle.scrollTop: ${toggle.scrollTop})`],
+    );
+  }, 'wheel event is dispatched but scroll is prevented when locked element calls preventDefault');
+</script>
+</body>
+</html>

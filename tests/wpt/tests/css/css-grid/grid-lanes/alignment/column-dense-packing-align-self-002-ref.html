@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    html, body {
+      color: black; background-color: white; font: 16px/1 monospace; padding: 0; margin: 0;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, 60px);
+      grid-template-rows: 80px auto;
+      padding: 2px;
+      margin: 5px;
+    }
+
+    .track {
+      display: flex;
+      flex-direction: column;
+    }
+
+    item {
+      display: block;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+<div class="grid">
+  <div class="track">
+    <item style="height: 80px; background: salmon;">1</item>
+  </div>
+  <div class="track">
+    <item style="flex-grow: 1; background: green;">3</item>
+  </div>
+  <item style="grid-column: span 2; height: 30px; background: salmon;">2</item>
+</div>
+
+<div class="grid">
+  <div class="track">
+    <item style="height: 80px; background: salmon;">1</item>
+  </div>
+  <div class="track">
+    <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: center;">
+      <item style="height: 40px; background: green;">3</item>
+    </div>
+  </div>
+  <item style="grid-column: span 2; height: 30px; background: salmon;">2</item>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,23 @@
+rules:
+- open-url-base.htm: [base, xhr]
+# The classifier for "http-authentication" intentionally overlaps with the
+# above classifier for "xhr" because the boundary between the two features is
+# somewhat subjective.
+- send-authentication-basic-cors-not-enabled.htm: [http-authentication, xhr]
+- send-authentication-basic-repeat-no-args.htm: [http-authentication, xhr]
+- send-authentication-basic-setrequestheader-and-arguments.htm: [http-authentication,
+    xhr]
+- send-authentication-basic-setrequestheader-existing-session.htm: [http-authentication,
+    xhr]
+- send-authentication-basic-setrequestheader.htm: [http-authentication, xhr]
+- send-authentication-basic.htm: [http-authentication, xhr]
+- send-authentication-competing-names-passwords.htm: [http-authentication, xhr]
+- send-authentication-existing-session-manual.htm: [http-authentication, xhr]
+- send-authentication-prompt-2-manual.htm: [http-authentication, xhr]
+- send-authentication-prompt-manual.htm: [http-authentication, xhr]
+# The classifier for "http2" intentionally overlaps with the above classifier
+# for "xhr" because the boundary between the two features is somewhat
+# subjective.
+- status.h2.window.js: [http2, xhr]
+- access-control-sandboxed-iframe-*: [iframe-sandbox, xhr]
+- "**": [xhr]

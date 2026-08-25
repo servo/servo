@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<title>CSSOM View - GeometryUtils in shadow trees</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#the-geometryutils-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/geometry-utils.js"></script>
+<style>
+  html, body { margin: 0; }
+  x-geometry-host {
+    position: absolute;
+    left: 250px;
+    top: 35px;
+    width: 230px;
+    height: 150px;
+    border: 5px solid gray;
+    padding: 10px;
+    transform: rotate(8deg);
+    transform-origin: left top;
+    display: block;
+  }
+  #slotted {
+    width: 80px;
+    height: 45px;
+    border: 3px solid black;
+    transform: translate(18px, 12px) rotate(-16deg);
+    background: gold;
+  }
+</style>
+<x-geometry-host>
+  <div id="slotted" slot="content"></div>
+</x-geometry-host>
+<script>
+customElements.define("x-geometry-host", class extends HTMLElement {
+  constructor() {
+    super();
+    const shadow = this.attachShadow({mode: "open"});
+    shadow.innerHTML = `
+      <style>
+        #shadow-target {
+          position: absolute;
+          left: 95px;
+          top: 65px;
+          width: 70px;
+          height: 35px;
+          border: 4px solid blue;
+          transform: rotate(21deg) scale(1.15);
+          transform-origin: center;
+        }
+        slot {
+          position: absolute;
+          left: 20px;
+          top: 18px;
+          display: block;
+        }
+      </style>
+      <slot name="content"></slot>
+      <div id="shadow-target"></div>
+    `;
+  }
+});
+
+test(() => {
+  const host = document.querySelector("x-geometry-host");
+  const shadowTarget = host.shadowRoot.getElementById("shadow-target");
+  assert_quad_bounds_match_bounding_rect(shadowTarget, {},
+                                         "shadow tree element bounds");
+
+  const relativeQuad = shadowTarget.getBoxQuads({relativeTo: host})[0];
+  const convertedQuad = host.convertQuadFromNode(
+    shadowTarget.getBoxQuads({relativeTo: shadowTarget})[0],
+    shadowTarget
+  );
+  assert_quad_approx_equals(relativeQuad, convertedQuad,
+                            "shadow tree element relative to host");
+}, "GeometryUtils follows shadow tree ancestry");
+
+test(() => {
+  const host = document.querySelector("x-geometry-host");
+  const slotted = document.getElementById("slotted");
+  assert_quad_bounds_match_bounding_rect(slotted, {},
+                                         "slotted light DOM element bounds");
+
+  const relativeQuad = slotted.getBoxQuads({relativeTo: host})[0];
+  const convertedQuad = host.convertQuadFromNode(
+    slotted.getBoxQuads({relativeTo: slotted})[0],
+    slotted
+  );
+  assert_quad_approx_equals(relativeQuad, convertedQuad,
+                            "slotted element relative to host");
+}, "GeometryUtils follows flat-tree slot assignment");
+</script>

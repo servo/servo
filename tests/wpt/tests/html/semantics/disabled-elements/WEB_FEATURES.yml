@@ -1,0 +1,3 @@
+rules:
+- fieldset-event-propagation.tentative.html: [fieldset]
+- event-propagate-disabled-keyboard.tentative.html: [keyboard-events]

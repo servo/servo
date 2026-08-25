@@ -1,0 +1,17 @@
+<resource>
+<its:rules xmlns:its="http://www.w3.org/2005/11/its" xmlns:xlink="http://www.w3.org/1999/xlink" version="2.0" xlink:href="idvalue4xmlrules.xml"/>
+ <webform id="1">
+ <entry name="btn.OK">
+    <text>OK</text>
+    <pos>1, 1</pos>
+    <trig>sendOK</trig>
+  </entry>
+  </webform>
+  <webform id="2">
+  <entry name="btn.CANCEL">
+    <text>Cancel</text>
+    <pos>2, 1</pos>
+    <trig>cancelAll</trig>
+  </entry>
+  </webform>
+</resource>

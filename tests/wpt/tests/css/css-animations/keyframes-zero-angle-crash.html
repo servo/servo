@@ -1,0 +1,13 @@
+<!doctype html>
+<html>
+<title>CSS Animations Test: Chrome crash when using zero angles in keyframes</title>
+<link rel="help" href="https://crbug.com/1307230">
+<body>
+<div id="test_div">
+  Output does not matter, only check that we do not crash with zero angles.
+</div>
+<script>
+let anim = new KeyframeEffect(test_div, [{ "transform": "rotate(0) scale3D(1,1,1)" }]);
+new Animation(anim, document.timeline);
+</script>
+</body>

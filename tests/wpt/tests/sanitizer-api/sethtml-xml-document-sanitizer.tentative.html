@@ -1,0 +1,102 @@
+<!doctype html>
+<html>
+  <head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="require-trusted-types-for 'script';"
+    />
+  </head>
+  <body>
+    <script>
+      trustedTypes.createPolicy("default", {
+        createHTML: (html) => html,
+        createParserOptions: (options) => ({
+          sanitizer: { removeElements: ["div"] },
+        }),
+      });
+
+      const passthrough = trustedTypes.createPolicy("passthrough", {
+        createHTML: (html) => html,
+        createParserOptions: (options) => ({}),
+      });
+
+      test((t) => {
+        const doc = document.implementation.createDocument("application/xml", "xml");
+        const elem = doc.createElement("div");
+        doc.documentElement.appendChild(elem);
+
+        assert_throws_js(TypeError, () => {
+          elem.innerHTML = "<span></span>";
+        });
+      }, "innerHTML on XML document throws TypeError if default policy provides a sanitizer");
+
+      test((t) => {
+        const doc = document.implementation.createDocument("application/xml", "xml");
+        const elem = doc.createElement("div");
+        doc.documentElement.appendChild(elem);
+
+        assert_throws_js(TypeError, () => {
+          elem.outerHTML = "<span></span>";
+        });
+      }, "outerHTML on XML document throws TypeError if default policy provides a sanitizer");
+
+      test((t) => {
+        const doc = document.implementation.createDocument("application/xml", "xml");
+        const elem = doc.createElement("div");
+        doc.documentElement.appendChild(elem);
+
+        assert_throws_js(TypeError, () => {
+          elem.insertAdjacentHTML("beforeend", "<span></span>");
+        });
+      }, "insertAdjacentHTML on XML document throws TypeError if default policy provides a sanitizer");
+
+      test((t) => {
+        const doc = document.implementation.createDocument("application/xml", "xml");
+        const range = doc.createRange();
+        range.selectNode(doc.documentElement);
+
+        assert_throws_js(TypeError, () => {
+          range.createContextualFragment("<span></span>");
+        });
+      }, "createContextualFragment on XML document throws TypeError if default policy provides a sanitizer");
+
+      test((t) => {
+        const doc = document.implementation.createDocument("application/xml", "xml");
+        const elem = doc.createElement("div");
+        doc.documentElement.appendChild(elem);
+
+        // setHTMLUnsafe should NOT throw, because it parses as HTML regardless of the document type.
+        elem.setHTMLUnsafe("<span></span>");
+        assert_not_equals(elem.querySelector("span"), null);
+      }, "setHTMLUnsafe on XML document does not throw TypeError even if default policy provides a sanitizer");
+
+      test((t) => {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString("<xml></xml>", "application/xml");
+        const elem = doc.createElement("div");
+        doc.documentElement.appendChild(elem);
+
+        assert_throws_js(TypeError, () => {
+          elem.innerHTML = "<span></span>";
+        });
+      }, "innerHTML on XML document created by DOMParser throws TypeError if default policy provides a sanitizer");
+
+      async_test((t) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("GET", "data:application/xml,<xml></xml>");
+        xhr.onload = t.step_func_done(() => {
+          const doc = xhr.responseXML;
+          const elem = doc.createElement("div");
+          doc.documentElement.appendChild(elem);
+
+          assert_throws_js(TypeError, () => {
+            elem.innerHTML = "<span></span>";
+          });
+        });
+        xhr.send();
+      }, "innerHTML on XML document from XHR response throws TypeError if default policy provides a sanitizer");
+    </script>
+  </body>
+</html>

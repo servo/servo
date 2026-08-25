@@ -1,0 +1,120 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Lostpointercapture fires on document when target is removed</title>
+        <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/resources/testdriver.js"></script>
+        <script src="/resources/testdriver-actions.js"></script>
+        <script src="/resources/testdriver-vendor.js"></script>
+        <script src="pointerevent_support.js"></script>
+    </head>
+    <body>
+        <h1>Pointer Events - lostpointercapture when capturing element is removed</h1>
+        <div id="target0"></div>
+        <br>
+        <input type="button" id="btnCapture" value="Set Capture">
+        <script type='text/javascript'>
+            var isDisconnected = false;
+            var lostPointerCapture = false;
+            var count = 0;
+            var event_log = [];
+            var recieved_before_lostcapture = [];
+
+            var detected_pointertypes = {};
+            add_completion_callback(end_of_test);
+            function end_of_test() {
+                showLoggedEvents();
+                showPointerTypes();
+            }
+
+            var target0 = document.getElementById('target0');
+            var captureButton = document.getElementById('btnCapture');
+
+            var test_lostpointercapture = async_test("lostpointercapture event received");
+
+            window.onload = function() {
+                var actions_promise;
+
+                const POINTER_EVENT_TYPES = ['pointerover', 'pointerenter', 'pointerdown', 'pointermove', 'pointerup', 'pointercancel', 'pointerout', 'pointerleave'];
+                // Add listeners to target0 explicitly as it is removed from the DOM.
+                for (let target of [document.body, target0]) {
+                  for (let eventType of POINTER_EVENT_TYPES) {
+                    target.addEventListener(eventType, (evt) => {
+                      // Prevent double-reporting events dispatched to target0.
+                      if (target == document.body && evt.target == target0) {
+                        return;
+                      }
+                      const ident = evt.target.id || evt.target.tagName;
+                      event_log.push(`${evt.type}@${ident}`);
+                      if (isDisconnected && !lostPointerCapture) {
+                        recieved_before_lostcapture.push(`${evt.type}@${ident}`);
+                      }
+                    });
+                  }
+                }
+
+                on_event(captureButton, 'pointerdown', function(event) {
+                    detected_pointertypes[event.pointerType] = true;
+                    target0.setPointerCapture(event.pointerId);
+                });
+
+                on_event(target0, 'gotpointercapture', function(e) {
+                    lostPointerCapture = false;
+                    event_log.push('gotpointercapture@target0');
+                    isDisconnected = true;
+                    received_events = [];
+                    target0.parentNode.removeChild(target0);
+                    test(function() {
+                      assert_true(!lostPointerCapture, "lostpointercapture must not be fired synchronously with DOM removal");
+                    });
+                });
+
+
+
+                on_event(target0, 'lostpointercapture', function(e) {
+                    event_log.push('lostpointercapture@target0');
+                    lostPointerCapture = true;
+                    test(function() {
+                        // TA: 11.3
+                        assert_unreached("lostpointercapture must be fired on the document, not the capturing element");
+                    }, "lostpointercapture must not be dispatched on the disconnected node");
+                });
+
+                on_event(document, 'lostpointercapture', function(e) {
+                    lostPointerCapture = true;
+                    test(function() {
+                        assert_equals(recieved_before_lostcapture.join(", "), "", "No pointerevents should be received before lost capture is resolved");
+                    }, "lostpointercapture must be received before the next pointerevent after the node is disconnected");
+                    event_log.push('lostpointercapture@document');
+                    test(function() {
+                        // TA: 11.3
+                        assert_true(isDisconnected, "lostpointercapture must be fired on the document");
+                    }, "lostpointercapture is dispatched on the document");
+
+                    actions_promise.then( () => {
+                      test_lostpointercapture.done();
+                    });
+                });
+
+                // Inject mouse inputs.
+                actions_promise = new test_driver.Actions()
+                    .pointerMove(0, 0, {origin: captureButton})
+                    .pointerDown()
+                    .pointerMove(2, 0, {origin: captureButton})
+                    .pointerMove(5, 0, {origin: captureButton})
+                    .pointerMove(8, 0, {origin: captureButton})
+                    .pointerMove(10, 0, {origin: captureButton})
+                    .send();
+            }
+        </script>
+        <h1>Pointer Events Capture Test</h1>
+        <div id="complete-notice">
+            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+            <p>The following events were logged: <span id="event-log"></span>.</p>
+        </div>
+        <div id="log"></div>
+    </body>
+</html>

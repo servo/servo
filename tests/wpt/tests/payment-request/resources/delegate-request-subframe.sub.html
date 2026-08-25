@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>Payment request delegation test: subframe</title>
+
+<script>
+  function reportResult(msg) {
+      window.top.postMessage({"type": "result", "result": msg}, "*");
+  }
+
+  async function requestPayment(e) {
+      const supportedMethods = [{
+          supportedMethods: "https://{{hosts[][nonexistent]}}/payment-request"
+      }];
+      const details = {
+          total: { label: "Test", amount: { currency: "CAD", value: "1.00" } }
+      };
+      const request = new PaymentRequest(supportedMethods, details);
+
+      request.show().catch(e => {
+          if (e.name == "SecurityError") {
+              reportResult("failure");
+          } else if (e.name == "NotSupportedError") {
+              // Because we used a non-existent url in supportedMethod aboves, this error message
+              // means all checks required for this test (i.e. user activation check and payment
+              // delegation check) have passed successfully.
+              reportResult("success");
+          } else {
+              reportResult("unexpected");
+          }
+      });
+  }
+
+  window.addEventListener("message", e => {
+      if (e.data.type == "make-payment-request")
+          requestPayment();
+  });
+
+  window.top.postMessage({"type": "subframe-loaded"}, "*");
+</script>

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='../support/testharness-helper.js'></script>
+
+<meta http-equiv="content-security-policy" content="script-src 'nonce-abc' 'strict-dynamic'">
+
+<script nonce="abc">
+  async_test(t => {
+    assert_no_csp_event_for_url(t, "../support/import-scripts.js");
+    var w = new Worker("../support/import-scripts.js");
+    assert_no_event(t, w, "error");
+    waitUntilEvent(w, "message")
+      .then(t.step_func_done(e => {
+        assert_true(e.data.executed);
+      }));
+  }, "`importScripts(...)` is allowed by 'strict-dynamic'");
+</script>

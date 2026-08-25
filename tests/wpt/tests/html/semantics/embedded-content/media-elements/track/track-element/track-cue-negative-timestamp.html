@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<title>Negative timestamps</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<video>
+    <track src="resources/settings.vtt" default>
+    <script>
+    async_test(function(t) {
+        var testTrack = document.querySelector("track");
+
+        testTrack.onload = t.step_func_done(function() {
+            var cues = testTrack.track.cues;
+            assert_equals(testTrack.track.cues.length, 4);
+            // Add cue with negative startTime.
+            var cue = new VTTCue(-3439332606, 3.4, "Sausage?");
+            testTrack.track.addCue(cue);
+            assert_equals(cues.length, 5);
+
+            // Add cue with negative startTime and negative endTime.
+            cue = new VTTCue(-110, -3.4, "Pepperoni?");
+            testTrack.track.addCue(cue);
+            assert_equals(cues.length, 6);
+
+            // Set startTime and endTime to negative values.
+            var testCue = cues[2];
+            assert_equals(testCue.startTime, 0);
+            testCue.startTime = -5;
+            assert_equals(testCue.startTime, -5);
+            assert_equals(testCue.endTime, 30.5);
+            testCue.endTime = -3439332606;
+            assert_equals(testCue.endTime, -3439332606);
+
+            // Check negative cues ordering.
+            testCue = cues[3];
+            assert_equals(testCue.startTime, 31);
+            testCue.startTime = -200;
+            // Verify that this cue is moved to 2nd position.
+            assert_equals(cues[1].startTime, -200);
+        });
+    });
+    </script>
+</video>

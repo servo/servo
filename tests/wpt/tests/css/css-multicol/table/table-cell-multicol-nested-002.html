@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-multicol-1/#propdef-column-count">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="Test that a balanced multicol table cell inside another fragmentation context is sized and fragmented correctly - its height and max-height should be ignored, since the intrinsic size is larger">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="columns:2; gap:0; column-fill:auto; width:100px; height:100px; background:red;">
+  <div style="height:50px; background:green;"></div>
+  <div style="display:table-cell; columns:2; gap:0; height:10px; max-height:10px; width:50px; background:red;">
+    <div style="height:200px; background:green;"></div>
+  </div>
+  <div style="height:50px; background:green;"></div>
+</div>

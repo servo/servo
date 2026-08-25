@@ -1,0 +1,16 @@
+<!doctype html>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1853727">
+<link rel="match" href="svg-use-symbol-width-print-ref.html">
+<style>
+ body { margin: 0 }
+</style>
+<!-- Should see a blue square inside the top left quarter of a purple square -->
+<svg width=200 height=200 viewbox="0 0 200 200">
+  <defs>
+    <symbol id="r" viewBox="0 0 200 200">
+      <rect fill="blue" style="width:100px;height:100px" />
+    </symbol>
+  </defs>
+  <rect fill="purple" style="width:100px;height:100px" />
+  <use href="#r" width="100" height="100" x="0" y="0" />
+</svg>

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Backgrounds and Borders Test: Do not propagate background from `html::before`</title>
+<link rel="author" href="mailto:obrufau@igalia.com" title="Oriol Brufau">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds/#special-backgrounds">
+<link rel="help" href="https://github.com/servo/servo/issues/41084">
+<link rel="match" href="background-color-no-body-propagation-ref.html">
+<style>
+html::before {
+  content: "This text should have a green background.";
+  display: block;
+  margin: 8px;
+  background-color: green;
+}
+</style>

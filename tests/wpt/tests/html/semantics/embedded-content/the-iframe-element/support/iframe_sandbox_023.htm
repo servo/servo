@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head><title>Access parent dom</title>
+</head>
+<body>
+    <script type="text/javascript">
+        if (window.parent.document)
+        {
+            parent.window.postMessage("window.parent.document", "*");
+        }else{
+            parent.window.postMessage("!window.parent.document", "*");
+        }
+    </script>
+</body>
+</html>

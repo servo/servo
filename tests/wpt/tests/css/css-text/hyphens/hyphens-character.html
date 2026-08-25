@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en" class="reftest-wait">
+  <link rel="author" title="Dominik Röttsches" href="mailto:drott@chromium.org">
+  <link rel="help" href="https://www.w3.org/TR/css-text-3/#hyphenation">
+  <link rel="match" href="reference/hyphens-character-ref.html">
+    <meta charset="utf-8" />
+    <meta content="This test ensure that actual characters are show for the hyphen,
+     as crbug.com/1267606 illustrates how the hyphen can go missing
+     depending on character coverage API." name="assert">
+    <style>
+        @font-face {
+            font-family: roboto_hyphen;
+            src: url(resources/roboto_hyphenation_subset.ttf)
+        }
+
+        div {
+        display: block;
+            width: 40px;
+            hyphens: auto;
+            -webkit-hyphens: auto;
+            font-family: roboto_hyphen, cursive;
+        }
+    </style>
+  <body>
+    <div lang="de">
+      Donaudampfschifffahrt
+    </div>
+
+    <script>
+    document.fonts.ready.then(
+      () => { document.documentElement.classList.remove("reftest-wait"); });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,39 @@
+<!DOCTYPE HTML>
+<html>
+ <head>
+  <title>Forms</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+ </head>
+ <body>
+  <p>
+    <h3>input_valueAsNumber_INVALID_STATE_ERR</h3>
+  </p>
+
+  <hr>
+
+  <div id="log"></div>
+
+  <form method="post"
+      enctype="application/x-www-form-urlencoded"
+      action=""
+      name="input_form">
+  <p><input type='checkbox' id='input_checkbox'></p>
+  </form>
+
+  <script>
+
+    var input_checkbox = document.getElementById("input_checkbox");
+    try {
+      input_checkbox.valueAsNumber = 5;
+    }
+    catch (e) {
+      test(function() {
+        assert_equals(e.code, e["INVALID_STATE_ERR"], "INVALID_STATE_ERR error is not raised.");
+      });
+    }
+
+  </script>
+
+ </body>
+</html>

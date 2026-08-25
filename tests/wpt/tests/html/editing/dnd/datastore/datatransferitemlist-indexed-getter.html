@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>DataTransferItemList indexed property getter and length</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/dnd.html#the-datatransferitemlist-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+
+function itemListWithTwoStrings() {
+  const dt = new DataTransfer();
+  dt.items.add("hello", "text/plain");
+  dt.items.add("<b>hello</b>", "text/html");
+  return dt.items;
+}
+
+test(() => {
+  // The indexed property getter is declared without an identifier, so it must
+  // not be exposed as an operation on the interface prototype object.
+  assert_false("item" in DataTransferItemList.prototype, "item");
+  assert_array_equals(Object.getOwnPropertyNames(DataTransferItemList.prototype).sort(),
+                      ["add", "clear", "constructor", "length", "remove"]);
+}, "DataTransferItemList.prototype exposes exactly length, add(), remove() and clear()");
+
+test(() => {
+  const items = itemListWithTwoStrings();
+  assert_equals(items.length, 2);
+  assert_true(items[0] instanceof DataTransferItem, "items[0]");
+  assert_true(items[1] instanceof DataTransferItem, "items[1]");
+  assert_equals(items[0].type, "text/plain");
+  assert_equals(items[1].type, "text/html");
+}, "Supported property indices return a DataTransferItem");
+
+test(() => {
+  const items = itemListWithTwoStrings();
+  assert_equals(items[2], undefined, "index === length");
+  assert_equals(items[100], undefined, "index > length");
+  assert_equals(items[4294967294], undefined, "index === 2 ** 32 - 2");
+  assert_equals(items[4294967295], undefined, "2 ** 32 - 1 is not an array index");
+  assert_equals(items[-1], undefined, "negative index");
+}, "Unsupported property indices return undefined");
+
+test(() => {
+  const items = itemListWithTwoStrings();
+  assert_equals(items.length, 2);
+  items.remove(0);
+  assert_equals(items.length, 1, "after remove()");
+  assert_equals(items[0].type, "text/html");
+  assert_equals(items[1], undefined);
+  items.clear();
+  assert_equals(items.length, 0, "after clear()");
+  assert_equals(items[0], undefined);
+}, "length is the number of items in the drag data store item list");
+
+test(() => {
+  const items = itemListWithTwoStrings();
+  const descriptor = Object.getOwnPropertyDescriptor(items, 0);
+  assert_equals(descriptor.value, items[0], "value");
+  assert_false(descriptor.writable, "writable: there is no indexed property setter");
+  assert_true(descriptor.enumerable, "enumerable");
+  assert_true(descriptor.configurable, "configurable");
+  assert_equals(Object.getOwnPropertyDescriptor(items, 2), undefined, "unsupported index");
+}, "Indexed properties are enumerable, configurable and non-writable");
+
+test(() => {
+  const items = itemListWithTwoStrings();
+  assert_array_equals(Object.keys(items), ["0", "1"]);
+  assert_array_equals(Array.from(items, item => item.type), ["text/plain", "text/html"]);
+}, "Indexed properties are enumerated and iterated in index order");
+</script>

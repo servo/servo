@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+
+#space {
+  height: 4000px;
+}
+#header {
+  background-color: #F5B335;
+  height: 50px;
+  width: 100%;
+}
+#content {
+  background-color: #D3D3D3;
+  height: 400px;
+}
+.scroller {
+  overflow: scroll;
+  position: relative;
+  width: 600px;
+  height: 600px;
+}
+
+</style>
+<div id="maybeScroller">
+  <div id="space">
+    <div id="header"></div>
+    <div id="before"></div>
+    <div id="content"></div>
+  </div>
+</div>
+<script>
+
+// Tests that scroll anchoring is suppressed when an element in the scroller
+// changes its in-flow state.
+
+var scroller;
+
+function runCase(oldPos, newPos, expectSuppression, skipInverse) {
+  var header = document.querySelector("#header");
+  var before = document.querySelector("#before");
+
+  header.style.position = oldPos;
+  before.style.height = "0";
+  scroller.scrollTop = 200;
+
+  header.style.position = newPos;
+  before.style.height = "25px";
+
+  var expectedTop = expectSuppression ? 200 : 225;
+  assert_equals(scroller.scrollTop, expectedTop);
+
+  if (!skipInverse)
+    runCase(newPos, oldPos, expectSuppression, true);
+}
+
+test(() => {
+  scroller = document.scrollingElement;
+  document.querySelector("#maybeScroller").className = "";
+
+  runCase("static", "fixed", true);
+  runCase("static", "absolute", true);
+  runCase("static", "relative", false);
+  runCase("fixed", "absolute", false);
+  runCase("fixed", "relative", true);
+  runCase("absolute", "relative", true);
+}, "Position changes in document scroller.");
+
+test(() => {
+  scroller = document.querySelector("#maybeScroller");
+  scroller.className = "scroller";
+
+  runCase("static", "fixed", true);
+  runCase("static", "absolute", true);
+  runCase("static", "relative", false);
+  runCase("fixed", "absolute", false);
+  runCase("fixed", "relative", true);
+  runCase("absolute", "relative", true);
+}, "Position changes in scrollable <div>.");
+
+</script>

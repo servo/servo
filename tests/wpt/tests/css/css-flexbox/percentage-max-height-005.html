@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>CSS Flexbox Test: flex item with max cross size</title>
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#algo-stretch">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#max-size-properties">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="The content of the flex item should resolve the percentage against 100px, not against 200px">
+
+<style>
+.flex {
+  display: flex;
+}
+.item {
+  height: 200px;
+  max-height: 100px;
+  align-self: flex-start;
+  background: red;
+}
+.content {
+  height: 100%;
+  width: 100px;
+  background: green;
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="flex">
+  <div class="item">
+    <div class="content"></div>
+  </div>
+</div>

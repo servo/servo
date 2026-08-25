@@ -1,0 +1,31 @@
+<html>
+<meta http-equiv="Accept-CH" content="Sec-CH-DPR Sec-CH-Width">
+<title>Accept-CH malformed http-equiv test</title>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+
+promise_test(t => {
+  return fetch("/client-hints/resources/echo-client-hints-received.py").then(r => {
+    assert_equals(r.status, 200)
+    // Verify that the browser does not include client hints in the headers
+    // since Accept-CH value in http-equiv is malformed (includes whitespace
+    // between attributes instead of comma).
+    assert_false(r.headers.has("device-memory-received"), "device-memory-received");
+    assert_false(r.headers.has("device-memory-deprecated-received"), "device-memory-deprecated-received");
+    assert_false(r.headers.has("dpr-received"), "dpr-received");
+    assert_false(r.headers.has("dpr-deprecated-received"), "dpr-deprecated-received");
+    assert_false(r.headers.has("viewport-width-received"), "viewport-width-received");
+    assert_false(r.headers.has("viewport-width-deprecated-received"), "viewport-width-deprecated-received");
+    assert_false(r.headers.has("rtt-received"), "rtt-received");
+    assert_false(r.headers.has("downlink-received"), "downlink-received");
+    assert_false(r.headers.has("ect-received"), "ect-received");
+  });
+}, "Accept-CH malformed http-equiv test");
+
+</script>
+
+</body>
+</html>

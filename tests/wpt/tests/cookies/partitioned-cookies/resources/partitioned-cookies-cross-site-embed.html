@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8"/>
+<meta name="timeout" content="long">
+<title>Test site embedded in a cross-site context</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/cookies/resources/cookie-helper.sub.js"></script>
+<script src="/cookies/partitioned-cookies/resources/test-helpers.js"></script>
+<body>
+<script>
+
+const cookieNames = getCookieNames();
+
+testDomPartitionedCookies({
+  cookieNames,
+  expectsCookie: false,
+});
+
+testCookieStorePartitionedCookies({
+  cookieNames,
+  expectsCookie: false,
+});
+
+</script>
+</body>

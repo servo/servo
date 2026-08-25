@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.csswg.org/css-shapes-1/#basic-shape-interpolation">
+<link rel="match" href="clip-path-animation-set-currenttime-ref.html">
+<style>
+  .container {
+    width: 100px;
+    height: 100px;
+    background-color: green;
+    animation: clippath 10s;
+    animation-fill-mode: none;
+    clip-path: inset(33% 33%);
+  }
+
+  @keyframes clippath {
+    0% {
+      clip-path: circle(50% at 50% 50%);
+    }
+
+    100% {
+      clip-path: circle(35% at 35% 35%);
+    }
+  }
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/web-animations/resources/timing-utils.js"></script>
+
+<body>
+  <div class="container">
+  </div>
+
+  <script>
+    let animation = document.getAnimations()[0];
+    animation.ready.then(() => {
+      // With fill-mode: none, any negative time should return to the previous non-animated style.
+      animation.currentTime = -1000;
+      requestAnimationFrame(takeScreenshot);
+    });
+  </script>
+</body>
+
+</html>

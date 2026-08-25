@@ -1,0 +1,8 @@
+<!DOCTYPE HTML>
+<title>CSS Test (Transforms): preserve-3d, inlines, and being a containing block</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Google" href="http://www.google.com/">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1226287">
+<meta name="assert" content="This should not crash.">
+
+<span style="transform-style: preserve-3d"><span style="position: absolute"></span></span>

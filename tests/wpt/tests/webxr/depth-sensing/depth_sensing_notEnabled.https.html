@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../resources/webxr_util.js"></script>
+<script src="../resources/webxr_test_constants.js"></script>
+
+<script>
+
+const testFunctionCpu = function (session, controller, t) {
+  return session.requestReferenceSpace('viewer').then((viewerSpace) => {
+    let done = false;
+
+    session.requestAnimationFrame((time, frame) => {
+      const pose = frame.getViewerPose(viewerSpace);
+      for(const view of pose.views) {
+        assert_throws_dom("NotSupportedError", () => frame.getDepthInformation(view),
+                          "getDepthInformation() should throw when depth sensing is disabled");
+      }
+
+      done = true;
+    });
+
+    return t.step_wait(() => done);
+  });
+};
+
+const testFunctionGpu = function (session, controller, t, sessionObjects) {
+  return session.requestReferenceSpace('viewer').then((viewerSpace) => {
+    let done = false;
+
+    const glBinding = new XRWebGLBinding(session, sessionObjects.gl);
+
+    session.requestAnimationFrame((time, frame) => {
+      const pose = frame.getViewerPose(viewerSpace);
+      for(const view of pose.views) {
+        t.step(() => {
+          assert_throws_dom("NotSupportedError", () => glBinding.getDepthInformation(view),
+                            "getDepthInformation() should throw when depth sensing is disabled");
+        });
+      }
+
+      done = true;
+    });
+
+    return t.step_wait(() => done);
+  });
+};
+
+xr_session_promise_test(
+  "XRFrame.getDepthInformation() rejects if depth sensing is not enabled on a session",
+  testFunctionCpu,
+  IMMERSIVE_AR_DEVICE,
+  'immersive-ar');
+
+xr_session_promise_test(
+  "XRWebGLBinding.getDepthInformation() rejects if depth sensing is not enabled on a session",
+  testFunctionGpu,
+  IMMERSIVE_AR_DEVICE,
+  'immersive-ar');
+
+</script>

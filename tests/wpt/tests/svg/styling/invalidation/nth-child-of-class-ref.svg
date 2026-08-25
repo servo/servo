@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml">
+  <g>
+    <circle cx="10" cy="10" r="10" fill="green"/>
+    <circle cx="30" cy="10" r="10" fill="black"/>
+    <circle cx="50" cy="10" r="10" fill="black"/>
+    <circle cx="70" cy="10" r="10" fill="black"/>
+    <circle cx="90" cy="10" r="10" fill="green"/>
+    <circle cx="10" cy="30" r="10" fill="green"/>
+    <circle cx="30" cy="30" r="10" fill="red"/>
+    <circle cx="50" cy="30" r="10" fill="red"/>
+    <circle cx="70" cy="30" r="10" fill="red"/>
+    <circle cx="90" cy="30" r="10" fill="green"/>
+  </g>
+</svg>

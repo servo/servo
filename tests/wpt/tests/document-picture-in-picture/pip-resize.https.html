@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<title>Test resizeTo and resizeBy for a PiP window</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+<script>
+promise_test(async (t) => {
+  await test_driver.bless('request PiP window from top window');
+  let pipWindow = await documentPictureInPicture.requestWindow({
+    preferInitialWindowPlacement: true
+  });
+
+  const iniWidth = pipWindow.innerWidth;
+  assert_true(true, `PIP has default inner width ${iniWidth}`);
+
+  await assert_throws_dom('NotAllowedError', pipWindow.DOMException, () =>
+    pipWindow.resizeTo(pipWindow.outerWidth, pipWindow.outerHeight + 100)
+  , 'resizeTo requires user activation');
+
+  await test_driver.bless('resize window');
+  let resized = new Promise(res => pipWindow.addEventListener("resize", res, { once: true }));
+  pipWindow.resizeTo(pipWindow.outerWidth + 100, pipWindow.outerHeight);
+  await resized;
+
+  assert_equals(pipWindow.innerWidth, iniWidth + 100, 'PIP was resized');
+}, 'Test resizeTo PiP');
+
+promise_test(async (t) => {
+  await test_driver.bless('request PiP window from top window');
+  let pipWindow = await documentPictureInPicture.requestWindow({
+    preferInitialWindowPlacement: true
+  });
+
+  const iniWidth = pipWindow.innerWidth;
+  assert_true(true, `PIP has default inner width ${iniWidth}`);
+
+  await assert_throws_dom('NotAllowedError', pipWindow.DOMException, () =>
+    pipWindow.resizeBy(100, 0)
+  , 'resizeBy requires user activation');
+
+  await test_driver.bless('resize window');
+  let resized = new Promise(res => pipWindow.addEventListener("resize", res, { once: true }));
+  pipWindow.resizeBy(100, 0);
+  await resized;
+
+  assert_equals(pipWindow.innerWidth, iniWidth + 100, 'Width was resized with activation');
+}, 'Test resizeBy PiP');
+</script>
+</body>

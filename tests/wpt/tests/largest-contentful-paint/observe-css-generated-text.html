@@ -1,0 +1,88 @@
+<!doctype html>
+<meta charset=utf-8>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #css-generated-text::before {
+    content: 'This is some text generated via css';
+    font-size: 12px;
+  }
+
+  #css-generated-text-attr::before {
+    content: attr(data-text);
+    font-size: 12px;
+  }
+
+  #css-generated-text-inline-elem::before {
+    content: 'This is some more text generated via css that should be displayed via a span tag';
+    font-size: 12px;
+  }
+</style>
+<body>
+  <script>
+    setup({"hide_test_state": true});
+    const checkText = (entry, expectedSize, expectedID, beforeRender) => {
+      assert_equals(entry.entryType, 'largest-contentful-paint',
+        'Entry should be of type largest-contentful-paint');
+      assert_greater_than_equal(entry.renderTime, beforeRender,
+        'Render time should be greater than time just before rendering');
+      assert_greater_than_equal(performance.now(), entry.renderTime,
+        'renderTime should be less than current time');
+      assert_approx_equals(entry.startTime, entry.renderTime, 0.001,
+        'startTime should be equal to renderTime to the precision of 1 millisecond.');
+      assert_equals(entry.duration, 0, 'duration should be 0');
+      assert_greater_than_equal(entry.size, expectedSize,
+        'Size should match expected size');
+      assert_equals(entry.loadTime, 0, 'loadTime should be zero');
+      assert_equals(entry.id, expectedID, 'ID should match expected ID');
+      assert_equals(entry.url, '', 'URL should be empty');
+      assert_equals(entry.element, document.getElementById(expectedID),
+        'Entry element is expected element');
+    }
+
+    const runTest = (element, testName) => {
+      const elementId = element.id;
+      // The element should be atleast 12px in width
+      // and 100px across based on font size and text length.
+      const elemSizeLowerBound = 1200;
+      promise_test(t => {
+        return new Promise((resolve, reject) => {
+          assert_implements(window.LargestContentfulPaint,
+            "LargestContentfulPaint is not implemented");
+          const observer = new PerformanceObserver(resolve);
+          observer.observe({ type: 'largest-contentful-paint' });
+          beforeRender = performance.now();
+          document.body.appendChild(element);
+
+          step_timeout(() => {
+            reject(new Error('timeout, LCP candidate not detected'));
+          }, 1000)
+        }).then(entryList => {
+          assert_equals(entryList.getEntries().length, 1);
+          const entry = entryList.getEntries()[0];
+          checkText(entry, elemSizeLowerBound, elementId, beforeRender);
+        });
+      }, testName);
+    }
+
+    const cssGeneratedTextElem = document.createElement('p');
+    cssGeneratedTextElem.id = 'css-generated-text';
+    runTest(cssGeneratedTextElem,
+      "CSS generated text is observable as a LargestContentfulPaint candidate");
+
+    const cssGeneratedTextAttrElem = document.createElement('p');
+    cssGeneratedTextAttrElem.id = 'css-generated-text-attr';
+    cssGeneratedTextAttrElem.setAttribute('data-text',
+      'This is some text generated using content:attr() via css');
+    runTest(cssGeneratedTextAttrElem,
+      "Text generated with CSS using content:attr() is observable as a LargestContentfulPaint candidate");
+
+    const cssGeneratedTextAttrInlineElemBlockWrapper = document.createElement('div');
+    cssGeneratedTextAttrInlineElemBlockWrapper.id = 'css-generated-text-inline-elem-block-wrapper';
+    const cssGeneratedTextInlineElem = document.createElement('span');
+    cssGeneratedTextInlineElem.id = 'css-generated-text-inline-elem';
+    cssGeneratedTextAttrInlineElemBlockWrapper.appendChild(cssGeneratedTextInlineElem);
+    runTest(cssGeneratedTextAttrInlineElemBlockWrapper,
+      "CSS generated text on a inline element is observable as a LargestContentfulPaint candidate");
+  </script>
+</body>

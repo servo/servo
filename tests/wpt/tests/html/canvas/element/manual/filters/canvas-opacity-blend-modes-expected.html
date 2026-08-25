@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<body>
+</body>
+<script>
+  /*
+  Compare how the opacity is handled in different blend modes when setting its
+  value with filters or with properties.
+  */
+
+  function drawSquares(canvasId, x, y, compositeOperation) {
+    var canvas = document.getElementById(canvasId);
+    var ctx = canvas.getContext('2d');
+    canvas.style.position = 'absolute';
+    canvas.style.left = `${x}px`;
+    canvas.style.top = `${y}px`;
+
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 1.0;
+    ctx.fillStyle = 'green';
+    ctx.fillRect(0, 0, 200, 60);
+    ctx.fillStyle = 'blue';
+    ctx.fillRect(0, 0, 50, 50);
+    ctx.globalAlpha = 0.7;
+    ctx.fillStyle = 'red';
+    ctx.fillRect(50, 0, 50, 50);
+    ctx.globalCompositeOperation = compositeOperation;
+    ctx.globalAlpha = 0.5;
+    ctx.fillStyle = 'yellow';
+    ctx.fillRect(25, 25, 50, 50);
+  }
+
+  // Fomatted in the same matrix as the drawn elements.
+  var compositeOperations =
+    ['source-over', 'source-in', 'source-out', 'source-atop','destination-over',
+    'destination-in', 'destination-out', 'destination-atop', 'lighter', 'copy',
+    'xor', 'multiply', 'screen', 'overlay', 'darken',
+    'lighten', 'color-dodge', 'color-burn', 'hard-light', 'soft-light',
+    'difference', 'exclusion', 'hue', 'saturation', 'color',
+    'luminosity'];
+
+  for (var i = 0; i < compositeOperations.length; i++){
+    var canvas = document.createElement('canvas');
+    canvas.id = `canvas-${i}`;
+    document.body.appendChild(canvas);
+    drawSquares(canvas.id, (i%5)*300, Math.floor(i/5)*300,
+      compositeOperations[i]);
+  }
+</script>

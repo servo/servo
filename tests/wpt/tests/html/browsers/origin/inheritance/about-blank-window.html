@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+  <head>
+    <title>about:blank in auxiliary browsing context aliases security origin</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <script>
+      test(() => {
+        let newWindow = window.open();
+        // Should not throw: the newly-opened window should be same-origin.
+        newWindow.document.body.innerHTML = '<p>Hello world!</p>';
+
+        // Explicitly set `domain` component of origin: any other same-origin
+        // browsing contexts are now cross-origin unless they also explicitly
+        // set document.domain to the same value.
+        document.domain = document.domain;
+        // Should not throw: the origin should be aliased, so setting
+        // document.domain in one Document should affect both Documents.
+        assert_equals(newWindow.document.body.textContent, 'Hello world!');
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>transform interpolation</title>
+<link rel="help" href="https://drafts.csswg.org/css-transforms-1/#matrix-interpolation">
+<meta name="assert" content="transform does not transition between non-invertible and invertible matrices">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-transitions/support/helper.js"></script>
+
+<style>
+
+#target {
+  transition: transform 1s;
+}
+
+</style>
+<div id="target"></div>
+<script>
+promise_test(async t => {
+  await waitForAnimationFrames(1);
+  const target = document.getElementById("target");
+  getComputedStyle(target).transform; // ensure there's a before-change style
+  target.style.transform = "matrix3d(2,0,0,0, 0,2,0,0, 0,0,0,0, 0,0,0,1)";
+  assert_equals(document.getAnimations().length, 0, "No transitions");
+}, "Setting 'transform' to a non-invertible matrix does not yield a CSS Transition");
+</script>

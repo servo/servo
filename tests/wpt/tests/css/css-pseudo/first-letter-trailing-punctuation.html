@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>CSS Test: ::first-letter punctuation surrounding the first letter</title>
+    <link rel="match" href="first-letter-trailing-punctuation-ref.html">
+    <link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#first-letter-pseudo">
+    <meta name="assert" content="Test checks that ::first-letter includes any P* punctuation preceding the first letter, includes following P* punctuation except Open (Ps) and Dash (Pd), that word separators do not count as intervening typographic space in the trailing direction, and that intervening non-word-separator typographic space bridges to following punctuation but is not absorbed when alone after the final punctuation.">
+    <style>
+        div {
+            font-size: 36px;
+        }
+        div::first-letter {
+            color: green;
+            background: yellow;
+        }
+    </style>
+</head>
+<body>
+    <p>Test passes if the green-on-yellow text in each line matches the reference.</p>
+    <div>(T)est</div>
+    <div>&ldquo;T&rdquo;est</div>
+    <div>_T_est</div>
+    <div>&ndash;Test</div>
+    <div>T(rail</div>
+    <div>T&ndash;rail</div>
+    <div>&laquo;&nbsp;T&nbsp;&raquo;est</div>
+    <div>&#x10100;T&#x10100;est</div>
+    <div>T&emsp;.est</div>
+    <div>T.&emsp;est</div>
+</body>
+</html>

@@ -1,0 +1,2 @@
+rules:
+- srcset*.html: [srcset]

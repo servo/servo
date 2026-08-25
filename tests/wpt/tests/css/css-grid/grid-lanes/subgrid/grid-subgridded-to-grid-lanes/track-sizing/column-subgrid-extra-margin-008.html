@@ -1,0 +1,66 @@
+<!DOCTYPE HTML>
+<html>
+<meta charset="utf-8">
+<title>CSS Grid Lanes Test: Subgrid with no grid items accommodates gutter size and padding</title>
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+<link rel="match" href="column-subgrid-extra-margin-006-ref.html">
+<style>
+.wrapper {
+  width: 116px;
+  height: 100px;
+  background: red;
+}
+.grid-lanes {
+  display: inline-grid-lanes;
+  grid-template-columns: repeat(4, auto);
+  background: red;
+}
+.subgrid {
+  display: grid;
+  grid-template: auto / subgrid;
+  background: green;
+  padding: 11px 3px 9px 7px;
+}
+</style>
+</head>
+<body>
+<p>Test passes if there is a filled green rectangle and <strong>no red</strong>.</p>
+<div class="wrapper">
+<!--
+  Grid lanes container width = 116px (4 columns of 29px each).
+
+  Same layout and padding as -006, but inner1/inner2 use explicit
+  positions (grid-column: 1 / span 2 and 3 / span 2) instead of the
+  auto-placed `span 2` form. Per the WG resolution at
+  https://github.com/w3c/csswg-drafts/issues/10926, when a subgrid
+  is auto-placed in a grid-lanes container, all subgrids nested
+  inside it are also treated as auto-placed for margin
+  accommodation, regardless of any explicit position they specify.
+  As a result the per-track sizing is identical to -006: every
+  column grows to the dominant leaf's 29px contribution and the
+  container ends up at 4 columns * 29px = 116px.
+
+  See -006 for how the dominant leaf's 29px is computed.
+-->
+  <div class="grid-lanes">
+    <div class="subgrid" style="grid-column: span 4; gap: 20px 10px">
+      <div class="subgrid" style="grid-column: 1 / span 2;">
+        <div class="subgrid"></div>
+        <div class="subgrid"></div>
+        <div class="subgrid"></div>
+        <div class="subgrid"></div>
+        <div class="subgrid"></div>
+      </div>
+      <div class="subgrid" style="grid-column: 3 / span 2;">
+        <div class="subgrid"></div>
+        <div class="subgrid"></div>
+        <div class="subgrid"></div>
+        <div class="subgrid"></div>
+        <div class="subgrid"></div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

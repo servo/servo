@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>HTML Test: bdo - override the Unicode bidirectional algorithm</title>
+    <link rel="author" title="Intel" href="http://www.intel.com/">
+    <link rel="help" href="https://html.spec.whatwg.org/multipage/#the-bdo-element">
+    <link rel="match" href="bidi-001-ref.html">
+    <meta name="assert" content="Check if authors could override the Unicode bidirectional algorithm
+        by explicitly specifying a direction override of bdo element">
+  </head>
+  <body>
+    <p>Test passes if there is text 'WERBEH'.</p>
+    <p>
+      &#x202E;<bdo dir="ltr">WERBEH</bdo>&#x202C;
+    </p>
+  </body>
+</html>

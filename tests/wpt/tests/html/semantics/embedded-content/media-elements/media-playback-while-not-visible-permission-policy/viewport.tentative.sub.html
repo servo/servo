@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>
+  Media playback is not paused when its iframe is merely scrolled out of view
+  (media-playback-while-not-visible permission policy)
+</title>
+<link rel="help" href="https://wicg.github.io/iframe-media-pausing/">
+<meta name="variant" content="?origin=same-origin&media=video">
+<meta name="variant" content="?origin=same-origin&media=audio">
+<meta name="variant" content="?origin=cross-origin&media=video">
+<meta name="variant" content="?origin=cross-origin&media=audio">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/media-playback-while-not-visible-utils.js"></script>
+<body>
+<div id="container" style="height: 500px; overflow: scroll;">
+  <!-- The iframe is inserted here, before the spacer. -->
+  <div id="very-long-content" style="height: 5000px;"></div>
+</div>
+<script>
+const SAME_ORIGIN_BASE = new URL('resources/', location.href).href;
+const CROSS_ORIGIN_BASE =
+    'http://{{hosts[alt][]}}:{{ports[http][0]}}/html/semantics/embedded-content/' +
+    'media-elements/media-playback-while-not-visible-permission-policy/resources/';
+
+const params = new URLSearchParams(location.search);
+const origin = params.get('origin');
+const media = params.get('media');
+const base = origin === 'cross-origin' ? CROSS_ORIGIN_BASE : SAME_ORIGIN_BASE;
+
+async function createViewportIframe(t) {
+  if (document.readyState !== 'complete') {
+    await new Promise(resolve => window.addEventListener('load', resolve));
+  }
+
+  const iframe = document.createElement('iframe');
+  iframe.id = 'media-frame';
+  iframe.allow = 'media-playback-while-not-visible \'none\'; autoplay *';
+  iframe.src = base + 'media-frame.html?media=' + media;
+
+  document.getElementById('container')
+      .insertBefore(iframe, document.getElementById('very-long-content'));
+  await new Promise(resolve => iframe.addEventListener('load', resolve));
+  t.add_cleanup(() => iframe.remove());
+  return iframe;
+}
+
+// Scenario: media playing in a rendered iframe should keep playing when the
+// iframe is merely scrolled out of view, because scrolling out of the viewport
+// does not count as "not rendered".
+promise_test(
+    async t => {
+      const iframe = await createViewportIframe(t);
+      assert_equals(await playMediaInIframe(iframe), 'Success');
+
+      // Scroll the iframe out of view.
+      const container = document.getElementById('container');
+      container.scrollTop = container.scrollHeight;
+
+      // Scrolling out of the viewport must not pause playback. Poll the player
+      // status a few times over a short window so an incorrect pause is caught
+      // whenever it happens, rather than sampling a single time after a long
+      // blind sleep.
+      for (let i = 0; i < 5; i++) {
+        await new Promise(resolve => t.step_timeout(resolve, 200));
+        assert_equals(
+            await queryPlayerStatus(iframe), 'Playing',
+            'media must not pause when its iframe is scrolled out of view');
+      }
+    },
+    `${origin}: ${media} playback should not pause when its iframe is ` +
+        'scrolled out of view');
+</script>
+</body>

@@ -1,0 +1,32 @@
+<!doctype html>
+<title>window.name is reset after navigating to a different origin</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script>
+
+async function pollResultAndCheck(t, id, expected) {
+  const stashURL = new URL("resources/unset_context_name_stash.py", location);
+  stashURL.searchParams.set('id', id);
+
+  let res = "NONE";
+  while (res == "NONE") {
+    await new Promise(resolve => { t.step_timeout(resolve, 100); });
+
+    const response = await fetch(stashURL);
+    res = await response.text();
+  }
+  if (res !== expected) {
+    assert_unreached('Stash result does not equal expected result.')
+  }
+}
+
+promise_test(async t => {
+  const id = token();
+
+  window.open(`resources/unset_context_name-1.sub.html?set=${id}|navigate|report=${id}|close`, "_blank", "noopener");
+  await pollResultAndCheck(t, id, "");
+}, "Window.name is reset after navigating to a different origin");
+
+</script>

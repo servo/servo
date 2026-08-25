@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>A test page that messes with a given SharedArrayBuffer sent from a BroadcastChannel</title>
+
+<script>
+"use strict";
+const query = new URLSearchParams(location.search);
+const channel = new BroadcastChannel(query.get("channel"));
+const i = Number(query.get("index"));
+
+channel.onmessage = e => {
+  const sab = e.data.sab;
+  if (sab === undefined) {
+    // We only care about "broadcasts" from the window
+    return;
+  }
+
+  const view = new Uint8Array(sab);
+  view[i] = i + 1;
+  channel.postMessage({ i });
+};
+</script>

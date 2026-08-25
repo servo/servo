@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>CSS aspect-ratio: max-content size contribution</title>
+<link rel="author" title="Google LLC" href="https://www.google.com/">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht" />
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div style="width: max-content; height: 100px; background: green;">
+  <div style="height: 100px; aspect-ratio: 1/1;"></div>
+</div>
+
+

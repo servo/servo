@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test that in a row flex container, the break-before values on flex items are propagated to the flex line</title>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1890238">
+<link rel="match" href="multi-line-row-flex-fragmentation-081-print-ref.html">
+
+<style>
+@page { size: 5in 3in; margin: 0.5in; }
+body {
+  margin: 0;
+  font-size: 0.25in;
+}
+.flexbox {
+  display: flex;
+  flex-wrap: wrap;
+  border: 0.25in solid black;
+}
+.flexbox > div {
+  box-sizing: border-box;
+  width: 50%;
+  border: 4px solid purple;
+}
+</style>
+
+<div>Before Flexbox</div>
+<div class="flexbox">
+  <div>1</div><div>2</div>
+  <div style="break-before: page">3</div><div>4</div>
+</div>
+<div>After Flexbox</div>

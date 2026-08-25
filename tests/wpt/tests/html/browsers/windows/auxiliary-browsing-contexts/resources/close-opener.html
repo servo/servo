@@ -1,0 +1,30 @@
+<!doctype html>
+<meta charset="utf-8">
+<html>
+<body onload="closeOpener()">
+<p>This window should close its opener.</p>
+<script src="/common/PrefixedLocalStorage.js"></script>
+<script>
+var prefixedLocalStorage = new PrefixedLocalStorageResource({
+  close_on_cleanup: true
+});
+var prefixedLocalStorage = new PrefixedLocalStorageResource({
+  close_on_cleanup: true
+});
+function closeOpener () {
+  if (window.opener) {
+    window.opener.close();
+
+    // Give the browsing context a chance to dispose of itself
+    function waitForContextDiscard () {
+      if (window.opener === null) {
+        return prefixedLocalStorage.setItem('openerIsNull', 'true');
+      }
+      return setTimeout(waitForContextDiscard, 0);
+    }
+    waitForContextDiscard();
+  }
+}
+</script>
+</body>
+</html>

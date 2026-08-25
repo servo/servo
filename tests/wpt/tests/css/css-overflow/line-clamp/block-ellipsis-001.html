@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: the line-clamp ellipsis is placed after a break opportunity</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#block-ellipsis">
+<link rel="match" href="reference/block-ellipsis-001-ref.html">
+<meta name="assert" content="The block overflow ellipsis must be placed after the last soft wrap opportunity that still allows the ellipsis to fit on the line.">
+<style>
+.clamp {
+  line-clamp: 2;
+  width: 63.1ch;
+  border: 1px solid black;
+  font-family: monospace;
+}
+</style>
+<div class="clamp">
+  This time, Mark, who had always been the center of attention in
+  <!-- End of first line -->
+  any social gathering, walked into the room uncharacteristically
+  <!-- Break point for the second line if the ellipsis was not there. -->
+  quietly, barely speaking as he settled into a chair.
+</div>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+    <div id="target"><span contenteditable="true">D</span></div>
+</body>
+<script>
+    test(() => {
+        let selection = getSelection();
+        let range = document.createRange();
+        let element = document.getElementById("target").firstChild;
+        range.setStartAfter(element.firstChild);
+        range.setEndAfter(element.firstChild);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        document.execCommand("delete");
+        const expectedHTML = "<span contenteditable=\"true\"></span>";
+        assert_not_equals(element.firstChild && element.firstChild.tagName, "BR", "First child is not a <br> tag");
+        assert_equals(element.outerHTML, expectedHTML, "HTML content matches the expected structure after delete");
+    }, "BR tag is not inserted after deleting the text node content since root editable element is inline");
+</script>

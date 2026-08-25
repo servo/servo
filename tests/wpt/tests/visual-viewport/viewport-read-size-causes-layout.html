@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width, minimum-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  html {
+    height: 100%;
+  }
+</style>
+
+<h4>This test checks that requesting the viewport size causes any pending layout to occur.</h4>
+<script>
+  async_test(function(t) {
+    window.onload = t.step_func(function() {
+      assert_equals(window.visualViewport.width, document.documentElement.clientWidth,
+          "window.visualViewport.width should match the window width.");
+      assert_equals(visualViewport.height, document.documentElement.clientHeight,
+          "window.visualViewport.height should match the window height.");
+
+      // Add overflow so scrollbars appear.
+      document.body.style.width = "2000px";
+      document.body.style.height = "2000px";
+
+      var viewportWidth = window.visualViewport.width;
+      var viewportHeight = window.visualViewport.height;
+
+      assert_equals(viewportWidth, document.documentElement.clientWidth,
+          "Reading viewport width should cause a layout and exclude the new scrollbar.");
+      assert_equals(viewportHeight, document.documentElement.clientHeight,
+          "Reading viewport height should cause a layout and exclude the new scrollbar.");
+      t.done();
+    });
+  });
+</script>

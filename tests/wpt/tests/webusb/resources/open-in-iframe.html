@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<!-- Intentionally use relative paths here because this file is also used by blink/web_tests/usb/usbDevice-iframe.html. -->
+<script src="../../resources/test-only-api.js"></script>
+<script src="usb-helpers.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+  <button>Fake user gesture</button>
+</body>
+
+<script>
+  'use strict';
+  test_driver.set_test_context(parent);
+  window.onmessage = messageEvent => {
+    switch (messageEvent.data) {
+      case 'ConnectEvent':
+        navigator.usb.addEventListener('connect', connectEvent => {
+          connectEvent.device.open()
+              .then(() => parent.postMessage('Success', '*'))
+              .catch(err =>
+                  parent.postMessage(`FAIL: open rejected ${err}`, '*'));
+        });
+        parent.postMessage('Ready', '*');
+        break;
+      case 'GetDevices':
+        navigator.usb.getDevices()
+            .then(devices => parent.postMessage('Success', '*'))
+            .catch(err => parent.postMessage(`FAIL: ${err}`, '*'));
+        break;
+      case 'RequestDevice':
+        test_driver.click(document.getElementsByTagName('button')[0])
+            .then(() => navigator.usb.requestDevice({filters: []}))
+            .then(device => parent.postMessage('Success', '*'))
+            .catch(err => parent.postMessage(`FAIL: ${err}`, '*'));
+        break;
+      default:
+        parent.postMessage(
+            `FAIL: Bad message type: ${messageEvent.data}`, '*');
+    }
+  };
+</script>

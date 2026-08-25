@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>adoptedStyleSheet - Add and remove the same sheet with modifications</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#extensions-to-the-document-or-shadow-root-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="target">This text should be green</div>
+<script>
+  const sheet_a = new CSSStyleSheet();
+  sheet_a.replaceSync("#target { color: red; }");
+  const sheet_b = new CSSStyleSheet();
+  sheet_b.replaceSync("#target {}");
+
+  test(() => {
+    document.adoptedStyleSheets = [sheet_a, sheet_b];
+    assert_equals(getComputedStyle(target).color, "rgb(255, 0, 0)");
+  }, "Add the two sheets. Text should be red.");
+
+  test(() => {
+    document.adoptedStyleSheets[1] = sheet_a;
+    document.adoptedStyleSheets[0] = sheet_b;
+    assert_equals(getComputedStyle(target).color, "rgb(255, 0, 0)");
+  }, "Flip the two sheet. Still red.");
+
+  test(() => {
+    sheet_a.cssRules[0].style.color = "green";
+    assert_equals(getComputedStyle(target).color, "rgb(0, 128, 0)");
+  }, "Modify the color declaration. Should now be green.");
+</script>

@@ -1,0 +1,54 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>GLSL max-float function test</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../../resources/glsl-feature-tests.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"> </script>
+<script src="../../../js/glsl-generator.js"> </script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+GLSLGenerator.runFeatureTest({
+  feature: "max",
+  args: "$(type) value, float maxValue",
+  baseArgs: "value$(field), maxValue",
+  testFunc: "$(func)($(arg0), float)",
+  emuFunc: ["float $(func)_base(float value, float maxValue) {",
+            "  return value > maxValue ? value : maxValue;",
+            "}"].join("\n"),
+  gridRes: 8,
+  tests: [
+    ["$(output) = vec4(",
+     "    $(func)($(input).x, 0.5),",
+     "    $(func)($(input).y, 0.5),",
+     "    0,",
+     "    1);"].join("\n"),
+    ["$(output) = vec4(",
+     "    $(func)($(input).xy, 0.5),",
+     "    0, 1);"].join("\n"),
+    ["$(output) = vec4(",
+     "    $(func)($(input).xyz, 0.5),",
+     "    1);"].join("\n"),
+    ["$(output) = ",
+     "    $(func)($(input), 0.5);"].join("\n")
+  ]
+});
+var successfullyParsed = true;
+</script>
+</body>
+</html>
+

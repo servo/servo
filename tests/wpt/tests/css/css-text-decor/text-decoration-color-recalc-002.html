@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>CSS Test: CSS3 text-decoration-color currentColor is updated</title>
+        <link rel="help" href="https://crbug.com/1330953">
+        <link rel="match" href="text-decoration-color-recalc-002-ref.html">
+    </head>
+    <body>
+        <p id="p" style="color: red;"><s>Text passes if strikethrough color is green.</s></p>
+    </body>
+    <script>
+        p.offsetTop;
+        p.style.color = 'green';
+    </script>
+</html>

@@ -1,0 +1,13 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1949893">
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  b.outerHTML = a.outerHTML
+  a.replaceWith()
+})
+</script>
+<fieldset form="a"></fieldset>
+<form id="a">
+<object>
+<param id="b">

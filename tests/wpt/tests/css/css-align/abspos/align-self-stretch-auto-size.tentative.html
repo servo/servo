@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<link rel="author" title="David Shin" href="mailto:dshin@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#abspos-layout">
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#abspos-old">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/11195">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1930427">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1930850">
+<link rel="match" href="align-self-stretch-auto-size-ref.tentative.html">
+<meta name="assert" content="Ensures that absolutely positioned elements stretch only when both insets are non-auto.">
+<style>
+.container {
+  width: 25px;
+  height: 25px;
+  border: 1px solid;
+  position: relative;
+  display: inline-block;
+}
+
+.abs {
+  position: absolute;
+  align-self: stretch;
+  justify-self: stretch;
+  background: purple;
+}
+
+.w {
+  width: 10px;
+}
+
+.h {
+  height: 10px;
+}
+</style>
+<!-- All insets auto -->
+<div class="container"><div class="abs"></div></div><br>
+<!-- One inset auto -->
+<div class="container"><div class="abs w" style="top: 0;"></div></div
+><div class="container"><div class="abs w" style="bottom: 0;"></div></div
+><div class="container"><div class="abs h" style="left: 0;"></div></div
+><div class="container"><div class="abs h" style="right: 0;"></div></div><br>
+<!-- Neither inset auto -->
+<div class="container"><div class="abs w" style="top: 0; bottom: 0;"></div></div
+><div class="container"><div class="abs h" style="left: 0; right: 0;"></div></div>

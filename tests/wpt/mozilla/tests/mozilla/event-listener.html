@@ -1,0 +1,40 @@
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+test(function() {
+  function onFoopy(ev) {
+    window.removeEventListener('foopy', onFoopy);
+    assert_equals(ev instanceof expected, true);
+    assert_equals(ev.type, 'foopy');
+  }
+
+  var expected;
+  var events = [['HTMLEvents', Event, function(ev) { ev.initEvent('foopy', true, true); }],
+                ['UIEvents', UIEvent, function(ev) { ev.initUIEvent('foopy', true, true, null, 0); }],
+                ['MouseEvents', MouseEvent,
+                 function(ev) { ev.initMouseEvent('foopy', true, true, null, 0,
+                                                  0, 0, 0, 0, false, false,
+                                                  false, false, 0, null); }]];
+  for (var i = 0; i < events.length; i++) {
+    addEventListener('foopy', this.step_func(onFoopy));
+    expected = events[i][1];
+    var ev = document.createEvent(events[i][0]);
+    events[i][2](ev);
+    window.dispatchEvent(ev);
+  }
+
+  var constructors = [Event, UIEvent, MouseEvent];
+  for (var i = 0; i < constructors.length; i++) {
+    addEventListener('foopy', this.step_func(onFoopy));
+    expected = constructors[i];
+    var ev = new constructors[i]('foopy', {cancelable: true, bubbles: true});
+    window.dispatchEvent(ev);
+  }
+});
+</script>
+</body>
+</html>

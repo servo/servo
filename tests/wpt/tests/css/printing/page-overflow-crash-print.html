@@ -1,0 +1,13 @@
+<!-- quirks -->
+<link rel=help href="https://bugzilla.mozilla.org/show_bug.cgi?id=1697291">
+<!-- Really a crashtest but since we can't really have print crashtests, we assert that we print something -->
+<link rel="mismatch" href="/css/reference/blank.html">
+<style>
+* {
+  offset-path: path('M 1 7 H 1 V -1 H -1 L 1 0');
+}
+#a {
+  offset-anchor: 0px 0px;
+}
+</style>
+<details id="a">

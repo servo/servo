@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: alignment for replaced element</title>
+<link rel="author" title="Rossana Monteriso" href="mailto:rmonteriso@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#propdef-align-self">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#propdef-justify-self">
+<link rel="help" href="https://developer.mozilla.org/en-US/docs/Web/CSS/Replaced_element">
+<link rel="help" href="https://drafts.csswg.org/css-align/#align-grid">
+<link rel="help" href="https://www.w3.org/TR/css-grid-1/#grid-item-sizing">
+<meta name="assert" content="This test checks that the alignment properties apply the 'stretch' value correctly on replaced elements, such as images.">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<link rel="stylesheet" href="/css/support/grid.css">
+<link rel="stylesheet" href="/css/support/alignment.css">
+
+<style>
+.grid {
+  grid-template-columns: 500px;
+  grid-template-rows: 500px;
+}
+.fixedSizes {
+   width: 150px;
+   height: 150px;
+}
+.autoMargins {
+   margin: auto;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script type="text/javascript">
+  setup({ explicit_done: true });
+</script>
+
+<body onload="document.fonts.ready.then(() => { checkLayout('.grid'); })">
+
+    <p>This test checks that the alignment properties align-self and justify-self apply the 'stretch' value correctly on replaced elements.</p>
+
+    <div style="position: relative">
+        <p>The blue image's original size is 100px x 100px, default alignment is resolved as 'start' for replaced elements so it prevents stretching to be applied.</p>
+        <div class="grid">
+            <img src="/css/support/blue-100.png" data-expected-width="100" data-expected-height="100"/>
+        </div>
+    </div>
+
+    <div style="position: relative">
+        <p>The blue image's original size is 100px x 100px, 'normal' is resolved as 'start' for replaced elements so it prevents stretching to be applied.</p>
+        <div class="grid itemsNormal">
+            <img src="/css/support/blue-100.png" data-expected-width="100" data-expected-height="100"/>
+        </div>
+    </div>
+
+    <div style="position: relative">
+        <p>The blue image's original size is 100px x 100px, but it should be stretched to fill the 500px x 500px grid area it's placed into.</p>
+        <div class="grid alignItemsStretch justifyItemsStretch">
+            <img src="/css/support/blue-100.png" data-expected-width="500" data-expected-height="500"/>
+        </div>
+    </div>
+
+    <div style="position: relative">
+        <p>The blue image's original size is 100px x 100px, non-stretch values prevent stretching to be applied.</p>
+        <div class="grid itemsCenter">
+            <img src="/css/support/blue-100.png" data-expected-width="100" data-expected-height="100"/>
+        </div>
+    </div>
+
+    <div style="position: relative">
+        <p>The blue image's original size is 100px x 100px, non-auto sizes prevent stretching to be applied.</p>
+        <div class="grid">
+            <img class="fixedSizes" src="/css/support/blue-100.png" data-expected-width="150" data-expected-height="150"/>
+        </div>
+    </div>
+
+    <div style="position: relative">
+        <p>The blue image's original size is 100px x 100px, auto-margins prevent stretching to be applied.</p>
+        <div class="grid">
+            <img class="autoMargins" src="/css/support/blue-100.png" data-expected-width="100" data-expected-height="100"/>
+        </div>
+    </div>
+</body>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<title>CSS Overflow: interactions between min-height and max-height constraints when line-clamping by height</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-auto-044-ref.html">
+<meta name="assert" content="Checks that when clamping by height, if there are nested height constraints, the clamp point is correctly chosen to be the last possible clamp point where the height of the line-clamp container wouldn't overflow.">
+<style>
+.clamp {
+  line-clamp: auto;
+  max-height: 4lh;
+  background-color: yellow;
+}
+p {
+  margin: 0;
+}
+</style>
+
+<div class="clamp">
+  <div style="max-height: 3.5lh">
+    <p>Line 1</p>
+    <p>Line 2</p>
+    <!-- If we weren't inside a max-height box, we'd clamp here -->
+    <div style="min-height: 3lh">Line 3</div>
+    <p>Line 4</p>
+  </div>
+  <!-- We actually clamp here, even if the line with the ellipsis has its bottom
+       edge at a height offset of 6lh, clearly overflowing .clamp -->
+  <p>Line 5</p>
+</div>

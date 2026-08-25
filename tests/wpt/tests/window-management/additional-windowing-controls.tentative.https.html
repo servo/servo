@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>Window Management test: Additional Windowing Controls</title>
+<link rel="help" href="https://github.com/explainers-by-googlers/additional-windowing-controls/blob/main/README.md">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(() => {
+  assert_true('maximize' in window, "window.maximize should be exposed");
+  assert_equals(typeof window.maximize, "function", "window.maximize should be a function");
+
+  assert_true('minimize' in window, "window.minimize should be exposed");
+  assert_equals(typeof window.minimize, "function", "window.minimize should be a function");
+
+  assert_true('restore' in window, "window.restore should be exposed");
+  assert_equals(typeof window.restore, "function", "window.restore should be a function");
+
+  assert_true('setResizable' in window, "window.setResizable should be exposed");
+  assert_equals(typeof window.setResizable, "function", "window.setResizable should be a function");
+}, "Additional Windowing Controls methods are exposed on the Window interface");
+
+promise_test(async (t) => {
+  await promise_rejects_dom(t, 'InvalidStateError', window.maximize());
+}, "window.maximize() rejects with InvalidStateError when called outside web app scope");
+
+promise_test(async (t) => {
+  await promise_rejects_dom(t, 'InvalidStateError', window.minimize());
+}, "window.minimize() rejects with InvalidStateError when called outside web app scope");
+
+promise_test(async (t) => {
+  await promise_rejects_dom(t, 'InvalidStateError', window.restore());
+}, "window.restore() rejects with InvalidStateError when called outside web app scope");
+
+promise_test(async (t) => {
+  await promise_rejects_dom(t, 'InvalidStateError', window.setResizable(true));
+}, "window.setResizable() rejects with InvalidStateError when called outside web app scope");
+</script>

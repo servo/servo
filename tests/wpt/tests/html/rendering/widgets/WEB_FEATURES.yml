@@ -1,0 +1,10 @@
+rules:
+- field-sizing-*: [field-sizing]
+- textarea-*: [textarea]
+- input-password-*: [input-password]
+- input-checkbox-*: [input-checkbox]
+- input-radio-*: [input-radio]
+- input-number-*: [input-number]
+- input-date-*: [input-date-time]
+- input-time-*: [input-date-time]
+- input-text-size.html: [input]

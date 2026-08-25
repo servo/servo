@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Animating a shorthand with var() should not crash</title>
+<link rel="help" href="https://crbug.com/40084834">
+<style>
+@keyframes crash {
+  from { border-radius: var(--) }
+}
+#target {
+  animation: crash 1s infinite;
+}
+</style>
+<div id="target"></div>
+<script>
+  getComputedStyle(target).borderRadius;
+</script>

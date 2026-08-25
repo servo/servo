@@ -1,0 +1,121 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <meta content="image" name="flags" />
+
+  <style type="text/css"><![CDATA[
+  html
+    {
+      height: 100%;
+    }
+
+  /*
+    minimum used height of the document root element is 176px;
+    less than 176px will make the reference file no longer reliable.
+
+       36px : img#pass-fail-conditions-sentence's intrinsic height
+     +
+        4px : descender space below baseline
+     =========
+       40px : 1st table (height: 25%)
+    multiplied by
+        4
+     =========
+      160px : height of the 3 tables
+    +
+        8px : body's margin-top
+    +
+        8px : body's margin-bottom
+     =========
+      176px
+  */
+
+  body
+    {
+      height: calc(100% - 16px);
+    }
+
+  table
+    {
+      border-spacing: 0px;
+      margin: 0px;
+      table-layout: fixed;
+      width: 100%;
+    }
+
+  td
+    {
+      padding: 0px;
+      vertical-align: top;
+    }
+
+  table#first-table-top
+    {
+      height: 25%;
+    }
+
+  table#second-table-middle
+    {
+      height: 25%;
+    }
+
+  table#third-table-bottom
+    {
+      height: 50%;
+    }
+  ]]></style>
+ </head>
+
+ <body>
+
+  <table id="first-table-top">
+
+  <col></col><col width="100"></col><col width="100"></col><col width="324"></col>
+
+    <tr>
+      <td></td>
+      <td style="background-color: blue;">&nbsp;</td>
+      <td style="background-color: olive;">&nbsp;</td>
+      <td style="padding-left: 16px; padding-right: 8px;"><img id="pass-fail-conditions-sentence" src="support/ortho-htb-alongside-vrl-floats-002-exp-res.png" alt="Image download support must be enabled" />
+      <!--
+      The image says:
+      Test passes if the orange rectangle
+      is below the blue rectangle.
+  --></td>
+    </tr>
+
+  </table>
+
+
+
+  <table id="second-table-middle">
+
+  <col></col><col width="100"></col><col width="100"></col><col width="324"></col>
+
+    <tr>
+      <td></td><td style="background-color: orange;">&nbsp;</td><td style="background-color: olive;">&nbsp;</td><td></td>
+    </tr>
+
+  </table>
+
+
+
+  <table id="third-table-bottom">
+
+  <col></col><col width="100"></col><col width="100"></col><col width="324"></col>
+
+    <tr>
+      <td></td><td style="background-color: orange;">&nbsp;</td><td></td><td></td>
+    </tr>
+
+  </table>
+
+ </body>
+</html>

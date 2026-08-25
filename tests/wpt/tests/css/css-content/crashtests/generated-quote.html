@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Generated quote content in ::before should not crash layout</title>
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=61411">
+<style>
+div::before {
+  content: open-quote;
+  display: block;
+  overflow: hidden;
+  width: 100px;
+  height: 100px;
+}
+</style>
+<div></div>
+<script>
+  document.body.offsetTop;
+</script>

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>aspect-ratio with height:0 and explicit min-width:0 should produce 0 content width</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio-minimum">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.test {
+    aspect-ratio: 1;
+    width: max-content;
+    height: 0;
+    border-top: 25px solid cyan;
+}
+.test::before {
+    content: "X";
+}
+</style>
+<div class="test" id="explicit-zero" style="min-width: 0"></div>
+<div class="test" id="auto-minimum" style="min-width: auto"></div>
+<script>
+test(function() {
+    assert_equals(document.getElementById('explicit-zero').clientWidth, 0,
+        'content-box width should be 0 (aspect-ratio transfers height:0)');
+}, 'min-width:0 disables automatic minimum');
+
+test(function() {
+    assert_greater_than(document.getElementById('auto-minimum').clientWidth, 0,
+        'content-box width should be > 0 (automatic minimum applies)');
+}, 'min-width:auto enables automatic minimum');
+</script>

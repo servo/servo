@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>Setting href in appended script still creates history entry</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<button id="button">button</button>
+<script>
+  let navigationType = 'none';
+  navigation.addEventListener('navigate', (e) => {
+    e.intercept();
+    navigationType = e.navigationType;
+  });
+  button.addEventListener('click', () => {
+    let s = document.createElement('script');
+    s.textContent = 'location.href="?foo"';
+    document.body.append(s);
+  });
+  promise_test(async() => {
+    await test_driver.click(button);
+    assert_equals(navigationType, 'push', 'Setting href in script appended on button click should cause push navigation');
+  });
+</script>

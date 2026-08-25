@@ -1,0 +1,47 @@
+
+<!DOCTYPE html>
+<title>
+  CSS Gap Decorations: Gap decorations are painted with the grid subgridded on row axis.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="match" href="../../../reference/ref-filled-green-100px-square.xht">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+  .grid-container {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 10px;
+    width: 100px;
+    height: 100px;
+  }
+  .subgrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: subgrid;
+
+    grid-column: 1 / -1;
+    grid-row: 1 / -1;
+    column-gap: 20px;
+    column-rule: green solid 20px;
+    row-rule: green solid 10px;
+
+    background: red;
+  }
+  .subgrid-item {
+    background: green;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="grid-container">
+  <div class="subgrid">
+    <div class="subgrid-item"></div>
+    <div class="subgrid-item"></div>
+    <div class="subgrid-item"></div>
+    <div class="subgrid-item"></div>
+    <div class="subgrid-item"></div>
+    <div class="subgrid-item"></div>
+    <div class="subgrid-item"></div>
+    <div class="subgrid-item"></div>
+  </div>
+</div>

@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<link ref="help" href="https://drafts.csswg.org/css-transforms-2/#perspective-property">
+<link rel="help" href="https://drafts.csswg.org/css-transforms-2/#propdef-backface-visibility">
+<link rel="match" href="subpixel-perspective-translate-z-0-ref.html">
+<meta name="assert" content="Subpixel-positioned contents should be rendered the same regardless of perspective and translateZ(0)">
+<div style="position: relative; top: 0.6px; left: 0.4px; width: 300px; height: 300px;
+            perspective: 1000px; overflow: hidden">
+  <div style="width: 100px; height: 100px;
+              transform: translateZ(0); border: 1px solid black"></div>
+</div>

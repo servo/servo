@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Block-level non-replaced elements in normal flow when 'overflow' computes to 'visible' and margins top and bottom are 'auto'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-09-28 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#normal-block" />
+		<link rel="match" href="block-non-replaced-height-001-ref.xht" />
+
+        <meta name="assert" content="The margin top and bottom used values are '0' for block-level non-replaced elements in normal flow when 'overflow' computes to 'visible' and margin top and bottom both are 'auto'." />
+        <style type="text/css">
+            #div1
+            {
+                border-bottom: solid orange;
+                border-top: solid orange;
+                width: 1in;
+            }
+            div div
+            {
+                background: blue;
+                margin-bottom: auto;
+                margin-top: auto;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is <strong>no space between</strong> the blue stripe and the orange lines.</p>
+        <div id="div1">
+            <div>Filler Text</div>
+        </div>
+    </body>
+</html>

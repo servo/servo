@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<input type=checkbox>
+<div></div>
+<map name="map1">
+  <details style="visibility: collapse">
+  </details>
+</map>
+<img usemap="#map1">
+<map name="map1" class="duplicate-map">
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const div = document.querySelector('div');
+      div.appendChild(document.querySelector('.duplicate-map'));
+      document.querySelector('input').checked = true;  // Serialize immediately.
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          document.documentElement.className = '';
+        });
+      });
+    });
+  });
+});
+</script>
+</html>

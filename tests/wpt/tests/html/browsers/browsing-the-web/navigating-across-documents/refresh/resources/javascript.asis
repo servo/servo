@@ -1,0 +1,7 @@
+HTTP/1.1 200 OK
+Refresh: 0,javascript:x=2
+Content-Type:text/html
+
+I don't understand.
+<meta http-equiv=refresh content=0;javascript:x=3/>
+<script>x=1</script>

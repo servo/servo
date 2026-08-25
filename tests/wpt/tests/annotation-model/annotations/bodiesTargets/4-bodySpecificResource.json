@@ -1,0 +1,34 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "4-bodySpecificResource.json",
+    "assertionType": "may",
+    "expectedResult": "valid",
+    "onUnexpectedResult" : "passAndContinue",
+    "errorMessage": "A Specific Resource may be used as an Annotation Body (not found).",
+    "title": "Implements **Specific Resource** with **_source_ and at least one of _purpose, selector, state, style, renderedVia, scope_ keys** as a body of the Annotation  [model 4](https://www.w3.org/TR/annotation-model/#specific-resources)",
+    "description": "True when Annotation includes one or more Specific Resources as Annotation body(ies). (Section 4)",
+    "type": "object",
+    "required": ["body"],
+    "properties":
+    {
+        "body":
+        {
+           "anyOf": [
+                      { "$ref": "specificResource.json#/definitions/specificeResourceDetected" },
+                      { "$ref": "specificResource.json#/definitions/itemSpecificResourceDetected"},
+                      { "not":
+                         {
+                           "items":
+                            { "not":
+                               { "anyOf": [
+                                  { "$ref": "specificResource.json#/definitions/specificeResourceDetected" },
+                                  { "$ref": "specificResource.json#/definitions/itemSpecificResourceDetected"}
+                                 ]
+                               }
+                            }
+                          }
+                      }
+                     ]
+         }
+     }
+}

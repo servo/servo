@@ -1,0 +1,208 @@
+<svg version="1.1" baseProfile="basic" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 160 120"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/"
+    template-version="1.4" reviewer="SVGWG" author="Lofton Henderson" status="accepted"
+    version="$Revision: 1.8 $" testname="$RCSfile: text-text-01-b.svg,v $">
+    <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/text.html#TextElement">
+      <p>
+        Test viewer capibility to handle basic use of 'textLength'
+        and 'lengthAdjust' attributes.
+      </p>
+      <p>
+        There are four pairs of sub-tests.  Each pair of sub-tests consists
+        of the same two strings:  "Line to Stretch" on the left, and "this is
+        a line to squeeze" on the right.
+      </p>
+      <p>
+        The first (topmost) pair contains no occurrences of the textLength and
+        lengthAdjust attributes in the 'text' elements.
+        The pink reference line under each of the top
+        two strings indicates the approximate length of the strings.  Since
+        the lengths are not constrained by the 'textLength' attribute, small
+        variations of the lengths are permissible.
+      </p>
+      <p>
+        The remaining three pairs each applies 'textLength' attributes to the
+        strings.  In the leftmost sub-test of each pair, the 'textLength' value
+        will cause a stretching of the string of approximately 25% over the
+        "normal" length.  In the rightmost sub-test of each pair, the 'textLength' value
+        will cause a squeezing of the string of approximately 20% under the
+        "normal" length for the string.
+      </p>
+      <p>
+        In each of the sub-tests with an application of 'textLength', the
+        pink reference lines indicate the exact extent of the rendered text.
+        The rendered text should fit snugly just within the ticks at the end of
+        the pink lines.
+      </p>
+      <p>
+        The second pair from the top contains 'textLength' but no 'lengthAdjust'
+        attributes.  In this case, the effect should be as if the value "spacing"
+        were specified.  Only the inter-character advancement and inter-word spacing
+        should change.  The aspect ratio of the glyphs should be unaffected.  The
+        reference image illustrates one valid way to achieve this, by a
+        uniform increase or decrease of inter-character advancement.
+      </p>
+      <p>
+        The third pair from the top explicitly sets 'lengthAdjust' value
+        to "spacing".  Therefore it should be rendered identically to the second pair.
+      </p>
+      <p>
+        The fourth (bottommost) sub-test pair explicitly sets 'lengthAdjust' value
+        to "spacingAndGlyphs".  The advancements between characters and words, as well as
+        the glyph aspect ratios should be affected.
+        The reference image illustrates one valid way to achieve
+        this, by a uniform expansion or compression of the string as a whole.
+        This effect is equivalent to application of a "scale(xfactor, 1.0)" transformation
+        to the 'text' elements.
+      </p>
+    </d:testDescription>
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        Run the test. No interaction required.
+      </p>
+    </d:operatorScript>
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
+      <p>
+        The rendered picture should match the reference image, except as noted in the Test Description.
+        In particular, the 'textLength' constraint must be satisfied precisely,
+        and the basic rules associated with the "spacing" and "spacingAndGlyphs" values
+        of 'lengthAdjust' must be met, but the precise algorithm for meeting all
+        of the required contraints is otherwise unspecified.
+      </p>
+    </d:passCriteria>
+  </d:SVGTestCase>
+  <title id="test-title">$RCSfile: text-text-01-b.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <text x="14" y="10" font-size="10" fill="black">Basic test of 'textLength' </text>
+    <text x="10" y="20" font-size="10" fill="black">and 'lengthAdjust' attributes.</text>
+    <!-- Test cases 1&2: all defaults -->
+    <g id="test-1-2">
+      <!-- The text lines -->
+      <g font-size="8" fill="blue">
+        <text x="3" y="30">Line to Stretch</text>
+        <text x="75" y="30">this is a line to squeeze</text>
+      </g>
+      <!-- Length reference lines -->
+      <!-- (half ticks here only, as these lengths can validly vary slightly) -->
+      <g stroke="fuchsia">
+        <line x1="2" y1="32" x2="56" y2="32"/>
+        <!--      <line x1="39" y1="70" x2="39" y2="84" /> -->
+        <line x1="2" y1="32" x2="2" y2="36"/>
+        <!--      <line x1="145" y1="70" x2="145" y2="84" /> -->
+        <line x1="56" y1="32" x2="56" y2="36"/>
+        <line x1="74" y1="32" x2="158" y2="32"/>
+        <!--      <line x1="244" y1="70" x2="244" y2="84" /> -->
+        <line x1="74" y1="32" x2="74" y2="36"/>
+        <!--      <line x1="412" y1="70" x2="412" y2="84" /> -->
+        <line x1="158" y1="32" x2="158" y2="36"/>
+      </g>
+      <!-- Labels -->
+      <g font-size="6" fill="black">
+        <text x="6" y="38">textLength: default</text>
+        <text x="6" y="44">lengthAdjust: default</text>
+        <text x="76" y="38">textLength: default</text>
+        <text x="76" y="44">lengthAdjust: default</text>
+      </g>
+    </g>
+    <!-- Test cases 3&4: define textLength, default lengthAdjust-->
+    <g id="test-3-4" transform="translate(0,22)">
+      <!-- The text lines -->
+      <g font-size="8" fill="blue">
+        <text x="3" y="30" textLength="65">Line to Stretch</text>
+        <text x="75" y="30" textLength="65">this is a line to squeeze</text>
+      </g>
+      <!-- Length reference lines -->
+      <g stroke="fuchsia">
+        <line x1="2" y1="32" x2="69" y2="32"/>
+        <line x1="2" y1="32" x2="2" y2="36"/>
+        <line x1="69" y1="32" x2="69" y2="36"/>
+        <line x1="74" y1="32" x2="141" y2="32"/>
+        <line x1="74" y1="32" x2="74" y2="36"/>
+        <line x1="141" y1="32" x2="141" y2="36"/>
+      </g>
+      <!-- Labels -->
+      <g font-size="6" fill="black">
+        <text x="6" y="38">textLength: 25% longer</text>
+        <text x="6" y="44">lengthAdjust: default</text>
+        <text x="76" y="38">textLength: 15% shorter</text>
+        <text x="76" y="44">lengthAdjust: default</text>
+      </g>
+    </g>
+    <!-- Test cases 5&6: define textLength, lengthAdjust=spacing -->
+    <g id="test-5-6" transform="translate(0,44)">
+      <!-- The text lines -->
+      <g font-size="8" fill="blue">
+        <text x="3" y="30" textLength="65" lengthAdjust="spacing">Line to Stretch</text>
+        <text x="75" y="30" textLength="65" lengthAdjust="spacing">this is a line to squeeze</text>
+      </g>
+      <!-- Length reference lines -->
+      <g stroke="fuchsia">
+        <line x1="2" y1="32" x2="69" y2="32"/>
+        <line x1="2" y1="32" x2="2" y2="36"/>
+        <line x1="69" y1="32" x2="69" y2="36"/>
+        <line x1="74" y1="32" x2="141" y2="32"/>
+        <line x1="74" y1="32" x2="74" y2="36"/>
+        <line x1="141" y1="32" x2="141" y2="36"/>
+      </g>
+      <!-- Labels -->
+      <g font-size="6" fill="black">
+        <text x="3" y="38">textLength: 25% longer</text>
+        <text x="3" y="44">lengthAdjust: spacing</text>
+        <text x="76" y="38">textLength: 15% shorter</text>
+        <text x="76" y="44">lengthAdjust: spacing</text>
+      </g>
+    </g>
+    <!-- Test cases 7&8: define textLength, lengthAdjust=spacingAndGlyphs -->
+    <g id="test-7-8" transform="translate(0,66)">
+      <!-- The text lines -->
+      <g font-size="8" fill="blue">
+        <text x="3" y="30" textLength="65" lengthAdjust="spacingAndGlyphs">Line to Stretch</text>
+        <text x="75" y="30" textLength="65" lengthAdjust="spacingAndGlyphs">this is a line to squeeze</text>
+      </g>
+      <!-- Length reference lines -->
+      <g stroke="fuchsia">
+        <line x1="2" y1="32" x2="69" y2="32"/>
+        <line x1="2" y1="32" x2="2" y2="36"/>
+        <line x1="69" y1="32" x2="69" y2="36"/>
+        <line x1="74" y1="32" x2="141" y2="32"/>
+        <line x1="74" y1="32" x2="74" y2="36"/>
+        <line x1="141" y1="32" x2="141" y2="36"/>
+      </g>
+      <!-- Labels -->
+      <g font-size="6" fill="black">
+        <text x="6" y="38">textLength: 25% longer</text>
+        <text x="6" y="44">lengthAdjust: sAG</text>
+        <text x="76" y="38">textLength: 20% shorter</text>
+        <text x="76" y="44">lengthAdjust: sAG</text>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="8">
+    <text id="revision" x="10" y="117" stroke="none" fill="black">$Revision: 1.8 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="158" height="118" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>

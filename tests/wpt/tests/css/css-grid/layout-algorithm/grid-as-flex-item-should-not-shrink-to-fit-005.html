@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Evaluate the behavior of a grid container as Flexbox item</title>
+<link rel="author" title="Javier Fernandez Garcia-Boente" href="mailto:jfernandez@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid/#layout-algorithm">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#flex-lines">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#propdef-flex-wrap">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#propdef-align-content">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#propdef-align-self">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#align-flex">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#align-grid">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="A single-line column flexbox shouldn't shrink-to-fit since its flex item is stretching in the main-axis, honoring the 'align-self: normal (behaves as 'stretch')'. The grid item's inline-size should be stretched as well, honoring its justify-self: 'normal' (behaves as 'stretch')">
+<style>
+    body { overflow: hidden; }
+    .flexbox {
+        display: flex;
+        flex-flow: column nowrap;
+        align-content: flex-start;
+        width: 100px;
+        height: 100px;
+        background: red;
+    }
+    .grid {
+        display: grid;
+        align-items: start;
+    }
+    .gridItem {
+        background: green;
+        height: 100px;
+    }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="flexbox">
+    <div class="grid">
+        <div class="gridItem"></div>
+    </div>
+</div>

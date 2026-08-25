@@ -1,0 +1,45 @@
+<!DOCTYPE HTML>
+<title>Use of SVGAnimatedEnumeration within SVGFEConvolveMatrixElement</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  // This test checks the use of SVGAnimatedEnumeration within SVGFEConvolveMatrixElement.
+
+  var feConvolveMatrixElement = document.createElementNS("http://www.w3.org/2000/svg", "feConvolveMatrix");
+  feConvolveMatrixElement.setAttribute("edgeMode", "duplicate");
+
+  // Check initial 'edgeMode' value.
+  assert_true(feConvolveMatrixElement.edgeMode instanceof SVGAnimatedEnumeration);
+  assert_equals(typeof(feConvolveMatrixElement.edgeMode.baseVal), "number");
+  assert_equals(feConvolveMatrixElement.edgeMode.baseVal, SVGFEConvolveMatrixElement.SVG_EDGEMODE_DUPLICATE);
+
+  // Switch to 'wrap'.
+  feConvolveMatrixElement.edgeMode.baseVal = SVGFEConvolveMatrixElement.SVG_EDGEMODE_WRAP;
+  assert_equals(feConvolveMatrixElement.edgeMode.baseVal, SVGFEConvolveMatrixElement.SVG_EDGEMODE_WRAP);
+  assert_equals(feConvolveMatrixElement.getAttribute('edgeMode'), "wrap");
+
+  // Switch to 'none'.
+  feConvolveMatrixElement.edgeMode.baseVal = SVGFEConvolveMatrixElement.SVG_EDGEMODE_NONE;
+  assert_equals(feConvolveMatrixElement.edgeMode.baseVal, SVGFEConvolveMatrixElement.SVG_EDGEMODE_NONE);
+  assert_equals(feConvolveMatrixElement.getAttribute('edgeMode'), "none");
+
+  // Try setting invalid values.
+  assert_throws_js(TypeError, function() { feConvolveMatrixElement.edgeMode.baseVal = 4; });
+  assert_equals(feConvolveMatrixElement.edgeMode.baseVal, SVGFEConvolveMatrixElement.SVG_EDGEMODE_NONE);
+  assert_equals(feConvolveMatrixElement.getAttribute('edgeMode'), "none");
+
+  assert_throws_js(TypeError, function() { feConvolveMatrixElement.edgeMode.baseVal = -1; });
+  assert_equals(feConvolveMatrixElement.edgeMode.baseVal, SVGFEConvolveMatrixElement.SVG_EDGEMODE_NONE);
+  assert_equals(feConvolveMatrixElement.getAttribute('edgeMode'), "none");
+
+  assert_throws_js(TypeError, function() { feConvolveMatrixElement.edgeMode.baseVal = 0; });
+  assert_equals(feConvolveMatrixElement.edgeMode.baseVal, SVGFEConvolveMatrixElement.SVG_EDGEMODE_NONE);
+  assert_equals(feConvolveMatrixElement.getAttribute('edgeMode'), "none");
+
+  // Switch to 'duplicate'.
+  feConvolveMatrixElement.edgeMode.baseVal = SVGFEConvolveMatrixElement.SVG_EDGEMODE_DUPLICATE;
+  assert_equals(feConvolveMatrixElement.edgeMode.baseVal, SVGFEConvolveMatrixElement.SVG_EDGEMODE_DUPLICATE);
+  assert_equals(feConvolveMatrixElement.getAttribute('edgeMode'), "duplicate");
+});
+</script>

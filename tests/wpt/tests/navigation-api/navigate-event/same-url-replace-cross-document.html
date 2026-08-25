@@ -1,0 +1,26 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/helpers.js"></script>
+
+<script>
+promise_test(async t => {
+  let start_length = navigation.entries().length;
+  let start_index = navigation.currentEntry.index;
+
+  // Wait for after the load event so that we are definitely testing the
+  // same URL as the cause of the rejections.
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+  assert_equals(navigation.entries().length, start_length);
+
+  navigation.onnavigate = t.step_func(e => {
+    e.intercept();
+    assert_equals(e.navigationType, "replace");
+  });
+  navigation.onnavigateerror = t.unreached_func("onnavigateerror should not be called");
+
+  await navigation.navigate(location.href).finished;
+  assert_equals(navigation.entries().length, start_length);
+  assert_equals(navigation.currentEntry.index, start_index);
+}, "navigate() to the current URL cross document should replace");
+</script>

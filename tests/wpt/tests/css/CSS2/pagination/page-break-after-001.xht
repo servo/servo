@@ -1,0 +1,21 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: page-break-after: auto</title>
+<link rel="author" title="Michael Turnwall" href="mailto:mturnwall@revenution.com"/>
+<link rel="author" title="Hewlett-Packard Company" href="http://www.hp.com/"/>
+<link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-break-props"/>
+<meta name="flags" content="paged" />
+<meta name="assert" content="The 'always' value of the 'page-break-after' property forces a page break after the box."/>
+<style type="text/css">
+	div.noBreak {
+		page-break-after:always;
+		page-break-after:auto;
+	}
+</style>
+</head>
+<body>
+	<div class="noBreak">There must <strong>not</strong> be a page break after this line of text.</div>
+	<div>This test should produce only one page of output.</div>
+</body>
+</html>

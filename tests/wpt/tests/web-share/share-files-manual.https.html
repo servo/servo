@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>WebShare Test: Share multiple files</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="resources/manual-helper.js"></script>
+  </head>
+  <body>
+    <script>
+        setup({explicit_timeout: true});
+
+        const options = {type: 'text/plain'};
+        const first = new File(['one'], 'first.txt', options);
+        const second = new File(['two'], 'second.txt', options);
+        const third = new File(['three'], 'third.txt', options);
+        const fourth = new File(['four'], 'fourth.txt', options);
+        const fifth = new File(['five'], 'fifth.txt', options);
+        const data = {
+          title: 'Counting to 5',
+          text: 'Here are the numbers',
+          url: 'https://example.com/',
+          files: [first, second, third, fourth, fifth]
+        };
+        setupManualShareTest(data);
+        callWhenButtonClicked(() => navigator.share(data));
+    </script>
+  </body>
+</html>

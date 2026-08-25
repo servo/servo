@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title> title.text  and space normalization  </title>
+<link rel="author" title="Ms2ger" href="mailto:ms2ger@gmail.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-title-text">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+test(function() {
+  assert_equals(document.getElementsByTagName("title")[0].text,
+    " title.text  and space normalization  ");
+  assert_equals(document.getElementsByTagName("title")[0].textContent,
+    " title.text  and space normalization  ");
+  assert_equals(document.getElementsByTagName("title")[0].firstChild.nodeValue,
+    " title.text  and space normalization  ");
+}, "title.text and space normalization (markup)");
+[
+  "one space", "two  spaces",
+  "one\ttab", "two\t\ttabs",
+  "one\nnewline", "two\n\nnewlines",
+  "one\fform feed", "two\f\fform feeds",
+  "one\rcarriage return", "two\r\rcarriage returns"
+].forEach(function(str) {
+  test(function() {
+    document.title = str;
+    var title = document.getElementsByTagName("title")[0];
+    assert_equals(title.text, str);
+    assert_equals(title.textContent, str);
+    assert_equals(title.firstChild.nodeValue, str);
+  }, "title.text and space normalization: " + format_value(str))
+});
+</script>

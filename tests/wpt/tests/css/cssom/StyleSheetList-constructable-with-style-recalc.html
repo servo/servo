@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSSOM - StyleSheetList does not include adopted style sheets even after style recalc</title>
+    <link rel="help" href="https://crbug.com/437259105">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style id="sheet1">
+      body { width: 50%; }
+    </style>
+  </head>
+  <body>
+    <script>
+      test(() => {
+        const sheet = new CSSStyleSheet();
+        document.adoptedStyleSheets = [sheet];
+
+        document.body.offsetTop;
+
+        var styleSheets = document.styleSheets;
+        assert_equals(styleSheets.length, 1);
+        assert_equals(styleSheets[0], sheet1.sheet);
+      }, 'document.styleSheets does not include adopted style sheets');
+    </script>
+  </body>
+</html>

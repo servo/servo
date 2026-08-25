@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<title>container-type invalidation crash test</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1878188">
+<math>
+  <malignmark id="target" style="container-type: size"/>
+</math>
+<script>
+  onload = () => target.style.containerType = "inline-size"
+</script>

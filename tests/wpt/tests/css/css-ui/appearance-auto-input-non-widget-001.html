@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: appearance: auto on non-widget input elements</title>
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#appearance-switching">
+<meta name="assert" content="The default widget type for these elements is none.">
+<link rel="match" href="appearance-auto-input-non-widget-001-ref.html">
+<style>
+input { appearance: auto; }
+</style>
+<input type="hidden" value="abc">
+<input type="image" value="def">
+<input type="file">

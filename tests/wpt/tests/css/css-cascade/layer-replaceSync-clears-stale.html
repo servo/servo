@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<title>CSS Cascade Layers: CSSStyleSheet.replaceSync clears stale statements</title>
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-cascade-5/#layering">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="target"></div>
+<div id="reference" style="color: green"></div>
+
+<script>
+// In all test cases, the 'color' property value of #target should be green.
+
+const testCases = [
+  {
+    title: 'replaceSync clears stale layer statements',
+    style: `
+      @layer second, first;
+      @layer second {
+        #target { color: green; }
+      }
+      @layer first {
+        #target { color: red; }
+      }
+    `,
+    operations: function(sheet) {
+      sheet.replaceSync(`
+        @layer first {
+          #target { color: red; }
+        }
+        @layer second {
+          #target { color: green; }
+        }
+      `);
+    }
+  },
+];
+
+const target = document.getElementById('target');
+const reference = document.getElementById('reference');
+
+for (let testCase of testCases) {
+  test(t => {
+    let sheet = new CSSStyleSheet();
+    sheet.replaceSync(testCase.style);
+    document.adoptedStyleSheets = [sheet];
+
+    try {
+      testCase.operations(sheet);
+      assert_equals(getComputedStyle(target).color, getComputedStyle(reference).color);
+    } finally {
+      document.adoptedStyleSheets = [];
+    }
+  }, testCase.title);
+}
+</script>

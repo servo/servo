@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<title>mix-blend-mode: plus-lighter test</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.fxtf.org/compositing-2/#mix-blend-mode">
+<link rel="match" href="reference/mix-blend-mode-plus-lighter-basic-ref.html">
+
+<style>
+.container {
+  position: relative;
+  isolation: isolate;
+  width: 500px;
+  height: 500px;
+}
+.blue { background: #000064; }
+.green { background: #006400; }
+.common {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  opacity: 0.6;
+}
+.one {
+  top: 10px;
+  left: 10px;
+}
+.two {
+  top: 65px;
+  left: 30px;
+  mix-blend-mode: plus-lighter;
+}
+.three {
+  top: 120px;
+  left: 50px;
+  mix-blend-mode: plus-lighter;
+}
+</style>
+
+<div class=container>
+  <div class="one common blue"></div>
+  <div class="two common blue"></div>
+  <div class="three common green"></div>
+</div>

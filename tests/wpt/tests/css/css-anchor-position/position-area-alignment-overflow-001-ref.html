@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<title>Reference: position-area normal alignment overflow in a scrollable container</title>
+<style>
+  .container {
+    position: relative;
+    overflow: scroll;
+    scrollbar-width: none;
+    width: 100px;
+    height: 120px;
+    border: solid;
+    margin: 1em;
+    float: left;
+  }
+  .anchor {
+    border: solid blue 10px;
+    inset: 0;
+    place-self: center;
+    position: absolute;
+  }
+  .test {
+    border: solid 5px #0084;
+    box-sizing: border-box;
+    position: absolute;
+  }
+  .start-inline {
+    margin-inline: 0 -10px;
+  }
+  .start-block {
+    margin-block: 0 -10px;
+  }
+  .end-inline {
+    margin-inline: -10px 0;
+  }
+  .end-block {
+    margin-block: -10px 0;
+  }
+  .center-inline {
+    margin-inline: -5px;
+  }
+  .center-block {
+    margin-block: -5px;
+  }
+</style>
+
+<div class="container" title="TB LTR">
+  <div>
+    <div class="anchor"></div>
+    <div class="test start-inline start-block" style="inset: 0 60px 70px 0"></div>
+    <div class="test start-inline start-block" style="inset: 70px 0 0 60px"></div>
+    <div class="test center-inline center-block" style="inset: 50px 40px 50px 40px"></div>
+  </div>
+</div>
+
+<div class="container" title="TB LTR">
+  <div class="anchor"></div>
+  <div class="test start-inline start-block" style="inset: 0 0 70px"></div>
+  <div class="test start-inline start-block" style="inset: 70px 0 0"></div>
+  <div class="test center-inline start-block" style="inset: 0 40px"></div>
+</div>
+
+<div class="container" style="writing-mode: vertical-rl" title="RL TTB">
+  <div class="anchor"></div>
+  <div class="test start-inline start-block" style="inset: 0 60px 70px 0"></div>
+  <div class="test start-inline start-block" style="inset: 70px 0 0 60px"></div>
+  <div class="test center-inline center-block" style="inset: 50px 40px 50px 40px"></div>
+</div>
+
+<div class="container" style="writing-mode: vertical-rl" title="RL TTB">
+  <div class="anchor"></div>
+  <div class="test start-inline start-block" style="inset: 0 0 70px"></div>
+  <div class="test start-inline start-block" style="inset: 70px 0 0"></div>
+  <div class="test center-block start-inline" style="inset: 0 40px"></div>
+</div>
+
+<div class="container" style="writing-mode: vertical-lr; direction: rtl;" title="LR BTT">
+  <div class="anchor"></div>
+  <div class="test start-inline start-block" style="inset: 0 60px 70px 0"></div>
+  <div class="test start-inline start-block" style="inset: 70px 0 0 60px"></div>
+  <div class="test center-inline center-block" style="inset: 50px 40px 50px 40px"></div>
+</div>
+
+<div class="container" style="writing-mode: vertical-lr; direction: rtl;" title="LR BTT">
+  <div class="anchor"></div>
+  <div class="test start-inline start-block" style="inset: 0 0 70px"></div>
+  <div class="test start-inline start-block" style="inset: 70px 0 0"></div>
+  <div class="test center-block start-inline" style="inset: 0 40px"></div>
+</div>

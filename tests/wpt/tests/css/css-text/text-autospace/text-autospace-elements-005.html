@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-autospace-property">
+<link rel="match" href="text-autospace-elements-005-ref.html">
+<style>
+div {
+  text-autospace: normal;
+  font-size: 22px;
+  font-family: sans-serif;
+}
+</style>
+<div><b>永</b>abc<b>def</b>永</div>
+<div><span><b><span>永</span></b></span>abc<b>def<span style="font-weight: normal">永</span></b></div>
+<div><b>永</b><span><span>abc</span><b>def</b></span><span>永</span></div>
+<div><b>永<span><span style="font-weight: normal">abc</span></span>def</b><span>永</span></div>

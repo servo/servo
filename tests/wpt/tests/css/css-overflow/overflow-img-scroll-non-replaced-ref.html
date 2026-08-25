@@ -1,0 +1,20 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Verifies overflow allows scrolling when rendering alt test for img elements</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow/#propdef-overflow">
+<link rel="author" title="Khushal Sagar" href="mailto:khushalsagar@chromium.org">
+<style>
+  div {
+    border: solid;
+    display: block;
+    width: 150px;
+    padding: 10px;
+    overflow: scroll;
+  }
+</style>
+<body>
+<div>
+<img src="about:invalid" alt="I have "></img>
+scrollbar ................................................................
+</div>
+</body>

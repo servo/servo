@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>Transform animation on SVG element with zoom</title>
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/">
+<link rel="match" href="svg-transform-animation-ref.html">
+<style>
+@keyframes transform {
+  from {transform: translate(100px, 100px)}
+  to {transform: translate(100px, 100px)}
+}
+</style>
+<svg width="200" height="200">
+  <rect x="100" y="100" width="100" height="100" fill="red"/>
+  <rect style="animation: transform 2s infinite" x="0" y="0" width="100" height="100" fill="green"/>
+</svg>

@@ -1,0 +1,23 @@
+<!doctype html>
+<title>Shadow DOM: ShadowRoot.getElementById in shadow trees keeps working after host is removed from tree</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid">
+<link rel="help" href="https://bugzil.la/1475203">
+<link rel="author" name="Emilio Cobos Álvarez" href="emilio@crisal.io">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="host"></div>
+<script>
+test(function() {
+  let host = document.getElementById("host");
+  host.attachShadow({ mode: "open" }).innerHTML = `<div id="test-id"></div>`;
+
+  let element = host.shadowRoot.getElementById("test-id");
+  assert_true(!!element);
+
+  host.remove();
+  assert_equals(host.shadowRoot.getElementById("test-id"), element);
+
+  element.remove();
+  assert_equals(host.shadowRoot.getElementById("test-id"), null);
+}, "ShadowRoot.getElementById keeps working after host has been removed");
+</script>

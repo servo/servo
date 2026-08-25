@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Hindi Line breaking performance test</title>
+    <meta charset="utf-8">
+    <script src="../resources/runner.js"></script>
+</head>
+<body>
+    <!-- Example hindi from http://people.w3.org/rishida/scripts/samples/hindi.php. Hindi was chosen, as its ligatures should cause us to use the complex-text path. -->
+    <pre id="log"></pre>
+    <div id="target" style="width: 300px; display: none;">
+        <p lang="hi" xml:lang="hi" title="This is Hindi"><span id="e8" class="ex">हालाँकि</span> सूर के जीवन के बारे में कई जनश्रुतियाँ <span id="e9" class="ex">प्रचलित</span> <span id="e3" class="ex">हैं</span>, पर इन में कितनी सच्चाई है यह कहना कठिन है। कहा जाता है उनका जन्म सन् <span id="e10" class="ex">१४७८</span> में <span id="e4" class="ex">दिल्ली</span> के पास एक ग़रीब ब्राह्मीण परिवार <span id="e1" class="ex">में</span> हुआ। जनश्रुति के अनुसार सूरदास जन्म से ही अंधे थे। आजकल थी <span id="e2" class="ex">अंधे</span> आदमी अक्सर 'सूरदास' कहलाते हैं। कई लोगों ने उन्हें गुरु के <span id="e6" class="ex">रूप</span> में अपनाया और उनकी <span id="e7" class="ex">पूजा</span> करना शुरु कर दिया । </p>
+        <p lang="hi" xml:lang="hi" title="This is Hindi"><span id="e8" class="ex">हालाँकि</span> सूर के जीवन के बारे में कई जनश्रुतियाँ <span id="e9" class="ex">प्रचलित</span> <span id="e3" class="ex">हैं</span>, पर इन में कितनी सच्चाई है यह कहना कठिन है। कहा जाता है उनका जन्म सन् <span id="e10" class="ex">१४७८</span> में <span id="e4" class="ex">दिल्ली</span> के पास एक ग़रीब ब्राह्मीण परिवार <span id="e1" class="ex">में</span> हुआ। जनश्रुति के अनुसार सूरदास जन्म से ही अंधे थे। आजकल थी <span id="e2" class="ex">अंधे</span> आदमी अक्सर 'सूरदास' कहलाते हैं। कई लोगों ने उन्हें गुरु के <span id="e6" class="ex">रूप</span> में अपनाया और उनकी <span id="e7" class="ex">पूजा</span> करना शुरु कर दिया । </p>
+        <p lang="hi" xml:lang="hi" title="This is Hindi"><span id="e8" class="ex">हालाँकि</span> सूर के जीवन के बारे में कई जनश्रुतियाँ <span id="e9" class="ex">प्रचलित</span> <span id="e3" class="ex">हैं</span>, पर इन में कितनी सच्चाई है यह कहना कठिन है। कहा जाता है उनका जन्म सन् <span id="e10" class="ex">१४७८</span> में <span id="e4" class="ex">दिल्ली</span> के पास एक ग़रीब ब्राह्मीण परिवार <span id="e1" class="ex">में</span> हुआ। जनश्रुति के अनुसार सूरदास जन्म से ही अंधे थे। आजकल थी <span id="e2" class="ex">अंधे</span> आदमी अक्सर 'सूरदास' कहलाते हैं। कई लोगों ने उन्हें गुरु के <span id="e6" class="ex">रूप</span> में अपनाया और उनकी <span id="e7" class="ex">पूजा</span> करना शुरु कर दिया । </p>
+        <p lang="hi" xml:lang="hi" title="This is Hindi"><span id="e8" class="ex">हालाँकि</span> सूर के जीवन के बारे में कई जनश्रुतियाँ <span id="e9" class="ex">प्रचलित</span> <span id="e3" class="ex">हैं</span>, पर इन में कितनी सच्चाई है यह कहना कठिन है। कहा जाता है उनका जन्म सन् <span id="e10" class="ex">१४७८</span> में <span id="e4" class="ex">दिल्ली</span> के पास एक ग़रीब ब्राह्मीण परिवार <span id="e1" class="ex">में</span> हुआ। जनश्रुति के अनुसार सूरदास जन्म से ही अंधे थे। आजकल थी <span id="e2" class="ex">अंधे</span> आदमी अक्सर 'सूरदास' कहलाते हैं। कई लोगों ने उन्हें गुरु के <span id="e6" class="ex">रूप</span> में अपनाया और उनकी <span id="e7" class="ex">पूजा</span> करना शुरु कर दिया । </p>
+        <p lang="hi" xml:lang="hi" title="This is Hindi"><span id="e8" class="ex">हालाँकि</span> सूर के जीवन के बारे में कई जनश्रुतियाँ <span id="e9" class="ex">प्रचलित</span> <span id="e3" class="ex">हैं</span>, पर इन में कितनी सच्चाई है यह कहना कठिन है। कहा जाता है उनका जन्म सन् <span id="e10" class="ex">१४७८</span> में <span id="e4" class="ex">दिल्ली</span> के पास एक ग़रीब ब्राह्मीण परिवार <span id="e1" class="ex">में</span> हुआ। जनश्रुति के अनुसार सूरदास जन्म से ही अंधे थे। आजकल थी <span id="e2" class="ex">अंधे</span> आदमी अक्सर 'सूरदास' कहलाते हैं। कई लोगों ने उन्हें गुरु के <span id="e6" class="ex">रूप</span> में अपनाया और उनकी <span id="e7" class="ex">पूजा</span> करना शुरु कर दिया । </p>
+        <p lang="hi" xml:lang="hi" title="This is Hindi"><span id="e8" class="ex">हालाँकि</span> सूर के जीवन के बारे में कई जनश्रुतियाँ <span id="e9" class="ex">प्रचलित</span> <span id="e3" class="ex">हैं</span>, पर इन में कितनी सच्चाई है यह कहना कठिन है। कहा जाता है उनका जन्म सन् <span id="e10" class="ex">१४७८</span> में <span id="e4" class="ex">दिल्ली</span> के पास एक ग़रीब ब्राह्मीण परिवार <span id="e1" class="ex">में</span> हुआ। जनश्रुति के अनुसार सूरदास जन्म से ही अंधे थे। आजकल थी <span id="e2" class="ex">अंधे</span> आदमी अक्सर 'सूरदास' कहलाते हैं। कई लोगों ने उन्हें गुरु के <span id="e6" class="ex">रूप</span> में अपनाया और उनकी <span id="e7" class="ex">पूजा</span> करना शुरु कर दिया । </p>
+        <p lang="hi" xml:lang="hi" title="This is Hindi"><span id="e8" class="ex">हालाँकि</span> सूर के जीवन के बारे में कई जनश्रुतियाँ <span id="e9" class="ex">प्रचलित</span> <span id="e3" class="ex">हैं</span>, पर इन में कितनी सच्चाई है यह कहना कठिन है। कहा जाता है उनका जन्म सन् <span id="e10" class="ex">१४७८</span> में <span id="e4" class="ex">दिल्ली</span> के पास एक ग़रीब ब्राह्मीण परिवार <span id="e1" class="ex">में</span> हुआ। जनश्रुति के अनुसार सूरदास जन्म से ही अंधे थे। आजकल थी <span id="e2" class="ex">अंधे</span> आदमी अक्सर 'सूरदास' कहलाते हैं। कई लोगों ने उन्हें गुरु के <span id="e6" class="ex">रूप</span> में अपनाया और उनकी <span id="e7" class="ex">पूजा</span> करना शुरु कर दिया । </p>
+        <p lang="hi" xml:lang="hi" title="This is Hindi"><span id="e8" class="ex">हालाँकि</span> सूर के जीवन के बारे में कई जनश्रुतियाँ <span id="e9" class="ex">प्रचलित</span> <span id="e3" class="ex">हैं</span>, पर इन में कितनी सच्चाई है यह कहना कठिन है। कहा जाता है उनका जन्म सन् <span id="e10" class="ex">१४७८</span> में <span id="e4" class="ex">दिल्ली</span> के पास एक ग़रीब ब्राह्मीण परिवार <span id="e1" class="ex">में</span> हुआ। जनश्रुति के अनुसार सूरदास जन्म से ही अंधे थे। आजकल थी <span id="e2" class="ex">अंधे</span> आदमी अक्सर 'सूरदास' कहलाते हैं। कई लोगों ने उन्हें गुरु के <span id="e6" class="ex">रूप</span> में अपनाया और उनकी <span id="e7" class="ex">पूजा</span> करना शुरु कर दिया । </p>
+        <p lang="hi" xml:lang="hi" title="This is Hindi"><span id="e8" class="ex">हालाँकि</span> सूर के जीवन के बारे में कई जनश्रुतियाँ <span id="e9" class="ex">प्रचलित</span> <span id="e3" class="ex">हैं</span>, पर इन में कितनी सच्चाई है यह कहना कठिन है। कहा जाता है उनका जन्म सन् <span id="e10" class="ex">१४७८</span> में <span id="e4" class="ex">दिल्ली</span> के पास एक ग़रीब ब्राह्मीण परिवार <span id="e1" class="ex">में</span> हुआ। जनश्रुति के अनुसार सूरदास जन्म से ही अंधे थे। आजकल थी <span id="e2" class="ex">अंधे</span> आदमी अक्सर 'सूरदास' कहलाते हैं। कई लोगों ने उन्हें गुरु के <span id="e6" class="ex">रूप</span> में अपनाया और उनकी <span id="e7" class="ex">पूजा</span> करना शुरु कर दिया । </p>
+        <p lang="hi" xml:lang="hi" title="This is Hindi"><span id="e8" class="ex">हालाँकि</span> सूर के जीवन के बारे में कई जनश्रुतियाँ <span id="e9" class="ex">प्रचलित</span> <span id="e3" class="ex">हैं</span>, पर इन में कितनी सच्चाई है यह कहना कठिन है। कहा जाता है उनका जन्म सन् <span id="e10" class="ex">१४७८</span> में <span id="e4" class="ex">दिल्ली</span> के पास एक ग़रीब ब्राह्मीण परिवार <span id="e1" class="ex">में</span> हुआ। जनश्रुति के अनुसार सूरदास जन्म से ही अंधे थे। आजकल थी <span id="e2" class="ex">अंधे</span> आदमी अक्सर 'सूरदास' कहलाते हैं। कई लोगों ने उन्हें गुरु के <span id="e6" class="ex">रूप</span> में अपनाया और उनकी <span id="e7" class="ex">पूजा</span> करना शुरु कर दिया । </p>
+        <p lang="hi" xml:lang="hi" title="This is Hindi"><span id="e8" class="ex">हालाँकि</span> सूर के जीवन के बारे में कई जनश्रुतियाँ <span id="e9" class="ex">प्रचलित</span> <span id="e3" class="ex">हैं</span>, पर इन में कितनी सच्चाई है यह कहना कठिन है। कहा जाता है उनका जन्म सन् <span id="e10" class="ex">१४७८</span> में <span id="e4" class="ex">दिल्ली</span> के पास एक ग़रीब ब्राह्मीण परिवार <span id="e1" class="ex">में</span> हुआ। जनश्रुति के अनुसार सूरदास जन्म से ही अंधे थे। आजकल थी <span id="e2" class="ex">अंधे</span> आदमी अक्सर 'सूरदास' कहलाते हैं। कई लोगों ने उन्हें गुरु के <span id="e6" class="ex">रूप</span> में अपनाया और उनकी <span id="e7" class="ex">पूजा</span> करना शुरु कर दिया । </p>
+    </div>
+    <script>
+        var target = document.getElementById("target");
+        var style = target.style;
+
+        function test() {
+            style.display = "block";
+            style.width = "280px";
+            PerfTestRunner.forceLayout();
+            style.width = "300px";
+            PerfTestRunner.forceLayout();
+            style.width = "290px";
+            PerfTestRunner.forceLayout();
+            style.display = "none";
+        }
+
+        PerfTestRunner.measureRunsPerSecond({
+            description: "Measures performance of layout on a page containing Hindi.",
+            run: test
+        });
+    </script>
+</body>
+</html>

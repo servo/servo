@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="UTF-8">
+  <title>CSS Position: Box inset properties & position:fixed grid container as the root element</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com"/>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="http://www.mozilla.org/">
+  <link rel="help" href="https://drafts.csswg.org/css-position-3/#insets">
+  <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1584890">
+  <link rel="match" href="position-fixed-root-element-ref.html">
+  <meta name="assert" content="This test verifies the box inset properties on a position:fixed grid container root element.">
+
+  <style>
+  html {
+    display: grid;
+    position: fixed;
+    left: 10px;
+    right: 20px;
+    top: 30px;
+    bottom: 40px;
+    border: 5px dashed black;
+    box-sizing: border-box;
+  }
+  </style>
+
+  The black border should encompass the whole viewport,
+  with a bit of space on each side.
+  <br><br>
+  It shouldn't just shrinkwrap this text's height.
+</html>

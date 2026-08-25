@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+<meta charset="utf-8">
+<title>shaping: test for Chromium bug 1304876</title>
+<style type="text/css">
+@font-face {
+    font-family: GentiumPlus;
+    src: url('/fonts/GentiumPlus-R.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+}
+.test {
+    font-family: GentiumPlus;
+    font-size: 18pt;
+    width: 300px;
+    border: 1px solid black;
+    margin: 1em;
+}
+.line {
+    display: block;
+    white-space: nowrap;
+}
+/* the CSS above is not part of the test */
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the word "office" is rendered without repeated letters.</p>
+<div class="test">
+    <div class="line">Sanitary measures in the</div>
+    <div class="line">office ought be adequately</div>
+    <div class="line"><b>maintained</b>.</div>
+</div>
+<div class="test">
+    <div class="line">Sanitary measures in the</div>
+    <div class="line">office ought be adequately</div>
+    <div class="line"><b>maintained</b>.</div>
+</div>
+</body>
+</html>

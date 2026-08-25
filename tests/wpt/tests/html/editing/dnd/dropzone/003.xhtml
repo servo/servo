@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Dropzone attribute: link</title>
+<style type="text/css">
+div
+  {background-color:navy;
+  width:40px;
+  height:40px;
+  padding:40px;
+  color:white;}
+</style>
+</head>
+<body>
+<p><a href="data:text/plain,1">Drag me</a></p>
+<div dropzone="link string:text/plain" ondrop="document.querySelector('div').appendChild(document.createTextNode((event.dataTransfer.getData('text/uri-list').replace(/\r\n$/,'') == 'data:text/plain,1')?'PASS':'FAIL'))"/>
+<p>You should be able to drag link to navy box below. You should see word PASS once you drop it.</p>
+</body>
+</html>

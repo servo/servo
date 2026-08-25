@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>CSS Test (Selectors): contenteditable elements always match :focus-visible</title>
+  <link rel="author" title="Alice Boxhall" href="aboxhall@chromium.org" />
+  <link rel="help" href="https://drafts.csswg.org/selectors-4/#the-focus-visible-pseudo" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <style>
+    @supports not selector(:focus-visible) {
+      :focus {
+        outline: red solid 5px;
+        background-color: red;
+      }
+    }
+
+    span[contenteditable] {
+        border: 1px solid black;
+        background-color: white;
+        padding: 2px 5px;
+    }
+
+    :focus-visible {
+      outline: green solid 5px;
+    }
+
+    :focus:not(:focus-visible) {
+      outline: 0;
+      background-color: red;
+    }
+  </style>
+</head>
+<body>
+  This test checks that <code>:focus-visible</code> always matches on elements with <code>contenteditable=true</code> set.
+  <ol id="instructions">
+    <li>If the user-agent does not claim to support the <code>:focus-visible</code> pseudo-class then SKIP this test.</li>
+    <li><strong>Click</strong> the content editable span below to focus it.</li>
+    <li>If the element has a red background, then the test result is FAILURE. If the element has a green outline, then the test result is SUCCESS.</li>
+  </ol>
+  <br />
+  <div>
+    <span id="el" contenteditable>Focus me</span>
+  </div>
+  <script>
+    var actions_promise;
+
+    async_test(function(t) {
+      el.addEventListener("focus", t.step_func(function() {
+        assert_equals(getComputedStyle(el).outlineColor, "rgb(0, 128, 0)", `outlineColor for ${el.tagName}#${el.id} should be green`);
+        assert_not_equals(getComputedStyle(el).backgroundColor, "rgb(255, 0, 0)", `backgroundColor for ${el.tagName}#${el.id} should NOT be red`);
+        // Make sure the test finishes after all the input actions are completed.
+        actions_promise.then( () => t.done() );
+      }));
+
+      actions_promise = test_driver.click(el);
+    }, "Focus should always match :focus-visible on content editable divs");
+  </script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head>
+<title>CSS Test: Test for containing block for absolutely positioned elements being initial containing block</title>
+<link rel="author" title="Robert O'Callahan" href="mailto:robert@ocallahan.org" />
+<link rel="author" title="Mozilla Corporation" href="http://mozilla.com/" />
+<link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#containing-block-details" />
+<link rel="match" href="abspos-containing-block-initial-001-ref.xht"/>
+<meta name="assert" content="If there is no such ancestor, the containing block is the initial containing block." />
+<meta name="flags" content="dom" />
+<style type="text/css">
+html { margin:10px; border:20px solid black; padding:30px; }
+body { height:10000px; margin:0; }
+div { position:absolute; width:100px; height:100px; }
+</style>
+</head>
+<body>
+<script type="text/javascript">
+window.scrollTo(0,50);
+</script>
+<div style="top:0; background:yellow;"></div>
+<div style="right:0; background:orange;"></div>
+<div style="bottom:0; background:brown;"></div>
+<div style="left:0; background:pink;"></div>
+
+
+</body></html>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Borders and Box Decorations 4 Test: Parsing 'corner-top-left' with invalid values</title>
+<link rel="author" title="Chromium" href="https://chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#corner-shorthand">
+<meta name="assert" content="This test checks that 'corner-top-left' rejects invalid values.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+
+<script>
+test_invalid_value("corner-top-left", "auto");
+test_invalid_value("corner-top-left", "none");
+test_invalid_value("corner-top-left", "scoop");
+test_invalid_value("corner-top-left", "3% normal");
+test_invalid_value("corner-top-left", "round round");
+test_invalid_value("corner-top-left", "-1px");
+test_invalid_value("corner-top-left", "10px");
+test_invalid_value("corner-top-left", "4px 12px");
+test_invalid_value("corner-top-left", "4px / normal");
+test_invalid_value("corner-top-left", "round / 4px");
+</script>

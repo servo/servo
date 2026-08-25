@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<head>
+<title>CSS Borders and Box Decorations 4: 'corner-shape: superellipse(-1)' on all corners — reference</title>
+<style>
+    .target {
+        position: relative;
+        background: red;
+        width: 100px;
+        height: 100px;
+        box-sizing: border-box;
+        clip-path: polygon(
+            25px 0px, 75px 0px, 75.214px 3.263px, 75.852px 6.47px,
+            76.903px 9.567px, 78.349px 12.5px, 80.166px 15.219px, 82.322px 17.678px,
+            84.781px 19.834px, 87.5px 21.651px, 90.433px 23.097px, 93.53px 24.148px,
+            96.737px 24.786px, 100px 25px, 100px 75px, 96.737px 75.214px,
+            93.53px 75.852px, 90.433px 76.903px, 87.5px 78.349px, 84.781px 80.166px,
+            82.322px 82.322px, 80.166px 84.781px, 78.349px 87.5px, 76.903px 90.433px,
+            75.852px 93.53px, 75.214px 96.737px, 75px 100px, 25px 100px,
+            24.786px 96.737px, 24.148px 93.53px, 23.097px 90.433px, 21.651px 87.5px,
+            19.834px 84.781px, 17.678px 82.322px, 15.219px 80.166px, 12.5px 78.349px,
+            9.567px 76.903px, 6.47px 75.852px, 3.263px 75.214px, 0px 75px,
+            0px 25px, 3.263px 24.786px, 6.47px 24.148px, 9.567px 23.097px,
+            12.5px 21.651px, 15.219px 19.834px, 17.678px 17.678px, 19.834px 15.219px,
+            21.651px 12.5px, 23.097px 9.567px, 24.148px 6.47px, 24.786px 3.263px);
+    }
+    .target::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: green;
+        clip-path: polygon(
+            29.58px 5px, 70.42px 5px, 71.09px 8.015px, 72.068px 10.944px,
+            73.341px 13.758px, 74.897px 16.426px, 76.718px 18.92px, 78.787px 21.213px,
+            81.08px 23.282px, 83.574px 25.103px, 86.242px 26.659px, 89.056px 27.932px,
+            91.985px 28.91px, 95px 29.58px, 95px 70.42px, 91.985px 71.09px,
+            89.056px 72.068px, 86.242px 73.341px, 83.574px 74.897px, 81.08px 76.718px,
+            78.787px 78.787px, 76.718px 81.08px, 74.897px 83.574px, 73.341px 86.242px,
+            72.068px 89.056px, 71.09px 91.985px, 70.42px 95px, 29.58px 95px,
+            28.91px 91.985px, 27.932px 89.056px, 26.659px 86.242px, 25.103px 83.574px,
+            23.282px 81.08px, 21.213px 78.787px, 18.92px 76.718px, 16.426px 74.897px,
+            13.758px 73.341px, 10.944px 72.068px, 8.015px 71.09px, 5px 70.42px,
+            5px 29.58px, 8.015px 28.91px, 10.944px 27.932px, 13.758px 26.659px,
+            16.426px 25.103px, 18.92px 23.282px, 21.213px 21.213px, 23.282px 18.92px,
+            25.103px 16.426px, 26.659px 13.758px, 27.932px 10.944px, 28.91px 8.015px);
+    }
+</style>
+</head>
+<div class=target></div>

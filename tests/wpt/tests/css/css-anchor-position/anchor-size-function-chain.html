@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+
+<title>Tests that chain of elements that anchor to each other using anchor-size() works.</title>
+
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#anchor-size-fn">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#determining">
+<link rel="author" title="Kiet Ho" href="mailto:kiet.ho@apple.com">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script src="support/test-common.js"></script>
+
+<style>
+  .containing-block {
+    border: 1px solid black;
+
+    position: relative;
+    width: 500px;
+    height: 200px;
+  }
+
+  .box {
+    /* Can only use anchor-size() with position: absolute */
+    position: absolute;
+    background-color: green;
+    anchor-name: --box;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+  }
+
+  #box1 {
+    width: 50px;
+    height: 60px;
+  }
+
+  #box2, #box3, #box4, #box5 {
+    width: calc(anchor-size(--box width) + 10px);
+    height: calc(anchor-size(--box height) + 20px);
+  }
+
+  #box2 { left: 60px; }
+  #box3 { left: 130px; }
+  #box4 { left: 210px; }
+  #box5 { left: 300px; }
+</style>
+
+<body onload="checkLayoutForAnchorPos('.target')">
+  <p>You should see a row of five rectangles growing in size in order.</p>
+
+  <div class="containing-block">
+    <!--
+      The increasing size is to check that the boxes are anchoring to each other
+      in the correct order i.e box2 chains to box1, box3 chains to box2, ...
+    -->
+    <div class="box target" id="box1" data-expected-width="50" data-expected-height="60">1</div>
+    <div class="box target" id="box2" data-expected-width="60" data-expected-height="80">2</div>
+    <div class="box target" id="box3" data-expected-width="70" data-expected-height="100">3</div>
+    <div class="box target" id="box4" data-expected-width="80" data-expected-height="120">4</div>
+    <div class="box target" id="box5" data-expected-width="90" data-expected-height="140">5</div>
+  </div>
+</body>

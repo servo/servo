@@ -1,0 +1,119 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Document.images</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<div id=test>
+<img>
+<img id=x><img name=y><img id=z1 name=z2>
+<img id=a><img id=a>
+<img name=b><img name=b>
+<img id=><img name=>
+<input type=image name=input>
+</div>
+<script>
+function assert_all(aAssertFunc, aCollection) {
+  for (var i = 0; i < aCollection.length; ++i) {
+    aAssertFunc(aCollection[i]);
+  }
+}
+
+var XHTML = "http://www.w3.org/1999/xhtml";
+var div, images, c;
+
+setup(function() {
+  div = document.getElementById("test");
+  var foreign =
+    div.appendChild(document.createElementNS("http://example.org", "img"));
+  foreign.setAttribute("id", "f");
+
+  images = [].slice.call(div.getElementsByTagNameNS(XHTML, "img"));
+
+  c = document.images;
+});
+
+test(function() {
+  assert_equals(c.length, 10);
+  assert_array_equals(c, images);
+
+  assert_all(function (aElement) {
+    assert_equals(aElement.namespaceURI, XHTML);
+  }, c);
+}, "document.images should contain all HTML img elements");
+
+test(function() {
+  assert_equals(c.x, images[1]);
+  assert_equals(c.namedItem("x"), images[1]);
+  assert_true("x" in c, '"x" in c');
+}, "img with id");
+
+test(function() {
+  assert_equals(c.y, images[2]);
+  assert_equals(c.namedItem("y"), images[2]);
+  assert_true("y" in c, '"y" in c');
+}, "img with name");
+
+test(function() {
+  assert_equals(c.z1, images[3]);
+  assert_equals(c.namedItem("z1"), images[3]);
+  assert_true("z1" in c, '"z1" in c');
+  assert_equals(c.z2, images[3]);
+  assert_equals(c.namedItem("z2"), images[3]);
+  assert_true("z2" in c, '"z2" in c');
+}, "img with id and name");
+
+test(function() {
+  assert_equals(c.a, images[4]);
+  assert_equals(c.namedItem("a"), images[4]);
+  assert_true("a" in c, '"a" in c');
+}, "Two img elements with the same id");
+
+test(function() {
+  assert_equals(c.b, images[6]);
+  assert_equals(c.namedItem("b"), images[6]);
+  assert_true("b" in c, '"b" in c');
+}, "Two img elements with the same name");
+
+test(function() {
+  assert_equals(c.c, undefined);
+  assert_equals(c.namedItem("c"), null);
+  assert_false("c" in c, '"c" in c');
+}, "Unknown name should not be in the collection");
+
+test(function() {
+  assert_equals(c.f, undefined);
+  assert_equals(c.namedItem("f"), null);
+  assert_false("f" in c, '"f" in c');
+}, "Foreign element should not be in the collection");
+
+test(function() {
+  assert_equals(c.input, undefined);
+  assert_equals(c.namedItem("input"), null);
+  assert_false("input" in c, '"input" in c');
+  var input = div.getElementsByTagName("input")[0];
+  assert_all(function (aElement) {
+    assert_not_equals(aElement.namespaceURI, input);
+  }, c);
+}, "Input elements should not be in the collection");
+
+test(function() {
+  assert_equals(c[""], undefined);
+  assert_equals(c.namedItem(""), null);
+  assert_false("" in c, '"" in c');
+}, "The empty string should not be in the collections");
+
+test(function() {
+  var div = document.getElementById("test");
+  var imgs = document.images;
+  assert_true(imgs instanceof HTMLCollection);
+  assert_equals(imgs.length, 10);
+
+  var img = document.createElement("img");
+  div.appendChild(img);
+  assert_equals(imgs.length, 11);
+
+  div.removeChild(img);
+  assert_equals(imgs.length, 10);
+}, "Document.images should be a live collection");
+</script>

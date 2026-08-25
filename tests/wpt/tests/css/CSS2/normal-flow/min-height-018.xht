@@ -1,0 +1,40 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Min-height using points with a positive nominal value, +72pt</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-10-30 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#propdef-min-height" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#min-max-heights" />
+        <link rel="match" href="height-006-ref.xht" />
+
+        <meta name="assert" content="The 'min-height' property sets a positive nominal length value in points." />
+        <style type="text/css">
+            div
+            {
+                position: relative;
+            }
+            #div2
+            {
+                background: black;
+                min-height: +72pt;
+                width: 1in;
+            }
+            #div3
+            {
+                border-top: 72pt solid black;
+                left: 100px;
+                position: absolute;
+                top: 0;
+                width: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if 2 black squares have the same height.</p>
+        <div id="div1">
+            <div id="div2"></div>
+            <div id="div3"></div>
+        </div>
+    </body>
+</html>

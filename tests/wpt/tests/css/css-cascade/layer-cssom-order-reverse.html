@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<title>CSS Cascade Layers: at-rule and style invalidation on layer order changes</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-5/#layering">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#reference {
+  color: green;
+  font: 20px/1 ahem;
+  width: max-content;
+}
+</style>
+
+<div id=target>Lorem ipsum</div>
+<div id=reference>Lorem ipsum</div>
+
+<script>
+const testCases = [
+  {
+    title: 'Insert layer invalidates style',
+    sheets: [
+      '',
+      `
+        @layer first {
+          #target { color: green; }
+        }
+        @layer second {
+          #target { color: red; }
+        }
+      `,
+    ],
+    update: function(sheets) {
+      sheets[0].insertRule('@layer second {}', 0);
+    },
+    property: 'color',
+  },
+  {
+    title: 'Delete layer invalidates style',
+    sheets: [
+      '@layer second {}',
+      `
+        @layer first {
+          #target { color: red; }
+        }
+        @layer second {
+          #target { color: green; }
+        }
+      `,
+    ],
+    update: function(sheets) {
+      sheets[0].deleteRule(0);
+    },
+    property: 'color',
+  },
+  {
+    title: 'Insert layer invalidates @font-face',
+    sheets: [
+      '',
+      `
+        @layer first {
+          @font-face {
+            font-family: custom;
+            src: local('Ahem'), url('/fonts/Ahem.ttf');
+          }
+        }
+        @layer second {
+          @font-face {
+            font-family: custom;
+            src: url('/fonts/noto/noto-sans-v8-latin-regular.woff') format('woff');
+          }
+        }
+        #target { font: 20px/1 custom; width: max-content; }
+      `,
+    ],
+    update: async function(sheets) {
+      await document.fonts.load('20px/1 ahem');
+      await document.fonts.load('20px/1 custom');
+      document.body.offsetLeft; // Force style recalc
+      sheets[0].insertRule('@layer second {}', 0);
+      await document.fonts.load('20px/1 custom');
+    },
+    property: 'width',
+  },
+  {
+    title: 'Delete layer invalidates @font-face',
+    sheets: [
+      '@layer second {}',
+      `
+        @layer first {
+          @font-face {
+            font-family: custom;
+            src: url('/fonts/noto/noto-sans-v8-latin-regular.woff') format('woff');
+          }
+        }
+        @layer second {
+          @font-face {
+            font-family: custom;
+            src: local('Ahem'), url('/fonts/Ahem.ttf');
+          }
+        }
+        #target { font: 20px/1 custom; width: max-content; }
+      `,
+    ],
+    update: async function(sheets) {
+      await document.fonts.load('20px/1 ahem');
+      await document.fonts.load('20px/1 custom');
+      document.body.offsetLeft; // Force style recalc
+      sheets[0].deleteRule(0);
+      await document.fonts.load('20px/1 custom');
+    },
+    property: 'width',
+  },
+];
+
+for (let testCase of testCases) {
+  promise_test(async test => {
+    const styleElements = testCase.sheets.map(sheet => {
+      const element = document.createElement('style');
+      element.appendChild(document.createTextNode(sheet));
+      document.head.appendChild(element);
+      return element;
+    });
+    test.add_cleanup(() => {
+      for (let element of styleElements)
+        element.remove();
+    });
+
+    const sheets = styleElements.map(element => element.sheet);
+    await testCase.update(sheets);
+    const actual = getComputedStyle(target).getPropertyValue(testCase.property);
+    const expected = getComputedStyle(reference).getPropertyValue(testCase.property);
+    assert_equals(actual, expected);
+}, testCase.title);
+}
+</script>

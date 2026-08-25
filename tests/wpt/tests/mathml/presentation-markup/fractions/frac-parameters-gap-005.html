@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<meta charset="utf-8">
+<title>Stack parameters (display gap between numerator and denominator)</title>
+<link rel="help" href="https://w3c.github.io/mathml-core/#fractions-mfrac">
+<link rel="match" href="frac-parameters-gap-005-ref.html"/>
+<meta name="assert" content="Element mfrac with zero linethickness correctly uses the StackDisplayStyleGapMin parameter from the MATH table when denominator contains text.">
+<style>
+  math, mspace, mtext {
+    font-size: 20px;
+  }
+  mtext {
+    font-family: math-text;
+    color: blue;
+  }
+  @font-face {
+    font-family: displaystylegapmin4000;
+    src: url("/fonts/math/stack-displaystylegapmin4000.woff");
+  }
+  @font-face {
+    /*
+      math-text has the following properties:
+      - typo/hhea/win metrics: 2.5em ascent and 2.5em descent.
+      - glyph A: .5em ascent and .5em descent.
+      - glyph B: 1em ascent and 0em descent.
+      - glyph C: 0em ascent and 1em descent.
+     */
+    font-family: math-text;
+    src: url("/fonts/math/math-text.woff");
+  }
+  #reference {
+    background: green;
+  }
+  #frame {
+    position: absolute;
+    border-top: 4px solid black;
+    border-bottom: 4px solid black;
+    width: 100%;
+  }
+</style>
+<script src="/mathml/support/fonts.js"></script>
+<script>
+  function runTests() {
+    var div = document.getElementById("frame");
+    var refBox = document.getElementById("reference").getBoundingClientRect();
+    div.style.top = `${refBox.top-2}px`;
+    div.style.height = `${refBox.height-4}px`;
+    document.documentElement.classList.remove('reftest-wait');
+  }
+  window.addEventListener("load", () => { loadAllFonts().then(runTests); });
+</script>
+</head>
+<body>
+  <p>
+    This test passes if the blue squares are aligned:
+  </p>
+  <p>
+    <math display="block" style="font-family: displaystylegapmin4000">
+      <!-- This is a dummy mspace element to ensure that the font ascent/descent does not affect the size of the math element. -->
+      <mspace height="10em" depth="10em"/>
+      <!--
+           The gap between the numerators/denominators and the math axis must StackDisplayStyleGapMin / 2.
+           The gap should be calculated using the exact bounding box of the glyphs.
+           The numerator descent is .5em + the denominator ascent.
+           Hence glyphs A, B, C should be rendered at the same vertical position, even if they have different ascent/descent.
+        -->
+      <mfrac linethickness="0px">
+        <mspace width="3em" depth="1em"/>
+        <mspace id="reference" width="3em" height=".5em" depth=".5em"/>
+      </mfrac>
+      <mfrac linethickness="0px">
+        <mspace width="3em" depth="1em"/>
+        <mtext>A</mtext>
+      </mfrac>
+      <mfrac linethickness="0px">
+        <mspace width="3em" depth="1.5em"/>
+        <mtext>B</mtext>
+      </mfrac>
+      <mfrac linethickness="0px">
+        <mspace width="3em" depth=".5em"/>
+        <mtext>C</mtext>
+      </mfrac>
+    </math>
+  </p>
+  <div id="frame"></div>
+  <script src="/mathml/support/feature-detection.js"></script>
+  <script>MathMLFeatureDetection.ensure_for_match_reftest("has_mfrac");</script>
+</body>
+</html>

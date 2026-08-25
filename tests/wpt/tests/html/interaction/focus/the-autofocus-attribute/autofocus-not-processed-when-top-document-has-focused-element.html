@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+
+<input id="focused">
+
+<script>
+'use strict';
+
+promise_test(async () => {
+  await waitForLoad(window);
+
+  // Focus an element in the top document directly.
+  document.querySelector('#focused').focus();
+  assert_equals(document.activeElement, document.querySelector('#focused'),
+    'Prereq: input should be focused');
+
+  let input = document.createElement('input');
+  input.autofocus = true;
+  document.body.appendChild(input);
+
+  await waitUntilStableAutofocusState();
+  assert_equals(document.activeElement, document.querySelector('#focused'),
+    'activeElement should not be changed');
+  assert_not_equals(document.activeElement, input);
+}, 'If topDocument\'s focused area is topDocument but has a focused element, autofocus is not processed.');
+</script>

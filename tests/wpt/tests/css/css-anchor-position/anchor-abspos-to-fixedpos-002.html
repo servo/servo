@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>Abspos element anchored to fixed-positioned anchor: scroll position 200px</title>
+<link rel="author" href="mailto:fantasai@inkedblade.net">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/">
+<link rel="match" href="reference/anchor-abspos-to-fixedpos-002-ref.html">
+<style>
+body {
+  margin: 0;
+  height: 2000px;
+}
+
+div {
+  width: 100px;
+  height: 100px;
+}
+
+#anchor {
+  position: fixed;
+  left: 0;
+  top: 0;
+  anchor-name: --a;
+  background: orange;
+}
+
+#anchored {
+  position: absolute;
+  position-anchor: --a;
+  position-area: bottom right;
+  background: green;
+}
+</style>
+
+<div id="anchor"></div>
+<div id="anchored"></div>
+
+<script>
+document.documentElement.scrollTop = 200;
+</script>

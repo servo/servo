@@ -1,0 +1,43 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Block boxes within inline boxes are affected by positioning</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-04-04 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#anonymous-block-level" />
+        <link rel="match" href="inline-box-002-ref.xht" />
+
+        <meta name="assert" content="Block boxes within inline boxes are also affected by relative positioning on the inline box." />
+        <style type="text/css">
+            #div1
+            {
+                background: yellow;
+                height: 2in;
+                position: relative;
+                width: 2in;
+            }
+            #div2
+            {
+                background: blue;
+                display: inline;
+                position: relative;
+                top: 2in;
+            }
+            #div3
+            {
+                background: orange;
+                width: 2in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if an orange stripe is between two shorter blue stripes and all three stripes are below a yellow square.</p>
+        <div id="div1">
+            <div id="div2">
+                Filler Text
+                <div id="div3">Filler Text</div>
+                Filler Text
+            </div>
+        </div>
+    </body>
+</html>

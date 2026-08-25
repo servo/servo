@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!-- Testcase to ensure we handle ::before and ::after pseudo-elements on
+     a flex container and treat them as flex items (e.g. honoring "align-self",
+     and not merging them into anonymous flex items formed around text).
+-->
+<html>
+<head>
+  <title>CSS Test: Testing that generated content nodes are treated as a flex items</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#flex-items">
+  <link rel="match" href="flexbox-with-pseudo-elements-001-ref.html">
+  <meta charset="utf-8">
+  <style>
+    .flexContainer {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      height: 50px;
+      width: 300px;
+      margin-bottom: 2px;
+      background: lightgray;
+    }
+    div.withBefore::before {
+      align-self: center;
+      content: 'b';
+      background: yellow;
+    }
+    div.withAfter::after {
+      align-self: center;
+      content: 'a';
+      background: lightblue;
+    }
+  </style>
+</head>
+<body>
+  <div class="flexContainer withBefore">
+    x
+    <div>y</div>
+    z
+  </div>
+  <div class="flexContainer withAfter">
+    x
+    <div>y</div>
+    z
+  </div>
+  <div class="flexContainer withBefore withAfter">
+    x
+    <div>y</div>
+    z
+  </div>
+</body>
+</html>

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Tests that the width attribute of FontFace works</title>
+<link rel="author" href="mailto:descalante@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-font-loading/#fontface-interface">
+<link rel="help" href="https://www.w3.org/TR/css-fonts-4/#font-width-prop">
+<link rel="match" href="font-face-width-descriptor-aliasing-ref.html">
+<script>
+// First test baseline at 100%
+const font1 = new FontFace(
+    'Testing1',
+    'url("./resources/variabletest_matching.ttf")'
+);
+// test width on it's own
+const font2 = new FontFace(
+    'Testing2',
+    'url("./resources/variabletest_matching.ttf")'
+    , {width: "200%"}
+);
+// test stretch on it's own
+const font3 = new FontFace(
+    'Testing3',
+    'url("./resources/variabletest_matching.ttf")'
+    , {stretch: "200%"}
+);
+// test width takes priority over width
+const font4 = new FontFace(
+    'Testing4',
+    'url("./resources/variabletest_matching.ttf")'
+    , {stretch: "50%", width: "200%"}
+);
+document.fonts.add(font1);
+document.fonts.add(font2);
+document.fonts.add(font3);
+document.fonts.add(font4);
+</script>
+<style>
+div {
+  font-size: 80px;
+}
+#target1 {
+  font-family: "Testing1";
+}
+#target2 {
+  font-family: "Testing2";
+}
+#target3 {
+  font-family: "Testing3";
+}
+#target4 {
+  font-family: "Testing4";
+}
+
+</style>
+
+<div id="target1">
+  M
+</div>
+<div id="target2">
+  M
+</div>
+<div id="target3">
+  M
+</div>
+<div id="target4">
+  M
+</div>

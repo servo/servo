@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>drag &amp; drop - no special cursor for draggable item</title>
+<style>
+  body > div {
+    height: 200px;
+    width: 200px;
+    background-color: orange;
+    position: absolute;
+    top: 8px;
+    left: 8px;
+  }
+  body > div + div {
+    background-color: navy;
+    left: 250px;
+  }
+  p:first-of-type {
+    margin-top: 220px;
+  }
+</style>
+
+<div draggable='true'></div><div></div>
+
+<!-- In theory a "move" cursor would be better, but browsers have decided to allow the author to choose that
+- this test checks for browser compatibility. -->
+<p>Move your mouse over the orange box and blue box. It should show the same default mouse cursor in both cases.</p>
+<p>This test only applies to platforms with a mouse cursor that can change to indicate drop status.</p>
+<noscript><p>Enable JavaScript and reload</p></noscript>

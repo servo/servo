@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1119400">
+<fieldset>
+  <legend id="legend1"></legend>
+  <legend id="legend2"><div id="child" style="float:left;"></div></legend>
+</fieldset>
+<script>
+  requestAnimationFrame(()=> {
+      requestAnimationFrame(()=> {
+          legend1.style.display = "none";
+          document.body.offsetTop;
+
+          child.style.width = "22px";
+          document.body.offsetTop;
+
+          child.style.display = "none";
+      });
+  });
+</script>

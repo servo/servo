@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-trim">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/5335#issuecomment-1908655635">
+<meta name="assert" content="Test that normal text box trimming works inside of pagination, with trimming being applied far away from the page edges. How to treat trimming at page edges depends on the implementation.">
+<link rel="match" href="not-at-page-edges-003-print-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  @page {
+    size: 400px;
+    margin: 0;
+  }
+  :root {
+    print-color-adjust: exact;
+  }
+  body {
+    margin: 0;
+  }
+</style>
+<div style="height:100px;"></div>
+<div style="text-box-trim:trim-end; font:20px/60px Ahem; background:yellow;">
+  xxx
+  <div style="height:400px;"></div>
+  xxx
+</div>

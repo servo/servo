@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: sizing of line-clamp elements with ruby annotations</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-028-ref.html">
+<meta name="assert" content="The sizing of a line-clamp element should be exactly as if it had no content after clamp, even if there are ruby annotations involved.">
+<style>
+.clamp {
+  line-clamp: 3;
+  font-size: 16px / 16px serif;
+  white-space: pre-wrap;
+  background-color: yellow;
+  padding-bottom: 1em;
+}
+ruby.under {
+  ruby-position: under;
+}
+.large {
+  font-size: 3em;
+}
+</style>
+<div class="clamp">Line 1
+Line 2
+<ruby class="under">Line 3<rt>ruby</ruby>
+<ruby>Line 4<rt class="large">ruby</ruby>
+Line 5
+<ruby class="under">Line 6<rt class="large">ruby</ruby></div>

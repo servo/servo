@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset=utf-8>
+  <title>&lt;applet&gt;</title>
+</head>
+<body>
+
+  <!-- is structured inline -->
+  <p><applet
+      archive="uri1,uri2"
+      code="foo"
+      codebase="uri"
+      height="40"
+      width="40"
+      name="sth"
+      class="class"
+      lang="en"></applet></p>
+
+  <!-- is strictly inline -->
+  <p><dfn><applet
+      archive="uri1,uri2"
+      code="foo"
+      codebase="uri"
+      height="40"
+      width="40"
+      name="sth"
+      class="class"
+      lang="en"></applet></dfn></p>
+
+  <!-- is block -->
+  <applet
+    archive="uri1,uri2"
+    code="foo"
+    codebase="uri"
+    height="40"
+    width="40"
+    name="sth"
+    class="class"
+    lang="en"></applet>
+
+  <!-- can contain inline while in inline context, but param must come first -->
+  <p>paragraph
+    <applet code="foo" width="10" height="10">
+        <em>some</em> <ul><li>inline</li></ul> content
+    </applet>
+  </p>
+  <p>paragraph
+    <applet code="foo" width="10" height="10">
+        <param name="foo"><param name="bar">
+        <em>some</em> <ul><li>inline</li></ul> content
+    </applet>
+  </p>
+
+  <!-- can contain strictly inline while in strictly inline context, but param must come first -->
+  <p><dfn>strictly inline
+    <applet code="foo" width="10" height="10">
+        <em>text</em>
+    </applet>
+  </dfn></p>
+  <p><dfn>strictly inline
+    <applet code="foo" width="10" height="10">
+        <param name="foo"><param name="bar">
+        <em>text</em>
+    </applet>
+  </dfn></p>
+
+  <!-- can contain blocks while in block context, but param must come first -->
+  <applet code="foo" width="10" height="10">
+    <p>text</p>
+  </applet>
+  <applet code="foo" width="10" height="10">
+    <param name="foo"><param name="bar">
+    <p>text</p>
+  </applet>
+
+  <!-- can contain interactive if ancestor does not forbid it, but param must come first -->
+  <p>paragraph
+    <applet code="foo" width="10" height="10">
+      <a>link</a>
+    </applet>
+  </p>
+  <p>paragraph
+    <applet code="foo" width="10" height="10">
+      <param name="foo"><param name="bar">
+      <a>link</a>
+    </applet>
+  </p>
+  <p><dfn>strictly inline
+    <applet code="foo" width="10" height="10">
+      <a>link</a>
+    </applet>
+  </dfn></p>
+  <p><dfn>strictly inline
+    <applet code="foo" width="10" height="10">
+     <param name="foo"><param name="bar">
+     <a>link</a>
+    </applet>
+  </dfn></p>
+  <applet code="foo" width="10" height="10">
+    <p><a>link</a></p>
+  </applet>
+  <applet code="foo" width="10" height="10">
+    <param name="foo"><param name="bar">
+    <p><a>link</a></p>
+  </applet>
+</body>
+</html>

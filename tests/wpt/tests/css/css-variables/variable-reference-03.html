@@ -1,0 +1,21 @@
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!DOCTYPE html>
+<title>CSS Test: Test the use of two variables in a non-custom property where the variable values are inherited and one of the variable values consists only of white space.</title>
+<link rel="author" title="Cameron McCormack" href="mailto:cam@mcc.id.au">
+<link rel="help" href="http://www.w3.org/TR/css-variables-1/#using-variables">
+<link rel="match" href="support/color-green-ref.html">
+<style>
+:root {
+  --a: green;
+  --b: ;
+  color: red;
+}
+p {
+  color: crimson;
+  color: var(--a) var(--b);
+}
+</style>
+<p>This text must be green.</p>

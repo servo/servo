@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Web NFC Test: insecure context</title>
+<link rel="author" title="Intel" href="http://www.intel.com"/>
+<link rel="help" href="https://w3c.github.io/web-nfc/"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<h2>Note</h2>
+<ol>
+  <li>
+    Run test is an insecure context, e.g. http://example.com/
+  </li>
+</ol>
+<script>
+
+"use strict";
+
+test(t => {
+  assert_false(isSecureContext);
+  assert_false('NDEFReader' in window);
+}, 'NDEFReader requires a secure context');
+
+</script>

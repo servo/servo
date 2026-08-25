@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta name="assert" content="Test hit-testing when block-in-inline is in culled inline">
+<link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#anonymous-block-level">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-document-elementfrompoint">
+<link rel="author" title="Koji Ishii" href="mailto:kojii@chromium.org" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <div>
+    <span>
+      <span style="outline: 1px solid blue">
+        <div id="target">
+          <div style="width: 64px; height: 26px;">
+          </div>
+        </div>
+      </span>
+    </span>
+  </div>
+<script>
+test(() => {
+  const target = document.getElementById('target');
+  const bounds = target.getBoundingClientRect();
+  const x = bounds.x + bounds.width / 2;
+  const y = bounds.y + bounds.height / 2;
+  const result = document.elementFromPoint(x, y);
+  assert_equals(result, target);
+});
+</script>
+</body>

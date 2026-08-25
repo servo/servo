@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<title>
+    CSS Gap Decorations: Fragmented flex container gaps are painted with different sized gaps per line due to content distribution.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-gaps-1/">
+<link rel="match" href="flex-gap-decorations-fragmentation-015-ref.html">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+    .multi-column {
+        columns: 2;
+        height: 102px;
+        column-width: 400px;
+        width: 804px;
+        gap: 4px;
+    }
+
+    body {
+        margin: 0px;
+    }
+
+    #flexbox {
+        width: 400px;
+        border: 2px solid #333;
+
+        background-color: #fff;
+
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        column-rule: 5px solid gold;
+    }
+
+    .item {
+        width: 70px;
+        height: 50px;
+        background-color: #007bff;
+        color: white;
+        display: flex;
+    }
+</style>
+<div class="multi-column">
+<div id="flexbox">
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+</div>
+</div>

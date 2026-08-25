@@ -1,0 +1,64 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Program Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas" width="2" height="2"> </canvas>
+<script id="vertexShader" language="x-shader/x-vertex">
+void main()
+{
+  gl_Position = vec4(0.0, 0.0, 0.0, 1.0);
+}
+</script>
+<script id="fragmentShader" language="x-shader/x-fragment">
+precision mediump float;
+void main()
+{
+  gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+}
+</script>
+<script>
+"use strict";
+description('getProgramInfoLog should not return \\0');
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("canvas");
+if (!gl) {
+  testFailed("context does not exist");
+} else {
+  testPassed("context exists");
+}
+
+debug("");
+
+var program = wtu.loadProgramFromScript(gl, 'vertexShader', 'fragmentShader');
+var infolog = gl.getProgramInfoLog(program);
+if (infolog === '\0') {
+  testFailed("getProgramInfoLog should not return '\\0'");
+} else {
+  testPassed("getProgramInfoLog didn't return '\\0'");
+}
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

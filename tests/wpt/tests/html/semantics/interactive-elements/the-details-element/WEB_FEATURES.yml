@@ -1,0 +1,4 @@
+rules:
+- name-attribute.html: [details-name]
+- details-toggle-source.html: [toggleevent-source]
+- details-toggle-source-commandfor.tentative.html: [toggleevent-source]

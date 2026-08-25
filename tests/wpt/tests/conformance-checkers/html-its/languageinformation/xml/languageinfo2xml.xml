@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<text language="en">
+ <head>
+  <its:rules version="2.0" xmlns:its="http://www.w3.org/2005/11/its"
+   xmlns:xlink="http://www.w3.org/1999/xlink"  xlink:href="languageinfo2xmlrules.xml">
+   <its:langRule selector="//content/item/text" langPointer="../lang"/>
+  </its:rules>
+ </head>
+ <content>
+  <item>
+   <lang>en</lang>
+   <text>The motto of Québec is: <q language="fr-CA">Je me souviens</q>.</text>
+  </item>
+  <item>
+   <lang>fr-CA</lang>
+   <text>La devise du Québec est : <q>Je me souviens</q>.</text>
+  </item>
+ </content>
+</text>

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>Test same-element line-height dependency with lh unit</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-values/#font-relative-lengths">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="fuzzy" content="maxDifference=0-1; totalPixels=0-5000">
+<style>
+div {
+    background-image: linear-gradient(green, green);
+    background-repeat: no-repeat;
+    background-size: 100px 1lh;
+    line-height: 100px;
+    width: 100px;
+    color: transparent;
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div>.</div>

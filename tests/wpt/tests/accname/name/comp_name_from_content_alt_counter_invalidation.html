@@ -1,0 +1,38 @@
+<!doctype html>
+<title>Name Comp: Name From Alt Counter in Content Invalidation</title>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/wai-aria/scripts/aria-utils.js"></script>
+<style type="text/css">
+.alt-counter::before {
+  counter-set: cnt 5051;
+  content: "" / counter(cnt);
+}
+</style>
+
+<p>Tests the <a href="https://w3c.github.io/accname/#comp_name_from_content">#comp_name_from_content</a> portions of the AccName <em>Name Computation</em> algorithm.</p>
+
+<p>This series of tests exercises the button, heading, and link elements, because each have different characteristics worthy of testing in each of the name computation algorithm scenarios:</p>
+<ul>
+  <li>button is a leaf node with sub-level elements presentational.</li>
+  <li>heading is block level, and can contain sub-level interactives like links.</li>
+  <li>link (a[href]) is an interactive inline element that can include non-presentational descendants.</li>
+</ul>
+
+<h1>alt counter with ::before</h1>
+<button data-expectedlabel="228 label" data-testname="button with alt counter on ::before" class="ex alt-counter">label</button><br>
+<h3 data-expectedlabel="228 label" data-testname="heading with alt counter on ::before" class="ex alt-counter">label</h3>
+<a href="#" data-expectedlabel="228 label" data-testname="link with alt counter on ::before" class="ex alt-counter">label</a><br>
+<br>
+
+<script>
+document.documentElement.offsetTop;
+let sheet = document.styleSheets[0];
+sheet.cssRules[0].style.counterSet = "cnt 228";
+document.documentElement.offsetTop;
+AriaUtils.verifyLabelsBySelector(".ex");
+</script>

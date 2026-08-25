@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>href - use element</title>
+<meta name="assert" content="The use element should accept href">
+<link rel="match" href="href-use-element-ref.html">
+<body>
+  <svg style="display: none">
+    <circle id="refCircle" style="fill: orange" cx="50px" cy="50px" r="50px" />
+    <rect id='refRect' style="fill: red" width="100" height="100" />
+  </svg>
+  <svg width="300" height="300" viewBox="0 0 300 300"
+       xmlns:xlink="http://www.w3.org/1999/xlink">
+    <use href="#refRect" xlink:href="#refCircle"/>
+  </svg>
+</body>

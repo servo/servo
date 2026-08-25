@@ -1,0 +1,110 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "4.2-textDataPositionSelectorValid.json",
+  "assertionType": "must",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "failAndContinue",
+  "errorMessage": "ERROR: Annotation contains a Text Position or Data Position selector that is NOT of format uri and NOT an object having a value key with a single sting value.",
+  "title": "If present all **Selectors of _type_ TextPositionSelector or DataPositionSelector** have both a **_start_ key** and an **_end_ key**, each with a **single non-negative integer value** [model 4.2](https://www.w3.org/TR/annotation-model/#selectors)",
+  "description": "True when no Fragment, Css or XPath selectors present or all such selectors values are of format uri or are objects having a both start and end keys, each with a single non-negative integer value. (Section 4.2)",
+  "type": "object",
+  "patternProperties":
+  {
+    "^(body|target)$":
+    {
+      "oneOf":
+      [
+        {"$ref": "id.json#/definitions/stringUri" },
+        {
+            "allOf":
+            [
+              { "$ref": "#/definitions/selectorSchema" },
+              { "$ref": "#/definitions/itemsSchema" }
+            ]
+        },
+        {
+            "type": "array",
+            "minItems": 1,
+            "items":
+            {
+                "oneOf":
+                [
+                    {"$ref": "id.json#/definitions/stringUri" },
+                    {
+                        "allOf":
+                        [
+                          { "$ref": "#/definitions/selectorSchema" },
+                          { "$ref": "#/definitions/itemsSchema" }
+                        ]
+                    }
+                ]
+            }
+        }
+      ]
+    }
+  },
+  "definitions":
+  {
+      "selectorSchema":
+      {
+        "type": "object",
+        "properties":
+         {
+           "selector":
+            {
+             "oneOf":
+              [
+                {"$ref": "id.json#/definitions/stringUri" },
+                {
+                 "type":"object",
+                 "allOf":
+                 [
+                  { "$ref": "specificResource.json#/definitions/textPositionSelectorTypeValidIfPresent" },
+                  { "$ref": "specificResource.json#/definitions/dataPositionSelectorTypeValidIfPresent" }
+                 ]
+                },
+                {
+                 "type": "array",
+                 "minItems": 1,
+                 "items":
+                 {
+                   "oneOf":
+                   [
+                    {"$ref": "id.json#/definitions/stringUri" },
+                    {
+                     "type":"object",
+                     "allOf":
+                     [
+                      { "$ref": "specificResource.json#/definitions/textPositionSelectorTypeValidIfPresent" },
+                      { "$ref": "specificResource.json#/definitions/dataPositionSelectorTypeValidIfPresent" }
+                     ]
+                    }
+                   ]
+                 }
+                }
+              ]
+            }
+         }
+      },
+
+      "itemsSchema":
+      {
+        "type": "object",
+        "properties":
+        {
+            "items":
+            {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "oneOf":
+                    [
+                        {"$ref": "id.json#/definitions/stringUri" },
+                        {"$ref": "#/definitions/selectorSchema" }
+                    ]
+                }
+            }
+        }
+      }
+  }
+}

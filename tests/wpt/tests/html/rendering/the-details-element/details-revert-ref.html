@@ -1,0 +1,19 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test Reference</title>
+<style>
+  summary {
+    display: list-item;
+    counter-increment: list-item 0;
+    list-style: disclosure-closed inside;
+  }
+  details[open] > summary {
+    list-style-type: disclosure-open;
+  }
+</style>
+<details>
+  <summary>Example</summary>
+</details>
+<details open>
+  <summary>Example</summary>
+</details>

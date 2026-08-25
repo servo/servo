@@ -1,0 +1,25 @@
+<!doctype html>
+<title>SVGPathElement.getPathData() with malformed d attribute</title>
+<link rel="help" href="https://svgwg.org/specs/paths/#InterfaceSVGPathData">
+<link rel="author" title="Virali Purbey" href="mailto:viralipurbey@microsoft.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/getPathData-helpers.js"></script>
+
+<svg>
+  <path id="truncated" d="M 10 20 L"/>
+  <path id="closepathOnly" d="Z"/>
+</svg>
+<script>
+test(() => {
+  // L command is missing its coordinates; parser stops at the error.
+  assert_path_data_equals(truncated.getPathData(), [
+    { type: "M", values: [10, 20] }
+  ]);
+}, "path.getPathData() with malformed d returns segments up to the error");
+
+test(() => {
+  // Path data must start with a moveto; bare "Z" is invalid.
+  assert_path_data_equals(closepathOnly.getPathData(), []);
+}, "path.getPathData() with closepath-only d returns []");
+</script>

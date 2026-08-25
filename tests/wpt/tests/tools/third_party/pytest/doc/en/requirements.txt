@@ -1,0 +1,11 @@
+pallets-sphinx-themes
+pluggy>=1.5.0
+pygments-pytest>=2.3.0
+sphinx-removed-in>=0.2.0
+sphinx>=7
+sphinxcontrib-trio
+sphinxcontrib-svg2pdfconverter
+# Pin packaging because it no longer handles 'latest' version, which
+# is the version that is assigned to the docs.
+# See https://github.com/pytest-dev/pytest/pull/10578#issuecomment-1348249045.
+packaging <22

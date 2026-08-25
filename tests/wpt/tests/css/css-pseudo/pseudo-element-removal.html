@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Pseudos Test: Removing pseudo element under mouse</title>
+<link rel="help" href="https://crbug.com/507117702">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  #target {
+    width: 100px;
+    height: 100px;
+    background: green;
+  }
+  #target.has-pseudo::before {
+    content: "PSEUDO";
+    display: block;
+    width: 100px;
+    height: 100px;
+    background: red;
+  }
+</style>
+<div id="target" class="has-pseudo"></div>
+<script>
+promise_test(async t => {
+  const target = document.getElementById("target");
+
+  // Move mouse to the pseudo element (top-left of #target).
+  await new test_driver.Actions()
+    .pointerMove(10, 10, {origin: target})
+    .send();
+
+  // Remove the pseudo element.
+  target.classList.remove("has-pseudo");
+
+  // Force layout/reflow to ensure the pseudo element is removed.
+  document.body.offsetTop;
+
+  // Move mouse again to set new element under the mouse.
+  await new test_driver.Actions()
+    .pointerMove(20, 20, {origin: target})
+    .send();
+
+  const rect = target.getBoundingClientRect();
+  const elementAtPoint = document.elementFromPoint(rect.left + 10, rect.top + 10);
+  assert_equals(elementAtPoint, target, 'Target element should be under the mouse');
+}, "Removing pseudo element under mouse should not crash");
+</script>

@@ -1,0 +1,18 @@
+rbc {
+  display: ruby-base-container;
+  unicode-bidi: isolate;
+}
+[pseudo] {
+  font-size: inherit;
+  line-height: inherit;
+}
+[pseudo] > rt {
+  font-size: 50%;
+}
+[pseudo] > rt[pseudo] {
+  font-size: inherit;
+}
+
+.large {
+  font-size: 200%;
+}

@@ -1,0 +1,75 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Largest Contentful Paint: src change triggers new entry.</title>
+
+<body>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="resources/largest-contentful-paint-helpers.js"></script>
+  <img src='' id='image_id' />
+  <script>
+    setup({ "hide_test_state": true });
+
+    let first_image_src = '/images/black-rectangle.png';
+    let second_image_src = '/images/blue.png';
+    let image_id = 'image_id';
+
+    // Add listener for load event that is fired when image is loaded.
+    const image_load_promise = image_element => {
+      return new Promise(resolve => {
+        image_element.addEventListener('load', resolve);
+      });
+    }
+
+    // Create a promise that resolves when an LCP is observed.
+    const lcp_observation_promise = image_src => {
+      return new Promise(resolve => {
+        new PerformanceObserver((entryList) => {
+          let lcpEntry = entryList.getEntries().find(e => e.url.includes(image_src));
+
+          if (lcpEntry) {
+            resolve(lcpEntry);
+          }
+
+        }).observe({ type: 'largest-contentful-paint' });
+      });
+    }
+
+    const loadImageAndGetLCPEntry = async image_src => {
+      let LCPObserverPromise = lcp_observation_promise(image_src);
+
+      let image_element = document.getElementById(image_id);
+
+      let promise = image_load_promise(image_element);
+
+      image_element.src = image_src;
+
+      await promise;
+
+      return await LCPObserverPromise;
+    }
+
+    promise_test(async t => {
+
+      assert_implements(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
+
+
+      // Load first image.
+      let beforeLoad = performance.now();
+
+      let first_LCP = await loadImageAndGetLCPEntry(first_image_src);
+
+      // Verify first LCP entry correctness. The black-rectangle.png is 100 x 50.
+      checkImage(first_LCP, window.location.origin + first_image_src, image_id, 100 * 50, beforeLoad);
+
+      // Load second image.
+      beforeLoad = performance.now();
+
+      let second_LCP = await loadImageAndGetLCPEntry(second_image_src);
+
+      // Verify second LCP entry correctness. The blue.png is 133 by 106.
+      checkImage(second_LCP, window.location.origin + second_image_src, image_id, 133 * 106, beforeLoad);
+
+    }, 'Largest Contentful Paint: changing src causes a new entry to be dispatched.');
+  </script>
+</body>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: Choose browsing context - '_top' (case-sensitivity)</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/PrefixedLocalStorage.js"></script>
+<body>
+<div id="log"></div>
+
+<script>
+var prefixedStorage;
+setup(() => prefixedStorage = new PrefixedLocalStorageTest());
+
+async_test(t => {
+  var testFunc = (function (t) {
+    var completed = 0;
+    var testCount = 2;
+    return function (actual, expected) {
+      assert_equals(actual, expected);
+      if (++completed >= testCount) {
+        t.done();
+      }
+    }
+  }(t));
+
+  t.add_cleanup(() => prefixedStorage.cleanup());
+
+  prefixedStorage.onSet('isTop', t.step_func(e => {
+    testFunc(e.newValue, 'true');
+  }));
+  prefixedStorage.onSet('name', t.step_func(e => {
+    testFunc(e.newValue, 'topWin');
+  }));
+
+  window.open(prefixedStorage.url('resources/choose-_top-003-iframe-1.html'), '_blank');
+}, 'choosing _top context should be case-insensitive');
+
+</script>
+</body>

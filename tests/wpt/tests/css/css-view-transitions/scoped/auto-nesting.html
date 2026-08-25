@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="match" href="auto-nesting-ref.html">
+  <link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+  <!-- Anti-aliasing along borders of boxes -->
+  <meta name="fuzzy" content="maxDifference=0-150; totalPixels=0-2400">
+  <title>Auto-nesting</title>
+  <style>
+    .box {
+      height: 100px;
+      width: 100px;
+      view-transition-name: match-element;
+      color: white;
+      margin-bottom: 10px;
+      position: relative;
+    }
+    .c1 {
+      background-color: rebeccapurple;
+    }
+    .c2 {
+      background-color: hotpink;
+    }
+    .c3 {
+      background-color: mediumvioletred;
+    }
+    #a {
+      background-color: #eee;
+      border: 5px solid black;
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 250px;
+      height: 250px;
+      overflow: clip;
+    }
+    #b {
+      background-color: #eee;
+      border: 5px solid black;
+      position: absolute;
+      width: 250px;
+      height: 250px;
+      overflow: visible;
+      left: 300px;
+      top: 0;
+    }
+
+
+  ::view-transition-group(*),
+  ::view-transition-image-pair(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    /* freeze all animations at the end */
+    animation-duration: 100000s;
+    animation-timing-function: steps(1, jump-start);
+  }
+
+  </style>
+  <script src="/common/reftest-wait.js"></script>
+</head>
+<body>
+  <div id="a">
+    <div class="box c1"></div>
+    <div class="box c2"></div>
+    <div class="box c3"></div>
+  </div>
+  <div id="b">
+    <div class="box c1"></div>
+    <div class="box c2"></div>
+    <div class="box c3"></div>
+  </div>
+  </div>
+</body>
+<script>
+  function start_transition(scope) {
+    return scope.startViewTransition(() => {
+      const firstChild = scope.firstElementChild;
+      const lastChild = scope.lastElementChild;
+      scope.insertBefore(lastChild, firstChild);
+    });
+  }
+
+  window.onload = async () => {
+    let vt1 = start_transition(document.getElementById('a'));
+    let vt2 = start_transition(document.getElementById('b'));
+    await Promise.all([vt1.ready, vt2.ready]);
+    requestAnimationFrame(takeScreenshot);
+  }
+</script>
+</html>

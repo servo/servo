@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<body>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+</head>
+<body>
+    <h2>Description</h2>
+    <p>This test validates that pointer lock does not work without user activation.</p>
+    <hr/>
+
+    <div id="target">Target</div>
+
+    <script type="text/javascript" >
+        promise_test(async t => {
+            const target = document.getElementById('target');
+
+            document.addEventListener('pointerlockchange', t.unreached_func("Must not acquire pointer lock."));
+
+            // Request pointer lock twice to ensure two failing promises are returned and both are rejected.
+            const p1 = target.requestPointerLock();
+            const p2 = target.requestPointerLock();
+
+            // ensure that both promises are rejected
+            await promise_rejects_dom(t, "NotAllowedError", p1);
+            await promise_rejects_dom(t, "NotAllowedError", p2);
+        });
+    </script>
+    </body>
+</html>

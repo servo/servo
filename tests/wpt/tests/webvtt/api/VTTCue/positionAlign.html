@@ -1,0 +1,23 @@
+<!doctype html>
+<title>VTTCue.positionAlign</title>
+<link rel="help" href="https://w3c.github.io/webvtt/#dom-vttcue-positionalign">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+test(function(){
+    var cue = new VTTCue(0, 1, 'text');
+    assert_true('positionAlign' in cue, 'positionAlign is not supported');
+
+    ['line-left', 'center', 'line-right', 'auto'].forEach(function(valid) {
+        cue.positionAlign = valid;
+        assert_equals(cue.positionAlign, valid);
+    });
+
+    cue.positionAlign = 'center';
+    ['auto\u0000', 'centre', 'middle'].forEach(function(invalid) {
+        cue.positionAlign = invalid;
+        assert_equals(cue.positionAlign, 'center');
+    });
+}, document.title+', script-created cue');
+</script>

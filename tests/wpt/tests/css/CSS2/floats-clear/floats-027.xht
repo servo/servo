@@ -1,0 +1,43 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Margin affects right floated elements</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats" />
+        <link rel="match" href="floats-027-ref.xht" />
+
+        <meta name="assert" content="Right outer edge of left-floating box cannot be to the right of the left outer edge of any right-floating box that is to the right of it." />
+        <style type="text/css">
+            div
+            {
+                border: solid 5px black;
+                height: 2in;
+                width: 2in;
+            }
+            span
+            {
+                height: 1in;
+                width: 1in;
+            }
+            #span1
+            {
+                background: blue;
+                float: right;
+                margin-left: 10px;
+            }
+            #span2
+            {
+                background-color: orange;
+                float: left;
+                margin-right: 10px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the blue square is aligned on the right side of the hollow black square and is above the orange, left aligned, square.</p>
+        <div>
+            <span id="span1"></span>
+            <span id="span2"></span>
+        </div>
+    </body>
+</html>

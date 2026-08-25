@@ -1,0 +1,15 @@
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<iframe id="i" src="about:blank"></iframe>
+<script>
+async_test(t => {
+  var form = i.contentDocument.createElement('form');
+  form.action = '/common/blank.html';
+  i.contentDocument.body.appendChild(form);
+  i.onload = t.step_func_done(() => {});
+  form.submit();
+  new Document().prepend(form);
+});
+</script>
+</body>

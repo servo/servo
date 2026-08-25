@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<title>Text-indent on blank line in RTL container with text-align:left</title>
+<link rel="author" title="Morten Stenshorne" href="mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/CSS22/text.html#propdef-text-indent" title="16.1 Indentation: the 'text-indent' property">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#text-indent-property"/>
+<link rel="match" href="text-indent-on-blank-line-rtl-left-align-ref.html">
+<p>There should be a hotpink square in the bottom left corner of a larger blue square.</p>
+<div style="text-align:left; direction:rtl; text-indent:300px; line-height:100px; width:200px; background:blue;">
+  <br>
+  <div style="vertical-align:bottom; display:inline-block; width:100px; height:100px; background:hotpink;"></div>
+</div>
