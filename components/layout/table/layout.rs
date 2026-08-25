@@ -1997,15 +1997,28 @@ impl<'a> TableLayout<'a> {
         positioning_context_for_table: &mut PositioningContext,
         is_collapsed: bool,
     ) {
-        // The PositioningContext for cells is, in order or preference, the PositioningContext of the row,
-        // the PositioningContext of the row group, or the PositioningContext of the table.
-        let row_group_positioning_context =
-            row_group_fragment_layout.and_then(|layout| layout.positioning_context.as_mut());
-        let positioning_context = row_fragment_layout
-            .positioning_context
-            .as_mut()
-            .or(row_group_positioning_context)
-            .unwrap_or(positioning_context_for_table);
+        // The PositioningContext for cells is, in order or preference:
+        // 1. the PositioningContext of the row,
+        // 2. the PositioningContext of the row group
+        // 3. the PositioningContext of the table.
+        // In the cases of row group and table, update the parent_absolute_start value accordingly
+        let positioning_context =
+            if let Some(row_context) = row_fragment_layout.positioning_context.as_mut() {
+                row_context
+            } else if let Some(row_group_layout) =
+                row_group_fragment_layout.and_then(|layout| layout.positioning_context.as_mut())
+            {
+                row_fragment_layout
+                    .parent_absolute_start
+                    .get_or_insert((RowAbsPosOwner::RowGroup, row_group_layout.len()));
+                row_group_layout
+            } else {
+                row_fragment_layout
+                    .parent_absolute_start
+                    .get_or_insert((RowAbsPosOwner::Table, positioning_context_for_table.len()));
+
+                positioning_context_for_table
+            };
 
         let layout = match self.cells_laid_out[row_index][column_index].take() {
             Some(layout) => layout,
