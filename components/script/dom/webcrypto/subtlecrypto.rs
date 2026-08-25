@@ -2735,8 +2735,10 @@ pub(crate) fn check_support_for_algorithm(
                 ImportKeyAlgorithm::AesCtr(_) |
                 ImportKeyAlgorithm::AesCbc(_) |
                 ImportKeyAlgorithm::AesGcm(_) |
-                ImportKeyAlgorithm::AesKw(_) |
-                ImportKeyAlgorithm::Hmac(_) |
+                ImportKeyAlgorithm::AesKw(_) => true,
+                ImportKeyAlgorithm::Hmac(normalized_algorithm) => {
+                    normalized_algorithm.length.is_none_or(|length| length != 0)
+                },
                 ImportKeyAlgorithm::Hkdf(_) |
                 ImportKeyAlgorithm::Pbkdf2(_) |
                 ImportKeyAlgorithm::MlKem(_) |

@@ -174,9 +174,20 @@ pub(crate) fn import_key(
     extractable: bool,
     usages: Vec<KeyUsage>,
 ) -> Result<DomRoot<CryptoKey>, Error> {
-    // Step 1. Let keyData be the key data to be imported.
+    // Step 1. If the length member of normalizedAlgorithm is present and is zero, then throw a
+    // DataError.
+    if normalized_algorithm
+        .length
+        .is_some_and(|length| length == 0)
+    {
+        return Err(Error::Data(Some(
+            "The length member of normalizedAlgorithm is present and is zero".into(),
+        )));
+    }
 
-    // Step 2. If usages contains an entry which is not "sign" or "verify", then throw a SyntaxError.
+    // Step 2. Let keyData be the key data to be imported.
+
+    // Step 3. If usages contains an entry which is not "sign" or "verify", then throw a SyntaxError.
     // Note: This is not explicitly spec'ed, but also throw a SyntaxError if usages is empty
     if usages
         .iter()
@@ -188,45 +199,45 @@ pub(crate) fn import_key(
         )));
     }
 
-    // Step 3. Let hash be a new KeyAlgorithm.
+    // Step 4. Let hash be a new KeyAlgorithm.
     let hash;
 
-    // Step 4.
+    // Step 5.
     let data: Zeroizing<Vec<u8>>;
     match format {
         // If format is "raw":
         KeyFormat::Raw | KeyFormat::Raw_secret => {
-            // Step 4.1. Let data be keyData.
+            // Step 5.1. Let data be keyData.
             data = key_data.to_vec().into();
 
-            // Step 4.2. Set hash to equal the hash member of normalizedAlgorithm.
+            // Step 5.2. Set hash to equal the hash member of normalizedAlgorithm.
             hash = &normalized_algorithm.hash;
         },
         // If format is "jwk":
         KeyFormat::Jwk => {
-            // Step 2.1. If keyData is a JsonWebKey dictionary: Let jwk equal keyData.
+            // Step 5.1. If keyData is a JsonWebKey dictionary: Let jwk equal keyData.
             // Otherwise: Throw a DataError.
             // NOTE: Deserialize keyData to JsonWebKey dictionary by running JsonWebKey::parse
             let jwk = JsonWebKey::parse(cx, key_data)?;
 
-            // Step 2.2. If the kty field of jwk is not "oct", then throw a DataError.
+            // Step 5.2. If the kty field of jwk is not "oct", then throw a DataError.
             if jwk.kty.as_ref().is_none_or(|kty| kty != "oct") {
                 return Err(Error::Data(Some(
                     "The kty field of jwk is not \"oct\"".into(),
                 )));
             }
 
-            // Step 2.3. If jwk does not meet the requirements of Section 6.4 of JSON Web
+            // Step 5.3. If jwk does not meet the requirements of Section 6.4 of JSON Web
             // Algorithms [JWA], then throw a DataError.
-            // NOTE: Done by Step 2.4 and 2.6.
+            // NOTE: Done by Step 5.4 and 5.6.
 
-            // Step 2.4. Let data be the byte sequence obtained by decoding the k field of jwk.
+            // Step 5.4. Let data be the byte sequence obtained by decoding the k field of jwk.
             data = jwk.decode_required_string_field(JwkStringField::K)?;
 
-            // Step 2.5. Set the hash to equal the hash member of normalizedAlgorithm.
+            // Step 5.5. Set the hash to equal the hash member of normalizedAlgorithm.
             hash = &normalized_algorithm.hash;
 
-            // Step 2.6.
+            // Step 5.6.
             match hash.name() {
                 // If the name attribute of hash is "SHA-1":
                 CryptoAlgorithm::Sha1 => {
@@ -276,7 +287,7 @@ pub(crate) fn import_key(
                 },
             }
 
-            // Step 2.7. If usages is non-empty and the use field of jwk is present and is not
+            // Step 5.7. If usages is non-empty and the use field of jwk is present and is not
             // "sig", then throw a DataError.
             if !usages.is_empty() && jwk.use_.as_ref().is_some_and(|use_| use_ != "sig") {
                 return Err(Error::Data(Some(
@@ -285,12 +296,12 @@ pub(crate) fn import_key(
                 )));
             }
 
-            // Step 2.8. If the key_ops field of jwk is present, and is invalid according to
+            // Step 5.8. If the key_ops field of jwk is present, and is invalid according to
             // the requirements of JSON Web Key [JWK] or does not contain all of the specified
             // usages values, then throw a DataError.
             jwk.check_key_ops(&usages)?;
 
-            // Step 2.9. If the ext field of jwk is present and has the value false and
+            // Step 5.9. If the ext field of jwk is present and has the value false and
             // extractable is true, then throw a DataError.
             if jwk.ext.is_some_and(|ext| !ext) && extractable {
                 return Err(Error::Data(Some(
@@ -308,17 +319,17 @@ pub(crate) fn import_key(
         },
     }
 
-    // Step 5. Let length be the length in bits of data.
+    // Step 6. Let length be the length in bits of data.
     let mut length = data.len() as u32 * 8;
 
-    // Step 6. If length is zero then throw a DataError.
+    // Step 7. If length is zero then throw a DataError.
     if length == 0 {
         return Err(Error::Data(Some(
             "The length in bits of data is zero".into(),
         )));
     }
 
-    // Step 7. If the length member of normalizedAlgorithm is present:
+    // Step 8. If the length member of normalizedAlgorithm is present:
     if let Some(given_length) = normalized_algorithm.length {
         //  If the length member of normalizedAlgorithm is greater than length:
         if given_length > length {
@@ -335,20 +346,19 @@ pub(crate) fn import_key(
         }
     }
 
-    // Step 10. Let algorithm be a new HmacKeyAlgorithm.
-    // Step 11. Set the name attribute of algorithm to "HMAC".
-    // Step 12. Set the length attribute of algorithm to length.
-    // Step 13. Set the hash attribute of algorithm to hash.
+    // Step 9. Let key be a new CryptoKey object representing an HMAC key with the first length
+    // bits of data.
+    // Step 10. Set the [[type]] internal slot of key to "secret".
+    // Step 11. Let algorithm be a new HmacKeyAlgorithm.
+    // Step 12. Set the name attribute of algorithm to "HMAC".
+    // Step 13. Set the length attribute of algorithm to length.
+    // Step 14. Set the hash attribute of algorithm to hash.
+    // Step 15. Set the [[algorithm]] internal slot of key to algorithm.
     let algorithm = HmacKeyAlgorithm {
         name: CryptoAlgorithm::Hmac,
         hash: hash.clone(),
         length,
     };
-
-    // Step 8. Let key be a new CryptoKey object representing an HMAC key with the first length
-    // bits of data.
-    // Step 9. Set the [[type]] internal slot of key to "secret".
-    // Step 14. Set the [[algorithm]] internal slot of key to algorithm.
     let truncated_data = data[..length as usize / 8].to_vec();
     let key = CryptoKey::new(
         cx,
@@ -360,7 +370,7 @@ pub(crate) fn import_key(
         Handle::Hmac(truncated_data.into()),
     );
 
-    // Step 15. Return key.
+    // Step 16. Return key.
     Ok(key)
 }
 
