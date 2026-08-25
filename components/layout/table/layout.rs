@@ -64,6 +64,11 @@ enum CellContentAlignment {
     Baseline,
 }
 
+enum RowAbsPosOwner {
+    RowGroup,
+    Table,
+}
+
 /// A result of a final or speculative layout of a single cell in
 /// the table. Note that this is only done for slots that are not
 /// covered by spans or empty.
@@ -2283,6 +2288,7 @@ struct RowFragmentLayout<'a> {
     containing_block: ContainingBlock<'a>,
     positioning_context: Option<PositioningContext>,
     fragments: Vec<Fragment>,
+    parent_absolute_start: Option<(RowAbsPosOwner, PositioningContextLength)>,
 }
 
 impl<'a> RowFragmentLayout<'a> {
@@ -2306,6 +2312,7 @@ impl<'a> RowFragmentLayout<'a> {
             positioning_context: PositioningContext::new_for_layout_box_base(&table_row.base),
             containing_block,
             fragments: Vec::new(),
+            parent_absolute_start: None,
         }
     }
     fn finish(
