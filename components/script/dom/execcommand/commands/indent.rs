@@ -197,20 +197,20 @@ pub(crate) fn execute_indent_command(
     //         if node is editable and is an allowed child of "div" or "ol"
     //         and if the last member of node list (if any) is not an ancestor of node,
     //         append node to node list.
-    for node in new_range.contained_nodes() {
+    for node in new_range.contained_nodes(cx.no_gc()) {
         if node.is_editable() &&
             (is_allowed_child(
-                NodeOrString::from_node(&node, cx.no_gc()),
+                NodeOrString::Node(node.clone()),
                 NodeOrString::String("div".to_owned()),
             ) || is_allowed_child(
-                NodeOrString::from_node(&node, cx.no_gc()),
+                NodeOrString::Node(node.clone()),
                 NodeOrString::String("ol".to_owned()),
             )) &&
             node_list
                 .last()
                 .is_none_or(|last| !last.is_ancestor_of(&node))
         {
-            node_list.push(node);
+            node_list.push(node.as_rooted());
         }
     }
 

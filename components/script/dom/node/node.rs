@@ -1698,6 +1698,17 @@ impl Node {
         SimpleNodeIterator::new(self.GetParentNode(), |n| n.GetParentNode())
     }
 
+    pub(crate) fn ancestors_unrooted<'a>(
+        &self,
+        no_gc: &'a NoGC,
+    ) -> impl Iterator<Item = UnrootedDom<'a, Node>> + use<'a> {
+        UnrootedSimpleNodeIterator::new(
+            self.get_parent_node_unrooted(no_gc),
+            |n, no_gc| n.get_parent_node_unrooted(no_gc),
+            no_gc,
+        )
+    }
+
     /// <https://dom.spec.whatwg.org/#concept-shadow-including-inclusive-ancestor>
     pub(crate) fn inclusive_ancestors(
         &self,
