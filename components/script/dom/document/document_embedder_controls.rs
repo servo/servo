@@ -438,11 +438,8 @@ impl ContextMenuNodes {
             let Some(browsing_context) = document.browsing_context() else {
                 return;
             };
-            let (browsing_context, new) = browsing_context.choose_browsing_context(
-                cx,
-                "_blank".into(),
-                true, /* nooopener */
-            );
+            let (browsing_context, new) =
+                browsing_context.choose_a_navigable(cx, "_blank".into(), true /* noopener */);
             let Some(browsing_context) = browsing_context else {
                 return;
             };

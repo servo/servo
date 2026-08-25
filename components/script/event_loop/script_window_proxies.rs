@@ -6,7 +6,6 @@ use rustc_hash::FxBuildHasher;
 use script_bindings::cell::DomRefCell;
 use script_bindings::inheritance::Castable;
 use script_bindings::root::{Dom, DomRoot};
-use script_bindings::str::DOMString;
 use servo_base::generic_channel;
 use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
 use servo_constellation_traits::ScriptToConstellationMessage;
@@ -33,16 +32,13 @@ impl ScriptWindowProxies {
             .map(|context| DomRoot::from_ref(&**context))
     }
 
-    pub(crate) fn find_window_proxy_by_name(
-        &self,
-        name: &DOMString,
-    ) -> Option<DomRoot<WindowProxy>> {
-        for proxy in self.map.borrow().values() {
-            if proxy.get_name() == *name {
-                return Some(DomRoot::from_ref(&**proxy));
-            }
-        }
-        None
+    pub(crate) fn top_level_window_proxies(&self) -> Vec<DomRoot<WindowProxy>> {
+        self.map
+            .borrow()
+            .values()
+            .filter(|proxy| proxy.parent().is_none())
+            .map(|proxy| proxy.as_rooted())
+            .collect()
     }
 
     pub(crate) fn insert(&self, id: BrowsingContextId, proxy: &WindowProxy) {

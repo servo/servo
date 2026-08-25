@@ -765,12 +765,6 @@ impl ScriptThread {
         with_script_thread(|script_thread| script_thread.window_proxies.clone())
     }
 
-    pub(crate) fn find_window_proxy_by_name(name: &DOMString) -> Option<DomRoot<WindowProxy>> {
-        with_script_thread(|script_thread| {
-            script_thread.window_proxies.find_window_proxy_by_name(name)
-        })
-    }
-
     fn handle_register_paint_worklet(
         &self,
         pipeline_id: PipelineId,
@@ -3219,7 +3213,7 @@ impl ScriptThread {
         &self,
         webview_id: WebViewId,
         pipeline_id: PipelineId,
-        discard_bc: DiscardBrowsingContext,
+        discard_browsing_context: DiscardBrowsingContext,
         cx: &mut js::context::JSContext,
     ) {
         debug!("{pipeline_id}: Starting pipeline exit.");
@@ -3254,8 +3248,10 @@ impl ScriptThread {
                 // We discard the browsing context after requesting layout shut down,
                 // to avoid running layout on detached iframes.
                 let window = document.window();
-                if discard_bc == DiscardBrowsingContext::Yes {
+                if discard_browsing_context == DiscardBrowsingContext::Yes {
+                    let browsing_context_id = window.window_proxy().browsing_context_id();
                     window.discard_browsing_context();
+                    self.window_proxies.remove(browsing_context_id);
                 }
 
                 // Clear the image cache now, instead of waiting for the Window to be
