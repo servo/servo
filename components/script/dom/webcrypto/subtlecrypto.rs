@@ -2496,7 +2496,12 @@ pub(crate) fn check_support_for_algorithm(
                     normalized_algorithm.iv.len() == 16
                 },
                 EncryptAlgorithm::AesGcm(normalized_algorithm) => {
-                    normalized_algorithm.iv.len() <= u32::MAX as usize &&
+                    normalized_algorithm.iv.len() <= u64::MAX as usize &&
+                        normalized_algorithm
+                            .additional_data
+                            .is_none_or(|additional_data| {
+                                additional_data.len() <= u64::MAX as usize
+                            }) &&
                         normalized_algorithm.tag_length.is_none_or(|length| {
                             matches!(length, 32 | 64 | 96 | 104 | 112 | 120 | 128)
                         })
@@ -2535,10 +2540,12 @@ pub(crate) fn check_support_for_algorithm(
                     normalized_algorithm
                         .tag_length
                         .is_none_or(|length| matches!(length, 32 | 64 | 96 | 104 | 112 | 120 | 128)) &&
-                        normalized_algorithm.iv.len() <= u32::MAX as usize &&
+                        normalized_algorithm.iv.len() <= u64::MAX as usize &&
                         normalized_algorithm
                             .additional_data
-                            .is_none_or(|data| data.len() <= u32::MAX as usize)
+                            .is_none_or(|additional_data| {
+                                additional_data.len() <= u64::MAX as usize
+                            })
                 },
                 DecryptAlgorithm::AesOcb(normalized_algorithm) => {
                     normalized_algorithm.iv.len() <= 15 &&
