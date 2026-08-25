@@ -8,7 +8,8 @@
 #![expect(dead_code)]
 
 use core::ffi::c_char;
-use std::cell::Cell;
+use std::cell::{Cell, LazyCell, RefCell};
+use std::collections::HashSet;
 use std::ffi::{CStr, CString};
 use std::io::{Write, stdout};
 use std::ops::{Deref, DerefMut};
@@ -1094,18 +1095,11 @@ thread_local!(static MALLOC_SIZE_OF_OPS: Cell<*mut MallocSizeOfOps> = const { Ce
 
 #[expect(unsafe_code)]
 unsafe extern "C" fn get_size(obj: *mut JSObject) -> usize {
-    match unsafe { get_dom_class(obj) } {
-        Ok(v) => {
-            let dom_object = unsafe { private_from_object(obj) as *const c_void };
-
-            if dom_object.is_null() {
-                return 0;
-            }
-            let ops = MALLOC_SIZE_OF_OPS.get();
-            unsafe { (v.malloc_size_of)(&mut *ops, dom_object) }
-        },
-        Err(_e) => 0,
-    }
+    let ops = MALLOC_SIZE_OF_OPS.get();
+    ALREADY_COMPUTED_OBJECTS.with(|objects| {
+        let ignored = objects.borrow();
+        compute_size(obj, unsafe { &mut *ops }, &ignored)
+    })
 }
 
 thread_local!(static GC_CYCLE_START: Cell<Option<Instant>> = const { Cell::new(None) });
@@ -1216,13 +1210,45 @@ unsafe fn set_gc_zeal_options(cx: *mut RawJSContext) {
 #[cfg(not(feature = "debugmozjs"))]
 unsafe fn set_gc_zeal_options(_: *mut RawJSContext) {}
 
+thread_local!(pub(crate) static ALREADY_COMPUTED_OBJECTS: LazyCell<RefCell<HashSet<*const JSObject>>> = const {
+    LazyCell::new(Default::default)
+});
+
+#[expect(unsafe_code)]
+pub(crate) fn compute_size(
+    obj: *mut JSObject,
+    ops: &mut MallocSizeOfOps,
+    ignored: &HashSet<*const JSObject>,
+) -> usize {
+    if ignored.contains(&(obj as *const JSObject)) {
+        return 0;
+    }
+
+    match unsafe { get_dom_class(obj) } {
+        Ok(v) => {
+            let dom_object = unsafe { private_from_object(obj) as *const c_void };
+
+            if dom_object.is_null() {
+                return 0;
+            }
+            unsafe { (v.malloc_size_of)(&mut *ops, dom_object) }
+        },
+        Err(_e) => 0,
+    }
+}
+
 #[expect(unsafe_code)]
 pub(crate) fn get_reports(
     cx: &mut JSContext,
     path_seg: String,
     ops: &mut MallocSizeOfOps,
+    already_computed_objects: HashSet<*const JSObject>,
 ) -> Vec<Report> {
     MALLOC_SIZE_OF_OPS.with(|ops_tls| ops_tls.set(ops));
+    ALREADY_COMPUTED_OBJECTS.with(|objects| {
+        *objects.borrow_mut() = already_computed_objects;
+    });
+
     let stats = unsafe {
         let mut stats = ::std::mem::zeroed();
         if !CollectServoSizes(cx, &mut stats, Some(get_size)) {
@@ -1231,6 +1257,11 @@ pub(crate) fn get_reports(
         stats
     };
     MALLOC_SIZE_OF_OPS.with(|ops| ops.set(ptr::null_mut()));
+    ALREADY_COMPUTED_OBJECTS.with(|objects| {
+        let mut objects = objects.borrow_mut();
+        objects.clear();
+        objects.shrink_to_fit();
+    });
 
     let mut reports = vec![];
     let mut report = |mut path_suffix, kind, size| {

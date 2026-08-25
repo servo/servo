@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{OnceCell, RefCell, RefMut};
+use std::collections::HashSet;
 use std::default::Default;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -1120,7 +1121,8 @@ impl WorkerGlobalScope {
             CommonScriptMsg::Task(_, task, _, _) => task.run_box(cx),
             CommonScriptMsg::CollectReports(reports_chan) => {
                 perform_memory_report(|ops| {
-                    let reports = get_reports(cx, format!("url({})", self.get_url()), ops);
+                    let reports =
+                        get_reports(cx, format!("url({})", self.get_url()), ops, HashSet::new());
                     reports_chan.send(ProcessReports::new(reports));
                 });
             },

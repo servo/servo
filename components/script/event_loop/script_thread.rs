@@ -2793,16 +2793,19 @@ impl ScriptThread {
         let urls = itertools::join(documents.iter().map(|(_, d)| d.url().to_string()), ", ");
 
         let mut reports = vec![];
+        let mut computed_objects = HashSet::new();
         perform_memory_report(|ops| {
             for (_, document) in documents.iter() {
                 document
                     .window()
                     .layout()
                     .collect_reports(&mut reports, ops);
+
+                computed_objects.extend(document.collect_reports(&mut reports, ops));
             }
 
             let prefix = format!("url({urls})");
-            reports.extend(get_reports(cx, prefix, ops));
+            reports.extend(get_reports(cx, prefix, ops, computed_objects));
         });
 
         reports_chan.send(ProcessReports::new(reports));
