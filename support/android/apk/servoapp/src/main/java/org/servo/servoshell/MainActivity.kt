@@ -48,14 +48,13 @@ import androidx.preference.PreferenceManager
 import androidx.window.core.layout.WindowSizeClass
 import kotlinx.coroutines.launch
 import org.servo.servoview.Servo
+import org.servo.servoview.ServoNavigator
 import org.servo.servoview.ServoView
 
 class MainActivity : ComponentActivity(), Servo.Client {
     private lateinit var servoView: ServoView
 
     private val urlTextFieldState = TextFieldState()
-    private var canGoBackState = mutableStateOf(false)
-    private var canGoForwardState = mutableStateOf(false)
     private var isRefreshingState = mutableStateOf(false)
     private var mediaSession: MediaSession? = null
     private lateinit var historyManager: HistoryManager
@@ -72,7 +71,8 @@ class MainActivity : ComponentActivity(), Servo.Client {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        servoView = ServoView(this, this)
+        val navigator = ServoNavigator()
+        servoView = ServoView(this, this, navigator)
 
         historyManager = HistoryManager(this)
 
@@ -87,10 +87,10 @@ class MainActivity : ComponentActivity(), Servo.Client {
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         if (isWindowWidthAtLeastMedium) {
-                            IconButton(onClick = ::onHistoryBackMenuItemClicked, enabled = canGoBackState.value) {
+                            IconButton(onClick = ::onHistoryBackMenuItemClicked, enabled = navigator.canGoBackState.value) {
                                 Icon(painterResource(R.drawable.arrow_back), stringResource(R.string.history_back))
                             }
-                            IconButton(onClick = ::onHistoryForwardMenuItemClicked, enabled = canGoForwardState.value) {
+                            IconButton(onClick = ::onHistoryForwardMenuItemClicked, enabled = navigator.canGoForwardState.value) {
                                 Icon(painterResource(R.drawable.arrow_forward), stringResource(R.string.history_forward))
                             }
                             IconButton(onClick = { if (isRefreshingState.value) onCancelMenuItemClicked() else onRefreshMenuItemClicked() }) {
@@ -133,14 +133,14 @@ class MainActivity : ComponentActivity(), Servo.Client {
                         NavigationBar {
                             NavigationBarItem(
                                 selected = false,
-                                enabled = canGoBackState.value,
+                                enabled = navigator.canGoBackState.value,
                                 onClick = ::onHistoryBackMenuItemClicked,
                                 icon = { Icon(painterResource(R.drawable.arrow_back), null) },
                                 label = { Text(stringResource(R.string.history_back)) },
                             )
                             NavigationBarItem(
                                 selected = false,
-                                enabled = canGoForwardState.value,
+                                enabled = navigator.canGoForwardState.value,
                                 onClick = { onHistoryForwardMenuItemClicked() },
                                 icon = { Icon(painterResource(R.drawable.arrow_forward), null) },
                                 label = { Text(stringResource(R.string.history_forward)) },
@@ -180,7 +180,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
                     servoView = servoView,
                     modifier = Modifier.padding(innerPadding),
                 )
-                BackHandler(enabled = canGoBackState.value) {
+                BackHandler(enabled = navigator.canGoBackState.value) {
                     servoView.goBack()
                 }
                 alertMessageState.value?.let { alertMessage ->
@@ -296,12 +296,6 @@ class MainActivity : ComponentActivity(), Servo.Client {
     override fun onUrlChanged(url: String) {
         urlTextFieldState.edit { replace(0, length, url) }
         currentUrl = url
-    }
-
-    override fun onHistoryChanged(canGoBack: Boolean, canGoForward: Boolean) {
-        Log.i(TAG, "onHistoryChanged: $canGoBack<->$canGoForward")
-        canGoBackState.value = canGoBack
-        canGoForwardState.value = canGoForward
     }
 
     public override fun onResume() {

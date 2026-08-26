@@ -21,6 +21,7 @@ import android.view.SurfaceView
 class ServoView(
     context: Context,
     client: Servo.Client,
+    navigator: ServoNavigator,
 ) : SurfaceView(context), Servo.RunCallback, Choreographer.FrameCallback {
     private val glThread: GLThread
     private val surfaceHolderCallback: SurfaceHolderCallback
@@ -36,7 +37,7 @@ class ServoView(
         isClickable = true
         addTouchables(arrayListOf(this))
         glThread = GLThread()
-        surfaceHolderCallback = SurfaceHolderCallback(this, client)
+        surfaceHolderCallback = SurfaceHolderCallback(this, client, navigator)
         holder.addCallback(surfaceHolderCallback)
         glThread.start()
     }
@@ -151,6 +152,7 @@ class ServoView(
     private class SurfaceHolderCallback(
         private val servoView: ServoView,
         private val client: Servo.Client,
+        private val navigator: ServoNavigator,
     ) : SurfaceHolder.Callback {
         var servoLog: String? = null
         private var paused = false
@@ -175,6 +177,7 @@ class ServoView(
                     client,
                     servoView.context,
                     surface,
+                    navigator,
                 )
             } else {
                 paused = false
