@@ -110,7 +110,7 @@ impl CacheStorage {
                         Error::Operation(Some(
                             result
                                 .err()
-                                .unwrap_or_else(|| format!("HasCacheResult error")),
+                                .unwrap_or_else(|| "HasCacheResult error".to_string()),
                         )),
                     );
                     return;
@@ -134,7 +134,7 @@ impl CacheStorage {
                         Error::Operation(Some(
                             result
                                 .err()
-                                .unwrap_or_else(|| format!("OpenCacheResult error")),
+                                .unwrap_or_else(|| "OpenCacheResult error".to_string()),
                         )),
                     );
                     return;
@@ -155,7 +155,7 @@ impl CacheStorage {
                         Error::Operation(Some(
                             result
                                 .err()
-                                .unwrap_or_else(|| format!("DeleteCacheResult error")),
+                                .unwrap_or_else(|| "DeleteCacheResult error".to_string()),
                         )),
                     );
                     return;
