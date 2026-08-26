@@ -1009,26 +1009,30 @@ where
 /// <https://html.spec.whatwg.org/multipage/#isplatformobjectsameorigin-(-o-)>
 pub(crate) fn is_platform_object_same_origin(realm: &CurrentRealm, obj: HandleObject) -> bool {
     let subject_realm = realm.realm().as_ptr();
-    let obj_realm = unsafe { GetObjectRealmOrNull(*obj) };
-    assert!(!obj_realm.is_null());
+    let object_realm = unsafe { GetObjectRealmOrNull(*obj) };
+    assert!(!object_realm.is_null());
+
+    if subject_realm == object_realm {
+        return true;
+    }
 
     let subject_principals =
         unsafe { ServoJSPrincipalsRef::from_raw_unchecked(GetRealmPrincipals(subject_realm)) };
-    let obj_principals =
-        unsafe { ServoJSPrincipalsRef::from_raw_unchecked(GetRealmPrincipals(obj_realm)) };
+    let object_principals =
+        unsafe { ServoJSPrincipalsRef::from_raw_unchecked(GetRealmPrincipals(object_realm)) };
 
     let subject_origin = subject_principals.origin();
-    let obj_origin = obj_principals.origin();
+    let object_origin = object_principals.origin();
 
-    let result = subject_origin.same_origin_domain(&obj_origin);
+    let result = subject_origin.same_origin_domain(&object_origin);
     log::trace!(
         "object {:p} (realm = {:p}, principalls = {:p}, origin = {:?}) is {} \
         with reference to the current Realm (realm = {:p}, principals = {:p}, \
         origin = {:?})",
         obj.get(),
-        obj_realm,
-        obj_principals.as_raw(),
-        obj_origin.immutable(),
+        object_realm,
+        object_principals.as_raw(),
+        object_origin.immutable(),
         ["NOT same domain-origin", "same domain-origin"][result as usize],
         subject_realm,
         subject_principals.as_raw(),
