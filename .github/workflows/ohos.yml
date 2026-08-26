@@ -48,6 +48,9 @@ jobs:
     name: OpenHarmony Build
     timeout-minutes: 60
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      attestations: read
     strategy:
       matrix:
         target: ["aarch64-unknown-linux-ohos", "x86_64-unknown-linux-ohos"]
@@ -97,6 +100,7 @@ jobs:
         env:
           OHOS_SDK_NATIVE: ${{ steps.setup_sdk.outputs.ohos_sdk_native }}
           OHOS_BASE_SDK_HOME: ${{ steps.setup_sdk.outputs.ohos-base-sdk-home }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           ./mach build --locked --target ${{ matrix.target }} --profile ${{ inputs.profile }}
           mv target/cargo-timings target/cargo-timings-ohos-${{ matrix.target }}
@@ -164,6 +168,9 @@ jobs:
     timeout-minutes: 60
     runs-on: hos-builder
     if: github.repository == 'servo/servo'
+    permissions:
+      contents: read
+      attestations: read
     outputs:
       # We need to save the job status as an output, since our usage of `continue-on-error`
       # will make `needs.build-harmonyos-aarch64.result` evaluate to `success` even if the job failed.
@@ -177,6 +184,8 @@ jobs:
         timeout-minutes: 10
         run: ./mach bootstrap --yes --skip-lints --skip-nextest --skip-platform --ohos
       - name: Build for aarch64 HarmonyOS
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           ./mach build --locked --target aarch64-unknown-linux-ohos --profile=${{ inputs.profile }} --flavor=harmonyos --no-default-features --features tracing,tracing-hitrace
       - uses: actions/upload-artifact@v7
