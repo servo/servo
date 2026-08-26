@@ -212,11 +212,11 @@ impl ChildrenList {
 
     pub(crate) fn children_changed(&self, mutation: &ChildrenMutation) {
         match mutation {
-            ChildrenMutation::Append { .. } |
-            ChildrenMutation::Insert { .. } |
-            ChildrenMutation::Prepend { .. } |
-            ChildrenMutation::Replace { .. } |
-            ChildrenMutation::ReplaceAll { .. } => *self.cached_children.borrow_mut() = None,
+            ChildrenMutation::Append { .. }
+            | ChildrenMutation::Insert { .. }
+            | ChildrenMutation::Prepend { .. }
+            | ChildrenMutation::Replace { .. }
+            | ChildrenMutation::ReplaceAll { .. } => *self.cached_children.borrow_mut() = None,
             ChildrenMutation::ChangeText => {},
         }
     }
@@ -359,8 +359,35 @@ impl ElementsByNameList {
     }
 
     pub(crate) fn item<'a>(&'a self, no_gc: &'a NoGC, index: u32) -> Option<UnrootedDom<'a, Node>> {
-        self.document
-            .elements_by_name_iter(no_gc, &self.name)
-            .nth(index as usize)
+        self.cache.validate(&self.document);
+
+        let node = match self.cache.cursor.borrow().as_ref() {
+            // index matches, just return the cached node
+            Some(cursor) if index == cursor.index => {
+                let node = cursor.node.clone();
+                Some(Dom::as_unrooted(&node, no_gc))
+            },
+            // index is greater than cached index, advance by the difference between cached and
+            // requested index
+            Some(cursor) if index > cursor.index => self
+                .document
+                .elements_by_name_iter_after(no_gc, &self.name, &cursor.node)
+                .nth((index - cursor.index - 1) as usize),
+            // else, start searching from the beginning
+            _ => self
+                .document
+                .elements_by_name_iter(no_gc, &self.name)
+                .nth(index as usize),
+        };
+
+        // if we found a node, cache it
+        if let Some(ref node) = node {
+            self.cache.cursor.replace(Some(Cursor {
+                index,
+                node: Dom::from_ref(&**node),
+            }));
+        }
+
+        node
     }
 }
