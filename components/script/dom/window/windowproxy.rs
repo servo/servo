@@ -13,6 +13,7 @@ use indexmap::map::IndexMap;
 use itertools::Either;
 use js::JSCLASS_IS_GLOBAL;
 use js::context::JSContext;
+use js::gc::MutableHandleObject;
 use js::glue::{
     CreateWrapperProxyHandler, DeleteWrapperProxyHandler, GetProxyPrivate, GetProxyReservedSlot,
     ProxyTraps, SetProxyReservedSlot,
@@ -35,8 +36,12 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::ReferrerPolicy;
 use net_traits::request::Referrer;
 use script_bindings::cell::DomRefCell;
-use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
-use script_bindings::proxyhandler::set_property_descriptor;
+use script_bindings::codegen::GenericBindings::WindowBinding::{GetProtoObject, WindowMethods};
+use script_bindings::proxyhandler::{
+    is_extensible, maybe_cross_origin_get_prototype,
+    maybe_cross_origin_get_prototype_if_ordinary_rawcx, maybe_cross_origin_set_prototype_rawcx,
+    prevent_extensions, set_property_descriptor,
+};
 use script_bindings::reflector::{DomObject, MutDomObject, Reflector};
 use script_traits::NewPipelineInfo;
 use serde::{Deserialize, Serialize};
@@ -51,6 +56,7 @@ use servo_url::{ImmutableOrigin, OriginSnapshot, ServoUrl};
 use storage_traits::webstorage_thread::WebStorageThreadMsg;
 use style::attr::parse_integer;
 
+use crate::DomTypeHolder;
 use crate::dom::bindings::conversions::{ToJSValConvertible, root_from_handleobject};
 use crate::dom::bindings::error::{Error, Fallible, throw_dom_exception};
 use crate::dom::bindings::inheritance::Castable;
@@ -1383,9 +1389,25 @@ unsafe extern "C" fn get_prototype_if_ordinary(
     true
 }
 
+#[expect(unsafe_code)]
+unsafe extern "C" fn maybe_xorigin_get_prototype_wrapper_rawcx(
+    cx: *mut RawJSContext,
+    proxy: RawHandleObject,
+    result: RawMutableHandleObject,
+) -> bool {
+    let mut cx = unsafe { JSContext::from_ptr(ptr::NonNull::new(cx).unwrap()) };
+    let mut realm = CurrentRealm::assert(&mut cx);
+    let proxy = unsafe { Handle::from_raw(proxy) };
+    let result = unsafe { MutableHandleObject::from_raw(result) };
+    maybe_cross_origin_get_prototype::<DomTypeHolder>(
+        &mut realm,
+        proxy,
+        GetProtoObject::<DomTypeHolder>,
+        result,
+    )
+}
+
 static PROXY_TRAPS: ProxyTraps = ProxyTraps {
-    // TODO: These traps should change their behavior depending on
-    //       `IsPlatformObjectSameOrigin(this.[[Window]])`
     enter: None,
     getOwnPropertyDescriptor: Some(get_own_property_descriptor),
     defineProperty: Some(define_property),
@@ -1393,11 +1415,11 @@ static PROXY_TRAPS: ProxyTraps = ProxyTraps {
     delete_: None,
     enumerate: None,
     getPrototypeIfOrdinary: Some(get_prototype_if_ordinary),
-    getPrototype: None, // TODO: return `null` if cross origin-domain
-    setPrototype: None,
+    getPrototype: Some(maybe_xorigin_get_prototype_wrapper_rawcx),
+    setPrototype: Some(maybe_cross_origin_set_prototype_rawcx),
     setImmutablePrototype: None,
-    preventExtensions: None,
-    isExtensible: None,
+    preventExtensions: Some(prevent_extensions),
+    isExtensible: Some(is_extensible),
     has: Some(has),
     get: Some(get),
     set: Some(set),
@@ -1610,34 +1632,21 @@ unsafe extern "C" fn defineProperty_xorigin(
     throw_security_error(&mut realm)
 }
 
-#[expect(unsafe_code)]
-#[expect(non_snake_case)]
-unsafe extern "C" fn preventExtensions_xorigin(
-    cx: *mut RawJSContext,
-    _: RawHandleObject,
-    _: *mut ObjectOpResult,
-) -> bool {
-    let mut cx = unsafe {
-        // SAFETY: We are in SM hook
-        JSContext::from_ptr(NonNull::new(cx).expect("JSContext should not be null in SM hook"))
-    };
-    let mut realm = CurrentRealm::assert(&mut cx);
-    throw_security_error(&mut realm)
-}
-
 static XORIGIN_PROXY_TRAPS: ProxyTraps = ProxyTraps {
     enter: None,
     getOwnPropertyDescriptor: Some(getOwnPropertyDescriptor_xorigin),
     defineProperty: Some(defineProperty_xorigin),
+    // TODO: Implement `getOwnPropertyKeys` for cross-origin `WindowProxy`.
+    // https://github.com/servo/servo/issues/47548.
     ownPropertyKeys: None,
     delete_: Some(delete_xorigin),
     enumerate: None,
-    getPrototypeIfOrdinary: None,
-    getPrototype: None,
-    setPrototype: None,
+    getPrototypeIfOrdinary: Some(maybe_cross_origin_get_prototype_if_ordinary_rawcx),
+    getPrototype: Some(maybe_xorigin_get_prototype_wrapper_rawcx),
+    setPrototype: Some(maybe_cross_origin_set_prototype_rawcx),
     setImmutablePrototype: None,
-    preventExtensions: Some(preventExtensions_xorigin),
-    isExtensible: None,
+    preventExtensions: Some(prevent_extensions),
+    isExtensible: Some(is_extensible),
     has: Some(has_xorigin),
     get: Some(get_xorigin),
     set: Some(set_xorigin),
