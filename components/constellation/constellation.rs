@@ -85,7 +85,7 @@
 //! See <https://github.com/servo/servo/issues/14704>
 
 use std::borrow::ToOwned;
-use std::cell::{Cell, OnceCell, RefCell};
+use std::cell::{Cell, OnceCell};
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::marker::PhantomData;
@@ -114,7 +114,6 @@ use embedder_traits::{
     NewWebViewDetails, PaintHitTestResult, Theme, ViewportDetails, WakeLockDelegate, WakeLockType,
     WebDriverCommandMsg, WebDriverLoadStatus, WebDriverScriptCommand,
 };
-use euclid::Size2D;
 use euclid::default::Size2D as UntypedSize2D;
 use fonts::SystemFontServiceProxy;
 use ipc_channel::IpcError;
@@ -141,6 +140,7 @@ use script_traits::{
     NewPipelineInfo, ProgressiveWebMetricType, ScriptThreadMessage, UpdatePipelineIdReason,
 };
 use servo_background_hang_monitor::HangMonitorRegister;
+use servo_base::generic_channel;
 use servo_base::generic_channel::{
     GenericCallback, GenericSend, GenericSender, RoutedReceiver, SendError,
 };
@@ -151,7 +151,6 @@ use servo_base::id::{
     ScriptEventLoopId, WebViewId,
 };
 use servo_base::threadboost::{BoostAffinity, ThreadPriority};
-use servo_base::{Epoch, generic_channel};
 #[cfg(feature = "bluetooth")]
 use servo_bluetooth_traits::BluetoothRequest;
 use servo_canvas::canvas_paint_thread::CanvasPaintThread;
@@ -513,11 +512,6 @@ pub struct Constellation<STF, SWF> {
     /// yet known to the constellation.
     pending_viewport_changes: HashMap<BrowsingContextId, ViewportDetails>,
 
-    /// Pending screenshot readiness requests. These are collected until the screenshot is
-    /// ready to take place, at which point the Constellation informs the renderer that it
-    /// can start the process of taking the screenshot.
-    screenshot_readiness_requests: Vec<ScreenshotReadinessRequest>,
-
     /// A map from `UserContentManagerId` to the `UserContents` for that manager.
     /// Multiple `WebView`s can share the same `UserContentManager` and any mutations
     /// to the `UserContents` need to be forwared to all the `ScriptThread`s that host
@@ -742,7 +736,6 @@ where
                         broken_image_icon_data,
                     )),
                     pending_viewport_changes: Default::default(),
-                    screenshot_readiness_requests: Vec::new(),
                     user_contents_for_manager_id: Default::default(),
                 };
 
@@ -1077,11 +1070,11 @@ where
         &self,
         browsing_context_id: BrowsingContextId,
     ) -> FullyActiveBrowsingContextsIterator<'_> {
-        FullyActiveBrowsingContextsIterator {
-            stack: vec![browsing_context_id],
-            pipelines: &self.pipelines,
-            browsing_contexts: &self.browsing_contexts,
-        }
+        FullyActiveBrowsingContextsIterator::new(
+            browsing_context_id,
+            &self.browsing_contexts,
+            &self.pipelines,
+        )
     }
 
     /// Get an iterator for the fully active browsing contexts in a tree.
@@ -1454,7 +1447,12 @@ where
                 }
             },
             EmbedderToConstellationMessage::RequestScreenshotReadiness(webview_id) => {
-                self.handle_request_screenshot_readiness(webview_id)
+                if let Some(webview) = self.webviews.get_mut(&webview_id) {
+                    webview.handle_screenshot_readiness_request(
+                        &self.browsing_contexts,
+                        &self.pipelines,
+                    );
+                }
             },
             EmbedderToConstellationMessage::EmbedderControlResponse(id, response) => {
                 self.handle_embedder_control_response(id, response);
@@ -2028,7 +2026,13 @@ where
                 }
             },
             ScriptToConstellationMessage::RespondToScreenshotReadinessRequest(response) => {
-                self.handle_screenshot_readiness_response(source_pipeline_id, response);
+                if let Some(webview) = self.webviews.get_mut(&webview_id) {
+                    webview.handle_screenshot_readiness_response(
+                        source_pipeline_id,
+                        response,
+                        &self.paint_proxy,
+                    );
+                }
             },
             ScriptToConstellationMessage::TriggerGarbageCollection => {
                 for event_loop in self.event_loops() {
@@ -4278,7 +4282,13 @@ where
             DiscardBrowsingContext::No,
             ExitPipelineMode::Normal,
         );
-        self.send_screenshot_readiness_requests_to_pipelines();
+
+        if let Some(webview) = self.webviews.get_mut(&webview_id) {
+            webview.send_screenshot_readiness_requests_to_pipelines(
+                &self.browsing_contexts,
+                &self.pipelines,
+            );
+        };
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -5653,8 +5663,6 @@ where
             return;
         };
 
-        self.send_screenshot_readiness_requests_to_pipelines();
-
         // Notify the parent (if there is one).
         let parent_pipeline_id = match change.new_browsing_context_info {
             // This will be a new browsing context.
@@ -5684,6 +5692,13 @@ where
         }
 
         self.change_session_history(change);
+
+        if let Some(webview) = self.webviews.get_mut(&webview_id) {
+            webview.send_screenshot_readiness_requests_to_pipelines(
+                &self.browsing_contexts,
+                &self.pipelines,
+            );
+        }
     }
 
     /// Called when the window is resized.
@@ -5713,117 +5728,6 @@ where
     fn handle_exit_fullscreen_msg(&mut self, webview_id: WebViewId) {
         let browsing_context_id = BrowsingContextId::from(webview_id);
         self.switch_fullscreen_mode(browsing_context_id);
-    }
-
-    #[servo_tracing::instrument(skip_all)]
-    fn handle_request_screenshot_readiness(&mut self, webview_id: WebViewId) {
-        self.screenshot_readiness_requests
-            .push(ScreenshotReadinessRequest {
-                webview_id,
-                pipeline_states: Default::default(),
-                state: Default::default(),
-            });
-        self.send_screenshot_readiness_requests_to_pipelines();
-    }
-
-    fn send_screenshot_readiness_requests_to_pipelines(&mut self) {
-        // If there are pending loads, wait for those to complete.
-        if self
-            .webviews
-            .values()
-            .any(ConstellationWebView::has_pending_change)
-        {
-            return;
-        }
-
-        for screenshot_request in &self.screenshot_readiness_requests {
-            // Ignore this request if it is not pending.
-            if screenshot_request.state.get() != ScreenshotRequestState::Pending {
-                return;
-            }
-
-            *screenshot_request.pipeline_states.borrow_mut() =
-                self.fully_active_browsing_contexts_iter(screenshot_request.webview_id)
-                    .filter_map(|browsing_context| {
-                        let pipeline_id = browsing_context.pipeline_id;
-                        let Some(pipeline) = self.pipelines.get(&pipeline_id) else {
-                            // This can happen while Servo is shutting down, so just ignore it for now.
-                            return None;
-                        };
-                        // If the rectangle for this BrowsingContext is zero, it will never be
-                        // painted. In this case, don't query screenshot readiness as it won't
-                        // contribute to the final output image.
-                        if browsing_context.viewport_details.size == Size2D::zero() {
-                            return None;
-                        }
-                        let _ = pipeline.event_loop.send(
-                            ScriptThreadMessage::RequestScreenshotReadiness(
-                                pipeline.webview_id,
-                                pipeline_id,
-                            ),
-                        );
-                        Some((pipeline_id, None))
-                    })
-                    .collect();
-            screenshot_request
-                .state
-                .set(ScreenshotRequestState::WaitingOnScript);
-        }
-    }
-
-    #[servo_tracing::instrument(skip_all)]
-    fn handle_screenshot_readiness_response(
-        &mut self,
-        updated_pipeline_id: PipelineId,
-        response: ScreenshotReadinessResponse,
-    ) {
-        if self.screenshot_readiness_requests.is_empty() {
-            return;
-        }
-
-        self.screenshot_readiness_requests
-            .retain(|screenshot_request| {
-                if screenshot_request.state.get() != ScreenshotRequestState::WaitingOnScript {
-                    return true;
-                }
-
-                let mut has_pending_pipeline = false;
-                let mut pipeline_states = screenshot_request.pipeline_states.borrow_mut();
-                pipeline_states.retain(|pipeline_id, state| {
-                    if *pipeline_id != updated_pipeline_id {
-                        has_pending_pipeline |= state.is_none();
-                        return true;
-                    }
-                    match response {
-                        ScreenshotReadinessResponse::Ready(epoch) => {
-                            *state = Some(epoch);
-                            true
-                        },
-                        ScreenshotReadinessResponse::NoLongerActive => false,
-                    }
-                });
-
-                if has_pending_pipeline {
-                    return true;
-                }
-
-                let pipelines_and_epochs = pipeline_states
-                    .iter()
-                    .map(|(pipeline_id, epoch)| {
-                        (
-                            *pipeline_id,
-                            epoch.expect("Should have an epoch when pipeline is ready."),
-                        )
-                    })
-                    .collect();
-                self.paint_proxy
-                    .send(PaintMessage::ScreenshotReadinessReponse(
-                        screenshot_request.webview_id,
-                        pipelines_and_epochs,
-                    ));
-
-                false
-            });
     }
 
     /// Get the current activity of a pipeline.
@@ -6173,19 +6077,22 @@ where
             return warn!("fn close_pipeline: {pipeline_id}: Closing twice");
         };
 
-        // Remove this pipeline from pending changes if it hasn't loaded yet.
-        if let Some(webview) = self.webviews.get_mut(&webview_id) {
-            webview.remove_pending_change_for_pipeline(pipeline_id);
-        }
-
         // Inform script and paint that this pipeline has exited.
         pipeline.send_exit_message_to_script(dbc);
 
-        self.send_screenshot_readiness_requests_to_pipelines();
-        self.handle_screenshot_readiness_response(
-            pipeline_id,
-            ScreenshotReadinessResponse::NoLongerActive,
-        );
+        // Remove this pipeline from pending changes if it hasn't loaded yet.
+        if let Some(webview) = self.webviews.get_mut(&webview_id) {
+            webview.remove_pending_change_for_pipeline(pipeline_id);
+            webview.send_screenshot_readiness_requests_to_pipelines(
+                &self.browsing_contexts,
+                &self.pipelines,
+            );
+            webview.handle_screenshot_readiness_response(
+                pipeline_id,
+                ScreenshotReadinessResponse::NoLongerActive,
+                &self.paint_proxy,
+            );
+        }
 
         debug!("{}: Closed", pipeline_id);
     }
@@ -6458,28 +6365,4 @@ where
             })
             .clone()
     }
-}
-
-/// When a [`ScreenshotReadinessRequest`] is received from the renderer, the [`Constellation`]
-/// go through a variety of states to process them. This data structure represents those states.
-#[derive(Clone, Copy, Default, PartialEq)]
-enum ScreenshotRequestState {
-    /// The [`Constellation`] has received the [`ScreenshotReadinessRequest`], but has not yet
-    /// forwarded it to the [`Pipeline`]'s of the requests's WebView. This is likely because there
-    /// are still pending navigation changes in the [`Constellation`]. Once those changes are resolved
-    /// the request will be forwarded to the [`Pipeline`]s.
-    #[default]
-    Pending,
-    /// The [`Constellation`] has forwarded the [`ScreenshotReadinessRequest`] to the [`Pipeline`]s of
-    /// the corresponding `WebView`. The [`Pipeline`]s are waiting for a variety of things to happen in
-    /// order to report what appropriate display list epoch is for the screenshot. Once they all report
-    /// back, the [`Constellation`] considers that the request is handled, and the renderer is responsible
-    /// for waiting to take the screenshot.
-    WaitingOnScript,
-}
-
-struct ScreenshotReadinessRequest {
-    webview_id: WebViewId,
-    state: Cell<ScreenshotRequestState>,
-    pipeline_states: RefCell<FxHashMap<PipelineId, Option<Epoch>>>,
 }
