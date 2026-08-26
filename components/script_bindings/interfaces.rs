@@ -7,11 +7,13 @@ use std::rc::Rc;
 use std::thread::LocalKey;
 
 use js::context::JSContext;
+use js::conversions::ToJSValConvertible;
 use js::glue::JSPrincipalsCallbacks;
 use js::jsapi::{CallArgs, JSObject};
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject, MutableHandleObject};
 use servo_base::id::PipelineId;
+use servo_constellation_traits::ScriptToConstellationChan;
 use servo_url::{MutableOrigin, ServoUrl};
 
 use crate::DomTypes;
@@ -84,11 +86,16 @@ pub trait GlobalScopeHelpers<D: DomTypes> {
     fn is_secure_context(&self) -> bool;
 
     fn pipeline_id(&self) -> PipelineId;
+
+    fn script_to_constellation_chan(&self) -> ScriptToConstellationChan;
 }
 
 pub trait PromiseHelpers<D: DomTypes> {
     fn new_in_realm(cx: &mut CurrentRealm) -> Rc<D::Promise>;
     fn reject_error(&self, cx: &mut JSContext, error: Error);
+    fn is_rejected(&self) -> bool;
+    fn is_pending(&self) -> bool;
+    fn resolve_native<T: ToJSValConvertible>(&self, cx: &mut JSContext, val: &T);
 }
 
 pub trait DocumentHelpers {

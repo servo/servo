@@ -6,13 +6,15 @@ use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_webgpu::gpuconvert::{
+    WebGPUConvert, WebGPUTryConvert, convert_load_op, convert_texture_for_wgpu_with_cx,
+};
 use webgpu_traits::{
     WebGPU, WebGPUCommandBuffer, WebGPUCommandEncoder, WebGPUComputePass, WebGPUDevice,
     WebGPURenderPass, WebGPURequest,
 };
 use wgpu_core::command as wgpu_com;
 
-use crate::conversions::{Convert, TryConvert};
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUCommandBufferDescriptor, GPUCommandEncoderDescriptor, GPUCommandEncoderMethods,
     GPUComputePassDescriptor, GPUExtent3D, GPURenderPassDescriptor, GPUSize64,
@@ -23,14 +25,12 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::gpuconvert::{convert_load_op, convert_texture_for_wgpu_with_cx};
 use crate::dom::types::GPUQuerySet;
 use crate::dom::webgpu::gpubuffer::GPUBuffer;
 use crate::dom::webgpu::gpucommandbuffer::GPUCommandBuffer;
 use crate::dom::webgpu::gpucomputepassencoder::GPUComputePassEncoder;
 use crate::dom::webgpu::gpudevice::GPUDevice;
 use crate::dom::webgpu::gpurenderpassencoder::GPURenderPassEncoder;
-
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableGPUCommandEncoder {
     #[no_trace]
@@ -160,7 +160,10 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
                 command_encoder_id: self.id().0,
                 compute_pass_id,
                 label: (&descriptor.parent).convert(),
-                timestamp_writes: descriptor.timestampWrites.as_ref().map(Convert::convert),
+                timestamp_writes: descriptor
+                    .timestampWrites
+                    .as_ref()
+                    .map(WebGPUConvert::convert),
                 device_id: self.device.id().0,
             })
         {
@@ -190,7 +193,7 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
                         .depthLoadOp
                         .as_ref()
                         .map(|l| convert_load_op(l, ds.depthClearValue.map(|v| *v))),
-                    store_op: ds.depthStoreOp.as_ref().map(Convert::convert),
+                    store_op: ds.depthStoreOp.as_ref().map(WebGPUConvert::convert),
                     read_only: ds.depthReadOnly,
                 },
                 stencil: wgpu_com::PassChannel {
@@ -198,7 +201,7 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
                         .stencilLoadOp
                         .as_ref()
                         .map(|l| convert_load_op(l, Some(ds.stencilClearValue))),
-                    store_op: ds.stencilStoreOp.as_ref().map(Convert::convert),
+                    store_op: ds.stencilStoreOp.as_ref().map(WebGPUConvert::convert),
                     read_only: ds.stencilReadOnly,
                 },
                 view: convert_texture_for_wgpu_with_cx(cx, &ds.view).0,
@@ -241,7 +244,10 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
                 label: (&descriptor.parent).convert(),
                 depth_stencil_attachment,
                 color_attachments,
-                timestamp_writes: descriptor.timestampWrites.as_ref().map(Convert::convert),
+                timestamp_writes: descriptor
+                    .timestampWrites
+                    .as_ref()
+                    .map(WebGPUConvert::convert),
                 device_id: self.device.id().0,
             })
         {

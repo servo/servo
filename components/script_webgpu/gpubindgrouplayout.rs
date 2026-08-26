@@ -3,25 +3,28 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::Cow;
+use std::marker::PhantomData;
 
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
+use jstraceable_derive::JSTraceable;
+use log::warn;
+use malloc_size_of_derive::MallocSizeOf;
+use script_bindings::DomTypes;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::codegen::GenericBindings::WebGPUBinding::{
+    GPUBindGroupLayoutDescriptor, GPUBindGroupLayoutMethods, GPUBindGroupLayoutWrap,
+};
+use script_bindings::interfaces::GlobalScopeHelpers;
+use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
 use webgpu_traits::{WebGPU, WebGPUBindGroupLayout, WebGPURequest};
 use wgpu_core::binding_model::BindGroupLayoutDescriptor;
 
-use crate::conversions::Convert;
-use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
-    GPUBindGroupLayoutDescriptor, GPUBindGroupLayoutMethods,
-};
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::webgpu::gpuconvert::convert_bind_group_layout_entry;
-use crate::dom::webgpu::gpudevice::GPUDevice;
+use crate::gpuconvert::{WebGPUConvert, convert_bind_group_layout_entry};
+use crate::traits::{GPUDeviceTrait, WebGPUGlobalTrait};
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableGPUBindGroupLayout {
@@ -47,13 +50,18 @@ impl Drop for DroppableGPUBindGroupLayout {
 }
 
 #[dom_struct]
-pub(crate) struct GPUBindGroupLayout {
+pub struct GPUBindGroupLayout<D: DomTypes> {
     reflector_: Reflector,
     label: DomRefCell<USVString>,
     droppable: DroppableGPUBindGroupLayout,
+    #[no_trace = "PhantomData does not exist"]
+    phantom: PhantomData<D>,
 }
 
-impl GPUBindGroupLayout {
+impl<D> GPUBindGroupLayout<D>
+where
+    D: DomTypes<GPUBindGroupLayout = GPUBindGroupLayout<D>>,
+{
     fn new_inherited(
         channel: WebGPU,
         bind_group_layout: WebGPUBindGroupLayout,
@@ -66,17 +74,18 @@ impl GPUBindGroupLayout {
                 channel,
                 bind_group_layout,
             },
+            phantom: PhantomData,
         }
     }
 
-    pub(crate) fn new(
+    pub fn new(
         cx: &mut JSContext,
-        global: &GlobalScope,
+        global: &D::GlobalScope,
         channel: WebGPU,
         bind_group_layout: WebGPUBindGroupLayout,
         label: USVString,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object_with_wrap::<D, _, _>(
             Box::new(GPUBindGroupLayout::new_inherited(
                 channel,
                 bind_group_layout,
@@ -84,25 +93,31 @@ impl GPUBindGroupLayout {
             )),
             global,
             cx,
+            GPUBindGroupLayoutWrap::<D>,
         )
     }
 }
 
-impl GPUBindGroupLayout {
-    pub(crate) fn id(&self) -> WebGPUBindGroupLayout {
+impl<D> GPUBindGroupLayout<D>
+where
+    D: DomTypes<GPUBindGroupLayout = GPUBindGroupLayout<D>>,
+    D::GPUDevice: GPUDeviceTrait<D>,
+    D::GlobalScope: WebGPUGlobalTrait + GlobalScopeHelpers<D>,
+{
+    pub fn id(&self) -> WebGPUBindGroupLayout {
         self.droppable.bind_group_layout
     }
 
     /// <https://gpuweb.github.io/gpuweb/#GPUDevice-createBindGroupLayout>
-    pub(crate) fn create(
+    pub fn create(
         cx: &mut JSContext,
-        device: &GPUDevice,
+        device: &D::GPUDevice,
         descriptor: &GPUBindGroupLayoutDescriptor,
-    ) -> Fallible<DomRoot<GPUBindGroupLayout>> {
+    ) -> Fallible<DomRoot<GPUBindGroupLayout<D>>> {
         let entries = descriptor
             .entries
             .iter()
-            .map(|bgle| convert_bind_group_layout_entry(bgle, device))
+            .map(|bgle| convert_bind_group_layout_entry::<D>(bgle, device))
             .collect::<Fallible<Result<Vec<_>, _>>>()?;
 
         let desc = match entries {
@@ -116,7 +131,8 @@ impl GPUBindGroupLayout {
             },
         };
 
-        let bind_group_layout_id = device.global().wgpu_id_hub().create_bind_group_layout_id();
+        let global = <D::GPUDevice as DomGlobalGeneric<D>>::global_from_reflector(device);
+        let bind_group_layout_id = global.global_wgpu_id_hub().create_bind_group_layout_id();
         device
             .channel()
             .0
@@ -131,7 +147,7 @@ impl GPUBindGroupLayout {
 
         Ok(GPUBindGroupLayout::new(
             cx,
-            &device.global(),
+            &*global,
             device.channel(),
             bgl,
             descriptor.parent.label.clone(),
@@ -139,7 +155,7 @@ impl GPUBindGroupLayout {
     }
 }
 
-impl GPUBindGroupLayoutMethods<crate::DomTypeHolder> for GPUBindGroupLayout {
+impl<D: DomTypes> GPUBindGroupLayoutMethods<D> for GPUBindGroupLayout<D> {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn Label(&self) -> USVString {
         self.label.borrow().clone()

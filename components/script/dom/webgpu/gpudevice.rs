@@ -14,6 +14,8 @@ use script_bindings::cell::DomRefCell;
 use script_bindings::cformat;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::GPUAdapterMethods;
 use script_bindings::reflector::reflect_weak_referenceable_dom_object;
+use script_webgpu::gpuconvert::WebGPUConvert;
+use script_webgpu::traits::GPUDeviceTrait;
 use webgpu_traits::{
     PopError, WebGPU, WebGPUComputePipeline, WebGPUComputePipelineResponse, WebGPUDevice,
     WebGPUPoppedErrorScopeResponse, WebGPUQueue, WebGPURenderPipeline,
@@ -28,7 +30,6 @@ use super::gpudevicelostinfo::GPUDeviceLostInfo;
 use super::gpuerror::AsWebGpu;
 use super::gpupipelineerror::GPUPipelineError;
 use super::gpusupportedlimits::GPUSupportedLimits;
-use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventInit;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUBindGroupDescriptor, GPUBindGroupLayoutDescriptor, GPUBufferDescriptor,
@@ -769,5 +770,30 @@ impl RoutedPromiseListener<WebGPURenderPipelineResponse> for GPUDevice {
                 promise.reject_native(cx, &pipeline_error)
             },
         }
+    }
+}
+
+impl GPUDeviceTrait<crate::DomTypeHolder> for GPUDevice {
+    fn is_lost(&self) -> bool {
+        self.is_lost()
+    }
+
+    fn id(&self) -> WebGPUDevice {
+        self.id()
+    }
+
+    fn channel(&self) -> WebGPU {
+        self.channel()
+    }
+
+    fn dispatch_error(&self, error: webgpu_traits::Error) {
+        self.dispatch_error(error);
+    }
+
+    fn validate_texture_format_required_features(
+        &self,
+        gpu_texture_format: &GPUTextureFormat,
+    ) -> Fallible<TextureFormat> {
+        self.validate_texture_format_required_features(gpu_texture_format)
     }
 }

@@ -8,11 +8,11 @@ use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_webgpu::gpuconvert::{WebGPUConvert, convert_texture_descriptor};
+use script_webgpu::traits::GPUTextureTrait;
 use webgpu_traits::{WebGPU, WebGPURequest, WebGPUTexture, WebGPUTextureView};
 use wgpu_core::resource::{self, TextureDescriptor};
 
-use super::gpuconvert::convert_texture_descriptor;
-use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUTextureAspect, GPUTextureDescriptor, GPUTextureDimension, GPUTextureFormat,
     GPUTextureMethods, GPUTextureViewDescriptor,
@@ -152,7 +152,7 @@ impl GPUTexture {
         device: &GPUDevice,
         descriptor: &GPUTextureDescriptor,
     ) -> Fallible<DomRoot<GPUTexture>> {
-        let (desc, size) = convert_texture_descriptor(descriptor, device)?;
+        let (desc, size) = convert_texture_descriptor::<crate::DomTypeHolder>(descriptor, device)?;
 
         let texture_id = device.global().wgpu_id_hub().create_texture_id();
 
@@ -323,5 +323,15 @@ impl GPUTextureMethods<crate::DomTypeHolder> for GPUTexture {
     /// <https://gpuweb.github.io/gpuweb/#dom-gputexture-usage>
     fn Usage(&self) -> u32 {
         self.texture_usage
+    }
+}
+
+impl GPUTextureTrait for GPUTexture {
+    fn id(&self) -> WebGPUTexture {
+        self.id()
+    }
+
+    fn get_default_view(&self, cx: &mut JSContext) -> WebGPUTextureView {
+        self.get_default_view(cx)
     }
 }

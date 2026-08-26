@@ -6,12 +6,19 @@
 // Register the linter `crown`, which is the Servo-specific linter for the script crate.
 #![cfg_attr(crown, register_tool(crown))]
 
+pub mod datablock;
+pub mod gpu;
 pub mod gpuadapter;
 pub mod gpuadapterinfo;
+pub mod gpubindgroup;
+pub mod gpubindgrouplayout;
+pub mod gpubuffer;
 pub mod gpubufferusage;
+pub mod gpucolorwrite;
 pub mod gpucommandbuffer;
 pub mod gpucompilationinfo;
 pub mod gpucompilationmessage;
+pub mod gpuconvert;
 pub mod gpudevicelostinfo;
 pub mod gpumapmode;
 pub mod gpurenderbundle;
@@ -20,7 +27,7 @@ pub mod gpusupportedfeatures;
 pub mod gpusupportedlimits;
 pub mod gputextureusage;
 pub mod identityhub;
-pub mod promise;
+pub mod traits;
 pub mod wgsllanguagefeatures;
 
 pub(crate) use js::gc::Traceable as JSTraceable;
@@ -54,9 +61,14 @@ pub(crate) mod codegen {
         use script_bindings::root::{Dom, DomRoot, Root};
         use script_bindings::utils::DOMClass;
 
+        use crate::gpu::GPU;
         use crate::gpuadapter::GPUAdapter;
         use crate::gpuadapterinfo::GPUAdapterInfo;
+        use crate::gpubindgroup::GPUBindGroup;
+        use crate::gpubindgrouplayout::GPUBindGroupLayout;
+        use crate::gpubuffer::GPUBuffer;
         use crate::gpubufferusage::GPUBufferUsage;
+        use crate::gpucolorwrite::GPUColorWrite;
         use crate::gpucommandbuffer::GPUCommandBuffer;
         use crate::gpucompilationinfo::GPUCompilationInfo;
         use crate::gpucompilationmessage::GPUCompilationMessage;

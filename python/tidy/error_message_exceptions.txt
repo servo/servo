@@ -88,8 +88,6 @@
 ./components/script/dom/timeranges.rs 2
 ./components/script/dom/webcrypto/crypto.rs 1
 ./components/script/dom/webgl/webglrenderingcontext.rs 4
-./components/script/dom/webgpu/gpu.rs 1
-./components/script/dom/webgpu/gpubuffer.rs 7
 ./components/script/dom/webgpu/gpucanvascontext.rs 1
 ./components/script/dom/webgpu/gpudevice.rs 1
 ./components/script/dom/webgpu/gpuqueue.rs 6

@@ -13,6 +13,7 @@ use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::GPUDeviceMethods as _;
 use script_bindings::error::Fallible;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_webgpu::traits::GPUExternalTextureTrait;
 use webgpu_traits::{
     WebGPU, WebGPUDevice, WebGPUExternalTexture, WebGPUQueue, WebGPURequest, WebGPUTexture,
     WebGPUTextureView,
@@ -282,5 +283,11 @@ impl GPUExternalTextureMethods<crate::DomTypeHolder> for GPUExternalTexture {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn SetLabel(&self, value: USVString) {
         *self.label.borrow_mut() = value;
+    }
+}
+
+impl GPUExternalTextureTrait for GPUExternalTexture {
+    fn id(&self) -> WebGPUExternalTexture {
+        self.id()
     }
 }

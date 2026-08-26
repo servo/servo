@@ -8,12 +8,12 @@ use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_webgpu::gpuconvert::WebGPUConvert;
 use webgpu_traits::{
     RenderBundleCommand, WebGPU, WebGPURenderBundle, WebGPURenderBundleEncoder, WebGPURequest,
 };
 use wgpu_core::command::RenderBundleEncoderDescriptor;
 
-use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUIndexFormat, GPURenderBundleDescriptor, GPURenderBundleEncoderDescriptor,
     GPURenderBundleEncoderMethods,
