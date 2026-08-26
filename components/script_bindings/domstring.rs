@@ -450,6 +450,8 @@ impl DOMString {
         Utf16CodeUnits(self.str().chars().map(char::len_utf16).sum())
     }
 
+    /// This works the same as `make_ascii_lowercase` on std::string. This means that any character in [A-Z]
+    /// will be transformed to lower case but other characters stay the same (either ASCII or not ASCII).
     pub fn make_ascii_lowercase(&mut self) {
         self.0
             .borrow_mut()
