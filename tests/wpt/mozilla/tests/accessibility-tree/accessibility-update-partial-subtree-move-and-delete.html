@@ -36,7 +36,8 @@
       // - <section> (div1 removed)
       // - div2 (<p> and <h1> removed)
       // - div3 (new children)
-      assert_equals(update.nodesUpdatedFromDom, 3, "nodesUpdatedFromDom");
+      // But we need to walk all the nodes to make sure we can update bounds.
+      assert_equals(update.nodesUpdatedFromDom, 24, "nodesUpdatedFromDom");
 
       // <html>, <body>, <section>, div3, div2
       assert_equals(update.nodesUpdatedFromTree, 5, "nodesUpdatedFromTree");

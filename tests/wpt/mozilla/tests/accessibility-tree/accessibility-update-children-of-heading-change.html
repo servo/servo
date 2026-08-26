@@ -23,7 +23,8 @@
 
       // Updated nodes:
       // - h2 (<code> removed)
-      assert_equals(update.nodesUpdatedFromDom, 1, "nodesUpdatedFromDom");
+      // But we need to walk all the nodes to make sure we can update bounds.
+      assert_equals(update.nodesUpdatedFromDom, 13, "nodesUpdatedFromDom");
 
       // <html>, <body>, <h2>
       assert_equals(update.nodesUpdatedFromTree, 3, "nodesUpdatedFromTree");
