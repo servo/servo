@@ -4616,7 +4616,7 @@ impl Document {
         let name = name.clone();
 
         after
-            .following_nodes_unrooted(no_gc, self.document.upcast::<Node>(), ShadowIncluding::No)
+            .following_nodes_unrooted(no_gc, self.upcast::<Node>(), ShadowIncluding::No)
             .filter(move |node| Document::is_element_in_get_by_name(node, &name))
     }
 

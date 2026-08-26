@@ -212,11 +212,11 @@ impl ChildrenList {
 
     pub(crate) fn children_changed(&self, mutation: &ChildrenMutation) {
         match mutation {
-            ChildrenMutation::Append { .. } |
-            ChildrenMutation::Insert { .. } |
-            ChildrenMutation::Prepend { .. } |
-            ChildrenMutation::Replace { .. } |
-            ChildrenMutation::ReplaceAll { .. } => *self.cached_children.borrow_mut() = None,
+            ChildrenMutation::Append { .. }
+            | ChildrenMutation::Insert { .. }
+            | ChildrenMutation::Prepend { .. }
+            | ChildrenMutation::Replace { .. }
+            | ChildrenMutation::ReplaceAll { .. } => *self.cached_children.borrow_mut() = None,
             ChildrenMutation::ChangeText => {},
         }
     }
@@ -357,8 +357,32 @@ impl ElementsByNameList {
     }
 
     pub(crate) fn item<'a>(&'a self, no_gc: &'a NoGC, index: u32) -> Option<UnrootedDom<'a, Node>> {
-        self.document
-            .elements_by_name_iter(no_gc, &self.name)
-            .nth(index as usize)
+        self.cache.validate(&self.document);
+
+        let node = if let Some(ref cursor) = *self.cache.cursor.borrow()
+            && cursor.index == index
+        {
+            let node = cursor.node.clone();
+            Some(Dom::as_unrooted(&node, no_gc))
+        } else if let Some(ref cursor) = *self.cache.cursor.borrow()
+            && index > cursor.index
+        {
+            self.document
+                .elements_by_name_iter_after(no_gc, &self.name, &cursor.node)
+                .next()
+        } else {
+            self.document
+                .elements_by_name_iter(no_gc, &self.name)
+                .nth(index as usize)
+        };
+
+        if let Some(ref node) = node {
+            self.cache.cursor.borrow_mut().replace(Cursor {
+                index,
+                node: Dom::from_ref(&**node),
+            });
+        }
+
+        node
     }
 }
