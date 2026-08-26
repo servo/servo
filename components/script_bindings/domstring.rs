@@ -405,7 +405,7 @@ impl DOMString {
                 EncodedBytes::Latin1(Ref::map(inner, |inner| inner.as_raw_bytes()))
             },
             #[cfg(test)]
-            DOMStringType::Latin1Vec(items) => {
+            DOMStringType::Latin1Vec(..) => {
                 EncodedBytes::Latin1(Ref::map(inner, |inner| inner.as_raw_bytes()))
             },
         }
@@ -1153,8 +1153,10 @@ mod tests {
         let s = from_latin1(vec![b'a', b'b', b'c', b'%', b'$']);
         let string = String::from("abc%$");
         let s2 = DOMString::from(string.clone());
+        let s3 = DOMString::from_static("abc%$");
         assert_eq!(s, s2);
         assert_eq!(s, string);
+        assert_eq!(s, s3);
     }
 
     #[test]
@@ -1196,13 +1198,16 @@ mod tests {
         let s_converted = from_latin1(vec![b'a', b'b', b'c', b'%', b'$', 0xB2]);
         s_converted.ensure_rust_string();
         let s2 = DOMString::from("abc%$²");
+        let s3 = DOMString::from_static("abc%$²");
 
         let hash_s = hash_value(&s);
         let hash_s_converted = hash_value(&s_converted);
         let hash_s2 = hash_value(&s2);
+        let hash_s3 = hash_value(&s3);
 
         assert_eq!(hash_s, hash_s2);
         assert_eq!(hash_s, hash_s_converted);
+        assert_eq!(hash_s, hash_s3);
     }
 
     // Testing match_lazydomstring if it executes the statements in the match correctly
@@ -1256,6 +1261,14 @@ mod tests {
             let s = from_latin1(vec![b'a', b'b', b'c']);
             match_domstring_ascii!( s,
                 "abcdd" => assert!(false),
+                "bcd" => assert!(false),
+                _ => (),
+            );
+        }
+        {
+            let s = DOMString::from_static("abc");
+            match_domstring_ascii!( s,
+                "abc" => assert!(true),
                 "bcd" => assert!(false),
                 _ => (),
             );
@@ -1362,6 +1375,13 @@ mod tests {
             s.ensure_rust_string();
             assert_eq!(&*s.str(), "abc%$");
         }
+        {
+            let mut s = DOMString::from_static("   \n  abc%$ ");
+
+            s.strip_leading_and_trailing_ascii_whitespace();
+            s.ensure_rust_string();
+            assert_eq!(&*s.str(), "abc%$");
+        }
     }
 
     // https://infra.spec.whatwg.org/#ascii-whitespace
@@ -1396,6 +1416,11 @@ mod tests {
         assert!(!s.contains_html_space_characters());
         s.ensure_rust_string();
         assert!(!s.contains_html_space_characters());
+
+        let s = DOMString::from_static("aba aaa");
+        assert!(s.contains_html_space_characters());
+        s.ensure_rust_string();
+        assert!(s.contains_html_space_characters());
     }
 
     #[test]
@@ -1408,6 +1433,12 @@ mod tests {
         let s3 = from_latin1(vec![b'a', b'a', b'a', 0xB2, b'a', b'a']);
         let atom3 = Atom::from(s3);
         assert_ne!(atom1, atom3);
+        let s3 = DOMString::from_static("aaa\u{03B1}aa");
+        let atom3 = Atom::from(s3);
+        assert_ne!(atom1, atom3);
+        let s4 = DOMString::from_static("aaa aa");
+        let atom4 = Atom::from(s4);
+        assert_eq!(atom2, atom4);
     }
 
     #[test]
@@ -1420,6 +1451,9 @@ mod tests {
         let s3 = from_latin1(vec![b'a', b'a', b'a', LATIN1_POWER2, b'a', b'a']);
         let atom3 = Namespace::from(s3);
         assert_ne!(atom1, atom3);
+        let s4 = DOMString::from_static("aaa aa");
+        let atom4 = Namespace::from(s4);
+        assert_eq!(atom2, atom4);
     }
 
     #[test]
@@ -1432,6 +1466,9 @@ mod tests {
         let s3 = from_latin1(vec![b'a', b'a', b'a', LATIN1_POWER2, b'a', b'a']);
         let atom3 = LocalName::from(s3);
         assert_ne!(atom1, atom3);
+        let s4 = DOMString::from_static("aaa aa");
+        let atom4 = LocalName::from(s4);
+        assert_eq!(atom2, atom4);
     }
 
     #[test]
@@ -1447,6 +1484,8 @@ mod tests {
         let s = DOMString::from("`aaaz");
         assert!(!s.is_ascii_lowercase());
         let s = DOMString::from("aaaz");
+        assert!(s.is_ascii_lowercase());
+        let s = DOMString::from_static("aaaz");
         assert!(s.is_ascii_lowercase());
     }
 
@@ -1488,6 +1527,8 @@ mod tests {
         assert_eq!(&*s.as_bytes(), str.as_bytes());
         let str = "AbBcC❤&%$#".to_owned();
         let s = DOMString::from(str.clone());
+        assert_eq!(&*s.as_bytes(), str.as_bytes());
+        let s = DOMString::from_static("AbBcC❤&%$#");
         assert_eq!(&*s.as_bytes(), str.as_bytes());
     }
 }
