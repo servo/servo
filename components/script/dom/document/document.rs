@@ -3782,6 +3782,7 @@ impl Document {
                                 &computed_objects,
                             );
                             sizes.attribute_nodes_size += size;
+                            computed_objects.insert(attr.upcast::<Node>().jsobject());
                         }
                     }
                 },
