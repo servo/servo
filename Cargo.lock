@@ -3845,12 +3845,12 @@ dependencies = [
 
 [[package]]
 name = "html5ever"
-version = "0.39.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "46a1761807faccc9a19e86944bbf40610014066306f96edcdedc2fb714bcb7b8"
+version = "0.40.0"
+source = "git+https://github.com/Ms2ger/html5ever.git?branch=xmlns#fcc7664e25a4ed5c89e9c1759565034551165b46"
 dependencies = [
  "log",
  "markup5ever",
+ "memchr",
 ]
 
 [[package]]
@@ -5071,9 +5071,8 @@ dependencies = [
 
 [[package]]
 name = "markup5ever"
-version = "0.39.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7122d987ec5f704ee56f6e5b41a7d93722e9aae27ae07cafa4036c4d3f9757de"
+version = "0.40.0"
+source = "git+https://github.com/Ms2ger/html5ever.git?branch=xmlns#fcc7664e25a4ed5c89e9c1759565034551165b46"
 dependencies = [
  "log",
  "tendril",
@@ -10166,8 +10165,7 @@ dependencies = [
 [[package]]
 name = "tendril"
 version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5fed54709c5b3a53d09bb1c113ea4f5ceafd1e772ddcb0030a82e1d56c087b08"
+source = "git+https://github.com/Ms2ger/html5ever.git?branch=xmlns#fcc7664e25a4ed5c89e9c1759565034551165b46"
 dependencies = [
  "encoding_rs",
  "new_debug_unreachable",
@@ -11385,8 +11383,7 @@ dependencies = [
 [[package]]
 name = "web_atoms"
 version = "0.2.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba8b815c1b593dc0baf78dd0f4fc8fdb2de53198fb1163738093e9a311c33fb3"
+source = "git+https://github.com/Ms2ger/html5ever.git?branch=xmlns#fcc7664e25a4ed5c89e9c1759565034551165b46"
 dependencies = [
  "phf",
  "phf_codegen",
@@ -12506,9 +12503,8 @@ checksum = "e450f9b2ed1dff33c94c12589a87338689467b9c4f5d8a5710bd09a847d2c8a7"
 
 [[package]]
 name = "xml5ever"
-version = "0.39.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5ab627f34ff61b80d756180d556f9c68801d836d271b3b8c094504ceca69d221"
+version = "0.40.0"
+source = "git+https://github.com/Ms2ger/html5ever.git?branch=xmlns#fcc7664e25a4ed5c89e9c1759565034551165b46"
 dependencies = [
  "log",
  "markup5ever",

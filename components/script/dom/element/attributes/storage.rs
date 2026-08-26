@@ -19,7 +19,7 @@ use crate::dom::element::Element;
 use crate::dom::node::node::NodeTraits;
 
 /// Lightweight attribute storage that avoids allocating a full DOM `Attr` node.
-#[derive(MallocSizeOf)]
+#[derive(MallocSizeOf, Debug)]
 pub(crate) struct ContentAttributeData {
     pub identifier: AttrIdentifier,
     pub value: AttrValue,

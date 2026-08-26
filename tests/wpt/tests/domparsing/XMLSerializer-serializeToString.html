@@ -104,6 +104,9 @@ test(function() {
   root.setAttributeNS('uri', 'name', 'v');
   assert_equals(serialize(root), '<r xmlns:xx="uri" xx:name="v"/>');
 
+  root.setAttributeNS('uri', 'name2', 'v');
+  assert_equals(serialize(root), '<r xmlns:xx="uri" xx:name="v" xx:name2="v"/>');
+
   let root2 = parse('<r xmlns:xx="uri"><b/></r>');
   let child = root2.firstChild;
   child.setAttributeNS('uri', 'name', 'v');
@@ -142,8 +145,8 @@ test(function() {
   let root = parse('<r xmlns:xx="uri"></r>');
   root.setAttributeNS('uri2', 'p:name', 'value');
   assert_equals(serialize(root),
-                '<r xmlns:xx="uri" xmlns:ns1="uri2" ns1:name="value"/>');
-}, 'Check if the prefix of an attribute is NOT preserved in a case where neither its prefix nor its namespace URI is not already used.');
+                '<r xmlns:xx="uri" xmlns:p="uri2" p:name="value"/>');
+}, 'Check if the prefix of an attribute is preserved in a case where neither its prefix nor its namespace URI is not already used.');
 
 test(function() {
   let root = parse('<r xmlns:xx="uri"></r>');
@@ -173,19 +176,15 @@ test(function() {
   assert_equals(serialize(root), '<root attr="\'"/>');
 }, 'Attribute value escapes: apos');
 
-// This does not match the specification; see <https://github.com/w3c/DOM-Parsing/issues/59>.
 test(function() {
   var root = parse('<root />');
   root.setAttribute('attr', '\t');
-  assert_in_array(serialize(root), [
-    '<root attr="&#9;"/>', '<root attr="&#x9;"/>']);
+  assert_equals(serialize(root), '<root attr="&#9;"/>');
   root.setAttribute('attr', '\n');
-  assert_in_array(serialize(root), [
-    '<root attr="&#xA;"/>', '<root attr="&#10;"/>']);
+  assert_equals(serialize(root), '<root attr="&#xA;"/>');
   root.setAttribute('attr', '\r');
-  assert_in_array(serialize(root), [
-    '<root attr="&#xD;"/>', '<root attr="&#13;"/>']);
-}, '[TENTATIVE] check XMLSerializer.serializeToString escapes attribute values for roundtripping');
+  assert_equals(serialize(root), '<root attr="&#xD;"/>');
+}, 'check XMLSerializer.serializeToString escapes attribute values for roundtripping');
 
 test(function() {
   const root = (new Document()).createElement('root');

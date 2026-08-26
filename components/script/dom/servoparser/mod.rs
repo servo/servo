@@ -106,6 +106,7 @@ mod xml;
 
 use encoding::{NetworkDecoderState, NetworkSink};
 pub(crate) use html::serialize_html_fragment;
+pub(crate) use xml::serialize_xml;
 
 #[dom_struct]
 /// The parser maintains two input streams: one for input from script through
