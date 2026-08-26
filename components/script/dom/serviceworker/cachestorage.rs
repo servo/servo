@@ -189,10 +189,14 @@ fn relevant_name_to_cache_map(
         )
         .recv();
     let Ok(response) = message else {
-        return Err(Error::Operation(None));
+        return Err(Error::Operation(Some(
+            "Could not obtain a local storage bottle map.".to_string(),
+        )));
     };
     let Ok(proxy_map) = response else {
-        return Err(Error::Operation(None));
+        return Err(Error::Operation(Some(
+            "Could not obtain a local storage bottle map.".to_string(),
+        )));
     };
     Ok(proxy_map)
 }
@@ -225,7 +229,10 @@ impl CacheStorageMethods<crate::DomTypeHolder> for CacheStorage {
             })
             .is_err()
         {
-            promise.reject_error(cx, Error::Operation(None));
+            promise.reject_error(
+                cx,
+                Error::Operation(Some("Could not run the parallel steps.".to_string())),
+            );
             return promise;
         }
 
@@ -262,7 +269,10 @@ impl CacheStorageMethods<crate::DomTypeHolder> for CacheStorage {
             })
             .is_err()
         {
-            promise.reject_error(cx, Error::Operation(None));
+            promise.reject_error(
+                cx,
+                Error::Operation(Some("Could not run the parallel steps.".to_string())),
+            );
             return promise;
         }
 
