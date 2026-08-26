@@ -278,25 +278,22 @@ impl Fragment {
                     if !viewport_rect.contains(hit_test.point_to_test) {
                         return false;
                     }
-                } else {
-                    if !rounded_rect_contains_point(
-                        fragment_rect.to_webrender(),
-                        &border_radius,
+                } else if !rounded_rect_contains_point(
+                    fragment_rect.to_webrender(),
+                    &border_radius,
+                    point_in_spatial_node,
+                ) {
+                    return false;
+                } else if let Some(fragmentation_clip_rect) = fragmentation_clip_rect &&
+                    !rounded_rect_contains_point(
+                        fragmentation_clip_rect
+                            .translate(state.origin.to_vector())
+                            .to_webrender(),
+                        &BorderRadius::zero(),
                         point_in_spatial_node,
-                    ) {
-                        return false;
-                    }
-                    if let Some(fragmentation_clip_rect) = fragmentation_clip_rect &&
-                        !rounded_rect_contains_point(
-                            fragmentation_clip_rect
-                                .translate(state.origin.to_vector())
-                                .to_webrender(),
-                            &BorderRadius::zero(),
-                            point_in_spatial_node,
-                        )
-                    {
-                        return false;
-                    }
+                    )
+                {
+                    return false;
                 }
 
                 let point_in_target = point_in_spatial_node.cast_unit() -
@@ -346,7 +343,7 @@ impl Fragment {
             Fragment::Text(text) => hit_test_fragment_inner(
                 &text.style(),
                 text.base.rect(),
-                // Text should generally not fragment.
+                // Text currently never fragments in Servo.
                 None,
                 BorderRadius::zero(),
                 FragmentFlags::empty(),

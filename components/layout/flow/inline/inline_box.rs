@@ -29,7 +29,7 @@ use crate::ContainingBlock;
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom_traversal::NodeAndStyleInfo;
-use crate::fragment_tree::{BaseFragmentInfo, Fragment};
+use crate::fragment_tree::BaseFragmentInfo;
 use crate::geom::{SyncPhysicalRectAu, ToLogical};
 use crate::layout_box_base::LayoutBoxBase;
 use crate::style_ext::{ComputedValuesExt, LayoutStyle, PaddingBorderMargin};
@@ -148,30 +148,29 @@ impl InlineBox {
         }
 
         let fragments = self.base.fragments.borrow();
-        let box_fragments: Vec<_> = fragments
-            .iter()
-            .filter_map(|fragment| {
-                if let Fragment::Box(box_fragment) = fragment {
-                    Some(box_fragment)
-                } else {
-                    None
-                }
-            })
-            .collect();
-
         // Also early exit if there is only one fragment, since a single fragment cannot get sliced.
-        if box_fragments.len() <= 1 {
+        if fragments.len() <= 1 {
             return;
         }
 
         let writing_mode = style.writing_mode;
         let mut total_inline_size = Au::zero();
-        for fragment in &box_fragments {
-            total_inline_size += fragment.base.rect().size.to_logical(writing_mode).inline;
+        for fragment in fragments.iter() {
+            total_inline_size += fragment
+                .base()
+                .expect("Should always have a base fragment.")
+                .rect()
+                .size
+                .to_logical(writing_mode)
+                .inline;
         }
 
         let mut current_inline_offset = Au::zero();
-        for fragment in &box_fragments {
+        for fragment in fragments.iter().map(|fragment| {
+            fragment
+                .retrieve_box_fragment()
+                .expect("Should always be a box fragment.")
+        }) {
             let fragment_inline_size = fragment.base.rect().size.to_logical(writing_mode).inline;
 
             let mut origin = fragment.base.rect().origin;
@@ -208,8 +207,12 @@ impl InlineBox {
             current_inline_offset += fragment_inline_size;
         }
         // Fix up the fragmentation at the very beginning and end
-        if let Some(first_fragment) = box_fragments.first() &&
-            let Some(last_fragment) = box_fragments.last()
+        if let Some(first_fragment) = fragments
+            .first()
+            .and_then(|fragment| fragment.retrieve_box_fragment()) &&
+            let Some(last_fragment) = fragments
+                .last()
+                .and_then(|fragment| fragment.retrieve_box_fragment())
         {
             if writing_mode.is_horizontal() {
                 if writing_mode.is_bidi_ltr() {

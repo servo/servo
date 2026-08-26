@@ -398,25 +398,53 @@ impl BoxFragment {
         self.offset_by_containing_block(&self.border_rect(), containing_block_computation)
     }
 
+    fn fragmented_box_offsets(&self, offsets: PhysicalSides<Au>) -> PhysicalSides<Au> {
+        PhysicalSides::<Au>::new(
+            if self.is_fragmented_along_top_edge() {
+                Au::zero()
+            } else {
+                offsets.top
+            },
+            if self.is_fragmented_along_right_edge() {
+                Au::zero()
+            } else {
+                offsets.right
+            },
+            if self.is_fragmented_along_bottom_edge() {
+                Au::zero()
+            } else {
+                offsets.bottom
+            },
+            if self.is_fragmented_along_left_edge() {
+                Au::zero()
+            } else {
+                offsets.left
+            },
+        )
+    }
+
     pub(crate) fn content_rect(&self) -> PhysicalRect<Au> {
         self.base.rect()
     }
 
     pub(crate) fn padding_rect(&self) -> PhysicalRect<Au> {
-        self.content_rect().outer_rect(self.padding)
+        self.content_rect()
+            .outer_rect(self.fragmented_box_offsets(self.padding))
     }
 
     pub(crate) fn border_rect(&self) -> PhysicalRect<Au> {
-        self.padding_rect().outer_rect(self.border)
+        self.padding_rect()
+            .outer_rect(self.fragmented_box_offsets(self.border))
     }
 
     pub(crate) fn margin_rect(&self) -> PhysicalRect<Au> {
-        self.border_rect().outer_rect(self.margin)
+        self.border_rect()
+            .outer_rect(self.fragmented_box_offsets(self.margin))
     }
 
     pub(crate) fn unfragmented_content_rect(&self) -> PhysicalRect<Au> {
         self.unfragmented_rect()
-            .map_or(self.base.rect(), |r| r.get())
+            .map_or(self.base.rect(), |rect| rect.get())
     }
 
     pub(crate) fn unfragmented_padding_rect(&self) -> PhysicalRect<Au> {
