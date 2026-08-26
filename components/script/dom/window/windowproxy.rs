@@ -1390,7 +1390,7 @@ unsafe extern "C" fn get_prototype_if_ordinary(
 }
 
 #[expect(unsafe_code)]
-unsafe extern "C" fn maybe_xorigin_get_prototype_wrapper_rawcx(
+unsafe extern "C" fn maybe_cross_origin_get_prototype_wrapper_rawcx(
     cx: *mut RawJSContext,
     proxy: RawHandleObject,
     result: RawMutableHandleObject,
@@ -1415,7 +1415,7 @@ static PROXY_TRAPS: ProxyTraps = ProxyTraps {
     delete_: None,
     enumerate: None,
     getPrototypeIfOrdinary: Some(get_prototype_if_ordinary),
-    getPrototype: Some(maybe_xorigin_get_prototype_wrapper_rawcx),
+    getPrototype: Some(maybe_cross_origin_get_prototype_wrapper_rawcx),
     setPrototype: Some(maybe_cross_origin_set_prototype_rawcx),
     setImmutablePrototype: None,
     preventExtensions: Some(prevent_extensions),
@@ -1476,7 +1476,7 @@ impl WindowProxyHandler {
         /// Sharing a single instance should be fine because all methods on this pointer in C++
         /// are const and don't modify its internal state.
         static SINGLETON: OnceLock<WindowProxyHandler> = OnceLock::new();
-        SINGLETON.get_or_init(|| Self::new(&XORIGIN_PROXY_TRAPS))
+        SINGLETON.get_or_init(|| Self::new(&CROSS_ORIGIN_PROXY_TRAPS))
     }
 
     /// Returns a single, shared WindowProxyHandler that contains normal PROXY_TRAPS.
@@ -1532,7 +1532,7 @@ fn throw_security_error(realm: &mut CurrentRealm) -> bool {
 }
 
 #[expect(unsafe_code)]
-unsafe extern "C" fn has_xorigin(
+unsafe extern "C" fn cross_origin_has(
     cx: *mut RawJSContext,
     proxy: RawHandleObject,
     id: RawHandleId,
@@ -1557,7 +1557,7 @@ unsafe extern "C" fn has_xorigin(
 }
 
 #[expect(unsafe_code)]
-unsafe extern "C" fn get_xorigin(
+unsafe extern "C" fn cross_origin_get(
     cx: *mut RawJSContext,
     proxy: RawHandleObject,
     receiver: RawHandleValue,
@@ -1565,12 +1565,12 @@ unsafe extern "C" fn get_xorigin(
     vp: RawMutableHandleValue,
 ) -> bool {
     let mut found = false;
-    unsafe { has_xorigin(cx, proxy, id, &mut found) };
+    unsafe { cross_origin_has(cx, proxy, id, &mut found) };
     found && unsafe { get(cx, proxy, receiver, id, vp) }
 }
 
 #[expect(unsafe_code)]
-unsafe extern "C" fn set_xorigin(
+unsafe extern "C" fn cross_origin_set(
     cx: *mut RawJSContext,
     _: RawHandleObject,
     _: RawHandleId,
@@ -1602,8 +1602,7 @@ unsafe extern "C" fn delete_xorigin(
 }
 
 #[expect(unsafe_code)]
-#[expect(non_snake_case)]
-unsafe extern "C" fn getOwnPropertyDescriptor_xorigin(
+unsafe extern "C" fn cross_origin_get_own_property_descriptor(
     cx: *mut RawJSContext,
     proxy: RawHandleObject,
     id: RawHandleId,
@@ -1611,13 +1610,12 @@ unsafe extern "C" fn getOwnPropertyDescriptor_xorigin(
     is_none: *mut bool,
 ) -> bool {
     let mut found = false;
-    unsafe { has_xorigin(cx, proxy, id, &mut found) };
+    unsafe { cross_origin_has(cx, proxy, id, &mut found) };
     found && unsafe { get_own_property_descriptor(cx, proxy, id, desc, is_none) }
 }
 
 #[expect(unsafe_code)]
-#[expect(non_snake_case)]
-unsafe extern "C" fn defineProperty_xorigin(
+unsafe extern "C" fn cross_origin_define_property(
     cx: *mut RawJSContext,
     _: RawHandleObject,
     _: RawHandleId,
@@ -1632,27 +1630,30 @@ unsafe extern "C" fn defineProperty_xorigin(
     throw_security_error(&mut realm)
 }
 
-static XORIGIN_PROXY_TRAPS: ProxyTraps = ProxyTraps {
+// TODO: Some of these callbacks need proper support for handling cross-origin
+// properties, notably `set` and `ownPropertyKeys`, but there may also be others.
+//
+// TODO: Implement `getOwnPropertyKeys` for cross-origin `WindowProxy`.
+// https://github.com/servo/servo/issues/47548.
+static CROSS_ORIGIN_PROXY_TRAPS: ProxyTraps = ProxyTraps {
     enter: None,
-    getOwnPropertyDescriptor: Some(getOwnPropertyDescriptor_xorigin),
-    defineProperty: Some(defineProperty_xorigin),
-    // TODO: Implement `getOwnPropertyKeys` for cross-origin `WindowProxy`.
-    // https://github.com/servo/servo/issues/47548.
+    getOwnPropertyDescriptor: Some(cross_origin_get_own_property_descriptor),
+    defineProperty: Some(cross_origin_define_property),
     ownPropertyKeys: None,
     delete_: Some(delete_xorigin),
     enumerate: None,
     getPrototypeIfOrdinary: Some(maybe_cross_origin_get_prototype_if_ordinary_rawcx),
-    getPrototype: Some(maybe_xorigin_get_prototype_wrapper_rawcx),
+    getPrototype: Some(maybe_cross_origin_get_prototype_wrapper_rawcx),
     setPrototype: Some(maybe_cross_origin_set_prototype_rawcx),
     setImmutablePrototype: None,
     preventExtensions: Some(prevent_extensions),
     isExtensible: Some(is_extensible),
-    has: Some(has_xorigin),
-    get: Some(get_xorigin),
-    set: Some(set_xorigin),
+    has: Some(cross_origin_has),
+    get: Some(cross_origin_get),
+    set: Some(cross_origin_set),
     call: None,
     construct: None,
-    hasOwn: Some(has_xorigin),
+    hasOwn: Some(cross_origin_has),
     getOwnEnumerablePropertyKeys: None,
     nativeCall: None,
     objectClassIs: None,
