@@ -36,6 +36,7 @@ use servo_base::id::{BrowsingContextId, PipelineId};
 use webdriver::error::ErrorStatus;
 
 use crate::DomTypeHolder;
+use crate::dom::Promise;
 use crate::dom::attr::is_boolean_attribute;
 use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use crate::dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
@@ -62,7 +63,10 @@ use crate::dom::bindings::conversions::{
     ConversionBehavior, ConversionResult, get_property, get_property_jsval, jsid_to_string,
     root_from_object,
 };
-use crate::dom::bindings::error::{Error, report_pending_exception, throw_dom_exception};
+use crate::dom::bindings::error::{
+    Error, ErrorInfo, javascript_error_info_from_error_info, report_pending_exception,
+    throw_dom_exception,
+};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
@@ -86,7 +90,8 @@ use crate::dom::html::htmltextareaelement::HTMLTextAreaElement;
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::nodelist::NodeList;
-use crate::dom::types::ShadowRoot;
+use crate::dom::promisenativehandler::Callback;
+use crate::dom::types::{PromiseNativeHandler, ShadowRoot};
 use crate::dom::validitystate::ValidationFlags;
 use crate::dom::window::Window;
 use crate::dom::xmlserializer::XMLSerializer;
@@ -606,41 +611,84 @@ fn clone_an_object(
     return_val
 }
 
-pub(crate) fn handle_execute_async_script(
+#[derive(MallocSizeOf, JSTraceable)]
+struct WebDriverExecuteScriptFulfillmentHandler {
+    #[no_trace]
+    reply_sender: GenericSender<WebDriverJSResult>,
+}
+
+impl Callback for WebDriverExecuteScriptFulfillmentHandler {
+    fn callback(&self, cx: &mut CurrentRealm, return_value: HandleValue) {
+        let global_scope = GlobalScope::from_current_realm(cx);
+        let result = jsval_to_webdriver(cx, &global_scope, return_value);
+        let _ = self.reply_sender.send(result);
+    }
+}
+
+#[derive(MallocSizeOf, JSTraceable)]
+struct WebDriverExecuteScriptRejectionHandler {
+    #[no_trace]
+    reply_sender: GenericSender<WebDriverJSResult>,
+}
+
+impl Callback for WebDriverExecuteScriptRejectionHandler {
+    fn callback(&self, cx: &mut CurrentRealm, return_value: HandleValue) {
+        let error_info = ErrorInfo::from_value(cx, return_value);
+        let _ = self
+            .reply_sender
+            .send(Err(JavaScriptEvaluationError::EvaluationFailure(Some(
+                javascript_error_info_from_error_info(cx, &error_info, return_value),
+            ))));
+    }
+}
+
+pub(crate) fn handle_execute_script(
     window: Option<DomRoot<Window>>,
     eval: String,
-    reply: GenericSender<WebDriverJSResult>,
+    reply_sender: GenericSender<WebDriverJSResult>,
     cx: &mut JSContext,
 ) {
-    match window {
-        Some(window) => {
-            let reply_sender = reply.clone();
-            window.set_webdriver_script_chan(Some(reply));
+    let Some(window) = window else {
+        reply_sender
+            .send(Err(JavaScriptEvaluationError::DocumentNotFound))
+            .unwrap_or_else(|error| {
+                error!("ExecuteAsyncScript Failed to send reply: {error}");
+            });
+        return;
+    };
 
-            let global_scope = window.as_global_scope();
+    let global_scope = window.as_global_scope();
+    let mut realm = enter_auto_realm(cx, global_scope);
+    let mut realm = realm.current_realm();
+    let cx = &mut realm;
 
-            let mut realm = enter_auto_realm(cx, global_scope);
-            let mut realm = realm.current_realm();
-            if let Err(error) = global_scope.evaluate_js_on_global(
-                &mut realm,
-                eval.into(),
-                "",
-                None, // No known `introductionType` for JS code from WebDriver
-                None,
-            ) {
-                reply_sender.send(Err(error)).unwrap_or_else(|error| {
-                    error!("ExecuteAsyncScript Failed to send reply: {error}");
-                });
-            }
-        },
-        None => {
-            reply
-                .send(Err(JavaScriptEvaluationError::DocumentNotFound))
-                .unwrap_or_else(|error| {
-                    error!("ExecuteAsyncScript Failed to send reply: {error}");
-                });
-        },
+    rooted!(&in(cx) let mut return_value = UndefinedValue());
+    if let Err(error) = global_scope.evaluate_js_on_global(
+        cx,
+        eval.into(),
+        "",
+        None, // No known `introductionType` for JS code from WebDriver
+        Some(return_value.handle_mut()),
+    ) {
+        reply_sender.send(Err(error)).unwrap_or_else(|error| {
+            error!("ExecuteAsyncScript Failed to send reply: {error}");
+        });
+        return;
     }
+
+    let promise = Promise::new_resolved(cx, global_scope, return_value.handle());
+    let fulfillment_handler = WebDriverExecuteScriptFulfillmentHandler {
+        reply_sender: reply_sender.clone(),
+    };
+    let rejection_handler = WebDriverExecuteScriptRejectionHandler { reply_sender };
+
+    let handler = PromiseNativeHandler::new(
+        cx,
+        global_scope,
+        Some(Box::new(fulfillment_handler)),
+        Some(Box::new(rejection_handler)),
+    );
+    promise.append_native_handler(cx, &handler);
 }
 
 /// Get BrowsingContextId for <https://w3c.github.io/webdriver/#switch-to-parent-frame>

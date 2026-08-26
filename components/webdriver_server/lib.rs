@@ -2058,31 +2058,16 @@ impl Handler {
     ) -> WebDriverResult<WebDriverResponse> {
         // Step 1. Let body and arguments be the result of trying to extract the script arguments
         // from a request with argument parameters.
-        let (func_body, args_string) = self.extract_script_arguments(parameters)?;
+        let (function_body, arguments_vec) = self.extract_script_arguments(parameters)?;
+        let joined_arguments = arguments_vec.join(", ");
 
-        // This is pretty ugly; we really want something that acts like
-        // new Function() and then takes the resulting function and executes
-        // it with a vec of arguments.
         let script = format!(
-            r#"(async function(__wd_eid) {{
-                try {{
-                    let result = (async function() {{
-                        {func_body}
-                    }})({});
-                    let value = await result;
-                    if (window.__wd_eid === __wd_eid) {{
-                        window.webdriverCallback(value);
-                    }}
-                }} catch (err) {{
-                    if (window.__wd_eid === __wd_eid) {{
-                        window.webdriverException(err);
-                    }}
-                }}
-            }})(window.__wd_eid = (window.__wd_eid || 0) + 1);"#,
-            args_string.join(", ")
+            r#"(async function() {{
+                {function_body}
+               }})({joined_arguments})"#
         );
+        debug!("Executing {script}");
 
-        debug!("{}", script);
         // Step 2. If session's current browsing context is no longer open,
         // return error with error code no such window.
         self.verify_browsing_context_is_open(self.browsing_context_id()?)?;
@@ -2112,31 +2097,21 @@ impl Handler {
     ) -> WebDriverResult<WebDriverResponse> {
         // Step 1. Let body and arguments be the result of trying to extract the script arguments
         // from a request with argument parameters.
-        let (function_body, mut args_string) = self.extract_script_arguments(parameters)?;
-        args_string.push("resolve".to_string());
+        let (function_body, mut arguments_vec) = self.extract_script_arguments(parameters)?;
+        arguments_vec.push("(value) => resolve(value)".into());
+        let joined_arguments = arguments_vec.join(", ");
 
-        let joined_args = args_string.join(", ");
         let script = format!(
-            r#"(async function(__wd_eid) {{
-                try {{
-                    let result = new Promise(function(resolve, reject) {{
-                      (async function() {{
-                        {function_body}
-                      }})({joined_args})
-                        .catch(reject)
-                    }});
-                    let value = await result;
-                    if (window.__wd_eid === __wd_eid) {{
-                        window.webdriverCallback(value);
-                    }}
-                }} catch (err) {{
-                    if (window.__wd_eid === __wd_eid) {{
-                        window.webdriverException(err);
-                    }}
-                }}
-            }})(window.__wd_eid = (window.__wd_eid || 0) + 1);"#,
+            r#"(function() {{
+                return new Promise(function(resolve, reject) {{
+                  (async function() {{
+                    {function_body}
+                  }}({joined_arguments}))
+                    .catch(reject)
+                  }});
+              }})()"#,
         );
-        debug!("{}", script);
+        debug!("Executing {script}");
 
         // Step 2. If session's current browsing context is no longer open,
         // return error with error code no such window.
