@@ -579,7 +579,7 @@ fn create_cached_response(
     // TODO: take must-revalidate into account <https://tools.ietf.org/html/rfc7234#section-5.2.2.1>
     // TODO: if this cache is to be considered shared, take proxy-revalidate into account
     // <https://tools.ietf.org/html/rfc7234#section-5.2.2.7>
-    let has_expired = adjusted_expires <= time_since_validated.into();
+    let has_expired = adjusted_expires <= time_since_validated;
 
     // - fresh: return immediately, no validation.
     // - stale:
