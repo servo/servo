@@ -304,13 +304,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
         canGoForwardState.value = canGoForward
     }
 
-    public override fun onPause() {
-        servoView.onPause()
-        super.onPause()
-    }
-
     public override fun onResume() {
-        servoView.onResume()
         super.onResume()
         updateSettingsIfNecessary(false)
     }
