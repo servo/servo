@@ -438,7 +438,7 @@ pub(crate) fn follow_hyperlink(
     };
     let (maybe_chosen, history_handling) = match target_attribute_value {
         Some(name) => {
-            let (maybe_chosen, new) = source.choose_browsing_context(cx, name, noopener);
+            let (maybe_chosen, new) = source.choose_a_navigable(cx, name, noopener);
             let history_handling = if new {
                 NavigationHistoryBehavior::Replace
             } else {

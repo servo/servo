@@ -572,11 +572,12 @@ impl Window {
     /// A convenience method for
     /// <https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded>
     pub(crate) fn discard_browsing_context(&self) {
-        let proxy = match self.window_proxy.get() {
-            Some(proxy) => proxy,
-            None => panic!("Discarding a BC from a window that has none"),
-        };
+        let proxy = self
+            .window_proxy
+            .get()
+            .expect("Discarding a BC from a window that has none");
         proxy.discard_browsing_context();
+
         // Step 4 of https://html.spec.whatwg.org/multipage/#discard-a-document
         // Other steps performed when the `PipelineExit` message
         // is handled by the ScriptThread.

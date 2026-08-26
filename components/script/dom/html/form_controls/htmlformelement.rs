@@ -862,7 +862,7 @@ impl HTMLFormElement {
         // for choosing a navigable given target, form's node navigable, and noopener.
         let Some(chosen) = doc.browsing_context().and_then(|source| {
             source
-                .choose_browsing_context(cx, target.unwrap_or_default(), noopener)
+                .choose_a_navigable(cx, target.unwrap_or_default(), noopener)
                 .0
         }) else {
             // Step 23. If targetNavigable is null, then return.
