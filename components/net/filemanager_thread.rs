@@ -23,7 +23,7 @@ use net_traits::filemanager_thread::{
     FileManagerResult, FileManagerThreadError, FileManagerThreadMsg, FileTokenCheck,
     GetTokenForFileReply, ReadFileProgress, RelativePos,
 };
-use net_traits::response::{Response, ResponseBody};
+use net_traits::response::{DoneResponseBody, Response, ResponseBody};
 use parking_lot::{Mutex, RwLock};
 use rustc_hash::{FxHashMap, FxHashSet};
 use servo_arc::Arc as ServoArc;
@@ -217,7 +217,10 @@ impl FileManager {
         spawn_task(async move {
             loop {
                 if cancellation_listener.cancelled() {
-                    *res_body.lock() = ResponseBody::Done(vec![]);
+                    *res_body.lock() = ResponseBody::Done(DoneResponseBody {
+                        decoded_body: vec![],
+                        encoded_body: None,
+                    });
                     let _ = done_sender.send(Data::Cancelled);
                     return;
                 }
@@ -259,7 +262,10 @@ impl FileManager {
                         ResponseBody::Receiving(ref mut body) => std::mem::take(body),
                         _ => vec![],
                     };
-                    *body = ResponseBody::Done(completed_body);
+                    *body = ResponseBody::Done(DoneResponseBody {
+                        decoded_body: completed_body,
+                        encoded_body: None,
+                    });
                     let _ = done_sender.send(Data::Done);
                     break;
                 }

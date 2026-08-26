@@ -55,7 +55,7 @@ fn assert_parse(
             let resp_body = response.body.lock();
             match *resp_body {
                 ResponseBody::Done(ref val) => {
-                    assert_eq!(val, &data);
+                    assert_eq!(&val.decoded_body, &data);
                 },
                 _ => panic!(),
             }

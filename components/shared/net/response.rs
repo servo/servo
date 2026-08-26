@@ -18,8 +18,8 @@ use crate::fetch::headers::extract_mime_type_as_mime;
 use crate::http_status::HttpStatus;
 use crate::resource_fetch_timing::{ResourceFetchTimingContainer, ResourceTimingType};
 use crate::{
-    FetchMetadata, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming,
-    TlsSecurityInfo,
+    DecoderType, FetchMetadata, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy,
+    ResourceFetchTiming, TlsSecurityInfo,
 };
 
 /// [Response type](https://fetch.spec.whatwg.org/#concept-response-type)
@@ -41,6 +41,25 @@ pub enum TerminationReason {
     Timeout,
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, MallocSizeOf)]
+/// The Response is completely received. Optionally contains the encoded body.
+pub struct DoneResponseBody {
+    #[serde(with = "serde_bytes")]
+    pub decoded_body: Vec<u8>,
+    /// None means that the decoded_body is the same as the encoded body
+    pub encoded_body: Option<(Vec<u8>, DecoderType)>,
+}
+
+#[cfg(feature = "test-util")]
+impl DoneResponseBody {
+    pub fn new(encoded_bytes: Vec<u8>) -> Self {
+        DoneResponseBody {
+            decoded_body: encoded_bytes,
+            encoded_body: None,
+        }
+    }
+}
+
 /// The response body can still be pushed to after fetch
 /// This provides a way to store unfinished response bodies
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
@@ -48,8 +67,7 @@ pub enum ResponseBody {
     Empty, // XXXManishearth is this necessary, or is Done(vec![]) enough?
     #[serde(with = "serde_bytes")]
     Receiving(Vec<u8>),
-    #[serde(with = "serde_bytes")]
-    Done(Vec<u8>),
+    Done(DoneResponseBody),
 }
 
 impl ResponseBody {

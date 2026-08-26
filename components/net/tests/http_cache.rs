@@ -7,7 +7,7 @@ use http::{HeaderMap, StatusCode};
 use net::http_cache::{CacheKey, HttpCache, HttpCacheAssignment, ValidationStatus, refresh};
 use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::request::{Referrer, RequestBuilder};
-use net_traits::response::{Response, ResponseBody};
+use net_traits::response::{DoneResponseBody, Response, ResponseBody};
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use servo_base::id::TEST_PIPELINE_ID;
 use servo_url::ServoUrl;
@@ -18,7 +18,7 @@ async fn test_refreshing_resource_sets_done_chan_the_appropriate_value() {
     let response_bodies = vec![
         ResponseBody::Receiving(vec![]),
         ResponseBody::Empty,
-        ResponseBody::Done(vec![]),
+        ResponseBody::Done(DoneResponseBody::new(vec![])),
     ];
     let url = ServoUrl::parse("https://servo.org").unwrap();
     let request = RequestBuilder::new(
@@ -90,7 +90,7 @@ async fn test_skip_incomplete_cache_for_range_request_with_no_end_bound() {
     let timing = ResourceFetchTiming::new(ResourceTimingType::Navigation);
     let mut initial_incomplete_response = Response::new(url.clone(), timing);
     *initial_incomplete_response.body.lock() =
-        ResponseBody::Done(incomplete_response_body.to_vec());
+        ResponseBody::Done(DoneResponseBody::new(incomplete_response_body.to_vec()));
     initial_incomplete_response.headers.insert(
         CONTENT_RANGE,
         HeaderValue::from_str(&format!(
@@ -141,7 +141,7 @@ async fn stale_while_revalidate_freshness_for_cache_control(
 
     let timing = ResourceFetchTiming::new(ResourceTimingType::Navigation);
     let mut response = Response::new(url, timing);
-    *response.body.lock() = ResponseBody::Done(vec![1, 2, 3]);
+    *response.body.lock() = ResponseBody::Done(DoneResponseBody::new(vec![1, 2, 3]));
     response
         .headers
         .insert(CACHE_CONTROL, HeaderValue::from_str(cache_control).unwrap());
@@ -190,7 +190,7 @@ async fn test_stale_while_revalidate_not_used_when_request_demands_revalidation(
 
     let timing = ResourceFetchTiming::new(ResourceTimingType::Navigation);
     let mut response = Response::new(url.clone(), timing);
-    *response.body.lock() = ResponseBody::Done(vec![1, 2, 3]);
+    *response.body.lock() = ResponseBody::Done(DoneResponseBody::new(vec![1, 2, 3]));
     response.headers.insert(
         CACHE_CONTROL,
         HeaderValue::from_str("max-age=0, stale-while-revalidate=30").unwrap(),
