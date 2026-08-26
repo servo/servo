@@ -96,9 +96,9 @@ impl CacheStorage {
             },
         };
         match response {
-            // https://w3c.github.io/ServiceWorker/#cache-storage-has
+            // <https://w3c.github.io/ServiceWorker/#cache-storage-has>
             // the steps resolving the promise with the result.
-            // Note: spec forgets to queue a task see https://github.com/w3c/ServiceWorker/issues/1831
+            // Note: spec forgets to queue a task see <https://github.com/w3c/ServiceWorker/issues/1831>
             CacheStorageThreadResponse::HasCacheResult(result) => {
                 let Some(promise) = self.pending_promises.borrow_mut().pop_front() else {
                     debug_assert!(false, "No pending promise for HasCacheResult response.");
@@ -114,7 +114,7 @@ impl CacheStorage {
                 // Note: promise resolved with the result obtained in parallel.
                 promise.resolve_native(cx, &has_cache);
             },
-            // https://w3c.github.io/ServiceWorker/#cache-storage-open
+            // <https://w3c.github.io/ServiceWorker/#cache-storage-open>
             // the steps resolving the promise with the result.
             CacheStorageThreadResponse::OpenCacheResult { opened, cache_name } => {
                 let Some(promise) = self.pending_promises.borrow_mut().pop_front() else {
@@ -128,6 +128,18 @@ impl CacheStorage {
                 // Resolve promise with a new Cache object that represents value.
                 let cache = Cache::new(cx, &self.global(), DOMString::from(cache_name));
                 promise.resolve_native(cx, &cache);
+            },
+            // <https://w3c.github.io/ServiceWorker/#dom-cachestorage-delete>
+            CacheStorageThreadResponse::DeleteCacheResult(result) => {
+                let Some(promise) = self.pending_promises.borrow_mut().pop_front() else {
+                    debug_assert!(false, "No pending promise for DeleteCacheResult response.");
+                    return;
+                };
+                let Ok(deleted) = result else {
+                    promise.reject_error(cx, Error::Operation(Some(result.err().unwrap())));
+                    return;
+                };
+                promise.resolve_native(cx, &deleted);
             },
             CacheStorageThreadResponse::KeysResult(_) => debug_assert!(
                 false,
@@ -237,6 +249,43 @@ impl CacheStorageMethods<crate::DomTypeHolder> for CacheStorage {
             .borrow_mut()
             .push_back(promise.clone());
 
+        // Step 3: Return promise.
+        promise
+    }
+
+    /// <https://w3c.github.io/ServiceWorker/#dom-cachestorage-delete>
+    fn Delete(&self, cx: &mut JSContext, cache_name: DOMString) -> Rc<Promise> {
+        // Step 1: Let promise be the result of running the algorithm specified in has(cacheName) method with cacheName.
+        // Step 2: Return the result of reacting to promise with a fulfillment handler that,
+        // when called with argument cacheExists, performs the following substeps:
+        // Step 2.1: If cacheExists is false, then
+        // Step 2.1.1: Return false.
+        // Note: we skip the promise, and will run the equivalent steps directly in the backend.
+
+        // Step 2.2: Let cacheJobPromise be a new promise.
+        let global = self.global();
+        let promise = Promise::new(cx, &global);
+
+        // Step 3: Run the following substeps in parallel:
+        let callback = self.get_or_setup_callback();
+        if global
+            .storage_threads()
+            .send(CacheStorageThreadMessage::DeleteCache {
+                cache_name: cache_name.to_string(),
+                callback,
+                origin: global.origin().immutable().clone(),
+            })
+            .is_err()
+        {
+            promise.reject_error(cx, Error::Operation(None));
+            return promise;
+        }
+
+        self.pending_promises
+            .borrow_mut()
+            .push_back(promise.clone());
+
+        // Step 4: Return cacheJobPromise.
         promise
     }
 }

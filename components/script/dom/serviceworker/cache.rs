@@ -134,6 +134,10 @@ impl Cache {
                 // Step 5.4.3: Resolve promise with a frozen array created from requestList, in realm.
                 promise.resolve_native(cx, &request_list);
             },
+            CacheStorageThreadResponse::DeleteCacheResult(_result) => debug_assert!(
+                false,
+                "Unexpected DeleteCacheResult response in Cache handle_response."
+            ),
             CacheStorageThreadResponse::HasCacheResult(_result) => debug_assert!(
                 false,
                 "Unexpected HasCacheResult response in Cache handle_response."

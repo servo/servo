@@ -76,6 +76,11 @@ pub enum CacheStorageThreadMessage {
         callback: GenericCallback<CacheStorageThreadResponse>,
         origin: ImmutableOrigin,
     },
+    DeleteCache {
+        cache_name: String,
+        callback: GenericCallback<CacheStorageThreadResponse>,
+        origin: ImmutableOrigin,
+    },
     Exit(GenericSender<()>),
 }
 
@@ -87,4 +92,5 @@ pub enum CacheStorageThreadResponse {
         cache_name: String,
     },
     KeysResult(Result<Vec<String>, String>),
+    DeleteCacheResult(Result<bool, String>),
 }

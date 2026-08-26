@@ -32,6 +32,9 @@ trait CacheStorageEngine {
 
     /// <https://w3c.github.io/ServiceWorker/#cache-keys>
     fn keys(&mut self, cache_name: &str) -> Result<Vec<String>, CacheStorageError<Self::Error>>;
+
+    /// <https://w3c.github.io/ServiceWorker/#dom-cachestorage-delete>
+    fn delete_cache(&mut self, cache_name: &str) -> Result<bool, CacheStorageError<Self::Error>>;
 }
 
 /// <https://w3c.github.io/ServiceWorker/#dfn-request-response-list>
@@ -120,6 +123,28 @@ impl CacheStorageEngine for MemCacheStorageEngine {
         // Note: implementing this steps depends on Query Cache; todo.
 
         Ok(requests)
+    }
+
+    /// <https://w3c.github.io/ServiceWorker/#dom-cachestorage-delete>
+    /// The "running the algorithm specified in has" part, and the parallel steps.
+    fn delete_cache(&mut self, cache_name: &str) -> Result<bool, CacheStorageError<Self::Error>> {
+        // Step 1: Let promise be the result of running the algorithm specified in has(cacheName) method with cacheName.
+        // Step 2: Return the result of reacting to promise with a fulfillment handler that,
+        // when called with argument cacheExists, 
+        // performs the following substeps:
+        // Note: skipping th promise here.
+
+        // Step 2.1: If cacheExists is false, then:
+        // Step 2.1.1: Resolve promise with false.
+        // Note: done below using return value from `is_some`.
+
+        // Step 2.3: Run the following substeps in parallel:
+        // Step 2.3.1: Remove the relevant name to cache map[cacheName].
+        let has = self.name_to_cache_map.remove(cache_name).is_some();
+
+        // Step 2.3.2: Resolve promise with true.
+        // Note: promise resolved in script.
+        Ok(has)
     }
 }
 
@@ -238,6 +263,21 @@ where
                         .is_err()
                     {
                         error!("Failed to send response to script for Keys message.");
+                    }
+                },
+                CacheStorageThreadMessage::DeleteCache {
+                    cache_name,
+                    callback,
+                    origin: _,
+                } => {
+                    let result = self.engine.delete_cache(&cache_name);
+                    if callback
+                        .send(CacheStorageThreadResponse::DeleteCacheResult(
+                            result.map(|_| false).map_err(|e| format!("{:?}", e)),
+                        ))
+                        .is_err()
+                    {
+                        error!("Failed to send response to script for DeleteCache message.");
                     }
                 },
                 CacheStorageThreadMessage::Exit(sender) => {
