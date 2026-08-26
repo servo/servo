@@ -479,7 +479,7 @@ impl Actor for NetworkEventActor {
 
                     ResponseContent {
                         body_size: body.len(),
-                        content_charset: "".into(),
+                        content_charset: String::new(),
                         decoded_body_size: body.len(),
                         encoding,
                         headers_size: raw_headers.len(),
@@ -701,7 +701,7 @@ impl ActorEncode<NetworkEventMsg> for NetworkEventActor {
                 .unwrap_or_default()
                 .as_millis() as i64,
         ) {
-            LocalResult::None => "".to_owned(),
+            LocalResult::None => String::new(),
             LocalResult::Single(date_time) => date_time.to_rfc3339(),
             LocalResult::Ambiguous(date_time, _) => date_time.to_rfc3339(),
         };

@@ -570,8 +570,8 @@ impl MediaMetadata {
     pub fn new(title: String) -> Self {
         Self {
             title,
-            artist: "".to_owned(),
-            album: "".to_owned(),
+            artist: String::new(),
+            album: String::new(),
         }
     }
 }

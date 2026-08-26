@@ -410,7 +410,7 @@ fn add_retrieve_cookies(
     let url = ServoUrl::parse(final_location).unwrap();
     storage
         .cookies_for_url(&url, source)
-        .unwrap_or("".to_string())
+        .unwrap_or(String::new())
 }
 
 #[test]

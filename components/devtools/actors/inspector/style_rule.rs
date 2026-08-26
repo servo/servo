@@ -199,8 +199,8 @@ impl StyleRuleActor {
                 .as_ref()
                 .map(|r| r.ancestor_data.clone())
                 .unwrap_or_default(),
-            authored_text: "".into(),
-            css_text: "".into(), // TODO: Specify the css text
+            authored_text: String::new(),
+            css_text: String::new(), // TODO: Specify the css text
             declarations: style
                 .into_iter()
                 .map(|decl| {
@@ -212,7 +212,7 @@ impl StyleRuleActor {
                         name: decl.name,
                         offsets: vec![], // TODO: Get the source of the declaration
                         priority: decl.priority,
-                        terminator: "".into(),
+                        terminator: String::new(),
                         value: decl.value,
                     }
                 })
