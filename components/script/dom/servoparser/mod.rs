@@ -586,12 +586,12 @@ impl ServoParser {
         self.network_input.push_back(chunk);
     }
 
-    fn push_bytes_input_chunk(&self, chunk: impl AsRef<[u8]>) {
+    fn push_bytes_input_chunk(&self, chunk: &[u8]) {
         // For byte input, we convert it to text using the network decoder.
         if let Some(decoded_chunk) = self
             .network_decoder
             .borrow_mut()
-            .push(chunk.as_ref(), &self.document)
+            .push(chunk, &self.document)
         {
             self.push_tendril_input_chunk(decoded_chunk);
         }
@@ -603,7 +603,7 @@ impl ServoParser {
             // to overwrite the network input, this prefetching may
             // have been wasted, but in most cases it won't.
             let mut prefetch_decoder = self.prefetch_decoder.borrow_mut();
-            prefetch_decoder.process(ByteTendril::from(chunk.as_ref()));
+            prefetch_decoder.process(ByteTendril::from(chunk));
 
             self.prefetch_input
                 .push_back(mem::take(&mut prefetch_decoder.inner_sink_mut().output));
@@ -686,11 +686,11 @@ impl ServoParser {
         }
     }
 
-    fn parse_bytes_chunk(&self, cx: &mut JSContext, input: impl AsRef<[u8]>) {
+    fn parse_bytes_chunk(&self, cx: &mut JSContext, input: &[u8]) {
         let mut realm = enter_auto_realm(cx, &*self.document);
         let cx = &mut realm.current_realm();
         self.document.set_current_parser(Some(self));
-        self.push_bytes_input_chunk(input);
+        self.push_bytes_input_chunk(input.as_ref());
         if !self.suspended.get() {
             self.parse_sync(cx);
         }
@@ -1135,7 +1135,7 @@ impl ParserContext {
         if let Some(parser) = parser {
             parser.parse_bytes_chunk(
                 cx,
-                std::mem::take(&mut self.navigation_params.resource_header),
+                std::mem::take(&mut self.navigation_params.resource_header).as_ref(),
             );
         }
     }
@@ -1579,7 +1579,7 @@ impl FetchResponseListener for ParserContext {
                 self.load_document(cx, Some(&parser), &document);
             }
         } else {
-            parser.parse_bytes_chunk(cx, payload);
+            parser.parse_bytes_chunk(cx, payload.as_ref());
         }
     }
 
