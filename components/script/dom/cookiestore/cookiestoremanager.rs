@@ -17,7 +17,7 @@ use crate::dom::bindings::codegen::Bindings::CookieStoreManagerBinding::CookieSt
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::str::USVString;
-use crate::dom::cookiestore::CookieStore;
+use crate::dom::cookiestore::cookiestore::CookieStore;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::serviceworker::serviceworkerregistration::{
