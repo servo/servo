@@ -24,6 +24,7 @@ class ServoView(
     servoArgs: String?,
     servoLog: String?,
     private val experimentalMode: Boolean,
+    navigator: ServoNavigator,
 ) : SurfaceView(context), Servo.RunCallback, Choreographer.FrameCallback {
     private val glThread: GLThread
     private var servo: Servo? = null
@@ -40,6 +41,7 @@ class ServoView(
             client = client,
             servoArgs = servoArgs,
             servoLog = servoLog,
+            navigator = navigator,
         )
         holder.addCallback(surfaceHolderCallback)
         glThread.start()
@@ -151,6 +153,7 @@ class ServoView(
         private val client: Servo.Client,
         private val servoArgs: String?,
         private val servoLog: String?,
+        private val navigator: ServoNavigator,
     ) : SurfaceHolder.Callback {
         private var paused = false
 
@@ -173,6 +176,7 @@ class ServoView(
                     client,
                     servoView.context,
                     surface,
+                    navigator,
                 )
             } else {
                 paused = false
