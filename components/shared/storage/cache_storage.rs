@@ -5,7 +5,6 @@
 use std::ops::{Deref, DerefMut};
 
 use malloc_size_of_derive::MallocSizeOf;
-use net_traits::request::Request;
 use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::{GenericCallback, GenericSender};
 use servo_url::ImmutableOrigin;
@@ -88,7 +87,7 @@ pub enum CacheStorageThreadMessage {
 pub enum CacheStorageThreadResponse {
     HasCacheResult(Result<bool, String>),
     OpenCacheResult {
-        opened: Result<bool, String>,
+        result: Result<(), String>,
         cache_name: String,
     },
     KeysResult(Result<Vec<String>, String>),

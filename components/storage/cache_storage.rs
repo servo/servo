@@ -28,7 +28,7 @@ trait CacheStorageEngine {
         &mut self,
         cache_name: String,
         proxy_map: &StorageProxyMap,
-    ) -> Result<bool, CacheStorageError<Self::Error>>;
+    ) -> Result<(), CacheStorageError<Self::Error>>;
 
     /// <https://w3c.github.io/ServiceWorker/#cache-keys>
     fn keys(&mut self, cache_name: &str) -> Result<Vec<String>, CacheStorageError<Self::Error>>;
@@ -68,7 +68,7 @@ impl CacheStorageEngine for MemCacheStorageEngine {
         &mut self,
         cache_name: String,
         proxy_map: &StorageProxyMap,
-    ) -> Result<bool, CacheStorageError<Self::Error>> {
+    ) -> Result<(), CacheStorageError<Self::Error>> {
         // Step 2.1: For each key → value of the relevant name to cache map:
         for key in self.name_to_cache_map.keys() {
             if key == &cache_name {
@@ -77,7 +77,7 @@ impl CacheStorageEngine for MemCacheStorageEngine {
                 // Note: promise resolved in script.
 
                 // Step 2.1.2: Abort these steps.
-                return Ok(true);
+                return Ok(());
             }
         }
 
@@ -100,7 +100,7 @@ impl CacheStorageEngine for MemCacheStorageEngine {
 
         // Step 2.4: Resolve promise with a new Cache object that represents cache.
         // Note: promise resolved in script.
-        Ok(true)
+        Ok(())
     }
 
     /// <https://w3c.github.io/ServiceWorker/#cache-keys>
@@ -130,7 +130,7 @@ impl CacheStorageEngine for MemCacheStorageEngine {
     fn delete_cache(&mut self, cache_name: &str) -> Result<bool, CacheStorageError<Self::Error>> {
         // Step 1: Let promise be the result of running the algorithm specified in has(cacheName) method with cacheName.
         // Step 2: Return the result of reacting to promise with a fulfillment handler that,
-        // when called with argument cacheExists, 
+        // when called with argument cacheExists,
         // performs the following substeps:
         // Note: skipping th promise here.
 
@@ -242,7 +242,7 @@ where
                     let result = self.engine.open_cache(cache_name.clone(), &proxy);
                     if callback
                         .send(CacheStorageThreadResponse::OpenCacheResult {
-                            opened: result.map(|_| false).map_err(|e| format!("{:?}", e)),
+                            result: result.map(|_| ()).map_err(|e| format!("{:?}", e)),
                             cache_name,
                         })
                         .is_err()

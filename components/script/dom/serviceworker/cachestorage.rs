@@ -105,7 +105,14 @@ impl CacheStorage {
                     return;
                 };
                 let Ok(has_cache) = result else {
-                    promise.reject_error(cx, Error::Operation(Some(result.err().unwrap())));
+                    promise.reject_error(
+                        cx,
+                        Error::Operation(Some(
+                            result
+                                .err()
+                                .unwrap_or_else(|| format!("HasCacheResult error")),
+                        )),
+                    );
                     return;
                 };
                 // Step 2.1:For each key → value of the relevant name to cache map:
@@ -116,13 +123,20 @@ impl CacheStorage {
             },
             // <https://w3c.github.io/ServiceWorker/#cache-storage-open>
             // the steps resolving the promise with the result.
-            CacheStorageThreadResponse::OpenCacheResult { opened, cache_name } => {
+            CacheStorageThreadResponse::OpenCacheResult { result, cache_name } => {
                 let Some(promise) = self.pending_promises.borrow_mut().pop_front() else {
                     debug_assert!(false, "No pending promise for OpenCacheResult response.");
                     return;
                 };
-                let Ok(opened) = opened else {
-                    promise.reject_error(cx, Error::Operation(Some(opened.err().unwrap())));
+                if result.is_err() {
+                    promise.reject_error(
+                        cx,
+                        Error::Operation(Some(
+                            result
+                                .err()
+                                .unwrap_or_else(|| format!("OpenCacheResult error")),
+                        )),
+                    );
                     return;
                 };
                 // Resolve promise with a new Cache object that represents value.
@@ -136,7 +150,14 @@ impl CacheStorage {
                     return;
                 };
                 let Ok(deleted) = result else {
-                    promise.reject_error(cx, Error::Operation(Some(result.err().unwrap())));
+                    promise.reject_error(
+                        cx,
+                        Error::Operation(Some(
+                            result
+                                .err()
+                                .unwrap_or_else(|| format!("DeleteCacheResult error")),
+                        )),
+                    );
                     return;
                 };
                 promise.resolve_native(cx, &deleted);

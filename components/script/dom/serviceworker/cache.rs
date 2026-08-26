@@ -11,9 +11,8 @@ use js::context::JSContext;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use script_bindings::root::DomRoot;
 use servo_base::generic_channel::{GenericCallback, GenericSend};
-use servo_url::{ImmutableOrigin, ServoUrl};
+use servo_url::ServoUrl;
 use storage_traits::cache_storage::{CacheStorageThreadMessage, CacheStorageThreadResponse};
-use storage_traits::client_storage::{StorageIdentifier, StorageProxyMap, StorageType};
 
 use crate::dom::Promise;
 use crate::dom::bindings::codegen::Bindings::CacheBinding::CacheMethods;
@@ -156,7 +155,7 @@ impl CacheMethods<crate::DomTypeHolder> for Cache {
         &self,
         cx: &mut JSContext,
         request: Option<RequestOrUSVString>,
-        options: &CacheQueryOptions,
+        _options: &CacheQueryOptions,
     ) -> Rc<Promise> {
         // Step 1: Let r be null.
         let mut r: Option<DomRoot<Request>> = None;
@@ -190,6 +189,9 @@ impl CacheMethods<crate::DomTypeHolder> for Cache {
                 r = Some(request);
             }
         }
+
+        // TODO: use r in the backend.
+        let _ = r;
 
         // Step 5: Run these substeps in parallel:
         let callback = self.get_or_setup_callback();
