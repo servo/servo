@@ -104,7 +104,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
                         Omnibox(
                             urlTextFieldState,
                             onSearch = { search ->
-                                loadUrl(search)
+                                servoView.loadUri(search)
                                 servoView.requestFocus()
                             },
                             modifier = Modifier
@@ -258,10 +258,6 @@ class MainActivity : ComponentActivity(), Servo.Client {
         startActivityForResult(Intent(this, HistoryActivity::class.java), HISTORY_REQUEST_CODE)
     }
 
-    private fun loadUrl(search: String) {
-        servoView.loadUri(search.trim { it <= ' ' })
-    }
-
     override fun onImeShow() {
         getSystemService<InputMethodManager>()?.showSoftInput(servoView, InputMethodManager.SHOW_IMPLICIT)
     }
@@ -326,7 +322,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
             val url = data.getStringExtra("url")
             if (!url.isNullOrEmpty()) {
                 urlTextFieldState.edit { replace(0, length, url) }
-                loadUrl(urlTextFieldState.text.toString())
+                servoView.loadUri(urlTextFieldState.text.toString())
             }
         }
     }
