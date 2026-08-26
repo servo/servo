@@ -96,7 +96,7 @@ impl CacheStorageEngine for MemCacheStorageEngine {
         {
             return Err(CacheStorageError::Internal(()));
         };
-        self.name_to_cache_map.insert(cache_name.to_string(), cache);
+        self.name_to_cache_map.insert(cache_name, cache);
 
         // Step 2.4: Resolve promise with a new Cache object that represents cache.
         // Note: promise resolved in script.
