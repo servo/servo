@@ -5,6 +5,7 @@
 pub(crate) use self::node::*;
 pub(crate) mod children_mutation;
 pub(crate) mod context;
+pub(crate) mod customelementregistry;
 pub(crate) mod focus;
 pub(crate) mod iterators;
 pub(crate) mod layout_dom;

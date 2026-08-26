@@ -148,7 +148,7 @@ use crate::dom::bindings::utils::GlobalStaticData;
 use crate::dom::bindings::weakref::DOMTracker;
 #[cfg(feature = "bluetooth")]
 use crate::dom::bluetooth::BluetoothExtraPermissionData;
-use crate::dom::cookiestore::CookieStore;
+use crate::dom::cookiestore::cookiestore::CookieStore;
 use crate::dom::csp::GlobalCspReporting;
 use crate::dom::css::cssstyledeclaration::{
     CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner,

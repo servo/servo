@@ -25,7 +25,6 @@ use script_bindings::reflector::{DomObject, Reflector, reflect_dom_object_with_p
 use script_bindings::settings_stack::{run_a_callback, run_a_script};
 use style::attr::AttrValue;
 
-use super::bindings::trace::HashMapTracedValues;
 use crate::DomTypeHolder;
 use crate::dom::bindings::callback::{CallbackContainer, ExceptionHandling};
 use crate::dom::bindings::codegen::Bindings::CustomElementRegistryBinding::{
@@ -42,6 +41,7 @@ use crate::dom::bindings::inheritance::{Castable, DocumentFragmentTypeId, NodeTy
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{AsHandleValue, Dom, DomRoot, UnrootedDom};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::trace::HashMapTracedValues;
 use crate::dom::document::Document;
 use crate::dom::domexception::{DOMErrorName, DOMException};
 use crate::dom::element::Element;
