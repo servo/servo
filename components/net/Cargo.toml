@@ -105,6 +105,9 @@ net = { package = "servo-net", path = ".", features = ["test-util"] }
 rustls = { workspace = true, features = ["aws-lc-rs"] }
 servo-default-resources = { workspace = true }
 
+[lints]
+workspace = true
+
 [[test]]
 name = "main"
 path = "tests/main.rs"

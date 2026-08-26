@@ -238,7 +238,7 @@ impl CookieStorage {
         };
 
         // Serialize the cookie-list into a cookie-string by processing each cookie in the cookie-list in order
-        let result = cookie_list.fold("".to_owned(), reducer);
+        let result = cookie_list.fold(String::new(), reducer);
 
         info!(" === COOKIES SENT: {}", result);
         match result.len() {

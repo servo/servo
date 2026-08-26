@@ -440,7 +440,7 @@ impl Actor for ConsoleActor {
                     AutocompleteReply {
                         from: self.name().into(),
                         matches: vec![],
-                        match_prop: "".to_owned(),
+                        match_prop: String::new(),
                         is_element_access: false,
                     }
                 } else {
