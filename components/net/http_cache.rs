@@ -36,6 +36,72 @@ use tokio::sync::{OwnedRwLockWriteGuard, RwLock as TokioRwLock};
 use crate::disk_cache::DiskCache;
 use crate::fetch::methods::{Data, DoneChannel};
 
+/// A duration in seconds.
+///
+/// This is the same as std::time::Duration except that we do not care about nanosecond precision.
+#[derive(
+    Copy,
+    Clone,
+    Default,
+    Debug,
+    Deserialize,
+    MallocSizeOf,
+    Serialize,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+)]
+struct ApproxDuration(u64);
+
+impl ApproxDuration {
+    const fn zero() -> Self {
+        Self(0)
+    }
+
+    fn is_zero(&self) -> bool {
+        self.0 == 0
+    }
+
+    fn saturating_sub(&self, rhs: ApproxDuration) -> Self {
+        Self(self.0.saturating_sub(rhs.0))
+    }
+
+    fn from_secs(seconds: u64) -> Self {
+        Self(seconds)
+    }
+}
+
+impl From<Duration> for ApproxDuration {
+    fn from(value: Duration) -> Self {
+        Self(value.as_secs())
+    }
+}
+
+impl std::ops::Add for ApproxDuration {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Self(self.0 + rhs.0)
+    }
+}
+
+impl std::ops::Sub for ApproxDuration {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        Self(self.0 - rhs.0)
+    }
+}
+
+impl std::ops::Div<u64> for ApproxDuration {
+    type Output = Self;
+
+    fn div(self, rhs: u64) -> Self::Output {
+        Self(self.0 / rhs)
+    }
+}
+
 /// The key used to differentiate requests in the cache.
 #[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
 pub struct CacheKey {
@@ -78,8 +144,8 @@ pub struct CachedResource {
     location_url: Option<Result<ServoUrl, String>>,
     status: HttpStatus,
     url_list: Vec<ServoUrl>,
-    expires: Duration,
-    stale_while_revalidate: Duration,
+    expires: ApproxDuration,
+    stale_while_revalidate: ApproxDuration,
     #[conditional_malloc_size_of]
     #[serde(skip)]
     revalidating: StdArc<AtomicBool>,
@@ -299,29 +365,30 @@ fn response_is_cacheable(metadata: &Metadata) -> bool {
 
 /// Calculating Age
 /// <https://tools.ietf.org/html/rfc7234#section-4.2.3>
-fn calculate_response_age(response: &Response) -> Duration {
+fn calculate_response_age(response: &Response) -> ApproxDuration {
     // TODO: follow the spec more closely (Date headers, request/response lag, ...)
     response
         .headers
         .get(header::AGE)
         .and_then(|age_header| age_header.to_str().ok())
         .and_then(|age_string| age_string.parse::<u64>().ok())
-        .map(Duration::from_secs)
+        .map(ApproxDuration::from_secs)
         .unwrap_or_default()
 }
 
 /// Determine the expiry date from relevant headers,
 /// or uses a heuristic if none are present.
-fn get_response_expiry(response: &Response) -> Duration {
+fn get_response_expiry(response: &Response) -> ApproxDuration {
     // Calculating Freshness Lifetime <https://tools.ietf.org/html/rfc7234#section-4.2.1>
     let age = calculate_response_age(response);
     let now = SystemTime::now();
     if let Some(directives) = response.headers.typed_get::<CacheControl>() {
         if directives.no_cache() {
             // Requires validation on first use.
-            return Duration::ZERO;
+            return ApproxDuration::zero();
         }
         if let Some(max_age) = directives.max_age().or(directives.s_max_age()) {
+            let max_age: ApproxDuration = max_age.into();
             return max_age.saturating_sub(age);
         }
     }
@@ -330,10 +397,13 @@ fn get_response_expiry(response: &Response) -> Duration {
             // `duration_since` fails if `now` is later than `expiry_time` in which case,
             // this whole thing return `Duration::ZERO`.
             let expiry_time: SystemTime = expiry.into();
-            return expiry_time.duration_since(now).unwrap_or(Duration::ZERO);
+            return expiry_time
+                .duration_since(now)
+                .map(|duration| duration.into())
+                .unwrap_or(ApproxDuration::zero());
         },
         // Malformed Expires header, shouldn't be used to construct a valid response.
-        None if response.headers.contains_key(header::EXPIRES) => return Duration::ZERO,
+        None if response.headers.contains_key(header::EXPIRES) => return ApproxDuration::zero(),
         _ => {},
     }
     // Calculating Heuristic Freshness
@@ -342,7 +412,7 @@ fn get_response_expiry(response: &Response) -> Duration {
         // <https://tools.ietf.org/html/rfc7234#section-5.5.4>
         // Since presently we do not generate a Warning header field with a 113 warn-code,
         // 24 hours minus response age is the max for heuristic calculation.
-        let max_heuristic = Duration::from_secs(24 * 60 * 60).saturating_sub(age);
+        let max_heuristic = ApproxDuration::from_secs(24 * 60 * 60).saturating_sub(age);
         let heuristic_freshness = if let Some(last_modified) =
             // If the response has a Last-Modified header field,
             // caches are encouraged to use a heuristic expiration value
@@ -352,7 +422,8 @@ fn get_response_expiry(response: &Response) -> Duration {
             // `time_since_last_modified` will be `Duration::ZERO` if `last_modified` is
             // after `now`.
             let last_modified: SystemTime = last_modified.into();
-            let time_since_last_modified = now.duration_since(last_modified).unwrap_or_default();
+            let time_since_last_modified: ApproxDuration =
+                now.duration_since(last_modified).unwrap_or_default().into();
 
             // A typical setting of this fraction might be 10%.
             let raw_heuristic_calc = time_since_last_modified / 10;
@@ -363,7 +434,7 @@ fn get_response_expiry(response: &Response) -> Duration {
             }
         } else {
             // Compatible with other browsers.
-            Duration::ZERO
+            ApproxDuration::zero()
         };
         if is_cacheable_by_default(*code) {
             // Status codes that are cacheable by default can use heuristics to determine freshness.
@@ -377,13 +448,13 @@ fn get_response_expiry(response: &Response) -> Duration {
         }
     }
     // Requires validation upon first use as default.
-    Duration::ZERO
+    ApproxDuration::zero()
 }
 
 /// The `headers` crate's `CacheControl` does not understand `stale-while-revalidate` directive,
 /// so we need to parse the raw `Cache-Control` header values.
 /// <https://datatracker.ietf.org/doc/html/rfc5861#section-3>
-fn get_stale_while_revalidate(headers: &HeaderMap) -> Duration {
+fn get_stale_while_revalidate(headers: &HeaderMap) -> ApproxDuration {
     for value in headers.get_all(header::CACHE_CONTROL) {
         let Ok(value) = value.to_str() else {
             continue;
@@ -399,11 +470,11 @@ fn get_stale_while_revalidate(headers: &HeaderMap) -> Duration {
             // The argument is a number of seconds, optionally quoted.
             let argument = argument.trim().trim_matches('"');
             if let Ok(seconds) = argument.parse::<u64>() {
-                return Duration::from_secs(seconds);
+                return ApproxDuration::from_secs(seconds);
             }
         }
     }
-    Duration::ZERO
+    ApproxDuration::zero()
 }
 
 /// Determine whether the request itself demands revalidation.
@@ -432,30 +503,36 @@ fn request_demands_revalidation(request: &Request) -> bool {
 
 /// Request Cache-Control Directives
 /// <https://tools.ietf.org/html/rfc7234#section-5.2.1>
-fn get_expiry_adjustment_from_request_headers(request: &Request, expires: Duration) -> Duration {
+fn get_expiry_adjustment_from_request_headers(
+    request: &Request,
+    expires: ApproxDuration,
+) -> ApproxDuration {
     let Some(directive) = request.headers.typed_get::<CacheControl>() else {
         return expires;
     };
 
     if let Some(max_age) = directive.max_stale() {
+        let max_age: ApproxDuration = max_age.into();
         return expires + max_age;
-    }
+    };
 
-    match directive.max_age() {
-        Some(max_age) if expires > max_age => return Duration::ZERO,
+    let max_age: Option<ApproxDuration> = directive.max_age().map(|max_age| max_age.into());
+    match max_age {
+        Some(max_age) if expires > max_age => return ApproxDuration::zero(),
         Some(max_age) => return expires - max_age,
         None => {},
     };
 
     if let Some(min_fresh) = directive.min_fresh() {
+        let min_fresh: ApproxDuration = min_fresh.into();
         if expires < min_fresh {
-            return Duration::ZERO;
-        }
+            return ApproxDuration::zero();
+        };
         return expires - min_fresh;
     }
 
     if directive.no_cache() || directive.no_store() {
-        return Duration::ZERO;
+        return ApproxDuration::zero();
     }
 
     expires
@@ -498,6 +575,7 @@ fn create_cached_response(
         return None;
     };
 
+    let time_since_validated: ApproxDuration = time_since_validated.into();
     // TODO: take must-revalidate into account <https://tools.ietf.org/html/rfc7234#section-5.2.2.1>
     // TODO: if this cache is to be considered shared, take proxy-revalidate into account
     // <https://tools.ietf.org/html/rfc7234#section-5.2.2.7>
@@ -899,7 +977,7 @@ pub fn refresh(
 
 pub(crate) fn invalidate_cached_resources(cached_resources: &mut [CachedResource]) {
     for cached_resource in cached_resources.iter_mut() {
-        cached_resource.expires = Duration::ZERO;
+        cached_resource.expires = ApproxDuration::zero();
     }
 }
 
