@@ -1478,9 +1478,9 @@ checksum = "a6ef517f0926dd24a1582492c791b6a4818a4d94e789a334894aa15b0d12f55c"
 
 [[package]]
 name = "content-security-policy"
-version = "0.8.1"
+version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6813ceff986382cd86f67722f308177253e8fab1954a2d51c5e386ffdb3e2d03"
+checksum = "d4a6aa7e33210a2eef3b5acc97e9da7fd026c74d54776a576d1ec24d068ba04d"
 dependencies = [
  "base64 0.22.1",
  "bitflags 2.13.1",
