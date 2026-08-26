@@ -95,9 +95,14 @@ impl Cache {
         let response = match response {
             Some(response) => response,
             None => {
-                if self.pending_promises.borrow_mut().pop_front().is_none() {
+                let Some(promise) = self.pending_promises.borrow_mut().pop_front() else {
                     error!("No pending promise for Cache response.");
-                }
+                    return;
+                };
+                promise.reject_error(
+                    cx,
+                    Error::Operation(Some("No response from Cache backend.".to_string())),
+                );
                 return;
             },
         };

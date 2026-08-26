@@ -78,6 +78,7 @@ pub enum CacheStorageThreadMessage {
     DeleteCache {
         cache_name: String,
         callback: GenericCallback<CacheStorageThreadResponse>,
+        proxy: StorageProxyMap,
         origin: ImmutableOrigin,
     },
     Exit(GenericSender<()>),

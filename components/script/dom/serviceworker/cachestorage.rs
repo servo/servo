@@ -89,9 +89,14 @@ impl CacheStorage {
         let response = match response {
             Some(response) => response,
             None => {
-                if self.pending_promises.borrow_mut().pop_front().is_none() {
+                let Some(promise) = self.pending_promises.borrow_mut().pop_front() else {
                     error!("No pending promise for CacheStorage response.");
-                }
+                    return;
+                };
+                promise.reject_error(
+                    cx,
+                    Error::Operation(Some("No response from CacheStorage backend.".to_string())),
+                );
                 return;
             },
         };
@@ -251,21 +256,21 @@ impl CacheStorageMethods<crate::DomTypeHolder> for CacheStorage {
 
         // Step 2: Run the following substeps in parallel:
         let callback = self.get_or_setup_callback();
-        let proxy_map =
-            match relevant_name_to_cache_map(&global, global.origin().immutable().clone()) {
-                Ok(proxy_map) => proxy_map,
-                Err(err) => {
-                    promise.reject_error(cx, err);
-                    return promise;
-                },
-            };
+        let origin = global.origin().immutable().clone();
+        let proxy_map = match relevant_name_to_cache_map(&global, origin.clone()) {
+            Ok(proxy_map) => proxy_map,
+            Err(err) => {
+                promise.reject_error(cx, err);
+                return promise;
+            },
+        };
         if global
             .storage_threads()
             .send(CacheStorageThreadMessage::OpenCache {
                 cache_name: cache_name.to_string(),
                 callback,
                 proxy: proxy_map,
-                origin: global.origin().immutable().clone(),
+                origin,
             })
             .is_err()
         {
@@ -299,12 +304,21 @@ impl CacheStorageMethods<crate::DomTypeHolder> for CacheStorage {
 
         // Step 3: Run the following substeps in parallel:
         let callback = self.get_or_setup_callback();
+        let origin = global.origin().immutable().clone();
+        let proxy_map = match relevant_name_to_cache_map(&global, origin.clone()) {
+            Ok(proxy_map) => proxy_map,
+            Err(err) => {
+                promise.reject_error(cx, err);
+                return promise;
+            },
+        };
         if global
             .storage_threads()
             .send(CacheStorageThreadMessage::DeleteCache {
                 cache_name: cache_name.to_string(),
                 callback,
-                origin: global.origin().immutable().clone(),
+                proxy: proxy_map,
+                origin: origin,
             })
             .is_err()
         {
