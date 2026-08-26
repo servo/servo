@@ -1407,6 +1407,9 @@ unsafe extern "C" fn maybe_cross_origin_get_prototype_wrapper_rawcx(
     )
 }
 
+// TODO: These traps should change their behavior depending on
+// `IsPlatformObjectSameOrigin(this.[[Window]])`
+// See <https://github.com/servo/servo/issues/44669>
 static PROXY_TRAPS: ProxyTraps = ProxyTraps {
     enter: None,
     getOwnPropertyDescriptor: Some(get_own_property_descriptor),
