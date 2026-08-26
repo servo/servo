@@ -627,7 +627,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
             elementSequence: None,
             shortValue: None,
             stringValue: None,
-            type_: Some(DOMString::from("success")),
+            type_: Some(DOMString::from_static("success")),
             unrestrictedDoubleValue: None,
             unrestrictedFloatValue: None,
             unsignedLongLongValue: None,

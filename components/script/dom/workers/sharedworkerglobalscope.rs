@@ -674,7 +674,7 @@ impl SharedWorkerGlobalScope {
                 let inside_port = inside_port.root();
 
                 rooted!(&in(cx) let mut data = UndefinedValue());
-                DOMString::from("").safe_to_jsval(cx,
+                DOMString::new().safe_to_jsval(cx,
                     data.handle_mut(),
                 );
 
@@ -688,7 +688,7 @@ impl SharedWorkerGlobalScope {
                     false,
                     false,
                     data.handle(),
-                    DOMString::from(""),
+                    DOMString::new(),
                     Some(&source),
                     DOMString::new(),
                     vec![inside_port],

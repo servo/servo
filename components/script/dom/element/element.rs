@@ -5376,7 +5376,7 @@ pub(crate) fn reflect_cross_origin_attribute(element: &Element) -> Option<DOMStr
     element
         .get_attribute_string_value(&local_name!("crossorigin"))
         .map(|value| {
-            DOMString::from(
+            DOMString::from_static(
                 ["anonymous", "use-credentials"]
                     .into_iter()
                     .find(|keyword| value.eq_ignore_ascii_case(keyword))

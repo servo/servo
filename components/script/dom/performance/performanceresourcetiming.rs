@@ -153,14 +153,14 @@ impl PerformanceResourceTimingMethods<crate::DomTypeHolder> for PerformanceResou
     /// <https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-initiatortype>
     fn InitiatorType(&self) -> DOMString {
         match self.initiator_type {
-            InitiatorType::Beacon => DOMString::from("beacon"),
-            InitiatorType::Css => DOMString::from("css"),
+            InitiatorType::Beacon => DOMString::from_static("beacon"),
+            InitiatorType::Css => DOMString::from_static("css"),
             InitiatorType::LocalName(ref n) => DOMString::from(n.clone()),
-            InitiatorType::Navigation => DOMString::from("navigation"),
-            InitiatorType::XMLHttpRequest => DOMString::from("xmlhttprequest"),
-            InitiatorType::Fetch => DOMString::from("fetch"),
-            InitiatorType::Track => DOMString::from("track"),
-            InitiatorType::Other => DOMString::from("other"),
+            InitiatorType::Navigation => DOMString::from_static("navigation"),
+            InitiatorType::XMLHttpRequest => DOMString::from_static("xmlhttprequest"),
+            InitiatorType::Fetch => DOMString::from_static("fetch"),
+            InitiatorType::Track => DOMString::from_static("track"),
+            InitiatorType::Other => DOMString::from_static("other"),
         }
     }
 
@@ -170,7 +170,7 @@ impl PerformanceResourceTimingMethods<crate::DomTypeHolder> for PerformanceResou
     fn NextHopProtocol(&self) -> DOMString {
         match self.next_hop {
             Some(ref protocol) => protocol.clone(),
-            None => DOMString::from(""),
+            None => DOMString::new(),
         }
     }
 

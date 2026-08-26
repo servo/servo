@@ -377,7 +377,7 @@ impl MouseEvent {
             0,        // twist
             PI / 2.0, // altitude_angle (perpendicular to surface)
             0.0,      // azimuth_angle
-            DOMString::from("mouse"),
+            DOMString::from_static("mouse"),
             true,   // is_primary (mouse is always primary)
             vec![], // coalesced_events
             vec![], // predicted_events
@@ -436,7 +436,7 @@ impl MouseEvent {
             0,                       // twist
             PI / 2.0,                // altitude_angle (perpendicular to surface)
             0.0,                     // azimuth_angle
-            DOMString::from("mouse"),
+            DOMString::from_static("mouse"),
             true,   // is_primary (mouse is always primary)
             vec![], // coalesced_events
             vec![], // predicted_events

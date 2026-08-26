@@ -362,7 +362,7 @@ impl TextEncoderStreamMethods<crate::DomTypeHolder> for TextEncoderStream {
     /// <https://encoding.spec.whatwg.org/#dom-textencoder-encoding>
     fn Encoding(&self) -> DOMString {
         // Returns "utf-8".
-        DOMString::from("utf-8")
+        DOMString::from_static("utf-8")
     }
 
     /// <https://streams.spec.whatwg.org/#dom-generictransformstream-readable>

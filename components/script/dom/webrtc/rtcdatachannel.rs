@@ -114,7 +114,7 @@ impl RTCDataChannel {
             negotiated: options.negotiated,
             id: options.id,
             ready_state: Cell::new(RTCDataChannelState::Connecting),
-            binary_type: DomRefCell::new(DOMString::from("blob")),
+            binary_type: DomRefCell::new(DOMString::from_static("blob")),
             peer_connection: Dom::from_ref(peer_connection),
             droppable: DroppableRTCDataChannel::new(WeakRef::new(peer_connection), servo_media_id),
         }

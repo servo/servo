@@ -365,7 +365,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             let mut jwk = JsonWebKey::default();
 
             // Step 2.2. Set the kty attribute of jwk to the string "oct".
-            jwk.kty = Some(DOMString::from("oct"));
+            jwk.kty = Some(DOMString::from_static("oct"));
 
             // Step 2.3. Set the k attribute of jwk to be a string containing the raw octets of the
             // key represented by [[handle]] internal slot of key, encoded according to Section 6.4
@@ -373,7 +373,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             jwk.encode_string_field(JwkStringField::K, chacha20poly1305_key.as_slice());
 
             // Step 2.4. Set the alg attribute of jwk to the string "C20P".
-            jwk.alg = Some(DOMString::from("C20P"));
+            jwk.alg = Some(DOMString::from_static("C20P"));
 
             // Step 2.5. Set the key_ops attribute of jwk to equal the usages attribute of key.
             jwk.set_key_ops(key.usages());

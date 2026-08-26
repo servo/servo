@@ -95,7 +95,7 @@ impl RadioNodeListMethods<crate::DomTypeHolder> for RadioNodeList {
                         // Step 3-4
                         let value = input.Value();
                         Some(if value.is_empty() {
-                            DOMString::from("on")
+                            DOMString::from_static("on")
                         } else {
                             value
                         })

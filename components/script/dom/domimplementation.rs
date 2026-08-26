@@ -197,7 +197,7 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
         {
             // Step 3. Append a new doctype, with "html" as its name and with its node document set to doc, to doc.
             let doc_node = doc.upcast::<Node>();
-            let doc_type = DocumentType::new(cx, DOMString::from("html"), None, None, &doc);
+            let doc_type = DocumentType::new(cx, DOMString::from_static("html"), None, None, &doc);
             doc_node.AppendChild(cx, doc_type.upcast()).unwrap();
         }
 

@@ -644,10 +644,10 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             let mut jwk = JsonWebKey::default();
 
             // Step 3.2. Set the kty attribute of jwk to "OKP".
-            jwk.kty = Some(DOMString::from("OKP"));
+            jwk.kty = Some(DOMString::from_static("OKP"));
 
             // Step 3.3. Set the crv attribute of jwk to "X25519".
-            jwk.crv = Some(DOMString::from("X25519"));
+            jwk.crv = Some(DOMString::from_static("X25519"));
 
             // Step 3.4. Set the x attribute of jwk according to the definition in Section 2 of
             // [RFC8037].

@@ -1021,7 +1021,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             let mut jwk = JsonWebKey::default();
 
             // Step 3.2. Set the kty attribute of jwk to "EC".
-            jwk.kty = Some(DOMString::from("EC"));
+            jwk.kty = Some(DOMString::from_static("EC"));
 
             // Step 3.3.
             let KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algorithm) = key.algorithm() else {

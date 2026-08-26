@@ -627,7 +627,7 @@ impl Extractable for DOMString {
     ) -> Fallible<ExtractedBody> {
         let bytes = self.as_bytes().to_owned();
         let total_bytes = bytes.len();
-        let content_type = Some(DOMString::from("text/plain;charset=UTF-8"));
+        let content_type = Some(DOMString::from_static("text/plain;charset=UTF-8"));
         let stream = stream_from_body_init_bytes(cx, global, bytes)?;
         Ok(ExtractedBody {
             stream,
@@ -671,7 +671,7 @@ impl Extractable for URLSearchParams {
     ) -> Fallible<ExtractedBody> {
         let bytes = self.serialize_utf8().into_bytes();
         let total_bytes = bytes.len();
-        let content_type = Some(DOMString::from(
+        let content_type = Some(DOMString::from_static(
             "application/x-www-form-urlencoded;charset=UTF-8",
         ));
         let stream = stream_from_body_init_bytes(cx, global, bytes)?;

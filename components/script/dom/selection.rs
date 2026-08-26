@@ -436,16 +436,16 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         // > is not in the document tree, "Caret" if this's range is collapsed, and "Range"
         // > otherwise.
         let Some(range) = self.range.get() else {
-            return DOMString::from("None");
+            return DOMString::from_static("None");
         };
         if !range.start_and_end_are_in_document_tree() {
-            return DOMString::from("None");
+            return DOMString::from_static("None");
         }
 
         if range.collapsed() {
-            DOMString::from("Caret")
+            DOMString::from_static("Caret")
         } else {
-            DOMString::from("Range")
+            DOMString::from_static("Range")
         }
     }
 
@@ -874,7 +874,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         if let Some(range) = self.range.get() {
             range.Stringifier(no_gc)
         } else {
-            DOMString::from("")
+            DOMString::new()
         }
     }
 }

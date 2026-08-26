@@ -26,9 +26,9 @@ impl PerformancePaintTiming {
         start_time: CrossProcessInstant,
     ) -> PerformancePaintTiming {
         let name = match metric_type {
-            ProgressiveWebMetricType::FirstPaint => DOMString::from("first-paint"),
+            ProgressiveWebMetricType::FirstPaint => DOMString::from_static("first-paint"),
             ProgressiveWebMetricType::FirstContentfulPaint => {
-                DOMString::from("first-contentful-paint")
+                DOMString::from_static("first-contentful-paint")
             },
             _ => DOMString::from(""),
         };
