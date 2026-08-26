@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{OnceCell, RefCell};
+use std::cell::{LazyCell, OnceCell, RefCell};
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, LazyLock};
 
@@ -423,32 +423,18 @@ impl DisplayListBuilder<'_> {
         radii: wr::BorderRadius,
         rect: units::LayoutRect,
         force_clip_creation: bool,
-        fragmentation_rect: Option<units::LayoutRect>,
     ) -> Option<ClipChainId> {
-        let mut clip_chain_id = None;
-        let mut parent_clip_id = state.clip_id;
-        if !radii.is_zero() || force_clip_creation {
-            clip_chain_id = Some(self.add_clip_to_display_list(&Clip {
-                id: ClipId(self.clip_map.len()),
-                radii,
-                rect,
-                parent_scroll_node_id: state.spatial_id,
-                parent_clip_id,
-            }));
-            parent_clip_id = ClipId(self.clip_map.len() - 1)
+        if radii.is_zero() && !force_clip_creation {
+            return None;
         }
 
-        if let Some(fragmentation_rect) = fragmentation_rect {
-            clip_chain_id = Some(self.add_clip_to_display_list(&Clip {
-                id: ClipId(self.clip_map.len()),
-                radii: BorderRadius::zero(),
-                rect: fragmentation_rect,
-                parent_scroll_node_id: state.spatial_id,
-                parent_clip_id,
-            }));
-        }
-
-        clip_chain_id
+        Some(self.add_clip_to_display_list(&Clip {
+            id: ClipId(self.clip_map.len()),
+            radii,
+            rect,
+            parent_scroll_node_id: state.spatial_id,
+            parent_clip_id: state.clip_id,
+        }))
     }
 
     fn push_webrender_stacking_context_for_transform_if_necessary(
@@ -1648,6 +1634,8 @@ struct BuilderForBoxFragment<'a> {
     padding_rect: OnceCell<units::LayoutRect>,
     content_rect: OnceCell<units::LayoutRect>,
     fragmented_border_rect: OnceCell<units::LayoutRect>,
+    fragmented_padding_rect: OnceCell<units::LayoutRect>,
+    fragmented_content_rect: OnceCell<units::LayoutRect>,
     fragmentation_clip_rect: OnceCell<Option<units::LayoutRect>>,
     border_radius: OnceCell<wr::BorderRadius>,
     border_edge_clip_chain_id: RefCell<Option<ClipChainId>>,
@@ -1672,6 +1660,8 @@ impl<'a> BuilderForBoxFragment<'a> {
             padding_rect: OnceCell::new(),
             content_rect: OnceCell::new(),
             fragmented_border_rect: OnceCell::new(),
+            fragmented_padding_rect: OnceCell::new(),
+            fragmented_content_rect: OnceCell::new(),
             fragmentation_clip_rect: OnceCell::new(),
             border_edge_clip_chain_id: RefCell::new(None),
             padding_edge_clip_chain_id: RefCell::new(None),
@@ -1721,6 +1711,24 @@ impl<'a> BuilderForBoxFragment<'a> {
         })
     }
 
+    fn fragmented_padding_rect(&self) -> &units::LayoutRect {
+        self.fragmented_padding_rect.get_or_init(|| {
+            self.fragment
+                .padding_rect()
+                .translate(self.containing_block_origin.to_vector())
+                .to_webrender()
+        })
+    }
+
+    fn fragmented_content_rect(&self) -> &units::LayoutRect {
+        self.fragmented_content_rect.get_or_init(|| {
+            self.fragment
+                .content_rect()
+                .translate(self.containing_block_origin.to_vector())
+                .to_webrender()
+        })
+    }
+
     fn fragmentation_clip_rect(&self) -> &Option<units::LayoutRect> {
         self.fragmentation_clip_rect.get_or_init(|| {
             if let Some(fragmentation_clip_rect) = self.fragment.fragmentation_clip_rect() {
@@ -1749,7 +1757,6 @@ impl<'a> BuilderForBoxFragment<'a> {
             self.border_radius(),
             self.border_rect,
             force_clip_creation,
-            *self.fragmentation_clip_rect(),
         );
         *self.border_edge_clip_chain_id.borrow_mut() = maybe_clip;
         maybe_clip
@@ -1766,13 +1773,8 @@ impl<'a> BuilderForBoxFragment<'a> {
         }
 
         let radii = offset_radii(self.border_radius(), -self.fragment.border.to_webrender());
-        let maybe_clip = builder.maybe_create_clip(
-            state,
-            radii,
-            *self.padding_rect(),
-            force_clip_creation,
-            *self.fragmentation_clip_rect(),
-        );
+        let maybe_clip =
+            builder.maybe_create_clip(state, radii, *self.padding_rect(), force_clip_creation);
         *self.padding_edge_clip_chain_id.borrow_mut() = maybe_clip;
         maybe_clip
     }
@@ -1791,13 +1793,8 @@ impl<'a> BuilderForBoxFragment<'a> {
             self.border_radius(),
             -(self.fragment.border + self.fragment.padding).to_webrender(),
         );
-        let maybe_clip = builder.maybe_create_clip(
-            state,
-            radii,
-            *self.content_rect(),
-            force_clip_creation,
-            *self.fragmentation_clip_rect(),
-        );
+        let maybe_clip =
+            builder.maybe_create_clip(state, radii, *self.content_rect(), force_clip_creation);
         *self.content_edge_clip_chain_id.borrow_mut() = maybe_clip;
         maybe_clip
     }
@@ -2522,62 +2519,36 @@ impl<'a> BuilderForBoxFragment<'a> {
                         .inflate(extra_size_from_blur, extra_size_from_blur)
                 },
             };
+            let fragmentation_clip_rect = LazyCell::new(|| {
+                self.fragmentation_clip_rect()
+                    .expect("Must have fragmentation clip rect.")
+            });
+            let mut fragmentation_side_offsets = SideOffsets2D::new_all_same(0.0);
             if self.fragment.is_fragmented_along_left_edge() {
-                let difference = self
-                    .fragmentation_clip_rect()
-                    .expect("Must have fragmentation clip rect")
-                    .min
-                    .x -
-                    clip_rect.min.x;
+                let difference = fragmentation_clip_rect.min.x - clip_rect.min.x;
                 if difference > 0.0 {
-                    clip_rect = clip_rect.translate(LayoutVector2D::new(difference, 0.0));
-                    clip_rect.set_size(LayoutSize::new(
-                        clip_rect.size().width - difference,
-                        clip_rect.size().height,
-                    ));
+                    fragmentation_side_offsets.left = difference;
                 }
             }
             if self.fragment.is_fragmented_along_top_edge() {
-                let difference = self
-                    .fragmentation_clip_rect()
-                    .expect("Must have fragmentation clip rect")
-                    .min
-                    .x -
-                    clip_rect.min.x;
+                let difference = fragmentation_clip_rect.min.y - clip_rect.min.y;
                 if difference > 0.0 {
-                    clip_rect = clip_rect.translate(LayoutVector2D::new(difference, 0.0));
-                    clip_rect.set_size(LayoutSize::new(
-                        clip_rect.size().width,
-                        clip_rect.size().height - difference,
-                    ));
+                    fragmentation_side_offsets.top = -difference;
                 }
             }
             if self.fragment.is_fragmented_along_right_edge() {
-                let difference = clip_rect.max.x -
-                    self.fragmentation_clip_rect()
-                        .expect("Must have fragmentation clip rect")
-                        .max
-                        .x;
+                let difference = clip_rect.max.x - fragmentation_clip_rect.max.x;
                 if difference > 0.0 {
-                    clip_rect.set_size(LayoutSize::new(
-                        clip_rect.size().width - difference,
-                        clip_rect.size().height,
-                    ));
+                    fragmentation_side_offsets.right = difference;
                 }
             }
             if self.fragment.is_fragmented_along_bottom_edge() {
-                let difference = clip_rect.max.y -
-                    self.fragmentation_clip_rect()
-                        .expect("Must have fragmentation clip rect")
-                        .max
-                        .y;
+                let difference = clip_rect.max.y - fragmentation_clip_rect.max.y;
                 if difference > 0.0 {
-                    clip_rect.set_size(LayoutSize::new(
-                        clip_rect.size().width,
-                        clip_rect.size().height - difference,
-                    ));
+                    fragmentation_side_offsets.bottom = difference;
                 }
             }
+            clip_rect = clip_rect.inner_box(fragmentation_side_offsets);
 
             let border_radius = match clip_mode {
                 BoxShadowClipMode::Inset => {
