@@ -167,7 +167,7 @@ impl DetectingState {
                 .domain()
                 .and_then(|domain| domain.rsplit('.').next())
                 .map(|tld| tld.as_bytes());
-            let guessed_encoding = encoding_detector.guess(tld, Utf8Detection::Deny);
+            let guessed_encoding = encoding_detector.guess(tld, Utf8Detection::Allow);
             log::debug!(
                 "chardetng determined that the document encoding is {}",
                 guessed_encoding.name()
