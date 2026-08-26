@@ -900,7 +900,10 @@ impl WindowProxy {
         if let Some(frame_element) = self.frame_element() {
             let parent_document = frame_element.owner_document();
             // Step 4. Assert: parentDoc is fully active.
-            assert!(parent_document.is_fully_active());
+            // TODO(47417): Once "creating a new browsing context" properly exists, remove this check
+            if !parent_document.is_fully_active() {
+                return None;
+            }
             Some((
                 parent_document.origin().snapshot(),
                 parent_document
