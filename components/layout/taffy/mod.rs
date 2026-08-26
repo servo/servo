@@ -83,6 +83,7 @@ impl TaffyContainer {
 #[derive(MallocSizeOf)]
 pub(crate) struct TaffyItemBox {
     pub(crate) taffy_layout: taffy::Layout,
+    pub(crate) taffy_baselines: taffy::Baselines,
     pub(crate) child_fragments: Vec<Fragment>,
     pub(crate) positioning_context: PositioningContext,
     pub(crate) style: Arc<ComputedValues>,
@@ -100,6 +101,7 @@ impl fmt::Debug for TaffyItemBox {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("TaffyItemBox")
             .field("taffy_layout", &self.taffy_layout)
+            .field("taffy_baselines", &self.taffy_baselines)
             .field("child_fragments", &self.child_fragments.len())
             .field("style", &self.style)
             .field("taffy_level_box", &self.taffy_level_box)
@@ -118,6 +120,7 @@ impl TaffyItemBox {
 
         Self {
             taffy_layout: Default::default(),
+            taffy_baselines: taffy::Baselines::NONE,
             child_fragments: Vec::new(),
             positioning_context: PositioningContext::default(),
             style,

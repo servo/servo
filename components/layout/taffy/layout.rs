@@ -142,7 +142,7 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
         let mut child = (*self.source_child_nodes[usize::from(node_id)]).borrow_mut();
         let child = &mut *child;
 
-        with_independent_formatting_context(
+        let output = with_independent_formatting_context(
             &mut child.taffy_level_box,
             |independent_context| -> taffy::LayoutOutput {
                 // TODO: re-evaluate sizing constraint conversions in light of recent layout changes
@@ -246,13 +246,21 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                 taffy::LayoutOutput {
                     size,
                     baselines: taffy::Baselines {
-                        first: layout.baselines.first.map(|au| au.to_f32_px()),
-                        last: layout.baselines.last.map(|au| au.to_f32_px()),
+                        first: layout.baselines.first.map(|baseline| {
+                            (baseline + pbm.padding.block_start + pbm.border.block_start)
+                                .to_f32_px()
+                        }),
+                        last: layout.baselines.last.map(|baseline| {
+                            (baseline + pbm.padding.block_start + pbm.border.block_start)
+                                .to_f32_px()
+                        }),
                     },
                     ..taffy::LayoutOutput::DEFAULT
                 }
             },
-        )
+        );
+        child.taffy_baselines = output.baselines;
+        output
     }
 }
 
@@ -522,14 +530,19 @@ impl TaffyContainer {
                             child_specific_layout_info,
                         )
                         .with_baselines(Baselines {
-                            first: output.baselines.first.map(Au::from_f32_px),
-                            last: output.baselines.last.map(Au::from_f32_px),
+                            first: child.taffy_baselines.first.map(|baseline| {
+                                Au::from_f32_px(baseline) - padding.top - border.top
+                            }),
+                            last: child.taffy_baselines.last.map(|baseline| {
+                                Au::from_f32_px(baseline) - padding.top - border.top
+                            }),
                         });
 
                         child.positioning_context.layout_collected_children(
                             container_ctx.layout_context,
                             &mut box_fragment,
                         );
+
                         child
                             .positioning_context
                             .adjust_static_position_of_hoisted_fragments_with_offset(
@@ -587,7 +600,14 @@ impl TaffyContainer {
             fragments,
             content_block_size: Au::from_f32_px(output.size.height) - pbm.padding_border_sums.block,
             content_inline_size_for_table: None,
-            baselines: Baselines::default(),
+            baselines: Baselines {
+                first: output.baselines.first.map(|baseline| {
+                    Au::from_f32_px(baseline) - pbm.padding.block_start - pbm.border.block_start
+                }),
+                last: output.baselines.last.map(|baseline| {
+                    Au::from_f32_px(baseline) - pbm.padding.block_start - pbm.border.block_start
+                }),
+            },
 
             // TODO: determine this accurately
             //
