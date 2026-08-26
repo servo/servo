@@ -47,7 +47,6 @@ use crate::dom::bindings::str::USVString;
 use crate::dom::bindings::trace::{JSTraceable, RootedTraceableBox};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
-#[cfg(feature = "testbinding")]
 use crate::dom::window::Window;
 use crate::dom::workletglobalscope::{
     WorkletGlobalScope, WorkletGlobalScopeInit, WorkletGlobalScopeType,
