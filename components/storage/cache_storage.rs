@@ -140,7 +140,7 @@ impl CacheStorageEngine for MemCacheStorageEngine {
         // Step 5.2.1: For each requestResponse of the relevant request response list:
         let Some(relevant_cache) = self
             .name_to_cache_map
-            .get(&(origin.clone(), cache_name.to_string()))
+            .get(&(origin, cache_name.to_string()))
         else {
             return Err(CacheStorageError::Internal(()));
         };
