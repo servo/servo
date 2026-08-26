@@ -298,7 +298,10 @@ impl CacheStorageMethods<crate::DomTypeHolder> for CacheStorage {
             })
             .is_err()
         {
-            promise.reject_error(cx, Error::Operation(None));
+            promise.reject_error(
+                cx,
+                Error::Operation(Some("Could not run the parallel steps.".to_string())),
+            );
             return promise;
         }
 
