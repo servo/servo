@@ -13,6 +13,7 @@ use indexmap::map::IndexMap;
 use itertools::Either;
 use js::JSCLASS_IS_GLOBAL;
 use js::context::JSContext;
+use js::gc::MutableHandleObject;
 use js::glue::{
     CreateWrapperProxyHandler, DeleteWrapperProxyHandler, GetProxyPrivate, GetProxyReservedSlot,
     ProxyTraps, SetProxyReservedSlot,
@@ -35,8 +36,12 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::ReferrerPolicy;
 use net_traits::request::Referrer;
 use script_bindings::cell::DomRefCell;
-use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
-use script_bindings::proxyhandler::set_property_descriptor;
+use script_bindings::codegen::GenericBindings::WindowBinding::{GetProtoObject, WindowMethods};
+use script_bindings::proxyhandler::{
+    is_extensible, maybe_cross_origin_get_prototype,
+    maybe_cross_origin_get_prototype_if_ordinary_rawcx, maybe_cross_origin_set_prototype_rawcx,
+    prevent_extensions, set_property_descriptor,
+};
 use script_bindings::reflector::{DomObject, MutDomObject, Reflector};
 use script_traits::NewPipelineInfo;
 use serde::{Deserialize, Serialize};
@@ -51,6 +56,7 @@ use servo_url::{ImmutableOrigin, OriginSnapshot, ServoUrl};
 use storage_traits::webstorage_thread::WebStorageThreadMsg;
 use style::attr::parse_integer;
 
+use crate::DomTypeHolder;
 use crate::dom::bindings::conversions::{ToJSValConvertible, root_from_handleobject};
 use crate::dom::bindings::error::{Error, Fallible, throw_dom_exception};
 use crate::dom::bindings::inheritance::Castable;
@@ -1383,9 +1389,28 @@ unsafe extern "C" fn get_prototype_if_ordinary(
     true
 }
 
+#[expect(unsafe_code)]
+unsafe extern "C" fn maybe_cross_origin_get_prototype_wrapper_rawcx(
+    cx: *mut RawJSContext,
+    proxy: RawHandleObject,
+    result: RawMutableHandleObject,
+) -> bool {
+    let mut cx = unsafe { JSContext::from_ptr(ptr::NonNull::new(cx).unwrap()) };
+    let mut realm = CurrentRealm::assert(&mut cx);
+    let proxy = unsafe { Handle::from_raw(proxy) };
+    let result = unsafe { MutableHandleObject::from_raw(result) };
+    maybe_cross_origin_get_prototype::<DomTypeHolder>(
+        &mut realm,
+        proxy,
+        GetProtoObject::<DomTypeHolder>,
+        result,
+    )
+}
+
+// TODO: These traps should change their behavior depending on
+// `IsPlatformObjectSameOrigin(this.[[Window]])`
+// See <https://github.com/servo/servo/issues/44669>
 static PROXY_TRAPS: ProxyTraps = ProxyTraps {
-    // TODO: These traps should change their behavior depending on
-    //       `IsPlatformObjectSameOrigin(this.[[Window]])`
     enter: None,
     getOwnPropertyDescriptor: Some(get_own_property_descriptor),
     defineProperty: Some(define_property),
@@ -1393,11 +1418,11 @@ static PROXY_TRAPS: ProxyTraps = ProxyTraps {
     delete_: None,
     enumerate: None,
     getPrototypeIfOrdinary: Some(get_prototype_if_ordinary),
-    getPrototype: None, // TODO: return `null` if cross origin-domain
-    setPrototype: None,
+    getPrototype: Some(maybe_cross_origin_get_prototype_wrapper_rawcx),
+    setPrototype: Some(maybe_cross_origin_set_prototype_rawcx),
     setImmutablePrototype: None,
-    preventExtensions: None,
-    isExtensible: None,
+    preventExtensions: Some(prevent_extensions),
+    isExtensible: Some(is_extensible),
     has: Some(has),
     get: Some(get),
     set: Some(set),
@@ -1454,7 +1479,7 @@ impl WindowProxyHandler {
         /// Sharing a single instance should be fine because all methods on this pointer in C++
         /// are const and don't modify its internal state.
         static SINGLETON: OnceLock<WindowProxyHandler> = OnceLock::new();
-        SINGLETON.get_or_init(|| Self::new(&XORIGIN_PROXY_TRAPS))
+        SINGLETON.get_or_init(|| Self::new(&CROSS_ORIGIN_PROXY_TRAPS))
     }
 
     /// Returns a single, shared WindowProxyHandler that contains normal PROXY_TRAPS.
@@ -1510,7 +1535,7 @@ fn throw_security_error(realm: &mut CurrentRealm) -> bool {
 }
 
 #[expect(unsafe_code)]
-unsafe extern "C" fn has_xorigin(
+unsafe extern "C" fn cross_origin_has(
     cx: *mut RawJSContext,
     proxy: RawHandleObject,
     id: RawHandleId,
@@ -1535,7 +1560,7 @@ unsafe extern "C" fn has_xorigin(
 }
 
 #[expect(unsafe_code)]
-unsafe extern "C" fn get_xorigin(
+unsafe extern "C" fn cross_origin_get(
     cx: *mut RawJSContext,
     proxy: RawHandleObject,
     receiver: RawHandleValue,
@@ -1543,12 +1568,12 @@ unsafe extern "C" fn get_xorigin(
     vp: RawMutableHandleValue,
 ) -> bool {
     let mut found = false;
-    unsafe { has_xorigin(cx, proxy, id, &mut found) };
+    unsafe { cross_origin_has(cx, proxy, id, &mut found) };
     found && unsafe { get(cx, proxy, receiver, id, vp) }
 }
 
 #[expect(unsafe_code)]
-unsafe extern "C" fn set_xorigin(
+unsafe extern "C" fn cross_origin_set(
     cx: *mut RawJSContext,
     _: RawHandleObject,
     _: RawHandleId,
@@ -1580,8 +1605,7 @@ unsafe extern "C" fn delete_xorigin(
 }
 
 #[expect(unsafe_code)]
-#[expect(non_snake_case)]
-unsafe extern "C" fn getOwnPropertyDescriptor_xorigin(
+unsafe extern "C" fn cross_origin_get_own_property_descriptor(
     cx: *mut RawJSContext,
     proxy: RawHandleObject,
     id: RawHandleId,
@@ -1589,13 +1613,12 @@ unsafe extern "C" fn getOwnPropertyDescriptor_xorigin(
     is_none: *mut bool,
 ) -> bool {
     let mut found = false;
-    unsafe { has_xorigin(cx, proxy, id, &mut found) };
+    unsafe { cross_origin_has(cx, proxy, id, &mut found) };
     found && unsafe { get_own_property_descriptor(cx, proxy, id, desc, is_none) }
 }
 
 #[expect(unsafe_code)]
-#[expect(non_snake_case)]
-unsafe extern "C" fn defineProperty_xorigin(
+unsafe extern "C" fn cross_origin_define_property(
     cx: *mut RawJSContext,
     _: RawHandleObject,
     _: RawHandleId,
@@ -1610,40 +1633,30 @@ unsafe extern "C" fn defineProperty_xorigin(
     throw_security_error(&mut realm)
 }
 
-#[expect(unsafe_code)]
-#[expect(non_snake_case)]
-unsafe extern "C" fn preventExtensions_xorigin(
-    cx: *mut RawJSContext,
-    _: RawHandleObject,
-    _: *mut ObjectOpResult,
-) -> bool {
-    let mut cx = unsafe {
-        // SAFETY: We are in SM hook
-        JSContext::from_ptr(NonNull::new(cx).expect("JSContext should not be null in SM hook"))
-    };
-    let mut realm = CurrentRealm::assert(&mut cx);
-    throw_security_error(&mut realm)
-}
-
-static XORIGIN_PROXY_TRAPS: ProxyTraps = ProxyTraps {
+// TODO: Some of these callbacks need proper support for handling cross-origin
+// properties, notably `set` and `ownPropertyKeys`, but there may also be others.
+//
+// TODO: Implement `getOwnPropertyKeys` for cross-origin `WindowProxy`.
+// https://github.com/servo/servo/issues/47548.
+static CROSS_ORIGIN_PROXY_TRAPS: ProxyTraps = ProxyTraps {
     enter: None,
-    getOwnPropertyDescriptor: Some(getOwnPropertyDescriptor_xorigin),
-    defineProperty: Some(defineProperty_xorigin),
+    getOwnPropertyDescriptor: Some(cross_origin_get_own_property_descriptor),
+    defineProperty: Some(cross_origin_define_property),
     ownPropertyKeys: None,
     delete_: Some(delete_xorigin),
     enumerate: None,
-    getPrototypeIfOrdinary: None,
-    getPrototype: None,
-    setPrototype: None,
+    getPrototypeIfOrdinary: Some(maybe_cross_origin_get_prototype_if_ordinary_rawcx),
+    getPrototype: Some(maybe_cross_origin_get_prototype_wrapper_rawcx),
+    setPrototype: Some(maybe_cross_origin_set_prototype_rawcx),
     setImmutablePrototype: None,
-    preventExtensions: Some(preventExtensions_xorigin),
-    isExtensible: None,
-    has: Some(has_xorigin),
-    get: Some(get_xorigin),
-    set: Some(set_xorigin),
+    preventExtensions: Some(prevent_extensions),
+    isExtensible: Some(is_extensible),
+    has: Some(cross_origin_has),
+    get: Some(cross_origin_get),
+    set: Some(cross_origin_set),
     call: None,
     construct: None,
-    hasOwn: Some(has_xorigin),
+    hasOwn: Some(cross_origin_has),
     getOwnEnumerablePropertyKeys: None,
     nativeCall: None,
     objectClassIs: None,
