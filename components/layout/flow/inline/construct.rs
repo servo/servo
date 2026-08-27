@@ -467,7 +467,7 @@ impl InlineFormattingContextBuilder {
             debug_assert!(end > start);
 
             Some(Arc::new(AtomicRefCell::new(ScriptSelection {
-                character_range: start.0..end.0,
+                character_range: start..end,
                 enabled: true,
             })))
         });

@@ -145,7 +145,7 @@ pub enum LayoutElementType {
 #[derive(Clone, Debug, Default, MallocSizeOf, PartialEq)]
 pub struct ScriptSelection {
     /// The character range of this selection in the DOM node that manages it.
-    pub character_range: Range<usize>,
+    pub character_range: Range<Utf32CodeUnits>,
     /// Whether or not this selection is enabled. Selections may be disabled
     /// when their node loses focus.
     pub enabled: bool,
