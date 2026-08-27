@@ -1474,6 +1474,9 @@ where
             EmbedderToConstellationMessage::ClearSessionHistory(webview_id) => {
                 self.handle_clear_session_history(webview_id);
             },
+            EmbedderToConstellationMessage::OnlineChanged(online) => {
+                self.handle_online_changed(online);
+            },
         }
     }
 
@@ -6370,5 +6373,12 @@ where
                 })
             })
             .clone()
+    }
+
+    fn handle_online_changed(&self, _online: bool) {
+        for _pipeline in self.pipelines.iter() {
+            // TODO: send message to each pipeline,
+            // The ScriptMessage variant wait for https://github.com/servo/servo/pull/37076 to be merged
+        }
     }
 }
