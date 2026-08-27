@@ -1224,67 +1224,54 @@ fn test_webview_title_updates_when_title_element_is_created_from_javascript() {
 #[test]
 // It seems that currently `WebView::load` does not keep the history, so we have to do javascript evaluation.
 fn test_webview_clear_history() {
-    use std::sync::atomic::{AtomicBool, Ordering};
-
-    let page_title_changed = Arc::new(AtomicBool::new(false));
-    struct MyDelegate {
-        page_tiitle_changed: Arc<AtomicBool>,
-    }
-    impl WebViewDelegate for MyDelegate {
-        fn notify_page_title_changed(&self, _webview: WebView, _title: Option<String>) {
-            self.page_tiitle_changed.store(true, Ordering::SeqCst);
-        }
-    }
-
     let servo_test = ServoTest::new();
-    let delegate = Rc::new(MyDelegate {
-        page_tiitle_changed: page_title_changed.clone(),
-    });
+    let delegate = Rc::new(WebViewDelegateImpl::default());
 
     // First load
-    let url_1 = Url::parse(
-        "data:text/html,\
-        <script>document.title='Success';</script>",
-    )
-    .unwrap();
+    let url_1 = Url::parse("data:text/html,<body><title>Success</title></body>").unwrap();
     let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
         .delegate(delegate.clone())
         .url(url_1)
         .build();
-
+    {
+        let webview = webview.clone();
+        servo_test.spin(move || webview.page_title() != Some("Success".into()));
+    }
     // Second Load
-    page_title_changed.store(false, Ordering::SeqCst);
-    let page_title_changed_c = page_title_changed.clone();
     webview.evaluate_javascript(
-        "window.location.href = \"data:text/html,\
-    <script>document.title='Success2';</script>\";",
+        "window.location.assign(\"data:text/html,<script>document.title='Success2';</script>\");",
         |_| {},
     );
-    servo_test.spin(move || page_title_changed_c.load(Ordering::SeqCst));
+    {
+        let webview = webview.clone();
+        servo_test.spin(move || webview.page_title() != Some("Success2".into()));
+    }
 
     // Third Load
-    page_title_changed.store(false, std::sync::atomic::Ordering::SeqCst);
-    let page_title_changed_c = page_title_changed.clone();
     webview.evaluate_javascript(
-        "window.location.href = \"data:text/html,\
-    <script>document.title='Success3';</script>\";",
+        "window.location.assign(\"data:text/html,<script>document.title='Success3';</script>\");",
         |_| {},
     );
-    servo_test.spin(move || page_title_changed_c.load(Ordering::SeqCst));
+    {
+        let webview = webview.clone();
+        servo_test.spin(move || webview.page_title() != Some("Success3".into()));
+    }
 
     assert!(webview.can_go_back());
 
-    // Going one back in the history
     webview.go_back(1);
-    page_title_changed.store(false, std::sync::atomic::Ordering::SeqCst);
-    let page_title_changed_c = page_title_changed.clone();
-    servo_test.spin(move || page_title_changed_c.load(Ordering::SeqCst));
-    assert!(webview.can_go_back());
-    assert!(webview.can_go_forward());
+    {
+        let webview = webview.clone();
+        servo_test.spin(move || webview.page_title() != Some("Success2".into()));
+    }
 
     webview.clear_history();
-    let load_webview = webview.clone();
-    servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
+    {
+        let webview = webview.clone();
+        // We currently cannot test when the `clear_history` call succeeded, so we have to wait till we do not see the history again
+        servo_test.spin(move || webview.can_go_back());
+    }
+
     assert!(!webview.can_go_back());
     assert!(!webview.can_go_forward());
 }
