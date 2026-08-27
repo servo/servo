@@ -71,6 +71,14 @@ impl<T: fmt::Debug> fmt::Debug for RangeAny<T> {
 }
 
 impl<T> RangeAny<T> {
+    /// Returns a `RangeAny` that represents the full range: both bounds unset
+    pub fn full() -> Self {
+        Self {
+            start: None,
+            end: None,
+        }
+    }
+
     /// Apply `Option::map` to each bound of this range
     pub fn map<U>(self, f: impl Fn(T) -> U + Copy) -> RangeAny<U> {
         let Self { start, end } = self;
