@@ -15,7 +15,6 @@ mod layout_node;
 mod pseudo_element_chain;
 
 use std::any::Any;
-use std::ops::Range;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::AtomicIsize;
@@ -55,7 +54,7 @@ use servo_arc::Arc as ServoArc;
 use servo_base::Epoch;
 use servo_base::generic_channel::GenericSender;
 use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
-use servo_base::text::{Utf32CodeUnits, Utf32CodeUnitsOrNodeOffset};
+use servo_base::text::{RangeAny, Utf32CodeUnits, Utf32CodeUnitsOrNodeOffset};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::Atom;
 use style::animation::DocumentAnimationSet;
@@ -142,13 +141,27 @@ pub enum LayoutElementType {
 /// A selection shared between script and layout. This selection is managed by the DOM
 /// node that maintains it, and can be modified from script. Once modified, layout is
 /// expected to reflect the new selection visual on the next display list update.
-#[derive(Clone, Debug, Default, MallocSizeOf, PartialEq)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
 pub struct ScriptSelection {
     /// The character range of this selection in the DOM node that manages it.
-    pub character_range: Range<Utf32CodeUnits>,
+    pub character_range: RangeAny<Utf32CodeUnits>,
     /// Whether or not this selection is enabled. Selections may be disabled
     /// when their node loses focus.
     pub enabled: bool,
+}
+
+impl Default for ScriptSelection {
+    fn default() -> Self {
+        Self {
+            // Default to an empty range.
+            // Note that `start: None, end: None` would mean the full range
+            character_range: RangeAny {
+                start: None,
+                end: Some(Utf32CodeUnits(0)),
+            },
+            enabled: false,
+        }
+    }
 }
 
 pub type SharedSelection = Arc<AtomicRefCell<ScriptSelection>>;

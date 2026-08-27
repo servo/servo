@@ -56,6 +56,10 @@ impl Rope {
         self.lines.join("")
     }
 
+    pub fn first_index(&self) -> RopeIndex {
+        RopeIndex::new(0, 0)
+    }
+
     pub fn last_index(&self) -> RopeIndex {
         let line_index = self.lines.len() - 1;
         RopeIndex::new(line_index, self.line(line_index).len())

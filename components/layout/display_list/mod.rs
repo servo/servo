@@ -1324,7 +1324,7 @@ impl Fragment {
         // OffsetMap contained within `run_data` to convert it to post-transformed character
         // offsets. This allows updating this selection directly from the DOM (skipping layout).
         let selection_character_range =
-            run_data.map_dom_range_to_transformed_range(shared_selection.character_range.clone());
+            run_data.map_dom_range_to_transformed_range(shared_selection.character_range);
 
         if fragment.character_range_in_dom_node.start > selection_character_range.end ||
             fragment.character_range_in_dom_node.end < selection_character_range.start

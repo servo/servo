@@ -15,7 +15,7 @@ use layout_api::SharedSelection;
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use servo_arc::Arc as ServoArc;
-use servo_base::text::{Utf32CodeUnits, is_bidi_control};
+use servo_base::text::{RangeAny, Utf32CodeUnits, is_bidi_control};
 use smallvec::SmallVec;
 use style::Zero;
 use style::computed_values::font_kerning::T as FontKerning;
@@ -346,12 +346,21 @@ impl SharedTextRunData {
     /// text.
     pub(crate) fn map_dom_range_to_transformed_range(
         &self,
-        range: Range<Utf32CodeUnits>,
+        dom_range: RangeAny<Utf32CodeUnits>,
     ) -> Range<Utf32CodeUnits> {
         let offset_map = self.offset_map.borrow();
         let offset_in_ifc_text = Utf32CodeUnits(self.character_range_in_ifc_text.start);
-        offset_map.map(range.start + self.original_offset) - offset_in_ifc_text..
-            offset_map.map(range.end + self.original_offset) - offset_in_ifc_text
+        let start = if let Some(dom_start) = dom_range.start {
+            offset_map.map(dom_start + self.original_offset) - offset_in_ifc_text
+        } else {
+            Utf32CodeUnits(0)
+        };
+        let end = if let Some(dom_end) = dom_range.end {
+            offset_map.map(dom_end + self.original_offset) - offset_in_ifc_text
+        } else {
+            Utf32CodeUnits(self.character_range_in_ifc_text.len())
+        };
+        start..end
     }
 
     /// Map an offset in the originating `TextRun`s DOM node's transformed text (by white

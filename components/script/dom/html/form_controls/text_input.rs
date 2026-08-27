@@ -18,7 +18,7 @@ use script_bindings::trace::CustomTraceable;
 use script_traits::MouseButtons;
 use servo_base::generic_channel::GenericCallback;
 use servo_base::id::WebViewId;
-use servo_base::text::{Utf8CodeUnits, Utf16CodeUnits, Utf32CodeUnits};
+use servo_base::text::{RangeAny, Utf8CodeUnits, Utf16CodeUnits, Utf32CodeUnits};
 use servo_base::{Rope, RopeIndex, RopeMovement, RopeSlice};
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
@@ -426,9 +426,13 @@ impl<T: ClipboardProvider> TextInput<T> {
     /// Return the selection range as character offsets from the start of the content.
     ///
     /// If there is no selection, returns an empty range at the edit point.
-    pub(crate) fn sorted_selection_character_offsets_range(&self) -> Range<Utf32CodeUnits> {
-        self.rope.index_to_character_offset(self.selection_start())..
-            self.rope.index_to_character_offset(self.selection_end())
+    pub(crate) fn sorted_selection_character_offsets_range(&self) -> RangeAny<Utf32CodeUnits> {
+        let rope = &self.rope;
+        let start = self.selection_start();
+        let end = self.selection_end();
+        let start = (start != rope.first_index()).then(|| rope.index_to_character_offset(start));
+        let end = (end != rope.last_index()).then(|| rope.index_to_character_offset(end));
+        RangeAny { start, end }
     }
 
     /// The state of the current selection. Can be used to compare whether selection state has changed.
