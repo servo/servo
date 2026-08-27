@@ -408,7 +408,9 @@ impl GPUCanvasContextMethods<crate::DomTypeHolder> for GPUCanvasContext {
         // 1. If this.[[configuration]] is null, throw an InvalidStateError and return.
         let configuration = self.configuration.borrow();
         let Some(configuration) = configuration.as_ref() else {
-            return Err(Error::InvalidState(None));
+            return Err(Error::InvalidState(Some(
+                "GPU canvas context's configuration is null".into(),
+            )));
         };
         // 2. Assert this.[[textureDescriptor]] is not null.
         let texture_descriptor = self.texture_descriptor.borrow();
