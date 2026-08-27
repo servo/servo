@@ -2669,7 +2669,7 @@ impl Window {
         };
 
         if let Some(selection) = document.selection() {
-            selection.set_flags_for_visible_selection(cx.no_gc());
+            selection.update_overlaps_document_selection_flags(cx.no_gc());
         }
 
         let restyle_reason = document.restyle_reason(cx.no_gc());

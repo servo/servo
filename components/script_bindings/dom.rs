@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use std::cell::UnsafeCell;
+use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 use std::ops::Deref;
 use std::{mem, ptr};
@@ -173,9 +174,19 @@ impl<'a, T: DomObject> PartialEq<T> for UnrootedDom<'a, T> {
     }
 }
 
+/// Forwards to `impl PartialEq for Dom<T>` which compares by pointer address
 impl<'a, 'b, T: DomObject> PartialEq<UnrootedDom<'a, T>> for UnrootedDom<'b, T> {
     fn eq(&self, other: &UnrootedDom<'a, T>) -> bool {
         self.inner == other.inner
+    }
+}
+
+impl<'a, T: DomObject> Eq for UnrootedDom<'a, T> {}
+
+/// Forwards to `impl Hash for Dom<T>` which hashes the pointer address
+impl<'a, T: DomObject> Hash for UnrootedDom<'a, T> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.inner.hash(state);
     }
 }
 
