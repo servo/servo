@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 
 use embedder_traits::user_contents::UserContentManagerId;
-use embedder_traits::{InputEvent, MouseLeftViewportEvent, Theme};
+use embedder_traits::{InputEvent, MouseLeftViewportEvent, Theme, ViewportDetails};
 use euclid::{Point2D, Size2D};
 use log::{debug, warn};
 use paint_api::{PaintMessage, PaintProxy};
@@ -66,6 +66,10 @@ pub(crate) struct ConstellationWebView {
     /// `Pipeline`s in a traversal become active or their load fails for some other reason.
     pub ongoing_history_traversal_request: Option<OngoingHistoryTraversalRequest>,
 
+    /// Pending viewport changes for browsing contexts that are not
+    /// yet known to the constellation.
+    pending_viewport_details: HashMap<BrowsingContextId, ViewportDetails>,
+
     /// The [`UserContentManagerId`] for all pipelines in this `WebView`. This is `Some`
     /// if the embedder has set a `UserContentManager` using the WebViewBuilder API and
     /// it is `None` otherwise.
@@ -107,6 +111,7 @@ impl ConstellationWebView {
             session_history: JointSessionHistory::new(),
             session_history_traversal_request_queue: Default::default(),
             ongoing_history_traversal_request: None,
+            pending_viewport_details: Default::default(),
             theme: Theme::Light,
             accessibility_active: false,
             screenshot_readiness_requests: Default::default(),
@@ -219,6 +224,12 @@ impl ConstellationWebView {
                 event,
             ));
         true
+    }
+
+    pub(crate) fn close_browsing_context(&mut self, browsing_context_id: BrowsingContextId) {
+        self.take_pending_viewport_details(&browsing_context_id);
+        self.session_history
+            .remove_entries_for_browsing_context(browsing_context_id);
     }
 
     /// If there is an ongoing history traversal request that is waiting on documents to
@@ -400,6 +411,22 @@ impl ConstellationWebView {
 
                 false
             });
+    }
+
+    pub(crate) fn add_viewport_details(
+        &mut self,
+        browsing_context_id: BrowsingContextId,
+        viewport_details: ViewportDetails,
+    ) {
+        self.pending_viewport_details
+            .insert(browsing_context_id, viewport_details);
+    }
+
+    pub(crate) fn take_pending_viewport_details(
+        &mut self,
+        browsing_context_id: &BrowsingContextId,
+    ) -> Option<ViewportDetails> {
+        self.pending_viewport_details.remove(browsing_context_id)
     }
 }
 
