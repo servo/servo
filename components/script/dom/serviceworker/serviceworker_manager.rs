@@ -366,6 +366,18 @@ impl ServiceWorkerManager {
                 },
             },
             ServiceWorkerMsg::Exit => return false,
+            ServiceWorkerMsg::SetNetworkOnlineState(online) => {
+                for registration in self.registrations.values() {
+                    for worker in [
+                        &registration.active_worker,
+                        &registration.waiting_worker,
+                        &registration.installing_worker,
+                    ] {
+                        let Some(worker) = worker else { continue };
+                        worker.send_message(ServiceWorkerScriptMsg::SetNetworkOnlineState(online));
+                    }
+                }
+            },
         }
         true
     }

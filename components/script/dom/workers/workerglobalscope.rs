@@ -4,7 +4,7 @@
 
 #![cfg_attr(crown, allow(crown::jscontext_first_arg))]
 
-use std::cell::{OnceCell, RefCell, RefMut};
+use std::cell::{Cell, OnceCell, RefCell, RefMut};
 use std::collections::HashSet;
 use std::default::Default;
 use std::rc::Rc;
@@ -46,6 +46,7 @@ use servo_base::id::{PipelineId, PipelineNamespace, WorkerId};
 use servo_canvas_traits::webgl::WebGLChan;
 use servo_constellation_traits::WorkerGlobalScopeInit;
 use servo_url::{MutableOrigin, ServoUrl};
+use style::Atom;
 use timers::TimerScheduler;
 use uuid::Uuid;
 
@@ -89,7 +90,7 @@ use crate::dom::serviceworker::cachestorage::CacheStorage;
 use crate::dom::sharedworkerglobalscope::SharedWorkerGlobalScope;
 use crate::dom::trustedtypes::trustedscripturl::TrustedScriptURL;
 use crate::dom::trustedtypes::trustedtypepolicyfactory::TrustedTypePolicyFactory;
-use crate::dom::types::ImageBitmap;
+use crate::dom::types::{EventTarget, ImageBitmap};
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::window::{base64_atob, base64_btoa};
@@ -160,6 +161,7 @@ pub(crate) fn prepare_workerscope_init(
         unminify_js: global.unminify_js(),
         #[cfg(feature = "webgl")]
         webgl_chan,
+        online: global.online(),
     }
 }
 
@@ -403,6 +405,9 @@ pub(crate) struct WorkerGlobalScope {
     /// <https://html.spec.whatwg.org/multipage/#concept-settings-object-module-map>
     #[ignore_malloc_size_of = "mozjs"]
     module_map: DomRefCell<HashMapTracedValues<ModuleRequest, ModuleStatus>>,
+
+    /// Whether the network is considered to be online as reported by the embedder.
+    online: Cell<bool>,
 }
 
 impl WorkerGlobalScope {
@@ -479,7 +484,12 @@ impl WorkerGlobalScope {
             origin: MutableOrigin::new(init.origin),
             font_context,
             module_map: Default::default(),
+            online: init.online.into(),
         }
+    }
+
+    pub(crate) fn online(&self) -> bool {
+        self.online.get()
     }
 
     pub(crate) fn module_map(
@@ -762,6 +772,22 @@ impl WorkerGlobalScope {
 
     pub(crate) fn origin(&self) -> MutableOrigin {
         self.origin.clone()
+    }
+
+    /// Set the network online state of this worker, returning `true` if anything changed
+    /// and `false` otherwise.
+    pub(crate) fn set_network_online_state(&self, online: bool) -> bool {
+        let previously_online = self.online.replace(online);
+        if previously_online == online {
+            return false;
+        }
+
+        let event_name = Atom::from(if online { "online" } else { "offline" });
+        self.globalscope
+            .task_manager()
+            .networking_task_source()
+            .queue_simple_event(self.globalscope.upcast::<EventTarget>(), event_name);
+        true
     }
 }
 
