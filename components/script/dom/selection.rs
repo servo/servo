@@ -4,10 +4,12 @@
 
 use std::cell::Cell;
 use std::cmp::Ordering;
+use std::collections::HashSet;
 
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
+use script_bindings::dom::UnrootedDom;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_base::text::Utf32CodeUnitsOrNodeOffset;
 
@@ -93,42 +95,60 @@ impl Selection {
         self.queue_selectionchange_task();
     }
 
-    fn unset_flags_for_visible_selection(&self, no_gc: &NoGC) {
+    fn iter_nodes_with_overlaps_document_selection_flag<'no_gc>(
+        &self,
+        no_gc: &'no_gc NoGC,
+    ) -> impl Iterator<Item = UnrootedDom<'no_gc, Node>> {
         let mut traversal = self
             .document
             .upcast::<Node>()
             .following_flat_tree_nodes_unrooted(no_gc);
         let mut next = traversal.next();
-        while let Some(node) = next.take() {
-            match node {
-                PrePostIteration::Enter(node) => {
-                    if node.get_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION) {
-                        node.set_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION, false);
-
-                        // Currently only `CharacterData` nodes show visible selection.
-                        if node.is::<CharacterData>() {
-                            node.dirty(no_gc, NodeDamage::ContentOrHeritage);
+        std::iter::from_fn(move || {
+            while let Some(node) = next.take() {
+                match node {
+                    PrePostIteration::Enter(node) => {
+                        if node.get_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION) {
+                            next = traversal.next();
+                            return Some(node);
+                        } else {
+                            // This relies on flags being set consistently: this node
+                            // with the flag unset claims that no part of it overlaps selection,
+                            // which implies that none of its descendant either have any part
+                            // of them overlapping selection, meaning none of them have the flag
+                            next = traversal.next_skipping_subtree();
                         }
-
-                        next = traversal.next();
-                    } else {
-                        next = traversal.next_skipping_subtree();
-                    }
-                },
-                PrePostIteration::Leave(_) => next = traversal.next(),
+                    },
+                    PrePostIteration::Leave(_) => next = traversal.next(),
+                }
             }
-        }
+            None
+        })
     }
 
-    pub(crate) fn set_flags_for_visible_selection(&self, no_gc: &NoGC) {
+    pub(crate) fn update_overlaps_document_selection_flags<'no_gc>(&self, no_gc: &'no_gc NoGC) {
         if !self.visible_selection_dirty.take() {
             return;
         }
 
-        self.unset_flags_for_visible_selection(no_gc);
+        let previously_flagged_nodes = self.iter_nodes_with_overlaps_document_selection_flag(no_gc);
+
+        let remove_selection_flag = |node: &Node| {
+            node.set_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION, false);
+            // Currently only `CharacterData` nodes show visible selection.
+            if node.is::<CharacterData>() {
+                node.dirty(no_gc, NodeDamage::ContentOrHeritage);
+            }
+        };
+
         let Some(range) = self.range.get() else {
+            for node in previously_flagged_nodes {
+                remove_selection_flag(&node)
+            }
             return;
         };
+
+        let mut previously_flagged_nodes: HashSet<_> = previously_flagged_nodes.collect();
 
         let start_position = position_in_flat_tree_for_selection(
             no_gc,
@@ -155,7 +175,7 @@ impl Selection {
             end_node.dirty(no_gc, NodeDamage::ContentOrHeritage);
         }
 
-        let add_selection_flag = |node: &Node| {
+        let mut add_selection_flag = |node: &UnrootedDom<'no_gc, Node>| {
             if !node.get_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION) {
                 node.set_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION, true);
 
@@ -163,6 +183,8 @@ impl Selection {
                 if node.is::<CharacterData>() {
                     node.dirty(no_gc, NodeDamage::ContentOrHeritage);
                 }
+            } else {
+                previously_flagged_nodes.remove(node);
             }
         };
 
@@ -203,6 +225,12 @@ impl Selection {
                     }
                 },
             }
+        }
+
+        // Nodes that haven’t been removed from the `HashSet` by `add_selection_flag`
+        // should no longer have the flag:
+        for node in &previously_flagged_nodes {
+            remove_selection_flag(node)
         }
     }
 
