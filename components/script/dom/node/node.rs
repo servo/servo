@@ -302,7 +302,7 @@ impl Node {
         &self.flags
     }
 
-    pub(super) fn layout_data(&self) -> &DomRefCell<Option<Box<GenericLayoutData>>> {
+    pub(crate) fn layout_data(&self) -> &DomRefCell<Option<Box<GenericLayoutData>>> {
         &self.layout_data
     }
 

@@ -17,12 +17,11 @@ use js::rust::wrappers2::{
     NewDateObject, NewUCRegExpObject, ObjectIsDate, ObjectIsRegExp,
 };
 use js::rust::{HandleObject, MutableHandleObject};
-use layout_api::{ScriptSelection, SharedSelection};
 use num_traits::ToPrimitive;
 use script_bindings::cell::{DomRefCell, Ref};
 use script_bindings::domstring::parse_floating_point_number;
 use servo_base::generic_channel::GenericSender;
-use servo_base::text::Utf16CodeUnits;
+use servo_base::text::{RangeAny, Utf16CodeUnits, Utf32CodeUnits};
 use style::attr::AttrValue;
 use style::str::split_commas;
 use stylo_atoms::Atom;
@@ -120,12 +119,6 @@ pub(crate) struct HTMLInputElement {
     textinput: DomRefCell<TextInput<EmbedderClipboardProvider>>,
     /// <https://html.spec.whatwg.org/multipage/#concept-input-value-dirty-flag>
     value_dirty: Cell<bool>,
-    /// A [`SharedSelection`] that is shared with layout. This can be updated dyanmnically
-    /// and layout should reflect the new value after a display list update.
-    #[no_trace]
-    #[conditional_malloc_size_of]
-    shared_selection: SharedSelection,
-
     form_owner: MutNullableDom<HTMLFormElement>,
     labels_node_list: MutNullableDom<NodeList>,
     validity_state: MutNullableDom<ValidityState>,
@@ -185,7 +178,6 @@ impl HTMLInputElement {
                 },
             )),
             value_dirty: Cell::new(false),
-            shared_selection: Default::default(),
             form_owner: Default::default(),
             labels_node_list: MutNullableDom::new(None),
             validity_state: Default::default(),
@@ -946,11 +938,14 @@ impl<'dom> LayoutDom<'dom, HTMLInputElement> {
         self.unsafe_get().size.get()
     }
 
-    pub(crate) fn selection_for_layout(self) -> Option<SharedSelection> {
-        if !self.unsafe_get().is_textual_or_password.get() {
+    pub(crate) fn selection_for_layout(self) -> Option<RangeAny<Utf32CodeUnits>> {
+        let element = self.unsafe_get();
+        if !element.is_textual_or_password.get() {
             return None;
         }
-        Some(self.unsafe_get().shared_selection.clone())
+        #[expect(unsafe_code)]
+        let textinput = unsafe { element.textinput.borrow_for_layout() };
+        textinput.selection_for_layout
     }
 }
 
@@ -993,17 +988,15 @@ impl TextControlElement for HTMLInputElement {
 
     fn maybe_update_shared_selection(&self) {
         let mut text_input = self.textinput.borrow_mut();
-        let selection_range = text_input.sorted_selection_offsets_range();
+        let selection_range = text_input.selection_start()..text_input.selection_end();
         let enabled = self.is_textual_or_password() && self.upcast::<Element>().focus_state();
 
-        let mut shared_selection = self.shared_selection.borrow_mut();
         let range_remained_equal = selection_range == text_input.previous_selection_range;
-        if range_remained_equal && enabled == shared_selection.enabled {
+        if range_remained_equal && enabled == text_input.selection_for_layout.is_some() {
             return;
         }
 
         if !range_remained_equal {
-            text_input.previous_selection_range = selection_range;
             // https://w3c.github.io/selection-api/#selectionchange-event
             // > When an input or textarea element provide a text selection and its selection changes
             // > (in either extent or direction),
@@ -1011,11 +1004,20 @@ impl TextControlElement for HTMLInputElement {
             self.schedule_a_selection_change_event();
         }
 
-        *shared_selection = ScriptSelection {
-            character_range: text_input.sorted_selection_character_offsets_range(),
-            enabled,
-        };
-        self.owner_window().layout().set_needs_new_display_list();
+        let selection = enabled.then(|| text_input.sorted_selection_character_offsets_range());
+        text_input.previous_selection_range = selection_range;
+        text_input.selection_for_layout = selection;
+
+        if let Some(text_input_widget) = self.input_type.borrow().text_input_widget() {
+            if text_input_widget.borrow().set_text_run_selection(selection) {
+                // Found an already laid out text run to update, so we only need to repaint:
+                self.owner_window().layout().set_needs_new_display_list();
+            } else {
+                // If there isn’t a text run, layout is pending to create it anyway
+            }
+        } else {
+            // Non-text input type. Would this be even called?
+        }
     }
 
     fn is_password_field(&self) -> bool {

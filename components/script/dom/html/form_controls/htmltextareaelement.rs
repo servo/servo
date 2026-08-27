@@ -10,9 +10,8 @@ use embedder_traits::{EmbedderControlRequest, InputMethodRequest, InputMethodTyp
 use html5ever::{LocalName, Prefix, local_name, ns};
 use js::context::JSContext;
 use js::rust::HandleObject;
-use layout_api::{ScriptSelection, SharedSelection};
 use script_bindings::cell::DomRefCell;
-use servo_base::text::Utf16CodeUnits;
+use servo_base::text::{RangeAny, Utf16CodeUnits, Utf32CodeUnits};
 use style::attr::AttrValue;
 use stylo_dom::ElementState;
 
@@ -67,19 +66,17 @@ pub(crate) struct HTMLTextAreaElement {
     validity_state: MutNullableDom<ValidityState>,
     /// A [`TextInputWidget`] that manages the shadow DOM for this `<textarea>`.
     text_input_widget: DomRefCell<TextInputWidget>,
-    /// A [`SharedSelection`] that is shared with layout. This can be updated dyanmnically
-    /// and layout should reflect the new value after a display list update.
-    #[no_trace]
-    #[conditional_malloc_size_of]
-    shared_selection: SharedSelection,
 
     /// <https://w3c.github.io/selection-api/#dfn-has-scheduled-selectionchange-event>
     has_scheduled_selectionchange_event: Cell<bool>,
 }
 
 impl LayoutDom<'_, HTMLTextAreaElement> {
-    pub(crate) fn selection_for_layout(self) -> SharedSelection {
-        self.unsafe_get().shared_selection.clone()
+    pub(crate) fn selection_for_layout(self) -> Option<RangeAny<Utf32CodeUnits>> {
+        let element = self.unsafe_get();
+        #[expect(unsafe_code)]
+        let textinput = unsafe { element.textinput.borrow_for_layout() };
+        textinput.selection_for_layout
     }
 
     pub(crate) fn get_cols(self) -> u32 {
@@ -136,7 +133,6 @@ impl HTMLTextAreaElement {
             labels_node_list: Default::default(),
             validity_state: Default::default(),
             text_input_widget: Default::default(),
-            shared_selection: Default::default(),
             has_scheduled_selectionchange_event: Default::default(),
         }
     }
@@ -277,17 +273,15 @@ impl TextControlElement for HTMLTextAreaElement {
 
     fn maybe_update_shared_selection(&self) {
         let mut text_input = self.textinput.borrow_mut();
-        let selection_range = text_input.sorted_selection_offsets_range();
+        let selection_range = text_input.selection_start()..text_input.selection_end();
         let enabled = self.upcast::<Element>().focus_state();
 
-        let mut shared_selection = self.shared_selection.borrow_mut();
         let range_remained_equal = selection_range == text_input.previous_selection_range;
-        if range_remained_equal && enabled == shared_selection.enabled {
+        if range_remained_equal && enabled == text_input.selection_for_layout.is_some() {
             return;
         }
 
         if !range_remained_equal {
-            text_input.previous_selection_range = selection_range;
             // https://w3c.github.io/selection-api/#selectionchange-event
             // > When an input or textarea element provide a text selection and its selection changes
             // > (in either extent or direction),
@@ -295,11 +289,20 @@ impl TextControlElement for HTMLTextAreaElement {
             self.schedule_a_selection_change_event();
         }
 
-        *shared_selection = ScriptSelection {
-            character_range: text_input.sorted_selection_character_offsets_range(),
-            enabled,
-        };
-        self.owner_window().layout().set_needs_new_display_list();
+        let selection = enabled.then(|| text_input.sorted_selection_character_offsets_range());
+        text_input.previous_selection_range = selection_range;
+        text_input.selection_for_layout = selection;
+
+        if self
+            .text_input_widget
+            .borrow()
+            .set_text_run_selection(selection)
+        {
+            // Found an already laid out text run to update, so we only need to repaint:
+            self.owner_window().layout().set_needs_new_display_list();
+        } else {
+            // If there isn’t a text run, layout is pending to create it anyway
+        }
     }
 
     fn placeholder_text<'a>(&'a self) -> Ref<'a, DOMString> {

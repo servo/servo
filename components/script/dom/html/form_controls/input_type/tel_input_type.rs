@@ -12,7 +12,7 @@ use crate::dom::html::form_controls::input_type::text_input_widget::TextInputWid
 #[derive(Default, JSTraceable, MallocSizeOf, PartialEq)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct TelInputType {
-    text_input_widget: DomRefCell<TextInputWidget>,
+    pub(super) text_input_widget: DomRefCell<TextInputWidget>,
 }
 
 impl SpecificInputType for TelInputType {

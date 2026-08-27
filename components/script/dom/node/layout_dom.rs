@@ -7,7 +7,7 @@
 use atomic_refcell::AtomicRef;
 use layout_api::{
     GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutElementType, LayoutNodeType,
-    SVGElementData, SharedSelection,
+    SVGElementData,
 };
 use net_traits::image_cache::Image;
 use pixels::ImageMetadata;
@@ -247,7 +247,17 @@ impl<'dom> LayoutDom<'dom, Node> {
     }
 
     #[expect(unsafe_code)]
-    pub(crate) fn document_selection_in_text_node(&self) -> Option<RangeAny<Utf32CodeUnits>> {
+    pub(crate) fn selection_for_text_node(&self) -> Option<RangeAny<Utf32CodeUnits>> {
+        if let Some(shadow_root) = self.containing_shadow_root_for_layout() {
+            let host = shadow_root.get_host_for_layout();
+            if let Some(input) = host.downcast::<HTMLInputElement>() {
+                return input.selection_for_layout();
+            }
+            if let Some(textarea) = host.downcast::<HTMLTextAreaElement>() {
+                return textarea.selection_for_layout();
+            }
+        }
+
         let unsafe_self = self.unsafe_get();
         if !unsafe_self.get_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION) {
             return None;
@@ -272,24 +282,6 @@ impl<'dom> LayoutDom<'dom, Node> {
         let start = is_start_node.then(|| range_start.offset().to_utf32_code_units_in(&text));
         let end = is_end_node.then(|| range_end.offset().to_utf32_code_units_in(&text));
         Some(RangeAny { start, end })
-    }
-
-    /// Get the selection for the given node. This only works for text nodes that are in
-    /// the shadow DOM of user agent widgets for form controls, specifically for `<input>`
-    /// and `<textarea>`.
-    ///
-    /// As we want to expose the selection on the inner text node of the widget's shadow
-    /// DOM, we must find the shadow root and then access the containing element itself.
-    pub(crate) fn form_control_selection_in_text_node(self) -> Option<SharedSelection> {
-        let shadow_root = self
-            .containing_shadow_root_for_layout()?
-            .get_host_for_layout();
-        if let Some(input) = shadow_root.downcast::<HTMLInputElement>() {
-            return input.selection_for_layout();
-        }
-        shadow_root
-            .downcast::<HTMLTextAreaElement>()
-            .map(|textarea| textarea.selection_for_layout())
     }
 
     pub(crate) fn image_url(self) -> Option<ServoUrl> {

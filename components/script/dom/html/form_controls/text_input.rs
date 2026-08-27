@@ -165,7 +165,9 @@ pub struct TextInput<T: ClipboardProvider> {
     was_last_change_by_set_content: bool,
 
     #[no_trace]
-    pub(crate) previous_selection_range: Range<Utf8CodeUnits>,
+    pub(crate) previous_selection_range: Range<RopeIndex>,
+    #[no_trace]
+    pub(crate) selection_for_layout: Option<RangeAny<Utf32CodeUnits>>,
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -302,6 +304,7 @@ impl<T: ClipboardProvider> TextInput<T> {
             selection_direction: SelectionDirection::None,
             was_last_change_by_set_content: true,
             previous_selection_range: Default::default(),
+            selection_for_layout: None,
         }
     }
 
@@ -403,24 +406,12 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.rope.index_to_utf16_offset(self.selection_end())
     }
 
-    /// The byte offset of the selection_end()
-    pub fn selection_end_offset(&self) -> Utf8CodeUnits {
-        self.rope.index_to_utf8_offset(self.selection_end())
-    }
-
     /// Whether or not there is an active uncollapsed selection. This means that the
     /// selection origin is set and it differs from the edit point.
     #[inline]
     pub(crate) fn has_uncollapsed_selection(&self) -> bool {
         self.selection_origin
             .is_some_and(|selection_origin| selection_origin != self.edit_point)
-    }
-
-    /// Return the selection range as byte offsets from the start of the content.
-    ///
-    /// If there is no selection, returns an empty range at the edit point.
-    pub(crate) fn sorted_selection_offsets_range(&self) -> Range<Utf8CodeUnits> {
-        self.selection_start_offset()..self.selection_end_offset()
     }
 
     /// Return the selection range as character offsets from the start of the content.

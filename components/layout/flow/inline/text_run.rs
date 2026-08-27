@@ -7,11 +7,11 @@ use std::ops::Range;
 use std::sync::Arc;
 
 use app_units::Au;
+use atomic_refcell::AtomicRefCell;
 use fonts::font_feature_values::ResolvedFontVariantAlternates;
 use fonts::{FontContext, FontRef, ShapedText, ShapedTextSlice, ShapingFlags, ShapingOptions};
 use icu_locid::subtags::Language;
 use icu_properties::{self, LineBreak};
-use layout_api::SharedSelection;
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use servo_arc::Arc as ServoArc;
@@ -333,8 +333,8 @@ pub(crate) struct SharedTextRunData {
     pub original_offset: Utf32CodeUnits,
     /// The selected text in this `TextRun`. This may either be document selection or form control
     /// selection.
-    #[conditional_malloc_size_of]
-    pub selection: Option<SharedSelection>,
+    // TODO: make this more compact with a pair of `AtomicUsize`?
+    pub selection: AtomicRefCell<Option<RangeAny<Utf32CodeUnits>>>,
     /// The [`OffsetMap`] used when creating this `TextRun`'s `InlineFormattingContext`. This
     /// is used for mapping between DOM text offsets and layout text offsets (and vice-versa).
     pub offset_map: ArcRefCell<OffsetMap>,
@@ -536,15 +536,16 @@ impl TextRun {
 
             if character == '\n' {
                 finish_current_segment(&mut current, &mut results);
-                results.push(TextRunItem::LineBreak(
-                    self.run_data.selection.is_some().then(|| CaretPlaceholder {
+                let has_selection = self.run_data.selection.borrow().is_some();
+                results.push(TextRunItem::LineBreak(has_selection.then(|| {
+                    CaretPlaceholder {
                         run_data: self.run_data.clone(),
                         base_fragment_info: self.base_fragment_info,
                         // The placeholder that is placed after a newline is for the index after that newline.
                         // The newline itself is at the end of the previous line.
                         character_index: relative_character_index + 1,
-                    }),
-                ));
+                    }
+                })));
                 continue;
             }
 

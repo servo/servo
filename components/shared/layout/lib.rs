@@ -22,7 +22,6 @@ use std::thread::JoinHandle;
 use std::time::Duration;
 
 use app_units::Au;
-use atomic_refcell::AtomicRefCell;
 use background_hang_monitor_api::BackgroundHangMonitorRegister;
 use bitflags::bitflags;
 use embedder_traits::{Cursor, ScriptToEmbedderChan, Theme, UntrustedNodeAddress, ViewportDetails};
@@ -80,6 +79,9 @@ use webrender_api::{ExternalScrollId, ImageKey};
 
 pub trait GenericLayoutDataTrait: Any + MallocSizeOfTrait + Send + Sync + 'static {
     fn as_any(&self) -> &dyn Any;
+
+    /// Returns whether `new_range` was successfully set on an existing text run
+    fn set_text_run_selection(&self, new_range: Option<RangeAny<Utf32CodeUnits>>) -> bool;
 }
 
 pub trait LayoutDataTrait: GenericLayoutDataTrait + Default {}
@@ -138,33 +140,6 @@ pub enum LayoutElementType {
     SVGSVGElement,
 }
 
-/// A selection shared between script and layout. This selection is managed by the DOM
-/// node that maintains it, and can be modified from script. Once modified, layout is
-/// expected to reflect the new selection visual on the next display list update.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub struct ScriptSelection {
-    /// The character range of this selection in the DOM node that manages it.
-    pub character_range: RangeAny<Utf32CodeUnits>,
-    /// Whether or not this selection is enabled. Selections may be disabled
-    /// when their node loses focus.
-    pub enabled: bool,
-}
-
-impl Default for ScriptSelection {
-    fn default() -> Self {
-        Self {
-            // Default to an empty range.
-            // Note that `start: None, end: None` would mean the full range
-            character_range: RangeAny {
-                start: None,
-                end: Some(Utf32CodeUnits(0)),
-            },
-            enabled: false,
-        }
-    }
-}
-
-pub type SharedSelection = Arc<AtomicRefCell<ScriptSelection>>;
 pub struct HTMLCanvasData {
     pub image_key: Option<ImageKey>,
     pub width: u32,

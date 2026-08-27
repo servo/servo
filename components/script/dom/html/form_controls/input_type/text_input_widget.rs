@@ -12,6 +12,7 @@ use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
 use script_bindings::inheritance::Castable;
 use script_bindings::root::{Dom, DomRoot};
+use servo_base::text::{RangeAny, Utf32CodeUnits};
 use style::selector_parser::PseudoElement;
 
 use crate::dom::characterdata::CharacterData;
@@ -65,6 +66,20 @@ impl TextInputWidget {
     ) {
         self.get_or_create_shadow_tree(cx, element)
             .update_placeholder(cx, element);
+    }
+
+    /// Returns whether `new_range` was successfully set on an existing text run
+    pub(crate) fn set_text_run_selection(
+        &self,
+        new_range: Option<RangeAny<Utf32CodeUnits>>,
+    ) -> bool {
+        if let Some(shadow_tree) = &*self.shadow_tree.borrow() &&
+            let Some(character_data) = shadow_tree.value_character_data()
+        {
+            character_data.set_text_run_selection(new_range)
+        } else {
+            false
+        }
     }
 }
 
