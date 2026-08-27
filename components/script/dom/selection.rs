@@ -239,12 +239,13 @@ impl Selection {
                     if node == start_node {
                         continue;
                     }
-                    set_selection_flag(node);
                     if let Some(character_data) = node.downcast::<CharacterData>() {
                         set_text_run_selection(character_data, Some(RangeAny::full()))
                     }
+                    set_selection_flag(node);
                 },
                 PrePostIteration::Leave(node) => {
+                    set_selection_flag(node);
                     if node == end_node {
                         break;
                     }
