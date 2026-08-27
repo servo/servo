@@ -183,6 +183,7 @@ impl Selection {
                 if node.is::<CharacterData>() {
                     node.dirty(no_gc, NodeDamage::ContentOrHeritage);
                 }
+                debug_assert!(!previously_flagged_nodes.contains(node));
             } else {
                 previously_flagged_nodes.remove(node);
             }
