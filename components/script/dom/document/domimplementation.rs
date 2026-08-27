@@ -20,7 +20,7 @@ use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
+use crate::dom::document::{Document, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::documenttype::DocumentType;
 use crate::dom::element::{CustomElementCreationMode, ElementCreator};
 use crate::dom::node::Node;
@@ -111,7 +111,6 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
             Some(content_type),
             None,
             DocumentActivity::Inactive,
-            DocumentSource::NotFromParser,
             loader,
             Some(self.document.insecure_requests_policy()),
             self.document.has_trustworthy_ancestor_or_current_origin(),
@@ -179,7 +178,6 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
             None,
             None,
             DocumentActivity::Inactive,
-            DocumentSource::NotFromParser,
             loader,
             None,
             None,

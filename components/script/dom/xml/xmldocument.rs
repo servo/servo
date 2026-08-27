@@ -24,7 +24,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::customelementregistry::CustomElementReactionStack;
-use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
+use crate::dom::document::{Document, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::location::Location;
 use crate::dom::node::Node;
 use crate::dom::window::Window;
@@ -47,7 +47,6 @@ impl XMLDocument {
         content_type: Option<Mime>,
         last_modified: Option<String>,
         activity: DocumentActivity,
-        source: DocumentSource,
         doc_loader: DocumentLoader,
         inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
         has_trustworthy_ancestor_origin: bool,
@@ -66,7 +65,6 @@ impl XMLDocument {
                 content_type,
                 last_modified,
                 activity,
-                source,
                 doc_loader,
                 None,
                 None,
@@ -95,7 +93,6 @@ impl XMLDocument {
         content_type: Option<Mime>,
         last_modified: Option<String>,
         activity: DocumentActivity,
-        source: DocumentSource,
         doc_loader: DocumentLoader,
         inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
         has_trustworthy_ancestor_origin: bool,
@@ -113,7 +110,6 @@ impl XMLDocument {
                 content_type,
                 last_modified,
                 activity,
-                source,
                 doc_loader,
                 inherited_insecure_requests_policy,
                 has_trustworthy_ancestor_origin,

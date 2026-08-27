@@ -423,11 +423,6 @@ impl WindowProxy {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#delaying-load-events-mode>
-    pub(crate) fn is_delaying_load_events_mode(&self) -> bool {
-        self.delaying_load_events_mode.get()
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#delaying-load-events-mode>
     pub(crate) fn start_delaying_load_events_mode(&self) {
         self.delaying_load_events_mode.set(true);
     }
@@ -435,11 +430,6 @@ impl WindowProxy {
     /// <https://html.spec.whatwg.org/multipage/#delaying-load-events-mode>
     pub(crate) fn stop_delaying_load_events_mode(&self) {
         self.delaying_load_events_mode.set(false);
-        if let Some(document) = self.document() &&
-            !document.loader().events_inhibited()
-        {
-            ScriptThread::mark_document_with_no_blocked_loads(&document);
-        }
     }
 
     // https://html.spec.whatwg.org/multipage/#disowned-its-opener
@@ -910,7 +900,10 @@ impl WindowProxy {
         if let Some(frame_element) = self.frame_element() {
             let parent_document = frame_element.owner_document();
             // Step 4. Assert: parentDoc is fully active.
-            assert!(parent_document.is_fully_active());
+            // TODO(47417): Once "creating a new browsing context" properly exists, remove this check
+            if !parent_document.is_fully_active() {
+                return None;
+            }
             Some((
                 parent_document.origin().snapshot(),
                 parent_document

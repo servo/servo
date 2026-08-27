@@ -435,9 +435,6 @@ pub(crate) struct Document {
     stylesheets: DomRefCell<DocumentStylesheetSet<ServoStylesheetInDocument>>,
     stylesheet_list: MutNullableDom<StyleSheetList>,
     ready_state: Cell<DocumentReadyState>,
-    /// Whether the DOMContentLoaded event has already been dispatched.
-    /// TODO(43149): Remove when document replacement is implemented
-    domcontentloaded_dispatched: Cell<bool>,
     /// The script element that is currently executing.
     current_script: MutNullableDom<HTMLScriptElement>,
     #[no_trace]
@@ -1461,6 +1458,35 @@ impl Document {
         }
     }
 
+    /// Set the `readyState` of this [`Document`] to `loading` for the purposes of the
+    /// "initialize a document object" part of the specification.
+    ///
+    /// See <https://html.spec.whatwg.org/multipage/#initialise-the-document-object>.
+    pub(crate) fn set_document_readiness_to_loading_for_initialization(&self) {
+        // https://html.spec.whatwg.org/multipage/#initialise-the-document-object
+        // > such initial about:blank Document are never created by this algorithm
+        // TODO(47417): Once "creating a new browsing context" properly exists, remove this check
+        if self.is_initial_about_blank() {
+            return;
+        }
+
+        // From <https://w3c.github.io/navigation-timing/#dom-performancetiming-domloading>:
+        // > This attribute must return the time immediately before the user agent sets the
+        // > current document readiness to "loading".
+        update_with_current_instant(&self.navigation_timing.dom_loading);
+
+        if self.window.is_top_level() {
+            let webview_id = self.webview_id();
+            self.send_to_embedder(EmbedderMsg::NotifyLoadStatusChanged(
+                webview_id,
+                LoadStatus::Started,
+            ));
+            self.send_to_embedder(EmbedderMsg::Status(webview_id, None));
+        }
+
+        self.ready_state.set(DocumentReadyState::Loading);
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#update-the-current-document-readiness>
     pub(crate) fn update_the_current_document_readiness(
         &self,
@@ -1480,9 +1506,7 @@ impl Document {
         // global object.
         // Note: Handled implicitly by update_with_current_instant.
         match state {
-            DocumentReadyState::Loading => {
-                unreachable!("Loading is an initial state, so we never transition to it.")
-            },
+            DocumentReadyState::Loading => {},
             DocumentReadyState::Complete => {
                 // This isn't part of the specification, but it's useful to have it here to
                 // avoid code duplication.
@@ -2180,36 +2204,6 @@ impl Document {
             _ => {},
         }
 
-        // START TODO(43149): Remove when document replacement is implemented
-
-        // Step 4 is in another castle, namely at the end of
-        // process_deferred_scripts.
-
-        // Step 5 can be found in asap_script_loaded and
-        // asap_in_order_script_loaded.
-
-        let loader = self.loader.borrow();
-
-        // Servo measures when the top-level content (not iframes) is loaded.
-        if self
-            .navigation_timing
-            .top_level_dom_complete
-            .get()
-            .is_none() &&
-            loader.is_only_blocked_by_iframes()
-        {
-            update_with_current_instant(&self.navigation_timing.top_level_dom_complete);
-        }
-
-        if loader.is_blocked() || loader.events_inhibited() {
-            // Step 6.
-            return;
-        }
-
-        ScriptThread::mark_document_with_no_blocked_loads(self);
-
-        // END TODO(43149): Remove when document replacement is implemented
-
         // Step 8. Spin the event loop until there is nothing that delays the load event in the Document.
         let document = Trusted::new(self);
         self.owner_global()
@@ -2402,43 +2396,13 @@ impl Document {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#the-end
-    // TODO(43149): Remove when document replacement is implemented
-    pub(crate) fn maybe_queue_document_completion(&self, cx: &mut JSContext) {
+    /// Step 9 of <https://html.spec.whatwg.org/multipage/#the-end>
+    fn queue_document_completion(&self, cx: &mut JSContext) {
         // The initial about:blank document passes through
         // https://html.spec.whatwg.org/multipage/#creating-a-new-browsing-context
         // instead of the steps used by other documents.
-        if self.is_initial_about_blank() {
-            return;
-        }
+        assert!(!self.is_initial_about_blank());
 
-        // https://html.spec.whatwg.org/multipage/#delaying-load-events-mode
-        let is_in_delaying_load_events_mode = match self.window.undiscarded_window_proxy() {
-            Some(window_proxy) => window_proxy.is_delaying_load_events_mode(),
-            None => false,
-        };
-
-        // Note: if the document is not fully active, layout will have exited already,
-        // and this method will panic.
-        // The underlying problem might actually be that layout exits while it should be kept alive.
-        // See https://github.com/servo/servo/issues/22507
-        let not_ready_for_load = self.loader.borrow().is_blocked() ||
-            !self.is_fully_active() ||
-            is_in_delaying_load_events_mode ||
-            // In case we have already aborted this document and receive a
-            // a subsequent message to load the document
-            self.loader.borrow().events_inhibited();
-
-        if not_ready_for_load {
-            // Step 6.
-            return;
-        }
-
-        self.queue_document_completion(cx);
-    }
-
-    /// Step 9 of <https://html.spec.whatwg.org/multipage/#the-end>
-    fn queue_document_completion(&self, cx: &mut JSContext) {
         self.loader.borrow_mut().inhibit_events();
 
         // The rest will ever run only once per document.
@@ -2459,7 +2423,7 @@ impl Document {
                 }
 
                 // Step 9.1. Update the current document readiness to "complete".
-                document.update_the_current_document_readiness(cx,DocumentReadyState::Complete);
+                document.update_the_current_document_readiness(cx, DocumentReadyState::Complete);
 
                 // Step 9.2. If the Document object's browsing context is null, then abort these steps.
                 if document.browsing_context().is_none() {
@@ -2547,8 +2511,14 @@ impl Document {
     }
 
     pub(crate) fn start_the_end_loading_phase(&self) {
-        self.current_the_end_loading_phase
-            .set(TheEndLoadingPhase::ProcessingDeferredScripts);
+        if self.is_initial_about_blank() {
+            // TODO(47417): Once "creating a new browsing context" properly exists, remove this check
+            self.current_the_end_loading_phase
+                .set(TheEndLoadingPhase::Done);
+        } else {
+            self.current_the_end_loading_phase
+                .set(TheEndLoadingPhase::ProcessingDeferredScripts);
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#pending-parsing-blocking-script
@@ -2696,20 +2666,8 @@ impl Document {
         if self.deferred_scripts.is_empty() {
             self.current_the_end_loading_phase
                 .set(TheEndLoadingPhase::ProcessingAsSoonAsPossibleScripts);
-            // TODO(43149): Use `dispatch_dom_content_loaded` when document replacement is implemented
-            self.maybe_dispatch_dom_content_loaded();
+            self.dispatch_dom_content_loaded();
         }
-    }
-
-    /// Step 6. of <https://html.spec.whatwg.org/multipage/#the-end>
-    pub(crate) fn maybe_dispatch_dom_content_loaded(&self) {
-        // TODO(43149): Remove when document replacement is implemented
-        if self.domcontentloaded_dispatched.get() {
-            return;
-        }
-        self.domcontentloaded_dispatched.set(true);
-
-        self.dispatch_dom_content_loaded();
     }
 
     /// Step 6 of <https://html.spec.whatwg.org/multipage/#the-end>
@@ -2793,7 +2751,7 @@ impl Document {
     }
 
     /// Step 8 of <https://html.spec.whatwg.org/multipage/#the-end>
-    pub(crate) fn wait_until_load_blockers_have_resolved(&self, _cx: &mut JSContext) {
+    pub(crate) fn wait_until_load_blockers_have_resolved(&self, cx: &mut JSContext) {
         if self.current_the_end_loading_phase.get() !=
             TheEndLoadingPhase::WaitingForLoadEventBlockers
         {
@@ -2822,8 +2780,7 @@ impl Document {
 
         self.current_the_end_loading_phase
             .set(TheEndLoadingPhase::Done);
-        // TODO(43149): Add when document replacement is implemented
-        // self.queue_document_completion(cx);
+        self.queue_document_completion(cx);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#destroy-a-document-and-its-descendants>
@@ -3828,12 +3785,6 @@ struct DocumentSizes {
     other_nodes_size: usize,
 }
 
-#[derive(MallocSizeOf, PartialEq)]
-pub(crate) enum DocumentSource {
-    FromParser,
-    NotFromParser,
-}
-
 impl<'dom> LayoutDom<'dom, Document> {
     #[inline]
     pub(crate) fn is_html_document_for_layout(&self) -> bool {
@@ -3948,7 +3899,6 @@ impl Document {
         content_type: Option<Mime>,
         last_modified: Option<String>,
         activity: DocumentActivity,
-        source: DocumentSource,
         doc_loader: DocumentLoader,
         referrer: Option<String>,
         status_code: Option<u16>,
@@ -3964,12 +3914,6 @@ impl Document {
         image_cache: StdArc<dyn ImageCache>,
     ) -> Document {
         let url = url.unwrap_or_else(|| ServoUrl::parse("about:blank").unwrap());
-
-        let (ready_state, domcontentloaded_dispatched) = if source == DocumentSource::FromParser {
-            (DocumentReadyState::Loading, false)
-        } else {
-            (DocumentReadyState::Complete, true)
-        };
 
         let frame_type = match window.is_top_level() {
             true => TimerMetadataFrameType::RootWindow,
@@ -4010,14 +3954,6 @@ impl Document {
             QuirksMode::NoQuirks
         };
 
-        // From <https://w3c.github.io/navigation-timing/#dom-performancetiming-domloading>:
-        // > This attribute must return the time immediately before the user agent sets the
-        // > current document readiness to "loading".
-        let navigation_timing = Rc::new(NavigationTiming::default());
-        if ready_state == DocumentReadyState::Loading {
-            update_with_current_instant(&navigation_timing.dom_loading);
-        }
-
         Document {
             node: Node::new_document_node(),
             document_or_shadow_root: DocumentOrShadowRoot::new(window),
@@ -4052,8 +3988,9 @@ impl Document {
             shared_style_locks,
             stylesheets: DomRefCell::new(DocumentStylesheetSet::new()),
             stylesheet_list: MutNullableDom::new(None),
-            ready_state: Cell::new(ready_state),
-            domcontentloaded_dispatched: Cell::new(domcontentloaded_dispatched),
+            // https://html.spec.whatwg.org/multipage/#current-document-readiness
+            // > Each Document has a current document readiness, a string, initially "complete".
+            ready_state: Cell::new(DocumentReadyState::Complete),
             current_script: Default::default(),
             current_the_end_loading_phase: Default::default(),
             pending_parsing_blocking_script: Default::default(),
@@ -4093,7 +4030,7 @@ impl Document {
             active_parser_was_aborted: Cell::new(false),
             fired_unload: Cell::new(false),
             responsive_images: Default::default(),
-            navigation_timing,
+            navigation_timing: Default::default(),
             resource_fetch_timing: RefCell::new(None),
             completely_loaded: Cell::new(false),
             script_and_layout_blockers: Cell::new(0),
@@ -4273,7 +4210,6 @@ impl Document {
         content_type: Option<Mime>,
         last_modified: Option<String>,
         activity: DocumentActivity,
-        source: DocumentSource,
         doc_loader: DocumentLoader,
         referrer: Option<String>,
         status_code: Option<u16>,
@@ -4299,7 +4235,6 @@ impl Document {
             content_type,
             last_modified,
             activity,
-            source,
             doc_loader,
             referrer,
             status_code,
@@ -4328,7 +4263,6 @@ impl Document {
         content_type: Option<Mime>,
         last_modified: Option<String>,
         activity: DocumentActivity,
-        source: DocumentSource,
         doc_loader: DocumentLoader,
         referrer: Option<String>,
         status_code: Option<u16>,
@@ -4355,7 +4289,6 @@ impl Document {
                 content_type,
                 last_modified,
                 activity,
-                source,
                 doc_loader,
                 referrer,
                 status_code,
@@ -4559,7 +4492,6 @@ impl Document {
                     None,
                     None,
                     DocumentActivity::Inactive,
-                    DocumentSource::NotFromParser,
                     DocumentLoader::new(&self.loader()),
                     None,
                     None,
@@ -5332,7 +5264,6 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             None,
             None,
             DocumentActivity::Inactive,
-            DocumentSource::NotFromParser,
             docloader,
             None,
             None,
@@ -5385,7 +5316,6 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             Some(content_type),
             None,
             DocumentActivity::Inactive,
-            DocumentSource::FromParser,
             loader,
             None,
             None,
@@ -5440,7 +5370,6 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             Some(content_type),
             None,
             DocumentActivity::Inactive,
-            DocumentSource::FromParser,
             loader,
             None,
             None,
@@ -6808,7 +6737,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         // Handled when creating the parser in step 16
 
         // Step 18. Update the current document readiness of document to "loading".
-        self.ready_state.set(DocumentReadyState::Loading);
+        self.update_the_current_document_readiness(cx, DocumentReadyState::Loading);
 
         // Step 19. Return document.
         Ok(DomRoot::from_ref(self))

@@ -60,7 +60,7 @@ use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{ByteString, DOMString, USVString, is_token};
 use crate::dom::blob::{Blob, normalize_type_string};
 use crate::dom::csp::{GlobalCspReporting, Violation};
-use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
+use crate::dom::document::{Document, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -1567,7 +1567,6 @@ impl XMLHttpRequest {
             content_type,
             None,
             DocumentActivity::Inactive,
-            DocumentSource::FromParser,
             docloader,
             None,
             None,
