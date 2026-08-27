@@ -3746,7 +3746,7 @@ impl Window {
     ) {
         let node = unsafe { from_untrusted_node_address(node_address) };
         if let Some(element) = DomRoot::downcast::<Element>(node) {
-            document.store_lcp_candidate(candidate.id, &element);
+            document.store_lcp_candidate(candidate, &element);
         }
     }
 

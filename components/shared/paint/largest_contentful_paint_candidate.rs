@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 
 /// Largest Contentful Paint Candidate, include image and block-level element containing text
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct LCPCandidate {
     /// A unique identifier for this candidate.
     pub id: LCPCandidateID,

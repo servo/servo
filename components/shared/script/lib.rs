@@ -126,23 +126,9 @@ pub enum ProgressiveWebMetricType {
     LargestContentfulPaint {
         /// The identity of the element, if any.
         id: LCPCandidateID,
-        /// The pixel area of the largest contentful element.
-        area: usize,
-        /// The URL of the largest contentful element, if any.
-        url: Option<ServoUrl>,
     },
     /// Time to interactive
     TimeToInteractive,
-}
-
-impl ProgressiveWebMetricType {
-    /// Returns the area if the metric type is LargestContentfulPaint
-    pub fn area(&self) -> usize {
-        match self {
-            ProgressiveWebMetricType::LargestContentfulPaint { area, .. } => *area,
-            _ => 0,
-        }
-    }
 }
 
 /// The reason why the pipeline id of an iframe is being updated.

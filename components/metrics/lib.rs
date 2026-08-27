@@ -248,16 +248,11 @@ impl ProgressiveWebMetrics {
         &self,
         id: LCPCandidateID,
         paint_time: CrossProcessInstant,
-        area: usize,
     ) {
         set_metric(
             self,
             Some(self.make_metadata(false)),
-            ProgressiveWebMetricType::LargestContentfulPaint {
-                id,
-                area,
-                url: None,
-            },
+            ProgressiveWebMetricType::LargestContentfulPaint { id },
             ProfilerCategory::TimeToLargestContentfulPaint,
             &self.largest_contentful_paint,
             paint_time,
