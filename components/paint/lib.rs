@@ -19,7 +19,6 @@ pub use crate::paint::{Paint, WebRenderDebugOption};
 #[macro_use]
 mod tracing;
 
-mod largest_contentful_paint_calculator;
 mod paint;
 mod painter;
 mod pinch_zoom;
