@@ -5,6 +5,8 @@
 use std::cmp::Ordering;
 
 use js::context::JSContext;
+use script_bindings::codegen::GenericBindings::RangeBinding::RangeMethods;
+use script_bindings::codegen::GenericBindings::SelectionBinding::SelectionMethods;
 use script_bindings::inheritance::Castable;
 
 use crate::dom::abstractrange::bp_position;
@@ -172,44 +174,32 @@ impl Selection {
         direction: SelectionDeleteDirection,
     ) {
         // Step 1. If the active range is null, abort these steps and do nothing.
-        let Some(active_range) = self.active_range(cx) else {
+        if self.active_range(cx).is_none() {
             return;
         };
 
         // Step 2. Canonicalize whitespace at the active range's start.
-        active_range.start_container().canonicalize_whitespace(
-            cx,
-            active_range.start_offset(),
-            true,
-        );
+        let (start_container, start_offset) = self.start_boundary(cx);
+        start_container.canonicalize_whitespace(cx, start_offset, true);
 
         // Step 3. Canonicalize whitespace at the active range's end.
-        active_range
-            .end_container()
-            .canonicalize_whitespace(cx, active_range.end_offset(), true);
+        let (end_container, end_offset) = self.end_boundary(cx);
+        end_container.canonicalize_whitespace(cx, end_offset, true);
 
         // Step 4. Let (start node, start offset) be the last equivalent point for the active range's start.
-        let (mut start_node, mut start_offset) =
-            (active_range.start_container(), active_range.start_offset()).last_equivalent_point();
+        let (mut start_node, mut start_offset) = self.start_boundary(cx).last_equivalent_point();
 
         // Step 5. Let (end node, end offset) be the first equivalent point for the active range's end.
-        let (mut end_node, mut end_offset) =
-            (active_range.end_container(), active_range.end_offset()).first_equivalent_point();
+        let (mut end_node, mut end_offset) = self.end_boundary(cx).first_equivalent_point();
 
         // Step 6. If (end node, end offset) is not after (start node, start offset):
         if bp_position(&end_node, end_offset, &start_node, start_offset) != Ordering::Greater {
             // Step 6.1. If direction is "forward", call collapseToStart() on the context object's selection.
             if direction == SelectionDeleteDirection::Forward {
-                self.collapse_current_range(
-                    &active_range.start_container(),
-                    active_range.start_offset(),
-                );
+                let _ = self.CollapseToStart(cx);
             } else {
                 // Step 6.2. Otherwise, call collapseToEnd() on the context object's selection.
-                self.collapse_current_range(
-                    &active_range.end_container(),
-                    active_range.end_offset(),
-                );
+                let _ = self.CollapseToEnd(cx);
             }
             // Step 6.3. Abort these steps.
             return;
@@ -232,17 +222,17 @@ impl Selection {
         }
 
         // Step 9. Call collapse(start node, start offset) on the context object's selection.
-        self.collapse_current_range(&start_node, start_offset);
+        let _ = self.Collapse(cx, Some(&start_node), start_offset);
 
         // Step 10. Call extend(end node, end offset) on the context object's selection.
-        self.extend_current_range(&end_node, end_offset);
+        let _ = self.Extend(cx, &end_node, end_offset);
 
         // Step 11.
         //
         // This step does not exist in the spec
 
         // Step 12. Let start block be the active range's start node.
-        let mut start_block = active_range.start_container();
+        let mut start_block = self.start_boundary(cx).0;
 
         // Step 13. While start block's parent is in the same editing host and start block is an inline node,
         // set start block to its parent.
@@ -273,7 +263,7 @@ impl Selection {
         };
 
         // Step 15. Let end block be the active range's end node.
-        let mut end_block = active_range.end_container();
+        let mut end_block = self.end_boundary(cx).0;
 
         // Step 16. While end block's parent is in the same editing host and end block is an inline node, set end block to its parent.
         loop {
@@ -306,7 +296,9 @@ impl Selection {
         // This step does not exist in the spec
 
         // Step 19. Record current states and values, and let overrides be the result.
-        let overrides = active_range.record_current_states_and_values(cx);
+        let overrides = self
+            .expect_active_range(cx)
+            .record_current_states_and_values(cx);
 
         // Step 20.
         //
@@ -329,19 +321,18 @@ impl Selection {
             start_node.canonicalize_whitespace(cx, start_offset, false);
             // Step 21.3. If direction is "forward", call collapseToStart() on the context object's selection.
             if direction == SelectionDeleteDirection::Forward {
-                self.collapse_current_range(
-                    &active_range.start_container(),
-                    active_range.start_offset(),
-                );
+                let _ = self.CollapseToStart(cx);
             } else {
                 // Step 21.4. Otherwise, call collapseToEnd() on the context object's selection.
-                self.collapse_current_range(
-                    &active_range.end_container(),
-                    active_range.end_offset(),
-                );
+                let _ = self.CollapseToEnd(cx);
             }
             // Step 21.5. Restore states and values from overrides.
-            active_range.restore_states_and_values(cx, self, context_object, overrides);
+            self.expect_active_range(cx).restore_states_and_values(
+                cx,
+                self,
+                context_object,
+                overrides,
+            );
 
             // Step 21.6. Abort these steps.
             return;
@@ -365,7 +356,7 @@ impl Selection {
         // Step 24. For each node contained in the active range, append node to node list if the
         // last member of node list (if any) is not an ancestor of node; node is editable;
         // and node is not a thead, tbody, tfoot, tr, th, or td.
-        for node in active_range.contained_nodes(cx.no_gc()) {
+        for node in self.expect_active_range(cx).contained_nodes(cx.no_gc()) {
             // This type is only used to tell the compiler how to handle the type of `node_list.last()`.
             // It is not allowed to add a `& DomRoot<Node>` annotation, as test-tidy disallows that.
             // However, if we omit the type, the compiler doesn't know what it is, since we also
@@ -440,18 +431,14 @@ impl Selection {
         }
 
         // Step 27. Canonicalize whitespace at the active range's start, with fix collapsed space false.
-        active_range.start_container().canonicalize_whitespace(
-            cx,
-            active_range.start_offset(),
-            false,
-        );
+        let (start_container, start_offset) = self.start_boundary(cx);
+        start_container.canonicalize_whitespace(cx, start_offset, false);
 
         // Step 28. Canonicalize whitespace at the active range's end, with fix collapsed space false.
-        active_range
-            .end_container()
-            .canonicalize_whitespace(cx, active_range.end_offset(), false);
+        let (end_container, end_offset) = self.end_boundary(cx);
+        end_container.canonicalize_whitespace(cx, end_offset, false);
 
-        // Step 29.
+        // Step 29
         //
         // This step does not exist in the spec
 
@@ -466,19 +453,18 @@ impl Selection {
         {
             // Step 30.1. If direction is "forward", call collapseToStart() on the context object's selection.
             if direction == SelectionDeleteDirection::Forward {
-                self.collapse_current_range(
-                    &active_range.start_container(),
-                    active_range.start_offset(),
-                );
+                let _ = self.CollapseToStart(cx);
             } else {
                 // Step 30.2. Otherwise, call collapseToEnd() on the context object's selection.
-                self.collapse_current_range(
-                    &active_range.end_container(),
-                    active_range.end_offset(),
-                );
+                let _ = self.CollapseToEnd(cx);
             }
             // Step 30.3. Restore states and values from overrides.
-            active_range.restore_states_and_values(cx, self, context_object, overrides);
+            self.expect_active_range(cx).restore_states_and_values(
+                cx,
+                self,
+                context_object,
+                overrides,
+            );
 
             // Step 30.4. Abort these steps.
             return;
@@ -516,7 +502,7 @@ impl Selection {
             }
             // Step 32.3. Call collapse() on the context object's selection,
             // with first argument start block and second argument the index of reference node.
-            self.collapse_current_range(&start_block, reference_node.index());
+            let _ = self.Collapse(cx, Some(&start_block), reference_node.index());
             // Step 32.4. If end block has no children:
             if end_block.children_count() == 0 {
                 let mut end_block = end_block;
@@ -563,7 +549,12 @@ impl Selection {
                     end_block.remove_self(cx);
                 }
                 // Step 32.4.4. Restore states and values from overrides.
-                active_range.restore_states_and_values(cx, self, context_object, overrides);
+                self.expect_active_range(cx).restore_states_and_values(
+                    cx,
+                    self,
+                    context_object,
+                    overrides,
+                );
 
                 // Step 32.4.5. Abort these steps.
                 return;
@@ -575,7 +566,12 @@ impl Selection {
             // Step 32.5. If end block's firstChild is not an inline node,
             // restore states and values from record, then abort these steps.
             if !first_child.is_inline_node() {
-                active_range.restore_states_and_values(cx, self, context_object, overrides);
+                self.expect_active_range(cx).restore_states_and_values(
+                    cx,
+                    self,
+                    context_object,
+                    overrides,
+                );
                 return;
             }
             // Step 32.6. Let children be a list of nodes, initially empty.
@@ -630,7 +626,7 @@ impl Selection {
         } else if end_block.is_ancestor_of(&start_block) {
             // Step 33.1. Call collapse() on the context object's selection,
             // with first argument start block and second argument start block's length.
-            self.collapse_current_range(&start_block, start_block.len());
+            let _ = self.Collapse(cx, Some(&start_block), start_block.len());
             // Step 33.2. Let reference node be start block.
             let mut reference_node = start_block.clone();
             // Step 33.3. While reference node is not a child of end block, set reference node to its parent.
@@ -691,7 +687,7 @@ impl Selection {
         } else {
             // Step 34.1. Call collapse() on the context object's selection,
             // with first argument start block and second argument start block's length.
-            self.collapse_current_range(&start_block, start_block.len());
+            let _ = self.Collapse(cx, Some(&start_block), start_block.len());
             // Step 34.2. If end block's firstChild is an inline node and start block's lastChild is a br,
             // remove start block's lastChild from it.
             if end_block
@@ -765,7 +761,8 @@ impl Selection {
         start_block.remove_extraneous_line_breaks_at_the_end_of(cx);
 
         // Step 41. Restore states and values from overrides.
-        active_range.restore_states_and_values(cx, self, context_object, overrides);
+        self.expect_active_range(cx)
+            .restore_states_and_values(cx, self, context_object, overrides);
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#set-the-selection%27s-value>
@@ -776,16 +773,13 @@ impl Selection {
         command: CommandName,
         context_object: &Document,
     ) {
-        let active_range = self
-            .active_range(cx)
-            .expect("Must always have an active range");
-
         // Step 1. Let command be the current command.
         //
         // Passed as argument
 
         // Step 2. If there is no formattable node effectively contained in the active range:
-        if active_range
+        if self
+            .expect_active_range(cx)
             .first_formattable_contained_node(cx.no_gc())
             .is_none()
         {
@@ -818,8 +812,7 @@ impl Selection {
         // call splitText() on the active range's start node,
         // with argument equal to the active range's start offset.
         // Then set the active range's start node to the result, and its start offset to zero.
-        let start_node = active_range.start_container();
-        let start_offset = active_range.start_offset();
+        let (start_node, start_offset) = self.start_boundary(cx);
         if start_node.is_editable() &&
             start_offset != 0 &&
             start_offset != start_node.len() &&
@@ -828,14 +821,15 @@ impl Selection {
             let Ok(start_text) = start_text.SplitText(cx, start_offset) else {
                 unreachable!("Must always be able to split");
             };
-            active_range.set_start(start_text.upcast(), 0);
+            let _ = self
+                .expect_active_range(cx)
+                .SetStart(start_text.upcast(), 0);
         }
         // Step 4. If the active range's end node is an editable Text node,
         // and its end offset is neither zero nor its end node's length,
         // call splitText() on the active range's end node,
         // with argument equal to the active range's end offset.
-        let end_node = active_range.end_container();
-        let end_offset = active_range.end_offset();
+        let (end_node, end_offset) = self.end_boundary(cx);
         if end_node.is_editable() &&
             end_offset != 0 &&
             end_offset != end_node.len() &&
@@ -846,27 +840,29 @@ impl Selection {
         };
         // Step 5. Let element list be all editable Elements effectively contained in the active range.
         // Step 6. For each element in element list, clear the value of element.
-        active_range.for_each_effectively_contained_child(|child| {
-            if child.is_editable() &&
-                let Some(element_child) = child.downcast::<HTMLElement>()
-            {
-                element_child.clear_the_value(cx, &command);
-            }
-        });
+        self.expect_active_range(cx)
+            .for_each_effectively_contained_child(|child| {
+                if child.is_editable() &&
+                    let Some(element_child) = child.downcast::<HTMLElement>()
+                {
+                    element_child.clear_the_value(cx, &command);
+                }
+            });
         // Step 7. Let node list be all editable nodes effectively contained in the active range.
         // Step 8. For each node in node list:
-        active_range.for_each_effectively_contained_child(|child| {
-            if child.is_editable() {
-                // Step 8.1. Push down values on node.
-                child.push_down_values(cx, &command, new_value.clone());
-                // Step 8.2. If node is an allowed child of "span", force the value of node.
-                if is_allowed_child(
-                    NodeOrString::from_node(child, cx.no_gc()),
-                    NodeOrString::String("span".to_owned()),
-                ) {
-                    child.force_the_value(cx, &command, new_value.as_ref());
+        self.expect_active_range(cx)
+            .for_each_effectively_contained_child(|child| {
+                if child.is_editable() {
+                    // Step 8.1. Push down values on node.
+                    child.push_down_values(cx, &command, new_value.clone());
+                    // Step 8.2. If node is an allowed child of "span", force the value of node.
+                    if is_allowed_child(
+                        NodeOrString::from_node(child, cx.no_gc()),
+                        NodeOrString::String("span".to_owned()),
+                    ) {
+                        child.force_the_value(cx, &command, new_value.as_ref());
+                    }
                 }
-            }
-        });
+            });
     }
 }

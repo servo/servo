@@ -82,17 +82,26 @@ impl Selection {
             return;
         }
 
-        if let Some(old_range) = self.range.take() {
+        let old_range = self.range.take();
+        if let Some(old_range) = old_range.as_ref() {
             old_range.disassociate_selection(self);
         }
+
+        let boundary_points_changed = matches!(
+            (old_range, new_range),
+            (Some(old_range), Some(new_range)) if
+                old_range.start() != new_range.start() ||
+                old_range.end() != new_range.end());
 
         if let Some(new_range) = new_range {
             self.range.set(Some(new_range));
             new_range.associate_selection(self);
         }
 
-        self.set_visible_selection_dirty();
-        self.queue_selectionchange_task();
+        if boundary_points_changed {
+            self.set_visible_selection_dirty();
+            self.queue_selectionchange_task();
+        }
     }
 
     fn iter_nodes_with_overlaps_document_selection_flag<'no_gc>(
@@ -287,6 +296,16 @@ impl Selection {
             self.document.upcast::<Node>()
     }
 
+    pub(crate) fn start_boundary(&self, cx: &mut JSContext) -> (DomRoot<Node>, u32) {
+        let range = self.expect_active_range(cx);
+        (range.start_container(), range.start_offset())
+    }
+
+    pub(crate) fn end_boundary(&self, cx: &mut JSContext) -> (DomRoot<Node>, u32) {
+        let range = self.expect_active_range(cx);
+        (range.end_container(), range.end_offset())
+    }
+
     /// <https://w3c.github.io/editing/docs/execCommand/#active-range>
     pub(crate) fn active_range(&self, _cx: &mut JSContext) -> Option<DomRoot<Range>> {
         // > The active range is the range of the selection given by calling
@@ -294,7 +313,13 @@ impl Selection {
         self.range.get()
     }
 
-    pub(crate) fn collapse_current_range(&self, node: &Node, offset: u32) {
+    pub(crate) fn expect_active_range(&self, _cx: &mut JSContext) -> DomRoot<Range> {
+        self.range
+            .get()
+            .expect("Should always have an active range")
+    }
+
+    pub(crate) fn collapse_active_range(&self, node: &Node, offset: u32) {
         let range = self.range.get().expect("Must always have a range");
         range.set_start(node, offset);
         range.set_end(node, offset);
@@ -302,7 +327,7 @@ impl Selection {
         self.set_visible_selection_dirty();
     }
 
-    pub(crate) fn extend_current_range(&self, node: &Node, offset: u32) {
+    pub(crate) fn extend_active_range(&self, node: &Node, offset: u32) {
         let range = self.range.get().expect("Must always have a range");
         assert!(range.collapsed(), "Must only extend after collapsing");
 
