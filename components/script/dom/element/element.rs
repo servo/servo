@@ -4170,6 +4170,23 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         event_handler.has_pointer_capture(pointer_id, self)
     }
 
+    /// <https://developer.mozilla.org/en-US/docs/Web/API/Element/setCapture>
+    fn SetCapture(&self, retarget_to_element: bool) {
+        if self.upcast::<Node>().is_connected() {
+            let document = self.owner_document();
+            document
+                .event_handler()
+                .set_legacy_mouse_capture(self, retarget_to_element);
+        }
+    }
+
+    fn ReleaseCapture(&self) {
+        let document = self.owner_document();
+        document
+            .event_handler()
+            .release_legacy_mouse_capture(Some(self));
+    }
+
     /// <https://dom.spec.whatwg.org/#dom-element-attachshadow>
     fn AttachShadow(
         &self,

@@ -6971,6 +6971,10 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         }
     }
 
+    fn ReleaseCapture(&self) {
+        self.event_handler().release_legacy_mouse_capture(None);
+    }
+
     /// <https://drafts.csswg.org/css-font-loading/#font-face-source>
     fn Fonts(&self, cx: &mut JSContext) -> DomRoot<FontFaceSet> {
         self.fonts

@@ -161,6 +161,17 @@ partial interface Element {
   boolean hasPointerCapture(long pointerId);
 };
 
+// Legacy mouse capture API (Gecko/IE).
+partial interface Element {
+  // Firefox impl is different from MDN. It defaults to false.
+  // https://searchfox.org/firefox-main/rev/935d871d99c5ccb94a8a8b087241d08b4fe1deae/dom/webidl/Element.webidl#133
+  undefined setCapture(optional boolean retargetToElement = false);
+  // This is not documented by MDN, but used in firefox.
+  // MDN only has this under `Document`.
+  // https://searchfox.org/firefox-main/rev/935d871d99c5ccb94a8a8b087241d08b4fe1deae/dom/webidl/Document.webidl#217
+  undefined releaseCapture();
+};
+
 Element includes ChildNode;
 Element includes NonDocumentTypeChildNode;
 Element includes ParentNode;
