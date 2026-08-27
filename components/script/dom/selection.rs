@@ -4,10 +4,10 @@
 
 use std::cell::Cell;
 use std::cmp::Ordering;
-use std::collections::HashSet;
 
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
+use rustc_hash::FxHashSet;
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
 use script_bindings::dom::UnrootedDom;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
@@ -148,7 +148,9 @@ impl Selection {
             return;
         };
 
-        let mut previously_flagged_nodes: HashSet<_> = previously_flagged_nodes.collect();
+        // Hash keys are pointer addresses which are not directly controlled by web content
+        // so we don’t need HashDoS resistance and can use a faster hasher than `std`’s default
+        let mut previously_flagged_nodes: FxHashSet<_> = previously_flagged_nodes.collect();
 
         let start_position = position_in_flat_tree_for_selection(
             no_gc,
