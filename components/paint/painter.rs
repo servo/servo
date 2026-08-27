@@ -467,7 +467,7 @@ impl Painter {
     /// the list.
     fn send_pending_paint_metrics_messages_after_composite(&mut self) {
         let paint_time = CrossProcessInstant::now();
-        let mut events = Vec::<(PipelineId, PaintMetricEvent)>::new();
+        let mut events = Vec::new();
 
         for webview_renderer in self.webview_renderers.values_mut() {
             for (pipeline_id, pipeline) in webview_renderer.pipelines.iter_mut() {
