@@ -318,7 +318,7 @@ impl CacheStorageMethods<crate::DomTypeHolder> for CacheStorage {
                 cache_name: cache_name.to_string(),
                 callback,
                 proxy: proxy_map,
-                origin: origin,
+                origin,
             })
             .is_err()
         {
