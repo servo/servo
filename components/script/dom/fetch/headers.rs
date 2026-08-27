@@ -379,14 +379,19 @@ impl Iterable for Headers {
 
     fn get_value_at_index(&self, _cx: &mut JSContext, index: u32) -> ByteString {
         let sorted_header_vec = self.sort_and_combine();
-        let value = sorted_header_vec[index as usize].1.clone();
-        ByteString::new(value)
+        ByteString::new(sorted_header_vec.into_iter().nth(index as usize).unwrap().1)
     }
 
     fn get_key_at_index(&self, _cx: &mut JSContext, index: u32) -> ByteString {
         let sorted_header_vec = self.sort_and_combine();
-        let key = sorted_header_vec[index as usize].0.clone();
-        ByteString::new(key.into_bytes().to_vec())
+        ByteString::new(
+            sorted_header_vec
+                .into_iter()
+                .nth(index as usize)
+                .unwrap()
+                .0
+                .into_bytes(),
+        )
     }
 }
 
