@@ -28,7 +28,7 @@ use background_hang_monitor_api::BackgroundHangMonitorRegister;
 use bitflags::bitflags;
 use embedder_traits::{Cursor, ScriptToEmbedderChan, Theme, UntrustedNodeAddress, ViewportDetails};
 use euclid::{Point2D, Rect};
-use fonts::{FontContext, TextByteRange, WebFontDocumentContext, WebFontSetDifference};
+use fonts::{FontContext, WebFontDocumentContext, WebFontSetDifference};
 pub use layout_damage::{AccessibilityDamage, LayoutDamage};
 pub use layout_dom::{
     DangerousStyleElementOf, DangerousStyleNodeOf, LayoutDomTypeBundle, LayoutElementOf,
@@ -144,8 +144,6 @@ pub enum LayoutElementType {
 /// expected to reflect the new selection visual on the next display list update.
 #[derive(Clone, Debug, Default, MallocSizeOf, PartialEq)]
 pub struct ScriptSelection {
-    /// The range of this selection in the DOM node that manages it.
-    pub range: TextByteRange,
     /// The character range of this selection in the DOM node that manages it.
     pub character_range: Range<usize>,
     /// Whether or not this selection is enabled. Selections may be disabled

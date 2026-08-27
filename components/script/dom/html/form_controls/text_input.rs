@@ -163,6 +163,9 @@ pub struct TextInput<T: ClipboardProvider> {
 
     /// Was last change made by set_content?
     was_last_change_by_set_content: bool,
+
+    #[no_trace]
+    pub(crate) previous_selection_range: Range<Utf8CodeUnits>,
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -298,6 +301,7 @@ impl<T: ClipboardProvider> TextInput<T> {
             min_length: Default::default(),
             selection_direction: SelectionDirection::None,
             was_last_change_by_set_content: true,
+            previous_selection_range: Default::default(),
         }
     }
 

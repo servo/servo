@@ -7,7 +7,6 @@ use std::default::Default;
 
 use dom_struct::dom_struct;
 use embedder_traits::{EmbedderControlRequest, InputMethodRequest, InputMethodType};
-use fonts::{ByteIndex, TextByteRange};
 use html5ever::{LocalName, Prefix, local_name, ns};
 use js::context::JSContext;
 use js::rust::HandleObject;
@@ -277,18 +276,18 @@ impl TextControlElement for HTMLTextAreaElement {
     }
 
     fn maybe_update_shared_selection(&self) {
-        let offsets = self.textinput.borrow().sorted_selection_offsets_range();
-        let (start, end) = (offsets.start.0, offsets.end.0);
-        let range = TextByteRange::new(ByteIndex(start), ByteIndex(end));
+        let mut text_input = self.textinput.borrow_mut();
+        let selection_range = text_input.sorted_selection_offsets_range();
         let enabled = self.upcast::<Element>().focus_state();
 
         let mut shared_selection = self.shared_selection.borrow_mut();
-        let range_remained_equal = range == shared_selection.range;
+        let range_remained_equal = selection_range == text_input.previous_selection_range;
         if range_remained_equal && enabled == shared_selection.enabled {
             return;
         }
 
         if !range_remained_equal {
+            text_input.previous_selection_range = selection_range;
             // https://w3c.github.io/selection-api/#selectionchange-event
             // > When an input or textarea element provide a text selection and its selection changes
             // > (in either extent or direction),
@@ -297,11 +296,7 @@ impl TextControlElement for HTMLTextAreaElement {
         }
 
         *shared_selection = ScriptSelection {
-            range,
-            character_range: self
-                .textinput
-                .borrow()
-                .sorted_selection_character_offsets_range(),
+            character_range: text_input.sorted_selection_character_offsets_range(),
             enabled,
         };
         self.owner_window().layout().set_needs_new_display_list();

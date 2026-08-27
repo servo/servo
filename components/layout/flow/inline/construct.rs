@@ -8,7 +8,6 @@ use std::ops::Range;
 use std::sync::Arc;
 
 use atomic_refcell::AtomicRefCell;
-use fonts::TextByteRange;
 use icu_properties::BidiClass;
 use layout_api::{LayoutNode, ScriptSelection};
 use servo_base::text::{RangeAny, Utf32CodeUnits};
@@ -468,7 +467,6 @@ impl InlineFormattingContextBuilder {
             debug_assert!(end > start);
 
             Some(Arc::new(AtomicRefCell::new(ScriptSelection {
-                range: TextByteRange::default(),
                 character_range: start.0..end.0,
                 enabled: true,
             })))
