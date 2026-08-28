@@ -99,6 +99,10 @@ impl MicrotaskRunnable for UserMicrotask {
     }
 }
 
+fn microtask_from_jsval(val: JSVal) -> *mut Box<dyn MicrotaskRunnable> {
+    val.to_private() as *const Box<dyn MicrotaskRunnable> as *mut Box<dyn MicrotaskRunnable>
+}
+
 impl MicrotaskQueue {
     /// Add a new microtask to this queue. It will be invoked as part of the next
     /// microtask checkpoint.
@@ -142,8 +146,7 @@ impl MicrotaskQueue {
             if !unsafe { IsJSMicroTask(generic_task.as_ptr()) } {
                 rooted!(&in(cx) let task = unsafe {
                     Box::from_raw(
-                        generic_task.to_private() as *const Box<dyn MicrotaskRunnable>
-                            as *mut Box<dyn MicrotaskRunnable>,
+                        microtask_from_jsval(*generic_task),
                     )
                 });
                 task.handler(cx);
@@ -222,12 +225,7 @@ impl MicrotaskQueue {
         while unsafe { HasAnyMicroTasks(cx) } {
             unsafe { JS_DequeueNextMicroTask(cx, generic_task.handle_mut()) };
             if !unsafe { IsJSMicroTask(generic_task.as_ptr()) } {
-                let task = unsafe {
-                    Box::from_raw(
-                        generic_task.to_private() as *const Box<dyn MicrotaskRunnable>
-                            as *mut Box<dyn MicrotaskRunnable>,
-                    )
-                };
+                let task = unsafe { Box::from_raw(microtask_from_jsval(*generic_task)) };
                 drop(task);
             }
         }
@@ -240,8 +238,7 @@ pub(crate) unsafe extern "C" fn trace_non_gc_things_micro_task(
     val: *mut JSVal,
 ) {
     wrap_panic(&mut || {
-        let task = (unsafe { *val }).to_private() as *const Box<dyn MicrotaskRunnable>
-            as *mut Box<dyn MicrotaskRunnable>;
+        let task = microtask_from_jsval(unsafe { *val });
         unsafe { (**task).trace(trc) };
     })
 }
