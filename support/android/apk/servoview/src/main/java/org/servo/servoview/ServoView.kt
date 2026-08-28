@@ -95,11 +95,11 @@ class ServoView(
         Choreographer.getInstance().postFrameCallback(this)
     }
 
-    fun onPause() {
+    internal fun onPause() {
         servo?.suspend(true)
     }
 
-    fun onResume() {
+    internal fun onResume() {
         servo?.suspend(false)
     }
 
