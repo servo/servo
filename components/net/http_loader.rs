@@ -570,14 +570,14 @@ async fn obtain_response(
 
         #[cfg(feature = "devtools")]
         obtain_response_setup_router_callback(
-            devtools_bytes.clone(),
+            Some(devtools_bytes.clone()),
             chunk_requester,
             sink,
             fetch_terminated,
         )?;
 
         #[cfg(not(feature = "devtools"))]
-        obtain_response_setup_router_callback(chunk_requester, sink, fetch_terminated)?;
+        obtain_response_setup_router_callback(None, chunk_requester, sink, fetch_terminated)?;
 
         let body = match stream {
             BodyStream::Chunked(receiver) => {
@@ -732,7 +732,7 @@ async fn obtain_response(
 
 /// Setup the callback mechanism to forward chunks from the request received to the `chunk_requester`.
 fn obtain_response_setup_router_callback(
-    #[cfg(feature = "devtools")] devtools_bytes: StdArc<Mutex<Vec<u8>>>,
+    devtools_bytes: Option<StdArc<Mutex<Vec<u8>>>>,
     chunk_requester: StdArc<Mutex<Option<IpcSender<BodyChunkRequest>>>>,
     sink: BodySink,
     fetch_terminated: UnboundedSender<bool>,
@@ -810,7 +810,9 @@ fn obtain_response_setup_router_callback(
             };
 
             #[cfg(feature = "devtools")]
-            devtools_bytes.lock().extend_from_slice(&bytes);
+            if let Some(devtools_bytes) = &devtools_bytes {
+                devtools_bytes.lock().extend_from_slice(&bytes);
+            }
 
             // Step 5.1.2.2, transmit chunk over the network,
             // currently implemented by sending the bytes to the fetch worker.

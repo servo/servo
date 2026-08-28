@@ -143,6 +143,7 @@ use crate::dom::types::DebuggerGlobalScope;
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::window::Window;
 use crate::dom::windowproxy::{CreatorBrowsingContextInfo, WindowProxy};
+#[cfg(feature = "devtools")]
 use crate::event_loop::devtools::{self, DevtoolsState};
 use crate::event_loop::document_collection::DocumentCollection;
 use crate::event_loop::document_loader::DocumentLoader;

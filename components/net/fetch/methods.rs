@@ -10,10 +10,6 @@ use base64::Engine as _;
 use base64::engine::general_purpose;
 use bytes::Bytes;
 use content_security_policy as csp;
-#[cfg(feature = "devtools")]
-use crossbeam_channel::Sender;
-#[cfg(feature = "devtools")]
-use devtools_traits::DevtoolsControlMsg;
 use embedder_traits::resources::{self, Resource};
 use headers::{AccessControlExposeHeaders, ContentType, HeaderMapExt};
 use http::header::{self, HeaderMap, HeaderName, RANGE};
@@ -104,7 +100,7 @@ pub struct FetchContext {
     pub state: Arc<HttpState>,
     pub user_agent: String,
     #[cfg(feature = "devtools")]
-    pub devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+    pub devtools_chan: Option<crossbeam_channel::Sender<devtools_traits::DevtoolsControlMsg>>,
     pub filemanager: FileManager,
     pub file_token: FileTokenCheck,
     pub request_interceptor: Arc<TokioMutex<RequestInterceptor>>,
