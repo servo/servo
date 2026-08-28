@@ -867,6 +867,8 @@ pub struct ImageCacheImpl {
     thread_pool: Arc<ThreadPool>,
     /// The options for usvg. Contains a fontdb::Database and fontresolver.
     usvg_options: Arc<usvg::Options<'static>>,
+    /// A font resolve used for resolving fonts when rasterizing SVGs.
+    ///
     /// This is only used inside `usvg::Options` but is here so we can measure it.
     usvg_font_resolver: Arc<dyn FontResolver>,
 }
