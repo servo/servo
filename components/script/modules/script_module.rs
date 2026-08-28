@@ -31,9 +31,10 @@ use js::jsapi::{
 use js::jsval::{JSVal, ObjectValue, PrivateValue, UndefinedValue};
 use js::realm::{AutoRealm, CurrentRealm};
 use js::rust::wrappers2::{
-    CompileJsonModule1, CompileModule1, DefineFunctionWithReserved, GetModuleRequestSpecifier,
-    JS_ClearPendingException, JS_DefineProperty4, JS_GetModulePrivate, JS_GetPendingException,
-    JS_NewStringCopyN, JS_SetPendingException, ModuleEvaluate, ThrowOnModuleEvaluationFailure,
+    CompileJsonModule1, CompileModule1, CreateDefaultExportSyntheticModule,
+    DefineFunctionWithReserved, GetModuleRequestSpecifier, JS_ClearPendingException,
+    JS_DefineProperty4, JS_GetModulePrivate, JS_GetPendingException, JS_NewStringCopyN,
+    JS_SetPendingException, ModuleEvaluate, ThrowOnModuleEvaluationFailure,
 };
 use js::rust::{Handle, HandleValue, ToString, transform_str_to_source_text};
 use mime::Mime;
@@ -53,12 +54,17 @@ use script_bindings::trace::CustomTraceable;
 use servo_config::pref;
 use servo_url::ServoUrl;
 
+use crate::dom::bindings::codegen::Bindings::CSSStyleSheetBinding::{
+    CSSStyleSheetInit, CSSStyleSheetMethods,
+};
 use crate::dom::bindings::error::{Error, ErrorToJsval, report_pending_exception};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::USVString;
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::csp::{GlobalCspReporting, Violation};
+use crate::dom::css::cssstylesheet::CSSStyleSheet;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::globalscope::script_execution::fill_compile_options;
 use crate::dom::html::htmlscriptelement::substitute_with_local_script;
@@ -312,6 +318,46 @@ impl ModuleTree {
         let _ = module.record.set(ModuleObject::new(module_script.handle()));
 
         // Step 7. Return script.
+        module
+    }
+
+    #[expect(unsafe_code)]
+    /// <https://html.spec.whatwg.org/multipage/#creating-a-css-module-script>
+    fn create_a_css_module_script(
+        cx: &mut CurrentRealm,
+        source: &str,
+        global: &GlobalScope,
+    ) -> Self {
+        // Step 1. Let script be a new module script that this algorithm will subsequently initialize.
+        // Step 4. Set script's parse error and error to rethrow to null.
+        let module = ModuleTree::default();
+
+        // Step 2. Set script's settings object to settings.
+        // Step 3. Set script's base URL and fetch options to null.
+        // Note: We don't need to call `SetModulePrivate` for css modules.
+
+        // Step 5. Let sheet be the result of running the steps to create a constructed
+        // CSSStyleSheet with an empty dictionary as the argument.
+        let sheet =
+            CSSStyleSheet::Constructor(cx, global.as_window(), None, &CSSStyleSheetInit::empty());
+
+        // Step 6. Run the steps to synchronously replace the rules of a CSSStyleSheet on sheet
+        // given source.
+        if let Err(error) = sheet.ReplaceSync(cx, USVString::from(source.to_owned())) {
+            // If this throws an exception, catch it, and set script's parse error to that exception,
+            // and return script.
+            let css_error = gen_type_error(cx, global, error);
+
+            let _ = module.parse_error.set(css_error);
+            return module;
+        }
+
+        // Step 7. Set script's record to the result of CreateDefaultExportSyntheticModule(sheet).
+        rooted!(&in(cx) let sheet = ObjectValue(sheet.reflector().get_jsobject().get()));
+        rooted!(&in(cx) let module_script = unsafe { CreateDefaultExportSyntheticModule(cx, sheet.handle()) });
+        let _ = module.record.set(ModuleObject::new(module_script.handle()));
+
+        // Step 8. Return script.
         module
     }
 
@@ -636,8 +682,6 @@ impl FetchResponseListener for ModuleContext {
         // TODO Step 6. If mimeType's essence is "application/wasm" and moduleType is "javascript-or-wasm", then set
         // moduleScript to the result of creating a WebAssembly module script given bodyBytes, settingsObject, response's URL, and options.
 
-        // TODO handle CSS module scripts on the next mozjs ESR bump.
-
         if let Some(mime) = mime_type {
             // Step 7.1 Let sourceText be the result of UTF-8 decoding bodyBytes.
             let (mut source_text, _) = UTF_8.decode_with_bom_removal(&self.data);
@@ -665,6 +709,16 @@ impl FetchResponseListener for ModuleContext {
                         true,
                         1,
                         self.introduction_type,
+                    ));
+                    module_script = Some(module_tree);
+                },
+                // Step 7.4. If the MIME type essence of mimeType is "text/css" and moduleType is
+                // "css", then set moduleScript to the result of creating a CSS module script given sourceText and settingsObject.
+                ModuleType::CSS if MimeClassifier::is_css(&mime) => {
+                    let module_tree = Rc::new(ModuleTree::create_a_css_module_script(
+                        cx,
+                        &source_text,
+                        &global,
                     ));
                     module_script = Some(module_tree);
                 },
