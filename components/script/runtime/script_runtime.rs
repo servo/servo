@@ -75,7 +75,7 @@ use crate::dom::bindings::conversions::{
 use crate::dom::bindings::error::{Error, report_pending_exception, throw_dom_exception};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{
-    LiveDOMReferences, Trusted, TrustedPromise, trace_refcounted_objects,
+    LivePromiseReferences, Trusted, TrustedPromise, trace_refcounted_objects,
 };
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::trace_roots;
@@ -978,7 +978,8 @@ impl Drop for Runtime {
         unsafe {
             DeleteJobQueue(self.job_queue);
         }
-        LiveDOMReferences::destruct();
+        LivePromiseReferences::destruct();
+        script_bindings::refcounted::LiveDOMReferences::destruct();
         mark_runtime_dead();
     }
 }
