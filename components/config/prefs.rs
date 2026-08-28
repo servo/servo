@@ -533,7 +533,9 @@ impl Preferences {
             js_disable_jit: false,
             js_ion_enabled: true,
             js_ion_unsafe_eager_compilation_enabled: false,
-            js_mem_gc_compacting_enabled: true,
+            // The layout system currently does not work with compacting GC, so it is disabled by default.
+            // See https://github.com/servo/servo/issues/47577
+            js_mem_gc_compacting_enabled: false,
             js_mem_gc_empty_chunk_count_min: 1,
             js_mem_gc_high_frequency_heap_growth_max: 300,
             js_mem_gc_high_frequency_heap_growth_min: 150,
