@@ -10,6 +10,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
+use bytes::{Bytes, BytesMut};
 use content_security_policy::CspList;
 use devtools_traits::{DevtoolScriptControlMsg, WorkerId};
 use dom_struct::dom_struct;
@@ -148,7 +149,7 @@ pub(crate) fn prepare_workerscope_init(
 pub(crate) struct ScriptFetchContext {
     scope: Trusted<WorkerGlobalScope>,
     response: Option<Metadata>,
-    body_bytes: Vec<u8>,
+    body_bytes: BytesMut,
     url: ServoUrl,
     policy_container: PolicyContainer,
 }
@@ -162,7 +163,7 @@ impl ScriptFetchContext {
         ScriptFetchContext {
             scope,
             response: None,
-            body_bytes: Vec::new(),
+            body_bytes: BytesMut::new(),
             url,
             policy_container,
         }
@@ -184,8 +185,8 @@ impl FetchResponseListener for ScriptFetchContext {
         });
     }
 
-    fn process_response_chunk(&mut self, _: &mut JSContext, _: RequestId, mut chunk: Vec<u8>) {
-        self.body_bytes.append(&mut chunk);
+    fn process_response_chunk(&mut self, _: &mut JSContext, _: RequestId, chunk: Bytes) {
+        self.body_bytes.extend_from_slice(&chunk);
     }
 
     fn process_response_eof(

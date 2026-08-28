@@ -14,6 +14,7 @@ use std::ptr::NonNull;
 use std::rc::Rc;
 use std::{mem, ptr};
 
+use bytes::{Bytes, BytesMut};
 use encoding_rs::UTF_8;
 use headers::{HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
 use hyper_serde::Serde;
@@ -584,7 +585,7 @@ struct ModuleContext {
     /// The owner of the module that initiated the request.
     owner: Trusted<GlobalScope>,
     /// The response body received to date.
-    data: Vec<u8>,
+    data: BytesMut,
     /// The response metadata received to date.
     metadata: Option<Metadata>,
     /// Url and type of the requested module.
@@ -640,10 +641,10 @@ impl FetchResponseListener for ModuleContext {
         &mut self,
         _: &mut js::context::JSContext,
         _: RequestId,
-        mut chunk: Vec<u8>,
+        chunk: Bytes,
     ) {
         if self.status.is_ok() {
-            self.data.append(&mut chunk);
+            self.data.extend_from_slice(&chunk);
         }
     }
 
@@ -1506,7 +1507,7 @@ pub(crate) fn fetch_a_single_module_script(
 
     let context = ModuleContext {
         owner: Trusted::new(global),
-        data: vec![],
+        data: BytesMut::new(),
         metadata: None,
         module_request,
         options,

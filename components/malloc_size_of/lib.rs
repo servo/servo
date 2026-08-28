@@ -730,6 +730,20 @@ impl<T: MallocSizeOf> MallocSizeOf for std::sync::Weak<T> {
     }
 }
 
+impl MallocSizeOf for bytes::Bytes {
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        // This is an underapproximation but because it is efficiently stored, we might not have the correct data.
+        if self.is_unique() { self.len() } else { 0 }
+    }
+}
+
+impl MallocSizeOf for bytes::BytesMut {
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        // This is an underapproximation but because it is efficiently stored, we might not have the correct data.
+        self.len()
+    }
+}
+
 /// If a mutex is stored directly as a member of a data type that is being measured,
 /// it is the unique owner of its contents and deserves to be measured.
 ///

@@ -4,6 +4,7 @@
 
 use std::str::FromStr;
 
+use bytes::{Bytes, BytesMut};
 use cssparser::match_ignore_ascii_case;
 use http::header::HeaderMap;
 use hyper_serde::Serde;
@@ -316,7 +317,7 @@ impl LinkProcessingOptions {
             link,
             global: Trusted::new(&document.global()),
             type_: LinkFetchContextType::Preload,
-            response_body: vec![],
+            response_body: BytesMut::new(),
         };
         document.insert_preloaded_resource(key, preload_id);
         // Step 11. Set controller to the result of fetching request, with processResponseConsumeBody
@@ -467,7 +468,7 @@ pub(crate) struct LinkFetchContext {
     /// The type of fetching we perform, used when report timings.
     pub(crate) type_: LinkFetchContextType,
 
-    pub(crate) response_body: Vec<u8>,
+    pub(crate) response_body: BytesMut,
 }
 
 impl FetchResponseListener for LinkFetchContext {
@@ -486,10 +487,10 @@ impl FetchResponseListener for LinkFetchContext {
         &mut self,
         _: &mut js::context::JSContext,
         _: RequestId,
-        mut chunk: Vec<u8>,
+        chunk: Bytes,
     ) {
         if matches!(self.type_, LinkFetchContextType::Preload) {
-            self.response_body.append(&mut chunk);
+            self.response_body.extend_from_slice(&chunk);
         }
     }
 

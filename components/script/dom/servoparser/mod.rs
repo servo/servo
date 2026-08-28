@@ -9,6 +9,7 @@ use std::rc::Rc;
 
 use base64::Engine as _;
 use base64::engine::general_purpose;
+use bytes::Bytes;
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
@@ -584,12 +585,12 @@ impl ServoParser {
         self.network_input.push_back(chunk);
     }
 
-    fn push_bytes_input_chunk(&self, chunk: Vec<u8>) {
+    fn push_bytes_input_chunk(&self, chunk: &[u8]) {
         // For byte input, we convert it to text using the network decoder.
         if let Some(decoded_chunk) = self
             .network_decoder
             .borrow_mut()
-            .push(&chunk, &self.document)
+            .push(chunk, &self.document)
         {
             self.push_tendril_input_chunk(decoded_chunk);
         }
@@ -601,7 +602,7 @@ impl ServoParser {
             // to overwrite the network input, this prefetching may
             // have been wasted, but in most cases it won't.
             let mut prefetch_decoder = self.prefetch_decoder.borrow_mut();
-            prefetch_decoder.process(ByteTendril::from(&*chunk));
+            prefetch_decoder.process(ByteTendril::from(chunk));
 
             self.prefetch_input
                 .push_back(mem::take(&mut prefetch_decoder.inner_sink_mut().output));
@@ -684,11 +685,11 @@ impl ServoParser {
         }
     }
 
-    fn parse_bytes_chunk(&self, cx: &mut JSContext, input: Vec<u8>) {
+    fn parse_bytes_chunk(&self, cx: &mut JSContext, input: &[u8]) {
         let mut realm = enter_auto_realm(cx, &*self.document);
         let cx = &mut realm.current_realm();
         self.document.set_current_parser(Some(self));
-        self.push_bytes_input_chunk(input);
+        self.push_bytes_input_chunk(input.as_ref());
         if !self.suspended.get() {
             self.parse_sync(cx);
         }
@@ -1138,7 +1139,7 @@ impl ParserContext {
         if let Some(parser) = parser {
             parser.parse_bytes_chunk(
                 cx,
-                std::mem::take(&mut self.navigation_params.resource_header),
+                std::mem::take(&mut self.navigation_params.resource_header).as_ref(),
             );
         }
     }
@@ -1558,7 +1559,7 @@ impl FetchResponseListener for ParserContext {
         }
     }
 
-    fn process_response_chunk(&mut self, cx: &mut JSContext, _: RequestId, payload: Vec<u8>) {
+    fn process_response_chunk(&mut self, cx: &mut JSContext, _: RequestId, payload: Bytes) {
         if self.is_synthesized_document {
             return;
         }
@@ -1575,13 +1576,13 @@ impl FetchResponseListener for ParserContext {
             // https://mimesniff.spec.whatwg.org/#read-the-resource-header
             self.navigation_params
                 .resource_header
-                .extend_from_slice(&payload);
+                .extend_from_slice(payload.as_ref());
             // the number of bytes in buffer is greater than or equal to 1445.
             if self.navigation_params.resource_header.len() >= 1445 {
                 self.load_document(cx, Some(&parser), &document);
             }
         } else {
-            parser.parse_bytes_chunk(cx, payload);
+            parser.parse_bytes_chunk(cx, payload.as_ref());
         }
     }
 

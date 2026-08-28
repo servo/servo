@@ -19,6 +19,7 @@ doctest = false
 test-util = []
 
 [dependencies]
+bytes = { workspace = true }
 content-security-policy = { workspace = true }
 cookie = { workspace = true }
 crossbeam-channel = { workspace = true }

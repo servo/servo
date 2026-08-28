@@ -9,6 +9,7 @@ use std::sync::{Arc, Mutex, OnceLock, RwLock, Weak};
 use std::time::{Duration, Instant};
 use std::{f64, mem};
 
+use bytes::Bytes;
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use dom_struct::dom_struct;
 use embedder_traits::{MediaPositionState, MediaSessionEvent, MediaSessionPlaybackState};
@@ -3947,7 +3948,7 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
         }
     }
 
-    fn process_response_chunk(&mut self, _: &mut JSContext, _: RequestId, chunk: Vec<u8>) {
+    fn process_response_chunk(&mut self, _: &mut JSContext, _: RequestId, chunk: Bytes) {
         let element = self.element.root();
 
         self.fetched_content_length += chunk.len() as u64;
@@ -3959,25 +3960,24 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
             }
 
             // Discard chunk of the response body if fetch context doesn't support range requests.
-            let payload = if !current_fetch_context.is_seekable() &&
-                self.content_length_to_discard != 0
-            {
-                if chunk.len() as u64 > self.content_length_to_discard {
-                    let shrink_chunk = chunk[self.content_length_to_discard as usize..].to_vec();
-                    self.content_length_to_discard = 0;
-                    shrink_chunk
+            let payload =
+                if !current_fetch_context.is_seekable() && self.content_length_to_discard != 0 {
+                    if chunk.len() as u64 > self.content_length_to_discard {
+                        let shrink_chunk = chunk.slice(self.content_length_to_discard as usize..);
+                        self.content_length_to_discard = 0;
+                        shrink_chunk
+                    } else {
+                        // Completely discard this response chunk.
+                        self.content_length_to_discard -= chunk.len() as u64;
+                        return;
+                    }
                 } else {
-                    // Completely discard this response chunk.
-                    self.content_length_to_discard -= chunk.len() as u64;
-                    return;
-                }
-            } else {
-                chunk
-            };
+                    chunk
+                };
 
             if let Err(e) = {
                 let mut data_source = current_fetch_context.data_source().borrow_mut();
-                data_source.add_buffer_to_queue(DataBuffer::Payload(payload));
+                data_source.add_buffer_to_queue(DataBuffer::Payload(payload.to_vec()));
                 data_source
                     .process_into_player_from_queue(element.player.borrow().as_ref().unwrap())
             } {

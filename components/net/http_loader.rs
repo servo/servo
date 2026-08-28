@@ -2357,7 +2357,7 @@ async fn http_network_fetch(
                 }
                 if let ResponseBody::Receiving(ref mut body) = *response_body_accumulator.lock() {
                     body.extend_from_slice(&chunk);
-                    let _ = done_sender.send(Data::Payload(chunk.to_vec()));
+                    let _ = done_sender.send(Data::Payload(chunk));
                 }
                 future::ready(Ok(response_body_accumulator))
             })

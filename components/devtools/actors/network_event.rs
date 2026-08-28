@@ -402,7 +402,7 @@ impl Actor for NetworkEventActor {
 
                 let msg = GetRequestPostDataReply {
                     from: self.name().into(),
-                    post_data: request.request.body.as_ref().map(|b| b.0.clone()),
+                    post_data: request.request.body.as_ref().map(|b| b.to_vec()),
                     post_data_discarded: request.request.body.is_none(),
                 };
                 client_request.reply_final(&msg)?
@@ -472,7 +472,7 @@ impl Actor for NetworkEventActor {
                         let value = long_string_actor.long_string_obj();
                         (None, serde_json::to_value(value).unwrap())
                     } else {
-                        let b64 = STANDARD.encode(&body.0);
+                        let b64 = STANDARD.encode(body);
                         (Some("base64".into()), serde_json::to_value(b64).unwrap())
                     };
                     let is_content_encoded = encoding.is_some();

@@ -7,6 +7,7 @@ use std::mem;
 use std::rc::Rc;
 use std::sync::Arc;
 
+use bytes::Bytes;
 use dom_struct::dom_struct;
 use euclid::default::Point2D;
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
@@ -225,12 +226,12 @@ impl FetchResponseListener for ImageContext {
         &mut self,
         _: &mut js::context::JSContext,
         request_id: RequestId,
-        payload: Vec<u8>,
+        payload: Bytes,
     ) {
         if self.status.is_ok() {
             self.image_cache.notify_pending_response(
                 self.id,
-                FetchResponseMsg::ProcessResponseChunk(request_id, payload.into()),
+                FetchResponseMsg::ProcessResponseChunk(request_id, payload),
             );
         }
     }

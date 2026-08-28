@@ -4,6 +4,7 @@
 
 use std::cell::Cell;
 
+use bytes::Bytes;
 use content_security_policy::Destination;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name};
@@ -457,7 +458,7 @@ impl FetchResponseListener for HTMLTrackElementFetchListener {
     ) {
     }
 
-    fn process_response_chunk(&mut self, _: &mut JSContext, _: RequestId, payload: Vec<u8>) {
+    fn process_response_chunk(&mut self, _: &mut JSContext, _: RequestId, payload: Bytes) {
         self.payload.extend_from_slice(&payload);
     }
 

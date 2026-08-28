@@ -32,6 +32,7 @@ use background_hang_monitor_api::{
     BackgroundHangMonitor, BackgroundHangMonitorExitSignal, BackgroundHangMonitorRegister,
     HangAnnotation, MonitoredComponentId, MonitoredComponentType,
 };
+use bytes::Bytes;
 use chrono::{DateTime, Local};
 use crossbeam_channel::unbounded;
 use data_url::mime::Mime;
@@ -4063,7 +4064,7 @@ impl ScriptThread {
                 self.handle_fetch_metadata(cx, pipeline_id, request_id, metadata)
             },
             FetchResponseMsg::ProcessResponseChunk(request_id, chunk) => {
-                self.handle_fetch_chunk(cx, pipeline_id, request_id, chunk.0)
+                self.handle_fetch_chunk(cx, pipeline_id, request_id, chunk)
             },
             FetchResponseMsg::ProcessResponseEOF(request_id, eof, timing) => {
                 self.handle_fetch_eof(cx, pipeline_id, request_id, eof, timing)
@@ -4105,7 +4106,7 @@ impl ScriptThread {
         cx: &mut js::context::JSContext,
         pipeline_id: PipelineId,
         request_id: RequestId,
-        chunk: Vec<u8>,
+        chunk: Bytes,
     ) {
         let mut incomplete_parser_contexts = self.incomplete_parser_contexts.0.borrow_mut();
         let parser = incomplete_parser_contexts
@@ -4321,7 +4322,7 @@ impl ScriptThread {
         context.process_response(cx, dummy_request_id, Ok(FetchMetadata::Unfiltered(meta)));
         context.set_policy_container(policy_container.as_ref());
         context.set_about_base_url(about_base_url);
-        context.process_response_chunk(cx, dummy_request_id, chunk);
+        context.process_response_chunk(cx, dummy_request_id, Bytes::copy_from_slice(&chunk));
         context.process_response_eof(
             cx,
             dummy_request_id,

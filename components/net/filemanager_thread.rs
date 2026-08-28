@@ -9,6 +9,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::{self, AtomicBool, AtomicUsize, Ordering};
 
+use bytes::Bytes;
 use embedder_traits::{
     EmbedderControlId, EmbedderControlResponse, FilePickerRequest, GenericEmbedderProxy,
     SelectedFile,
@@ -248,7 +249,7 @@ impl FileManager {
                         );
                         let chunk = &buffer[0..offset];
                         body.extend_from_slice(chunk);
-                        let _ = done_sender.send(Data::Payload(chunk.to_vec()));
+                        let _ = done_sender.send(Data::Payload(Bytes::copy_from_slice(chunk)));
                     }
                     buffer_len
                 };
@@ -317,7 +318,7 @@ impl FileManager {
                 let mut bytes = vec![];
                 bytes.extend_from_slice(buf.bytes.index(range));
 
-                let _ = done_sender.send(Data::Payload(bytes));
+                let _ = done_sender.send(Data::Payload(Bytes::copy_from_slice(&bytes)));
                 let _ = done_sender.send(Data::Done);
 
                 Ok(())

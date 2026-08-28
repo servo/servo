@@ -6,6 +6,7 @@ use std::cell::Cell;
 use std::rc::Rc;
 use std::time::Duration;
 
+use bytes::Bytes;
 use js::context::JSContext;
 use js::jsapi::ExceptionStackBehavior;
 use js::jsval::UndefinedValue;
@@ -596,7 +597,7 @@ impl FetchResponseListener for FetchContext {
         self.fetch_promise = Some(TrustedPromise::new(promise));
     }
 
-    fn process_response_chunk(&mut self, cx: &mut JSContext, _: RequestId, chunk: Vec<u8>) {
+    fn process_response_chunk(&mut self, cx: &mut JSContext, _: RequestId, chunk: Bytes) {
         let response = self.response_object.root();
         response.stream_chunk(cx, chunk);
     }
@@ -664,7 +665,7 @@ impl FetchResponseListener for FetchLaterListener {
         _ = fetch_metadata;
     }
 
-    fn process_response_chunk(&mut self, _: &mut JSContext, _: RequestId, chunk: Vec<u8>) {
+    fn process_response_chunk(&mut self, _: &mut JSContext, _: RequestId, chunk: Bytes) {
         _ = chunk;
     }
 

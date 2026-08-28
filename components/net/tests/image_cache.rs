@@ -14,8 +14,8 @@ use net_traits::image_cache::{
 };
 use net_traits::request::RequestId;
 use net_traits::{
-    DebugVec, FetchMetadata, FetchResponseMsg, FilteredMetadata, Metadata, NetworkError,
-    ResourceFetchTiming, ResourceTimingType,
+    FetchMetadata, FetchResponseMsg, FilteredMetadata, Metadata, NetworkError, ResourceFetchTiming,
+    ResourceTimingType,
 };
 use paint_api::{CrossProcessPaintApi, PaintMessage};
 // For dummy Font Resolver
@@ -195,7 +195,7 @@ fn test_notify_pending_response_with_partial_chunk() {
     let small_chunk = vec![0u8; 10];
     cache.notify_pending_response(
         id,
-        FetchResponseMsg::ProcessResponseChunk(create_request_id(), DebugVec(small_chunk)),
+        FetchResponseMsg::ProcessResponseChunk(create_request_id(), small_chunk.into()),
     );
 
     let result = cache.get_cached_image_status(url, origin, None);
@@ -228,7 +228,7 @@ fn test_notify_pending_response_with_metadata_chunk() {
     let metadata_chunk = jpeg_bytes[..200.min(jpeg_bytes.len())].to_vec();
     cache.notify_pending_response(
         id,
-        FetchResponseMsg::ProcessResponseChunk(create_request_id(), DebugVec(metadata_chunk)),
+        FetchResponseMsg::ProcessResponseChunk(create_request_id(), metadata_chunk.into()),
     );
 
     let result = cache.get_cached_image_status(url, origin, None);
@@ -262,7 +262,7 @@ fn test_notify_pending_response_complete() {
     let jpeg_bytes = jpeg_image_bytes();
     cache.notify_pending_response(
         id,
-        FetchResponseMsg::ProcessResponseChunk(create_request_id(), DebugVec(jpeg_bytes)),
+        FetchResponseMsg::ProcessResponseChunk(create_request_id(), jpeg_bytes.into()),
     );
 
     cache.notify_pending_response(
@@ -340,7 +340,7 @@ fn test_image_listener_on_complete_response() {
     let jpeg_bytes = jpeg_image_bytes();
     cache.notify_pending_response(
         id,
-        FetchResponseMsg::ProcessResponseChunk(create_request_id(), DebugVec(jpeg_bytes)),
+        FetchResponseMsg::ProcessResponseChunk(create_request_id(), jpeg_bytes.into()),
     );
 
     cache.notify_pending_response(
@@ -422,7 +422,7 @@ fn test_image_listener_on_metadata_available() {
     let metadata_chunk = jpeg_bytes[..200.min(jpeg_bytes.len())].to_vec();
     cache.notify_pending_response(
         id,
-        FetchResponseMsg::ProcessResponseChunk(create_request_id(), DebugVec(metadata_chunk)),
+        FetchResponseMsg::ProcessResponseChunk(create_request_id(), metadata_chunk.into()),
     );
 
     match receiver.recv_timeout(std::time::Duration::from_millis(100)) {
@@ -473,7 +473,7 @@ fn test_multiple_listeners_same_image() {
     let jpeg_bytes = jpeg_image_bytes();
     cache.notify_pending_response(
         id,
-        FetchResponseMsg::ProcessResponseChunk(create_request_id(), DebugVec(jpeg_bytes)),
+        FetchResponseMsg::ProcessResponseChunk(create_request_id(), jpeg_bytes.into()),
     );
 
     cache.notify_pending_response(
@@ -519,7 +519,7 @@ fn test_cached_image_reuse() {
     let jpeg_bytes = jpeg_image_bytes();
     cache.notify_pending_response(
         id,
-        FetchResponseMsg::ProcessResponseChunk(create_request_id(), DebugVec(jpeg_bytes)),
+        FetchResponseMsg::ProcessResponseChunk(create_request_id(), jpeg_bytes.into()),
     );
 
     cache.notify_pending_response(
@@ -559,7 +559,7 @@ fn test_svg_rasterization() {
     let svg_bytes = svg_image_bytes();
     cache.notify_pending_response(
         id,
-        FetchResponseMsg::ProcessResponseChunk(create_request_id(), DebugVec(svg_bytes)),
+        FetchResponseMsg::ProcessResponseChunk(create_request_id(), svg_bytes.into()),
     );
 
     cache.notify_pending_response(
@@ -611,7 +611,7 @@ fn test_rasterization_listener() {
     let svg_bytes = svg_image_bytes();
     cache.notify_pending_response(
         id,
-        FetchResponseMsg::ProcessResponseChunk(create_request_id(), DebugVec(svg_bytes)),
+        FetchResponseMsg::ProcessResponseChunk(create_request_id(), svg_bytes.into()),
     );
 
     cache.notify_pending_response(
@@ -681,7 +681,7 @@ fn test_svg_rasterization_do_not_double_rasterize() {
     let svg_bytes = svg_image_bytes();
     cache.notify_pending_response(
         id,
-        FetchResponseMsg::ProcessResponseChunk(create_request_id(), DebugVec(svg_bytes)),
+        FetchResponseMsg::ProcessResponseChunk(create_request_id(), svg_bytes.into()),
     );
 
     cache.notify_pending_response(
@@ -741,7 +741,7 @@ fn test_svg_not_rasterize_zero_size() {
     let svg_bytes = svg_image_bytes();
     cache.notify_pending_response(
         id,
-        FetchResponseMsg::ProcessResponseChunk(create_request_id(), DebugVec(svg_bytes)),
+        FetchResponseMsg::ProcessResponseChunk(create_request_id(), svg_bytes.into()),
     );
 
     cache.notify_pending_response(
