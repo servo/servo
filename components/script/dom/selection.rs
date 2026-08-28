@@ -336,30 +336,6 @@ impl Selection {
             .expect("Should always have an active range")
     }
 
-    pub(crate) fn collapse_active_range(&self, node: &Node, offset: u32) {
-        let range = self.range.get().expect("Must always have a range");
-        range.set_start(node, offset);
-        range.set_end(node, offset);
-
-        self.set_visible_selection_dirty();
-    }
-
-    pub(crate) fn extend_active_range(&self, node: &Node, offset: u32) {
-        let range = self.range.get().expect("Must always have a range");
-        assert!(range.collapsed(), "Must only extend after collapsing");
-
-        let anchor_node = range.start_container();
-        if (*anchor_node == *node && range.start_offset() < offset) || anchor_node.is_before(node) {
-            range.set_end(node, offset);
-            self.direction.set(Direction::Forwards);
-        } else {
-            range.set_start(node, offset);
-            self.direction.set(Direction::Backwards);
-        }
-
-        self.set_visible_selection_dirty();
-    }
-
     pub(crate) fn set_visible_selection_dirty(&self) {
         self.visible_selection_dirty.set(true);
     }

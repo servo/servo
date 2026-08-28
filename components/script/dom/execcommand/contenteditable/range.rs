@@ -196,8 +196,8 @@ impl Range {
         // Step 8. Let new range be a new range whose start and end nodes and offsets are start node,
         // start offset, end node, and end offset.
         let new_range = document.CreateRange(cx);
-        new_range.set_start(&start_node, start_offset);
-        new_range.set_end(&end_node, end_offset);
+        let _ = new_range.SetStart(&start_node, start_offset);
+        let _ = new_range.SetEnd(&end_node, end_offset);
         // Step 9. Return new range.
         new_range
     }

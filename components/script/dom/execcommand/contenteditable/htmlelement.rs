@@ -4,6 +4,7 @@
 
 use html5ever::local_name;
 use js::context::JSContext;
+use script_bindings::codegen::GenericBindings::RangeBinding::RangeMethods;
 use script_bindings::inheritance::Castable;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::properties::{LonghandId, PropertyDeclarationId, ShorthandId};
@@ -261,8 +262,8 @@ impl HTMLElement {
             }
             previous_node = child;
         }
-        range.set_start(&selected_node, selected_offset);
-        range.set_end(&selected_node, selected_offset);
+        let _ = range.SetStart(&selected_node, selected_offset);
+        let _ = range.SetEnd(&selected_node, selected_offset);
         selection.AddRange(&range);
     }
 }
