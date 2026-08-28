@@ -1337,7 +1337,12 @@ pub(crate) fn get_reports(
             let url = global_size_data.url.as_str();
             for (interface, interface_data) in &global_size_data.interface_sizes {
                 report(
-                    path!["dom", "out-of-tree", format!("url({url})"), format!("{interface} [{}]", interface_data.count)],
+                    path![
+                        "dom",
+                        "out-of-tree",
+                        format!("url({url})"),
+                        format!("{interface} [{}]", interface_data.count)
+                    ],
                     ReportKind::ExplicitJemallocHeapSize,
                     interface_data.bytes,
                 );
