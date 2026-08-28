@@ -46,9 +46,7 @@ use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
     InsecureRequestsPolicy, Origin as RequestOrigin, Referrer, RequestBuilder, RequestClient,
 };
-use net_traits::{
-    CoreResourceMsg, CoreResourceThread, ReferrerPolicy, ResourceThreads, fetch_async,
-};
+use net_traits::{CoreResourceMsg, CoreResourceThread, ReferrerPolicy, ResourceThreads};
 use profile_traits::{
     generic_channel as profile_generic_channel, ipc as profile_ipc, mem as profile_mem,
     time as profile_time,
@@ -148,7 +146,7 @@ use crate::event_loop::timers::{
     IsInterval, OneshotTimerCallback, OneshotTimerHandle, OneshotTimers, TimerCallback,
     TimerEventId, TimerSource,
 };
-use crate::fetch::fetch::{DeferredFetchRecordId, FetchGroup, QueuedDeferredFetchRecord};
+use crate::fetch::fetch::FetchGroup;
 use crate::fetch::network_listener::{FetchResponseListener, NetworkListener};
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::modules::import_map::ImportMap;
@@ -784,6 +782,7 @@ impl GlobalScope {
         inherited_secure_context: Option<bool>,
         unminify_js: bool,
     ) -> Self {
+        let fetch_group = RefCell::new(FetchGroup::new(resource_threads.sender()));
         Self {
             message_port_state: DomRefCell::new(MessagePortState::UnManaged),
             broadcast_channel_state: DomRefCell::new(BroadcastChannelState::UnManaged),
@@ -825,7 +824,7 @@ impl GlobalScope {
             notification_permission_request_callback_map: Default::default(),
             import_map: Default::default(),
             resolved_module_set: Default::default(),
-            fetch_group: Default::default(),
+            fetch_group,
         }
     }
 
@@ -3397,20 +3396,9 @@ impl GlobalScope {
         context: Listener,
         task_source: SendableTaskSource,
     ) {
-        let network_listener = NetworkListener::new(context, task_source);
-        self.fetch_with_network_listener(request_builder, network_listener);
-    }
-
-    pub(crate) fn fetch_with_network_listener<Listener: FetchResponseListener>(
-        &self,
-        request_builder: RequestBuilder,
-        network_listener: NetworkListener<Listener>,
-    ) {
-        fetch_async(
-            &self.core_resource_thread(),
+        self.fetch_group_mut().fetch(
             request_builder,
-            None,
-            network_listener.into_callback(),
+            NetworkListener::new(context, task_source, self),
         );
     }
 
@@ -3471,46 +3459,12 @@ impl GlobalScope {
             .remove(&callback_id)
     }
 
-    pub(crate) fn append_deferred_fetch(
-        &self,
-        deferred_fetch: QueuedDeferredFetchRecord,
-    ) -> DeferredFetchRecordId {
-        let deferred_record_id = DeferredFetchRecordId::default();
-        self.fetch_group
-            .borrow_mut()
-            .deferred_fetch_records
-            .insert(deferred_record_id, deferred_fetch);
-        deferred_record_id
+    pub(crate) fn fetch_group(&self) -> Ref<'_, FetchGroup> {
+        self.fetch_group.borrow()
     }
 
-    pub(crate) fn deferred_fetches(&self) -> Vec<QueuedDeferredFetchRecord> {
-        self.fetch_group
-            .borrow()
-            .deferred_fetch_records
-            .values()
-            .cloned()
-            .collect()
-    }
-
-    pub(crate) fn deferred_fetch_record_for_id(
-        &self,
-        deferred_fetch_record_id: &DeferredFetchRecordId,
-    ) -> QueuedDeferredFetchRecord {
-        self.fetch_group
-            .borrow()
-            .deferred_fetch_records
-            .get(deferred_fetch_record_id)
-            .expect("Should always use a generated fetch_record_id instead of passing your own")
-            .clone()
-    }
-
-    /// <https://fetch.spec.whatwg.org/#process-deferred-fetches>
-    pub(crate) fn process_deferred_fetches(&self) {
-        // Step 1. For each deferred fetch record deferredRecord of fetchGroup’s
-        // deferred fetch records, process a deferred fetch deferredRecord.
-        for deferred_fetch in self.deferred_fetches() {
-            deferred_fetch.process(self);
-        }
+    pub(crate) fn fetch_group_mut(&self) -> RefMut<'_, FetchGroup> {
+        self.fetch_group.borrow_mut()
     }
 
     pub(crate) fn import_map(&self) -> Ref<'_, ImportMap> {

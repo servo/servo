@@ -10,7 +10,7 @@ use std::default::Default;
 use std::ops::Deref;
 use std::rc::Rc;
 use std::str::FromStr;
-use std::sync::{Arc as StdArc, LazyLock, Mutex};
+use std::sync::{Arc as StdArc, LazyLock};
 use std::time::Duration;
 
 use bitflags::bitflags;
@@ -220,7 +220,7 @@ use crate::event_loop::document_loader::{DocumentLoader, LoadType};
 use crate::event_loop::script_thread::{ScriptThread, SharedRwLocks};
 use crate::event_loop::timers::{OneshotTimerCallback, OneshotTimers};
 use crate::fetch::fetch::{DeferredFetchRecordInvokeState, FetchCanceller};
-use crate::fetch::network_listener::{FetchResponseListener, NetworkListener};
+use crate::fetch::network_listener::FetchResponseListener;
 use crate::mime::{APPLICATION, CHARSET};
 use crate::navigation::navigate;
 use crate::runtime::script_runtime::compute_size;
@@ -1981,40 +1981,29 @@ impl Document {
             .insert(key, preload_id);
     }
 
-    pub(crate) fn fetch<Listener: FetchResponseListener>(
+    pub(crate) fn fetch_blocking<Listener: FetchResponseListener>(
         &self,
         load: LoadType,
         request: RequestBuilder,
         listener: Listener,
     ) {
-        let callback = NetworkListener {
-            context: std::sync::Arc::new(Mutex::new(Some(listener))),
-            task_source: self
-                .owner_global()
-                .task_manager()
-                .networking_task_source()
-                .into(),
-        }
-        .into_callback();
-        self.loader_mut()
-            .fetch_async_with_callback(load, request, callback);
+        self.loader_mut().add_blocking_load(load);
+        self.fetch_background(request, listener);
     }
 
     pub(crate) fn fetch_background<Listener: FetchResponseListener>(
         &self,
-        request: RequestBuilder,
+        request_builder: RequestBuilder,
         listener: Listener,
     ) {
-        let callback = NetworkListener {
-            context: std::sync::Arc::new(Mutex::new(Some(listener))),
-            task_source: self
-                .owner_global()
-                .task_manager()
-                .networking_task_source()
-                .into(),
-        }
-        .into_callback();
-        self.loader_mut().fetch_async_background(request, callback);
+        let networking_task_source = self
+            .owner_global()
+            .task_manager()
+            .networking_task_source()
+            .to_sendable();
+        self.window()
+            .as_global_scope()
+            .fetch(request_builder, listener, networking_task_source);
     }
 
     /// <https://fetch.spec.whatwg.org/#deferred-fetch-control-document>
@@ -2074,7 +2063,8 @@ impl Document {
         // TODO
         // Step 8.2. For each deferred fetch record deferredRecord of navigable’s active document’s
         // relevant settings object’s fetch group’s deferred fetch records:
-        for deferred_fetch in navigable.as_global_scope().deferred_fetches() {
+        let deferred_fetches = navigable.as_global_scope().fetch_group().deferred_fetches();
+        for deferred_fetch in deferred_fetches {
             // Step 8.2.1. If deferredRecord’s invoke state is not "pending", then continue.
             if deferred_fetch.invoke_state.get() != DeferredFetchRecordInvokeState::Pending {
                 continue;
@@ -2864,24 +2854,6 @@ impl Document {
         // TODO
     }
 
-    /// <https://fetch.spec.whatwg.org/#concept-fetch-group-terminate>
-    fn terminate_fetch_group(&self) -> bool {
-        let mut load_cancellers = self.loader.borrow_mut().cancel_all_loads();
-
-        // Step 1. For each fetch record record of fetchGroup’s fetch records,
-        // if record’s controller is non-null and record’s request’s done flag
-        // is unset and keepalive is false, terminate record’s controller.
-        for canceller in &mut load_cancellers {
-            if !canceller.keep_alive() {
-                canceller.terminate();
-            }
-        }
-        // Step 2. Process deferred fetches for fetchGroup.
-        self.owner_global().process_deferred_fetches();
-
-        !load_cancellers.is_empty()
-    }
-
     /// <https://html.spec.whatwg.org/multipage/#active-parser>
     fn active_parser(&self) -> Option<DomRoot<ServoParser>> {
         // > A Document is said to have an active parser if it is associated with
@@ -2908,8 +2880,11 @@ impl Document {
         *self.asap_scripts_set.borrow_mut() = vec![];
         self.asap_in_order_scripts_list.clear();
         self.deferred_scripts.clear();
-        let loads_cancelled = self.terminate_fetch_group();
-        let event_sources_canceled = self.window.as_global_scope().close_event_sources();
+
+        let global = self.window.as_global_scope();
+        let loads_cancelled = global.fetch_group_mut().terminate(global);
+        let event_sources_canceled = global.close_event_sources();
+
         if loads_cancelled || event_sources_canceled {
             // If any loads were canceled.
             self.salvageable.set(false);
