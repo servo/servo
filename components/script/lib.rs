@@ -25,8 +25,6 @@ mod tasks;
 
 pub(crate) mod conversions;
 mod css;
-#[cfg(feature = "devtools")]
-mod devtools;
 mod fetch;
 #[macro_use]
 mod dom;

@@ -3487,10 +3487,6 @@ impl Window {
         // activating this document due to a navigation.
         self.Document().title_changed();
     }
-    pub(crate) fn set_webdriver_script_chan(&self, chan: Option<GenericSender<WebDriverJSResult>>) {
-        *self.webdriver_script_chan.borrow_mut() = chan;
-    }
-
     pub(crate) fn set_webdriver_load_status_sender(
         &self,
         sender: Option<GenericSender<WebDriverLoadStatus>>,
@@ -4021,6 +4017,35 @@ impl Window {
         T: Copy + MallocSizeOf,
     {
         LayoutValue::new(self.layout_marker.borrow().clone(), value)
+    }
+
+    /// This method is an approximation of the specification [algorithm].
+    /// It exists in this form because we still store some fields in Window/GlobalScope
+    /// that realistically are specific to the active document. Where possible they
+    /// should be migrated to Document and WorkerGlobalScope, but currently doing so would result
+    /// in much more complicated code. This method is the compromise, where we mutate the values
+    /// in place to match the values that the specification expects.
+    ///
+    /// [algorithm] <https://html.spec.whatwg.org/multipage/#set-up-a-window-environment-settings-object>
+    pub(crate) fn set_up_a_window_environment_settings_object(
+        &self,
+        layout: Box<dyn Layout>,
+        creation_url: ServoUrl,
+        top_level_creation_url: ServoUrl,
+        navigation_start: CrossProcessInstant,
+        viewport_details: ViewportDetails,
+    ) {
+        *self.layout.borrow_mut() = layout;
+        self.set_viewport_details(viewport_details);
+        self.navigation_start.set(navigation_start);
+
+        // Step 6. Set settings object's creation URL to creationURL, settings object's top-level
+        // creation URL to topLevelCreationURL, and settings object's top-level origin to topLevelOrigin.
+        let global = self.upcast::<GlobalScope>();
+        global.set_creation_url(creation_url);
+        global.set_top_level_creation_url(top_level_creation_url);
+
+        self.Document().detach_window();
     }
 }
 
