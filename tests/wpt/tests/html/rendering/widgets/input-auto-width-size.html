@@ -1,0 +1,43 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Text input automatic width honours the size attribute</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#the-input-element-as-a-text-entry-widget">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<input id="default-size" type="text" style="width: auto">
+<input id="small-size" type="search" size="1" style="width: auto">
+<input id="email-size" type="email" style="width: auto">
+<input id="url-size" type="url" style="width: auto">
+<input id="explicit-width" type="search" style="width: 3px">
+<input id="button" type="button" value="button" style="width: auto">
+<input id="checkbox" type="checkbox" style="width: auto">
+
+<script>
+test(() => {
+  const defaultWidth = document.querySelector('#default-size').getBoundingClientRect().width;
+  const smallWidth = document.querySelector('#small-size').getBoundingClientRect().width;
+  assert_greater_than(defaultWidth, smallWidth);
+}, 'An author width of auto preserves the text control default preferred size');
+
+test(() => {
+  const defaultWidth = document.querySelector('#default-size').getBoundingClientRect().width;
+  for (const id of ['email-size', 'url-size']) {
+    assert_greater_than_equal(
+      document.querySelector(`#${id}`).getBoundingClientRect().width,
+      defaultWidth,
+      `${id} uses the text-entry preferred size`,
+    );
+  }
+}, 'Domain-specific text controls receive the default preferred size');
+
+test(() => {
+  assert_equals(document.querySelector('#explicit-width').getBoundingClientRect().width, 3);
+}, 'An explicit CSS width remains authoritative');
+
+test(() => {
+  const textWidth = document.querySelector('#default-size').getBoundingClientRect().width;
+  assert_less_than(document.querySelector('#button').getBoundingClientRect().width, textWidth);
+  assert_less_than(document.querySelector('#checkbox').getBoundingClientRect().width, textWidth);
+}, 'Non-text controls do not receive the text-entry preferred size');
+</script>

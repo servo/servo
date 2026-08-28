@@ -124,6 +124,9 @@ pub(crate) struct BaseFragmentInfo {
 
     /// The flags to use for the new BaseFragment.
     pub flags: FragmentFlags,
+
+    /// The HTML `size` value for a text-like input, used for its automatic preferred width.
+    pub input_size: Option<u32>,
 }
 
 impl BaseFragmentInfo {
@@ -131,6 +134,7 @@ impl BaseFragmentInfo {
         Self {
             tag: None,
             flags: FragmentFlags::empty(),
+            input_size: None,
         }
     }
 
@@ -141,6 +145,7 @@ impl BaseFragmentInfo {
                 pseudo_element_chain: Default::default(),
             }),
             flags: FragmentFlags::empty(),
+            input_size: None,
         }
     }
 
@@ -159,6 +164,7 @@ impl From<ServoLayoutNode<'_>> for BaseFragmentInfo {
     fn from(node: ServoLayoutNode) -> Self {
         let pseudo_element_chain = node.pseudo_element_chain();
         let mut flags = FragmentFlags::empty();
+        let mut input_size = None;
 
         if let Some(innermost_pseudo) = pseudo_element_chain.innermost() {
             match innermost_pseudo {
@@ -185,6 +191,7 @@ impl From<ServoLayoutNode<'_>> for BaseFragmentInfo {
             return Self {
                 tag: Some(node.into()),
                 flags,
+                input_size: None,
             };
         }
 
@@ -205,16 +212,38 @@ impl From<ServoLayoutNode<'_>> for BaseFragmentInfo {
                 },
                 &local_name!("input") => {
                     flags.insert(FragmentFlags::IS_INPUT_ELEMENT);
-                    if element
+                    let input_type = element
                         .attribute(&ns!(), &local_name!("type"))
-                        .is_some_and(|attr| {
-                            matches!(
-                                attr.as_atom().to_ascii_lowercase(),
-                                atom!("button") | atom!("color") | atom!("reset") | atom!("submit")
-                            )
-                        })
-                    {
+                        .map(|attr| attr.as_atom().to_ascii_lowercase());
+                    if input_type.as_ref().is_some_and(|input_type| {
+                        matches!(
+                            *input_type,
+                            atom!("button") | atom!("color") | atom!("reset") | atom!("submit")
+                        )
+                    }) {
                         flags.insert(FragmentFlags::IS_BUTTON);
+                    }
+                    if !input_type.as_ref().is_some_and(|input_type| {
+                        matches!(
+                            *input_type,
+                            atom!("hidden") |
+                                atom!("range") |
+                                atom!("color") |
+                                atom!("checkbox") |
+                                atom!("radio") |
+                                atom!("file") |
+                                atom!("submit") |
+                                atom!("image") |
+                                atom!("reset") |
+                                atom!("button")
+                        )
+                    }) {
+                        flags.insert(FragmentFlags::IS_TEXT_INPUT_ELEMENT);
+                        input_size = Some(
+                            element
+                                .attribute(&ns!(), &local_name!("size"))
+                                .map_or(20, |attribute| attribute.as_uint()),
+                        );
                     }
                 },
                 &local_name!("button") => {
@@ -227,6 +256,7 @@ impl From<ServoLayoutNode<'_>> for BaseFragmentInfo {
         Self {
             tag: Some(node.into()),
             flags,
+            input_size,
         }
     }
 }
@@ -276,6 +306,9 @@ bitflags! {
         const IS_INPUT_ELEMENT = 1 << 12;
         /// Whether this is a <button> element, or an <input> that uses button layout.
         const IS_BUTTON = 1 << 13;
+        /// Whether this input uses the default preferred size defined for text-entry and
+        /// domain-specific controls in the HTML rendering rules.
+        const IS_TEXT_INPUT_ELEMENT = 1 << 14;
     }
 }
 

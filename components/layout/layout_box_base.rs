@@ -29,6 +29,7 @@ use crate::fragment_tree::{
 use crate::geom::LogicalSides1D;
 use crate::positioned::{PositioningContext, relative_adjustement};
 use crate::sizing::{ComputeInlineContentSizes, InlineContentSizesResult, SizeConstraint};
+use crate::style_ext::ComputedValuesExt;
 use crate::traversal::ElementDamageSet;
 use crate::{ConstraintSpace, ContainingBlock, ContainingBlockSize};
 
@@ -111,8 +112,26 @@ impl LayoutBoxBase {
             // TODO: Should we keep multiple caches for various block sizes?
         }
 
-        let result =
+        let mut result =
             layout_box.compute_inline_content_sizes_with_fixup(layout_context, constraint_space);
+        // Text-entry controls have a default preferred width based on 20 average characters when
+        // their computed inline size is auto. Their internal shadow text can be empty, so using
+        // only descendant content sizes incorrectly collapses the widget to its padding.
+        //
+        // <https://html.spec.whatwg.org/multipage/#the-input-element-as-a-text-entry-widget>
+        if self
+            .base_fragment_info
+            .flags
+            .contains(crate::fragment_tree::FragmentFlags::IS_TEXT_INPUT_ELEMENT) &&
+            self.style.box_size(self.style.writing_mode).inline.is_initial()
+        {
+            let character_count = self.base_fragment_info.input_size.unwrap_or(20);
+            let font_size: Au = self.style.get_font().font_size.computed_size().into();
+            let default_preferred_inline_size =
+                font_size.scale_by(character_count as f32 * 0.5);
+            result.sizes.min_content.max_assign(default_preferred_inline_size);
+            result.sizes.max_content.max_assign(default_preferred_inline_size);
+        }
         *cache = Some(Box::new((constraint_space.block_size, result)));
         result
     }
