@@ -19,7 +19,6 @@ use image::RgbaImage;
 use log::{debug, error, info, warn};
 use media::WindowGLContext;
 use paint_api::display_list::{PaintDisplayListInfo, ScrollType};
-use paint_api::largest_contentful_paint_candidate::LCPCandidate;
 use paint_api::rendering_context::RenderingContext;
 use paint_api::viewport_description::ViewportDescription;
 use paint_api::{
@@ -535,17 +534,11 @@ impl Painter {
                         name: "LargestContentfulPaint",
                         servo_profiling = true,
                         paint_time = ?paint_time,
-                        area = ?candidate.area,
                         pipeline_id = ?pipeline_id,
                     );
                     self.send_to_constellation(EmbedderToConstellationMessage::PaintMetric(
                         *pipeline_id,
-                        PaintMetricEvent::LargestContentfulPaint(
-                            paint_time,
-                            candidate.area,
-                            candidate.url.clone(),
-                            candidate.id,
-                        ),
+                        PaintMetricEvent::LargestContentfulPaint(paint_time, candidate),
                     ));
                 }
             }
@@ -987,6 +980,10 @@ impl Painter {
             details
                 .first_contentful_paint_metric
                 .set(PaintMetricState::Seen(epoch, first_reflow));
+        }
+
+        if let Some(id) = display_list_info.lcp_candidate_id {
+            details.lcp_candidates.borrow_mut().push_back((epoch, id));
         }
 
         details.animations.handle_new_display_list(
@@ -1474,22 +1471,6 @@ impl Painter {
             .values()
             .map(|renderer| renderer.scroll_trees_memory_usage(ops))
             .sum::<usize>()
-    }
-
-    pub(crate) fn append_lcp_candidate(
-        &mut self,
-        lcp_candidate: LCPCandidate,
-        webview_id: WebViewId,
-        pipeline_id: PipelineId,
-        epoch: Epoch,
-    ) {
-        if let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) {
-            webview_renderer
-                .ensure_pipeline_details(pipeline_id)
-                .lcp_candidates
-                .borrow_mut()
-                .push_back((epoch.into(), lcp_candidate));
-        }
     }
 }
 

@@ -47,7 +47,6 @@ use webrender_api::{
     PipelineId as WebRenderPipelineId,
 };
 
-use crate::largest_contentful_paint_candidate::LCPCandidate;
 use crate::viewport_description::ViewportDescription;
 
 /// Sends messages to `Paint`.
@@ -185,8 +184,6 @@ pub enum PaintMessage {
     /// Let `Paint` know that the given WebView is ready to have a screenshot taken
     /// after the given pipeline's epochs have been rendered.
     ScreenshotReadinessReponse(WebViewId, FxHashMap<PipelineId, Epoch>),
-    /// The candidate of largest-contentful-paint
-    SendLCPCandidate(LCPCandidate, WebViewId, PipelineId, Epoch),
 }
 
 impl Debug for PaintMessage {
@@ -361,24 +358,6 @@ impl CrossProcessPaintApi {
 
         if let Err(error) = display_list_data_sender.send(display_list_data) {
             warn!("Error sending display list: {error}");
-        }
-    }
-
-    /// Send the largest contentful paint candidate to `Paint`.
-    pub fn send_lcp_candidate(
-        &self,
-        lcp_candidate: LCPCandidate,
-        webview_id: WebViewId,
-        pipeline_id: PipelineId,
-        epoch: Epoch,
-    ) {
-        if let Err(error) = self.0.send(PaintMessage::SendLCPCandidate(
-            lcp_candidate,
-            webview_id,
-            pipeline_id,
-            epoch,
-        )) {
-            warn!("Error sending LCPCandidate: {error}");
         }
     }
 

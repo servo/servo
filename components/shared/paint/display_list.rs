@@ -24,6 +24,8 @@ use webrender_api::{
     SpatialId, StickyOffsetBounds, TransformStyle,
 };
 
+use crate::largest_contentful_paint_candidate::LCPCandidateID;
+
 /// A scroll type, describing whether what kind of action originated this scroll request.
 /// This is a bitflag as it is also used to track what kinds of [`ScrollType`]s scroll
 /// nodes are sensitive to.
@@ -926,6 +928,9 @@ pub struct PaintDisplayListInfo {
     /// display list creation.
     pub first_reflow: bool,
 
+    /// New largest-contentful-paint candidate in this display list, if any.
+    pub lcp_candidate_id: Option<LCPCandidateID>,
+
     /// If this display list contains a blinking caret, this value will be filled with its animation
     /// key and original color value so that the painter can animate the caret.
     pub caret_property_binding: Option<(PropertyBindingKey<ColorF>, ColorF)>,
@@ -980,6 +985,7 @@ impl PaintDisplayListInfo {
             is_paintable: false,
             is_contentful: false,
             first_reflow,
+            lcp_candidate_id: None,
             caret_property_binding: Default::default(),
         }
     }
