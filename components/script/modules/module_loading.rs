@@ -79,8 +79,15 @@ pub(crate) struct LoadState {
 
 const LOAD_REACTION_HOST_DEFINED_SLOT: usize = 0;
 
-fn load_state_from_reserved_slot(cx: &mut JSContext, args: &CallArgs) -> Box<LoadState> {
+fn take_state_from_reserved_slot(cx: &mut JSContext, args: &CallArgs) -> Box<LoadState> {
     rooted!(&in(cx) let host_defined = unsafe { *GetFunctionNativeReserved(args.callee(), LOAD_REACTION_HOST_DEFINED_SLOT) });
+    unsafe {
+        SetFunctionNativeReserved(
+            args.callee(),
+            LOAD_REACTION_HOST_DEFINED_SLOT,
+            &UndefinedValue(),
+        )
+    };
     assert!(!host_defined.get().is_undefined());
     unsafe { Box::from_raw((*host_defined).to_private() as *mut LoadState) }
 }
@@ -97,7 +104,7 @@ unsafe extern "C" fn on_load_requested_modules_resolved(
 
     let args = unsafe { CallArgs::from_vp(vp, argc) };
 
-    let state = load_state_from_reserved_slot(cx, &args);
+    let state = take_state_from_reserved_slot(cx, &args);
 
     let on_complete = state.on_complete.safe_borrow_mut(cx).take().unwrap();
     let module_script = state.module_script.safe_borrow_mut(cx).take().unwrap();
@@ -137,7 +144,7 @@ unsafe extern "C" fn on_load_requested_modules_rejected(
 
     let args = unsafe { CallArgs::from_vp(vp, argc) };
 
-    let state = load_state_from_reserved_slot(cx, &args);
+    let state = take_state_from_reserved_slot(cx, &args);
 
     let error = unsafe { Handle::from_raw(args.get(0)) };
 
@@ -472,12 +479,12 @@ pub(crate) fn host_load_imported_module(
 
         // Step 7.1.5.2. If loadState is not undefined and loadState.[[ErrorToRethrow]] is null, set
         // loadState.[[ErrorToRethrow]] to error.
-        load_state.as_ref().inspect(|load_state| {
+        if let Some(ref load_state) = load_state {
             load_state
                 .error_to_rethrow
                 .borrow_mut()
                 .get_or_insert(error.clone());
-        });
+        }
 
         // Step 7.1.5.3. Perform FinishLoadingImportedModule(referrer, moduleRequest, payload, ThrowCompletion(error)).
         finish_loading_imported_module(cx, referrer, module_request, payload, Err(error));
