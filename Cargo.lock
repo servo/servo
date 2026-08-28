@@ -3079,7 +3079,7 @@ dependencies = [
  "vec_map",
  "wasm-bindgen",
  "web-sys",
- "windows 0.62.2",
+ "windows 0.61.3",
 ]
 
 [[package]]
@@ -3239,7 +3239,7 @@ dependencies = [
  "log",
  "presser",
  "thiserror 2.0.18",
- "windows 0.62.2",
+ "windows 0.61.3",
 ]
 
 [[package]]
@@ -3995,7 +3995,7 @@ dependencies = [
  "js-sys",
  "log",
  "wasm-bindgen",
- "windows-core 0.62.2",
+ "windows-core 0.61.2",
 ]
 
 [[package]]
@@ -5301,9 +5301,9 @@ dependencies = [
 
 [[package]]
 name = "naga"
-version = "30.0.0"
+version = "30.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23bf0a141a9ab6f07dbb492db53245e464bc9db42f407772d9ae03d83a2c1033"
+checksum = "a616d2fb8c89516ac2723a581f69d6c18576046bed761bd6b305e5618e6ae130"
 dependencies = [
  "arrayvec",
  "bit-set 0.10.0",
@@ -5327,9 +5327,9 @@ dependencies = [
 
 [[package]]
 name = "naga-types"
-version = "30.0.0"
+version = "30.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "658200ddc25c6c7b860747516d132d1b284c0fafb7a380233acee9a72fb30e11"
+checksum = "590afbf58a6f4f62873cd5cff4468061844bafa1cdf399cc954537c22d768d49"
 dependencies = [
  "hashbrown 0.17.1",
  "indexmap",
@@ -8058,7 +8058,7 @@ dependencies = [
  "strum",
  "uuid",
  "webrender_api",
- "wgpu-core 30.0.0",
+ "wgpu-core 30.0.1",
  "zeroize",
 ]
 
@@ -9047,7 +9047,7 @@ dependencies = [
  "web_atoms",
  "webdriver",
  "webrender_api",
- "wgpu-core 30.0.0",
+ "wgpu-core 30.0.1",
  "wgpu-types 30.0.0",
  "x25519-dalek",
  "x448",
@@ -9152,7 +9152,7 @@ dependencies = [
  "servo-malloc-size-of",
  "servo-script-bindings",
  "servo-webgpu-traits",
- "wgpu-core 30.0.0",
+ "wgpu-core 30.0.1",
  "wgpu-types 30.0.0",
 ]
 
@@ -9306,7 +9306,7 @@ dependencies = [
  "servo-pixels",
  "servo-webgpu-traits",
  "webrender_api",
- "wgpu-core 30.0.0",
+ "wgpu-core 30.0.1",
  "wgpu-types 30.0.0",
 ]
 
@@ -9321,7 +9321,7 @@ dependencies = [
  "servo-malloc-size-of",
  "servo-pixels",
  "webrender_api",
- "wgpu-core 30.0.0",
+ "wgpu-core 30.0.1",
  "wgpu-types 30.0.0",
 ]
 
@@ -11569,9 +11569,9 @@ dependencies = [
 
 [[package]]
 name = "wgpu-core"
-version = "30.0.0"
+version = "30.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "08763620e76fc980bca7bf84de82568614487a53172dd968d89187282eb87fa2"
+checksum = "14c018fce9b6270aa203c2fdd56f3cce996713534bd757e4ea58c8560b121f14"
 dependencies = [
  "arrayvec",
  "bit-set 0.10.0",
@@ -11584,7 +11584,7 @@ dependencies = [
  "indexmap",
  "log",
  "macro_rules_attribute",
- "naga 30.0.0",
+ "naga 30.0.1",
  "naga-types",
  "once_cell",
  "parking_lot",
@@ -11734,7 +11734,7 @@ dependencies = [
  "libc",
  "libloading 0.8.9",
  "log",
- "naga 30.0.0",
+ "naga 30.0.1",
  "naga-types",
  "ndk-sys",
  "objc2 0.6.4",
@@ -11779,7 +11779,7 @@ version = "30.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c9eaac644e5008925c78567d272b9d66ef83da55a53cc17fc7daade7bb6e66e5"
 dependencies = [
- "naga 30.0.0",
+ "naga 30.0.1",
  "wgpu-types 30.0.0",
 ]
 
