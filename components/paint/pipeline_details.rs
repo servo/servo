@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Cell, RefCell};
 use std::collections::VecDeque;
 
 use euclid::Scale;
@@ -42,13 +41,13 @@ pub(crate) struct PipelineDetails {
     pub scroll_tree: ScrollTree,
 
     /// The paint metric status of the first paint.
-    pub first_paint_metric: Cell<PaintMetricState>,
+    pub first_paint_metric: PaintMetricState,
 
     /// The paint metric status of the first contentful paint.
-    pub first_contentful_paint_metric: Cell<PaintMetricState>,
+    pub first_contentful_paint_metric: PaintMetricState,
 
     /// LCP candidates waiting to be presented, in order by [WebRenderEpoch].
-    pub lcp_candidates: RefCell<VecDeque<(WebRenderEpoch, LCPCandidate)>>,
+    pub lcp_candidates: VecDeque<(WebRenderEpoch, LCPCandidate)>,
 
     /// The CSS pixel to device pixel scale of the viewport of this pipeline, including
     /// page zoom, but not including any pinch zoom amount. This is used to detect
@@ -92,9 +91,9 @@ impl PipelineDetails {
             animation_callbacks_running: false,
             throttled: false,
             scroll_tree: ScrollTree::default(),
-            first_paint_metric: Cell::new(PaintMetricState::Waiting),
-            first_contentful_paint_metric: Cell::new(PaintMetricState::Waiting),
-            lcp_candidates: RefCell::new(VecDeque::new()),
+            first_paint_metric: PaintMetricState::Waiting,
+            first_contentful_paint_metric: PaintMetricState::Waiting,
+            lcp_candidates: VecDeque::new(),
             exited: PipelineExitSource::empty(),
             display_list_epoch: None,
             animations: Default::default(),

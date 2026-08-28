@@ -467,8 +467,10 @@ impl Painter {
     /// the list.
     fn send_pending_paint_metrics_messages_after_composite(&mut self) {
         let paint_time = CrossProcessInstant::now();
-        for webview_renderer in self.webview_renderers.values() {
-            for (pipeline_id, pipeline) in webview_renderer.pipelines.iter() {
+        let mut paint_metric_events = Vec::new();
+
+        for webview_renderer in self.webview_renderers.values_mut() {
+            for (pipeline_id, pipeline) in webview_renderer.pipelines.iter_mut() {
                 let Some(current_epoch) = self
                     .webrender_renderer
                     .as_ref()
@@ -477,7 +479,7 @@ impl Painter {
                     continue;
                 };
 
-                match pipeline.first_paint_metric.get() {
+                match pipeline.first_paint_metric {
                     // We need to check whether the current epoch is later, because
                     // CrossProcessPaintMessage::SendInitialTransaction sends an
                     // empty display list to WebRender which can happen before we receive
@@ -493,17 +495,17 @@ impl Painter {
                             pipeline_id = ?pipeline_id,
                         );
 
-                        self.send_to_constellation(EmbedderToConstellationMessage::PaintMetric(
+                        paint_metric_events.push((
                             *pipeline_id,
                             PaintMetricEvent::FirstPaint(paint_time, first_reflow),
                         ));
 
-                        pipeline.first_paint_metric.set(PaintMetricState::Sent);
+                        pipeline.first_paint_metric = PaintMetricState::Sent;
                     },
                     _ => {},
                 }
 
-                match pipeline.first_contentful_paint_metric.get() {
+                match pipeline.first_contentful_paint_metric {
                     PaintMetricState::Seen(epoch, first_reflow) if epoch <= current_epoch => {
                         #[cfg(feature = "tracing")]
                         tracing::info!(
@@ -513,18 +515,16 @@ impl Painter {
                             paint_time = ?paint_time,
                             pipeline_id = ?pipeline_id,
                         );
-                        self.send_to_constellation(EmbedderToConstellationMessage::PaintMetric(
+                        paint_metric_events.push((
                             *pipeline_id,
                             PaintMetricEvent::FirstContentfulPaint(paint_time, first_reflow),
                         ));
-                        pipeline
-                            .first_contentful_paint_metric
-                            .set(PaintMetricState::Sent);
+                        pipeline.first_contentful_paint_metric = PaintMetricState::Sent;
                     },
                     _ => {},
                 }
 
-                let mut pending_lcp_candidates = pipeline.lcp_candidates.borrow_mut();
+                let pending_lcp_candidates = &mut pipeline.lcp_candidates;
                 while let Some((epoch, candidate)) = pending_lcp_candidates.pop_front() {
                     if epoch > current_epoch {
                         pending_lcp_candidates.push_front((epoch, candidate));
@@ -538,7 +538,7 @@ impl Painter {
                         area = ?candidate.area,
                         pipeline_id = ?pipeline_id,
                     );
-                    self.send_to_constellation(EmbedderToConstellationMessage::PaintMetric(
+                    paint_metric_events.push((
                         *pipeline_id,
                         PaintMetricEvent::LargestContentfulPaint(
                             paint_time,
@@ -549,6 +549,13 @@ impl Painter {
                     ));
                 }
             }
+        }
+
+        for (pipeline_id, event) in paint_metric_events {
+            self.send_to_constellation(EmbedderToConstellationMessage::PaintMetric(
+                pipeline_id,
+                event,
+            ));
         }
     }
 
@@ -972,21 +979,16 @@ impl Painter {
 
         let epoch = display_list_info.epoch.into();
         let first_reflow = display_list_info.first_reflow;
-        if details.first_paint_metric.get() == PaintMetricState::Waiting &&
-            display_list_info.is_paintable
+        if details.first_paint_metric == PaintMetricState::Waiting && display_list_info.is_paintable
         {
-            details
-                .first_paint_metric
-                .set(PaintMetricState::Seen(epoch, first_reflow));
+            details.first_paint_metric = PaintMetricState::Seen(epoch, first_reflow);
         }
 
-        if details.first_contentful_paint_metric.get() == PaintMetricState::Waiting &&
+        if details.first_contentful_paint_metric == PaintMetricState::Waiting &&
             display_list_info.is_paintable &&
             display_list_info.is_contentful
         {
-            details
-                .first_contentful_paint_metric
-                .set(PaintMetricState::Seen(epoch, first_reflow));
+            details.first_contentful_paint_metric = PaintMetricState::Seen(epoch, first_reflow);
         }
 
         details.animations.handle_new_display_list(
@@ -1487,7 +1489,6 @@ impl Painter {
             webview_renderer
                 .ensure_pipeline_details(pipeline_id)
                 .lcp_candidates
-                .borrow_mut()
                 .push_back((epoch.into(), lcp_candidate));
         }
     }
