@@ -254,7 +254,7 @@ fn has_element_for_media_type(
     match gstreamer::caps::Caps::from_str(media_type) {
         Ok(caps) => {
             for factory in factories {
-                if factory.can_sink_all_caps(&caps) {
+                if factory.can_sink_any_caps(&caps) {
                     return true;
                 }
             }
