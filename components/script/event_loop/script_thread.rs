@@ -116,13 +116,7 @@ use url::Position;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::{WebGPUDevice, WebGPUMsg};
 
-<<<<<<< HEAD
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
-=======
-use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
-    DocumentMethods, DocumentReadyState,
-};
->>>>>>> 4ef8bbafd3a (wip: devtools compile, without not. Reducing featureguards, adding options)
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::conversions::{
