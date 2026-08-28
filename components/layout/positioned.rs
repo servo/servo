@@ -17,7 +17,6 @@ use style::computed_values::position::T as Position;
 use style::logical_geometry::{Direction, WritingMode};
 use style::properties::ComputedValues;
 use style::values::specified::align::AlignFlags;
-use taffy::GridItemStyle;
 
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
@@ -34,7 +33,7 @@ use crate::geom::{
 use crate::layout_box_base::{IndependentFormattingContextLayoutResult, LayoutBoxBase};
 use crate::sizing::{LazySize, Size, SizeConstraint, Sizes};
 use crate::style_ext::{Clamp, ComputedValuesExt, ContentBoxSizesAndPBM, DisplayInside};
-use crate::taffy::{SpecificTaffyGridInfo, TaffyStyloStyle};
+use crate::taffy::SpecificTaffyGridInfo;
 use crate::{
     ConstraintSpace, ContainingBlock, ContainingBlockSize, DefiniteContainingBlock,
     PropagatedBoxTreeData,
@@ -306,21 +305,14 @@ impl PositioningContext {
             .rare_data
             .get()
             .map(|ref_cell| ref_cell.borrow());
-        // let grid_info = rare_data.as_ref().and_then(|rare_data| AtomicRef::map(rare_data, |rare_data| .specific_layout_info)
+
         let grid_info = rare_data.and_then(|rare_data| {
-            if matches!(
-                rare_data.specific_layout_info,
-                Some(SpecificLayoutInfo::Grid(_))
-            ) {
-                Some(AtomicRef::map(rare_data, |rd| {
-                    match &rd.specific_layout_info {
-                        Some(SpecificLayoutInfo::Grid(grid_info)) => &**grid_info,
-                        _ => unreachable!(),
-                    }
-                }))
-            } else {
-                None
-            }
+            AtomicRef::filter_map(rare_data, |rare_data| {
+                match rare_data.specific_layout_info.as_ref() {
+                    Some(SpecificLayoutInfo::Grid(grid_info)) => Some(&**grid_info),
+                    _ => None,
+                }
+            })
         });
 
         let mut fixed_position_boxes_to_hoist = Vec::new();
@@ -509,48 +501,12 @@ impl HoistedAbsolutelyPositionedBox {
         let writing_mode = containing_block.style.writing_mode;
 
         // If the container laying out the hoisted nodes is a grid container, then resolve the hoisted
-        // node's grid area (as a concrete rect in Au units) using it's own grid position styles.
+        // node's grid area (as a concrete rect in Au units) using its own grid position styles.
         let grid_area = grid_info.map(|grid_info| {
-            let item_style = TaffyStyloStyle::new(&**independent_formatting_context.style(), false);
-            let physical_containing_block_size =
-                containing_block.size.to_physical_size(writing_mode);
-
-            // Convert direction to Taffy type
-            let direction = if writing_mode.is_bidi_ltr() {
-                taffy::Direction::Ltr
-            } else {
-                taffy::Direction::Rtl
-            };
-
-            // Convert padding box to Taffy type
-            let border_left = containing_block_border.left.to_f32_px();
-            let border_top = containing_block_border.top.to_f32_px();
-
-            let padding_box = taffy::Rect {
-                left: border_left,
-                right: border_left + physical_containing_block_size.width.to_f32_px(),
-                top: border_top,
-                bottom: border_top + physical_containing_block_size.height.to_f32_px(),
-            };
-
-            // Call into Taffy to resolve grid area
-            let area = grid_info.info.resolve_absolute_grid_area(
-                item_style.grid_row(),
-                item_style.grid_column(),
-                direction,
-                padding_box,
-            );
-
-            // Convert grid area into a PhysicalRect, and adjust it to be relative to the padding box
-            PhysicalRect::new(
-                PhysicalPoint::new(
-                    Au::from_f32_px(area.left) - containing_block_border.left,
-                    Au::from_f32_px(area.top) - containing_block_border.top,
-                ),
-                PhysicalSize::new(
-                    Au::from_f32_px(area.right - area.left),
-                    Au::from_f32_px(area.bottom - area.top),
-                ),
+            grid_info.resolve_grid_area(
+                independent_formatting_context.style(),
+                containing_block,
+                containing_block_border,
             )
         });
 
