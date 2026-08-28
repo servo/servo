@@ -467,7 +467,7 @@ impl Painter {
     /// the list.
     fn send_pending_paint_metrics_messages_after_composite(&mut self) {
         let paint_time = CrossProcessInstant::now();
-        let mut events = Vec::new();
+        let mut paint_metric_events = Vec::new();
 
         for webview_renderer in self.webview_renderers.values_mut() {
             for (pipeline_id, pipeline) in webview_renderer.pipelines.iter_mut() {
@@ -495,7 +495,7 @@ impl Painter {
                             pipeline_id = ?pipeline_id,
                         );
 
-                        events.push((
+                        paint_metric_events.push((
                             *pipeline_id,
                             PaintMetricEvent::FirstPaint(paint_time, first_reflow),
                         ));
@@ -515,7 +515,7 @@ impl Painter {
                             paint_time = ?paint_time,
                             pipeline_id = ?pipeline_id,
                         );
-                        events.push((
+                        paint_metric_events.push((
                             *pipeline_id,
                             PaintMetricEvent::FirstContentfulPaint(paint_time, first_reflow),
                         ));
@@ -538,7 +538,7 @@ impl Painter {
                         area = ?candidate.area,
                         pipeline_id = ?pipeline_id,
                     );
-                    events.push((
+                    paint_metric_events.push((
                         *pipeline_id,
                         PaintMetricEvent::LargestContentfulPaint(
                             paint_time,
@@ -551,7 +551,7 @@ impl Painter {
             }
         }
 
-        for (pipeline_id, event) in events {
+        for (pipeline_id, event) in paint_metric_events {
             self.send_to_constellation(EmbedderToConstellationMessage::PaintMetric(
                 pipeline_id,
                 event,
