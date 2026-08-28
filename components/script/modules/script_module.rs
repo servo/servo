@@ -61,7 +61,7 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::globalscope::script_execution::fill_compile_options;
-use crate::dom::html::htmlscriptelement::{SCRIPT_JS_MIMES, substitute_with_local_script};
+use crate::dom::html::htmlscriptelement::substitute_with_local_script;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promisenativehandler::Callback;
 use crate::dom::script_execution::ScriptOptions;
@@ -166,7 +166,7 @@ pub(crate) enum ModuleStatus {
     Loaded(Rc<ModuleTree>),
 }
 
-#[derive(JSTraceable, MallocSizeOf)]
+#[derive(Default, JSTraceable, MallocSizeOf)]
 pub(crate) struct ModuleTree {
     #[ignore_malloc_size_of = "mozjs"]
     record: OnceCell<ModuleObject>,
@@ -199,7 +199,7 @@ impl ModuleTree {
     #[expect(clippy::too_many_arguments)]
     /// <https://html.spec.whatwg.org/multipage/#creating-a-javascript-module-script>
     fn create_a_javascript_module_script(
-        cx: &mut JSContext,
+        cx: &mut CurrentRealm,
         source: Cow<'_, str>,
         global: &GlobalScope,
         url: &ServoUrl,
@@ -208,21 +208,11 @@ impl ModuleTree {
         line_number: u32,
         introduction_type: Option<&'static CStr>,
     ) -> Self {
-        let mut realm = AutoRealm::new(
-            cx,
-            NonNull::new(global.reflector().get_jsobject().get()).unwrap(),
-        );
-        let cx = &mut *realm;
-
         let owner = Trusted::new(global);
 
         // Step 2. Let script be a new module script that this algorithm will subsequently initialize.
         // Step 6. Set script's parse error and error to rethrow to null.
-        let module = ModuleTree {
-            record: OnceCell::new(),
-            parse_error: OnceCell::new(),
-            rethrow_error: DomRefCell::new(None),
-        };
+        let module = ModuleTree::default();
 
         let compile_options = fill_compile_options(
             cx,
@@ -246,8 +236,7 @@ impl ModuleTree {
 
         unsafe {
             // Step 7. Let result be ParseModule(source, settings's realm, script).
-            rooted!(&in(cx) let mut module_script: *mut JSObject = std::ptr::null_mut());
-            module_script.set(CompileModule1(cx, compile_options.ptr, &mut source));
+            rooted!(&in(cx) let module_script = CompileModule1(cx, compile_options.ptr, &mut source));
 
             // Step 8. If result is a list of errors, then:
             if module_script.is_null() {
@@ -283,25 +272,14 @@ impl ModuleTree {
     #[expect(unsafe_code)]
     /// <https://html.spec.whatwg.org/multipage/#creating-a-json-module-script>
     fn create_a_json_module_script(
-        cx: &mut JSContext,
+        cx: &mut CurrentRealm,
         source: &str,
-        global: &GlobalScope,
         url: &ServoUrl,
         introduction_type: Option<&'static CStr>,
     ) -> Self {
-        let mut realm = AutoRealm::new(
-            cx,
-            NonNull::new(global.reflector().get_jsobject().get()).unwrap(),
-        );
-        let cx = &mut *realm;
-
         // Step 1. Let script be a new module script that this algorithm will subsequently initialize.
         // Step 4. Set script's parse error and error to rethrow to null.
-        let module = ModuleTree {
-            record: OnceCell::new(),
-            parse_error: OnceCell::new(),
-            rethrow_error: DomRefCell::new(None),
-        };
+        let module = ModuleTree::default();
 
         // Step 2. Set script's settings object to settings.
         // Step 3. Set script's base URL and fetch options to null.
@@ -315,16 +293,10 @@ impl ModuleTree {
             1, // line_number
         );
 
-        rooted!(&in(cx) let mut module_script: *mut JSObject = std::ptr::null_mut());
+        let mut source = transform_str_to_source_text(source);
 
-        unsafe {
-            // Step 5. Let result be ParseJSONModule(source).
-            module_script.set(CompileJsonModule1(
-                cx,
-                compile_options.ptr,
-                &mut transform_str_to_source_text(source),
-            ));
-        }
+        // Step 5. Let result be ParseJSONModule(source).
+        rooted!(&in(cx) let module_script = unsafe { CompileJsonModule1(cx, compile_options.ptr, &mut source) });
 
         // If this throws an exception, catch it, and set script's parse error to that exception, and return script.
         if module_script.is_null() {
@@ -658,6 +630,9 @@ impl FetchResponseListener for ModuleContext {
             self.options.referrer_policy = referrer_policy;
         }
 
+        let mut realm = enter_auto_realm(cx, &*global);
+        let cx = &mut realm.current_realm();
+
         // TODO Step 6. If mimeType's essence is "application/wasm" and moduleType is "javascript-or-wasm", then set
         // moduleScript to the result of creating a WebAssembly module script given bodyBytes, settingsObject, response's URL, and options.
 
@@ -667,39 +642,44 @@ impl FetchResponseListener for ModuleContext {
             // Step 7.1 Let sourceText be the result of UTF-8 decoding bodyBytes.
             let (mut source_text, _) = UTF_8.decode_with_bom_removal(&self.data);
 
-            // Step 7.2 If mimeType is a JavaScript MIME type and moduleType is "javascript-or-wasm", then set moduleScript
-            // to the result of creating a JavaScript module script given sourceText, settingsObject, response's URL, and options.
-            if SCRIPT_JS_MIMES.contains(&mime.essence_str()) &&
-                matches!(module_type, ModuleType::JavaScript)
-            {
-                if let Some(window) = global.downcast::<Window>() &&
-                    let Some(script_souce) = window.local_script_source()
-                {
-                    substitute_with_local_script(script_souce, &mut source_text, &final_url);
-                }
+            // TODO Step 7.2. If moduleType is "text", then set moduleScript to the result of
+            // creating a text module script given sourceText and settingsObject.
 
-                let module_tree = Rc::new(ModuleTree::create_a_javascript_module_script(
-                    cx,
-                    source_text,
-                    &global,
-                    &final_url,
-                    self.options,
-                    true,
-                    1,
-                    self.introduction_type,
-                ));
-                module_script = Some(module_tree);
-            } else if MimeClassifier::is_json(&mime) && matches!(module_type, ModuleType::JSON) {
-                // Step 7.4 If mimeType is a JSON MIME type and moduleType is "json",
-                // then set moduleScript to the result of creating a JSON module script given sourceText and settingsObject.
-                let module_tree = Rc::new(ModuleTree::create_a_json_module_script(
-                    cx,
-                    &source_text,
-                    &global,
-                    &final_url,
-                    self.introduction_type,
-                ));
-                module_script = Some(module_tree);
+            match module_type {
+                // Step 7.3. If mimeType is a JavaScript MIME type and moduleType is
+                // "javascript-or-wasm", then set moduleScript to the result of creating a JavaScript
+                // module script given sourceText, settingsObject, response's URL, and options.
+                ModuleType::JavaScript if MimeClassifier::is_javascript(&mime) => {
+                    if let Some(window) = global.downcast::<Window>() &&
+                        let Some(script_souce) = window.local_script_source()
+                    {
+                        substitute_with_local_script(script_souce, &mut source_text, &final_url);
+                    }
+
+                    let module_tree = Rc::new(ModuleTree::create_a_javascript_module_script(
+                        cx,
+                        source_text,
+                        &global,
+                        &final_url,
+                        self.options,
+                        true,
+                        1,
+                        self.introduction_type,
+                    ));
+                    module_script = Some(module_tree);
+                },
+                // Step 7.5. If mimeType is a JSON MIME type and moduleType is "json", then set
+                // moduleScript to the result of creating a JSON module script given sourceText and settingsObject.
+                ModuleType::JSON if MimeClassifier::is_json(&mime) => {
+                    let module_tree = Rc::new(ModuleTree::create_a_json_module_script(
+                        cx,
+                        &source_text,
+                        &final_url,
+                        self.introduction_type,
+                    ));
+                    module_script = Some(module_tree);
+                },
+                _ => {},
             }
         }
 
@@ -1203,6 +1183,9 @@ pub(crate) fn fetch_inline_module_script(
     introduction_type: Option<&'static CStr>,
     on_complete: impl FnOnce(&mut JSContext, Option<Rc<ModuleTree>>) + Clone + 'static,
 ) {
+    let mut realm = enter_auto_realm(cx, global);
+    let cx = &mut realm.current_realm();
+
     // Step 1. Let script be the result of creating a JavaScript module script using sourceText, settingsObject, baseURL, and options.
     let module_tree = Rc::new(ModuleTree::create_a_javascript_module_script(
         cx,
