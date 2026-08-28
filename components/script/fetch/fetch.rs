@@ -274,7 +274,7 @@ impl FetchGroup {
         };
         let task_source = global.task_manager().networking_task_source().to_sendable();
         self.fetch(
-            request_init_from_request(deferred_fetch.request.clone(), global),
+            request_init_from_request(deferred_fetch.request, global),
             NetworkListener::new(fetch_later_listener, task_source, global),
         );
         // Step 4 is handled by caller
@@ -406,7 +406,7 @@ pub(crate) fn Fetch(
         request_builder.service_workers_mode = ServiceWorkersMode::None;
     }
 
-    // Step p8. Let relevantRealm be this’s relevant realm.
+    // Step 8. Let relevantRealm be this’s relevant realm.
     //
     // Is `comp` as argument
 
@@ -475,7 +475,8 @@ fn queue_deferred_fetch(
             // Step 6.2. Process deferredRecord.
             let global = trusted_global.root();
             let mut fetch_group = global.fetch_group_mut();
-            let deferred_fetch_record =fetch_group.deferred_fetch_record_for_id(&deferred_fetch_record_id);
+            let deferred_fetch_record =
+                fetch_group.deferred_fetch_record_for_id(&deferred_fetch_record_id);
             fetch_group.process_a_deferred_fetch(&global, &deferred_fetch_record);
 
             // Last step of https://fetch.spec.whatwg.org/#process-a-deferred-fetch
