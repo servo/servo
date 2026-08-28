@@ -7,6 +7,7 @@ use layout_api::{AxesOverflow, LayoutElementType, LayoutNode, LayoutNodeType};
 use malloc_size_of_derive::MallocSizeOf;
 use style::Zero;
 use style::color::AbsoluteColor;
+use style::computed_values::box_decoration_break::T as BoxDecorationBreak;
 use style::computed_values::direction::T as Direction;
 use style::computed_values::isolation::T as ComputedIsolation;
 use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
@@ -373,6 +374,7 @@ pub(crate) trait ComputedValuesExt {
         padding_border_sums: &LogicalVec2<Au>,
     ) -> Option<AspectRatio>;
     fn background_is_transparent(&self) -> bool;
+    fn needs_fragmentation_info_for_correct_break_rendering(&self) -> bool;
     fn webrender_primitive_flags(&self) -> wr::PrimitiveFlags;
     fn bidi_control_chars(&self) -> (&'static str, &'static str);
     fn resolve_align_self(
@@ -1064,6 +1066,66 @@ impl ComputedValuesExt for ComputedValues {
                 .0
                 .iter()
                 .all(|layer| matches!(layer, ComputedImageLayer::None))
+    }
+
+    /// Determines whether or not these values make it necessary to store extra
+    /// fragmentation-related data for the fragments of a box in order to facilitate a correct
+    /// rendering of those fragments.
+    fn needs_fragmentation_info_for_correct_break_rendering(&self) -> bool {
+        // When a box is broken into multiple fragments and `box-decoration-break` is set to `slice`
+        // (the default), then we need to remember the box's 'unfragmented' size. That is, the size
+        // that the box as a whole would have if all the fragments were put back together by
+        // placing them end-to-end. This is necessary, to correctly render things like backgrounds
+        // and border- radii per fragment, which are conceptually sliced into pieces.
+        if self.get_border().box_decoration_break != BoxDecorationBreak::Slice {
+            return false;
+        }
+
+        // We can however avoid storing all that data in most situations. In particular, it should
+        // only be necessary when there is:
+        // - backgrounds that change in the fragmentation direction and cross fragments
+        // - border-radii that are larger than the end fragments
+        // - dashed, dotted or image borders on any side
+        // - some values of `clip-path` and `mask`
+        // - any `box-shadow`
+
+        // TODO: Currently, we only fragment inline boxes at line breaks. Once we implement block
+        //       fragmentation in paginated or multicol flows, this might also need to check for
+        //       these other properties, which don't apply to inline elements:
+        //       - any clipping values of `overflow`
+        //       - the `clip` property
+        //       Do check in with the CSSWG on these, as the specs might need clarification.
+
+        // TODO: Also check for the appropriate values of CSS `mask` once we have that.
+        !self
+            .get_background()
+            .background_image
+            .0
+            .iter()
+            .all(|image| *image == ComputedImageLayer::None) ||
+            !self.get_border().border_top_left_radius.is_zero() ||
+            !self.get_border().border_top_right_radius.is_zero() ||
+            !self.get_border().border_bottom_left_radius.is_zero() ||
+            !self.get_border().border_bottom_right_radius.is_zero() ||
+            matches!(
+                self.get_border().border_top_style,
+                BorderStyle::Dashed | BorderStyle::Dotted
+            ) ||
+            matches!(
+                self.get_border().border_bottom_style,
+                BorderStyle::Dashed | BorderStyle::Dotted
+            ) ||
+            matches!(
+                self.get_border().border_left_style,
+                BorderStyle::Dashed | BorderStyle::Dotted
+            ) ||
+            matches!(
+                self.get_border().border_right_style,
+                BorderStyle::Dashed | BorderStyle::Dotted
+            ) ||
+            !self.get_effects().box_shadow.0.is_empty() ||
+            self.get_border().border_image_source != ComputedImageLayer::None ||
+            !self.get_effects().clip.is_auto()
     }
 
     /// Generate appropriate WebRender `PrimitiveFlags` that should be used

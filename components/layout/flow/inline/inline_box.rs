@@ -18,8 +18,7 @@ use style::computed_values::box_decoration_break::T as BoxDecorationBreak;
 use style::context::SharedStyleContext;
 use style::logical_geometry::LogicalSize;
 use style::properties::ComputedValues;
-use style::values::computed::image::Image;
-use style::values::computed::{BaselineShift, BorderStyle, LengthPercentage};
+use style::values::computed::{BaselineShift, LengthPercentage};
 
 use super::{
     InlineContainerState, InlineContainerStateFlags, SharedInlineStyles,
@@ -88,62 +87,7 @@ impl InlineBox {
     // For the painting of backgrounds and borders on fragmented boxes, each box needs to know what part of the
     // unfragmented whole it is. This determines that for this inline box's fragments.
     pub(crate) fn assign_fragmentation_info(&self) {
-        let style = &self.base.style;
-        if style.get_border().box_decoration_break != BoxDecorationBreak::Slice {
-            return;
-        }
-
-        // We can avoid all this work (and the extra BoxFragmentRareData it incurs) in most situations. In particular,
-        // it should (for inlines) only be necessary when there is:
-        // - backgrounds that change in the inline direction and cross fragments
-        // - border-radii that are larger than the end fragments
-        // - block-axis dashed, dotted and image borders
-        // - Some values of `clip-path` and `mask`
-        // - any `box-shadow`
-
-        // Notably, some things that we do not need to consider are:
-        // - `overflow: hidden` or similar, since `overflow` does not apply to inline elements
-        // - the `clip` property, since it only applies to fixed- or abspos elements which do not fragment across lines
-
-        // So below are some heuristics that should let us early-exit in the most common case of text with basically no
-        // decorations at all, as well as some text that only has basic decorations.
-        let mut can_early_exit = true;
-
-        // TODO: Also check for any CSS `mask`
-        if !style
-            .get_background()
-            .background_image
-            .0
-            .iter()
-            .all(|image| *image == Image::None) ||
-            !style.get_border().border_top_left_radius.is_zero() ||
-            !style.get_border().border_top_right_radius.is_zero() ||
-            !style.get_border().border_bottom_left_radius.is_zero() ||
-            !style.get_border().border_bottom_right_radius.is_zero() ||
-            matches!(
-                style.get_border().border_top_style,
-                BorderStyle::Dashed | BorderStyle::Dotted
-            ) ||
-            matches!(
-                style.get_border().border_bottom_style,
-                BorderStyle::Dashed | BorderStyle::Dotted
-            ) ||
-            matches!(
-                style.get_border().border_left_style,
-                BorderStyle::Dashed | BorderStyle::Dotted
-            ) ||
-            matches!(
-                style.get_border().border_right_style,
-                BorderStyle::Dashed | BorderStyle::Dotted
-            ) ||
-            !style.get_effects().box_shadow.0.is_empty() ||
-            style.get_border().border_image_source != Image::None ||
-            !style.get_effects().clip.is_auto()
-        {
-            can_early_exit = false;
-        }
-
-        if can_early_exit {
+        if !self.base.style.needs_fragmentation_info_for_correct_break_rendering() {
             return;
         }
 
@@ -153,7 +97,7 @@ impl InlineBox {
             return;
         }
 
-        let writing_mode = style.writing_mode;
+        let writing_mode = self.base.style.writing_mode;
         let mut total_inline_size = Au::zero();
         for fragment in fragments.iter() {
             total_inline_size += fragment
