@@ -106,9 +106,6 @@ jobs:
       - if: runner.environment != 'self-hosted'
         name: Setup Python
         uses: ./.github/actions/setup-python
-      - uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: "26"
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.10
 
