@@ -4756,7 +4756,6 @@ where
                 let _ = chan.send(DevtoolsControlMsg::FromScript(
                     ScriptToDevtoolsControlMsg::Navigate(browsing_context_id, state),
                 ));
-
                 let page_info = DevtoolsPageInfo {
                     title: new_pipeline.title.clone(),
                     url: new_pipeline.url.clone(),
