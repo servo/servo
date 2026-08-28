@@ -674,14 +674,14 @@ where
             let start_offset = range.start_offset();
 
             if start_container == parent_of_new_parent && start_offset == new_parent.index() {
-                range.set_start(&start_container, start_offset + 1);
+                let _ = range.SetStart(&start_container, start_offset + 1);
             }
 
             let end_container = range.end_container();
             let end_offset = range.end_offset();
 
             if end_container == parent_of_new_parent && end_offset == new_parent.index() {
-                range.set_end(&end_container, end_offset + 1);
+                let _ = range.SetEnd(&end_container, end_offset + 1);
             }
         }
     }
