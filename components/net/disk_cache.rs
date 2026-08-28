@@ -247,12 +247,15 @@ impl DiskCache {
             }
             bytes
         };
-        let _span = profile_traits::trace_span!("deserialize cache request").entered();
-        let Ok(value) = postcard::from_bytes::<Vec<DiskCachedResource>>(&bytes) else {
-            error!("Could not deserialize cached resource");
-            return None;
+
+        let value = {
+            let _span = profile_traits::trace_span!("deserialize cache request").entered();
+            let Ok(value) = postcard::from_bytes::<Vec<DiskCachedResource>>(&bytes) else {
+                error!("Could not deserialize cached resource");
+                return None;
+            };
+            value
         };
-        drop(_span);
 
         let resources = join_all(value.into_iter().map(
             |disk_cached_resource: DiskCachedResource| disk_cached_resource.make_cached_reource(),
