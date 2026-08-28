@@ -26,9 +26,8 @@ pub(crate) enum LoadType {
     Media,
 }
 
-/// Canary value ensuring that manually added blocking loads (ie. ones that weren't
-/// created via DocumentLoader::fetch_async) are always removed by the time
-/// that the owner is destroyed.
+/// Canary value ensuring that manually added blocking loads are always removed by the
+/// time that the owner is destroyed.
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct LoadBlocker {

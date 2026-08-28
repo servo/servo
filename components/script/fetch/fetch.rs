@@ -198,6 +198,16 @@ impl FetchGroup {
         self.deferred_fetch_records.values().cloned().collect()
     }
 
+    fn append_deferred_fetch(
+        &mut self,
+        deferred_record: DeferredFetchRecord,
+    ) -> DeferredFetchRecordId {
+        let deferred_fetch_record_id = DeferredFetchRecordId::default();
+        self.deferred_fetch_records
+            .insert(deferred_fetch_record_id, Rc::new(deferred_record));
+        deferred_fetch_record_id
+    }
+
     pub(crate) fn deferred_fetch_record_for_id(
         &self,
         deferred_fetch_record_id: &DeferredFetchRecordId,
@@ -274,7 +284,7 @@ impl FetchGroup {
         };
         let task_source = global.task_manager().networking_task_source().to_sendable();
         self.fetch(
-            request_init_from_request(deferred_fetch.request, global),
+            request_init_from_request(deferred_fetch.request.clone(), global),
             NetworkListener::new(fetch_later_listener, task_source, global),
         );
         // Step 4 is handled by caller
@@ -376,7 +386,7 @@ pub(crate) fn Fetch(
         Ok(r) => r,
     };
     // Step 3. Let request be requestObject’s request.
-    let request = request_object.request();
+    let request = request_object.request().clone();
 
     // Step 4. If requestObject’s signal is aborted, then:
     let signal = request_object.Signal();
@@ -398,7 +408,7 @@ pub(crate) fn Fetch(
 
     // Step 5. Let globalObject be request’s client’s global object.
     // NOTE:   We already get the global object as an argument
-    let mut request_builder = request_init_from_request(request.clone(), global);
+    let mut request_builder = request_init_from_request(request, global);
 
     // Step 6. If globalObject is a ServiceWorkerGlobalScope object, then set request’s
     //         service-workers mode to "none".
@@ -456,18 +466,16 @@ fn queue_deferred_fetch(
     // Step 3. Set request’s keepalive to true.
     request.keep_alive = true;
     // Step 4. Let deferredRecord be a new deferred fetch record whose request is request, and whose notify invoked is onActivatedWithoutTermination.
-    let deferred_record = Rc::new(DeferredFetchRecord {
+    let deferred_record = DeferredFetchRecord {
         request,
         invoke_state: Cell::new(DeferredFetchRecordInvokeState::Pending),
         activated: Cell::new(false),
-    });
+    };
 
     // Step 5. Append deferredRecord to request’s client’s fetch group’s deferred fetch records.
-    let deferred_fetch_record_id = DeferredFetchRecordId::default();
-    global
+    let deferred_fetch_record_id = global
         .fetch_group_mut()
-        .deferred_fetch_records
-        .insert(deferred_fetch_record_id, deferred_record);
+        .append_deferred_fetch(deferred_record);
 
     // Step 6. If activateAfter is non-null, then run the following steps in parallel:
     global.schedule_timer(TimerEventRequest {
@@ -632,19 +640,19 @@ impl FetchContext {
 
         // Step 11.2. Assert: controller is non-null.
         //
-        // Note: We currently prune fetch records that have finished
-        // (behaviorally equivalent to the specification and better for memory
-        // usage), so it might be the case that there is actually no controller
-        // here.
-        let global = self.global.root();
-        let request = self.request.root();
-        let mut fetch_group = global.fetch_group_mut();
-        let Some(controller) = fetch_group.fetch_controller(&request.request().id) else {
-            return;
-        };
+        // Note: We currently prune fetch records that have finished (behaviorally
+        // equivalent to the specification and better for memory usage), so it might be
+        // the case that the `FetchRecord` is gone and the controller inaccessible.
 
         // Step 11.3. Abort controller with requestObject’s signal’s abort reason.
-        controller.abort();
+        let global = self.global.root();
+        let request = self.request.root();
+        if let Some(controller) = global
+            .fetch_group_mut()
+            .fetch_controller(&request.request().id)
+        {
+            controller.abort();
+        }
 
         // Step 11.4. Abort the fetch() call with p, request, responseObject,
         // and requestObject’s signal’s abort reason.

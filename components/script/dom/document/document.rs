@@ -220,7 +220,7 @@ use crate::event_loop::document_loader::{DocumentLoader, LoadType};
 use crate::event_loop::script_thread::{ScriptThread, SharedRwLocks};
 use crate::event_loop::timers::{OneshotTimerCallback, OneshotTimers};
 use crate::fetch::fetch::{DeferredFetchRecordInvokeState, FetchCanceller};
-use crate::fetch::network_listener::{FetchResponseListener, NetworkListener};
+use crate::fetch::network_listener::FetchResponseListener;
 use crate::mime::{APPLICATION, CHARSET};
 use crate::navigation::navigate;
 use crate::runtime::script_runtime::compute_size;
@@ -1996,18 +1996,14 @@ impl Document {
         request_builder: RequestBuilder,
         listener: Listener,
     ) {
-        let global_scope = self.window().as_global_scope();
-        let listener = NetworkListener::new(
-            listener,
-            self.owner_global()
-                .task_manager()
-                .networking_task_source()
-                .into(),
-            global_scope,
-        );
-        global_scope
-            .fetch_group_mut()
-            .fetch(request_builder, listener);
+        let networking_task_source = self
+            .owner_global()
+            .task_manager()
+            .networking_task_source()
+            .to_sendable();
+        self.window()
+            .as_global_scope()
+            .fetch(request_builder, listener, networking_task_source);
     }
 
     /// <https://fetch.spec.whatwg.org/#deferred-fetch-control-document>
