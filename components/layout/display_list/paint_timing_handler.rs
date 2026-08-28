@@ -6,7 +6,9 @@ use std::collections::{HashMap, HashSet};
 
 use app_units::Au;
 use euclid::Rect;
+use paint_api::display_list::PaintTimingReport;
 use paint_api::largest_contentful_paint_candidate::{LCPCandidate, LCPCandidateID};
+use servo_config::pref;
 use servo_geometry::FastLayoutTransform;
 use servo_url::ServoUrl;
 use style::dom::OpaqueNode;
@@ -57,8 +59,12 @@ enum LCPCandidateType<'a> {
 pub(crate) struct PaintTimingHandler {
     /// The rect of viewport.
     viewport_rect: LayoutRect,
-    /// The document’s largest contentful paint size
-    lcp_size: f32,
+    /// Whether the current display list contains paintable items.
+    is_document_paintable: bool,
+    /// Whether the current display list contains contentful items.
+    is_document_contentful: bool,
+    /// <https://www.w3.org/TR/paint-timing/#set-of-previously-reported-paints>
+    reported_paints: PaintTimingReport,
     /// Counter for generating unique LCP candidate UUIDs.
     lcp_next_uuid: u64,
     /// The LCP candidate, it may be a image or text.
@@ -70,28 +76,41 @@ pub(crate) struct PaintTimingHandler {
     lcp_candidate_updated: bool,
     /// The set of image nodes that have been reported as LCP candidates.
     reported_image_nodes: HashSet<OpaqueNode>,
-    /// <https://w3c.github.io/paint-timing/#paintedImages>
-    painted_images: Vec<PendingImageRecord>,
+    /// <https://www.w3.org/TR/paint-timing/#images-pending-rendering>
+    images_pending_rendering: Vec<PendingImageRecord>,
+    /// <https://www.w3.org/TR/paint-timing/#set-of-elements-with-rendered-text>
     /// The set of text nodes that have been reported as LCP candidates.
-    reported_text_nodes: HashSet<OpaqueNode>,
-    /// <https://w3c.github.io/paint-timing/#paintedTextNodes>
-    painted_text_nodes: HashMap<OpaqueNode, TextRecord>,
+    elements_with_rendered_text: HashSet<OpaqueNode>,
+    /// The set of pending text nodes that will fight for LCP candidate.
+    elements_with_pending_rendered_text: HashMap<OpaqueNode, TextRecord>,
 }
 
 impl PaintTimingHandler {
     pub(crate) fn new(viewport_size: LayoutSize) -> Self {
         Self {
-            lcp_size: 0.0,
+            is_document_paintable: false,
+            is_document_contentful: false,
+            reported_paints: PaintTimingReport::default(),
+            viewport_rect: LayoutRect::from_size(viewport_size),
             lcp_next_uuid: 0,
             lcp_node: None,
             lcp_candidate: None,
             lcp_candidate_updated: false,
-            viewport_rect: LayoutRect::from_size(viewport_size),
             reported_image_nodes: HashSet::new(),
-            painted_images: Vec::new(),
-            reported_text_nodes: HashSet::new(),
-            painted_text_nodes: HashMap::new(),
+            images_pending_rendering: Vec::new(),
+            elements_with_rendered_text: HashSet::new(),
+            elements_with_pending_rendered_text: HashMap::new(),
         }
+    }
+
+    /// Marks the current display list as containing a paintable item.
+    pub(crate) fn mark_document_as_paintable(&mut self) {
+        self.is_document_paintable = true;
+    }
+
+    /// Marks the current display list as containing a contentful item.
+    pub(crate) fn mark_document_contentful(&mut self) {
+        self.is_document_contentful = true;
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -105,7 +124,17 @@ impl PaintTimingHandler {
         natural_width: Option<Au>,
         natural_height: Option<Au>,
     ) {
-        self.painted_images.push(PendingImageRecord {
+        // From <https://www.w3.org/TR/paint-timing/#contentful>:
+        // An element target is contentful when one or more of the following apply:
+        // > target is a replaced element representing an available image.
+        self.mark_document_contentful();
+
+        // Skip pushing records if LargestContentfulPaint is disabled
+        if !pref!(largest_contentful_paint_enabled) {
+            return;
+        }
+
+        self.images_pending_rendering.push(PendingImageRecord {
             tag,
             bounds,
             clip_rect,
@@ -118,16 +147,33 @@ impl PaintTimingHandler {
 
     pub(crate) fn accumulate_text_rect(
         &mut self,
-        tag: Tag,
+        containing_element_tag: Option<Tag>,
         rect: LayoutRect,
         transform: FastLayoutTransform,
     ) {
+        // From <https://www.w3.org/TR/paint-timing/#contentful>:
+        // An element target is contentful when one or more of the following apply:
+        // > target has a text node child, representing non-empty text, and the
+        // > node’s used opacity is greater than zero.
+        self.mark_document_contentful();
+
+        // Skip pushing records if LargestContentfulPaint is disabled
+        if !pref!(largest_contentful_paint_enabled) {
+            return;
+        }
+
+        // `containing_element_tag` is manadatory for union of TextNodes
+        let Some(tag) = containing_element_tag else {
+            return;
+        };
         let border_box = transform_f32_rectangle(rect.to_rect(), transform)
             .unwrap_or_default()
             .to_box2d();
-        self.painted_text_nodes
+        self.elements_with_pending_rendered_text
             .entry(tag.node)
-            .and_modify(|record| record.border_boxes.push(border_box))
+            .and_modify(|record| {
+                record.border_boxes.push(border_box);
+            })
             .or_insert(TextRecord {
                 tag,
                 border_boxes: vec![border_box],
@@ -246,26 +292,36 @@ impl PaintTimingHandler {
         name = "Compute New LCP Candidate",
         skip_all,
         fields(
-            image_count = self.painted_images.len(),
-            text_count = self.painted_text_nodes.len(),
+            image_count = painted_images.len(),
+            text_count = painted_text_nodes.len(),
         )
     )]
-    fn compute_new_lcp_candidate(&mut self) {
+    fn compute_new_lcp_candidate(
+        &mut self,
+        painted_images: Vec<PendingImageRecord>,
+        painted_text_nodes: HashMap<OpaqueNode, TextRecord>,
+    ) -> Option<LCPCandidate> {
         // Step 1. Let currentSize be currentCandidate’s size if
         // currentCandidate is not null or 0 otherwise.
         // Step 2. Let largestSize be currentSize.
-        let mut largest_size = self.lcp_size;
+        let mut largest_size = self
+            .lcp_candidate
+            .as_ref()
+            .map_or(0.0, |candidate| candidate.area as f32);
 
         // Step 3. Let newCandidate be null.
         let mut new_candidate = None;
         let mut new_candidate_tag = None;
 
         // Step 4. For each record of paintedImages:
-        for record in std::mem::take(&mut self.painted_images) {
+        for record in painted_images {
             // Step 4.1. Let imageElement be record’s element.
 
-            // TODO Step 4.2. If imageElement is not exposed for paint timing,
-            // given document, continue.
+            // Step 4.2. If imageElement is not exposed for paint timing, given
+            // document, continue.
+            // Note: Satisfied, as the display-list builder only visits the
+            // connected DOM tree of the fully-active document being laid out.
+
             // Step 4.3. Let intersectionRect be the value returned by the
             // intersection rect algorithm using imageElement as the target
             // and viewport as the root.
@@ -306,11 +362,14 @@ impl PaintTimingHandler {
         }
 
         // Step 5. For each textNode of paintedTextNodes,
-        for (_, record) in std::mem::take(&mut self.painted_text_nodes) {
-            // TODO Step 5.1. If textNode is not exposed for paint timing,
-            // given document, continue.
-            // TODO Step 5.2. If textNode has alpha channel value <=0 or
-            // opacity value <=0:
+        for (_, record) in painted_text_nodes {
+            // Step 5.1. If textNode is not exposed for paint timing, given
+            // document, continue.
+            // Note: Satisfied, as the display-list builder only visits the
+            // connected DOM tree of the fully-active document being laid out.
+
+            // TODO Step 5.2. If textNode has alpha channel value <=0 or opacity
+            // value <=0, continue.
             // Step 5.3. Let intersectionRect be the union of the border boxes of
             // all Text nodes in textNode’s set of owned text nodes,
             // intersected with the visual viewport.
@@ -353,23 +412,34 @@ impl PaintTimingHandler {
         // TODO Step 6.1. If newCandidate’s width minus currentCandidate’s
         // width is less than or equal to 3, and newCandidate’s height minus
         // currentCandidate’s height is less than or equal to 3, return null.
-        if new_candidate.is_some() {
-            self.lcp_size = largest_size;
-            self.lcp_candidate = new_candidate;
+        if let Some(ref candidate) = new_candidate {
+            self.lcp_candidate = Some(candidate.clone());
+            // TODO: Append NodeAddress in LCPCandidate struct
             self.lcp_node = new_candidate_tag.map(|tag| tag.node);
-            self.lcp_candidate_updated = true;
         }
 
         // Step 7. Return newCandidate.
-        // Note: We use flag lcp_candidate_updated for updating, needs revisit
+        new_candidate
     }
 
     /// <https://www.w3.org/TR/largest-contentful-paint/#sec-report-largest-contentful-paint>
-    fn report_largest_contentful_paint(&mut self, halt_lcp: bool) {
+    fn report_largest_contentful_paint(
+        &mut self,
+        halt_lcp: bool,
+        painted_images: Vec<PendingImageRecord>,
+        painted_text_nodes: HashMap<OpaqueNode, TextRecord>,
+    ) {
+        // > Note: Each pending image record in paintedImages and text
+        // > element in paintedTextNodes will only be reported exactly
+        // > once, from mark paint timing, for the first paint where the
+        // > element is considered paintable (i.e. has opacity and
+        // > visibility) and contentful (i.e. image resource or blocking
+        // > fonts are sufficiently loaded).
+
         // Step 1. Let window be document’s relevant global object.
         // Step 2. If either of window’s has dispatched scroll event or has
         // dispatched input event is true, return.
-        if halt_lcp {
+        if halt_lcp || !pref!(largest_contentful_paint_enabled) {
             return;
         }
 
@@ -377,40 +447,120 @@ impl PaintTimingHandler {
         // contentful paint candidate given document, paintedImages,
         // paintedTextNodes, and document’s current largest contentful paint
         // candidate.
-        self.compute_new_lcp_candidate();
+        let new_candidate = self.compute_new_lcp_candidate(painted_images, painted_text_nodes);
 
         // Step 4. If newCandidate is null, return.
+        if new_candidate.is_none() {
+            return;
+        }
         // Step 5. Set document’s current largest contentful paint candidate to
         // newCandidate.
-        // TODO: Make it return and store here following specs.
+        self.lcp_candidate_updated = true;
+
         // Step 6. Let entry be the result of creating a LargestContentfulPaint
         // entry with newCandidate, paintTimingInfo, and document.
         // Step 7. Queue the PerformanceEntry entry.
         // Note: Step 6-7 are handled in script.
     }
 
+    /// <https://www.w3.org/TR/paint-timing/#first-paint>
+    fn should_report_first_paint(&self) -> bool {
+        // Step 1. If document's set of previously reported paints contains
+        // "first-paint", then return false.
+        if self.reported_paints.first_paint {
+            return false;
+        }
+        // Step 2. If document contains at least one element that is
+        // paintable, then return true.
+        // Step 3. Otherwise, return false.
+        self.is_document_paintable
+    }
+
+    /// <https://www.w3.org/TR/paint-timing/#first-contentful-paint>
+    fn should_report_first_contentful_paint(&self) -> bool {
+        // Step 1. If document's set of previously reported paints contains
+        // "first-contentful-paint", then return false.
+        if self.reported_paints.first_contentful_paint {
+            return false;
+        }
+        // Step 2. If document contains at least one element that is both
+        // paintable and contentful, then return true.
+        // Step 3. Otherwise, return false.
+        self.is_document_paintable && self.is_document_contentful
+    }
+
     /// <https://www.w3.org/TR/paint-timing/#mark-paint-timing>
     #[servo_tracing::instrument(name = "Mark Paint Timing", skip_all, fields(halt_lcp = halt_lcp))]
-    pub(crate) fn mark_paint_timing(&mut self, halt_lcp: bool) {
-        // > From: <https://www.w3.org/TR/largest-contentful-paint/#sec-report-largest-contentful-paint>
-        // > Note: Each pending image record in paintedImages and text
-        // > element in paintedTextNodes will only be reported exactly
-        // > once, from mark paint timing, for the first paint where the
-        // > element is considered paintable (i.e. has opacity and
-        // > visibility) and contentful (i.e. image resource or blocking
-        // > fonts are sufficiently loaded).
-        self.painted_images.retain(|record| {
-            record
-                .tag
-                .is_none_or(|tag| self.reported_image_nodes.insert(tag.node))
-        });
-        self.painted_text_nodes
-            .retain(|node, _record| self.reported_text_nodes.insert(*node));
+    pub(crate) fn mark_paint_timing(&mut self, halt_lcp: bool) -> PaintTimingReport {
+        // TODO Step 1. If the document's browsing context is not paint-timing
+        // eligible, return.
+
+        // TODO Step 2. Let paintTimingInfo be a new paint timing info, whose
+        // rendering update end time is the current high resolution time given
+        // document's relevant global object.
+
+        // Step 3. Let paintedImages be a new ordered set.
+        // Step 4. Let paintedTextNodes be a new ordered set.
+
+        // Step 5. For each record in doc's images pending rendering list:
+        // Step 5.1. If record's request is available and ready to be painted,
+        // then run the following steps:
+        // Note: Only available images are accumulated, hence it is fulfilled.
+        // Step 5.1.1. Append record to paintedImages.
+        // Step 5.1.2. Remove record from doc's images pending rendering list.
+        let painted_images: Vec<PendingImageRecord> =
+            std::mem::take(&mut self.images_pending_rendering)
+                .into_iter()
+                .filter(|record| {
+                    record
+                        .tag
+                        .is_none_or(|tag| self.reported_image_nodes.insert(tag.node))
+                })
+                .collect();
+
+        // Step 6. For each Element element in doc's descendants:
+        // Step 6.1. If element is contained in doc's set of elements with
+        // rendered text, continue.
+        // Step 6.2. If element's set of owned text nodes is empty, continue.
+        // Step 6.3. Append element to doc's set of elements with rendered text.
+        // Step 6.4. Append element to paintedTextNodes.
+        let painted_text_nodes: HashMap<OpaqueNode, TextRecord> =
+            std::mem::take(&mut self.elements_with_pending_rendered_text)
+                .into_iter()
+                .filter(|(node, _record)| self.elements_with_rendered_text.insert(*node))
+                .collect();
+
+        // Step 7. Let reportedPaints be the document’s set of previously
+        // reported paints. (Directly accessing)
+
+        // TODO Step 8. Let frameTimingInfo be document’s current frame timing info.
+        // TODO Step 9. Set document’s current frame timing info to null.
 
         // Step 10. Let flushPaintTimings be the following steps:
+        // Step 10.1. If document should report first paint, then:
+        let first_paint = self.should_report_first_paint();
+        // Step 10.2.1. Report paint timing given document, "first-paint",
+        // and paintTimingInfo.
+        if first_paint {
+            self.reported_paints.first_paint = true;
+        }
+
+        // Step 10.2. If document should report first contentful paint, then:
+        let first_contentful_paint = self.should_report_first_contentful_paint();
+        // Step 10.2.1. Report paint timing given document,
+        // "first-contentful-paint", and paintTimingInfo.
+        if first_contentful_paint {
+            self.reported_paints.first_contentful_paint = true;
+        }
+
         // Step 10.3. Report largest contentful paint given document,
         // paintTimingInfo, paintedImages and paintedTextNodes.
-        self.report_largest_contentful_paint(halt_lcp);
+        self.report_largest_contentful_paint(halt_lcp, painted_images, painted_text_nodes);
+
+        PaintTimingReport {
+            first_paint,
+            first_contentful_paint,
+        }
     }
 
     pub(crate) fn did_lcp_candidate_update(&self) -> bool {

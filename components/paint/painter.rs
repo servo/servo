@@ -979,14 +979,14 @@ impl Painter {
 
         let epoch = display_list_info.epoch.into();
         let first_reflow = display_list_info.first_reflow;
-        if details.first_paint_metric == PaintMetricState::Waiting && display_list_info.is_paintable
+        if details.first_paint_metric == PaintMetricState::Waiting &&
+            display_list_info.paint_timing_report.first_paint
         {
             details.first_paint_metric = PaintMetricState::Seen(epoch, first_reflow);
         }
 
         if details.first_contentful_paint_metric == PaintMetricState::Waiting &&
-            display_list_info.is_paintable &&
-            display_list_info.is_contentful
+            display_list_info.paint_timing_report.first_contentful_paint
         {
             details.first_contentful_paint_metric = PaintMetricState::Seen(epoch, first_reflow);
         }
