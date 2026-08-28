@@ -42,10 +42,11 @@ use crate::tasks::task_source::TaskSourceName;
 
 #[expect(clippy::large_enum_variant)]
 #[derive(Debug)]
+// We box only the devtools message because it is the largest and least used message.
 pub(crate) enum MixedMessage {
     FromConstellation(ScriptThreadMessage),
     FromScript(MainThreadScriptMsg),
-    FromDevtools(DevtoolScriptControlMsg),
+    FromDevtools(Box<DevtoolScriptControlMsg>),
     FromImageCache(ImageCacheResponseMessage),
     #[cfg(feature = "webgpu")]
     FromWebGPUServer(WebGPUMsg),
@@ -481,12 +482,12 @@ impl ScriptThreadReceivers {
                         .unwrap(),
                 )
             } else if index == devtools_index {
-                MixedMessage::FromDevtools(
+                MixedMessage::FromDevtools(Box::new(
                     operation
                         .recv(&self.devtools_server_receiver)
                         .unwrap()
                         .unwrap(),
-                )
+                ))
             } else if index == image_cache_index {
                 MixedMessage::FromImageCache(operation.recv(&self.image_cache_receiver).unwrap())
             } else {
@@ -534,7 +535,7 @@ impl ScriptThreadReceivers {
             return MixedMessage::FromScript(message).into();
         }
         if let Ok(message) = self.devtools_server_receiver.try_recv() {
-            return MixedMessage::FromDevtools(message.unwrap()).into();
+            return MixedMessage::FromDevtools(Box::new(message.unwrap())).into();
         }
         if let Ok(message) = self.image_cache_receiver.try_recv() {
             return MixedMessage::FromImageCache(message).into();
