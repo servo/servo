@@ -6,11 +6,16 @@ updates:
     - "tests/blink_perf/**"
     - "tests/wpt/**"
   schedule:
-    interval: daily
+    interval: weekly
+    day: "sunday"
     # default timezone is UTC
     # CI is usually busiest during european daytime.
-    time: "00:00"
-  open-pull-requests-limit: 7
+    timezone: Europe/Berlin
+    time: "01:00"
+  cooldown:
+    default-days: 7
+    include: "*"
+  open-pull-requests-limit: 10
   allow:
   - dependency-type: direct
   - dependency-type: indirect
