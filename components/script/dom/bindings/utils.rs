@@ -111,6 +111,7 @@ unsafe extern "C" fn extract_exception_info(
     _message: RawMutableHandle<*mut JSString>,
 ) -> bool {
     // This is dummy impl as done in JSShell: https://phabricator.services.mozilla.com/D257487
+    // TODO: https://github.com/servo/servo/issues/47619
     unsafe {
         *is_exception = false;
     }
