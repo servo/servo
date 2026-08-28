@@ -106,18 +106,15 @@ impl InputEvent {
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct KeyboardEvent {
     pub event: ::keyboard_types::KeyboardEvent,
-    pub raw_keycode: Option<u32>,
 }
 
 impl KeyboardEvent {
     pub fn new(keyboard_event: ::keyboard_types::KeyboardEvent) -> Self {
         Self {
             event: keyboard_event,
-            raw_keycode: None,
         }
     }
 
-    #[allow(clippy::too_many_arguments)]
     pub fn new_without_event(
         state: KeyState,
         key: Key,
