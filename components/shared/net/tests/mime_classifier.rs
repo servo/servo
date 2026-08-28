@@ -559,3 +559,16 @@ fn test_sniff_mp4_video_apache_flag_on() {
         ApacheBugFlag::On,
     );
 }
+
+#[test]
+fn test_sniff_mp4_matcher_box_size_less_than_16() {
+    let matcher = Mp4Matcher;
+
+    let data = [
+        0x00, 0x00, 0x00, 0x0C, // box_size = 12
+        0x66, 0x74, 0x79, 0x70, // ftyp
+        0x00, 0x00, 0x00, 0x00, // not mp4 signature
+    ];
+
+    assert!(!matcher.matches(&data));
+}
