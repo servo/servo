@@ -1116,7 +1116,7 @@ pub(crate) struct PerGlobalInterfaceSizes(HashMap<usize, GlobalSizeData>);
 
 thread_local!(
     static DOM_OBJECT_SIZES: LazyCell<RefCell<PerGlobalInterfaceSizes>> = const {
-        LazyCell::new(|| Default::default())
+        LazyCell::new(Default::default)
     }
 );
 
@@ -1245,7 +1245,7 @@ unsafe fn set_gc_zeal_options(cx: *mut RawJSContext) {
 #[cfg(not(feature = "debugmozjs"))]
 unsafe fn set_gc_zeal_options(_: *mut RawJSContext) {}
 
-thread_local!(pub(crate) static ALREADY_COMPUTED_OBJECTS: LazyCell<RefCell<HashSet<*const JSObject>>> = const {
+thread_local!(static ALREADY_COMPUTED_OBJECTS: LazyCell<RefCell<HashSet<*const JSObject>>> = const {
     LazyCell::new(Default::default)
 });
 
