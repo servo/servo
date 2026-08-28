@@ -6,12 +6,11 @@ updates:
     - "tests/blink_perf/**"
     - "tests/wpt/**"
   schedule:
-    interval: weekly
-    day: "sunday"
+    interval: "cron"
+    cronjob: "0 1 * * 1,4"  # monday and thursday at 1am
     # default timezone is UTC
     # CI is usually busiest during european daytime.
     timezone: Europe/Berlin
-    time: "01:00"
   cooldown:
     default-days: 7
     include: "*"
