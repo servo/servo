@@ -215,7 +215,7 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
                 e
             );
             return Err(Error::Operation(Some(
-                "Failed to write texture buffer to GPU".into(),
+                "Failed to write to GPUTexture".into(),
             )));
         }
 

@@ -473,12 +473,9 @@ where
         // Step 4
         let is_lost = self.device.is_lost();
         if is_lost {
-            p.reject_error(cx, Error::Abort(Some("GPU device is lost".into())));
+            p.reject_error(cx, Error::Abort(Some("GPUDevice is lost".into())));
         } else {
-            p.reject_error(
-                cx,
-                Error::Operation(Some("Could not map GPU buffer".into())),
-            );
+            p.reject_error(cx, Error::Operation(Some("Failed to map GPUBuffer".into())));
         }
     }
 
