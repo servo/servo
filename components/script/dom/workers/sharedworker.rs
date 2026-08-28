@@ -570,7 +570,6 @@ impl SharedWorkerMethods<crate::DomTypeHolder> for SharedWorker {
             let webview_id = global
                 .webview_id()
                 .expect("Window global must have a WebViewId");
-            #[cfg(feature = "devtools")]
             let page_info = DevtoolsPageInfo {
                 title: format!("SharedWorker for {}", worker_url.url()),
                 url: worker_url.url(),

@@ -474,7 +474,6 @@ impl SharedWorkerGlobalScope {
                 let debugger_global_for_scope: Option<&WorkerDebuggerGlobalScope> = None;
                 #[cfg(feature = "devtools")]
                 let devtools_enabled = init.to_devtools_sender.is_some();
-
                 // Step 3. Let origin be a unique opaque origin if worker global scope's url's scheme is "data"; otherwise outside settings's origin.
                 if worker_url.scheme() == "data" {
                     if is_secure_context {
