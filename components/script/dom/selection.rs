@@ -87,20 +87,33 @@ impl Selection {
             old_range.disassociate_selection(self);
         }
 
-        let boundary_points_changed = matches!(
-            (old_range, new_range),
-            (Some(old_range), Some(new_range)) if
-                old_range.start() != new_range.start() ||
-                old_range.end() != new_range.end());
+        let boundary_points_changed = match (old_range, new_range) {
+            (Some(old_range), Some(new_range)) => {
+                old_range.start() != new_range.start() || old_range.end() != new_range.end()
+            },
+            _ => true,
+        };
 
         if let Some(new_range) = new_range {
             self.range.set(Some(new_range));
             new_range.associate_selection(self);
         }
 
+        // From <https://w3c.github.io/selection-api/#selectionchange-event>:
+        // > When the selection is dissociated with its range, associated with a new
+        // > range, or the associated range's boundary point is mutated either by the user
+        // > or the content script, the user agent must schedule a selectionchange event on
+        // > document.
+        //
+        // This means we should fire the event even if the boundaries themselves did not
+        // change. A change to the range object is enough.
+        self.queue_selectionchange_task();
+
+        // On the other hand, clearing command overrides and marking the visible selection
+        // as dirty should only happen when the selection really changed.
         if boundary_points_changed {
             self.set_visible_selection_dirty();
-            self.queue_selectionchange_task();
+            self.clear_command_overrides();
         }
     }
 
@@ -246,16 +259,20 @@ impl Selection {
         }
     }
 
+    /// An implementation of:
+    ///  - <https://w3c.github.io/editing/docs/execCommand/#state-override> and
+    ///  - <https://w3c.github.io/editing/docs/execCommand/#value-override>
+    ///
+    /// > Whenever the number of ranges in the selection changes to something
+    /// > different, and whenever a boundary point of the range at a given index in the
+    /// > selection changes to something different, the state override and value
+    /// > override must be unset for every command.
+    pub(crate) fn clear_command_overrides(&self) {
+        self.document.clear_command_overrides();
+    }
+
     /// <https://w3c.github.io/selection-api/#dfn-schedule-a-selectionchange-event>
     pub(crate) fn queue_selectionchange_task(&self) {
-        // https://w3c.github.io/editing/docs/execCommand/#state-override
-        // https://w3c.github.io/editing/docs/execCommand/#value-override
-        // > Whenever the number of ranges in the selection changes to something
-        // > different, and whenever a boundary point of the range at a given index in the
-        // > selection changes to something different, the state override and value
-        // > override must be unset for every command.
-        self.document.clear_command_overrides();
-
         // Step 1. If target's has scheduled selectionchange event is true, abort these steps.
         if self.has_scheduled_selectionchange_event.get() {
             return;
