@@ -1147,10 +1147,10 @@ pub(crate) fn fetch_a_modulepreload_module(
 
     // Note: There is a specification inconsistency, `fetch_a_single_module_script` doesn't allow
     // fetching top level JSON/CSS module scripts, but should be possible when preloading.
-    let module_type = if let Destination::Json = destination {
-        Some(ModuleType::JSON)
-    } else {
-        None
+    let module_type = match destination {
+        Destination::Json => Some(ModuleType::JSON),
+        Destination::Style => Some(ModuleType::CSS),
+        _ => None,
     };
 
     // Step 1. Fetch a single module script given url, settingsObject, destination, options, settingsObject,
@@ -1338,7 +1338,7 @@ pub(crate) fn fetch_a_single_module_script(
     // fetch destination from module type steps given destination and moduleType.
     let destination = match module_type {
         ModuleType::JSON => Destination::Json,
-        ModuleType::CSS => todo!("https://github.com/servo/servo/issues/47179"),
+        ModuleType::CSS => Destination::Style,
         ModuleType::Text => {
             todo!("https://github.com/servo/servo/issues/47149")
         },
