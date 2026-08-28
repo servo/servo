@@ -172,7 +172,6 @@ use crate::runtime::script_runtime::{
     IntroductionType, Runtime, ScriptThreadEventCategory, ThreadSafeJSContext, get_reports,
 };
 use crate::tasks::task_queue::TaskQueue;
-use crate::webdriver_handlers::jsval_to_webdriver;
 
 thread_local!(static SCRIPT_THREAD_ROOT: Cell<Option<*const ScriptThread>> = const { Cell::new(None) });
 
@@ -3512,7 +3511,7 @@ impl ScriptThread {
                     self.senders.bluetooth_sender.clone(),
                     self.senders.memory_profiler_sender.clone(),
                     self.senders.time_profiler_sender.clone(),
-            #[cfg(feature = "devtools")]
+                    #[cfg(feature = "devtools")]
                     self.senders.devtools_server_sender.clone(),
                     self.senders.pipeline_to_constellation_sender.clone(),
                     self.senders.pipeline_to_embedder_sender.clone(),
