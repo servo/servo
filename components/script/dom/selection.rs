@@ -82,17 +82,39 @@ impl Selection {
             return;
         }
 
-        if let Some(old_range) = self.range.take() {
+        let old_range = self.range.take();
+        if let Some(old_range) = old_range.as_ref() {
             old_range.disassociate_selection(self);
         }
+
+        let boundary_points_changed = match (old_range, new_range) {
+            (Some(old_range), Some(new_range)) => {
+                old_range.start() != new_range.start() || old_range.end() != new_range.end()
+            },
+            _ => true,
+        };
 
         if let Some(new_range) = new_range {
             self.range.set(Some(new_range));
             new_range.associate_selection(self);
         }
 
-        self.set_visible_selection_dirty();
+        // From <https://w3c.github.io/selection-api/#selectionchange-event>:
+        // > When the selection is dissociated with its range, associated with a new
+        // > range, or the associated range's boundary point is mutated either by the user
+        // > or the content script, the user agent must schedule a selectionchange event on
+        // > document.
+        //
+        // This means we should fire the event even if the boundaries themselves did not
+        // change. A change to the range object is enough.
         self.queue_selectionchange_task();
+
+        // On the other hand, clearing command overrides and marking the visible selection
+        // as dirty should only happen when the selection really changed.
+        if boundary_points_changed {
+            self.set_visible_selection_dirty();
+            self.clear_command_overrides();
+        }
     }
 
     fn iter_nodes_with_overlaps_document_selection_flag<'no_gc>(
@@ -237,16 +259,20 @@ impl Selection {
         }
     }
 
+    /// An implementation of:
+    ///  - <https://w3c.github.io/editing/docs/execCommand/#state-override> and
+    ///  - <https://w3c.github.io/editing/docs/execCommand/#value-override>
+    ///
+    /// > Whenever the number of ranges in the selection changes to something
+    /// > different, and whenever a boundary point of the range at a given index in the
+    /// > selection changes to something different, the state override and value
+    /// > override must be unset for every command.
+    pub(crate) fn clear_command_overrides(&self) {
+        self.document.clear_command_overrides();
+    }
+
     /// <https://w3c.github.io/selection-api/#dfn-schedule-a-selectionchange-event>
     pub(crate) fn queue_selectionchange_task(&self) {
-        // https://w3c.github.io/editing/docs/execCommand/#state-override
-        // https://w3c.github.io/editing/docs/execCommand/#value-override
-        // > Whenever the number of ranges in the selection changes to something
-        // > different, and whenever a boundary point of the range at a given index in the
-        // > selection changes to something different, the state override and value
-        // > override must be unset for every command.
-        self.document.clear_command_overrides();
-
         // Step 1. If target's has scheduled selectionchange event is true, abort these steps.
         if self.has_scheduled_selectionchange_event.get() {
             return;
@@ -287,6 +313,16 @@ impl Selection {
             self.document.upcast::<Node>()
     }
 
+    pub(crate) fn start_boundary(&self, cx: &mut JSContext) -> (DomRoot<Node>, u32) {
+        let range = self.expect_active_range(cx);
+        (range.start_container(), range.start_offset())
+    }
+
+    pub(crate) fn end_boundary(&self, cx: &mut JSContext) -> (DomRoot<Node>, u32) {
+        let range = self.expect_active_range(cx);
+        (range.end_container(), range.end_offset())
+    }
+
     /// <https://w3c.github.io/editing/docs/execCommand/#active-range>
     pub(crate) fn active_range(&self, _cx: &mut JSContext) -> Option<DomRoot<Range>> {
         // > The active range is the range of the selection given by calling
@@ -294,7 +330,13 @@ impl Selection {
         self.range.get()
     }
 
-    pub(crate) fn collapse_current_range(&self, node: &Node, offset: u32) {
+    pub(crate) fn expect_active_range(&self, _cx: &mut JSContext) -> DomRoot<Range> {
+        self.range
+            .get()
+            .expect("Should always have an active range")
+    }
+
+    pub(crate) fn collapse_active_range(&self, node: &Node, offset: u32) {
         let range = self.range.get().expect("Must always have a range");
         range.set_start(node, offset);
         range.set_end(node, offset);
@@ -302,7 +344,7 @@ impl Selection {
         self.set_visible_selection_dirty();
     }
 
-    pub(crate) fn extend_current_range(&self, node: &Node, offset: u32) {
+    pub(crate) fn extend_active_range(&self, node: &Node, offset: u32) {
         let range = self.range.get().expect("Must always have a range");
         assert!(range.collapsed(), "Must only extend after collapsing");
 

@@ -70,7 +70,7 @@ pub(crate) fn execute_insert_paragraph_command(
         node = node.GetParentNode().expect("Must always have a parent");
     }
     // Step 7. Call collapse(node, offset) on the context object's selection.
-    selection.collapse_current_range(&node, offset);
+    selection.collapse_active_range(&node, offset);
     // Step 8. Let container equal node.
     let mut container = node.clone();
     // Step 9. While container is not a single-line container,
@@ -159,7 +159,7 @@ pub(crate) fn execute_insert_paragraph_command(
                 unreachable!("Must always be able to append");
             }
             // Step 11.5.5. Call collapse(container, 0) on the context object's selection.
-            selection.collapse_current_range(container, 0);
+            selection.collapse_active_range(container, 0);
             // Step 11.5.6. Return true.
             return true;
         };
@@ -201,7 +201,7 @@ pub(crate) fn execute_insert_paragraph_command(
             unreachable!("Must always be able to insert");
         }
         // Step 12.3. Call collapse(node, offset + 1) on the context object's selection.
-        selection.collapse_current_range(&node, offset + 1);
+        selection.collapse_active_range(&node, offset + 1);
         // Step 12.4. If br is the last descendant of container,
         // let br be the result of calling createElement("br") on the context object,
         // then call insertNode(br) on the active range.
@@ -421,7 +421,7 @@ pub(crate) fn execute_insert_paragraph_command(
         }
     }
     // Step 34. Call collapse(new container, 0) on the context object's selection.
-    selection.collapse_current_range(&new_container_node, 0);
+    selection.collapse_active_range(&new_container_node, 0);
     // Step 35. Return true.
     true
 }

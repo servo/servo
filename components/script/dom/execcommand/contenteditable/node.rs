@@ -8,6 +8,7 @@ use std::ops::Deref;
 use cssparser::color::OPAQUE;
 use html5ever::local_name;
 use js::context::{JSContext, NoGC};
+use script_bindings::codegen::GenericBindings::RangeBinding::RangeMethods;
 use script_bindings::inheritance::Castable;
 use style::attr::parse_legacy_color;
 use style::values::specified::box_::DisplayOutside;
@@ -231,8 +232,8 @@ where
     let (new_end_container, new_end_offset) =
         adjust_boundary_point(end_container, end_offset, should_adjust_end);
 
-    active_range.set_start(&new_start_container, new_start_offset);
-    active_range.set_end(&new_end_container, new_end_offset);
+    let _ = active_range.SetStart(&new_start_container, new_start_offset);
+    let _ = active_range.SetEnd(&new_end_container, new_end_offset);
 }
 
 /// <https://w3c.github.io/editing/docs/execCommand/#allowed-child>

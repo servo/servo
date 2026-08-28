@@ -51,7 +51,7 @@ fn bump_selection_out_of_invalid_node(cx: &mut JSContext, selection: &Selection)
         let Some(parent) = start_container.GetParentNode() else {
             return Err(());
         };
-        active_range.set_start(&parent, start_container.index());
+        let _ = active_range.SetStart(&parent, start_container.index());
     }
     if let end_container = active_range.end_container() &&
         (end_container.is::<Comment>() || end_container.is::<ProcessingInstruction>())
@@ -59,7 +59,7 @@ fn bump_selection_out_of_invalid_node(cx: &mut JSContext, selection: &Selection)
         let Some(parent) = end_container.GetParentNode() else {
             return Err(());
         };
-        active_range.set_end(&parent, end_container.index());
+        let _ = active_range.SetEnd(&parent, end_container.index());
     }
     Ok(())
 }
