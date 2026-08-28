@@ -152,13 +152,15 @@ impl MicrotaskQueue {
 
             js_micro_task.set(unsafe { ToMaybeWrappedJSMicroTask(generic_task.as_ptr()) });
             execution_global.set(unsafe { GetExecutionGlobalFromJSMicroTask(js_micro_task.get()) });
-            unsafe {
+            if !unsafe {
                 MaybeGetHostDefinedDataFromJSMicroTask(
                     js_micro_task.get(),
                     incumbent_global.handle_mut(),
                     data.handle_mut(),
                 )
-            };
+            } {
+                continue;
+            }
 
             let interaction = if let Some(promise) =
                 NonNull::new(unsafe { MaybeGetPromiseFromJSMicroTask(js_micro_task.get()) })
