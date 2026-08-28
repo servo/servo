@@ -134,52 +134,12 @@ impl MicrotaskQueue {
         // Step 3. While the event loop's microtask queue is not empty:
         // based on https://spidermonkey.dev/blog/2026/01/15/job-responsibility.html#running-micro-tasks
         // and https://searchfox.org/firefox-main/rev/7ae92e67d094086cd3e09918ec94b6278a948535/xpcom/base/CycleCollectedJSContext.cpp#1176
-        // and it's helper functions
+        // and its helper functions
         while unsafe { HasAnyMicroTasks(cx) } {
             unsafe { JS_DequeueNextMicroTask(cx, generic_task.handle_mut()) };
 
             // https://searchfox.org/firefox-main/rev/50691777d300fffc7d1f7844b59769109bc76f3e/xpcom/base/CycleCollectedJSContext.cpp#916
-            if unsafe { IsJSMicroTask(generic_task.as_ptr()) } {
-                js_micro_task.set(unsafe { ToMaybeWrappedJSMicroTask(generic_task.as_ptr()) });
-                execution_global
-                    .set(unsafe { GetExecutionGlobalFromJSMicroTask(js_micro_task.get()) });
-                unsafe {
-                    MaybeGetHostDefinedDataFromJSMicroTask(
-                        js_micro_task.get(),
-                        incumbent_global.handle_mut(),
-                        data.handle_mut(),
-                    )
-                };
-
-                let interaction = if let Some(promise) =
-                    NonNull::new(unsafe { MaybeGetPromiseFromJSMicroTask(js_micro_task.get()) })
-                {
-                    unsafe { GetPromiseUserInputEventHandlingState(promise.as_ptr()) }
-                } else {
-                    PromiseUserInputEventHandlingState::DontCare
-                };
-                let _maybe_user_interacting_guard = if interaction ==
-                    PromiseUserInputEventHandlingState::HadUserInteractionAtCreation
-                {
-                    Some(ScriptThread::user_interacting_guard())
-                } else {
-                    None
-                };
-                let global_scope = unsafe { GlobalScope::from_object(execution_global.get()) };
-                run_a_script::<DomTypeHolder, _, _>(cx, &global_scope, |cx| {
-                    let mut r = || {
-                        let mut realm = AutoRealm::new_from_handle(cx, execution_global.handle());
-                        let _ = unsafe { RunJSMicroTask(&mut realm, js_micro_task.handle()) };
-                    };
-                    if incumbent_global.get().is_null() {
-                        r();
-                    } else {
-                        let global_scope =
-                            unsafe { GlobalScope::from_object(incumbent_global.get()) };
-                        run_a_callback::<DomTypeHolder, _>(&global_scope, r);
-                    }
-                });
-            } else {
+            if !unsafe { IsJSMicroTask(generic_task.as_ptr()) } {
                 rooted!(&in(cx) let task = unsafe {
                     Box::from_raw(
                         generic_task.to_private() as *const Box<dyn MicrotaskRunnable>
@@ -187,7 +147,46 @@ impl MicrotaskQueue {
                     )
                 });
                 task.handler(cx);
+                continue;
             }
+
+            js_micro_task.set(unsafe { ToMaybeWrappedJSMicroTask(generic_task.as_ptr()) });
+            execution_global.set(unsafe { GetExecutionGlobalFromJSMicroTask(js_micro_task.get()) });
+            unsafe {
+                MaybeGetHostDefinedDataFromJSMicroTask(
+                    js_micro_task.get(),
+                    incumbent_global.handle_mut(),
+                    data.handle_mut(),
+                )
+            };
+
+            let interaction = if let Some(promise) =
+                NonNull::new(unsafe { MaybeGetPromiseFromJSMicroTask(js_micro_task.get()) })
+            {
+                unsafe { GetPromiseUserInputEventHandlingState(promise.as_ptr()) }
+            } else {
+                PromiseUserInputEventHandlingState::DontCare
+            };
+            let _maybe_user_interacting_guard = if interaction ==
+                PromiseUserInputEventHandlingState::HadUserInteractionAtCreation
+            {
+                Some(ScriptThread::user_interacting_guard())
+            } else {
+                None
+            };
+            let global_scope = unsafe { GlobalScope::from_object(execution_global.get()) };
+            run_a_script::<DomTypeHolder, _, _>(cx, &global_scope, |cx| {
+                let mut r = || {
+                    let mut realm = AutoRealm::new_from_handle(cx, execution_global.handle());
+                    let _ = unsafe { RunJSMicroTask(&mut realm, js_micro_task.handle()) };
+                };
+                if incumbent_global.get().is_null() {
+                    r();
+                } else {
+                    let global_scope = unsafe { GlobalScope::from_object(incumbent_global.get()) };
+                    run_a_callback::<DomTypeHolder, _>(&global_scope, r);
+                }
+            });
         }
 
         // Step 4. For each environment settings object settingsObject whose responsible
