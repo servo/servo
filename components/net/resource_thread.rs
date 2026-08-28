@@ -14,8 +14,6 @@ use std::thread;
 
 use cookie::Cookie;
 #[cfg(feature = "devtools")]
-use crossbeam_channel::Sender;
-#[cfg(feature = "devtools")]
 use devtools_traits::DevtoolsControlMsg;
 use embedder_traits::GenericEmbedderProxy;
 use hyper_serde::Serde;
@@ -90,7 +88,7 @@ fn load_root_cert_store_from_file(file_path: String) -> io::Result<Vec<Certifica
 /// Returns a tuple of (public, private) senders to the new threads.
 #[expect(clippy::too_many_arguments)]
 pub fn new_resource_threads(
-    #[cfg(feature = "devtools")] devtools_sender: Option<Sender<DevtoolsControlMsg>>,
+    #[cfg(feature = "devtools")] devtools_sender: Option<crossbeam_channel::Sender<DevtoolsControlMsg>>,
     time_profiler_chan: ProfilerChan,
     mem_profiler_chan: MemProfilerChan,
     embedder_proxy: GenericEmbedderProxy<NetToEmbedderMsg>,
@@ -131,7 +129,7 @@ pub fn new_resource_threads(
 /// Create a CoreResourceThread
 #[expect(clippy::too_many_arguments)]
 pub fn new_core_resource_thread(
-    #[cfg(feature = "devtools")] devtools_sender: Option<Sender<DevtoolsControlMsg>>,
+    #[cfg(feature = "devtools")] devtools_sender: Option<crossbeam_channel::Sender<DevtoolsControlMsg>>,
     time_profiler_chan: ProfilerChan,
     mem_profiler_chan: MemProfilerChan,
     embedder_proxy: GenericEmbedderProxy<NetToEmbedderMsg>,
@@ -712,7 +710,7 @@ pub struct AuthCache {
 
 pub struct CoreResourceManager {
     #[cfg(feature = "devtools")]
-    devtools_sender: Option<Sender<DevtoolsControlMsg>>,
+    devtools_sender: Option<crossbeam_channel::Sender<DevtoolsControlMsg>>,
     sw_managers: HashMap<ImmutableOrigin, IpcSender<CustomResponseMediator>>,
     filemanager: FileManager,
     request_interceptor: RequestInterceptor,
@@ -725,7 +723,7 @@ pub struct CoreResourceManager {
 
 impl CoreResourceManager {
     pub fn new(
-        #[cfg(feature = "devtools")] devtools_sender: Option<Sender<DevtoolsControlMsg>>,
+        #[cfg(feature = "devtools")] devtools_sender: Option<crossbeam_channel::Sender<DevtoolsControlMsg>>,
         _profiler_chan: ProfilerChan,
         embedder_proxy: GenericEmbedderProxy<NetToEmbedderMsg>,
         ca_certificates: CACertificates<'static>,
