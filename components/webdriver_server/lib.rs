@@ -910,7 +910,7 @@ impl Handler {
 
         // Step 11. In case the Set Window Rect command is partially supported
         // (i.e. some combinations of arguments are supported but not others),
-        // the implmentation is expected to continue with the remaining steps.
+        // the implementation is expected to continue with the remaining steps.
         // DO NOT return "unsupported operation".
 
         let webview_id = self.webview_id()?;
