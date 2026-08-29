@@ -125,7 +125,7 @@ impl NodeListMethods<crate::DomTypeHolder> for NodeList {
             NodeListType::Children(ref list) => list.len(),
             NodeListType::Labels(ref list) => list.len(no_gc),
             NodeListType::Radio(ref list) => list.len(),
-            NodeListType::ElementsByName(ref list) => list.len(),
+            NodeListType::ElementsByName(ref list) => list.len(no_gc),
         }
     }
 
@@ -305,7 +305,7 @@ impl ElementsByNameList {
         }
     }
 
-    pub(crate) fn len(&self) -> u32 {
+    pub(crate) fn len(&self, _no_gc: &NoGC) -> u32 {
         self.document.elements_by_name_count(&self.name)
     }
 
