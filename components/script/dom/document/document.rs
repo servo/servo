@@ -4592,13 +4592,6 @@ impl Document {
         })
     }
 
-    pub(crate) fn elements_by_name_count(&self, name: &TracedDOMString) -> u32 {
-        if name.is_empty() {
-            return 0;
-        }
-        self.count_node_list(|n| Document::is_element_in_get_by_name(n, name))
-    }
-
     pub(crate) fn elements_by_name_iter<'a>(
         &self,
         no_gc: &'a NoGC,
@@ -4625,16 +4618,6 @@ impl Document {
             return false;
         }
         element.get_name().is_some_and(|n| &*n == name)
-    }
-
-    fn count_node_list<F: Fn(&Node) -> bool>(&self, callback: F) -> u32 {
-        let doc = self.GetDocumentElement();
-        let maybe_node = doc.as_deref().map(Castable::upcast::<Node>);
-        maybe_node
-            .iter()
-            .flat_map(|node| node.traverse_preorder(ShadowIncluding::No))
-            .filter(|node| callback(node))
-            .count() as u32
     }
 
     fn get_html_element(&self) -> Option<DomRoot<HTMLHtmlElement>> {
