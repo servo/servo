@@ -143,6 +143,7 @@ impl HeadersMethods<crate::DomTypeHolder> for Headers {
             return Ok(());
         };
 
+        // Validated tokens are always ASCII.
         valid_name.make_ascii_lowercase();
 
         // Step 2 If this’s guard is "request-no-cors", name is not a no-CORS-safelisted request-header name,
@@ -209,6 +210,7 @@ impl HeadersMethods<crate::DomTypeHolder> for Headers {
         else {
             return Ok(());
         };
+        // Validated tokens are always ASCII.
         valid_name.make_ascii_lowercase();
 
         // 3. If this’s guard is "request-no-cors" and (name, value) is not a
