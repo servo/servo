@@ -4002,16 +4002,42 @@ impl ScriptThread {
     /// argument until a notification is received that the fetch is complete.
     #[servo_tracing::instrument(skip_all)]
     fn pre_page_load(&self, cx: &mut js::context::JSContext, mut incomplete: InProgressLoad) {
-        let url_str = incomplete.load_data.url.as_str();
-        if url_str == "about:blank" || incomplete.load_data.js_eval_result.is_some() {
-            self.start_synchronous_page_load(cx, incomplete);
+        let preserved_origin = || -> Option<MutableOrigin> {
+            // When loading `about:blank`, `about:srcdoc` and `javascript:`
+            // URLs, the specification says that the origin should be aliased
+            // from the creator origin. This means that changes to the creator
+            // origin via things like `document.domain` are reflected in the
+            // child Document. This code attempts to look up the creator
+            // Document and alias the origin for these type of pages.
+            //
+            // TODO: This should be eliminated by not having these types of pages
+            // use the parser at at all.
+            let creator_pipeline_id = incomplete.load_data.creator_pipeline_id?;
+            Some(
+                ScriptThread::find_document(creator_pipeline_id)?
+                    .origin()
+                    .clone(),
+            )
+        };
+
+        if incomplete.load_data.is_for_about_blank() || incomplete.load_data.is_for_javascript_url()
+        {
+            let source_origin = preserved_origin();
+            self.start_synchronous_page_load(cx, incomplete, source_origin);
             return;
         }
-        if url_str == "about:srcdoc" {
-            self.page_load_about_srcdoc(cx, incomplete);
+        if incomplete.load_data.is_for_about_srcdoc() {
+            let source_origin = preserved_origin();
+            self.page_load_about_srcdoc(cx, incomplete, source_origin);
             return;
         }
 
+        let source_origin = match incomplete.load_data.load_origin {
+            LoadOrigin::Script(ref snapshot) => {
+                Some(MutableOrigin::from_snapshot(snapshot.clone()))
+            },
+            _ => None,
+        };
         let context = ParserContext::new(
             incomplete.webview_id,
             incomplete.pipeline_id,
@@ -4019,7 +4045,7 @@ impl ScriptThread {
             incomplete.load_data.creation_sandboxing_flag_set,
             incomplete.parent_info,
             incomplete.target_snapshot_params,
-            incomplete.load_data.load_origin.clone(),
+            source_origin,
         );
         self.incomplete_parser_contexts
             .0
@@ -4230,6 +4256,7 @@ impl ScriptThread {
         &self,
         cx: &mut js::context::JSContext,
         mut incomplete: InProgressLoad,
+        source_origin: Option<MutableOrigin>,
     ) {
         let mut context = ParserContext::new(
             incomplete.webview_id,
@@ -4238,7 +4265,7 @@ impl ScriptThread {
             incomplete.load_data.creation_sandboxing_flag_set,
             incomplete.parent_info,
             incomplete.target_snapshot_params,
-            incomplete.load_data.load_origin.clone(),
+            source_origin,
         );
 
         let mut meta = Metadata::default(incomplete.load_data.url.clone());
@@ -4272,6 +4299,7 @@ impl ScriptThread {
         &self,
         cx: &mut js::context::JSContext,
         mut incomplete: InProgressLoad,
+        source_origin: Option<MutableOrigin>,
     ) {
         let url = ServoUrl::parse("about:srcdoc").unwrap();
         let mut meta = Metadata::default(url.clone());
@@ -4289,7 +4317,6 @@ impl ScriptThread {
         let parent_info = incomplete.parent_info;
         let about_base_url = incomplete.load_data.about_base_url.clone();
         let target_snapshot_params = incomplete.target_snapshot_params;
-        let load_origin = incomplete.load_data.load_origin.clone();
         self.incomplete_loads.borrow_mut().push(incomplete);
 
         let mut context = ParserContext::new(
@@ -4299,7 +4326,7 @@ impl ScriptThread {
             creation_sandboxing_flag_set,
             parent_info,
             target_snapshot_params,
-            load_origin,
+            source_origin,
         );
         context.process_response(self, cx, Ok(FetchMetadata::Unfiltered(meta)));
         context.set_policy_container(policy_container.as_ref());

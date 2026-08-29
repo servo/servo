@@ -204,6 +204,18 @@ impl LoadData {
             SandboxingFlagSet::empty(),
         )
     }
+
+    pub fn is_for_about_blank(&self) -> bool {
+        self.url.matches_about_blank()
+    }
+
+    pub fn is_for_about_srcdoc(&self) -> bool {
+        self.url.as_str() == "about:srcdoc"
+    }
+
+    pub fn is_for_javascript_url(&self) -> bool {
+        self.js_eval_result.is_some()
+    }
 }
 
 /// <https://html.spec.whatwg.org/multipage/#navigation-supporting-concepts:navigationhistorybehavior>
