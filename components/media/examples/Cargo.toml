@@ -17,3 +17,6 @@ freetype-sys = { workspace = true, features = ["bundled"] } # used only to force
 servo-media = { workspace = true }
 servo-media-auto = { workspace = true }
 servo-media-dummy = { workspace = true }
+
+[lints]
+workspace = true

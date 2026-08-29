@@ -50,3 +50,6 @@ webgpu_traits = { workspace = true, optional = true }
 webrender_api = { workspace = true }
 wgpu-core = { workspace = true, optional = true }
 zeroize = { workspace = true }
+
+[lints]
+workspace = true

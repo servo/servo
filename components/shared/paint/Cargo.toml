@@ -47,3 +47,6 @@ stylo_traits = { workspace = true }
 surfman = { workspace = true, features = ["sm-x11"] }
 tracing = { workspace = true, optional = true }
 webrender_api = { workspace = true }
+
+[lints]
+workspace = true
