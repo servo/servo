@@ -299,7 +299,7 @@ Positioning on the top of the viewport, in the middle."
                 ..Default::default()
             },
             WebVttCue {
-                identifier: "".into(),
+                identifier: String::new(),
                 start_time: compute_result_in_seconds(0., 0., 15., 500.),
                 end_time: compute_result_in_seconds(0., 0., 30., 500.),
                 text: "Bear is Coming!!!!!
@@ -322,7 +322,7 @@ Positioning on the center of the video."
                 ..Default::default()
             },
             WebVttCue {
-                identifier: "".into(),
+                identifier: String::new(),
                 start_time: compute_result_in_seconds(0., 0., 46., 0.),
                 end_time: compute_result_in_seconds(0., 1., 0., 500.),
                 text: "I said Bear is coming!!!!
@@ -344,7 +344,7 @@ Positioning on the bottom middle."
                 ..Default::default()
             },
             WebVttCue {
-                identifier: "".into(),
+                identifier: String::new(),
                 start_time: compute_result_in_seconds(0., 1., 31., 0.),
                 end_time: compute_result_in_seconds(0., 2., 0., 500.),
                 text: "I said Bear is coming now!!!!
@@ -356,7 +356,7 @@ Positioning on the bottom middle. Only 1 line shows."
                 ..Default::default()
             },
             WebVttCue {
-                identifier: "".into(),
+                identifier: String::new(),
                 start_time: compute_result_in_seconds(0., 2., 1., 0.),
                 end_time: compute_result_in_seconds(0., 2., 30., 0.),
                 text: "I said Bear is coming now!!!!

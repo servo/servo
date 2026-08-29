@@ -302,7 +302,7 @@ mod tests {
             IndexedDBKeyType::Date(0.0),
             IndexedDBKeyType::Date(100.0),
             // String sorting
-            IndexedDBKeyType::String("".to_string()),
+            IndexedDBKeyType::String(String::new()),
             IndexedDBKeyType::String("\0".to_string()),
             IndexedDBKeyType::String("a".to_string()),
             IndexedDBKeyType::String("aa".to_string()),
