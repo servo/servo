@@ -151,7 +151,7 @@ use crate::fetch::network_listener::{FetchResponseListener, NetworkListener};
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::modules::import_map::ImportMap;
 use crate::modules::script_module::{
-    ModuleRequest, ModuleStatus, ModuleTree, ResolvedModule, ScriptFetchOptions,
+    ModuleRequest, ModuleStatus, ResolvedModule, ScriptFetchOptions,
 };
 use crate::realms::enter_auto_realm;
 use crate::runtime::microtask::MicrotaskRunnable;
@@ -2435,21 +2435,6 @@ impl GlobalScope {
         &self,
     ) -> &DomRefCell<HashMapTracedValues<ModuleRequest, ModuleStatus>> {
         &self.module_map
-    }
-
-    /// Return the [`ModuleTree`] for a given [`ModuleRequest`] or `None` if there is no
-    /// tree for the request or if that tree is still being fetched.
-    pub(crate) fn module_tree_for_request_if_loaded(
-        &self,
-        request: &ModuleRequest,
-    ) -> Option<Rc<ModuleTree>> {
-        self.module_map
-            .borrow()
-            .get(request)
-            .and_then(|status| match status {
-                ModuleStatus::Fetching(_) => None,
-                ModuleStatus::Loaded(module_tree) => Some(module_tree.clone()),
-            })
     }
 
     pub(crate) fn time(&self, label: DOMString) -> Result<(), ()> {
