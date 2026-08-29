@@ -238,6 +238,33 @@ class TestConsoleTab:
             assert result3["result"]["type"] == "undefined"
             assert not result3["exception"]
 
+    def test_console_throw_primitives(self, run_servoshell):
+        run_servoshell(url="data:text/html,")
+        testCases = [
+            {"input": "throw 0;", "exceptionMessage": "Uncaught 0"},
+            {"input": "throw \"\";", "exceptionMessage": "Uncaught "},
+            {"input": "throw {};", "exceptionMessage": "Uncaught [object Object]"},
+            {"input": "throw true;", "exceptionMessage": "Uncaught true"},
+            {"input": "const fn=()=>{};throw fn;", "exceptionMessage": "Uncaught [object Object]"},
+            {"input": "throw NaN;", "exceptionMessage": "Uncaught NaN"},
+            {"input": "throw Infinity;", "exceptionMessage": "Uncaught Infinity"},
+        ]
+
+        with Devtools.connect() as devtools:
+            console = WebConsoleActor(devtools.client, devtools.targets[0]["consoleActor"])
+            for testCase in testCases:
+                evaluation_result = Future()
+
+                def on_evaluation(data):
+                    assert not data["result"]
+                    assert data["hasException"]
+                    assert testCase["exceptionMessage"] in data["exceptionMessage"]
+                    evaluation_result.set_result(data)
+
+                devtools.client.add_event_listener(console.actor_id, Events.WebConsole.EVALUATION_RESULT, on_evaluation)
+                console.evaluate_js_async(testCase["input"])
+                evaluation_result.result(1)
+
     def test_global_autocomplete(self, run_servoshell):
         script_tag = "<script>console_test_value = 5;</script>"
         run_servoshell(url=f"data:text/html,{script_tag}")
