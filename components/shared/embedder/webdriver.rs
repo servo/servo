@@ -20,6 +20,7 @@ use servo_base::id::{BrowsingContextId, WebViewId};
 use servo_geometry::{DeviceIndependentIntRect, DeviceIndependentPixel};
 use style_traits::CSSPixel;
 use url::Url;
+use webdriver::command::SetPermissionState;
 use webdriver::error::ErrorStatus;
 
 use crate::{InputEvent, JSValue, JavaScriptEvaluationError, ScreenshotCaptureError, TraversalId};
@@ -268,6 +269,7 @@ pub enum WebDriverScriptCommand {
     AddLoadStatusSender(WebViewId, GenericSender<WebDriverLoadStatus>),
     RemoveLoadStatusSender(WebViewId),
     SetProtocolHandlerAutomationMode(CustomHandlersAutomationMode),
+    SetPermission(String, SetPermissionState, GenericOneshotSender<bool>),
 }
 
 pub type WebDriverJSResult = Result<JSValue, JavaScriptEvaluationError>;
