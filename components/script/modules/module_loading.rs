@@ -479,7 +479,7 @@ pub(crate) fn host_load_imported_module(
 
         // Step 7.1.5.2. If loadState is not undefined and loadState.[[ErrorToRethrow]] is null, set
         // loadState.[[ErrorToRethrow]] to error.
-        if let Some(ref load_state) = load_state {
+        if let Some(load_state) = load_state {
             load_state
                 .error_to_rethrow
                 .borrow_mut()
