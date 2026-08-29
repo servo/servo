@@ -177,7 +177,7 @@ impl LoadData {
             referrer,
             referrer_policy,
             policy_container: None,
-            srcdoc: "".to_string(),
+            srcdoc: String::new(),
             inherited_secure_context,
             crash: None,
             inherited_insecure_requests_policy,

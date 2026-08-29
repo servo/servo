@@ -26,3 +26,6 @@ malloc_size_of_derive = { workspace = true }
 profile_traits = { workspace = true }
 serde = { workspace = true }
 servo-base = { workspace = true }
+
+[lints]
+workspace = true

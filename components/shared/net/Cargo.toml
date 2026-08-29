@@ -58,3 +58,6 @@ webrender_api = { workspace = true }
 
 [dev-dependencies]
 servo-default-resources = { workspace = true }
+
+[lints]
+workspace = true

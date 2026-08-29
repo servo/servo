@@ -50,3 +50,6 @@ servo-media-gstreamer-render-unix = { workspace = true, features = [
 
 [target.'cfg(target_os = "android")'.dependencies]
 servo-media-gstreamer-render-android = { workspace = true }
+
+[lints]
+workspace = true

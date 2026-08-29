@@ -40,3 +40,6 @@ libc = { workspace = true }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 windows-sys = { workspace = true, features = ["Win32_System_Performance"] }
+
+[lints]
+workspace = true

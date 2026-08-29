@@ -31,3 +31,6 @@ servo-media-streams = { workspace = true }
 servo-media-traits = { workspace = true }
 smallvec = { workspace = true }
 speexdsp-resampler = { workspace = true }
+
+[lints]
+workspace = true

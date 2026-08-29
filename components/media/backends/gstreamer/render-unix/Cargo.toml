@@ -28,3 +28,6 @@ gstreamer-gl-x11 = { workspace = true, optional = true }
 gstreamer-video = { workspace = true }
 servo-media-gstreamer-render = { workspace = true }
 servo-media-player = { workspace = true }
+
+[lints]
+workspace = true
