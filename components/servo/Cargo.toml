@@ -207,6 +207,9 @@ servo = { path = ".", features = ["testbinding", "tracing"] }
 tracing = { workspace = true }
 winit = { workspace = true }
 
+[lints]
+workspace = true
+
 [[test]]
 name = "multiprocess"
 harness = false

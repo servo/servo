@@ -81,7 +81,10 @@ fn test_largest_contentful_paint_js_api() {
         "window.lcpEntries[0].toJSON();",
     );
     if let Ok(JSValue::Object(obj)) = lcp {
-        assert_eq!(obj.get("name"), Some(JSValue::String("".into())).as_ref());
+        assert_eq!(
+            obj.get("name"),
+            Some(JSValue::String(String::new())).as_ref()
+        );
         assert_eq!(obj.get("duration"), Some(JSValue::Number(0.0)).as_ref());
         assert_eq!(
             obj.get("entryType"),

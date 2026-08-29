@@ -613,7 +613,7 @@ fn test_clear_cookies() {
     servo_test.servo().site_data_manager().clear_cookies(None);
 
     let result = evaluate_javascript(&servo_test, webview.clone(), "document.cookie");
-    assert_eq!(result, Ok(JSValue::String("".into())));
+    assert_eq!(result, Ok(JSValue::String(String::new())));
 }
 
 #[test]

@@ -39,3 +39,6 @@ webxr-api = { workspace = true }
 [target.'cfg(target_os = "windows")'.dependencies]
 winapi = { workspace = true, features = ["d3d11", "dxgi", "winerror"], optional = true }
 wio = { workspace = true, optional = true }
+
+[lints]
+workspace = true

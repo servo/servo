@@ -421,7 +421,7 @@ fn build_route<U: 'static + WebDriverExtensionRoute + Send + Sync>(
                   content_type_header: Option<String>,
                   body: Bytes| {
                 if method == Method::HEAD {
-                    return warp::reply::with_status("".into(), StatusCode::OK);
+                    return warp::reply::with_status(String::new(), StatusCode::OK);
                 }
                 if let Some(host) = host_header {
                     if !is_host_allowed(&server_address, &allow_hosts, &host) {
@@ -500,7 +500,7 @@ fn build_route<U: 'static + WebDriverExtensionRoute + Send + Sync>(
                         Some("text/plain") => {
                             warn!(
                                 "Rejected POST request with disallowed content type {}",
-                                content_type.unwrap_or_else(|| "".into())
+                                content_type.unwrap_or_default()
                             );
                             let err = WebDriverError::new(
                                 ErrorStatus::UnknownError,
