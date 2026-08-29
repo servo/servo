@@ -305,8 +305,10 @@ impl ElementsByNameList {
         }
     }
 
-    pub(crate) fn len(&self, _no_gc: &NoGC) -> u32 {
-        self.document.elements_by_name_count(&self.name)
+    pub(crate) fn len(&self, no_gc: &NoGC) -> u32 {
+        self.document
+            .elements_by_name_iter(no_gc, &self.name)
+            .count() as u32
     }
 
     pub(crate) fn item<'a>(&'a self, no_gc: &'a NoGC, index: u32) -> Option<UnrootedDom<'a, Node>> {
