@@ -853,7 +853,9 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
     /// <https://xhr.spec.whatwg.org/#the-getresponseheader()-method>
     fn GetResponseHeader(&self, name: ByteString) -> Option<ByteString> {
         let headers = self.filter_response_headers();
-        let headers = headers.get_all(HeaderName::from_str(&name.as_str()?.to_lowercase()).ok()?);
+        // > All custom header names are lower cased upon conversion to a HeaderName value.
+        // https://docs.rs/http/latest/http/header/struct.HeaderName.html#representation
+        let headers = headers.get_all(HeaderName::from_str(name.as_str()?).ok()?);
         let mut first = true;
         let s = headers.iter().fold(Vec::new(), |mut vec, value| {
             if !first {
