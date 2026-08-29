@@ -242,6 +242,8 @@ impl FontFaceSet {
         font: &str,
         sample_text: &str,
     ) -> Result<Vec<DomRoot<FontFace>>, FontQuerySyntaxError> {
+        // Step 1. (Parse "font") and Step 2. (Unpack font shorthand) are implemented
+        // in FontQueryParameters::parse.
         let parameters = FontQueryParameters::parse(document, font)?;
 
         // Step 2. If text was not explicitly provided, let it be a string containing a
@@ -378,7 +380,10 @@ impl FontFaceSetMethods<crate::DomTypeHolder> for FontFaceSet {
                 let this = trusted_this.root();
 
                 // This will need adjustments once FontFaceSet is exposed to workers.
-                let window = DomRoot::downcast::<Window>(this.global()).unwrap();
+                let Some(window) = DomRoot::downcast::<Window>(this.global()) else {
+                    log::error!("FontFaceSet should not be exposed to non-window globals");
+                    return;
+                };
                 let document = window.Document();
 
                 // Step 3. Find the matching font faces from font face set using the font and text
