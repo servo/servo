@@ -39,3 +39,6 @@ url = { workspace = true }
 uuid = { workspace = true }
 warp = { workspace = true, features = ["server"] }
 webdriver = { workspace = true }
+
+[lints]
+workspace = true

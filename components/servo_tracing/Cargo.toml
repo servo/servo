@@ -21,3 +21,6 @@ doctest = false
 
 [dev-dependencies]
 prettyplease = { workspace = true }
+
+[lints]
+workspace = true

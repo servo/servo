@@ -35,5 +35,8 @@ nix = { workspace = true, features = ["signal"], optional = true }
 [target.'cfg(target_os = "android")'.dependencies]
 nix = { workspace = true, features = ["signal"], optional = true }
 
+[lints]
+workspace = true
+
 [features]
 sampler = ["mach2", "nix", "rustc-demangle"]

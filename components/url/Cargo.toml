@@ -23,3 +23,6 @@ serde = { workspace = true, features = ["derive"] }
 servo_arc = { workspace = true }
 url = { workspace = true, features = ["serde"] }
 uuid = { workspace = true, features = ["serde"] }
+
+[lints]
+workspace = true

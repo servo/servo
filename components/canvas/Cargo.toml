@@ -41,3 +41,6 @@ tracing = { workspace = true, optional = true }
 vello = { workspace = true, optional = true }
 vello_cpu = { workspace = true }
 webrender_api = { workspace = true }
+
+[lints]
+workspace = true
