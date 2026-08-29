@@ -2341,6 +2341,9 @@ impl<'a> RowFragmentLayout<'a> {
                 relative_adjustement(&self.row.base.style, containing_block_for_children);
         }
 
+        let row_rect_in_table = self
+            .rect
+            .as_physical(Some(containing_block_for_logical_conversion));
         let (inline_size, block_size) = if let Some(row_group_layout) = row_group_fragment_layout {
             self.rect.start_corner -= row_group_layout.rect.start_corner;
             (
@@ -2385,6 +2388,29 @@ impl<'a> RowFragmentLayout<'a> {
         }
 
         let fragment = Fragment::Box(row_fragment.into());
+
+        // Adjust the absolute element based on relative position of Row to Row Group
+        // or Row to Table
+        if let Some((owner, start)) = self.parent_absolute_start {
+            match owner {
+                RowAbsPosOwner::RowGroup => {
+                    let row_group_context = row_group_fragment_layout
+                        .as_mut()
+                        .and_then(|layout| layout.positioning_context.as_mut())
+                        .expect("owner was recorded as row group");
+
+                    row_group_context.adjust_static_position_of_hoisted_fragments(&fragment, start);
+                },
+                RowAbsPosOwner::Table => {
+                    table_positioning_context
+                        .adjust_static_position_of_hoisted_fragments_with_offset(
+                            &row_rect_in_table.origin.to_vector(),
+                            start,
+                        );
+                },
+            }
+        }
+
         self.row.base.set_fragment(fragment.clone());
         fragment
     }
