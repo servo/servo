@@ -566,6 +566,7 @@ def check_toml(file_name: str, lines: list[bytes]) -> Iterator[tuple[int, str]]:
     if not file_name.endswith("Cargo.toml"):
         return
     ok_licensed = False
+    lints_inherited = False
     decoded_lines = [line.decode("utf-8") for line in lines]
     for idx, line in enumerate(decoded_lines):
         if idx == 0 and "[workspace]" in line:
@@ -577,8 +578,13 @@ def check_toml(file_name: str, lines: list[bytes]) -> Iterator[tuple[int, str]]:
             ok_licensed |= license_line in line
         if "license.workspace" in line:
             ok_licensed = True
+        if "[lints]" in line and len(decoded_lines) > idx + 1 and decoded_lines[idx + 1].startswith("workspace = true"):
+            lints_inherited = True
     if not ok_licensed:
         yield (0, ".toml file should contain a valid license.")
+    # TODO(47512): Check for `./components/` here
+    if "lints-configuration" in file_name and not lints_inherited:
+        yield (0, ".toml file should turn on lints from workspace.")
 
     normalized_file_name = os.path.abspath(file_name)
     if normalized_file_name != ROOT_CARGO_TOML:

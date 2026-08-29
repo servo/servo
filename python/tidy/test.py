@@ -168,6 +168,42 @@ class CheckTidiness(unittest.TestCase):
         )
         self.assertNoMoreErrors(errors)
 
+    def test_toml_specify_lint_workspace(self):
+        errors = tidy.collect_errors_for_files(
+            iterFile("lints-configuration/correct/Cargo.toml"), [], [tidy.check_toml], print_text=False
+        )
+        self.assertNoMoreErrors(errors)
+
+    def test_toml_specify_lint_workspace_but_commented_out(self):
+        errors = tidy.collect_errors_for_files(
+            iterFile("lints-configuration/commented-out/Cargo.toml"), [], [tidy.check_toml], print_text=False
+        )
+        self.assertEqual(".toml file should turn on lints from workspace.", next(errors)[2])
+        self.assertNoMoreErrors(errors)
+
+    def test_toml_specify_lint_workspace_but_not_from_workspace(self):
+        errors = tidy.collect_errors_for_files(
+            iterFile("lints-configuration/no-workspace/Cargo.toml"), [], [tidy.check_toml], print_text=False
+        )
+        self.assertEqual(".toml file should turn on lints from workspace.", next(errors)[2])
+        self.assertNoMoreErrors(errors)
+
+    def test_toml_specify_lint_workspace_but_no_next_line(self):
+        errors = tidy.collect_errors_for_files(
+            iterFile("lints-configuration/no-newline-after-lints/Cargo.toml"), [], [tidy.check_toml], print_text=False
+        )
+        self.assertEqual(".toml file should turn on lints from workspace.", next(errors)[2])
+        self.assertNoMoreErrors(errors)
+
+    def test_toml_specify_lint_workspace_but_no_newline(self):
+        errors = tidy.collect_errors_for_files(
+            iterFile("lints-configuration/no-newline-after-workspace/Cargo.toml"),
+            [],
+            [tidy.check_toml],
+            print_text=False,
+        )
+        self.assertNoMoreErrors(errors)
+
     def test_modeline(self):
         errors = tidy.collect_errors_for_files(iterFile("modeline.txt"), [], [tidy.check_modeline], print_text=False)
         self.assertEqual("vi modeline present", next(errors)[2])
