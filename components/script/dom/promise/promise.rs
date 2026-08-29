@@ -57,6 +57,14 @@ pub(crate) struct Promise {
     /// while native code could still interact with its native representation.
     #[ignore_malloc_size_of = "SM handles JS values"]
     permanent_js_root: Heap<JSVal>,
+    /// Whether `permanent_js_root` is registered as an independent SpiderMonkey
+    /// root. Most native `Promise` owners (async tasks, native callbacks) are not
+    /// guaranteed to be reached by Servo's tracing graph, so they need one. A DOM
+    /// object that owns its `Rc<Promise>` in a traced field can opt out: the
+    /// derived tracer already visits `permanent_js_root`, and an extra permanent
+    /// root would let the JS global and the owner keep each other alive across
+    /// collection (a cross-heap retention cycle).
+    has_permanent_js_root: bool,
 }
 
 /// Private helper to enable adding new methods to `Rc<Promise>`.
@@ -69,6 +77,11 @@ impl PromiseHelper for Rc<Promise> {
     fn initialize(&self, cx: &mut JSContext) {
         let obj = self.reflector().get_jsobject();
         self.permanent_js_root.set(ObjectValue(*obj));
+        if !self.has_permanent_js_root {
+            // The owning DOM object's generated tracer visits `permanent_js_root`
+            // for as long as this Promise is legitimately reachable.
+            return;
+        }
         unsafe {
             assert!(AddRawValueRoot(
                 cx,
@@ -85,6 +98,9 @@ impl PromiseHelper for Rc<Promise> {
 impl Drop for Promise {
     #[expect(unsafe_code)]
     fn drop(&mut self) {
+        if !self.has_permanent_js_root {
+            return;
+        }
         unsafe {
             let object = self.permanent_js_root.get().to_object();
             assert!(!object.is_null());
@@ -102,26 +118,59 @@ impl Promise {
         Promise::new_in_realm(cx)
     }
 
+    /// Creates a `Promise` whose JS value is kept alive by a traced DOM owner
+    /// rather than by an independent SpiderMonkey root. The caller MUST retain
+    /// the returned `Rc<Promise>` only inside a native ownership graph that
+    /// Servo's tracer visits for the whole lifetime of the Promise.
+    pub(crate) fn new_with_traced_owner(cx: &mut JSContext, global: &GlobalScope) -> Rc<Promise> {
+        let mut realm = enter_auto_realm(cx, global);
+        let cx = &mut realm.current_realm();
+        Promise::new_in_realm_with_traced_owner(cx)
+    }
+
     pub(crate) fn new_in_realm(current_realm: &mut CurrentRealm) -> Rc<Promise> {
+        Self::new_in_realm_with_root(current_realm, true)
+    }
+
+    /// See [`Promise::new_with_traced_owner`]. Not for general asynchronous or
+    /// native owners, which may not be continuously reached by the tracing graph.
+    pub(crate) fn new_in_realm_with_traced_owner(current_realm: &mut CurrentRealm) -> Rc<Promise> {
+        Self::new_in_realm_with_root(current_realm, false)
+    }
+
+    fn new_in_realm_with_root(
+        current_realm: &mut CurrentRealm,
+        has_permanent_js_root: bool,
+    ) -> Rc<Promise> {
         let cx = current_realm.deref_mut();
         rooted!(&in(cx) let mut obj = ptr::null_mut::<JSObject>());
         Promise::create_js_promise(cx, obj.handle_mut());
-        Promise::new_with_js_promise(cx, obj.handle())
+        Promise::new_with_js_promise_and_root(cx, obj.handle(), has_permanent_js_root)
     }
 
     pub(crate) fn duplicate(&self, cx: &mut JSContext) -> Rc<Promise> {
         Promise::new_with_js_promise(cx, self.reflector().get_jsobject())
     }
 
-    #[expect(unsafe_code)]
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new_with_js_promise(cx: &mut JSContext, obj: HandleObject) -> Rc<Promise> {
+        Self::new_with_js_promise_and_root(cx, obj, true)
+    }
+
+    #[expect(unsafe_code)]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
+    fn new_with_js_promise_and_root(
+        cx: &mut JSContext,
+        obj: HandleObject,
+        has_permanent_js_root: bool,
+    ) -> Rc<Promise> {
         unsafe {
             assert!(IsPromiseObject(obj));
         }
         let promise = Promise {
             reflector: Reflector::new(),
             permanent_js_root: Heap::default(),
+            has_permanent_js_root,
         };
         let promise = Rc::new(promise);
         unsafe {
