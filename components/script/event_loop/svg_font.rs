@@ -181,8 +181,11 @@ impl FontResolver for SvgFontResolver {
                 return Some(*font_id);
             }
         }
-        let fallback_options =
-            FallbackFontSelectionOptions::new(character, None, icu_locid::subtags::Language::UND);
+        let fallback_options = FallbackFontSelectionOptions::new(
+            character,
+            None,
+            icu_locale_core::subtags::Language::UNKNOWN,
+        );
         for family in fallback_font_families(fallback_options) {
             let family = FontFamilyDescriptor::new(
                 SingleFontFamily::FamilyName(FamilyName {
