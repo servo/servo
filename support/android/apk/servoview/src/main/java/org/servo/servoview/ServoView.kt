@@ -169,7 +169,6 @@ class ServoView(
                     size,
                     servoView.resources.displayMetrics.density,
                     servoLog,
-                    true,
                     servoView.experimentalMode,
                     servoView,
                     client,
