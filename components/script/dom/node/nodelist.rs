@@ -125,7 +125,7 @@ impl NodeListMethods<crate::DomTypeHolder> for NodeList {
             NodeListType::Children(ref list) => list.len(),
             NodeListType::Labels(ref list) => list.len(no_gc),
             NodeListType::Radio(ref list) => list.len(),
-            NodeListType::ElementsByName(ref list) => list.len(),
+            NodeListType::ElementsByName(ref list) => list.len(no_gc),
         }
     }
 
@@ -305,8 +305,10 @@ impl ElementsByNameList {
         }
     }
 
-    pub(crate) fn len(&self) -> u32 {
-        self.document.elements_by_name_count(&self.name)
+    pub(crate) fn len(&self, no_gc: &NoGC) -> u32 {
+        self.document
+            .elements_by_name_iter(no_gc, &self.name)
+            .count() as u32
     }
 
     pub(crate) fn item<'a>(&'a self, no_gc: &'a NoGC, index: u32) -> Option<UnrootedDom<'a, Node>> {
