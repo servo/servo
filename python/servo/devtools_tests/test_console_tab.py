@@ -242,7 +242,7 @@ class TestConsoleTab:
         run_servoshell(url="data:text/html,")
         testCases = [
             {"input": "throw 0;", "exceptionMessage": "Uncaught 0"},
-            {"input": "throw \"\";", "exceptionMessage": "Uncaught "},
+            {"input": 'throw "";', "exceptionMessage": "Uncaught "},
             {"input": "throw {};", "exceptionMessage": "Uncaught [object Object]"},
             {"input": "throw true;", "exceptionMessage": "Uncaught true"},
             {"input": "const fn=()=>{};throw fn;", "exceptionMessage": "Uncaught [object Object]"},
