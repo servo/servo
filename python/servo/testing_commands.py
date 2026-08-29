@@ -103,6 +103,18 @@ def format_python_files_with_ruff(check_only: bool = True) -> int:
         return call([ruff, "format", "--quiet"])
 
 
+def format_kotlin_files_with_ktfmt(check_only: bool = True) -> int:
+    ktfmt = shutil.which("ktfmt")
+    if ktfmt is None:
+        print("Could not find 'ktfmt'.")
+        return 1
+
+    if check_only:
+        return call([ktfmt, "--dry-run", "--set-exit-if-changed", "--quiet", "."])
+    else:
+        return call([ktfmt, "--quiet", "."])
+
+
 def format_with_rustfmt(check_only: bool = True) -> int:
     maybe_check_only = ["--check"] if check_only else []
     result = call(["cargo", "fmt", "--", *UNSTABLE_RUSTFMT_ARGUMENTS, *maybe_check_only])
@@ -328,7 +340,10 @@ class MachCommands(CommandBase):
         print("\r ➤  Checking formatting of toml files...")
         taplo_failed = format_toml_files_with_taplo()
 
-        format_failed = rustfmt_failed or ruff_format_failed or taplo_failed
+        print("\r ➤  Checking formatting of kotlin files...")
+        ktfmt_failed = format_kotlin_files_with_ktfmt()
+
+        format_failed = rustfmt_failed or ruff_format_failed or taplo_failed or ktfmt_failed
         tidy_failed = format_failed or tidy_failed or coauthors_failed
         print()
         if tidy_failed:
@@ -522,6 +537,10 @@ class MachCommands(CommandBase):
                 return result
 
             result = format_toml_files_with_taplo(check_only=False)
+            if result != 0:
+                return result
+
+            result = format_kotlin_files_with_ktfmt(check_only=False)
             if result != 0:
                 return result
 

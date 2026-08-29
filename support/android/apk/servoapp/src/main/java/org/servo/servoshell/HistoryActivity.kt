@@ -40,147 +40,141 @@ import java.util.Date
 import java.util.Locale
 
 class HistoryActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+  override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
 
-        val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
-        val historyManager = HistoryManager(this)
-        setContent {
-            var historyEntries by remember { mutableStateOf(historyManager.history) }
+    val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+    val historyManager = HistoryManager(this)
+    setContent {
+      var historyEntries by remember { mutableStateOf(historyManager.history) }
 
-            Scaffold(
-                topBar = {
-                    @OptIn(ExperimentalMaterial3Api::class)
-                    TopAppBar(
-                        title = { Text(stringResource(R.string.history_title)) },
-                        navigationIcon = {
-                            IconButton(onClick = { finish() }) {
-                                Icon(painterResource(R.drawable.arrow_back), stringResource(R.string.back))
-                            }
-                        },
-                        actions = {
-                            IconButton(
-                                onClick = {
-                                    historyManager.clearHistory()
-                                    historyEntries = historyManager.history
-                                },
-                            ) {
-                                Icon(painterResource(R.drawable.delete), stringResource(R.string.clear_history))
-                            }
-                        },
-                    )
+      Scaffold(
+          topBar = {
+            @OptIn(ExperimentalMaterial3Api::class)
+            TopAppBar(
+                title = { Text(stringResource(R.string.history_title)) },
+                navigationIcon = {
+                  IconButton(onClick = { finish() }) {
+                    Icon(painterResource(R.drawable.arrow_back), stringResource(R.string.back))
+                  }
                 },
-            ) { innerPadding ->
-                if (historyEntries.isEmpty()) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(innerPadding)
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
+                actions = {
+                  IconButton(
+                      onClick = {
+                        historyManager.clearHistory()
+                        historyEntries = historyManager.history
+                      },
+                  ) {
+                    Icon(painterResource(R.drawable.delete), stringResource(R.string.clear_history))
+                  }
+                },
+            )
+          },
+      ) { innerPadding ->
+        if (historyEntries.isEmpty()) {
+          Column(
+              modifier = Modifier.fillMaxSize().padding(innerPadding).padding(16.dp),
+              verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
+              horizontalAlignment = Alignment.CenterHorizontally,
+          ) {
+            Text(
+                stringResource(R.string.history_placeholder_title),
+                style = MaterialTheme.typography.headlineSmall,
+            )
+            Text(
+                stringResource(R.string.history_placeholder_message),
+                color = MaterialTheme.colorScheme.secondary,
+                style = MaterialTheme.typography.bodyMedium,
+            )
+          }
+        } else {
+          LazyColumn(modifier = Modifier.padding(innerPadding)) {
+            items(groupByDay(historyEntries)) { item ->
+              when (item) {
+                is HistoryHeaderItem -> {
+                  ListItem(
+                      headlineContent = {
                         Text(
-                            stringResource(R.string.history_placeholder_title),
-                            style = MaterialTheme.typography.headlineSmall,
+                            item.headerText,
+                            style = MaterialTheme.typography.titleSmall,
                         )
-                        Text(
-                            stringResource(R.string.history_placeholder_message),
-                            color = MaterialTheme.colorScheme.secondary,
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                    }
-                } else {
-                    LazyColumn(modifier = Modifier.padding(innerPadding)) {
-                        items(groupByDay(historyEntries)) { item ->
-                            when (item) {
-                                is HistoryHeaderItem -> {
-                                    ListItem(
-                                        headlineContent = {
-                                            Text(
-                                                item.headerText,
-                                                style = MaterialTheme.typography.titleSmall,
-                                            )
-                                        },
-                                    )
-                                }
-                                is HistoryEntryItem -> {
-                                    ListItem(
-                                        modifier = Modifier
-                                            .clickable {
-                                                val resultIntent = Intent().apply {
-                                                    putExtra("url", item.entry.url)
-                                                }
-                                                setResult(RESULT_OK, resultIntent)
-                                                finish()
-                                            },
-                                        headlineContent = {
-                                            Text(
-                                                item.entry.title?.takeUnless { it.isEmpty() } ?: item.entry.url,
-                                                overflow = TextOverflow.Ellipsis,
-                                                maxLines = 1,
-                                            )
-                                        },
-                                        supportingContent = {
-                                            Text(
-                                                item.entry.url,
-                                                overflow = TextOverflow.Ellipsis,
-                                                maxLines = 1,
-                                            )
-                                        },
-                                        leadingContent = {
-                                            Text(timeFormat.format(Date(item.entry.timestamp)))
-                                        },
-                                    )
-                                }
-                            }
-                        }
-                    }
+                      },
+                  )
                 }
+                is HistoryEntryItem -> {
+                  ListItem(
+                      modifier =
+                          Modifier.clickable {
+                            val resultIntent = Intent().apply { putExtra("url", item.entry.url) }
+                            setResult(RESULT_OK, resultIntent)
+                            finish()
+                          },
+                      headlineContent = {
+                        Text(
+                            item.entry.title?.takeUnless { it.isEmpty() } ?: item.entry.url,
+                            overflow = TextOverflow.Ellipsis,
+                            maxLines = 1,
+                        )
+                      },
+                      supportingContent = {
+                        Text(
+                            item.entry.url,
+                            overflow = TextOverflow.Ellipsis,
+                            maxLines = 1,
+                        )
+                      },
+                      leadingContent = { Text(timeFormat.format(Date(item.entry.timestamp))) },
+                  )
+                }
+              }
             }
+          }
         }
+      }
+    }
+  }
+
+  private fun groupByDay(entries: List<HistoryEntry>): List<HistoryItem> {
+    val items = mutableListOf<HistoryItem>()
+
+    if (entries.isEmpty()) {
+      return items
     }
 
-    private fun groupByDay(entries: List<HistoryEntry>): List<HistoryItem> {
-        val items = mutableListOf<HistoryItem>()
+    val dayFormat = SimpleDateFormat("EEEE, MMMM d", Locale.getDefault())
 
-        if (entries.isEmpty()) {
-            return items
-        }
+    val currentCal = Calendar.getInstance()
+    val todayCal = Calendar.getInstance()
 
-        val dayFormat = SimpleDateFormat("EEEE, MMMM d", Locale.getDefault())
+    todayCal.set(Calendar.HOUR_OF_DAY, 0)
+    todayCal.set(Calendar.MINUTE, 0)
+    todayCal.set(Calendar.SECOND, 0)
+    todayCal.set(Calendar.MILLISECOND, 0)
 
-        val currentCal = Calendar.getInstance()
-        val todayCal = Calendar.getInstance()
+    var lastDay: String? = null
 
-        todayCal.set(Calendar.HOUR_OF_DAY, 0)
-        todayCal.set(Calendar.MINUTE, 0)
-        todayCal.set(Calendar.SECOND, 0)
-        todayCal.set(Calendar.MILLISECOND, 0)
+    for (entry in entries) {
+      currentCal.setTimeInMillis(entry.timestamp)
+      currentCal.set(Calendar.HOUR_OF_DAY, 0)
+      currentCal.set(Calendar.MINUTE, 0)
+      currentCal.set(Calendar.SECOND, 0)
+      currentCal.set(Calendar.MILLISECOND, 0)
 
-        var lastDay: String? = null
+      val dayHeader =
+          if (currentCal.getTimeInMillis() == todayCal.getTimeInMillis()) {
+            "Today"
+          } else {
+            dayFormat.format(Date(entry.timestamp))
+          }
 
-        for (entry in entries) {
-            currentCal.setTimeInMillis(entry.timestamp)
-            currentCal.set(Calendar.HOUR_OF_DAY, 0)
-            currentCal.set(Calendar.MINUTE, 0)
-            currentCal.set(Calendar.SECOND, 0)
-            currentCal.set(Calendar.MILLISECOND, 0)
+      if (dayHeader != lastDay) {
+        items.add(HistoryHeaderItem(dayHeader))
+        lastDay = dayHeader
+      }
 
-            val dayHeader = if (currentCal.getTimeInMillis() == todayCal.getTimeInMillis()) {
-                "Today"
-            } else {
-                dayFormat.format(Date(entry.timestamp))
-            }
-
-            if (dayHeader != lastDay) {
-                items.add(HistoryHeaderItem(dayHeader))
-                lastDay = dayHeader
-            }
-
-            items.add(HistoryEntryItem(entry))
-        }
-
-        return items
+      items.add(HistoryEntryItem(entry))
     }
+
+    return items
+  }
 }

@@ -9,99 +9,97 @@ import android.content.Context
 import android.util.Size
 import android.view.Surface
 
-/**
- * Maps /ports/servoshell API
- */
+/** Maps /ports/servoshell API */
 internal class JNIServo {
-    init {
-        System.loadLibrary("c++_shared")
-        System.loadLibrary("servoshell")
-    }
+  init {
+    System.loadLibrary("c++_shared")
+    System.loadLibrary("servoshell")
+  }
 
-    external fun version(): String
+  external fun version(): String
 
-    external fun init(
-        context: Context,
-        args: String?,
-        url: String?,
-        size: Size,
-        density: Float,
-        logStr: String?,
-        enableLogs: Boolean,
-        experimentalMode: Boolean,
-        callbacks: Callbacks,
-        surface: Surface,
-    )
+  external fun init(
+      context: Context,
+      args: String?,
+      url: String?,
+      size: Size,
+      density: Float,
+      logStr: String?,
+      enableLogs: Boolean,
+      experimentalMode: Boolean,
+      callbacks: Callbacks,
+      surface: Surface,
+  )
 
-    external fun performUpdates()
+  external fun performUpdates()
 
-    external fun resize(size: Size)
+  external fun resize(size: Size)
 
-    external fun reload()
+  external fun reload()
 
-    external fun stop()
+  external fun stop()
 
-    external fun goBack()
+  external fun goBack()
 
-    external fun goForward()
+  external fun goForward()
 
-    external fun loadUri(uri: String)
+  external fun loadUri(uri: String)
 
-    external fun scroll(dx: Int, dy: Int, x: Int, y: Int)
+  external fun scroll(dx: Int, dy: Int, x: Int, y: Int)
 
-    external fun keydown(keycode: Int, unicode: Int)
+  external fun keydown(keycode: Int, unicode: Int)
 
-    external fun keyup(keycode: Int, unicode: Int)
+  external fun keyup(keycode: Int, unicode: Int)
 
-    external fun touchDown(x: Float, y: Float, pointer_id: Int)
+  external fun touchDown(x: Float, y: Float, pointer_id: Int)
 
-    external fun touchMove(x: Float, y: Float, pointer_id: Int)
+  external fun touchMove(x: Float, y: Float, pointer_id: Int)
 
-    external fun touchUp(x: Float, y: Float, pointer_id: Int)
+  external fun touchUp(x: Float, y: Float, pointer_id: Int)
 
-    external fun touchCancel(x: Float, y: Float, pointer_id: Int)
+  external fun touchCancel(x: Float, y: Float, pointer_id: Int)
 
-    external fun pinchZoomStart(factor: Float, x: Float, y: Float)
+  external fun pinchZoomStart(factor: Float, x: Float, y: Float)
 
-    external fun pinchZoom(factor: Float, x: Float, y: Float)
+  external fun pinchZoom(factor: Float, x: Float, y: Float)
 
-    external fun pinchZoomEnd(factor: Float, x: Float, y: Float)
+  external fun pinchZoomEnd(factor: Float, x: Float, y: Float)
 
-    external fun click(x: Float, y: Float)
+  external fun click(x: Float, y: Float)
 
-    external fun pausePainting()
+  external fun pausePainting()
 
-    external fun resumePainting(surface: Surface, size: Size)
+  external fun resumePainting(surface: Surface, size: Size)
 
-    external fun mediaSessionAction(action: Int)
+  external fun mediaSessionAction(action: Int)
 
-    external fun setExperimentalMode(enable: Boolean)
+  external fun setExperimentalMode(enable: Boolean)
 
-    external fun doFrame()
+  external fun doFrame()
 
-    interface Callbacks {
-        fun wakeup()
+  interface Callbacks {
+    fun wakeup()
 
-        fun onAlert(message: String)
+    fun onAlert(message: String)
 
-        fun onLoadStarted()
+    fun onLoadStarted()
 
-        fun onLoadEnded()
+    fun onLoadEnded()
 
-        fun onTitleChanged(title: String)
+    fun onTitleChanged(title: String)
 
-        fun onUrlChanged(url: String)
+    fun onUrlChanged(url: String)
 
-        fun onHistoryChanged(canGoBack: Boolean, canGoForward: Boolean)
+    fun onHistoryChanged(canGoBack: Boolean, canGoForward: Boolean)
 
-        fun onImeShow()
+    fun onImeShow()
 
-        fun onImeHide()
+    fun onImeHide()
 
-        fun onMediaSessionMetadata(title: String, artist: String, album: String)
+    fun onMediaSessionMetadata(title: String, artist: String, album: String)
 
-        fun onMediaSessionPlaybackStateChange(state: Int)
+    fun onMediaSessionPlaybackStateChange(state: Int)
 
-        fun onMediaSessionSetPositionState(duration: Float, position: Float, playbackRate: Float)
-    }
+    fun onMediaSessionSetPositionState(duration: Float, position: Float, playbackRate: Float)
+  }
 }

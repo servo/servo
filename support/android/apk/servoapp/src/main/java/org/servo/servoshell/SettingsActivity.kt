@@ -31,55 +31,56 @@ import androidx.core.content.edit
 import androidx.preference.PreferenceManager
 
 class SettingsActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+  override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
 
-        val preferences = PreferenceManager.getDefaultSharedPreferences(this)
-        setContent {
-            Scaffold(
-                topBar = {
-                    @OptIn(ExperimentalMaterial3Api::class)
-                    TopAppBar(
-                        title = { Text(stringResource(R.string.settings_title)) },
-                        navigationIcon = {
-                            IconButton(onClick = { finish() }) {
-                                Icon(painterResource(R.drawable.arrow_back), stringResource(R.string.back))
-                            }
-                        },
-                    )
+    val preferences = PreferenceManager.getDefaultSharedPreferences(this)
+    setContent {
+      Scaffold(
+          topBar = {
+            @OptIn(ExperimentalMaterial3Api::class)
+            TopAppBar(
+                title = { Text(stringResource(R.string.settings_title)) },
+                navigationIcon = {
+                  IconButton(onClick = { finish() }) {
+                    Icon(painterResource(R.drawable.arrow_back), stringResource(R.string.back))
+                  }
                 },
-            ) { innerPadding ->
-                Column(modifier = Modifier.padding(innerPadding)) {
-                    SettingsItem(
-                        title = stringResource(R.string.settings_experimental_title),
-                        summary = stringResource(R.string.settings_experimental_summary),
-                        preferences = preferences,
-                        preferenceKey = "experimental",
-                    )
-                }
-            }
+            )
+          },
+      ) { innerPadding ->
+        Column(modifier = Modifier.padding(innerPadding)) {
+          SettingsItem(
+              title = stringResource(R.string.settings_experimental_title),
+              summary = stringResource(R.string.settings_experimental_summary),
+              preferences = preferences,
+              preferenceKey = "experimental",
+          )
         }
+      }
     }
+  }
 
-    @Composable
-    private fun SettingsItem(title: String, summary: String, preferences: SharedPreferences, preferenceKey: String) {
-        ListItem(
-            headlineContent = {
-                Text(title)
-            },
-            supportingContent = {
-                Text(summary)
-            },
-            trailingContent = {
-                var checked by remember { mutableStateOf(preferences.getBoolean(preferenceKey, false)) }
-                Switch(
-                    checked = checked,
-                    onCheckedChange = {
-                        checked = it
-                        preferences.edit { putBoolean(preferenceKey, it) }
-                    },
-                )
-            },
-        )
-    }
+  @Composable
+  private fun SettingsItem(
+      title: String,
+      summary: String,
+      preferences: SharedPreferences,
+      preferenceKey: String,
+  ) {
+    ListItem(
+        headlineContent = { Text(title) },
+        supportingContent = { Text(summary) },
+        trailingContent = {
+          var checked by remember { mutableStateOf(preferences.getBoolean(preferenceKey, false)) }
+          Switch(
+              checked = checked,
+              onCheckedChange = {
+                checked = it
+                preferences.edit { putBoolean(preferenceKey, it) }
+              },
+          )
+        },
+    )
+  }
 }

@@ -7,6 +7,7 @@ env:
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
   CARGO_INCREMENTAL: 0
+  KTFMT_URL: https://repo1.maven.org/maven2/com/facebook/ktfmt/0.64/ktfmt-0.64-with-dependencies.jar
 
 jobs:
   # Runs the underlying job (“workload”) on a self-hosted runner if available,
@@ -69,6 +70,15 @@ jobs:
           crate: cargo-deny
           version: 0.19.0
           locked: true
+      - name: Install ktfmt
+        if: ${{ runner.environment != 'self-hosted' }}
+        run: |
+          mkdir -p /usr/local/share/ktfmt
+          curl -sSL -o /usr/local/share/ktfmt/ktfmt.jar $KTFMT_URL
+          cat << 'EOF' > /usr/local/bin/ktfmt
+          #!/usr/bin/env bash
+          exec java -jar /usr/local/share/ktfmt/ktfmt.jar "$@"
+          EOF
       - name: Change Mirror Priorities
         if: ${{ runner.environment != 'self-hosted' }}
         uses: ./.github/actions/apt-mirrors
