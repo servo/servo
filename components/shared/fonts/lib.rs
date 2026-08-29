@@ -205,6 +205,9 @@ pub struct FontFaceRuleInfo {
     /// The descriptors on the `@font-face` rule.
     pub descriptors: Descriptors,
     /// The CSS rule that created this `@font-face`.
+    ///
+    /// This does *not* uniquely identify this struct across updates
+    /// to the set of live `@font-face` rules.
     #[conditional_malloc_size_of]
     pub rule: ServoArc<LockedFontFaceRule>,
 }
