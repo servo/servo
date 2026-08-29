@@ -61,8 +61,8 @@ use webdriver::capabilities::CapabilitiesMatching;
 use webdriver::command::{
     ActionsParameters, AddCookieParameters, GetParameters, JavascriptCommandParameters,
     LocatorParameters, NewSessionParameters, NewWindowParameters, SendKeysParameters,
-    SwitchToFrameParameters, SwitchToWindowParameters, TimeoutsParameters, WebDriverCommand,
-    WebDriverExtensionCommand, WebDriverMessage, WindowRectParameters,
+    SetPermissionParameters, SwitchToFrameParameters, SwitchToWindowParameters, TimeoutsParameters,
+    WebDriverCommand, WebDriverExtensionCommand, WebDriverMessage, WindowRectParameters,
 };
 use webdriver::common::{
     Cookie, Date, LocatorStrategy, Parameters, ShadowRoot, WebElement, WebFrame, WebWindow,
@@ -2667,6 +2667,30 @@ impl Handler {
             browsing_cotext_id,
         ))
     }
+
+    fn handle_set_permission(
+        &self,
+        parameters: SetPermissionParameters,
+    ) -> WebDriverResult<WebDriverResponse> {
+        let (sender, receiver) = generic_channel::oneshot().unwrap();
+
+        self.send_message_to_embedder(WebDriverCommandMsg::ScriptCommand(
+            self.browsing_context_id()?,
+            WebDriverScriptCommand::SetPermission(
+                parameters.descriptor.name,
+                parameters.state,
+                sender,
+            ),
+        ))?;
+
+        match wait_for_oneshot_response(receiver)? {
+            true => Ok(WebDriverResponse::Void),
+            false => Err(WebDriverError::new(
+                ErrorStatus::InvalidArgument,
+                "invalid name or state".to_string(),
+            )),
+        }
+    }
 }
 
 impl WebDriverHandler<ServoExtensionRoute> for Handler {
@@ -2779,6 +2803,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::TakeElementScreenshot(ref x) => {
                 self.handle_take_element_screenshot(x)
             },
+            WebDriverCommand::SetPermission(params) => self.handle_set_permission(params),
             WebDriverCommand::Extension(extension) => match extension {
                 ServoExtensionCommand::GetPrefs(ref x) => self.handle_get_prefs(x),
                 ServoExtensionCommand::SetPrefs(ref x) => self.handle_set_prefs(x),
