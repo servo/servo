@@ -249,21 +249,21 @@ class TestConsoleTab:
             {"input": "throw NaN;", "exceptionMessage": "Uncaught NaN"},
             {"input": "throw Infinity;", "exceptionMessage": "Uncaught Infinity"},
         ]
+        queue = Queue()
 
         with Devtools.connect() as devtools:
             console = WebConsoleActor(devtools.client, devtools.targets[0]["consoleActor"])
+
+            def on_evaluation(data):
+                queue.put_nowait(data)
+
+            devtools.client.add_event_listener(console.actor_id, Events.WebConsole.EVALUATION_RESULT, on_evaluation)
             for testCase in testCases:
-                evaluation_result = Future()
-
-                def on_evaluation(data):
-                    assert not data["result"]
-                    assert data["hasException"]
-                    assert testCase["exceptionMessage"] in data["exceptionMessage"]
-                    evaluation_result.set_result(data)
-
-                devtools.client.add_event_listener(console.actor_id, Events.WebConsole.EVALUATION_RESULT, on_evaluation)
                 console.evaluate_js_async(testCase["input"])
-                evaluation_result.result(1)
+                data = queue.get(timeout=1)
+                assert not data["result"]
+                assert data["hasException"]
+                assert testCase["exceptionMessage"] in data["exceptionMessage"]
 
     def test_global_autocomplete(self, run_servoshell):
         script_tag = "<script>console_test_value = 5;</script>"
