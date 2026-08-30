@@ -843,8 +843,21 @@ impl Painter {
         pipeline_exit_source: PipelineExitSource,
     ) {
         debug!("Paint got pipeline exited: {webview_id:?} {pipeline_id:?}",);
-        if let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) {
-            webview_renderer.pipeline_exited(pipeline_id, pipeline_exit_source);
+        let fully_exited =
+            self.webview_renderers
+                .get_mut(&webview_id)
+                .is_some_and(|webview_renderer| {
+                    webview_renderer.pipeline_exited(pipeline_id, pipeline_exit_source)
+                });
+
+        // Once every part of Servo has finished with this `Pipeline`, drop its
+        // retained scene state (built display list, spatial/clip data) from
+        // WebRender as well. Without this, `Scene.pipelines` accumulates one
+        // entry per navigation for the lifetime of the process.
+        if fully_exited {
+            let mut transaction = Transaction::new();
+            transaction.remove_pipeline(pipeline_id.into());
+            self.send_transaction(transaction);
         }
     }
 
