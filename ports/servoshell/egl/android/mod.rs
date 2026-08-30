@@ -27,12 +27,12 @@ use raw_window_handle::{
 pub use servo::MediaSessionPlaybackState;
 use servo::{
     self, DevicePixel, EventLoopWaker, InputMethodControl, LoadStatus, MediaSessionActionType,
-    MouseButton, PrefValue, SelectElement, WebViewId,
+    MouseButton, SelectElement, WebViewId,
 };
 
 use super::app::{App, AppInitOptions};
 use super::host_trait::HostTrait;
-use crate::prefs::{ArgumentParsingResult, EXPERIMENTAL_PREFS, parse_command_line_arguments};
+use crate::prefs::{ArgumentParsingResult, parse_command_line_arguments};
 
 thread_local! {
     pub static APP: RefCell<Option<Rc<App>>> = const { RefCell::new(None) };
@@ -254,9 +254,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_setExperimentalMode<'local>(
     debug!("setExperimentalMode {enable}");
     env.with_env(|env| -> jni::errors::Result<_> {
         call(env, |s| {
-            for pref in EXPERIMENTAL_PREFS {
-                s.servo().set_preference(pref, PrefValue::Bool(enable));
-            }
+            s.state.set_experimental_preferences_enabled(enable)
         });
         Ok(())
     })
