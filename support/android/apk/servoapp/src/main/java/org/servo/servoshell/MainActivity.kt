@@ -67,6 +67,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
         var experimental = preferences.getBoolean("experimental", false)
     }
 
+    private lateinit var sharedPreferences: SharedPreferences
     private lateinit var settings: Settings
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -81,7 +82,9 @@ class MainActivity : ComponentActivity(), Servo.Client {
 
         historyManager = HistoryManager(this)
 
-        updateSettingsIfNecessary(true)
+        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
+        settings = Settings(sharedPreferences)
+        servoView.setExperimentalMode(settings.experimental)
 
         setContent {
             val isWindowWidthAtLeastMedium = currentWindowAdaptiveInfo().windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND)
@@ -306,7 +309,11 @@ class MainActivity : ComponentActivity(), Servo.Client {
 
     public override fun onResume() {
         super.onResume()
-        updateSettingsIfNecessary(false)
+        val updatedSettings = Settings(sharedPreferences)
+        if (updatedSettings.experimental != settings.experimental) {
+            servoView.setExperimentalMode(updatedSettings.experimental)
+        }
+        settings = updatedSettings
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -346,21 +353,6 @@ class MainActivity : ComponentActivity(), Servo.Client {
 
     override fun onMediaSessionSetPositionState(duration: Float, position: Float, playbackRate: Float) {
         Log.d("onMediaSessionSetPositionState", "$duration $position $playbackRate")
-    }
-
-    private fun onExperimentalPrefChanged(value: Boolean) {
-        servoView.setExperimentalMode(value)
-    }
-
-    private fun updateSettingsIfNecessary(force: Boolean) {
-        val preferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
-        val updated = Settings(preferences)
-
-        if (force || updated.experimental != settings.experimental) {
-            onExperimentalPrefChanged(updated.experimental)
-        }
-
-        settings = updated
     }
 
     companion object {
