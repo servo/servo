@@ -15,7 +15,7 @@ use script_bindings::inheritance::Castable;
 use script_bindings::reflector::{reflect_dom_object, reflect_dom_object_with_proto};
 use script_bindings::root::Dom;
 use servo_arc::Arc;
-use style::media_queries::MediaList as StyleMediaList;
+use servo_url::ServoUrl;
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard};
 use style::stylesheets::{
     AllowImportRules, Origin, Stylesheet as StyleStyleSheet, StylesheetContents,
@@ -353,15 +353,17 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
         let doc = window.Document();
         let shared_lock = doc.style_shared_author_lock().clone();
         let media = Arc::new(shared_lock.wrap(match &options.media {
-            Some(media) => match media {
-                MediaListOrString::MediaList(media_list) => media_list.clone_media_list(),
-                MediaListOrString::String(str) => MediaList::parse_media_list(&str.str(), window),
-            },
-            None => StyleMediaList::empty(),
+            MediaListOrString::MediaList(media_list) => media_list.clone_media_list(),
+            MediaListOrString::String(str) => MediaList::parse_media_list(&str.str(), window),
         }));
+        let base_url = options
+            .baseURL
+            .as_ref()
+            .and_then(|url| ServoUrl::parse(&url.str()).ok())
+            .unwrap_or(window.get_url());
         let stylesheet = Arc::new(StyleStyleSheet::from_str(
             "",
-            UrlExtraData(window.get_url().get_arc()),
+            UrlExtraData(base_url.get_arc()),
             Origin::Author,
             media,
             shared_lock,
