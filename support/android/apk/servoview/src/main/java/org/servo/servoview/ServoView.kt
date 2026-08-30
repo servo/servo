@@ -23,12 +23,11 @@ class ServoView(
     client: Servo.Client,
     servoArgs: String?,
     servoLog: String?,
+    private val experimentalMode: Boolean,
 ) : SurfaceView(context), Servo.RunCallback, Choreographer.FrameCallback {
     private val glThread: GLThread
     private var servo: Servo? = null
     private var initialUri: String? = null
-
-    private var experimentalMode = false
 
     init {
         isFocusable = true
@@ -132,7 +131,7 @@ class ServoView(
     }
 
     fun setExperimentalMode(enable: Boolean) {
-        servo?.setExperimentalMode(enable) ?: run { experimentalMode = enable }
+        servo!!.setExperimentalMode(enable)
     }
 
     private class GLThread : Thread() {

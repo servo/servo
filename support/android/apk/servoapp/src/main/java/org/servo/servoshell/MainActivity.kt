@@ -73,18 +73,18 @@ class MainActivity : ComponentActivity(), Servo.Client {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
+        settings = Settings(sharedPreferences)
+
         servoView = ServoView(
             context = this,
             client = this,
             servoArgs = intent.getStringExtra("servoargs"),
             servoLog = intent.getStringExtra("servolog"),
+            experimentalMode = settings.experimental,
         )
 
         historyManager = HistoryManager(this)
-
-        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
-        settings = Settings(sharedPreferences)
-        servoView.setExperimentalMode(settings.experimental)
 
         setContent {
             val isWindowWidthAtLeastMedium = currentWindowAdaptiveInfo().windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND)
