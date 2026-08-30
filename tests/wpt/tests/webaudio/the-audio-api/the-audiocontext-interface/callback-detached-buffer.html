@@ -1,0 +1,36 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Test to verify decodeAudioData() invokes the error callback for a detached ArrayBuffer</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<body></body>
+<script>
+promise_test(async t => {
+  const context = new AudioContext();
+  t.add_cleanup(() => context.close());
+
+  // create a detached ArrayBuffer
+  const audioData = new ArrayBuffer(4);
+  structuredClone({}, { transfer: [audioData] });
+
+  // save a reference to the promise res
+  let resolve;
+  const errorInvoked = new Promise(res => { resolve = res; });
+
+  // create decodeAudioData() promise with success and error callbacks
+  const success = t.unreached_func('success callback should not run');
+  const error = t.step_func(err => { resolve(err); });
+  const promise = context.decodeAudioData(audioData, success, error);
+
+  // assert promise rejects with DataCloneError and await pending errorInvoked promise
+  const [, err] = await Promise.all([
+    promise_rejects_dom(t, 'DataCloneError', promise),
+    errorInvoked,
+  ]);
+
+  // err must be a DataCloneError DOMException
+  assert_true(err instanceof DOMException, 'error callback argument is a DOMException');
+  assert_equals(err.name, 'DataCloneError');
+
+}, 'error callback is invoked with DataCloneError');
+</script>

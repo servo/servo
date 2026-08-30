@@ -9,7 +9,7 @@
 ./components/script/dom/audio/audionode.rs 18
 ./components/script/dom/audio/audioparam.rs 2
 ./components/script/dom/audio/audioscheduledsourcenode.rs 2
-./components/script/dom/audio/baseaudiocontext.rs 4
+./components/script/dom/audio/baseaudiocontext.rs 3
 ./components/script/dom/audio/channelmergernode.rs 2
 ./components/script/dom/audio/channelsplitternode.rs 2
 ./components/script/dom/audio/iirfilternode.rs 3
