@@ -1491,7 +1491,7 @@ impl ReadableStream {
                 assert_ne!(reader.get_num_read_requests(), 0);
                 // step 4 & 5
                 // Let readRequest be reader.[[readRequests]][0]. & Remove readRequest from reader.[[readRequests]].
-                let request = reader.remove_read_request();
+                rooted!(&in(cx) let request = reader.remove_read_request());
 
                 if done {
                     // step 6 - If done is true, perform readRequest’s close steps.

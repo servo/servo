@@ -131,9 +131,9 @@ impl DefaultTeeUnderlyingSource {
         );
 
         // Rooting: the tee read request is rooted above.
-        let read_request = ReadRequest::DefaultTee {
+        rooted!(&in(cx) let read_request = ReadRequest::DefaultTee {
             tee_read_request: Dom::from_ref(&tee_read_request),
-        };
+        });
 
         // Perform ! ReadableStreamDefaultReaderRead(reader, readRequest).
         self.reader.read(cx, &read_request);

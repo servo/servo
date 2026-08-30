@@ -213,9 +213,9 @@ impl ByteTeeUnderlyingSource {
                         global,
                     );
 
-                    let read_request = ReadRequest::ByteTee {
+                    rooted!(&in(cx) let read_request = ReadRequest::ByteTee {
                         byte_tee_read_request: Dom::from_ref(&byte_tee_read_request),
-                    };
+                    });
 
                     reader
                         .get()

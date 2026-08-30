@@ -190,6 +190,11 @@ fn is_unrooted_ty<'tcx>(
                         cx,
                         did.did(),
                         &[sym::std, sym.collections, sym.hash, sym.set, sym.Iter],
+                    ) ||
+                    match_def_path(
+                        cx,
+                        did.did(),
+                        &[sym::std, sym.collections, sym.vec_deque, sym.Iter],
                     )
                 {
                     // Structures which are semantically similar to an &ptr.
@@ -570,6 +575,7 @@ symbols! {
     hash
     map
     set
+    vec_deque
     Entry
     OccupiedEntry
     VacantEntry
