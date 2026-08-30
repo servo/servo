@@ -164,7 +164,7 @@ pub unsafe extern "C" fn prevent_extensions(
     _proxy: RawHandleObject,
     result: *mut ObjectOpResult,
 ) -> bool {
-    (unsafe { *result }).code_ = JSErrNum::JSMSG_CANT_PREVENT_EXTENSIONS as ::libc::uintptr_t;
+    unsafe { (*result).code_ = JSErrNum::JSMSG_CANT_PREVENT_EXTENSIONS as ::libc::uintptr_t };
     true
 }
 
@@ -364,12 +364,14 @@ pub unsafe extern "C" fn maybe_cross_origin_set_prototype_rawcx(
 
     // > 3. If `SameValue(V, current)` is true, return true.
     if proto.get() == current.get() {
-        (unsafe { *result }).code_ = 0 /* OkCode */;
+        unsafe {
+            (*result).code_ = 0 /* OkCode */
+        };
         return true;
     }
 
     // > 4. Return false.
-    (unsafe { *result }).code_ = JSErrNum::JSMSG_CANT_SET_PROTO as usize;
+    unsafe { (*result).code_ = JSErrNum::JSMSG_CANT_SET_PROTO as usize };
     true
 }
 
@@ -808,7 +810,9 @@ unsafe fn cross_origin_set<D: DomTypes>(
         return false;
     }
 
-    (unsafe { *result }).code_ = 0 /* OkCode */;
+    unsafe {
+        (*result).code_ = 0 /* OkCode */
+    };
     true
 }
 
