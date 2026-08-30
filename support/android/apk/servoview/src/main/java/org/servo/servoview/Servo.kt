@@ -43,14 +43,11 @@ class ServoNavigator {
 class Servo(
     args: String?,
     url: String?,
-    size: Size,
-    density: Float,
     logStr: String?,
     experimentalMode: Boolean,
     private val runCallback: RunCallback,
     client: Client,
     context: Context,
-    surface: Surface,
     navigator: ServoNavigator,
 ) {
     private val jni = JNIServo()
@@ -62,11 +59,23 @@ class Servo(
                 context,
                 args,
                 url,
-                size,
-                density,
                 logStr,
                 experimentalMode,
                 servoCallbacks,
+            )
+        }
+    }
+
+    fun addPlatformWindow(
+        size: Size,
+        density: Float,
+        runCallback: RunCallback,
+        surface: Surface,
+    ) {
+        runCallback.inGLThread {
+            jni.addPlatformWindow(
+                size,
+                density,
                 surface,
             )
         }
