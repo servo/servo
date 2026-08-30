@@ -46,10 +46,6 @@ class ServoView(
         glThread.start()
     }
 
-    fun setExperimentalModeInit(experimentalMode: Boolean) {
-        this.experimentalMode = experimentalMode
-    }
-
     override fun inGLThread(r: Runnable) {
         glThread.glLooperHandler!!.post(r)
     }
@@ -136,7 +132,7 @@ class ServoView(
     }
 
     fun setExperimentalMode(enable: Boolean) {
-        servo?.setExperimentalMode(enable)
+        servo?.setExperimentalMode(enable) ?: run { experimentalMode = enable }
     }
 
     private class GLThread : Thread() {

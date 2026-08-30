@@ -212,8 +212,6 @@ class MainActivity : ComponentActivity(), Servo.Client {
             e.printStackTrace()
         }
 
-        servoView.setExperimentalModeInit(settings.experimental)
-
         if (Intent.ACTION_VIEW == intent.action) {
             servoView.loadUri(intent.data.toString())
         }
