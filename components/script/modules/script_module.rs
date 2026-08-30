@@ -57,11 +57,12 @@ use servo_url::ServoUrl;
 use crate::dom::bindings::codegen::Bindings::CSSStyleSheetBinding::{
     CSSStyleSheetInit, CSSStyleSheetMethods,
 };
+use crate::dom::bindings::codegen::UnionTypes::MediaListOrString;
 use crate::dom::bindings::error::{Error, ErrorToJsval, report_pending_exception};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::USVString;
+use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::css::cssstylesheet::CSSStyleSheet;
@@ -327,6 +328,7 @@ impl ModuleTree {
         cx: &mut CurrentRealm,
         source: &str,
         global: &GlobalScope,
+        url: ServoUrl,
     ) -> Self {
         // Step 1. Let script be a new module script that this algorithm will subsequently initialize.
         // Step 4. Set script's parse error and error to rethrow to null.
@@ -338,8 +340,12 @@ impl ModuleTree {
 
         // Step 5. Let sheet be the result of running the steps to create a constructed
         // CSSStyleSheet with an empty dictionary as the argument.
-        let sheet =
-            CSSStyleSheet::Constructor(cx, global.as_window(), None, &CSSStyleSheetInit::empty());
+        let dictionary = CSSStyleSheetInit {
+            baseURL: Some(url.into_string().into()),
+            disabled: false,
+            media: MediaListOrString::String(DOMString::new()),
+        };
+        let sheet = CSSStyleSheet::Constructor(cx, global.as_window(), None, &dictionary);
 
         // Step 6. Run the steps to synchronously replace the rules of a CSSStyleSheet on sheet
         // given source.
@@ -719,6 +725,7 @@ impl FetchResponseListener for ModuleContext {
                         cx,
                         &source_text,
                         &global,
+                        final_url.clone(),
                     ));
                     module_script = Some(module_tree);
                 },
