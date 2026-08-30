@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use malloc_size_of_derive::MallocSizeOf;
-use num_traits::cast::NumCast;
 
 use crate::audio_node::{
     AudioNodeEngine, AudioNodeType, AudioScheduledSourceNodeMessage, BlockInfo, ChannelInfo,
@@ -11,18 +10,15 @@ use crate::audio_node::{
 };
 use crate::block::{Chunk, Tick};
 use crate::param::{Param, ParamType};
+use crate::periodic_wave::PeriodicWave;
 
-#[derive(Clone, Debug, MallocSizeOf)]
-pub struct PeriodicWaveOptions {
-    // XXX https://webaudio.github.io/web-audio-api/#dictdef-periodicwaveoptions
-}
 #[derive(Clone, Debug, MallocSizeOf)]
 pub enum OscillatorType {
     Sine,
     Square,
     Sawtooth,
     Triangle,
-    Custom,
+    Custom(PeriodicWave),
 }
 
 #[derive(Clone, Debug, MallocSizeOf)]
@@ -30,7 +26,6 @@ pub struct OscillatorNodeOptions {
     pub oscillator_type: OscillatorType,
     pub freq: f32,
     pub detune: f32,
-    pub periodic_wave_options: Option<PeriodicWaveOptions>,
 }
 
 impl Default for OscillatorNodeOptions {
@@ -39,7 +34,6 @@ impl Default for OscillatorNodeOptions {
             oscillator_type: OscillatorType::Sine,
             freq: 440.,
             detune: 0.,
-            periodic_wave_options: None,
         }
     }
 }
@@ -47,12 +41,13 @@ impl Default for OscillatorNodeOptions {
 #[derive(Clone, Debug, MallocSizeOf)]
 pub enum OscillatorNodeMessage {
     SetOscillatorType(OscillatorType),
+    SetPeriodicWave(PeriodicWave),
 }
 
 #[derive(AudioScheduledSourceNode, AudioNodeCommon)]
 pub(crate) struct OscillatorNode {
     channel_info: ChannelInfo,
-    oscillator_type: OscillatorType,
+    periodic_wave: PeriodicWave,
     frequency: Param,
     detune: Param,
     phase: f64,
@@ -68,7 +63,7 @@ impl OscillatorNode {
     pub fn new(options: OscillatorNodeOptions, channel_info: ChannelInfo) -> Self {
         Self {
             channel_info,
-            oscillator_type: options.oscillator_type,
+            periodic_wave: PeriodicWave::generate_waveform_coefficients(options.oscillator_type),
             frequency: Param::new(options.freq),
             detune: Param::new(options.detune),
             phase: 0.,
@@ -79,13 +74,34 @@ impl OscillatorNode {
     }
 
     pub fn update_parameters(&mut self, info: &BlockInfo, tick: Tick) -> bool {
-        self.frequency.update(info, tick)
+        let (frequency_updated, detune_updated) = (
+            self.frequency.update(info, tick),
+            self.detune.update(info, tick),
+        );
+        frequency_updated || detune_updated
+    }
+
+    fn compute_oscillator_frequency(&self, sample_rate: f64) -> f64 {
+        // Clamp params based on web audio specs
+        // <https://www.w3.org/TR/webaudio-1.1/#dom-oscillatornode-detune>
+        // <https://www.w3.org/TR/webaudio-1.1/#dom-oscillatornode-frequency>
+        let mut detune = self.detune.value() as f64;
+        let critical_detune = 1200.0 * f64::MAX.log2();
+        detune = detune.clamp(-critical_detune, critical_detune);
+        let nyquist = sample_rate / 2.0;
+        let mut frequency = (self.frequency.value() as f64).clamp(-nyquist, nyquist);
+        frequency *= (detune / 1200.0).exp2();
+        // Clamp to nyquist
+        frequency.clamp(-nyquist, nyquist)
     }
 
     fn handle_oscillator_message(&mut self, message: OscillatorNodeMessage, _sample_rate: f32) {
         match message {
             OscillatorNodeMessage::SetOscillatorType(o) => {
-                self.oscillator_type = o;
+                self.periodic_wave = PeriodicWave::generate_waveform_coefficients(o);
+            },
+            OscillatorNodeMessage::SetPeriodicWave(w) => {
+                self.periodic_wave = w;
             },
         }
     }
@@ -97,8 +113,6 @@ impl AudioNodeEngine for OscillatorNode {
     }
 
     fn process(&mut self, mut inputs: Chunk, info: &BlockInfo) -> Chunk {
-        // XXX Implement this properly and according to self.options
-        // as defined in https://webaudio.github.io/web-audio-api/#oscillatornode
         use std::f64::consts::PI;
         debug_assert!(inputs.is_empty());
         inputs.blocks.push(Default::default());
@@ -123,7 +137,8 @@ impl AudioNodeEngine for OscillatorNode {
             // converted to floating point numbers and then iterated over in 1-steps
             //
             // Also, if the frequency changes the phase should not
-            let mut step = two_pi * self.frequency.value() as f64 / sample_rate;
+            let mut oscillator_frequency = self.compute_oscillator_frequency(sample_rate);
+            let mut step = two_pi * oscillator_frequency / sample_rate;
             while let Some(mut frame) = iter.next() {
                 let tick = frame.tick();
                 if tick < start_at {
@@ -133,47 +148,19 @@ impl AudioNodeEngine for OscillatorNode {
                 }
 
                 if self.update_parameters(info, tick) {
-                    step = two_pi * self.frequency.value() as f64 / sample_rate;
+                    oscillator_frequency = self.compute_oscillator_frequency(sample_rate);
+                    step = two_pi * oscillator_frequency / sample_rate;
                 }
-                let mut value = vol;
-                match self.oscillator_type {
-                    OscillatorType::Sine => {
-                        value = vol * f32::sin(NumCast::from(self.phase).unwrap());
-                    },
-
-                    OscillatorType::Square => {
-                        if self.phase >= PI && self.phase < two_pi {
-                            value = vol * 1.0;
-                        } else if self.phase > 0.0 && self.phase < PI {
-                            value = -vol;
-                        }
-                    },
-
-                    OscillatorType::Sawtooth => {
-                        value = vol * (self.phase / (PI)) as f32;
-                    },
-
-                    OscillatorType::Triangle => {
-                        if self.phase >= 0. && self.phase < PI / 2. {
-                            value = vol * 2.0 * (self.phase / (PI)) as f32;
-                        } else if self.phase >= PI / 2. && self.phase < PI {
-                            value = vol * (1. - ((self.phase - (PI / 2.)) * (2. / PI)) as f32);
-                        } else if self.phase >= PI && self.phase < (3. * PI / 2.) {
-                            value = -vol * (1. - ((self.phase - (PI / 2.)) * (2. / PI)) as f32);
-                        } else if self.phase >= 3. * PI / 2. && self.phase < 2. * PI {
-                            value = vol * (-2.0) * (self.phase / (PI)) as f32;
-                        }
-                    },
-
-                    OscillatorType::Custom => {},
-                }
+                let value = vol *
+                    self.periodic_wave.calculate_waveform(
+                        oscillator_frequency,
+                        sample_rate,
+                        self.phase,
+                    ) as f32;
 
                 frame.mutate_with(|sample, _| *sample = value);
-
-                self.phase += step;
-                if self.phase >= two_pi {
-                    self.phase -= two_pi;
-                }
+                // Wrap phase if necessary in order to keep it in radians
+                self.phase = (self.phase + step).rem_euclid(two_pi);
             }
         }
         inputs

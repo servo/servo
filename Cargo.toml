@@ -215,6 +215,7 @@ rsa = "=0.10.0-rc.18"
 rusqlite = { version = "0.38", features = ["bundled"] }
 rustc-demangle = "0.1"
 rustc-hash = "2.1.2"
+realfft = "3.5.0"
 rustls = { version = "0.23", default-features = false, features = ["logging", "std", "tls12"] }
 rustls-pki-types = "1.14"
 rustls-platform-verifier = "0.7.0"
