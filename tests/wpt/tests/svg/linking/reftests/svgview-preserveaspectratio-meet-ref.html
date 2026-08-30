@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Reference: a fitted square view in a 2:1 box, with the neighbour visible</title>
+
+<!--
+  Three bands across 100x50, built with CSS so no SVG is involved on this side:
+
+      x  0 to 25    #d46847 terracotta, user space left of the view
+      x 25 to 75    #2a9d8f teal, the selected quadrant
+      x 75 to 100   nothing, past the edge of the referenced document
+-->
+
+<style>
+  body { margin: 0; }
+  .box { position: relative; width: 100px; height: 50px; }
+  .box i { position: absolute; top: 0; height: 50px; display: block; }
+  .left { left: 0; width: 25px; background-color: #d46847; }
+  .view { left: 25px; width: 50px; background-color: #2a9d8f; }
+</style>
+
+<div class="box"><i class="left"></i><i class="view"></i></div>

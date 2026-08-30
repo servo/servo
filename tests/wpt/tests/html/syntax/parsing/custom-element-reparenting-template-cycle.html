@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Parser element insertion: a custom element constructor creates a cycle through a template element's contents</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/parsing.html#insert-an-element-at-the-adjusted-insertion-location">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/adoption-agency-reparenting.js"></script>
+<body>
+<script>
+// Like the shadow root case, but the loop is closed through a template
+// element's contents. Kept separate because insertion-time subtree traversal
+// descends into shadow trees and not into template contents, so the two are not
+// equivalent for implementations.
+promise_test(async t => {
+  const iframe = await parseInIframe(t, `<script>customElements.define('x-a', class extends HTMLElement { constructor() { super(); if (window.el) return; window.el = this; window.b = document.body; window.t = document.createElement('template'); window.t.content.appendChild(window.b); window.root = this.attachShadow({mode: 'open'}); window.root.appendChild(window.t) } })<\/script><body><x-a><p>x</p></x-a>`);
+  const w = iframe.contentWindow, d = iframe.contentDocument;
+  assert_equals(d.body, null, "the html element no longer has a body child");
+  assert_array_equals([...d.documentElement.children].map(e => e.localName), ["head"],
+    "the document element is left with only its head child");
+  assert_equals(w.el.parentNode, null, "the custom element was dropped on the floor");
+  assert_equals(w.b.parentNode, w.t.content, "body stayed in the template element's contents");
+  assert_equals(tree(w.b), ``, "the custom element was not inserted into body");
+  assert_equals(tree(w.el), `<p>["x"]`, "following content went into the dropped element");
+}, "Custom element constructor moves the intended parent into a template element's contents");
+</script>

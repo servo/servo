@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Flexbox: 'baseline' and 'last baseline' items form separate baseline-sharing groups when sizing a flex line</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#algo-cross-line">
+<link rel="help" href="https://drafts.csswg.org/css-align/#baseline-sharing-group">
+<meta name="assert" content="A flex line's cross size takes the largest sum of ascent and descent over each baseline-sharing group. align-self: baseline and align-self: last baseline are different groups, so one group's descent must not be added to the other group's ascent. With a single item in each group, neither group can be taller than its own item, so the line is exactly as tall as the tallest item.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.flexbox { display: flex; font: 20px/1 monospace; }
+.flexbox > div { width: 40px; }
+/* Large descent, small ascent: the text sits at the top and the padding hangs below the baseline. */
+.lastBaseline { align-self: last baseline; padding-bottom: 60px; }
+/* Large ascent, small descent: the mirror image. */
+.firstBaseline { align-self: baseline; padding-top: 60px; }
+</style>
+
+<div class="flexbox" id="lastBaselineFirst">
+  <div class="lastBaseline">x</div><div class="firstBaseline">x</div>
+</div>
+
+<div class="flexbox" id="firstBaselineFirst">
+  <div class="firstBaseline">x</div><div class="lastBaseline">x</div>
+</div>
+
+<script>
+function tallestItem(flexbox) {
+    return Math.max(...Array.from(flexbox.children, item => item.getBoundingClientRect().height));
+}
+
+test(() => {
+    var flexbox = document.getElementById("lastBaselineFirst");
+    assert_equals(flexbox.getBoundingClientRect().height, tallestItem(flexbox));
+}, "A line holding one 'last baseline' and one 'baseline' item is as tall as the taller item");
+
+test(() => {
+    // The same two items in the opposite order. Group membership comes from align-self, not from source order,
+    // so both lines have to come out the same height.
+    assert_equals(document.getElementById("lastBaselineFirst").getBoundingClientRect().height,
+        document.getElementById("firstBaselineFirst").getBoundingClientRect().height);
+}, "The line's cross size does not depend on the order the two baseline groups appear in");
+</script>

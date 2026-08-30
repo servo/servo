@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<head>
+<title>CSS Borders and Box Decorations 4: 'outline-offset' with an elliptical concave 'corner-shape' — reference</title>
+<style>
+    body { margin: 0; }
+    .canvas { position: absolute; left: 0; top: 0; width: 160px; height: 160px; }
+    .canvas > div { position: absolute; inset: 0; }
+    .box {
+        background: red;
+        clip-path: path("\
+            M 120.000 40.000 L 120.000 120.000 L \
+            40.000 120.000 L 40.000 90.000 C 40.614 \
+            90.000 43.179 85.360 46.125 70.627 C 49.072 \
+            55.895 50.000 43.070 50.000 40.000 Z");
+    }
+    .outline {
+        background: black;
+        clip-path: path(evenodd, "\
+            M 145.000 15.000 L 145.000 145.000 L \
+            15.000 145.000 L 15.000 82.342 L 19.289 \
+            75.998 C 19.643 75.998 21.119 72.520 22.814 \
+            61.478 C 24.510 50.436 25.044 40.825 25.044 \
+            38.523 L 26.435 15.000 Z M 140.000 \
+            20.000 L 140.000 140.000 L 20.000 140.000 \
+            L 20.000 83.873 L 23.431 78.798 C \
+            23.837 78.798 25.531 75.088 27.476 63.308 C \
+            29.422 51.528 30.035 41.274 30.035 38.819 L \
+            31.148 20.000 Z");
+    }
+</style>
+</head>
+<div class=canvas><div class=box></div><div class=outline></div></div>

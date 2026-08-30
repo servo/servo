@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<title>Tests scroll adjustments of mutiple elements each anchored to a sticky-position element</title>
+<link rel="author" href="mailto:wangxianzhu@chromium.org">
+<link rel="help" href="https://crbug.com/547970041">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/">
+<link rel="match" href="reference/anchor-scroll-to-sticky-001-ref.html">
+<style>
+body {
+  margin: 0;
+}
+
+div {
+  width: 100px;
+  height: 100px;
+  box-sizing: border-box;
+}
+
+#scroller {
+  overflow: scroll;
+  text-wrap: nowrap;
+}
+
+#anchor1, #anchor2 {
+  display: inline-block;
+  position: sticky;
+  top: 0;
+  width: 50px;
+  height: 20px;
+  border: 1px solid orange;
+  background: orange;
+}
+
+#anchor1 {
+  anchor-name: --a1;
+}
+
+#anchor2 {
+  anchor-name: --a2;
+}
+
+#anchored1, #anchored2 {
+  position: absolute;
+  left: anchor(left);
+  top: anchor(bottom);
+  width: 50px;
+  background: green;
+}
+
+#anchored1 {
+  position-anchor: --a1;
+}
+
+#anchored2 {
+  position-anchor: --a2;
+}
+
+</style>
+
+<div id="scroller">
+  <div style="height: 50px"></div>
+  <div id="anchor1"></div><div id="anchor2"></div>
+  <div style="height: 300px"></div>
+</div>
+<div id="anchored1"></div>
+<div id="anchored2"></div>
+
+<script>
+scroller.scrollTop = 200;
+</script>

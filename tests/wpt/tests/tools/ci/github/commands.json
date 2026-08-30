@@ -1,0 +1,10 @@
+{
+  "generate-matrix": {
+    "path": "generate_matrix.py",
+    "script": "run",
+    "parser": "get_parser",
+    "help": "Generate a GitHub Actions test matrix from tools/ci/chunks.yml",
+    "virtualenv": true,
+    "requirements": ["requirements_generate_matrix.txt"]
+  }
+}

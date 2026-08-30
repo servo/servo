@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: stacking-axis integer repeat() values restart in every lane in grid-lanes</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://www.w3.org/TR/css-gaps-1/#lists-repeat">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/">
+<link rel="match" href="column-gap-decorations-list-repeat-integer-stacking-ref.html">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-columns: repeat(3, 60px);
+    gap: 10px;
+    width: max-content;
+    background: #cdd5e0;
+    row-rule-width: 4px;
+    row-rule-style: solid;
+    row-rule-color: blue, repeat(2, gold, purple), orange;
+  }
+  .lanes > div {
+    height: 30px;
+    background: #5b8def;
+  }
+  .t1 { grid-column: 1; }
+  .t2 { grid-column: 2; }
+  .t3 { grid-column: 3; }
+</style>
+<div class="lanes">
+  <div class="t1"></div>
+  <div class="t1"></div>
+  <div class="t1"></div>
+  <div class="t1"></div>
+  <div class="t1"></div>
+  <div class="t2"></div>
+  <div class="t2"></div>
+  <div class="t2"></div>
+  <div class="t3"></div>
+  <div class="t3"></div>
+  <div class="t3"></div>
+  <div class="t3"></div>
+  <div class="t3"></div>
+  <div class="t3"></div>
+  <div class="t3"></div>
+</div>

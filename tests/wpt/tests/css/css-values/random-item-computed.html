@@ -204,6 +204,41 @@ test(() => {
     assert_equals(m, Math.min(400, Math.floor(w / 100) * 100), 'random() and random-item() share the element-scoped base value');
 }, 'random() and random-item() share the base value for a bare element-scoped key');
 
+// A derived property scope records which function produced it, so an auto random() and an auto
+// random-item() in one value draw independently. With random() scaled to 0-400px and two items
+// 0/1000px, a shared draw would make the item choice track whether random() landed above half;
+// over 40 samples that agreeing every time is about 1 in 10^12.
+function sharedDrawCount(declaration) {
+    let consistentWithSharing = 0;
+    const holder = document.createElement('div');
+    document.body.appendChild(holder);
+    try {
+        for (let i = 0; i < 40; ++i) {
+            const element = document.createElement('div');
+            element.style.cssText = declaration;
+            holder.appendChild(element);
+            const width = parseFloat(getComputedStyle(element).width);
+            const selectedSecondItem = width >= 1000;
+            const randomFraction = (width - (selectedSecondItem ? 1000 : 0)) / 400;
+            if ((randomFraction >= 0.5) === selectedSecondItem)
+                ++consistentWithSharing;
+        }
+    } finally {
+        document.body.removeChild(holder);
+    }
+    return consistentWithSharing;
+}
+
+test(() => {
+    const shared = sharedDrawCount('width: calc(random(auto, 0px, 400px) + random-item(auto, 0px, 1000px))');
+    assert_less_than(shared, 40, 'random() and random-item() drew the same base value');
+}, 'auto random() and auto random-item() in one value do not share a base value');
+
+test(() => {
+    const shared = sharedDrawCount('--n: random(auto, 0, 1); width: calc(var(--n) * 400px + random-item(auto, 0px, 1000px))');
+    assert_less_than(shared, 40, 'random() reached through var() drew the same base value as random-item()');
+}, 'auto random() substituted through var() does not share a base value with random-item()');
+
 // A <dashed-ident> as short as "--" is a valid key (parity with random()); the value resolves rather
 // than becoming guaranteed-invalid.
 test_computed_value('color', 'random-item(--, rgb(1, 0, 0), rgb(0, 1, 0))', ['rgb(1, 0, 0)', 'rgb(0, 1, 0)']);

@@ -10,6 +10,7 @@
 
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
+<div id=log></div>
 <script>
 var testData = [
   { testDescription: "window.open() with 'noopener' should reuse existing target",
@@ -108,20 +109,30 @@ function indexedTests() {
 }
 
 /**
- * Loop over the special targets that ignore noopener and check that doing a
- * window.open() with those targets correctly reuses the existing window.
+ * Check that a window.open() with one of the special targets that ignore
+ * noopener correctly reuses the existing window. The call is made from a
+ * same-origin iframe, so that _self names a different window than _parent and
+ * _top do. The URL is the empty string, so nothing is navigated and this only
+ * tests which window gets chosen.
  */
 function specialTargetTest(target) {
-  if (["_self", "_parent", "_top"].includes(target)) {
-    var t = async_test("noopener window.open targeting " + target);
-    t.openedWindow = window.open(`javascript:var w2 = window.open("", "${target}", "noopener"); this.checkValues(w2); this.close(); void(0);`);
-    assert_equals(t.openedWindow.opener, window);
-    t.openedWindow.checkValues = t.step_func_done(function(win) {
-      assert_equals(win, this.openedWindow);
-    });
-  } else {
+  if (!["_self", "_parent", "_top"].includes(target)) {
     throw 'testError: special target must be one of: _self, _parent, _top'
   }
+  async_test(function(t) {
+    var iframe = document.createElement("iframe");
+    t.add_cleanup(function() { iframe.remove(); });
+
+    window.reportOpenedWindow = t.step_func_done(function(win) {
+      assert_equals(win, target == "_self" ? iframe.contentWindow : window,
+                    "Should have reused the existing window");
+    });
+
+    iframe.srcdoc = `<script>
+      parent.reportOpenedWindow(window.open("", "${target}", "noopener"));
+    <\/script>`;
+    document.body.append(iframe);
+  }, "noopener window.open targeting " + target);
 }
 
 /**

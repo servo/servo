@@ -218,13 +218,10 @@ function runTest() {
     let elementImage = canvas.captureElementImage(element);
     worker.postMessage({ testId: 8, elementImage }, [elementImage]);
     let result = await getWorkerResult();
-    let expected = new DOMMatrix()
-      .translateSelf(-5, -5)
-      .rotateSelf(45)
-      .translateSelf(5, 5);
+    let expected = new DOMMatrix().rotateSelf(45);
     assert_array_approx_equals(result.draw_transform.toFloat64Array(), expected.toFloat64Array(), 0.001);
     assert_array_approx_equals(result.element_transform.toFloat64Array(), expected.toFloat64Array(), 0.001);
-  }, 'Draw/Element transform should account for transform-origin');
+  }, 'Draw/Element transform should not account for transform-origin');
 
   promise_test(async t => {
     t.add_cleanup(() => {
@@ -270,16 +267,14 @@ function runTest() {
     worker.postMessage({ testId: 11, elementImage }, [elementImage]);
     let result = await getWorkerResult();
     let expected = new DOMMatrix()
-      .translateSelf(-5, -5)
       .scaleSelf(0.5, 2)
       .translateSelf(42, 17)
       .rotateSelf(45)
       .translateSelf(13, -9)
-      .scaleSelf(2, 0.5)
-      .translateSelf(5, 5);
+      .scaleSelf(2, 0.5);
     assert_array_approx_equals(result.draw_transform.toFloat64Array(), expected.toFloat64Array(), 0.001);
     assert_array_approx_equals(result.element_transform.toFloat64Array(), expected.toFloat64Array(), 0.001);
-  }, 'Draw/Element transform should account for canvas pixel scale, zoom, transform-origin, CTM, and x and y');
+  }, 'Draw/Element transform should account for canvas pixel scale, zoom, CTM, and x and y');
 
   promise_test(async t => {
     await waitForCanvasPaint(canvas);

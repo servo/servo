@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8">
+<title>CSS Borders and Box Decorations 4: mixed bevel + round + scoop + square corners, outset box-shadow, outset outline and inset outline</title>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#corner-shaping">
+<link rel="match" href="corner-shape-bevel-round-scoop-square-outset-ref.html">
+<meta name="fuzzy" content="maxDifference=0-244; totalPixels=0-1310">
+<style>
+    body { margin: 0; background: white; }
+    .row { display: flex; gap: 60px; padding: 40px; }
+    .box {
+        width: 100px;
+        height: 100px;
+        box-sizing: border-box;
+        border-radius: 25px;
+        corner-shape: bevel round scoop square;
+        background: green;
+    }
+    .outset-shadow { box-shadow: 0 0 0 10px blue; }
+    .outset-outline { outline: 6px solid orange; outline-offset: 10px; }
+    .inset-outline { outline: 6px solid orange; outline-offset: -10px; }
+</style>
+</head>
+<body>
+    <div class="row">
+        <div class="box outset-shadow"></div>
+        <div class="box outset-outline"></div>
+        <div class="box inset-outline"></div>
+    </div>
+</body>

@@ -1,0 +1,80 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>Accname computation tests for other form elements</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/wai-aria/scripts/aria-utils.js"></script>
+  <script src="/html-aam/scripts/html-aam-accname-utils.js"></script>
+</head>
+
+<body>
+  <script>
+    let testConfig = {
+      urlSpec: 'https://www.w3.org/TR/html-aam-1.0/#other-form-elements-accessible-name-computation',
+      elements: {
+        'input[type="checkbox"]': {},
+        'input[type="radio"]': {},
+        'select': { descendants: ['option', 'textNode'] },
+
+        /*
+          PR #44965 TODO:
+          Not sure which elements constitute “other form elements”.
+          Maybe the following, and/or others?
+        */
+        'input[type="color"]': {},
+        'input[type="date"]': {},
+        'input[type="datetime-local"]': {},
+        'input[type="file"]': {},
+        'input[type="month"]': {},
+        'input[type="range"]': {},
+        'input[type="time"]': {},
+        'input[type="week"]': {},
+      },
+      nameSources: [
+        'from 2 aria-labelledby refs',
+        'from 1 aria-labelledby ref',
+        'from aria-label',
+        'from 2 labels',
+        'from 1 label',
+        'from title',
+        'to be empty'
+      ]
+    }
+
+    HtmlAamAccnameUtils.buildNameComputationTests(testConfig);
+
+    testConfig = {
+      elements: {
+        /*
+          PR #44965 TODO: Where does optgroup fit in the spec?
+          In any case, get_computed_label() fails to get its label.
+        */
+        'optgroup': { parents: ['select'], children: ['option', 'textNode'] },
+
+        /*
+          PR #44965 TODO: Is datalist testable?
+        */
+        // 'datalist': { children: ['option'] },
+      },
+      nameSources: [
+        'from 2 aria-labelledby refs',
+        'from 1 aria-labelledby ref',
+        'from aria-label',
+        'from label attribute',
+        'from title',
+        'to be empty'
+      ]
+    }
+
+    HtmlAamAccnameUtils.buildNameComputationTests(testConfig);
+    AriaUtils.verifyLabelsBySelector(".ex-label");
+  </script>
+</body>
+
+</html>

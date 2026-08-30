@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+
+<title>CSSMediaRule.matches</title>
+
+<link rel="author" title="Kiet Ho" href="mailto:kiet.ho@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-conditional-3/#dom-cssmediarule-matches">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style id="sheet">
+  @media all { }
+  @media not all { }
+</style>
+
+<script>
+  test(() => {
+    assert_true(sheet.sheet.cssRules[0].matches);
+  }, '"@media all" always matches');
+
+  test(() => {
+    assert_false(sheet.sheet.cssRules[1].matches);
+  }, '"@media not all" never matches');
+</script>

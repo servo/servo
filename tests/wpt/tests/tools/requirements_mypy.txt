@@ -9,6 +9,7 @@ typing_extensions==4.15.0; python_version >= '3.9'
 typing_extensions==4.13.2; python_version < '3.9'
 
 # Install dependencies so we get type signatures from them.
+-r ci/github/requirements_generate_matrix.txt
 -r ci/requirements_build.txt
 -r ci/requirements_tc.txt
 -r docker/requirements.txt

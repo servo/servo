@@ -1,0 +1,64 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://html.spec.whatwg.org/#navigate" />
+<link rel="help" href="https://html.spec.whatwg.org/#navigate-to-a-javascript:-url"/>
+<link rel="help" href="https://html.spec.whatwg.org/#set-the-ongoing-navigation"/>
+<body>
+  <script>
+    // A navigate event that is intercepted with a precommitHandler stays
+    // ongoing for as long as that handler's promise is pending: the URL doesn't
+    // change and the navigation isn't committed. Starting a second navigation
+    // while the first one is parked like this has to abort the parked one.
+    //
+    // #navigate step 20 ("Set the ongoing navigation for navigable to
+    // navigationId.") runs for every scheme, and a changed value makes
+    // #set-the-ongoing-navigation step 2 abort whatever was ongoing. Only
+    // afterwards does #navigate step 21 queue the task that evaluates a
+    // javascript: URL and replaces the document. So the parked navigate event
+    // must already be aborted by the time the old document is unloaded.
+    //
+    // This test parks a fragment navigation in its precommitHandler, navigates
+    // the same window to a javascript: URL, and checks at pagehide that the
+    // parked event was aborted.
+    promise_test(async t => {
+      const iframe = document.createElement("iframe");
+      iframe.src = "/common/blank.html";
+      document.body.appendChild(iframe);
+      await new Promise(resolve => (iframe.onload = resolve));
+
+      const win = iframe.contentWindow;
+      let signal;
+      let precommitHandlerReached;
+      const reached = new Promise(
+        resolve => (precommitHandlerReached = resolve)
+      );
+      win.navigation.addEventListener(
+        "navigate",
+        e => {
+          signal = e.signal;
+          e.intercept({
+            precommitHandler: () => {
+              precommitHandlerReached();
+              // Never resolves, so the navigate event stays ongoing.
+              return new Promise(() => {});
+            },
+          });
+        },
+        { once: true }
+      );
+
+      win.location.hash = "#ShouldNotCommit";
+      await reached;
+      assert_false(signal.aborted, "aborted before the javascript: URL");
+
+      const abortedAtPagehide = new Promise(resolve =>
+        win.addEventListener("pagehide", () => resolve(signal.aborted), {
+          once: true,
+        })
+      );
+      win.location.href = "javascript:'new document'";
+      assert_true(await abortedAtPagehide, "aborted before pagehide");
+    }, "A javascript: URL navigation aborts a navigate event whose precommitHandler is still pending");
+  </script>
+</body>

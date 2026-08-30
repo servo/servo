@@ -43,6 +43,7 @@ promise_test(async function() {
         .pointerMove(wrapperRect.x + 1, wrapperRect.y + 1, { origin: "viewport" })
         .pointerDown()
         .send();
+    this.add_cleanup(() => test_driver.click(document.body));
 
     assert_false(target.matches(":active"), "target is not active");
     assert_false(target.matches(":hover"), "target is not hovered");
@@ -61,6 +62,7 @@ promise_test(async function() {
         .pointerMove(0, 0, { origin: wrapper })
         .pointerDown()
         .send();
+    this.add_cleanup(() => test_driver.click(document.body));
 
     assert_true(target.matches(":active"), "target is active");
     assert_true(reachedTarget, "target got event");

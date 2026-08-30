@@ -6,10 +6,10 @@
 </head>
 <body>
 <!-- `meta` elements in `body` should not enable responsive sizing. -->
-<meta name="responsive-embedded-sizing" content="*">
+<meta name="responsive-embedded-sizing" content="allow-origins=*">
 <!-- `head` in `body` should be a parse error and be ignored. -->
 <head>
-  <meta name="responsive-embedded-sizing" content="*">
+  <meta name="responsive-embedded-sizing" content="allow-origins=*">
 </head>
 <script>
 const meta = document.createElement('meta');

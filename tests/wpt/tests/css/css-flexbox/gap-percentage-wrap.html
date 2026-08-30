@@ -1,0 +1,43 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Indefinite percentage gap shouldn't cause flex column to wrap</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.com">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2022289">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#intrinsic-sizes">
+<style>
+  .wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .outer {
+    display: flex;
+    max-width: 100px;
+    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1%;
+  }
+
+  .inner {
+    display: flex;
+    width: 100px;
+    background: green;
+    height: fit-content;
+
+    &::before {
+      content: "";
+      height: 50px;
+    }
+  }
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div class="wrap">
+  <div class="outer">
+    <div class="inner"></div>
+    <div class="inner"></div>
+  </div>
+</div>

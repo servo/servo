@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html id="top">
+<head>
+<meta charset="utf-8">
+<title>View timeline with an absolutely positioned subject outside the scroll range</title>
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#viewtimeline-interface">
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#view-timelines-ranges">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="/scroll-animations/scroll-timelines/testcommon.js"></script>
+<script src="/scroll-animations/view-timelines/testcommon.js"></script>
+<style>
+
+#container {
+  position: relative;
+  height: 500px;
+  overflow: auto;
+}
+.space {
+  height: 550px;
+}
+
+/* Starts 100px above the scroll container's content origin, which is not
+   reachable by scrolling, and is taller than the scrollport. */
+#target {
+  position: absolute;
+  top: -100px;
+  left: 0;
+  background: orange;
+  width: 100px;
+  height: 700px;
+}
+
+</style>
+</head>
+<body>
+<div id="container">
+  <div id="target"></div>
+  <div class="space"></div>
+  <div class="space"></div>
+  <div class="space"></div>
+</div>
+<script type="text/javascript">
+
+// The subject sits above the origin of the scroll container's content, and
+// scrollable overflow on the block start side is not reachable, so the scroll
+// range stays [0, 1150]. The range boundaries are not clamped to it: several of
+// them are negative.
+//
+// USED_POSITION = the subject's `top` within #container's padding box
+const USED_POSITION = -100;
+const TARGET_HEIGHT = 700;
+const VIEWPORT_HEIGHT = 500;
+
+// cover           [-600, 600]
+// contain         [-100, 100]  (the subject is taller than the scrollport)
+// entry           [-600, -100]
+// exit            [100, 600]
+// entry-crossing  [-600, 100]
+// exit-crossing   [-100, 600]
+const COVER_START = USED_POSITION - VIEWPORT_HEIGHT;
+const COVER_END = USED_POSITION + TARGET_HEIGHT;
+const CONTAIN_START = USED_POSITION;
+const CONTAIN_END = USED_POSITION + TARGET_HEIGHT - VIEWPORT_HEIGHT;
+
+promise_test(async t => {
+  const timeline = new ViewTimeline({ subject: target, axis: 'block' });
+  assert_px_equals(timeline.startOffset, COVER_START, 'startOffset');
+  assert_px_equals(timeline.endOffset, COVER_END, 'endOffset');
+
+  // cover 50% is at scroll offset 0 and cover 100% at 600.
+  await runTimelineRangeTest(t, {
+    rangeStart: { rangeName: 'cover', offset: CSS.percent(50) },
+    rangeEnd: { rangeName: 'cover', offset: CSS.percent(100) },
+    startOffset: (COVER_START + COVER_END) / 2,
+    endOffset: COVER_END,
+    axis: 'block'
+  });
+  // The whole of the exit range is reachable.
+  await runTimelineRangeTest(t, {
+    rangeStart: { rangeName: 'exit', offset: CSS.percent(0) },
+    rangeEnd: { rangeName: 'exit', offset: CSS.percent(100) },
+    startOffset: CONTAIN_END,
+    endOffset: COVER_END,
+    axis: 'block'
+  });
+}, 'View timeline range boundaries are not clamped to the scroll range.');
+
+promise_test(async t => {
+  // The remaining ranges start before the scroll range does, so sample them
+  // with offsets past 100% instead, which land back inside it.
+  //
+  // contain        [-100, 100],  100% -> 100,  200% -> 300
+  // entry          [-600, -100], 200% -> 400,  300% -> 900
+  // entry-crossing [-600, 100],  100% -> 100,  200% -> 800
+  // exit-crossing  [-100, 600],  50%  -> 250,  100% -> 600
+  const containSize = CONTAIN_END - CONTAIN_START;
+  const entrySize = CONTAIN_START - COVER_START;
+  const crossingSize = TARGET_HEIGHT;
+
+  await runTimelineRangeTest(t, {
+    rangeStart: { rangeName: 'contain', offset: CSS.percent(100) },
+    rangeEnd: { rangeName: 'contain', offset: CSS.percent(200) },
+    startOffset: CONTAIN_START + containSize,
+    endOffset: CONTAIN_START + 2 * containSize,
+    axis: 'block'
+  });
+  await runTimelineRangeTest(t, {
+    rangeStart: { rangeName: 'entry', offset: CSS.percent(200) },
+    rangeEnd: { rangeName: 'entry', offset: CSS.percent(300) },
+    startOffset: COVER_START + 2 * entrySize,
+    endOffset: COVER_START + 3 * entrySize,
+    axis: 'block'
+  });
+  await runTimelineRangeTest(t, {
+    rangeStart: { rangeName: 'entry-crossing', offset: CSS.percent(100) },
+    rangeEnd: { rangeName: 'entry-crossing', offset: CSS.percent(200) },
+    startOffset: COVER_START + crossingSize,
+    endOffset: COVER_START + 2 * crossingSize,
+    axis: 'block'
+  });
+  await runTimelineRangeTest(t, {
+    rangeStart: { rangeName: 'exit-crossing', offset: CSS.percent(50) },
+    rangeEnd: { rangeName: 'exit-crossing', offset: CSS.percent(100) },
+    startOffset: CONTAIN_START + crossingSize / 2,
+    endOffset: CONTAIN_START + crossingSize,
+    axis: 'block'
+  });
+}, 'View timeline ranges that start before the scroll range, sampled past ' +
+   '100%.');
+
+</script>
+</body>
+</html>

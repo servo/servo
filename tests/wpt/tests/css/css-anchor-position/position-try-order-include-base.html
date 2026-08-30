@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#fallback-rule">
+<link rel="match" href="position-try-order-include-base-ref.html">
+<style>
+    .testbox {
+        width: 50px;
+        height: 50px;
+    }
+    .anchor {
+        anchor-name: --my-anchor;
+        position: absolute;
+        top: 100px;
+        background-color: red;
+    }
+    @position-try --custom-bottom {
+        top: anchor(bottom);
+        bottom: unset;
+    }
+    .infobox {
+        position: fixed;
+        position-anchor: --my-anchor;
+        position-try: most-height --custom-bottom;
+        bottom: anchor(top);
+        background-color: green;
+    }
+</style>
+<div class="anchor testbox"></div>
+<div class="infobox testbox">
+</div>
