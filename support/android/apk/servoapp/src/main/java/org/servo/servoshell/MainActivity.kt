@@ -72,7 +72,12 @@ class MainActivity : ComponentActivity(), Servo.Client {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        servoView = ServoView(this, this)
+        servoView = ServoView(
+            context = this,
+            client = this,
+            servoArgs = intent.getStringExtra("servoargs"),
+            servoLog = intent.getStringExtra("servolog"),
+        )
 
         historyManager = HistoryManager(this)
 
@@ -207,10 +212,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
             e.printStackTrace()
         }
 
-        val intent = getIntent()
-        val args = intent.getStringExtra("servoargs")
-        val log = intent.getStringExtra("servolog")
-        servoView.setServoArgs(args, log, settings.experimental)
+        servoView.setExperimentalModeInit(settings.experimental)
 
         if (Intent.ACTION_VIEW == intent.action) {
             servoView.loadUri(intent.data.toString())
