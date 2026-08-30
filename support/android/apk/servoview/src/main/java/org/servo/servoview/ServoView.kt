@@ -21,11 +21,11 @@ import android.view.SurfaceView
 class ServoView(
     context: Context,
     client: Servo.Client,
+    servoArgs: String?,
+    servoLog: String?,
 ) : SurfaceView(context), Servo.RunCallback, Choreographer.FrameCallback {
     private val glThread: GLThread
-    private val surfaceHolderCallback: SurfaceHolderCallback
     private var servo: Servo? = null
-    private var servoArgs: String? = null
     private var initialUri: String? = null
 
     private var experimentalMode = false
@@ -36,14 +36,17 @@ class ServoView(
         isClickable = true
         addTouchables(arrayListOf(this))
         glThread = GLThread()
-        surfaceHolderCallback = SurfaceHolderCallback(this, client)
+        val surfaceHolderCallback = SurfaceHolderCallback(
+            servoView = this,
+            client = client,
+            servoArgs = servoArgs,
+            servoLog = servoLog,
+        )
         holder.addCallback(surfaceHolderCallback)
         glThread.start()
     }
 
-    fun setServoArgs(args: String?, log: String?, experimentalMode: Boolean) {
-        servoArgs = args
-        surfaceHolderCallback.servoLog = log
+    fun setExperimentalModeInit(experimentalMode: Boolean) {
         this.experimentalMode = experimentalMode
     }
 
@@ -151,8 +154,9 @@ class ServoView(
     private class SurfaceHolderCallback(
         private val servoView: ServoView,
         private val client: Servo.Client,
+        private val servoArgs: String?,
+        private val servoLog: String?,
     ) : SurfaceHolder.Callback {
-        var servoLog: String? = null
         private var paused = false
 
         override fun surfaceCreated(holder: SurfaceHolder) {
@@ -164,7 +168,7 @@ class ServoView(
 
             if (servoView.servo == null && !paused) {
                 servoView.servo = Servo(
-                    servoView.servoArgs,
+                    servoArgs,
                     servoView.initialUri,
                     size,
                     servoView.resources.displayMetrics.density,
