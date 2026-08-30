@@ -8865,6 +8865,7 @@ name = "servo-media-gstreamer"
 version = "0.5.0"
 dependencies = [
  "byte-slice-cast",
+ "data-url",
  "glib",
  "glib-sys",
  "gstreamer",
@@ -8877,7 +8878,6 @@ dependencies = [
  "gstreamer-video",
  "gstreamer-webrtc",
  "log",
- "mime",
  "servo-base",
  "servo-media",
  "servo-media-audio",
