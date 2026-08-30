@@ -82,6 +82,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
             servoArgs = intent.getStringExtra("servoargs"),
             servoLog = intent.getStringExtra("servolog"),
             experimentalMode = settings.experimental,
+            initialUri = if (Intent.ACTION_VIEW == intent.action) intent.data.toString() else null,
             navigator = navigator,
         )
 
@@ -214,10 +215,6 @@ class MainActivity : ComponentActivity(), Servo.Client {
             Os.setenv("HOST_FILE", host, false)
         } catch (e: ErrnoException) {
             e.printStackTrace()
-        }
-
-        if (Intent.ACTION_VIEW == intent.action) {
-            servoView.loadUri(intent.data.toString())
         }
     }
 

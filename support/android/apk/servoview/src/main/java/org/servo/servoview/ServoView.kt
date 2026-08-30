@@ -24,11 +24,11 @@ class ServoView(
     servoArgs: String?,
     servoLog: String?,
     private val experimentalMode: Boolean,
+    private val initialUri: String?,
     navigator: ServoNavigator,
 ) : SurfaceView(context), Servo.RunCallback, Choreographer.FrameCallback {
     private val glThread: GLThread
     private var servo: Servo? = null
-    private var initialUri: String? = null
 
     init {
         isFocusable = true
@@ -120,12 +120,7 @@ class ServoView(
     }
 
     fun loadUri(uri: String) {
-        val servo = servo
-        if (servo != null) {
-            servo.loadUri(uri)
-        } else {
-            initialUri = uri
-        }
+        servo!!.loadUri(uri)
     }
 
     fun mediaSessionAction(action: Int) {
