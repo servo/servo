@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<title>requestFullscreen/exitFullscreen: sync Promise return, TypeError on inactive document</title>
+<link rel="help" href="https://fullscreen.spec.whatwg.org/#dom-element-requestfullscreen">
+<link rel="help" href="https://fullscreen.spec.whatwg.org/#dom-document-exitfullscreen">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../trusted-click.js"></script>
+<div id="log"></div>
+<script>
+// - requestFullscreen returns a Promise synchronously and runs the
+//   remaining algorithm steps in parallel.
+// - exitFullscreen returns a Promise synchronously and runs the remaining
+//   algorithm steps in parallel.
+// - exitFullscreen rejects with TypeError if the document is not fully
+//   active (e.g. its browsing context has been detached).
+
+promise_test(async t => {
+    const el = document.createElement("div");
+    document.body.appendChild(el);
+    t.add_cleanup(async () => {
+        if (document.fullscreenElement) await document.exitFullscreen().catch(() => {});
+        el.remove();
+    });
+
+    await trusted_click(document.body);
+    const p = el.requestFullscreen();
+    assert_true(p instanceof Promise, "requestFullscreen returns a Promise synchronously");
+    assert_equals(document.fullscreenElement, null,
+        "fullscreenElement is null immediately after requestFullscreen returns (algorithm runs in parallel)");
+    await p;
+    assert_equals(document.fullscreenElement, el,
+        "fullscreenElement is the element after requestFullscreen promise resolves");
+
+    const exitPromise = document.exitFullscreen();
+    assert_true(exitPromise instanceof Promise, "exitFullscreen returns a Promise synchronously");
+    await exitPromise;
+    assert_equals(document.fullscreenElement, null, "fullscreenElement is null after exitFullscreen promise resolves");
+}, "requestFullscreen and exitFullscreen return Promises synchronously; state updates happen in parallel");
+
+promise_test(async t => {
+    // A document in a detached iframe is not fully active. exitFullscreen
+    // on that document must reject with TypeError.
+    const iframe = document.createElement("iframe");
+    document.body.appendChild(iframe);
+    const iframeDoc = iframe.contentDocument;
+    assert_not_equals(iframeDoc, null, "iframe has a contentDocument");
+
+    iframe.remove();
+
+    let rejection = null;
+    try {
+        await iframeDoc.exitFullscreen();
+    } catch (e) {
+        rejection = e;
+    }
+    assert_not_equals(rejection, null,
+        "exitFullscreen rejects on a document that is not fully active");
+    assert_equals(rejection.name, "TypeError",
+        "rejection is a TypeError (name check for cross-realm safety)");
+}, "exitFullscreen: rejects with TypeError when document is not fully active");
+</script>

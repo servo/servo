@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: explicit column-rule-break normal breaks the grid-axis rule around a spanner but not at ordinary intersections in grid-lanes</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://www.w3.org/TR/css-gaps-1/#break">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/">
+<link rel="match" href="column-gap-decorations-break-normal-ref.html">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-columns: repeat(2, 60px);
+    column-gap: 20px;
+    row-gap: 20px;
+    width: max-content;
+    background: #cdd5e0;
+    column-rule: 4px solid blue;
+    column-rule-break: normal;
+    row-rule: 4px solid gold;
+  }
+  .lanes > div { background: #5b8def; }
+  .a { grid-column: 1; height: 60px; }
+  .b { grid-column: 2; height: 60px; }
+  .s { grid-column: 1 / span 2; height: 40px; background: #8a6df0; }
+  .c { grid-column: 1; height: 60px; }
+  .d { grid-column: 2; height: 100px; }
+  .e { grid-column: 1; height: 20px; }
+</style>
+<div class="lanes">
+  <div class="a"></div>
+  <div class="b"></div>
+  <div class="s"></div>
+  <div class="c"></div>
+  <div class="d"></div>
+  <div class="e"></div>
+</div>

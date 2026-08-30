@@ -8,13 +8,15 @@
 <div id="result"></div>
 
 <style>
+  div {
+    color: red !important;
+  }
   @mixin --result-important() {
     @result {
-      color: red !important;
+      color: green !important;
     }
   }
   #result {
-    color: green !important;
     @apply --result-important;
   }
 </style>
@@ -22,7 +24,7 @@
 <script>
   test(() => {
     let target = document.getElementById('result');
-    assert_equals(getComputedStyle(target).color, 'rgb(255, 0, 0)');
+    assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
   }, '!important is valid in mixin result declarations');
 
   test(() => {

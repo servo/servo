@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="match" href="grid-nested-container-with-scrollable-descendant-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#scrollbar-sizing">
+<style>
+.container {
+  width: 500px;
+}
+
+.outer-grid {
+  display: grid;
+}
+
+.inner-grid {
+  display: grid;
+  width: 400px;
+}
+
+.grid-item {
+  width: 300px;
+}
+
+.scroller {
+  overflow: auto;
+  white-space: pre;
+}
+
+.sibling {
+  width: 100px;
+  height: 100px;
+  border: 4px solid blue;
+}
+</style>
+</head>
+<body>
+<div class=container>
+  <div class=outer-grid>
+    <div class=inner-grid>
+      <div class=grid-item>
+        <div class=scroller>PASS if always-on scrollbar does not overlap the blue box below</div>
+      </div>
+    </div>
+  </div>
+  <div class=sibling></div>
+</div>
+</body>
+</html>

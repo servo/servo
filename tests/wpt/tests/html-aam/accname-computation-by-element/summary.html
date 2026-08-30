@@ -1,0 +1,64 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>Accname computation tests for &lt;summary&gt;</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/wai-aria/scripts/aria-utils.js"></script>
+  <script src="/html-aam/scripts/html-aam-accname-utils.js"></script>
+</head>
+
+<body>
+  <script>
+    const testConfig = {
+      urlSpec: 'https://www.w3.org/TR/html-aam-1.0/#summary-element-accessible-name-computation',
+      elements: {
+        'summary': { ancestors: ['details'] }
+      },
+      nameSources: [
+        'from 2 aria-labelledby refs',
+        'from 1 aria-labelledby ref',
+        'from aria-label',
+        'from subtree',
+        'from title',
+        // 'from browser default',
+        // 'to be empty'
+      ]
+    }
+
+    /*
+      PR #44965 TODO:
+      A present-but-empty summary causes web driver to choke?
+    */
+
+    /*
+      PR #44965 TODO:
+      Are browser default names testable?
+      As of April 2024, default names for <summary> are:
+
+      - Chrome: "Details"
+      - Safari: "Details"
+      - Firefox: "Details"
+    */
+
+    /*
+      PR #44965 TODO:
+      What could cause the implementation-defined string to be
+      unavailable, and can that be tested? The remaining accname steps are:
+
+      5. If there is a summary element as a direct child of the details element,
+         but none of the above yield a usable text string, there is no
+         accessible name.
+    */
+
+    HtmlAamAccnameUtils.buildNameComputationTests(testConfig);
+    AriaUtils.verifyLabelsBySelector(".ex-label");
+  </script>
+</body>
+
+</html>

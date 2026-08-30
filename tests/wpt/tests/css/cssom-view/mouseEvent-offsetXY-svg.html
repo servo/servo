@@ -14,14 +14,28 @@
 </style>
 <svg width=100 height=100>
   <rect width=30 height=30 x=50 y=50 fill=green></rect>
+  <text x=50 y=65><tspan>X</tspan></text>
 </svg>
 <script>
-let t = async_test();
-let rect = document.querySelector("rect");
-rect.addEventListener("click", t.step_func_done(function(e) {
-  assert_true(e.offsetX >= 50);
-  assert_true(e.offsetY >= 50);
-}))
+async_test((t) => {
+  let rect = document.querySelector("rect");
 
-test_driver.click(rect);
+  rect.addEventListener("click", t.step_func_done(function(e) {
+    assert_true(e.offsetX >= 50);
+    assert_true(e.offsetY >= 50);
+  }))
+
+  test_driver.click(rect);
+}, "rect offsetX/Y is relative to the root svg");
+
+async_test((t) => {
+  let tspan = document.querySelector("tspan");
+
+  tspan.addEventListener("click", t.step_func_done(function(e) {
+    assert_true(e.offsetX >= 50);
+    assert_true(e.offsetY >= 50);
+  }))
+
+  test_driver.click(tspan);
+}, "tspan offsetX/Y is relative to the root svg");
 </script>

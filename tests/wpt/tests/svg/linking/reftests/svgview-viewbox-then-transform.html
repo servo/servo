@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<title>SVG fragment identifier: svgView() applies viewBox() before transform()</title>
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/linking.html#SVGFragmentIdentifiersDefinitions">
+<link rel="match" href="svgview-terracotta-100x100-ref.html">
+<meta name="assert" content="SVG view box parameters are applied in order: the view is established by ViewBoxParams and then transformed by TransformParams. Restating the authored viewBox and then scaling by 2 must therefore give the same result as scaling alone.">
+
+<!--
+support/squares.svg is 200x200 with four solid quadrants:
+
+        #d46847 terracotta | #2a9d8f teal
+        #264653 indigo     | #e9c46a sand
+
+  viewBox(0,0,200,200) is the value the root already carries, so this fragment differs
+  from svgview-transform.html only by stating it explicitly. Both must render the same
+  quadrant. Applying the transform first and the viewBox afterwards would discard the
+  scale and show all four colours.
+-->
+
+<style>
+  body { margin: 0; }
+  img { display: block; border: none; }
+</style>
+
+<img src="support/squares.svg#svgView(viewBox(0,0,200,200);transform(scale(2)))" width="100" height="100" alt="">

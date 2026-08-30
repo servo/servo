@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Canvas Transform: updateElementGeometry getBoundingClientRect mapping</title>
+  <link rel="help" href="https://github.com/WICG/html-in-canvas">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+</head>
+<body style="margin: 0;" onload="runTest()">
+  <canvas id="canvas" style="position: absolute; left: 10px; top: 20px; width: 400px; height: 400px;" layoutsubtree>
+    <div id="target" style="position: absolute; left: 0; top: 0; width: 100px; height: 50px;">
+      <span id="nested-inline" drawable style="font: 25px/1 Ahem;">X</span>
+      <div id="nested-block" drawable style="width: 20px; height: 30px;"></div>
+      <div id="nested-non-drawable" style="width: 15px; height: 25px;"></div>
+    </div>
+  </canvas>
+  <canvas id="canvas-no-layoutsubtree" width="100" height="100">
+    <div id="child-no-layoutsubtree"></div>
+  </canvas>
+  <canvas id="other-canvas" width="100" height="100" layoutsubtree>
+    <div id="other-child"></div>
+  </canvas>
+  <div id="outside" style="position: absolute; left: 10px; top: 10px; width: 100px; height: 50px;"></div>
+
+  <script>
+    'use strict';
+
+    const runTest = () => {
+      test(() => {
+        const canvas = document.createElement('canvas');
+        assert_equals(typeof canvas.updateElementGeometry, 'function');
+        assert_equals(typeof canvas.clearElementGeometry, 'function');
+      }, 'canvas.updateElementGeometry and clearElementGeometry are defined');
+
+      test(() => {
+        const canvas = document.getElementById('canvas');
+        const noLayoutSubtreeCanvas = document.getElementById('canvas-no-layoutsubtree');
+        const child = document.getElementById('child-no-layoutsubtree');
+        const outside = document.getElementById('outside');
+        const otherChild = document.getElementById('other-child');
+        const nestedNonDrawable = document.getElementById('nested-non-drawable');
+
+        assert_throws_dom('InvalidStateError', () => {
+          noLayoutSubtreeCanvas.updateElementGeometry(child);
+        }, 'Calling updateElementGeometry on canvas without layoutsubtree must throw');
+
+        assert_throws_dom('InvalidStateError', () => {
+          canvas.updateElementGeometry(outside);
+        }, 'Calling updateElementGeometry on element outside canvas must throw');
+
+        assert_throws_dom('InvalidStateError', () => {
+          canvas.updateElementGeometry(otherChild);
+        }, 'Calling updateElementGeometry on element in another canvas must throw');
+
+        assert_throws_dom('InvalidStateError', () => {
+          canvas.updateElementGeometry(nestedNonDrawable);
+        }, 'Calling updateElementGeometry on non-drawable descendant must throw');
+      }, 'updateElementGeometry throws InvalidStateError for ineligible elements');
+
+      test(() => {
+        const canvas = document.getElementById('canvas');
+        const target = document.getElementById('target');
+        let rect = target.getBoundingClientRect();
+        assert_equals(rect.left, 10);
+        assert_equals(rect.top, 20);
+
+        canvas.updateElementGeometry(target, {
+          canvasTransform: new DOMMatrix().translate(50, 60).scale(2, 3)
+        });
+        rect = target.getBoundingClientRect();
+        assert_equals(rect.left, 60);
+        assert_equals(rect.top, 80);
+        assert_equals(rect.width, 200);
+        assert_equals(rect.height, 150);
+
+        // Omitting canvasTransform preserves the existing transform.
+        canvas.updateElementGeometry(target, { preserveHitTestOrder: true });
+        rect = target.getBoundingClientRect();
+        assert_equals(rect.left, 60);
+        assert_equals(rect.top, 80);
+        assert_equals(rect.width, 200);
+        assert_equals(rect.height, 150);
+
+        // Explicit undefined canvasTransform preserves the existing transform.
+        canvas.updateElementGeometry(target, {
+          canvasTransform: undefined,
+          preserveHitTestOrder: true
+        });
+        rect = target.getBoundingClientRect();
+        assert_equals(rect.left, 60);
+        assert_equals(rect.top, 80);
+        assert_equals(rect.width, 200);
+        assert_equals(rect.height, 150);
+
+        // Calling updateElementGeometry with no options preserves the existing transform.
+        canvas.updateElementGeometry(target);
+        rect = target.getBoundingClientRect();
+        assert_equals(rect.left, 60);
+        assert_equals(rect.top, 80);
+        assert_equals(rect.width, 200);
+        assert_equals(rect.height, 150);
+      }, 'updateElementGeometry() with canvasTransform affects getBoundingClientRect() on canvas child');
+
+      test(() => {
+        const canvas = document.getElementById('canvas');
+        const target = document.getElementById('target');
+
+        // Apply a canvas transform to target.
+        canvas.updateElementGeometry(target, {
+          canvasTransform: new DOMMatrix().translate(50, 60).scale(2, 3)
+        });
+        let rect = target.getBoundingClientRect();
+        assert_equals(rect.left, 60);
+        assert_equals(rect.top, 80);
+        assert_equals(rect.width, 200);
+        assert_equals(rect.height, 150);
+
+        // Calling clearElementGeometry unsets the canvas transform.
+        canvas.clearElementGeometry(target);
+        rect = target.getBoundingClientRect();
+        assert_equals(rect.left, 10);
+        assert_equals(rect.top, 20);
+        assert_equals(rect.width, 100);
+        assert_equals(rect.height, 50);
+
+        // Calling clearElementGeometry when no transform is set is a safe no-op.
+        canvas.clearElementGeometry(target);
+        rect = target.getBoundingClientRect();
+        assert_equals(rect.left, 10);
+        assert_equals(rect.top, 20);
+      }, 'clearElementGeometry() unsets canvas transform on canvas child');
+
+      promise_test(async () => {
+        const canvas = document.getElementById('canvas');
+        const target = document.getElementById('target');
+        await waitForCanvasPaint(canvas);
+
+        const elementImage = canvas.captureElementImage(target);
+        canvas.updateElementGeometry(elementImage, {
+          canvasTransform: new DOMMatrix().translate(20, 30)
+        });
+        let rect = target.getBoundingClientRect();
+        assert_equals(rect.left, 30);
+        assert_equals(rect.top, 50);
+
+        canvas.clearElementGeometry(elementImage);
+        rect = target.getBoundingClientRect();
+        assert_equals(rect.left, 10);
+        assert_equals(rect.top, 20);
+      }, 'updateElementGeometry and clearElementGeometry accept ElementImage');
+    }
+  </script>
+</body>
+</html>

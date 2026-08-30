@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<title>SVG fragment identifier: spaces are allowed in an svgView() specification</title>
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/linking.html#SVGFragmentIdentifiersDefinitions">
+<link rel="match" href="svgview-img-element-ref.html">
+<meta name="assert" content="SVG 2 states that spaces are allowed in fragment specifications. A space immediately inside the svgView parentheses must therefore be permitted, and svgView( viewBox(100,0,100,100) ) must select the same view as the same specification written without those spaces, filling the img with the top-right quadrant of support/squares.svg.">
+
+<!--
+  support/squares.svg is 200x200 with four solid quadrants:
+
+        #d46847 terracotta | #2a9d8f teal
+        #264653 indigo     | #e9c46a sand
+
+  viewBox(100,0,100,100) selects the teal quadrant. The img is 100x100 and the
+  view is square, so the quadrant fills the element and the reference is a flat
+  block of that colour. A rendering showing all four quadrants means the whole
+  specification was discarded.
+
+  The relevant sentence is in the definition of an SVG fragment identifier:
+
+      Spaces are allowed in fragment specifications. Commas are used to separate
+      numeric values within an SVG view specification (e.g.,
+      #svgView(viewBox(0,0,200,200))) and semicolons are used to separate
+      attributes.
+
+  This test varies one thing only: a space immediately inside the svgView
+  parentheses. Spaces between the numeric parameters are deliberately NOT used
+  here, because those are parsed by the viewBox attribute parser rather than by the
+  fragment grammar and are already handled; mixing the two would make a failure
+  ambiguous about which space caused it.
+
+  A note for anyone triaging this. A literal space in a fragment is percent-encoded
+  to %20 when the URL is serialised, so an implementation that fails this test may
+  be rejecting the space character or may simply never decode %20. Those have
+  different causes and the same appearance. Writing the same fragment with explicit
+  %20 sequences and comparing the two results separates them.
+-->
+
+<style>
+  body { margin: 0; }
+  img { display: block; border: none; }
+</style>
+
+<img src="support/squares.svg#svgView( viewBox(100,0,100,100) )" width="100" height="100" alt="">

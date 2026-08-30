@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>moveBefore() does not refetch a loaded stylesheet</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#dom-parentnode-movebefore">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+promise_test(async t => {
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = "resources/stylesheet-cascade-blue.css";
+  t.add_cleanup(() => link.remove());
+
+  const loaded = new Promise((resolve, reject) => {
+    link.addEventListener("load", resolve, {once: true});
+    link.addEventListener("error", reject, {once: true});
+  });
+  document.head.append(link);
+  await loaded;
+
+  assert_equals(performance.getEntriesByName(link.href).length, 1,
+                "the stylesheet is fetched once");
+
+  document.head.moveBefore(link, document.head.firstChild);
+  await new Promise(resolve => t.step_timeout(resolve, 100));
+
+  assert_equals(performance.getEntriesByName(link.href).length, 1,
+                "moving the stylesheet does not fetch it again");
+}, "Moving a loaded link stylesheet preserves its resource");
+</script>

@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+details {
+  -webkit-text-stroke: 1px red;
+}
+</style>
+<script>
+"use strict";
+
+addEventListener("DOMContentLoaded", () => {
+  getSelection().selectAllChildren(
+    document.querySelector("video > optgroup")
+  );
+  getSelection().modify("move", "forward", "line");
+}, {once: true});
+</script>
+</head>
+<body>
+<video>
+<optgroup></optgroup>
+</video>
+<details open>
+<select></select>
+</details>
+</body>
+</html>

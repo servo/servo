@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<title>fullscreenchange event shape: bubbles, composed, target when connected vs disconnected</title>
+<link rel="help" href="https://fullscreen.spec.whatwg.org/#run-the-fullscreen-steps">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../trusted-click.js"></script>
+<div id="log"></div>
+<script>
+// "Run the fullscreen steps" queues each pending event with bubbles=true
+// and composed=true. Its target is the element if it is connected and in
+// the same document; otherwise the target is the document.
+
+promise_test(async t => {
+    const el = document.createElement("div");
+    document.body.appendChild(el);
+    t.add_cleanup(async () => {
+        if (document.fullscreenElement) await document.exitFullscreen().catch(() => {});
+        el.remove();
+    });
+
+    const enterEventPromise = new Promise(r => document.addEventListener("fullscreenchange", r, { once: true }));
+    await trusted_request(el);
+    const enterEvent = await enterEventPromise;
+
+    assert_true(enterEvent.bubbles, "fullscreenchange has bubbles=true");
+    assert_true(enterEvent.composed, "fullscreenchange has composed=true");
+    assert_equals(enterEvent.target, el, "target is the element when connected in-document");
+
+    const exitEventPromise = new Promise(r => document.addEventListener("fullscreenchange", r, { once: true }));
+    await document.exitFullscreen();
+    const exitEvent = await exitEventPromise;
+
+    assert_true(exitEvent.bubbles, "exit fullscreenchange has bubbles=true");
+    assert_true(exitEvent.composed, "exit fullscreenchange has composed=true");
+    assert_equals(exitEvent.target, el, "exit target is the (still-connected) element");
+}, "fullscreenchange: bubbles + composed + target when element is connected");
+
+promise_test(async t => {
+    // Removal from the flat tree implicitly exits fullscreen and queues
+    // an exit fullscreenchange with the now-disconnected element in the
+    // pending list. Per run-the-fullscreen-steps, the event target falls
+    // back to the document when the element is no longer connected.
+    const el = document.createElement("div");
+    document.body.appendChild(el);
+    t.add_cleanup(async () => {
+        if (document.fullscreenElement) await document.exitFullscreen().catch(() => {});
+        if (el.isConnected) el.remove();
+    });
+
+    const enterEventPromise = new Promise(r => document.addEventListener("fullscreenchange", r, { once: true }));
+    await trusted_request(el);
+    await enterEventPromise;
+
+    const exitEventPromise = new Promise(r => document.addEventListener("fullscreenchange", r, { once: true }));
+    el.remove();
+    const exitEvent = await exitEventPromise;
+
+    assert_true(exitEvent.bubbles, "bubbles=true");
+    assert_true(exitEvent.composed, "composed=true");
+    assert_equals(exitEvent.target, document,
+        "target is the document when the element is no longer connected");
+}, "fullscreenchange: target falls back to document when element is disconnected");
+
+promise_test(async t => {
+    // run-the-fullscreen-steps copies the pending events list and empties
+    // the document's pending list before firing. Observable consequence:
+    // one request/exit cycle produces exactly one fullscreenchange per
+    // transition.
+    const el = document.createElement("div");
+    document.body.appendChild(el);
+    t.add_cleanup(async () => {
+        if (document.fullscreenElement) await document.exitFullscreen().catch(() => {});
+        el.remove();
+    });
+
+    let count = 0;
+    const handler = () => { count++; };
+    document.addEventListener("fullscreenchange", handler);
+    t.add_cleanup(() => { document.removeEventListener("fullscreenchange", handler); });
+
+    await trusted_request(el);
+    await new Promise(r => t.step_timeout(r, 50));
+    assert_equals(count, 1, "exactly one fullscreenchange on enter");
+
+    await document.exitFullscreen();
+    await new Promise(r => t.step_timeout(r, 50));
+    assert_equals(count, 2, "exactly one additional fullscreenchange on exit");
+}, "run-the-fullscreen-steps: pending events list is drained per invocation (no duplicate events)");
+</script>

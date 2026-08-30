@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<title>
+  CSS Gap Decorations: wrap-reverse assigns fragmented flex row-rule values by
+  reversing complete uneven flex-line groups.
+</title>
+<meta name="assert" content="In a fragmented column flex container with wrap-reverse, row-rule values are assigned by reversing complete asymmetric flex-line groups while preserving value order inside each group; a suppressed gap still consumes its value.">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#assigning">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#fragmentation">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#flex-wrap-property">
+<link rel="match" href="flex-gap-decorations-fragmentation-033-ref.html">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+  body {
+    margin: 0;
+  }
+  .multi-column {
+    columns: 2;
+    column-width: 170px;
+    column-gap: 10px;
+    height: 175px;
+    width: 350px;
+    background: lightgray;
+    column-fill: auto;
+  }
+  #flexbox {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap-reverse;
+    border: 1px solid black;
+    width: 170px;
+    height: 290px;
+    row-gap: 10px;
+    column-gap: 10px;
+    row-rule-style: solid;
+    row-rule-width: 10px;
+    row-rule-color: red, lime, blue, yellow, magenta, cyan;
+    column-rule-style: solid;
+    column-rule-width: 10px;
+    column-rule-color: gray;
+  }
+  .items {
+    background-color: cornflowerblue;
+    width: 50px;
+  }
+</style>
+<div class="multi-column">
+  <div id="flexbox">
+    <div class="items" style="height: 80px;"></div>
+    <div class="items" style="height: 80px;"></div>
+    <div class="items" style="height: 80px;"></div>
+    <div class="items" style="height: 60px;"></div>
+    <div class="items" style="height: 60px;"></div>
+    <div class="items" style="height: 60px;"></div>
+    <div class="items" style="height: 60px;"></div>
+    <div class="items" style="height: 50px;"></div>
+    <div class="items" style="height: 40px;"></div>
+  </div>
+</div>

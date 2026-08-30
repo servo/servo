@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<head>
+<title>CSS Borders and Box Decorations 4: 'outline-offset' with elliptical 'corner-shape: bevel' corners</title>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#corner-shaping">
+<link rel="match" href="corner-shape-outline-offset-bevel-ref.html">
+<meta name="fuzzy" content="maxDifference=0-44; totalPixels=0-458">
+<style>
+    body { margin: 0; }
+    .target {
+        position: absolute;
+        left: 40px;
+        top: 40px;
+        width: 80px;
+        height: 80px;
+        background: red;
+        outline: 5px solid black;
+        outline-offset: 20px;
+        border-radius: 8px / 30px;
+        corner-shape: bevel;
+    }
+</style>
+</head>
+<div class=target></div>

@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<title>Grid container with a very tall row in a multi-column container</title>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2063893">
+
+<div style="column-count: 2">
+  <span style="display: inline-grid">
+    <span style="display: inline-block; padding-block: 4294967295% 16777216%">x</span>
+  </span>
+</div>

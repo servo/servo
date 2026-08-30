@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Lists: marker follows a mutated @counter-style rule</title>
+<link rel="help" href="https://drafts.csswg.org/css-counter-styles-3/#the-counter-style-rule">
+<link rel="help" href="https://drafts.csswg.org/css-lists-3/#list-style-type-property">
+<link rel="match" href="list-marker-counter-style-mutation-ref.html">
+<meta name="assert" content="Changing an @counter-style rule's symbols descriptor updates the markers of the list items using that counter style, including when the new symbols no longer need bidi resolution.">
+<style id="counterStyleSheet">
+@counter-style mutated { system: cyclic; symbols: "\627"; }
+</style>
+<ol style="list-style-type: mutated"><li>text</li></ol>
+<script src="/common/reftest-wait.js"></script>
+<script>
+addEventListener("load", () => {
+  document.body.offsetLeft;
+  document.getElementById("counterStyleSheet").sheet.cssRules[0].symbols = '"x"';
+  takeScreenshot();
+}, { once: true });
+</script>
+</html>

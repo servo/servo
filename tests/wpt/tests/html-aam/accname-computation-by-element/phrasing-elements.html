@@ -1,0 +1,72 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>Accname computation tests for section and grouping elements</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/wai-aria/scripts/aria-utils.js"></script>
+  <script src="/html-aam/scripts/html-aam-accname-utils.js"></script>
+</head>
+
+<body>
+  <script>
+    const testConfig = {
+      urlSpec: 'https://www.w3.org/TR/html-aam-1.0/#text-level-element-accessible-name-computation',
+      elements: {
+        'dfn': { descendants: ['textNode']},
+        'ruby': { specialContext: 'ruby' },
+
+        /*
+          PR #44965 TODO: <hr>’s implicit separator role supports name from
+          author. Should it be included in this computation rule set?
+        */
+        'hr': {},
+
+        /*
+          PR #44965 TODO: Naming is prohibited for the following elements, but
+          the HTML-AAM spec identifies them explicitly for name computation.
+        */
+        'abbr': { descendants: ['textNode']},
+        'b': { descendants: ['textNode']},
+        'bdi': { descendants: ['textNode'] },
+        'bdo': { descendants: ['textNode'] },
+        'br': {},
+        'cite': { descendants: ['textNode']},
+        'code': { descendants: ['textNode']},
+        'em': { descendants: ['textNode']},
+        'i': { descendants: ['textNode']},
+        'kbd': { descendants: ['textNode']},
+        'mark': { descendants: ['textNode']},
+        'q': { descendants: ['textNode']},
+        'rp': { specialContext: 'rp'},
+        'rt': { specialContext: 'rt' },
+        's': { descendants: ['textNode']},
+        'samp': { descendants: ['textNode']},
+        'small': { descendants: ['textNode']},
+        'strong': { descendants: ['textNode']},
+        'sub': { descendants: ['textNode']},
+        'sup': { descendants: ['textNode']},
+        'time': { descendants: ['textNode']},
+        'u': { descendants: ['textNode']},
+        'var': { descendants: ['textNode']},
+        'wbr': {}
+      },
+      nameSources: [
+        'from 2 aria-labelledby refs',
+        'from 1 aria-labelledby ref',
+        'from aria-label',
+        'from title',
+        'to be empty'
+      ]
+    }
+    HtmlAamAccnameUtils.buildNameComputationTests(testConfig);
+    AriaUtils.verifyLabelsBySelector(".ex-label");
+  </script>
+</body>
+
+</html>

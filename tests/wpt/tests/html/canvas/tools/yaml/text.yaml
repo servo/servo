@@ -2362,8 +2362,6 @@
   reference: |
     ctx.font = '50px sans-serif';
     const text = 'Hello ♦️ World!';
-    let tm = ctx.measureText(text);
-    const clusters = tm.getTextClusters();
 
     const x = 100;
     const y = 100;
@@ -2390,8 +2388,6 @@
   reference: |
     ctx.font = '50px sans-serif';
     const text = 'Hello ♦️ World!';
-    let tm = ctx.measureText(text);
-    const clusters = tm.getTextClusters();
 
     const x = 100;
     const y = 100;

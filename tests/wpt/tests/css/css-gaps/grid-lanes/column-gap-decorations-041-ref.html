@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#geometry">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#grid-lanes-dense-packing">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#stacking-self-alignment">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-columns: repeat(4, 80px);
+    grid-lanes-pack: dense;
+    flow-tolerance: 0;
+    column-gap: 20px;
+    row-gap: 20px;
+    background: #cdd5e0;
+    width: max-content;
+  }
+  .lanes > div {
+    background: #5b8def;
+  }
+  .lanes > div.a { grid-column: 1; height: 40px; }
+  .lanes > div.b { grid-column: 2; height: 40px; }
+  .lanes > div.c { grid-column: 3; height: 60px; }
+  .lanes > div.d { grid-column: 4; height: 120px; }
+  .lanes > div.spanner {
+    grid-column: 1 / span 4;
+    height: 40px;
+    background: #8a6df0;
+  }
+  .lanes > div.packed {
+    background: #1f9d6b;
+  }
+  .lanes > div.centered {
+    grid-column: 1 / span 2;
+    height: 20px;
+    align-self: center;
+  }
+  .lanes > div.stretched {
+    grid-column: 3;
+    align-self: stretch;
+  }
+  .row-rule { position: absolute; height: 0; border-top: 4px solid gold; }
+</style>
+<div class="lanes">
+  <div class="a"></div>
+  <div class="b"></div>
+  <div class="c"></div>
+  <div class="d"></div>
+  <div class="spanner"></div>
+  <div class="packed centered"></div>
+  <div class="packed stretched"></div>
+</div>
+<div class="row-rule" style="left: 0; top: 48px; width: 80px;"></div>
+<div class="row-rule" style="left: 0; top: 128px; width: 80px;"></div>
+<div class="row-rule" style="left: 100px; top: 48px; width: 80px;"></div>
+<div class="row-rule" style="left: 100px; top: 128px; width: 80px;"></div>
+<div class="row-rule" style="left: 200px; top: 68px; width: 80px;"></div>
+<div class="row-rule" style="left: 200px; top: 128px; width: 80px;"></div>
+<div class="row-rule" style="left: 300px; top: 128px; width: 80px;"></div>

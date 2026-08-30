@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>Tests the 'match-parent' value of the 'position-anchor' property</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#valdef-position-anchor-match-parent">
+<link rel="author" href="mailto:jeroen.zwartepoorte@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+
+<div id="target"></div>
+
+<script>
+// match-parent is tested here instead of position-anchor-basics.html
+// due to it arriving too late for Interop 26.
+
+// position-anchor: <anchor-element>
+// <anchor-element> = normal | none | auto | <dashed-ident> | match-parent
+test_valid_value('position-anchor', 'match-parent');
+
+// Computed value: as specified
+test_computed_value('position-anchor', 'match-parent');
+</script>

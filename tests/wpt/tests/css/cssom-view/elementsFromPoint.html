@@ -97,6 +97,7 @@
 
       test(function () {
              var svg = document.getElementById('squiggle');
+             svg.scrollIntoView();
              var svgRect = svg.getBoundingClientRect();
              assert_array_equals(document.elementsFromPoint(svgRect.left + Math.round(svgRect.width/2),
                                                             svgRect.top + Math.round(svgRect.height/2)),
@@ -106,6 +107,7 @@
 
       test(function () {
               var svg = document.getElementById('svg-transform');
+              svg.scrollIntoView();
               var svgRect = svg.getBoundingClientRect();
               assert_array_equals(document.elementsFromPoint(svgRect.left + Math.round(svgRect.width/2),
                                                              svgRect.top + Math.round(svgRect.height/2)),
@@ -113,6 +115,7 @@
                             "Should have returned [svg rect, svg, body, html]");
 
               var pink = document.getElementById('pink');
+              pink.scrollIntoView();
               var pinkRect = pink.getBoundingClientRect();
               assert_array_equals(document.elementsFromPoint(pinkRect.left + Math.round(pinkRect.width/2),
                                                              pinkRect.top + Math.round(pinkRect.height/2)),
@@ -123,6 +126,7 @@
 
       test(function () {
             var anotherteal = document.getElementById('anotherteal');
+            anotherteal.scrollIntoView();
             var anothertealRect = anotherteal.getBoundingClientRect();
             assert_array_equals(document.elementsFromPoint(anothertealRect.left + Math.round(anothertealRect.width/2),
                                                            anothertealRect.top + Math.round(anothertealRect.height/2)),

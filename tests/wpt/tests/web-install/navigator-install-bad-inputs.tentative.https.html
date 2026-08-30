@@ -7,50 +7,22 @@
 <script src="/resources/testdriver-vendor.js"></script>
 <body>
 <script>
-// These tests verify that navigator.install() rejects with TypeError for
-// malformed or invalid inputs. Each test requires a user activation via
-// test_driver.bless() since the activation is consumed by each call.
+// String-form calls (e.g. navigator.install(url)) no longer exist as a
+// WebIDL overload. Because install() returns a Promise, overload resolution
+// and binding failures reject the returned promise.
 
-promise_test(async function(t) {
-  await test_driver.bless('install with empty url');
-  return promise_rejects_js(t, TypeError, navigator.install(''),
-      'Empty install_url should reject with TypeError');
-}, 'navigator.install("") rejects with TypeError for empty install URL.');
-
-promise_test(async function(t) {
-  await test_driver.bless('install with invalid url');
-  return promise_rejects_js(t, TypeError, navigator.install('://invalid'),
-      'Invalid install_url should reject with TypeError');
-}, 'navigator.install("://invalid") rejects with TypeError for invalid URL.');
-
-promise_test(async function(t) {
-  await test_driver.bless('install with empty manifest_id');
+promise_test(function(t) {
   return promise_rejects_js(t, TypeError,
-      navigator.install('https://example.com', ''),
-      'Empty manifest_id should reject with TypeError');
-}, 'navigator.install(url, "") rejects with TypeError for empty manifest ID.');
+      navigator.install('https://example.com/install.html'),
+      'The removed one-argument overload should reject with TypeError');
+}, 'navigator.install(url) rejects with TypeError.');
 
-promise_test(async function(t) {
-  await test_driver.bless('install with whitespace-only url');
-  return promise_rejects_js(t, TypeError, navigator.install('   '),
-      'Whitespace-only install_url should reject with TypeError');
-}, 'navigator.install("   ") rejects with TypeError for whitespace-only URL.');
-
-promise_test(async function(t) {
-  await test_driver.bless('install with null manifest_id');
+promise_test(function(t) {
   return promise_rejects_js(t, TypeError,
-      navigator.install('https://example.com', null),
-      'Null manifest_id should reject with TypeError');
-}, 'navigator.install(url, null) rejects with TypeError for null manifest ID.');
-
-promise_test(async function(t) {
-  await test_driver.bless('install with undefined manifest_id');
-  var manifest_id;
-  return promise_rejects_js(t, TypeError,
-      navigator.install('https://example.com', manifest_id),
-      'Undefined manifest_id should reject with TypeError');
-}, 'navigator.install(url, undefined) rejects with TypeError for undefined ' +
-   'manifest ID.');
+      navigator.install('https://example.com/install.html',
+          'https://example.com/app'),
+      'The removed two-argument overload should reject with TypeError');
+}, 'navigator.install(url, manifestId) rejects with TypeError.');
 
 // Dictionary form: navigator.install({manifest, manifestId}).
 // Note: unlike the positional form above, {manifestId: null} and
@@ -100,5 +72,14 @@ promise_test(async function(t) {
       'Invalid id should reject with TypeError');
 }, 'navigator.install({manifest, manifestId: "://invalid"}) rejects with ' +
    'TypeError for invalid manifestId.');
+
+promise_test(function(t) {
+  return promise_rejects_js(t, TypeError,
+      navigator.install({
+        installurl: 'https://example.com/install.html',
+      }),
+      'Missing required manifest member should reject with TypeError');
+}, 'navigator.install({installurl}) rejects with TypeError when manifest is ' +
+   'missing.');
 </script>
 </body>

@@ -8,6 +8,8 @@
 <body>
 <script>
 const worker = 'resources/fetch-event-test-worker.js';
+const messageChannel = new MessageChannel();
+const serviceWorkerPort = messageChannel.port1;
 
 const method = 'POST';
 const duplex = 'half';
@@ -28,7 +30,12 @@ promise_test(async t => {
   const scope = 'resources/';
   const registration =
     await service_worker_unregister_and_register(t, worker, scope);
-  await wait_for_state(t, registration.installing, 'activated');
+  const installing = registration.installing;
+  await wait_for_state(t, installing, 'activated');
+
+  installing.postMessage({ port: messageChannel.port2 }, [messageChannel.port2]);
+  const postResult = await new Promise(resolve => serviceWorkerPort.onmessage = e => resolve(e.data));
+  assert_equals(postResult, "ok");
 
   // This will happen after all other tests
   promise_test(t => {
@@ -89,7 +96,8 @@ promise_test(async t => {
 }, 'When the streaming request body is used, network fallback fails.');
 
 // When the streaming body is used by clone() in the service worker, network
-// fallback succeeds.
+// fallback succeeds, and the service worker can read the full body from the
+// clone even though it does not handle the fetch event itself.
 promise_test(async t => {
   const body = createBody(t);
   // Set page_url to "?ignore" so the service worker falls back to network
@@ -101,12 +109,36 @@ promise_test(async t => {
   // Add "?clone-and-ignore" so that the service worker falls back to
   // echo-content.h2.py.
   const echo_url = '/fetch/api/resources/echo-content.h2.py?clone-and-ignore';
+  const clonedBodyFromWorker = new Promise(resolve => {
+    serviceWorkerPort.onmessage = e => resolve(e.data);
+  });
   const response = await frame.contentWindow.fetch(echo_url, {
     method, body, duplex});
   assert_equals(response.status, 200, 'status');
   const text = await response.text();
   assert_equals(text, 'i am the request body', 'body');
-}, 'Running clone() in the service worker does not prevent network fallback.');
+  assert_equals(await clonedBodyFromWorker, 'i am the request body',
+    'body read by the service worker from the cloned request');
+}, 'Running clone() in the service worker does not prevent network fallback, and the service worker can read the request body via the clone.');
 
+promise_test(async t => {
+  const body = createBody(t);
+  const page_url = `resources/simple.html?ignore&id=${token()}`;
+  const frame = await with_iframe(page_url);
+  t.add_cleanup(() => { frame.remove(); });
+  const echo_url =
+    '/fetch/api/resources/echo-content.h2.py?clone-after-ignore';
+  const cloneResultFromWorker = new Promise(resolve => {
+    serviceWorkerPort.onmessage = e => resolve(e.data);
+  });
+  const response = await frame.contentWindow.fetch(echo_url, {
+    method, body, duplex});
+  assert_equals(response.status, 200, 'status');
+  const text = await response.text();
+  assert_equals(text, 'i am the request body', 'body');
+  assert_equals(await cloneResultFromWorker, 'TypeError',
+    'cloning the request after leaving the fetch event unhandled should ' +
+    'throw a TypeError, since its body was canceled');
+}, 'Cloning the request after leaving the fetch event unhandled throws because the request body was canceled.');
 </script>
 </body>
