@@ -24,11 +24,11 @@ use std::sync::{Arc, LazyLock, Mutex, OnceLock, Weak};
 use std::thread;
 use std::vec::Vec;
 
+use data_url::mime::Mime;
 use device_monitor::GStreamerDeviceMonitor;
 use gstreamer::prelude::*;
 use log::warn;
 use media_stream::GStreamerMediaStream;
-use mime::Mime;
 use registry_scanner::GSTREAMER_REGISTRY_SCANNER;
 use servo_base::generic_channel::GenericCallback;
 use servo_media::{Backend, BackendDeInit, BackendInit, MediaInstanceError, SupportsMediaType};
@@ -285,13 +285,9 @@ impl Backend for GStreamerBackend {
 
     fn can_play_type(&self, media_type: &str) -> SupportsMediaType {
         if let Ok(mime) = media_type.parse::<Mime>() {
-            let mime_type = mime.type_().as_str().to_owned() + "/" + mime.subtype().as_str();
-            let codecs = match mime.get_param("codecs") {
-                Some(codecs) => codecs
-                    .as_str()
-                    .split(',')
-                    .map(|codec| codec.trim())
-                    .collect(),
+            let mime_type = format!("{}/{}", mime.type_, mime.subtype);
+            let codecs = match mime.get_parameter("codecs") {
+                Some(codecs) => codecs.split(',').map(|codec| codec.trim()).collect(),
                 None => vec![],
             };
 
