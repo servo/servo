@@ -1405,7 +1405,7 @@ impl ScriptThread {
 
         // Process the gathered events.
         debug!("Processing events.");
-        for msg in sequential.drain(0..) {
+        for msg in sequential.drain(..) {
             debug!("Processing event {:?}.", msg);
             let category = self.categorize_msg(&msg);
             let pipeline_id = msg.pipeline_id();
