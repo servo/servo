@@ -136,15 +136,24 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
         } else {
             (data_size as GPUSize64)
                 .checked_sub(data_offset)
-                .ok_or(Error::Operation(None))?
+                .ok_or(Error::Operation(Some(
+                    "Overflow occured when calculating `contentsSize`".into(),
+                )))?
         };
 
         // Step 4
-        let valid = data_offset + content_size <= data_size as u64 &&
-            (content_size * sizeof_element as u64)
-                .is_multiple_of(wgpu_types::COPY_BUFFER_ALIGNMENT);
-        if !valid {
-            return Err(Error::Operation(None));
+        if !(data_offset + content_size <= data_size as u64) {
+            return Err(Error::Operation(Some(
+                "`dataOffset` + `contentsSize` is greater than `dataSize`".into(),
+            )));
+        }
+
+        if !((content_size * sizeof_element as u64)
+            .is_multiple_of(wgpu_types::COPY_BUFFER_ALIGNMENT))
+        {
+            return Err(Error::Operation(Some(
+                "`contentSize` as bytes is not a multiple of 4 bytes".into(),
+            )));
         }
 
         // Step 5&6
@@ -161,7 +170,9 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
             data: contents,
         }) {
             warn!("Failed to send WriteBuffer({:?}) ({})", buffer.id(), e);
-            return Err(Error::Operation(None));
+            return Err(Error::Operation(Some(
+                "Failed to write buffer to GPU".into(),
+            )));
         }
 
         Ok(())
@@ -178,10 +189,11 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
     ) -> Fallible<()> {
         let bytes = get_buffer_source_slice(&data, cx.no_gc());
         let len = bytes.len() as u64;
-        let valid = data_layout.offset <= len;
 
-        if !valid {
-            return Err(Error::Operation(None));
+        if !(data_layout.offset <= len) {
+            return Err(Error::Operation(Some(
+                "`dataLayout`'s offset is greater than texture buffer length".into(),
+            )));
         }
 
         let texture_cv = destination.try_convert()?;
@@ -202,7 +214,9 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
                 destination.texture.id().0,
                 e
             );
-            return Err(Error::Operation(None));
+            return Err(Error::Operation(Some(
+                "Failed to write to GPUTexture".into(),
+            )));
         }
 
         Ok(())
@@ -369,7 +383,9 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
                 "Failed to send CopyExternalImageToTexture({:?}) ({e})",
                 destination.parent.texture.id().0
             );
-            return Err(Error::Operation(None));
+            return Err(Error::Operation(Some(
+                "Failed to copy external image to texture".into(),
+            )));
         }
         Ok(())
     }
