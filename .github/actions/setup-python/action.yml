@@ -11,6 +11,9 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Testing
+      shell: bash
+      run: echo "Testing test"
     # Use the setup-python action to take advantage of the cache. uv will
     # symlink to this version.
     - name: Setup system python
