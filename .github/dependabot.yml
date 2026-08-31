@@ -7,7 +7,7 @@ updates:
     - "tests/wpt/**"
   schedule:
     interval: "cron"
-    cronjob: "0 1 * * 3,7"  # wednesday and sunday at 1am
+    cronjob: "0 1 * * WED,SUN"  # wednesday and sunday at 1am
     # default timezone is UTC
     # CI is usually busiest during european daytime.
     timezone: Europe/Berlin
