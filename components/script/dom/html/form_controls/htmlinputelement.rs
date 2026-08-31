@@ -1008,7 +1008,7 @@ impl TextControlElement for HTMLInputElement {
         text_input.previous_selection_range = selection_range;
         text_input.selection_for_layout = selection;
 
-        if let Some(text_input_widget) = self.input_type.borrow().text_input_widget() {
+        if let Some(text_input_widget) = self.input_type.borrow().as_specific().text_input_widget() {
             if text_input_widget.borrow().set_text_run_selection(selection) {
                 // Found an already laid out text run to update, so we only need to repaint:
                 self.owner_window().layout().set_needs_new_display_list();

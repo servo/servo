@@ -156,35 +156,6 @@ pub(crate) enum InputType {
     Week(WeekInputType),
 }
 
-impl InputType {
-    pub(crate) fn text_input_widget(&self) -> Option<&DomRefCell<TextInputWidget>> {
-        match self {
-            InputType::Button(_) => None,
-            InputType::Checkbox(_) => None,
-            InputType::Color(_) => None,
-            InputType::Date(input_type) => Some(&input_type.text_input_widget),
-            InputType::DatetimeLocal(input_type) => Some(&input_type.text_input_widget),
-            InputType::Email(input_type) => Some(&input_type.text_input_widget),
-            InputType::File(_) => None,
-            InputType::Hidden(_) => None,
-            InputType::Image(_) => None,
-            InputType::Month(input_type) => Some(&input_type.text_input_widget),
-            InputType::Number(input_type) => Some(&input_type.text_input_widget),
-            InputType::Password(input_type) => Some(&input_type.text_input_widget),
-            InputType::Radio(_) => None,
-            InputType::Range(_) => None,
-            InputType::Reset(_) => None,
-            InputType::Search(input_type) => Some(&input_type.text_input_widget),
-            InputType::Submit(_) => None,
-            InputType::Tel(input_type) => Some(&input_type.text_input_widget),
-            InputType::Text(input_type) => Some(&input_type.text_input_widget),
-            InputType::Time(input_type) => Some(&input_type.text_input_widget),
-            InputType::Url(input_type) => Some(&input_type.text_input_widget),
-            InputType::Week(input_type) => Some(&input_type.text_input_widget),
-        }
-    }
-}
-
 #[derive(Clone, Copy)]
 pub(crate) enum InputActivationType {
     Button(ButtonInputActivation),
@@ -393,6 +364,8 @@ impl TryFrom<&InputType> for InputMethodType {
 
 pub(crate) trait SpecificInputType {
     fn sanitize_value(&self, _input: &HTMLInputElement, _value: &mut DOMString) {}
+
+    fn text_input_widget(&self) -> Option<&DomRefCell<TextInputWidget>>;
 
     fn convert_string_to_number(&self, _value: &str) -> Option<f64> {
         None

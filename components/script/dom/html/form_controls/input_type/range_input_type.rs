@@ -18,6 +18,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
 use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
 use crate::dom::html::form_controls::input_type::SpecificInputType;
+use crate::dom::input_type::text_input_widget::TextInputWidget;
 use crate::dom::node::{Node, NodeTraits};
 
 #[derive(Default, JSTraceable, MallocSizeOf, PartialEq)]
@@ -53,6 +54,10 @@ impl RangeInputType {
 }
 
 impl SpecificInputType for RangeInputType {
+    fn text_input_widget(&self) -> Option<&DomRefCell<TextInputWidget>> {
+        None
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#range-state-(type=range):value-sanitization-algorithm>
     fn sanitize_value(&self, input: &HTMLInputElement, value: &mut DOMString) {
         if !value.is_valid_floating_point_number_string() {

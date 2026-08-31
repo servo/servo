@@ -14,10 +14,14 @@ use crate::dom::html::form_controls::input_type::text_input_widget::TextInputWid
 #[derive(Default, JSTraceable, MallocSizeOf, PartialEq)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct DateInputType {
-    pub(super) text_input_widget: DomRefCell<TextInputWidget>,
+    text_input_widget: DomRefCell<TextInputWidget>,
 }
 
 impl SpecificInputType for DateInputType {
+    fn text_input_widget(&self) -> Option<&DomRefCell<TextInputWidget>> {
+        Some(&self.text_input_widget)
+    }
+
     fn sanitize_value(&self, _input: &HTMLInputElement, value: &mut DOMString) {
         if !value.str().is_valid_date_string() {
             value.clear();

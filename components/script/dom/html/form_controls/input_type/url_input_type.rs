@@ -13,10 +13,14 @@ use crate::dom::html::form_controls::input_type::text_input_widget::TextInputWid
 #[derive(Default, JSTraceable, MallocSizeOf, PartialEq)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct UrlInputType {
-    pub(super) text_input_widget: DomRefCell<TextInputWidget>,
+    text_input_widget: DomRefCell<TextInputWidget>,
 }
 
 impl SpecificInputType for UrlInputType {
+    fn text_input_widget(&self) -> Option<&DomRefCell<TextInputWidget>> {
+        Some(&self.text_input_widget)
+    }
+
     fn sanitize_value(&self, _input: &HTMLInputElement, value: &mut DOMString) {
         value.strip_newlines();
         value.strip_leading_and_trailing_ascii_whitespace();
