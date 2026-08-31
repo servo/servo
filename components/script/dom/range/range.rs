@@ -1442,11 +1442,6 @@ pub(crate) fn live_range_pre_remove_steps_for_removed_subtree(
     parent_of_removed_node: &Node,               // "parent" in the specification
     index_of_removed_node: &mut dyn FnMut() -> u32, // "index" in the specification
 ) {
-    // The steps are only supposed to run on DOM tree inclusive descendants of the removal
-    // root and elements in shadow trees are not, so they shouldn't run for them.
-    if inclusive_descendant_of_removed_node.is_in_a_shadow_tree() {
-        return;
-    }
     for range in inclusive_descendant_of_removed_node.live_ranges() {
         // Step 4: For each live range whose start node is an inclusive descendant of
         // node, set its start to (parent, index).
