@@ -154,7 +154,7 @@ class Linux(Base):
                         missing_pkgs,
                     )
 
-            if subprocess.call(["dpkg", "-s"] + pkgs, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE) != 0:
+            if subprocess.call(["dpkg", "-s"] + pkgs, stdout=subprocess.PIPE, stderr=subprocess.PIPE) != 0:
                 install = True
         elif self.distro in ["CentOS", "CentOS Linux", "Fedora", "Fedora Linux", "Fedora Linux Asahi Remix"]:
             command = ["dnf", "install"]
