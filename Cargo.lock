@@ -8241,6 +8241,7 @@ dependencies = [
  "serde_json",
  "servo-config",
  "servo-malloc-size-of",
+ "smallvec",
  "time",
  "unicode-segmentation",
  "webrender_api",
