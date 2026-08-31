@@ -242,6 +242,14 @@ impl PaintTimingHandler {
     }
 
     /// <https://www.w3.org/TR/largest-contentful-paint/#compute-a-new-largest-contentful-paint-candidate>
+    #[servo_tracing::instrument(
+        name = "Compute New LCP Candidate",
+        skip_all,
+        fields(
+            image_count = self.painted_images.len(),
+            text_count = self.painted_text_nodes.len(),
+        )
+    )]
     fn compute_new_lcp_candidate(&mut self) {
         // Step 1. Let currentSize be currentCandidate’s size if
         // currentCandidate is not null or 0 otherwise.
@@ -382,6 +390,7 @@ impl PaintTimingHandler {
     }
 
     /// <https://www.w3.org/TR/paint-timing/#mark-paint-timing>
+    #[servo_tracing::instrument(name = "Mark Paint Timing", skip_all, fields(halt_lcp = halt_lcp))]
     pub(crate) fn mark_paint_timing(&mut self, halt_lcp: bool) {
         // > From: <https://www.w3.org/TR/largest-contentful-paint/#sec-report-largest-contentful-paint>
         // > Note: Each pending image record in paintedImages and text
