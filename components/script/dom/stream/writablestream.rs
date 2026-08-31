@@ -39,7 +39,7 @@ use crate::dom::bindings::transferable::Transferable;
 use crate::dom::domexception::{DOMErrorName, DOMException};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageport::MessagePort;
-use crate::dom::promise::Promise;
+use crate::dom::promise::{Promise, PromiseRoot, TracedPromise};
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::readablestream::{ReadableStream, get_type_and_value_from_message};
 use crate::dom::stream::countqueuingstrategy::{extract_high_water_mark, extract_size_algorithm};
@@ -57,8 +57,7 @@ impl js::gc::Rootable for AbortAlgorithmFulfillmentHandler {}
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct AbortAlgorithmFulfillmentHandler {
     stream: Dom<WritableStream>,
-    #[conditional_malloc_size_of]
-    abort_request_promise: Rc<Promise>,
+    abort_request_promise: TracedPromise,
 }
 
 impl Callback for AbortAlgorithmFulfillmentHandler {
@@ -81,8 +80,7 @@ impl js::gc::Rootable for AbortAlgorithmRejectionHandler {}
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct AbortAlgorithmRejectionHandler {
     stream: Dom<WritableStream>,
-    #[conditional_malloc_size_of]
-    abort_request_promise: Rc<Promise>,
+    abort_request_promise: TracedPromise,
 }
 
 impl Callback for AbortAlgorithmRejectionHandler {
@@ -104,8 +102,7 @@ impl js::gc::Rootable for PendingAbortRequest {}
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct PendingAbortRequest {
     /// <https://streams.spec.whatwg.org/#pending-abort-request-promise>
-    #[conditional_malloc_size_of]
-    promise: Rc<Promise>,
+    promise: TracedPromise,
 
     /// <https://streams.spec.whatwg.org/#pending-abort-request-reason>
     #[ignore_malloc_size_of = "mozjs"]
@@ -134,8 +131,7 @@ pub struct WritableStream {
     backpressure: Cell<bool>,
 
     /// <https://streams.spec.whatwg.org/#writablestream-closerequest>
-    #[conditional_malloc_size_of]
-    close_request: DomRefCell<Option<Rc<Promise>>>,
+    close_request: DomRefCell<Option<TracedPromise>>,
 
     /// <https://streams.spec.whatwg.org/#writablestream-controller>
     controller: MutNullableDom<WritableStreamDefaultController>,
@@ -144,12 +140,10 @@ pub struct WritableStream {
     detached: Cell<bool>,
 
     /// <https://streams.spec.whatwg.org/#writablestream-inflightwriterequest>
-    #[conditional_malloc_size_of]
-    in_flight_write_request: DomRefCell<Option<Rc<Promise>>>,
+    in_flight_write_request: DomRefCell<Option<TracedPromise>>,
 
     /// <https://streams.spec.whatwg.org/#writablestream-inflightcloserequest>
-    #[conditional_malloc_size_of]
-    in_flight_close_request: DomRefCell<Option<Rc<Promise>>>,
+    in_flight_close_request: DomRefCell<Option<TracedPromise>>,
 
     /// <https://streams.spec.whatwg.org/#writablestream-pendingabortrequest>
     pending_abort_request: DomRefCell<Option<PendingAbortRequest>>,
@@ -165,8 +159,7 @@ pub struct WritableStream {
     writer: MutNullableDom<WritableStreamDefaultWriter>,
 
     /// <https://streams.spec.whatwg.org/#writablestream-writerequests>
-    #[conditional_malloc_size_of]
-    write_requests: DomRefCell<VecDeque<Rc<Promise>>>,
+    write_requests: DomRefCell<VecDeque<TracedPromise>>,
 }
 
 impl WritableStream {
@@ -625,7 +618,7 @@ impl WritableStream {
         &self,
         cx: &mut JSContext,
         global: &GlobalScope,
-    ) -> Rc<Promise> {
+    ) -> PromiseRoot {
         // Assert: ! IsWritableStreamLocked(stream) is true.
         assert!(self.is_locked());
 
@@ -633,10 +626,12 @@ impl WritableStream {
         assert!(self.is_writable());
 
         // Let promise be a new promise.
-        let promise = Promise::new(cx, global);
+        let promise = Promise::new_rooted(cx, global);
 
         // Append promise to stream.[[writeRequests]].
-        self.write_requests.borrow_mut().push_back(promise.clone());
+        self.write_requests
+            .borrow_mut()
+            .push_back(promise.to_traced());
 
         // Return promise.
         promise
@@ -653,11 +648,11 @@ impl WritableStream {
         cx: &mut CurrentRealm,
         global: &GlobalScope,
         provided_reason: SafeHandleValue,
-    ) -> Rc<Promise> {
+    ) -> PromiseRoot {
         // If stream.[[state]] is "closed" or "errored",
         if self.is_closed() || self.is_errored() {
             // return a promise resolved with undefined.
-            return Promise::new_resolved(cx, global, ());
+            return Promise::new_resolved_rooted(cx, global, ());
         }
 
         // Signal abort on stream.[[controller]].[[abortController]] with reason.
@@ -673,7 +668,7 @@ impl WritableStream {
             state,
             WritableStreamState::Closed | WritableStreamState::Errored
         ) {
-            return Promise::new_resolved(cx, global, ());
+            return Promise::new_resolved_rooted(cx, global, ());
         }
 
         // If stream.[[pendingAbortRequest]] is not undefined,
@@ -685,7 +680,7 @@ impl WritableStream {
                 .as_ref()
                 .expect("Pending abort request must be Some.")
                 .promise
-                .clone();
+                .root();
         }
 
         // Assert: state is "writable" or "erroring".
@@ -708,14 +703,14 @@ impl WritableStream {
         };
 
         // Let promise be a new promise.
-        let promise = Promise::new(cx, global);
+        let promise = Promise::new_rooted(cx, global);
 
         // Set stream.[[pendingAbortRequest]] to a new pending abort request
         // whose promise is promise,
         // reason is reason,
         // and was already erroring is wasAlreadyErroring.
         *self.pending_abort_request.borrow_mut() = Some(PendingAbortRequest {
-            promise: promise.clone(),
+            promise: promise.to_traced(),
             reason: Heap::boxed(reason.get()),
             was_already_erroring,
         });
@@ -731,12 +726,12 @@ impl WritableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-close>
-    pub(crate) fn close(&self, cx: &mut JSContext, global: &GlobalScope) -> Rc<Promise> {
+    pub(crate) fn close(&self, cx: &mut JSContext, global: &GlobalScope) -> PromiseRoot {
         // Let state be stream.[[state]].
         // If state is "closed" or "errored",
         if self.is_closed() || self.is_errored() {
             // return a promise rejected with a TypeError exception.
-            let promise = Promise::new(cx, global);
+            let promise = Promise::new_rooted(cx, global);
             promise.reject_error(cx, Error::Type(c"Stream is closed or errored.".to_owned()));
             return promise;
         }
@@ -748,10 +743,10 @@ impl WritableStream {
         assert!(!self.close_queued_or_in_flight());
 
         // Let promise be a new promise.
-        let promise = Promise::new(cx, global);
+        let promise = Promise::new_rooted(cx, global);
 
         // Set stream.[[closeRequest]] to promise.
-        *self.close_request.borrow_mut() = Some(promise.clone());
+        *self.close_request.borrow_mut() = Some(promise.to_traced());
 
         // Let writer be stream.[[writer]].
         // If writer is not undefined,
@@ -1069,7 +1064,7 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
         }
 
         // Return ! WritableStreamAbort(this, reason).
-        self.abort(cx, &global, reason)
+        self.abort(cx, &global, reason).into()
     }
 
     /// <https://streams.spec.whatwg.org/#ws-close>
@@ -1096,7 +1091,7 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
         }
 
         // Return ! WritableStreamClose(this).
-        self.close(cx, &global)
+        self.close(cx, &global).into()
     }
 
     /// <https://streams.spec.whatwg.org/#ws-get-writer>

@@ -580,7 +580,7 @@ impl MicrotaskRunnable for WaitForAllSuccessStepsMicrotask {
 fn wait_for_all(
     cx: &mut CurrentRealm,
     global: &GlobalScope,
-    promises: Vec<Rc<Promise>>,
+    promises: Vec<PromiseRoot>,
     success_steps: WaitForAllSuccessSteps,
     failure_steps: WaitForAllFailureSteps,
 ) {
@@ -667,10 +667,10 @@ fn wait_for_all(
 pub(crate) fn wait_for_all_promise(
     cx: &mut CurrentRealm,
     global: &GlobalScope,
-    promises: Vec<Rc<Promise>>,
-) -> Rc<Promise> {
+    promises: Vec<PromiseRoot>,
+) -> PromiseRoot {
     // Let promise be a new promise of type Promise<sequence<T>> in realm.
-    let promise = Promise::new(cx, global);
+    let promise = Promise::new_rooted(cx, global);
     let success_promise = promise.clone();
     let failure_promise = promise.clone();
 
