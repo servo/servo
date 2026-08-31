@@ -1008,7 +1008,7 @@ unsafe extern "C" fn import_meta_resolve(cx: *mut RawJSContext, argc: u32, vp: *
         Ok(url) => {
             // Step 4.3. Return the serialization of url.
             url.as_str()
-                .safe_to_jsval(cx, unsafe { MutableHandleValue::from_raw(args.rval()) });
+                .to_jsval(cx, unsafe { MutableHandleValue::from_raw(args.rval()) });
             true
         },
         Err(error) => {

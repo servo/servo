@@ -55,7 +55,7 @@ impl RecordKey for USVString {
         rooted!(&in(cx) let mut jsid_value = UndefinedValue());
         unsafe { JS_IdToValue(cx, *id.as_ref(cx), jsid_value.handle_mut()) };
 
-        USVString::safe_from_jsval(cx, jsid_value.handle(), ())
+        USVString::from_jsval(cx, jsid_value.handle(), ())
     }
 }
 
@@ -68,7 +68,7 @@ impl RecordKey for ByteString {
         rooted!(&in(cx) let mut jsid_value = UndefinedValue());
         unsafe { JS_IdToValue(cx, *id.as_ref(cx), jsid_value.handle_mut()) };
 
-        ByteString::safe_from_jsval(cx, jsid_value.handle(), ())
+        ByteString::from_jsval(cx, jsid_value.handle(), ())
     }
 }
 
@@ -110,7 +110,7 @@ where
 {
     type Config = C;
 
-    fn safe_from_jsval(
+    fn from_jsval(
         cx: &mut JSContext,
         value: HandleValue,
         config: C,
@@ -170,7 +170,7 @@ where
                 return Err(());
             }
 
-            let property = match V::safe_from_jsval(cx, property.handle(), config.clone())? {
+            let property = match V::from_jsval(cx, property.handle(), config.clone())? {
                 ConversionResult::Success(property) => property,
                 ConversionResult::Failure(message) => {
                     return Ok(ConversionResult::Failure(message));
@@ -189,14 +189,14 @@ where
     V: ToJSValConvertible,
 {
     #[inline]
-    fn safe_to_jsval(&self, cx: &mut JSContext, mut rval: MutableHandleValue) {
+    fn to_jsval(&self, cx: &mut JSContext, mut rval: MutableHandleValue) {
         rooted!(&in(cx) let js_object = unsafe { JS_NewPlainObject(cx) });
         assert!(!js_object.handle().is_null());
 
         rooted!(&in(cx) let mut js_value = UndefinedValue());
         for (key, value) in &self.map {
             let key = key.to_utf16_vec();
-            value.safe_to_jsval(cx, js_value.handle_mut());
+            value.to_jsval(cx, js_value.handle_mut());
 
             assert!(unsafe {
                 JS_DefineUCProperty2(

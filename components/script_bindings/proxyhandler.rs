@@ -726,7 +726,7 @@ pub(crate) fn cross_origin_get<D: DomTypes>(
     }
 
     rooted!(&in(cx) let mut getter_jsval = UndefinedValue());
-    getter.get().safe_to_jsval(cx, getter_jsval.handle_mut());
+    getter.get().to_jsval(cx, getter_jsval.handle_mut());
 
     // > 7. Return `? Call(getter, Receiver)`.
     unsafe {
@@ -787,7 +787,7 @@ unsafe fn cross_origin_set<D: DomTypes>(
     }
 
     rooted!(&in(cx) let mut setter_jsval = UndefinedValue());
-    setter.get().safe_to_jsval(cx, setter_jsval.handle_mut());
+    setter.get().to_jsval(cx, setter_jsval.handle_mut());
 
     // > 3.1. Perform ? Call(setter, Receiver, «V»).
     // >

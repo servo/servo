@@ -10,7 +10,7 @@ use euclid::default::Size2D;
 use html5ever::{LocalName, Prefix, local_name, ns};
 use js::context::NoGC;
 #[cfg(feature = "webgl")]
-use js::error::throw_type_error_safe;
+use js::error::throw_type_error;
 use js::rust::{HandleObject, HandleValue};
 use layout_api::HTMLCanvasData;
 use pixels::{EncodedImageType, Snapshot};
@@ -373,7 +373,7 @@ impl HTMLCanvasElement {
         match WebGLContextAttributes::new(cx, options) {
             Ok(ConversionResult::Success(attrs)) => Some(attrs.convert()),
             Ok(ConversionResult::Failure(error)) => {
-                throw_type_error_safe(cx, &error);
+                throw_type_error(cx, &error);
                 None
             },
             _ => {

@@ -283,7 +283,7 @@ impl EventSourceContext {
             let mut realm = enter_auto_realm(cx, &*event_source);
             let cx = &mut realm.current_realm();
             rooted!(&in(cx) let mut data = UndefinedValue());
-            self.data.safe_to_jsval(cx, data.handle_mut());
+            self.data.to_jsval(cx, data.handle_mut());
             MessageEvent::new(
                 cx,
                 &event_source.global(),

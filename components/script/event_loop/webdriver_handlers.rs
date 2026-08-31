@@ -406,7 +406,7 @@ fn jsval_to_webdriver_inner(
         let string = unsafe { jsstr_to_string(cx, string) };
         Ok(JSValue::String(string))
     } else if val.get().is_object() {
-        rooted!(&in(cx) let object = match FromJSValConvertible::safe_from_jsval(cx, val, ()).unwrap() {
+        rooted!(&in(cx) let object = match FromJSValConvertible::from_jsval(cx, val, ()).unwrap() {
             ConversionResult::Success(object) => object,
             _ => unreachable!(),
         });

@@ -122,7 +122,7 @@ impl OriginMethods<crate::DomTypeHolder> for Origin {
 
         // Step 2. If value is a string:
         if value.get().is_string() {
-            let s = match DOMString::safe_from_jsval(cx, value, StringificationBehavior::Default) {
+            let s = match DOMString::from_jsval(cx, value, StringificationBehavior::Default) {
                 Ok(ConversionResult::Success(s)) => s,
                 _ => return Err(Error::Type(c"Failed to convert value to string".to_owned())),
             };

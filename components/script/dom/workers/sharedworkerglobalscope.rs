@@ -674,9 +674,7 @@ impl SharedWorkerGlobalScope {
                 let inside_port = inside_port.root();
 
                 rooted!(&in(cx) let mut data = UndefinedValue());
-                DOMString::new().safe_to_jsval(cx,
-                    data.handle_mut(),
-                );
+                DOMString::new().to_jsval(cx, data.handle_mut());
 
                 let source = WindowProxyOrMessagePortOrServiceWorker::MessagePort(
                     inside_port.clone(),

@@ -1616,7 +1616,7 @@ impl ReadableStream {
         if self.is_errored() {
             let promise = Promise::new(cx, global);
             rooted!(&in(cx) let mut rval = UndefinedValue());
-            self.stored_error.safe_to_jsval(cx, rval.handle_mut());
+            self.stored_error.to_jsval(cx, rval.handle_mut());
             promise.reject_native(cx, &rval.handle());
             return promise;
         }
@@ -2399,7 +2399,7 @@ impl CrossRealmTransformReadable {
         // Let error be a new "DataCloneError" DOMException.
         let error = DOMException::new(cx, global, DOMErrorName::DataCloneError);
         rooted!(&in(cx) let mut rooted_error = UndefinedValue());
-        error.safe_to_jsval(cx, rooted_error.handle_mut());
+        error.to_jsval(cx, rooted_error.handle_mut());
 
         // Perform ! CrossRealmTransformSendError(port, error).
         port.cross_realm_transform_send_error(cx, rooted_error.handle());
@@ -2454,7 +2454,7 @@ pub(crate) fn bytes_from_chunk_jsval(
     cx: &mut JSContext,
     chunk: &RootedTraceableBox<Heap<JSVal>>,
 ) -> Result<Vec<u8>, Error> {
-    match Vec::<u8>::safe_from_jsval(cx, chunk.handle(), ConversionBehavior::EnforceRange) {
+    match Vec::<u8>::from_jsval(cx, chunk.handle(), ConversionBehavior::EnforceRange) {
         Ok(ConversionResult::Success(vec)) => Ok(vec),
         Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
         _ => Err(Error::Type(c"Unknown format for bytes read.".to_owned())),

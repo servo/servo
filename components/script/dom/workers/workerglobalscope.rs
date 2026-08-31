@@ -1174,7 +1174,7 @@ impl WorkerGlobalScope {
         rooted!(&in(cx) let mut wrapped_global: Value);
         debugger_global
             .reflector()
-            .safe_to_jsval(cx, wrapped_global.handle_mut());
+            .to_jsval(cx, wrapped_global.handle_mut());
         self.debugger_global.set(*wrapped_global);
     }
 

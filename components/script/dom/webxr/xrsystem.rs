@@ -191,7 +191,7 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
         if let Some(ref r) = init.requiredFeatures {
             for feature in r {
                 if let Ok(ConversionResult::Success(s)) =
-                    String::safe_from_jsval(realm, feature.handle(), ())
+                    String::from_jsval(realm, feature.handle(), ())
                 {
                     required_features.push(s)
                 } else {
@@ -208,7 +208,7 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
         if let Some(ref o) = init.optionalFeatures {
             for feature in o {
                 if let Ok(ConversionResult::Success(s)) =
-                    String::safe_from_jsval(realm, feature.handle(), ())
+                    String::from_jsval(realm, feature.handle(), ())
                 {
                     optional_features.push(s)
                 } else {
