@@ -716,7 +716,7 @@ impl Layout for LayoutThread {
         if self.accessibility_active() {
             let mut accessibility_tree = self.accessibility_tree.borrow_mut();
             if let Some(accessibility_tree) = accessibility_tree.as_mut() {
-                accessibility_tree.add_pending_scroll_updates(&offsets);
+                accessibility_tree.add_pending_scroll_updates(offsets);
             };
 
             self.set_force_accessibility_update();
@@ -1600,15 +1600,13 @@ impl LayoutThread {
                 external_scroll_id,
             );
 
-            // Accessibility node bounds are relative to the viewport origin, so a script scroll
-            // makes every one of them stale even though no layout ran. Requesting an accessibility
-            // update lets the next "update the rendering" reflow recompute them, mirroring how
-            // `set_scroll_offsets_from_renderer()` handles renderer scrolls.
-            if self.accessibility_active() {
-                if let Some(accessibility_tree) = self.accessibility_tree.borrow_mut().as_mut() {
-                    let pending_updates = FxHashMap::from_iter([(external_scroll_id, offset)]);
-                    accessibility_tree.add_pending_scroll_updates(&pending_updates);
-                }
+            if self.accessibility_active() &&
+                let Some(accessibility_tree) = self.accessibility_tree.borrow_mut().as_mut()
+            {
+                accessibility_tree.add_pending_scroll_update(external_scroll_id, offset);
+
+                // Ensure the scroll updates are applied in the accessibility tree and sent to the
+                // embedder, even if there are no other changes which affect the accessibility tree.
                 self.set_force_accessibility_update();
             }
             true

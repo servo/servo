@@ -176,7 +176,7 @@ pub struct AccessibilityTree {
     root_node: Option<ArcRefCell<AccessibilityNode>>,
     /// If any nodes were scrolled since the last update, they are tracked here so that the next
     /// update can update the tree accordingly.
-    pending_scroll_updates: Option<FxHashMap<ExternalScrollId, LayoutVector2D>>,
+    pending_scroll_updates: FxHashMap<ExternalScrollId, LayoutVector2D>,
     /// Sent to the embedder alongside each [`accesskit::TreeUpdate`], so that the embedder can
     /// drop updates from documents which have been navigated away from.
     embedder_epoch: Epoch,
@@ -227,7 +227,7 @@ impl AccessibilityTree {
             id_to_opaque_node: FxHashMap::default(),
             tree_id,
             root_node: None,
-            pending_scroll_updates: None,
+            pending_scroll_updates: FxHashMap::default(),
             embedder_epoch,
             debug: opts::get().debug.clone(),
         }
@@ -253,15 +253,24 @@ impl AccessibilityTree {
         update.finalize(self)
     }
 
+    /// Add all given scroll updates to [`Self::pending_scroll_updates`].
+    /// See [`Self::handle_pending_scroll_updates()`].
     pub(super) fn add_pending_scroll_updates(
         &mut self,
-        scroll_states: &FxHashMap<ExternalScrollId, LayoutVector2D>,
+        scroll_states: FxHashMap<ExternalScrollId, LayoutVector2D>,
     ) {
-        if let Some(pending_scroll_updates) = self.pending_scroll_updates.as_mut() {
-            pending_scroll_updates.extend(scroll_states);
-        } else {
-            self.pending_scroll_updates = Some(scroll_states.clone());
-        }
+        self.pending_scroll_updates.extend(scroll_states);
+    }
+
+    /// Add the given scroll update to [`Self::pending_scroll_updates`].
+    /// See [`Self::handle_pending_scroll_updates()`].
+    pub(super) fn add_pending_scroll_update(
+        &mut self,
+        external_scroll_id: ExternalScrollId,
+        offset: LayoutVector2D,
+    ) {
+        self.pending_scroll_updates
+            .insert(external_scroll_id, offset);
     }
 
     /// Get the node corresponding to the root DOM node, and set it as this tree's root. If the root
@@ -279,7 +288,7 @@ impl AccessibilityTree {
             update.clear_damage();
             update.insert_damage(root_id, AccessibilityDamage::Rebuild);
             update.insert_dom_node(root_id, *root_dom_node);
-            self.add_pending_scroll_updates_from_scroll_tree(context);
+            self.populate_pending_scroll_updates_from_scroll_tree(context);
         } else {
             // TODO(#47161) This hack is necessary because we don't collect accessibility damage
             // from layout.
@@ -310,8 +319,11 @@ impl AccessibilityTree {
         damage_root.borrow().update_ancestors(local_damage, update);
     }
 
-    fn add_pending_scroll_updates_from_scroll_tree(&mut self, context: &AccessibilityContext) {
-        self.clear_pending_scroll_updates();
+    /// Read all scroll offsets directly from the scroll tree, and use them to populate
+    /// [`Self::pending_scroll_updates`].
+    /// This will clear any previous pending scroll updates, as the scroll tree contains all scroll
+    /// information.
+    fn populate_pending_scroll_updates_from_scroll_tree(&mut self, context: &AccessibilityContext) {
         let scroll_tree = &context.stacking_context_tree.paint_info.scroll_tree;
         let scroll_updates = scroll_tree
             .nodes
@@ -324,14 +336,17 @@ impl AccessibilityTree {
                 _ => None,
             })
             .collect();
-        self.add_pending_scroll_updates(&scroll_updates);
+        self.pending_scroll_updates = scroll_updates;
     }
 
+    /// For each entry in [`Self::pending_scroll_updates`], set the scroll offset on the
+    /// [`AccessibilityNode`] corresponding to its [`ExternalScrollId`], if any.
+    /// This sets a transformation on every direct child of the scrolled node.
+    ///
+    /// This should be called after the tree has been updated, so that we can be sure not to miss
+    /// any newly-added nodes.
     fn handle_pending_scroll_updates(&mut self, update: &mut AccessibilityUpdate) {
-        let Some(pending_scroll_updates) = std::mem::take(&mut self.pending_scroll_updates) else {
-            return;
-        };
-
+        let pending_scroll_updates = std::mem::take(&mut self.pending_scroll_updates);
         for (opaque, offset) in
             pending_scroll_updates
                 .into_iter()
@@ -351,10 +366,6 @@ impl AccessibilityTree {
             };
             node.borrow_mut().set_scroll_offset(offset, update);
         }
-    }
-
-    fn clear_pending_scroll_updates(&mut self) {
-        self.pending_scroll_updates = None;
     }
 
     /// Given an iterator of `NodeId`s corresponding to nodes which have received some damage from

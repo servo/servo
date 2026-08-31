@@ -557,6 +557,8 @@ impl ScrollTree {
 
     /// Given a set of all scroll offsets coming from the Servo renderer, update all of the offsets
     /// for nodes that actually exist in this tree.
+    ///
+    /// Returns a map of all scroll offsets which were actually set.
     pub fn set_all_scroll_offsets(
         &mut self,
         offsets: &FxHashMap<ExternalScrollId, LayoutVector2D>,
