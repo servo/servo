@@ -655,16 +655,11 @@ impl DisplayListBuilder<'_> {
         natural_width: Option<Au>,
         natural_height: Option<Au>,
     ) {
-        let transform = self
-            .paint_info
-            .scroll_tree
-            .cumulative_node_to_root_transform(state.spatial_id);
-
         self.paint_timing_handler.append_image_record(
             tag,
             bounds,
             clip_rect,
-            transform,
+            state.spatial_id,
             url,
             natural_width,
             natural_height,
@@ -1160,14 +1155,10 @@ impl Fragment {
         builder.check_if_paintable(glyph_bounds, common.clip_rect, parent_style.clone_opacity());
 
         // Accumulate this text fragment for LCP with the containing element's tag.
-        let transform = builder
-            .paint_info
-            .scroll_tree
-            .cumulative_node_to_root_transform(state.spatial_id);
         builder.paint_timing_handler.accumulate_text_rect(
             state.containing_element_tag,
             rect.to_webrender(),
-            transform,
+            state.spatial_id,
         );
 
         for text_decoration in state.text_decorations.iter() {

@@ -6,8 +6,9 @@ use std::collections::{HashMap, HashSet};
 
 use app_units::Au;
 use euclid::Rect;
-use paint_api::display_list::PaintTimingReport;
+use paint_api::display_list::{PaintTimingReport, ScrollTree};
 use paint_api::largest_contentful_paint_candidate::{LCPCandidate, LCPCandidateID};
+use servo_base::id::ScrollTreeNodeId;
 use servo_config::pref;
 use servo_geometry::FastLayoutTransform;
 use servo_url::ServoUrl;
@@ -27,8 +28,9 @@ struct PendingImageRecord {
     bounds: LayoutRect,
     /// The element's content box.
     clip_rect: LayoutRect,
-    /// Cumulative transform to root space, computed at collection time.
-    transform: FastLayoutTransform,
+    /// The spatial node of the image, used to compute the cumulative transform
+    /// lazily when the candidate is computed.
+    spatial_id: ScrollTreeNodeId,
     /// The image URL. `None` for background images.
     url: Option<ServoUrl>,
     /// Intrinsic width, used for upscaling normalization.
@@ -46,13 +48,16 @@ struct PendingImageRecord {
 struct TextRecord {
     /// The tag of containing box fragment these texts belongs to.
     tag: Tag,
+    /// The spatial node of the text, used to compute the cumulative transform
+    /// lazily when the candidate is computed.
+    spatial_id: ScrollTreeNodeId,
     /// <https://w3c.github.io/paint-timing/#set-of-owned-text-nodes>
     /// Collection of border_boxes of all Text nodes accumulated
     border_boxes: Vec<LayoutRect>,
 }
 
 enum LCPCandidateType<'a> {
-    Image(&'a PendingImageRecord),
+    Image(&'a PendingImageRecord, FastLayoutTransform),
     Text,
 }
 
@@ -119,7 +124,7 @@ impl PaintTimingHandler {
         tag: Option<Tag>,
         bounds: LayoutRect,
         clip_rect: LayoutRect,
-        transform: FastLayoutTransform,
+        spatial_id: ScrollTreeNodeId,
         url: Option<ServoUrl>,
         natural_width: Option<Au>,
         natural_height: Option<Au>,
@@ -138,7 +143,7 @@ impl PaintTimingHandler {
             tag,
             bounds,
             clip_rect,
-            transform,
+            spatial_id,
             url,
             natural_width,
             natural_height,
@@ -149,7 +154,7 @@ impl PaintTimingHandler {
         &mut self,
         containing_element_tag: Option<Tag>,
         rect: LayoutRect,
-        transform: FastLayoutTransform,
+        spatial_id: ScrollTreeNodeId,
     ) {
         // From <https://www.w3.org/TR/paint-timing/#contentful>:
         // An element target is contentful when one or more of the following apply:
@@ -166,17 +171,15 @@ impl PaintTimingHandler {
         let Some(tag) = containing_element_tag else {
             return;
         };
-        let border_box = transform_f32_rectangle(rect.to_rect(), transform)
-            .unwrap_or_default()
-            .to_box2d();
         self.elements_with_pending_rendered_text
             .entry(tag.node)
             .and_modify(|record| {
-                record.border_boxes.push(border_box);
+                record.border_boxes.push(rect);
             })
             .or_insert(TextRecord {
                 tag,
-                border_boxes: vec![border_box],
+                spatial_id,
+                border_boxes: vec![rect],
             });
     }
 
@@ -223,7 +226,7 @@ impl PaintTimingHandler {
         // Step 8: If imageRequest is not null, run the following steps to
         // adjust for image position and upscaling.
         // Note: This is skipped for Text aka the case of null request from specs
-        if let LCPCandidateType::Image(record) = candidate_type {
+        if let LCPCandidateType::Image(record, transform) = candidate_type {
             // TODO Step 8.1: If imageRequest's response's content length in bytes
             // is less than size * 0.004, then return null. (Not Implemented)
 
@@ -241,7 +244,7 @@ impl PaintTimingHandler {
             // Step 8.4: Let clientContentRect be the smallest DOMRectReadOnly
             // containing visibleDimensions with element's transforms applied.
             let client_content_rect =
-                transform_f32_rectangle(visible_dimensions.to_rect(), record.transform)
+                transform_f32_rectangle(visible_dimensions.to_rect(), transform)
                     .unwrap_or_default();
 
             // Step 8.5: Let intersectingClientContentRect be the intersection of
@@ -298,6 +301,7 @@ impl PaintTimingHandler {
     )]
     fn compute_new_lcp_candidate(
         &mut self,
+        scroll_tree: &ScrollTree,
         painted_images: Vec<PendingImageRecord>,
         painted_text_nodes: HashMap<OpaqueNode, TextRecord>,
     ) -> Option<LCPCandidate> {
@@ -325,17 +329,19 @@ impl PaintTimingHandler {
             // Step 4.3. Let intersectionRect be the value returned by the
             // intersection rect algorithm using imageElement as the target
             // and viewport as the root.
-            let intersection_rect =
-                transform_f32_rectangle(record.clip_rect.to_rect(), record.transform)
-                    .unwrap_or_default()
-                    .intersection(&self.viewport_rect.to_rect())
-                    .map(|rect| rect.to_box2d())
-                    .unwrap_or_default();
+            let transform = scroll_tree.cumulative_node_to_root_transform(record.spatial_id);
+            let intersection_rect = transform_f32_rectangle(record.clip_rect.to_rect(), transform)
+                .unwrap_or_default()
+                .intersection(&self.viewport_rect.to_rect())
+                .map(|rect| rect.to_box2d())
+                .unwrap_or_default();
 
             // Step 4.4. Let result be the effective visual size of imageElement
             // given intersectionRect and record's request.
-            let result =
-                self.effective_visual_size(intersection_rect, LCPCandidateType::Image(&record));
+            let result = self.effective_visual_size(
+                intersection_rect,
+                LCPCandidateType::Image(&record, transform),
+            );
 
             // Step 4.5. If result is null, continue.
             let Some(result) = result else {
@@ -373,9 +379,15 @@ impl PaintTimingHandler {
             // Step 5.3. Let intersectionRect be the union of the border boxes of
             // all Text nodes in textNode’s set of owned text nodes,
             // intersected with the visual viewport.
+            let transform = scroll_tree.cumulative_node_to_root_transform(record.spatial_id);
             let intersection_rect = record
                 .border_boxes
                 .into_iter()
+                .map(|border_box| {
+                    transform_f32_rectangle(border_box.to_rect(), transform)
+                        .unwrap_or_default()
+                        .to_box2d()
+                })
                 .reduce(|a, b| a.union(&b))
                 .unwrap_or_default()
                 .intersection(&self.viewport_rect)
@@ -426,6 +438,7 @@ impl PaintTimingHandler {
     fn report_largest_contentful_paint(
         &mut self,
         halt_lcp: bool,
+        scroll_tree: &ScrollTree,
         painted_images: Vec<PendingImageRecord>,
         painted_text_nodes: HashMap<OpaqueNode, TextRecord>,
     ) {
@@ -447,7 +460,8 @@ impl PaintTimingHandler {
         // contentful paint candidate given document, paintedImages,
         // paintedTextNodes, and document’s current largest contentful paint
         // candidate.
-        let new_candidate = self.compute_new_lcp_candidate(painted_images, painted_text_nodes);
+        let new_candidate =
+            self.compute_new_lcp_candidate(scroll_tree, painted_images, painted_text_nodes);
 
         // Step 4. If newCandidate is null, return.
         if new_candidate.is_none() {
@@ -491,7 +505,11 @@ impl PaintTimingHandler {
 
     /// <https://www.w3.org/TR/paint-timing/#mark-paint-timing>
     #[servo_tracing::instrument(name = "Mark Paint Timing", skip_all, fields(halt_lcp = halt_lcp))]
-    pub(crate) fn mark_paint_timing(&mut self, halt_lcp: bool) -> PaintTimingReport {
+    pub(crate) fn mark_paint_timing(
+        &mut self,
+        halt_lcp: bool,
+        scroll_tree: &ScrollTree,
+    ) -> PaintTimingReport {
         // TODO Step 1. If the document's browsing context is not paint-timing
         // eligible, return.
 
@@ -554,7 +572,12 @@ impl PaintTimingHandler {
 
         // Step 10.3. Report largest contentful paint given document,
         // paintTimingInfo, paintedImages and paintedTextNodes.
-        self.report_largest_contentful_paint(halt_lcp, painted_images, painted_text_nodes);
+        self.report_largest_contentful_paint(
+            halt_lcp,
+            scroll_tree,
+            painted_images,
+            painted_text_nodes,
+        );
 
         PaintTimingReport {
             first_paint,
