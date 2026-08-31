@@ -302,7 +302,7 @@ impl Callback for PipeTo {
                 // Wait until every chunk that has been read has been written
                 // (i.e. the corresponding promises have settled).
                 if let Some(write) = self.pending_writes.borrow().front() {
-                    self.wait_on_pending_write(cx, &global, &**write);
+                    self.wait_on_pending_write(cx, &global, write);
                     return;
                 }
 
@@ -607,7 +607,7 @@ impl PipeTo {
                 // (i.e. the corresponding promises have settled).
                 if let Some(write) = self.pending_writes.borrow().front() {
                     *self.state.borrow_mut() = PipeToState::ShuttingDownWithPendingWrites(action);
-                    self.wait_on_pending_write(cx, global, &**write);
+                    self.wait_on_pending_write(cx, global, write);
                     return;
                 }
             }
