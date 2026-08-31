@@ -2338,24 +2338,19 @@ async fn http_network_fetch(
     let response_body2 = response_body.clone();
 
     #[cfg(feature = "devtools")]
-    {
+    let (devtools_request, status, headers, devtools_chan) = {
         if let Some(ref sender) = context.devtools_chan &&
             let Some(msg) = msg
         {
             send_request_to_devtools(msg, sender);
         }
-    }
-
-    #[cfg(feature = "devtools")]
-    let (devtools_request, status, headers, devtools_chan) = (
-        request.clone(),
-        response.status.clone(),
-        response.headers.clone(),
-        context.devtools_chan.clone(),
-    );
-
-    #[cfg(not(feature = "devtools"))]
-    let _ = msg;
+        (
+            request.clone(),
+            response.status.clone(),
+            response.headers.clone(),
+            context.devtools_chan.clone(),
+        )
+    };
 
     let done_sender2 = done_sender.clone();
     let done_sender3 = done_sender.clone();

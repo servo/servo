@@ -61,7 +61,6 @@ pub(crate) fn run_worker_event_loop<T, WorkerMsg, Event>(
     let devtools_never = crossbeam_channel::never();
     #[cfg(feature = "devtools")]
     let devtools_receiver = scope.devtools_receiver().unwrap_or(&devtools_never);
-
     let animation_frame_tick_never = crossbeam_channel::never();
     let animation_frame_tick_receiver = worker_scope
         .animation_frame_tick_receiver()

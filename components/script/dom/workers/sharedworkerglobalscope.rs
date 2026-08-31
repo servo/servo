@@ -462,18 +462,19 @@ impl SharedWorkerGlobalScope {
                     gpu_id_hub.clone(),
                     cx,
                 );
+
                 #[cfg(feature = "devtools")]
-                debugger_global.execute(cx);
-                #[cfg(feature = "devtools")]
-                let devtools_mpsc_port = Some(from_devtools_receiver.route_preserving_errors());
+                let (devtools_mpsc_port, debugger_global_for_scope, devtools_enabled) = {
+                    debugger_global.execute(cx);
+                    (
+                        Some(from_devtools_receiver.route_preserving_errors()),
+                        Some(&*debugger_global),
+                        init.to_devtools_sender.is_some(),
+                    )
+                };
                 #[cfg(not(feature = "devtools"))]
-                let devtools_mpsc_port = None;
-                #[cfg(feature = "devtools")]
-                let debugger_global_for_scope = Some(&*debugger_global);
-                #[cfg(not(feature = "devtools"))]
-                let debugger_global_for_scope: Option<&WorkerDebuggerGlobalScope> = None;
-                #[cfg(feature = "devtools")]
-                let devtools_enabled = init.to_devtools_sender.is_some();
+                let (devtools_mpsc_port, debugger_global_for_scope, devtools_enabled) =
+                    (None, None, false);
                 // Step 3. Let origin be a unique opaque origin if worker global scope's url's scheme is "data"; otherwise outside settings's origin.
                 if worker_url.scheme() == "data" {
                     if is_secure_context {

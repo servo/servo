@@ -563,36 +563,42 @@ impl SharedWorkerMethods<crate::DomTypeHolder> for SharedWorker {
         };
 
         #[cfg(feature = "devtools")]
-        let (devtools_sender, devtools_receiver) = generic_channel::channel().unwrap();
-        let worker_id = WorkerId(Uuid::new_v4());
-        #[cfg(feature = "devtools")]
-        if let Some(chan) = global.devtools_chan() {
-            let webview_id = global
-                .webview_id()
-                .expect("Window global must have a WebViewId");
-            let page_info = DevtoolsPageInfo {
-                title: format!("SharedWorker for {}", worker_url.url()),
-                url: worker_url.url(),
-                is_top_level_global: false,
-                is_service_worker: false,
-            };
-            let _ = chan.send(ScriptToDevtoolsControlMsg::NewGlobal(
-                (
-                    window.window_proxy().browsing_context_id(),
-                    global.pipeline_id(),
-                    Some(worker_id),
-                    webview_id,
-                ),
-                devtools_sender.clone(),
-                page_info,
-            ));
-        }
+        let ((devtools_sender, devtools_receiver), worker_id) = {
+            let (devtools_sender, devtools_receiver) = generic_channel::channel().unwrap();
+            let worker_id = Some(WorkerId(Uuid::new_v4()));
+
+            if let Some(chan) = global.devtools_chan() {
+                let webview_id = global
+                    .webview_id()
+                    .expect("Window global must have a WebViewId");
+                let page_info = DevtoolsPageInfo {
+                    title: format!("SharedWorker for {}", worker_url.url()),
+                    url: worker_url.url(),
+                    is_top_level_global: false,
+                    is_service_worker: false,
+                };
+                let _ = chan.send(ScriptToDevtoolsControlMsg::NewGlobal(
+                    (
+                        window.window_proxy().browsing_context_id(),
+                        global.pipeline_id(),
+                        worker_id,
+                        webview_id,
+                    ),
+                    devtools_sender.clone(),
+                    page_info,
+                ));
+            }
+
+            ((devtools_sender, devtools_receiver), worker_id)
+        };
+        #[cfg(not(feature = "devtools"))]
+        let worker_id: Option<WorkerId> = None;
 
         let init = prepare_workerscope_init(
             global,
             #[cfg(feature = "devtools")]
             Some(devtools_sender),
-            Some(worker_id),
+            worker_id,
             #[cfg(feature = "webgl")]
             window.webgl_chan_value(),
         );
