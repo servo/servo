@@ -51,7 +51,7 @@ use crate::dom::stream::byteteeunderlyingsource::{ByteTeeCancelAlgorithm, ByteTe
 use crate::dom::stream::countqueuingstrategy::{extract_high_water_mark, extract_size_algorithm};
 use crate::dom::stream::readablestreamgenericreader::ReadableStreamGenericReader;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::promise::{wait_for_all_promise, Promise, PromiseRoot, TracedPromise};
+use crate::dom::promise::{wait_for_all_promise, Promise, RootedPromise, TracedPromise};
 use crate::dom::stream::readablebytestreamcontroller::ReadableByteStreamController;
 use crate::dom::stream::readablestreambyobreader::ReadableStreamBYOBReader;
 use crate::dom::stream::readablestreamdefaultcontroller::ReadableStreamDefaultController;
@@ -754,7 +754,7 @@ struct SourceCancelPromiseFulfillmentHandler {
 }
 
 impl SourceCancelPromiseFulfillmentHandler {
-    fn new(promise: &PromiseRoot) -> Box<Self> {
+    fn new(promise: &RootedPromise) -> Box<Self> {
         Box::new(Self {
             result: promise.to_traced(),
         })
@@ -779,7 +779,7 @@ struct SourceCancelPromiseRejectionHandler {
 }
 
 impl SourceCancelPromiseRejectionHandler {
-    fn new(promise: &PromiseRoot) -> Box<Self> {
+    fn new(promise: &RootedPromise) -> Box<Self> {
         Box::new(Self {
             result: promise.to_traced(),
         })
@@ -1621,7 +1621,7 @@ impl ReadableStream {
         cx: &mut JSContext,
         global: &GlobalScope,
         reason: SafeHandleValue,
-    ) -> PromiseRoot {
+    ) -> RootedPromise {
         // Set stream.[[disturbed]] to true.
         self.disturbed.set(true);
 
@@ -1909,7 +1909,7 @@ impl ReadableStream {
         prevent_abort: bool,
         prevent_cancel: bool,
         signal: Option<&AbortSignal>,
-    ) -> PromiseRoot {
+    ) -> RootedPromise {
         // Assert: source implements ReadableStream.
         // Assert: dest implements WritableStream.
         // Assert: prevent_close, prevent_abort, and prevent_cancel are all booleans.

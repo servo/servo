@@ -48,28 +48,28 @@ use crate::event_loop::script_thread::ScriptThread;
 use crate::realms::enter_auto_realm;
 use crate::runtime::microtask::MicrotaskRunnable;
 
-pub(crate) struct PromiseRoot(Rc<Promise>);
+pub(crate) struct RootedPromise(Rc<Promise>);
 
-impl Deref for PromiseRoot {
+impl Deref for RootedPromise {
     type Target = Rc<Promise>;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl From<PromiseRoot> for Rc<Promise> {
-    fn from(root: PromiseRoot) -> Self {
+impl From<RootedPromise> for Rc<Promise> {
+    fn from(root: RootedPromise) -> Self {
         root.0
     }
 }
 
-impl PromiseRoot {
+impl RootedPromise {
     pub(crate) fn to_traced(&self) -> TracedPromise {
         TracedPromise(self.0.clone())
     }
 }
 
-impl ToJSValConvertible for PromiseRoot {
+impl ToJSValConvertible for RootedPromise {
     fn safe_to_jsval(&self, cx: &mut JSContext, rval: MutableHandleValue<'_>) {
         self.0.safe_to_jsval(cx, rval)
     }
@@ -82,8 +82,8 @@ pub(crate) struct TracedPromise(#[conditional_malloc_size_of] Rc<Promise>);
 impl js::rust::Rootable for TracedPromise {}
 
 impl TracedPromise {
-    pub(crate) fn root(&self) -> PromiseRoot {
-        PromiseRoot(self.0.clone())
+    pub(crate) fn root(&self) -> RootedPromise {
+        RootedPromise(self.0.clone())
     }
 }
 
@@ -143,8 +143,8 @@ impl Drop for Promise {
 }
 
 impl Promise {
-    pub(crate) fn new_rooted(cx: &mut JSContext, global: &GlobalScope) -> PromiseRoot {
-        PromiseRoot(Self::new(cx, global))
+    pub(crate) fn new_rooted(cx: &mut JSContext, global: &GlobalScope) -> RootedPromise {
+        RootedPromise(Self::new(cx, global))
     }
 
     pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> Rc<Promise> {
@@ -161,11 +161,11 @@ impl Promise {
     }
 
     #[expect(dead_code)]
-    pub(crate) fn new_in_realm_rooted(current_realm: &mut CurrentRealm) -> PromiseRoot {
-        PromiseRoot(Self::new_in_realm(current_realm))
+    pub(crate) fn new_in_realm_rooted(current_realm: &mut CurrentRealm) -> RootedPromise {
+        RootedPromise(Self::new_in_realm(current_realm))
     }
 
-    pub(crate) fn duplicate(&self, cx: &mut JSContext) -> PromiseRoot {
+    pub(crate) fn duplicate(&self, cx: &mut JSContext) -> RootedPromise {
         Promise::new_with_js_promise_rooted(cx, self.reflector().get_jsobject())
     }
 
@@ -187,8 +187,11 @@ impl Promise {
         promise
     }
 
-    pub(crate) fn new_with_js_promise_rooted(cx: &mut JSContext, obj: HandleObject) -> PromiseRoot {
-        PromiseRoot(Self::new_with_js_promise(cx, obj))
+    pub(crate) fn new_with_js_promise_rooted(
+        cx: &mut JSContext,
+        obj: HandleObject,
+    ) -> RootedPromise {
+        RootedPromise(Self::new_with_js_promise(cx, obj))
     }
 
     #[expect(unsafe_code)]
@@ -234,8 +237,8 @@ impl Promise {
         cx: &mut JSContext,
         global: &GlobalScope,
         value: impl ToJSValConvertible,
-    ) -> PromiseRoot {
-        PromiseRoot(Self::new_resolved(cx, global, value))
+    ) -> RootedPromise {
+        RootedPromise(Self::new_resolved(cx, global, value))
     }
 
     #[expect(unsafe_code)]
@@ -258,8 +261,8 @@ impl Promise {
         cx: &mut JSContext,
         global: &GlobalScope,
         value: impl ToJSValConvertible,
-    ) -> PromiseRoot {
-        PromiseRoot(Self::new_rejected(cx, global, value))
+    ) -> RootedPromise {
+        RootedPromise(Self::new_rejected(cx, global, value))
     }
 
     pub(crate) fn resolve_native<T>(&self, cx: &mut JSContext, val: &T)
@@ -583,7 +586,7 @@ impl MicrotaskRunnable for WaitForAllSuccessStepsMicrotask {
 fn wait_for_all(
     cx: &mut CurrentRealm,
     global: &GlobalScope,
-    promises: Vec<PromiseRoot>,
+    promises: Vec<RootedPromise>,
     success_steps: WaitForAllSuccessSteps,
     failure_steps: WaitForAllFailureSteps,
 ) {
@@ -670,8 +673,8 @@ fn wait_for_all(
 pub(crate) fn wait_for_all_promise(
     cx: &mut CurrentRealm,
     global: &GlobalScope,
-    promises: Vec<PromiseRoot>,
-) -> PromiseRoot {
+    promises: Vec<RootedPromise>,
+) -> RootedPromise {
     // Let promise be a new promise of type Promise<sequence<T>> in realm.
     let promise = Promise::new_rooted(cx, global);
     let success_promise = promise.clone();

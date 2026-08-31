@@ -17,7 +17,7 @@ use crate::dom::bindings::error::{Error, ErrorToJsval};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::promise::{Promise, PromiseRoot};
+use crate::dom::promise::{Promise, RootedPromise};
 use crate::dom::stream::writablestream::WritableStream;
 
 /// <https://streams.spec.whatwg.org/#writablestreamdefaultwriter>
@@ -239,7 +239,7 @@ impl WritableStreamDefaultWriter {
         cx: &mut CurrentRealm,
         global: &GlobalScope,
         reason: SafeHandleValue,
-    ) -> PromiseRoot {
+    ) -> RootedPromise {
         // Let stream be writer.[[stream]].
         let Some(stream) = self.stream.get() else {
             // Assert: stream is not undefined.
@@ -251,7 +251,7 @@ impl WritableStreamDefaultWriter {
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-writer-close>
-    fn close(&self, cx: &mut JSContext, global: &GlobalScope) -> PromiseRoot {
+    fn close(&self, cx: &mut JSContext, global: &GlobalScope) -> RootedPromise {
         // Let stream be writer.[[stream]].
         let Some(stream) = self.stream.get() else {
             // Assert: stream is not undefined.
@@ -268,7 +268,7 @@ impl WritableStreamDefaultWriter {
         cx: &mut JSContext,
         global: &GlobalScope,
         chunk: SafeHandleValue,
-    ) -> PromiseRoot {
+    ) -> RootedPromise {
         // Let stream be writer.[[stream]].
         let Some(stream) = self.stream.get() else {
             // Assert: stream is not undefined.
@@ -382,7 +382,7 @@ impl WritableStreamDefaultWriter {
         &self,
         cx: &mut JSContext,
         global: &GlobalScope,
-    ) -> PromiseRoot {
+    ) -> RootedPromise {
         // Let stream be writer.[[stream]].
         let Some(stream) = self.stream.get() else {
             // Assert: stream is not undefined.

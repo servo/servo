@@ -39,7 +39,7 @@ use crate::dom::bindings::transferable::Transferable;
 use crate::dom::domexception::{DOMErrorName, DOMException};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageport::MessagePort;
-use crate::dom::promise::{Promise, PromiseRoot, TracedPromise};
+use crate::dom::promise::{Promise, RootedPromise, TracedPromise};
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::readablestream::{ReadableStream, get_type_and_value_from_message};
 use crate::dom::stream::countqueuingstrategy::{extract_high_water_mark, extract_size_algorithm};
@@ -618,7 +618,7 @@ impl WritableStream {
         &self,
         cx: &mut JSContext,
         global: &GlobalScope,
-    ) -> PromiseRoot {
+    ) -> RootedPromise {
         // Assert: ! IsWritableStreamLocked(stream) is true.
         assert!(self.is_locked());
 
@@ -648,7 +648,7 @@ impl WritableStream {
         cx: &mut CurrentRealm,
         global: &GlobalScope,
         provided_reason: SafeHandleValue,
-    ) -> PromiseRoot {
+    ) -> RootedPromise {
         // If stream.[[state]] is "closed" or "errored",
         if self.is_closed() || self.is_errored() {
             // return a promise resolved with undefined.
@@ -726,7 +726,7 @@ impl WritableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-close>
-    pub(crate) fn close(&self, cx: &mut JSContext, global: &GlobalScope) -> PromiseRoot {
+    pub(crate) fn close(&self, cx: &mut JSContext, global: &GlobalScope) -> RootedPromise {
         // Let state be stream.[[state]].
         // If state is "closed" or "errored",
         if self.is_closed() || self.is_errored() {
