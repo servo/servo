@@ -2842,6 +2842,7 @@ impl Node {
         // 2) post_connection_steps from Node::insert,
         // we use a delayed task that will run as soon as Node::insert removes its
         // script/layout blocker.
+        #[cfg_attr(crown, allow(crown::domroot_inside_dom_struct))]
         parent_document.add_delayed_task(
             task!(PostConnectionSteps: |cx, static_node_list: SmallVec<[DomRoot<Node>; 4]>| {
                 // Step 12. For each node of staticNodeList, if node is connected, then run the
