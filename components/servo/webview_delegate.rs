@@ -12,7 +12,8 @@ use embedder_traits::{
     FilterPattern, InputEventId, InputEventResult, InputMethodType, LoadStatus, MediaSessionEvent,
     NewWebViewDetails, Notification, PermissionFeature, PromptResponse, RgbColor, ScreenGeometry,
     SelectElementOptionOrOptgroup, SelectElementRequest, SimpleDialogRequest, TraversalId,
-    WebResourceRequest, WebResourceResponse, WebResourceResponseMsg,
+    WebResourceLoadCompleted, WebResourceRequest, WebResourceResponse, WebResourceResponseMsg,
+    WebResourceResponseReceived,
 };
 use paint_api::rendering_context::RenderingContext;
 use servo_base::generic_channel::{GenericCallback, GenericSender, SendError};
@@ -1068,6 +1069,25 @@ pub trait WebViewDelegate {
     /// For loads not associated with a [`WebView`], such as those for service workers, Servo
     /// will call [`crate::ServoDelegate::load_web_resource`].
     fn load_web_resource(&self, _webview: WebView, _load: WebResourceLoad) {}
+
+    /// Notify the embedder of read-only request and response metadata after
+    /// Servo receives an HTTP response. Unlike [`Self::load_web_resource`],
+    /// this callback cannot mutate, cancel, or replace the load.
+    fn notify_web_resource_response_received(
+        &self,
+        _webview: WebView,
+        _response: WebResourceResponseReceived,
+    ) {
+    }
+
+    /// Notify the embedder that a resource completed or failed. This callback
+    /// is observational and cannot mutate or cancel the load.
+    fn notify_web_resource_load_completed(
+        &self,
+        _webview: WebView,
+        _completed: WebResourceLoadCompleted,
+    ) {
+    }
 
     /// Request to display a notification.
     fn show_notification(&self, _webview: WebView, _notification: Notification) {}

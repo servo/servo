@@ -673,6 +673,14 @@ pub enum GamepadHapticEffectType {
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct WebResourceLoadId {
+    /// Stable identity for the Fetch request across redirects.
+    pub request_id: Uuid,
+    /// Zero-based redirect generation within the request.
+    pub redirect_index: u32,
+}
+
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct WebResourceRequest {
     #[serde(
         deserialize_with = "::hyper_serde::deserialize",
@@ -689,6 +697,31 @@ pub struct WebResourceRequest {
     pub referrer_url: Option<Url>,
     pub is_for_main_frame: bool,
     pub is_redirect: bool,
+}
+
+/// Read-only request and response metadata observed after Servo receives an
+/// HTTP response. This notification cannot mutate, cancel, or replace a load.
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct WebResourceResponseReceived {
+    pub load_id: WebResourceLoadId,
+    pub request: WebResourceRequest,
+    pub response: WebResourceResponse,
+}
+
+/// Read-only completion metadata for a resource Servo loaded. A missing error
+/// indicates success; failures and cancellations retain the same load identity
+/// used by [`WebResourceResponseReceived`].
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct WebResourceLoadCompleted {
+    pub load_id: WebResourceLoadId,
+    pub request: WebResourceRequest,
+    pub error: Option<WebResourceLoadError>,
+}
+
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct WebResourceLoadError {
+    pub message: String,
+    pub is_cancelled: bool,
 }
 
 #[derive(Clone, Deserialize, Serialize)]

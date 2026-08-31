@@ -844,10 +844,20 @@ pub async fn main_fetch(
     if request.synchronous {
         // process_response is not supposed to be used
         // by sync fetch, but we overload it here for simplicity
+        context
+            .request_interceptor
+            .lock()
+            .await
+            .notify_response_received(request, &response);
         target.process_response(request, &response);
         if !response_loaded {
             wait_for_response(request, &mut response, target, done_chan, context).await;
         }
+        context
+            .request_interceptor
+            .lock()
+            .await
+            .notify_load_completed(request, &response);
         // overloaded similarly to process_response
         target.process_response_eof(request, &response);
         return response;
@@ -863,6 +873,11 @@ pub async fn main_fetch(
     }
 
     // Step 22.
+    context
+        .request_interceptor
+        .lock()
+        .await
+        .notify_response_received(request, &response);
     target.process_response(request, &response);
     // Send Response to Devtools
     send_response_to_devtools(request, context, &response, None);
@@ -874,6 +889,11 @@ pub async fn main_fetch(
     }
 
     // Step 24.
+    context
+        .request_interceptor
+        .lock()
+        .await
+        .notify_load_completed(request, &response);
     target.process_response_eof(request, &response);
     // Send Response to Devtools
     // This is done after process_response_eof to ensure that the body is fully

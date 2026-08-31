@@ -11,7 +11,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{Duration, SystemTime};
 
 use content_security_policy as csp;
-use crossbeam_channel::{Sender, unbounded};
+use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::{HttpRequest as DevtoolsHttpRequest, HttpResponse as DevtoolsHttpResponse};
 use headers::{
     AccessControlAllowCredentials, AccessControlAllowHeaders, AccessControlAllowMethods,
@@ -56,6 +56,118 @@ use crate::{
 };
 
 // TODO write a struct that impls Handler for storing test values
+
+struct ObservedResourceLoad {
+    response: Option<embedder_traits::WebResourceResponseReceived>,
+    completed: embedder_traits::WebResourceLoadCompleted,
+}
+
+fn collect_resource_load(
+    receiver: Receiver<net::embedder::NetToEmbedderMsg>,
+) -> ObservedResourceLoad {
+    let mut response = None;
+    loop {
+        match receiver.recv().unwrap() {
+            net::embedder::NetToEmbedderMsg::WebResourceRequested(_, _, response_sender) => {
+                response_sender
+                    .send(embedder_traits::WebResourceResponseMsg::DoNotIntercept)
+                    .unwrap();
+            },
+            net::embedder::NetToEmbedderMsg::WebResourceResponseReceived(_, received) => {
+                response = Some(*received);
+            },
+            net::embedder::NetToEmbedderMsg::WebResourceLoadCompleted(_, completed) => {
+                return ObservedResourceLoad {
+                    response,
+                    completed: *completed,
+                };
+            },
+            _ => {},
+        }
+    }
+}
+
+fn fetch_with_resource_observer(request: Request) -> (Response, ObservedResourceLoad) {
+    let (embedder_proxy, receiver) = create_generic_embedder_proxy_and_receiver();
+    let observer = std::thread::spawn(move || collect_resource_load(receiver));
+    let mut context = new_fetch_context(None, Some(embedder_proxy));
+    let response = fetch_with_context(request, &mut context);
+    (response, observer.join().unwrap())
+}
+
+fn successful_observed_fetch(destination: Destination) -> ObservedResourceLoad {
+    let handler = |_: HyperRequest<Incoming>,
+                   response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
+        *response.body_mut() = make_body(b"observed".to_vec());
+    };
+    let (_server, url) = make_server(handler);
+    let request = RequestBuilder::new(Some(TEST_WEBVIEW_ID), url.clone(), Referrer::NoReferrer)
+        .destination(destination)
+        .origin(url.origin())
+        .policy_container(Default::default())
+        .build();
+
+    let (response, observed) = fetch_with_resource_observer(request);
+    assert!(!response.is_network_error());
+    observed
+}
+
+fn failed_observed_fetch(destination: Destination) -> ObservedResourceLoad {
+    let url = ServoUrl::parse("http://example.org:6667").unwrap();
+    let request = RequestBuilder::new(
+        Some(TEST_WEBVIEW_ID),
+        UrlWithBlobClaim::new(url.clone(), None),
+        Referrer::NoReferrer,
+    )
+    .destination(destination)
+    .origin(url.origin())
+    .policy_container(Default::default())
+    .build();
+
+    let (response, observed) = fetch_with_resource_observer(request);
+    assert!(response.is_network_error());
+    observed
+}
+
+#[test]
+fn observes_successful_top_level_navigation() {
+    let observed = successful_observed_fetch(Destination::Document);
+    let response = observed.response.expect("expected response metadata");
+    assert!(response.request.is_for_main_frame);
+    assert_eq!(response.request.destination, Destination::Document);
+    assert!(observed.completed.error.is_none());
+}
+
+#[test]
+fn observes_successful_nested_navigation() {
+    let observed = successful_observed_fetch(Destination::IFrame);
+    let response = observed.response.expect("expected response metadata");
+    assert!(!response.request.is_for_main_frame);
+    assert_eq!(response.request.destination, Destination::IFrame);
+    assert!(observed.completed.error.is_none());
+}
+
+#[test]
+fn observes_failed_navigation() {
+    let observed = failed_observed_fetch(Destination::Document);
+    assert!(observed.response.is_none());
+    assert!(observed.completed.error.is_some());
+}
+
+#[test]
+fn observes_successful_non_navigation_resource() {
+    let observed = successful_observed_fetch(Destination::Script);
+    let response = observed.response.expect("expected response metadata");
+    assert_eq!(response.request.destination, Destination::Script);
+    assert!(observed.completed.error.is_none());
+}
+
+#[test]
+fn observes_failed_non_navigation_resource() {
+    let observed = failed_observed_fetch(Destination::Script);
+    assert!(observed.response.is_none());
+    assert!(observed.completed.error.is_some());
+}
 
 #[test]
 fn test_fetch_response_is_not_network_error() {
