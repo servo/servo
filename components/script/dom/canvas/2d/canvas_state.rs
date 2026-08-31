@@ -32,6 +32,7 @@ use servo_canvas_traits::canvas::{
 };
 use servo_constellation_traits::ScriptToConstellationMessage;
 use servo_url::{ImmutableOrigin, ServoUrl};
+use style::Zero;
 use style::color::{AbsoluteColor, ColorFlags, ColorSpace};
 use style::computed_values::font_variant_position::T as FontVariantPosition;
 use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
@@ -2573,8 +2574,8 @@ impl UnshapedTextRun<'_> {
         let font = self.font?;
 
         let options = ShapingOptions {
-            letter_spacing: None,
-            word_spacing: None,
+            letter_spacing: Au::zero(),
+            word_spacing: Au::zero(),
             script: self.script,
             language: self.language,
             flags: ShapingFlags::empty(),

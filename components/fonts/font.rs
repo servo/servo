@@ -457,9 +457,9 @@ pub struct ShapingOptions {
     ///
     /// Letter spacing is not applied to all characters. Use [Self::letter_spacing_for_character] to
     /// determine the amount of spacing to apply.
-    pub letter_spacing: Option<Au>,
+    pub letter_spacing: Au,
     /// Spacing to add between each word. Corresponds to the CSS 2.1 `word-spacing` property.
-    pub word_spacing: Option<Au>,
+    pub word_spacing: Au,
     /// The Unicode script property of the characters in this run.
     pub script: Script,
     /// The preferred language, obtained from the `lang` attribute.
@@ -481,14 +481,16 @@ pub struct ShapingOptions {
 }
 
 impl ShapingOptions {
-    pub(crate) fn letter_spacing_for_character(&self, character: char) -> Option<Au> {
+    pub(crate) fn letter_spacing_for_character(&self, character: char) -> Au {
         // https://drafts.csswg.org/css-text/#letter-spacing-property
         // Letter spacing ignores invisible zero-width formatting characters (such as those from the Unicode Cf category).
         // Spacing must be added as if those characters did not exist in the document.
-        self.letter_spacing.filter(|_| {
-            icu_properties::maps::general_category().get(character) !=
-                icu_properties::GeneralCategory::Format
-        })
+        if icu_properties::maps::general_category().get(character) ==
+            icu_properties::GeneralCategory::Format
+        {
+            return Au::zero();
+        }
+        self.letter_spacing
     }
 }
 
@@ -496,8 +498,8 @@ impl ShapingOptions {
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 struct ShapeCacheEntry {
     text: String,
-    letter_spacing: Option<Au>,
-    word_spacing: Option<Au>,
+    letter_spacing: Au,
+    word_spacing: Au,
     script: Script,
     language: Language,
     font_features: Box<[(Tag, u32)]>,
