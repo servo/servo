@@ -924,7 +924,7 @@ impl GStreamerPlayer {
         };
 
         let result = receiver.recv().unwrap();
-        glib::signal::signal_handler_disconnect(&inner.lock().unwrap().player, error_handler_id);
+        glib::signal::signal_handler_disconnect(&inner.lock().unwrap()._signal_adapter, error_handler_id);
         result
     }
 }
