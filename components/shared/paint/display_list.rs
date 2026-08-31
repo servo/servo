@@ -716,6 +716,7 @@ impl ScrollTree {
             .cumulative_sticky_offsets
     }
 
+    #[servo_tracing::instrument(name = "ScrollTree::cumulative_node_transform", skip_all)]
     fn cumulative_node_transform(
         &self,
         node_id: ScrollTreeNodeId,
@@ -731,6 +732,7 @@ impl ScrollTree {
     }
 
     /// Traverse a scroll node to its root to calculate the transform.
+    #[servo_tracing::instrument(name = "ScrollTree::cumulative_node_transform_inner", skip_all)]
     fn cumulative_node_transform_inner(
         &self,
         node: &ScrollTreeNode,
@@ -805,6 +807,7 @@ impl ScrollTree {
         }
     }
 
+    #[servo_tracing::instrument(name = "ScrollTree::invalidate_cached_transforms", skip_all)]
     fn invalidate_cached_transforms(&self) {
         let Some(root_node) = self.nodes.first() else {
             return;
