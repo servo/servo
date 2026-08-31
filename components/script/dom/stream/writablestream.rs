@@ -260,8 +260,8 @@ impl WritableStream {
         self.get_stored_error(stored_error.handle_mut());
 
         // For each writeRequest of stream.[[writeRequests]]:
-        let write_requests = mem::take(&mut *self.write_requests.borrow_mut());
-        for request in write_requests {
+        rooted!(&in(cx) let write_requests = mem::take(&mut *self.write_requests.borrow_mut()));
+        for request in write_requests.iter() {
             // Reject writeRequest with storedError.
             request.reject(cx, stored_error.handle());
         }
@@ -335,8 +335,8 @@ impl WritableStream {
         self.get_stored_error(stored_error.handle_mut());
 
         // If stream.[[closeRequest]] is not undefined
-        let close_request = self.close_request.borrow_mut().take();
-        if let Some(close_request) = close_request {
+        rooted!(&in(cx) let close_request = self.close_request.borrow_mut().take());
+        if let Some(ref close_request) = *close_request {
             // Assert: stream.[[inFlightCloseRequest]] is undefined.
             assert!(self.in_flight_close_request.borrow().is_none());
 
@@ -368,7 +368,8 @@ impl WritableStream {
 
     /// <https://streams.spec.whatwg.org/#writable-stream-finish-in-flight-write>
     pub(crate) fn finish_in_flight_write(&self, cx: &mut JSContext) {
-        let Some(in_flight_write_request) = self.in_flight_write_request.borrow_mut().take() else {
+        rooted!(&in(cx) let in_flight_write_request = self.in_flight_write_request.borrow_mut().take());
+        let Some(ref in_flight_write_request) = *in_flight_write_request else {
             // Assert: stream.[[inFlightWriteRequest]] is not undefined.
             unreachable!("Stream should have a write request");
         };
@@ -456,10 +457,8 @@ impl WritableStream {
 
         // Let writeRequest be stream.[[writeRequests]][0].
         // Remove writeRequest from stream.[[writeRequests]].
-        let write_request = write_requests.pop_front().unwrap();
-
         // Set stream.[[inFlightWriteRequest]] to writeRequest.
-        *in_flight_write_request = Some(write_request);
+        *in_flight_write_request = write_requests.pop_front();
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-mark-close-request-in-flight>
@@ -475,15 +474,14 @@ impl WritableStream {
 
         // Let closeRequest be stream.[[closeRequest]].
         // Set stream.[[closeRequest]] to undefined.
-        let close_request = close_request.take().unwrap();
-
         // Set stream.[[inFlightCloseRequest]] to closeRequest.
-        *in_flight_close_request = Some(close_request);
+        *in_flight_close_request = close_request.take();
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-finish-in-flight-close>
     pub(crate) fn finish_in_flight_close(&self, cx: &mut JSContext) {
-        let Some(in_flight_close_request) = self.in_flight_close_request.borrow_mut().take() else {
+        rooted!(&in(cx) let in_flight_close_request = self.in_flight_close_request.borrow_mut().take());
+        let Some(ref in_flight_close_request) = *in_flight_close_request else {
             // Assert: stream.[[inFlightCloseRequest]] is not undefined.
             unreachable!("in_flight_close_request must be Some");
         };
@@ -537,7 +535,8 @@ impl WritableStream {
         global: &GlobalScope,
         error: SafeHandleValue,
     ) {
-        let Some(in_flight_close_request) = self.in_flight_close_request.borrow_mut().take() else {
+        rooted!(&in(cx) let in_flight_close_request = self.in_flight_close_request.borrow_mut().take());
+        let Some(ref in_flight_close_request) = *in_flight_close_request else {
             // Assert: stream.[[inFlightCloseRequest]] is not undefined.
             unreachable!("Inflight close request must be defined.");
         };
@@ -572,7 +571,8 @@ impl WritableStream {
         global: &GlobalScope,
         error: SafeHandleValue,
     ) {
-        let Some(in_flight_write_request) = self.in_flight_write_request.borrow_mut().take() else {
+        rooted!(&in(cx) let in_flight_write_request = self.in_flight_write_request.borrow_mut().take());
+        let Some(ref in_flight_write_request) = *in_flight_write_request else {
             // Assert: stream.[[inFlightWriteRequest]] is not undefined.
             unreachable!("Inflight write request must be defined.");
         };

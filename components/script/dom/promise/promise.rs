@@ -76,7 +76,10 @@ impl ToJSValConvertible for PromiseRoot {
 }
 
 #[derive(Clone, MallocSizeOf, JSTraceable)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct TracedPromise(#[conditional_malloc_size_of] Rc<Promise>);
+
+impl js::rust::Rootable for TracedPromise {}
 
 impl TracedPromise {
     pub(crate) fn root(&self) -> PromiseRoot {
