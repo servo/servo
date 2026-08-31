@@ -1410,7 +1410,7 @@ pub(crate) fn live_range_insert_steps(parent: &Node, child: &Node, count: u32) {
 pub(crate) fn live_range_pre_remove_steps_for_removed_subtree(
     inclusive_descendant_of_removed_node: &Node, // "node" in the specification
     parent_of_removed_node: &Node,               // "parent" in the specification
-    index_of_removed_node: &dyn Fn() -> u32,     // "index" in the specification
+    index_of_removed_node: &mut dyn FnMut() -> u32, // "index" in the specification
 ) {
     // The steps are only supposed to run on DOM tree inclusive descendants of the removal
     // root and elements in shadow trees are not, so they shouldn't run for them.
@@ -1418,36 +1418,33 @@ pub(crate) fn live_range_pre_remove_steps_for_removed_subtree(
         return;
     }
     for range in inclusive_descendant_of_removed_node.live_ranges() {
-        let index = index_of_removed_node();
         // Step 4: For each live range whose start node is an inclusive descendant of
         // node, set its start to (parent, index).
         if &*range.start_container() == inclusive_descendant_of_removed_node {
-            range.set_start(parent_of_removed_node, index);
+            range.set_start(parent_of_removed_node, index_of_removed_node());
         }
         // Step 5: For each live range whose end node is an inclusive descendant of node,
         // set its end to (parent, index).
         if &*range.end_container() == inclusive_descendant_of_removed_node {
-            range.set_end(parent_of_removed_node, index);
+            range.set_end(parent_of_removed_node, index_of_removed_node());
         }
     }
 }
 
 /// <https://dom.spec.whatwg.org/#live-range-pre-remove-steps> steps 6 and 7.
 pub(crate) fn live_range_pre_remove_steps_for_parent(
-    node: &Node,
     parent: &Node,
-    cached_node_index: &mut Option<u32>,
+    node_index: &mut dyn FnMut() -> u32,
 ) {
     for range in parent.live_ranges() {
-        let node_index = *cached_node_index.get_or_insert_with(|| node.index());
         // Step 6: For each live range whose start node is parent and start offset is
         // greater than index, decrease its start offset by 1.
-        if &*range.start_container() == parent && range.start_offset() > node_index {
+        if &*range.start_container() == parent && range.start_offset() > node_index() {
             range.set_start(parent, range.start_offset() - 1);
         }
         // Step 7: For each live range whose end node is parent and end offset is greater than
         // index, decrease its end offset by 1.
-        if &*range.end_container() == parent && range.end_offset() > node_index {
+        if &*range.end_container() == parent && range.end_offset() > node_index() {
             range.set_end(parent, range.end_offset() - 1);
         }
     }
@@ -1580,4 +1577,32 @@ pub(crate) fn live_range_text_split_steps(
             range.set_end(parent, range.end_offset() + 1);
         }
     }
+}
+
+/// <https://dom.spec.whatwg.org/#live-range-pre-remove-steps>
+pub(crate) fn live_range_pre_remove_steps(node: &Node, old_parent: &Node) {
+    // Step 1. Let parent be node’s parent.
+    // Note: This is `old_parent`.
+    // Step 2. Assert: parent is non-null.
+    // Note: Cannot be null.
+
+    // Step 3. Let index be node’s index.
+    let mut cached_index = None;
+    let mut lazy_index = || *cached_index.get_or_insert_with(|| node.index());
+
+    // Step 4. For each live range whose start node is an inclusive descendant of node,
+    // set its start to (parent, index).
+    // Step 5. For each live range whose end node is an inclusive descendant of node, set
+    // its end to (parent, index).
+    //
+    // TODO: Only run this part if there are live ranges in this subtree and/or a selection.
+    for descendant in node.traverse_preorder(ShadowIncluding::No) {
+        live_range_pre_remove_steps_for_removed_subtree(&descendant, old_parent, &mut lazy_index);
+    }
+
+    // Step 6. For each live range whose start node is parent and start offset is greater
+    // than index, decrease its start offset by 1.
+    // Step 7. For each live range whose end node is parent and end offset is greater than
+    // index, decrease its end offset by 1.
+    live_range_pre_remove_steps_for_parent(old_parent, &mut lazy_index);
 }
