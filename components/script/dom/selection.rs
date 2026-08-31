@@ -168,10 +168,12 @@ impl Selection {
 
         let start_offset = range.start_offset() as usize;
         let end_offset = range.end_offset() as usize;
+        let start_container = range.start_container();
+        let end_container = range.end_container();
         let start_position =
-            position_in_flat_tree_for_selection(no_gc, range.start_container(), start_offset);
+            position_in_flat_tree_for_selection(no_gc, start_container.clone(), start_offset);
         let end_position =
-            position_in_flat_tree_for_selection(no_gc, range.end_container(), end_offset);
+            position_in_flat_tree_for_selection(no_gc, end_container.clone(), end_offset);
         let start_node = start_position.node();
         let end_node = end_position.node();
 
@@ -179,7 +181,7 @@ impl Selection {
         // have changed, always dirty the start and end nodes, if they paint selection.
         // TODO(mrobinson): We should handle changes only to the offsets within a single
         // boundary node explicitly and not traversing the whole range.
-        if let Some(character_data) = start_node.downcast::<CharacterData>() {
+        if let Some(character_data) = start_container.downcast::<CharacterData>() {
             let text = character_data.data();
             let range = RangeAny {
                 start: Some(Utf16CodeUnits(start_offset).to_utf32_code_units_in(&text)),
@@ -188,8 +190,8 @@ impl Selection {
             };
             set_text_run_selection(character_data, Some(range))
         }
-        if end_node != start_node &&
-            let Some(character_data) = end_node.downcast::<CharacterData>()
+        if end_container != start_container &&
+            let Some(character_data) = end_container.downcast::<CharacterData>()
         {
             let text = character_data.data();
             let range = RangeAny {
