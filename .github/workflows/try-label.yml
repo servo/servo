@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      issues: write
+      pull-requests: write
     concurrency:
       group: try-${{ github.event.number }}
     outputs:
@@ -151,7 +151,7 @@ jobs:
     needs: ["parse-comment", "run-try"]
     runs-on: ubuntu-latest
     permissions:
-      issues: write
+      pull-requests: write
     if: ${{ always() && needs.parse-comment.outputs.try_string }}
     steps:
       - name: Post PR Comment with results
