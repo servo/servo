@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crossbeam_channel::{Receiver, select};
+use crossbeam_channel::{Receiver, Select};
 #[cfg(feature = "devtools")]
 use devtools_traits::DevtoolScriptControlMsg;
 use rustc_hash::FxHashSet;
@@ -66,48 +66,45 @@ pub(crate) fn run_worker_event_loop<T, WorkerMsg, Event>(
         .animation_frame_tick_receiver()
         .unwrap_or(&animation_frame_tick_never);
 
+    let task_receiver = task_queue.select();
+    let timer_receiver = scope.timer_scheduler().wait_channel();
+    let mut select = Select::new();
+    let control_index = select.recv(worker_scope.control_receiver());
+    let task_index = select.recv(task_receiver);
     #[cfg(feature = "devtools")]
-    let event = select! {
-        recv(worker_scope.control_receiver()) -> msg => match msg {
-            Ok(msg) => Some(T::from_control_msg(msg)),
-            Err(_) => None,
-        },
-        recv(task_queue.select()) -> msg => match msg {
-            Ok(msg) => {
-                task_queue.take_tasks(msg, &FxHashSet::default());
-                task_queue.recv().ok().map(T::from_worker_msg)
-            },
-            Err(_) => None,
-        },
-        recv(devtools_receiver) -> msg => match msg {
-            Ok(msg) => msg.ok().map(T::from_devtools_msg),
-            Err(_) => None,
-        },
-        recv(animation_frame_tick_receiver) -> msg => match msg {
-            Ok(Ok(msg)) => T::from_animation_frame_tick_msg(msg),
-            Ok(Err(_)) | Err(_) => None,
-        },
-        recv(scope.timer_scheduler().wait_channel()) -> _ => Some(T::from_timer_msg()),
-    };
+    let devtools_index = select.recv(devtools_receiver);
+    let animation_frame_tick_index = select.recv(animation_frame_tick_receiver);
+    let timer_index = select.recv(&timer_receiver);
 
-    #[cfg(not(feature = "devtools"))]
-    let event = select! {
-        recv(worker_scope.control_receiver()) -> msg => match msg {
-            Ok(msg) => Some(T::from_control_msg(msg)),
-            Err(_) => None,
-        },
-        recv(task_queue.select()) -> msg => match msg {
+    let operation = select.select();
+    let event = match operation.index() {
+        index if index == control_index => operation
+            .recv(worker_scope.control_receiver())
+            .ok()
+            .map(T::from_control_msg),
+        index if index == task_index => match operation.recv(task_receiver) {
             Ok(msg) => {
                 task_queue.take_tasks(msg, &FxHashSet::default());
                 task_queue.recv().ok().map(T::from_worker_msg)
             },
             Err(_) => None,
         },
-        recv(animation_frame_tick_receiver) -> msg => match msg {
-            Ok(Ok(msg)) => T::from_animation_frame_tick_msg(msg),
-            Ok(Err(_)) | Err(_) => None,
+        #[cfg(feature = "devtools")]
+        index if index == devtools_index => operation
+            .recv(devtools_receiver)
+            .ok()
+            .and_then(|msg| msg.ok().map(T::from_devtools_msg)),
+        index if index == animation_frame_tick_index => {
+            match operation.recv(animation_frame_tick_receiver) {
+                Ok(Ok(msg)) => T::from_animation_frame_tick_msg(msg),
+                Ok(Err(_)) | Err(_) => None,
+            }
         },
-        recv(scope.timer_scheduler().wait_channel()) -> _ => Some(T::from_timer_msg()),
+        index if index == timer_index => operation
+            .recv(&timer_receiver)
+            .ok()
+            .map(|_| T::from_timer_msg()),
+        _ => unreachable!("selected an unregistered worker event-loop receiver"),
     };
 
     // Worker channels can be closed during teardown (for example, after an
