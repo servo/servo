@@ -248,7 +248,7 @@ impl<'dom> LayoutNode<'dom> for ServoLayoutNode<'dom> {
     }
 
     fn selection_for_text_node(&self) -> Option<RangeAny<Utf32CodeUnits>> {
-        // Pseudo-elements do not ever have document selection.
+        // Pseudo-elements do not ever have a selection.
         if !self.pseudo_element_chain.is_empty() {
             return None;
         }

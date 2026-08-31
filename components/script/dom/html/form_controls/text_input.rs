@@ -414,9 +414,12 @@ impl<T: ClipboardProvider> TextInput<T> {
             .is_some_and(|selection_origin| selection_origin != self.edit_point)
     }
 
-    /// Return the selection range as character offsets from the start of the content.
+    /// Return the selection range as UTF-32 offsets from the start of the content.
     ///
     /// If there is no selection, returns an empty range at the edit point.
+    ///
+    /// If the start or/and end of the range is at the start/end of the text,
+    /// return a `RangeAny` unbounded on that side.
     pub(crate) fn sorted_selection_character_offsets_range(&self) -> RangeAny<Utf32CodeUnits> {
         let rope = &self.rope;
         let start = self.selection_start();
