@@ -27,6 +27,25 @@ pub(crate) struct StaticRange {
 }
 
 impl StaticRange {
+    pub(crate) fn new(
+        cx: &mut JSContext,
+        document: &Document,
+        start_container: &Node,
+        start_offset: u32,
+        end_container: &Node,
+        end_offset: u32,
+    ) -> DomRoot<StaticRange> {
+        Self::new_with_proto(
+            cx,
+            document,
+            start_container,
+            start_offset,
+            end_container,
+            end_offset,
+            None, /* proto */
+        )
+    }
+
     fn new_inherited(
         start_container: &Node,
         start_offset: u32,
@@ -42,28 +61,23 @@ impl StaticRange {
             ),
         }
     }
-    pub(crate) fn new_with_doc(
-        cx: &mut JSContext,
-        document: &Document,
-        proto: Option<HandleObject>,
-        init: &StaticRangeInit,
-    ) -> DomRoot<StaticRange> {
-        StaticRange::new_with_proto(cx, document, proto, init)
-    }
 
     pub(crate) fn new_with_proto(
         cx: &mut JSContext,
         document: &Document,
+        start_container: &Node,
+        start_offset: u32,
+        end_container: &Node,
+        end_offset: u32,
         proto: Option<HandleObject>,
-        init: &StaticRangeInit,
     ) -> DomRoot<StaticRange> {
         reflect_weak_referenceable_dom_object_with_proto(
             cx,
             Rc::new(StaticRange::new_inherited(
-                &init.startContainer,
-                init.startOffset,
-                &init.endContainer,
-                init.endOffset,
+                start_container,
+                start_offset,
+                end_container,
+                end_offset,
             )),
             document.window(),
             proto,
@@ -96,6 +110,14 @@ impl StaticRangeMethods<crate::DomTypeHolder> for StaticRange {
             _ => (),
         }
         let document = window.Document();
-        Ok(StaticRange::new_with_doc(cx, &document, proto, init))
+        Ok(StaticRange::new_with_proto(
+            cx,
+            &document,
+            &init.startContainer,
+            init.startOffset,
+            &init.endContainer,
+            init.endOffset,
+            proto,
+        ))
     }
 }
