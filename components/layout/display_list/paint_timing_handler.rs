@@ -104,12 +104,12 @@ impl PaintTimingHandler {
     }
 
     /// Marks the current display list as containing a paintable item.
-    pub(crate) fn mark_document_as_paintable(&mut self) {
+    pub(crate) fn mark_document_is_paintable(&mut self) {
         self.is_document_paintable = true;
     }
 
     /// Marks the current display list as containing a contentful item.
-    pub(crate) fn mark_document_contentful(&mut self) {
+    pub(crate) fn mark_document_is_contentful(&mut self) {
         self.is_document_contentful = true;
     }
 
@@ -127,7 +127,7 @@ impl PaintTimingHandler {
         // From <https://www.w3.org/TR/paint-timing/#contentful>:
         // An element target is contentful when one or more of the following apply:
         // > target is a replaced element representing an available image.
-        self.mark_document_contentful();
+        self.mark_document_is_contentful();
 
         // Skip pushing records if LargestContentfulPaint is disabled
         if !pref!(largest_contentful_paint_enabled) {
@@ -155,7 +155,7 @@ impl PaintTimingHandler {
         // An element target is contentful when one or more of the following apply:
         // > target has a text node child, representing non-empty text, and the
         // > node’s used opacity is greater than zero.
-        self.mark_document_contentful();
+        self.mark_document_is_contentful();
 
         // Skip pushing records if LargestContentfulPaint is disabled
         if !pref!(largest_contentful_paint_enabled) {
@@ -508,15 +508,14 @@ impl PaintTimingHandler {
         // Note: Only available images are accumulated, hence it is fulfilled.
         // Step 5.1.1. Append record to paintedImages.
         // Step 5.1.2. Remove record from doc's images pending rendering list.
-        let painted_images: Vec<PendingImageRecord> =
-            std::mem::take(&mut self.images_pending_rendering)
-                .into_iter()
-                .filter(|record| {
-                    record
-                        .tag
-                        .is_none_or(|tag| self.reported_image_nodes.insert(tag.node))
-                })
-                .collect();
+        let painted_images: Vec<_> = std::mem::take(&mut self.images_pending_rendering)
+            .into_iter()
+            .filter(|record| {
+                record
+                    .tag
+                    .is_none_or(|tag| self.reported_image_nodes.insert(tag.node))
+            })
+            .collect();
 
         // Step 6. For each Element element in doc's descendants:
         // Step 6.1. If element is contained in doc's set of elements with
@@ -524,7 +523,7 @@ impl PaintTimingHandler {
         // Step 6.2. If element's set of owned text nodes is empty, continue.
         // Step 6.3. Append element to doc's set of elements with rendered text.
         // Step 6.4. Append element to paintedTextNodes.
-        let painted_text_nodes: HashMap<OpaqueNode, TextRecord> =
+        let painted_text_nodes: HashMap<_, _> =
             std::mem::take(&mut self.elements_with_pending_rendered_text)
                 .into_iter()
                 .filter(|(node, _record)| self.elements_with_rendered_text.insert(*node))

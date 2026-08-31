@@ -248,7 +248,7 @@ impl DisplayListBuilder<'_> {
     }
 
     fn mark_is_paintable(&mut self) {
-        self.paint_timing_handler.mark_document_as_paintable();
+        self.paint_timing_handler.mark_document_is_paintable();
     }
 
     fn spatial_id(&self, id: ScrollTreeNodeId) -> SpatialId {
@@ -640,7 +640,7 @@ impl DisplayListBuilder<'_> {
             .paint_timing_handler
             .check_bounding_rect(bounds, clip_rect)
         {
-            self.paint_timing_handler.mark_document_as_paintable();
+            self.paint_timing_handler.mark_document_is_paintable();
         }
     }
 
@@ -2114,7 +2114,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                 // An element target is contentful when one or more of the following apply:
                 // > target has a background-image which is a contentful image,
                 // > and its used background-size has non-zero width and height values.
-                builder.paint_timing_handler.mark_document_contentful();
+                builder.paint_timing_handler.mark_document_is_contentful();
 
                 width = size.width;
                 height = size.height;
