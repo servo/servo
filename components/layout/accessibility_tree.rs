@@ -328,7 +328,7 @@ impl AccessibilityTree {
         let scroll_updates = scroll_tree
             .nodes
             .iter()
-            .filter_map(|n| match n.info {
+            .filter_map(|node| match node.info {
                 SpatialTreeNodeInfo::Scroll(ref info) => {
                     let offset = info.offset;
                     Some((info.external_id, offset))
@@ -1057,8 +1057,6 @@ impl AccessibilityNode {
     fn parent(&self) -> Option<ArcRefCell<AccessibilityNode>> {
         self.parent_node.as_ref().and_then(|weak| weak.upgrade())
     }
-
-    // TODO: use macros to generate getter/setter methods.
 
     fn children(&self) -> impl DoubleEndedIterator<Item = &ArcRefCell<AccessibilityNode>> {
         self.child_nodes.iter()
