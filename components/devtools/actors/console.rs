@@ -246,16 +246,19 @@ impl ConsoleActor {
         msg: &Map<String, Value>,
     ) -> Result<EvaluateJSReply, ()> {
         let input = msg.get("text").unwrap().as_str().unwrap().to_owned();
+        let eager = msg.get("eager").and_then(|v| v.as_bool()).unwrap_or(false);
         let frame_actor_id = msg
             .get("frameActor")
             .and_then(|v| v.as_str())
             .map(String::from);
+
         let (chan, port) = generic_channel::channel().unwrap();
         self.script_chan(registry)
             .send(DevtoolScriptControlMsg::Eval(
                 input.clone(),
                 self.pipeline_id(registry),
                 frame_actor_id,
+                eager,
                 chan,
             ))
             .unwrap();
@@ -468,12 +471,6 @@ impl Actor for ConsoleActor {
                 // Emit an eager reply so that the client starts listening
                 // for an async event with the resultID
                 let mut stream = request.reply(&early_reply)?;
-
-                if msg.get("eager").and_then(|v| v.as_bool()).unwrap_or(false) {
-                    // We don't support the side-effect free evaluation that eager evaluation
-                    // really needs.
-                    return Ok(());
-                }
 
                 let reply = self.evaluate_js(registry, msg).unwrap();
                 let msg = EvaluateJSEvent {
