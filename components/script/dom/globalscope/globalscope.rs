@@ -2521,19 +2521,16 @@ impl GlobalScope {
             worker.pipeline_id()
         } else if let Some(window) = self.downcast::<Window>() {
             window.pipeline_id()
+        } else if let Some(worklet) = self.downcast::<WorkletGlobalScope>() {
+            worklet.pipeline_id()
+        } else if let Some(dissimilar) = self.downcast::<DissimilarOriginWindow>() {
+            dissimilar.pipeline_id()
         } else {
             #[cfg(feature = "devtools")]
             if let Some(debugger) = self.downcast::<DebuggerGlobalScope>() {
                 return debugger.pipeline_id();
             }
-
-            if let Some(worklet) = self.downcast::<WorkletGlobalScope>() {
-                worklet.pipeline_id()
-            } else if let Some(dissimilar) = self.downcast::<DissimilarOriginWindow>() {
-                dissimilar.pipeline_id()
-            } else {
-                unreachable!("Unsupported global type for pipeline id")
-            }
+            unreachable!("Unsupported global type for pipeline id")
         }
     }
 

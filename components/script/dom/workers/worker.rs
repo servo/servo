@@ -242,7 +242,7 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
                     ));
                 }
             }
-            ((devtools_sender, devtools_receiver),worker_id)
+            ((devtools_sender, devtools_receiver), worker_id)
         };
 
         #[cfg(feature = "webgl")]
