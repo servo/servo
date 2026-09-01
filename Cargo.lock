@@ -8404,7 +8404,6 @@ dependencies = [
  "encoding_rs",
  "euclid",
  "http 1.5.0",
- "ipc-channel",
  "log",
  "malloc_size_of_derive",
  "rustc-hash 2.1.3",
