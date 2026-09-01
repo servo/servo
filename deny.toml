@@ -103,8 +103,7 @@ skip = [
     # New versions of these dependencies is pulled in by GStreamer / GLib.
     "itertools",
 
-    # Duplicated by btleplug
-    "jni",
+    # Duplicated by ndk and ndk-sys that are still on 0.3.1
     "jni-sys",
 
     # Duplicated by egui
