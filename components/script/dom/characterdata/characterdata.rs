@@ -117,7 +117,7 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
     fn SetData(&self, cx: &mut JSContext, data: DOMString) {
         self.queue_mutation_record(cx);
         let old_length = self.Length();
-        let new_length = Utf16CodeUnits::length_of(&data.str()).0 as u32;
+        let new_length = data.len_utf16().get();
         *self.data.safe_borrow_mut(cx.no_gc()) = String::from(data.str());
         self.content_changed(cx);
 
@@ -126,7 +126,9 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
 
     /// <https://dom.spec.whatwg.org/#dom-characterdata-length>
     fn Length(&self) -> u32 {
-        Utf16CodeUnits::length_of(&self.data.borrow()).0 as u32
+        Utf16CodeUnits::length_of(&self.data.borrow())
+            .expect("CharacterData length overflow")
+            .get()
     }
 
     /// <https://dom.spec.whatwg.org/#dom-characterdata-substringdata>
@@ -233,7 +235,7 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
             new_data = String::with_capacity(
                 prefix.len() +
                     replacement_before.len() +
-                    arg.len() +
+                    usize::from(arg.len_utf8()) +
                     replacement_after.len() +
                     suffix.len(),
             );
@@ -252,7 +254,7 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
                 node,
                 offset,
                 count,
-                Utf16CodeUnits::length_of(&arg.str()).0 as u32,
+                Utf16CodeUnits::length_of(&arg.str()).get(),
             );
         }
 

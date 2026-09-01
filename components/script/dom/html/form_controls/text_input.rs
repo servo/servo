@@ -269,22 +269,6 @@ pub(crate) const CMD_OR_CONTROL: Modifiers = Modifiers::META;
 #[cfg(not(target_os = "macos"))]
 pub(crate) const CMD_OR_CONTROL: Modifiers = Modifiers::CONTROL;
 
-/// The length in bytes of the first n code units in a string when encoded in UTF-16.
-///
-/// If the string is fewer than n code units, returns the length of the whole string.
-fn len_of_first_n_code_units(text: &DOMString, n: Utf16CodeUnits) -> Utf8CodeUnits {
-    let mut utf8_len = Utf8CodeUnits::zero();
-    let mut utf16_len = Utf16CodeUnits::zero();
-    for c in text.str().chars() {
-        utf16_len += Utf16CodeUnits(c.len_utf16());
-        if utf16_len > n {
-            break;
-        }
-        utf8_len += Utf8CodeUnits(c.len_utf8());
-    }
-    utf8_len
-}
-
 impl<T: ClipboardProvider> TextInput<T> {
     /// Instantiate a new text input control
     pub fn new(lines: Lines, initial: DOMString, clipboard_provider: T) -> TextInput<T> {
@@ -490,8 +474,8 @@ impl<T: ClipboardProvider> TextInput<T> {
                 self.len_utf16().saturating_sub(self.selection_utf16_len());
             let utf16_length_that_can_be_inserted =
                 max_length.saturating_sub(utf16_length_without_selection);
-            let Utf8CodeUnits(last_char_index) =
-                len_of_first_n_code_units(insert, utf16_length_that_can_be_inserted);
+            let last_char_index =
+                usize::from(utf16_length_that_can_be_inserted.to_utf8_code_units_in(&insert.str()));
             &insert.str()[..last_char_index]
         } else {
             &insert.str()
