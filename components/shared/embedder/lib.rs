@@ -556,7 +556,7 @@ impl Debug for EmbedderMsg {
 }
 
 /// <https://w3c.github.io/mediasession/#mediametadata>
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 pub struct MediaMetadata {
     /// Title
     pub title: String,

@@ -164,7 +164,7 @@ impl AsRef<[u8]> for FontData {
 ///
 /// If the font data is of a TTC (TrueType collection) file, then the index of a specific font within
 /// the collection. If the font data is for is single font then the index will always be 0.
-#[derive(Deserialize, Clone, Serialize)]
+#[derive(Deserialize, Clone, Serialize, MallocSizeOf)]
 pub struct FontDataAndIndex {
     /// The raw font file data (.ttf, .otf, .ttc, etc)
     pub data: FontData,

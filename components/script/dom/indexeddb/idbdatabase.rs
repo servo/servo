@@ -44,7 +44,6 @@ pub struct IDBDatabase {
     upgrade_transaction: MutNullableDom<IDBTransaction>,
 
     #[no_trace]
-    #[ignore_malloc_size_of = "Uuid"]
     id: Uuid,
 
     // Flags
