@@ -177,10 +177,12 @@ impl Selection {
         let start_node = start_position.node();
         let end_node = end_position.node();
 
-        // In case the range hasn't changed, but the offsets within the start/end end node
-        // have changed, always dirty the start and end nodes, if they paint selection.
+        // In case the range hasn't changed, but the offsets within the start/end end node have
+        // changed, always update the selection on the start and end nodes, if they paint selection.
+
         // TODO(mrobinson): We should handle changes only to the offsets within a single
         // boundary node explicitly and not traversing the whole range.
+        // But that requires keeping track of the previous range, to compare.
         if let Some(character_data) = start_container.downcast::<CharacterData>() {
             let text = character_data.data();
             let range = RangeAny {
