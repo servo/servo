@@ -70,8 +70,8 @@ impl RootedPromise {
 }
 
 impl ToJSValConvertible for RootedPromise {
-    fn safe_to_jsval(&self, cx: &mut JSContext, rval: MutableHandleValue<'_>) {
-        self.0.safe_to_jsval(cx, rval)
+    fn to_jsval(&self, cx: &mut JSContext, rval: MutableHandleValue<'_>) {
+        self.0.to_jsval(cx, rval)
     }
 }
 
