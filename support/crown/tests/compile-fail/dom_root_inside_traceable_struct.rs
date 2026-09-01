@@ -23,7 +23,7 @@ pub mod root {
 
 struct TraceableStruct {
     rooted_field: Root<u32>,
-    //~^ Error: Storing a rooted type can lead to circular references
+    //~^ Error: storing a rooted type inside a Traceable type can lead to circular references
 }
 
 impl JSTraceable for TraceableStruct {}

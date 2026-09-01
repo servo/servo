@@ -94,10 +94,7 @@ fn find_jstraceable<'tcx>(cx: &LateContext<'tcx>) -> Option<DefId> {
 }
 
 pub fn is_jstraceable<'tcx>(cx: &LateContext<'tcx>, ty: ty::Ty<'tcx>) -> bool {
-    if let Some(trait_id) = find_jstraceable(cx) {
-        return implements_trait(cx, ty, trait_id, &[]);
-    }
-    false
+    find_jstraceable(cx).is_some_and(|trait_id| return implements_trait(cx, ty, trait_id, &[]))
 }
 
 /*

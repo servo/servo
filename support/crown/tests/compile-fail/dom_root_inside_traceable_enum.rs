@@ -23,7 +23,7 @@ pub mod root {
 
 enum TraceableEnum {
     Foo(Root<String>),
-    //~^ Error: Storing a rooted type can lead to circular references
+    //~^ Error: storing a rooted type inside a Traceable type can lead to circular references
     Bar(u32),
 }
 
