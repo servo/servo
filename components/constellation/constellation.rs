@@ -1468,7 +1468,7 @@ where
             EmbedderToConstellationMessage::SetAccessibilityActive(webview_id, active) => {
                 self.set_accessibility_active(webview_id, active);
             },
-            EmbedderToConstellationMessage::ClearHistory(webview_id) => {
+            EmbedderToConstellationMessage::ClearSessionHistory(webview_id) => {
                 self.clear_history(webview_id);
             },
         }

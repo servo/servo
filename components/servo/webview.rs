@@ -1058,12 +1058,14 @@ impl WebView {
             .notify_accessibility_tree_update(self.clone(), tree_update);
     }
 
-    /// Clears the history of the current webview, making the current url the only one ever navigated by this webview.
-    pub fn clear_history(&self) {
-        self.inner()
-            .servo
-            .constellation_proxy()
-            .send(EmbedderToConstellationMessage::ClearHistory(self.id()));
+    /// Clear the session history of this [`WebView`]. The session history is also known
+    /// as the back-forward cache. Once cleared, [`WebViewDelegate::notify_history`]
+    /// will be called asynchronously and the resulting session history will contain only
+    /// a single item with the current URL.
+    pub fn clear_session_history(&self) {
+        self.inner().servo.constellation_proxy().send(
+            EmbedderToConstellationMessage::ClearSessionHistory(self.id()),
+        );
     }
 }
 

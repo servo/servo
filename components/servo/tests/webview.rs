@@ -9,7 +9,7 @@ use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::Arc;
-use std::sync::atomic::AtomicUsize;
+use std::sync::atomic::{AtomicBool, AtomicUsize};
 
 use dpi::PhysicalSize;
 use embedder_traits::UrlRequest;
@@ -1224,10 +1224,17 @@ fn test_webview_title_updates_when_title_element_is_created_from_javascript() {
 #[test]
 // It seems that currently `WebView::load` does not keep the history, so we have to do javascript evaluation.
 fn test_webview_clear_history() {
-    let servo_test = ServoTest::new();
-    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let session_history_changed = Arc::new(AtomicBool::new(false));
+    struct MyDelegate(Arc<AtomicBool>);
+    impl WebViewDelegate for MyDelegate {
+        fn notify_history_changed(&self, _webview: WebView, _entries: Vec<Url>, _current: usize) {
+            self.0.store(true, std::sync::atomic::Ordering::SeqCst);
+        }
+    }
 
-    // First load
+    let servo_test = ServoTest::new();
+    let delegate = Rc::new(MyDelegate(session_history_changed.clone()));
+
     let url_1 = Url::parse("data:text/html,<body><title>Success</title></body>").unwrap();
     let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
         .delegate(delegate.clone())
@@ -1237,7 +1244,6 @@ fn test_webview_clear_history() {
         let webview = webview.clone();
         servo_test.spin(move || webview.page_title() != Some("Success".into()));
     }
-    // Second Load
     webview.evaluate_javascript(
         "window.location.assign(\"data:text/html,<script>document.title='Success2';</script>\");",
         |_| {},
@@ -1247,7 +1253,6 @@ fn test_webview_clear_history() {
         servo_test.spin(move || webview.page_title() != Some("Success2".into()));
     }
 
-    // Third Load
     webview.evaluate_javascript(
         "window.location.assign(\"data:text/html,<script>document.title='Success3';</script>\");",
         |_| {},
@@ -1265,12 +1270,10 @@ fn test_webview_clear_history() {
         servo_test.spin(move || webview.page_title() != Some("Success2".into()));
     }
 
-    webview.clear_history();
-    {
-        let webview = webview.clone();
-        // We currently cannot test when the `clear_history` call succeeded, so we have to wait till we do not see the history again
-        servo_test.spin(move || webview.can_go_back());
-    }
+    session_history_changed.store(false, std::sync::atomic::Ordering::SeqCst);
+    webview.clear_session_history();
+
+    servo_test.spin(move || !session_history_changed.load(std::sync::atomic::Ordering::SeqCst));
 
     assert!(!webview.can_go_back());
     assert!(!webview.can_go_forward());
