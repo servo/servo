@@ -17,11 +17,17 @@ use crate::dom::texttrack::TextTrack;
 #[dom_struct]
 pub(crate) struct TextTrackCue {
     eventtarget: EventTarget,
+    /// <https://html.spec.whatwg.org/multipage/#text-track-cue-identifier>
     id: DomRefCell<DOMString>,
     track: Option<Dom<TextTrack>>,
+    /// <https://html.spec.whatwg.org/multipage/#text-track-cue-start-time>
     start_time: Cell<f64>,
+    /// <https://html.spec.whatwg.org/multipage/#text-track-cue-end-time>
     end_time: Cell<f64>,
+    /// <https://html.spec.whatwg.org/multipage/#text-track-cue-pause-on-exit-flag>
     pause_on_exit: Cell<bool>,
+    /// <https://html.spec.whatwg.org/multipage/#text-track-cue-active-flag>
+    active: Cell<bool>,
 }
 
 impl TextTrackCue {
@@ -38,6 +44,7 @@ impl TextTrackCue {
             start_time: Cell::new(start_time),
             end_time: Cell::new(end_time),
             pause_on_exit: Cell::new(false),
+            active: Default::default(),
         }
     }
 
@@ -47,6 +54,22 @@ impl TextTrackCue {
 
     pub(crate) fn get_track(&self) -> Option<DomRoot<TextTrack>> {
         self.track.as_ref().map(|t| DomRoot::from_ref(&**t))
+    }
+
+    pub(crate) fn start_time(&self) -> f64 {
+        self.start_time.get()
+    }
+
+    pub(crate) fn end_time(&self) -> f64 {
+        self.end_time.get()
+    }
+
+    pub(crate) fn is_active(&self) -> bool {
+        self.active.get()
+    }
+
+    pub(crate) fn set_active(&self, active: bool) {
+        self.active.set(active)
     }
 }
 
