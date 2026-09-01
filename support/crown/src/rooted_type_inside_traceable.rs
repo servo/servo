@@ -45,7 +45,7 @@ impl LintPass for NoDomRootPass {
 }
 
 #[derive(Diagnostic)]
-#[diag("storing a rooted type can lead to circular references")]
+#[diag("storing a rooted type inside a Traceable type can lead to circular references")]
 struct TraceableTypeShouldNotContainRootedTypeDiagnostic;
 
 fn is_dom_root_ty<'tcx>(sym: &'_ Symbols, cx: &LateContext<'tcx>, ty: ty::Ty<'tcx>) -> bool {

@@ -861,6 +861,8 @@ impl From<RootedLifecycleCallbacks> for LifecycleCallbacks {
 }
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
+// Converting this to `Dom<Element>` would require rooting and propagating
+// `crown::unrooted_must_root_lint::must_root` in many places.
 #[cfg_attr(crown, allow(crown::domroot_inside_dom_struct))]
 pub(crate) enum ConstructionStackEntry {
     Element(DomRoot<Element>),
