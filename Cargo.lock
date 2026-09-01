@@ -5852,6 +5852,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "nonmax"
+version = "0.5.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "610a5acd306ec67f907abe5567859a3c693fb9886eb1f012ab8f2a47bef3db51"
+
+[[package]]
 name = "noop_proc_macro"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8228,12 +8234,14 @@ name = "servo-base"
 version = "0.6.0"
 dependencies = [
  "accesskit",
+ "cfg-if",
  "crossbeam-channel",
  "ipc-channel",
  "libc",
  "log",
  "mach2",
  "malloc_size_of_derive",
+ "nonmax",
  "parking_lot",
  "rayon",
  "regex",

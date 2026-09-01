@@ -17,11 +17,13 @@ doctest = false
 
 [dependencies]
 accesskit = { workspace = true }
+cfg-if = { workspace = true }
 crossbeam-channel = { workspace = true }
 ipc-channel = { workspace = true }
 log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
+nonmax = { workspace = true }
 parking_lot = { workspace = true }
 rayon = { workspace = true }
 regex = { workspace = true }

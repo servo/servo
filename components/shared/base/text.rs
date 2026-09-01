@@ -2,11 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::iter::Sum;
 use std::mem::size_of;
-use std::ops::{Add, AddAssign, Range, Sub, SubAssign};
+use std::ops::Range;
 
-use malloc_size_of_derive::MallocSizeOf;
+use nonmax::NonMaxU32;
 
 pub use crate::unicode_block::{UnicodeBlock, UnicodeBlockMethod};
 
@@ -110,61 +109,129 @@ impl<T> From<Range<T>> for RangeAny<T> {
     }
 }
 
+#[allow(unexpected_cfgs)] // for `target_pointer_width = "128"`
+pub(crate) fn infalliable_u32_to_usize(value: u32) -> usize {
+    cfg_if::cfg_if! {
+        if #[cfg(any(
+            target_pointer_width = "32",
+            target_pointer_width = "64",
+            // Rust 1.98 supports no 128-bit target but maybe some future version will
+            // Some folks bother to write down RV128I after all
+            target_pointer_width = "128",
+        ))] {
+            value as usize
+        } else if #[cfg(target_pointer_width = "16")] {
+            const _: () = panic!("16-bit targets are not supported");
+        } else {
+            const _: () = panic!("This target exceeds the author’s wildest expectations");
+        }
+    }
+}
+
+/// Tried to create string offset or length value larger than supported, or negative
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct CodeUnitsOverflowError;
+
+macro_rules! impl_tryfrom_int {
+    ($( $Int:ident ),+ => $type_name:ident) => {
+        $(
+            impl TryFrom<$Int> for $type_name {
+                type Error = CodeUnitsOverflowError;
+                #[inline]
+                fn try_from(value: $Int) -> Result<Self, Self::Error> {
+                    u32::try_from(value).map_err(|_| CodeUnitsOverflowError).and_then(Self::new)
+                }
+            }
+        )+
+    };
+}
+
 macro_rules! unicode_length_type {
     ($( #[$doc:meta] )+ $type_name:ident) => {
         $( #[$doc] )+
-        #[derive(Clone, Copy, Debug, Default, Eq, MallocSizeOf, Ord, PartialEq, PartialOrd)]
-        pub struct $type_name(pub usize);
+        #[derive(Clone, Copy, Debug, Default, Eq, Ord, PartialEq, PartialOrd)]
+        pub struct $type_name(NonMaxU32);
 
         impl $type_name {
-            pub const ZERO: Self = Self(0);
+            pub const ZERO: Self = Self(NonMaxU32::ZERO);
 
+            pub const MAX_VALUE: u32 = NonMaxU32::MAX.get();
+
+            // Note: the convention from `NonZeroU32::new` and `u32::checked_add`
+            // is to return an `Option`, but `TryFrom` requires returning a `Result`.
+            // Sticking to one convention avoids `option.ok_or(CodeUnitsOverflowError)` at many
+            // call sites that use both.
+
+            #[inline]
+            pub fn new(value: u32) -> Result<Self, CodeUnitsOverflowError> {
+                NonMaxU32::new(value).map(Self).ok_or(CodeUnitsOverflowError)
+            }
+
+            /// # Safety
+            ///
+            /// `value` must not be greater than [`Self::MAX_VALUE`],
+            /// which is currently `u32::MAX - 1`
+            #[allow(unsafe_code)]
+            #[inline]
+            pub unsafe fn new_unchecked(value: u32) -> Self {
+                unsafe {
+                    Self(NonMaxU32::new_unchecked(value))
+                }
+            }
+
+            #[inline]
+            pub fn get(self) -> u32 {
+                self.0.get()
+            }
+
+            #[inline]
+            pub fn checked_add(self, other: Self) -> Result<Self, CodeUnitsOverflowError> {
+                self.get().checked_add(other.get()).ok_or(CodeUnitsOverflowError).and_then(Self::new)
+            }
+
+            #[inline]
+            pub fn sum(iter: impl IntoIterator<Item = Self>) -> Result<Self, CodeUnitsOverflowError> {
+                iter.into_iter().try_fold(Self::ZERO, |acc, item| acc.checked_add(item))
+            }
+
+            #[inline]
+            pub fn sum_results(iter: impl IntoIterator<Item = Result<Self, CodeUnitsOverflowError>>) -> Result<Self, CodeUnitsOverflowError> {
+                iter.into_iter().try_fold(Self::ZERO, |acc, item| acc.checked_add(item?))
+            }
+
+            #[inline]
+            pub fn checked_sub(self, other: Self) -> Result<Self, CodeUnitsOverflowError> {
+                self.get().checked_sub(other.get()).ok_or(CodeUnitsOverflowError).and_then(Self::new)
+            }
+
+            #[inline]
             pub fn saturating_sub(self, value: Self) -> Self {
-                Self(self.0.saturating_sub(value.0))
+                Self::new(self.get().saturating_sub(value.0.get())).unwrap()
             }
         }
 
-        impl From<u32> for $type_name {
-            fn from(value: u32) -> Self {
-                Self(value as usize)
+        impl TryFrom<u32> for $type_name {
+            type Error = CodeUnitsOverflowError;
+
+            #[inline]
+            fn try_from(value: u32) -> Result<Self, Self::Error> {
+                Self::new(value)
             }
         }
 
-        impl From<isize> for $type_name {
-            fn from(value: isize) -> Self {
-                Self(value as usize)
+        impl_tryfrom_int!(i32, usize, isize => $type_name);
+
+        impl From<$type_name> for u32 {
+            #[inline]
+            fn from(value: $type_name) -> u32 {
+                value.get()
             }
         }
 
-        impl Add for $type_name {
-            type Output = Self;
-            fn add(self, other: Self) -> Self {
-                Self(self.0 + other.0)
-            }
-        }
-
-        impl AddAssign for $type_name {
-            fn add_assign(&mut self, other: Self) {
-                *self = Self(self.0 + other.0)
-            }
-        }
-
-        impl Sub for $type_name {
-            type Output = Self;
-            fn sub(self, value: Self) -> Self {
-                Self(self.0 - value.0)
-            }
-        }
-
-        impl SubAssign for $type_name {
-            fn sub_assign(&mut self, other: Self) {
-                *self = Self(self.0 - other.0)
-            }
-        }
-
-        impl Sum for $type_name {
-            fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
-                iter.fold(Self::ZERO, |a, b| Self(a.0 + b.0))
+        impl From<$type_name> for usize {
+            #[inline]
+            fn from(value: $type_name) -> usize {
+                infalliable_u32_to_usize(value.get())
             }
         }
     };
@@ -195,27 +262,73 @@ unicode_length_type! {
     Utf32CodeUnitsOrNodeOffset
 }
 
-const _: () = assert!(size_of::<Utf8CodeUnits>() == size_of::<usize>());
-const _: () = assert!(size_of::<Option<Utf8CodeUnits>>() == 2 * size_of::<usize>());
-const _: () = assert!(size_of::<RangeAny<Utf8CodeUnits>>() == 4 * size_of::<usize>());
-const _: () = assert!(size_of::<Option<RangeAny<Utf8CodeUnits>>>() == 4 * size_of::<usize>());
+const _: () = assert!(size_of::<Utf8CodeUnits>() == 4);
+const _: () = assert!(size_of::<Option<Utf8CodeUnits>>() == 4);
+const _: () = assert!(size_of::<RangeAny<Utf8CodeUnits>>() == 8);
+
+/// Improving this further may require generic pattern types:
+/// <https://github.com/rust-lang/rust/issues/136574>
+const _: () = assert!(size_of::<Option<RangeAny<Utf8CodeUnits>>>() == 12);
 
 impl Utf16CodeUnits {
-    pub fn length_of(string: &str) -> Self {
-        Self(string.bytes().map(len_utf16_for_utf8_byte).sum())
+    pub fn length_of(string: &str) -> Result<Self, CodeUnitsOverflowError> {
+        Self::length_of_as_usize(string).try_into()
+    }
+
+    pub fn length_of_iter<S: AsRef<str>>(
+        iter: impl IntoIterator<Item = S>,
+    ) -> Result<Self, CodeUnitsOverflowError> {
+        iter.into_iter()
+            .map(|string| Self::length_of_as_usize(string.as_ref()))
+            .sum::<usize>()
+            .try_into()
+    }
+
+    fn length_of_as_usize(string: &str) -> usize {
+        string.bytes().map(len_utf16_for_utf8_byte).sum::<usize>()
 
         // TODO: after upgrading to a Rust version (1.99?) that includes that PR,
         // replace the above with:
 
         // // `EncodeUtf16::count` is optimized in https://github.com/rust-lang/rust/pull/159467
-        // Self(string.encode_utf16().count())
+        // string.encode_utf16().count()
     }
 
-    pub fn to_utf32_code_units_in(self, string: &str) -> Utf32CodeUnits {
-        let mut current_utf16_offset = Utf16CodeUnits(0);
-        let mut current_utf32_offset = Utf32CodeUnits(0);
+    pub fn to_utf8_code_units_in(
+        self,
+        string: &str,
+    ) -> Result<Utf8CodeUnits, CodeUnitsOverflowError> {
+        self.to_utf8_code_units_in_iter(Some(string))
+    }
+
+    pub fn to_utf8_code_units_in_iter<S: AsRef<str>>(
+        self,
+        iter: impl IntoIterator<Item = S>,
+    ) -> Result<Utf8CodeUnits, CodeUnitsOverflowError> {
+        let expected_utf16_offset = usize::from(self);
+        let mut current_utf16_offset = 0;
+        let mut current_utf8_offset = 0;
+        for string in iter {
+            for utf8_byte in string.as_ref().bytes() {
+                if current_utf16_offset >= expected_utf16_offset {
+                    break;
+                }
+                current_utf16_offset += len_utf16_for_utf8_byte(utf8_byte);
+                current_utf8_offset += len_utf8_for_utf8_byte(utf8_byte);
+            }
+        }
+        current_utf8_offset.try_into()
+    }
+
+    pub fn to_utf32_code_units_in(
+        self,
+        string: &str,
+    ) -> Result<Utf32CodeUnits, CodeUnitsOverflowError> {
+        let expected_utf16_offset = usize::from(self);
+        let mut current_utf16_offset = 0;
+        let mut current_utf32_offset = 0;
         for utf8_byte in string.bytes() {
-            if current_utf16_offset >= self {
+            if current_utf16_offset >= expected_utf16_offset {
                 break;
             }
             increment_offsets_for_utf8_byte(
@@ -224,7 +337,7 @@ impl Utf16CodeUnits {
                 &mut current_utf32_offset,
             );
         }
-        current_utf32_offset
+        current_utf32_offset.try_into()
     }
 }
 
@@ -248,45 +361,81 @@ fn len_utf16_for_utf8_byte(byte: u8) -> usize {
     }
 }
 
+fn len_utf8_for_utf8_byte(byte: u8) -> usize {
+    if byte < 0b1000_0000 {
+        // 0b0xxx_xxxx: ASCII-compatible U+0000 to U+007F
+        1
+    } else if byte < 0b1100_0000 {
+        // 0b10xx_xxxx: UTF-8 continuation byte, already accounted for by its non-continuation byte
+        0
+    } else if byte < 0b1110_0000 {
+        // 0b110x_xxxx: start of a 2-byte UTF-8 sequence for U+0080 to U+07FF
+        2
+    } else if byte < 0b1111_0000 {
+        // 0b1110_xxxx: start of a 3-byte UTF-8 sequence for U+0800 to U+FFFF
+        3
+    } else {
+        // 0b1111_0xxx: start of a 4-byte UTF-8 sequence for U+010000 to U+10FFFF
+        4
+    }
+}
+
 fn increment_offsets_for_utf8_byte(
     utf8_byte: u8,
-    utf16_offset: &mut Utf16CodeUnits,
-    utf32_offset: &mut Utf32CodeUnits,
+    utf16_offset: &mut usize,
+    utf32_offset: &mut usize,
 ) {
     let len_utf16 = len_utf16_for_utf8_byte(utf8_byte);
-    utf16_offset.0 += len_utf16;
+    *utf16_offset += len_utf16;
     // `len_utf16 != 0` means this byte is the first byte of the UTF-8 byte sequence
     // for one `char` /  UTF-32 code unit
-    utf32_offset.0 += (len_utf16 != 0) as usize;
+    *utf32_offset += (len_utf16 != 0) as usize;
 }
 
 impl Utf32CodeUnits {
-    pub fn length_of(string: &str) -> Self {
+    pub fn length_of(string: &str) -> Result<Self, CodeUnitsOverflowError> {
         // `std::str::Chars::count` is optimized in:
         // https://github.com/rust-lang/rust/blob/main/library/core/src/str/count.rs
-        Self(string.chars().count())
+        string.chars().count().try_into()
     }
 
-    pub fn to_utf8_code_units_in(self, string: &str) -> Utf8CodeUnits {
-        let mut current_utf32_offset = Utf32CodeUnits(0);
+    pub fn length_of_iter<S: AsRef<str>>(
+        iter: impl IntoIterator<Item = S>,
+    ) -> Result<Self, CodeUnitsOverflowError> {
+        iter.into_iter()
+            .map(|string| string.as_ref().chars().count())
+            .sum::<usize>()
+            .try_into()
+    }
+
+    pub fn to_utf8_code_units_in(
+        self,
+        string: &str,
+    ) -> Result<Utf8CodeUnits, CodeUnitsOverflowError> {
+        let expected_utf32_offset = usize::from(self);
+        let mut current_utf32_offset = 0;
         for (current_utf8_offset, utf8_byte) in string.bytes().enumerate() {
             if (utf8_byte & 0b1100_0000) == 0b1000_0000 {
                 // UTF-8 continuation byte
                 continue;
             }
-            if current_utf32_offset >= self {
-                return Utf8CodeUnits(current_utf8_offset);
+            if current_utf32_offset >= expected_utf32_offset {
+                return current_utf8_offset.try_into();
             }
-            current_utf32_offset.0 += 1;
+            current_utf32_offset += 1;
         }
-        Utf8CodeUnits(string.len())
+        string.len().try_into()
     }
 
-    pub fn to_utf16_code_units_in(self, string: &str) -> Utf16CodeUnits {
-        let mut current_utf32_offset = Utf32CodeUnits(0);
-        let mut current_utf16_offset = Utf16CodeUnits(0);
+    pub fn to_utf16_code_units_in(
+        self,
+        string: &str,
+    ) -> Result<Utf16CodeUnits, CodeUnitsOverflowError> {
+        let expected_utf32_offset = usize::from(self);
+        let mut current_utf32_offset = 0;
+        let mut current_utf16_offset = 0;
         for utf8_byte in string.bytes() {
-            if current_utf32_offset >= self {
+            if current_utf32_offset >= expected_utf32_offset {
                 break;
             }
             increment_offsets_for_utf8_byte(
@@ -295,12 +444,15 @@ impl Utf32CodeUnits {
                 &mut current_utf32_offset,
             );
         }
-        current_utf16_offset
+        current_utf16_offset.try_into()
     }
 }
 
 impl Utf32CodeUnitsOrNodeOffset {
-    pub fn to_utf16_code_units_in(self, string: &str) -> Utf16CodeUnits {
+    pub fn to_utf16_code_units_in(
+        self,
+        string: &str,
+    ) -> Result<Utf16CodeUnits, CodeUnitsOverflowError> {
         Utf32CodeUnits(self.0).to_utf16_code_units_in(string)
     }
 }
@@ -330,14 +482,29 @@ mod test {
 
     #[test]
     fn test_utf16_length() {
-        assert_eq!(Utf16CodeUnits::length_of(""), Utf16CodeUnits(0));
-        assert_eq!(Utf16CodeUnits::length_of("a"), Utf16CodeUnits(1));
-        assert_eq!(Utf16CodeUnits::length_of("é"), Utf16CodeUnits(1));
-        assert_eq!(Utf16CodeUnits::length_of("字"), Utf16CodeUnits(1));
-        assert_eq!(Utf16CodeUnits::length_of("\u{1F4A9}"), Utf16CodeUnits(2));
+        assert_eq!(
+            Utf16CodeUnits::length_of(""),
+            Ok(Utf16CodeUnits::new(0).unwrap())
+        );
+        assert_eq!(
+            Utf16CodeUnits::length_of("a"),
+            Ok(Utf16CodeUnits::new(1).unwrap())
+        );
+        assert_eq!(
+            Utf16CodeUnits::length_of("é"),
+            Ok(Utf16CodeUnits::new(1).unwrap())
+        );
+        assert_eq!(
+            Utf16CodeUnits::length_of("字"),
+            Ok(Utf16CodeUnits::new(1).unwrap())
+        );
+        assert_eq!(
+            Utf16CodeUnits::length_of("\u{1F4A9}"),
+            Ok(Utf16CodeUnits::new(2).unwrap())
+        );
         assert_eq!(
             Utf16CodeUnits::length_of("\u{1F4A9}字éa"),
-            Utf16CodeUnits(5)
+            Ok(Utf16CodeUnits::new(5).unwrap())
         );
     }
 
@@ -345,43 +512,43 @@ mod test {
     fn test_utf16_to_utf32() {
         let s = "aé字\u{1F4A9}";
         assert_eq!(
-            Utf16CodeUnits(0).to_utf32_code_units_in(s),
-            Utf32CodeUnits(0)
+            Utf16CodeUnits::new(0).unwrap().to_utf32_code_units_in(s),
+            Ok(Utf32CodeUnits::new(0).unwrap())
         );
         assert_eq!(
-            Utf16CodeUnits(1).to_utf32_code_units_in(s),
-            Utf32CodeUnits(1)
+            Utf16CodeUnits::new(1).unwrap().to_utf32_code_units_in(s),
+            Ok(Utf32CodeUnits::new(1).unwrap())
         );
         assert_eq!(
-            Utf16CodeUnits(2).to_utf32_code_units_in(s),
-            Utf32CodeUnits(2)
+            Utf16CodeUnits::new(2).unwrap().to_utf32_code_units_in(s),
+            Ok(Utf32CodeUnits::new(2).unwrap())
         );
         assert_eq!(
-            Utf16CodeUnits(3).to_utf32_code_units_in(s),
-            Utf32CodeUnits(3)
+            Utf16CodeUnits::new(3).unwrap().to_utf32_code_units_in(s),
+            Ok(Utf32CodeUnits::new(3).unwrap())
         );
 
         // This 16-bit offset splits the would-be surrogate pair. We return the 32-bit position
         // after the whole pair. Should this be an error instead?
         assert_eq!(
-            Utf16CodeUnits(4).to_utf32_code_units_in(s),
-            Utf32CodeUnits(4)
+            Utf16CodeUnits::new(4).unwrap().to_utf32_code_units_in(s),
+            Ok(Utf32CodeUnits::new(4).unwrap())
         );
 
         assert_eq!(
-            Utf16CodeUnits(5).to_utf32_code_units_in(s),
-            Utf32CodeUnits(4)
+            Utf16CodeUnits::new(5).unwrap().to_utf32_code_units_in(s),
+            Ok(Utf32CodeUnits::new(4).unwrap())
         );
 
         // This 16-bit offset is out of bounds. We clamp to the nearest valid 32-bit offset,
         // a.k.a the UTF-32 length. Should this be an error instead?
         assert_eq!(
-            Utf16CodeUnits(6).to_utf32_code_units_in(s),
-            Utf32CodeUnits(4)
+            Utf16CodeUnits::new(6).unwrap().to_utf32_code_units_in(s),
+            Ok(Utf32CodeUnits::new(4).unwrap())
         );
         assert_eq!(
-            Utf16CodeUnits(7).to_utf32_code_units_in(s),
-            Utf32CodeUnits(4)
+            Utf16CodeUnits::new(7).unwrap().to_utf32_code_units_in(s),
+            Ok(Utf32CodeUnits::new(4).unwrap())
         );
     }
 
@@ -389,36 +556,50 @@ mod test {
     fn test_utf32_to_utf16() {
         let string = "aé字\u{1F4A9}";
         assert_eq!(
-            Utf32CodeUnits(0).to_utf16_code_units_in(string),
-            Utf16CodeUnits(0),
+            Utf32CodeUnits::new(0)
+                .unwrap()
+                .to_utf16_code_units_in(string),
+            Ok(Utf16CodeUnits::new(0).unwrap()),
         );
         assert_eq!(
-            Utf32CodeUnits(1).to_utf16_code_units_in(string),
-            Utf16CodeUnits(1),
+            Utf32CodeUnits::new(1)
+                .unwrap()
+                .to_utf16_code_units_in(string),
+            Ok(Utf16CodeUnits::new(1).unwrap()),
         );
         assert_eq!(
-            Utf32CodeUnits(2).to_utf16_code_units_in(string),
-            Utf16CodeUnits(2),
+            Utf32CodeUnits::new(2)
+                .unwrap()
+                .to_utf16_code_units_in(string),
+            Ok(Utf16CodeUnits::new(2).unwrap()),
         );
         assert_eq!(
-            Utf32CodeUnits(3).to_utf16_code_units_in(string),
-            Utf16CodeUnits(3),
+            Utf32CodeUnits::new(3)
+                .unwrap()
+                .to_utf16_code_units_in(string),
+            Ok(Utf16CodeUnits::new(3).unwrap()),
         );
 
         assert_eq!(
-            Utf32CodeUnits(4).to_utf16_code_units_in(string),
-            Utf16CodeUnits(5),
+            Utf32CodeUnits::new(4)
+                .unwrap()
+                .to_utf16_code_units_in(string),
+            Ok(Utf16CodeUnits::new(5).unwrap()),
         );
 
         // This 32-bit offset is out of bounds. We clamp to the nearest valid 16-bit offset,
         // a.k.a the UTF-16 length. Should this be an error instead?
         assert_eq!(
-            Utf32CodeUnits(6).to_utf16_code_units_in(string),
-            Utf16CodeUnits(5),
+            Utf32CodeUnits::new(6)
+                .unwrap()
+                .to_utf16_code_units_in(string),
+            Ok(Utf16CodeUnits::new(5).unwrap()),
         );
         assert_eq!(
-            Utf32CodeUnits(1000).to_utf16_code_units_in(string),
-            Utf16CodeUnits(5),
+            Utf32CodeUnits::new(1000)
+                .unwrap()
+                .to_utf16_code_units_in(string),
+            Ok(Utf16CodeUnits::new(5).unwrap()),
         );
     }
 }
