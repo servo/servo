@@ -126,7 +126,8 @@ use crate::dom::types::{CDATASection, KeyboardEvent, MouseEvent, ProcessingInstr
 use crate::dom::window::Window;
 use crate::dom::{
     ChildrenMutation, Range, live_range_insert_steps, live_range_normalization_steps,
-    live_range_pre_remove_steps_for_parent, live_range_pre_remove_steps_for_removed_subtree,
+    live_range_pre_remove_steps, live_range_pre_remove_steps_for_parent,
+    live_range_pre_remove_steps_for_removed_subtree,
 };
 use crate::drag::document_selection_drag::DocumentSelectionDragHandler;
 use crate::drag::drag_gesture::{DragGesture, DragHandler};
@@ -1460,8 +1461,7 @@ impl Node {
             .expect("old_parent should always be initialized");
 
         // Step 9. Run the live range pre-remove steps, given node.
-        let mut cached_index = None;
-        live_range_pre_remove_steps_for_parent(node, &old_parent, &mut cached_index);
+        live_range_pre_remove_steps(node, &old_parent);
 
         // TODO Step 10. For each NodeIterator object iterator whose root’s node document is node’s
         // node document: run the NodeIterator pre-remove steps given node and iterator.
@@ -1498,9 +1498,6 @@ impl Node {
                     .set(node.prev_sibling.get().as_deref());
             },
         }
-
-        let mut context =
-            MoveContext::new(Some(&old_parent), prev_sibling.as_deref(), cached_index);
 
         // Step 13. Remove node from oldParent’s children.
         old_parent.move_child(cx, node);
@@ -1582,10 +1579,9 @@ impl Node {
             // inclusiveDescendant and oldParent.
             // Otherwise, run the moving steps with inclusiveDescendant and null.
             if descendant.deref() == node {
-                vtable_for(&descendant).moving_steps(cx, &context);
+                vtable_for(&descendant).moving_steps(cx, &MoveContext::new(Some(&old_parent)));
             } else {
-                context.old_parent = None;
-                vtable_for(&descendant).moving_steps(cx, &context);
+                vtable_for(&descendant).moving_steps(cx, &MoveContext::new(None));
             }
 
             // Step 24.2. If inclusiveDescendant is custom and newParent is connected,
@@ -2984,7 +2980,10 @@ impl Node {
 
         // Step 3. Run the live range pre-remove steps.
         let mut cached_index = None;
-        live_range_pre_remove_steps_for_parent(node, parent, &mut cached_index);
+        {
+            let mut lazy_index = || *cached_index.get_or_insert_with(|| node.index());
+            live_range_pre_remove_steps_for_parent(parent, &mut lazy_index);
+        }
 
         // TODO: Step 4. Pre-removing steps for node iterators
 
@@ -4526,16 +4525,15 @@ impl VirtualMethods for Node {
     /// <https://dom.spec.whatwg.org/#concept-node-remove>
     fn unbind_from_tree(&self, cx: &mut JSContext, context: &UnbindContext) {
         self.super_type().unwrap().unbind_from_tree(cx, context);
-        live_range_pre_remove_steps_for_removed_subtree(self, context.parent, &|| context.index());
+
+        let mut cached_index = None;
+        let mut lazy_index = || *cached_index.get_or_insert_with(|| context.index());
+        live_range_pre_remove_steps_for_removed_subtree(self, context.parent, &mut lazy_index);
     }
 
     fn moving_steps(&self, cx: &mut JSContext, context: &MoveContext) {
         if let Some(super_type) = self.super_type() {
             super_type.moving_steps(cx, context);
-        }
-
-        if let Some(parent) = context.old_parent {
-            live_range_pre_remove_steps_for_removed_subtree(self, parent, &|| context.index());
         }
 
         self.owner_doc_unrooted(cx.no_gc())

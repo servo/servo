@@ -114,35 +114,13 @@ impl<'a> UnbindContext<'a> {
 /// The context of the moving from a tree of a node when one of its
 /// inclusive ancestors is moved.
 pub(crate) struct MoveContext<'a> {
-    /// The index of the inclusive ancestor that was moved.
-    index: Cell<Option<u32>>,
     /// The old parent, if any, of the inclusive ancestor that was moved.
     pub(crate) old_parent: Option<&'a Node>,
-    /// The previous sibling of the inclusive ancestor that was moved.
-    prev_sibling: Option<&'a Node>,
 }
 
 impl<'a> MoveContext<'a> {
     /// Create a new `MoveContext` value.
-    pub(crate) fn new(
-        old_parent: Option<&'a Node>,
-        prev_sibling: Option<&'a Node>,
-        cached_index: Option<u32>,
-    ) -> Self {
-        MoveContext {
-            index: Cell::new(cached_index),
-            old_parent,
-            prev_sibling,
-        }
-    }
-
-    /// The index of the inclusive ancestor that was moved from the tree.
-    pub(crate) fn index(&self) -> u32 {
-        if let Some(index) = self.index.get() {
-            return index;
-        }
-        let index = self.prev_sibling.map_or(0, |sibling| sibling.index() + 1);
-        self.index.set(Some(index));
-        index
+    pub(crate) fn new(old_parent: Option<&'a Node>) -> Self {
+        MoveContext { old_parent }
     }
 }
