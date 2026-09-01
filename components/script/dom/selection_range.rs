@@ -23,8 +23,10 @@ impl SelectionBoundary {
             offset,
         }
     }
+}
 
-    pub(crate) fn equivalent(&self, boundary_point: &BoundaryPoint) -> bool {
+impl PartialEq<BoundaryPoint> for SelectionBoundary {
+    fn eq(&self, boundary_point: &BoundaryPoint) -> bool {
         *self.container == *boundary_point.node().get() &&
             self.offset as usize == boundary_point.offset().0
     }

@@ -325,6 +325,10 @@ impl Range {
     }
 
     pub(crate) fn report_change(&self, notification: SelectionLiveRangeNotification) {
+        if notification.is_empty() {
+            return;
+        }
+
         self.associated_selections
             .borrow()
             .iter()

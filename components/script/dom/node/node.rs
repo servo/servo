@@ -4102,23 +4102,18 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
             // Note: Condition guaranteed by collection loop above.
             let first_sibling_index = LazyCell::new(|| node.index() + 1);
             for (current_node_index, current_node) in siblings_to_merge.iter().enumerate() {
+                let index = &|| *first_sibling_index + current_node_index as u32;
                 // Steps 6.1-6.4: The live range update steps.
-                if let Some(selection) = selection.as_ref() {
+                if let Some(selection) = &selection {
                     selection.normalization_steps(
                         self,
                         &node,
                         current_node.upcast(),
-                        &|| *first_sibling_index + current_node_index as u32,
+                        &index,
                         length,
                     );
                 }
-                live_range_normalization_steps(
-                    self,
-                    &node,
-                    current_node.upcast(),
-                    &|| *first_sibling_index + current_node_index as u32,
-                    length,
-                );
+                live_range_normalization_steps(self, &node, current_node.upcast(), &index, length);
                 // Step 6.5:  Add currentNode’s length to length.
                 length += current_node.Length();
                 // Step 6.6 Set currentNode to its next sibling.

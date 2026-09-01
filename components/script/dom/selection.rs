@@ -97,10 +97,6 @@ impl Selection {
         live_range: &Range,
         notification: SelectionLiveRangeNotification,
     ) {
-        if notification.is_empty() {
-            return;
-        }
-
         let start_changed;
         let end_changed;
         {
@@ -110,14 +106,14 @@ impl Selection {
                 .expect("A live range implies a selection range");
 
             start_changed = notification.contains(SelectionLiveRangeNotification::Start) &&
-                !range.start.equivalent(live_range.start());
+                range.start != *live_range.start();
             if start_changed {
                 range.start =
                     SelectionBoundary::new(&live_range.start_container(), live_range.start_offset())
             }
 
             end_changed = notification.contains(SelectionLiveRangeNotification::End) &&
-                !range.end.equivalent(live_range.end());
+                range.end != *live_range.end();
             if end_changed {
                 range.end =
                     SelectionBoundary::new(&live_range.end_container(), live_range.end_offset())
@@ -172,8 +168,10 @@ impl Selection {
         // > or the content script, the user agent must schedule a selectionchange event on
         // > document.
         //
-        // This means we should fire the event even if the boundaries themselves did not
-        // change. A change to the range object is enough.
+        // This means we should fire the event even if the boundaries themselves did not change. A
+        // change to the range object is enough. Normally, this happens in `set_range`, but
+        // only when the boundaries changed. In this case the call to `set_range` above did
+        // not queue the task.
         if !boundaries_changed {
             self.queue_selectionchange_task();
         }
@@ -452,6 +450,8 @@ impl Selection {
             return;
         };
 
+        // TODO: For now the live range is equal to the selection range, but one selections
+        // can span shadow root boundaries they will be different.
         let range = self.range.borrow();
         let range = range
             .as_ref()
@@ -1340,7 +1340,8 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         // into account `display: none`. The case for textarea and input elements is
         // completely unhandled here.
         self.GetRangeAt(cx, 0)
-            .map_or(Default::default(), |range| range.Stringifier(cx.no_gc()))
+            .map(|range| range.Stringifier(cx.no_gc()))
+            .unwrap_or_default()
     }
 }
 
