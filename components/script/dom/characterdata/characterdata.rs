@@ -9,7 +9,7 @@ use atomic_refcell::{AtomicRef, AtomicRefCell};
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::codegen::InheritTypes::{CharacterDataTypeId, NodeTypeId, TextTypeId};
-use servo_base::text::Utf16CodeUnits;
+use servo_base::text::{RangeAny, Utf16CodeUnits, Utf32CodeUnits};
 
 use crate::dom::bindings::cell::AtomicSafeBorrowMut;
 use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
@@ -104,6 +104,18 @@ impl CharacterData {
             old_value: self.data.borrow().clone(),
         });
         MutationObserver::queue_a_mutation_record(cx, self.upcast::<Node>(), mutation);
+    }
+
+    /// Returns whether `new_range` was successfully set on an existing text run
+    pub(crate) fn set_text_run_selection(
+        &self,
+        new_range: Option<RangeAny<Utf32CodeUnits>>,
+    ) -> bool {
+        self.upcast::<Node>()
+            .layout_data()
+            .borrow()
+            .as_ref()
+            .is_some_and(|layout_data| layout_data.set_text_run_selection(new_range))
     }
 }
 

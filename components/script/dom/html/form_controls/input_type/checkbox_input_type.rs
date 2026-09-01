@@ -12,6 +12,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::form_controls::htmlinputelement::{HTMLInputElement, InputActivationState};
 use crate::dom::html::form_controls::input_type::text_value_widget::TextValueWidget;
 use crate::dom::html::form_controls::input_type::{SpecificInputActivationType, SpecificInputType};
+use crate::dom::input_type::text_input_widget::TextInputWidget;
 use crate::dom::node::Node;
 
 #[derive(Default, JSTraceable, MallocSizeOf, PartialEq)]
@@ -24,6 +25,10 @@ pub(crate) struct CheckboxInputType {
 pub(crate) struct CheckboxInputActivation;
 
 impl SpecificInputType for CheckboxInputType {
+    fn text_input_widget(&self) -> Option<&DomRefCell<TextInputWidget>> {
+        None
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#checkbox-state-(type=checkbox):suffering-from-being-missing>
     fn suffers_from_being_missing(&self, input: &HTMLInputElement, _value: &DOMString) -> bool {
         input.Required() && !input.Checked()

@@ -1046,7 +1046,7 @@ impl Fragment {
         let mut baseline_origin = rect.origin;
         baseline_origin.y += fragment.font_metrics.ascent;
 
-        let include_whitespace = fragment.run_data.selection.is_some() ||
+        let include_whitespace = fragment.run_data.selection.borrow().is_some() ||
             state
                 .text_decorations
                 .iter()
@@ -1311,22 +1311,14 @@ impl Fragment {
         justification_adjustment: Au,
     ) {
         let run_data = &fragment.run_data;
-        let Some(shared_selection) = &run_data.selection else {
+        let Some(selection) = *run_data.selection.borrow() else {
             return;
         };
-
-        let shared_selection = shared_selection.borrow();
-        if !shared_selection.enabled {
-            return;
-        }
 
         // The selection character range is in pre-transformed character offsets, so use the
         // OffsetMap contained within `run_data` to convert it to post-transformed character
         // offsets. This allows updating this selection directly from the DOM (skipping layout).
-        let dom_selection_range = &shared_selection.character_range;
-        let selection_character_range = run_data.map_dom_range_to_transformed_range(
-            Utf32CodeUnits(dom_selection_range.start)..Utf32CodeUnits(dom_selection_range.end),
-        );
+        let selection_character_range = run_data.map_dom_range_to_transformed_range(selection);
 
         if fragment.character_range_in_dom_node.start > selection_character_range.end ||
             fragment.character_range_in_dom_node.end < selection_character_range.start
@@ -1405,6 +1397,10 @@ impl Fragment {
                     .wr()
                     .push_rect(&selection_common, selection_rect, rgba(*selection_color));
             }
+            return;
+        }
+
+        if !fragment.run_data.paint_caret {
             return;
         }
 

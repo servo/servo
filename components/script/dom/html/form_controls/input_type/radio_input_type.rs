@@ -22,6 +22,7 @@ use crate::dom::html::form_controls::input_type::{
     InputType, SpecificInputActivationType, SpecificInputType,
 };
 use crate::dom::htmlformelement::{FormControl, HTMLFormElement};
+use crate::dom::input_type::text_input_widget::TextInputWidget;
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::node::{BindContext, Node, UnbindContext};
 use crate::dom::validation::Validatable;
@@ -37,6 +38,10 @@ pub(crate) struct RadioInputType {
 pub(crate) struct RadioInputActivation;
 
 impl SpecificInputType for RadioInputType {
+    fn text_input_widget(&self) -> Option<&DomRefCell<TextInputWidget>> {
+        None
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#radio-button-state-(type=radio):suffering-from-being-missing>
     fn suffers_from_being_missing(&self, input: &HTMLInputElement, _value: &DOMString) -> bool {
         if input.radio_group_name().is_none() {

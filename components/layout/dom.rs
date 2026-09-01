@@ -12,6 +12,7 @@ use layout_api::{
 use malloc_size_of_derive::MallocSizeOf;
 use script::layout_dom::ServoLayoutNode;
 use servo_arc::Arc as ServoArc;
+use servo_base::text::{RangeAny, Utf32CodeUnits};
 use smallvec::SmallVec;
 use style::context::SharedStyleContext;
 use style::properties::ComputedValues;
@@ -281,6 +282,25 @@ impl LayoutDataTrait for DOMLayoutData {}
 impl GenericLayoutDataTrait for DOMLayoutData {
     fn as_any(&self) -> &dyn std::any::Any {
         self
+    }
+
+    fn set_text_run_selection(&self, new_range: Option<RangeAny<Utf32CodeUnits>>) -> bool {
+        let inner = self.0.borrow();
+        // When `::first-letter` is used, one DOM text node can generate multiple text runs
+        // so there isn’t a single place to set the new range
+        if inner
+            .pseudo_boxes
+            .iter()
+            .any(|pseudo_box| matches!(pseudo_box.pseudo, PseudoElement::FirstLetter))
+        {
+            return false;
+        }
+        if let Some(LayoutBox::Text(text_run)) = &*inner.self_box.borrow() {
+            *text_run.borrow().run_data.selection.borrow_mut() = new_range;
+            true
+        } else {
+            false
+        }
     }
 }
 

@@ -16,6 +16,10 @@ pub(crate) struct TelInputType {
 }
 
 impl SpecificInputType for TelInputType {
+    fn text_input_widget(&self) -> Option<&DomRefCell<TextInputWidget>> {
+        Some(&self.text_input_widget)
+    }
+
     fn sanitize_value(&self, _input: &HTMLInputElement, value: &mut DOMString) {
         value.strip_newlines();
     }

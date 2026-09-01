@@ -11,7 +11,7 @@ use rustc_hash::FxHashSet;
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
 use script_bindings::dom::UnrootedDom;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
-use servo_base::text::Utf32CodeUnitsOrNodeOffset;
+use servo_base::text::{RangeAny, Utf16CodeUnits, Utf32CodeUnits, Utf32CodeUnitsOrNodeOffset};
 
 use crate::dom::abstractrange::bp_position;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
@@ -155,17 +155,31 @@ impl Selection {
 
         let previously_flagged_nodes = self.iter_nodes_with_overlaps_document_selection_flag(no_gc);
 
-        let remove_selection_flag = |node: &Node| {
+        let needs_new_display_list = Cell::new(false);
+        let set_text_run_selection =
+            |character_data: &CharacterData, range: Option<RangeAny<Utf32CodeUnits>>| {
+                if character_data.set_text_run_selection(range) {
+                    needs_new_display_list.set(true)
+                } else {
+                    character_data
+                        .upcast::<Node>()
+                        .dirty(no_gc, NodeDamage::ContentOrHeritage);
+                }
+            };
+        let remove_selection = |node: &Node| {
             node.set_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION, false);
             // Currently only `CharacterData` nodes show visible selection.
-            if node.is::<CharacterData>() {
-                node.dirty(no_gc, NodeDamage::ContentOrHeritage);
+            if let Some(character_data) = node.downcast::<CharacterData>() {
+                set_text_run_selection(character_data, None)
             }
         };
 
         let Some(range) = self.range.get() else {
             for node in previously_flagged_nodes {
-                remove_selection_flag(&node)
+                remove_selection(&node)
+            }
+            if needs_new_display_list.get() {
+                self.document.window().layout().set_needs_new_display_list();
             }
             return;
         };
@@ -174,39 +188,46 @@ impl Selection {
         // so we don’t need HashDoS resistance and can use a faster hasher than `std`’s default
         let mut previously_flagged_nodes: FxHashSet<_> = previously_flagged_nodes.collect();
 
-        let start_position = position_in_flat_tree_for_selection(
-            no_gc,
-            range.start_container(),
-            range.start_offset() as usize,
-        );
-        let end_position = position_in_flat_tree_for_selection(
-            no_gc,
-            range.end_container(),
-            range.end_offset() as usize,
-        );
+        let start_offset = range.start_offset() as usize;
+        let end_offset = range.end_offset() as usize;
+        let start_container = range.start_container();
+        let end_container = range.end_container();
+        let start_position =
+            position_in_flat_tree_for_selection(no_gc, start_container.clone(), start_offset);
+        let end_position =
+            position_in_flat_tree_for_selection(no_gc, end_container.clone(), end_offset);
         let start_node = start_position.node();
         let end_node = end_position.node();
 
-        // In case the range hasn't changed, but the offsets within the start/end end node
-        // have changed, always dirty the start and end nodes, if they paint selection.
+        // In case the range hasn't changed, but the offsets within the start/end end node have
+        // changed, always update the selection on the start and end nodes, if they paint selection.
+
         // TODO(mrobinson): We should handle changes only to the offsets within a single
-        // boundary node explicitly and not be unsetting and setting flags on the whole
-        // range.
-        if start_node.is::<CharacterData>() {
-            start_node.dirty(no_gc, NodeDamage::ContentOrHeritage);
+        // boundary node explicitly and not traversing the whole range.
+        // But that requires keeping track of the previous range, to compare.
+        if let Some(character_data) = start_container.downcast::<CharacterData>() {
+            let text = character_data.data();
+            let range = RangeAny {
+                start: Some(Utf16CodeUnits(start_offset).to_utf32_code_units_in(&text)),
+                end: (start_node == end_node)
+                    .then_some(Utf16CodeUnits(end_offset).to_utf32_code_units_in(&text)),
+            };
+            set_text_run_selection(character_data, Some(range))
         }
-        if end_node.is::<CharacterData>() {
-            end_node.dirty(no_gc, NodeDamage::ContentOrHeritage);
+        if end_container != start_container &&
+            let Some(character_data) = end_container.downcast::<CharacterData>()
+        {
+            let text = character_data.data();
+            let range = RangeAny {
+                start: None,
+                end: Some(Utf16CodeUnits(end_offset).to_utf32_code_units_in(&text)),
+            };
+            set_text_run_selection(character_data, Some(range))
         }
 
-        let mut add_selection_flag = |node: &UnrootedDom<'no_gc, Node>| {
+        let mut set_selection_flag = |node: &UnrootedDom<'no_gc, Node>| {
             if !node.get_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION) {
                 node.set_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION, true);
-
-                // Currently only `CharacterData` nodes show visible selection.
-                if node.is::<CharacterData>() {
-                    node.dirty(no_gc, NodeDamage::ContentOrHeritage);
-                }
                 debug_assert!(!previously_flagged_nodes.contains(node));
             } else {
                 previously_flagged_nodes.remove(node);
@@ -220,7 +241,7 @@ impl Selection {
         //   leaves (the only nodes that show visible selection).
         let mut maybe_parent = start_node.parent_in_flat_tree(no_gc);
         while let FlatTreeParent::Parent(parent) = maybe_parent {
-            add_selection_flag(&parent);
+            set_selection_flag(&parent);
             maybe_parent = parent.parent_in_flat_tree(no_gc);
         }
 
@@ -241,12 +262,18 @@ impl Selection {
                     if node == end_node && matches!(end_position, FlatTreeNodePosition::Before(_)) {
                         break;
                     }
-                    add_selection_flag(node);
+                    if node == start_node {
+                        continue;
+                    }
+                    set_selection_flag(node);
                 },
                 PrePostIteration::Leave(node) => {
-                    add_selection_flag(node);
+                    set_selection_flag(node);
                     if node == end_node {
                         break;
+                    }
+                    if let Some(character_data) = node.downcast::<CharacterData>() {
+                        set_text_run_selection(character_data, Some(RangeAny::full()))
                     }
                 },
             }
@@ -255,7 +282,10 @@ impl Selection {
         // Nodes that haven’t been removed from the `HashSet` by `add_selection_flag`
         // should no longer have the flag:
         for node in &previously_flagged_nodes {
-            remove_selection_flag(node)
+            remove_selection(node)
+        }
+        if needs_new_display_list.get() {
+            self.document.window().layout().set_needs_new_display_list();
         }
     }
 

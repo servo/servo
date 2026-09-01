@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::fmt;
 use std::iter::Sum;
 use std::ops::{Add, AddAssign, Range, Sub, SubAssign};
 
@@ -50,7 +51,7 @@ pub fn is_cjk(codepoint: char) -> bool {
 }
 
 /// Equivalent to either `Range`, `RangeTo`, `RangeFrom`, or `RangeFull`
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Eq, PartialEq, MallocSizeOf)]
 pub struct RangeAny<T> {
     /// `None` means zero
     pub start: Option<T>,
@@ -58,7 +59,26 @@ pub struct RangeAny<T> {
     pub end: Option<T>,
 }
 
+impl<T: fmt::Debug> fmt::Debug for RangeAny<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match (&self.start, &self.end) {
+            (Some(start), Some(end)) => write!(f, "{start:?}..{end:?}"),
+            (Some(start), None) => write!(f, "{start:?}.."),
+            (None, Some(end)) => write!(f, "..{end:?}"),
+            (None, None) => write!(f, ".."),
+        }
+    }
+}
+
 impl<T> RangeAny<T> {
+    /// Returns a `RangeAny` that represents the full range: both bounds unset
+    pub fn full() -> Self {
+        Self {
+            start: None,
+            end: None,
+        }
+    }
+
     /// Apply `Option::map` to each bound of this range
     pub fn map<U>(self, f: impl Fn(T) -> U + Copy) -> RangeAny<U> {
         let Self { start, end } = self;
@@ -112,7 +132,7 @@ impl<T> From<Range<T>> for RangeAny<T> {
 macro_rules! unicode_length_type {
     ($( #[$doc:meta] )+ $type_name:ident) => {
         $( #[$doc] )+
-        #[derive(Clone, Copy, Debug, Default, Eq, MallocSizeOf, Ord, PartialEq, PartialOrd)]
+        #[derive(Clone, Copy, Default, Eq, MallocSizeOf, Ord, PartialEq, PartialOrd)]
         pub struct $type_name(pub usize);
 
         impl $type_name {
@@ -170,6 +190,13 @@ macro_rules! unicode_length_type {
         impl Sum for $type_name {
             fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
                 iter.fold(Self::zero(), |a, b| Self(a.0 + b.0))
+            }
+        }
+
+        /// Use compact formatting regardless of `Formatter::alternate`
+        impl fmt::Debug for $type_name {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                write!(f, concat!(stringify!($type_name), "({:?})"), self.0)
             }
         }
     };
