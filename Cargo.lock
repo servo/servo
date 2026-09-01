@@ -9536,6 +9536,7 @@ dependencies = [
  "servo-malloc-size-of",
  "servo-script-bindings",
  "servo-webgpu-traits",
+ "trait-set",
  "wgpu-core 30.0.1",
  "wgpu-types 30.0.0",
 ]
@@ -11097,6 +11098,17 @@ name = "tracy-rs"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ce607aae8ab0ab3abf3a2723a9ab6f09bb8639ed83fdd888d857b8e556c868d8"
+
+[[package]]
+name = "trait-set"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "55442dd31337ec4b06189213a6a65cc414e4ae34e4cbc7bc050fae1573d14ed5"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 3.0.4",
+]
 
 [[package]]
 name = "transpose"

@@ -26,7 +26,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::gpuadapterinfo::GPUAdapterInfo;
 use crate::gpusupportedfeatures::{GPUSupportedFeatures, gpu_to_wgt_feature};
 use crate::gpusupportedlimits::{GPUSupportedLimits, set_limit};
-use crate::traits::{WebGPUGlobalTrait, WebGPUPromiseTrait};
+use crate::traits::{Equivalence, WebGPUGlobalTrait, WebGPUPromiseTrait};
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableGPUAdapter {
@@ -65,12 +65,7 @@ pub struct GPUAdapter<D: DomTypes> {
 
 impl<D> GPUAdapter<D>
 where
-    D: DomTypes<
-            GPUAdapter = GPUAdapter<D>,
-            GPUAdapterInfo = GPUAdapterInfo<D>,
-            GPUSupportedFeatures = GPUSupportedFeatures<D>,
-            GPUSupportedLimits = GPUSupportedLimits<D>,
-        >,
+    D: Equivalence,
 {
     fn new_inherited(
         channel: WebGPU,
@@ -198,12 +193,7 @@ where
 
 impl<D> GPUAdapterMethods<D> for GPUAdapter<D>
 where
-    D: DomTypes<
-            GPUAdapter = GPUAdapter<D>,
-            GPUAdapterInfo = GPUAdapterInfo<D>,
-            GPUSupportedFeatures = GPUSupportedFeatures<D>,
-            GPUSupportedLimits = GPUSupportedLimits<D>,
-        >,
+    D: Equivalence,
     D::Promise: WebGPUPromiseTrait<D> + PromiseHelpers<D>,
     D::GlobalScope: WebGPUGlobalTrait + GlobalScopeHelpers<D>,
 {

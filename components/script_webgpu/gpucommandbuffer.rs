@@ -19,6 +19,7 @@ use webgpu_traits::{WebGPU, WebGPUCommandBuffer, WebGPURequest};
 
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
+use crate::traits::Equivalence;
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableGPUCommandBuffer {
@@ -52,10 +53,7 @@ pub struct GPUCommandBuffer<D: DomTypes> {
     phantom: PhantomData<D>,
 }
 
-impl<D> GPUCommandBuffer<D>
-where
-    D: DomTypes<GPUCommandBuffer = GPUCommandBuffer<D>>,
-{
+impl<D: Equivalence> GPUCommandBuffer<D> {
     fn new_inherited(
         channel: WebGPU,
         command_buffer: WebGPUCommandBuffer,

@@ -23,6 +23,7 @@ use wgpu_core::naga::front::wgsl::ImplementedLanguageExtension;
 
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
+use crate::traits::Equivalence;
 
 #[dom_struct]
 pub struct WGSLLanguageFeatures<D: DomTypes> {
@@ -34,10 +35,7 @@ pub struct WGSLLanguageFeatures<D: DomTypes> {
     phantom: PhantomData<D>,
 }
 
-impl<D> WGSLLanguageFeatures<D>
-where
-    D: DomTypes<WGSLLanguageFeatures = WGSLLanguageFeatures<D>>,
-{
+impl<D: Equivalence> WGSLLanguageFeatures<D> {
     pub fn new(
         cx: &mut JSContext,
         global: &D::GlobalScope,
