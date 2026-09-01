@@ -16,6 +16,7 @@ use script_bindings::reflector::{Reflector, reflect_dom_object_with_wrap};
 use crate::JSTraceable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
+use crate::traits::Equivalence;
 
 #[dom_struct]
 pub struct GPUDeviceLostInfo<D: DomTypes> {
@@ -26,10 +27,7 @@ pub struct GPUDeviceLostInfo<D: DomTypes> {
     phantom: PhantomData<D>,
 }
 
-impl<D> GPUDeviceLostInfo<D>
-where
-    D: DomTypes<GPUDeviceLostInfo = GPUDeviceLostInfo<D>>,
-{
+impl<D: Equivalence> GPUDeviceLostInfo<D> {
     fn new_inherited(message: DOMString, reason: GPUDeviceLostReason) -> Self {
         Self {
             reflector_: Reflector::new(),

@@ -22,11 +22,10 @@ use wgpu_core::binding_model::BindGroupDescriptor;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::gpubindgrouplayout::GPUBindGroupLayout;
-use crate::gpubuffer::GPUBuffer;
 use crate::gpuconvert::{WebGPUConvert, convert_bind_group_entry};
 use crate::traits::{
-    GPUDeviceTrait, GPUExternalTextureTrait, GPUSamplerTrait, GPUTextureTrait, GPUTextureViewTrait,
-    WebGPUGlobalTrait,
+    Equivalence, GPUDeviceTrait, GPUExternalTextureTrait, GPUSamplerTrait, GPUTextureTrait,
+    GPUTextureViewTrait, WebGPUGlobalTrait,
 };
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -62,10 +61,7 @@ pub struct GPUBindGroup<D: DomTypes> {
     droppable: DroppableGPUBindGroup,
 }
 
-impl<D> GPUBindGroup<D>
-where
-    D: DomTypes<GPUBindGroup = GPUBindGroup<D>>,
-{
+impl<D: Equivalence> GPUBindGroup<D> {
     fn new_inherited(
         channel: WebGPU,
         bind_group: WebGPUBindGroup,
@@ -107,11 +103,7 @@ where
 
 impl<D> GPUBindGroup<D>
 where
-    D: DomTypes<
-            GPUBuffer = GPUBuffer<D>,
-            GPUBindGroup = GPUBindGroup<D>,
-            GPUBindGroupLayout = GPUBindGroupLayout<D>,
-        >,
+    D: Equivalence,
     D::GPUDevice: DomGlobalGeneric<D> + GPUDeviceTrait<D>,
     D::GlobalScope: WebGPUGlobalTrait,
     D::GPUExternalTexture: GPUExternalTextureTrait,

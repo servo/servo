@@ -217,7 +217,6 @@ pub(super) struct CanvasState {
     #[no_trace]
     current_default_path: DomRefCell<Path>,
     /// Buffered sender for batching canvas commands.
-    #[ignore_malloc_size_of = "GenericBufferedSender"]
     #[no_trace]
     pub(super) buffered_sender: GenericBufferedSender<CanvasMsg, CanvasCommand>,
 }

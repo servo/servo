@@ -446,7 +446,6 @@ pub(crate) struct Window {
     user_scripts: Rc<Vec<UserScript>>,
 
     /// Window's GL context from application
-    #[ignore_malloc_size_of = "defined in script_thread"]
     #[no_trace]
     player_context: WindowGLContext,
 

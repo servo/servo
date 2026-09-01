@@ -392,7 +392,7 @@ impl Path {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 pub enum FillRule {
     Nonzero,
     Evenodd,
@@ -439,7 +439,7 @@ pub struct LineOptions {
 
 pub type CanvasMsg = (CanvasId, CanvasCommand);
 
-#[derive(Debug, Deserialize, Serialize, Display)]
+#[derive(Debug, Deserialize, Serialize, Display, MallocSizeOf)]
 pub enum CanvasCommand {
     /// This is used for resizing (when size is provided) or just clearing the canvas (when size is `None`).
     Recreate(Option<Size2D<u64>>),
@@ -595,7 +595,7 @@ impl RadialGradientStyle {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 pub struct SurfaceStyle {
     pub surface_data: SharedSnapshot,
     pub surface_size: Size2D<u32>,
@@ -622,7 +622,7 @@ impl SurfaceStyle {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 pub enum FillOrStrokeStyle {
     Color(AbsoluteColor),
     LinearGradient(LinearGradientStyle),
@@ -773,13 +773,13 @@ impl FromStr for CompositionOrBlending {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, MallocSizeOf)]
 pub struct GlyphAndPosition {
     pub id: u32,
     pub point: Point2D<f32>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, MallocSizeOf)]
 pub struct CanvasFont {
     /// A [`FontIdentifier`] for this [`CanvasFont`], maybe either `Local` or `Web`.
     pub identifier: FontIdentifier,
@@ -799,7 +799,7 @@ impl CanvasFont {
     }
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, MallocSizeOf)]
 pub struct TextRun {
     pub font: CanvasFont,
     pub pt_size: f32,

@@ -17,6 +17,7 @@ use wgpu_types::Limits;
 
 use crate::JSTraceable;
 use crate::dom::bindings::root::DomRoot;
+use crate::traits::Equivalence;
 
 /// <https://gpuweb.github.io/gpuweb/#gpusupportedlimits>
 #[dom_struct]
@@ -29,10 +30,7 @@ pub struct GPUSupportedLimits<D: DomTypes> {
     phantom: PhantomData<D>,
 }
 
-impl<D> GPUSupportedLimits<D>
-where
-    D: DomTypes<GPUSupportedLimits = GPUSupportedLimits<D>>,
-{
+impl<D: Equivalence> GPUSupportedLimits<D> {
     fn new_inherited(limits: Limits) -> Self {
         Self {
             reflector_: Reflector::new(),

@@ -43,7 +43,6 @@ pub struct FontTemplateDescriptor {
     pub weight: ComputedFontWeightRange,
     pub stretch: ComputedFontStretchRange,
     pub style: ComputedFontStyleRange,
-    #[ignore_malloc_size_of = "MallocSizeOf does not yet support RangeInclusive"]
     pub unicode_range: Option<Vec<RangeInclusive<u32>>>,
 }
 

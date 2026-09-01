@@ -29,8 +29,8 @@ use crate::dom::validitystate::ValidityState;
 #[dom_struct]
 pub(crate) struct HTMLObjectElement {
     htmlelement: HTMLElement,
-    #[ignore_malloc_size_of = "RasterImage"]
     #[no_trace]
+    #[conditional_malloc_size_of]
     image: DomRefCell<Option<Arc<RasterImage>>>,
     form_owner: MutNullableDom<HTMLFormElement>,
     validity_state: MutNullableDom<ValidityState>,

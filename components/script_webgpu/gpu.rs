@@ -24,7 +24,7 @@ use wgpu_types::PowerPreference;
 use super::wgsllanguagefeatures::WGSLLanguageFeatures;
 use crate::dom::bindings::error::Error;
 use crate::gpuadapter::GPUAdapter;
-use crate::traits::{WebGPUGlobalTrait, WebGPUPromiseTrait};
+use crate::traits::{Equivalence, WebGPUGlobalTrait, WebGPUPromiseTrait};
 
 #[dom_struct]
 pub struct GPU<D: DomTypes> {
@@ -35,10 +35,7 @@ pub struct GPU<D: DomTypes> {
     phantom: PhantomData<D>,
 }
 
-impl<D> GPU<D>
-where
-    D: DomTypes<GPU = GPU<D>>,
-{
+impl<D: Equivalence> GPU<D> {
     pub(crate) fn new_inherited() -> GPU<D> {
         GPU {
             reflector_: Reflector::new(),
@@ -61,9 +58,9 @@ where
     }
 }
 
-impl<D: DomTypes> GPUMethods<D> for GPU<D>
+impl<D> GPUMethods<D> for GPU<D>
 where
-    D: DomTypes<GPU = GPU<D>, WGSLLanguageFeatures = WGSLLanguageFeatures<D>>,
+    D: Equivalence,
     D::Promise: PromiseHelpers<D> + WebGPUPromiseTrait<D>,
     D::GPU: DomGlobalGeneric<D>,
     D::GlobalScope: WebGPUGlobalTrait,

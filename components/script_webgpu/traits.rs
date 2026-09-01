@@ -20,8 +20,48 @@ use wgpu_types::TextureFormat;
 
 use crate::gpu::GPU;
 use crate::gpuadapter::GPUAdapter;
+use crate::gpuadapterinfo::GPUAdapterInfo;
+use crate::gpubindgroup::GPUBindGroup;
+use crate::gpubindgrouplayout::GPUBindGroupLayout;
 use crate::gpubuffer::GPUBuffer;
+use crate::gpubufferusage::GPUBufferUsage;
+use crate::gpucolorwrite::GPUColorWrite;
+use crate::gpucommandbuffer::GPUCommandBuffer;
+use crate::gpucompilationinfo::GPUCompilationInfo;
+use crate::gpucompilationmessage::GPUCompilationMessage;
+use crate::gpudevicelostinfo::GPUDeviceLostInfo;
+use crate::gpumapmode::GPUMapMode;
+use crate::gpurenderbundle::GPURenderBundle;
+use crate::gpushaderstage::GPUShaderStage;
+use crate::gpusupportedfeatures::GPUSupportedFeatures;
+use crate::gpusupportedlimits::GPUSupportedLimits;
+use crate::gputextureusage::GPUTextureUsage;
 use crate::identityhub::IdentityHub;
+use crate::wgsllanguagefeatures::WGSLLanguageFeatures;
+
+// This trait enforces the equivalence of all local types with the types in DomTypes.
+trait_set::trait_set! {
+pub trait Equivalence =  DomTypes<
+    GPU = GPU<Self>,
+        GPUAdapter = GPUAdapter<Self>,
+        GPUAdapterInfo = GPUAdapterInfo<Self>,
+        GPUBindGroup = GPUBindGroup<Self>,
+        GPUBindGroupLayout = GPUBindGroupLayout<Self>,
+        GPUBuffer = GPUBuffer<Self>,
+        GPUBufferUsage = GPUBufferUsage<Self>,
+        GPUColorWrite = GPUColorWrite<Self>,
+        GPUCommandBuffer = GPUCommandBuffer<Self>,
+        GPUCompilationInfo = GPUCompilationInfo<Self>,
+        GPUCompilationMessage = GPUCompilationMessage<Self>,
+        GPUDeviceLostInfo = GPUDeviceLostInfo<Self>,
+        GPUMapMode = GPUMapMode<Self>,
+        GPURenderBundle = GPURenderBundle<Self>,
+        GPUShaderStage = GPUShaderStage<Self>,
+        GPUSupportedFeatures = GPUSupportedFeatures<Self>,
+        GPUSupportedLimits = GPUSupportedLimits<Self>,
+        GPUTextureUsage = GPUTextureUsage<Self>,
+        WGSLLanguageFeatures = WGSLLanguageFeatures<Self>>;
+}
 
 /// The main trait for creating and using promises in script_webgpu.
 pub trait WebGPUPromiseTrait<D: DomTypes> {
