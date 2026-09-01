@@ -138,7 +138,7 @@ image = { version = "0.25", default-features = false, features = ["bmp", "gif", 
 imsz = "0.4"
 indexmap = { version = "2.14.0", features = ["std"] }
 inventory = "0.3.24"
-ipc-channel = "0.22"
+ipc-channel = "0.23"
 itertools = "0.15"
 jni = "0.22"
 js = { package = "mozjs", version = "=0.25.0", default-features = false, features = ["intl", "libz-sys"] }
