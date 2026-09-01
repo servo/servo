@@ -111,11 +111,11 @@ impl CharacterData {
         &self,
         new_range: Option<RangeAny<Utf32CodeUnits>>,
     ) -> bool {
-        if let Some(layout_data) = &*self.upcast::<Node>().layout_data().borrow() {
-            layout_data.set_text_run_selection(new_range)
-        } else {
-            false
-        }
+        self.upcast::<Node>()
+            .layout_data()
+            .borrow()
+            .as_ref()
+            .is_some_and(|layout_data| layout_data.set_text_run_selection(new_range))
     }
 }
 

@@ -210,11 +210,8 @@ impl TextInputWidgetShadowTree {
         // <https://drafts.csswg.org/css-ui/#element-with-default-preferred-size>.
         //
         // This is also used to ensure that the caret will still be rendered when the input is empty.
-        // TODO: Could append `<br>` element to prevent collapses and avoid this hack, but we would
-        //       need to fix the rendering of caret beforehand.
-        // TODO: maybe not `<br>`, but either way when this hack is removed, allow
-        // `TextInput::sorted_selection_character_offsets_range` to rely on `Rope::last_index()`
-        // to use an unbounded end.
+        // TODO: when this hack is removed, let `TextInput::sorted_selection_character_offsets_range`
+        // rely on `Rope::last_index()` to use an unbounded end in the `RangeAny` it returns.
         let value = element.value_text();
         let value_text = match (value.is_empty(), element.is_password_field()) {
             // For a password input, we replace all of the character with its replacement char.

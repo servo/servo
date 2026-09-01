@@ -286,12 +286,14 @@ impl GenericLayoutDataTrait for DOMLayoutData {
 
     fn set_text_run_selection(&self, new_range: Option<RangeAny<Utf32CodeUnits>>) -> bool {
         let inner = self.0.borrow();
-        for pseudo_box in &inner.pseudo_boxes {
-            if let PseudoElement::FirstLetter = pseudo_box.pseudo {
-                // When `::first-letter` is used, one DOM text node can generate multiple text runs
-                // so there isn’t a single place to set the new range
-                return false;
-            }
+        // When `::first-letter` is used, one DOM text node can generate multiple text runs
+        // so there isn’t a single place to set the new range
+        if inner
+            .pseudo_boxes
+            .iter()
+            .any(|pseudo_box| matches!(pseudo_box.pseudo, PseudoElement::FirstLetter))
+        {
+            return false;
         }
         if let Some(LayoutBox::Text(text_run)) = &*inner.self_box.borrow() {
             *text_run.borrow().run_data.selection.borrow_mut() = new_range;
